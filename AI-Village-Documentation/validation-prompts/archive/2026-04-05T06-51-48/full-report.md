@@ -428,7 +428,7 @@ But the gating pattern shown gates **non-AI premium features** (Creator Economy,
 
 ```sql
 -- Migration must include:
-ALTER TABLE "Users" ADD CONSTRAINT "unique_trial_email" 
+ALTER TABLE "Users" ADD CONSTRAINT "unique_trial_email"
   UNIQUE ("trialEmail"); -- or use the existing email field with a separate TrialHistory table
 ```
 
@@ -484,7 +484,7 @@ The current plan implies Option B (there's a `useSubscription` hook) but doesn't
 **Rating:** HIGH
 **Location:** Section 10, Phase 5
 
-The component is used throughout the gating pattern but has no entry in the New Files or Modified Files manifest. It either already exists (not mentioned) or needs to be built (not planned). 
+The component is used throughout the gating pattern but has no entry in the New Files or Modified Files manifest. It either already exists (not mentioned) or needs to be built (not planned).
 
 **Required additions to the manifest:**
 
@@ -502,7 +502,7 @@ interface CrystallineLockOverlayProps {
   ctaLabel?: string;                       // override if needed
   onUpgrade: () => void;                   // not onConfigure — name the intent
   children: React.ReactNode;
-  /** 
+  /**
    * When true, renders null instead of overlay UI when locked.
    * Use for content with real value (not just UI chrome).
    * Default: false (shows overlay with blurred content behind)
@@ -561,7 +561,7 @@ interface PaywallState {
 // On unlock:
 async function retryPendingRequest(): Promise<void> {
   if (!state.pendingRetry) return;
-  // Re-execute through the axios instance — interceptors re-run, 
+  // Re-execute through the axios instance — interceptors re-run,
   // including the auth header injection interceptor
   await apiClient.request(state.pendingRetry);
 }
@@ -619,7 +619,7 @@ The plan introduces several global providers and interceptors. Without careful i
 *   **Rating: CRITICAL**
 *   **Issue:** Wrapping `App.tsx` in `PaywallProvider` and `FeatureAccessProvider`. If the `PaywallContext` state updates (e.g., a background 402 error or a trial timer tick), the **entire application tree** will re-render.
 *   **Impact:** Dropped frames during animations and laggy input in the `WorkoutForge`.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Memoize the Context Value.
     2.  Split the context into `PaywallStateContext` and `PaywallActionsContext` so components only calling `showPaywall()` don't re-render when the state changes.
     3.  Use `React.memo` on heavy dashboard cards (Victory Charts).
@@ -651,7 +651,7 @@ The plan introduces several global providers and interceptors. Without careful i
 *   **Rating: MEDIUM**
 *   **Issue:** `GET /api/admin/ai-usage-stats` queries `aiMessagesUsedThisMonth`.
 *   **Impact:** As the user base grows to the "1,000-5,000" range mentioned, a sequential scan on the `Users` table for stats will slow down the Admin UI.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Add a composite index on `(role, aiMessagesUsedThisMonth DESC)`.
     2.  Ensure the migration for `trainerType` includes an index, as it will be used frequently in middleware filters.
 
@@ -1102,9 +1102,9 @@ The subscription master plan demonstrates **strong strategic thinking** with a m
 
 # Deep Architecture Review: SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md
 
-**Document Type:** Build Plan / Architecture Specification  
-**Reviewer:** Principal Software Engineer (Deep Architecture + Bug Hunt)  
-**Scope:** Strategic plan for subscription store, tier system, and AI feature gating  
+**Document Type:** Build Plan / Architecture Specification
+**Reviewer:** Principal Software Engineer (Deep Architecture + Bug Hunt)
+**Scope:** Strategic plan for subscription store, tier system, and AI feature gating
 
 ---
 
@@ -1131,7 +1131,7 @@ pro donation tiers: 15/25/40/60 msgs, 4/5/8/12 gens (scaling)
 elite: Infinity→300/50 (soft cap — warn, don't block)
 ```
 
-**Impact:** 
+**Impact:**
 - This contradiction will confuse developers implementing the feature
 - Marketing may promise "unlimited" while the code enforces limits
 - Users who exceed limits will experience unexpected behavior
@@ -1239,13 +1239,13 @@ router.get('/ai-usage-stats',
 - 50+ RPM → auto-cooldown 15 minutes (definitely automated)
 ```
 
-**Problem:** 
+**Problem:**
 - 20 RPM = 28,800 requests/day = ~864,000 monthly
 - While technically not a "monthly cap," this IS a throughput cap
 - Power users (trainers with many clients) could hit this legitimately
 - The contradiction between "unlimited" marketing and hard rate limits creates user experience problems
 
-**Fix:** 
+**Fix:**
 1. Increase rate limit to 60 RPM for paid tiers (1 req/second is reasonable)
 2. Add burst allowance (allow short spikes to 100 RPM)
 3. Document clearly: "Rate limiting is per-minute to prevent abuse, not a monthly cap"
@@ -1281,20 +1281,20 @@ export function resolveModelForTier(subscription, user) {
   if (user?.role === 'admin' || user?.role === 'trainer') {
     return process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   }
-  
+
   const tier = subscription?.tier || 'free';
   const amount = parseFloat(subscription?.amount) || 0;
-  
+
   // Define thresholds explicitly
   const THRESHOLDS = {
     gemini_2_5_flash: 5.00,  // Requires $5+ donation
     gemini_flash_lite: 0      // Default for everyone else
   };
-  
+
   if (tier === 'elite') return 'gemini-2.5-flash';
   if (tier === 'pro') {
-    return amount >= THRESHOLDS.gemini_2_5_flash 
-      ? 'gemini-2.5-flash' 
+    return amount >= THRESHOLDS.gemini_2_5_flash
+      ? 'gemini-2.5-flash'
       : 'gemini-2.0-flash-lite';
   }
   return 'gemini-2.0-flash-lite'; // free tier
@@ -1332,52 +1332,52 @@ export async function requireSubscription(requiredTier = 'free') {
     // ALWAYS check Stripe for current subscription status
     // Do NOT trust cached subscription state
     const user = req.user;
-    
+
     try {
       // Fetch REAL-TIME subscription status from Stripe
       const stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-      
+
       if (stripeCustomer.deleted) {
         // Customer deleted their Stripe account
         return res.status(402).json({ code: 'SUBSCRIPTION_INVALID' });
       }
-      
+
       const subscription = stripeCustomer.subscriptions?.data[0];
-      
+
       // Check if subscription is actually active
-      const isActive = subscription?.status === 'active' || 
+      const isActive = subscription?.status === 'active' ||
                         subscription?.status === 'trialing';
-      
+
       // Check period end
       const now = new Date();
       const periodEnd = new Date(subscription?.current_period_end * 1000);
-      
+
       if (!isActive || periodEnd < now) {
         // Subscription is invalid - force immediate downgrade
         await User.update(
           { subscriptionTier: 'free' },
           { where: { id: user.id } }
         );
-        return res.status(402).json({ 
+        return res.status(402).json({
           code: 'SUBSCRIPTION_EXPIRED',
-          expiredAt: periodEnd 
+          expiredAt: periodEnd
         });
       }
-      
+
       // Pass real-time subscription to downstream
       req.subscription = {
         tier: subscription.metadata.tier || 'free',
         amount: subscription.items.data[0].price.unit_amount / 100,
         periodEnd: periodEnd
       };
-      
+
       next();
     } catch (error) {
       // On Stripe error, FAIL CLOSED (deny access) not open
       console.error('Subscription verification failed:', error);
-      return res.status(503).json({ 
+      return res.status(503).json({
         code: 'SUBSCRIPTION_CHECK_FAILED',
-        retryable: true 
+        retryable: true
       });
     }
   };
@@ -1733,7 +1733,7 @@ This risk is elevated because:
 ```markdown
 ## ⛔ ABSOLUTE PROHIBITION — READ BEFORE TOUCHING ANY MODEL FILE
 
-**NEVER use `sequelize.sync({ force: true })` or `sequelize.sync({ alter: true })` 
+**NEVER use `sequelize.sync({ force: true })` or `sequelize.sync({ alter: true })`
 in ANY environment that has real data.**
 
 - `force: true` = DROP TABLE + recreate = ALL DATA GONE FOREVER
@@ -1745,7 +1745,7 @@ in ANY environment that has real data.**
 3. Test `up()` and `down()` on a copy of production data locally
 4. Deploy via `sequelize db:migrate` (never via sync)
 
-**If you see `sync({ force: true })` anywhere in the codebase outside of 
+**If you see `sync({ force: true })` anywhere in the codebase outside of
 test files, STOP and report it immediately.**
 ```
 
@@ -1805,7 +1805,7 @@ All trainer-related join tables MUST use:
 - NEVER use `ON DELETE CASCADE` on the Users table for trainer relationships
 
 Before implementing Phase 6, audit existing FK constraints:
-SELECT conname, confdeltype FROM pg_constraint 
+SELECT conname, confdeltype FROM pg_constraint
 WHERE conrelid = 'TrainerPermissions'::regclass;
 -- confdeltype 'a' = NO ACTION, 'r' = RESTRICT, 'c' = CASCADE
 -- CASCADE ('c') on trainer records = HIGH RISK
@@ -2080,7 +2080,7 @@ So I'll look for risks in the planned implementations.
 
 Let me list potential findings:
 
-1. **Data flow: PII exposure in admin usage dashboard** 
+1. **Data flow: PII exposure in admin usage dashboard**
    - In Phase 7, Admin AI Usage Dashboard shows per-user AI usage patterns, including potentially PII if user identifiers are displayed. While intended for admins, if access controls are flawed or if data is exported, PII could be leaked. The plan doesn't specify anonymization or minimization of PII in usage logs.
    - Rating: MEDIUM (since admins are trusted, but risk if compromised)
 
@@ -2138,7 +2138,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 
 **Creative Director (Lead Design Authority) — Round 2**
 
-Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA. 
+Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA.
 
 However, while I am approving half of your corrections, I am overriding you on two architectural points where your data is either outdated or prioritizes minor bundle savings over robust accessibility.
 
@@ -2163,7 +2163,7 @@ I fully accept your engineering solutions for the following:
 You argue that the Wing Purple glow (3.2:1 contrast) combined with `translateY(-2px)` creates a confusing and potentially non-compliant focus state. You are right that the transform interferes with keyboard focus tracking. However, slapping a rigid outline on a moving element looks cheap.
 
 **The Compromise Solution:**
-We separate the physics of `:hover` from the semantics of `:focus-visible`. 
+We separate the physics of `:hover` from the semantics of `:focus-visible`.
 - Mouse users (`:hover`) get the physical lift (`translateY`) and the glow.
 - Keyboard users (`:focus-visible`) get a static button (no transform) with *both* the glow and a crisp Ice Wing outline.
 
@@ -2202,7 +2202,7 @@ You proposed writing a custom 40-line vanilla JS focus trap to avoid adding `foc
 3. Elements with `tabindex="0"` dynamically added to the DOM after mount.
 4. Shadow DOM boundaries.
 
-We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size. 
+We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size.
 **Mandate:** Retain `focus-trap-react`. It is battle-tested and handles these edge cases natively.
 
 ---
@@ -2211,22 +2211,22 @@ We are building a $25/month luxury vault, not a coding bootcamp project. We do n
 
 **File:** `frontend/src/components/Subscription/CrystallineLockOverlay.tsx` (line ~71)
 
-You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.** 
+You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.**
 
-**The Facts:** 
+**The Facts:**
 - Safari shipped full support for `inert` in version 16.4 (March 2023).
 - Firefox shipped full support in version 112 (April 2023).
-- It is now the baseline modern web standard for modal accessibility. 
+- It is now the baseline modern web standard for modal accessibility.
 
-Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration. 
+Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration.
 
-**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers. 
+**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers.
 
 *(Note: If you are concerned about users on 2-year-old browsers, you may add the WICG `wicg-inert` polyfill to our build process, but the React code must use the `inert` attribute.)*
 
 ---
 
-**To the Implementation Reviewer:** 
+**To the Implementation Reviewer:**
 Update the tickets with the Button CSS compromise and the newly agreed items. Acknowledge the modern browser support for `inert` and the retention of `focus-trap-react`, and we will have a finalized, engineering-ready blueprint. Awaiting your Round 2 confirmation.
 
 ---
@@ -2270,14 +2270,14 @@ const RATE_LIMITS = {
     maxRequests: 20,
     cooldownMinutes: 15
   },
-  
+
   // Heavy users (Guardian/Elite): 30 RPM
   premium: {
     windowMs: 60 * 1000,
     maxRequests: 30,
     cooldownMinutes: 15
   },
-  
+
   // Anti-bot emergency threshold (NEVER normal human)
   botThreshold: {
     windowMs: 60 * 1000,
@@ -2290,12 +2290,12 @@ const RATE_LIMITS = {
 function checkRateLimit(userId, tier) {
   const limit = tier === 'free' ? RATE_LIMITS.default : RATE_LIMITS.premium;
   const requests = getRequestCount(userId, limit.windowMs);
-  
+
   // Soft warning at 80% capacity
   if (requests >= limit.maxRequests * 0.8) {
     logWarning(`User ${userId} at ${requests}/${limit.maxRequests} RPM`);
   }
-  
+
   // Hard throttle
   if (requests >= limit.maxRequests) {
     if (requests >= RATE_LIMITS.botThreshold.maxRequests) {
@@ -2306,7 +2306,7 @@ function checkRateLimit(userId, tier) {
     }
     return { allowed: false, retryAfter: limit.cooldownMinutes * 60 };
   }
-  
+
   return { allowed: true };
 }
 ```
@@ -2330,7 +2330,7 @@ A power user doing 15 AI-assisted workouts in an hour would hit 5 RPM but never 
 ```
 🔴 IMMEDIATE (before any deployment):
    Fix manifest to say 20 RPM, not 5 RPM
-   
+
 🟡 PHASE 7 (build order):
    Implement tiered rate limits per above
 ```
@@ -2368,34 +2368,34 @@ The **ONLY** real protection is the backend 402 interceptor, which the document 
  * Do NOT rely on this for access control.
  * All real gating happens in backend requireSubscription middleware.
  * Users CAN bypass this by editing DOM.
- * 
+ *
  * Purpose: Creates visual barrier + smooth upgrade flow.
  */
 
 // RENAME to make intent clear:
-export function PremiumFeatureGuard({ 
-  children, 
+export function PremiumFeatureGuard({
+  children,
   requiredTier,
-  isLocked 
+  isLocked
 }: PremiumFeatureGuardProps) {
   const { isPro, isElite, isTrial } = useSubscription();
-  
-  const hasAccess = 
-    isElite || 
-    isPro || 
+
+  const hasAccess =
+    isElite ||
+    isPro ||
     isTrial ||
     requiredTier === 'free';
 
   // REMOVE any conditional rendering that "protects" content
   // Content should ALWAYS render — overlay is purely visual
-  
+
   return (
     <div className="premium-feature-container">
       {/* Content always visible (backend handles real protection) */}
       <div className={hasAccess ? 'content-full' : 'content-blurred'}>
         {children}
       </div>
-      
+
       {/* Upgrade prompt for non-premium users */}
       {!hasAccess && (
         <PremiumOverlay variant="glass">
@@ -2423,7 +2423,7 @@ function requireTier(requiredTier) {
     // ALWAYS check backend first — frontend is lying
     const userTier = req.subscription?.tier || 'free';
     const hasAccess = checkTierAccess(userTier, requiredTier);
-    
+
     if (!hasAccess) {
       // Log the attempted bypass (could indicate abuse or frontend bug)
       if (req.headers['x-requested-tier']) {
@@ -2434,7 +2434,7 @@ function requireTier(requiredTier) {
           path: req.path
         });
       }
-      
+
       return res.status(402).json({
         error: 'PAYMENT_REQUIRED',
         message: 'Upgrade to access this feature',
@@ -2444,7 +2444,7 @@ function requireTier(requiredTier) {
         // DO NOT reveal what the locked feature actually is
       });
     }
-    
+
     next();
   };
 }
@@ -2472,10 +2472,10 @@ function requireTier(requiredTier) {
 🔴 CRITICAL (Phase 1):
    Verify backend 402 interceptor exists AND is comprehensive
    Test: bypass frontend overlay, verify 402 response
-   
+
 🟡 PHASE 5:
    Implement PremiumFeatureGuard with blurred content (not hidden)
-   
+
 🟢 ONGOING:
    Audit all premium endpoints for 402 coverage
 ```
@@ -2510,25 +2510,25 @@ const ANOMALY_THRESHOLDS = {
   // Normal heavy user: 10-15 RPM peak during active session
   // Power user: 20 RPM peak (rare)
   // BOT: 50+ RPM (virtually impossible for human)
-  
+
   yellowAlert: {
     requestsPerHour: 100, // REASONABLE — ~1.7 RPM, possible for very engaged user
     requestsPerDay: 500,
     severity: 'monitor'
   },
-  
+
   redAlert: {
     requestsPerHour: 200, // ~3.3 RPM — still possibly power user, flag for review
     requestsPerDay: 1000, // ~0.7 RPM average — could be legitimate
     severity: 'review'
   },
-  
+
   autoThrottle: {
     requestsPerMinute: 50, // 50 RPM = 0.83 RPS = BOT (auto-throttle)
     requestsPerHour: 3000, // Safety net
     severity: 'emergency-block'
   },
-  
+
   costAlert: {
     dailyCostUsd: 5, // Flash-Lite: $5 = 25,000 messages = massive scale OR abuse
     monthlyCostUsd: 50 // Alert at $50/mo (would need 250,000 messages)
@@ -2537,27 +2537,27 @@ const ANOMALY_THRESHOLDS = {
 
 function detectAnomalies(userId) {
   const stats = getAIUsageStats(userId);
-  
+
   // Check individual user patterns
   if (stats.lastHour >= ANOMALY_THRESHOLDS.autoThrottle.requestsPerMinute) {
     triggerAutoThrottle(userId);
     alertAdmin(`EMERGENCY: User ${userId} auto-throttled at ${stats.lastMinute} req/min`);
     return { action: 'throttled', reason: 'bot-detection' };
   }
-  
+
   if (stats.lastHour >= ANOMALY_THRESHOLDS.redAlert.requestsPerHour) {
     flagUser(userId, 'high-usage');
     alertAdmin(`RED: User ${userId} at ${stats.lastHour} req/hr`);
     return { action: 'flagged', reason: 'high-volume' };
   }
-  
+
   // Check global cost
   const todayCost = calculateDailyAICost();
   if (todayCost >= ANOMALY_THRESHOLDS.costAlert.dailyCostUsd) {
     alertAdmin(`COST ALERT: $${todayCost} spent today (limit: $${ANOMALY_THRESHOLDS.costAlert.dailyCostUsd})`);
     return { action: 'alert', reason: 'cost-threshold' };
   }
-  
+
   return { action: 'allowed' };
 }
 ```
@@ -2620,7 +2620,7 @@ trainerType: {
 // backend/middleware/trainerAuth.mjs
 
 const PERMISSION_MATRIX = {
-  affiliated: ['view_clients', 'edit_clients', 'view_progress', 
+  affiliated: ['view_clients', 'edit_clients', 'view_progress',
                 'manage_workouts', 'message_clients', 'access_dashboard'],
   independent: ['view_progress', 'manage_clients'], // Minimum viable
   null: [] // Non-trainers
@@ -2631,19 +2631,19 @@ function requireAffiliatedTrainer(req, res, next) {
   if (req.user?.role !== 'trainer') {
     return res.status(403).json({ error: 'NOT_TRAINER' });
   }
-  
+
   // trainerType must be set server-side ONLY
   // Check database directly, not req.body or JWT claims
   const user = await User.findByPk(req.user.id);
-  
+
   if (user.trainerType !== 'affiliated') {
     // Independent trainers don't get affiliated routes
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'AFFILIATED_ONLY',
       message: 'This feature is for affiliated trainers only'
     });
   }
-  
+
   next();
 }
 
@@ -2652,11 +2652,11 @@ function requireTrainerPermission(permission) {
   return async (req, res, next) => {
     // 1. Sean (admin) bypasses all
     if (req.user?.role === 'admin') return next();
-    
+
     // 2. Affiliated trainers have all permissions
     const user = await User.findByPk(req.user.id);
     if (user.trainerType === 'affiliated') return next();
-    
+
     // 3. Independent trainers: check explicit permissions
     const trainerPermissions = await getTrainerPermissions(req.user.id);
     if (!trainerPermissions.includes(permission)) {
@@ -2666,22 +2666,22 @@ function requireTrainerPermission(permission) {
         granted: trainerPermissions
       });
     }
-    
+
     // 4. Independent trainers can ONLY see their own clients
     if (req.params.clientId) {
       const isOwnClient = await verifyTrainerClientRelationship(
-        req.user.id, 
+        req.user.id,
         req.params.clientId
       );
       if (!isOwnClient) {
-        return res.status(403).json({ 
-          error: 'NOT_YOUR_CLIENT' 
+        return res.status(403).json({
+          error: 'NOT_YOUR_CLIENT'
         });
       }
     }
-    
+
     next();
- 
+
 
 ---
 

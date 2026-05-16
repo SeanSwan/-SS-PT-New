@@ -33,7 +33,7 @@ Here is the **Final Merged Specification** for the engineering team.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Animation Variables */
   --shimmer-dark: var(--swan-carbon);
   --shimmer-bright: var(--swan-midnight);
@@ -65,7 +65,7 @@ Here is the **Final Merged Specification** for the engineering team.
 .message-bubble.ai {
   background: var(--swan-graphite);
   border: 1px solid var(--swan-carbon);
-  border-bottom-left-radius: 4px; 
+  border-bottom-left-radius: 4px;
   margin-right: auto;
 }
 
@@ -74,7 +74,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border: 1px solid var(--swan-royal);
   border-bottom-right-radius: 4px;
   margin-left: auto;
-  color: var(--swan-frost); 
+  color: var(--swan-frost);
 }
 ```
 
@@ -125,14 +125,14 @@ Here is the **Final Merged Specification** for the engineering team.
 }
 
 @keyframes dotPulse {
-  0%, 80%, 100% { 
-    opacity: 0.2; 
-    transform: scale(0.8); 
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
     box-shadow: 0 0 0 rgba(80, 160, 240, 0);
   }
-  40% { 
-    opacity: 1.0; 
-    transform: scale(1.0); 
+  40% {
+    opacity: 1.0;
+    transform: scale(1.0);
     box-shadow: 0 0 8px rgba(80, 160, 240, 0.6); /* Luminescent glow */
   }
 }
@@ -142,7 +142,7 @@ Here is the **Final Merged Specification** for the engineering team.
 ```css
 .voice-recording-wrapper {
   position: relative;
-  width: 144px; 
+  width: 144px;
   height: 144px;
   display: flex;
   align-items: center;
@@ -154,7 +154,7 @@ Here is the **Final Merged Specification** for the engineering team.
   height: 80px;
   border-radius: 50%;
   background: var(--swan-midnight);
-  z-index: 10; 
+  z-index: 10;
   position: relative;
   transition: background-color 300ms ease, box-shadow 300ms ease;
 }
@@ -170,7 +170,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border-radius: 50%;
   top: 0; left: 0; right: 0; bottom: 0;
   margin: auto;
-  z-index: 1; 
+  z-index: 1;
   pointer-events: none;
   transition: transform 100ms ease-out;
 }

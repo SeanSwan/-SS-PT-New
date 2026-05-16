@@ -124,9 +124,9 @@ This has **three race condition vectors**:
 const loadConversation = useCallback(async (id: string) => {
   // Abort controller pattern — mandatory, not optional
   const controller = new AbortController();
-  
+
   setLoadingConversationId(id); // track WHICH conversation is loading, not just boolean
-  
+
   try {
     const messages = await fetchConversation(id, { signal: controller.signal });
     // Guard: only commit if this is still the requested conversation
@@ -139,7 +139,7 @@ const loadConversation = useCallback(async (id: string) => {
   } finally {
     setLoadingConversationId(prev => prev === id ? null : prev);
   }
-  
+
   return () => controller.abort(); // cleanup returned for useEffect
 }, []); // stable identity — no deps that change
 ```
@@ -185,20 +185,20 @@ class ContentStudioTabErrorBoundary extends React.Component<
   { hasError: boolean; error: Error | null }
 > {
   state = { hasError: false, error: null };
-  
+
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
-  
+
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Log to your error tracking (Sentry, etc.)
     console.error(`[ContentStudio:${this.props.tabName}] Tab crashed:`, error, info);
   }
-  
+
   render() {
     if (this.state.hasError) {
       return (
-        <TabErrorFallback 
+        <TabErrorFallback
           tabName={this.props.tabName}
           error={this.state.error}
           onReset={() => this.setState({ hasError: false, error: null })}
@@ -255,7 +255,7 @@ Additionally, if the Rolodex component is not memoized and lives inside a parent
 // components/workout/ExerciseRolodex.tsx — MUST use virtualization
 // File budget: this file will exceed 300 lines if it owns:
 //   - virtualization logic
-//   - search/filter state  
+//   - search/filter state
 //   - category tabs
 //   - individual exercise row rendering
 //   - drag-to-add interaction

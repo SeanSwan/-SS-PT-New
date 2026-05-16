@@ -579,7 +579,7 @@ The plan introduces high-complexity features (video generation, multi-platform d
 **Finding: Unbounded Content Calendar & Audit Logs**
 *   **Issue:** "Content Calendar (UI ready, no persistence)" and "Audit log: who published what." As the history grows, `SELECT * FROM marketing_logs` will slow down the dashboard.
 *   **Risk:** **MEDIUM**.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Add composite indexes on `(published_at, platform)` in PostgreSQL.
     *   Implement pagination/limit for the Content Calendar (only fetch the current month + 1 buffer).
 
@@ -975,9 +975,9 @@ The marketing/content studio blueprint shows strong technical planning but revea
 | 🟡 MEDIUM | 10 |
 | 🟢 LOW | 5 |
 
-**Production Blockers:** 6  
-**Security Vulnerabilities:** 7  
-**Architectural Flaws:** 9  
+**Production Blockers:** 6
+**Security Vulnerabilities:** 7
+**Architectural Flaws:** 9
 **Missing Implementation Details:** 14
 
 ---
@@ -1013,7 +1013,7 @@ class TokenVault {
   constructor(encryptionKey) {
     this.cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, Buffer.alloc(16));
   }
-  
+
   async storeToken(platform, userId, { access_token, refresh_token, expires_at }) {
     const encrypted = this.encrypt(JSON.stringify({ access_token, refresh_token }));
     await db.tokens.upsert({
@@ -1024,18 +1024,18 @@ class TokenVault {
       updated_at: new Date()
     });
   }
-  
+
   async getValidToken(platform, userId) {
     const token = await db.tokens.findOne({ platform, user_id: userId });
-    
+
     // Auto-refresh if expiring within 5 minutes
     if (token.expires_at - Date.now() < 5 * 60 * 1000) {
       return await this.refreshToken(platform, userId);
     }
-    
+
     return this.decrypt(token.encrypted_payload);
   }
-  
+
   async refreshToken(platform, userId) {
     // Platform-specific refresh logic with exponential backoff
     // Alert Sean via email/Slack if refresh fails after 3 attempts
@@ -1076,7 +1076,7 @@ export const csrfProtection = async (req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-  
+
   // Validate origin header
   const origin = req.headers.origin;
   const allowedOrigins = [
@@ -1084,19 +1084,19 @@ export const csrfProtection = async (req, res, next) => {
     'https://www.sswanstudios.com',
     process.env.NODE_ENV === 'development' && 'http://localhost:3000'
   ].filter(Boolean);
-  
+
   if (!allowedOrigins.includes(origin)) {
     return res.status(403).json({ error: 'Invalid origin' });
   }
-  
+
   // Validate CSRF token for cookie-based sessions
   const cookieToken = req.cookies['csrf_token'];
   const headerToken = req.headers['x-csrf-token'];
-  
+
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return res.status(403).json({ error: 'CSRF token mismatch' });
   }
-  
+
   next();
 };
 
@@ -1173,11 +1173,11 @@ export const sanitizeHtml = (dirty) => {
 // Usage in blogService.mjs
 export const publishBlogPost = async (postId, userId) => {
   const post = await db.posts.findById(postId);
-  
+
   // Sanitize before any processing
   const sanitizedContent = sanitizeHtml(post.content);
   const sanitizedTitle = sanitizeHtml(post.title);
-  
+
   // Also run output encoding at render time (frontend)
   await db.posts.update(postId, {
     content: sanitizedContent,
@@ -1204,7 +1204,7 @@ The requirement contradicts itself. **Environment variables are NOT encrypted**:
 **Current (WRONG):**
 ```bash
 # .env - INSECURE
-LATE_API_KEY=sk_live_xxxxxxxxxxxxxxxx
+LATE_API_KEY=<REDACTED-STRIPE-SECRET-KEY>
 BLOTATO_API_KEY=btk_live_xxxxxxxxxxxxx
 ```
 
@@ -1219,22 +1219,22 @@ class SecretsManager {
     this.cache = new Map();
     this.cacheExpiry = Date.now() + 5 * 60 * 1000; // 5 min TTL
   }
-  
+
   async getSecret(secretName) {
     // Check cache first
     if (this.cache.has(secretName) && Date.now() < this.cacheExpiry) {
       return this.cache.get(secretName);
     }
-    
+
     const response = await this.client.getSecretValue({ SecretId: secretName });
     const secret = JSON.parse(response.SecretString);
-    
+
     // Cache for subsequent reads
     this.cache.set(secretName, secret);
-    
+
     return secret;
   }
-  
+
   async getApiKey(service) {
     const secrets = await this.getSecret('swanstudios/api-keys');
     return secrets[service]; // Throws if not found
@@ -1278,15 +1278,15 @@ const RATE_LIMITS = {
 export const rateLimiter = (limitType = 'default') => async (req, res, next) => {
   const config = RATE_LIMITS[limitType];
   const key = `ratelimit:${limitType}:${req.user?.id || req.ip}`;
-  
+
   const [tokens, lastRefill] = await redis.hmget(key, 'tokens', 'lastRefill');
-  
+
   const now = Date.now();
   const timePassed = (now - parseInt(lastRefill)) / 1000;
   const refilledTokens = Math.floor(timePassed * (config.refillRate / 60));
-  
+
   let currentTokens = Math.min(config.bucketSize, parseInt(tokens || config.bucketSize) + refilledTokens);
-  
+
   if (currentTokens <= 0) {
     const retryAfter = Math.ceil((config.bucketSize / (config.refillRate / 60)));
     res.set('Retry-After', retryAfter);
@@ -1297,13 +1297,13 @@ export const rateLimiter = (limitType = 'default') => async (req, res, next) => 
       reset: new Date(now + retryAfter * 1000)
     });
   }
-  
+
   await redis.hmset(key, {
     tokens: currentTokens - 1,
     lastRefill: now
   });
   await redis.expire(key, 60);
-  
+
   res.set({
     'X
 
@@ -1341,8 +1341,8 @@ This review evaluates the `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` blueprin
 
 ### 6. Accessibility Gaps
 *   **Finding:** The plan emphasizes "Sean's vision" and "Human-centered" branding.
-*   **Recommendation:** 
-    *   **Color Contrast:** Ensure the `Gilded Fern` (#C6A84B) text on `Frost White` backgrounds meets WCAG AA standards. 
+*   **Recommendation:**
+    *   **Color Contrast:** Ensure the `Gilded Fern` (#C6A84B) text on `Frost White` backgrounds meets WCAG AA standards.
     *   **Keyboard Navigation:** The "Drag-and-drop" calendar must have a keyboard-accessible alternative (e.g., a "Move" menu in the post options).
     *   **Screen Readers:** Ensure the "CrystallineLockOverlay" is `aria-hidden="true"` or properly described so screen readers don't get stuck in a "locked" loop.
 *   **Rating:** **CRITICAL**
@@ -1553,15 +1553,15 @@ const BlogPost = sequelize.define('BlogPost', { ... }, {
 // Route-level protection:
 router.delete('/blog/:id', protect, adminOnly, async (req, res) => {
   const { confirmationText, reason } = req.body;
-  
+
   // Require explicit confirmation for destructive operations
   if (confirmationText !== `DELETE-${req.params.id}`) {
-    return res.status(400).json({ 
-      error: 'Confirmation required. Send confirmationText: "DELETE-{id}"' 
+    return res.status(400).json({
+      error: 'Confirmation required. Send confirmationText: "DELETE-{id}"'
     });
   }
-  
-  await BlogPost.destroy({ 
+
+  await BlogPost.destroy({
     where: { id: req.params.id },
     // paranoid: true means this sets deletedAt, not a real DELETE
   });
@@ -1590,8 +1590,8 @@ If a developer implements these with `ON DELETE CASCADE` referencing the Users t
 
 ```sql
 -- What a careless developer might write:
-ALTER TABLE BlogPosts 
-ADD CONSTRAINT fk_blog_created_by 
+ALTER TABLE BlogPosts
+ADD CONSTRAINT fk_blog_created_by
 FOREIGN KEY (createdBy) REFERENCES Users(id) ON DELETE CASCADE;
 
 -- Now: if Sean's admin account is ever deleted (accidentally, during a user cleanup,
@@ -1734,41 +1734,41 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 ## [PASS] Security Debate (Phase 2A)
 **Model:** stepfun/step-3.5-flash:free ↔ nvidia/nemotron-3-super-120b-a12b:free | **Duration:** 113.9s
 
-CONSENSUS REACHED  
+CONSENSUS REACHED
 **Merged Procedural Finding:** Both auditors agree that a valid security analysis debate requires concrete, specific references (file paths, line numbers, code snippets, and clear security implications). The absence of such details in Round 1 invalidated the debate. The Primary Auditor now provides the required initial analysis to enable substantive point-by-point review in Round 2.
 
 ---
 
-### Primary Security Auditor (Step 3.5 Flash) — Round 2: Initial Security Analysis  
-**Target:** Hypothetical web application `src/auth/` module (as no specific target was previously defined).  
+### Primary Security Auditor (Step 3.5 Flash) — Round 2: Initial Security Analysis
+**Target:** Hypothetical web application `src/auth/` module (as no specific target was previously defined).
 
-1. **File:** `src/auth/password_validator.py`  
-   **Lines:** 42–45  
-   **Code:**  
+1. **File:** `src/auth/password_validator.py`
+   **Lines:** 42–45
+   **Code:**
    ```python
    if len(password) < 8:
        return True  # Allows weak passwords
-   ```  
-   **Implication:** Password length enforcement is inverted—passwords shorter than 8 characters are accepted, enabling trivial brute-force attacks.  
+   ```
+   **Implication:** Password length enforcement is inverted—passwords shorter than 8 characters are accepted, enabling trivial brute-force attacks.
 
-2. **File:** `src/auth/session_manager.py`  
-   **Lines:** 78–82  
-   **Code:**  
+2. **File:** `src/auth/session_manager.py`
+   **Lines:** 78–82
+   **Code:**
    ```python
    session_token = generate_token()
    response.set_cookie('session', session_token, secure=False)  # Missing Secure flag
-   ```  
-   **Implication:** Session cookies transmitted without `Secure` flag, exposing them to network eavesdropping (MITM).  
+   ```
+   **Implication:** Session cookies transmitted without `Secure` flag, exposing them to network eavesdropping (MITM).
 
-3. **File:** `src/api/user_endpoints.py`  
-   **Lines:** 120–125  
-   **Code:**  
+3. **File:** `src/api/user_endpoints.py`
+   **Lines:** 120–125
+   **Code:**
    ```python
    @app.route('/api/user/<int:user_id>')
    def get_user(user_id):
        return db.query(f"SELECT * FROM users WHERE id = {user_id}")  # SQL injection
-   ```  
-   **Implication:** Direct string interpolation in SQL query enables authentication bypass via `user_id=1 OR 1=1`.  
+   ```
+   **Implication:** Direct string interpolation in SQL query enables authentication bypass via `user_id=1 OR 1=1`.
 
 ---
 
@@ -1800,7 +1800,7 @@ CONSENSUS REACHED
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires. 
+Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires.
 
 However, we have a fundamental disagreement on the Z-index architecture and how we handle the visual execution of your accessibility fixes. Here are my authoritative rulings on your three new disputes.
 
@@ -1809,7 +1809,7 @@ However, we have a fundamental disagreement on the Z-index architecture and how 
 
 *   **Your Stance:** The LockOverlay (`z-index: 50`) blocks the Sticky Footer (`z-index: 40`). You proposed raising the footer to `45` and lowering the overlay to `40` so users can still click "Approve & Publish" if they have missing API keys.
 *   **My Ruling:** **REJECTED.**
-*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend. 
+*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend.
 *   **Alternative:** The Z-indexes remain exactly as I specified (Overlay: 50, Footer: 40). To prevent confusion, the footer should simply not render, or render in a disabled state, when the overlay is active.
 
 **Directive:**
@@ -1854,7 +1854,7 @@ const PlanBNote = styled.p`
 
 *   **Your Stance:** Hiding the scrollbar breaks discoverability. You proposed adding an `::after` gradient for touch users and ARIA roles for keyboard users.
 *   **My Ruling:** **PARTIAL AGREE.**
-*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers. 
+*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers.
 *   **Alternative:** We keep my `mask-image` but make it dynamic via React state. When the user scrolls to the end, the mask is removed.
 
 **Directive:**
@@ -1870,22 +1870,22 @@ const SubNavPillRow = styled.div<{ isScrolledToEnd: boolean }>`
   overflow-x: auto;
   scrollbar-width: none;
   scroll-behavior: smooth;
-  
+
   // Dynamically remove the fade when scrolled to the end
-  mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
-  
+
   // Webkit fallback
-  -webkit-mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  -webkit-mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
 `;
 
 // 2. Implementation with your approved ARIA logic
 const SkillNavigation = () => {
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false);
-  
+
   const handleScroll = (e) => {
     const { scrollLeft, scrollWidth, clientWidth } = e.target;
     // 1px buffer for rounding errors
@@ -1893,10 +1893,10 @@ const SkillNavigation = () => {
   };
 
   return (
-    <SubNavPillRow 
-      isScrolledToEnd={isScrolledToEnd} 
+    <SubNavPillRow
+      isScrolledToEnd={isScrolledToEnd}
       onScroll={handleScroll}
-      role="tablist" 
+      role="tablist"
       aria-label="Skills navigation"
     >
       {/* Your exact ARIA button mapping goes here */}

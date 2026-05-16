@@ -637,7 +637,7 @@ As a Web Performance Engineer, I have reviewed the **Bootcamp Format & Style Com
 ### 1. Bundle Size (Markdown & Highlighting)
 **Rating: HIGH**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~65-80KB (gzipped) to the main bundle. For a "wealthy golf client" on a mobile device at a country club (potentially spotty LTE), this delays First Contentful Paint (FCP).
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main bundle. Use `const ReactMarkdown = React.lazy(() => import('react-markdown'))` specifically within the `TeachMe` or `ClassPreview` components.
     *   **Lightweight Alternatives:** Consider `snarkdown` or `micromark` if full GFM/Highlighting isn't required for exercise descriptions.
 
@@ -852,7 +852,7 @@ Error: Google GenAI 404: {
 
 # Risk Assessment & Feasibility Review: Bootcamp Format Upgrade Plan
 
-**Document**: `docs/ai-workflow/blueprints/BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md`  
+**Document**: `docs/ai-workflow/blueprints/BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md`
 **Review Scope**: The plan excerpt focuses on format/style changes. The mention of "Phase 4 (voice)" and "22 new files" suggests additional context not included. This review addresses the visible plan plus extrapolated risks from the referenced full document.
 
 ---
@@ -881,7 +881,7 @@ Error: Google GenAI 404: {
 The provided plan doesn't explicitly enumerate phases, but based on the referenced "Phase 4 (voice)" and typical upgrade patterns, I'm assuming:
 
 ```
-Phase 0 (Foundation) → Phase 1 (Formats) → Phase 2 (UI Components) → 
+Phase 0 (Foundation) → Phase 1 (Formats) → Phase 2 (UI Components) →
 Phase 3 (Timing Logic) → Phase 4 (Voice) → Phase 5 (Polish)
 ```
 
@@ -944,7 +944,7 @@ function calculateStationTime(
   rounds: number,
   workSec: number
 ): number {
-  const effectiveTimePerExercise = exercises.map(ex => 
+  const effectiveTimePerExercise = exercises.map(ex =>
     ex.unilateral ? workSec * 2 : workSec
   );
   const stationTime = effectiveTimePerExercise.reduce((a, b) => a + b, 0);
@@ -971,7 +971,7 @@ The plan mentions voice but not implementation details. Quick compatibility chec
 
 ### Bundle Size Accuracy
 
-`react-markdown` for teaching-me panel: 
+`react-markdown` for teaching-me panel:
 - Current: ~40KB gzipped (core) + remark plugins
 - Adding `remark-gfm`, `rehype-raw`, syntax highlighting could add 15-30KB
 - Acceptable if lazy-loaded, but not if rendered on initial page load
@@ -1075,7 +1075,7 @@ describe('calculateWorkoutTime', () => {
   it('calculates 2x8_r3 correctly', () => {
     expect(calculateWorkoutTime('2x8_r3')).toBe(2280); // 38 min in seconds
   });
-  
+
   it('doubles unilateral exercise time', () => {
     const exercises = [
       { name: 'Single-leg bridge', unilateral: true, durationSec: 30 },
@@ -1083,7 +1083,7 @@ describe('calculateWorkoutTime', () => {
     ];
     expect(calculateStationTime(exercises, 3)).toBe(180); // 60 + 30 * 3
   });
-  
+
   it('handles mixed_unilateral format', () => {
     // This test will catch the calculation discrepancy noted earlier
   });
@@ -1266,7 +1266,7 @@ This review evaluates your architecture against the high-performance requirement
 
 ### 6. Form Handling
 **Verdict:** Use **Uncontrolled inputs with `useRef`** for search, **Controlled** for conversation.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Search:** Uncontrolled + `lodash.debounce`. Don't re-render the whole sidebar on every keystroke.
     *   **Conversation:** Controlled. You need the state to sync with the AI coach immediately.
     *   **Debounce:** Use a custom `useDebounce` hook to prevent API spamming during rapid typing.
@@ -1279,10 +1279,10 @@ This review evaluates your architecture against the high-performance requirement
 ### 8. Touch Gestures
 **Verdict:** **Do not build this from scratch.**
 *   **Recommendation:** Use `framer-motion`'s `drag` and `onDragEnd` props.
-*   **Implementation:** 
+*   **Implementation:**
     ```tsx
-    <motion.div 
-      drag="x" 
+    <motion.div
+      drag="x"
       dragConstraints={{ left: -100, right: 0 }}
       onDragEnd={(_, info) => { if (info.offset.x < -50) handleReveal(); }}
     />
@@ -1470,7 +1470,7 @@ ALTER TABLE exercises
   ADD COLUMN IF NOT EXISTS unilateral_reviewed_by INTEGER REFERENCES users(id);
 
 COMMENT ON COLUMN exercises.is_unilateral IS
-  'TRUE if exercise works one limb at a time (requires 2x time for bilateral equivalence). 
+  'TRUE if exercise works one limb at a time (requires 2x time for bilateral equivalence).
    NULL-safe: unreviewed exercises default to FALSE (bilateral assumption).';
 
 -- Create a review queue for Sean to audit
@@ -1565,7 +1565,7 @@ If a trainer double-clicks "Generate Workout" or has two tabs open, two simultan
 // bootcampGenerator.mjs — idempotency key pattern
 export async function generateBootcampWorkout(params) {
   const { formatId, sessionId, idempotencyKey } = params;
-  
+
   // Check if this exact request was already processed
   const existing = await WorkoutGeneration.findOne({
     where: { idempotency_key: idempotencyKey },
@@ -1675,15 +1675,15 @@ export const bootcampGenerationLimiter = rateLimit({
 ## [PASS] API Design & Backend Contracts
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 109.7s
 
-# API Surface Review – Bootcamp Format Upgrade Plan  
-*(Focus: AI‑Chat endpoints referenced in the plan’s “Phase 1 needs zero backend changes” claim)*  
+# API Surface Review – Bootcamp Format Upgrade Plan
+*(Focus: AI‑Chat endpoints referenced in the plan’s “Phase 1 needs zero backend changes” claim)*
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
-**Finding:** The plan does **not** modify this endpoint, so we must verify whether the current shape satisfies the sidebar’s `ConversationSummary` needs (`title`, `context`, `messageCount`, `lastMessageAt`).  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
+**Finding:** The plan does **not** modify this endpoint, so we must verify whether the current shape satisfies the sidebar’s `ConversationSummary` needs (`title`, `context`, `messageCount`, `lastMessageAt`).
 
-**Typical current shape (inferred from existing codebase):**  
+**Typical current shape (inferred from existing codebase):**
 ```json
 [
   {
@@ -1694,99 +1694,99 @@ export const bootcampGenerationLimiter = rateLimit({
     "lastMessage": { "content": "...", "createdAt": "2025-08-20T14:05:00Z" }
   }
 ]
-```  
-*Missing:* explicit `messageCount` and a standalone `lastMessageAt` (the nested `lastMessage.createdAt` can be used but adds client‑side complexity).  
+```
+*Missing:* explicit `messageCount` and a standalone `lastMessageAt` (the nested `lastMessage.createdAt` can be used but adds client‑side complexity).
 
-**Verdict:** **Insufficient** for a clean sidebar implementation without extra client logic.  
+**Verdict:** **Insufficient** for a clean sidebar implementation without extra client logic.
 
-**Recommendation:**  
-- Add two fields to the conversation object:  
+**Recommendation:**
+- Add two fields to the conversation object:
   ```ts
   messageCount: number;   // total messages in the conversation
   lastMessageAt: string;  // ISO timestamp of the most recent message
-  ```  
-- Keep `lastMessage` for backward compatibility (optional).  
-- Update the Sequelize query to include `COUNT(messages) AS messageCount` and `MAX(messages.createdAt) AS lastMessageAt`.  
+  ```
+- Keep `lastMessage` for backward compatibility (optional).
+- Update the Sequelize query to include `COUNT(messages) AS messageCount` and `MAX(messages.createdAt) AS lastMessageAt`.
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
-**Finding:** The plan proposes filtering the already‑fetched list (≤20 items) in the browser.  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
+**Finding:** The plan proposes filtering the already‑fetched list (≤20 items) in the browser.
 
-**Adequacy:**  
-- ✅ **Acceptable for MVP** when the user’s conversation list is bounded (e.g., pagination or a hard limit of 20).  
-- ❌ **Will degrade** as users accumulate hundreds of conversations; client‑side filtering forces full list transfer and blocks UI thread.  
+**Adequacy:**
+- ✅ **Acceptable for MVP** when the user’s conversation list is bounded (e.g., pagination or a hard limit of 20).
+- ❌ **Will degrade** as users accumulate hundreds of conversations; client‑side filtering forces full list transfer and blocks UI thread.
 
-**When to add server‑side search:**  
-- Expected conversation count > 100 per user **or** latency > 100 ms on list fetch.  
-- Anticipated growth from the “voice‑first AI coach” feature (users may create many short‑lived chats).  
+**When to add server‑side search:**
+- Expected conversation count > 100 per user **or** latency > 100 ms on list fetch.
+- Anticipated growth from the “voice‑first AI coach” feature (users may create many short‑lived chats).
 
-**Recommendation:**  
-Add a lightweight search endpoint now to avoid a later breaking change:  
+**Recommendation:**
+Add a lightweight search endpoint now to avoid a later breaking change:
 
 ```http
 GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
-```  
+```
 
-- **SQL:** `WHERE title ILIKE '%$1%' OR (content::text) ILIKE '%$1%'` (Sequelize `ILIKE` on a JSONB `content` column if messages are stored there).  
-- Return the same `ConversationSummary` shape (including the new `messageCount`/`lastMessageAt`).  
-- Keep the existing endpoint for “get all” (or paginated) list; deprecate client‑only filter once server‑side search is in place.  
+- **SQL:** `WHERE title ILIKE '%$1%' OR (content::text) ILIKE '%$1%'` (Sequelize `ILIKE` on a JSONB `content` column if messages are stored there).
+- Return the same `ConversationSummary` shape (including the new `messageCount`/`lastMessageAt`).
+- Keep the existing endpoint for “get all” (or paginated) list; deprecate client‑only filter once server‑side search is in place.
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
-**Finding:** The plan proposes this REST‑style sub‑resource for uploading files (images, PDFs, etc.) to a conversation.  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
+**Finding:** The plan proposes this REST‑style sub‑resource for uploading files (images, PDFs, etc.) to a conversation.
 
-**REST Design:**  
-- ✅ **Correct** – treats attachments as a child collection of a conversation.  
-- ✅ **Idempotent‑safe** – each POST creates a new attachment resource.  
+**REST Design:**
+- ✅ **Correct** – treats attachments as a child collection of a conversation.
+- ✅ **Idempotent‑safe** – each POST creates a new attachment resource.
 
-**Multipart/Form‑Data Handling:**  
-- Expect `Content-Type: multipart/form-data` with at least:  
-  - `file`: the binary file (required).  
-  - Optional `description`: string (for accessibility notes).  
-- Backend must:  
-  1. Validate file type/size (e.g., max 10 MB, allowed MIME types: image/*, application/pdf).  
-  2. Store file in object storage (S3‑compatible) or local `uploads/` with a secure, random filename.  
-  3. Persist a record: `{ id, conversationId, url, mimeType, size, uploadedAt, uploadedBy }`.  
-  4. Return the created attachment object (201 Created).  
+**Multipart/Form‑Data Handling:**
+- Expect `Content-Type: multipart/form-data` with at least:
+  - `file`: the binary file (required).
+  - Optional `description`: string (for accessibility notes).
+- Backend must:
+  1. Validate file type/size (e.g., max 10 MB, allowed MIME types: image/*, application/pdf).
+  2. Store file in object storage (S3‑compatible) or local `uploads/` with a secure, random filename.
+  3. Persist a record: `{ id, conversationId, url, mimeType, size, uploadedAt, uploadedBy }`.
+  4. Return the created attachment object (201 Created).
 
-**Recommendation:**  
-- Adopt the above contract.  
-- Add a companion `DELETE /api/ai-chat/conversations/:id/attachments/:attachmentId` for cleanup.  
-- Ensure the attachment URL is served via a CDN or signed URL (expires in 1 h) to avoid exposing raw storage.  
+**Recommendation:**
+- Adopt the above contract.
+- Add a companion `DELETE /api/ai-chat/conversations/:id/attachments/:attachmentId` for cleanup.
+- Ensure the attachment URL is served via a CDN or signed URL (expires in 1 h) to avoid exposing raw storage.
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images to Gemini  
-**Finding:** The plan mentions sending images with messages to Gemini but does not specify the API change.  
+## 4. Multimodal Message API – Sending Images to Gemini
+**Finding:** The plan mentions sending images with messages to Gemini but does not specify the API change.
 
-**Two common patterns:**  
+**Two common patterns:**
 
 | Pattern | Pros | Cons |
 |---------|------|------|
 | **Inline `attachments` array in message create request** (`POST /api/ai-chat/conversations/:id/messages`) | Single round‑trip; easy to reason about. | Requires the client to hold file binary until message send; retry logic more complex. |
 | **Separate upload‑then‑reference** (upload file → get `attachmentId` → include IDs in message payload) | Decouples upload from message; enables reuse, progress UI, and resumable uploads. | Slightly more round‑trips (2 → 3). |
 
-**Recommendation:** Use the **separate upload‑then‑reference** flow because:  
+**Recommendation:** Use the **separate upload‑then‑reference** flow because:
 
-1. It aligns with the attachment endpoint already proposed.  
-2. It supports optimistic UI (show attachment preview immediately).  
-3. It simplifies rate‑limiting and retry handling for large files.  
+1. It aligns with the attachment endpoint already proposed.
+2. It supports optimistic UI (show attachment preview immediately).
+3. It simplifies rate‑limiting and retry handling for large files.
 
-**Message create request shape:**  
+**Message create request shape:**
 ```json
 {
   "content": "Describe this exercise form",
   "attachmentIds": ["att_abc", "att_def"], // array of previously uploaded attachment IDs
   "metadata": { /* optional: e.g., { source: "voice" } */ }
 }
-```  
-The backend will fetch the attachment URLs/mimeTypes and forward them to Gemini’s multimodal endpoint.  
+```
+The backend will fetch the attachment URLs/mimeTypes and forward them to Gemini’s multimodal endpoint.
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 | Operation | Frequency (per user) | Suggested Limit | Rationale |
 |-----------|----------------------|-----------------|-----------|
 | **Sidebar list** (`GET /api/ai-chat/conversations`) | Every page load / route change | **60 req/min** (burst + refill) | Allows frequent navigation while preventing abusive polling. |
@@ -1794,37 +1794,37 @@ The backend will fetch the attachment URLs/mimeTypes and forward them to Gemini�
 | **File upload** (`POST /api/ai-chat/conversations/:id/attachments`) | User‑driven, possibly multiple per chat | **5 req/min** **or** **50 MB/min** bandwidth cap | Protects storage and upstream Gemini costs; can be adjusted per‑tier (free vs. paid). |
 | **Message send** (existing) | High (chat flow) | **120 req/min** | Keep existing limit; ensure attachment uploads don’t bypass it. |
 
-*Implementation:* Use a Redis‑based token bucket (e.g., `express-rate-limit` with Redis store) keyed by `userId:action`.  
+*Implementation:* Use a Redis‑based token bucket (e.g., `express-rate-limit` with Redis store) keyed by `userId:action`.
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Polling  
-**Finding:** The plan notes that Socket.io already exists but does not specify whether conversation updates will use it.  
+## 6. WebSocket Integration – Push vs. Polling
+**Finding:** The plan notes that Socket.io already exists but does not specify whether conversation updates will use it.
 
-**Current state (assumed):** Sidebar data is fetched via polling or on‑demand REST calls.  
+**Current state (assumed):** Sidebar data is fetched via polling or on‑demand REST calls.
 
-**Recommendation:**  
-- **Leverage Socket.io for real‑time conversation updates**:  
-  - **Events to emit:**  
-    - `conversation:updated` (payload: `ConversationSummary`) – triggered on rename, new message, attachment add/delete.  
-    - `conversation:created` (for new chats initiated elsewhere).  
-    - `conversation:deleted` (rare, but useful for account‑wide cleanup).  
-  - **Client side:** Maintain a local cache of the conversation list; apply incoming events optimistically, fall back to REST refetch on disconnect.  
-- **Keep REST for CRUD operations** (create, rename, upload, delete) – the WS layer only pushes the *result* after the REST call succeeds.  
-- **Benefits:** Eliminates unnecessary polling, reduces server load, provides instant UI feedback (e.g., new message badge appears without a delay).  
+**Recommendation:**
+- **Leverage Socket.io for real‑time conversation updates**:
+  - **Events to emit:**
+    - `conversation:updated` (payload: `ConversationSummary`) – triggered on rename, new message, attachment add/delete.
+    - `conversation:created` (for new chats initiated elsewhere).
+    - `conversation:deleted` (rare, but useful for account‑wide cleanup).
+  - **Client side:** Maintain a local cache of the conversation list; apply incoming events optimistically, fall back to REST refetch on disconnect.
+- **Keep REST for CRUD operations** (create, rename, upload, delete) – the WS layer only pushes the *result* after the REST call succeeds.
+- **Benefits:** Eliminates unnecessary polling, reduces server load, provides instant UI feedback (e.g., new message badge appears without a delay).
 
----  
+---
 
-## 7. Response Contract – Are Existing Shapes Adequate?  
-**Finding:** The plan does not modify the response shape, so we must evaluate the current `ConversationSummary` contract.  
+## 7. Response Contract – Are Existing Shapes Adequate?
+**Finding:** The plan does not modify the response shape, so we must evaluate the current `ConversationSummary` contract.
 
-**Missing fields (see §1):** `messageCount`, `lastMessageAt`.  
-**Potential extra useful fields:**  
-- `unreadCount`: number of messages after the user’s last read timestamp (if read‑receipts are implemented).  
-- `preview`: first 100 chars of the latest message (optional, for UI).  
+**Missing fields (see §1):** `messageCount`, `lastMessageAt`.
+**Potential extra useful fields:**
+- `unreadCount`: number of messages after the user’s last read timestamp (if read‑receipts are implemented).
+- `preview`: first 100 chars of the latest message (optional, for UI).
 
-**Recommendation:**  
-Update the OpenAPI / TypeScript definition:  
+**Recommendation:**
+Update the OpenAPI / TypeScript definition:
 
 ```ts
 export interface ConversationSummary {
@@ -1841,34 +1841,34 @@ export interface ConversationSummary {
   updatedAt: string;
   lastMessage?: Message; // optional
 }
-```  
+```
 
-Ensure all backend routes that return a conversation array or single object conform to this shape.  
+Ensure all backend routes that return a conversation array or single object conform to this shape.
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
-**Finding:** The plan mentions a 5‑minute cache but does not detail invalidation.  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
+**Finding:** The plan mentions a 5‑minute cache but does not detail invalidation.
 
-**Assessment:**  
-- A static 5‑minute TTL is **simple** but can serve stale data (e.g., a new message sent just after cache fill won’t appear until the next refresh).  
-- For a chat sidebar, staleness > 30 s is noticeable and harms UX.  
+**Assessment:**
+- A static 5‑minute TTL is **simple** but can serve stale data (e.g., a new message sent just after cache fill won’t appear until the next refresh).
+- For a chat sidebar, staleness > 30 s is noticeable and harms UX.
 
-**Recommendation:**  
-Adopt a **hybrid approach**:  
+**Recommendation:**
+Adopt a **hybrid approach**:
 
-1. **Short‑lived cache (30 s)** for the conversation list to absorb rapid UI re‑renders (e.g., switching tabs).  
-2. **Event‑driven invalidation** via Redis pub/sub or Socket.io:  
-   - After any mutation that affects the list (new conversation, rename, new message, attachment add/delete, delete conversation), publish a `conversation-list:invalidated` event.  
-   - Subscribers (API instances) immediately purge the relevant user’s list cache.  
-3. **Cache key:** `conversation-list:{userId}:{page}:{limit}` (if paginated) or simply `conversation-list:{userId}` for the “recent 20” view.  
-4. **Fallback:** If the pub/sub mechanism fails, the 30‑second TTL guarantees eventual consistency.  
+1. **Short‑lived cache (30 s)** for the conversation list to absorb rapid UI re‑renders (e.g., switching tabs).
+2. **Event‑driven invalidation** via Redis pub/sub or Socket.io:
+   - After any mutation that affects the list (new conversation, rename, new message, attachment add/delete, delete conversation), publish a `conversation-list:invalidated` event.
+   - Subscribers (API instances) immediately purge the relevant user’s list cache.
+3. **Cache key:** `conversation-list:{userId}:{page}:{limit}` (if paginated) or simply `conversation-list:{userId}` for the “recent 20” view.
+4. **Fallback:** If the pub/sub mechanism fails, the 30‑second TTL guarantees eventual consistency.
 
-This yields near‑real‑time updates without the overhead of polling every few seconds.  
+This yields near‑real‑time updates without the overhead of polling every few seconds.
 
----  
+---
 
-### Summary of Action Items  
+### Summary of Action Items
 
 | # | Area | Change |
 |---|------|--------|
@@ -1881,12 +1881,12 @@ This yields near‑real‑time updates without the overhead of polling every few
 | 7 | Response contract | Update `ConversationSummary` TS interface & OpenAPI spec. |
 | 8 | Caching | 30‑second TTL + Redis pub/sub invalidation on list‑affecting mutations. |
 
-Implementing the above will make the AI‑chat backend robust enough to support the planned voice‑first AI coach, file‑sharing, and multimodal interactions while keeping the Bootcamp format upgrade truly **zero‑impact** on the existing API surface.  
+Implementing the above will make the AI‑chat backend robust enough to support the planned voice‑first AI coach, file‑sharing, and multimodal interactions while keeping the Bootcamp format upgrade truly **zero‑impact** on the existing API surface.
 
----  
+---
 
-*Prepared for: SwanStudios API Architecture Review*  
-*Date: 2025‑08‑27*  
+*Prepared for: SwanStudios API Architecture Review*
+*Date: 2025‑08‑27*
 *Reviewer: Backend API Architect*
 
 ---
@@ -1908,9 +1908,9 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 74.9s | **Web Research:** 10 sources cited
 
-As a strategic product researcher and futurist operating in Q2 2026, I have analyzed the `BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md` for SwanStudios. While the plan excellently addresses the immediate mechanical flaws in the Bootcamp Builder (station math, unilateral exercises, new formats), it is building a *2024 solution for a 2026 market*. 
+As a strategic product researcher and futurist operating in Q2 2026, I have analyzed the `BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md` for SwanStudios. While the plan excellently addresses the immediate mechanical flaws in the Bootcamp Builder (station math, unilateral exercises, new formats), it is building a *2024 solution for a 2026 market*.
 
-To maintain SwanStudios' premium positioning for wealthy golf clients and working professionals, we must elevate this from a "workout generator" to an **autonomous, context-aware, and legally compliant fitness ecosystem**. 
+To maintain SwanStudios' premium positioning for wealthy golf clients and working professionals, we must elevate this from a "workout generator" to an **autonomous, context-aware, and legally compliant fitness ecosystem**.
 
 Here is the comprehensive gap analysis and future-proofing strategy, backed by 2025–2026 market intelligence.
 
@@ -2019,44 +2019,44 @@ CONSENSUS REACHED
 
 Based on mutual agreement with the Secondary Security Planner's Round 1 disputes, the following corrections are required to the Primary Security Planner's original analysis. All other points from the Primary's Round 1 remain valid and unchanged.
 
-### 🔴 CORRECTION TO CRITICAL 1: Removal of Incorrect AI Attribution  
-**Agreed Issue:** The Primary incorrectly attributed format object validation risks to "AI suggestions" in `useBootcampAPI.ts` and the CRITICAL 1 mitigation rationale. The Executive Summary explicitly confirms **no AI components are present** in this plan (domain-configuration upgrade only). This misattribution risks engineering effort on non-existent vectors.  
+### 🔴 CORRECTION TO CRITICAL 1: Removal of Incorrect AI Attribution
+**Agreed Issue:** The Primary incorrectly attributed format object validation risks to "AI suggestions" in `useBootcampAPI.ts` and the CRITICAL 1 mitigation rationale. The Executive Summary explicitly confirms **no AI components are present** in this plan (domain-configuration upgrade only). This misattribution risks engineering effort on non-existent vectors.
 
-**Agreed Correction:**  
-- **File:** `frontend/src/hooks/useBootcampAPI.ts` (line 22)  
+**Agreed Correction:**
+- **File:** `frontend/src/hooks/useBootcampAPI.ts` (line 22)
   ```diff
   - // Malformed format objects from AI suggestions could inject invalid workSec/restSec values
   + // Malformed format objects from frontend state errors or manual input could inject invalid workSec/restSec values
-  ```  
-- **File:** CRITICAL 1 mitigation description (Backend validation middleware rationale)  
+  ```
+- **File:** CRITICAL 1 mitigation description (Backend validation middleware rationale)
   ```diff
-  - 3. **Backend validation middleware** in `bootcampGenerator.mjs`:  
-  -    ... (to prevent malformed format objects from AI suggestions)  
-  + 3. **Backend validation middleware** in `bootcampGenerator.mjs`:  
-  +    ... (to prevent malformed format objects from invalid frontend state or user input)  
-  ```  
+  - 3. **Backend validation middleware** in `bootcampGenerator.mjs`:
+  -    ... (to prevent malformed format objects from AI suggestions)
+  + 3. **Backend validation middleware** in `bootcampGenerator.mjs`:
+  +    ... (to prevent malformed format objects from invalid frontend state or user input)
+  ```
 
-### 🟡 CORRECTION TO CRITICAL 1: Incomplete Type Definition Missing ClassStyle  
-**Agreed Issue:** The Primary's proposed discriminated union in `frontend/src/types/bootcamp.types.ts` omitted the `ClassStyle` field (e.g., `ladder`, `chipper`), which is essential for validating format/style combinations per the plan's Section 3. Without this, the type system cannot prevent invalid pairs (e.g., `mixed_unilateral` format with `ygig` style), creating logic bypass gaps that exacerbate the HIGH 5 constant desync risk.  
+### 🟡 CORRECTION TO CRITICAL 1: Incomplete Type Definition Missing ClassStyle
+**Agreed Issue:** The Primary's proposed discriminated union in `frontend/src/types/bootcamp.types.ts` omitted the `ClassStyle` field (e.g., `ladder`, `chipper`), which is essential for validating format/style combinations per the plan's Section 3. Without this, the type system cannot prevent invalid pairs (e.g., `mixed_unilateral` format with `ygig` style), creating logic bypass gaps that exacerbate the HIGH 5 constant desync risk.
 
-**Agreed Correction:**  
-- **File:** `frontend/src/types/bootcamp.types.ts` (lines 1-10)  
+**Agreed Correction:**
+- **File:** `frontend/src/types/bootcamp.types.ts` (lines 1-10)
   ```diff
-  -type StationFormat = 
+  -type StationFormat =
   -  | { kind: 'station'; stations: number; exercisesPerStation: number; rounds: number; workSec: number; restSec: number; unilateralHandling: 'double' | 'ignore' }
   -  | { kind: 'mixed_unilateral'; bilateralStations: number; unilateralStation: { exercises: number; rounds: number } ; workSec: number; restSec: number }
   -type ClassStyle = 'ladder' | 'descending' | 'chipper' | 'countdown' | 'death_by' | 'ygig' | 'contrast' | 'density';
-  +type StationFormat = 
+  +type StationFormat =
   +  | { kind: 'station'; stations: number; exercisesPerStation: number; rounds: number; workSec: number; restSec: number; unilateralHandling: 'double' | 'ignore'; classStyle: ClassStyle }
   +  | { kind: 'mixed_unilateral'; bilateralStations: number; unilateralStation: { exercises: number; rounds: number }; workSec: number; restSec: number; classStyle: ClassStyle }
   +type ClassStyle = 'ladder' | 'descending' | 'chipper' | 'countdown' | 'death_by' | 'ygig' | 'contrast' | 'density';
-  ```  
+  ```
 
-### Impact of Corrections  
-- **CRITICAL 1:** Eliminates misleading AI-focused mitigation efforts, redirecting focus to actual risks (frontend state/manual input). Ensures type safety covers *both* format structure *and* style, preventing invalid combinations that could cause timing miscalculations or resource exhaustion.  
-- **No changes** to other risks (CRITICAL 2-3, HIGH 4-5, MEDIUM 6-7) as they were not disputed and remain valid per the Secondary's Round 1 agreement.  
+### Impact of Corrections
+- **CRITICAL 1:** Eliminates misleading AI-focused mitigation efforts, redirecting focus to actual risks (frontend state/manual input). Ensures type safety covers *both* format structure *and* style, preventing invalid combinations that could cause timing miscalculations or resource exhaustion.
+- **No changes** to other risks (CRITICAL 2-3, HIGH 4-5, MEDIUM 6-7) as they were not disputed and remain valid per the Secondary's Round 1 agreement.
 
----  
+---
 *All code changes are specific, actionable, and aligned with the plan's actual scope (Bootcamp Builder format/constants upgrade). No AI-related mitigations are retained, as none exist in this plan.*
 
 ---
@@ -2098,7 +2098,7 @@ Here is the **Final Merged Specification** for the engineering team.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Animation Variables */
   --shimmer-dark: var(--swan-carbon);
   --shimmer-bright: var(--swan-midnight);
@@ -2130,7 +2130,7 @@ Here is the **Final Merged Specification** for the engineering team.
 .message-bubble.ai {
   background: var(--swan-graphite);
   border: 1px solid var(--swan-carbon);
-  border-bottom-left-radius: 4px; 
+  border-bottom-left-radius: 4px;
   margin-right: auto;
 }
 
@@ -2139,7 +2139,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border: 1px solid var(--swan-royal);
   border-bottom-right-radius: 4px;
   margin-left: auto;
-  color: var(--swan-frost); 
+  color: var(--swan-frost);
 }
 ```
 
@@ -2190,14 +2190,14 @@ Here is the **Final Merged Specification** for the engineering team.
 }
 
 @keyframes dotPulse {
-  0%, 80%, 100% { 
-    opacity: 0.2; 
-    transform: scale(0.8); 
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
     box-shadow: 0 0 0 rgba(80, 160, 240, 0);
   }
-  40% { 
-    opacity: 1.0; 
-    transform: scale(1.0); 
+  40% {
+    opacity: 1.0;
+    transform: scale(1.0);
     box-shadow: 0 0 8px rgba(80, 160, 240, 0.6); /* Luminescent glow */
   }
 }
@@ -2207,7 +2207,7 @@ Here is the **Final Merged Specification** for the engineering team.
 ```css
 .voice-recording-wrapper {
   position: relative;
-  width: 144px; 
+  width: 144px;
   height: 144px;
   display: flex;
   align-items: center;
@@ -2219,7 +2219,7 @@ Here is the **Final Merged Specification** for the engineering team.
   height: 80px;
   border-radius: 50%;
   background: var(--swan-midnight);
-  z-index: 10; 
+  z-index: 10;
   position: relative;
   transition: background-color 300ms ease, box-shadow 300ms ease;
 }
@@ -2235,7 +2235,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border-radius: 50%;
   top: 0; left: 0; right: 0; bottom: 0;
   margin: auto;
-  z-index: 1; 
+  z-index: 1;
   pointer-events: none;
   transition: transform 100ms ease-out;
 }
@@ -2352,18 +2352,18 @@ This warrants CRITICAL classification because:
 export type ClassFormat = 'stations_4x' | 'stations_3x5' | ...;
 
 // AFTER (with exhaustive mapping)
-export type ClassStyle = 
-  | 'standard' 
-  | 'ladder' 
-  | 'descending' 
-  | 'chipper' 
-  | 'countdown' 
-  | 'death_by' 
-  | 'ygig' 
-  | 'contrast' 
+export type ClassStyle =
+  | 'standard'
+  | 'ladder'
+  | 'descending'
+  | 'chipper'
+  | 'countdown'
+  | 'death_by'
+  | 'ygig'
+  | 'contrast'
   | 'density';
 
-export type ClassFormat = 
+export type ClassFormat =
   | 'stations_2x8_r3'  // stations × exercises × rounds
   | 'stations_2x6_r3'
   // ... all 15 formats from plan
@@ -2411,7 +2411,7 @@ export function validateFormatStyleCombo(format: ClassFormat, style: ClassStyle)
 
 **Decision:** Block Sprint 1 feature work on **completion** of `ClassStyle` type definition and combination matrix. This is a prerequisite for:
 - Format picker filtering
-- Timing preview accuracy  
+- Timing preview accuracy
 - `mixed_unilateral` special case handling
 
 ---
@@ -2423,24 +2423,24 @@ gantt
     title Implementation Sequence
     dateFormat X
     axisFormat %S
-    
+
     section Type Foundation
     Define ClassStyle type           :done, 0, 5%
     Define combination matrix        :done, 5%, 10%
     Add runtime validator             :done, 10%, 15%
-    
+
     section Backend Mirror
     Sync bootcampConstants.mjs       :active, 15%, 20%
-    
-    section Frontend Integration  
+
+    section Frontend Integration
     Update useBootcampAPI types      :crit, 20%, 25%
     Update FormatPicker filtering    :crit, 25%, 35%
     Update timing calculator         :crit, 35%, 45%
-    
+
     section Testing
     Property-based combo tests       :45%, 55%
     E2E timing validation            :55%, 65%
-    
+
     section Other Features
     Station format expansion         :65%, 100%
     Style library implementation     :65%, 100%

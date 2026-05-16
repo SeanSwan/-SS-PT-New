@@ -84,18 +84,18 @@ This warrants CRITICAL classification because:
 export type ClassFormat = 'stations_4x' | 'stations_3x5' | ...;
 
 // AFTER (with exhaustive mapping)
-export type ClassStyle = 
-  | 'standard' 
-  | 'ladder' 
-  | 'descending' 
-  | 'chipper' 
-  | 'countdown' 
-  | 'death_by' 
-  | 'ygig' 
-  | 'contrast' 
+export type ClassStyle =
+  | 'standard'
+  | 'ladder'
+  | 'descending'
+  | 'chipper'
+  | 'countdown'
+  | 'death_by'
+  | 'ygig'
+  | 'contrast'
   | 'density';
 
-export type ClassFormat = 
+export type ClassFormat =
   | 'stations_2x8_r3'  // stations × exercises × rounds
   | 'stations_2x6_r3'
   // ... all 15 formats from plan
@@ -143,7 +143,7 @@ export function validateFormatStyleCombo(format: ClassFormat, style: ClassStyle)
 
 **Decision:** Block Sprint 1 feature work on **completion** of `ClassStyle` type definition and combination matrix. This is a prerequisite for:
 - Format picker filtering
-- Timing preview accuracy  
+- Timing preview accuracy
 - `mixed_unilateral` special case handling
 
 ---
@@ -155,24 +155,24 @@ gantt
     title Implementation Sequence
     dateFormat X
     axisFormat %S
-    
+
     section Type Foundation
     Define ClassStyle type           :done, 0, 5%
     Define combination matrix        :done, 5%, 10%
     Add runtime validator             :done, 10%, 15%
-    
+
     section Backend Mirror
     Sync bootcampConstants.mjs       :active, 15%, 20%
-    
-    section Frontend Integration  
+
+    section Frontend Integration
     Update useBootcampAPI types      :crit, 20%, 25%
     Update FormatPicker filtering    :crit, 25%, 35%
     Update timing calculator         :crit, 35%, 45%
-    
+
     section Testing
     Property-based combo tests       :45%, 55%
     E2E timing validation            :55%, 65%
-    
+
     section Other Features
     Station format expansion         :65%, 100%
     Style library implementation     :65%, 100%

@@ -8,8 +8,8 @@
 
 # Risk Assessment: Bootcamp Builder Overhaul
 
-**Project:** SwanStudios Bootcamp Class Builder Enhancement  
-**Review Date:** Generated  
+**Project:** SwanStudios Bootcamp Class Builder Enhancement
+**Review Date:** Generated
 **Assessor Role:** Project Manager / Risk Assessor
 
 ---

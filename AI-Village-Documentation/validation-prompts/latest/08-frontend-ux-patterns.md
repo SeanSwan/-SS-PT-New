@@ -15,7 +15,7 @@ This review evaluates the architectural and UX readiness of the SwanStudios refa
 
 ### 2. styled-components Best Practices
 *   **Finding:** **CRITICAL** — The reported runtime crash in `RemotionTemplateGallery` indicates a failure in theme context propagation or unsafe property access within styled-components.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Theme Tokens:** Ensure `Arctic Cyan` and `Ice Wing` are strictly pulled from a `theme.ts` object, never hardcoded.
     *   **Glassmorphism:** Use `backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.1);` consistently.
     *   **Safety:** Use `styled(Component).attrs(...)` or optional chaining in style functions to prevent crashes when props are missing during initial render.
@@ -30,13 +30,13 @@ This review evaluates the architectural and UX readiness of the SwanStudios refa
 
 ### 5. State Management
 *   **Finding:** **CRITICAL** — The documentation reveals fragmented AI terminal state.
-*   **Recommendation:** 
-    *   **Unified AI Terminal:** Move away from local component state. Use a centralized `AITerminalProvider` (Context API or Zustand) to manage conversation history, loading states, and voice input buffers. 
+*   **Recommendation:**
+    *   **Unified AI Terminal:** Move away from local component state. Use a centralized `AITerminalProvider` (Context API or Zustand) to manage conversation history, loading states, and voice input buffers.
     *   **Race Conditions:** The current `loadConversation` implementation is prone to race conditions. Use `AbortController` in `useEffect` cleanup functions to cancel stale requests when a user clicks a different conversation.
 
 ### 6. Accessibility Gaps
 *   **Finding:** **CRITICAL** — The documentation explicitly flags poor contrast in the current theme.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Contrast Audit:** The `Midnight Sapphire` (#002060) and `Royal Depth` (#003080) backgrounds must be tested against `Frost White` (#E0ECF4) text. 4.5:1 ratio is mandatory.
     *   **Keyboard Traps:** The "horizontal tab bars" are a major accessibility risk. Replace them with a vertical list or a mobile-first "segmented control" that is fully keyboard-navigable.
     *   **Error Boundaries:** The current navigation-breaking crashes are due to missing Error Boundaries. Wrap each major tab (Content Studio, AI Terminal) in a dedicated `ErrorBoundary` to prevent the entire app from crashing when one module fails.

@@ -488,7 +488,7 @@ The plan is ambitious and feature-rich. However, the introduction of **End-to-En
 **Finding:** The inclusion of `@signalapp/libsignal-client` and multiple marketing panels (SEO, Social, Email) in the main admin bundle.
 *   **Rating: HIGH**
 *   **Detail:** The Signal Protocol library and the heavy UI components for the "Marketing Dashboard" (charts, previews, editors) will significantly increase the initial TBT (Total Blocking Time).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Dynamic Imports:** All new panels in `admin-marketing/*.tsx` must be loaded via `React.lazy()`.
     *   **Conditional Polyfills:** Signal Protocol requires specific crypto polyfills in some environments; ensure these aren't shipped to the "Client" view, only the "Trainer/Admin" views.
 
@@ -496,7 +496,7 @@ The plan is ambitious and feature-rich. However, the introduction of **End-to-En
 **Finding:** Real-time "Platform Previews" and "Hexagonal Exercise Grids" in the Content Studio.
 *   **Rating: MEDIUM**
 *   **Detail:** Generating 6+ platform previews (FB, IG, TikTok, etc.) simultaneously while the user types will cause typing lag if not debounced or memoized.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Use `useDeferredValue` for the content being typed into previews.
     *   Ensure the "Hexagonal Grid" uses CSS Grid/SVG instead of heavy JS-based positioning to keep the main thread clear.
 
@@ -1010,7 +1010,7 @@ interface SecurityScanArchitecture {
     nvdFeed: { ttl: 7200, staleWhileRevalidate: 21600 };
     cisaKEV: { ttl: 3600 }; // Low TTL — actively exploited vulns change fast
   };
-  
+
   // 2. Queue-based processing
   jobQueue: {
     provider: 'BullMQ' | 'RQ';
@@ -1018,7 +1018,7 @@ interface SecurityScanArchitecture {
     retries: 3;
     backoff: 'exponential';
   };
-  
+
   // 3. Deduplication before storage
   dedupKey: 'CVE-ID'; // Prevents duplicate storage
 }
@@ -1067,7 +1067,7 @@ interface ContentPipelineErrorHandling {
     next_retry: Date;
     max_attempts: 5;
   };
-  
+
   // 2. Content versioning for rollback
   contentVersions: {
     content_id: string;
@@ -1076,7 +1076,7 @@ interface ContentPipelineErrorHandling {
     published: boolean;
     created_at: Date;
   };
-  
+
   // 3. Distribution status tracking
   distributionStatus: {
     content_id: string;
@@ -1121,23 +1121,23 @@ AES-256-GCM encryption, key from Render secrets"
 interface PlatformCredential {
   id: string;
   platform: 'facebook' | 'instagram' | 'twitter' | 'bluesky' | 'nextdoor';
-  
+
   // Encryption fields
   encrypted_token: Buffer;      // AES-256-GCM ciphertext
   encrypted_refresh_token: Buffer; // Separate for refresh
   iv: Buffer;                   // Unique per encryption
   auth_tag: Buffer;             // GCM authentication tag
-  
+
   // Key rotation
   key_version: number;          // Track which key version was used
   encrypted_with_key_id: string; // Reference to KMS key
-  
+
   // Metadata
   created_by: string;           // User ID (audit trail)
   created_at: Date;
   last_used_at: Date;           // Detect stale tokens
   expires_at: Date;             // For tokens with expiry
-  
+
   // Token scopes (encrypted)
   encrypted_scopes: Buffer;     // What permissions were granted
 }
@@ -1177,14 +1177,14 @@ interface WebhookRoutes {
     query: { 'hub.mode': string; 'hub.verify_token': string; 'hub.challenge': string };
     response: 'hub.challenge' string;
   };
-  
+
   // Webhook receiver
   'POST /webhooks/:platform': {
     headers: { 'x-hub-signature-256': string }; // HMAC verification
     body: PlatformWebhookPayload;
     actions: 'publish' | 'delete' | 'update' | 'rate_limit';
   };
-  
+
   // Track published posts for edit/delete sync
   PublishedPost: {
     platform: string;
@@ -1219,7 +1219,7 @@ interface WebhookRoutes {
 // MISSING: Content sanitization strategy
 interface ContentSanitization {
   sanitizer: 'DOMPurify' | 'isomorphic-dompurify'; // Client + Server
-  
+
   // Configuration per content type
   blogPost: {
     allowedTags: ['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'img', 'blockquote', 'code', 'pre'];
@@ -1230,13 +1230,13 @@ interface ContentSanitization {
     allowedSchemes: ['https'];
     stripEmpty: true;
   };
-  
+
   socialPost: {
     // No HTML allowed — plain text with link extraction
     maxLength: PlatformLimits; // Twitter=280, FB=63206, etc.
     linkify: true; // Convert URLs to links
   };
-  
+
   // Rich embeds (YouTube, etc.)
   embedPolicy: 'whitelist' | 'sandboxed-iframe' | 'none';
   allowedEmbedDomains: ['youtube.com', 'youtu.be', 'instagram.com'];
@@ -1281,24 +1281,24 @@ interface GeminiErrorHandling {
     backoffMs: [1000, 2000, 4000]; // Exponential
     retryableErrors: ['TIMEOUT', 'RATE_LIMITED', '503'];
   };
-  
+
   circuitBreaker: {
     failureThreshold: 5;
     resetTimeoutMs: 60000;
   };
-  
+
   budgetProtection: {
     monthlyLimitUsd: number; // FROM ENV
     alertAtPercent: 80;
     hardStopAt: 100;
   };
-  
+
   fallback: {
     'trending-topics': CachePreviousResults | 'Service temporarily unavailable';
     'blog-draft': DraftSaved | 'Failed to generate, please try again';
     'social-post': 'Unable to generate, try manual input';
   };
-  
+
   contentPolicy: {
     detectViolation: (response: string) => boolean;
     action: 'flag_for_review' | 'block' | 'log_and_proceed';
@@ -1356,8 +1356,8 @@ This review focuses on the **`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`** blu
 
 ### 6. Accessibility Gaps
 *   **Finding:** The "Crystalline" aesthetic (high contrast, glows) can be problematic for users with visual impairments.
-*   **Recommendation:** 
-    *   **CRITICAL:** Ensure the `CrystallineLockOverlay` has a high-contrast fallback. 
+*   **Recommendation:**
+    *   **CRITICAL:** Ensure the `CrystallineLockOverlay` has a high-contrast fallback.
     *   **CRITICAL:** Add `aria-live="polite"` to the Security Intelligence Panel so screen readers announce new vulnerability alerts.
     *   **CRITICAL:** Ensure all "Action" buttons (Publish, Approve) have distinct focus states that are not just color-based (use `outline: 2px solid #C6A84B`).
 *   **Rating:** **CRITICAL**
@@ -1366,13 +1366,13 @@ This review focuses on the **`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`** blu
 
 ### Security & Architecture Deep Dive (Round 2/4 Validation)
 
-1.  **E2EE Complexity (Signal Protocol):** 
-    *   *Risk:* The "Key Loss" scenario is a UX nightmare. If Sean loses his device, he loses access to all historical encrypted messages. 
+1.  **E2EE Complexity (Signal Protocol):**
+    *   *Risk:* The "Key Loss" scenario is a UX nightmare. If Sean loses his device, he loses access to all historical encrypted messages.
     *   *Mitigation:* Implement a **"Recovery Phrase"** system (BIP-39) that allows users to re-derive their identity key on a new device. Do not rely on server-side backups.
-2.  **Security Intelligence Panel:** 
-    *   *Risk:* The 6-API approach is robust, but the `npm audit` API can be noisy. 
+2.  **Security Intelligence Panel:**
+    *   *Risk:* The 6-API approach is robust, but the `npm audit` API can be noisy.
     *   *Mitigation:* Implement a "Severity Threshold" in your `securityScannerService.mjs` to only notify Sean for `High` or `Critical` vulnerabilities.
-3.  **Multi-Backend Toggle Pattern:** 
+3.  **Multi-Backend Toggle Pattern:**
     *   *Validation:* The toggle pattern (Late.dev/Blotato/Direct) is **sound**. Use an **Adapter Pattern** in your `socialDistributionService.mjs`. Create an `AbstractPublisher` class and implement `LatePublisher`, `BlotatoPublisher`, and `DirectPublisher` subclasses. This keeps your controller logic clean.
 
 ### Missing Gaps / Industry-Leading Enhancements
@@ -1531,7 +1531,7 @@ The plan must be amended with one of these mandatory architectural decisions bef
 ### Option C: Hybrid (Recommended if E2EE branding is important)
 - New messages: true E2EE (Signal Protocol)
 - Key backup: Option A (passphrase-encrypted server backup)
-- Clearly communicate: "If you forget your backup passphrase, pre-backup messages 
+- Clearly communicate: "If you forget your backup passphrase, pre-backup messages
   cannot be recovered. Post-backup messages are always recoverable."
 
 ### WHAT MUST NOT BE BUILT:
@@ -1541,7 +1541,7 @@ The plan must be amended with one of these mandatory architectural decisions bef
 
 ### Required UX Before E2EE Goes Live:
 1. Mandatory key backup setup during onboarding (cannot skip)
-2. Persistent warning if backup not configured: "⚠️ Your messages are not backed up. 
+2. Persistent warning if backup not configured: "⚠️ Your messages are not backed up.
    If you lose this device, your conversation history cannot be recovered."
 3. "Export Encrypted Backup" button always visible in settings
 4. Recovery flow tested and documented before launch
@@ -1574,7 +1574,7 @@ up: async (queryInterface, Sequelize) => {
     encryptedRefreshToken: { type: Sequelize.TEXT },
     // ...
   });
-  
+
   // Developer "helpfully" migrates existing .env tokens into DB
   // But uses wrong encryption, or encryption key not yet set in Render
   // Result: tokens stored as plaintext OR migration fails and tokens are lost
@@ -1611,7 +1611,7 @@ The plan mentions "Token refresh lifecycle managed per-platform" but provides no
 ### Migration Safety Rules
 1. Migration creates table ONLY — does NOT attempt to migrate .env tokens automatically
 2. Token migration is a MANUAL admin action after migration runs successfully
-3. Migration MUST have complete down() that drops table (acceptable — tokens can be 
+3. Migration MUST have complete down() that drops table (acceptable — tokens can be
    re-entered manually, this is a configuration table not user data)
 4. Encryption key MUST be validated before any token write:
    ```javascript
@@ -2135,24 +2135,24 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 CONSENSUS REACHED
 None
 
-**Explanation:**  
-After four rounds of debate, the Primary Auditor (Step 3.5 Flash) has provided **zero technical findings** for analysis despite the audit scope being explicitly defined, agreed upon, and reiterated in the Secondary Auditor's (Nemotron 3 Super) Round 2 response. The agreed scope included:  
-- Target system: `./flaskblog/` (Flask blogging app)  
-- Threat model: OWASP Top 10 2021 (prioritized A01, A03, A02, A07, A09)  
-- Deliverable format: `[File:Line]`-referenced findings with vulnerability type, description, and severity  
+**Explanation:**
+After four rounds of debate, the Primary Auditor (Step 3.5 Flash) has provided **zero technical findings** for analysis despite the audit scope being explicitly defined, agreed upon, and reiterated in the Secondary Auditor's (Nemotron 3 Super) Round 2 response. The agreed scope included:
+- Target system: `./flaskblog/` (Flask blogging app)
+- Threat model: OWASP Top 10 2021 (prioritized A01, A03, A02, A07, A09)
+- Deliverable format: `[File:Line]`-referenced findings with vulnerability type, description, and severity
 
-The Primary Auditor's submissions for Round 3 and Round 4 were both marked "(no response)", violating the debate's core requirement for specificity ("cite file names, line numbers, exact code changes"). Without any findings to analyze:  
-- There are no points to agree or disagree with  
-- No file/line references exist to cite  
-- No code changes can be proposed or contested  
+The Primary Auditor's submissions for Round 3 and Round 4 were both marked "(no response)", violating the debate's core requirement for specificity ("cite file names, line numbers, exact code changes"). Without any findings to analyze:
+- There are no points to agree or disagree with
+- No file/line references exist to cite
+- No code changes can be proposed or contested
 
-**Non-negotiable position:**  
-The Primary Auditor must submit Round 3 findings per the agreed scope before technical debate can commence. This is not a procedural preference but a mandatory prerequisite under the debate rules. Until this occurs, consensus on specific security analysis is **impossible**, and further rounds would merely repeat the absence of technical content.  
+**Non-negotiable position:**
+The Primary Auditor must submit Round 3 findings per the agreed scope before technical debate can commence. This is not a procedural preference but a mandatory prerequisite under the debate rules. Until this occurs, consensus on specific security analysis is **impossible**, and further rounds would merely repeat the absence of technical content.
 
-**Status:**  
-- Scope definition: **Agreed and uncontested** (Secondary Auditor Round 2)  
-- Technical findings: **None provided** (Primary Auditor Rounds 3–4)  
-- Consensus on specific vulnerabilities/fixes: **Unattainable** due to missing input from Primary Auditor  
+**Status:**
+- Scope definition: **Agreed and uncontested** (Secondary Auditor Round 2)
+- Technical findings: **None provided** (Primary Auditor Rounds 3–4)
+- Consensus on specific vulnerabilities/fixes: **Unattainable** due to missing input from Primary Auditor
 
 Per the rules for the FINAL round, I clearly state this non-negotiable position: **No consensus can be reached on security analysis without the Primary Auditor fulfilling their obligation to provide `[File:Line]`-referenced findings from the `./flaskblog/` codebase.** The debate cannot progress to substantive technical discussion under these conditions.
 
@@ -2399,12 +2399,12 @@ background: 'rgba(139, 92, 246, 0.08)';
 Currently relies solely on color (Wing Purple border). Recommend adding iconography:
 ```tsx
 // SecurityPanel.tsx, inside Critical CVE card
-<AlertTriangleIcon 
-  style={{ 
+<AlertTriangleIcon
+  style={{
     color: '#8B5CF6',
-    width: 20, 
-    height: 20 
-  }} 
+    width: 20,
+    height: 20
+  }}
 />
 ```
 
@@ -2439,7 +2439,7 @@ I'm ready to perform the deep-dive security analysis you're requesting, but ther
 You've included a heading `### 📋 3. Critical Alert Severity Encoding` pointing to `SecurityPanel.tsx`, but **no actual SecurityPanel.tsx code** was provided in your message. The document contains only:
 
 - ✅ Design specifications
-- ✅ Architecture decisions  
+- ✅ Architecture decisions
 - ✅ File manifests
 - ✅ API endpoint lists
 

@@ -236,12 +236,12 @@ background: 'rgba(139, 92, 246, 0.08)';
 Currently relies solely on color (Wing Purple border). Recommend adding iconography:
 ```tsx
 // SecurityPanel.tsx, inside Critical CVE card
-<AlertTriangleIcon 
-  style={{ 
+<AlertTriangleIcon
+  style={{
     color: '#8B5CF6',
-    width: 20, 
-    height: 20 
-  }} 
+    width: 20,
+    height: 20
+  }}
 />
 ```
 

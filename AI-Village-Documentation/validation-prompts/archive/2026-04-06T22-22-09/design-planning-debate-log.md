@@ -12,11 +12,11 @@
 **PROJECT:** SwanStudios Coach Assistant Upgrade (Crystalline Swan)
 **STATUS:** FINAL DESIGN SPECIFICATION — ROUND 1
 
-Listen up, engineering and product teams. The current state of our AI interfaces is fragmented, desktop-biased, and frankly, unacceptable for an enterprise-grade platform. We are building the *Enchanted Apex*, not a weekend hackathon project. 
+Listen up, engineering and product teams. The current state of our AI interfaces is fragmented, desktop-biased, and frankly, unacceptable for an enterprise-grade platform. We are building the *Enchanted Apex*, not a weekend hackathon project.
 
-The Coach Assistant is the beating heart of our AI-driven periodization and client management. It must feel like a unified, premium, and highly responsive intelligence layer. I have reviewed the UX research, and I am laying down the absolute visual law for the Coach Assistant refactor. 
+The Coach Assistant is the beating heart of our AI-driven periodization and client management. It must feel like a unified, premium, and highly responsive intelligence layer. I have reviewed the UX research, and I am laying down the absolute visual law for the Coach Assistant refactor.
 
-No deviations. No "close enough" approximations. You will build exactly to these specifications using the Crystalline Swan design tokens. 
+No deviations. No "close enough" approximations. You will build exactly to these specifications using the Crystalline Swan design tokens.
 
 Here is your CSS custom property foundation. Inject this globally:
 ```css
@@ -39,7 +39,7 @@ Here is your CSS custom property foundation. Inject this globally:
 ### 1. Conversation Sidebar (Unified AI Terminal)
 This is the persistent intelligence layer. It must slide in flawlessly and never trap the user.
 
-*   **Width:** 
+*   **Width:**
     *   Desktop: `380px` fixed.
     *   Mobile (iPhone XR focus): `calc(100vw - 16px)` floating drawer, centered.
 *   **Background Color:** `var(--color-carbon)` with a `1px solid var(--color-graphite)` border. Add an inner top-edge highlight: `inset 0 1px 0 rgba(96, 192, 240, 0.1)`.
@@ -47,7 +47,7 @@ This is the persistent intelligence layer. It must slide in flawlessly and never
 *   **Hover State (History Items):** Background shifts to `var(--color-graphite)`. Left border accent appears: `4px solid var(--color-ice-wing)`.
 *   **Active State (Current Session):** Background shifts to `rgba(0, 32, 96, 0.4)` (Midnight Sapphire at 40%). Left border accent locks in: `4px solid var(--color-wing-purple)`.
 *   **Transition Timing:** `background-color 250ms ease, border-left 200ms ease`.
-*   **Mobile Drawer Animation:** 
+*   **Mobile Drawer Animation:**
     *   Pattern: Bottom Sheet.
     *   Keyframes: `transform: translateY(100%)` → `transform: translateY(0)`.
     *   Timing: `350ms`.
@@ -67,7 +67,7 @@ Raw HTML tags in the AI output are a P0 visual failure. The AI speaks in Markdow
     *   Row Background: Alternating `transparent` and `rgba(26, 26, 36, 0.4)` (Graphite).
     *   Borders: `1px solid var(--color-graphite)`.
     *   Cell Padding: `12px 16px`.
-*   **Blockquote Border:** `4px solid var(--color-wing-purple)`. 
+*   **Blockquote Border:** `4px solid var(--color-wing-purple)`.
     *   Background: `linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, transparent 100%)`.
     *   Padding: `12px 16px`.
 *   **Heading Sizes (Responsive):**
@@ -103,7 +103,7 @@ The microphone experience is currently broken. We are fixing it with a highly vi
     *   Ring 2: `var(--color-wing-purple)` at `15%` opacity.
     *   Ring 3: `var(--color-arctic-cyan)` at `10%` opacity.
     *   Animation: `transform: scale(1)` to `scale(1.8)`, `opacity: 1` to `opacity: 0`. Duration: `1.2s` ease-out, infinite.
-*   **Duration Label Style:** 
+*   **Duration Label Style:**
     *   Position: Absolute, `bottom: -28px` (centered below orb).
     *   Font: `14px`, `font-variant-numeric: tabular-nums` (prevents jitter as seconds tick).
     *   Color: `var(--color-frost-white)`. Weight: `600`.
@@ -134,8 +134,8 @@ For equipment scans and form videos. Must be clean, uniform, and easily dismissi
     *   Hover State: Background shifts to `var(--color-wing-purple)`, Icon shifts to `var(--color-obsidian-black)`. Transition: `150ms ease`.
 
 ---
-**DIRECTOR'S NOTE:** 
-If I see *Galaxy-Swan* hex codes anywhere in the PR for this, I will reject it immediately. Build this exactly as spec'd. Mobile-first means you test these touch targets and animations on the iPhone XR simulator *before* you request a review. 
+**DIRECTOR'S NOTE:**
+If I see *Galaxy-Swan* hex codes anywhere in the PR for this, I will reject it immediately. Build this exactly as spec'd. Mobile-first means you test these touch targets and animations on the iPhone XR simulator *before* you request a review.
 
 Execute.
 
@@ -268,7 +268,7 @@ The spec defines three states (Idle, Hover, Recording) with different colors and
 .recording-orb {
   background: var(--color-royal-depth);
   box-shadow: 0 0 0px transparent;
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 }
@@ -349,14 +349,14 @@ Once these three items are addressed, I will grant full approval for implementat
 **PROJECT:** SwanStudios Coach Assistant Upgrade (Crystalline Swan)
 **STATUS:** DESIGN SPECIFICATION — ROUND 2
 
-Excellent review. This is exactly the level of rigorous pushback I expect from my Lead Implementation Reviewer. You caught critical gaps in accessibility and state transitions. 
+Excellent review. This is exactly the level of rigorous pushback I expect from my Lead Implementation Reviewer. You caught critical gaps in accessibility and state transitions.
 
 However, we have a few discrepancies regarding spatial execution and breakpoints. Here are my rulings on your four issues.
 
 ### ⚠️ ISSUE 1: Responsive Breakpoint Definition (DISPUTE / ALTERNATIVE PROPOSED)
-I reject `$breakpoint-mobile: 480px;` as the singular layout breakpoint. If we snap the 380px fixed sidebar to a drawer only at 480px, iPad Mini and standard iPads in portrait mode will be left with a cramped, unusable main content area. 
+I reject `$breakpoint-mobile: 480px;` as the singular layout breakpoint. If we snap the 380px fixed sidebar to a drawer only at 480px, iPad Mini and standard iPads in portrait mode will be left with a cramped, unusable main content area.
 
-**The Ruling:** We will use a two-tier breakpoint system. 
+**The Ruling:** We will use a two-tier breakpoint system.
 1.  **Structural Breakpoint (Layout Shift):** `768px`. Below this, the fixed sidebar becomes the bottom-sheet drawer.
 2.  **Typographic Breakpoint (Font Scaling):** `430px` (iPhone 14 Pro Max width). Below this, the heading sizes scale down as spec'd in Round 1.
 
@@ -379,7 +379,7 @@ $breakpoint-mobile-strict: 430px; /* Triggers Typography Scaling */
 ```
 
 ### ⚠️ ISSUE 2: Thinking Indicator — Screen Reader Inaccessibility (AGREED)
-Approved. This was a P0 oversight on my part. The Enchanted Apex must be accessible to all coaches and clients. Your proposed ARIA implementation is flawless. 
+Approved. This was a P0 oversight on my part. The Enchanted Apex must be accessible to all coaches and clients. Your proposed ARIA implementation is flawless.
 
 **Code Change (`_thinking-indicator.html`):**
 Implement exactly as you proposed.
@@ -392,23 +392,23 @@ Implement exactly as you proposed.
 ```
 
 ### ⚠️ ISSUE 3: Voice Recording Overlay — State Transition Timing (AGREED)
-Approved. `200ms ease-out` provides the exact snappy-yet-smooth tactile response I am looking for. 
+Approved. `200ms ease-out` provides the exact snappy-yet-smooth tactile response I am looking for.
 
 **Code Change (`_voice-orb.scss`):**
 Inject your exact transition properties into the `.recording-orb` base class.
 ```css
 .recording-orb {
   /* ... existing styles ... */
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 }
 ```
 
 ### ⚠️ ISSUE 4: Mobile Drawer — Safe Area Insets & Margins (PARTIAL DISPUTE)
-I accept your addition of `env(safe-area-inset-*)`. Modern iOS hardware requires this, and it was a good catch. 
+I accept your addition of `env(safe-area-inset-*)`. Modern iOS hardware requires this, and it was a good catch.
 
-However, **I reject your proposal to increase the margin to 16px per side (`calc(100vw - 32px)`)**. Screen real estate on mobile is our most precious commodity. An 8px margin per side is mathematically sufficient to frame the drawer without suffocating the text width. 
+However, **I reject your proposal to increase the margin to 16px per side (`calc(100vw - 32px)`)**. Screen real estate on mobile is our most precious commodity. An 8px margin per side is mathematically sufficient to frame the drawer without suffocating the text width.
 
 **The Ruling:** We keep the 8px per side margin (`16px` total reduction), but we integrate your safe-area logic.
 
@@ -417,12 +417,12 @@ However, **I reject your proposal to increase the margin to 16px per side (`calc
 @include tablet-portrait-down {
   .conversation-sidebar {
     /* 8px margin on each side = 16px total */
-    width: calc(100vw - 16px); 
+    width: calc(100vw - 16px);
     max-width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
     margin: 0 auto; /* Ensures centering within the safe area */
-    
+
     /* Ensure bottom respects home indicator */
-    padding-bottom: env(safe-area-inset-bottom); 
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 ```
@@ -473,7 +473,7 @@ The 200ms `ease-out` curve is approved. This ensures smooth state transitions wi
 .recording-orb {
   background: var(--color-royal-depth);
   box-shadow: 0 0 0px transparent;
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 }
@@ -549,7 +549,7 @@ The mobile drawer is specified as a "Bottom Sheet" pattern, but **no drag handle
 @include tablet-portrait-down {
   .conversation-sidebar {
     /* ... existing styles ... */
-    
+
     /* Drag handle — required by iOS HIG */
     &::before {
       content: '';
@@ -609,7 +609,7 @@ Four of the five original issues are now fully resolved. The specification is 95
 Excellent diligence. You are proving to be a highly effective gatekeeper for the Crystalline Swan design system. Let's close out these final two items so we can hand this off to engineering.
 
 ### ⚠️ ISSUE 1: Mobile Breakpoint Clarification (CONFIRMATION)
-I am officially confirming `$breakpoint-mobile-strict: 430px;`. 
+I am officially confirming `$breakpoint-mobile-strict: 430px;`.
 
 This is not a typo. The logical viewport width of the iPhone 14 Pro Max and 15 Pro Max is exactly `430pt`. The `414px` dimension is a legacy metric for older hardware (iPhone 11 Pro Max, 8 Plus). We are building the *Enchanted Apex* for modern flagships first. Older devices will naturally fall under this breakpoint and scale down beautifully.
 
@@ -618,7 +618,7 @@ This is not a typo. The logical viewport width of the iPhone 14 Pro Max and 15 P
 ### ⚠️ ISSUE 5: Bottom Sheet — Drag Handle & Gesture Spec (AGREED WITH VISUAL TWEAK)
 You are absolutely correct. A bottom sheet without a tactile drag handle and swipe-to-dismiss gesture is a UX failure. Good catch.
 
-However, I am **rejecting your specific color choice** for the drag handle. `var(--color-graphite)` (`#1A1A24`) sitting on top of the drawer's `var(--color-carbon)` (`#141419`) background provides a contrast ratio of roughly 1.05:1. It will be invisible. 
+However, I am **rejecting your specific color choice** for the drag handle. `var(--color-graphite)` (`#1A1A24`) sitting on top of the drawer's `var(--color-carbon)` (`#141419`) background provides a contrast ratio of roughly 1.05:1. It will be invisible.
 
 We will use a frosted, semi-transparent approach to maintain the crystalline aesthetic, and I am increasing the bottom margin slightly to ensure the handle doesn't crowd the top of the chat history.
 
@@ -627,7 +627,7 @@ We will use a frosted, semi-transparent approach to maintain the crystalline aes
 @include tablet-portrait-down {
   .conversation-sidebar {
     /* ... existing styles ... */
-    
+
     /* Drag handle — required by iOS HIG */
     &::before {
       content: '';
@@ -635,7 +635,7 @@ We will use a frosted, semi-transparent approach to maintain the crystalline aes
       width: 36px;
       height: 4px;
       /* Frost White at 20% opacity for elegant contrast against Carbon */
-      background: rgba(224, 236, 244, 0.2); 
+      background: rgba(224, 236, 244, 0.2);
       border-radius: 2px;
       margin: 12px auto 16px; /* Increased bottom margin to 16px for touch clearance */
     }
@@ -688,7 +688,7 @@ The Creative Director's rejection of `var(--color-graphite)` is **correct and ju
 @include tablet-portrait-down {
   .conversation-sidebar {
     /* ... existing styles ... */
-    
+
     /* Drag handle — iOS HIG compliant */
     &::before {
       content: '';
@@ -786,7 +786,7 @@ CONSENSUS REACHED
 **PROJECT:** SwanStudios Coach Assistant Upgrade (Crystalline Swan)
 **STATUS:** FINAL MASTER SPECIFICATION — APPROVED FOR ENGINEERING KICKOFF
 
-Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*. 
+Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*.
 
 Below is the finalized, merged specification. Engineering is cleared to begin implementation immediately. No deviations from this master document are permitted.
 
@@ -835,11 +835,11 @@ $breakpoint-mobile-strict: 430px;   /* Triggers Typography Scaling (iPhone 14/15
 ```scss
 @include tablet-portrait-down {
   .conversation-sidebar {
-    width: calc(100vw - 16px); 
+    width: calc(100vw - 16px);
     max-width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
-    
+
     /* Drag handle — iOS HIG compliant */
     &::before {
       content: '';
@@ -907,7 +907,7 @@ function handleDrag(translationY: number, velocity: number) {
 .recording-orb {
   background: var(--color-royal-depth);
   box-shadow: 0 0 0px transparent;
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 
@@ -937,4 +937,3 @@ function handleDrag(translationY: number, velocity: number) {
 This concludes the design specification phase. Lock the repository and commence the build.
 
 ---
-

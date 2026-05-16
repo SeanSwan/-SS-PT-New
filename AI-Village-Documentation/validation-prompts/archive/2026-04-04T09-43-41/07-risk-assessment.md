@@ -113,7 +113,7 @@ Phase 4b (Week 7-8): Voice AI Coach integration
 ```typescript
 // polyfill-check.ts
 const canRecord = (): boolean => {
-  return !!(window.MediaRecorder && 
+  return !!(window.MediaRecorder &&
             (window.MediaRecorder.isTypeSupported('audio/webm') ||
              window.MediaRecorder.isTypeSupported('audio/opus')));
 };
@@ -248,7 +248,7 @@ describe('Teach Me Content', () => {
     expect(format).toHaveProperty('scalingTips');
     expect(format).toHaveProperty('musicBPM');
   });
-  
+
   test.each(exerciseDatabase)('Exercise $name has NASM coaching cues', (exercise) => {
     expect(exercise.coachingCues).toBeDefined();
     expect(exercise.coachingCues.length).toBeGreaterThanOrEqual(3);
@@ -262,7 +262,7 @@ describe('Voice Coach', () => {
     // Mock no MediaRecorder
     // Assert text input appears
   });
-  
+
   test('Shows error when Gemini API fails', () => {
     // Mock API failure
     // Assert graceful error + retry option
@@ -317,8 +317,8 @@ export const FEATURE_FLAGS = {
 
 ```typescript
 // Lazy-load with feature flag
-const TeachMeSection = lazy(() => 
-  FEATURE_FLAGS.SECTION_WARM_UP 
+const TeachMeSection = lazy(() =>
+  FEATURE_FLAGS.SECTION_WARM_UP
     ? import('./sections/warmUpProtocol')
     : import('./sections/comingSoon')
 );

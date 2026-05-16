@@ -24,12 +24,12 @@ You're absolutely right that I conflated SSE with WebSocket infrastructure requi
 **Low-Latency Voice UX (Section 4) — FINAL ARCHITECTURE:**
 1. **Optimistic Transcription (0ms perceived latency):**
    - UI immediately displays Deepgram transcription: *"Jackie did 3 sets of squats at 135 lbs"*
-   
+
 2. **Serverless Streaming Parsing (Vercel AI SDK):**
    - Backend uses `streamObject` from `npm install ai` package
    - GPT-4o-mini generates structured workout JSON token-by-token
    - Vercel Edge Function streams partial JSON over HTTP to React Native client
-   
+
 3. **Progressive UI Rendering:**
    - Workout card renders incrementally as tokens arrive:
      - `{"exercise": "Squat"}` → Exercise name appears
@@ -67,7 +67,7 @@ I cannot believe I missed this. Using sequential integer IDs (`1042`, `1043`) in
      email TEXT UNIQUE NOT NULL,
      account_type TEXT NOT NULL
    );
-   
+
    -- Workouts table
    CREATE TABLE workouts (
      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -83,15 +83,15 @@ I cannot believe I missed this. Using sequential integer IDs (`1042`, `1043`) in
    CREATE POLICY "Users can view own workouts"
      ON workouts FOR SELECT
      USING (auth.uid() = user_id);
-   
+
    -- Trainers can view their clients' workouts
    CREATE POLICY "Trainers can view client workouts"
      ON workouts FOR SELECT
      USING (
-       auth.uid() = trainer_id 
+       auth.uid() = trainer_id
        OR EXISTS (
-         SELECT 1 FROM users 
-         WHERE id = auth.uid() 
+         SELECT 1 FROM users
+         WHERE id = auth.uid()
          AND role = 'trainer'
        )
      );
@@ -108,17 +108,17 @@ I cannot believe I missed this. Using sequential integer IDs (`1042`, `1043`) in
        where: { id: workoutId },
        select: { user_id: true, trainer_id: true }
      });
-     
+
      if (!workout) throw new NotFoundError();
-     
+
      const isOwner = workout.user_id === req.user.id;
      const isTrainer = workout.trainer_id === req.user.id;
      const isAdmin = req.user.role === 'admin';
-     
+
      if (!isOwner && !isTrainer && !isAdmin) {
        throw new ForbiddenError('Access denied');
      }
-     
+
      return workout;
    }
    ```

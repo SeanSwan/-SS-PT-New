@@ -178,7 +178,7 @@ Here's a breakdown of findings:
 
 ### HIGH Findings
 
-*   
+*
 
 ---
 

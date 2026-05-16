@@ -10,11 +10,11 @@
 
 # Security Audit Report: Teach Me Comprehensive Upgrade Plan
 
-**Auditor:** Primary Security Lead  
-**Target:** `docs/ai-workflow/blueprints/TEACH-ME-COMPREHENSIVE-UPGRADE-PLAN.md`  
-**Platform:** SwanStudios (React/TS/styled-components frontend, Node/Express/Sequelize/PostgreSQL backend)  
-**Production:** sswanstudios.com  
-**Date:** 2025-06-17  
+**Auditor:** Primary Security Lead
+**Target:** `docs/ai-workflow/blueprints/TEACH-ME-COMPREHENSIVE-UPGRADE-PLAN.md`
+**Platform:** SwanStudios (React/TS/styled-components frontend, Node/Express/Sequelize/PostgreSQL backend)
+**Production:** sswanstudios.com
+**Date:** 2025-06-17
 
 ---
 
@@ -110,8 +110,8 @@ Context: ${sanitizeConversation(context)}
 const VoiceConsentModal = () => (
   <Dialog>
     <h3>Voice Recording Consent</h3>
-    <p>We'll record your voice to generate workout notes. 
-       Recordings are encrypted, transcribed within 5 minutes, 
+    <p>We'll record your voice to generate workout notes.
+       Recordings are encrypted, transcribed within 5 minutes,
        then automatically deleted. Never stored longer than 24h.</p>
     <Checkbox label="I consent to voice processing" required />
     <Button disabled={!consent}>Start Recording</Button>
@@ -225,14 +225,14 @@ const SECTION_PERMISSIONS: Record<string, Role[]> = {
   'gamification-for-clients': [Role.TRAINER, Role.SENIOR_TRAINER, Role.ADMIN],
   'build-modes': [Role.TRAINER, Role.SENIOR_TRAINER, Role.ADMIN],
   // Public sections (no restriction)
-  'emom': [], 
+  'emom': [],
 };
 
 // 2. Frontend guard (in TeachMeLayout.tsx)
 const TeachMeSection = ({ sectionId }: { sectionId: string }) => {
   const { userRole } = useAuth();
   const allowedRoles = SECTION_PERMISSIONS[sectionId] || [];
-  
+
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <AccessDenied />;
   }
@@ -240,8 +240,8 @@ const TeachMeSection = ({ sectionId }: { sectionId: string }) => {
 };
 
 // 3. Backend enforcement (API route)
-router.get('/teach-me/:sectionId', 
-  authenticate, 
+router.get('/teach-me/:sectionId',
+  authenticate,
   authorize(SECTION_PERMISSIONS[sectionId]),
   async (req, res) => {
     // Even if frontend bypassed, backend checks
@@ -361,17 +361,17 @@ const proxyFetch = async (url: string) => {
 
 ```typescript
 // 1. New API endpoint with RBAC
-router.get('/teach-me/content/:sectionId', 
+router.get('/teach-me/content/:sectionId',
   authenticate,
   async (req, res) => {
     const { sectionId } = req.params;
     const userRole = req.user.role;
-    
+
     // Check permission
     if (!isRoleAllowed(userRole, sectionId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    
+
     // Fetch content (with caching)
     const content = await cache.wrap(`teach-me:${sectionId}`, async () => {
       return db.teachMeContent.findOne({ where: { sectionId } });
@@ -433,4 +433,3 @@ After thorough review, both security planners agree that the current plan contai
 **Final Determination:** Development must halt immediately. A Security Design Review incorporating all above controls is required before any code is written. The plan document must be rewritten to include these six security addenda as mandatory implementation requirements.
 
 ---
-

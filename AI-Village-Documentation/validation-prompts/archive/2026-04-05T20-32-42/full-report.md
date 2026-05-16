@@ -612,7 +612,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 ### 3. Database Query Efficiency & Bloat
 **Finding:** Unbounded growth of the `SecurityAlerts` and `AuditLog` tables.
 *   **Detail:** Daily scans across 6 APIs will generate thousands of rows. Without a retention policy, simple queries for the "Admin Dashboard" will slow down as the table hits 100k+ rows.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Implement a **30-day rolling delete** for resolved security alerts.
     *   Add composite indexes on `(severity, resolved)` for the Security Panel.
     *   Add indexes on `(platform, scheduled_at)` for the Content Calendar.
@@ -621,7 +621,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 ### 4. Bundle Size & Lazy Loading
 **Finding:** Heavy library overhead for new "Studio" features.
 *   **Detail:** Adding SEO Audits, Charting (Analytics), and Rich Text Editors (Blog Writer) will significantly increase the `main.js` bundle.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Dynamic Imports:** Use `React.lazy()` for every new tab in the Marketing Dashboard (e.g., `const BlogWriter = lazy(() => import('./BlogWriter'))`).
     *   **Library Choice:** Use `date-fns` instead of `moment.js` for the Content Calendar to keep the footprint small.
 *   **Rate:** **MEDIUM**
@@ -634,7 +634,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 
 ### 6. Security & Data Integrity
 **Finding:** Encryption overhead for Social Tokens.
-*   **Detail:** The plan correctly identifies the need to encrypt OAuth tokens. 
+*   **Detail:** The plan correctly identifies the need to encrypt OAuth tokens.
 *   **Performance Note:** Ensure the `PlatformCredential` model uses a getter/setter in Sequelize for encryption so the logic isn't duplicated across the codebase, but avoid re-encrypting on every "read" if the data hasn't changed (use a caching layer if distribution volume is high).
 *   **Rate:** **LOW**
 
@@ -908,7 +908,7 @@ The blueprint mentions:
 
 **Impact:** Clients will churn if they can't log workouts and track progress. This is the core value proposition of every competitor.
 
-**Recommendation:** 
+**Recommendation:**
 - Phase 1: Build PWA with offline workout logging
 - Phase 2: Push notification infrastructure
 - Phase 3: Native mobile apps (if budget allows)
@@ -1178,7 +1178,7 @@ module.exports = {
     // Prevents failure if migration is accidentally re-run
     const tableExists = await queryInterface.showAllTables()
       .then(tables => tables.includes('SecurityAlerts'));
-    
+
     if (tableExists) {
       console.log('SecurityAlerts table already exists — skipping creation');
       return;
@@ -1502,13 +1502,13 @@ Based on the provided blueprint (`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`),
 ---
 
 ## 1. Edge Case: Empty Array Handling in Email Digest Composer
-**Severity:** MEDIUM  
-**File & Line:** `backend/services/emailService.mjs` (hypothetical line ~45-60)  
-**Reproduction steps:**  
-1. Configure email digest with "bimonthly" cadence.  
-2. Publish no blog posts in the preceding 2 months.  
-3. Attempt to generate digest → backend tries to `map()` over empty array → runtime error or empty email sent.  
-**Fix:** Add guard clause before compilation:  
+**Severity:** MEDIUM
+**File & Line:** `backend/services/emailService.mjs` (hypothetical line ~45-60)
+**Reproduction steps:**
+1. Configure email digest with "bimonthly" cadence.
+2. Publish no blog posts in the preceding 2 months.
+3. Attempt to generate digest → backend tries to `map()` over empty array → runtime error or empty email sent.
+**Fix:** Add guard clause before compilation:
 ```javascript
 if (publishedPosts.length === 0) {
   throw new Error('No published blog posts in the selected period. Publish at least
@@ -1684,7 +1684,7 @@ const DraggableItem = styled.div`
     cursor: grabbing;
     border: 1px solid ${({ theme }) => theme.colors.ice};
     transform: scale(1.02);
-    box-shadow: 
+    box-shadow:
       0 15px 30px rgba(0, 0, 0, 0.5),
       0 0 20px rgba(96, 192, 240, 0.4),
       0 0 40px rgba(96, 192, 240, 0.2);
@@ -1696,7 +1696,7 @@ const DraggableItem = styled.div`
   @media (prefers-reduced-motion: reduce) {
     &.dragging {
       transform: scale(1);
-      box-shadow: 
+      box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.4),
         0 0 8px rgba(96, 192, 240, 0.3);
     }
@@ -1733,31 +1733,31 @@ export const crystallineSwanTheme = {
     obsidian: '#0A0A0F',
     carbon: '#141419',
     graphite: '#1A1A24',
-    
+
     // Sapphire Depths
     midnight: '#002060',
     royal: '#003080',
-    
+
     // Frost Whites
     frost: '#E0ECF4',
     ice: '#60C0F0',
     arctic: '#50A0F0',
-    
+
     // Lavender Accents
     lavender: '#4070C0',
     wing: '#8B5CF6',
-    
+
     // Luxury Gold
     gilded: '#C6A84B',
   },
-  
+
   typography: {
     display: "'Cormorant Garamond', serif",
     body: "'Plus Jakarta Sans', sans-serif",
     ui: "'Sora', sans-serif",
     code: "'Fira Code', monospace",
   },
-  
+
   spacing: {
     xs: '4px',
     sm: '8px',
@@ -1765,7 +1765,7 @@ export const crystallineSwanTheme = {
     lg: '24px',
     xl: '48px',
   },
-  
+
   semantic: {
     surfacePrimary: '#141419',
     surfaceElevated: '#0A0A0F',
@@ -1774,7 +1774,7 @@ export const crystallineSwanTheme = {
     textPrimary: '#E0ECF4',
     textSecondary: 'rgba(224, 236, 244, 0.7)',
   },
-  
+
   motion: {
     easeLuxury: 'cubic-bezier(0.4, 0, 0.2, 1)',
     easeSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',

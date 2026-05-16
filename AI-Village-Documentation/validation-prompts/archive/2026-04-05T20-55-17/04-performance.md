@@ -17,7 +17,7 @@ The plan is ambitious and feature-rich. However, the introduction of **End-to-En
 **Finding:** The inclusion of `@signalapp/libsignal-client` and multiple marketing panels (SEO, Social, Email) in the main admin bundle.
 *   **Rating: HIGH**
 *   **Detail:** The Signal Protocol library and the heavy UI components for the "Marketing Dashboard" (charts, previews, editors) will significantly increase the initial TBT (Total Blocking Time).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Dynamic Imports:** All new panels in `admin-marketing/*.tsx` must be loaded via `React.lazy()`.
     *   **Conditional Polyfills:** Signal Protocol requires specific crypto polyfills in some environments; ensure these aren't shipped to the "Client" view, only the "Trainer/Admin" views.
 
@@ -25,7 +25,7 @@ The plan is ambitious and feature-rich. However, the introduction of **End-to-En
 **Finding:** Real-time "Platform Previews" and "Hexagonal Exercise Grids" in the Content Studio.
 *   **Rating: MEDIUM**
 *   **Detail:** Generating 6+ platform previews (FB, IG, TikTok, etc.) simultaneously while the user types will cause typing lag if not debounced or memoized.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Use `useDeferredValue` for the content being typed into previews.
     *   Ensure the "Hexagonal Grid" uses CSS Grid/SVG instead of heavy JS-based positioning to keep the main thread clear.
 

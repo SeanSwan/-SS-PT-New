@@ -8,9 +8,9 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-As Creative Director for SwanStudios, I have reviewed the UX research and the Bootcamp Format Comprehensive Upgrade Plan. The functional logic is sound, but the execution of the Coach Assistant interface—the very conduit through which our trainers will interact with this new complexity—must be visually flawless. 
+As Creative Director for SwanStudios, I have reviewed the UX research and the Bootcamp Format Comprehensive Upgrade Plan. The functional logic is sound, but the execution of the Coach Assistant interface—the very conduit through which our trainers will interact with this new complexity—must be visually flawless.
 
-We are building a premium, voice-first AI coaching experience for high-end trainers. The interface cannot feel like a generic chat wrapper; it must feel like a high-performance command center. 
+We are building a premium, voice-first AI coaching experience for high-end trainers. The interface cannot feel like a generic chat wrapper; it must feel like a high-performance command center.
 
 Here is my **FINAL VISUAL SPECIFICATION** for the Coach Assistant UI components, strictly utilizing the **Crystalline Swan** design system. Do not deviate from these exact values.
 
@@ -31,7 +31,7 @@ Implement these exactly as written before building the components:
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Dual-Glow Tokens */
   --glow-blue-purple: 0 0 15px rgba(96, 192, 240, 0.4), 0 0 30px rgba(139, 92, 246, 0.4);
   --glow-purple-cyan: 0 0 15px rgba(139, 92, 246, 0.4), 0 0 30px rgba(80, 160, 240, 0.4);
@@ -49,7 +49,7 @@ This is the trainer's primary workspace for interacting with the AI to build the
 *   **Hover State (History Items):** Background shifts to `--swan-graphite` (`#1A1A24`). Left border highlights with `2px solid --swan-ice` (`#60C0F0`).
 *   **Active State (Current Session):** Background shifts to a 20% opacity wash of `--swan-midnight` (`rgba(0, 32, 96, 0.2)`). Left border locks to `3px solid --swan-arctic` (`#50A0F0`).
 *   **Transition Timing:** `transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);`
-*   **Mobile Drawer Animation:** 
+*   **Mobile Drawer Animation:**
     *   *Hidden:* `transform: translateX(100%); opacity: 0;`
     *   *Visible:* `transform: translateX(0); opacity: 1;`
     *   *Animation:* `350ms cubic-bezier(0.2, 0.8, 0.2, 1)` (A fast slide-in with a smooth, premium deceleration).
@@ -68,7 +68,7 @@ When the AI outputs the new complex format tables (e.g., the 15-row format libra
     *   *Header (TH):* Background `--swan-midnight` (`#002060`), Text `--swan-frost` (`#E0ECF4`), Font weight `600`, Padding `12px 16px`.
     *   *Cells (TD):* Background `--swan-carbon` (`#141419`), Border-bottom `1px solid --swan-graphite` (`#1A1A24`), Padding `12px 16px`.
 *   **Blockquote Border:** `4px solid --swan-wing` (`#8B5CF6`). Background: `rgba(20, 20, 25, 0.5)` (Carbon at 50%). Padding: `12px 16px`.
-*   **Heading Sizes:** 
+*   **Heading Sizes:**
     *   H1: `24px`, `--swan-frost` (`#E0ECF4`), `font-weight: 700`, `letter-spacing: -0.02em`.
     *   H2: `20px`, `--swan-ice` (`#60C0F0`), `font-weight: 600`.
     *   H3: `16px`, `--swan-arctic` (`#50A0F0`), `font-weight: 600`, uppercase, `letter-spacing: 0.05em`.
@@ -96,7 +96,7 @@ This is the centerpiece of the "voice-first" experience. It must feel alive, res
     *   *Ring 3 (Outer):* `background: rgba(96, 192, 240, 0.1)` (Ice Wing wash). Max scale `1.8`. Opacity `0.2`.
     *   *Easing:* `transition: transform 100ms ease-out;` (Must be fast to match voice amplitude).
 *   **Duration Label Style:** Positioned `24px` below the orb. Font size `18px`, `font-weight: 700`, color `--swan-frost` (`#E0ECF4`), `font-variant-numeric: tabular-nums;` (prevents jittering as seconds tick).
-*   **Color Transitions (The Dual-Glow):** 
+*   **Color Transitions (The Dual-Glow):**
     *   *Idle/Listening:* Subtle `--glow-blue-purple`.
     *   *Active Speech (High Amplitude):* Orb background transitions to `--swan-wing` (`#8B5CF6`) and emits the intense `--glow-purple-cyan`. `transition: background-color 300ms ease, box-shadow 300ms ease;`
 
@@ -105,7 +105,7 @@ Identifies whether the message is from the "System", "Trainer", or "Swan AI".
 
 *   **Size:** Height `22px`, Padding `0 10px`. `border-radius: 6px`.
 *   **Font:** `11px`, `font-weight: 700`, uppercase, `letter-spacing: 0.06em`.
-*   **Color:** 
+*   **Color:**
     *   *AI Badge:* Text `--swan-frost` (`#E0ECF4`), Background `--swan-royal` (`#003080`), Border `1px solid --swan-ice` (`#60C0F0`).
     *   *Trainer Badge:* Text `--swan-obsidian` (`#0A0A0F`), Background `--swan-fern` (`#C6A84B`), Border `none`.
 *   **Placement:** Absolute positioned relative to the message bubble. `top: -11px; left: 16px;` (Breaks the border of the message bubble for a layered, dimensional look).
@@ -122,7 +122,7 @@ For when a trainer uploads a reference image or a CSV of their old class formats
 
 ---
 
-**Creative Director's Final Note:** 
+**Creative Director's Final Note:**
 The success of this Bootcamp Builder upgrade hinges on managing cognitive load. The trainer is dealing with unilateral flags, work/rest ratios, and complex class styles like `death_by`. The UI must *never* add to that friction. Implement these specs with pixel-perfect precision. Do not use generic component libraries without overriding them to match this exact token architecture.
 
 ---
@@ -171,9 +171,9 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
 
 /* Update thinking indicator */
 .thinking-indicator {
-  background: linear-gradient(90deg, 
-    var(--shimmer-dark) 0%, 
-    var(--shimmer-bright) 50%, 
+  background: linear-gradient(90deg,
+    var(--shimmer-dark) 0%,
+    var(--shimmer-bright) 50%,
     var(--shimmer-dark) 100%
   );
   background-size: 200% 100%;
@@ -197,13 +197,13 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
 
 /* dotPulse — 1.4s infinite ease-in-out both (from spec) */
 @keyframes dotPulse {
-  0%, 80%, 100% { 
-    opacity: 0.2; 
-    transform: scale(0.8); 
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
   }
-  40% { 
-    opacity: 1.0; 
-    transform: scale(1.0); 
+  40% {
+    opacity: 1.0;
+    transform: scale(1.0);
   }
 }
 ```
@@ -233,7 +233,7 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
   height: 80px;
   position: relative;
   /* Ensure orb is centered and clips inner rings */
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 /* Allow outer ring (Ring 3) to overflow for effect */
@@ -252,7 +252,7 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
     width: 70px;
     height: 70px;
   }
-  
+
   .ring-3 {
     /* Reduce max scale on mobile to prevent overflow */
     max-scale: 1.5; /* Was 1.8 */
@@ -287,8 +287,8 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
 
 /* Trainer Message Bubble */
 .message-bubble.trainer {
-  background: linear-gradient(135deg, 
-    rgba(96, 192, 240, 0.15), 
+  background: linear-gradient(135deg,
+    rgba(96, 192, 240, 0.15),
     rgba(139, 92, 246, 0.1)
   );
   border: 1px solid var(--swan-ice);
@@ -309,11 +309,11 @@ These map to `--swan-carbon` and `--swan-midnight` respectively, but hardcoding 
 .markdown-renderer hr {
   border: none;
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent, 
-    var(--swan-ice) 20%, 
-    var(--swan-wing) 50%, 
-    var(--swan-ice) 80%, 
+  background: linear-gradient(90deg,
+    transparent,
+    var(--swan-ice) 20%,
+    var(--swan-wing) 50%,
+    var(--swan-ice) 80%,
     transparent
   );
   margin: 24px 0;
@@ -349,16 +349,16 @@ I request the Creative Director provide:
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-As Creative Director, I appreciate the rigorous technical review. A design system is only as strong as its implementation, and your catch regarding the hardcoded hex values in the shimmer animation (Dispute 1) is exactly why this review process exists. I fully **AGREE** with your proposed CSS variable fix for the shimmer, as well as your elegant gradient solution for the Horizontal Rule (Dispute 5). 
+As Creative Director, I appreciate the rigorous technical review. A design system is only as strong as its implementation, and your catch regarding the hardcoded hex values in the shimmer animation (Dispute 1) is exactly why this review process exists. I fully **AGREE** with your proposed CSS variable fix for the shimmer, as well as your elegant gradient solution for the Horizontal Rule (Dispute 5).
 
-However, we have some critical discrepancies regarding the execution of the animations, the voice orb's DOM physics, and the message bubble aesthetics. 
+However, we have some critical discrepancies regarding the execution of the animations, the voice orb's DOM physics, and the message bubble aesthetics.
 
 Here are my rulings and required adjustments for Round 2.
 
 ---
 
 ### ❌ DISPUTE 2: Keyframe Definitions (Partial Disagreement)
-**Why I disagree:** I accept the necessity of defining the `@keyframes` in the spec, and your `shimmerSweep` logic is mathematically sound. However, your `dotPulse` animation is purely structural (opacity and scale). In the Crystalline Swan system, active elements must *emit light*. 
+**Why I disagree:** I accept the necessity of defining the `@keyframes` in the spec, and your `shimmerSweep` logic is mathematically sound. However, your `dotPulse` animation is purely structural (opacity and scale). In the Crystalline Swan system, active elements must *emit light*.
 
 **Proposed Alternative (The Fix):**
 We must inject the `--swan-arctic` glow into the 40% keyframe to ensure the dots don't just get larger, but actually illuminate.
@@ -372,16 +372,16 @@ We must inject the `--swan-arctic` glow into the 40% keyframe to ensure the dots
 
 /* REVISED: dotPulse (Adding Luminescence) */
 @keyframes dotPulse {
-  0%, 80%, 100% { 
-    opacity: 0.2; 
-    transform: scale(0.8); 
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
     box-shadow: 0 0 0 rgba(80, 160, 240, 0);
   }
-  40% { 
-    opacity: 1.0; 
-    transform: scale(1.0); 
+  40% {
+    opacity: 1.0;
+    transform: scale(1.0);
     /* NEW: Crystalline Swan signature glow */
-    box-shadow: 0 0 8px rgba(80, 160, 240, 0.6); 
+    box-shadow: 0 0 8px rgba(80, 160, 240, 0.6);
   }
 }
 ```
@@ -389,7 +389,7 @@ We must inject the `--swan-arctic` glow into the 40% keyframe to ensure the dots
 ---
 
 ### ❌ DISPUTE 3: Voice Recording Overlay Overflow (Critical Rejection)
-**Why I disagree:** Your proposed fix applies `overflow: hidden;` to the `.voice-recording-orb-container`. **Do not do this.** If the container clips the inner rings, the amplitude effect is completely destroyed. The rings must radiate *outward* from behind the base orb, breaking the orb's bounding box. 
+**Why I disagree:** Your proposed fix applies `overflow: hidden;` to the `.voice-recording-orb-container`. **Do not do this.** If the container clips the inner rings, the amplitude effect is completely destroyed. The rings must radiate *outward* from behind the base orb, breaking the orb's bounding box.
 
 **Proposed Alternative (Z-Index Stacking Context):**
 Instead of clipping, we must use proper z-indexing so the rings sit behind the orb, and we will accept your mobile media query to prevent viewport bleed.
@@ -420,7 +420,7 @@ Instead of clipping, we must use proper z-indexing so the rings sit behind the o
   border-radius: 50%;
   top: 0; left: 0; right: 0; bottom: 0;
   margin: auto;
-  z-index: 1; 
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -439,7 +439,7 @@ Instead of clipping, we must use proper z-indexing so the rings sit behind the o
 ---
 
 ### ❌ DISPUTE 4: Message Bubble Specification (Rejection of Gradient)
-**Why I disagree:** Your structural additions for the message bubbles (max-width, border-radius, tail effect) are excellent and approved. However, your proposed background for the `.message-bubble.trainer` uses a linear gradient `linear-gradient(135deg, rgba(96, 192, 240, 0.15), rgba(139, 92, 246, 0.1))`. 
+**Why I disagree:** Your structural additions for the message bubbles (max-width, border-radius, tail effect) are excellent and approved. However, your proposed background for the `.message-bubble.trainer` uses a linear gradient `linear-gradient(135deg, rgba(96, 192, 240, 0.15), rgba(139, 92, 246, 0.1))`.
 
 This introduces too much visual noise. The Trainer bubble will already have the `--swan-fern` (Gold) Provider Badge attached to it (as agreed in Round 1). Mixing a blue/purple gradient bubble with a gold badge will look muddy and break our premium aesthetic. The Trainer bubble needs to be grounded.
 
@@ -449,7 +449,7 @@ This introduces too much visual noise. The Trainer bubble will already have the 
 .message-bubble.ai {
   background: var(--swan-graphite);
   border: 1px solid var(--swan-carbon);
-  border-bottom-left-radius: 4px; 
+  border-bottom-left-radius: 4px;
   margin-right: auto;
 }
 
@@ -461,7 +461,7 @@ This introduces too much visual noise. The Trainer bubble will already have the 
   border-bottom-right-radius: 4px;
   margin-left: auto;
   /* Ensure text remains high-contrast */
-  color: var(--swan-frost); 
+  color: var(--swan-frost);
 }
 ```
 
@@ -470,7 +470,7 @@ This introduces too much visual noise. The Trainer bubble will already have the 
 ### Round 2 Summary for Implementation Reviewer:
 1. Please confirm the updated `dotPulse` keyframes with the added `box-shadow` glow.
 2. Please confirm the removal of `overflow: hidden` in favor of the flex/z-index stacking context for the Voice Orb.
-3. Please confirm the revised solid-wash background for the Trainer message bubble to preserve visual hierarchy with the Provider Badges. 
+3. Please confirm the revised solid-wash background for the Trainer message bubble to preserve visual hierarchy with the Provider Badges.
 
 Once these three points are aligned, we will have a flawless, implementation-ready specification.
 
@@ -521,12 +521,12 @@ The Creative Director's spec defines the `.voice-recording-wrapper` at `144px ×
     width: 126px;
     height: 126px;
   }
-  
+
   .voice-recording-orb-base {
     width: 70px;
     height: 70px;
   }
-  
+
   .ring-3 {
     transform: scale(1.5); /* Capped from 1.8 */
   }
@@ -588,7 +588,7 @@ Here is the **Final Merged Specification** for the engineering team.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Animation Variables */
   --shimmer-dark: var(--swan-carbon);
   --shimmer-bright: var(--swan-midnight);
@@ -620,7 +620,7 @@ Here is the **Final Merged Specification** for the engineering team.
 .message-bubble.ai {
   background: var(--swan-graphite);
   border: 1px solid var(--swan-carbon);
-  border-bottom-left-radius: 4px; 
+  border-bottom-left-radius: 4px;
   margin-right: auto;
 }
 
@@ -629,7 +629,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border: 1px solid var(--swan-royal);
   border-bottom-right-radius: 4px;
   margin-left: auto;
-  color: var(--swan-frost); 
+  color: var(--swan-frost);
 }
 ```
 
@@ -680,14 +680,14 @@ Here is the **Final Merged Specification** for the engineering team.
 }
 
 @keyframes dotPulse {
-  0%, 80%, 100% { 
-    opacity: 0.2; 
-    transform: scale(0.8); 
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: scale(0.8);
     box-shadow: 0 0 0 rgba(80, 160, 240, 0);
   }
-  40% { 
-    opacity: 1.0; 
-    transform: scale(1.0); 
+  40% {
+    opacity: 1.0;
+    transform: scale(1.0);
     box-shadow: 0 0 8px rgba(80, 160, 240, 0.6); /* Luminescent glow */
   }
 }
@@ -697,7 +697,7 @@ Here is the **Final Merged Specification** for the engineering team.
 ```css
 .voice-recording-wrapper {
   position: relative;
-  width: 144px; 
+  width: 144px;
   height: 144px;
   display: flex;
   align-items: center;
@@ -709,7 +709,7 @@ Here is the **Final Merged Specification** for the engineering team.
   height: 80px;
   border-radius: 50%;
   background: var(--swan-midnight);
-  z-index: 10; 
+  z-index: 10;
   position: relative;
   transition: background-color 300ms ease, box-shadow 300ms ease;
 }
@@ -725,7 +725,7 @@ Here is the **Final Merged Specification** for the engineering team.
   border-radius: 50%;
   top: 0; left: 0; right: 0; bottom: 0;
   margin: auto;
-  z-index: 1; 
+  z-index: 1;
   pointer-events: none;
   transition: transform 100ms ease-out;
 }
@@ -760,4 +760,3 @@ Here is the **Final Merged Specification** for the engineering team.
 *Engineering Team: You are cleared for immediate implementation based on this specification.*
 
 ---
-

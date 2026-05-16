@@ -48,7 +48,7 @@ Below are the merged specifications incorporating both plans.
 > ```tsx
 > // CHANGE FROM:
 > style={{ height: '56px', transition: 'height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
-> 
+>
 > // TO:
 > style={{ height: isExpanded ? 'auto' : '56px', transition: 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-out' }}
 > ```
@@ -112,7 +112,7 @@ Specifications endorsed. ✅ **Full agreement.**
 > ```css
 > .action-sheet-primary-btn {
 >   /* Replace inline glow with subtle gradient + drop shadow only */
->   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35), 
+>   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35),
 >               0 0 0 1px rgba(96, 192, 240, 0.2);
 > }
 > .action-sheet-primary-btn:active {
@@ -134,8 +134,8 @@ The original plan omits critical states for the **"Apply" action**.
 
 const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-<PrimaryButton 
-  onPress={handleApply} 
+<PrimaryButton
+  onPress={handleApply}
   disabled={applyState === 'loading'}
 >
   {applyState === 'loading' && <Spinner size={16} color="#E0ECF4" />}
@@ -160,7 +160,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
 
 ```tsx
 // ADD ARIA attributes:
-<button 
+<button
   aria-expanded={isExpanded}
   aria-controls={`mod-content-${exerciseId}`}
   onKeyDown={(e) => {
@@ -171,7 +171,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
   <Chevron aria-hidden="true" />
 </button>
 
-<div 
+<div
   id={`mod-content-${exerciseId}`}
   role="region"
   aria-label={`Modifications for ${exerciseName}`}

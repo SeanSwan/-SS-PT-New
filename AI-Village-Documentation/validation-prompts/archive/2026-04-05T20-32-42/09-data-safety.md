@@ -75,7 +75,7 @@ module.exports = {
     // Prevents failure if migration is accidentally re-run
     const tableExists = await queryInterface.showAllTables()
       .then(tables => tables.includes('SecurityAlerts'));
-    
+
     if (tableExists) {
       console.log('SecurityAlerts table already exists — skipping creation');
       return;

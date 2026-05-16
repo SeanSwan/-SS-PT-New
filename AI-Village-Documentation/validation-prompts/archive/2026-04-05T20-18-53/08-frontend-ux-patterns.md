@@ -35,8 +35,8 @@ This review evaluates the `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` blueprin
 
 ### 6. Accessibility Gaps
 *   **Finding:** The plan emphasizes "Sean's vision" and "Human-centered" branding.
-*   **Recommendation:** 
-    *   **Color Contrast:** Ensure the `Gilded Fern` (#C6A84B) text on `Frost White` backgrounds meets WCAG AA standards. 
+*   **Recommendation:**
+    *   **Color Contrast:** Ensure the `Gilded Fern` (#C6A84B) text on `Frost White` backgrounds meets WCAG AA standards.
     *   **Keyboard Navigation:** The "Drag-and-drop" calendar must have a keyboard-accessible alternative (e.g., a "Move" menu in the post options).
     *   **Screen Readers:** Ensure the "CrystallineLockOverlay" is `aria-hidden="true"` or properly described so screen readers don't get stuck in a "locked" loop.
 *   **Rating:** **CRITICAL**

@@ -20,7 +20,7 @@
 
 ### Recommendations for Sean:
 1. **Add "Trainer Tools Preview" section** showing:
-   - Voice-command interface mockup with "Log workout for [client]" 
+   - Voice-command interface mockup with "Log workout for [client]"
    - Quick-access to recent client sessions (3-tap maximum)
    - Mobile-first design demonstration
 2. **Hero CTA for Sean:** Add "Trainer Login" as prominent button alongside community/trainer finder

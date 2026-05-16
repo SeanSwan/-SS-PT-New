@@ -58,7 +58,7 @@ The testing protocol (Stark, Axe DevTools, real user testing if budget allows) w
 
 ### Crystalline Rose for Form Errors — COLOR PSYCHOLOGY CONFLICT
 
-**File:** `src/components/UI/FormField.tsx` & `src/styles/theme.ts`  
+**File:** `src/components/UI/FormField.tsx` & `src/styles/theme.ts`
 **Your Proposal:** `#E879F9` (Crystalline Rose / neon magenta)
 
 **I understand your reasoning:**
@@ -128,8 +128,8 @@ If you want to avoid the blue family entirely, I propose **Amber Warning `#FBBF2
 
 ## FINAL DECISION REQUIRED
 
-**Option A:** Frost Alert `#7DD3FC` (my recommendation)  
-**Option B:** Crystalline Rose `#E879F9` (your proposal)  
+**Option A:** Frost Alert `#7DD3FC` (my recommendation)
+**Option B:** Crystalline Rose `#E879F9` (your proposal)
 **Option C:** Amber Warning `#FBBF24` (compromise)
 
 **Question for you:** Are you willing to test Crystalline Rose with actual trainers (male, female, non-binary) before committing? If user testing shows no gender bias perception, I'll withdraw my objection.

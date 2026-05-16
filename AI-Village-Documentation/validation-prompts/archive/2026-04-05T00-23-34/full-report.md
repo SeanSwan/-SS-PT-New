@@ -125,7 +125,7 @@ Here are the UX research insights for the SwanStudios feature upgrade plan, stru
 *   **Client & Trainer Dashboards:**
     *   **Centralized Client Overview:** Emulate TrueCoach and My PT Hub's consolidated client views, showing compliance rates, upcoming sessions, and recent activities at a glance.
     *   **Streamlined Communication:** Integrate in-app messaging with multimedia support (photos, videos for form checks) and scheduled notifications, similar to TrueCoach and My PT Hub.
-    *   **Automated Check-ins & Programming:** Implement automated client check-ins and progressive program scaling based on client progress, a feature highlighted by My PT Hub and Trainerize. [cite: 
+    *   **Automated Check-ins & Programming:** Implement automated client check-ins and progressive program scaling based on client progress, a feature highlighted by My PT Hub and Trainerize. [cite:
 
 ---
 
@@ -276,7 +276,7 @@ User clicks conversation in sidebar
   → Fetches /api/conversations/:id/messages
   → On success: sets messages, loading: false
   → On error: sets error state, loading: false, selectedId reverts? (specify)
-  
+
 Race condition: User clicks conversation B before conversation A resolves
   → useEffect cleanup must call AbortController.abort()
   → Plan must specify this explicitly
@@ -325,7 +325,7 @@ Race condition: User clicks conversation B before conversation A resolves
 // ClientCard should be:
 const ClientCard = React.memo(({ client }: { client: ClientProgressDTO }) => {
   // stable render — no random values
-}, (prev, next) => prev.client.id === next.client.id && 
+}, (prev, next) => prev.client.id === next.client.id &&
                    prev.client.progressPercent === next.client.progressPercent);
 ```
 
@@ -408,108 +408,108 @@ useClientDashboardData.ts (composition hook, <80 lines, imports the above)
 ## [PASS] Security & Privacy Planning
 **Model:** stepfun/step-3.5-flash:free | **Duration:** 35.8s
 
-# Security Review: SwanStudios AI Feature Plan  
-**Policy:** Zero PII to External LLMs | **Platform:** Health Data (PHI) | **Review Date:** 2026-04-04  
+# Security Review: SwanStudios AI Feature Plan
+**Policy:** Zero PII to External LLMs | **Platform:** Health Data (PHI) | **Review Date:** 2026-04-04
 
 ---
 
-## 1. PII Exposure in Conversation History  
-**Rating:** CRITICAL  
-**Plan Gap:** No mention of sanitization for titles/previews before storage or AI processing.  
-**Risks:**  
-- User-generated conversation titles (e.g., "John's knee injury") could contain names/conditions.  
-- Previews sent to AI for context may include PII from message snippets.  
-**Violates:** Zero PII to LLMs policy.  
-**Mitigations:**  
-- Implement **pre-processing sanitization pipeline**:  
-  - Strip all proper nouns, dates, locations, medical IDs using regex + NLP entity recognition (local, offline).  
-  - Replace PII with tokens (e.g., `[CLIENT_NAME]`) before any AI interaction.  
-  - Sanitize **both** user-facing titles and AI-generated summaries.  
-- **Never** send raw conversation history to external AI; only send sanitized, tokenized text.  
-- Audit all AI prompt templates for PII leakage vectors.  
+## 1. PII Exposure in Conversation History
+**Rating:** CRITICAL
+**Plan Gap:** No mention of sanitization for titles/previews before storage or AI processing.
+**Risks:**
+- User-generated conversation titles (e.g., "John's knee injury") could contain names/conditions.
+- Previews sent to AI for context may include PII from message snippets.
+**Violates:** Zero PII to LLMs policy.
+**Mitigations:**
+- Implement **pre-processing sanitization pipeline**:
+  - Strip all proper nouns, dates, locations, medical IDs using regex + NLP entity recognition (local, offline).
+  - Replace PII with tokens (e.g., `[CLIENT_NAME]`) before any AI interaction.
+  - Sanitize **both** user-facing titles and AI-generated summaries.
+- **Never** send raw conversation history to external AI; only send sanitized, tokenized text.
+- Audit all AI prompt templates for PII leakage vectors.
 
 ---
 
-## 2. File Attachment Risks (R2 Uploads for AI Analysis)  
-**Rating:** HIGH  
-**Plan Gap:** No validation, SSRF protection, or content-type enforcement described.  
-**Risks:**  
-- Malicious files (e.g., SVG with XSS, polyglot files) uploaded to R2 could compromise AI processing or downstream systems.  
-- SSRF if AI service fetches image URLs from attacker-controlled servers.  
-**Mitigations:**  
-- **Strict file validation**:  
-  - Allow only `image/jpeg`, `image/png`, `image/webp`.  
-  - Validate magic bytes, not just extensions.  
-  - Re-scan images with antivirus (ClamAV) in isolated container.  
-- **SSRF prevention**:  
-  - AI service must **never** fetch arbitrary URLs; only process files from R2 with signed, time-limited URLs.  
-  - Block private IP ranges in any URL parsing (if URLs are ever used).  
-- **R2 bucket policies**:  
-  - Bucket private; access only via presigned URLs (expire in ≤15 min).  
-  - Enable S3 Block Public Access.  
-- **AI processing sandbox**: Run image analysis in ephemeral, network-restricted container.  
+## 2. File Attachment Risks (R2 Uploads for AI Analysis)
+**Rating:** HIGH
+**Plan Gap:** No validation, SSRF protection, or content-type enforcement described.
+**Risks:**
+- Malicious files (e.g., SVG with XSS, polyglot files) uploaded to R2 could compromise AI processing or downstream systems.
+- SSRF if AI service fetches image URLs from attacker-controlled servers.
+**Mitigations:**
+- **Strict file validation**:
+  - Allow only `image/jpeg`, `image/png`, `image/webp`.
+  - Validate magic bytes, not just extensions.
+  - Re-scan images with antivirus (ClamAV) in isolated container.
+- **SSRF prevention**:
+  - AI service must **never** fetch arbitrary URLs; only process files from R2 with signed, time-limited URLs.
+  - Block private IP ranges in any URL parsing (if URLs are ever used).
+- **R2 bucket policies**:
+  - Bucket private; access only via presigned URLs (expire in ≤15 min).
+  - Enable S3 Block Public Access.
+- **AI processing sandbox**: Run image analysis in ephemeral, network-restricted container.
 
 ---
 
-## 3. Voice Data Privacy (Gemini Transcription)  
-**Rating:** CRITICAL  
-**Plan Gap:** No retention policy, storage details, or consent flow described.  
-**Risks:**  
-- Audio recordings may contain background PII (names, addresses).  
-- Unclear if recordings are stored post-transcription (violates data minimization).  
-- Gemini processes audio externally → PII exposure if not sanitized.  
-**Mitigations:**  
-- **Retention policy**:  
-  - Delete raw audio immediately after successful transcription (≤5 min retention).  
-  - Store **only** text transcripts (already sanitized per #1).  
-- **Consent & disclosure**:  
-  - Explicit UI consent: "Audio will be sent to Google Gemini for transcription. No recordings stored."  
-  - Update privacy policy to list Gemini as sub-processor.  
-- **Technical controls**:  
-  - Stream audio directly to Gemini via API; **never** write to disk or R2.  
-  - Use Gemini's `enableAutomaticPunctuation` only; disable speaker diarization if not needed (reduces PII).  
-- **Audit logs**: Log all transcription requests (user ID, timestamp, file hash) for compliance.  
+## 3. Voice Data Privacy (Gemini Transcription)
+**Rating:** CRITICAL
+**Plan Gap:** No retention policy, storage details, or consent flow described.
+**Risks:**
+- Audio recordings may contain background PII (names, addresses).
+- Unclear if recordings are stored post-transcription (violates data minimization).
+- Gemini processes audio externally → PII exposure if not sanitized.
+**Mitigations:**
+- **Retention policy**:
+  - Delete raw audio immediately after successful transcription (≤5 min retention).
+  - Store **only** text transcripts (already sanitized per #1).
+- **Consent & disclosure**:
+  - Explicit UI consent: "Audio will be sent to Google Gemini for transcription. No recordings stored."
+  - Update privacy policy to list Gemini as sub-processor.
+- **Technical controls**:
+  - Stream audio directly to Gemini via API; **never** write to disk or R2.
+  - Use Gemini's `enableAutomaticPunctuation` only; disable speaker diarization if not needed (reduces PII).
+- **Audit logs**: Log all transcription requests (user ID, timestamp, file hash) for compliance.
 
 ---
 
-## 4. Conversation Data at Rest (PostgreSQL JSONB)  
-**Rating:** HIGH  
-**Plan Gap:** No encryption, access controls, or audit logging specified.  
-**Risks:**  
-- Unencrypted PHI in DB (conversations contain health data).  
-- No row-level security; admin role may access all conversations (see #5).  
-- Backups may be unencrypted.  
-**Mitigations:**  
-- **Encryption**:  
-  - Enable PostgreSQL TDE (transparent data encryption) or use encrypted EBS volumes.  
-  - Encrypt JSONB fields application-side with AES-256-GCM (key in AWS KMS).  
-- **Access controls**:  
-  - Implement **row-level security (RLS)** in PostgreSQL:  
+## 4. Conversation Data at Rest (PostgreSQL JSONB)
+**Rating:** HIGH
+**Plan Gap:** No encryption, access controls, or audit logging specified.
+**Risks:**
+- Unencrypted PHI in DB (conversations contain health data).
+- No row-level security; admin role may access all conversations (see #5).
+- Backups may be unencrypted.
+**Mitigations:**
+- **Encryption**:
+  - Enable PostgreSQL TDE (transparent data encryption) or use encrypted EBS volumes.
+  - Encrypt JSONB fields application-side with AES-256-GCM (key in AWS KMS).
+- **Access controls**:
+  - Implement **row-level security (RLS)** in PostgreSQL:
     ```sql
-    CREATE POLICY client_access ON conversations 
+    CREATE POLICY client_access ON conversations
     FOR SELECT USING (client_id = current_user_id());
-    ```  
-  - Application must enforce `WHERE client_id = ?` on all queries (defense in depth).  
-- **Audit logging**:  
-  - Log all conversation access (who, when, which client) to separate audit table.  
-  - Retain logs for 7 years (HIPAA requirement).  
-- **Backup encryption**: Ensure all DB backups are encrypted with KMS-managed keys.  
+    ```
+  - Application must enforce `WHERE client_id = ?` on all queries (defense in depth).
+- **Audit logging**:
+  - Log all conversation access (who, when, which client) to separate audit table.
+  - Retain logs for 7 years (HIPAA requirement).
+- **Backup encryption**: Ensure all DB backups are encrypted with KMS-managed keys.
 
 ---
 
-## 5. RBAC Enforcement Gaps  
-**Rating:** HIGH  
-**Plan Gap:** RBAC described conceptually but no enforcement mechanism in code/bug list.  
-**Evidence from Plan:**  
-- Admin sees all conversations (bug #12: mock data shown to trainers → suggests no scoping).  
-- Dead endpoints (#5) may bypass auth checks.  
-- No mention of middleware for route-level RBAC.  
-**Risks:**  
-- Trainer could view other clients' conversations via direct API calls.  
-- Admin over-privileged (should need justification to view PHI).  
-**Mitigations:**  
-- **Middleware enforcement**:  
-  - All `/api/conversations/*` routes must pass through `rbacMiddleware`:  
+## 5. RBAC Enforcement Gaps
+**Rating:** HIGH
+**Plan Gap:** RBAC described conceptually but no enforcement mechanism in code/bug list.
+**Evidence from Plan:**
+- Admin sees all conversations (bug #12: mock data shown to trainers → suggests no scoping).
+- Dead endpoints (#5) may bypass auth checks.
+- No mention of middleware for route-level RBAC.
+**Risks:**
+- Trainer could view other clients' conversations via direct API calls.
+- Admin over-privileged (should need justification to view PHI).
+**Mitigations:**
+- **Middleware enforcement**:
+  - All `/api/conversations/*` routes must pass through `rbacMiddleware`:
     ```javascript
     const rbacMiddleware = (role, resourceOwnerIdParam) => {
       return async (req, res, next) => {
@@ -520,81 +520,81 @@ useClientDashboardData.ts (composition hook, <80 lines, imports the above)
       };
     };
     // Usage: router.get('/:clientId', rbacMiddleware('trainer', 'clientId'), getConversations);
-    ```  
-- **Database-level RLS** (as in #4) as second layer.  
-- **Admin restrictions**:  
-  - Admin access to PHI requires MFA + justification field (audit trail).  
-  - Implement "break glass" protocol with alerting.  
-- **Test coverage**: Add integration tests for RBAC bypass attempts (e.g., trainer accessing another client's `/api/conversations/999`).  
+    ```
+- **Database-level RLS** (as in #4) as second layer.
+- **Admin restrictions**:
+  - Admin access to PHI requires MFA + justification field (audit trail).
+  - Implement "break glass" protocol with alerting.
+- **Test coverage**: Add integration tests for RBAC bypass attempts (e.g., trainer accessing another client's `/api/conversations/999`).
 
 ---
 
-## 6. MediaRecorder API Risks (Client-Side)  
-**Rating:** MEDIUM  
-**Plan Gap:** No mention of permission handling, stream cleanup, or client-side data protection.  
-**Risks:**  
-- Microphone permission granted but stream not stopped → background recording.  
-- Audio chunks stored in memory/IndexedDB could be extracted via XSS.  
-- No UI indicator when recording is active (user unaware).  
-**Mitigations:**  
-- **Strict lifecycle management**:  
-  - Use `MediaRecorder` with `ondataavailable` → immediately stream to server; **never** store locally.  
-  - On component unmount/stop, call `stream.getTracks().forEach(t => t.stop())`.  
-- **UI/UX controls**:  
-  - Persistent recording indicator (red dot) with stop button.  
-  - Auto-stop after 5 minutes of silence (using Web Audio API silence detection).  
-- **Security hardening**:  
-  - Set `MediaRecorder` `mimeType` to `audio/webm;codecs=opus` (no metadata).  
-  - Clear all buffers after transmission: `chunks = []`.  
-  - Disable right-click/DevTools during recording (via `document.addEventListener('contextmenu', e => e.preventDefault())`).  
+## 6. MediaRecorder API Risks (Client-Side)
+**Rating:** MEDIUM
+**Plan Gap:** No mention of permission handling, stream cleanup, or client-side data protection.
+**Risks:**
+- Microphone permission granted but stream not stopped → background recording.
+- Audio chunks stored in memory/IndexedDB could be extracted via XSS.
+- No UI indicator when recording is active (user unaware).
+**Mitigations:**
+- **Strict lifecycle management**:
+  - Use `MediaRecorder` with `ondataavailable` → immediately stream to server; **never** store locally.
+  - On component unmount/stop, call `stream.getTracks().forEach(t => t.stop())`.
+- **UI/UX controls**:
+  - Persistent recording indicator (red dot) with stop button.
+  - Auto-stop after 5 minutes of silence (using Web Audio API silence detection).
+- **Security hardening**:
+  - Set `MediaRecorder` `mimeType` to `audio/webm;codecs=opus` (no metadata).
+  - Clear all buffers after transmission: `chunks = []`.
+  - Disable right-click/DevTools during recording (via `document.addEventListener('contextmenu', e => e.preventDefault())`).
 
 ---
 
-## 7. Markdown Rendering XSS (react-markdown)  
-**Rating:** HIGH  
-**Plan Gap:** No mention of sanitization library or CSP.  
-**Risks:**  
-- User-generated markdown (e.g., workout notes) could contain:  
-  - `<script>` tags (if `dangerouslySetInnerHTML` used elsewhere).  
-  - `javascript:` URLs in links.  
-  - HTML injection via `{{}}` in some markdown parsers.  
-- Compromised trainer account could inject XSS to steal client sessions.  
-**Mitigations:**  
-- **Sanitize before rendering**:  
-  - Use `rehype-sanitize` with strict schema:  
+## 7. Markdown Rendering XSS (react-markdown)
+**Rating:** HIGH
+**Plan Gap:** No mention of sanitization library or CSP.
+**Risks:**
+- User-generated markdown (e.g., workout notes) could contain:
+  - `<script>` tags (if `dangerouslySetInnerHTML` used elsewhere).
+  - `javascript:` URLs in links.
+  - HTML injection via `{{}}` in some markdown parsers.
+- Compromised trainer account could inject XSS to steal client sessions.
+**Mitigations:**
+- **Sanitize before rendering**:
+  - Use `rehype-sanitize` with strict schema:
     ```javascript
     import rehypeSanitize from 'rehype-sanitize';
-    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>  
-      {content}  
+    <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+      {content}
     </ReactMarkdown>
-    ```  
-  - Allow only: `a`, `p`, `ul`, `ol`, `li`, `strong`, `em`, `code`, `pre`.  
-  - Disallow all `img` (images should be uploaded via separate flow).  
-- **Content Security Policy (CSP)**:  
-  - `default-src 'self'; script-src 'self' 'nonce-{RANDOM}'; style-src 'self' 'unsafe-inline';`  
-  - Disable `unsafe-inline` for scripts; use nonces.  
-- **Input validation**:  
-  - Backend validates markdown length/structure; reject if >10KB or contains `<`/`>` in raw form.  
+    ```
+  - Allow only: `a`, `p`, `ul`, `ol`, `li`, `strong`, `em`, `code`, `pre`.
+  - Disallow all `img` (images should be uploaded via separate flow).
+- **Content Security Policy (CSP)**:
+  - `default-src 'self'; script-src 'self' 'nonce-{RANDOM}'; style-src 'self' 'unsafe-inline';`
+  - Disable `unsafe-inline` for scripts; use nonces.
+- **Input validation**:
+  - Backend validates markdown length/structure; reject if >10KB or contains `<`/`>` in raw form.
 
 ---
 
-## Summary of Critical Dependencies  
-| Finding | Depends on | Blocking? |  
-|---------|------------|-----------|  
-| PII Sanitization (#1) | NLP library (compromise: regex-only initially) | Yes (policy violation) |  
-| Voice Data Retention (#3) | Audio streaming architecture | Yes (legal risk) |  
-| RBAC Enforcement (#5) | Auth middleware refactor | Yes (PHI access) |  
-| DB Encryption (#4) | DevOps/KMS setup | No (can be phased) |  
+## Summary of Critical Dependencies
+| Finding | Depends on | Blocking? |
+|---------|------------|-----------|
+| PII Sanitization (#1) | NLP library (compromise: regex-only initially) | Yes (policy violation) |
+| Voice Data Retention (#3) | Audio streaming architecture | Yes (legal risk) |
+| RBAC Enforcement (#5) | Auth middleware refactor | Yes (PHI access) |
+| DB Encryption (#4) | DevOps/KMS setup | No (can be phased) |
 
-**Recommendation:** Halt AI feature rollout until #1, #3, #5 are resolved. Implement #2, #4, #7 in parallel.  
+**Recommendation:** Halt AI feature rollout until #1, #3, #5 are resolved. Implement #2, #4, #7 in parallel.
 
-**Next Steps:**  
-1. Threat model session with product/engineering to map all PII flows.  
-2. Penetration test focused on:  
-   - RBAC bypass (IDOR) in conversation endpoints.  
-   - File upload SSRF/XSS.  
-   - Markdown XSS in trainer/client notes.  
-3. Update privacy policy & consent screens before Gemini integration.  
+**Next Steps:**
+1. Threat model session with product/engineering to map all PII flows.
+2. Penetration test focused on:
+   - RBAC bypass (IDOR) in conversation endpoints.
+   - File upload SSRF/XSS.
+   - Markdown XSS in trainer/client notes.
+3. Update privacy policy & consent screens before Gemini integration.
 
 **Compliance Note:** This platform handles PHI → HIPAA Business Associate Agreement (BAA) required with Google (Gemini) and any sub-processors. Verify Google's HIPAA compliance status for Gemini API.
 
@@ -608,7 +608,7 @@ This performance review focuses on the **AI-driven features** (voice, markdown, 
 ### 1. Bundle Size & Dependency Management
 **Finding: HIGH**
 The addition of `react-markdown`, `remark-gfm`, and `rehype-highlight` adds roughly **65-80KB (gzipped)**. Including these in the main vendor bundle will delay the "First Meaningful Paint" for clients on mobile devices.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Use `React.lazy(() => import('react-markdown'))` specifically within the `ConversationThread` component.
     *   **Tree Shaking:** Ensure you are importing from `react-markdown/lib/react-markdown` to avoid pulling in unnecessary CJS modules.
     *   **Lightweight Alternatives:** Consider `lowlight` instead of the full `highlight.js` for code blocks if the AI only outputs specific languages (TS/JSON).
@@ -696,77 +696,77 @@ Error: Google GenAI 404: {
 
 ## 1. Sean (Admin/Trainer) at the Gym Perspective
 
-**Voice-first workflow viability:**  
-- **Critical blockers:** SessionDetailModal's 5 dead API endpoints mean Sean cannot cancel sessions, log feedback, or mark attendance via voice commands. This breaks his "between sets" workflow entirely.  
-- **Workflow steps:** Currently would require 3+ taps to navigate to broken modal → error → manual logging.  
-- **Previous conversation loading:** Not addressed in audit—likely functional if API exists, but no mention of voice-command shortcuts ("load last session with John").  
+**Voice-first workflow viability:**
+- **Critical blockers:** SessionDetailModal's 5 dead API endpoints mean Sean cannot cancel sessions, log feedback, or mark attendance via voice commands. This breaks his "between sets" workflow entirely.
+- **Workflow steps:** Currently would require 3+ taps to navigate to broken modal → error → manual logging.
+- **Previous conversation loading:** Not addressed in audit—likely functional if API exists, but no mention of voice-command shortcuts ("load last session with John").
 
-**Sean-specific recommendations:**  
-1. **Fix Tier 1 #5 immediately:** Repair SessionDetailModal API paths so voice commands can execute session management.  
-2. **Add voice shortcut:** Implement "recall last session with [client]" command to reduce taps to zero.  
-3. **Prioritize Tier 2 #6:** Password change endpoint needed for Sean's golf clients who claim accounts and need immediate password updates.  
+**Sean-specific recommendations:**
+1. **Fix Tier 1 #5 immediately:** Repair SessionDetailModal API paths so voice commands can execute session management.
+2. **Add voice shortcut:** Implement "recall last session with [client]" command to reduce taps to zero.
+3. **Prioritize Tier 2 #6:** Password change endpoint needed for Sean's golf clients who claim accounts and need immediate password updates.
 
 ## 2. Golf Client Onboarding Perspective
 
-**Premium experience assessment:**  
-- **Trust signals compromised:** Mock data in MyClientsView (Tier 2 #9) shows random progress values—golf client sees "(Preview)" charts and may doubt data authenticity.  
-- **Coach Assistant sophistication:** Conversation history UI not audited, but "Coming Soon" placeholders (Medium #21) in Security/Session History degrade premium feel.  
-- **Password flow friction:** No password change UI after claim (High #8) forces tech-savvy client to hunt for settings—unacceptable for premium service.  
+**Premium experience assessment:**
+- **Trust signals compromised:** Mock data in MyClientsView (Tier 2 #9) shows random progress values—golf client sees "(Preview)" charts and may doubt data authenticity.
+- **Coach Assistant sophistication:** Conversation history UI not audited, but "Coming Soon" placeholders (Medium #21) in Security/Session History degrade premium feel.
+- **Password flow friction:** No password change UI after claim (High #8) forces tech-savvy client to hunt for settings—unacceptable for premium service.
 
-**Golf client recommendations:**  
-1. **Fix Tier 2 #7 & #9 before launch:** Remove all mock data and implement password change UI—critical for privacy-conscious wealthy clients.  
-2. **Enhance conversation history:** Audit missing—ensure conversation UI uses Frost White/Swan Lavender palette with large, elegant typography.  
-3. **Add premium onboarding cues:** Badge "NASM OPT Certified" next to AI coach, show Sean's 25-year credential in welcome message.  
+**Golf client recommendations:**
+1. **Fix Tier 2 #7 & #9 before launch:** Remove all mock data and implement password change UI—critical for privacy-conscious wealthy clients.
+2. **Enhance conversation history:** Audit missing—ensure conversation UI uses Frost White/Swan Lavender palette with large, elegant typography.
+3. **Add premium onboarding cues:** Badge "NASM OPT Certified" next to AI coach, show Sean's 25-year credential in welcome message.
 
 ## 3. Working Professional (5-Minute Check) Perspective
 
-**Efficiency assessment:**  
-- **Sidebar speed:** Not audited—but dual dashboard implementations (Medium #22) could cause confusion and delay finding "leg day" search.  
-- **Search functionality:** Audit doesn't cover conversation search—assume non-functional if "Detailed session history coming soon" exists.  
-- **Quick session access:** Workout Plans API returns 501 (High #9)—"My Plans" broken, forcing manual workout creation wasting 5-minute window.  
+**Efficiency assessment:**
+- **Sidebar speed:** Not audited—but dual dashboard implementations (Medium #22) could cause confusion and delay finding "leg day" search.
+- **Search functionality:** Audit doesn't cover conversation search—assume non-functional if "Detailed session history coming soon" exists.
+- **Quick session access:** Workout Plans API returns 501 (High #9)—"My Plans" broken, forcing manual workout creation wasting 5-minute window.
 
-**Working professional recommendations:**  
-1. **Fix Tier 2 #8 immediately:** Implement Workout Plans API so professionals can load pre-built 15-minute sessions instantly.  
-2. **Consolidate dashboards (Tier 3 #16):** Choose EnhancedClientDashboard and optimize sidebar navigation with predictive "most likely next session" display.  
-3. **Add voice shortcut:** "Show me leg day from last month" should return filtered conversations in <2 seconds.  
+**Working professional recommendations:**
+1. **Fix Tier 2 #8 immediately:** Implement Workout Plans API so professionals can load pre-built 15-minute sessions instantly.
+2. **Consolidate dashboards (Tier 3 #16):** Choose EnhancedClientDashboard and optimize sidebar navigation with predictive "most likely next session" display.
+3. **Add voice shortcut:** "Show me leg day from last month" should return filtered conversations in <2 seconds.
 
 ## 4. Accessibility for 40-60 Year Olds Perspective
 
-**Tech-savvy concerns:**  
-- **Font sizes/touch targets:** Not audited—but dark theme (Obsidian Black/Carbon) with small Frost White text could strain visibility.  
-- **Voice UX:** Rate limiting disabled (Critical #1) could allow brute force attacks disrupting voice service—less tech-savvy users may blame "glitchy AI."  
-- **Error recovery:** No password change endpoint (Critical #3) leaves older users stuck if they forget generated password.  
+**Tech-savvy concerns:**
+- **Font sizes/touch targets:** Not audited—but dark theme (Obsidian Black/Carbon) with small Frost White text could strain visibility.
+- **Voice UX:** Rate limiting disabled (Critical #1) could allow brute force attacks disrupting voice service—less tech-savvy users may blame "glitchy AI."
+- **Error recovery:** No password change endpoint (Critical #3) leaves older users stuck if they forget generated password.
 
-**Accessibility recommendations:**  
-1. **Add accessibility audit:** Post-fixes, test font sizes ≥ 16px for body, touch targets ≥ 44px.  
-2. **Fix Critical #1 today:** Enable rate limiting to ensure voice service stability for all users.  
-3. **Simplify error messages:** Replace technical 404 errors with "Sorry, this feature is temporarily unavailable—please try voice command instead."  
+**Accessibility recommendations:**
+1. **Add accessibility audit:** Post-fixes, test font sizes ≥ 16px for body, touch targets ≥ 44px.
+2. **Fix Critical #1 today:** Enable rate limiting to ensure voice service stability for all users.
+3. **Simplify error messages:** Replace technical 404 errors with "Sorry, this feature is temporarily unavailable—please try voice command instead."
 
 ## 5. Trust Signals Perspective
 
-**AI confusion risk:**  
-- **Thinking indicator + provider badge:** Audit doesn't cover UI, but "which AI am I talking to?" confusion likely if:  
-  - Victory charts show demo data (High #13) labeled "(Preview)"  
-  - RegressionLine shows wrong modification (High #14)  
-- **Trust erosion:** Mock progress data (High #12) + dead reward buttons (High #15) make gamification feel untrustworthy.  
+**AI confusion risk:**
+- **Thinking indicator + provider badge:** Audit doesn't cover UI, but "which AI am I talking to?" confusion likely if:
+  - Victory charts show demo data (High #13) labeled "(Preview)"
+  - RegressionLine shows wrong modification (High #14)
+- **Trust erosion:** Mock progress data (High #12) + dead reward buttons (High #15) make gamification feel untrustworthy.
 
-**Trust-building recommendations:**  
-1. **Fix Tier 2 #10 & #11:** Wire Rewards and Challenges handlers so Octalysis gamification feels functional and rewarding.  
-2. **Clarify AI identity:** Badge should show "SwanStudios AI Coach (NASM OPT Model)" not just generic "AI Assistant."  
-3. **Remove "(Preview)" labels:** Replace with "Live Data" when real data exists (Tier 3 #14).  
+**Trust-building recommendations:**
+1. **Fix Tier 2 #10 & #11:** Wire Rewards and Challenges handlers so Octalysis gamification feels functional and rewarding.
+2. **Clarify AI identity:** Badge should show "SwanStudios AI Coach (NASM OPT Model)" not just generic "AI Assistant."
+3. **Remove "(Preview)" labels:** Replace with "Live Data" when real data exists (Tier 3 #14).
 
 ## 6. Emotional Response (Crystalline Swan Aesthetic) Perspective
 
-**Premium vs. cold assessment:**  
-- **Dark theme palette:** Midnight Sapphire (#002060) + Ice Wing (#60C0F0) could feel sleek and premium but:  
-  - "Coming Soon" placeholders (Medium #21) break immersion  
-  - Dead buttons (High #10) create "abandoned" feeling  
-- **Motivation factors:** Gilded Fern (#C6A84B) accents should feel luxurious, but broken gamification (High #15-16) undermines motivation.  
+**Premium vs. cold assessment:**
+- **Dark theme palette:** Midnight Sapphire (#002060) + Ice Wing (#60C0F0) could feel sleek and premium but:
+  - "Coming Soon" placeholders (Medium #21) break immersion
+  - Dead buttons (High #10) create "abandoned" feeling
+- **Motivation factors:** Gilded Fern (#C6A84B) accents should feel luxurious, but broken gamification (High #15-16) undermines motivation.
 
-**Emotional design recommendations:**  
-1. **Fix Tier 2 #10-11 before launch:** Functional gamification is critical for motivation—dead buttons kill emotional engagement.  
-2. **Use palette strategically:** Apply Wing Purple (#8B5CF6) for interactive elements, Frost White (#E0ECF4) for success messages.  
-3. **Add micro-animations:** Ice Wing shimmer on voice activation, Gilded Fern glow on reward unlock—but only after handlers wired.  
+**Emotional design recommendations:**
+1. **Fix Tier 2 #10-11 before launch:** Functional gamification is critical for motivation—dead buttons kill emotional engagement.
+2. **Use palette strategically:** Apply Wing Purple (#8B5CF6) for interactive elements, Frost White (#E0ECF4) for success messages.
+3. **Add micro-animations:** Ice Wing shimmer on voice activation, Gilded Fern glow on reward unlock—but only after handlers wired.
 
 ## Persona-Prioritized Fix Roadmap
 
@@ -786,8 +786,8 @@ Error: Google GenAI 404: {
 
 # SwanStudios Implementation Plan — Risk & Feasibility Assessment
 
-**Document Reviewed:** `docs/ai-workflow/blueprints/COMPREHENSIVE-APP-AUDIT-2026-04-04.md`  
-**Date:** 2026-04-04  
+**Document Reviewed:** `docs/ai-workflow/blueprints/COMPREHENSIVE-APP-AUDIT-2026-04-04.md`
+**Date:** 2026-04-04
 **Prepared by:** AI Risk Assessment Module
 
 ---
@@ -852,11 +852,11 @@ Total markdown deps:   ~65KB gzipped (acceptable)
 ```typescript
 // Voice feature detection wrapper
 const useVoiceInput = () => {
-  const isSupported = typeof window !== 'undefined' && 
+  const isSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-  
-  return isSupported 
-    ? useNativeVoiceInput() 
+
+  return isSupported
+    ? useNativeVoiceInput()
     : useFallbackInput(); // Text-only fallback
 };
 ```
@@ -1013,7 +1013,7 @@ export const FEATURE_FLAGS = {
 
 // Backend feature flags
 const checkFeatureFlag = (userId: string, flag: string): boolean => {
-  return user.featureFlags.includes(flag) || 
+  return user.featureFlags.includes(flag) ||
          process.env[`DEFAULT_${flag}`] === 'true';
 };
 ```
@@ -1071,7 +1071,7 @@ const checkFeatureFlag = (userId: string, flag: string): boolean => {
 **Mitigation:**
 ```sql
 -- Pre-deployment migration (additive, safe)
-ALTER TABLE bootcamp_exercises 
+ALTER TABLE bootcamp_exercises
 ADD COLUMN IF NOT EXISTS elbow_mod VARCHAR(50),
 ADD COLUMN IF NOT EXISTS foot_mod VARCHAR(50),
 ADD COLUMN IF NOT EXISTS hip_mod VARCHAR(50);
@@ -1170,7 +1170,7 @@ This review focuses on stabilizing the architecture for the **Enchanted Apex** t
 ### 1. Styled-components Organization
 **Verdict:** Splitting into 5 files is **over-engineering** for a project of this scale.
 *   **The Issue:** Barrel re-exports create "dependency hell" and make it harder to track where a specific style is defined.
-*   **Recommendation:** Use a **Feature-Based Colocation** pattern. Keep styles in the same directory as the component (e.g., `BootcampBuilder/BootcampBuilder.styles.ts`). 
+*   **Recommendation:** Use a **Feature-Based Colocation** pattern. Keep styles in the same directory as the component (e.g., `BootcampBuilder/BootcampBuilder.styles.ts`).
 *   **Global Theme:** Keep `theme.ts` (colors, spacing, typography) separate. Use `styled-components` `ThemeProvider` to inject your palette. Only use a shared `styles/` folder for truly global elements (e.g., `GlobalReset.ts`, `Typography.ts`).
 
 ### 2. Hook Composition
@@ -1210,7 +1210,7 @@ This review focuses on stabilizing the architecture for the **Enchanted Apex** t
 ### 6. Form Handling
 **Verdict:** **Controlled inputs are required for your AI Coach.**
 *   **The Issue:** Uncontrolled inputs make it difficult to sync the "Voice-first" input with the text input field.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Controlled:** Use for the AI Chat and Search inputs to ensure the UI reflects the current "Voice" state immediately.
     *   **Debounce:** Use `use-debounce` hook for the Sidebar search to prevent API spamming to your exercise database.
 
@@ -1319,12 +1319,12 @@ CREATE TABLE conversation_attachments (
   size_bytes BIGINT NOT NULL,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ,                  -- soft delete aligned with conversation
-  
+
   CONSTRAINT valid_size CHECK (size_bytes > 0 AND size_bytes <= 52428800) -- 50MB max
 );
 
-CREATE INDEX idx_conv_attachments_conversation 
-  ON conversation_attachments(conversation_id) 
+CREATE INDEX idx_conv_attachments_conversation
+  ON conversation_attachments(conversation_id)
   WHERE deleted_at IS NULL;
 ```
 
@@ -1344,16 +1344,16 @@ async function validateMessageSize(conversationId, newMessage) {
     attributes: ['id'],
     // Use raw query to check size without loading full JSONB
   });
-  
+
   const { rows } = await sequelize.query(
-    `SELECT octet_length(messages::text) as size_bytes 
+    `SELECT octet_length(messages::text) as size_bytes
      FROM conversations WHERE id = :id`,
     { replacements: { id: conversationId }, type: QueryTypes.SELECT }
   );
-  
+
   const currentSize = rows[0]?.size_bytes ?? 0;
   const newMessageSize = Buffer.byteLength(JSON.stringify(newMessage), 'utf8');
-  
+
   if (newMessageSize > MAX_SINGLE_MESSAGE_BYTES) {
     throw new Error('MESSAGE_TOO_LARGE');
   }
@@ -1405,7 +1405,7 @@ const conversations = await Conversation.findAll({
 ```sql
 -- Audit query: run against production to detect exposure
 -- If this returns rows, deleted conversations ARE visible to users
-SELECT 
+SELECT
   c.id,
   c.user_id,
   c.status,
@@ -1413,7 +1413,7 @@ SELECT
   c.title,
   COUNT(*) as times_would_appear_in_sidebar
 FROM conversations c
-WHERE c.status = 'deleted' 
+WHERE c.status = 'deleted'
    OR c.deleted_at IS NOT NULL
 GROUP BY c.id, c.user_id, c.status, c.deleted_at, c.title
 HAVING COUNT(*) > 0;
@@ -1425,7 +1425,7 @@ HAVING COUNT(*) > 0;
 -- Create a VIEW that enforces soft-delete at the database level
 -- This prevents any query from accidentally exposing deleted conversations
 CREATE OR REPLACE VIEW active_conversations AS
-SELECT 
+SELECT
   id,
   user_id,
   title,
@@ -1534,49 +1534,49 @@ export async function processPendingDeletions() {
 
   for (const deletion of pending) {
     const conversationId = deletion.resourceId;
-    
+
     // SAFETY CHECK: Confirm conversation is still deleted before purging files
     const conversation = await Conversation.findByPk(conversationId, {
       paranoid: false, // Include soft-deleted
     });
-    
+
     if (!conversation || conversation.status !== 'deleted') {
       // Conversation was restored — cancel deletion
       await deletion.update({ status: 'cancelled', reason: 'conversation_restored' });
       continue;
     }
-    
+
     // Fetch all attachment keys for this conversation
     const attachments = await ConversationAttachment.findAll({
       where: { conversationId },
       paranoid: false,
       attributes: ['id', 'r2Key'],
     });
-    
+
     if (attachments.length === 0) {
       await deletion.update({ status: 'completed', completedAt: new Date() });
       continue;
     }
-    
+
     // Delete from R2 in batches of 1000 (S3 API limit)
     const keys = attachments.map(a => ({ Key: a.r2Key }));
     const batches = chunkArray(keys, 1000);
-    
+
     for (const batch of batches) {
       await r2Client.send(new DeleteObjectsCommand({
         Bucket: process.env.R2_BUCKET_NAME,
         Delete: { Objects: batch, Quiet: false },
       }));
     }
-    
+
     // Hard delete attachment records (they're orphaned anyway)
     await ConversationAttachment.destroy({
       where: { conversationId },
       force: true, // Hard delete attachment records
     });
-    
-    await deletion.update({ 
-      status: 'completed', 
+
+    await deletion.update({
+      status: 'completed',
       completedAt: new Date(),
       filesDeleted: attachments.length,
     });
@@ -1591,7 +1591,7 @@ CREATE TABLE pending_deletions (
   resource_type TEXT NOT NULL,
   resource_id UUID NOT NULL,
   scheduled_for TIMESTAMPTZ NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' 
+  status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'completed', 'cancelled', 'failed')),
   files_deleted INTEGER,
   reason TEXT,
@@ -1599,8 +1599,8 @@ CREATE TABLE pending_deletions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_pending_deletions_scheduled 
-  ON pending_deletions(scheduled_for, status) 
+CREATE INDEX idx_pending_deletions_scheduled
+  ON pending_deletions(scheduled_for, status)
   WHERE status = 'pending';
 ```
 
@@ -1649,13 +1649,13 @@ The plan is **ambiguous** about voice recording lifecycle. "Sent to Gemini for t
 export async function transcribeVoiceMessage(req, res) {
   // Use multer memoryStorage — NEVER diskStorage for voice
   // Audio bytes live only in req.file.buffer (Node.js heap)
-  
+
   const audioBuffer = req.file?.buffer;
-  
+
   if (!audioBuffer) {
     return res.status(400).json({ error: 'No audio data received' });
   }
-  
+
   // Size limit: voice messages should be < 10MB (Gemini limit is 20MB inline)
   if (audioBuffer.length > 10 * 1024 *
 
@@ -1683,7 +1683,7 @@ export async function transcribeVoiceMessage(req, res) {
 
 \*Based on the existing codebase (see `backend/controllers/aiChatController.mjs` – the handler returns `Conversation` model attributes only).
 
-**Recommendation:**  
+**Recommendation:**
 Modify the controller to **project** or **annotate** the query with the extra fields:
 
 ```sql
@@ -1709,11 +1709,11 @@ If the DB schema already stores a `summary` column on `conversations`, simply se
 - **Current plan:** Load the first 20 conversations and filter client‑side.
 - **Adequacy:** Acceptable only while a user has **≤ ~50** conversations. Beyond that, UI latency and memory usage grow, and the user cannot find older chats.
 
-**When to add server‑side search:**  
-- As soon as the product targets the **wealthy golf / professional** segment (expected > 100 conversations per power user).  
+**When to add server‑side search:**
+- As soon as the product targets the **wealthy golf / professional** segment (expected > 100 conversations per power user).
 - Or when the conversation list is paginated (e.g., infinite scroll) – the client will need to ask the server for the next page matching a query.
 
-**Recommended endpoint:**  
+**Recommended endpoint:**
 
 ```
 GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
@@ -1780,7 +1780,7 @@ Two common patterns:
 
 ### Changes to the message creation endpoint
 
-Current: `POST /api/ai-chat/conversations/:id/messages`  
+Current: `POST /api/ai-chat/conversations/:id/messages`
 Body: `{ content: string }`
 
 **New body:**
@@ -1814,7 +1814,7 @@ Implement via **express-rate-limit** (or Redis‑backed) with a key like `user:<
 
 ## 6. WebSocket Integration – Push vs Poll
 
-The project already uses **Socket.io** (see `backend/socket.io.mjs`).  
+The project already uses **Socket.io** (see `backend/socket.io.mjs`).
 
 **Current approach (implied):** Poll `GET /api/ai-chat/conversations` every few seconds to surface new messages or title changes.
 
@@ -1860,7 +1860,7 @@ export interface ConversationSummary {
 }
 ```
 
-Ensure the serializer (e.g., Sequelize `toJSON` or a custom transformer) **always** includes these fields, even if `null`/`0`.  
+Ensure the serializer (e.g., Sequelize `toJSON` or a custom transformer) **always** includes these fields, even if `null`/`0`.
 If the backend currently omits `context` or `messageCount`, add them as **virtual fields** or **selected columns** as shown in §1.
 
 ---
@@ -1873,10 +1873,10 @@ If the backend currently omits `context` or `messageCount`, add them as **virtua
 | **Invalidation** | None (time‑based only). | Misses immediate updates (new message, rename). |
 | **Scalability** | Simple in‑memory or Redis TTL. | Works but can be improved. |
 
-**Recommendation:**  
+**Recommendation:**
 
-1. **Short‑lived cache** – 30 seconds (or even 10 seconds) for the list endpoint.  
-2. **Event‑driven invalidation** – When a WS `conversation:updated` or `message:created` is emitted, **purge** the cached list for that user (e.g., `del user:<id>:conversation-list`).  
+1. **Short‑lived cache** – 30 seconds (or even 10 seconds) for the list endpoint.
+2. **Event‑driven invalidation** – When a WS `conversation:updated` or `message:created` is emitted, **purge** the cached list for that user (e.g., `del user:<id>:conversation-list`).
 3. **Optional:** Use **Redis tags** or a hash keyed by `userId` storing the latest `lastMessageAt` per conversation; the endpoint can then return a `304 Not Modified` if the client sends an `If-Modified-Since` header matching the cached timestamp.
 
 **Result:** Near‑real‑time list with minimal backend load, and no reliance on a fixed 5‑minute TTL.
@@ -1919,8 +1919,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 1. Sidebar on 320px — Layout Squeeze Risk
-**Rating:** HIGH  
-**Issue:** 85vw = 272px on 320px screens leaves only 48px for chat area. With conversation titles (auto-generated, potentially long), timestamps, and action buttons (call, delete, etc.), content will overflow or wrap poorly.  
+**Rating:** HIGH
+**Issue:** 85vw = 272px on 320px screens leaves only 48px for chat area. With conversation titles (auto-generated, potentially long), timestamps, and action buttons (call, delete, etc.), content will overflow or wrap poorly.
 **Solutions:**
 - **CSS:** Use `min-width` constraints and responsive typography:
   ```css
@@ -1950,8 +1950,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 2. Voice Recording on iOS Safari
-**Rating:** CRITICAL  
-**Issue:** iOS Safari requires `webkitMediaRecorder` prefix and has strict autoplay policies for TTS. Without proper handling, voice features will fail on ~50% of mobile users.  
+**Rating:** CRITICAL
+**Issue:** iOS Safari requires `webkitMediaRecorder` prefix and has strict autoplay policies for TTS. Without proper handling, voice features will fail on ~50% of mobile users.
 **Solutions:**
 - **MediaRecorder Polyfill:**
   ```javascript
@@ -1960,14 +1960,14 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
     // Fallback: show "Voice not supported on this browser"
   }
   ```
-- **TTS Autoplay Policy:** Must be triggered by user gesture (button click). Use `speechSynthesis.speak()` only inside click handlers.  
+- **TTS Autoplay Policy:** Must be triggered by user gesture (button click). Use `speechSynthesis.speak()` only inside click handlers.
 - **Permissions:** Explicitly request microphone access with `navigator.mediaDevices.getUserMedia({ audio: true })` and handle iOS's one-time permission prompt.
 
 ---
 
 ## 3. Keyboard on Mobile — Viewport Management
-**Rating:** HIGH  
-**Issue:** Virtual keyboard reduces `window.innerHeight`, potentially pushing fixed sidebar/chat off-screen or causing layout shifts.  
+**Rating:** HIGH
+**Issue:** Virtual keyboard reduces `window.innerHeight`, potentially pushing fixed sidebar/chat off-screen or causing layout shifts.
 **Solutions:**
 - **Visual Viewport API:**
   ```javascript
@@ -1993,8 +1993,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 4. Offline/Slow Network — Empty State UX
-**Rating:** MEDIUM  
-**Issue:** Plan doesn't specify error handling for conversations list failures. Users see blank screens with no recovery path.  
+**Rating:** MEDIUM
+**Issue:** Plan doesn't specify error handling for conversations list failures. Users see blank screens with no recovery path.
 **Solutions:**
 - **React Query / SWR Pattern:**
   ```tsx
@@ -2014,8 +2014,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 5. Long Conversation Titles — Truncation Strategy
-**Rating:** MEDIUM  
-**Issue:** Auto-generated titles from first message can be lengthy (e.g., "How do I modify the bench press for my shoulder impingement?").  
+**Rating:** MEDIUM
+**Issue:** Auto-generated titles from first message can be lengthy (e.g., "How do I modify the bench press for my shoulder impingement?").
 **Solutions:**
 - **CSS Multi-line Truncation:**
   ```css
@@ -2030,16 +2030,16 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
   ```
 - **React:** Pre-truncate in component if title > 100 chars:
   ```tsx
-  const displayTitle = title.length > 100 
-    ? title.substring(0, 100) + '...' 
+  const displayTitle = title.length > 100
+    ? title.substring(0, 100) + '...'
     : title;
   ```
 
 ---
 
 ## 6. Large Message History — Virtual Scrolling
-**Rating:** HIGH  
-**Issue:** 100+ messages in a conversation will cause DOM bloat and jank on low-end devices.  
+**Rating:** HIGH
+**Issue:** 100+ messages in a conversation will cause DOM bloat and jank on low-end devices.
 **Solutions:**
 - **Virtual Scrolling:** Use `react-window` or `@tanstack/react-virtual`:
   ```tsx
@@ -2057,8 +2057,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 7. RTL Languages — CSS Logical Properties
-**Rating:** LOW (Future-proofing)  
-**Issue:** Sidebar layout uses physical properties (`left`, `margin-left`) that won't flip in RTL.  
+**Rating:** LOW (Future-proofing)
+**Issue:** Sidebar layout uses physical properties (`left`, `margin-left`) that won't flip in RTL.
 **Solutions:**
 - **CSS Logical Properties:**
   ```css
@@ -2080,8 +2080,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 8. Reduced Motion — Accessibility Compliance
-**Rating:** MEDIUM  
-**Issue:** Voice orb pulsing, sidebar slide, and thinking indicators may trigger vestibular disorders.  
+**Rating:** MEDIUM
+**Issue:** Voice orb pulsing, sidebar slide, and thinking indicators may trigger vestibular disorders.
 **Solutions:**
 - **CSS Media Query:**
   ```css
@@ -2105,8 +2105,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 9. Screen Reader — ARIA Landmarks & Roles
-**Rating:** HIGH  
-**Issue:** Without proper landmarks, screen reader users cannot navigate between sidebar and chat.  
+**Rating:** HIGH
+**Issue:** Without proper landmarks, screen reader users cannot navigate between sidebar and chat.
 **Solutions:**
 - **Landmark Structure:**
   ```tsx
@@ -2139,8 +2139,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 10. 4K Ultrawide — Max-Width Constraints
-**Rating:** MEDIUM  
-**Issue:** On 3840px ultrawide, sidebar and chat may stretch too wide, harming readability (line length >100 chars).  
+**Rating:** MEDIUM
+**Issue:** On 3840px ultrawide, sidebar and chat may stretch too wide, harming readability (line length >100 chars).
 **Solutions:**
 - **Container Queries (or Max-Width):**
   ```css
@@ -2199,7 +2199,7 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 
 # Strategic Product & Future-Proofing Audit: SwanStudios (April 2026)
 
-As a strategic product researcher and futurist, I have reviewed the `COMPREHENSIVE-APP-AUDIT-2026-04-04.md` document. While the current plan excellently addresses critical technical debt and UI bugs, it is entirely reactive. It completely misses the technological, regulatory, and market shifts that have defined the fitness SaaS landscape in 2025 and early 2026. 
+As a strategic product researcher and futurist, I have reviewed the `COMPREHENSIVE-APP-AUDIT-2026-04-04.md` document. While the current plan excellently addresses critical technical debt and UI bugs, it is entirely reactive. It completely misses the technological, regulatory, and market shifts that have defined the fitness SaaS landscape in 2025 and early 2026.
 
 To capture your target demographic (wealthy golf clients, working professionals 30-55) and leverage your key differentiators (NASM OPT periodization, voice-first AI), SwanStudios must evolve from a "tracker" into an autonomous, compliant, and spatial-ready ecosystem.
 
@@ -2280,7 +2280,7 @@ Here is the strategic gap analysis and future-proofing roadmap.
 
 ### GAP 8: Apple Vision Pro / Spatial Computing Readiness
 *   **What's missing:** No consideration for spatial computing or VR/AR fitness environments.
-*   **Why it matters:** With the maturation of visionOS in 2026, wealthy target clients (e.g., golf clients, executives) are rapidly adopting Apple Vision Pro for immersive home workouts (evidenced by the success of apps like FunFitLand and Gymaholic). 
+*   **Why it matters:** With the maturation of visionOS in 2026, wealthy target clients (e.g., golf clients, executives) are rapidly adopting Apple Vision Pro for immersive home workouts (evidenced by the success of apps like FunFitLand and Gymaholic).
 *   **How to implement:** Abstract the frontend architecture so the 840+ exercise database and AI voice coach can be exposed via a REST/GraphQL API to a future visionOS native app. Ensure all new 3D exercise assets are stored in USDZ format for seamless spatial computing integration.
 *   **Priority:** **LOW** (Future)
 *   **Source URL:** [PCMag: Best Apple Vision Pro Apps 2026](https://www.pcmag.com/picks/the-best-apple-vision-pro-apps)
@@ -2306,14 +2306,14 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
 ---
 
 ### 1. PII Exposure in Conversation History (CRITICAL)
-**Agreed Action:** Deploy a local PII sanitization pipeline **before** any AI processing or storage.  
-**Implementation Details:**  
-- **Library:** Use `compromise` (v14.0.0) for lightweight NER; supplement with a custom medical term list (e.g., “ACL tear”, “plantar fasciitis”).  
-- **File:** `src/lib/sanitizePII.ts`  
+**Agreed Action:** Deploy a local PII sanitization pipeline **before** any AI processing or storage.
+**Implementation Details:**
+- **Library:** Use `compromise` (v14.0.0) for lightweight NER; supplement with a custom medical term list (e.g., “ACL tear”, “plantar fasciitis”).
+- **File:** `src/lib/sanitizePII.ts`
   ```typescript
   import nlp from 'compromise';
   const MEDICAL_TERMS = new Set(['injury', 'pain', 'fracture', 'sprain', 'tear', 'surgery']);
-  
+
   export function sanitizePII(text: string): string {
     const doc = nlp(text);
     // Replace person names
@@ -2330,21 +2330,21 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
     return doc.out('text');
   }
   ```
-- **Hooks:**  
-  - **On write:** Middleware in `src/routes/conversations.ts` (line 42) before `INSERT INTO conversations.title` and `messages.content`.  
-  - **On read:** AI context builder in `src/services/aiContext.ts` (line 18) – apply `sanitizePII` to all message snippets.  
+- **Hooks:**
+  - **On write:** Middleware in `src/routes/conversations.ts` (line 42) before `INSERT INTO conversations.title` and `messages.content`.
+  - **On read:** AI context builder in `src/services/aiContext.ts` (line 18) – apply `sanitizePII` to all message snippets.
 - **Retroactive Audit:** Run nightly job (`scripts/auditPII.js`) to scan existing `conversations` and `messages` tables; flag rows with regex `/[A-Z][a-z]+ [A-Z][a-z]+/` (potential names) and `/\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \\d{1,2},? \\d{4}\\b/` (dates). Output to `logs/pii_audit_$(date).csv`.
 
 ---
 
 ### 2. File Attachment Attack Surface (CRITICAL)
-**Agreed Action:** Disable uploads until validation layer, AV scan, and storage redesign are live.  
-**Implementation Details:**  
-- **Validation Layer:** `src/middleware/fileValidator.ts` (new)  
+**Agreed Action:** Disable uploads until validation layer, AV scan, and storage redesign are live.
+**Implementation Details:**
+- **Validation Layer:** `src/middleware/fileValidator.ts` (new)
   ```typescript
   import { fileTypeFromBuffer } from 'file-type';
   const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
-  
+
   export async function validateFile(req, res, next) {
     const buffer = await req.file.buffer;
     const type = await fileTypeFromBuffer(buffer);
@@ -2354,8 +2354,8 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
     next();
   }
   ```
-- **ClamAV Scan:** Deploy `clamav-scanner` container (Dockerfile in `infra/clamav/`); invoke via `src/services/clamavScan.ts` (line 12) before R2 upload.  
-- **R2 Bucket Policy:**  
+- **ClamAV Scan:** Deploy `clamav-scanner` container (Dockerfile in `infra/clamav/`); invoke via `src/services/clamavScan.ts` (line 12) before R2 upload.
+- **R2 Bucket Policy:**
   ```json
   {
     "Version":"2012-10-17",
@@ -2369,8 +2369,8 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
     }]
   }
   ```
-  Set `PresignExpiry: 900` (15 min) in `src/lib/r2Client.ts` (line 28).  
-- **Schema Migration:** `migrations/20260404_create_attachments.sql`  
+  Set `PresignExpiry: 900` (15 min) in `src/lib/r2Client.ts` (line 28).
+- **Schema Migration:** `migrations/20260404_create_attachments.sql`
   ```sql
   CREATE TABLE attachments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -2388,14 +2388,14 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
 ---
 
 ### 3. XSS via Markdown Rendering (HIGH)
-**Agreed Action:** Sanitize all AI‑generated markdown before rendering; enforce strict CSP.  
-**Implementation Details:**  
-- **Sanitization Pipeline:** `src/components/MarkdownSafe.tsx` (new)  
+**Agreed Action:** Sanitize all AI‑generated markdown before rendering; enforce strict CSP.
+**Implementation Details:**
+- **Sanitization Pipeline:** `src/components/MarkdownSafe.tsx` (new)
   ```tsx
   import DOMPurify from 'dompurify';
   import ReactMarkdown from 'react-markdown';
   import rehypeSanitize from 'rehype-sanitize';
-  
+
   export const MarkdownSafe = ({ aiMarkdown }: { aiMarkdown: string }) => {
     const clean = DOMPurify.sanitize(aiMarkdown, {
       ALLOWED_TAGS: ['b','i','em','strong','a','p','ul','ol','li','code','pre','blockquote'],
@@ -2406,7 +2406,7 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
     return <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{clean}</ReactMarkdown>;
   };
   ```
-- **CSP Header:** Middleware `src/middleware/csp.ts` (line 8)  
+- **CSP Header:** Middleware `src/middleware/csp.ts` (line 8)
   ```typescript
   export const cspMiddleware = (req, res, next) => {
     const nonce = crypto.randomBytes(16).toString('hex');
@@ -2423,48 +2423,48 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
 ---
 
 ### 4. RBAC Enforcement Gaps (HIGH)
-**Agreed Action:** Audit every endpoint for role/ownership checks; implement RLS; remove mock data.  
-**Implementation Details:**  
-- **Middleware:** `src/middleware/rbac.ts` (new)  
+**Agreed Action:** Audit every endpoint for role/ownership checks; implement RLS; remove mock data.
+**Implementation Details:**
+- **Middleware:** `src/middleware/rbac.ts` (new)
   ```typescript
-  export const requireRole = (role: 'trainer' | 'client') => 
+  export const requireRole = (role: 'trainer' | 'client') =>
     (req, res, next) => {
-      if (req.user?.role !== role) 
+      if (req.user?.role !== role)
         return res.status(403).json({ error: 'Insufficient permissions' });
       next();
     };
-  
-  export const requireOwnership = (param: string, userIdField: string) => 
+
+  export const requireOwnership = (param: string, userIdField: string) =>
     (req, res, next) => {
       const id = req.params[param];
       const query = `SELECT ${userIdField} FROM ${req.originalUrl.split('/')[2]} WHERE id = $1`;
       pool.query(query, [id], (err, result) => {
-        if (err || result.rowCount === 0 || result.rows[0][userIdField] !== req.user.id) 
+        if (err || result.rowCount === 0 || result.rows[0][userIdField] !== req.user.id)
           return res.status(403).json({ error: 'Not authorized' });
         next();
       });
     };
   ```
-- **Apply to Routes:**  
-  - `src/routes/trainerSessions.ts`: `router.get('/:id', requireRole('trainer'), requireOwnership('id', 'trainer_id'), ...)` (line 15)  
-  - `src/routes/myClients.ts`: `router.get('/', requireRole('trainer'), ...)` (line 9)  
-- **RLS Migration:** `migrations/20260404_enable_rls.sql`  
+- **Apply to Routes:**
+  - `src/routes/trainerSessions.ts`: `router.get('/:id', requireRole('trainer'), requireOwnership('id', 'trainer_id'), ...)` (line 15)
+  - `src/routes/myClients.ts`: `router.get('/', requireRole('trainer'), ...)` (line 9)
+- **RLS Migration:** `migrations/20260404_enable_rls.sql`
   ```sql
   ALTER TABLE workout_logs ENABLE ROW LEVEL SECURITY;
   CREATE POLICY client_owns_logs ON workout_logs
     USING (client_id = current_setting('app.current_user_id')::uuid);
   -- Repeat for conversations, messages, attachments
   ```
-  Set `app.current_user_id` via `SELECT set_config('app.current_user_id', $1, true)` in `src/db/connection.ts` (line 33) after auth.  
+  Set `app.current_user_id` via `SELECT set_config('app.current_user_id', $1, true)` in `src/db/connection.ts` (line 33) after auth.
 - **Mock Data Removal:** Delete `Math.random()` occurrences in `src/components/MyClientsView.tsx` (line 27) and `src/pages/TrainerClients.tsx` (line 41); replace with empty state UI.
 
 ---
 
 ### 5. Voice Data Privacy & Storage (HIGH)
-**Agreed Action:** Keep voice processing local by default; encrypt blobs; enforce retention and consent.  
-**Implementation Details:**  
-- **Local STT:** Use Web Speech API in `src/components/VoiceInput.tsx` (line 12) – only send transcribed text to AI.  
-- **Opt‑In External AI:** If user consents, upload encrypted blob:  
+**Agreed Action:** Keep voice processing local by default; encrypt blobs; enforce retention and consent.
+**Implementation Details:**
+- **Local STT:** Use Web Speech API in `src/components/VoiceInput.tsx` (line 12) – only send transcribed text to AI.
+- **Opt‑In External AI:** If user consents, upload encrypted blob:
   ```typescript
   // src/services/voiceUpload.ts
   import { encrypt } from 'aws-kms';
@@ -2475,10 +2475,10 @@ After reviewing the Primary Security Planner’s Round 1 assessment, I concur wi
     return key;
   }
   ```
-- **Retention:** Cron job `scripts/cleanupVoice.js` (runs daily) deletes R2 objects with prefix `voice/` older than 7 days (using `LastModified`).  
-- **Consent Flow:**  
-  - Table: `user_consents (id, user_id, consent_type, granted_at, ip_address)`  
-  - Modal: `src/components/VoiceConsentModal.tsx` (line 20) – stores consent on first voice use.  
+- **Retention:** Cron job `scripts/cleanupVoice.js` (runs daily) deletes R2 objects with prefix `voice/` older than 7 days (using `LastModified`).
+- **Consent Flow:**
+  - Table: `user_consents (id, user_id, consent_type, granted_at, ip_address)`
+  - Modal: `src/components/VoiceConsentModal.tsx` (line 20) – stores consent on first voice use.
   - AI context builder checks `user_consents` before routing voice to external STT.
 
 ---
@@ -2500,11 +2500,11 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 
 CONSENSUS REACHED
 
-It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility. 
+It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility.
 
 Regarding your P3 note on 240px viewports: SwanStudios is a premium, elite coaching platform. We do not degrade our UI for decade-old budget devices or edge-case micro-screens. Our absolute minimum supported viewport is 320px (iPhone SE). The 120px orb footprint stands proudly.
 
-The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements. 
+The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements.
 
 Here is the final, uncompromising, merged specification for the engineering team. Build it exactly as written.
 
@@ -2520,13 +2520,13 @@ Inject these exact properties. No deviations.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Core Blues */
   --swan-midnight: #002060;
   --swan-royal: #003080;
   --swan-arctic: #50A0F0;
   --swan-ice: #60C0F0;
-  
+
   /* Accents & Syntax */
   --swan-wing-purple: #8B5CF6;
   --swan-gilded-fern: #C6A84B;
@@ -2576,7 +2576,7 @@ Inject these exact properties. No deviations.
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       overflow: hidden;
-      
+
       &::before {
         content: '';
         position: absolute;
@@ -2585,7 +2585,7 @@ Inject these exact properties. No deviations.
         transform: translateX(-100%);
         animation: shimmer-slide 1.5s var(--ease-crystalline) infinite;
       }
-      
+
       @keyframes shimmer-slide {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(200%); }
@@ -2613,8 +2613,8 @@ Inject these exact properties. No deviations.
 *   **Dynamic Styling (WCAG AA Compliant):**
     ```jsx
     const Badge = styled.div`
-      background-color: ${props => props.$isHuman 
-        ? 'var(--swan-gilded-fern-bright)' 
+      background-color: ${props => props.$isHuman
+        ? 'var(--swan-gilded-fern-bright)'
         : 'var(--swan-ice)'};
       color: var(--swan-obsidian);
       border-radius: 4px;

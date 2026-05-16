@@ -15,7 +15,7 @@ Below is the performance impact assessment and optimization strategy.
 ### 1. Bundle Size: Markdown & High-Weight Dependencies
 **Rating: HIGH**
 Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~70-90KB (gzipped) to the main bundle. This will degrade the "First Contentful Paint" (FCP) for your wealthy golf/professional demographic who expect "Crystalline" speed.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main `vendor.js`. Use a dynamic import: `const Markdown = React.lazy(() => import('./components/MarkdownRender'))`.
     *   **Server-Side Pre-rendering:** Since the "Mission Statement" and "About" sections are static, parse the Markdown at **build time** (if using SSG) or on the **backend** to send raw HTML. Avoid shipping the parser to the client for static content.
 

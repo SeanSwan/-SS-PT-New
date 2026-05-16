@@ -6,16 +6,16 @@
 
 ---
 
-# API Surface Review – Teach Me Content Upgrade Plan  
-*(Focus: AI‑Chat endpoints that the plan implicitly relies on)*  
+# API Surface Review – Teach Me Content Upgrade Plan
+*(Focus: AI‑Chat endpoints that the plan implicitly relies on)*
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
-**Claim:** Phase 1 needs **zero** backend changes.  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
+**Claim:** Phase 1 needs **zero** backend changes.
 
-**Finding:**  
-The sidebar requires a **ConversationSummary** shape with:  
+**Finding:**
+The sidebar requires a **ConversationSummary** shape with:
 
 | Field | Required? | Typical source |
 |-------|-----------|----------------|
@@ -25,36 +25,36 @@ The sidebar requires a **ConversationSummary** shape with:
 | `messageCount` | ✅ | Count of `messages` linked to conversation |
 | `lastMessageAt` | ✅ | `MAX(created_at)` from `messages` or a denormalized column |
 
-If the current endpoint already returns **all five** fields (or can derive `context`/`messageCount`/`lastMessageAt` without extra joins), then Phase 1 truly needs no change.  
+If the current endpoint already returns **all five** fields (or can derive `context`/`messageCount`/`lastMessageAt` without extra joins), then Phase 1 truly needs no change.
 
-**Recommendation:**  
-- Verify the SELECT list includes `title`, `context`, a computed `message_count` (e.g., `COUNT(messages.id) AS messageCount`), and `max(messages.created_at) AS lastMessageAt`.  
-- If any field is missing, add it **now** – it is a backward‑compatible addition and will prevent future client‑side work‑arounds.  
-- **Verdict:** Zero‑change claim holds **only if** the API already satisfies the above; otherwise add the missing columns (no breaking change).  
+**Recommendation:**
+- Verify the SELECT list includes `title`, `context`, a computed `message_count` (e.g., `COUNT(messages.id) AS messageCount`), and `max(messages.created_at) AS lastMessageAt`.
+- If any field is missing, add it **now** – it is a backward‑compatible addition and will prevent future client‑side work‑arounds.
+- **Verdict:** Zero‑change claim holds **only if** the API already satisfies the above; otherwise add the missing columns (no breaking change).
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
-**Current approach:** Fetch the first 20 conversations (or all) and filter client‑side with JavaScript.  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
+**Current approach:** Fetch the first 20 conversations (or all) and filter client‑side with JavaScript.
 
-**Adequacy:**  
-- ✅ **Fine** for ≤ ~50 conversations per user (typical for a personal trainer’s active chats).  
-- ❌ **Breaks** when a user accumulates hundreds of conversations (e.g., long‑term clients, group chats) – client‑side filtering becomes O(n) on every keystroke and wastes bandwidth.  
+**Adequacy:**
+- ✅ **Fine** for ≤ ~50 conversations per user (typical for a personal trainer’s active chats).
+- ❌ **Breaks** when a user accumulates hundreds of conversations (e.g., long‑term clients, group chats) – client‑side filtering becomes O(n) on every keystroke and wastes bandwidth.
 
-**When to add server‑side search:**  
+**When to add server‑side search:**
 | Trigger | Action |
 |---------|--------|
 | Average conversation count per user > 100 **or** 95th‑percentile > 200 | Implement `GET /api/ai-chat/conversations?search=<term>` |
 | Search latency > 150 ms on client (measured in prod) | Move to server‑side |
 | Need for **fuzzy** or **JSONB** content search (e.g., searching inside message bodies) | Add ILIKE on `title` **+** `to_tsvector`/`jsonb_path_query` on `messages` |
 
-**Implementation sketch:**  
+**Implementation sketch:**
 
 ```http
 GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
 ```
 
-- SQL:  
+- SQL:
   ```sql
   SELECT c.id, c.title, c.context,
          COUNT(m.id) AS messageCount,
@@ -66,18 +66,18 @@ GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
   GROUP BY c.id
   ORDER BY lastMessageAt DESC
   LIMIT $2 OFFSET $3;
-  ```  
-- Add a **GIN** index on `(title)` and optionally on a **tsvector** column built from `title || ' ' || context::text`.  
+  ```
+- Add a **GIN** index on `(title)` and optionally on a **tsvector** column built from `title || ' ' || context::text`.
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
-**REST correctness:**  
-- **Verb:** `POST` – correct for creating a sub‑resource.  
-- **Path:** `conversations/:id/attachments` – correctly nests attachments under a conversation.  
-- **Payload:** Must be `multipart/form-data` (file + optional metadata).  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
+**REST correctness:**
+- **Verb:** `POST` – correct for creating a sub‑resource.
+- **Path:** `conversations/:id/attachments` – correctly nests attachments under a conversation.
+- **Payload:** Must be `multipart/form-data` (file + optional metadata).
 
-**Recommendations:**  
+**Recommendations:**
 
 | Aspect | Detail |
 |--------|--------|
@@ -88,20 +88,20 @@ GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
 | **Security** | Verify the authenticated user owns `:id` before allowing upload. |
 | **Idempotency** | Accept an `Idempotency-Key` header to prevent duplicate uploads on retry. |
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
-**Current message send (presumed):**  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
+**Current message send (presumed):**
 
 ```http
 POST /api/ai-chat/conversations/:id/messages
 { "content": "Describe this exercise" }
 ```
 
-**Needed change:** Allow one or more attachments to travel **with** the message.  
+**Needed change:** Allow one or more attachments to travel **with** the message.
 
-### Option A – Inline attachments (simplest)  
-Add an `attachments` array containing **pre‑uploaded** attachment IDs:  
+### Option A – Inline attachments (simplest)
+Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 
 ```json
 {
@@ -110,23 +110,23 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 }
 ```
 
-- **Pros:** Single request, atomic, easy to reason about.  
-- **Cons:** Requires the client to upload files first (see below) – adds a round‑trip if not already done.  
+- **Pros:** Single request, atomic, easy to reason about.
+- **Cons:** Requires the client to upload files first (see below) – adds a round‑trip if not already done.
 
-### Option B – Upload‑then‑reference (recommended)  
-1. **Upload** file(s) via the attachment endpoint → get `attachment.id`.  
-2. **Send message** referencing those IDs (as in Option A).  
+### Option B – Upload‑then‑reference (recommended)
+1. **Upload** file(s) via the attachment endpoint → get `attachment.id`.
+2. **Send message** referencing those IDs (as in Option A).
 
-**Why this is preferred:**  
-- Decouples large binary upload from the chat request (avoids timeout, allows progress UI).  
-- Enables reuse of the same attachment across multiple messages (e.g., sending the same diagram in follow‑up questions).  
-- Aligns with RESTful design: attachments are first‑class resources.  
+**Why this is preferred:**
+- Decouples large binary upload from the chat request (avoids timeout, allows progress UI).
+- Enables reuse of the same attachment across multiple messages (e.g., sending the same diagram in follow‑up questions).
+- Aligns with RESTful design: attachments are first‑class resources.
 
-**API change:** No new endpoint needed; just document that `messages.create` accepts an optional `attachments: string[]` field.  
+**API change:** No new endpoint needed; just document that `messages.create` accepts an optional `attachments: string[]` field.
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 | Operation | Frequency | Suggested Limit | Rationale |
 |-----------|-----------|----------------|-----------|
 | **Sidebar list** (`GET /api/ai-chat/conversations`) | Every page load / navigation | **60 req/min** per user (burst 10) | Lightweight read; protects against abusive polling. |
@@ -135,18 +135,18 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High during active chat | **30 req/min** | Matches typical conversational pacing; burst allowed for quick Q&A. |
 | **Attachment list** (`GET /api/ai-chat/conversations/:id/attachments`) | Rare (when viewing attachment gallery) | **20 req/min** | Low‑traffic endpoint. |
 
-*Implementation:* Use a middleware (e.g., `express-rate-limit` with Redis store) keyed by `userId` + route. Return `429` with `Retry-After` header.  
+*Implementation:* Use a middleware (e.g., `express-rate-limit` with Redis store) keyed by `userId` + route. Return `429` with `Retry-After` header.
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Poll  
-**Existing:** Socket.io server is already connected.  
+## 6. WebSocket Integration – Push vs. Poll
+**Existing:** Socket.io server is already connected.
 
-**Recommendation:**  
-- **Push** all mutation events (new message, attachment upload, conversation rename, title change) via Socket.io to the relevant `conversationId` room.  
-- Keep the **REST GET list** for initial load and occasional refresh, but **eliminate polling** for updates.  
+**Recommendation:**
+- **Push** all mutation events (new message, attachment upload, conversation rename, title change) via Socket.io to the relevant `conversationId` room.
+- Keep the **REST GET list** for initial load and occasional refresh, but **eliminate polling** for updates.
 
-**Events to emit:**  
+**Events to emit:**
 
 | Event | Payload | When |
 |-------|---------|------|
@@ -155,17 +155,17 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 | `attachment:created` | `{ id, conversationId, filename, mimeType, size, url }` | File upload completed |
 | `conversation:deleted` | `{ conversationId }` | User deletes chat |
 
-**Client side:**  
-- On initial load, fetch conversation list via REST.  
-- Join Socket.io rooms for each conversation ID the user is subscribed to (or a single `user:<id>` room that fans out to all convos).  
-- Update local state optimistically, then reconcile with server acknowledgment.  
+**Client side:**
+- On initial load, fetch conversation list via REST.
+- Join Socket.io rooms for each conversation ID the user is subscribed to (or a single `user:<id>` room that fans out to all convos).
+- Update local state optimistically, then reconcile with server acknowledgment.
 
-**Benefit:** Near‑real‑time UI without extra HTTP requests; reduces server load from polling.  
+**Benefit:** Near‑real‑time UI without extra HTTP requests; reduces server load from polling.
 
----  
+---
 
-## 7. Response Contract – Are Existing Shapes Adequate?  
-**Current (hypothetical) `ConversationSummary`:**  
+## 7. Response Contract – Are Existing Shapes Adequate?
+**Current (hypothetical) `ConversationSummary`:**
 
 ```ts
 interface ConversationSummary {
@@ -175,14 +175,14 @@ interface ConversationSummary {
 }
 ```
 
-**Gap:** The sidebar expects `context`, `messageCount`, and `lastMessageAt`.  
+**Gap:** The sidebar expects `context`, `messageCount`, and `lastMessageAt`.
 
-**Action:**  
-- Extend the serializer (Sequelize `toJSON` or a DTO) to include the three fields.  
-- Ensure they are **nullable** (`context?: string | null`) to avoid breaking older clients that don’t expect them.  
-- Add JSDoc / TypeScript definitions so frontend can rely on them.  
+**Action:**
+- Extend the serializer (Sequelize `toJSON` or a DTO) to include the three fields.
+- Ensure they are **nullable** (`context?: string | null`) to avoid breaking older clients that don’t expect them.
+- Add JSDoc / TypeScript definitions so frontend can rely on them.
 
-**Resulting type:**  
+**Resulting type:**
 
 ```ts
 export interface ConversationSummary {
@@ -192,29 +192,29 @@ export interface ConversationSummary {
   messageCount: number;      // total messages in conversation
   lastMessageAt: string;     // ISO timestamp
 }
-```  
+```
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
-**Current:** Probably using an in‑memory or Redis cache with a static TTL of 300 s.  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
+**Current:** Probably using an in‑memory or Redis cache with a static TTL of 300 s.
 
-**Evaluation:**  
-- ✅ **Good** for reducing DB load on repeat visits.  
-- ❌ **Stale‑data risk:** A new message arriving within the 5‑minute window will not appear until cache expiry, causing confusion (e.g., badge counts, last‑message timestamp).  
+**Evaluation:**
+- ✅ **Good** for reducing DB load on repeat visits.
+- ❌ **Stale‑data risk:** A new message arriving within the 5‑minute window will not appear until cache expiry, causing confusion (e.g., badge counts, last‑message timestamp).
 
-**Recommendation:**  
-1. **Cache‑aside with invalidation:**  
-   - On **any mutation** that affects the list (new message, rename, attachment add/delete), **delete** the cached key for that user (`conversations:user:<id>`).  
-   - Use a Redis `PUB/SUB` channel or directly call `del` in the mutation handler after the transaction commits.  
-2. **Short TTL as safety net:** Keep a **60‑second** TTL to guard against missed invalidation (e.g., server crash).  
-3. **Optional:** Cache individual conversation objects (`conversation:<id>`) with the same invalidation pattern; the list cache can then be built from those objects (reducing stale‑state windows).  
+**Recommendation:**
+1. **Cache‑aside with invalidation:**
+   - On **any mutation** that affects the list (new message, rename, attachment add/delete), **delete** the cached key for that user (`conversations:user:<id>`).
+   - Use a Redis `PUB/SUB` channel or directly call `del` in the mutation handler after the transaction commits.
+2. **Short TTL as safety net:** Keep a **60‑second** TTL to guard against missed invalidation (e.g., server crash).
+3. **Optional:** Cache individual conversation objects (`conversation:<id>`) with the same invalidation pattern; the list cache can then be built from those objects (reducing stale‑state windows).
 
-**Result:** Near‑real‑time freshness with dramatically fewer DB hits.  
+**Result:** Near‑real‑time freshness with dramatically fewer DB hits.
 
----  
+---
 
-# Summary of API Design Recommendations  
+# Summary of API Design Recommendations
 
 | # | Area | Recommendation |
 |---|------|----------------|
@@ -227,9 +227,9 @@ export interface ConversationSummary {
 | 7 | Response contract | Ensure `ConversationSummary` includes `context?`, `messageCount`, `lastMessageAt`. |
 | 8 | Caching | Cache list per user with **60 s TTL** + **invalidate on any mutation** (new message, rename, attachment). |
 
-Implementing the above will give the frontend a solid, performant, and real‑time‑ready foundation for the upcoming Teach Me content upgrades **and** for any future AI‑chat enhancements (multimodal, file sharing, etc.) without requiring breaking changes.  
+Implementing the above will give the frontend a solid, performant, and real‑time‑ready foundation for the upcoming Teach Me content upgrades **and** for any future AI‑chat enhancements (multimodal, file sharing, etc.) without requiring breaking changes.
 
----  
+---
 
 *Prepared for SwanStudios backend review – Enchanted Apex (Crystalline Swan) theme.*
 

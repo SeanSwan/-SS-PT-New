@@ -10,12 +10,12 @@
 
 ## AUDIT SUMMARY
 
-**Document Type:** Product Vision / Requirements Document  
-**Code Reviewed:** Platform specification (no executable code)  
-**Critical Findings:** 0  
-**High Findings:** 0  
-**Medium Findings:** 3  
-**Low Findings:** 2  
+**Document Type:** Product Vision / Requirements Document
+**Code Reviewed:** Platform specification (no executable code)
+**Critical Findings:** 0
+**High Findings:** 0
+**Medium Findings:** 3
+**Low Findings:** 2
 
 ---
 
@@ -35,10 +35,10 @@ However, this document **describes features that WILL create data safety risks w
 
 #### **FINDING M-1: Cascading Delete Risk in Client Account Architecture**
 
-**Severity:** MEDIUM  
-**Data at Risk:** Workout history, progress data, social posts, achievements, order history  
-**Blast Radius:** All data for 1 client (potentially years of training history)  
-**Location:** Section 3 (Automated Client Onboarding), Two-Path Architecture  
+**Severity:** MEDIUM
+**Data at Risk:** Workout history, progress data, social posts, achievements, order history
+**Blast Radius:** All data for 1 client (potentially years of training history)
+**Location:** Section 3 (Automated Client Onboarding), Two-Path Architecture
 
 **What's Wrong:**
 
@@ -96,11 +96,11 @@ CREATE TABLE workout_logs (
 async archiveClient(clientId: number, adminId: number) {
   const client = await User.findByPk(clientId);
   if (!client) throw new Error('Client not found');
-  
+
   // Count related records
   const workoutCount = await WorkoutLog.count({ where: { userId: clientId } });
   const orderCount = await Order.count({ where: { userId: clientId } });
-  
+
   // Log the archive action
   await AuditLog.create({
     action: 'CLIENT_ARCHIVED',
@@ -108,10 +108,10 @@ async archiveClient(clientId: number, adminId: number) {
     targetUserId: clientId,
     metadata: { workoutCount, orderCount }
   });
-  
+
   // Soft delete (preserves all related data)
   await client.update({ deleted_at: new Date() });
-  
+
   return { archived: true, dataPreserved: true };
 }
 ```
@@ -120,10 +120,10 @@ async archiveClient(clientId: number, adminId: number) {
 
 #### **FINDING M-2: Session Package Deduction Race Condition**
 
-**Severity:** MEDIUM  
-**Data at Risk:** Session counts, billing integrity  
-**Blast Radius:** 1 client per incident, but could affect many clients over time  
-**Location:** Section 7 (E-Commerce & Session Packages), "Automatic deduction" feature  
+**Severity:** MEDIUM
+**Data at Risk:** Session counts, billing integrity
+**Blast Radius:** 1 client per incident, but could affect many clients over time
+**Location:** Section 7 (E-Commerce & Session Packages), "Automatic deduction" feature
 
 **What's Wrong:**
 
@@ -155,7 +155,7 @@ Use **atomic database operations** with row-level locking:
 async logWorkout(clientId: number, workoutData: any) {
   const client = await User.findByPk(clientId);
   if (client.sessions_remaining <= 0) throw new Error('No sessions remaining');
-  
+
   await WorkoutLog.create({ userId: clientId, ...workoutData });
   await client.update({ sessions_remaining: client.sessions_remaining - 1 }); // RACE CONDITION
 }
@@ -163,33 +163,33 @@ async logWorkout(clientId: number, workoutData: any) {
 // ✅ SAFE (atomic decrement with row lock)
 async logWorkout(clientId: number, workoutData: any, transaction?: Transaction) {
   const t = transaction || await sequelize.transaction();
-  
+
   try {
     // Lock the user row for update
     const client = await User.findByPk(clientId, {
       lock: t.LOCK.UPDATE,
       transaction: t
     });
-    
+
     if (!client) throw new Error('Client not found');
     if (client.sessions_remaining <= 0) throw new Error('No sessions remaining');
-    
+
     // Atomic decrement (database-level operation)
     await User.decrement('sessions_remaining', {
       by: 1,
       where: { id: clientId },
       transaction: t
     });
-    
+
     // Create workout log
     const workout = await WorkoutLog.create({
       userId: clientId,
       ...workoutData
     }, { transaction: t });
-    
+
     if (!transaction) await t.commit();
     return workout;
-    
+
   } catch (error) {
     if (!transaction) await t.rollback();
     throw error;
@@ -204,8 +204,8 @@ async logWorkout(clientId: number, workoutData: any, transaction?: Transaction) 
 3. **Negative Balance Prevention** — Add database constraint: `CHECK (sessions_remaining >= 0)`
 
 ```sql
-ALTER TABLE users 
-ADD CONSTRAINT sessions_non_negative 
+ALTER TABLE users
+ADD CONSTRAINT sessions_non_negative
 CHECK (sessions_remaining >= 0);
 ```
 
@@ -213,10 +213,10 @@ CHECK (sessions_remaining >= 0);
 
 #### **FINDING M-3: AI Training Data Retention Risk**
 
-**Severity:** MEDIUM  
-**Data at Risk:** Workout logs, health data, pain entries (used for AI training)  
-**Blast Radius:** All clients who consented to AI features  
-**Location:** Section "AI Privacy Architecture (Identity-Blind)"  
+**Severity:** MEDIUM
+**Data at Risk:** Workout logs, health data, pain entries (used for AI training)
+**Blast Radius:** All clients who consented to AI features
+**Location:** Section "AI Privacy Architecture (Identity-Blind)"
 
 **What's Wrong:**
 
@@ -248,14 +248,14 @@ async transcribeWorkoutAudio(audioBuffer: Buffer, clientId: number) {
   const client = await User.findByPk(clientId, {
     attributes: ['ai_consent_version', 'ai_consent_date']
   });
-  
+
   if (!client.ai_consent_version) {
     throw new Error('Client has not consented to AI features');
   }
-  
+
   // 2. Strip identity (already done per doc)
   const anonymizedContext = `[Client #${clientId}]`;
-  
+
   // 3. Call AI with training opt-out
   const response = await gemini.transcribe(audioBuffer, {
     context: anonymizedContext,
@@ -264,7 +264,7 @@ async transcribeWorkoutAudio(audioBuffer: Buffer, clientId: number) {
     model_training: false,  // Anthropic
     data_retention: 'zero',  // Gemini (if supported)
   });
-  
+
   // 4. Log the AI call for audit
   await AICallLog.create({
     userId: clientId,
@@ -273,7 +273,7 @@ async transcribeWorkoutAudio(audioBuffer: Buffer, clientId: number) {
     timestamp: new Date(),
     data_sent_hash: crypto.createHash('sha256').update(audioBuffer).digest('hex')
   });
-  
+
   return response;
 }
 ```
@@ -300,10 +300,10 @@ Add to the platform vision:
 
 #### **FINDING L-1: Move Fitness Client Billing Exclusion Logic**
 
-**Severity:** LOW  
-**Data at Risk:** Revenue integrity (charging clients who shouldn't be charged)  
-**Blast Radius:** Move Fitness clients only (subset of user base)  
-**Location:** Section 3, Path B (Move Fitness Clients)  
+**Severity:** LOW
+**Data at Risk:** Revenue integrity (charging clients who shouldn't be charged)
+**Blast Radius:** Move Fitness clients only (subset of user base)
+**Location:** Section 3, Path B (Move Fitness Clients)
 
 **What's Wrong:**
 
@@ -343,7 +343,7 @@ await queryInterface.addConstraint('users', {
 // 2. Middleware guard on checkout routes
 app.post('/api/checkout', requireAuth, async (req, res) => {
   const user = await User.findByPk(req.user.id);
-  
+
   // CRITICAL: Block Move Fitness clients from checkout
   if (user.client_source === 'move_fitness') {
     return res.status(403).json({
@@ -351,7 +351,7 @@ app.post('/api/checkout', requireAuth, async (req, res) => {
       message: 'Your sessions are managed by Move Fitness gym. Contact your trainer for billing questions.'
     });
   }
-  
+
   // Proceed with Stripe checkout...
 });
 
@@ -373,8 +373,8 @@ app.post('/api/checkout', requireAuth, async (req, res) => {
 // 4. Admin dashboard visual indicator
 // AdminClientList.tsx
 {client.client_source === 'move_fitness' && (
-  <Badge 
-    color="gilded-fern" 
+  <Badge
+    color="gilded-fern"
     icon={<GymIcon />}
     tooltip="Move Fitness client — billing disabled"
   >
@@ -393,18 +393,18 @@ describe('Move Fitness Billing Protection', () => {
       .post('/api/checkout')
       .set('Authorization', client.token)
       .send({ packageId: 1 });
-    
+
     expect(response.status).toBe(403);
     expect(response.body.error).toContain('Move Fitness');
   });
-  
+
   it('should allow checkout for swanstudios clients', async () => {
     const client = await createSwanStudiosClient();
     const response = await request(app)
       .post('/api/checkout')
       .set('Authorization', client.token)
       .send({ packageId: 1 });
-    
+
     expect(response.status).toBe(200);
   });
 });
@@ -414,10 +414,10 @@ describe('Move Fitness Billing Protection', () => {
 
 #### **FINDING L-2: SWAN Invite Code Collision Risk**
 
-**Severity:** LOW  
-**Data at Risk:** Account activation integrity  
-**Blast Radius:** 1 client per collision (low probability but non-zero)  
-**Location:** Section 3, Path B, "SWAN-XXXX invite code" (Crystalline Link Protocol)  
+**Severity:** LOW
+**Data at Risk:** Account activation integrity
+**Blast Radius:** 1 client per collision (low probability but non-zero)
+**Location:** Section 3, Path B, "SWAN-XXXX invite code" (Crystalline Link Protocol)
 
 **What's Wrong:**
 

@@ -298,7 +298,7 @@ This risk is elevated because:
 ```markdown
 ## ⛔ ABSOLUTE PROHIBITION — READ BEFORE TOUCHING ANY MODEL FILE
 
-**NEVER use `sequelize.sync({ force: true })` or `sequelize.sync({ alter: true })` 
+**NEVER use `sequelize.sync({ force: true })` or `sequelize.sync({ alter: true })`
 in ANY environment that has real data.**
 
 - `force: true` = DROP TABLE + recreate = ALL DATA GONE FOREVER
@@ -310,7 +310,7 @@ in ANY environment that has real data.**
 3. Test `up()` and `down()` on a copy of production data locally
 4. Deploy via `sequelize db:migrate` (never via sync)
 
-**If you see `sync({ force: true })` anywhere in the codebase outside of 
+**If you see `sync({ force: true })` anywhere in the codebase outside of
 test files, STOP and report it immediately.**
 ```
 
@@ -370,7 +370,7 @@ All trainer-related join tables MUST use:
 - NEVER use `ON DELETE CASCADE` on the Users table for trainer relationships
 
 Before implementing Phase 6, audit existing FK constraints:
-SELECT conname, confdeltype FROM pg_constraint 
+SELECT conname, confdeltype FROM pg_constraint
 WHERE conrelid = 'TrainerPermissions'::regclass;
 -- confdeltype 'a' = NO ACTION, 'r' = RESTRICT, 'c' = CASCADE
 -- CASCADE ('c') on trainer records = HIGH RISK

@@ -35,7 +35,7 @@ As a Performance and Scalability Engineer, I have reviewed the **Swan Coach + Ma
 **Finding:** "Ranking Tracker (monitor keyword positions)" and "Content Calendar (persistence)."
 **Rating: HIGH**
 - **Risk:** As the content library grows, querying the `ContentCalendar` for "all posts in October" without proper indexing will lead to full table scans.
-- **Recommendation:** 
+- **Recommendation:**
     - Add a **Composite Index** on `(scheduled_date, status)` in the database.
     - Ensure the `Blog` table has a **GIN index** if you plan to implement the "Internal linking structure optimization" via search.
 

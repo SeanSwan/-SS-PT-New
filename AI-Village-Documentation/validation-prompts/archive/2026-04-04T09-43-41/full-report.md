@@ -671,7 +671,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 ## Detailed Risk Assessment & Mitigations
 
 ### 1. PII Exposure in Conversation History
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** The plan mentions "Conversation history" in context but has **zero controls** for PII sanitization before any AI processing or storage.
 
 **Required Mitigations:**
@@ -681,7 +681,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - Audit all `Teach Me` content templates to ensure they cannot be tricked into echoing user PII via dynamic insertion.
 
 ### 2. File Attachment Risks (R2 + AI Analysis)
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** Mentions image uploads for AI analysis but lacks validation, scanning, or SSRF prevention.
 
 **Required Mitigations:**
@@ -692,7 +692,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Metadata stripping:** Remove EXIF data (GPS, device info) on upload.
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** No mention of storage duration, retention policy, or explicit user consent for voice processing.
 
 **Required Mitigations:**
@@ -703,7 +703,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Update Privacy Policy:** Explicitly state: "Voice recordings are processed by Google Gemini for transcription and are not stored by SwanStudios."
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** No mention of encryption, field-level security, or access logging for sensitive JSONB message stores.
 
 **Required Mitigations:**
@@ -714,7 +714,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Audit trail:** Log all access to conversation tables (who, when, which conversation ID).
 
 ### 5. RBAC Enforcement
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** Role definitions exist but no technical enforcement strategy described.
 
 **Required Mitigations:**
@@ -724,7 +724,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Regular access reviews:** Quarterly audit of role assignments.
 
 ### 6. MediaRecorder API Risks (Browser Mic)
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Plan Gap:** No mention of secure stream handling or cleanup.
 
 **Required Mitigations:**
@@ -734,7 +734,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Tab/window close:** Add `beforeunload` listener to ensure streams are killed if user navigates away.
 
 ### 7. Markdown Rendering XSS
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** `react-markdown` with user-generated content is a known XSS vector if not configured securely.
 
 **Required Mitigations:**
@@ -748,7 +748,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 ## Additional Critical Concerns Not in Original List
 
 ### A. AI Prompt Injection via Teach Me Content
-**Rating: HIGH**  
+**Rating: HIGH**
 If `Teach Me` content is dynamically constructed from user input (e.g., "Show me how to train [client goal]"), an attacker could inject malicious prompts.
 
 **Mitigation:**
@@ -756,7 +756,7 @@ If `Teach Me` content is dynamically constructed from user input (e.g., "Show me
 - If dynamic, use a strict template system with parameterized inputs (no string concatenation).
 
 ### B. Third-Party AI Provider Data Logging
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 Gemini/OpenAI may log prompts by default for model improvement.
 
 **Mitigation:**
@@ -764,7 +764,7 @@ Gemini/OpenAI may log prompts by default for model improvement.
 - **Business associate agreements:** Ensure AI providers sign BAAs if handling PHI (unlikely for transcription only, but verify).
 
 ### C. Insecure Direct Object References (IDOR) in Teach Me
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 If `Teach Me` sections are fetched by ID (e.g., `/api/teach-me/:sectionId`), ensure users can't access sections meant for other roles (e.g., client accessing "Admin Strategy").
 
 **Mitigation:**
@@ -820,7 +820,7 @@ Error: Google GenAI 404: {
 
 ## 1. Sean (Admin/Trainer) at the Gym
 
-**Voice-Logging Workflow Assessment:**  
+**Voice-Logging Workflow Assessment:**
 - **Current Gap:** The plan doesn't address voice-first integration with Teach Me. Sean needs to voice-query "How do I run EMOM for 8 clients?" while coaching.
 - **Taps Required:** If Teach Me isn't voice-accessible, Sean would need 3+ taps: open app → navigate to Teach Me → search → read. Too slow between sets.
 - **Conversation History:** No mention of linking Teach Me content to session notes. Sean can't quickly reference "last time I used circuit format" notes.
@@ -833,7 +833,7 @@ Error: Google GenAI 404: {
 
 ## 2. Golf Client Onboarding
 
-**Premium Experience Assessment:**  
+**Premium Experience Assessment:**
 - **Coach Assistant Sophistication:** The plan's deep content (timing math, BPM recommendations) feels premium—but delivery matters. Golf clients won't read manuals.
 - **Conversation History:** If Teach Me appears as dry text blocks, it feels basic. Needs elegant presentation (expandable cards, subtle animations).
 - **Privacy Concern:** "Common mistakes" and "scaling tips" sections could expose that other clients exist—must be phrased generically.
@@ -846,7 +846,7 @@ Error: Google GenAI 404: {
 
 ## 3. Working Professional (5-Minute Check)
 
-**Efficiency Assessment:**  
+**Efficiency Assessment:**
 - **Sidebar Speed:** The plan adds 15+ new sections—could clutter sidebar. Need intelligent prioritization.
 - **Search Functionality:** "Leg day" search must return not just exercises but also relevant formats (circuit, strength) from conversation history.
 - **Quick Sessions:** Deep timing breakdowns (Phase 1) are valuable but need "5-minute read" condensed versions.
@@ -859,7 +859,7 @@ Error: Google GenAI 404: {
 
 ## 4. Accessibility for 40-60 Year Olds
 
-**Tech-Savvy Considerations:**  
+**Tech-Savvy Considerations:**
 - **Font Sizes:** Plan doesn't specify UI changes. 16px minimum body text, 20px for headings in Teach Me panels.
 - **Touch Targets:** Interactive elements (expand sections, play voice explanation) need 44px minimum.
 - **Voice UX:** Voice-first must include fallback "tap to read" option for those uncomfortable with voice.
@@ -872,23 +872,23 @@ Error: Google GenAI 404: {
 
 ## 5. Trust Signals
 
-**AI Transparency Assessment:**  
+**AI Transparency Assessment:**
 - **Thinking Indicator:** Useful but must clarify it's SwanStudios' NASM-certified AI, not generic ChatGPT.
 - **Provider Badge:** "NASM-verified" badge on every Teach Me section builds trust—but needs consistent placement.
 - **Confusion Risk:** If AI coach references Teach Me content, user might think "who's providing this?".
 
 **Trust Recommendations:**
 1. **Branded AI Identity:** Thinking indicator should show "SwanStudios AI Coach (NASM-certified)".
-2. **Badge System:** Three-tier badge:  
-   - NASM-verified (gold badge) for OPT phases, assessments  
-   - Industry-standard (silver) for formats, music BPM  
+2. **Badge System:** Three-tier badge:
+   - NASM-verified (gold badge) for OPT phases, assessments
+   - Industry-standard (silver) for formats, music BPM
    - SwanStudios best practice (blue) for gamification, social features
 3. **Clear Attribution:** When AI coach delivers Teach Me content, preface with "Based on NASM protocols and 25+ years experience..."
 4. **Sean's Presence:** In golf client sessions, optionally show "Curated by Sean (your trainer)" on Teach Me tips.
 
 ## 6. Emotional Response (Crystalline Swan Aesthetic)
 
-**Premium vs Cold Assessment:**  
+**Premium vs Cold Assessment:**
 - **Dark Theme:** Midnight Sapphire (#002060) + Obsidian Black (#0A0A0F) could feel intimidating if text-heavy.
 - **Motivating Elements:** Ice Wing (#60C0F0) accents and crystalline animations can elevate premium feel.
 - **Content Tone:** Deep technical content (timing math, rotation logistics) risks feeling clinical.
@@ -897,29 +897,29 @@ Error: Google GenAI 404: {
 1. **Balance Warm/Cold:** Use Gilded Fern (#C6A84B) for inspirational quotes/motivational tips within Teach Me.
 2. **Visual Relief:** Break dense content with Swan Lavender (#4070C0) bordered cards, subtle frost animations.
 3. **Achievement Highlight:** Gamification Teach Me section should feel celebratory (Wing Purple #8B5CF6 accents).
-4. **Persona-Tailored Tone:**  
-   - Golf client: "Your premium experience includes..."  
-   - Working professional: "Efficient strategy for busy schedules..."  
+4. **Persona-Tailored Tone:**
+   - Golf client: "Your premium experience includes..."
+   - Working professional: "Efficient strategy for busy schedules..."
    - Sean: "NASM-certified protocol for optimal results..."
 
 ## Cross-Persona Implementation Priorities
 
-**Phase 1 (Critical):**  
+**Phase 1 (Critical):**
 1. Voice-integration for all Teach Me content (Sean + Golf client priority)
 2. Mobile-optimized touch targets + font scaling (Working professional + 40-60 accessibility)
 3. NASM badge system implementation (Trust signal for all)
 
-**Phase 2 (High Value):**  
+**Phase 2 (High Value):**
 1. Contextual Teach Me delivery in session flow (Sean + Working professional)
 2. Premium visual presentation with persona-toned language (Golf client + Emotional response)
 3. Search across conversations + Teach Me (Working professional + Sean)
 
-**Phase 3 (Enhancement):**  
+**Phase 3 (Enhancement):**
 1. Expand missing sections with persona-specific examples
 2. Implement dual voice/text delivery for accessibility
 3. Add "quick guide" toggle for time-pressed users
 
-**Risk Mitigation:**  
+**Risk Mitigation:**
 - Avoid overwhelming Golf clients with technical depth—curate summaries.
 - Ensure Sean's voice workflow isn't disrupted by dense content—keep voice queries concise.
 - Test touch targets with 50+ year old users before launch.
@@ -1037,7 +1037,7 @@ Phase 4b (Week 7-8): Voice AI Coach integration
 ```typescript
 // polyfill-check.ts
 const canRecord = (): boolean => {
-  return !!(window.MediaRecorder && 
+  return !!(window.MediaRecorder &&
             (window.MediaRecorder.isTypeSupported('audio/webm') ||
              window.MediaRecorder.isTypeSupported('audio/opus')));
 };
@@ -1172,7 +1172,7 @@ describe('Teach Me Content', () => {
     expect(format).toHaveProperty('scalingTips');
     expect(format).toHaveProperty('musicBPM');
   });
-  
+
   test.each(exerciseDatabase)('Exercise $name has NASM coaching cues', (exercise) => {
     expect(exercise.coachingCues).toBeDefined();
     expect(exercise.coachingCues.length).toBeGreaterThanOrEqual(3);
@@ -1186,7 +1186,7 @@ describe('Voice Coach', () => {
     // Mock no MediaRecorder
     // Assert text input appears
   });
-  
+
   test('Shows error when Gemini API fails', () => {
     // Mock API failure
     // Assert graceful error + retry option
@@ -1241,8 +1241,8 @@ export const FEATURE_FLAGS = {
 
 ```typescript
 // Lazy-load with feature flag
-const TeachMeSection = lazy(() => 
-  FEATURE_FLAGS.SECTION_WARM_UP 
+const TeachMeSection = lazy(() =>
+  FEATURE_FLAGS.SECTION_WARM_UP
     ? import('./sections/warmUpProtocol')
     : import('./sections/comingSoon')
 );
@@ -1405,16 +1405,16 @@ Error: The operation was aborted due to timeout
 ## [PASS] API Design & Backend Contracts
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 102.7s
 
-# API Surface Review – Teach Me Content Upgrade Plan  
-*(Focus: AI‑Chat endpoints that the plan implicitly relies on)*  
+# API Surface Review – Teach Me Content Upgrade Plan
+*(Focus: AI‑Chat endpoints that the plan implicitly relies on)*
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
-**Claim:** Phase 1 needs **zero** backend changes.  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
+**Claim:** Phase 1 needs **zero** backend changes.
 
-**Finding:**  
-The sidebar requires a **ConversationSummary** shape with:  
+**Finding:**
+The sidebar requires a **ConversationSummary** shape with:
 
 | Field | Required? | Typical source |
 |-------|-----------|----------------|
@@ -1424,36 +1424,36 @@ The sidebar requires a **ConversationSummary** shape with:
 | `messageCount` | ✅ | Count of `messages` linked to conversation |
 | `lastMessageAt` | ✅ | `MAX(created_at)` from `messages` or a denormalized column |
 
-If the current endpoint already returns **all five** fields (or can derive `context`/`messageCount`/`lastMessageAt` without extra joins), then Phase 1 truly needs no change.  
+If the current endpoint already returns **all five** fields (or can derive `context`/`messageCount`/`lastMessageAt` without extra joins), then Phase 1 truly needs no change.
 
-**Recommendation:**  
-- Verify the SELECT list includes `title`, `context`, a computed `message_count` (e.g., `COUNT(messages.id) AS messageCount`), and `max(messages.created_at) AS lastMessageAt`.  
-- If any field is missing, add it **now** – it is a backward‑compatible addition and will prevent future client‑side work‑arounds.  
-- **Verdict:** Zero‑change claim holds **only if** the API already satisfies the above; otherwise add the missing columns (no breaking change).  
+**Recommendation:**
+- Verify the SELECT list includes `title`, `context`, a computed `message_count` (e.g., `COUNT(messages.id) AS messageCount`), and `max(messages.created_at) AS lastMessageAt`.
+- If any field is missing, add it **now** – it is a backward‑compatible addition and will prevent future client‑side work‑arounds.
+- **Verdict:** Zero‑change claim holds **only if** the API already satisfies the above; otherwise add the missing columns (no breaking change).
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
-**Current approach:** Fetch the first 20 conversations (or all) and filter client‑side with JavaScript.  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
+**Current approach:** Fetch the first 20 conversations (or all) and filter client‑side with JavaScript.
 
-**Adequacy:**  
-- ✅ **Fine** for ≤ ~50 conversations per user (typical for a personal trainer’s active chats).  
-- ❌ **Breaks** when a user accumulates hundreds of conversations (e.g., long‑term clients, group chats) – client‑side filtering becomes O(n) on every keystroke and wastes bandwidth.  
+**Adequacy:**
+- ✅ **Fine** for ≤ ~50 conversations per user (typical for a personal trainer’s active chats).
+- ❌ **Breaks** when a user accumulates hundreds of conversations (e.g., long‑term clients, group chats) – client‑side filtering becomes O(n) on every keystroke and wastes bandwidth.
 
-**When to add server‑side search:**  
+**When to add server‑side search:**
 | Trigger | Action |
 |---------|--------|
 | Average conversation count per user > 100 **or** 95th‑percentile > 200 | Implement `GET /api/ai-chat/conversations?search=<term>` |
 | Search latency > 150 ms on client (measured in prod) | Move to server‑side |
 | Need for **fuzzy** or **JSONB** content search (e.g., searching inside message bodies) | Add ILIKE on `title` **+** `to_tsvector`/`jsonb_path_query` on `messages` |
 
-**Implementation sketch:**  
+**Implementation sketch:**
 
 ```http
 GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
 ```
 
-- SQL:  
+- SQL:
   ```sql
   SELECT c.id, c.title, c.context,
          COUNT(m.id) AS messageCount,
@@ -1465,18 +1465,18 @@ GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
   GROUP BY c.id
   ORDER BY lastMessageAt DESC
   LIMIT $2 OFFSET $3;
-  ```  
-- Add a **GIN** index on `(title)` and optionally on a **tsvector** column built from `title || ' ' || context::text`.  
+  ```
+- Add a **GIN** index on `(title)` and optionally on a **tsvector** column built from `title || ' ' || context::text`.
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
-**REST correctness:**  
-- **Verb:** `POST` – correct for creating a sub‑resource.  
-- **Path:** `conversations/:id/attachments` – correctly nests attachments under a conversation.  
-- **Payload:** Must be `multipart/form-data` (file + optional metadata).  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
+**REST correctness:**
+- **Verb:** `POST` – correct for creating a sub‑resource.
+- **Path:** `conversations/:id/attachments` – correctly nests attachments under a conversation.
+- **Payload:** Must be `multipart/form-data` (file + optional metadata).
 
-**Recommendations:**  
+**Recommendations:**
 
 | Aspect | Detail |
 |--------|--------|
@@ -1487,20 +1487,20 @@ GET /api/ai-chat/conversations?search=emom&limit=20&offset=0
 | **Security** | Verify the authenticated user owns `:id` before allowing upload. |
 | **Idempotency** | Accept an `Idempotency-Key` header to prevent duplicate uploads on retry. |
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
-**Current message send (presumed):**  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
+**Current message send (presumed):**
 
 ```http
 POST /api/ai-chat/conversations/:id/messages
 { "content": "Describe this exercise" }
 ```
 
-**Needed change:** Allow one or more attachments to travel **with** the message.  
+**Needed change:** Allow one or more attachments to travel **with** the message.
 
-### Option A – Inline attachments (simplest)  
-Add an `attachments` array containing **pre‑uploaded** attachment IDs:  
+### Option A – Inline attachments (simplest)
+Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 
 ```json
 {
@@ -1509,23 +1509,23 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 }
 ```
 
-- **Pros:** Single request, atomic, easy to reason about.  
-- **Cons:** Requires the client to upload files first (see below) – adds a round‑trip if not already done.  
+- **Pros:** Single request, atomic, easy to reason about.
+- **Cons:** Requires the client to upload files first (see below) – adds a round‑trip if not already done.
 
-### Option B – Upload‑then‑reference (recommended)  
-1. **Upload** file(s) via the attachment endpoint → get `attachment.id`.  
-2. **Send message** referencing those IDs (as in Option A).  
+### Option B – Upload‑then‑reference (recommended)
+1. **Upload** file(s) via the attachment endpoint → get `attachment.id`.
+2. **Send message** referencing those IDs (as in Option A).
 
-**Why this is preferred:**  
-- Decouples large binary upload from the chat request (avoids timeout, allows progress UI).  
-- Enables reuse of the same attachment across multiple messages (e.g., sending the same diagram in follow‑up questions).  
-- Aligns with RESTful design: attachments are first‑class resources.  
+**Why this is preferred:**
+- Decouples large binary upload from the chat request (avoids timeout, allows progress UI).
+- Enables reuse of the same attachment across multiple messages (e.g., sending the same diagram in follow‑up questions).
+- Aligns with RESTful design: attachments are first‑class resources.
 
-**API change:** No new endpoint needed; just document that `messages.create` accepts an optional `attachments: string[]` field.  
+**API change:** No new endpoint needed; just document that `messages.create` accepts an optional `attachments: string[]` field.
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 | Operation | Frequency | Suggested Limit | Rationale |
 |-----------|-----------|----------------|-----------|
 | **Sidebar list** (`GET /api/ai-chat/conversations`) | Every page load / navigation | **60 req/min** per user (burst 10) | Lightweight read; protects against abusive polling. |
@@ -1534,18 +1534,18 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High during active chat | **30 req/min** | Matches typical conversational pacing; burst allowed for quick Q&A. |
 | **Attachment list** (`GET /api/ai-chat/conversations/:id/attachments`) | Rare (when viewing attachment gallery) | **20 req/min** | Low‑traffic endpoint. |
 
-*Implementation:* Use a middleware (e.g., `express-rate-limit` with Redis store) keyed by `userId` + route. Return `429` with `Retry-After` header.  
+*Implementation:* Use a middleware (e.g., `express-rate-limit` with Redis store) keyed by `userId` + route. Return `429` with `Retry-After` header.
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Poll  
-**Existing:** Socket.io server is already connected.  
+## 6. WebSocket Integration – Push vs. Poll
+**Existing:** Socket.io server is already connected.
 
-**Recommendation:**  
-- **Push** all mutation events (new message, attachment upload, conversation rename, title change) via Socket.io to the relevant `conversationId` room.  
-- Keep the **REST GET list** for initial load and occasional refresh, but **eliminate polling** for updates.  
+**Recommendation:**
+- **Push** all mutation events (new message, attachment upload, conversation rename, title change) via Socket.io to the relevant `conversationId` room.
+- Keep the **REST GET list** for initial load and occasional refresh, but **eliminate polling** for updates.
 
-**Events to emit:**  
+**Events to emit:**
 
 | Event | Payload | When |
 |-------|---------|------|
@@ -1554,17 +1554,17 @@ Add an `attachments` array containing **pre‑uploaded** attachment IDs:
 | `attachment:created` | `{ id, conversationId, filename, mimeType, size, url }` | File upload completed |
 | `conversation:deleted` | `{ conversationId }` | User deletes chat |
 
-**Client side:**  
-- On initial load, fetch conversation list via REST.  
-- Join Socket.io rooms for each conversation ID the user is subscribed to (or a single `user:<id>` room that fans out to all convos).  
-- Update local state optimistically, then reconcile with server acknowledgment.  
+**Client side:**
+- On initial load, fetch conversation list via REST.
+- Join Socket.io rooms for each conversation ID the user is subscribed to (or a single `user:<id>` room that fans out to all convos).
+- Update local state optimistically, then reconcile with server acknowledgment.
 
-**Benefit:** Near‑real‑time UI without extra HTTP requests; reduces server load from polling.  
+**Benefit:** Near‑real‑time UI without extra HTTP requests; reduces server load from polling.
 
----  
+---
 
-## 7. Response Contract – Are Existing Shapes Adequate?  
-**Current (hypothetical) `ConversationSummary`:**  
+## 7. Response Contract – Are Existing Shapes Adequate?
+**Current (hypothetical) `ConversationSummary`:**
 
 ```ts
 interface ConversationSummary {
@@ -1574,14 +1574,14 @@ interface ConversationSummary {
 }
 ```
 
-**Gap:** The sidebar expects `context`, `messageCount`, and `lastMessageAt`.  
+**Gap:** The sidebar expects `context`, `messageCount`, and `lastMessageAt`.
 
-**Action:**  
-- Extend the serializer (Sequelize `toJSON` or a DTO) to include the three fields.  
-- Ensure they are **nullable** (`context?: string | null`) to avoid breaking older clients that don’t expect them.  
-- Add JSDoc / TypeScript definitions so frontend can rely on them.  
+**Action:**
+- Extend the serializer (Sequelize `toJSON` or a DTO) to include the three fields.
+- Ensure they are **nullable** (`context?: string | null`) to avoid breaking older clients that don’t expect them.
+- Add JSDoc / TypeScript definitions so frontend can rely on them.
 
-**Resulting type:**  
+**Resulting type:**
 
 ```ts
 export interface ConversationSummary {
@@ -1591,29 +1591,29 @@ export interface ConversationSummary {
   messageCount: number;      // total messages in conversation
   lastMessageAt: string;     // ISO timestamp
 }
-```  
+```
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
-**Current:** Probably using an in‑memory or Redis cache with a static TTL of 300 s.  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
+**Current:** Probably using an in‑memory or Redis cache with a static TTL of 300 s.
 
-**Evaluation:**  
-- ✅ **Good** for reducing DB load on repeat visits.  
-- ❌ **Stale‑data risk:** A new message arriving within the 5‑minute window will not appear until cache expiry, causing confusion (e.g., badge counts, last‑message timestamp).  
+**Evaluation:**
+- ✅ **Good** for reducing DB load on repeat visits.
+- ❌ **Stale‑data risk:** A new message arriving within the 5‑minute window will not appear until cache expiry, causing confusion (e.g., badge counts, last‑message timestamp).
 
-**Recommendation:**  
-1. **Cache‑aside with invalidation:**  
-   - On **any mutation** that affects the list (new message, rename, attachment add/delete), **delete** the cached key for that user (`conversations:user:<id>`).  
-   - Use a Redis `PUB/SUB` channel or directly call `del` in the mutation handler after the transaction commits.  
-2. **Short TTL as safety net:** Keep a **60‑second** TTL to guard against missed invalidation (e.g., server crash).  
-3. **Optional:** Cache individual conversation objects (`conversation:<id>`) with the same invalidation pattern; the list cache can then be built from those objects (reducing stale‑state windows).  
+**Recommendation:**
+1. **Cache‑aside with invalidation:**
+   - On **any mutation** that affects the list (new message, rename, attachment add/delete), **delete** the cached key for that user (`conversations:user:<id>`).
+   - Use a Redis `PUB/SUB` channel or directly call `del` in the mutation handler after the transaction commits.
+2. **Short TTL as safety net:** Keep a **60‑second** TTL to guard against missed invalidation (e.g., server crash).
+3. **Optional:** Cache individual conversation objects (`conversation:<id>`) with the same invalidation pattern; the list cache can then be built from those objects (reducing stale‑state windows).
 
-**Result:** Near‑real‑time freshness with dramatically fewer DB hits.  
+**Result:** Near‑real‑time freshness with dramatically fewer DB hits.
 
----  
+---
 
-# Summary of API Design Recommendations  
+# Summary of API Design Recommendations
 
 | # | Area | Recommendation |
 |---|------|----------------|
@@ -1626,9 +1626,9 @@ export interface ConversationSummary {
 | 7 | Response contract | Ensure `ConversationSummary` includes `context?`, `messageCount`, `lastMessageAt`. |
 | 8 | Caching | Cache list per user with **60 s TTL** + **invalidate on any mutation** (new message, rename, attachment). |
 
-Implementing the above will give the frontend a solid, performant, and real‑time‑ready foundation for the upcoming Teach Me content upgrades **and** for any future AI‑chat enhancements (multimodal, file sharing, etc.) without requiring breaking changes.  
+Implementing the above will give the frontend a solid, performant, and real‑time‑ready foundation for the upcoming Teach Me content upgrades **and** for any future AI‑chat enhancements (multimodal, file sharing, etc.) without requiring breaking changes.
 
----  
+---
 
 *Prepared for SwanStudios backend review – Enchanted Apex (Crystalline Swan) theme.*
 
@@ -1652,7 +1652,7 @@ Reviewing the **Teach Me content expansion** plan through the lens of mobile UX 
 ---
 
 ## 1. Sidebar on 320px
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** 85vw = 272px on 320px screens. Conversation titles (auto-generated from first message), timestamps, and action buttons (voice, video, etc.) will compete for space. Risk of horizontal scroll or clipped content.
 
 **Solutions:**
@@ -1702,15 +1702,15 @@ Reviewing the **Teach Me content expansion** plan through the lens of mobile UX 
 ---
 
 ## 2. Voice Recording on iOS Safari
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** iOS Safari requires `webkit` prefix for `MediaRecorder`. Auto-play policies block TTS without user gesture. Voice orb UI must indicate permission states.
 
 **Solutions:**
 ```javascript
 // Check MediaRecorder support with prefixes
 const hasMediaRecorder = () => {
-  return !!(window.MediaRecorder || 
-    (window as any).webkitMediaRecorder || 
+  return !!(window.MediaRecorder ||
+    (window as any).webkitMediaRecorder ||
     (window as any).mozMediaRecorder);
 };
 
@@ -1736,7 +1736,7 @@ const speakText = (text: string) => {
 ---
 
 ## 3. Keyboard on Mobile
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Virtual keyboard pushes viewport up, potentially hiding sidebar or input. `100vh` is unreliable on mobile browsers.
 
 **Solutions:**
@@ -1755,9 +1755,9 @@ useEffect(() => {
 }, []);
 
 // In layout:
-<main style={{ 
+<main style={{
   height: `calc(100vh - ${keyboardHeight}px)`,
-  paddingBottom: keyboardHeight > 0 ? 16 : 0 
+  paddingBottom: keyboardHeight > 0 ? 16 : 0
 }}>
 ```
 **CSS:** Avoid `position: fixed` for sidebar/input containers. Use `position: sticky` or flexbox with `flex-shrink: 0` on input area.
@@ -1765,7 +1765,7 @@ useEffect(() => {
 ---
 
 ## 4. Offline/Slow Network
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** Conversations list fails to load. Empty state must guide user (retry, cached data). Voice messages may fail to upload.
 
 **Solutions:**
@@ -1807,7 +1807,7 @@ const useNetworkStatus = () => {
 ---
 
 ## 5. Long Conversation Titles
-**Rating:** MEDIUM  
+**Rating:** MEDIUM
 **Issue:** Auto-generated from first message. May exceed container width or wrap awkwardly.
 
 **Solutions:**
@@ -1846,7 +1846,7 @@ const useNetworkStatus = () => {
 ---
 
 ## 6. Large Message History
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** 100+ messages cause DOM bloat, jank on scroll, memory pressure on low-end devices.
 
 **Solutions:**
@@ -1863,9 +1863,9 @@ const MessageList = ({ messages }) => (
     overscanCount={5}
   >
     {({ index, style }) => (
-      <MessageBubble 
-        message={messages[index]} 
-        style={style} 
+      <MessageBubble
+        message={messages[index]}
+        style={style}
       />
     )}
   </List>
@@ -1879,7 +1879,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 7. RTL Languages
-**Rating:** LOW (but proactive)  
+**Rating:** LOW (but proactive)
 **Issue:** Sidebar layout must flip. Current CSS likely uses `margin-left`, `padding-left`.
 
 **Solutions:**
@@ -1905,7 +1905,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 8. Reduced Motion
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** Voice orb pulsing, sidebar slide, thinking indicator may cause discomfort.
 
 **Solutions:**
@@ -1917,12 +1917,12 @@ const MessageList = ({ messages }) => (
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
+
   .voiceOrb {
     animation: none !important;
     transform: scale(1);
   }
-  
+
   .sidebar {
     transform: none !important; /* disable slide */
     width: 100%; /* show full sidebar on mobile without animation */
@@ -1934,7 +1934,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 9. Screen Reader
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Sidebar landmark, conversation list navigation, message bubble roles, voice recording status announcements.
 
 **Solutions:**
@@ -1944,12 +1944,12 @@ const MessageList = ({ messages }) => (
   <h2 className="sr-only">Your conversations</h2>
   <ul role="list" aria-label="Conversation list">
     {conversations.map(conv => (
-      <li 
-        key={conv.id} 
+      <li
+        key={conv.id}
         role="listitem"
         aria-current={activeId === conv.id ? 'true' : undefined}
       >
-        <button 
+        <button
           aria-label={`Conversation with ${conv.title}, last message ${conv.timestamp}`}
           onClick={() => select(conv.id)}
         >
@@ -1975,8 +1975,8 @@ useEffect(() => {
 }, [recordingStatus]);
 
 // Message bubbles
-<div 
-  role="article" 
+<div
+  role="article"
   aria-label={`Message from ${sender.name} at ${timestamp}`}
   aria-sort={isOwn ? 'descending' : 'ascending'}
 >
@@ -1985,7 +1985,7 @@ useEffect(() => {
 ---
 
 ## 10. 4K Ultrawide
-**Rating:** MEDIUM  
+**Rating:** MEDIUM
 **Issue:** Max-width constraints? Or full-stretch? Content readability on 3840px+ screens.
 
 **Solutions:**
@@ -2035,9 +2035,9 @@ useEffect(() => {
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 108.4s
 
-As a strategic product researcher and futurist for SwanStudios, I have analyzed the `TEACH-ME-COMPREHENSIVE-UPGRADE-PLAN.md` and the broader platform context against the current 2025–2026 technological, regulatory, and market landscape. 
+As a strategic product researcher and futurist for SwanStudios, I have analyzed the `TEACH-ME-COMPREHENSIVE-UPGRADE-PLAN.md` and the broader platform context against the current 2025–2026 technological, regulatory, and market landscape.
 
-While the current plan excellently deepens the *existing* operational knowledge for trainers (bootcamp formats, OPT phases), it completely misses the **technological paradigm shifts** that a 25+ year experienced NASM trainer needs to understand to stay relevant in 2026. 
+While the current plan excellently deepens the *existing* operational knowledge for trainers (bootcamp formats, OPT phases), it completely misses the **technological paradigm shifts** that a 25+ year experienced NASM trainer needs to understand to stay relevant in 2026.
 
 Here is the comprehensive gap analysis and enhancement plan to make the Teach Me module and the SwanStudios platform 10x better.
 
@@ -2246,8 +2246,8 @@ However, I have identified **three performance concerns** and **one typography d
 
 #### **Issue 1: Performance Risk — `backdrop-filter` on Sidebar**
 
-**File:** `ConversationSidebar.css` (or styled-component)  
-**Location:** Background declaration  
+**File:** `ConversationSidebar.css` (or styled-component)
+**Location:** Background declaration
 **Current:**
 ```css
 background-color: rgba(10, 10, 15, 0.85);
@@ -2276,8 +2276,8 @@ backdrop-filter: blur(12px); /* Reduce blur radius by 50% */
 
 #### **Issue 2: Mobile Safe Area Violation**
 
-**File:** `ConversationSidebar.css`  
-**Location:** Width specification  
+**File:** `ConversationSidebar.css`
+**Location:** Width specification
 **Current:**
 ```css
 /* Mobile Drawer Animation */
@@ -2300,8 +2300,8 @@ padding-left: env(safe-area-inset-left);   /* iOS notch handling */
 
 #### **Issue 3: Typography Hierarchy — H1 Font-Size Too Small**
 
-**File:** `MarkdownRenderer.css`  
-**Location:** H1 specification  
+**File:** `MarkdownRenderer.css`
+**Location:** H1 specification
 **Current:**
 ```css
 H1: 22px, Font-weight 700
@@ -2321,8 +2321,8 @@ To maintain scale, H2 should remain at 18px (no change), but consider adding a b
 
 #### **Issue 4: Voice Recording — Amplitude Ring Performance**
 
-**File:** `VoiceOverlay.css`  
-**Location:** Amplitude Ring Animation  
+**File:** `VoiceOverlay.css`
+**Location:** Amplitude Ring Animation
 **Current:**
 ```css
 /* Three concentric rings, scale from 1 to 1.8, fading opacity to 0 */

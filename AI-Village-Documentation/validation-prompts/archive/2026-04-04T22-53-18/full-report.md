@@ -491,13 +491,13 @@ The plan has no error boundary strategy. The modification table feature has thre
 
 ```
 Error Boundary Placement:
-                                                        
-  <ClassPreviewPanel>                                   
+
+  <ClassPreviewPanel>
     <Board1StationCard />   ← no boundary needed, stable feature
     <ErrorBoundary          ← BOUNDARY 1: isolates Board 2 entirely
-      fallback={<Board2UnavailableFallback />}          
-    >                                                   
-      <Board2StationCard>                               
+      fallback={<Board2UnavailableFallback />}
+    >
+      <Board2StationCard>
         <ErrorBoundary
 
 ---
@@ -527,7 +527,7 @@ As a Web Performance Engineer reviewing the **Board 2 Exercise Modifications Pla
 ### 1. Bundle Size & Code Splitting
 **Finding: HIGH**
 The inclusion of `react-markdown`, `remark-gfm`, and `rehype-highlight` is overkill for simple exercise names.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Avoid Markdown for Table Cells:** Exercise names like "Safety Bar Squat" do not require Markdown. Use standard `<span>` or `<div>`.
     *   **Lazy Load if Necessary:** If Markdown is required for "Coach Notes," use `const ReactMarkdown = React.lazy(() => import('react-markdown'))`.
     *   **Split Boundary:** Create a `ModificationTable.tsx` component and wrap it in `React.lazy`. This ensures the heavy table logic and potential Markdown libs are only loaded when the user switches to "Board 2."
@@ -584,7 +584,7 @@ The "Voice orb" and "Sidebar slide" must not trigger layout shifts.
 3.  **MEDIUM:** Use **CSS Grid** for the Modification Table instead of `<table>` tags. Grid is more performant for responsive layouts and allows for easier "alternating background" logic without deep DOM nesting.
 4.  **LOW:** Implement a **Cache-First strategy** (Workbox/Service Worker) for the exercise modification data. Since this data only changes when the Gemini script runs, it should be cached indefinitely on the client.
 
-**Performance Score Estimate:** 
+**Performance Score Estimate:**
 *   *Current Plan:* 62/100 (Lighthouse)
 *   *With Optimizations:* 94/100 (Lighthouse)
 
@@ -781,7 +781,7 @@ const Board2Modifications = FEATURES.BOARD2_ENABLED ? Board2ModTable : null;
 
 // backend/routes/exerciseRoutes.mjs
 if (!FEATURES.BOARD2_ENABLED) {
-  return res.json({ 
+  return res.json({
     ...exercise,
     // Strip mod fields to maintain old behavior
   });
@@ -858,14 +858,14 @@ Migration                         Mock data setup
 Routes Update              ←→      Type definitions
     ↓                                    ↓
 Validation Script                  Hook implementation
-    ↓                                    
+    ↓
 Script Test (staging)         ↓
     ↓                         UI Components (with mock data)
 Population in staging         ↓
     ↓                         Integration with real API
 Production population         ↓
     ↓                         E2E + Visual tests
-Feature flag ON               
+Feature flag ON
 ```
 
 **Time Savings:** Frontend can begin development with mock data immediately, not waiting for population script.
@@ -988,10 +988,10 @@ This architectural review focuses on maintaining the "Crystalline Swan" aestheti
 
 # Data Safety Audit Report: Board 2 Exercise Modifications Plan
 
-**Auditor:** Data Safety Review  
-**Platform:** SwanStudios (sswanstudios.com) — Production SaaS  
-**Plan:** BOARD2-EXERCISE-MODIFICATIONS-PLAN.md  
-**Date:** 2025  
+**Auditor:** Data Safety Review
+**Platform:** SwanStudios (sswanstudios.com) — Production SaaS
+**Plan:** BOARD2-EXERCISE-MODIFICATIONS-PLAN.md
+**Date:** 2025
 **Severity Scale:** CRITICAL → HIGH → MEDIUM → LOW
 
 ---
@@ -1028,7 +1028,7 @@ This architectural review focuses on maintaining the "Crystalline Swan" aestheti
 
 ```
 This plan adds 10 VARCHAR/TEXT columns to the Exercises table.
-There is no JSONB messages array, no file attachments, no 
+There is no JSONB messages array, no file attachments, no
 conversation storage in this plan document.
 ```
 
@@ -1041,7 +1041,7 @@ conversation storage in this plan document.
 
 ```
 This plan does not modify conversation records, sidebar listings,
-or any soft-delete logic. The Exercises table uses standard 
+or any soft-delete logic. The Exercises table uses standard
 active/inactive status, not the conversation soft-delete pattern.
 ```
 
@@ -1054,7 +1054,7 @@ active/inactive status, not the conversation soft-delete pattern.
 
 ```
 No file uploads. No R2 bucket operations. No ai-chat/ paths.
-This plan's only external service call is Gemini API for 
+This plan's only external service call is Gemini API for
 text generation during the one-time population script.
 ```
 
@@ -1064,7 +1064,7 @@ text generation during the one-time population script.
 **Severity: N/A — Feature Not Present in This Plan**
 
 ```
-No audio recording. No transcription. No voice features 
+No audio recording. No transcription. No voice features
 are introduced or modified by this plan.
 ```
 
@@ -1108,8 +1108,8 @@ Plan also lists in "Files That Need Changes":
 **Specific danger — the migration date:**
 ```
 20260404000001 — dated April 4, 2026
-Running this in 2025 means Sequelize may sequence it 
-incorrectly relative to other pending migrations depending 
+Running this in 2025 means Sequelize may sequence it
+incorrectly relative to other pending migrations depending
 on your migration runner configuration.
 Verify your migration ordering strategy.
 ```
@@ -1120,9 +1120,9 @@ Verify your migration ordering strategy.
 -- 1. Use a non-blocking migration strategy for production
 -- Instead of a single ALTER TABLE with 10 columns:
 
--- Option A: Add columns with DEFAULT NULL (PostgreSQL handles 
+-- Option A: Add columns with DEFAULT NULL (PostgreSQL handles
 -- this without full table rewrite for nullable columns)
-ALTER TABLE "Exercises" 
+ALTER TABLE "Exercises"
   ADD COLUMN IF NOT EXISTS "easyVariation" TEXT,
   ADD COLUMN IF NOT EXISTS "hardVariation" TEXT,
   ADD COLUMN IF NOT EXISTS "kneeMod" TEXT,
@@ -1151,8 +1151,8 @@ ALTER TABLE "Exercises"
 **Severity: N/A — Feature Not Present in This Plan**
 
 ```
-No JSONB arrays modified by this plan. The 10 new fields are 
-standard TEXT columns updated by a one-time script, not by 
+No JSONB arrays modified by this plan. The 10 new fields are
+standard TEXT columns updated by a one-time script, not by
 concurrent user sessions.
 ```
 
@@ -1177,9 +1177,9 @@ concurrent user sessions.
 Gemini 2.5 Flash free tier limits (verify current limits):
 - Input tokens per minute: limited
 - Output tokens per day: limited
-- 883 exercises × ~200 tokens input + ~300 tokens output = 
+- 883 exercises × ~200 tokens input + ~300 tokens output =
   ~440,000 tokens total
-  
+
 If limits are exceeded mid-run, the script fails partway through,
 leaving the database in a partially-populated state.
 ```
@@ -1214,7 +1214,7 @@ const tokenTracker = {
   totalInputTokens: 0,
   totalOutputTokens: 0,
   batchResults: [],
-  
+
   log(batchNum, inputTokens, outputTokens, exerciseIds) {
     this.totalInputTokens += inputTokens;
     this.totalOutputTokens += outputTokens;
@@ -1226,7 +1226,7 @@ const tokenTracker = {
       timestamp: new Date().toISOString()
     });
   },
-  
+
   summary() {
     console.log(`
       === TOKEN USAGE SUMMARY ===
@@ -1252,10 +1252,10 @@ const tokenTracker = {
 
 ```
 This plan does not add new API endpoints that require rate limiting.
-The modification fields are returned as part of existing exercise 
+The modification fields are returned as part of existing exercise
 fetch calls (exerciseRoutes.mjs already exists).
 
-The population script is a one-time admin operation, not a 
+The population script is a one-time admin operation, not a
 user-facing endpoint.
 
 No new rate limiting is required for this plan specifically.
@@ -1301,8 +1301,8 @@ Plan states:
   A) Local dev is connected to production DB — CRITICAL VIOLATION
   B) The phrasing is ambiguous/misleading — needs immediate clarification
 
-Either way, running an AI-generated bulk UPDATE script directly 
-against production data for 883 exercises with no staging run 
+Either way, running an AI-generated bulk UPDATE script directly
+against production data for 883 exercises with no staging run
 is unacceptable for a platform with real paying customers.
 ```
 
@@ -1353,13 +1353,13 @@ if (dbUrl.includes('sswanstudios') || dbUrl.includes('prod')) {
     console.error(`
       ❌ PRODUCTION DATABASE DETECTED
       This script will modify 883 exercise records.
-      
+
       To proceed, you must:
       1. Have a verified backup from the last 24 hours
       2. Set CONFIRM_PRODUCTION_WRITE=yes
       3. Run during off-peak hours (2-5 AM)
       4. Have rollback script ready
-      
+
       Aborting.
     `);
     process.exit(1);
@@ -1372,9 +1372,9 @@ async function verifyRecentBackup() {
   // Refuse to run if backup is older than 24 hours
   const lastBackup = await getLastBackupTimestamp();
   const hoursSinceBackup = (Date.now() - lastBackup) / (1000 * 60 * 60);
-  
+
   if (hoursSinceBackup > 24) {
-    throw new Error(`Last backup was ${hoursSinceBackup.toFixed(1)} hours ago. 
+    throw new Error(`Last backup was ${hoursSinceBackup.toFixed(1)} hours ago.
     Take a fresh backup before running this script.`);
   }
 }
@@ -1392,7 +1392,7 @@ async function verifyRecentBackup() {
 ## Before Running populate-exercise-variations.mjs on Production
 
 - [ ] PostgreSQL backup taken and verified restorable (pg_dump test)
-- [ ] Script tested on staging DB with full 883 exercise dataset  
+- [ ] Script tested on staging DB with full 883 exercise dataset
 - [ ] Sample of 50 AI-generated modifications reviewed by trainer
 - [ ] Rollback script written and tested on staging
 - [ ] Deployment window scheduled (2-5 AM, low traffic)
@@ -1410,10 +1410,10 @@ async function verifyRecentBackup() {
 
 ```
 These are not just exercise names.
-These are injury-specific modifications that paying clients 
+These are injury-specific modifications that paying clients
 will follow when they have:
 - Knee replacements
-- Post-surgical restrictions  
+- Post-surgical restrictions
 - Chronic pain conditions
 - Acute injuries
 
@@ -1431,8 +1431,8 @@ Below is a concise, actionable audit of the existing AI‑chat endpoints against
 
 ---
 
-### 1. Existing API Sufficiency – Sidebar Data  
-**Claim:** *Phase 1 needs zero backend changes.*  
+### 1. Existing API Sufficiency – Sidebar Data
+**Claim:** *Phase 1 needs zero backend changes.*
 
 | Required Sidebar Field | Where it should come from | Current state (as inferred from typical implementation) | Verdict |
 |------------------------|---------------------------|----------------------------------------------------------|---------|
@@ -1442,8 +1442,8 @@ Below is a concise, actionable audit of the existing AI‑chat endpoints against
 | `messageCount` (total messages) | Same endpoint | ❓ Frequently missing; can be derived client‑side but adds overhead | **Needs addition** |
 | `lastMessageAt` (timestamp of most recent message) | Same endpoint | ❓ Frequently missing | **Needs addition** |
 
-**Recommendation**  
-Add the three missing fields to the conversation list payload. If the backend already returns a `messages` array, you can compute `messageCount` and `lastMessageAt` in the service layer; otherwise, store denormalized counters on the `Conversation` model and update them via a Sequelize hook (`afterCreate`/`afterUpdate` on `Message`).  
+**Recommendation**
+Add the three missing fields to the conversation list payload. If the backend already returns a `messages` array, you can compute `messageCount` and `lastMessageAt` in the service layer; otherwise, store denormalized counters on the `Conversation` model and update them via a Sequelize hook (`afterCreate`/`afterUpdate` on `Message`).
 
 ```json
 // Example shape after change
@@ -1464,9 +1464,9 @@ Add the three missing fields to the conversation list payload. If the backend al
 
 ---
 
-### 2. Search Endpoint – Client‑Side vs Server‑Side Filtering  
+### 2. Search Endpoint – Client‑Side vs Server‑Side Filtering
 
-**Current approach (per plan):** Load the first 20 conversations and filter them client‑side (e.g., `Array.prototype.filter` on title).  
+**Current approach (per plan):** Load the first 20 conversations and filter them client‑side (e.g., `Array.prototype.filter` on title).
 
 | Conversation Count | Client‑Side Viability | Server‑Side Need |
 |--------------------|----------------------|------------------|
@@ -1474,20 +1474,20 @@ Add the three missing fields to the conversation list payload. If the backend al
 | 51 – 200           | ⚠️ Still okay if payload < ≈ 30 KB; UI may feel sluggish on low‑end devices | Recommended for consistent UX |
 | > 200              | ❌ Not acceptable – payload grows linearly, UI blocks | **Required** |
 
-**When to add server‑search:**  
-- As soon as the product expects **more than 50 active conversations per user** (a realistic ceiling for a SaaS with long‑term users).  
+**When to add server‑search:**
+- As soon as the product expects **more than 50 active conversations per user** (a realistic ceiling for a SaaS with long‑term users).
 - When you anticipate **global search** (across all users, e.g., admin dashboard) or **full‑text search** on message bodies.
 
-**Suggested endpoint:**  
+**Suggested endpoint:**
 
 ```
 GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 ```
 
-- Perform **ILIKE** on `title` (PostgreSQL) and optionally **JSONB** search on a `summary` column that stores concatenated message text (or use `pg_trgm`/`tsvector` for fuzzy matching).  
-- Return the same `ConversationSummary` shape as the list endpoint (so the UI can reuse the component).  
+- Perform **ILIKE** on `title` (PostgreSQL) and optionally **JSONB** search on a `summary` column that stores concatenated message text (or use `pg_trgm`/`tsvector` for fuzzy matching).
+- Return the same `ConversationSummary` shape as the list endpoint (so the UI can reuse the component).
 
-**Implementation tip:** Add a database index:  
+**Implementation tip:** Add a database index:
 
 ```sql
 CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin_trgm_ops);
@@ -1495,9 +1495,9 @@ CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin
 
 ---
 
-### 3. File Attachment Endpoint – REST Design  
+### 3. File Attachment Endpoint – REST Design
 
-**Proposed:** `POST /api/ai-chat/conversations/:id/attachments`  
+**Proposed:** `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -1508,15 +1508,15 @@ CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin
 | **Security** | Validate file type (whitelist: image/*, video/*, application/pdf) and size (e.g., ≤ 10 MB). Store files in a secure bucket (S3/GCS) and return a signed URL or CDN path. |
 | **Idempotency** | Not required; each upload is a distinct resource. |
 
-**Recommendation:** Keep the endpoint as‑is, but add:  
+**Recommendation:** Keep the endpoint as‑is, but add:
 
-- **Query param** `?type=message` (future‑proof for other attachment types).  
-- **Rate limit** (see §5).  
+- **Query param** `?type=message` (future‑proof for other attachment types).
+- **Rate limit** (see §5).
 - **Error handling** – return `415 Unsupported Media Type` or `413 Payload Too Large` with a clear JSON error body.
 
 ---
 
-### 4. Multimodal Message API – Sending Images to Gemini  
+### 4. Multimodal Message API – Sending Images to Gemini
 
 The current `POST /api/ai-chat/conversations/:id/messages` likely expects `{ content: string }`. To support images (and potentially other media) you have two clean options:
 
@@ -1537,29 +1537,29 @@ Content-Type: application/json
 }
 ```
 
-- **Pros:** Single round‑trip after upload; easy to reason about; matches typical chat APIs (Slack, Discord).  
+- **Pros:** Single round‑trip after upload; easy to reason about; matches typical chat APIs (Slack, Discord).
 - **Cons:** Requires the client to have already uploaded the attachment (see §3) and obtained its ID.
 
 #### Option B – **Upload‑Then‑Reference Flow** (more explicit)
 
-1. `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, uploadUrl }`.  
-2. Client uploads the binary to `uploadUrl` (presigned S3 URL).  
+1. `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, uploadUrl }`.
+2. Client uploads the binary to `uploadUrl` (presigned S3 URL).
 3. Client sends the message with `"attachmentId": "<id>"` as above.
 
-- **Pros:** Decouples binary transfer from JSON; enables retry/resumable uploads.  
+- **Pros:** Decouples binary transfer from JSON; enables retry/resumable uploads.
 - **Cons:** Slightly more complex client flow.
 
-**Recommendation:** Adopt **Option A** (extended body) because the plan already proposes a dedicated attachment endpoint; the client will naturally call it first, then send the message referencing the attachment ID.  
+**Recommendation:** Adopt **Option A** (extended body) because the plan already proposes a dedicated attachment endpoint; the client will naturally call it first, then send the message referencing the attachment ID.
 
-**Backend changes needed:**  
+**Backend changes needed:**
 
-- Add `attachments?: Array<{ id: string; type: 'image' | 'video' | 'file' }>` to the message creation DTO.  
-- In the service layer, fetch attachment records, verify they belong to the conversation, and pass their public URLs (or signed URLs) to the Gemini multimodal API.  
-- Update Sequelize `Message` model to have a JSONB column `attachments` for persistence (or a join table `MessageAttachment` if you need querying).  
+- Add `attachments?: Array<{ id: string; type: 'image' | 'video' | 'file' }>` to the message creation DTO.
+- In the service layer, fetch attachment records, verify they belong to the conversation, and pass their public URLs (or signed URLs) to the Gemini multimodal API.
+- Update Sequelize `Message` model to have a JSONB column `attachments` for persistence (or a join table `MessageAttachment` if you need querying).
 
 ---
 
-### 5. Rate Limiting for New Operations  
+### 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit | Rationale |
 |-----------|--------------------|----------------|-----------|
@@ -1573,35 +1573,35 @@ Content-Type: application/json
 
 ---
 
-### 6. WebSocket Integration – Push vs Poll  
+### 6. WebSocket Integration – Push vs Poll
 
 The plan mentions Socket.io exists. For a chat‑like UI, **real‑time push** is superior to polling for:
 
-- New incoming messages (AI or human).  
-- Updates to conversation metadata (title change, lastMessageAt, messageCount).  
-- Attachment upload completion (to show preview instantly).  
+- New incoming messages (AI or human).
+- Updates to conversation metadata (title change, lastMessageAt, messageCount).
+- Attachment upload completion (to show preview instantly).
 
-**Recommendation:**  
+**Recommendation:**
 
-1. **Maintain a Socket.io namespace** `/ai-chat`.  
-2. On successful message creation (REST), **emit** an event to all sockets subscribed to that conversation:  
+1. **Maintain a Socket.io namespace** `/ai-chat`.
+2. On successful message creation (REST), **emit** an event to all sockets subscribed to that conversation:
 
    ```js
    io.to(`conversation:${conversationId}`).emit('messageCreated', newMessage);
    ```
 
-3. On attachment upload completion, emit `attachmentReady`.  
-4. On conversation rename/update, emit `conversationUpdated`.  
+3. On attachment upload completion, emit `attachmentReady`.
+4. On conversation rename/update, emit `conversationUpdated`.
 
-**Client side:**  
-- Keep the REST list endpoint as a **fallback** (e.g., on reconnect) and for initial load.  
-- Use the socket events to update the sidebar and message list optimistically, reducing perceived latency to near‑zero.  
+**Client side:**
+- Keep the REST list endpoint as a **fallback** (e.g., on reconnect) and for initial load.
+- Use the socket events to update the sidebar and message list optimistically, reducing perceived latency to near‑zero.
 
 **When to keep polling:** Only if you need to support environments where WebSockets are blocked (corporate firewalls). In that case, fallback to short‑polling (every 15 s) with the same REST endpoint.
 
 ---
 
-### 7. Response Contract – ConversationSummary Adequacy  
+### 7. Response Contract – ConversationSummary Adequacy
 
 The sidebar expects a type roughly like:
 
@@ -1615,10 +1615,10 @@ type ConversationSummary = {
 };
 ```
 
-**Current typical shape** (if only `id`, `title`, `createdAt`, `updatedAt` are returned) is **insufficient**.  
+**Current typical shape** (if only `id`, `title`, `createdAt`, `updatedAt` are returned) is **insufficient**.
 
-**Action:**  
-- Add the missing fields (`context`, `messageCount`, `lastMessageAt`) to the serializer / Sequelize `scope` or `Model.prototype.toJSON`.  
+**Action:**
+- Add the missing fields (`context`, `messageCount`, `lastMessageAt`) to the serializer / Sequelize `scope` or `Model.prototype.toJSON`.
 - Ensure `lastMessageAt` is updated via a **Sequelize hook** on `Message.afterCreate`/`afterUpdate` that does:
 
   ```js
@@ -1634,7 +1634,7 @@ type ConversationSummary = {
 
 ---
 
-### 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+### 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Factor | Evaluation |
 |--------|------------|
@@ -1660,11 +1660,11 @@ type ConversationSummary = {
 | 7 | Ensure `ConversationSummary` shape matches sidebar needs (`id`, `title`, `context`, `messageCount`, `lastMessageAt`). Add missing fields via serializer or denormalized columns with hooks. | Guarantees UI has required data without extra client logic. |
 | 8 | Keep a 5‑minute TTL cache on the conversation list **but** invalidate on any mutation (new message, rename, attachment). Optionally update the cached entry optimistically. | Reduces DB load while preserving up‑to‑date UI. |
 
-Implementing the above will make the AI‑chat backend fully ready for the features described in the plan (sidebar, search, attachments, multimodal messages) while maintaining performance, security, and a clean developer experience.  
+Implementing the above will make the AI‑chat backend fully ready for the features described in the plan (sidebar, search, attachments, multimodal messages) while maintaining performance, security, and a clean developer experience.
 
----  
+---
 
-*Prepared for SwanStudios – AI‑Chat Workflow Review*  
+*Prepared for SwanStudios – AI‑Chat Workflow Review*
 *Date: 2025‑09‑16*
 
 ---
@@ -1686,7 +1686,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 51.9s
 
-As a strategic product researcher and futurist for SwanStudios, I have analyzed the "Board 2 Exercise Modifications" plan. While the core concept of mapping 10 variations across 883 exercises using Gemini 2.5 Flash is highly scalable, the plan has significant blind spots regarding 2026 regulatory shifts, modern React paradigms, and our core differentiators (Voice-first AI and Octalysis). 
+As a strategic product researcher and futurist for SwanStudios, I have analyzed the "Board 2 Exercise Modifications" plan. While the core concept of mapping 10 variations across 883 exercises using Gemini 2.5 Flash is highly scalable, the plan has significant blind spots regarding 2026 regulatory shifts, modern React paradigms, and our core differentiators (Voice-first AI and Octalysis).
 
 Here is the comprehensive gap analysis and future-proofing strategy to make this feature 10x better and legally secure.
 
@@ -1697,7 +1697,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 1: FDA 2026 Medical Device Exemption Violations**
 * **What's missing:** The plan uses clinical terminology like "Pain Mods," "Knee pain alternative," and "Lower back pain alternative."
 * **Why it matters:** In January 2026, the FDA issued updated guidance clarifying that AI-enabled fitness apps are exempt from stringent medical device regulations *only if* they do not make claims related to disease diagnosis or treatment. Using the word "pain" crosses the line into treating a medical condition, which could trigger FDA oversight and massive compliance costs.
-* **How to implement:** 
+* **How to implement:**
   * **DB Schema:** Rename fields from `kneeMod` to `kneeFriendly`, `backMod` to `backFriendly`, etc.
   * **UI Labels:** Change the "Pain Mods" section header to "Mobility Focus" or "Joint-Friendly Alternatives."
   * **Legal:** Add a standard medical disclaimer tooltip in the Crystalline Swan UI.
@@ -1707,7 +1707,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 2: FTC 2026 AI Guidelines (Lack of Human-in-the-Loop)**
 * **What's missing:** The plan states: *"Script writes directly to production DB."*
 * **Why it matters:** The FTC's 2025/2026 guidelines on AI health claims strictly prohibit the autonomous generation of health/fitness guidance without human oversight. Direct-to-production AI generation exposes SwanStudios to "AI washing" and deceptive practice fines if Gemini hallucinates a dangerous modification (e.g., suggesting a heavy deadlift for a lower back modification).
-* **How to implement:** 
+* **How to implement:**
   * Write the Gemini JSON output to a staging table (`ExerciseVariations_Draft`).
   * Build a simple admin dashboard where your NASM-certified trainer can bulk-review and click "Approve Batch" before the data migrates to the production `Exercises` table.
 * **Priority:** **CRITICAL** (Do now)
@@ -1743,7 +1743,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 * **Source:** [Accessibility in Fitness Apps: How to Train Inclusively (Feb 2025)](https://www.accessiway.com/blog/accessibility-in-fitness-apps-how-to-train-inclusively)
 
 **GAP 6: Octalysis Gamification Integration**
-* **What's missing:** The plan treats modifications purely as functional data. 
+* **What's missing:** The plan treats modifications purely as functional data.
 * **Why it matters:** In fitness psychology, taking an "easier" variation or modifying for a joint issue often feels like a failure, leading to churn. Under the Octalysis framework, we must reframe this using Core Drive 2 (Development & Accomplishment) and Core Drive 3 (Empowerment of Creativity).
 * **How to implement:** When a user selects a modification, trigger a gamified UI toast (using the *Gilded Fern #C6A84B* accent color): *"Smart Adaptation! Listening to your body keeps your streak alive."* Award them "Longevity Points" for logging the modification rather than skipping the workout.
 * **Priority:** **MEDIUM** (Roadmap)
@@ -1763,7 +1763,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 8: FHIR Data Portability for Physical Therapists**
 * **What's missing:** The data is locked inside SwanStudios.
 * **Why it matters:** By 2026, interoperability via FHIR (Fast Healthcare Interoperability Resources) is the gold standard. If a user consistently selects the `shoulderFriendly` modification over 6 months, that is vital diagnostic data for their physical therapist or orthopedic doctor.
-* **How to implement:** Build an export feature that maps the user's modification history into FHIR `Observation` resources. This allows the user to securely export their "Joint Stress Profile" to their healthcare provider's EHR system (Epic, Cerner). 
+* **How to implement:** Build an export feature that maps the user's modification history into FHIR `Observation` resources. This allows the user to securely export their "Joint Stress Profile" to their healthcare provider's EHR system (Epic, Cerner).
 * **Priority:** **LOW** (Future)
 * **Source:** [Integrate Wearable Device Data into EHRs with AI Intelligence (Sep 2025)](https://tateeda.com/blog/wearable-device-integration-with-ehr)
 
@@ -1783,17 +1783,17 @@ CONSENSUS REACHED
 
 Merged Findings:
 
-1. **PII/PHI Risks in AI-Generated Content**  
-   - **Critical Finding:** The population script (`scripts/populate-exercise-variations.mjs`) writes Gemini-generated content directly to the production database without validation, enabling PII/PHI leakage, XSS, and data integrity issues.  
-   - **Agreed Mitigations (as proposed by Primary Security Planner):**  
-     - Insert validation function before any DB write (see code below). Place this logic in `scripts/populate-exercise-variations.mjs` at the point where `exercise` objects are constructed, immediately prior to the `Exercise.update` call (approx. lines 40-55, depending on current structure).  
-     - Wrap updates in a Sequelize transaction with rollback capability.  
-     - Additional controls:  
-       * Execute first in staging environment with full audit logging (table: `exercise_population_audit`).  
-       * Implement checkpointing: persist last successfully processed batch ID to a file (`scripts/.populate-checkpoint`) or DB table to enable resumption.  
-       * Add `--dry-run` flag that outputs validated JSON to `scripts/dry-run-output/` for manual review.  
-       * Archive raw Gemini responses in a separate table (`gemini_raw_responses`) with a 90-day TTL.  
-       * Mandate human review of a 5% random sample (selected via seeded RNG) before promoting to production.  
+1. **PII/PHI Risks in AI-Generated Content**
+   - **Critical Finding:** The population script (`scripts/populate-exercise-variations.mjs`) writes Gemini-generated content directly to the production database without validation, enabling PII/PHI leakage, XSS, and data integrity issues.
+   - **Agreed Mitigations (as proposed by Primary Security Planner):**
+     - Insert validation function before any DB write (see code below). Place this logic in `scripts/populate-exercise-variations.mjs` at the point where `exercise` objects are constructed, immediately prior to the `Exercise.update` call (approx. lines 40-55, depending on current structure).
+     - Wrap updates in a Sequelize transaction with rollback capability.
+     - Additional controls:
+       * Execute first in staging environment with full audit logging (table: `exercise_population_audit`).
+       * Implement checkpointing: persist last successfully processed batch ID to a file (`scripts/.populate-checkpoint`) or DB table to enable resumption.
+       * Add `--dry-run` flag that outputs validated JSON to `scripts/dry-run-output/` for manual review.
+       * Archive raw Gemini responses in a separate table (`gemini_raw_responses`) with a 90-day TTL.
+       * Mandate human review of a 5% random sample (selected via seeded RNG) before promoting to production.
 
    ```javascript
    // Validation function to be added near top of scripts/populate-exercise-variations.mjs
@@ -1803,7 +1803,7 @@ Merged Findings:
      }
      // 1. Length limits
      if (value.length > 500) throw new Error(`${fieldName} exceeds 500-char limit`);
-     
+
      // 2. PII/PHI pattern detection
      const piiPatterns = [
        /\b\d{3}-\d{2}-\d{4}\b/, // SSN
@@ -1814,16 +1814,16 @@ Merged Findings:
      if (piiPatterns.some(p => p.test(value))) {
        throw new Error(`PII/PHI detected in ${fieldName}`);
      }
-     
+
      // 3. HTML/script tag detection (prevents stored XSS)
      if (/<[^>]*>|javascript:/i.test(value)) {
        throw new Error(`Potential XSS in ${fieldName}`);
      }
-     
+
      // 4. Normalize empty strings to NULL for DB consistency
      return value.trim() === '' ? null : value.trim();
    };
-   
+
    // Transaction wrapper (replace existing update loop)
    await sequelize.transaction(async (t) => {
      for (const exercise of batch) {
@@ -1839,27 +1839,27 @@ Merged Findings:
    });
    ```
 
-2. **XSS Vectors in Markdown Rendering**  
-   - **Critical Finding:** The plan uses `react-markdown` to render AI-generated modification text without sanitizing HTML/JS, creating stored XSS risk when content is viewed in Board 2 UI.  
-   - **Agreed Mitigations:**  
-     - Sanitize all AI-generated markdown content **server-side** before storage or **client-side** immediately before rendering, using a trusted library like DOMPurify.  
-     - File target: Any component rendering exercise modifications via `react-markdown` (e.g., `src/components/ExerciseVariationRenderer.jsx` or similar). Apply sanitization at the point where raw modification strings are passed to `<ReactMarkdown>`.  
-     - Exact code change: Import DOMPurify and clean the content. Example for `src/components/ExerciseVariationRenderer.jsx` (approx. line 18 where `modificationText` is used):  
+2. **XSS Vectors in Markdown Rendering**
+   - **Critical Finding:** The plan uses `react-markdown` to render AI-generated modification text without sanitizing HTML/JS, creating stored XSS risk when content is viewed in Board 2 UI.
+   - **Agreed Mitigations:**
+     - Sanitize all AI-generated markdown content **server-side** before storage or **client-side** immediately before rendering, using a trusted library like DOMPurify.
+     - File target: Any component rendering exercise modifications via `react-markdown` (e.g., `src/components/ExerciseVariationRenderer.jsx` or similar). Apply sanitization at the point where raw modification strings are passed to `<ReactMarkdown>`.
+     - Exact code change: Import DOMPurify and clean the content. Example for `src/components/ExerciseVariationRenderer.jsx` (approx. line 18 where `modificationText` is used):
 
        ```javascript
        import DOMPurify from 'dompurify';
-       
+
        // Inside component render or props processing
        const cleanModificationText = DOMPurify.sanitize(rawModificationText, {
          ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
          ALLOWED_ATTR: ['href', 'target', 'rel']
        });
-       
+
        // Then pass cleanModificationText to react-markdown
        <ReactMarkdown>{cleanModificationText}</ReactMarkdown>
        ```
-     - Additionally, configure `react-markdown` to disable raw HTML rendering via `sanitizeConfig` (if using a version that supports it) as a defense-in-depth layer.  
-     - Ensure server-side sanitization API endpoint (if content is fetched via AJAX) also applies DOMPurify to prevent bypass.  
+     - Additionally, configure `react-markdown` to disable raw HTML rendering via `sanitizeConfig` (if using a version that supports it) as a defense-in-depth layer.
+     - Ensure server-side sanitization API endpoint (if content is fetched via AJAX) also applies DOMPurify to prevent bypass.
 
 **Overall Status:** Implementation remains **BLOCKED** until all above mitigations are implemented and verified in staging. Re‑audit required post‑fix.
 
@@ -1917,7 +1917,7 @@ Below are the merged specifications incorporating both plans.
 > ```tsx
 > // CHANGE FROM:
 > style={{ height: '56px', transition: 'height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
-> 
+>
 > // TO:
 > style={{ height: isExpanded ? 'auto' : '56px', transition: 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-out' }}
 > ```
@@ -1981,7 +1981,7 @@ Specifications endorsed. ✅ **Full agreement.**
 > ```css
 > .action-sheet-primary-btn {
 >   /* Replace inline glow with subtle gradient + drop shadow only */
->   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35), 
+>   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35),
 >               0 0 0 1px rgba(96, 192, 240, 0.2);
 > }
 > .action-sheet-primary-btn:active {
@@ -2003,8 +2003,8 @@ The original plan omits critical states for the **"Apply" action**.
 
 const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-<PrimaryButton 
-  onPress={handleApply} 
+<PrimaryButton
+  onPress={handleApply}
   disabled={applyState === 'loading'}
 >
   {applyState === 'loading' && <Spinner size={16} color="#E0ECF4" />}
@@ -2029,7 +2029,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
 
 ```tsx
 // ADD ARIA attributes:
-<button 
+<button
   aria-expanded={isExpanded}
   aria-controls={`mod-content-${exerciseId}`}
   onKeyDown={(e) => {
@@ -2040,7 +2040,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
   <Chevron aria-hidden="true" />
 </button>
 
-<div 
+<div
   id={`mod-content-${exerciseId}`}
   role="region"
   aria-label={`Modifications for ${exerciseName}`}
@@ -2130,11 +2130,11 @@ const parsed = BatchSchema.safeParse(geminiResponse);
 if (!parsed.success) {
   console.error(`Batch ${batchNum} validation failed:`, parsed.error.flatten());
   // Log to error tracking, skip batch, continue with others
-  continue; 
+  continue;
 }
 
 // Sanitize strings (defense in depth)
-const sanitized = parsed.data.map(variation => 
+const sanitized = parsed.data.map(variation =>
   Object.fromEntries(
     Object.entries(variation).map(([k, v]) => [k, sanitizeString(v)])
   )
@@ -2275,23 +2275,23 @@ interface ApplyState {
   error: string | null;
 }
 
-const [applyState, setApplyState] = useState<ApplyState>({ 
-  status: 'idle', 
-  error: null 
+const [applyState, setApplyState] = useState<ApplyState>({
+  status: 'idle',
+  error: null
 });
 
 const handleApply = async (exerciseId: string, modType: string, value: string) => {
   setApplyState({ status: 'loading', error: null });
-  
+
   try {
     await api.applyModification(exerciseId, modType, value);
     setApplyState({ status: 'success', error: null });
     // Auto-reset after 2s
     setTimeout(() => setApplyState({ status: 'idle', error: null }), 2000);
   } catch (err) {
-    setApplyState({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : 'Failed to apply modification' 
+    setApplyState({
+      status: 'error',
+      error: err instanceof Error ? err.message : 'Failed to apply modification'
     });
   }
 };

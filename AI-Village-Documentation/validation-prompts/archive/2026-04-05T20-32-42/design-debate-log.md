@@ -8,9 +8,9 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me very carefully. The functional architecture in this document is brilliant. The security considerations are paranoid in exactly the right way. But as your Creative Director, I am telling you that if we ship this without a militant, pixel-perfect enforcement of the **Crystalline Swan** design system, it will look like a cheap $9/month SaaS instead of the premium, luxury coaching platform Sean is selling. 
+Listen to me very carefully. The functional architecture in this document is brilliant. The security considerations are paranoid in exactly the right way. But as your Creative Director, I am telling you that if we ship this without a militant, pixel-perfect enforcement of the **Crystalline Swan** design system, it will look like a cheap $9/month SaaS instead of the premium, luxury coaching platform Sean is selling.
 
-We are building an *Enchanted Apex*. A deep-ocean luxury vault. A frozen enchanted forest. Every interaction must feel expensive, fluid, and deliberate. 
+We are building an *Enchanted Apex*. A deep-ocean luxury vault. A frozen enchanted forest. Every interaction must feel expensive, fluid, and deliberate.
 
 Here is my Round 1 Design Authority Analysis. These are not suggestions; they are **MANDATORY** implementation directives.
 
@@ -20,7 +20,7 @@ Here is my Round 1 Design Authority Analysis. These are not suggestions; they ar
 - **Severity:** CRITICAL
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` (Section 4: PAID TOOL STRATEGY)
 - **Design Problem:** The document describes a "lock overlay" functionally, but standard lock screens feel punitive and cheap. We need this to feel like a VIP velvet rope in a deep-ocean vault. It must invoke desire, not frustration.
-- **Design Solution:** 
+- **Design Solution:**
   - **Background:** `Carbon #141419` with a `backdrop-filter: blur(12px)` to obscure the premium content behind it.
   - **Iconography:** A glowing lock icon in `Gilded Fern #C6A84B` (Luxury Accent) to signify premium value.
   - **Typography:** Main heading in `Plus Jakarta Sans` (`Frost White #E0ECF4`). The "Plan B workaround" messaging MUST be in `Cormorant Garamond Italic` (`Swan Lavender #4070C0`) to add a touch of dramatic, empathetic elegance.
@@ -35,7 +35,7 @@ Here is my Round 1 Design Authority Analysis. These are not suggestions; they ar
 - **Severity:** HIGH
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` (Section 1 & 2: Content Cadence)
 - **Design Problem:** "Prominent and unmistakable" is a functional requirement, not a design spec. If engineers guess, they will make it a massive, ugly green button. We do not use green.
-- **Design Solution:** We utilize the **Dual-Button Glow** token system. 
+- **Design Solution:** We utilize the **Dual-Button Glow** token system.
   - **Base:** `Midnight Sapphire #002060`
   - **Text:** `Frost White #E0ECF4`, Font: `Sora` (Bold, uppercase, tracking-wide).
   - **Hover/Focus:** The button does *not* change background color. Instead, it emits a piercing `Wing Purple #8B5CF6` glow.
@@ -63,9 +63,9 @@ Here is my Round 1 Design Authority Analysis. These are not suggestions; they ar
 - **Severity:** MEDIUM
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` (Section 8: SECURITY INTELLIGENCE PANEL)
 - **Design Problem:** Standard security dashboards rely on blaring red sirens and yellow warning signs. This breaks the Crystalline Swan immersion. We need "Defensive Security" to look like a high-end, icy intelligence vault.
-- **Design Solution:** 
+- **Design Solution:**
   - **Main Panel BG:** `Obsidian Black #0A0A0F`.
-  - **Critical Alerts:** Instead of red, we use a pulsing `Wing Purple #8B5CF6` left-border on the alert cards. 
+  - **Critical Alerts:** Instead of red, we use a pulsing `Wing Purple #8B5CF6` left-border on the alert cards.
   - **Typography:** `Fira Code` for CVE IDs and CVSS scores. `Plus Jakarta Sans` for the vulnerability descriptions.
 - **Implementation Notes:**
   1. Alert Card CSS: `background: #141419; border-left: 4px solid #8B5CF6; border-radius: 0 8px 8px 0;`
@@ -88,7 +88,7 @@ Here is my Round 1 Design Authority Analysis. These are not suggestions; they ar
 ---
 
 **Final Word from the Director:**
-Do not deviate from these hex codes. If I see `#00FFFF` (Galaxy-Swan Cyan) anywhere in this codebase, I will revert the commit myself. We are building a luxury experience. Code it exactly as specified. 
+Do not deviate from these hex codes. If I see `#00FFFF` (Galaxy-Swan Cyan) anywhere in this codebase, I will revert the commit myself. We are building a luxury experience. Code it exactly as specified.
 
 Collaborator, your turn. How are we structuring the styled-components theme provider to enforce this without creating a spaghetti mess of inline styles?
 
@@ -210,7 +210,7 @@ This creates an **affordance problem**. Users with cognitive disabilities or unf
   padding: 14px 32px;
   transition: all 0.3s ease;
   cursor: pointer;
-  
+
   /* ADDED: Subtle gradient lift for affordance */
   background: linear-gradient(180deg, #003070 0%, #002060 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -265,7 +265,7 @@ Additionally, rotation can interfere with precise drop targeting.
   border: 2px solid #60C0F0;
   /* REMOVED: rotate(2deg) - replaced with enhanced lift */
   transform: scale(1.03);
-  box-shadow: 
+  box-shadow:
     0 15px 30px rgba(0, 0, 0, 0.5),
     0 0 20px rgba(96, 192, 240, 0.4),
     0 0 40px rgba(96, 192, 240, 0.2);
@@ -303,31 +303,31 @@ export const crystallineSwanTheme = {
     obsidian: '#0A0A0F',
     carbon: '#141419',
     graphite: '#1A1A24',
-    
+
     // Sapphire Depths
     midnight: '#002060',
     royal: '#003080',
-    
+
     // Frost Whites
     frost: '#E0ECF4',
     ice: '#60C0F0',
     arctic: '#50A0F0',
-    
+
     // Lavender Accents
     lavender: '#4070C0',
     wing: '#8B5CF6',
-    
+
     // Luxury Gold
     gilded: '#C6A84B',
   },
-  
+
   typography: {
     display: "'Cormorant Garamond', serif",
     body: "'Plus Jakarta Sans', sans-serif",
     ui: "'Sora', sans-serif",
     code: "'Fira Code', monospace",
   },
-  
+
   spacing: {
     xs: '4px',
     sm: '8px',
@@ -335,7 +335,7 @@ export const crystallineSwanTheme = {
     lg: '24px',
     xl: '48px',
   },
-  
+
   // Token aliases for semantic clarity
   semantic: {
     surfacePrimary: '#141419',
@@ -345,7 +345,7 @@ export const crystallineSwanTheme = {
     textPrimary: '#E0ECF4',
     textSecondary: 'rgba(224, 236, 244, 0.7)',
   },
-  
+
   // Animation curves
   motion: {
     easeLuxury: 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -400,9 +400,9 @@ const LuxuryButton = styled.button`
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-This is exactly why a Creative Director needs a rigorous Implementation Reviewer. Your accessibility catches on WCAG 1.4.1 and vestibular motion triggers are excellent. A luxury product that alienates users with disabilities is not luxury; it is just poorly engineered. 
+This is exactly why a Creative Director needs a rigorous Implementation Reviewer. Your accessibility catches on WCAG 1.4.1 and vestibular motion triggers are excellent. A luxury product that alienates users with disabilities is not luxury; it is just poorly engineered.
 
-However, your proposed solutions for these accessibility gaps compromise the **Crystalline Swan** aesthetic. We will achieve WCAG compliance, but we will do it with elegance. 
+However, your proposed solutions for these accessibility gaps compromise the **Crystalline Swan** aesthetic. We will achieve WCAG compliance, but we will do it with elegance.
 
 Here is my Round 2 Design Authority response.
 
@@ -411,9 +411,9 @@ Here is my Round 2 Design Authority response.
 ### 1. Analytics Data Visualization — COLOR ACCESSIBILITY (Dispute)
 - **File:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` (Section 6.1)
 - **Your Proposal:** Introduce `Gilded Fern` and `Frost White` into the charts, and use stripe/dot/crosshatch pattern fills.
-- **My Verdict:** **PARTIAL DISAGREEMENT.** 
+- **My Verdict:** **PARTIAL DISAGREEMENT.**
 - **Why:** Pattern fills (stripes, crosshatches) belong in a 1998 Microsoft Excel spreadsheet, not a deep-ocean luxury vault. They create visual noise that destroys the sleek, glass-like UI we are building. However, your point on WCAG 1.4.1 (Use of Color) is indisputable. We must differentiate data without relying solely on hue.
-- **Alternative Solution:** We will use a strict 3-color Crystalline palette, but we will achieve WCAG compliance through **Line Styles (stroke-dasharray)** and **Marker Shapes**, *not* pattern fills. 
+- **Alternative Solution:** We will use a strict 3-color Crystalline palette, but we will achieve WCAG compliance through **Line Styles (stroke-dasharray)** and **Marker Shapes**, *not* pattern fills.
 
 **Implementation Directive:**
 ```javascript
@@ -446,7 +446,7 @@ export const DataPalette = {
 - **Your Proposal:** Add a linear gradient lift (`#003880` to `#003070`) on hover.
 - **My Verdict:** **PARTIAL DISAGREEMENT.**
 - **Why:** I concede the affordance deficit. A background shift is necessary for cognitive accessibility. *However*, you introduced `#003880` and `#003070`—hex codes that do not exist in our token system. We do not invent new colors on the fly.
-- **Alternative Solution:** We use the existing `Royal Depth #003080` token for the hover state background shift. 
+- **Alternative Solution:** We use the existing `Royal Depth #003080` token for the hover state background shift.
 
 **Implementation Directive:**
 ```css
@@ -470,7 +470,7 @@ export const DataPalette = {
 - **File:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` (Section 2.4)
 - **Your Proposal:** Remove rotation, use `scale(1.03)` with enhanced shadow, and add `@media (prefers-reduced-motion: reduce)`.
 - **My Verdict:** **AGREEMENT ON PRINCIPLE, MINOR TWEAK.**
-- **Why:** The vestibular risk is a fantastic catch. I fully approve the `prefers-reduced-motion` architecture. However, `scale(1.03)` is slightly too aggressive for a card that might be 400px wide (it causes layout jitter). 
+- **Why:** The vestibular risk is a fantastic catch. I fully approve the `prefers-reduced-motion` architecture. However, `scale(1.03)` is slightly too aggressive for a card that might be 400px wide (it causes layout jitter).
 - **Alternative Solution:** We will use `scale(1.02)` for the standard state, and `scale(1)` (no scale, just shadow/border change) for the reduced motion state.
 
 **Implementation Directive:**
@@ -499,7 +499,7 @@ export const DataPalette = {
 ---
 
 **Director's Handoff:**
-We are very close. The theme provider is locked, the accessibility gaps are patched without compromising the luxury aesthetic, and the motion physics are now safe. 
+We are very close. The theme provider is locked, the accessibility gaps are patched without compromising the luxury aesthetic, and the motion physics are now safe.
 
 Review these updated directives. If you are aligned, we can finalize the UI/UX implementation spec.
 
@@ -659,7 +659,7 @@ const DraggableItem = styled.div`
     cursor: grabbing;
     border: 1px solid ${({ theme }) => theme.colors.ice};
     transform: scale(1.02);
-    box-shadow: 
+    box-shadow:
       0 15px 30px rgba(0, 0, 0, 0.5),
       0 0 20px rgba(96, 192, 240, 0.4),
       0 0 40px rgba(96, 192, 240, 0.2);
@@ -671,7 +671,7 @@ const DraggableItem = styled.div`
   @media (prefers-reduced-motion: reduce) {
     &.dragging {
       transform: scale(1);
-      box-shadow: 
+      box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.4),
         0 0 8px rgba(96, 192, 240, 0.3);
     }
@@ -708,31 +708,31 @@ export const crystallineSwanTheme = {
     obsidian: '#0A0A0F',
     carbon: '#141419',
     graphite: '#1A1A24',
-    
+
     // Sapphire Depths
     midnight: '#002060',
     royal: '#003080',
-    
+
     // Frost Whites
     frost: '#E0ECF4',
     ice: '#60C0F0',
     arctic: '#50A0F0',
-    
+
     // Lavender Accents
     lavender: '#4070C0',
     wing: '#8B5CF6',
-    
+
     // Luxury Gold
     gilded: '#C6A84B',
   },
-  
+
   typography: {
     display: "'Cormorant Garamond', serif",
     body: "'Plus Jakarta Sans', sans-serif",
     ui: "'Sora', sans-serif",
     code: "'Fira Code', monospace",
   },
-  
+
   spacing: {
     xs: '4px',
     sm: '8px',
@@ -740,7 +740,7 @@ export const crystallineSwanTheme = {
     lg: '24px',
     xl: '48px',
   },
-  
+
   semantic: {
     surfacePrimary: '#141419',
     surfaceElevated: '#0A0A0F',
@@ -749,7 +749,7 @@ export const crystallineSwanTheme = {
     textPrimary: '#E0ECF4',
     textSecondary: 'rgba(224, 236, 244, 0.7)',
   },
-  
+
   motion: {
     easeLuxury: 'cubic-bezier(0.4, 0, 0.2, 1)',
     easeSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -804,4 +804,3 @@ export const DataPalette = {
 *— MiniMax M2.7, Design Implementation Reviewer*
 
 ---
-

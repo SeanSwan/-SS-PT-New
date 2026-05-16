@@ -256,7 +256,7 @@ The blueprint mentions:
 
 **Impact:** Clients will churn if they can't log workouts and track progress. This is the core value proposition of every competitor.
 
-**Recommendation:** 
+**Recommendation:**
 - Phase 1: Build PWA with offline workout logging
 - Phase 2: Push notification infrastructure
 - Phase 3: Native mobile apps (if budget allows)

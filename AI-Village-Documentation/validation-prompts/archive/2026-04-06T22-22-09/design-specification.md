@@ -11,7 +11,7 @@ CONSENSUS REACHED
 **PROJECT:** SwanStudios Coach Assistant Upgrade (Crystalline Swan)
 **STATUS:** FINAL MASTER SPECIFICATION — APPROVED FOR ENGINEERING KICKOFF
 
-Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*. 
+Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*.
 
 Below is the finalized, merged specification. Engineering is cleared to begin implementation immediately. No deviations from this master document are permitted.
 
@@ -60,11 +60,11 @@ $breakpoint-mobile-strict: 430px;   /* Triggers Typography Scaling (iPhone 14/15
 ```scss
 @include tablet-portrait-down {
   .conversation-sidebar {
-    width: calc(100vw - 16px); 
+    width: calc(100vw - 16px);
     max-width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
-    
+
     /* Drag handle — iOS HIG compliant */
     &::before {
       content: '';
@@ -132,7 +132,7 @@ function handleDrag(translationY: number, velocity: number) {
 .recording-orb {
   background: var(--color-royal-depth);
   box-shadow: 0 0 0px transparent;
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 

@@ -6,7 +6,7 @@
 
 ---
 
-This is a strategic gap analysis and future-proofing audit for SwanStudios, based on the technological, regulatory, and market landscape of **April 2026**. 
+This is a strategic gap analysis and future-proofing audit for SwanStudios, based on the technological, regulatory, and market landscape of **April 2026**.
 
 While the provided brief excellently captures immediate UX and bug-fix needs, it misses several critical macro-trends, compliance mandates, and architectural shifts required to position SwanStudios as an enterprise-grade, premium SaaS platform in 2026.
 
@@ -42,7 +42,7 @@ Here are the missing elements that will make this platform 10x better, more defe
 *   **Source:** [FDA 2026 General Wellness Guidance Updates](https://www.jdsupra.com/legalnews/digital-health-policy-fda-relaxes-2026)
 
 **GAP 4: WCAG 2.2 Mobile Accessibility Compliance**
-*   **What's missing:** The brief mentions "accessibility and readability" but lacks specific technical standards. 
+*   **What's missing:** The brief mentions "accessibility and readability" but lacks specific technical standards.
 *   **Why it matters:** With the DOJ's final rule taking effect in 2026, WCAG 2.2 Level AA is the definitive legal standard. WCAG 2.2 introduces strict rules for mobile: *Target Size (Minimum)* (2.5.8) requires tap targets to be at least 24x24 CSS pixels, and *Focus Not Obscured* (2.4.11) prevents floating AI buttons from covering interactive content (which the brief explicitly notes is currently happening).
 *   **How to implement:** Audit the React Native/styled-components library against WCAG 2.2. Enforce a minimum 44x44px touch target for all Rolodex and Builder buttons. Fix the z-index of the floating AI button to ensure it never obscures focusable elements.
 *   **Priority:** HIGH (Next Sprint)
@@ -79,7 +79,7 @@ Here are the missing elements that will make this platform 10x better, more defe
 
 **GAP 8: Octalysis "Epic Meaning" & "Empowerment"**
 *   **What's missing:** The brief correctly identifies that gamification is "too shallow" and suggests avatars and badges. However, badges only satisfy Core Drive 4 (Ownership).
-*   **Why it matters:** 2026 Octalysis trends show that long-term fitness retention is driven by Core Drive 1 (Epic Meaning—e.g., narrative-driven fitness) and Core Drive 3 (Empowerment of Creativity—e.g., letting users build and share their own custom challenges). 
+*   **Why it matters:** 2026 Octalysis trends show that long-term fitness retention is driven by Core Drive 1 (Epic Meaning—e.g., narrative-driven fitness) and Core Drive 3 (Empowerment of Creativity—e.g., letting users build and share their own custom challenges).
 *   **How to implement:** Shift the gamification architecture. Instead of just giving points for workouts, allow the wealthy golf demographic to create "Country Club Leaderboards" (Core Drive 5: Social Influence) and unlock narrative-driven golf-conditioning milestones (Core Drive 1).
 *   **Priority:** MEDIUM (Roadmap)
 *   **Source:** [Top 10 Gamification in Fitness Apps 2026 (Yu-kai Chou)](https://yukaichou.com/gamification-examples/top-10-gamification-fitness-apps/)

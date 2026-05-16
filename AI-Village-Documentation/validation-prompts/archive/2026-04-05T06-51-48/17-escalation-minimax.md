@@ -42,14 +42,14 @@ const RATE_LIMITS = {
     maxRequests: 20,
     cooldownMinutes: 15
   },
-  
+
   // Heavy users (Guardian/Elite): 30 RPM
   premium: {
     windowMs: 60 * 1000,
     maxRequests: 30,
     cooldownMinutes: 15
   },
-  
+
   // Anti-bot emergency threshold (NEVER normal human)
   botThreshold: {
     windowMs: 60 * 1000,
@@ -62,12 +62,12 @@ const RATE_LIMITS = {
 function checkRateLimit(userId, tier) {
   const limit = tier === 'free' ? RATE_LIMITS.default : RATE_LIMITS.premium;
   const requests = getRequestCount(userId, limit.windowMs);
-  
+
   // Soft warning at 80% capacity
   if (requests >= limit.maxRequests * 0.8) {
     logWarning(`User ${userId} at ${requests}/${limit.maxRequests} RPM`);
   }
-  
+
   // Hard throttle
   if (requests >= limit.maxRequests) {
     if (requests >= RATE_LIMITS.botThreshold.maxRequests) {
@@ -78,7 +78,7 @@ function checkRateLimit(userId, tier) {
     }
     return { allowed: false, retryAfter: limit.cooldownMinutes * 60 };
   }
-  
+
   return { allowed: true };
 }
 ```
@@ -102,7 +102,7 @@ A power user doing 15 AI-assisted workouts in an hour would hit 5 RPM but never 
 ```
 🔴 IMMEDIATE (before any deployment):
    Fix manifest to say 20 RPM, not 5 RPM
-   
+
 🟡 PHASE 7 (build order):
    Implement tiered rate limits per above
 ```
@@ -140,34 +140,34 @@ The **ONLY** real protection is the backend 402 interceptor, which the document 
  * Do NOT rely on this for access control.
  * All real gating happens in backend requireSubscription middleware.
  * Users CAN bypass this by editing DOM.
- * 
+ *
  * Purpose: Creates visual barrier + smooth upgrade flow.
  */
 
 // RENAME to make intent clear:
-export function PremiumFeatureGuard({ 
-  children, 
+export function PremiumFeatureGuard({
+  children,
   requiredTier,
-  isLocked 
+  isLocked
 }: PremiumFeatureGuardProps) {
   const { isPro, isElite, isTrial } = useSubscription();
-  
-  const hasAccess = 
-    isElite || 
-    isPro || 
+
+  const hasAccess =
+    isElite ||
+    isPro ||
     isTrial ||
     requiredTier === 'free';
 
   // REMOVE any conditional rendering that "protects" content
   // Content should ALWAYS render — overlay is purely visual
-  
+
   return (
     <div className="premium-feature-container">
       {/* Content always visible (backend handles real protection) */}
       <div className={hasAccess ? 'content-full' : 'content-blurred'}>
         {children}
       </div>
-      
+
       {/* Upgrade prompt for non-premium users */}
       {!hasAccess && (
         <PremiumOverlay variant="glass">
@@ -195,7 +195,7 @@ function requireTier(requiredTier) {
     // ALWAYS check backend first — frontend is lying
     const userTier = req.subscription?.tier || 'free';
     const hasAccess = checkTierAccess(userTier, requiredTier);
-    
+
     if (!hasAccess) {
       // Log the attempted bypass (could indicate abuse or frontend bug)
       if (req.headers['x-requested-tier']) {
@@ -206,7 +206,7 @@ function requireTier(requiredTier) {
           path: req.path
         });
       }
-      
+
       return res.status(402).json({
         error: 'PAYMENT_REQUIRED',
         message: 'Upgrade to access this feature',
@@ -216,7 +216,7 @@ function requireTier(requiredTier) {
         // DO NOT reveal what the locked feature actually is
       });
     }
-    
+
     next();
   };
 }
@@ -244,10 +244,10 @@ function requireTier(requiredTier) {
 🔴 CRITICAL (Phase 1):
    Verify backend 402 interceptor exists AND is comprehensive
    Test: bypass frontend overlay, verify 402 response
-   
+
 🟡 PHASE 5:
    Implement PremiumFeatureGuard with blurred content (not hidden)
-   
+
 🟢 ONGOING:
    Audit all premium endpoints for 402 coverage
 ```
@@ -282,25 +282,25 @@ const ANOMALY_THRESHOLDS = {
   // Normal heavy user: 10-15 RPM peak during active session
   // Power user: 20 RPM peak (rare)
   // BOT: 50+ RPM (virtually impossible for human)
-  
+
   yellowAlert: {
     requestsPerHour: 100, // REASONABLE — ~1.7 RPM, possible for very engaged user
     requestsPerDay: 500,
     severity: 'monitor'
   },
-  
+
   redAlert: {
     requestsPerHour: 200, // ~3.3 RPM — still possibly power user, flag for review
     requestsPerDay: 1000, // ~0.7 RPM average — could be legitimate
     severity: 'review'
   },
-  
+
   autoThrottle: {
     requestsPerMinute: 50, // 50 RPM = 0.83 RPS = BOT (auto-throttle)
     requestsPerHour: 3000, // Safety net
     severity: 'emergency-block'
   },
-  
+
   costAlert: {
     dailyCostUsd: 5, // Flash-Lite: $5 = 25,000 messages = massive scale OR abuse
     monthlyCostUsd: 50 // Alert at $50/mo (would need 250,000 messages)
@@ -309,27 +309,27 @@ const ANOMALY_THRESHOLDS = {
 
 function detectAnomalies(userId) {
   const stats = getAIUsageStats(userId);
-  
+
   // Check individual user patterns
   if (stats.lastHour >= ANOMALY_THRESHOLDS.autoThrottle.requestsPerMinute) {
     triggerAutoThrottle(userId);
     alertAdmin(`EMERGENCY: User ${userId} auto-throttled at ${stats.lastMinute} req/min`);
     return { action: 'throttled', reason: 'bot-detection' };
   }
-  
+
   if (stats.lastHour >= ANOMALY_THRESHOLDS.redAlert.requestsPerHour) {
     flagUser(userId, 'high-usage');
     alertAdmin(`RED: User ${userId} at ${stats.lastHour} req/hr`);
     return { action: 'flagged', reason: 'high-volume' };
   }
-  
+
   // Check global cost
   const todayCost = calculateDailyAICost();
   if (todayCost >= ANOMALY_THRESHOLDS.costAlert.dailyCostUsd) {
     alertAdmin(`COST ALERT: $${todayCost} spent today (limit: $${ANOMALY_THRESHOLDS.costAlert.dailyCostUsd})`);
     return { action: 'alert', reason: 'cost-threshold' };
   }
-  
+
   return { action: 'allowed' };
 }
 ```
@@ -392,7 +392,7 @@ trainerType: {
 // backend/middleware/trainerAuth.mjs
 
 const PERMISSION_MATRIX = {
-  affiliated: ['view_clients', 'edit_clients', 'view_progress', 
+  affiliated: ['view_clients', 'edit_clients', 'view_progress',
                 'manage_workouts', 'message_clients', 'access_dashboard'],
   independent: ['view_progress', 'manage_clients'], // Minimum viable
   null: [] // Non-trainers
@@ -403,19 +403,19 @@ function requireAffiliatedTrainer(req, res, next) {
   if (req.user?.role !== 'trainer') {
     return res.status(403).json({ error: 'NOT_TRAINER' });
   }
-  
+
   // trainerType must be set server-side ONLY
   // Check database directly, not req.body or JWT claims
   const user = await User.findByPk(req.user.id);
-  
+
   if (user.trainerType !== 'affiliated') {
     // Independent trainers don't get affiliated routes
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'AFFILIATED_ONLY',
       message: 'This feature is for affiliated trainers only'
     });
   }
-  
+
   next();
 }
 
@@ -424,11 +424,11 @@ function requireTrainerPermission(permission) {
   return async (req, res, next) => {
     // 1. Sean (admin) bypasses all
     if (req.user?.role === 'admin') return next();
-    
+
     // 2. Affiliated trainers have all permissions
     const user = await User.findByPk(req.user.id);
     if (user.trainerType === 'affiliated') return next();
-    
+
     // 3. Independent trainers: check explicit permissions
     const trainerPermissions = await getTrainerPermissions(req.user.id);
     if (!trainerPermissions.includes(permission)) {
@@ -438,22 +438,22 @@ function requireTrainerPermission(permission) {
         granted: trainerPermissions
       });
     }
-    
+
     // 4. Independent trainers can ONLY see their own clients
     if (req.params.clientId) {
       const isOwnClient = await verifyTrainerClientRelationship(
-        req.user.id, 
+        req.user.id,
         req.params.clientId
       );
       if (!isOwnClient) {
-        return res.status(403).json({ 
-          error: 'NOT_YOUR_CLIENT' 
+        return res.status(403).json({
+          error: 'NOT_YOUR_CLIENT'
         });
       }
     }
-    
+
     next();
- 
+
 
 ---
 

@@ -48,16 +48,16 @@ Invert the dependency graph. Lift `conversationId` state to `useCoachAssistant` 
 // Correct composition
 const useCoachAssistant = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  
+
   // useAIChat is a pure data hook — takes conversationId as input
   const chat = useAIChat(activeConversationId);
-  
+
   // useConversationSidebar is a pure UI/list hook — receives a callback
   const sidebar = useConversationSidebar({
     onConversationSelect: setActiveConversationId,
     activeConversationId, // read-only, for highlight state
   });
-  
+
   return { chat, sidebar, activeConversationId };
 };
 ```
@@ -155,16 +155,16 @@ packages/
       AITerminalInput.tsx        # text input + voice toggle (~100 lines)
       AITerminalMessageList.tsx  # message rendering + markdown (~120 lines)
       AITerminalActions.tsx      # copy, read-aloud, export (~80 lines)
-    
+
     contexts/
       AITerminalContext.tsx      # shared state provider (~60 lines)
-    
+
     variants/
       CoachAssistantTerminal.tsx # composes primitives + coach context (~150 lines)
       WorkoutBuilderTerminal.tsx # composes primitives + workout context (~150 lines)
       BootCampTerminal.tsx       # composes primitives + bootcamp context (~120 lines)
       EquipmentScanTerminal.tsx  # composes primitives + scan context (~100 lines)
-    
+
     hooks/
       useAIChat.ts               # data fetching only (~120 lines)
       useVoiceInput.ts           # microphone + STT only (~100 lines)
@@ -242,7 +242,7 @@ const MessageItem = React.memo(({ message }: { message: Message }) => {
 // Separate it from the completed message list:
 const MessageList = () => {
   const { completedMessages, streamingMessage } = useAIChat(conversationId);
-  
+
   return (
     <>
       {completedMessages.map(msg => <MessageItem key={msg.id} message={msg} />)}

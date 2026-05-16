@@ -13,12 +13,12 @@
 
 The plan states Phase 1 requires zero backend changes, but the current `GET /api/ai-chat/conversations` endpoint **does not** provide sufficient data for the sidebar requirements based on standard implementations and the plan's own context:
 
-- **Missing fields**: The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`. 
+- **Missing fields**: The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`.
   - `title` and `lastMessageAt` (or `updatedAt`) are likely present
   - `messageCount` is frequently omitted from conversation list endpoints (often requiring a separate count query or messages array length)
   - `context` is ambiguous but critical for AI chats—it likely refers to the conversation's system prompt, initial instructions, or summarization context. This is **almost certainly not** returned in a standard conversation list endpoint for performance reasons (context can be large)
 
-**Recommendation**: 
+**Recommendation**:
 - Add `messageCount: integer` and `lastMessageAt: ISO string` to the conversation list response if missing
 - For `context`, either:
   - Return a truncated/summarized version (e.g., first 100 chars) in the list
@@ -49,12 +49,12 @@ GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 ## 3. File Attachment Endpoint Design
 **Verdict: REST design is correct; multipart handling assumed**
 
-- **Endpoint**: `POST /api/ai-chat/conversations/:id/attachments` 
+- **Endpoint**: `POST /api/ai-chat/conversations/:id/attachments`
   - ✅ Correctly nests under conversation resource
   - ✅ Uses HTTP POST for creation
   - ✅ Follows REST conventions for sub-resources
 
-- **Multipart handling**: 
+- **Multipart handling**:
   - ✅ **Required** for file uploads (standard for binary data)
   - Must include: `file` (binary), optional `description` (text), `conversationId` (in path)
   - Should validate: file type (images: jpeg/png/webp/pdf), size (<10MB), virus scan
@@ -125,20 +125,20 @@ GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 **Recommended WebSocket events**:
 ```javascript
 // Server → Client
-socket.emit('conversation:update', { 
+socket.emit('conversation:update', {
   conversationId: 'conv_123',
-  type: 'newMessage', 
-  data: { message: {...} } 
+  type: 'newMessage',
+  data: { message: {...} }
 });
-socket.emit('conversation:update', { 
-  conversationId: 'conv_123', 
-  type: 'titleChanged', 
-  data: { title: 'New Title' } 
+socket.emit('conversation:update', {
+  conversationId: 'conv_123',
+  type: 'titleChanged',
+  data: { title: 'New Title' }
 });
-socket.emit('conversation:update', { 
-  conversationId: 'conv_123', 
-  type: 'attachmentAdded', 
-  data: { attachment: {...} } 
+socket.emit('conversation:update', {
+  conversationId: 'conv_123',
+  type: 'attachmentAdded',
+  data: { attachment: {...} }
 });
 
 // Client → Server (for typing indicators, etc.)
@@ -218,14 +218,14 @@ type ConversationSummary = {
 // Client-side state management (e.g., React Query)
 const useConversations = () => {
   const queryClient = useQueryClient();
-  
+
   // Invalidate specific conversation on update
   const updateConversation = useCallback((update) => {
     queryClient.setQueryData(['conversations'], (old = []) =>
       old.map(c => c.id === update.id ? {...c, ...update} : c)
     );
   }, []);
-  
+
   // ... rest of hook
 };
 ```

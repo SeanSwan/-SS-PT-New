@@ -16,8 +16,8 @@
 ## Detailed Findings & Mitigations
 
 ### 1. **PII Exposure in Conversation History**
-**Rating: CRITICAL**  
-**Plan Coverage: ❌ NOT ADDRESSED**  
+**Rating: CRITICAL**
+**Plan Coverage: ❌ NOT ADDRESSED**
 The plan mentions conversation JSONB storage but **no sanitization logic** before AI processing. With voice-first AI coach and chat features, user messages likely contain names, conditions, injuries, etc.
 
 **Required Mitigations:**
@@ -46,8 +46,8 @@ const safeMessages = messages.map(msg => ({
 ---
 
 ### 2. **File Attachment Risks (R2 + AI Analysis)**
-**Rating: HIGH**  
-**Plan Coverage: ⚠️ PARTIAL (P0-4 mentions equipment scan but no security)**  
+**Rating: HIGH**
+**Plan Coverage: ⚠️ PARTIAL (P0-4 mentions equipment scan but no security)**
 Image uploads to R2 for AI analysis risk:
 - Malicious files (XSS via SVG, polyglots)
 - SSRF if AI service fetches user-provided URLs
@@ -58,18 +58,18 @@ Image uploads to R2 for AI analysis risk:
 // Upload validation middleware:
 const validateImageUpload = async (req, res, next) => {
   const file = req.file;
-  
+
   // 1. Type validation (magic bytes, not extension)
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(file.mimetype)) {
     return res.status(400).json({ error: 'Invalid image type' });
   }
-  
+
   // 2. Strip EXIF (use sharp: .withMetadata({ exif: false }))
   // 3. Re-encode to prevent polyglots (convert to PNG/JPEG)
   // 4. Max 10MB, dimension limits (4000x4000)
   // 5. Virus scan (ClamAV integration)
-  
+
   // 6. For AI analysis: NEVER pass user URLs to external services
   //    Instead: download from R2 → sanitize → send bytes to AI
   next();
@@ -94,8 +94,8 @@ const validateExternalUrl = (url) => {
 ---
 
 ### 3. **Voice Data Privacy & Retention**
-**Rating: CRITICAL**  
-**Plan Coverage: ❌ NOT ADDRESSED**  
+**Rating: CRITICAL**
+**Plan Coverage: ❌ NOT ADDRESSED**
 Audio recordings sent to Gemini **must not be stored** per HIPAA/PHI requirements. Plan doesn't mention:
 - Storage duration (should be transient: delete after transcription)
 - Encryption at rest for temporary storage
@@ -107,7 +107,7 @@ Audio recordings sent to Gemini **must not be stored** per HIPAA/PHI requirement
 const transcribeAudio = async (audioBuffer) => {
   // 1. Store temporarily in encrypted R2 (AES-256) with 5min TTL
   const tempKey = await encryptAndStore(audioBuffer, { ttl: 300 });
-  
+
   // 2. Call Gemini with STORAGE_CONFIG:
   const response = await geminiClient.generateContent({
     audio: { fileUri: tempKey },
@@ -116,16 +116,16 @@ const transcribeAudio = async (audioBuffer) => {
       dataRedaction: { enabled: true } // if available
     }
   });
-  
+
   // 3. Immediately delete temp file (fire-and-forget)
   await deleteTempFile(tempKey);
-  
+
   // 4. Return ONLY text transcript (never store audio)
   return response.text;
 };
 
 // Privacy policy update required:
-// "Voice recordings are processed in real-time and deleted within 5 minutes. 
+// "Voice recordings are processed in real-time and deleted within 5 minutes.
 //  We do not store audio recordings."
 ```
 
@@ -136,8 +136,8 @@ const transcribeAudio = async (audioBuffer) => {
 ---
 
 ### 4. **Conversation Data at Rest (PostgreSQL JSONB)**
-**Rating: HIGH**  
-**Plan Coverage: ⚠️ MENTIONED BUT NOT IMPLEMENTED**  
+**Rating: HIGH**
+**Plan Coverage: ⚠️ MENTIONED BUT NOT IMPLEMENTED**
 Phase 2 mentions "IDOR Vulnerability Assessment" but **no encryption or column-level security** for `conversations.messages` JSONB containing PII/PHI.
 
 **Required Mitigations:**
@@ -153,11 +153,11 @@ Phase 2 mentions "IDOR Vulnerability Assessment" but **no encryption or column-l
 CREATE POLICY conversation_access_policy ON conversations
   USING (
     -- Client: own only
-    (auth.uid() = client_id) 
-    OR 
+    (auth.uid() = client_id)
+    OR
     -- Trainer: assigned clients only
     (auth.uid() IN (
-      SELECT trainer_id FROM client_assignments 
+      SELECT trainer_id FROM client_assignments
       WHERE client_id = conversations.client_id
     ))
     OR

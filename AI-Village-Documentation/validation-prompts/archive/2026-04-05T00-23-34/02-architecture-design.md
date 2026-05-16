@@ -150,7 +150,7 @@ User clicks conversation in sidebar
   → Fetches /api/conversations/:id/messages
   → On success: sets messages, loading: false
   → On error: sets error state, loading: false, selectedId reverts? (specify)
-  
+
 Race condition: User clicks conversation B before conversation A resolves
   → useEffect cleanup must call AbortController.abort()
   → Plan must specify this explicitly
@@ -199,7 +199,7 @@ Race condition: User clicks conversation B before conversation A resolves
 // ClientCard should be:
 const ClientCard = React.memo(({ client }: { client: ClientProgressDTO }) => {
   // stable render — no random values
-}, (prev, next) => prev.client.id === next.client.id && 
+}, (prev, next) => prev.client.id === next.client.id &&
                    prev.client.progressPercent === next.client.progressPercent);
 ```
 

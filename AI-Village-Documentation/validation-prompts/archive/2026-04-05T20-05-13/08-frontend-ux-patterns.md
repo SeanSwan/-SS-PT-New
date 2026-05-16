@@ -31,18 +31,18 @@ This review focuses on the architectural and UX implications of your `SWAN-COACH
 
 ### 4. Form UX
 *   **Finding:** **Critical** — The "Blog Writer" and "Social Post Generator" involve long-running AI processes.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Progressive Disclosure:** Do not show all 13 platforms in the Social Generator. Use a "Platform Selection" multi-select that dynamically updates the preview window.
     *   **Feedback:** Use a skeleton loader for the "Generating..." state. Since these are AI-driven, include a "Stop Generation" button to prevent wasted tokens if the user realizes the prompt is wrong.
 
 ### 5. State Management
 *   **Finding:** **High** — You are managing multiple external API states (Late.dev, Blotato, etc.).
-*   **Recommendation:** Do not use `useState` for the entire dashboard state. Use `useReducer` or **TanStack Query (React Query)**. 
+*   **Recommendation:** Do not use `useState` for the entire dashboard state. Use `useReducer` or **TanStack Query (React Query)**.
     *   *Why:* React Query will handle the caching of your "SEO Audits" and "Trending Topics" automatically, preventing unnecessary API calls to Gemini/Search grounding when the user toggles tabs.
 
 ### 6. Accessibility Gaps
 *   **Finding:** **Medium** — The "Crystalline" aesthetic (Arctic Cyan on Frost White) risks low contrast.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Ensure your `Arctic Cyan` (#50A0F0) meets WCAG AA contrast standards against the `Frost White` (#E0ECF4) background. If it fails, use `Midnight Sapphire` (#002060) for text and keep `Arctic Cyan` for accents/borders only.
     *   **Keyboard Navigation:** Ensure the "Content Calendar" is keyboard-accessible. Drag-and-drop interfaces are notoriously difficult for screen readers; provide a "List View" toggle for accessibility compliance.
 

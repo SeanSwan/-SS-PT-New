@@ -14,7 +14,7 @@ Reviewing the **Teach Me content expansion** plan through the lens of mobile UX 
 ---
 
 ## 1. Sidebar on 320px
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** 85vw = 272px on 320px screens. Conversation titles (auto-generated from first message), timestamps, and action buttons (voice, video, etc.) will compete for space. Risk of horizontal scroll or clipped content.
 
 **Solutions:**
@@ -64,15 +64,15 @@ Reviewing the **Teach Me content expansion** plan through the lens of mobile UX 
 ---
 
 ## 2. Voice Recording on iOS Safari
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** iOS Safari requires `webkit` prefix for `MediaRecorder`. Auto-play policies block TTS without user gesture. Voice orb UI must indicate permission states.
 
 **Solutions:**
 ```javascript
 // Check MediaRecorder support with prefixes
 const hasMediaRecorder = () => {
-  return !!(window.MediaRecorder || 
-    (window as any).webkitMediaRecorder || 
+  return !!(window.MediaRecorder ||
+    (window as any).webkitMediaRecorder ||
     (window as any).mozMediaRecorder);
 };
 
@@ -98,7 +98,7 @@ const speakText = (text: string) => {
 ---
 
 ## 3. Keyboard on Mobile
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Virtual keyboard pushes viewport up, potentially hiding sidebar or input. `100vh` is unreliable on mobile browsers.
 
 **Solutions:**
@@ -117,9 +117,9 @@ useEffect(() => {
 }, []);
 
 // In layout:
-<main style={{ 
+<main style={{
   height: `calc(100vh - ${keyboardHeight}px)`,
-  paddingBottom: keyboardHeight > 0 ? 16 : 0 
+  paddingBottom: keyboardHeight > 0 ? 16 : 0
 }}>
 ```
 **CSS:** Avoid `position: fixed` for sidebar/input containers. Use `position: sticky` or flexbox with `flex-shrink: 0` on input area.
@@ -127,7 +127,7 @@ useEffect(() => {
 ---
 
 ## 4. Offline/Slow Network
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** Conversations list fails to load. Empty state must guide user (retry, cached data). Voice messages may fail to upload.
 
 **Solutions:**
@@ -169,7 +169,7 @@ const useNetworkStatus = () => {
 ---
 
 ## 5. Long Conversation Titles
-**Rating:** MEDIUM  
+**Rating:** MEDIUM
 **Issue:** Auto-generated from first message. May exceed container width or wrap awkwardly.
 
 **Solutions:**
@@ -208,7 +208,7 @@ const useNetworkStatus = () => {
 ---
 
 ## 6. Large Message History
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** 100+ messages cause DOM bloat, jank on scroll, memory pressure on low-end devices.
 
 **Solutions:**
@@ -225,9 +225,9 @@ const MessageList = ({ messages }) => (
     overscanCount={5}
   >
     {({ index, style }) => (
-      <MessageBubble 
-        message={messages[index]} 
-        style={style} 
+      <MessageBubble
+        message={messages[index]}
+        style={style}
       />
     )}
   </List>
@@ -241,7 +241,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 7. RTL Languages
-**Rating:** LOW (but proactive)  
+**Rating:** LOW (but proactive)
 **Issue:** Sidebar layout must flip. Current CSS likely uses `margin-left`, `padding-left`.
 
 **Solutions:**
@@ -267,7 +267,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 8. Reduced Motion
-**Rating:** HIGH  
+**Rating:** HIGH
 **Issue:** Voice orb pulsing, sidebar slide, thinking indicator may cause discomfort.
 
 **Solutions:**
@@ -279,12 +279,12 @@ const MessageList = ({ messages }) => (
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  
+
   .voiceOrb {
     animation: none !important;
     transform: scale(1);
   }
-  
+
   .sidebar {
     transform: none !important; /* disable slide */
     width: 100%; /* show full sidebar on mobile without animation */
@@ -296,7 +296,7 @@ const MessageList = ({ messages }) => (
 ---
 
 ## 9. Screen Reader
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Sidebar landmark, conversation list navigation, message bubble roles, voice recording status announcements.
 
 **Solutions:**
@@ -306,12 +306,12 @@ const MessageList = ({ messages }) => (
   <h2 className="sr-only">Your conversations</h2>
   <ul role="list" aria-label="Conversation list">
     {conversations.map(conv => (
-      <li 
-        key={conv.id} 
+      <li
+        key={conv.id}
         role="listitem"
         aria-current={activeId === conv.id ? 'true' : undefined}
       >
-        <button 
+        <button
           aria-label={`Conversation with ${conv.title}, last message ${conv.timestamp}`}
           onClick={() => select(conv.id)}
         >
@@ -337,8 +337,8 @@ useEffect(() => {
 }, [recordingStatus]);
 
 // Message bubbles
-<div 
-  role="article" 
+<div
+  role="article"
   aria-label={`Message from ${sender.name} at ${timestamp}`}
   aria-sort={isOwn ? 'descending' : 'ascending'}
 >
@@ -347,7 +347,7 @@ useEffect(() => {
 ---
 
 ## 10. 4K Ultrawide
-**Rating:** MEDIUM  
+**Rating:** MEDIUM
 **Issue:** Max-width constraints? Or full-stretch? Content readability on 3840px+ screens.
 
 **Solutions:**

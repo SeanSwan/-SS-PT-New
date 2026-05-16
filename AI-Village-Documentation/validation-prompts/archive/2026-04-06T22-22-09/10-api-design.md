@@ -6,44 +6,44 @@
 
 ---
 
-# API Surface Review – SwanStudios AI Chat Refactor  
-*Based on the **Comprehensive Site Refactor Brief** (2026‑04‑06) and the stated goal of “Phase 1 needs zero backend changes.”*  
+# API Surface Review – SwanStudios AI Chat Refactor
+*Based on the **Comprehensive Site Refactor Brief** (2026‑04‑06) and the stated goal of “Phase 1 needs zero backend changes.”*
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
 
 | Claim in Plan | What the Sidebar Needs | Likely Current Shape* | Verdict |
 |---------------|------------------------|-----------------------|---------|
 | Phase 1 requires **zero backend changes** for the AI‑chat sidebar. | `title`, `context` (preview/summary), `messageCount`, `lastMessageAt` (timestamp of most recent message). | Typical conversation object in a Sequelize/Postgres setup includes: `id`, `userId`, `title`, `createdAt`, `updatedAt`, `lastMessage` (JSONB or relation), `messageCount` (virtual or column). | **Probably sufficient** **if** the endpoint already returns: <br>• `title` <br>• `lastMessage` (or a `preview` field) → can be used for `context` <br>• `messageCount` (either stored column or computed via association) <br>• `updatedAt` (or `lastMessageAt` derived from `lastMessage.createdAt`). <br>**If any of those fields are missing, a minimal backend tweak is required** (e.g., add a virtual `messageCount` or expose `lastMessage.createdAt` as `lastMessageAt`). |
 
-> **Recommendation** – Verify the current payload. If it lacks any of the four fields, add a **backend‑only** selector/virtual field (no contract change) so the frontend can continue to work without a version bump.  
+> **Recommendation** – Verify the current payload. If it lacks any of the four fields, add a **backend‑only** selector/virtual field (no contract change) so the frontend can continue to work without a version bump.
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
 
-- **Current approach** (per plan): fetch the first 20 conversations (presumably ordered by `updatedAt` desc) and filter locally on the client.  
-- **Adequacy**: Acceptable **only** while the total conversation count per user stays low (< ~100) and the UI never needs to show more than the first 20 sorted items.  
-- **When to switch to server‑side search**:  
-  1. **Growth trigger** – average conversation count > 200 per active user **or** pagination beyond the first page is required.  
-  2. **UX trigger** – user expects instant results as they type (search‑as‑you‑go) and the client‑side list would cause noticeable lag or stale data.  
-  3. **Data trigger** – search must look inside message bodies (JSONB content) or across metadata (tags, tags‑like fields).  
+- **Current approach** (per plan): fetch the first 20 conversations (presumably ordered by `updatedAt` desc) and filter locally on the client.
+- **Adequacy**: Acceptable **only** while the total conversation count per user stays low (< ~100) and the UI never needs to show more than the first 20 sorted items.
+- **When to switch to server‑side search**:
+  1. **Growth trigger** – average conversation count > 200 per active user **or** pagination beyond the first page is required.
+  2. **UX trigger** – user expects instant results as they type (search‑as‑you‑go) and the client‑side list would cause noticeable lag or stale data.
+  3. **Data trigger** – search must look inside message bodies (JSONB content) or across metadata (tags, tags‑like fields).
 
-- **Recommended server‑side endpoint**:  
+- **Recommended server‑side endpoint**:
 
   ```http
   GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
   ```
 
-  - **SQL/Sequelize**: `WHERE title ILIKE '%${term}%' OR content::text ILIKE '%${term}%'` (if a `content` JSONB column stores concatenated message text).  
-  - **Index**: GIN index on the JSONB column (`content`) + B‑tree on `title` for ILIKE performance.  
+  - **SQL/Sequelize**: `WHERE title ILIKE '%${term}%' OR content::text ILIKE '%${term}%'` (if a `content` JSONB column stores concatenated message text).
+  - **Index**: GIN index on the JSONB column (`content`) + B‑tree on `title` for ILIKE performance.
 
-> **Recommendation** – Keep client‑side filtering for MVP/Phase 1, but instrument a **feature flag** that flips to server‑side search once any of the triggers above is met.  
+> **Recommendation** – Keep client‑side filtering for MVP/Phase 1, but instrument a **feature flag** that flips to server‑side search once any of the triggers above is met.
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -55,13 +55,13 @@
 | **Validation** | Enforce max size (e.g., 10 MB), allowed MIME types (image/*, video/*, application/pdf), and virus‑scan if needed. |
 | **Security** | Verify the authenticated user owns `:id` conversation before allowing upload. |
 
-> **Recommendation** – Keep the endpoint as‑is, but add: <br>1. **Ownership middleware** (check `conversation.userId === req.user.id`). <br>2. **Stream‑to‑R2** using the AWS‑SDK v3 compatible client (no temporary buffer). <br>3. **Response** includes a temporary, signed URL (if R2 requires) or a public CDN URL.  
+> **Recommendation** – Keep the endpoint as‑is, but add: <br>1. **Ownership middleware** (check `conversation.userId === req.user.id`). <br>2. **Stream‑to‑R2** using the AWS‑SDK v3 compatible client (no temporary buffer). <br>3. **Response** includes a temporary, signed URL (if R2 requires) or a public CDN URL.
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
 
-The existing message‑send endpoint is likely:  
+The existing message‑send endpoint is likely:
 
 ```http
 POST /api/ai-chat/conversations/:id/messages
@@ -70,7 +70,7 @@ POST /api/ai-chat/conversations/:id/messages
 
 To support images (and potentially other modalities) we have two clean options:
 
-### Option A – **Extended Request Body** (single‑step)  
+### Option A – **Extended Request Body** (single‑step)
 
 ```json
 {
@@ -82,13 +82,13 @@ To support images (and potentially other modalities) we have two clean options:
 }
 ```
 
-- **Pros**: One round‑trip, easy to reason about.  
-- **Cons**: Requires the client to know the attachment ID beforehand (forces upload‑then‑reference flow anyway) or to send large base64 payloads (bad for performance).  
+- **Pros**: One round‑trip, easy to reason about.
+- **Cons**: Requires the client to know the attachment ID beforehand (forces upload‑then‑reference flow anyway) or to send large base64 payloads (bad for performance).
 
-### Option B – **Upload‑Then‑Reference Flow** (recommended)  
+### Option B – **Upload‑Then‑Reference Flow** (recommended)
 
-1. **Upload file** → `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, url }`.  
-2. **Send message** → `POST /api/ai-chat/conversations/:id/messages`  
+1. **Upload file** → `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, url }`.
+2. **Send message** → `POST /api/ai-chat/conversations/:id/messages`
 
    ```json
    {
@@ -97,14 +97,14 @@ To support images (and potentially other modalities) we have two clean options:
    }
    ```
 
-- **Pros**: Decouples large binary transfer from message metadata, enables retry, progress UI, and reuse of the same attachment across multiple messages.  
-- **Cons**: Slightly more complex client orchestration (but trivial with a helper hook).  
+- **Pros**: Decouples large binary transfer from message metadata, enables retry, progress UI, and reuse of the same attachment across multiple messages.
+- **Cons**: Slightly more complex client orchestration (but trivial with a helper hook).
 
-> **Recommendation** – Adopt **Option B**. Keep the existing `/messages` endpoint unchanged except for adding an optional `attachmentIds: string[]` field. The backend will: <br>• Validate each ID belongs to the conversation and the user. <br>• Fetch the file URLs/metadata and forward them to Gemini (or store them with the message for later retrieval).  
+> **Recommendation** – Adopt **Option B**. Keep the existing `/messages` endpoint unchanged except for adding an optional `attachmentIds: string[]` field. The backend will: <br>• Validate each ID belongs to the conversation and the user. <br>• Fetch the file URLs/metadata and forward them to Gemini (or store them with the message for later retrieval).
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit | Rationale |
 |-----------|--------------------|----------------|-----------|
@@ -114,34 +114,34 @@ To support images (and potentially other modalities) we have two clean options:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High (chat flow) | **120 req/min** per user | Matches typical typing pace; leaves headroom for bot responses. |
 | **Search** (`GET /api/ai-chat/conversations?search=…`) | Typing‑ahead (potentially high) | **60 req/min** per user | Combine with debounce on client (e.g., 300 ms) to stay under limit. |
 
-> **Implementation** – Use a middleware like `express-rate-limit` with a **Redis store** (already likely present for Socket.io) to share limits across instances. Apply different limits per route via route‑specific limiters.  
+> **Implementation** – Use a middleware like `express-rate-limit` with a **Redis store** (already likely present for Socket.io) to share limits across instances. Apply different limits per route via route‑specific limiters.
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Polling  
+## 6. WebSocket Integration – Push vs. Polling
 
-- **Current**: Plan mentions Socket.io exists but the AI‑chat sidebar likely polls `GET /api/ai-chat/conversations` on interval or on mount.  
-- **Pros of WebSocket push**:  
-  - Instant update of `messageCount`, `lastMessageAt`, and new conversation titles (rename) without polling overhead.  
-  - Reduces unnecessary HTTP traffic, especially important for mobile battery life.  
-  - Enables real‑time indicators (typing, read receipts) for a richer chat feel.  
-- **Cons / Complexity**:  
-  - Requires maintaining socket rooms per user/conversation.  
-  - Must handle reconnection and missed events (e.g., store a “last seen” timestamp and reconcile on reconnect).  
+- **Current**: Plan mentions Socket.io exists but the AI‑chat sidebar likely polls `GET /api/ai-chat/conversations` on interval or on mount.
+- **Pros of WebSocket push**:
+  - Instant update of `messageCount`, `lastMessageAt`, and new conversation titles (rename) without polling overhead.
+  - Reduces unnecessary HTTP traffic, especially important for mobile battery life.
+  - Enables real‑time indicators (typing, read receipts) for a richer chat feel.
+- **Cons / Complexity**:
+  - Requires maintaining socket rooms per user/conversation.
+  - Must handle reconnection and missed events (e.g., store a “last seen” timestamp and reconcile on reconnect).
 
-> **Recommendation** – **Add a lightweight WebSocket layer** for conversation‑list updates:  
+> **Recommendation** – **Add a lightweight WebSocket layer** for conversation‑list updates:
 
-1. **Event**: `conversation:updated` payload `{ conversationId, title?, messageCount?, lastMessageAt? }`.  
-2. **Room**: Each user joins a private room `user:<userId>`; server broadcasts to that room when any of their conversations change.  
-3. **Fallback**: Keep the existing polling endpoint as a safety net (e.g., refetch on socket reconnect).  
+1. **Event**: `conversation:updated` payload `{ conversationId, title?, messageCount?, lastMessageAt? }`.
+2. **Room**: Each user joins a private room `user:<userId>`; server broadcasts to that room when any of their conversations change.
+3. **Fallback**: Keep the existing polling endpoint as a safety net (e.g., refetch on socket reconnect).
 
-This approach yields **near‑real‑time UI** with minimal backend change (just a publish after message creation/rename/upload).  
+This approach yields **near‑real‑time UI** with minimal backend change (just a publish after message creation/rename/upload).
 
----  
+---
 
-## 7. Response Contract – ConversationSummary Shape  
+## 7. Response Contract – ConversationSummary Shape
 
-The sidebar expects a TypeScript type similar to:  
+The sidebar expects a TypeScript type similar to:
 
 ```ts
 type ConversationSummary = {
@@ -153,7 +153,7 @@ type ConversationSummary = {
 };
 ```
 
-**Current GET /api/ai-chat/conversations** (assumed) likely returns:  
+**Current GET /api/ai-chat/conversations** (assumed) likely returns:
 
 ```json
 [
@@ -168,15 +168,15 @@ type ConversationSummary = {
 ]
 ```
 
-- **Mapping**:  
-  - `title` → direct.  
-  - `context` → derive from `lastMessage?.content` (trim to 100 chars).  
-  - `messageCount` → direct if stored; otherwise compute via `messages.count`.  
-  - `lastMessageAt` → `lastMessage?.createdAt` or fall back to `updatedAt`.  
+- **Mapping**:
+  - `title` → direct.
+  - `context` → derive from `lastMessage?.content` (trim to 100 chars).
+  - `messageCount` → direct if stored; otherwise compute via `messages.count`.
+  - `lastMessageAt` → `lastMessage?.createdAt` or fall back to `updatedAt`.
 
-If the API **does not** include `messageCount` or `lastMessage`, the frontend would need to make additional requests per conversation – unacceptable for a sidebar.  
+If the API **does not** include `messageCount` or `lastMessage`, the frontend would need to make additional requests per conversation – unacceptable for a sidebar.
 
-> **Recommendation** – Ensure the endpoint **always** returns `messageCount` (integer) and either `lastMessage` **or** a dedicated `lastMessageAt` field. If adding a column is undesirable, create a **virtual getter** in the Sequelize model:  
+> **Recommendation** – Ensure the endpoint **always** returns `messageCount` (integer) and either `lastMessage` **or** a dedicated `lastMessageAt` field. If adding a column is undesirable, create a **virtual getter** in the Sequelize model:
 
 ```js
 Conversation.getOptions = {
@@ -187,11 +187,11 @@ Conversation.getOptions = {
 };
 ```
 
-No contract change for consumers; the shape stays the same.  
+No contract change for consumers; the shape stays the same.
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -202,11 +202,11 @@ No contract change for consumers; the shape stays the same.
 | **Suggested Approach** | - Use **Redis** with **tags** or **patterns**: cache key `user:<id>:conversations`. <br>- On any mutation (message create, conversation update/delete), **delete** that key (or set a short TTL). <br>- Optionally, implement **write‑through**: after successful mutation, update the cached list incrementally (e.g., push new conversation, bump counters). |
 | **Cache Duration** | 5 minutes is fine **if** invalidation is immediate on mutation. Without invalidation, consider lowering to **30‑60 seconds** or adopting a **stale‑while‑revalidate** pattern (serve stale, fetch fresh in background). |
 
-> **Recommendation** – Keep the 5‑minute TTL **but** add **cache‑purge hooks** on the following endpoints: <br>• `POST /api/ai-chat/conversations/:id/messages` (new message) <br>• `PATCH /api/ai-chat/conversations/:id` (rename) <br>• `POST /api/ai-chat/conversations` (create) <br>• `DELETE /api/ai-chat/conversations/:id` (remove) <br>This yields near‑real‑time freshness without sacrificing the DB‑load benefits of caching.  
+> **Recommendation** – Keep the 5‑minute TTL **but** add **cache‑purge hooks** on the following endpoints: <br>• `POST /api/ai-chat/conversations/:id/messages` (new message) <br>• `PATCH /api/ai-chat/conversations/:id` (rename) <br>• `POST /api/ai-chat/conversations` (create) <br>• `DELETE /api/ai-chat/conversations/:id` (remove) <br>This yields near‑real‑time freshness without sacrificing the DB‑load benefits of caching.
 
----  
+---
 
-## 9. Consolidated API Design Recommendations  
+## 9. Consolidated API Design Recommendations
 
 | # | Area | Action | Reason |
 |---|------|--------|--------|

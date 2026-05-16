@@ -70,24 +70,24 @@ const aiCrudSafetyLayer = {
   // 1. NEVER allow AI to issue DELETE — only soft-delete via status flag
   allowedOperations: ['CREATE', 'UPDATE'],
   forbiddenOperations: ['DELETE', 'TRUNCATE', 'DROP', 'bulkDelete', 'destroy'],
-  
+
   // 2. All AI writes must be wrapped in transactions
   requireTransaction: true,
-  
+
   // 3. All AI writes must be logged to an immutable audit table
   requireAuditLog: true,
-  
+
   // 4. Destructive-adjacent operations require explicit user confirmation
   requireConfirmation: [
     'deleteWorkout',
-    'resetProgress', 
+    'resetProgress',
     'cancelBooking',
     'removeAchievement'
   ],
-  
+
   // 5. AI cannot write to: Users, Payments, Orders, Roles tables — EVER
   forbiddenTables: ['Users', 'Orders', 'Payments', 'UserRoles', 'Sessions'],
-  
+
   // 6. Row count safety check before any bulk operation
   maxRowsAffected: 1, // AI can only modify ONE record per operation
 };
@@ -140,13 +140,13 @@ The blueprint must mandate — and the implementation must enforce:
 async function getClientDataForTrainer(trainerId, clientId) {
   // Step 1: Verify assignment BEFORE any data query
   const assignment = await TrainerClientAssignment.findOne({
-    where: { 
+    where: {
       trainerId: trainerId,      // from JWT — cannot be spoofed
       clientId: clientId,        // from request params
       status: 'active'           // must be currently active
     }
   });
-  
+
   if (!assignment) {
     // Log unauthorized access attempt
     await SecurityAuditLog.create({
@@ -158,7 +158,7 @@ async function getClientDataForTrainer(trainerId, clientId) {
     });
     throw new ForbiddenError('Trainer not assigned to this client');
   }
-  
+
   // Step 2: Only THEN query client data
   return await getClientData(clientId);
 }
@@ -249,19 +249,19 @@ More critically: if the XP update fails after the workout is logged, the user's 
 
 async function aiLogWorkout(userId, workoutData, postToFeed = false) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     // All writes in a single atomic transaction
     const session = await WorkoutSession.create(workoutData, { transaction });
-    
-    await User.increment('xp', { 
-      by: calculateXP(workoutData), 
+
+    await User.increment('xp', {
+      by: calculateXP(workoutData),
       where: { id: userId },
-      transaction 
+      transaction
     });
-    
+
     await Achievement.checkAndAward(userId, session, { transaction });
-    
+
     if (postToFeed) {
       await Post.create({
         userId,
@@ -269,22 +269,22 @@ async function aiLogWorkout(userId, workoutData, postToFeed = false) {
         type: 'workout_share'
       }, { transaction });
     }
-    
+
     // Only commits if ALL writes succeed
     await transaction.commit();
     return session;
-    
+
   } catch (error) {
     // Rolls back ALL writes if ANY fail
     await transaction.rollback();
-    
+
     // Log the failure for debugging — WITHOUT user PII in the log
-    logger.error('AI workout log failed', { 
+    logger.error('AI workout log failed', {
       userId, // OK — internal ID only
       error: error.message,
       // NEVER log: workoutData (may contain notes with PII)
     });
-    
+
     throw new Error('Workout could not be saved. Please try again.');
   }
 }
@@ -331,13 +331,13 @@ ADMIN DESTRUCTIVE OPERATION REQUIREMENTS:
 
 3. Row Count Safety Check:
    - Any bulk operation affecting more than 10 records requires secondary approval
-   - Any bulk operation affecting more than 100 records is BLOCKED and requires 
+   - Any bulk operation affecting more than 100 records is BLOCKED and requires
      direct database access (not through the UI)
 
 4. Immutable Audit Log:
    - Every admin action is written to an append-only audit log
    - Audit log cannot be deleted through the admin UI
-   - Audit log includes: adminId, action, affectedTable, affectedIds, timestamp, 
+   - Audit log includes: adminId, action, affectedTable, affectedIds, timestamp,
      before-state snapshot
 ```
 

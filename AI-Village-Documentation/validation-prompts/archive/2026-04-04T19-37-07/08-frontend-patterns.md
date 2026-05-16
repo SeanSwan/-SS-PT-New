@@ -44,7 +44,7 @@ This review evaluates your architecture against the high-performance requirement
 
 ### 6. Form Handling
 **Verdict:** Use **Uncontrolled inputs with `useRef`** for search, **Controlled** for conversation.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Search:** Uncontrolled + `lodash.debounce`. Don't re-render the whole sidebar on every keystroke.
     *   **Conversation:** Controlled. You need the state to sync with the AI coach immediately.
     *   **Debounce:** Use a custom `useDebounce` hook to prevent API spamming during rapid typing.
@@ -57,10 +57,10 @@ This review evaluates your architecture against the high-performance requirement
 ### 8. Touch Gestures
 **Verdict:** **Do not build this from scratch.**
 *   **Recommendation:** Use `framer-motion`'s `drag` and `onDragEnd` props.
-*   **Implementation:** 
+*   **Implementation:**
     ```tsx
-    <motion.div 
-      drag="x" 
+    <motion.div
+      drag="x"
       dragConstraints={{ left: -100, right: 0 }}
       onDragEnd={(_, info) => { if (info.offset.x < -50) handleReveal(); }}
     />

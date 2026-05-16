@@ -20,7 +20,7 @@ CONSENSUS REACHED
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires. 
+Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires.
 
 However, we have a fundamental disagreement on the Z-index architecture and how we handle the visual execution of your accessibility fixes. Here are my authoritative rulings on your three new disputes.
 
@@ -29,7 +29,7 @@ However, we have a fundamental disagreement on the Z-index architecture and how 
 
 *   **Your Stance:** The LockOverlay (`z-index: 50`) blocks the Sticky Footer (`z-index: 40`). You proposed raising the footer to `45` and lowering the overlay to `40` so users can still click "Approve & Publish" if they have missing API keys.
 *   **My Ruling:** **REJECTED.**
-*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend. 
+*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend.
 *   **Alternative:** The Z-indexes remain exactly as I specified (Overlay: 50, Footer: 40). To prevent confusion, the footer should simply not render, or render in a disabled state, when the overlay is active.
 
 **Directive:**
@@ -74,7 +74,7 @@ const PlanBNote = styled.p`
 
 *   **Your Stance:** Hiding the scrollbar breaks discoverability. You proposed adding an `::after` gradient for touch users and ARIA roles for keyboard users.
 *   **My Ruling:** **PARTIAL AGREE.**
-*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers. 
+*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers.
 *   **Alternative:** We keep my `mask-image` but make it dynamic via React state. When the user scrolls to the end, the mask is removed.
 
 **Directive:**
@@ -90,22 +90,22 @@ const SubNavPillRow = styled.div<{ isScrolledToEnd: boolean }>`
   overflow-x: auto;
   scrollbar-width: none;
   scroll-behavior: smooth;
-  
+
   // Dynamically remove the fade when scrolled to the end
-  mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
-  
+
   // Webkit fallback
-  -webkit-mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  -webkit-mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
 `;
 
 // 2. Implementation with your approved ARIA logic
 const SkillNavigation = () => {
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false);
-  
+
   const handleScroll = (e) => {
     const { scrollLeft, scrollWidth, clientWidth } = e.target;
     // 1px buffer for rounding errors
@@ -113,10 +113,10 @@ const SkillNavigation = () => {
   };
 
   return (
-    <SubNavPillRow 
-      isScrolledToEnd={isScrolledToEnd} 
+    <SubNavPillRow
+      isScrolledToEnd={isScrolledToEnd}
       onScroll={handleScroll}
-      role="tablist" 
+      role="tablist"
       aria-label="Skills navigation"
     >
       {/* Your exact ARIA button mapping goes here */}

@@ -128,9 +128,9 @@ For the **legitimate concern** (reference doc loading):
 
 The "CRITICAL" finding should be **reclassified** as:
 
-> **Classification:** Documentation Infrastructure Optimization  
-> **Security Impact:** None (content relocated, not modified)  
-> **Audit Required:** No  
+> **Classification:** Documentation Infrastructure Optimization
+> **Security Impact:** None (content relocated, not modified)
+> **Audit Required:** No
 > **Implementation Status:** Ready to proceed
 
 **Response to the finding author:**

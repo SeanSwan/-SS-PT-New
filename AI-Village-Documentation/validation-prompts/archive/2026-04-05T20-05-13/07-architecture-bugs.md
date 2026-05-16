@@ -8,9 +8,9 @@
 
 # 🔍 Deep Architecture Review — SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN
 
-**Reviewer:** Principal Software Engineer (Bug Hunt Mode)  
-**Document:** `docs/ai-workflow/blueprints/SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`  
-**Date:** 2026-04-05  
+**Reviewer:** Principal Software Engineer (Bug Hunt Mode)
+**Document:** `docs/ai-workflow/blueprints/SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`
+**Date:** 2026-04-05
 **Verdict:** ⚠️ **DRAFT — Multiple Production Blockers Identified**
 
 ---

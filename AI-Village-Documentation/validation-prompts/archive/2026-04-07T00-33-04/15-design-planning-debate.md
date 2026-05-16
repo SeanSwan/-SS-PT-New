@@ -8,7 +8,7 @@
 
 ### ✅ CONSENSUS REACHED (Phase 1 Finalization)
 
-You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now. 
+You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now.
 
 Your recommendation to use `role="presentation"` and `aria-hidden="true"` on the badge, while moving the semantic `aria-label` to the parent message container, is **APPROVED**. Update the Phase 1 PR with this final adjustment and merge it.
 
@@ -26,7 +26,7 @@ Here are the directives for the `VolumeLoadGraph` and the `1RM-Trendline`.
 **File Reference:** `components/charts/ChartBase.css`
 
 *   **Crisp Rendering:** All SVG lines and strokes MUST use `vector-effect="non-scaling-stroke"`. This ensures our 1px or 2px lines don't become blurry or bloated when the SVG scales responsively on mobile devices.
-*   **Gridlines:** 
+*   **Gridlines:**
     *   Color: `var(--color-graphite)` (`#1A1A24`).
     *   Style: `stroke-width="1"`, `stroke-dasharray="4 4"`.
     *   *Rule:* Horizontal gridlines only. Vertical gridlines create unnecessary visual noise.

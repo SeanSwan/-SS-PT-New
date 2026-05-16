@@ -8,9 +8,9 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me, Claude. Your UX audit is thorough, but an audit only points out the rot. I am here to architect the *cure*. 
+Listen to me, Claude. Your UX audit is thorough, but an audit only points out the rot. I am here to architect the *cure*.
 
-As the Creative Director of SwanStudios, I am officially declaring a **zero-tolerance policy for desktop-biased, inaccessible, and fragmented UI**. We are charging premium enterprise rates; our platform must feel like a high-end, frozen-enchanted vault. 
+As the Creative Director of SwanStudios, I am officially declaring a **zero-tolerance policy for desktop-biased, inaccessible, and fragmented UI**. We are charging premium enterprise rates; our platform must feel like a high-end, frozen-enchanted vault.
 
 I have reviewed the findings. I am throwing out the current fragmented implementations. Below is my prescriptive, non-negotiable design vision for Round 1 of this refactor. We are building the **Crystalline Swan** experience from scratch.
 
@@ -23,14 +23,14 @@ Here are your exact implementation blueprints.
 **File & Location:** `01-ux-research.md` - Section 2 (User Journey Gaps) & Section 3 (Mobile-First Critique)
 **Design Problem:** The exercise list takes over the entire screen on mobile. Double-clicking to add exercises is a desktop-era relic. The UI is clipped, sluggish, and completely breaks the trainer's flow on the gym floor.
 **Design Solution:** The **"Crystalline Drawer"** Bottom Sheet.
-We are moving the Rolodex to a highly performant, virtualized bottom sheet that overlays the builder, leaving the top 20% of the screen visible for context. 
+We are moving the Rolodex to a highly performant, virtualized bottom sheet that overlays the builder, leaving the top 20% of the screen visible for context.
 *   **Background:** `Carbon #141419` with a 1px solid top border of `Royal Depth #003080`.
 *   **Handlebar (Drag Indicator):** `Swan Lavender #4070C0`, 40px wide, 4px tall, `border-radius: 4px`.
 *   **Typography:** `Sora` for exercise names (16px, `Frost White #E0ECF4`, `font-weight: 600`).
 *   **Interaction:** Single-tap to add. When tapped, the row flashes `Midnight Sapphire #002060` and a micro-interaction checkmark (`Ice Wing #60C0F0`) appears.
 *   **Touch Targets:** Minimum `48px` height for every exercise row. No exceptions.
 **Implementation Notes:**
-1.  **Engineer:** Use `@tanstack/react-virtual` for the list. Do not render 840+ DOM nodes. 
+1.  **Engineer:** Use `@tanstack/react-virtual` for the list. Do not render 840+ DOM nodes.
 2.  **Styled-Components:** Create a `<BottomSheetWrapper>` with `transform: translateY(100%)` and animate it in using `framer-motion` (spring physics: `stiffness: 300, damping: 30`).
 3.  **Z-Index:** Set the drawer to `z-index: 400` and the backdrop overlay to `z-index: 399` (`background: rgba(10, 10, 15, 0.8)` - Obsidian Black with opacity).
 
@@ -59,13 +59,13 @@ I am banning all hardcoded hex codes in the frontend. If a color isn't in the th
 **Design Solution:** A single, polymorphic **Omni-Glass AI Terminal** component.
 *   **Visual Style:** Floating panel or docked sidebar. Background `Graphite #1A1A24` with `backdrop-filter: blur(12px)`.
 *   **AI Active State (Listening/Thinking):** A 2px animated border using the **Cosmic Nebula gradient** (`linear-gradient(135deg, #8B5CF6, #60C0F0)`).
-*   **Typography:** 
+*   **Typography:**
     *   AI Persona Name: `Cormorant Garamond Italic` (20px, `Frost White #E0ECF4`) — adds that touch of premium drama.
     *   Chat Bubbles: `Sora` (14px, line-height 1.6).
 *   **User Bubble:** `Midnight Sapphire #002060` background.
 *   **AI Bubble:** `Carbon #141419` background with a subtle 1px left-border of `Ice Wing #60C0F0`.
 **Implementation Notes:**
-1.  **Engineer:** Build `<AITerminal config={...} />` as dictated by the architecture report. 
+1.  **Engineer:** Build `<AITerminal config={...} />` as dictated by the architecture report.
 2.  **HTML Rendering:** Use `dompurify` and `html-react-parser` to safely render bolding, lists, and italics. NEVER output raw `<strong>` tags to the user.
 3.  **UX Flow:** The terminal MUST auto-close or minimize when a user clicks a generated deep-link or destination. No "extra tap to close."
 
@@ -76,10 +76,10 @@ I am banning all hardcoded hex codes in the frontend. If a color isn't in the th
 **Design Solution:** The **"Glacial Segmented Control"** & Dropdown Hybrid.
 We are killing horizontal scrolling tabs on mobile viewports (< 768px).
 *   **For 2-3 Options:** Use a Segmented Control. Background `Obsidian Black #0A0A0F`, Active Pill `Royal Depth #003080` with a 1px border of `Swan Lavender #4070C0`.
-*   **For 4+ Options (Content Studio):** Convert to a sleek, native-feeling Select Dropdown or a Bottom Sheet menu. 
+*   **For 4+ Options (Content Studio):** Convert to a sleek, native-feeling Select Dropdown or a Bottom Sheet menu.
 *   **Trigger Button:** Displays current active tab. `Sora` 15px. Background `Carbon #141419`. Chevron icon on the right (`Ice Wing #60C0F0`).
 **Implementation Notes:**
-1.  **Engineer:** Use CSS Media Queries within your styled-components. 
+1.  **Engineer:** Use CSS Media Queries within your styled-components.
     ```css
     @media (max-width: 768px) {
       /* Hide horizontal flex row, display Dropdown Trigger */
@@ -105,7 +105,7 @@ Dashboards will use a strict, responsive CSS Grid layout. Widgets are distinct c
 
 ### Your Orders
 
-Claude, update your architectural models and component blueprints to reflect these exact design tokens, CSS rules, and UX patterns. Do not deviate from the Crystalline Swan palette. Do not give me generic "blue" or "purple" — use the exact hex codes and names I have provided. 
+Claude, update your architectural models and component blueprints to reflect these exact design tokens, CSS rules, and UX patterns. Do not deviate from the Crystalline Swan palette. Do not give me generic "blue" or "purple" — use the exact hex codes and names I have provided.
 
 Confirm you understand these directives, and prepare the component tree structure for the **Omni-Glass AI Terminal** and the **Crystalline Drawer** for my review.
 
@@ -249,7 +249,7 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
 ```css
 /* Cosmic Nebula gradient — needs reduced-motion fallback */
 @keyframes cosmicPulse {
-  0%, 100% { 
+  0%, 100% {
     border-image: linear-gradient(135deg, #8B5CF6, #60C0F0) 1;
   }
   50% {
@@ -301,7 +301,7 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
     overflow-x: visible;
     flex-direction: column; /* Stack on narrow mobile */
   }
-  
+
   .tab-bar--tab-dropdown-trigger {
     display: flex; /* Show dropdown trigger */
   }
@@ -323,8 +323,8 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
 </div>
 
 {isOpen && (
-  <ul 
-    role="listbox" 
+  <ul
+    role="listbox"
     aria-label="Content categories"
     className="tab-dropdown-menu"
   >
@@ -480,4 +480,3 @@ I am aligned with **~75%** of the Crystalline Swan directive. The remaining **25
 Once these are addressed, I will produce **implementation-ready component blueprints** with exact props, state interfaces, and accessibility annotations.
 
 ---
-

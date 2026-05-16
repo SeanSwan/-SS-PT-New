@@ -68,8 +68,8 @@ Trainer uses AI chat daily for 6 months:
 -- IMMEDIATE: Add a size guard at the application layer
 -- In your message service, before appending:
 
-SELECT pg_column_size(messages) as msg_size 
-FROM ai_conversations 
+SELECT pg_column_size(messages) as msg_size
+FROM ai_conversations
 WHERE id = $1;
 
 -- Reject or archive if > 5MB (configurable threshold)
@@ -91,13 +91,13 @@ CREATE TABLE ai_messages (
   metadata        JSONB DEFAULT '{}'::jsonb  -- small metadata only
 );
 
-CREATE INDEX idx_ai_messages_conversation_created 
+CREATE INDEX idx_ai_messages_conversation_created
   ON ai_messages(conversation_id, created_at DESC);
 
 -- Pagination becomes trivial and performant:
-SELECT * FROM ai_messages 
-WHERE conversation_id = $1 
-ORDER BY created_at DESC 
+SELECT * FROM ai_messages
+WHERE conversation_id = $1
+ORDER BY created_at DESC
 LIMIT 50 OFFSET $2;
 ```
 
@@ -110,26 +110,26 @@ const MAX_MESSAGES_PER_CONVERSATION = 500;
 
 async function appendMessage(conversationId: string, message: Message) {
   const { rows } = await db.query(
-    `SELECT 
+    `SELECT
        pg_column_size(messages) as size_bytes,
        jsonb_array_length(messages) as message_count
      FROM ai_conversations WHERE id = $1`,
     [conversationId]
   );
-  
+
   if (rows[0].size_bytes > MAX_CONVERSATION_SIZE_BYTES) {
     // Auto-archive: create new conversation, link to parent
     throw new ConversationSizeLimitError(
       'Conversation archived. Starting fresh context window.'
     );
   }
-  
+
   if (rows[0].message_count >= MAX_MESSAGES_PER_CONVERSATION) {
     throw new ConversationLengthLimitError(
       'Maximum message count reached.'
     );
   }
-  
+
   // Proceed with append
 }
 ```
@@ -150,8 +150,8 @@ The plan states it uses "existing soft-delete (status='deleted')" but provides *
 
 ```sql
 -- UNSAFE — returns deleted conversations
-SELECT id, title, created_at, updated_at 
-FROM ai_conversations 
+SELECT id, title, created_at, updated_at
+FROM ai_conversations
 WHERE user_id = $1
 ORDER BY updated_at DESC;
 ```
@@ -160,9 +160,9 @@ ORDER BY updated_at DESC;
 
 ```sql
 -- SAFE — explicit exclusion required
-SELECT id, title, created_at, updated_at 
-FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, created_at, updated_at
+FROM ai_conversations
+WHERE user_id = $1
   AND status != 'deleted'   -- explicit, not IS NULL check
   AND deleted_at IS NULL    -- belt-and-suspenders if column exists
 ORDER BY updated_at DESC
@@ -185,7 +185,7 @@ LIMIT 50;  -- pagination required
 GET /api/ai-chat/conversations
 // Must have: WHERE status != 'deleted' AND user_id = req.user.id
 
-// ✅ 2. Single conversation fetch filters status  
+// ✅ 2. Single conversation fetch filters status
 GET /api/ai-chat/conversations/:id
 // Must have: WHERE id = $1 AND status != 'deleted' AND user_id = req.user.id
 
@@ -216,7 +216,7 @@ WHERE status != 'deleted'
 
 ```sql
 -- Add a partial index for performance on the safe query
-CREATE INDEX idx_ai_conversations_active_user 
+CREATE INDEX idx_ai_conversations_active_user
 ON ai_conversations(user_id, updated_at DESC)
 WHERE status != 'deleted';
 ```
@@ -231,12 +231,12 @@ async function requireConversationOwnership(req, res, next) {
       status: { [Op.ne]: 'deleted' }  // soft-delete check
     }
   });
-  
+
   if (!conversation) {
     // Return 404, not 403 — don't confirm the conversation exists
     return res.status(404).json({ error: 'Conversation not found' });
   }
-  
+
   req.conversation = conversation;
   next();
 }
@@ -288,19 +288,19 @@ async function softDeleteConversation(conversationId: string, userId: string) {
   const conversation = await AiConversation.findOne({
     where: { id: conversationId, userId, status: { [Op.ne]: 'deleted' } }
   });
-  
+
   if (!conversation) throw new NotFoundError();
-  
+
   // Extract all R2 keys from messages BEFORE soft-deleting
   const r2Keys = extractR2KeysFromMessages(conversation.messages);
-  
+
   // Soft delete in DB first
   await conversation.update({
     status: 'deleted',
     deletedAt: new Date(),
     r2KeysToClean: r2Keys  // store for async cleanup verification
   });
-  
+
   // Attempt R2 cleanup (non-blocking, logged)
   cleanupR2Files(r2Keys, conversationId).catch(err => {
     logger.error('R2 cleanup failed for conversation', { conversationId, err });
@@ -330,17 +330,17 @@ async function processR2Cleanup() {
     },
     limit: 100
   });
-  
+
   for (const conv of pendingCleanup) {
     try {
       const keys = await getR2KeysForConversation(conv.id);
       await Promise.all(keys.map(key => r2Client.deleteObject({ Key: key })));
-      
+
       await conv.update({
         r2CleanupStatus: 'completed',
         r2CleanupAt: new Date()
       });
-      
+
       logger.info('R2 cleanup completed', { conversationId: conv.id, keyCount: keys.length });
     } catch (err) {
       await conv.update({ r2CleanupStatus: 'failed' });
@@ -367,7 +367,7 @@ CREATE TABLE ai_conversation_files (
     CHECK (deletion_status IN ('pending', 'completed', 'failed'))
 );
 
-CREATE INDEX idx_conv_files_cleanup 
+CREATE INDEX idx_conv_files_cleanup
 ON ai_conversation_files(deletion_status, uploaded_at)
 WHERE deleted_at IS NULL;
 ```
@@ -403,7 +403,7 @@ The plan references voice-first AI coach as a key differentiator and mentions au
 ```
 SwanStudios collects:
 - Pain entries (explicit health data)
-- Injury information (explicit health data)  
+- Injury information (explicit health data)
 - Voice recordings discussing pain/injuries = PHI if combined with identity
 
 HIPAA applies if you are a "covered entity" or "business associate"

@@ -8,11 +8,11 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me carefully, Claude. You’ve done a decent job outlining the *logic* and *architecture* in this master plan. The security protocols are tight, and the feature set is robust. 
+Listen to me carefully, Claude. You’ve done a decent job outlining the *logic* and *architecture* in this master plan. The security protocols are tight, and the feature set is robust.
 
-But as the Creative Director, I am looking at the *soul* of this interface. A plan without a rigid visual execution strategy is just a wireframe waiting to become a generic, uninspired SaaS dashboard. We are charging premium prices for SwanStudios. We do not build "admin panels." We build **The Crystalline Vault** and **The Enchanted Arena**. 
+But as the Creative Director, I am looking at the *soul* of this interface. A plan without a rigid visual execution strategy is just a wireframe waiting to become a generic, uninspired SaaS dashboard. We are charging premium prices for SwanStudios. We do not build "admin panels." We build **The Crystalline Vault** and **The Enchanted Arena**.
 
-If Sean is the only one looking at this Marketing Dashboard, it still needs to feel like he is stepping into a billion-dollar command center. 
+If Sean is the only one looking at this Marketing Dashboard, it still needs to feel like he is stepping into a billion-dollar command center.
 
 Here is my definitive design authority on how these planned features will be executed visually. **Do not deviate from these tokens.**
 
@@ -22,7 +22,7 @@ Here is my definitive design authority on how these planned features will be exe
 - **Severity:** CRITICAL
 - **File & Location:** `frontend/src/components/DashBoard/Pages/admin-marketing/BlogWriterPanel.tsx` & `SocialPostGenerator.tsx`
 - **Design Problem:** The plan states this button must be "prominent and unmistakable." Engineers will default to a giant, ugly green button. Absolutely not. This is the moment of creation. It needs to feel powerful, premium, and magical.
-- **Design Solution:** We use the **Cosmic Nebula** gradient with our strict dual-glow rules. 
+- **Design Solution:** We use the **Cosmic Nebula** gradient with our strict dual-glow rules.
 - **Implementation Notes:**
   1. **Background:** `background: linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%);` (Wing Purple to Ice Wing).
   2. **Typography:** `font-family: 'Sora', sans-serif; font-weight: 700; color: #E0ECF4;` (Frost White).
@@ -79,7 +79,7 @@ Here is my definitive design authority on how these planned features will be exe
 ---
 
 ### Final Directive to Engineering:
-I am running a script against your PRs. If I see `#0a0a1a`, `#00FFFF`, or `#7851A9` (the retired Galaxy-Swan tokens) anywhere in the CSS for these new marketing or security panels, **the PR will be rejected immediately.** 
+I am running a script against your PRs. If I see `#0a0a1a`, `#00FFFF`, or `#7851A9` (the retired Galaxy-Swan tokens) anywhere in the CSS for these new marketing or security panels, **the PR will be rejected immediately.**
 
 We are building the *Crystalline Swan*. Make it cold, make it deep, make it luxurious. Execute.
 
@@ -318,12 +318,12 @@ background: 'rgba(139, 92, 246, 0.08)';
 Currently relies solely on color (Wing Purple border). Recommend adding iconography:
 ```tsx
 // SecurityPanel.tsx, inside Critical CVE card
-<AlertTriangleIcon 
-  style={{ 
+<AlertTriangleIcon
+  style={{
     color: '#8B5CF6',
-    width: 20, 
-    height: 20 
-  }} 
+    width: 20,
+    height: 20
+  }}
 />
 ```
 
@@ -345,4 +345,3 @@ Currently relies solely on color (Wing Purple border). Recommend adding iconogra
 **Proceed to Round 2 with these resolutions incorporated.**
 
 ---
-

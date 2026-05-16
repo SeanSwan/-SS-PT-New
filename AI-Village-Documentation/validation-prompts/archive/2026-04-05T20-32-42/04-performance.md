@@ -28,7 +28,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 ### 3. Database Query Efficiency & Bloat
 **Finding:** Unbounded growth of the `SecurityAlerts` and `AuditLog` tables.
 *   **Detail:** Daily scans across 6 APIs will generate thousands of rows. Without a retention policy, simple queries for the "Admin Dashboard" will slow down as the table hits 100k+ rows.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Implement a **30-day rolling delete** for resolved security alerts.
     *   Add composite indexes on `(severity, resolved)` for the Security Panel.
     *   Add indexes on `(platform, scheduled_at)` for the Content Calendar.
@@ -37,7 +37,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 ### 4. Bundle Size & Lazy Loading
 **Finding:** Heavy library overhead for new "Studio" features.
 *   **Detail:** Adding SEO Audits, Charting (Analytics), and Rich Text Editors (Blog Writer) will significantly increase the `main.js` bundle.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Dynamic Imports:** Use `React.lazy()` for every new tab in the Marketing Dashboard (e.g., `const BlogWriter = lazy(() => import('./BlogWriter'))`).
     *   **Library Choice:** Use `date-fns` instead of `moment.js` for the Content Calendar to keep the footprint small.
 *   **Rate:** **MEDIUM**
@@ -50,7 +50,7 @@ The plan is architecturally ambitious and branding-aligned. However, the introdu
 
 ### 6. Security & Data Integrity
 **Finding:** Encryption overhead for Social Tokens.
-*   **Detail:** The plan correctly identifies the need to encrypt OAuth tokens. 
+*   **Detail:** The plan correctly identifies the need to encrypt OAuth tokens.
 *   **Performance Note:** Ensure the `PlatformCredential` model uses a getter/setter in Sequelize for encryption so the logic isn't duplicated across the codebase, but avoid re-encrypting on every "read" if the data hasn't changed (use a caching layer if distribution volume is high).
 *   **Rate:** **LOW**
 

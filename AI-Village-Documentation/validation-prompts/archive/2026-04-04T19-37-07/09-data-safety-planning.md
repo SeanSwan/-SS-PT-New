@@ -175,7 +175,7 @@ ALTER TABLE exercises
   ADD COLUMN IF NOT EXISTS unilateral_reviewed_by INTEGER REFERENCES users(id);
 
 COMMENT ON COLUMN exercises.is_unilateral IS
-  'TRUE if exercise works one limb at a time (requires 2x time for bilateral equivalence). 
+  'TRUE if exercise works one limb at a time (requires 2x time for bilateral equivalence).
    NULL-safe: unreviewed exercises default to FALSE (bilateral assumption).';
 
 -- Create a review queue for Sean to audit
@@ -270,7 +270,7 @@ If a trainer double-clicks "Generate Workout" or has two tabs open, two simultan
 // bootcampGenerator.mjs — idempotency key pattern
 export async function generateBootcampWorkout(params) {
   const { formatId, sessionId, idempotencyKey } = params;
-  
+
   // Check if this exact request was already processed
   const existing = await WorkoutGeneration.findOne({
     where: { idempotency_key: idempotencyKey },

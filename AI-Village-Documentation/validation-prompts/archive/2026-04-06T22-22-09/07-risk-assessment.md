@@ -37,7 +37,7 @@ The Comprehensive Site Refactor Brief is a well-structured planning document wit
 WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
 ---------------------------|-----------------------------------
 1 week                     | Phase 5 pushed; no blocking of production
-2 weeks                    | Schedule slip affects sprint planning; 
+2 weeks                    | Schedule slip affects sprint planning;
                            | voice → markdown → UI feedback loop missed
 3+ weeks                   | Feature freeze triggered; entire roadmap slips
                            | Voice is a KEY DIFFERENTIATOR - delays here
@@ -181,7 +181,7 @@ WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
 
 1. **"22 new files" assumption:** This count is arbitrary without seeing current file structure. Likely undercounting by 30-50%.
 
-2. **"300 lines max" assumption:** 
+2. **"300 lines max" assumption:**
    - Voice component will realistically be 500-800 lines due to error handling, browser detection, fallback logic
    - AI terminal normalization will be 400-600 lines per terminal type
    - Markdown renderer with all edge cases could hit 600+ lines
@@ -258,7 +258,7 @@ WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
      /      \
     /--------\  Integration (Playwright + MSW)
    /          \ - API mocking for offline testing
-  /------------\ 
+  /------------\
  /              \ Unit (Jest + RTL)
 /----------------\ - Hooks, utilities, components
 ```

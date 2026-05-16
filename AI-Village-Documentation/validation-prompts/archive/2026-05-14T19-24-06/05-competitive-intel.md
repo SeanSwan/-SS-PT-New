@@ -1,8 +1,8 @@
 # Competitive Intelligence — Validation Report
 
 > **Status:** FAIL | **Model:** gemini-3-flash-preview-20251217 | **Duration:** 0.2s
-> **Files:** docs/ai-workflow/blueprints/CLIENT-MANAGEMENT-REDESIGN-PLAN.md
-> **Generated:** 4/3/2026, 1:48:45 AM
+> **Files:** docs/ai-workflow/AI-HANDOFF/COACH-COMMAND-PLAUD-UNIFIED-WORKFLOW-AI-VILLAGE-PROMPT-2026-05-14.md
+> **Generated:** 5/14/2026, 12:24:06 PM
 
 ---
 
@@ -17,4 +17,4 @@ Error: Google GenAI 404: {
 
 ---
 
-*Part of SwanStudios 14-Brain Recursive Consensus System*
+*Part of SwanStudios 15-Brain Recursive Consensus System*

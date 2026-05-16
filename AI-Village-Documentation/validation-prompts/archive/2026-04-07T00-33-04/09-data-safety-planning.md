@@ -88,7 +88,7 @@ CREATE TABLE ai_messages (
 -- attachment_refs stores R2 keys, NOT base64 data:
 -- [{"key": "ai-chat/user-123/conv-456/file-789.pdf", "mime": "application/pdf", "size_bytes": 204800}]
 
-CREATE INDEX idx_ai_messages_conversation_id 
+CREATE INDEX idx_ai_messages_conversation_id
   ON ai_messages(conversation_id, created_at DESC);
 
 -- Hard limit enforcement at application layer:
@@ -104,8 +104,8 @@ CREATE OR REPLACE FUNCTION check_conversation_size()
 RETURNS TRIGGER AS $$
 BEGIN
   IF octet_length(NEW.messages::text) > 1048576 THEN -- 1MB warning
-    RAISE WARNING 'Conversation % exceeds 1MB: %KB', 
-      NEW.id, 
+    RAISE WARNING 'Conversation % exceeds 1MB: %KB',
+      NEW.id,
       octet_length(NEW.messages::text) / 1024;
   END IF;
   IF octet_length(NEW.messages::text) > 10485760 THEN -- 10MB block
@@ -138,7 +138,7 @@ Scenario A: Trainer deletes a client's workout plan
   → Client's dashboard still shows deleted plan if query lacks status filter
   → Client sees data they believe was removed
 
-Scenario B: User deletes their account (status='deleted')  
+Scenario B: User deletes their account (status='deleted')
   → Another user with admin access queries all clients
   → Deleted user's PII appears in admin list
   → GDPR/CCPA violation
@@ -194,7 +194,7 @@ const Session = sequelize.define('Session', {
 ```sql
 -- Find all queries missing soft-delete filter
 -- (Manual code review required — this finds the data risk)
-SELECT 
+SELECT
   schemaname,
   tablename,
   n_live_tup as live_rows,
@@ -205,7 +205,7 @@ ORDER BY n_live_tup DESC;
 
 -- Check for orphaned soft-deleted records that are still being served:
 SELECT COUNT(*) as deleted_sessions_count
-FROM sessions 
+FROM sessions
 WHERE status = 'deleted' OR deleted_at IS NOT NULL;
 -- If this returns > 0, verify no active queries are returning these rows
 ```
@@ -239,7 +239,7 @@ async function softDeleteConversation(conversationId, userId) {
       { status: 'deleted', deletedAt: new Date() },
       { where: { id: conversationId, userId }, transaction }
     );
-    
+
     // Queue R2 cleanup — do NOT delete R2 objects here
     // R2 deletion is async, non-transactional, can fail
     await R2CleanupQueue.create({
@@ -247,7 +247,7 @@ async function softDeleteConversation(conversationId, userId) {
       scheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day grace period
       status: 'pending'
     }, { transaction });
-    
+
     await transaction.commit();
   } catch (err) {
     await transaction.rollback();
@@ -264,17 +264,17 @@ async function processR2CleanupQueue() {
     },
     limit: 100
   });
-  
+
   for (const job of jobs) {
     try {
       const attachments = await getAttachmentKeysForConversation(job.conversationId);
       await Promise.all(attachments.map(key => r2Client.deleteObject(key)));
       await job.update({ status: 'completed', completedAt: new Date() });
     } catch (err) {
-      await job.update({ 
-        status: 'failed', 
+      await job.update({
+        status: 'failed',
         errorMessage: err.message,
-        retryCount: job.retryCount + 1 
+        retryCount: job.retryCount + 1
       });
       // Alert if retryCount > 3
     }
@@ -352,11 +352,11 @@ const VoiceConsentSchema = {
 async function processVoiceMessage(audioBuffer, userId) {
   // Validate: never log audio buffer to application logs
   const transcript = await geminiClient.transcribeAudio(audioBuffer);
-  
+
   // audioBuffer goes out of scope here — GC handles it
   // DO NOT: store audioBuffer to disk, S3, R2, or database
   // DO NOT: log audioBuffer size or hash (fingerprinting risk)
-  
+
   return {
     transcript,
     processingMethod: 'gemini_transcribe_discard',

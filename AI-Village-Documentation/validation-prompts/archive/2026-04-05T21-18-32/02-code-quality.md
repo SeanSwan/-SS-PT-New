@@ -92,11 +92,11 @@ True E2EE means:
 - Keys derived from user passphrase via PBKDF2/Argon2 on client
 - Server stores ONLY encrypted ciphertext — never sees keys
 - Recovery: user-generated BIP39 mnemonic backup phrase (12-24 words)
-  - User acknowledges: "If you lose your passphrase and backup phrase, 
+  - User acknowledges: "If you lose your passphrase and backup phrase,
     your data is permanently unrecoverable. SwanStudios cannot help."
 - NO server-assisted recovery (this would break the E2EE guarantee)
 - Sean sees "[Client-Encrypted Message — Cannot Be Read By SwanStudios]"
-- Legal: SwanStudios can provide ciphertext if legally compelled; 
+- Legal: SwanStudios can provide ciphertext if legally compelled;
   decryption is impossible without user key
 
 ### Implementation Note for Developers
@@ -142,7 +142,7 @@ If `theme.colors.iceWing` is ever updated (e.g., accessibility contrast adjustme
 ```markdown
 ## DESIGN TOKENS FOR ANIMATIONS
 
-⚠️ IMPLEMENTATION RULE: These values MUST be consumed from the 
+⚠️ IMPLEMENTATION RULE: These values MUST be consumed from the
 styled-components theme object, NOT hardcoded as CSS custom properties.
 CSS custom properties listed here are for REFERENCE ONLY.
 
@@ -212,8 +212,8 @@ backdrop-filter: blur(16px) on 8+ simultaneous cards
 const prefersReducedMotion = useReducedMotion(); // framer-motion hook
 const isMobile = useMediaQuery('(max-width: 768px)');
 
-const animationConfig = prefersReducedMotion || isMobile 
-  ? STATIC_FALLBACK 
+const animationConfig = prefersReducedMotion || isMobile
+  ? STATIC_FALLBACK
   : FULL_ANIMATION;
 ```
 
@@ -242,7 +242,7 @@ The component table lists 10 components with purpose and usage but **zero prop i
 // Developer A's ScrollReveal
 <ScrollReveal direction="up" delay={0.2}>
 
-// Developer B's ScrollReveal  
+// Developer B's ScrollReveal
 <ScrollReveal animation="fadeUp" staggerIndex={2}>
 
 // Developer C's ScrollReveal

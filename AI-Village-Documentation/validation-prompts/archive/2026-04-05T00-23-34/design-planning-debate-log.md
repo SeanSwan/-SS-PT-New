@@ -8,27 +8,27 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me carefully, engineering team. I have reviewed the UX research and the comprehensive app audit. While you are busy fixing rate limits and dead endpoints, I am looking at the *soul* of this platform. SwanStudios is not just another clunky fitness tracker; it is a premium, elite coaching experience. The **Crystalline Swan** aesthetic is our differentiator. It is cold, sharp, ethereal, and undeniably high-end. 
+Listen to me carefully, engineering team. I have reviewed the UX research and the comprehensive app audit. While you are busy fixing rate limits and dead endpoints, I am looking at the *soul* of this platform. SwanStudios is not just another clunky fitness tracker; it is a premium, elite coaching experience. The **Crystalline Swan** aesthetic is our differentiator. It is cold, sharp, ethereal, and undeniably high-end.
 
-I have seen the remnants of the old "Galaxy-Swan" theme in the codebase. **Purge it.** If I see `#0a0a1a` or `#00FFFF` in a pull request, I will reject it immediately. 
+I have seen the remnants of the old "Galaxy-Swan" theme in the codebase. **Purge it.** If I see `#0a0a1a` or `#00FFFF` in a pull request, I will reject it immediately.
 
-Here is my exact, uncompromising visual specification for the Coach Assistant upgrade. You will build this in React using `styled-components`. Do not deviate by a single pixel or millisecond. 
+Here is my exact, uncompromising visual specification for the Coach Assistant upgrade. You will build this in React using `styled-components`. Do not deviate by a single pixel or millisecond.
 
 ### 0. The Crystalline Swan CSS Custom Properties (Foundation)
-Inject these into your global theme provider. 
+Inject these into your global theme provider.
 ```css
 :root {
   /* Deep Darks */
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Core Blues */
   --swan-midnight: #002060;
   --swan-royal: #003080;
   --swan-arctic: #50A0F0;
   --swan-ice: #60C0F0;
-  
+
   /* Accents */
   --swan-wing-purple: #8B5CF6;
   --swan-gilded-fern: #C6A84B;
@@ -57,14 +57,14 @@ This is the user's command center. It must feel grounded but highly responsive.
 AI outputs must be impeccably formatted. No generic browser defaults.
 
 *   **Code Block Background:** `--swan-obsidian` (`#0A0A0F`) with a `1px` solid `--swan-graphite` (`#1A1A24`) border. `border-radius: 8px`. Padding `16px`.
-*   **Syntax Highlighting Colors:** 
+*   **Syntax Highlighting Colors:**
     *   Keywords: `--swan-wing-purple` (`#8B5CF6`)
     *   Strings: `--swan-arctic` (`#50A0F0`)
     *   Comments: `--swan-gilded-fern` (`#C6A84B`) at `70%` opacity.
     *   Variables/Plain Text: `--swan-frost` (`#E0ECF4`)
 *   **Table Style:** Header background is `--swan-royal` (`#003080`) at `30%` opacity. All borders `1px` solid `--swan-graphite`. Cell padding `12px 16px`. Text is `--swan-frost`.
 *   **Blockquote Border:** Left border `4px` solid `--swan-ice` (`#60C0F0`). Background is `--swan-carbon` (`#141419`). Padding `16px 20px`. Text is italicized `--swan-frost` at `80%` opacity.
-*   **Heading Sizes:** 
+*   **Heading Sizes:**
     *   H1: `24px`, `--swan-arctic`, `font-weight: 600`, `letter-spacing: -0.02em`.
     *   H2: `20px`, `--swan-frost`, `font-weight: 600`.
     *   H3: `16px`, `--swan-wing-purple`, `font-weight: 500`, uppercase, `letter-spacing: 0.05em`.
@@ -73,7 +73,7 @@ AI outputs must be impeccably formatted. No generic browser defaults.
 When the AI is processing, it should look like a living, breathing entity, not a loading spinner from 2010.
 
 *   **Bubble Shape:** Asymmetric pill. `border-radius: 16px 16px 16px 4px`. Padding `12px 20px`. Background is `--swan-carbon` (`#141419`).
-*   **Shimmer Animation Spec:** A linear gradient sweep across the text/dots. 
+*   **Shimmer Animation Spec:** A linear gradient sweep across the text/dots.
     `background: linear-gradient(90deg, transparent, rgba(96, 192, 240, 0.15), transparent);`
     `background-size: 200% 100%;`
 *   **Timing:** `1.5s` infinite loop.
@@ -83,12 +83,12 @@ When the AI is processing, it should look like a living, breathing entity, not a
 This is where we utilize the **MANDATORY Dual-Button Glow**. The voice orb is the centerpiece of the Coach Assistant.
 
 *   **Orb Size:** `72px` diameter. `border-radius: 50%`.
-*   **Amplitude Ring Specs:** 3 concentric rings reacting to audio input. 
+*   **Amplitude Ring Specs:** 3 concentric rings reacting to audio input.
     *   Base ring: `80px`
     *   Mid ring: `96px`
     *   Outer ring: `120px`
     *   All rings are `1px` solid, scaling dynamically.
-*   **Color Transitions (The Dual Glow):** 
+*   **Color Transitions (The Dual Glow):**
     *   *Idle/Ready:* Orb is `--swan-midnight` (`#002060`). Hovering creates a `--swan-wing-purple` (`#8B5CF6`) glow (`box-shadow: 0 0 20px rgba(139, 92, 246, 0.6)`).
     *   *Recording/Active:* Orb shifts to `--swan-wing-purple`. The glow *must* transition to `--swan-arctic` (`#50A0F0`) (`box-shadow: 0 0 30px rgba(80, 160, 240, 0.8)`).
 *   **Duration Label Style:** Placed exactly `24px` below the orb. Font size `14px`, monospace (e.g., Roboto Mono), color `--swan-frost` (`#E0ECF4`), `font-weight: 500`.
@@ -98,7 +98,7 @@ We need to clearly distinguish between system messages, the AI Coach, and the Hu
 
 *   **Size:** Height `20px`. Padding `2px 8px`.
 *   **Font:** `10px`, `font-weight: 700`, uppercase, `letter-spacing: 0.1em`.
-*   **Color:** 
+*   **Color:**
     *   Text is ALWAYS `--swan-obsidian` (`#0A0A0F`) for maximum contrast.
     *   AI Coach Background: `--swan-ice` (`#60C0F0`).
     *   Human Trainer Background: `--swan-gilded-fern` (`#C6A84B`).
@@ -109,7 +109,7 @@ When users upload form-check videos or progress photos, the UI must remain unclu
 
 *   **Thumbnail Size:** `64px` width by `64px` height. `object-fit: cover`.
 *   **Border Radius:** `8px`. Border is `1px` solid `--swan-graphite` (`#1A1A24`).
-*   **Remove Button Placement:** Top-right corner, overlapping the thumbnail. 
+*   **Remove Button Placement:** Top-right corner, overlapping the thumbnail.
     *   Offset: `top: -6px; right: -6px;`
     *   Size: `20px` diameter circle.
     *   Background: `--swan-obsidian` (`#0A0A0F`).
@@ -120,7 +120,7 @@ When users upload form-check videos or progress photos, the UI must remain unclu
 ---
 
 ### Creative Director's Final Note to Engineering:
-I have read the bug report. Fix the critical rate-limiting and password generation bugs immediately—security is non-negotiable. But when you build this UI, you build it to my exact specifications. No "close enough" hex codes. No sloppy default easings. 
+I have read the bug report. Fix the critical rate-limiting and password generation bugs immediately—security is non-negotiable. But when you build this UI, you build it to my exact specifications. No "close enough" hex codes. No sloppy default easings.
 
 Implement these styled-components and report back for Round 2. We are building the apex predator of fitness apps. Act like it.
 
@@ -178,7 +178,7 @@ const BadgeText = styled.span`
 // Corrected:
 const BadgeText = styled.span`
   color: var(--swan-obsidian);
-  
+
   // AI badge passes; Human badge requires text overlay
   // Use data-provider attribute for differentiation
   [data-provider="human"] & {
@@ -212,7 +212,7 @@ const ShimmerLayer = styled.div`
   /* Use transform instead of background-position */
   transform: translateX(-100%);
   animation: shimmer-slide 1.5s var(--ease-crystalline) infinite;
-  
+
   @keyframes shimmer-slide {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(200%); }
@@ -272,7 +272,7 @@ No `focus` states are defined for any interactive component. This **violates WCA
 ```css
 /* Add to Voice Orb styles */
 &:focus-visible {
-  box-shadow: 
+  box-shadow:
     0 0 0 3px var(--swan-carbon),
     0 0 0 5px var(--swan-arctic);
 }
@@ -321,7 +321,7 @@ Awaiting Round 2 response from the Creative Director.
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-You are meticulous, Reviewer. I respect that. A truly premium experience cannot be built on a foundation of accessibility lawsuits or dropped frames. You have my authorization to implement the performance optimizations, but do not presume to alter my geometry or color palettes without my explicit sign-off. 
+You are meticulous, Reviewer. I respect that. A truly premium experience cannot be built on a foundation of accessibility lawsuits or dropped frames. You have my authorization to implement the performance optimizations, but do not presume to alter my geometry or color palettes without my explicit sign-off.
 
 Here is my ruling on your Round 1 review. Pay close attention to the math.
 
@@ -329,10 +329,10 @@ Here is my ruling on your Round 1 review. Pay close attention to the math.
 
 **Your Claim:** You stated that a `120px` outer ring combined with a `72px` orb creates a visual footprint of `192px`, which would clip on small screens.
 
-**My Ruling:** **REJECTED.** You have fundamentally misunderstood CSS box models and concentric positioning. 
-The rings are *concentric*. The orb sits *inside* the rings. If the outer ring is `120px` in diameter, the absolute maximum visual footprint of the entire component is exactly `120px`. A `120px` element fits effortlessly within a `320px` viewport (iPhone SE) with `100px` of clearance on either side. 
+**My Ruling:** **REJECTED.** You have fundamentally misunderstood CSS box models and concentric positioning.
+The rings are *concentric*. The orb sits *inside* the rings. If the outer ring is `120px` in diameter, the absolute maximum visual footprint of the entire component is exactly `120px`. A `120px` element fits effortlessly within a `320px` viewport (iPhone SE) with `100px` of clearance on either side.
 
-Do not pollute `VoiceRecordingOverlay.jsx` with unnecessary `calc()` math or media queries. 
+Do not pollute `VoiceRecordingOverlay.jsx` with unnecessary `calc()` math or media queries.
 **Implementation:** Keep my original spec. The outer ring remains strictly `120px`.
 
 ```jsx
@@ -378,7 +378,7 @@ const AmplitudeRing = styled.div`
 
 **Your Claim:** `70%` opacity on `#C6A84B` over `#0A0A0F` fails contrast. You proposed `#8B7A35`.
 
-**My Ruling:** I agree on the contrast failure, but your proposed `#8B7A35` looks like swamp water. It completely ruins the ethereal vibe of the code blocks. 
+**My Ruling:** I agree on the contrast failure, but your proposed `#8B7A35` looks like swamp water. It completely ruins the ethereal vibe of the code blocks.
 
 **Implementation:** In `MarkdownRenderer.jsx`, we will drop the opacity entirely and use a dedicated, luminous syntax variable. Add this to the root theme and apply it:
 
@@ -399,7 +399,7 @@ const AmplitudeRing = styled.div`
 
 **My Ruling:** Good catch on the luminance failure. However, `#E8D48A` is too washed out and loses the "Gilded" premium feel. We will adjust the background to a precisely calibrated hex code that maintains the gold saturation while passing the `4.5:1` threshold against `--swan-obsidian`.
 
-**Implementation:** 
+**Implementation:**
 ```css
 /* Add to :root */
 --swan-gilded-fern-bright: #D4B856; /* Hits ~4.6:1 contrast ratio */
@@ -502,8 +502,8 @@ This is a legitimate fix. **Implementation in `ProviderBadge.jsx` (Lines 12-15):
 --swan-gilded-fern-bright: #D4B856;
 
 const Badge = styled.div`
-  background-color: ${props => props.$isHuman 
-    ? 'var(--swan-gilded-fern-bright)' 
+  background-color: ${props => props.$isHuman
+    ? 'var(--swan-gilded-fern-bright)'
     : 'var(--swan-ice)'};
   color: var(--swan-obsidian);
 `;
@@ -545,7 +545,7 @@ const ShimmerLayer = styled.div`
   width: 100%;
   height: 100%;
   overflow: hidden;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -555,16 +555,16 @@ const ShimmerLayer = styled.div`
     height: 100%;
     /* Original gradient preserved */
     background: linear-gradient(
-      90deg, 
-      transparent, 
-      rgba(96, 192, 240, 0.15), 
+      90deg,
+      transparent,
+      rgba(96, 192, 240, 0.15),
       transparent
     );
     /* GPU-accelerated via transform */
     transform: translateX(-100%);
     animation: shimmer-slide 1.5s var(--ease-crystalline) infinite;
   }
-  
+
   @keyframes shimmer-slide {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(200%); }
@@ -631,11 +631,11 @@ Awaiting final authority decision.
 
 CONSENSUS REACHED
 
-It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility. 
+It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility.
 
 Regarding your P3 note on 240px viewports: SwanStudios is a premium, elite coaching platform. We do not degrade our UI for decade-old budget devices or edge-case micro-screens. Our absolute minimum supported viewport is 320px (iPhone SE). The 120px orb footprint stands proudly.
 
-The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements. 
+The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements.
 
 Here is the final, uncompromising, merged specification for the engineering team. Build it exactly as written.
 
@@ -651,13 +651,13 @@ Inject these exact properties. No deviations.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Core Blues */
   --swan-midnight: #002060;
   --swan-royal: #003080;
   --swan-arctic: #50A0F0;
   --swan-ice: #60C0F0;
-  
+
   /* Accents & Syntax */
   --swan-wing-purple: #8B5CF6;
   --swan-gilded-fern: #C6A84B;
@@ -707,7 +707,7 @@ Inject these exact properties. No deviations.
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       overflow: hidden;
-      
+
       &::before {
         content: '';
         position: absolute;
@@ -716,7 +716,7 @@ Inject these exact properties. No deviations.
         transform: translateX(-100%);
         animation: shimmer-slide 1.5s var(--ease-crystalline) infinite;
       }
-      
+
       @keyframes shimmer-slide {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(200%); }
@@ -744,8 +744,8 @@ Inject these exact properties. No deviations.
 *   **Dynamic Styling (WCAG AA Compliant):**
     ```jsx
     const Badge = styled.div`
-      background-color: ${props => props.$isHuman 
-        ? 'var(--swan-gilded-fern-bright)' 
+      background-color: ${props => props.$isHuman
+        ? 'var(--swan-gilded-fern-bright)'
         : 'var(--swan-ice)'};
       color: var(--swan-obsidian);
       border-radius: 4px;
@@ -758,4 +758,3 @@ Inject these exact properties. No deviations.
 Engineering, you have your blueprint. The design is locked, accessible, and performant. Execute it.
 
 ---
-

@@ -6,12 +6,12 @@
 
 ---
 
-# API Surface Review – Homepage & About Page Vision Refactor  
-**Target:** Verify whether the current backend can support the frontend changes described in the plan without additional work (Phase 1 = zero backend changes).  
+# API Surface Review – Homepage & About Page Vision Refactor
+**Target:** Verify whether the current backend can support the frontend changes described in the plan without additional work (Phase 1 = zero backend changes).
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
 
 | Required Sidebar Field | Currently Returned? | Comments / Gap |
 |------------------------|---------------------|----------------|
@@ -22,9 +22,9 @@
 | `lastMessageAt` (ISO timestamp) | ✅ | Needed for sorting & “last active” badge |
 | `unreadCount` (optional but useful) | ❓ | Not required for the plan, but nice‑to‑have for future UI. |
 
-**Verdict:**  
-- If the current response shape is `{ id, title, messageCount, lastMessageAt }` **without** a `context/preview`, the sidebar will lack the optional “preview line” that many chat UIs show.  
-- **Recommendation:** Add a lightweight `preview` (or `context`) field – e.g., the first 100 chars of the latest user message, or `null` if none. This is a **backward‑compatible** addition (existing clients ignore unknown fields).  
+**Verdict:**
+- If the current response shape is `{ id, title, messageCount, lastMessageAt }` **without** a `context/preview`, the sidebar will lack the optional “preview line” that many chat UIs show.
+- **Recommendation:** Add a lightweight `preview` (or `context`) field – e.g., the first 100 chars of the latest user message, or `null` if none. This is a **backward‑compatible** addition (existing clients ignore unknown fields).
 
 ```json
 {
@@ -39,20 +39,20 @@
 
 > **Zero‑backend‑change claim:** ✅ *Only if* the API already returns a `preview`/`context` field. Otherwise a tiny additive change is required.
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
 
 | Situation | Adequacy | When to Upgrade |
 |-----------|----------|-----------------|
 | **≤ 20 conversations** (current plan) | ✅ Client‑side filtering (JS `filter` on title) is instantaneous and saves a round‑trip. | – |
 | **> ~50 conversations** or **real‑time search as user types** | ❌ Client‑side becomes noticeable lag; also prevents server‑side ranking (e.g., recency, match quality). | Add `GET /api/ai-chat/conversations?search=<term>` that performs `ILIKE` on `title` **and** a JSONB column that stores concatenated message content (or a separate `search_text` tsvector). Return paginated results (`limit=20`, `offset`). |
-| **Future: fuzzy / typo‑tolerant** | ❌ | Consider PostgreSQL `pg_trgm` or a dedicated search service (Meilisearch, Typesense). |  
+| **Future: fuzzy / typo‑tolerant** | ❌ | Consider PostgreSQL `pg_trgm` or a dedicated search service (Meilisearch, Typesense). |
 
-**Recommendation:**  
-- Keep client‑side filtering for now (Phase 1).  
-- Add a **search endpoint** as soon as the conversation list exceeds ~50 items *or* product decides to show a search bar in the sidebar.  
-- Implementation sketch:  
+**Recommendation:**
+- Keep client‑side filtering for now (Phase 1).
+- Add a **search endpoint** as soon as the conversation list exceeds ~50 items *or* product decides to show a search bar in the sidebar.
+- Implementation sketch:
 
 ```http
 GET /api/ai-chat/conversations?search=swing&limit=20&offset=0
@@ -66,9 +66,9 @@ ORDER BY lastMessageAt DESC
 LIMIT $2 OFFSET $3;
 ```
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -81,9 +81,9 @@ LIMIT $2 OFFSET $3;
 
 **Verdict:** The proposed endpoint is **correct** as‑is, provided the backend implements the validation/storage details above. No breaking change needed.
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
 
 Two common patterns:
 
@@ -92,15 +92,15 @@ Two common patterns:
 | **A. Inline base64** (`{ content, attachments: [{ data: "base64…", mimeType: "image/png" }] }`) | Single request; simple for tiny files (< 256 KB). | Bloated payload; base64 adds ~33% overhead; may exceed request size limits; not suitable for larger images. |
 | **B. Upload‑then‑reference** (recommended) | 1️⃣ `POST /api/ai-chat/conversations/:id/attachments` → returns `attachmentId`.<br>2️⃣ `POST /api/ai-chat/conversations/:id/messages` with `{ content, attachmentIds: [attachmentId] }`. | Slightly more complex (two round‑trips) but scales to any file size, enables reuse, and lets the backend run virus scans, throttling, etc. |
 
-**Recommendation:** Adopt **Pattern B** (upload‑then‑reference).  
+**Recommendation:** Adopt **Pattern B** (upload‑then‑reference).
 
-- **Message creation endpoint** (`POST /api/ai-chat/conversations/:id/messages`) should accept an optional `attachmentIds: string[]` array.  
-- The backend will fetch the attachment metadata, construct the Gemini multimodal payload (image URL + base64 if required by the SDK), and store the message with references to the attachments.  
+- **Message creation endpoint** (`POST /api/ai-chat/conversations/:id/messages`) should accept an optional `attachmentIds: string[]` array.
+- The backend will fetch the attachment metadata, construct the Gemini multimodal payload (image URL + base64 if required by the SDK), and store the message with references to the attachments.
 - Keep the existing `content` field for text‑only messages; the API remains backward compatible.
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit (per IP / per user) | Rationale |
 |-----------|--------------------|--------------------------------------|-----------|
@@ -110,13 +110,13 @@ Two common patterns:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High during chat | **30 req/min** (≈1 every 2 s) | Allows lively conversation but caps rapid‑fire bots. |
 | **Search** (`GET /api/ai-chat/conversations?search=…`) | Typing‑ahead (if implemented) | **20 req/min** | Prevents excessive DB load from rapid keystrokes. |
 
-*Implementation tip:* Use a middleware like `express-rate-limit` with a Redis store for distributed limits, and differentiate limits by route and authenticated user ID (fallback to IP for anonymous).  
+*Implementation tip:* Use a middleware like `express-rate-limit` with a Redis store for distributed limits, and differentiate limits by route and authenticated user ID (fallback to IP for anonymous).
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Polling  
+## 6. WebSocket Integration – Push vs. Polling
 
-The plan mentions Socket.io already exists.  
+The plan mentions Socket.io already exists.
 
 | Feature | Polling (current) | WebSocket (push) |
 |---------|-------------------|------------------|
@@ -126,19 +126,19 @@ The plan mentions Socket.io already exists.
 | **Server load** | Each open tab creates a polling interval → many redundant requests. | Single persistent connection per tab → far less HTTP overhead. |
 | **Complexity** | Simple, works without WS infrastructure. | Requires WS server, room management, reconnection handling. |
 
-**Recommendation:**  
-- **Leverage the existing Socket.io server** to push **real‑time updates** for:  
-  - `newMessage` (includes message text & any attachment IDs)  
-  - `conversationUpdated` (title change, preview update)  
-  - `attachmentUploaded` (metadata for newly uploaded file)  
-- Keep the REST endpoints as the source of truth; WS messages are **optimistic UI updates** that are later reconciled with REST fetches (or rely on WS for correctness if you trust the server).  
-- Use **conversation‑scoped rooms** (`socket.join(conversationId)`) so each client only receives events relevant to the open chats.  
+**Recommendation:**
+- **Leverage the existing Socket.io server** to push **real‑time updates** for:
+  - `newMessage` (includes message text & any attachment IDs)
+  - `conversationUpdated` (title change, preview update)
+  - `attachmentUploaded` (metadata for newly uploaded file)
+- Keep the REST endpoints as the source of truth; WS messages are **optimistic UI updates** that are later reconciled with REST fetches (or rely on WS for correctness if you trust the server).
+- Use **conversation‑scoped rooms** (`socket.join(conversationId)`) so each client only receives events relevant to the open chats.
 
-If the team prefers to defer WS work, polling can stay for Phase 1, but **document** that WS integration is the next performance/scalability improvement.  
+If the team prefers to defer WS work, polling can stay for Phase 1, but **document** that WS integration is the next performance/scalability improvement.
 
----  
+---
 
-## 7. Response Contract – Are Existing Shapes Adequate for `ConversationSummary`?  
+## 7. Response Contract – Are Existing Shapes Adequate for `ConversationSummary`?
 
 Assuming the frontend defines a TypeScript type like:
 
@@ -153,7 +153,7 @@ type ConversationSummary = {
 };
 ```
 
-**Checklist:**  
+**Checklist:**
 
 | Field | Provided by current GET /api/ai-chat/conversations? | Action if missing |
 |-------|------------------------------------------------------|-------------------|
@@ -164,11 +164,11 @@ type ConversationSummary = {
 | `lastMessageAt` | ✅ | – |
 | `unreadCount` | ❓ (optional) | Not required for Phase 1; can be added later. |
 
-**Verdict:** The contract is **adequate** *only* if the API already returns a `preview`/`context`. Otherwise, augment the response with that field (non‑breaking).  
+**Verdict:** The contract is **adequate** *only* if the API already returns a `preview`/`context`. Otherwise, augment the response with that field (non‑breaking).
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -178,14 +178,14 @@ type ConversationSummary = {
 | **Per‑user vs. global** | Must be **user‑scoped** (different conversation lists per auth). Include user ID in cache key (`conversations:{userId}`). |
 | **Effect on sidebar** | Sidebar will show the most recent list after either: <br>   a) TTL expires (≤ 5 min), or <br>   b) Cache is purged by the mutation that caused the change. |
 
-**Recommendation:**  
-- Keep a **5‑minute TTL** as a safety net.  
-- Add **cache invalidation hooks** in the message, rename, and attachment upload handlers to delete (or update) the specific user’s conversation‑list cache entry.  
-- If using a CDN or edge cache, ensure the `Vary: Authorization` header is set so cached responses are not shared between users.  
+**Recommendation:**
+- Keep a **5‑minute TTL** as a safety net.
+- Add **cache invalidation hooks** in the message, rename, and attachment upload handlers to delete (or update) the specific user’s conversation‑list cache entry.
+- If using a CDN or edge cache, ensure the `Vary: Authorization` header is set so cached responses are not shared between users.
 
----  
+---
 
-# Summary of API Design Recommendations  
+# Summary of API Design Recommendations
 
 | # | Recommendation | Impact |
 |---|----------------|--------|
@@ -198,9 +198,9 @@ type ConversationSummary = {
 | 7 | Verify `ConversationSummary` type matches API response; add `preview` if absent. | Guarantees sidebar renders correctly. |
 | 8 | Maintain 5‑minute TTL cache **plus** invalidation on message/rename/upload events (user‑scoped key). | Near‑fresh data without excessive DB load. |
 
-Implementing the above will make the backend **fully ready** for the frontend changes outlined in the Homepage & About Page Vision Refactor, while keeping the Phase 1 claim of “zero backend changes” true **only** after the minor additive tweaks (preview field, cache invalidation hooks, and optional search endpoint) are in place.  
+Implementing the above will make the backend **fully ready** for the frontend changes outlined in the Homepage & About Page Vision Refactor, while keeping the Phase 1 claim of “zero backend changes” true **only** after the minor additive tweaks (preview field, cache invalidation hooks, and optional search endpoint) are in place.
 
----  
+---
 
 *Prepared for SwanStudios AI Village Review – 2026‑04‑05*
 

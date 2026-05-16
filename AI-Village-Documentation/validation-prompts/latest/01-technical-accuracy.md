@@ -16,11 +16,11 @@ This document proposes a well-structured enhancement but contains **architectura
 ## CRITICAL ISSUES
 
 ### 1. AI Action Type Architecture Misunderstanding
-**Severity:** CRITICAL  
-**Section:** "Current State" + All "New AI Action Type" proposals  
+**Severity:** CRITICAL
+**Section:** "Current State" + All "New AI Action Type" proposals
 **Issue:** The document claims "AI Assistant has 10 data update action types" and proposes adding handlers to `aiDataWriteService.mjs`. This fundamentally misrepresents how the AI action system works.
 
-**Correction:**  
+**Correction:**
 The AI system uses:
 - **`aiChatService.mjs`** - Handles chat orchestration and OpenAI API calls
 - **`parseAIActions.ts`** (frontend) - Parses AI responses for action blocks
@@ -37,11 +37,11 @@ There is NO centralized `aiDataWriteService.mjs` file that handles "action types
 ---
 
 ### 2. False Claim About Existing Action Types
-**Severity:** HIGH  
-**Section:** "Current State" - "10 data update action types"  
+**Severity:** HIGH
+**Section:** "Current State" - "10 data update action types"
 **Issue:** Claims specific action types exist: `body_measurement`, `goal`, `client_note`, `macro_log`, `progress_level`, `daily_workout_form`, `draft_email`, `draft_sms`
 
-**Correction:**  
+**Correction:**
 Verify this list against `parseAIActions.ts` and `aiChatService.mjs`. Based on typical SwanStudios architecture:
 - **Likely exists:** Body measurement logging, goal setting, workout form submission
 - **Questionable:** `draft_email`, `draft_sms` (no email/SMS infrastructure documented in core features)
@@ -52,11 +52,11 @@ Request: Provide the actual `VALID_ACTIONS` array from `parseAIActions.ts` to ve
 ---
 
 ### 3. Admin Endpoint Assumption
-**Severity:** HIGH  
-**Section:** "Current State" - "Admin CRUD endpoint exists: POST /api/admin/clients"  
+**Severity:** HIGH
+**Section:** "Current State" - "Admin CRUD endpoint exists: POST /api/admin/clients"
 **Issue:** States this endpoint exists without verification. If this is assumption rather than fact, it's misleading.
 
-**Correction:**  
+**Correction:**
 Verify existence of:
 - `POST /api/admin/clients` in `adminClientController.mjs`
 - What fields it accepts
@@ -68,11 +68,11 @@ If this endpoint does NOT exist, this is a **false positive** that invalidates t
 ---
 
 ### 4. Movement Analysis Architecture Error
-**Severity:** HIGH  
-**Section:** Backend Changes #4 - "New AI Action Type: `create_movement_analysis`"  
+**Severity:** HIGH
+**Section:** Backend Changes #4 - "New AI Action Type: `create_movement_analysis`"
 **Issue:** Proposes AI can "auto-calculate NASM score, corrective strategy, OPT phase recommendation" from parsed text.
 
-**Correction:**  
+**Correction:**
 NASM OPT assessments require:
 - **Structured data input** (specific joint angles, compensation patterns)
 - **Standardized scoring rubrics** (overhead squat assessment has 14+ checkpoints)
@@ -83,7 +83,7 @@ The AI should **assist in data entry** but NOT auto-calculate NASM scores. This 
 - Create liability issues
 - Produce inaccurate assessments
 
-**Recommended approach:**  
+**Recommended approach:**
 AI extracts mentioned limitations → suggests assessment areas to evaluate → trainer completes structured assessment form → system calculates scores.
 
 ---
@@ -91,11 +91,11 @@ AI extracts mentioned limitations → suggests assessment areas to evaluate → 
 ## HIGH SEVERITY ISSUES
 
 ### 5. Missing Voice-First Workout Logging Integration
-**Severity:** HIGH  
-**Section:** "Current State" + "Enhancement Opportunities"  
+**Severity:** HIGH
+**Section:** "Current State" + "Enhancement Opportunities"
 **Issue:** Document ignores the platform's KEY differentiator: "voice-first AI workout logging." No mention of how onboarding integrates with this core feature.
 
-**Correction:**  
+**Correction:**
 Add to proposal:
 - AI onboarding should explain voice logging to new clients
 - Generate sample voice commands based on their program
@@ -105,11 +105,11 @@ Add to proposal:
 ---
 
 ### 6. Claim Code System Misunderstanding
-**Severity:** HIGH  
-**Section:** Backend Changes #2 - "New AI Action Type: `generate_claim_code`"  
+**Severity:** HIGH
+**Section:** Backend Changes #2 - "New AI Action Type: `generate_claim_code`"
 **Issue:** Proposes separate `generate_claim_code` action, but this should be part of client creation, not a separate step.
 
-**Correction:**  
+**Correction:**
 The claim code system likely works as:
 1. Admin/trainer creates client → claim code auto-generated
 2. Client receives claim URL → completes onboarding wizard → sets password
@@ -119,11 +119,11 @@ Proposing a separate AI action for claim generation suggests misunderstanding of
 ---
 
 ### 7. Trainer Assignment Logic Error
-**Severity:** HIGH  
-**Section:** Backend Changes #3 - "New AI Action Type: `assign_trainer`"  
+**Severity:** HIGH
+**Section:** Backend Changes #3 - "New AI Action Type: `assign_trainer`"
 **Issue:** Proposes separate trainer assignment action, but states "Auto-assigns the requesting trainer/admin as the trainer"
 
-**Correction:**  
+**Correction:**
 If auto-assignment is the behavior, this should be part of `create_client`, not a separate action. Separate assignment only makes sense if:
 - Admin is creating client for another trainer
 - Multi-trainer assignment is supported
@@ -136,11 +136,11 @@ Clarify: Does SwanStudios support multiple trainers per client? If not, this act
 ## MEDIUM SEVERITY ISSUES
 
 ### 8. Incomplete Security Model
-**Severity:** MEDIUM  
-**Section:** "Security Considerations"  
+**Severity:** MEDIUM
+**Section:** "Security Considerations"
 **Issue:** Rate limiting (5 clients/hour) is mentioned but lacks context for legitimate use cases.
 
-**Correction:**  
+**Correction:**
 Add considerations for:
 - **Bulk onboarding scenarios** (trainer onboards 10 Move Fitness clients from gym session)
 - **Role-based limits** (admin vs trainer limits)
@@ -150,11 +150,11 @@ Add considerations for:
 ---
 
 ### 9. Missing Gamification Integration
-**Severity:** MEDIUM  
-**Section:** "Enhancement Opportunities"  
+**Severity:** MEDIUM
+**Section:** "Enhancement Opportunities"
 **Issue:** No mention of Octalysis gamification integration during onboarding.
 
-**Correction:**  
+**Correction:**
 Octalysis is a KEY differentiator. Onboarding should:
 - Set initial XP/level
 - Explain achievement system
@@ -164,11 +164,11 @@ Octalysis is a KEY differentiator. Onboarding should:
 ---
 
 ### 10. Incomplete Two-Tier System Specification
-**Severity:** MEDIUM  
-**Section:** "Goal" - Two-tier description  
+**Severity:** MEDIUM
+**Section:** "Goal" - Two-tier description
 **Issue:** Oversimplified distinction. Missing critical operational differences.
 
-**Correction:**  
+**Correction:**
 Clarify for each tier:
 
 | Feature | Move Fitness | SwanStudios |
@@ -187,11 +187,11 @@ Without this, developers can't implement correct feature gating.
 ## LOW SEVERITY ISSUES
 
 ### 11. Missing Error Handling Scenarios
-**Severity:** LOW  
-**Section:** All "New AI Action Type" proposals  
+**Severity:** LOW
+**Section:** All "New AI Action Type" proposals
 **Issue:** No error handling specified.
 
-**Correction:**  
+**Correction:**
 Add handling for:
 - Duplicate email/username
 - Invalid clientSource value
@@ -202,11 +202,11 @@ Add handling for:
 ---
 
 ### 12. Incomplete Frontend Changes
-**Severity:** LOW  
-**Section:** Frontend Changes #8 - "Add CREATE_CLIENT to parseAIActions.ts"  
+**Severity:** LOW
+**Section:** Frontend Changes #8 - "Add CREATE_CLIENT to parseAIActions.ts"
 **Issue:** Only mentions adding to whitelist and rendering confirmation. Missing validation logic.
 
-**Correction:**  
+**Correction:**
 Add:
 - Field validation before API call
 - Duplicate client check (search existing clients by name/email)
@@ -216,11 +216,11 @@ Add:
 ---
 
 ### 13. Missing Audit Trail Specification
-**Severity:** LOW  
-**Section:** Security Considerations - "Audit trail"  
+**Severity:** LOW
+**Section:** Security Considerations - "Audit trail"
 **Issue:** Vague "log who created the client and when"
 
-**Correction:**  
+**Correction:**
 Specify:
 - Log table: `ClientCreationAudit`
 - Fields: `createdBy`, `createdAt`, `createdVia` ('ai_assistant' | 'manual' | 'claim_code'), `clientSource`, `ipAddress`
@@ -231,11 +231,11 @@ Specify:
 ## MISSING FEATURES (Not Mentioned in Document)
 
 ### 14. No Integration with Existing Onboarding Wizard
-**Severity:** MEDIUM  
-**Section:** Missing entirely  
+**Severity:** MEDIUM
+**Section:** Missing entirely
 **Issue:** Document states "Onboarding wizard exists but requires manual form filling" but doesn't explain how AI onboarding relates to it.
 
-**Correction:**  
+**Correction:**
 Clarify:
 - Does AI onboarding REPLACE the wizard for trainer-created clients?
 - Does AI pre-fill the wizard?
@@ -245,11 +245,11 @@ Clarify:
 ---
 
 ### 15. No Mention of 4-Dashboard Architecture Impact
-**Severity:** MEDIUM  
-**Section:** Missing entirely  
+**Severity:** MEDIUM
+**Section:** Missing entirely
 **Issue:** SwanStudios has 4-dashboard architecture (Admin/Trainer/Client/Social). No mention of which dashboards are affected.
 
-**Correction:**  
+**Correction:**
 Add:
 - **Admin Dashboard:** Bulk onboarding view, AI onboarding analytics
 - **Trainer Dashboard:** AI onboarding chat interface, client list updates
@@ -259,11 +259,11 @@ Add:
 ---
 
 ### 16. No NASM OPT Phase Assignment Logic
-**Severity:** MEDIUM  
-**Section:** Backend Changes #4 mentions it but doesn't specify how  
+**Severity:** MEDIUM
+**Section:** Backend Changes #4 mentions it but doesn't specify how
 **Issue:** "Auto-calculates... OPT phase recommendation" - no algorithm specified
 
-**Correction:**  
+**Correction:**
 NASM OPT 5-phase periodization requires:
 - **Phase 1 (Stabilization Endurance):** Default for beginners, post-injury, movement dysfunction
 - **Phase 2-5:** Require assessment data + training history
@@ -275,11 +275,11 @@ AI should default to Phase 1 unless trainer explicitly overrides. Document the d
 ## ARCHITECTURE ACCURACY ISSUES
 
 ### 17. Tech Stack Description Incomplete
-**Severity:** LOW  
-**Section:** Implicit throughout document  
+**Severity:** LOW
+**Section:** Implicit throughout document
 **Issue:** Document assumes knowledge of stack but doesn't verify AI infrastructure.
 
-**Correction:**  
+**Correction:**
 Confirm:
 - **AI Provider:** OpenAI GPT-4? GPT-3.5-turbo?
 - **AI Context Storage:** Where are conversation histories stored? PostgreSQL? Redis?

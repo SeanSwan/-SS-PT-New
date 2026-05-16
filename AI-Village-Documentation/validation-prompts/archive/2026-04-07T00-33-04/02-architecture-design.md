@@ -64,7 +64,7 @@ The plan demonstrates strong root-cause analysis (particularly the 3-part P0-3 d
 // Canonical contract decision (needs Sean sign-off before any code):
 interface WorkoutPlanCreateDTO {
   title: string;        // NOT name
-  userId: string;       // NOT clientId  
+  userId: string;       // NOT clientId
   nasmPhase: NASMPhase; // NOT goal
   planData: PlanData;   // NOT days (or days maps into planData)
   notes?: string;       // frontend sends this — add to model or strip server-side
@@ -110,10 +110,10 @@ router.get('/upcoming/:userId', protect, async (req, res) => {
   if (req.params.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  
+
   const { userId } = req.params;
   const now = new Date();
-  
+
   try {
     const sessions = await Session.findAll({
       where: {
@@ -136,10 +136,10 @@ router.get('/upcoming/:userId', protect, async (req, res) => {
 const useSessions = (userId: string) => {
   const [upcoming, setUpcoming] = useState<Session[]>([]);
   const [history, setHistory] = useState<Session[]>([]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
-    
+
     Promise.all([
       api.get(`/sessions/upcoming/${userId}`, { signal: controller.signal }),
       api.get(`/sessions/history/${userId}`, { signal: controller.signal }),
@@ -149,10 +149,10 @@ const useSessions = (userId: string) => {
     }).catch(err => {
       if (err.name !== 'AbortError') handleError(err);
     });
-    
+
     return () => controller.abort();
   }, [userId]);
-  
+
   return { upcoming, history };
 };
 ```
@@ -233,21 +233,21 @@ interface UseCoachAssistantReturn {
 const useCoachAssistant = (): UseCoachAssistantReturn => {
   const sidebar = useConversationSidebar();
   const { conversations } = useConversations();
-  
+
   // selectedConversationId drives message fetching — no circular dependency
   const { messages, isLoading, hasMore, loadMore, sendMessage } = useMessages(
     sidebar.selectedConversationId // null = no fetch
   );
-  
+
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === sidebar.selectedConversationId) ?? null,
     [conversations, sidebar.selectedConversationId]
   );
-  
+
   // Stale state risk: if selectedConversationId changes while messages are loading,
   // useMessages must cancel the in-flight request. Enforce this in useMessages:
   // useEffect(() => { controller.abort(); }, [conversationId]);
-  
+
   return { sidebar, conversations, activeConversation, messages, ... };
 };
 ```
@@ -279,7 +279,7 @@ useEffect(() => {
     }
     return config;
   });
-  
+
   return () => authAxios.interceptors.request.eject(interceptorId);
 }, [authAxios, token]); // authAxios is stable, token changes update interceptor
 
@@ -311,7 +311,7 @@ const contextValue = useMemo(() => ({
 const ClientDetailView = ({ client }: { client: Client }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Reset ALL local state when client changes
   // This must be an exhaustive list — add a comment requiring review on new state additions
   useEffect(() => {
@@ -321,7 +321,7 @@ const ClientDetailView = ({ client }: { client: Client }) => {
     // Note: child component state cannot be reset from here
     // Any child with significant state should also use useEffect([client.id])
   }, [client.id]);
-  
+
   // ...
 };
 

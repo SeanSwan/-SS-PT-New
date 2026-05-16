@@ -551,10 +551,10 @@ The document specifies UI elements (severity slider 1-10, XP bar, circular progr
 
 # Security Audit Report: SwanStudios Platform Design Document
 
-**Auditor:** Step 3.5 Flash (SWE-bench 74.4% accuracy)  
-**Target:** `docs/ai-workflow/blueprints/FINAL-COMPREHENSIVE-VALIDATION.md` (Design Document)  
-**Scope:** Architecture-level security review based on described implementation (React/TS/Node/Express/Sequelize/PostgreSQL)  
-**Date:** 2025-10-18  
+**Auditor:** Step 3.5 Flash (SWE-bench 74.4% accuracy)
+**Target:** `docs/ai-workflow/blueprints/FINAL-COMPREHENSIVE-VALIDATION.md` (Design Document)
+**Scope:** Architecture-level security review based on described implementation (React/TS/Node/Express/Sequelize/PostgreSQL)
+**Date:** 2025-10-18
 
 ---
 
@@ -626,7 +626,7 @@ As a Performance and Scalability Engineer, I have reviewed the **FINAL-COMPREHEN
 The "Dashboard Connectivity Map" suggests a massive interconnected UI. If not handled correctly, the initial JS payload for `sswanstudios.com/dashboard` will be multi-megabyte.
 *   **Rating: HIGH**
 *   **Concern:** Importing `Victory` charts, `Framer Motion` (for animations), and `Lucide` icons into a single bundle will kill the "Start workout in under 60 seconds" goal.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Implement **Route-based Code Splitting** for each dashboard section (Nutrition, Pain Chart, etc.).
     *   Use `React.lazy` for the "Swan Coach" chat widget; it should only load when the user first interacts or after the main UI is interactive.
     *   Audit `styled-components` usage; ensure no large object-literal themes are being re-processed on every render.
@@ -636,7 +636,7 @@ The "Dashboard Connectivity Map" suggests a massive interconnected UI. If not ha
 The `useAnimationTier()` hook is excellent for UX but can cause "Double Renders" if the tier detection logic isn't memoized or if it triggers a re-render of the entire tree.
 *   **Rating: MEDIUM**
 *   **Concern:** The "14-chart NASM dashboard" (Guardian+ tier) using Victory/Recharts can lead to frame drops during scrolling if data isn't decimated (downsampled) before rendering.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Use `React.memo` on all "Quick stats cards" and "Chart" components.
     *   Implement **Windowing/Virtualization** (e.g., `react-window`) for the "Workout history list" and "Social feed" to prevent DOM bloat.
 
@@ -645,7 +645,7 @@ The `useAnimationTier()` hook is excellent for UX but can cause "Double Renders"
 The "Client selector dropdown" that switches context to specific clients is a classic bottleneck.
 *   **Rating: HIGH**
 *   **Concern:** Switching a client might trigger 10+ simultaneous requests (Workouts, Nutrition, Pain, Progress, Messages). This will hit rate limits and increase TTFB (Time to First Byte).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Implement a **BFF (Backend for Frontend)** pattern or a specialized "Client Summary" endpoint that aggregates critical data into one JSON payload.
     *   Use `TanStack Query` (React Query) for aggressive caching of client data to prevent re-fetching when toggling between "Overview" and "Workouts."
 
@@ -653,10 +653,10 @@ The "Client selector dropdown" that switches context to specific clients is a cl
 **Finding: In-Memory WebSocket & E2EE Complexity**
 The "Real-time messaging (WebSocket)" and "Optional E2EE" (Signal Protocol) pose significant scaling challenges.
 *   **Rating: CRITICAL**
-*   **Concern:** 
+*   **Concern:**
     1.  **Multi-instance:** WebSockets require a Redis Pub/Sub backplane to work across multiple Node.js instances.
     2.  **E2EE:** Implementing E2EE (Signal Protocol) in a web environment requires careful management of `IndexedDB` for key storage. If a user clears their cache, they lose access to history unless keys are backed up (which defeats E2EE if not done via a secondary password).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Ensure the backend uses `socket.io-redis-adapter`.
     *   For E2EE, use a proven library like `libsignal-protocol-javascript` and strictly document the "Key Recovery" flow to prevent support tickets.
 
@@ -664,7 +664,7 @@ The "Real-time messaging (WebSocket)" and "Optional E2EE" (Signal Protocol) pose
 **Finding: Unbounded "Social Feed" and "Activity Logs"**
 *   **Rating: MEDIUM**
 *   **Concern:** The "Recent Activity feed" and "Community Social Feed" will grow indefinitely. Queries like `SELECT * FROM posts` without strict pagination will eventually crash the Node.js event loop.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Enforce **Keyset Pagination** (using `id` or `timestamp` offsets) rather than `LIMIT/OFFSET` for the social feed to maintain performance as the table grows to millions of rows.
     *   Add composite indexes on `(user_id, created_at)` for the workout history tables.
 
@@ -677,7 +677,7 @@ The "Real-time messaging (WebSocket)" and "Optional E2EE" (Signal Protocol) pose
 ---
 
 ### Final Engineering Verdict
-The plan is **technically ambitious**. To reach the "7-Star Standard," the focus must shift from **features** to **infrastructure**. 
+The plan is **technically ambitious**. To reach the "7-Star Standard," the focus must shift from **features** to **infrastructure**.
 
 **Immediate Action Item:** Prioritize the **"Quick-Start Workout"** (under 60s) by ensuring the `WorkoutLogger` component is the smallest, most optimized piece of the codebase, decoupled from the heavy "Analytics" and "Community" modules.
 
@@ -1395,9 +1395,9 @@ This specification has fundamental gaps that would result in multiple production
 
 **Default Tier (All Authenticated Users):**
 - Global: 1000 requests/minute per user
-- Per-endpoint: 
+- Per-endpoint:
   - `/api/v1/messages/*` → 60 requests/minute
-  - `/api/v1/workouts/*` → 30 requests/minute  
+  - `/api/v1/workouts/*` → 30 requests/minute
   - `/api/v1/nutrition/*` → 60 requests/minute
   - `/api/v1/ai/*` → 20 requests/minute (AI endpoints)
 
@@ -1505,7 +1505,7 @@ interface GenerateWorkoutRequest {
 **Frontend:**
 1. User actions trigger local state updates immediately (optimistic UI)
 2. Each exercise change queues to `pendingExercises` array
-3. On "Save Workout": 
+3. On "Save Workout":
    - Validate all pending exercises
    - Show progress indicator: "Saving... 3/10 exercises"
    - On each success: move from pending to saved
@@ -1647,24 +1647,24 @@ const aiCrudSafetyLayer = {
   // 1. NEVER allow AI to issue DELETE — only soft-delete via status flag
   allowedOperations: ['CREATE', 'UPDATE'],
   forbiddenOperations: ['DELETE', 'TRUNCATE', 'DROP', 'bulkDelete', 'destroy'],
-  
+
   // 2. All AI writes must be wrapped in transactions
   requireTransaction: true,
-  
+
   // 3. All AI writes must be logged to an immutable audit table
   requireAuditLog: true,
-  
+
   // 4. Destructive-adjacent operations require explicit user confirmation
   requireConfirmation: [
     'deleteWorkout',
-    'resetProgress', 
+    'resetProgress',
     'cancelBooking',
     'removeAchievement'
   ],
-  
+
   // 5. AI cannot write to: Users, Payments, Orders, Roles tables — EVER
   forbiddenTables: ['Users', 'Orders', 'Payments', 'UserRoles', 'Sessions'],
-  
+
   // 6. Row count safety check before any bulk operation
   maxRowsAffected: 1, // AI can only modify ONE record per operation
 };
@@ -1717,13 +1717,13 @@ The blueprint must mandate — and the implementation must enforce:
 async function getClientDataForTrainer(trainerId, clientId) {
   // Step 1: Verify assignment BEFORE any data query
   const assignment = await TrainerClientAssignment.findOne({
-    where: { 
+    where: {
       trainerId: trainerId,      // from JWT — cannot be spoofed
       clientId: clientId,        // from request params
       status: 'active'           // must be currently active
     }
   });
-  
+
   if (!assignment) {
     // Log unauthorized access attempt
     await SecurityAuditLog.create({
@@ -1735,7 +1735,7 @@ async function getClientDataForTrainer(trainerId, clientId) {
     });
     throw new ForbiddenError('Trainer not assigned to this client');
   }
-  
+
   // Step 2: Only THEN query client data
   return await getClientData(clientId);
 }
@@ -1826,19 +1826,19 @@ More critically: if the XP update fails after the workout is logged, the user's 
 
 async function aiLogWorkout(userId, workoutData, postToFeed = false) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     // All writes in a single atomic transaction
     const session = await WorkoutSession.create(workoutData, { transaction });
-    
-    await User.increment('xp', { 
-      by: calculateXP(workoutData), 
+
+    await User.increment('xp', {
+      by: calculateXP(workoutData),
       where: { id: userId },
-      transaction 
+      transaction
     });
-    
+
     await Achievement.checkAndAward(userId, session, { transaction });
-    
+
     if (postToFeed) {
       await Post.create({
         userId,
@@ -1846,22 +1846,22 @@ async function aiLogWorkout(userId, workoutData, postToFeed = false) {
         type: 'workout_share'
       }, { transaction });
     }
-    
+
     // Only commits if ALL writes succeed
     await transaction.commit();
     return session;
-    
+
   } catch (error) {
     // Rolls back ALL writes if ANY fail
     await transaction.rollback();
-    
+
     // Log the failure for debugging — WITHOUT user PII in the log
-    logger.error('AI workout log failed', { 
+    logger.error('AI workout log failed', {
       userId, // OK — internal ID only
       error: error.message,
       // NEVER log: workoutData (may contain notes with PII)
     });
-    
+
     throw new Error('Workout could not be saved. Please try again.');
   }
 }
@@ -1908,13 +1908,13 @@ ADMIN DESTRUCTIVE OPERATION REQUIREMENTS:
 
 3. Row Count Safety Check:
    - Any bulk operation affecting more than 10 records requires secondary approval
-   - Any bulk operation affecting more than 100 records is BLOCKED and requires 
+   - Any bulk operation affecting more than 100 records is BLOCKED and requires
      direct database access (not through the UI)
 
 4. Immutable Audit Log:
    - Every admin action is written to an append-only audit log
    - Audit log cannot be deleted through the admin UI
-   - Audit log includes: adminId, action, affectedTable, affectedIds, timestamp, 
+   - Audit log includes: adminId, action, affectedTable, affectedIds, timestamp,
      before-state snapshot
 ```
 
@@ -1946,12 +1946,12 @@ There is **no specification** for:
 ## [PASS] Security II (Nemotron)
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 113.6s
 
-## SwanStudios – Second‑Opinion Security Review  
+## SwanStudios – Second‑Opinion Security Review
 *Focus: Issues that a typical automated “Step 3.5 Flash” scan might overlook (design‑level, business‑logic, and subtle implementation gaps).*
 
----  
+---
 
-### 📋 Summary of Ratings  
+### 📋 Summary of Ratings
 
 | Rating | Count |
 |--------|-------|
@@ -1960,9 +1960,9 @@ There is **no specification** for:
 | **MEDIUM** | 5 |
 | **LOW** | 3 |
 
----  
+---
 
-## 1. Data‑Flow Analysis – PII Exposure  
+## 1. Data‑Flow Analysis – PII Exposure
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -1972,9 +1972,9 @@ There is **no specification** for:
 | 1.4 | **Logging / Debugging** – No explicit statement that PII is **never** logged (e.g., request bodies, error stacks). | Accidental logging of headers, query params, or request bodies could capture emails, tokens, or health data in plain‑text log stores. | **MEDIUM** |
 | 1.5 | **Optional E2EE per conversation** – Key management not described. | If keys are derived from user‑supplied passwords without a proper KDF, or stored recoverably on the server, the “even SwanStudios can’t read” claim is false. | **HIGH** |
 
----  
+---
 
-## 2. API Boundary Security  
+## 2. API Boundary Security
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -1984,9 +1984,9 @@ There is **no specification** for:
 | 2.4 | **Public pages (Homepage, About, etc.) are unauthenticated** – No mention of **security headers** (CSP, HSTS) being applied uniformly; only TLS is noted. | Missing CSP could allow inline script injection via user‑generated content (e.g., community posts) to execute in the context of authenticated users who later navigate to those pages. | **LOW** |
 | 2.5 | **WebSocket real‑time messaging** – Encryption toggle per conversation (optional E2EE) but no mention of **WS‑level authentication** (token validation on upgrade) or **message‑rate limiting**. | An attacker could open a WS connection with a stolen JWT and flood the server or inject spam. | **LOW** |
 
----  
+---
 
-## 3. Dependency Chain Risks  
+## 3. Dependency Chain Risks
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -1996,9 +1996,9 @@ There is **no specification** for:
 | 3.4 | **Frontend tooling** – Use of `styled-components`, `Fira Code`, `Sora` fonts. No mention of **Subresource Integrity (SRI)** for CDN‑hosted assets. | Risk of supply‑chain attack if a CDN is compromised. | **LOW** |
 | 3.5 | **No mention of dependency‑scanning in CI** (e.g., `npm audit`, `Dependabot`, `Snyk`). | Vulnerabilities could persist unnoticed between releases. | **LOW** |
 
----  
+---
 
-## 4. Cryptographic Safety  
+## 4. Cryptographic Safety
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -2008,9 +2008,9 @@ There is **no specification** for:
 | 4.4 | **AES‑256 at rest** – No mention of **key management** (KMS, rotation, separation of duties). If keys are stored alongside data or in source, encryption offers little protection. | Key leakage renders encryption moot. | **MEDIUM** |
 | 4.5 | **Optional E2EE** – Uses “Signal Protocol” but no description of **key exchange verification** (e.g., safety numbers) or **key backup**. Users may be unable to verify authenticity, opening to MITM. | Undermines the privacy claim. | **MEDIUM** |
 
----  
+---
 
-## 5. Infrastructure Security  
+## 5. Infrastructure Security
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -2021,9 +2021,9 @@ There is **no specification** for:
 | 5.5 | **Security Panel (CVE scanning)** – Rate‑limited to “1 scan/hour max”. No mention of **scan result confidentiality** or **access controls** on the panel itself. | If the panel is exposed, an attacker could learn about unpatched vulnerabilities in the environment. | **LOW** |
 | 5.6 | **Infrastructure as Code (IaC) / Secrets** – No reference to secret management (Vault, AWS Secrets Manager) for DB credentials, API keys, JWT signing keys. | Hard‑coded secrets in source or config files are a common breach vector. | **LOW** |
 
----  
+---
 
-## 6. Privacy Compliance (GDPR/CCPA)  
+## 6. Privacy Compliance (GDPR/CCPA)
 
 | # | Finding | Why it Matters | Rating |
 |---|---------|----------------|--------|
@@ -2034,28 +2034,28 @@ There is **no specification** for:
 | 6.5 | **Privacy notice / UI** – No reference to a **privacy dashboard** where users can view what data is stored, who has accessed it, or export/delete it. | Transparency requirement under GDPR Art. 12‑14 not satisfied. | **LOW** |
 | 6.6 | **Children’s data** – If the service targets users under 16 (or 13 under COPPA), additional parental‑consent mechanisms are required. Not addressed. | Potential violation of child‑privacy laws. | **LOW** |
 
----  
+---
 
-## 📌 Overall Assessment  
+## 📌 Overall Assessment
 
-The architecture shows strong intentions (role‑based JWT, AES‑256 at rest, optional E2EE, clear tiered feature gating). However, **the most glaring gaps are around the external AI (Swan Coach) processing of sensitive health data and the lack of explicit consent / purpose‑limitation controls** – both rated **CRITICAL**.  
+The architecture shows strong intentions (role‑based JWT, AES‑256 at rest, optional E2EE, clear tiered feature gating). However, **the most glaring gaps are around the external AI (Swan Coach) processing of sensitive health data and the lack of explicit consent / purpose‑limitation controls** – both rated **CRITICAL**.
 
-Secondary concerns include **unspecified token handling, missing CSP/CORS hardening, vague rate limits, and insufficient dependency‑management hygiene** – all **HIGH/MEDIUM** items that a pure static/scanner‑based review could easily miss because they rely on design decisions and operational practices rather than detectable code patterns.  
+Secondary concerns include **unspecified token handling, missing CSP/CORS hardening, vague rate limits, and insufficient dependency‑management hygiene** – all **HIGH/MEDIUM** items that a pure static/scanner‑based review could easily miss because they rely on design decisions and operational practices rather than detectable code patterns.
 
-Addressing these findings will significantly raise the security and privacy posture of SwanStudios, especially given the handling of special‑category health data and the integration with an external LLM.  
+Addressing these findings will significantly raise the security and privacy posture of SwanStudios, especially given the handling of special‑category health data and the integration with an external LLM.
 
----  
+---
 
 ### Recommended Next Steps (for the engineering team)
 
-1. **AI Data Flow** – Implement a **privacy‑preserving proxy** that strips or pseudonymises PII before sending to Gemini Flash; obtain explicit opt‑in consent for AI‑assisted features.  
-2. **Consent & Rights** – Build a consent‑management UI (versioned, withdrawable) and a **right‑to‑erasure** endpoint that purges data from DB, backups, logs, and AI‑generated caches.  
-3. **Token Hardening** – Enforce short‑lived access tokens (≤15 min), refresh‑token rotation with replay detection, and store tokens in **HttpOnly, Secure, SameSite=Strict** cookies.  
-4. **CSP & CORS** – Deploy a strict CSP (nonce‑based for inline scripts, `default-src 'self'`) and limit CORS origins to the trusted frontend domains.  
-5. **Dependency Governance** – Lock versions, enable automated PR‑based vulnerability scanning (Dependabot/renovate), and audit raw Sequelize queries for parameterisation.  
-6. **Key Management** – Move AES‑256 and JWT signing keys to a cloud KMS with automatic rotation; enforce separation of duties.  
-7. **Audit Logging** – Ensure that **no PII** is written to application logs; if needed, hash or tokenise before logging.  
-8. **Admin Step‑Up** – Require re‑authentication (password + 2FA) for high‑risk admin actions (user deletion, role changes, security‑panel scans).  
+1. **AI Data Flow** – Implement a **privacy‑preserving proxy** that strips or pseudonymises PII before sending to Gemini Flash; obtain explicit opt‑in consent for AI‑assisted features.
+2. **Consent & Rights** – Build a consent‑management UI (versioned, withdrawable) and a **right‑to‑erasure** endpoint that purges data from DB, backups, logs, and AI‑generated caches.
+3. **Token Hardening** – Enforce short‑lived access tokens (≤15 min), refresh‑token rotation with replay detection, and store tokens in **HttpOnly, Secure, SameSite=Strict** cookies.
+4. **CSP & CORS** – Deploy a strict CSP (nonce‑based for inline scripts, `default-src 'self'`) and limit CORS origins to the trusted frontend domains.
+5. **Dependency Governance** – Lock versions, enable automated PR‑based vulnerability scanning (Dependabot/renovate), and audit raw Sequelize queries for parameterisation.
+6. **Key Management** – Move AES‑256 and JWT signing keys to a cloud KMS with automatic rotation; enforce separation of duties.
+7. **Audit Logging** – Ensure that **no PII** is written to application logs; if needed, hash or tokenise before logging.
+8. **Admin Step‑Up** – Require re‑authentication (password + 2FA) for high‑risk admin actions (user deletion, role changes, security‑panel scans).
 
 Implementing these will close the gaps most likely to be missed by a conventional automated scan and bring SwanStudios closer to a true “7‑star” security and privacy standard.
 
@@ -2296,9 +2296,9 @@ import { ZodSchema, z } from 'zod';
 const AIInputSchema = z.object({
   sessionId: z.string().uuid(),
   action: z.enum([
-    'log_workout', 
-    'check_progress', 
-    'set_goals', 
+    'log_workout',
+    'check_progress',
+    'set_goals',
     'book_session',
     'get_nutrition',
     'generate_workout',
@@ -2434,7 +2434,7 @@ class AISecurityManager {
 const aiInputValidator = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validation = await AIInputSchema.safeParse(req.body);
-    
+
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid AI request format',
@@ -2456,7 +2456,7 @@ const aiInputValidator = async (req: Request, res: Response, next: NextFunction)
       req.user.subscriptionTier,
       req.user.assignedTrainerId
     );
-    
+
     if (userContextHash !== validation.data.userContextHash) {
       return res.status(401).json({
         error: 'User context verification failed',
@@ -2505,12 +2505,12 @@ class AICostController {
   async recordCost(userId: string, tokens: number, model: string): Promise<void> {
     const cost = this.calculateCost(tokens, model);
     await this.insertSpendingRecord(userId, cost);
-    
+
     // Alert if approaching limits
     const tier = await this.getUserTier(userId);
     const limits = this.costLimits[tier as keyof typeof this.costLimits];
     const dailySpent = await this.getDailySpending(userId);
-    
+
     if (dailySpent > limits.daily * 0.8) {
       await this.sendCostAlert(userId, dailySpent, limits.daily);
     }
@@ -2542,7 +2542,7 @@ class AIOutputFilter {
       for (const pattern of this.sensitivePatterns) {
         output = output.replace(pattern, '[REDACTED]');
       }
-      
+
       // Remove any mention of other users' private data
       output = this.removeCrossUserData(output, requestingUserId);
     }

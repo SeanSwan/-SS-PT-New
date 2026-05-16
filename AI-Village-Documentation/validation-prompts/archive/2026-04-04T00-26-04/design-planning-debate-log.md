@@ -8,11 +8,11 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen up. The UX research provided is structurally sound—it identifies the exact friction points in the Bootcamp Builder and correctly flags the necessity of a multimodal, AI-driven interface. But research without a ruthless, uncompromising visual hierarchy is just a wireframe. 
+Listen up. The UX research provided is structurally sound—it identifies the exact friction points in the Bootcamp Builder and correctly flags the necessity of a multimodal, AI-driven interface. But research without a ruthless, uncompromising visual hierarchy is just a wireframe.
 
-As Creative Director, I do not do "suggestions." I do specifications. 
+As Creative Director, I do not do "suggestions." I do specifications.
 
-To power the **Manual + AI Hybrid Mode (3C)**, the **Connect to AI Hive Mind (3F)**, and the **Teach Me Mode (3H)**, we are deploying a state-of-the-art AI Coach Assistant interface. This is the nervous system of the new Bootcamp Builder. It must feel premium, instantaneous, and deeply integrated into the Crystalline Swan aesthetic. 
+To power the **Manual + AI Hybrid Mode (3C)**, the **Connect to AI Hive Mind (3F)**, and the **Teach Me Mode (3H)**, we are deploying a state-of-the-art AI Coach Assistant interface. This is the nervous system of the new Bootcamp Builder. It must feel premium, instantaneous, and deeply integrated into the Crystalline Swan aesthetic.
 
 Here is the **FINAL VISUAL SPECIFICATION** for the AI integration components. Deviations will not be merged.
 
@@ -47,7 +47,7 @@ Inject these into the global styled-components theme provider immediately:
 *   **Hover State (Interactive Items):** Background shifts to `--swan-graphite` (`#1A1A24`). Left border reveals a `3px solid --swan-ice` (`#60C0F0`).
 *   **Active State (Selected Exercise/Explanation):** Background shifts to `--swan-royal` (`#003080`). Left border snaps to `3px solid --swan-wing` (`#8B5CF6`). Text color locks to `--swan-frost` (`#E0ECF4`).
 *   **Transition Timing:** `all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)`. No sluggish fades.
-*   **Mobile Drawer Animation:** On screens `< 768px`, it becomes a bottom sheet. Width `100%`. 
+*   **Mobile Drawer Animation:** On screens `< 768px`, it becomes a bottom sheet. Width `100%`.
     *   *Enter:* `transform: translateY(100%)` → `translateY(0)`.
     *   *Duration:* `0.4s`.
     *   *Easing:* `cubic-bezier(0.16, 1, 0.3, 1)` (snappy entry, smooth deceleration).
@@ -56,17 +56,17 @@ Inject these into the global styled-components theme provider immediately:
 *When the AI explains WHY an exercise was chosen, the typography must be flawless. High contrast, highly legible.*
 
 *   **Code Block / Data Block Background:** `--swan-obsidian` (`#0A0A0F`) with a `1px solid --swan-graphite` (`#1A1A24`) border. Border-radius: `6px`.
-*   **Syntax Highlighting Colors:** 
+*   **Syntax Highlighting Colors:**
     *   Keywords/Variables: `--swan-wing` (`#8B5CF6`)
     *   Strings/Values: `--swan-ice` (`#60C0F0`)
     *   Comments/Muted text: `--swan-arctic` (`#50A0F0`) at `0.7` opacity.
-*   **Table Style (For Class Formats/Timing):** 
+*   **Table Style (For Class Formats/Timing):**
     *   Header Background: `--swan-midnight` (`#002060`).
     *   Borders: `1px solid --swan-graphite` (`#1A1A24`).
     *   Cell Padding: `12px 16px`.
     *   Text: `--swan-frost` (`#E0ECF4`).
 *   **Blockquote Border (For AI Tips/Modifications):** Left border `4px solid --swan-fern` (`#C6A84B`). Background: `rgba(20, 20, 25, 0.5)` (Carbon at 50%). Padding: `12px 16px`.
-*   **Heading Sizes:** 
+*   **Heading Sizes:**
     *   `H1`: `24px`, Font Weight `600`, Color: `--swan-frost` (`#E0ECF4`).
     *   `H2`: `20px`, Font Weight `600`, Color: `--swan-ice` (`#60C0F0`).
     *   `H3`: `16px`, Font Weight `600`, Color: `--swan-arctic` (`#50A0F0`), Letter-spacing: `0.05em`, Uppercase.
@@ -75,13 +75,13 @@ Inject these into the global styled-components theme provider immediately:
 *No generic spinners. We are using a crystalline shimmer effect to represent the Hive Mind calculating the 12-step generation pipeline.*
 
 *   **Bubble Shape:** 3 perfect circles. Width/Height: `8px`. Border-radius: `50%`. Gap: `6px`.
-*   **Colors:** 
+*   **Colors:**
     *   Dot 1: `--swan-ice` (`#60C0F0`)
     *   Dot 2: `--swan-wing` (`#8B5CF6`)
     *   Dot 3: `--swan-arctic` (`#50A0F0`)
-*   **Shimmer Animation Spec:** 
+*   **Shimmer Animation Spec:**
     *   `@keyframes swanThink { 0%, 100% { transform: translateY(0); opacity: 0.3; } 50% { transform: translateY(-4px); opacity: 1; box-shadow: 0 0 8px currentColor; } }`
-*   **Timing & Stagger:** `1.4s` infinite loop. 
+*   **Timing & Stagger:** `1.4s` infinite loop.
     *   Dot 1 delay: `0s`
     *   Dot 2 delay: `0.15s`
     *   Dot 3 delay: `0.3s`
@@ -94,7 +94,7 @@ Inject these into the global styled-components theme provider immediately:
 *   **Color Transitions & Dual-Button Glow (MANDATORY):**
     *   *Idle:* Background `--swan-royal` (`#003080`). Glow: Blue → Purple (`box-shadow: 0 0 15px #003080, 0 0 30px #8B5CF6`).
     *   *Recording (Active):* Background `--swan-wing` (`#8B5CF6`). Glow: Purple → Cyan (`box-shadow: 0 0 20px #8B5CF6, 0 0 40px #50A0F0`).
-*   **Amplitude Ring Specs:** 3 absolute-positioned concentric rings behind the orb. 
+*   **Amplitude Ring Specs:** 3 absolute-positioned concentric rings behind the orb.
     *   Base border: `1px solid --swan-arctic` (`#50A0F0`).
     *   Animation: Scale from `1.0` to `1.8` based on microphone audio amplitude. Fade opacity from `0.6` to `0` as it expands.
 *   **Duration Label Style:** Positioned `16px` below the orb. Font: `14px` Monospace (e.g., Roboto Mono or SF Mono). Color: `--swan-frost` (`#E0ECF4`). Font-weight: `500`.
@@ -104,7 +104,7 @@ Inject these into the global styled-components theme provider immediately:
 
 *   **Size:** Pill shape. Height: `22px`. Padding: `0 10px`.
 *   **Font:** `11px`, Uppercase, Tracking (Letter-spacing): `0.06em`, Font-weight: `700`.
-*   **Color (AI Hive Mind):** 
+*   **Color (AI Hive Mind):**
     *   Background: `--swan-midnight` (`#002060`)
     *   Text: `--swan-ice` (`#60C0F0`)
     *   Border: `1px solid rgba(96, 192, 240, 0.3)` (Ice Wing at 30%).
@@ -116,19 +116,19 @@ Inject these into the global styled-components theme provider immediately:
 *   **Thumbnail Size:** `48px x 48px` square.
 *   **Border Radius:** `8px`.
 *   **Background/Border:** Background `--swan-graphite` (`#1A1A24`). Border `1px solid --swan-lavender` (`#4070C0`).
-*   **Remove Button Placement:** Absolute positioning. Top: `-6px`, Right: `-6px`. 
-    *   Size: `20px x 20px`. 
-    *   Background: `--swan-obsidian` (`#0A0A0F`). 
-    *   Icon (X): `--swan-frost` (`#E0ECF4`), `12px` size. 
-    *   Border: `1px solid --swan-graphite` (`#1A1A24`). 
+*   **Remove Button Placement:** Absolute positioning. Top: `-6px`, Right: `-6px`.
+    *   Size: `20px x 20px`.
+    *   Background: `--swan-obsidian` (`#0A0A0F`).
+    *   Icon (X): `--swan-frost` (`#E0ECF4`), `12px` size.
+    *   Border: `1px solid --swan-graphite` (`#1A1A24`).
     *   Hover: Background shifts to `--swan-wing` (`#8B5CF6`).
 
 ---
 
 ### 🦅 CREATIVE DIRECTOR'S DIRECTIVE:
-Do not dilute these colors. Do not soften these edges. The Crystalline Swan theme relies on the stark contrast between the deep voids (`Obsidian`, `Carbon`) and the piercing, illuminated accents (`Ice Wing`, `Wing Purple`, `Arctic Cyan`). 
+Do not dilute these colors. Do not soften these edges. The Crystalline Swan theme relies on the stark contrast between the deep voids (`Obsidian`, `Carbon`) and the piercing, illuminated accents (`Ice Wing`, `Wing Purple`, `Arctic Cyan`).
 
-When implementing the **Exercise Rolodex Panel (3B)** and the **Class Preview Panel (4)**, ensure they inherit the exact same background hierarchy (`Carbon` for panels, `Graphite` for cards, `Obsidian` for deep wells/inputs) established in this AI Sidebar spec. 
+When implementing the **Exercise Rolodex Panel (3B)** and the **Class Preview Panel (4)**, ensure they inherit the exact same background hierarchy (`Carbon` for panels, `Graphite` for cards, `Obsidian` for deep wells/inputs) established in this AI Sidebar spec.
 
 Execute exactly as written.
 
@@ -385,18 +385,18 @@ Awaiting Creative Director's response on the **CSS architecture question** (Issu
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-The precision of your review is appreciated. A design is only as strong as its implementation, and your foresight on performance and architecture is exactly why we have this review process. 
+The precision of your review is appreciated. A design is only as strong as its implementation, and your foresight on performance and architecture is exactly why we have this review process.
 
-However, while I respect your engineering constraints, I will not compromise the fluidity or the premium feel of the Crystalline Swan aesthetic. 
+However, while I respect your engineering constraints, I will not compromise the fluidity or the premium feel of the Crystalline Swan aesthetic.
 
 Here are my rulings on your disputes. Update the specifications accordingly.
 
 ### 1. CSS Custom Properties vs. Styled-Components Architecture
 **Status: APPROVED WITH MODIFICATION**
-You are correct that mixing paradigms creates friction. We will use the JS theme object as the single source of truth. 
+You are correct that mixing paradigms creates friction. We will use the JS theme object as the single source of truth.
 
-**Directive:** 
-Implement your proposed `src/styles/theme.ts`. However, to ensure our Markdown renderer (which relies on raw HTML/CSS classes from the parser) can access these, you must implement a global style injector that maps the JS theme object back to `:root` CSS variables dynamically. 
+**Directive:**
+Implement your proposed `src/styles/theme.ts`. However, to ensure our Markdown renderer (which relies on raw HTML/CSS classes from the parser) can access these, you must implement a global style injector that maps the JS theme object back to `:root` CSS variables dynamically.
 
 ```typescript
 // src/styles/GlobalStyles.ts
@@ -415,14 +415,14 @@ export const GlobalStyles = createGlobalStyle`
 **Status: APPROVED**
 Good catch. An instant snap-out destroys the spatial illusion. Your proposed `cubic-bezier(0.4, 0, 1, 1)` (fast out, linear finish) is the correct physical model for an object dropping out of frame.
 
-**Directive:** 
+**Directive:**
 Merge your exact `drawerVariants` code into `src/components/AIHiveMindDrawer/styles.ts`.
 
 ### 3. Syntax Highlighting — Invalid CSS Opacity Reference
 **Status: APPROVED WITH MODIFICATION**
-I reject the use of `rgba()` in our theme object as it breaks the hex-code visual consistency of our design tokens. 
+I reject the use of `rgba()` in our theme object as it breaks the hex-code visual consistency of our design tokens.
 
-**Directive:** 
+**Directive:**
 Use the 8-digit Hex code for 70% opacity. Add this to `src/styles/theme.ts`:
 ```typescript
 colors: {
@@ -433,10 +433,10 @@ colors: {
 
 ### 4. Voice Recording Overlay — Amplitude Ring Performance
 **Status: DISPUTED AND REJECTED**
-I absolutely forbid a 30fps throttle on the Voice Orb. A 30fps audio visualization on a 120Hz modern display looks like a broken, lagging application. The orb must feel like a living, breathing entity. 
+I absolutely forbid a 30fps throttle on the Voice Orb. A 30fps audio visualization on a 120Hz modern display looks like a broken, lagging application. The orb must feel like a living, breathing entity.
 
-**Directive:** 
-We keep the native refresh rate (60-120fps), but we optimize the DOM to prevent layout thrashing. 
+**Directive:**
+We keep the native refresh rate (60-120fps), but we optimize the DOM to prevent layout thrashing.
 In `src/components/VoiceOrb/styles.ts`, enforce strict GPU acceleration. Do not transition opacity during the active recording phase—only scale.
 
 ```css
@@ -452,11 +452,11 @@ If Android performance still drops below 60fps during QA, we will rewrite the ri
 
 ### 5. Accessibility Baseline (Contrast Ratios)
 **Status: DISPUTED (Fact Correction) + PARTIAL APPROVAL**
-Check your contrast math. 
+Check your contrast math.
 *   Frost (`#E0ECF4`) on Royal (`#003080`) has a contrast ratio of **7.54:1**. It easily passes WCAG AAA, let alone AA.
 *   Arctic (`#50A0F0`) on Carbon (`#141419`) has a contrast ratio of **4.8:1**. Passes AA.
 
-The colors remain exactly as specified. However, I approve your addition of the accessibility focus ring object to `src/styles/theme.ts`. 
+The colors remain exactly as specified. However, I approve your addition of the accessibility focus ring object to `src/styles/theme.ts`.
 
 **Directive:**
 Update your proposed accessibility object to use our specific tokens:
@@ -486,7 +486,7 @@ typography: {
 
 ---
 **Summary for Round 2:**
-The architecture is locked. The animations are locked. Do not throttle my framerates. Update the theme file with the `Outfit` font and the `GlobalStyles` injector, and we are cleared to begin building the components. 
+The architecture is locked. The animations are locked. Do not throttle my framerates. Update the theme file with the `Outfit` font and the `GlobalStyles` injector, and we are cleared to begin building the components.
 
 Awaiting your confirmation on the Voice Orb hardware acceleration approach and the final `theme.ts` structure.
 
@@ -547,7 +547,7 @@ Your approval is confirmed. The `drawerVariants` code is cleared for `src/compon
 
 ### ✅ Issue 5: Accessibility Baseline — Fact Correction Accepted
 
-You are correct. I apologize for the error. 
+You are correct. I apologize for the error.
 
 - Frost (`#E0ECF4`) on Royal (`#003080`): **7.54:1** ✅ AAA
 - Arctic (`#50A0F0`) on Carbon (`#141419`): **4.8:1** ✅ AA
@@ -701,7 +701,7 @@ export const swanTheme = {
 
 CONSENSUS REACHED
 
-Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor. 
+Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor.
 
 Here are my final rulings on your remaining concerns, followed by the merged findings for the engineering team.
 
@@ -711,7 +711,7 @@ Here are my final rulings on your remaining concerns, followed by the merged fin
 You are cleared to mandate the PostCSS check. I will not compromise the token syntax in our JS theme, so if the current Webpack/Storybook pipeline strips the alpha channel from `#50A0F0B3`, the engineering team is directed to install and configure `postcss-hexrgba` immediately. The design tokens must remain pure hex.
 
 **2. Issue 4: Voice Orb Performance (Lingering Concern)**
-Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture. 
+Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture.
 
 Implement the `AMPLITUDE_CONFIG` exactly as you proposed in `src/components/VoiceOrb/hooks/useAmplitudeAnimation.ts`. The auto-detection via `hardwareConcurrency <= 4` is an elegant bridge between my demand for 60fps+ fidelity and your requirement for device stability.
 
@@ -771,11 +771,11 @@ The Voice Orb will run at the native refresh rate using strict GPU acceleration 
 **Configuration:**
 ```typescript
 export const AMPLITUDE_CONFIG = {
-  targetFPS: 60, 
+  targetFPS: 60,
   maxScale: 1.8,
   ringCount: 3,
-  fallbackToCanvas: true, 
-  canvasThreshold: navigator.hardwareConcurrency <= 4, 
+  fallbackToCanvas: true,
+  canvasThreshold: navigator.hardwareConcurrency <= 4,
 };
 ```
 
@@ -784,7 +784,7 @@ export const AMPLITUDE_CONFIG = {
 .amplitude-ring {
   will-change: transform;
   transform: scale3d(var(--ring-scale, 1), var(--ring-scale, 1), 1);
-  backface-visibility: hidden; 
+  backface-visibility: hidden;
 }
 ```
 
@@ -794,8 +794,7 @@ export const AMPLITUDE_CONFIG = {
 *   **Thinking Indicator:** 3-dot shimmer (`--swan-ice`, `--swan-wing`, `--swan-arctic`), staggered at `0.15s` intervals, `1.4s` loop.
 *   **Provider Badge:** Pill shape, `--swan-midnight` background, `--swan-ice` text, uppercase, `0.06em` tracking.
 
-**Directive to Engineering:** 
+**Directive to Engineering:**
 The specification is complete. Proceed with the build. Ensure `postcss-hexrgba` is verified in the pipeline before the first PR is merged.
 
 ---
-

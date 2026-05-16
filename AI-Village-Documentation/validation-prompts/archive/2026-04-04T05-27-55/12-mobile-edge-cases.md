@@ -16,7 +16,7 @@
 ## Detailed Breakdown
 
 ### 1. Sidebar on 320px Viewport
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Issue:** 85vw = 272px on 320px leaves only 48px for chat area. With conversation titles, timestamps, and action buttons, content will overflow or require excessive truncation.
 
 **CSS/React Solutions:**
@@ -25,23 +25,23 @@
 const Sidebar = styled.aside`
   /* Mobile-first: full width on smallest screens */
   width: 100%;
-  
+
   @media (min-width: 430px) {
     width: 85vw; /* Only apply 85vw at/above 430px */
     max-width: 320px;
   }
-  
+
   /* Ensure minimum content area */
   @media (max-width: 429px) {
     .conversation-item {
       padding: 12px 8px;
       font-size: 0.875rem;
     }
-    
+
     .timestamp {
       display: none; /* Hide timestamps on 320-375px */
     }
-    
+
     .action-buttons {
       opacity: 0.7;
       padding: 4px;
@@ -52,7 +52,7 @@ const Sidebar = styled.aside`
 // Alternative: Bottom navigation on mobile
 const MobileNav = styled.nav`
   display: block;
-  
+
   @media (min-width: 768px) {
     display: none;
   }
@@ -64,7 +64,7 @@ const MobileNav = styled.nav`
 ---
 
 ### 2. Voice Recording on iOS Safari
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** iOS Safari requires WebKit prefixes for MediaRecorder and has strict auto-play policies for TTS.
 
 **CSS/React Solutions:**
@@ -72,40 +72,40 @@ const MobileNav = styled.nav`
 // MediaRecorder with iOS Safari compatibility
 const useMediaRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
-  
+
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 44100
-        } 
+        }
       });
-      
+
       // Check for MediaRecorder support with WebKit prefix
-      const MediaRecorderClass = window.MediaRecorder || 
+      const MediaRecorderClass = window.MediaRecorder ||
         (window as any).webkitMediaRecorder;
-      
+
       if (!MediaRecorderClass) {
         throw new Error('MediaRecorder not supported on this browser');
       }
-      
+
       const recorder = new MediaRecorderClass(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
-      
+
       // iOS Safari requires user interaction for audio playback
-      const audioContext = new (window.AudioContext || 
+      const audioContext = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
-      
+
       return recorder;
     } catch (error) {
       console.error('Voice recording failed:', error);
       // Fallback: show UI instructions for iOS
     }
   };
-  
+
   return { startRecording, isRecording };
 };
 
@@ -115,12 +115,12 @@ const speakText = async (text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1;
-    
+
     // iOS requires resume on user interaction
     if (speechSynthesis.paused) {
       speechSynthesis.resume();
     }
-    
+
     speechSynthesis.speak(utterance);
   }
 };
@@ -131,7 +131,7 @@ const speakText = async (text: string) => {
 ---
 
 ### 3. Mobile Keyboard Management
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** Virtual keyboard can push sidebar off-screen or cause layout shifts. Need to manage viewport height dynamically.
 
 **CSS/React Solutions:**
@@ -141,21 +141,21 @@ const ChatContainer = styled.div<{ keyboardOpen: boolean }>`
   /* Use dynamic viewport units */
   height: ${props => props.keyboardOpen ? '100dvh' : '100vh'};
   height: ${props => props.keyboardOpen ? 'calc(100vh - env(keyboard-inset-height, 0px))' : '100vh'};
-  
+
   /* iOS Safari safe area */
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  
+
   /* Prevent layout shift */
   display: flex;
   flex-direction: column;
-  
+
   .messages-area {
     flex: 1;
     overflow-y: auto;
     /* Ensure visible when keyboard opens */
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .input-area {
     /* Fixed position at bottom */
     position: sticky;
@@ -168,7 +168,7 @@ const ChatContainer = styled.div<{ keyboardOpen: boolean }>`
 // Hook for keyboard detection
 const useKeyboardHeight = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  
+
   useEffect(() => {
     const handleResize = () => {
       const visualViewport = window.visualViewport;
@@ -177,16 +177,16 @@ const useKeyboardHeight = () => {
         setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('visualViewportChange', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('visualViewportChange', handleResize);
     };
   }, []);
-  
+
   return keyboardHeight;
 };
 ```
@@ -196,7 +196,7 @@ const useKeyboardHeight = () => {
 ---
 
 ### 4. Offline/Slow Network Handling
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Issue:** Conversations list failure needs graceful empty states and retry mechanisms.
 
 **CSS/React Solutions:**
@@ -205,20 +205,20 @@ const useKeyboardHeight = () => {
 const ConversationsList = () => {
   const { data, error, isLoading, refetch } = useConversations();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-  
+
   if (!isOnline) {
     return (
       <OfflineBanner>
@@ -230,21 +230,21 @@ const ConversationsList = () => {
       </OfflineBanner>
     );
   }
-  
+
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Couldn't load conversations"
         message="Check your connection and try again"
         onRetry={refetch}
       />
     );
   }
-  
+
   if (isLoading) {
     return <SkeletonLoader count={5} />;
   }
-  
+
   if (data?.length === 0) {
     return (
       <EmptyState
@@ -258,7 +258,7 @@ const ConversationsList = () => {
       />
     );
   }
-  
+
   return <ConversationListContent data={data} />;
 };
 
@@ -271,7 +271,7 @@ const ConversationsList = () => {
 ---
 
 ### 5. Long Conversation Titles
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Issue:** Auto-generated titles from first message need truncation strategy.
 
 **CSS/React Solutions:**
@@ -284,14 +284,14 @@ const ConversationTitle = styled.h3<{ isMobile: boolean }>`
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  
+
   /* Fallback for non-webkit */
   max-height: ${props => props.isMobile ? '3rem' : '1.5rem'};
-  
+
   /* Ensure readability */
   font-size: ${props => props.isMobile ? '0.875rem' : '1rem'};
   line-height: 1.5;
-  
+
   /* Prevent title from breaking UI */
   word-break: break-word;
 `;
@@ -300,25 +300,25 @@ const ConversationTitle = styled.h3<{ isMobile: boolean }>`
 const generateTitle = (firstMessage: string, maxLength: number = 50) => {
   const words = firstMessage.trim().split(/\s+/);
   let title = words[0];
-  
+
   for (let i = 1; i < words.length; i++) {
     if ((title + ' ' + words[i]).length > maxLength) {
       return title + '...';
     }
     title += ' ' + words[i];
   }
-  
+
   return title || 'New Conversation';
 };
 
 // Usage in conversation item
 const ConversationItem = ({ conversation }: { conversation: Conversation }) => {
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const title = useMemo(() => 
-    generateTitle(conversation.firstMessage), 
+  const title = useMemo(() =>
+    generateTitle(conversation.firstMessage),
     [conversation.firstMessage]
   );
-  
+
   return (
     <div className="conversation-item">
       <ConversationTitle isMobile={isMobile}>
@@ -335,7 +335,7 @@ const ConversationItem = ({ conversation }: { conversation: Conversation }) => {
 ---
 
 ### 6. Large Message History (100+ messages)
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** Unoptimized rendering of long conversations will cause performance issues on mobile devices.
 
 **CSS/React Solutions:**
@@ -350,7 +350,7 @@ const MessageList = ({ messages }: { messages: Message[] }) => {
       <MessageBubble message={messages[index]} />
     </div>
   );
-  
+
   return (
     <AutoSizer>
       {({ height, width }) => (
@@ -372,13 +372,13 @@ const MessageList = ({ messages }: { messages: Message[] }) => {
 const MessageContainer = styled.div`
   /* Enable GPU acceleration */
   transform: translateZ(0);
-  
+
   /* CSS containment for performance */
   contain: content;
-  
+
   /* Smooth scrolling */
   scroll-behavior: smooth;
-  
+
   /* Message items */
   .message {
     /* Promote to own layer */
@@ -392,10 +392,10 @@ const useInfiniteMessages = (conversationId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
-    
+
     setIsLoading(true);
     try {
       const oldestMessage = messages[messages.length - 1];
@@ -403,14 +403,14 @@ const useInfiniteMessages = (conversationId: string) => {
         before: oldestMessage?.id,
         limit: 30
       });
-      
+
       setMessages(prev => [...prev, ...newMessages]);
       setHasMore(newMessages.length === 30);
     } finally {
       setIsLoading(false);
     }
   }, [conversationId, messages, isLoading, hasMore]);
-  
+
   // Intersection Observer for infinite scroll
   const observerRef = useRef<IntersectionObserver>();
   const lastMessageRef = useCallback((node: HTMLDivElement) => {
@@ -422,7 +422,7 @@ const useInfiniteMessages = (conversationId: string) => {
     });
     if (node) observerRef.current.observe(node);
   }, [hasMore, loadMore]);
-  
+
   return { messages, hasMore, isLoading, lastMessageRef };
 };
 ```
@@ -432,7 +432,7 @@ const useInfiniteMessages = (conversationId: string) => {
 ---
 
 ### 7. RTL Language Support
-**Rating: LOW** (Not immediate but architectural)  
+**Rating: LOW** (Not immediate but architectural)
 **Issue:** Sidebar and layout need to flip correctly for RTL languages.
 
 **CSS/React Solutions:**
@@ -441,16 +441,16 @@ const useInfiniteMessages = (conversationId: string) => {
 const Sidebar = styled.aside`
   /* Instead of margin-left, use margin-inline-start */
   margin-inline-start: 0;
-  
+
   /* Instead of padding-left/right */
   padding-inline: 16px;
-  
+
   /* Instead of left/right positioning */
   inset-inline-start: 0;
-  
+
   /* Text alignment */
   text-align: start; /* Automatically LTR/RTL */
-  
+
   /* Flexbox with logical
 
 ---

@@ -18,9 +18,9 @@ After comprehensive review of the provided documentation files, I've identified 
 
 ### Finding 1 — Race Condition: Conversation Loading Without Abort Controller
 
-**Severity:** 🔴 CRITICAL  
-**File:** `02-architecture-design.md` — Preemptive Architectural Findings, Section 2  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `02-architecture-design.md` — Preemptive Architectural Findings, Section 2
+**What's Wrong:**
 The architecture brief acknowledges a race condition risk in conversation loading ("Fast clicking: User clicks conversation A, then B before A resolves") but provides a solution that is **not enforced as mandatory**. The `loadConversation` pattern with AbortController is presented as a "Recommended Fix" but the plan lacks enforcement mechanisms. Any AI executor will implement the naive version first, causing:
 - Stale messages appearing under wrong conversation headers
 - Memory leaks from orphaned fetch operations
@@ -73,9 +73,9 @@ Add to project linting/rules:
 
 ### Finding 2 — Styled-Components Runtime Crash Propagation (P0 Blocker)
 
-**Severity:** 🔴 CRITICAL  
-**File:** `02-architecture-design.md` — Finding 3, Styled-Components Runtime Crash  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `02-architecture-design.md` — Finding 3, Styled-Components Runtime Crash
+**What's Wrong:**
 The document identifies `RemotionTemplateGallery.tsx:482:51` as a crash site but the fix proposes adding error boundaries **without identifying the root cause**. The crash is described as a styled-components runtime error, which suggests one of:
 1. ThemeProvider missing at render ancestry
 2. Undefined prop passed to styled-component style function
@@ -95,8 +95,8 @@ const DangerouslyDynamicText = styled.span<{ value?: string | number }>`
       console.warn('DangerouslyDynamicText received null/undefined value');
       return '16px'; // Safe default
     }
-    return typeof props.value === 'number' 
-      ? `${props.value}px` 
+    return typeof props.value === 'number'
+      ? `${props.value}px`
       : props.value;
   }};
 `;
@@ -104,7 +104,7 @@ const DangerouslyDynamicText = styled.span<{ value?: string | number }>`
 // Theme validation at provider level
 const ThemeProviderValidation: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const theme = useContext(ThemeContext);
-  
+
   useEffect(() => {
     const required = ['primary', 'secondary', 'surface', 'text', 'background'];
     const missing = required.filter(key => !(key in theme));
@@ -115,7 +115,7 @@ const ThemeProviderValidation: React.FC<{ children: React.ReactNode }> = ({ chil
       );
     }
   }, [theme]);
-  
+
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
 };
 ```
@@ -124,9 +124,9 @@ const ThemeProviderValidation: React.FC<{ children: React.ReactNode }> = ({ chil
 
 ### Finding 3 — PII Exposure: No Client-Side Redaction Before AI Transmission
 
-**Severity:** 🔴 CRITICAL  
-**File:** `03-security-planning.md` — Finding 1, PII Exposure in AI Conversations  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `03-security-planning.md` — Finding 1, PII Exposure in AI Conversations
+**What's Wrong:**
 The security document identifies the risk ("ZERO PII TO LLMs policy") but the proposed mitigations are **architecture-level suggestions, not implementation code**. There is no actual redaction implementation. The gap is:
 
 1. No PII detection library integrated
@@ -168,7 +168,7 @@ export interface PIIEntity {
 export function redactPII(input: string): RedactionResult {
   const entitiesFound: PIIEntity[] = [];
   let sanitized = input;
-  
+
   for (const [type, pattern] of Object.entries(REDACTION_PATTERNS)) {
     let match;
     const regex = new RegExp(pattern.source, pattern.flags);
@@ -182,7 +182,7 @@ export function redactPII(input: string): RedactionResult {
       sanitized = sanitized.replace(match[0], `[${type}]`);
     }
   }
-  
+
   return {
     sanitized,
     entitiesFound,
@@ -195,9 +195,9 @@ export function createPIIGuardMiddleware() {
   return async (req: Request, res: Response, next: NextFunction) => {
     const body = req.body;
     const messageContent = body.messages?.map((m: { content: string }) => m.content).join(' ') || '';
-    
+
     const redaction = redactPII(messageContent);
-    
+
     if (redaction.confidence > 0.5) {
       // Log the attempt with redaction metadata
       logger.warn('PII detected in AI request', {
@@ -205,14 +205,14 @@ export function createPIIGuardMiddleware() {
         entitiesFound: redaction.entitiesFound,
         endpoint: req.path,
       });
-      
+
       return res.status(400).json({
         error: 'PII_DETECTED',
         message: 'Please remove personal identifiers from your request.',
         sanitizedHint: redaction.sanitized.substring(0, 100) + '...',
       });
     }
-    
+
     // Replace original content with sanitized
     if (redaction.sanitized !== messageContent) {
       req.body = {
@@ -225,7 +225,7 @@ export function createPIIGuardMiddleware() {
         _piiEntitiesFound: redaction.entitiesFound,
       };
     }
-    
+
     next();
   };
 }
@@ -235,9 +235,9 @@ export function createPIIGuardMiddleware() {
 
 ### Finding 4 — Missing Loading States for Async Operations
 
-**Severity:** 🟠 HIGH  
-**File:** `06-persona-alignment.md` — Throughout  
-**What's Wrong:**  
+**Severity:** 🟠 HIGH
+**File:** `06-persona-alignment.md` — Throughout
+**What's Wrong:**
 The persona alignment document identifies missing functionality (session history, upcoming endpoints returning 404, non-clickable saved plans) but the **root cause** is likely missing loading/error state handling in React. When these API calls fail or return null, the UI has no fallback, causing:
 - White screens while loading
 - Unhandled promise rejections
@@ -272,9 +272,9 @@ export function useAsyncResource<T>(
       const data = await fetcher();
       setState({ data, loading: false, error: null, refetch: fetch });
     } catch (error) {
-      setState({ 
-        data: null, 
-        loading: false, 
+      setState({
+        data: null,
+        loading: false,
         error: error instanceof Error ? error : new Error(String(error)),
         refetch: fetch,
       });
@@ -296,9 +296,9 @@ export function useAsyncResource<T>(
 
 ### Finding 5 — Null/Undefined Access in Session Duration Configuration
 
-**Severity:** 🟠 HIGH  
-**File:** `01-ux-research.md` — Section 2, Scheduling and Calendar  
-**What's Wrong:**  
+**Severity:** 🟠 HIGH
+**File:** `01-ux-research.md` — Section 2, Scheduling and Calendar
+**What's Wrong:**
 The document states: "Lack of 30/45-minute session support" as a missing feature. This implies the current implementation hardcodes session durations. The bug is likely:
 
 ```typescript
@@ -333,9 +333,9 @@ export const SESSION_DURATION_LABELS: Record<SessionDuration, string> = {
 
 ### Finding 6 — No State Management Strategy Defined (Critical Gap)
 
-**Severity:** 🔴 CRITICAL  
-**File:** `02-architecture-design.md` — Plan Gap Analysis Table  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `02-architecture-design.md` — Plan Gap Analysis Table
+**What's Wrong:**
 The gap analysis correctly identifies: "No state management strategy named (Zustand? Context? Redux?)" This is listed as 🔴 Critical. The consequence is **each AI pass will make different choices**, leading to:
 - Mixed Redux + Context + local state across components
 - Inconsistent patterns for server state vs. UI state
@@ -372,9 +372,9 @@ The gap analysis correctly identifies: "No state management strategy named (Zust
 
 ### Finding 7 — No Data Fetching Layer Defined (Race Conditions Guaranteed)
 
-**Severity:** 🔴 CRITICAL  
-**File:** `02-architecture-design.md` — Plan Gap Analysis Table  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `02-architecture-design.md` — Plan Gap Analysis Table
+**What's Wrong:**
 "No data fetching layer defined (React Query? SWR? raw fetch?)" is marked 🔴 Critical. Without a standardized fetching layer:
 - Raw `fetch()` calls scattered across components
 - No centralized error handling
@@ -416,12 +416,12 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
       ...options?.headers,
     },
   });
-  
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
     throw new APIError(error.message, response.status, endpoint);
   }
-  
+
   return response.json();
 }
 
@@ -433,9 +433,9 @@ export async function apiFetch<T>(endpoint: string, options?: RequestInit): Prom
 
 ### Finding 8 — Circular Dependency Risk in AI Terminal Hooks
 
-**Severity:** 🔴 CRITICAL  
-**File:** `02-architecture-design.md` — Finding 1, Hook Composition  
-**What's Wrong:**  
+**Severity:** 🔴 CRITICAL
+**File:** `02-architecture-design.md` — Finding 1, Hook Composition
+**What's Wrong:**
 The document describes the circular dependency risk:
 ```
 useCoachAssistant
@@ -465,7 +465,7 @@ But the recommended fix is **not implemented in the codebase**. The architecture
 useAITerminal
     ├── imports useAIConversations (L1)
     └── imports useAITerminalUI (L2)
-    
+
 L1 ──► L2 (L1 does NOT import L2)
 L2 ──X L1 (NO back-reference)
 ```
@@ -479,13 +479,13 @@ L2 ──X L1 (NO back-reference)
 
 ### Finding 9 — God Components Exceeding 300 Lines (No Enforcement)
 
-**Severity:** 🟠 HIGH  
-**File:** `02-architecture-design.md` — Finding 4, File Budget Violations Table  
-**What's Wrong:**  
+**Severity:** 🟠 HIGH
+**File:** `02-architecture-design.md` — Finding 4, File Budget Violations Table
+**What's Wrong:**
 The document correctly identifies files that will exceed 300 lines:
 - `WorkoutPlannerPage.tsx` — 500-800 lines
 - `CoachAssistant.tsx` — 400-600 lines
-- `ContentStudio.tsx` — 
+- `ContentStudio.tsx` —
 
 ---
 

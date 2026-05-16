@@ -18,7 +18,7 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 **Finding:** Floating chat widget on every page with "Context-Aware" capabilities and CRUD operations.
 *   **Rating: HIGH (Network & Bundle)**
 *   **Impact:** Loading a heavy LLM-chat interface on the critical path of the Homepage/Landing page will destroy LCP (Largest Contentful Paint) and TTI (Time to Interactive).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Lazy Load:** The Chat Widget must be dynamically imported only when the user clicks the toggle.
     *   **Context Injection:** Instead of the widget "scraping" the page, use a `useSwanContext` hook to provide a memoized JSON object to the chat API, preventing N+1 data fetching calls just to give the AI context.
 
@@ -26,8 +26,8 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 **Finding:** MidJourney-like generation to "Replace sidebar icons... on the fly."
 *   **Rating: CRITICAL (Scalability & Memory)**
 *   **Impact:** Storing user-generated assets in a database as Base64 or frequent writes to S3 will bloat the storage layer. Applying these dynamically via JS will cause **Layout Shift (CLS)**.
-*   **Recommendation:** 
-    *   Implement an **Image Proxy/CDN** (like Cloudinary or Imgix) to handle resizing and WebP conversion on the fly. 
+*   **Recommendation:**
+    *   Implement an **Image Proxy/CDN** (like Cloudinary or Imgix) to handle resizing and WebP conversion on the fly.
     *   Cache generated icons locally in `IndexedDB` to prevent redundant network requests for UI elements.
 
 ### 4. Animation Tiers (`useAnimationTier`)
@@ -51,7 +51,7 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 ### 7. Canada Immigration Tab (CRUD Logic)
 **Finding:** "Verify every clickable element... verify all CRUD operations."
 *   **Rating: MEDIUM (Database Efficiency)**
-*   **Impact:** Immigration trackers often involve large document uploads and complex state. 
+*   **Impact:** Immigration trackers often involve large document uploads and complex state.
 *   **Recommendation:** Ensure the PostgreSQL schema uses **JSONB** for the "Document Tracker" to allow flexibility without constant migrations, but add **GIN indexes** on the JSONB fields to ensure queries for "Submitted" vs "Pending" documents remain $O(1)$.
 
 ### 8. Scalability: Multi-Instance State

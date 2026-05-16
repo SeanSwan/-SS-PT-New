@@ -28,9 +28,9 @@
 | 🟡 MEDIUM | 10 |
 | 🟢 LOW | 5 |
 
-**Production Blockers:** 6  
-**Security Vulnerabilities:** 7  
-**Architectural Flaws:** 9  
+**Production Blockers:** 6
+**Security Vulnerabilities:** 7
+**Architectural Flaws:** 9
 **Missing Implementation Details:** 14
 
 ---
@@ -66,7 +66,7 @@ class TokenVault {
   constructor(encryptionKey) {
     this.cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, Buffer.alloc(16));
   }
-  
+
   async storeToken(platform, userId, { access_token, refresh_token, expires_at }) {
     const encrypted = this.encrypt(JSON.stringify({ access_token, refresh_token }));
     await db.tokens.upsert({
@@ -77,18 +77,18 @@ class TokenVault {
       updated_at: new Date()
     });
   }
-  
+
   async getValidToken(platform, userId) {
     const token = await db.tokens.findOne({ platform, user_id: userId });
-    
+
     // Auto-refresh if expiring within 5 minutes
     if (token.expires_at - Date.now() < 5 * 60 * 1000) {
       return await this.refreshToken(platform, userId);
     }
-    
+
     return this.decrypt(token.encrypted_payload);
   }
-  
+
   async refreshToken(platform, userId) {
     // Platform-specific refresh logic with exponential backoff
     // Alert Sean via email/Slack if refresh fails after 3 attempts
@@ -129,7 +129,7 @@ export const csrfProtection = async (req, res, next) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
   }
-  
+
   // Validate origin header
   const origin = req.headers.origin;
   const allowedOrigins = [
@@ -137,19 +137,19 @@ export const csrfProtection = async (req, res, next) => {
     'https://www.sswanstudios.com',
     process.env.NODE_ENV === 'development' && 'http://localhost:3000'
   ].filter(Boolean);
-  
+
   if (!allowedOrigins.includes(origin)) {
     return res.status(403).json({ error: 'Invalid origin' });
   }
-  
+
   // Validate CSRF token for cookie-based sessions
   const cookieToken = req.cookies['csrf_token'];
   const headerToken = req.headers['x-csrf-token'];
-  
+
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return res.status(403).json({ error: 'CSRF token mismatch' });
   }
-  
+
   next();
 };
 
@@ -226,11 +226,11 @@ export const sanitizeHtml = (dirty) => {
 // Usage in blogService.mjs
 export const publishBlogPost = async (postId, userId) => {
   const post = await db.posts.findById(postId);
-  
+
   // Sanitize before any processing
   const sanitizedContent = sanitizeHtml(post.content);
   const sanitizedTitle = sanitizeHtml(post.title);
-  
+
   // Also run output encoding at render time (frontend)
   await db.posts.update(postId, {
     content: sanitizedContent,
@@ -257,7 +257,7 @@ The requirement contradicts itself. **Environment variables are NOT encrypted**:
 **Current (WRONG):**
 ```bash
 # .env - INSECURE
-LATE_API_KEY=sk_live_xxxxxxxxxxxxxxxx
+LATE_API_KEY=<REDACTED-STRIPE-SECRET-KEY>
 BLOTATO_API_KEY=btk_live_xxxxxxxxxxxxx
 ```
 
@@ -272,22 +272,22 @@ class SecretsManager {
     this.cache = new Map();
     this.cacheExpiry = Date.now() + 5 * 60 * 1000; // 5 min TTL
   }
-  
+
   async getSecret(secretName) {
     // Check cache first
     if (this.cache.has(secretName) && Date.now() < this.cacheExpiry) {
       return this.cache.get(secretName);
     }
-    
+
     const response = await this.client.getSecretValue({ SecretId: secretName });
     const secret = JSON.parse(response.SecretString);
-    
+
     // Cache for subsequent reads
     this.cache.set(secretName, secret);
-    
+
     return secret;
   }
-  
+
   async getApiKey(service) {
     const secrets = await this.getSecret('swanstudios/api-keys');
     return secrets[service]; // Throws if not found
@@ -331,15 +331,15 @@ const RATE_LIMITS = {
 export const rateLimiter = (limitType = 'default') => async (req, res, next) => {
   const config = RATE_LIMITS[limitType];
   const key = `ratelimit:${limitType}:${req.user?.id || req.ip}`;
-  
+
   const [tokens, lastRefill] = await redis.hmget(key, 'tokens', 'lastRefill');
-  
+
   const now = Date.now();
   const timePassed = (now - parseInt(lastRefill)) / 1000;
   const refilledTokens = Math.floor(timePassed * (config.refillRate / 60));
-  
+
   let currentTokens = Math.min(config.bucketSize, parseInt(tokens || config.bucketSize) + refilledTokens);
-  
+
   if (currentTokens <= 0) {
     const retryAfter = Math.ceil((config.bucketSize / (config.refillRate / 60)));
     res.set('Retry-After', retryAfter);
@@ -350,13 +350,13 @@ export const rateLimiter = (limitType = 'default') => async (req, res, next) => 
       reset: new Date(now + retryAfter * 1000)
     });
   }
-  
+
   await redis.hmset(key, {
     tokens: currentTokens - 1,
     lastRefill: now
   });
   await redis.expire(key, 60);
-  
+
   res.set({
     'X
 

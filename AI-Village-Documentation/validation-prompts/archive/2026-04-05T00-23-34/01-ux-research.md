@@ -26,7 +26,7 @@ Here are the UX research insights for the SwanStudios feature upgrade plan, stru
 *   **Client & Trainer Dashboards:**
     *   **Centralized Client Overview:** Emulate TrueCoach and My PT Hub's consolidated client views, showing compliance rates, upcoming sessions, and recent activities at a glance.
     *   **Streamlined Communication:** Integrate in-app messaging with multimedia support (photos, videos for form checks) and scheduled notifications, similar to TrueCoach and My PT Hub.
-    *   **Automated Check-ins & Programming:** Implement automated client check-ins and progressive program scaling based on client progress, a feature highlighted by My PT Hub and Trainerize. [cite: 
+    *   **Automated Check-ins & Programming:** Implement automated client check-ins and progressive program scaling based on client progress, a feature highlighted by My PT Hub and Trainerize. [cite:
 
 ---
 

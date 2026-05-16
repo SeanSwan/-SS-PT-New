@@ -213,7 +213,7 @@ But the gating pattern shown gates **non-AI premium features** (Creator Economy,
 
 ```sql
 -- Migration must include:
-ALTER TABLE "Users" ADD CONSTRAINT "unique_trial_email" 
+ALTER TABLE "Users" ADD CONSTRAINT "unique_trial_email"
   UNIQUE ("trialEmail"); -- or use the existing email field with a separate TrialHistory table
 ```
 
@@ -269,7 +269,7 @@ The current plan implies Option B (there's a `useSubscription` hook) but doesn't
 **Rating:** HIGH
 **Location:** Section 10, Phase 5
 
-The component is used throughout the gating pattern but has no entry in the New Files or Modified Files manifest. It either already exists (not mentioned) or needs to be built (not planned). 
+The component is used throughout the gating pattern but has no entry in the New Files or Modified Files manifest. It either already exists (not mentioned) or needs to be built (not planned).
 
 **Required additions to the manifest:**
 
@@ -287,7 +287,7 @@ interface CrystallineLockOverlayProps {
   ctaLabel?: string;                       // override if needed
   onUpgrade: () => void;                   // not onConfigure — name the intent
   children: React.ReactNode;
-  /** 
+  /**
    * When true, renders null instead of overlay UI when locked.
    * Use for content with real value (not just UI chrome).
    * Default: false (shows overlay with blurred content behind)
@@ -346,7 +346,7 @@ interface PaywallState {
 // On unlock:
 async function retryPendingRequest(): Promise<void> {
   if (!state.pendingRetry) return;
-  // Re-execute through the axios instance — interceptors re-run, 
+  // Re-execute through the axios instance — interceptors re-run,
   // including the auth header injection interceptor
   await apiClient.request(state.pendingRetry);
 }

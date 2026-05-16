@@ -11,7 +11,7 @@ As a Web Performance Engineer, I have reviewed the **Bootcamp Format & Style Com
 ### 1. Bundle Size (Markdown & Highlighting)
 **Rating: HIGH**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~65-80KB (gzipped) to the main bundle. For a "wealthy golf client" on a mobile device at a country club (potentially spotty LTE), this delays First Contentful Paint (FCP).
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main bundle. Use `const ReactMarkdown = React.lazy(() => import('react-markdown'))` specifically within the `TeachMe` or `ClassPreview` components.
     *   **Lightweight Alternatives:** Consider `snarkdown` or `micromark` if full GFM/Highlighting isn't required for exercise descriptions.
 

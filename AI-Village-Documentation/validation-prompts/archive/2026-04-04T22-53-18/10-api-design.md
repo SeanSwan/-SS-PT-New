@@ -12,8 +12,8 @@ Below is a concise, actionable audit of the existing AI‑chat endpoints against
 
 ---
 
-### 1. Existing API Sufficiency – Sidebar Data  
-**Claim:** *Phase 1 needs zero backend changes.*  
+### 1. Existing API Sufficiency – Sidebar Data
+**Claim:** *Phase 1 needs zero backend changes.*
 
 | Required Sidebar Field | Where it should come from | Current state (as inferred from typical implementation) | Verdict |
 |------------------------|---------------------------|----------------------------------------------------------|---------|
@@ -23,8 +23,8 @@ Below is a concise, actionable audit of the existing AI‑chat endpoints against
 | `messageCount` (total messages) | Same endpoint | ❓ Frequently missing; can be derived client‑side but adds overhead | **Needs addition** |
 | `lastMessageAt` (timestamp of most recent message) | Same endpoint | ❓ Frequently missing | **Needs addition** |
 
-**Recommendation**  
-Add the three missing fields to the conversation list payload. If the backend already returns a `messages` array, you can compute `messageCount` and `lastMessageAt` in the service layer; otherwise, store denormalized counters on the `Conversation` model and update them via a Sequelize hook (`afterCreate`/`afterUpdate` on `Message`).  
+**Recommendation**
+Add the three missing fields to the conversation list payload. If the backend already returns a `messages` array, you can compute `messageCount` and `lastMessageAt` in the service layer; otherwise, store denormalized counters on the `Conversation` model and update them via a Sequelize hook (`afterCreate`/`afterUpdate` on `Message`).
 
 ```json
 // Example shape after change
@@ -45,9 +45,9 @@ Add the three missing fields to the conversation list payload. If the backend al
 
 ---
 
-### 2. Search Endpoint – Client‑Side vs Server‑Side Filtering  
+### 2. Search Endpoint – Client‑Side vs Server‑Side Filtering
 
-**Current approach (per plan):** Load the first 20 conversations and filter them client‑side (e.g., `Array.prototype.filter` on title).  
+**Current approach (per plan):** Load the first 20 conversations and filter them client‑side (e.g., `Array.prototype.filter` on title).
 
 | Conversation Count | Client‑Side Viability | Server‑Side Need |
 |--------------------|----------------------|------------------|
@@ -55,20 +55,20 @@ Add the three missing fields to the conversation list payload. If the backend al
 | 51 – 200           | ⚠️ Still okay if payload < ≈ 30 KB; UI may feel sluggish on low‑end devices | Recommended for consistent UX |
 | > 200              | ❌ Not acceptable – payload grows linearly, UI blocks | **Required** |
 
-**When to add server‑search:**  
-- As soon as the product expects **more than 50 active conversations per user** (a realistic ceiling for a SaaS with long‑term users).  
+**When to add server‑search:**
+- As soon as the product expects **more than 50 active conversations per user** (a realistic ceiling for a SaaS with long‑term users).
 - When you anticipate **global search** (across all users, e.g., admin dashboard) or **full‑text search** on message bodies.
 
-**Suggested endpoint:**  
+**Suggested endpoint:**
 
 ```
 GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 ```
 
-- Perform **ILIKE** on `title` (PostgreSQL) and optionally **JSONB** search on a `summary` column that stores concatenated message text (or use `pg_trgm`/`tsvector` for fuzzy matching).  
-- Return the same `ConversationSummary` shape as the list endpoint (so the UI can reuse the component).  
+- Perform **ILIKE** on `title` (PostgreSQL) and optionally **JSONB** search on a `summary` column that stores concatenated message text (or use `pg_trgm`/`tsvector` for fuzzy matching).
+- Return the same `ConversationSummary` shape as the list endpoint (so the UI can reuse the component).
 
-**Implementation tip:** Add a database index:  
+**Implementation tip:** Add a database index:
 
 ```sql
 CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin_trgm_ops);
@@ -76,9 +76,9 @@ CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin
 
 ---
 
-### 3. File Attachment Endpoint – REST Design  
+### 3. File Attachment Endpoint – REST Design
 
-**Proposed:** `POST /api/ai-chat/conversations/:id/attachments`  
+**Proposed:** `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -89,15 +89,15 @@ CREATE INDEX idx_conversations_title_ilike ON conversations USING gin (title gin
 | **Security** | Validate file type (whitelist: image/*, video/*, application/pdf) and size (e.g., ≤ 10 MB). Store files in a secure bucket (S3/GCS) and return a signed URL or CDN path. |
 | **Idempotency** | Not required; each upload is a distinct resource. |
 
-**Recommendation:** Keep the endpoint as‑is, but add:  
+**Recommendation:** Keep the endpoint as‑is, but add:
 
-- **Query param** `?type=message` (future‑proof for other attachment types).  
-- **Rate limit** (see §5).  
+- **Query param** `?type=message` (future‑proof for other attachment types).
+- **Rate limit** (see §5).
 - **Error handling** – return `415 Unsupported Media Type` or `413 Payload Too Large` with a clear JSON error body.
 
 ---
 
-### 4. Multimodal Message API – Sending Images to Gemini  
+### 4. Multimodal Message API – Sending Images to Gemini
 
 The current `POST /api/ai-chat/conversations/:id/messages` likely expects `{ content: string }`. To support images (and potentially other media) you have two clean options:
 
@@ -118,29 +118,29 @@ Content-Type: application/json
 }
 ```
 
-- **Pros:** Single round‑trip after upload; easy to reason about; matches typical chat APIs (Slack, Discord).  
+- **Pros:** Single round‑trip after upload; easy to reason about; matches typical chat APIs (Slack, Discord).
 - **Cons:** Requires the client to have already uploaded the attachment (see §3) and obtained its ID.
 
 #### Option B – **Upload‑Then‑Reference Flow** (more explicit)
 
-1. `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, uploadUrl }`.  
-2. Client uploads the binary to `uploadUrl` (presigned S3 URL).  
+1. `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, uploadUrl }`.
+2. Client uploads the binary to `uploadUrl` (presigned S3 URL).
 3. Client sends the message with `"attachmentId": "<id>"` as above.
 
-- **Pros:** Decouples binary transfer from JSON; enables retry/resumable uploads.  
+- **Pros:** Decouples binary transfer from JSON; enables retry/resumable uploads.
 - **Cons:** Slightly more complex client flow.
 
-**Recommendation:** Adopt **Option A** (extended body) because the plan already proposes a dedicated attachment endpoint; the client will naturally call it first, then send the message referencing the attachment ID.  
+**Recommendation:** Adopt **Option A** (extended body) because the plan already proposes a dedicated attachment endpoint; the client will naturally call it first, then send the message referencing the attachment ID.
 
-**Backend changes needed:**  
+**Backend changes needed:**
 
-- Add `attachments?: Array<{ id: string; type: 'image' | 'video' | 'file' }>` to the message creation DTO.  
-- In the service layer, fetch attachment records, verify they belong to the conversation, and pass their public URLs (or signed URLs) to the Gemini multimodal API.  
-- Update Sequelize `Message` model to have a JSONB column `attachments` for persistence (or a join table `MessageAttachment` if you need querying).  
+- Add `attachments?: Array<{ id: string; type: 'image' | 'video' | 'file' }>` to the message creation DTO.
+- In the service layer, fetch attachment records, verify they belong to the conversation, and pass their public URLs (or signed URLs) to the Gemini multimodal API.
+- Update Sequelize `Message` model to have a JSONB column `attachments` for persistence (or a join table `MessageAttachment` if you need querying).
 
 ---
 
-### 5. Rate Limiting for New Operations  
+### 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit | Rationale |
 |-----------|--------------------|----------------|-----------|
@@ -154,35 +154,35 @@ Content-Type: application/json
 
 ---
 
-### 6. WebSocket Integration – Push vs Poll  
+### 6. WebSocket Integration – Push vs Poll
 
 The plan mentions Socket.io exists. For a chat‑like UI, **real‑time push** is superior to polling for:
 
-- New incoming messages (AI or human).  
-- Updates to conversation metadata (title change, lastMessageAt, messageCount).  
-- Attachment upload completion (to show preview instantly).  
+- New incoming messages (AI or human).
+- Updates to conversation metadata (title change, lastMessageAt, messageCount).
+- Attachment upload completion (to show preview instantly).
 
-**Recommendation:**  
+**Recommendation:**
 
-1. **Maintain a Socket.io namespace** `/ai-chat`.  
-2. On successful message creation (REST), **emit** an event to all sockets subscribed to that conversation:  
+1. **Maintain a Socket.io namespace** `/ai-chat`.
+2. On successful message creation (REST), **emit** an event to all sockets subscribed to that conversation:
 
    ```js
    io.to(`conversation:${conversationId}`).emit('messageCreated', newMessage);
    ```
 
-3. On attachment upload completion, emit `attachmentReady`.  
-4. On conversation rename/update, emit `conversationUpdated`.  
+3. On attachment upload completion, emit `attachmentReady`.
+4. On conversation rename/update, emit `conversationUpdated`.
 
-**Client side:**  
-- Keep the REST list endpoint as a **fallback** (e.g., on reconnect) and for initial load.  
-- Use the socket events to update the sidebar and message list optimistically, reducing perceived latency to near‑zero.  
+**Client side:**
+- Keep the REST list endpoint as a **fallback** (e.g., on reconnect) and for initial load.
+- Use the socket events to update the sidebar and message list optimistically, reducing perceived latency to near‑zero.
 
 **When to keep polling:** Only if you need to support environments where WebSockets are blocked (corporate firewalls). In that case, fallback to short‑polling (every 15 s) with the same REST endpoint.
 
 ---
 
-### 7. Response Contract – ConversationSummary Adequacy  
+### 7. Response Contract – ConversationSummary Adequacy
 
 The sidebar expects a type roughly like:
 
@@ -196,10 +196,10 @@ type ConversationSummary = {
 };
 ```
 
-**Current typical shape** (if only `id`, `title`, `createdAt`, `updatedAt` are returned) is **insufficient**.  
+**Current typical shape** (if only `id`, `title`, `createdAt`, `updatedAt` are returned) is **insufficient**.
 
-**Action:**  
-- Add the missing fields (`context`, `messageCount`, `lastMessageAt`) to the serializer / Sequelize `scope` or `Model.prototype.toJSON`.  
+**Action:**
+- Add the missing fields (`context`, `messageCount`, `lastMessageAt`) to the serializer / Sequelize `scope` or `Model.prototype.toJSON`.
 - Ensure `lastMessageAt` is updated via a **Sequelize hook** on `Message.afterCreate`/`afterUpdate` that does:
 
   ```js
@@ -215,7 +215,7 @@ type ConversationSummary = {
 
 ---
 
-### 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+### 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Factor | Evaluation |
 |--------|------------|
@@ -241,11 +241,11 @@ type ConversationSummary = {
 | 7 | Ensure `ConversationSummary` shape matches sidebar needs (`id`, `title`, `context`, `messageCount`, `lastMessageAt`). Add missing fields via serializer or denormalized columns with hooks. | Guarantees UI has required data without extra client logic. |
 | 8 | Keep a 5‑minute TTL cache on the conversation list **but** invalidate on any mutation (new message, rename, attachment). Optionally update the cached entry optimistically. | Reduces DB load while preserving up‑to‑date UI. |
 
-Implementing the above will make the AI‑chat backend fully ready for the features described in the plan (sidebar, search, attachments, multimodal messages) while maintaining performance, security, and a clean developer experience.  
+Implementing the above will make the AI‑chat backend fully ready for the features described in the plan (sidebar, search, attachments, multimodal messages) while maintaining performance, security, and a clean developer experience.
 
----  
+---
 
-*Prepared for SwanStudios – AI‑Chat Workflow Review*  
+*Prepared for SwanStudios – AI‑Chat Workflow Review*
 *Date: 2025‑09‑16*
 
 ---

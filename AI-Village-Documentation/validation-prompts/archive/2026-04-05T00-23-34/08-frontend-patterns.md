@@ -13,7 +13,7 @@ This review focuses on stabilizing the architecture for the **Enchanted Apex** t
 ### 1. Styled-components Organization
 **Verdict:** Splitting into 5 files is **over-engineering** for a project of this scale.
 *   **The Issue:** Barrel re-exports create "dependency hell" and make it harder to track where a specific style is defined.
-*   **Recommendation:** Use a **Feature-Based Colocation** pattern. Keep styles in the same directory as the component (e.g., `BootcampBuilder/BootcampBuilder.styles.ts`). 
+*   **Recommendation:** Use a **Feature-Based Colocation** pattern. Keep styles in the same directory as the component (e.g., `BootcampBuilder/BootcampBuilder.styles.ts`).
 *   **Global Theme:** Keep `theme.ts` (colors, spacing, typography) separate. Use `styled-components` `ThemeProvider` to inject your palette. Only use a shared `styles/` folder for truly global elements (e.g., `GlobalReset.ts`, `Typography.ts`).
 
 ### 2. Hook Composition
@@ -53,7 +53,7 @@ This review focuses on stabilizing the architecture for the **Enchanted Apex** t
 ### 6. Form Handling
 **Verdict:** **Controlled inputs are required for your AI Coach.**
 *   **The Issue:** Uncontrolled inputs make it difficult to sync the "Voice-first" input with the text input field.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Controlled:** Use for the AI Chat and Search inputs to ensure the UI reflects the current "Voice" state immediately.
     *   **Debounce:** Use `use-debounce` hook for the Sidebar search to prevent API spamming to your exercise database.
 

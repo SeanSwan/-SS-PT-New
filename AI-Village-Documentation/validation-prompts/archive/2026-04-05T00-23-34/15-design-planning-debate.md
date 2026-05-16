@@ -8,11 +8,11 @@
 
 CONSENSUS REACHED
 
-It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility. 
+It takes a mature engineering reviewer to admit a mathematical error, and I respect your intellectual honesty regarding the concentric box model. You have successfully aligned the technical implementation with the Crystalline Swan aesthetic without compromising performance or accessibility.
 
 Regarding your P3 note on 240px viewports: SwanStudios is a premium, elite coaching platform. We do not degrade our UI for decade-old budget devices or edge-case micro-screens. Our absolute minimum supported viewport is 320px (iPhone SE). The 120px orb footprint stands proudly.
 
-The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements. 
+The engineering implementation for the `ThinkingIndicator.jsx` using the `::before` pseudo-element is flawless. It preserves my exact gradient sweep while satisfying your GPU-acceleration requirements.
 
 Here is the final, uncompromising, merged specification for the engineering team. Build it exactly as written.
 
@@ -28,13 +28,13 @@ Inject these exact properties. No deviations.
   --swan-obsidian: #0A0A0F;
   --swan-carbon: #141419;
   --swan-graphite: #1A1A24;
-  
+
   /* Core Blues */
   --swan-midnight: #002060;
   --swan-royal: #003080;
   --swan-arctic: #50A0F0;
   --swan-ice: #60C0F0;
-  
+
   /* Accents & Syntax */
   --swan-wing-purple: #8B5CF6;
   --swan-gilded-fern: #C6A84B;
@@ -84,7 +84,7 @@ Inject these exact properties. No deviations.
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
       overflow: hidden;
-      
+
       &::before {
         content: '';
         position: absolute;
@@ -93,7 +93,7 @@ Inject these exact properties. No deviations.
         transform: translateX(-100%);
         animation: shimmer-slide 1.5s var(--ease-crystalline) infinite;
       }
-      
+
       @keyframes shimmer-slide {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(200%); }
@@ -121,8 +121,8 @@ Inject these exact properties. No deviations.
 *   **Dynamic Styling (WCAG AA Compliant):**
     ```jsx
     const Badge = styled.div`
-      background-color: ${props => props.$isHuman 
-        ? 'var(--swan-gilded-fern-bright)' 
+      background-color: ${props => props.$isHuman
+        ? 'var(--swan-gilded-fern-bright)'
         : 'var(--swan-ice)'};
       color: var(--swan-obsidian);
       border-radius: 4px;

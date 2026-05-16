@@ -43,7 +43,7 @@ The component is a visually rich, "cinematic" landing page. While the UX is high
 **Finding: Video Asset Loading Strategy**
 *   **Rating: HIGH**
 *   **Issue:** The Hero video uses `preload="metadata"`. While this saves initial bandwidth, the `source src={VIDEO.swans}` is a single file.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Implement **Adaptive Bitrate Streaming** (HLS/DASH) for the background video.
     2.  Add a media query check to provide a lower-resolution version for mobile devices to save user data.
     3.  Ensure the server serving `VIDEO.swans` supports **Byte-Range Requests** (Status 206) to allow seeking and partial downloads.

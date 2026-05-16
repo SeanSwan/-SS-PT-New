@@ -58,22 +58,22 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
 
   useEffect(() => {
     if (!isVisible) return;
-    
+
     if (prefersReduced) {
       setValue(target);
       hasAnimated.current = true;
       return;
     }
-    
+
     // Always restart animation on visibility change or target change
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
-    
+
     const duration = 2500;
     const startTime = performance.now();
     const startValue = value; // Capture current displayed value for smooth transition
-    
+
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -84,10 +84,10 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
         animationRef.current = requestAnimationFrame(animate);
       }
     };
-    
+
     animationRef.current = requestAnimationFrame(animate);
     hasAnimated.current = true;
-    
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -176,7 +176,7 @@ const IconWrapper = styled.div`
 </VideoEl>
 ```
 
-**Bug:** 
+**Bug:**
 1. `aria-hidden="true"` is correct for decorative video, but the caption track has no `src` attribute, causing console warnings
 2. The poster image path is hardcoded while the video source comes from a config
 
@@ -211,7 +211,7 @@ const IconWrapper = styled.div`
 - Multiple animation systems
 - Hardcoded navigation routes
 
-**Impact:** 
+**Impact:**
 - Impossible to test individual sections in isolation
 - Bundle size implications
 - Code review becomes error-prone
@@ -285,7 +285,7 @@ const { prefersReduced } = useContext(MotionContext);
 ```typescript
 const SectionErrorBoundary = ({ children, sectionName }: { children: React.ReactNode; sectionName: string }) => {
   const [hasError, setHasError] = useState(false);
-  
+
   return (
     <ErrorBoundary onError={(error) => {
       console.error(`[HomePage] ${sectionName} crashed:`, error);

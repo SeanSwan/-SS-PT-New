@@ -196,15 +196,15 @@ const BlogPost = sequelize.define('BlogPost', { ... }, {
 // Route-level protection:
 router.delete('/blog/:id', protect, adminOnly, async (req, res) => {
   const { confirmationText, reason } = req.body;
-  
+
   // Require explicit confirmation for destructive operations
   if (confirmationText !== `DELETE-${req.params.id}`) {
-    return res.status(400).json({ 
-      error: 'Confirmation required. Send confirmationText: "DELETE-{id}"' 
+    return res.status(400).json({
+      error: 'Confirmation required. Send confirmationText: "DELETE-{id}"'
     });
   }
-  
-  await BlogPost.destroy({ 
+
+  await BlogPost.destroy({
     where: { id: req.params.id },
     // paranoid: true means this sets deletedAt, not a real DELETE
   });
@@ -233,8 +233,8 @@ If a developer implements these with `ON DELETE CASCADE` referencing the Users t
 
 ```sql
 -- What a careless developer might write:
-ALTER TABLE BlogPosts 
-ADD CONSTRAINT fk_blog_created_by 
+ALTER TABLE BlogPosts
+ADD CONSTRAINT fk_blog_created_by
 FOREIGN KEY (createdBy) REFERENCES Users(id) ON DELETE CASCADE;
 
 -- Now: if Sean's admin account is ever deleted (accidentally, during a user cleanup,

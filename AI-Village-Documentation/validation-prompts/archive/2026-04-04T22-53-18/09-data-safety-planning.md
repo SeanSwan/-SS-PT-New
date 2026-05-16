@@ -8,10 +8,10 @@
 
 # Data Safety Audit Report: Board 2 Exercise Modifications Plan
 
-**Auditor:** Data Safety Review  
-**Platform:** SwanStudios (sswanstudios.com) — Production SaaS  
-**Plan:** BOARD2-EXERCISE-MODIFICATIONS-PLAN.md  
-**Date:** 2025  
+**Auditor:** Data Safety Review
+**Platform:** SwanStudios (sswanstudios.com) — Production SaaS
+**Plan:** BOARD2-EXERCISE-MODIFICATIONS-PLAN.md
+**Date:** 2025
 **Severity Scale:** CRITICAL → HIGH → MEDIUM → LOW
 
 ---
@@ -48,7 +48,7 @@
 
 ```
 This plan adds 10 VARCHAR/TEXT columns to the Exercises table.
-There is no JSONB messages array, no file attachments, no 
+There is no JSONB messages array, no file attachments, no
 conversation storage in this plan document.
 ```
 
@@ -61,7 +61,7 @@ conversation storage in this plan document.
 
 ```
 This plan does not modify conversation records, sidebar listings,
-or any soft-delete logic. The Exercises table uses standard 
+or any soft-delete logic. The Exercises table uses standard
 active/inactive status, not the conversation soft-delete pattern.
 ```
 
@@ -74,7 +74,7 @@ active/inactive status, not the conversation soft-delete pattern.
 
 ```
 No file uploads. No R2 bucket operations. No ai-chat/ paths.
-This plan's only external service call is Gemini API for 
+This plan's only external service call is Gemini API for
 text generation during the one-time population script.
 ```
 
@@ -84,7 +84,7 @@ text generation during the one-time population script.
 **Severity: N/A — Feature Not Present in This Plan**
 
 ```
-No audio recording. No transcription. No voice features 
+No audio recording. No transcription. No voice features
 are introduced or modified by this plan.
 ```
 
@@ -128,8 +128,8 @@ Plan also lists in "Files That Need Changes":
 **Specific danger — the migration date:**
 ```
 20260404000001 — dated April 4, 2026
-Running this in 2025 means Sequelize may sequence it 
-incorrectly relative to other pending migrations depending 
+Running this in 2025 means Sequelize may sequence it
+incorrectly relative to other pending migrations depending
 on your migration runner configuration.
 Verify your migration ordering strategy.
 ```
@@ -140,9 +140,9 @@ Verify your migration ordering strategy.
 -- 1. Use a non-blocking migration strategy for production
 -- Instead of a single ALTER TABLE with 10 columns:
 
--- Option A: Add columns with DEFAULT NULL (PostgreSQL handles 
+-- Option A: Add columns with DEFAULT NULL (PostgreSQL handles
 -- this without full table rewrite for nullable columns)
-ALTER TABLE "Exercises" 
+ALTER TABLE "Exercises"
   ADD COLUMN IF NOT EXISTS "easyVariation" TEXT,
   ADD COLUMN IF NOT EXISTS "hardVariation" TEXT,
   ADD COLUMN IF NOT EXISTS "kneeMod" TEXT,
@@ -171,8 +171,8 @@ ALTER TABLE "Exercises"
 **Severity: N/A — Feature Not Present in This Plan**
 
 ```
-No JSONB arrays modified by this plan. The 10 new fields are 
-standard TEXT columns updated by a one-time script, not by 
+No JSONB arrays modified by this plan. The 10 new fields are
+standard TEXT columns updated by a one-time script, not by
 concurrent user sessions.
 ```
 
@@ -197,9 +197,9 @@ concurrent user sessions.
 Gemini 2.5 Flash free tier limits (verify current limits):
 - Input tokens per minute: limited
 - Output tokens per day: limited
-- 883 exercises × ~200 tokens input + ~300 tokens output = 
+- 883 exercises × ~200 tokens input + ~300 tokens output =
   ~440,000 tokens total
-  
+
 If limits are exceeded mid-run, the script fails partway through,
 leaving the database in a partially-populated state.
 ```
@@ -234,7 +234,7 @@ const tokenTracker = {
   totalInputTokens: 0,
   totalOutputTokens: 0,
   batchResults: [],
-  
+
   log(batchNum, inputTokens, outputTokens, exerciseIds) {
     this.totalInputTokens += inputTokens;
     this.totalOutputTokens += outputTokens;
@@ -246,7 +246,7 @@ const tokenTracker = {
       timestamp: new Date().toISOString()
     });
   },
-  
+
   summary() {
     console.log(`
       === TOKEN USAGE SUMMARY ===
@@ -272,10 +272,10 @@ const tokenTracker = {
 
 ```
 This plan does not add new API endpoints that require rate limiting.
-The modification fields are returned as part of existing exercise 
+The modification fields are returned as part of existing exercise
 fetch calls (exerciseRoutes.mjs already exists).
 
-The population script is a one-time admin operation, not a 
+The population script is a one-time admin operation, not a
 user-facing endpoint.
 
 No new rate limiting is required for this plan specifically.
@@ -321,8 +321,8 @@ Plan states:
   A) Local dev is connected to production DB — CRITICAL VIOLATION
   B) The phrasing is ambiguous/misleading — needs immediate clarification
 
-Either way, running an AI-generated bulk UPDATE script directly 
-against production data for 883 exercises with no staging run 
+Either way, running an AI-generated bulk UPDATE script directly
+against production data for 883 exercises with no staging run
 is unacceptable for a platform with real paying customers.
 ```
 
@@ -373,13 +373,13 @@ if (dbUrl.includes('sswanstudios') || dbUrl.includes('prod')) {
     console.error(`
       ❌ PRODUCTION DATABASE DETECTED
       This script will modify 883 exercise records.
-      
+
       To proceed, you must:
       1. Have a verified backup from the last 24 hours
       2. Set CONFIRM_PRODUCTION_WRITE=yes
       3. Run during off-peak hours (2-5 AM)
       4. Have rollback script ready
-      
+
       Aborting.
     `);
     process.exit(1);
@@ -392,9 +392,9 @@ async function verifyRecentBackup() {
   // Refuse to run if backup is older than 24 hours
   const lastBackup = await getLastBackupTimestamp();
   const hoursSinceBackup = (Date.now() - lastBackup) / (1000 * 60 * 60);
-  
+
   if (hoursSinceBackup > 24) {
-    throw new Error(`Last backup was ${hoursSinceBackup.toFixed(1)} hours ago. 
+    throw new Error(`Last backup was ${hoursSinceBackup.toFixed(1)} hours ago.
     Take a fresh backup before running this script.`);
   }
 }
@@ -412,7 +412,7 @@ async function verifyRecentBackup() {
 ## Before Running populate-exercise-variations.mjs on Production
 
 - [ ] PostgreSQL backup taken and verified restorable (pg_dump test)
-- [ ] Script tested on staging DB with full 883 exercise dataset  
+- [ ] Script tested on staging DB with full 883 exercise dataset
 - [ ] Sample of 50 AI-generated modifications reviewed by trainer
 - [ ] Rollback script written and tested on staging
 - [ ] Deployment window scheduled (2-5 AM, low traffic)
@@ -430,10 +430,10 @@ async function verifyRecentBackup() {
 
 ```
 These are not just exercise names.
-These are injury-specific modifications that paying clients 
+These are injury-specific modifications that paying clients
 will follow when they have:
 - Knee replacements
-- Post-surgical restrictions  
+- Post-surgical restrictions
 - Chronic pain conditions
 - Acute injuries
 

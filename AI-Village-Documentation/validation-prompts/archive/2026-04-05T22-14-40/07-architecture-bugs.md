@@ -116,11 +116,11 @@ function useAnimationTier(): AnimationTier {
   const prefersReducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)'
   ).matches;
-  
+
   // Option 2: PerformanceObserver for actual frame timing
   // Option 3: User preference setting
   // Option 4: Explicit device tier from user agent (for mobile)
-  
+
   return { tier: 'essential', reason: 'reduced-motion-preferred' };
 }
 ```
@@ -273,13 +273,13 @@ interface AIConfiguration {
     messagesPerDay: number;          // e.g., 100/day
     burstAllowance: number;          // e.g., 15 for 10 seconds
   };
-  
+
   costControl: {
     monthlyBudgetUSD: number;        // e.g., $500/month
     costPerMessageUSD: number;        // e.g., $0.002
     alertThresholdPercent: number;    // e.g., 80% of budget
   };
-  
+
   fallback: {
     mode: 'cache' | 'degraded' | 'error';
     cacheDurationMinutes: number;
@@ -340,7 +340,7 @@ interface ServerHealthWidget {
   refreshIntervalMs: number;           // How often to poll
   retentionWindow: string;             // '5m', '1h', '24h'
   alertIntegration: 'slack' | 'email' | 'pagerduty';
-  
+
   // What to SHOW, not how to collect
   displayMetrics: {
     responseTimeP99: boolean;
@@ -381,11 +381,11 @@ interface ServerHealthWidget {
 ```typescript
 interface BootcampTimerConfig {
   mode: 'centralized' | 'distributed';
-  
+
   // If centralized:
   syncMechanism: 'websocket' | 'broadcast' | 'none';
   syncToleranceMs: number;              // Acceptable drift
-  
+
   // Audio:
   audioEnabledByDefault: boolean;
   hapticFeedback: boolean;
@@ -437,18 +437,18 @@ interface ImmigrationModuleRequirements {
   legalDisclaimerRequired: boolean;
   disclaimerText: string;
   jurisdiction: 'US_only' | 'Canada_only' | 'global';
-  
+
   // Data handling:
   encryptionStandard: 'AES-256' | 'PGP' | 'none';
   dataRetentionDays: number;
   automaticDeletionAfterDays: number;
   auditLogRequired: boolean;
-  
+
   // Monitoring:
   regulationChangeAlertService: string;  // e.g., '律商联讯'
   alertResponsibility: 'admin' | 'automated';
   updateFrequencyDays: number;
-  
+
   // Document storage:
   storageProvider: 'AWS_S3' | 'Azure' | 'local';
   complianceFramework: 'SOC2' | 'HIPAA' | 'PIPEDA' | 'none';

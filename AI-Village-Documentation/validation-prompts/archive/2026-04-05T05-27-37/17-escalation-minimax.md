@@ -96,13 +96,13 @@ const SecurityMetaTags = () => (
     {/* Meta tags only — NOT equivalent to HTTP headers */}
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="robots" content="index, follow" />
-    
+
     {/* Theme color for mobile browsers */}
     <meta name="theme-color" content="#002060" />
-    
+
     {/* Open Graph security hints (limited protection) */}
     <meta property="og:image:alt" content="" />
-    
+
     {/* Viewport with security hints */}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </Helmet>

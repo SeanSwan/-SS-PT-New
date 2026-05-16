@@ -37,8 +37,8 @@ This review focuses on the **`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`** blu
 
 ### 6. Accessibility Gaps
 *   **Finding:** The "Crystalline" aesthetic (high contrast, glows) can be problematic for users with visual impairments.
-*   **Recommendation:** 
-    *   **CRITICAL:** Ensure the `CrystallineLockOverlay` has a high-contrast fallback. 
+*   **Recommendation:**
+    *   **CRITICAL:** Ensure the `CrystallineLockOverlay` has a high-contrast fallback.
     *   **CRITICAL:** Add `aria-live="polite"` to the Security Intelligence Panel so screen readers announce new vulnerability alerts.
     *   **CRITICAL:** Ensure all "Action" buttons (Publish, Approve) have distinct focus states that are not just color-based (use `outline: 2px solid #C6A84B`).
 *   **Rating:** **CRITICAL**
@@ -47,13 +47,13 @@ This review focuses on the **`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`** blu
 
 ### Security & Architecture Deep Dive (Round 2/4 Validation)
 
-1.  **E2EE Complexity (Signal Protocol):** 
-    *   *Risk:* The "Key Loss" scenario is a UX nightmare. If Sean loses his device, he loses access to all historical encrypted messages. 
+1.  **E2EE Complexity (Signal Protocol):**
+    *   *Risk:* The "Key Loss" scenario is a UX nightmare. If Sean loses his device, he loses access to all historical encrypted messages.
     *   *Mitigation:* Implement a **"Recovery Phrase"** system (BIP-39) that allows users to re-derive their identity key on a new device. Do not rely on server-side backups.
-2.  **Security Intelligence Panel:** 
-    *   *Risk:* The 6-API approach is robust, but the `npm audit` API can be noisy. 
+2.  **Security Intelligence Panel:**
+    *   *Risk:* The 6-API approach is robust, but the `npm audit` API can be noisy.
     *   *Mitigation:* Implement a "Severity Threshold" in your `securityScannerService.mjs` to only notify Sean for `High` or `Critical` vulnerabilities.
-3.  **Multi-Backend Toggle Pattern:** 
+3.  **Multi-Backend Toggle Pattern:**
     *   *Validation:* The toggle pattern (Late.dev/Blotato/Direct) is **sound**. Use an **Adapter Pattern** in your `socialDistributionService.mjs`. Create an `AbstractPublisher` class and implement `LatePublisher`, `BlotatoPublisher`, and `DirectPublisher` subclasses. This keeps your controller logic clean.
 
 ### Missing Gaps / Industry-Leading Enhancements

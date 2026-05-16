@@ -6,7 +6,7 @@
 
 ---
 
-This is a strategic review of the `MASTER-FIX-PLAN-2026-04-06.md`. While the current plan excellently addresses tactical technical debt, P0 crashes, and basic UI consistency, it is **highly reactive**. For a premium SaaS platform targeting wealthy clients and professionals in 2026, the plan completely misses the architectural, regulatory, and experiential shifts defining the current market. 
+This is a strategic review of the `MASTER-FIX-PLAN-2026-04-06.md`. While the current plan excellently addresses tactical technical debt, P0 crashes, and basic UI consistency, it is **highly reactive**. For a premium SaaS platform targeting wealthy clients and professionals in 2026, the plan completely misses the architectural, regulatory, and experiential shifts defining the current market.
 
 Here is the strategic gap analysis to elevate SwanStudios from a "fixed" app to a 10x market leader.
 
@@ -112,7 +112,7 @@ Here is the strategic gap analysis to elevate SwanStudios from a "fixed" app to 
 
 **GAP 12: Agent-to-Agent (A2A) Protocol Integration**
 * **What's missing:** The AI architecture implies a single, monolithic "Coach Assistant."
-* **Why it matters:** The A2A protocol (v1.0 released March 2026 by Google/Linux Foundation) standardizes how specialized AI agents communicate. A monolithic AI cannot expertly handle NASM programming, nutrition, *and* scheduling. 
+* **Why it matters:** The A2A protocol (v1.0 released March 2026 by Google/Linux Foundation) standardizes how specialized AI agents communicate. A monolithic AI cannot expertly handle NASM programming, nutrition, *and* scheduling.
 * **How to implement:** Break the AI into a multi-agent system. The "Coach Agent" handles user interaction, but uses A2A to query the "Nutrition Agent" (for macros) or the "Scheduling Agent" (to find calendar slots). This drastically reduces hallucinations and improves response quality.
 * **Priority:** MEDIUM (Roadmap)
 * **Source URL:** https://chatforest.com/a2a-protocol-v1

@@ -47,7 +47,7 @@ The plan introduces high-complexity features (video generation, multi-platform d
 **Finding: Unbounded Content Calendar & Audit Logs**
 *   **Issue:** "Content Calendar (UI ready, no persistence)" and "Audit log: who published what." As the history grows, `SELECT * FROM marketing_logs` will slow down the dashboard.
 *   **Risk:** **MEDIUM**.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Add composite indexes on `(published_at, platform)` in PostgreSQL.
     *   Implement pagination/limit for the Content Calendar (only fetch the current month + 1 buffer).
 

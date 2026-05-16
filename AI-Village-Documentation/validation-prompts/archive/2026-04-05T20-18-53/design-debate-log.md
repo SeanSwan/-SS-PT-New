@@ -8,9 +8,9 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me carefully. The previous AI gave you a generic, textbook UX audit. It talked about "intent" and "foundational awareness." I don't care about intent. I care about **execution**. SwanStudios is a premium, high-ticket coaching platform. If our Marketing Dashboard looks like a cheap SaaS template, Sean's brand authority drops instantly. 
+Listen to me carefully. The previous AI gave you a generic, textbook UX audit. It talked about "intent" and "foundational awareness." I don't care about intent. I care about **execution**. SwanStudios is a premium, high-ticket coaching platform. If our Marketing Dashboard looks like a cheap SaaS template, Sean's brand authority drops instantly.
 
-We are building the **Enchanted Apex: Crystalline Swan** experience. It is a frozen enchanted forest meeting a deep-ocean luxury vault. Every pixel must justify the price tag. 
+We are building the **Enchanted Apex: Crystalline Swan** experience. It is a frozen enchanted forest meeting a deep-ocean luxury vault. Every pixel must justify the price tag.
 
 Here is my authoritative design directive for the implementation of this blueprint. Do not deviate from these specs.
 
@@ -20,10 +20,10 @@ Here is my authoritative design directive for the implementation of this bluepri
 - **Severity:** CRITICAL
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` -> Section 4 (CrystallineLockOverlay Pattern)
 - **Design Problem:** The plan describes a functional lock screen for missing API keys. Developers will default to a generic grey overlay with a padlock icon. This is a luxury platform; a missing feature shouldn't look like an error—it should look like an exclusive VIP room they haven't unlocked yet.
-- **Design Solution:** 
+- **Design Solution:**
   - **Backdrop:** `Obsidian Black (#0A0A0F)` at 80% opacity with `backdrop-filter: blur(16px)`.
   - **Card Surface:** `Royal Depth (#003080)` with a 1px solid border of `Wing Purple (#8B5CF6)` at 30% opacity.
-  - **Iconography:** A glowing `Gilded Fern (#C6A84B)` lock or spark icon. 
+  - **Iconography:** A glowing `Gilded Fern (#C6A84B)` lock or spark icon.
   - **Typography:** Heading in `Plus Jakarta Sans` (Frost White), subtext in `Sora` (Frost White, 70% opacity). The "Plan B" workaround text must be in `Cormorant Garamond Italic` to feel like a personalized, high-touch note from the Coach.
   - **CTA Button:** Cosmic Nebula gradient background (`#8B5CF6` to `#60C0F0`).
 - **Implementation Notes:**
@@ -36,7 +36,7 @@ Here is my authoritative design directive for the implementation of this bluepri
 - **Design Problem:** 4 Agents and 10 Skills crammed into a standard sidebar will create massive cognitive overload. It will look like an AWS console. We need a "Command Center" feel.
 - **Design Solution:**
   - **Layout:** Do NOT put all 10 skills in the main sidebar. The sidebar only gets "Marketing Command". The actual dashboard uses a top-level horizontal tab system for the 4 Agents (SEO, Content, Distribution, Analytics).
-  - **Tab UI:** Use `Sora` for the tab text. 
+  - **Tab UI:** Use `Sora` for the tab text.
   - **Inactive Tab:** `Frost White (#E0ECF4)` at 50% opacity, transparent background.
   - **Active Tab:** `Frost White` at 100% opacity. Background: `Carbon (#141419)`. Bottom border: 2px solid `Ice Wing (#60C0F0)` with a `box-shadow: 0 4px 12px rgba(96, 192, 240, 0.3)` radiating *downward* from the border.
 - **Implementation Notes:**
@@ -48,7 +48,7 @@ Here is my authoritative design directive for the implementation of this bluepri
 - **Severity:** CRITICAL
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` -> Round 1 Findings & Section 2 (Content Cadence)
 - **Design Problem:** The requirement says "prominent and unmistakable." Engineers will make it bright green or red. Absolutely not. We do not use generic success/danger colors in the Crystalline Swan theme.
-- **Design Solution:** 
+- **Design Solution:**
   - **The Dual-Button Glow Pattern.**
   - **Background:** `Midnight Sapphire (#002060)`.
   - **Text:** `Plus Jakarta Sans`, Bold, `Frost White (#E0ECF4)`, tracking wide (`letter-spacing: 0.05em`).
@@ -63,12 +63,12 @@ Here is my authoritative design directive for the implementation of this bluepri
 - **Severity:** HIGH
 - **File & Location:** `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` -> Round 1 Findings & Section 2 (Distribution Hub)
 - **Design Problem:** "Color-coded by platform AND content type." If you let developers do this, you will end up with Facebook Blue, Instagram Pink, and TikTok Black clashing violently with our Midnight Sapphire/Wing Purple theme. It will look like a circus.
-- **Design Solution:** 
+- **Design Solution:**
   - **NO BRAND COLORS.** We do not break our luxury theme for external brands.
   - **Card Background:** `Graphite (#1A1A24)`.
   - **Typography (Dates/Times):** `Fira Code` (Frost White, 70% opacity) — it's data, treat it like data.
   - **Platform Indicator:** A monochrome SVG icon of the platform (Frost White) inside a small circular badge.
-  - **Content Type Indicator (The Color Code):** A 3px left-border on the calendar card. 
+  - **Content Type Indicator (The Color Code):** A 3px left-border on the calendar card.
     - Blog: `Arctic Cyan (#50A0F0)`
     - Social: `Wing Purple (#8B5CF6)`
     - Email: `Gilded Fern (#C6A84B)`
@@ -94,7 +94,7 @@ Here is my authoritative design directive for the implementation of this bluepri
 ***
 
 ### Final Directive to Engineering:
-I do not want to see a single hex code in the PRs for this epic. If I see `#FFFFFF` or `#000000` or some random gray, I will reject the PR. You will use `theme.colors.frostWhite`, `theme.colors.obsidianBlack`, etc. 
+I do not want to see a single hex code in the PRs for this epic. If I see `#FFFFFF` or `#000000` or some random gray, I will reject the PR. You will use `theme.colors.frostWhite`, `theme.colors.obsidianBlack`, etc.
 
 The Crystalline Swan theme is not a suggestion; it is the law. Build it exactly as specified.
 
@@ -146,7 +146,7 @@ const LockOverlayWrapper = styled.div`
     rgba(10, 10, 15, 0.75) 0%,
     rgba(0, 32, 96, 0.6) 100%
   );
-  
+
   // ADD: Allow underlying content to bleed through slightly
   backdrop-filter: blur(12px);
 `;
@@ -207,22 +207,22 @@ const AgentTabsWrapper = styled.div`
   flex-direction: row;
   overflow-x: auto;
   scrollbar-width: none; // Hide scrollbar
-  
+
   @media (max-width: ${theme.breakpoints.md}) {
     flex-direction: column;
     overflow-x: visible;
-    
+
     // TRANSFORM to vertical pill navigation
     background: ${theme.colors.carbon};
     border-radius: 8px;
     padding: ${theme.spacing.xs};
-    
+
     button {
       width: 100%;
       justify-content: flex-start;
       border-bottom: 1px solid rgba(224, 236, 244, 0.05);
     }
-    
+
     button:last-child {
       border-bottom: none;
     }
@@ -242,7 +242,7 @@ File: src/components/navigation/AgentTabs.tsx
 // WITHIN each Agent tab, add a Skill Drawer:
 const SkillDrawer = styled.div`
   position: relative;
-  
+
   // Collapsed state (default)
   summary {
     display: flex;
@@ -252,18 +252,18 @@ const SkillDrawer = styled.div`
     color: ${theme.colors.frostWhite};
     opacity: 0.6;
     font-family: ${theme.fonts.body}; // Sora
-    
+
     &::after {
       content: '▼';
       font-size: 0.6rem;
       transition: transform 0.2s;
     }
   }
-  
+
   &[open] summary::after {
     transform: rotate(180deg);
   }
-  
+
   // Expanded state reveals horizontal skill pills
   .skill-pills {
     display: flex;
@@ -299,13 +299,13 @@ File: src/components/buttons/ApprovePublishButton.tsx
 // CHANGE: Remove infinite pulse
 const ApprovePublishButton = styled.button`
   // ... existing styles
-  
+
   // REPLACE pulse animation with:
   transition: box-shadow 0.3s ease;
-  
+
   // Only pulse ONCE when entering viewport
   animation: button-entry-glow 0.8s ease-out forwards;
-  
+
   @keyframes button-entry-glow {
     0% {
       box-shadow: 0 0 0 rgba(139, 92, 246, 0);
@@ -317,7 +317,7 @@ const ApprovePublishButton = styled.button`
       box-shadow: 0 0 16px rgba(139, 92, 246, 0.3);
     }
   }
-  
+
   // Respect reduced-motion preference
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -366,7 +366,7 @@ const CalendarCard = styled.div<{ contentType: 'blog' | 'social' | 'email' }>`
   position: relative;
   padding-left: ${theme.spacing.lg};
   border-left: 3px solid ${props => contentTypeColors[props.contentType]};
-  
+
   // ADD content type icon indicator
   &::before {
     content: '';
@@ -375,7 +375,7 @@ const CalendarCard = styled.div<{ contentType: 'blog' | 'social' | 'email' }>`
     top: ${theme.spacing.sm};
     width: 16px;
     height: 16px;
-    
+
     // DIFFERENT icon shapes for each type:
     ${props => {
       switch(props.contentType) {
@@ -438,7 +438,7 @@ export const chartPatterns = {
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-Your focus on WCAG compliance and responsive behavior is exactly why we have this review process. You caught several critical accessibility gaps that I appreciate. A premium experience cannot be premium if it is unusable by a segment of Sean’s high-ticket audience. 
+Your focus on WCAG compliance and responsive behavior is exactly why we have this review process. You caught several critical accessibility gaps that I appreciate. A premium experience cannot be premium if it is unusable by a segment of Sean’s high-ticket audience.
 
 However, in your pursuit of accessibility, some of your proposed solutions compromise the "Crystalline Swan" luxury aesthetic. We do not degrade the visual design to meet WCAG; we elevate the design to meet both.
 
@@ -450,8 +450,8 @@ Here are my rulings on your disputes.
 **File:** `src/components/lock-overlay/CrystallineLockOverlay.tsx`
 
 *   **Gradient & Blur (Issue 1):** **AGREE.** Your gradient proposal (`rgba(10, 10, 15, 0.75)` to `rgba(0, 32, 96, 0.6)`) with a `12px` blur is a brilliant compromise. It adds depth while allowing enough context to bleed through.
-*   **Typography (Issue 2):** **DISPUTE.** 
-    *   *Why:* You correctly identified that italic serif fonts have readability issues, but your solution was to *reduce* the font size to `0.875rem` (14px). Making a hard-to-read font smaller exacerbates the problem. 
+*   **Typography (Issue 2):** **DISPUTE.**
+    *   *Why:* You correctly identified that italic serif fonts have readability issues, but your solution was to *reduce* the font size to `0.875rem` (14px). Making a hard-to-read font smaller exacerbates the problem.
     *   *Alternative:* We will *increase* the font size, increase the opacity, and keep the `sr-only` tag.
 
 **Directive:**
@@ -486,7 +486,7 @@ const SubNavPillRow = styled.div`
   padding-bottom: ${theme.spacing.sm};
   overflow-x: auto;
   scrollbar-width: none; // Hide scrollbar
-  
+
   // Fade out edges to indicate scrollability
   mask-image: linear-gradient(to right, black 90%, transparent 100%);
 `;
@@ -565,7 +565,7 @@ const ContentTypeIcon = ({ type }) => {
 **File:** `src/styles/theme.ts` & Analytics Components
 
 *   **Line Colors Insufficient:** **DISPUTE.**
-    *   *Why:* Again, your WCAG 1.4.1 catch is correct (tritanopia). But SVG pattern fills (stripes, dots) on a line chart create severe visual noise and look like a 1990s Excel spreadsheet. 
+    *   *Why:* Again, your WCAG 1.4.1 catch is correct (tritanopia). But SVG pattern fills (stripes, dots) on a line chart create severe visual noise and look like a 1990s Excel spreadsheet.
     *   *Alternative:* The standard, elegant accessible solution for line charts is varying the **stroke dasharray** and the **data point markers**.
 
 **Directive:**
@@ -711,10 +711,10 @@ const PlanBNote = styled.p`
   line-height: 1.7; // INCREASE line-height further
   letter-spacing: 0.04em; // INCREASE letter-spacing for shape distinction
   color: rgba(224, 236, 244, 0.95);
-  
+
   // Add subtle text-shadow for edge definition
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  
+
   // Ensure min-height for touch targets
   min-height: 1.7em;
 `;
@@ -758,15 +758,15 @@ const SubNavPillRow = styled.div`
   margin-top: ${theme.spacing.md};
   padding-bottom: ${theme.spacing.sm};
   position: relative;
-  
+
   // Visible right-edge fade (approved)
   mask-image: linear-gradient(to right, black 90%, transparent 100%);
-  
+
   // Allow horizontal scroll
   overflow-x: auto;
   scrollbar-width: none; // Hide on desktop
   scroll-behavior: smooth;
-  
+
   // ADD visible touch scroll indicator for mobile
   @media (hover: none) and (pointer: coarse) {
     // Only show on touch devices
@@ -782,7 +782,7 @@ const SubNavPillRow = styled.div`
       opacity: 1;
       transition: opacity 0.3s;
     }
-    
+
     // Hide when fully scrolled
     &[data-scrolled-to-end="true"]::after {
       opacity: 0;
@@ -793,8 +793,8 @@ const SubNavPillRow = styled.div`
 // ADD keyboard navigation support via ARIA
 // In the component render:
 
-<div 
-  role="tablist" 
+<div
+  role="tablist"
   aria-label="Skills navigation"
   style={{ display: 'flex', gap: theme.spacing.sm }}
 >
@@ -861,7 +861,7 @@ CONSENSUS REACHED
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires. 
+Your technical scrutiny continues to elevate this project. The ARIA keyboard navigation mapping for the Sub-Nav Pill Row is exactly the kind of engineering rigor SwanStudios requires.
 
 However, we have a fundamental disagreement on the Z-index architecture and how we handle the visual execution of your accessibility fixes. Here are my authoritative rulings on your three new disputes.
 
@@ -870,7 +870,7 @@ However, we have a fundamental disagreement on the Z-index architecture and how 
 
 *   **Your Stance:** The LockOverlay (`z-index: 50`) blocks the Sticky Footer (`z-index: 40`). You proposed raising the footer to `45` and lowering the overlay to `40` so users can still click "Approve & Publish" if they have missing API keys.
 *   **My Ruling:** **REJECTED.**
-*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend. 
+*   **Why:** You are treating a UX feature like a bug. The `CrystallineLockOverlay` is a **hard gate**. If a user's API keys are missing or invalid, the system cannot reliably publish content. Allowing the "Approve & Publish" button to float *above* the locked vault overlay completely breaks the immersion of the "locked room" metaphor and invites users to click a button that will inevitably fail on the backend.
 *   **Alternative:** The Z-indexes remain exactly as I specified (Overlay: 50, Footer: 40). To prevent confusion, the footer should simply not render, or render in a disabled state, when the overlay is active.
 
 **Directive:**
@@ -915,7 +915,7 @@ const PlanBNote = styled.p`
 
 *   **Your Stance:** Hiding the scrollbar breaks discoverability. You proposed adding an `::after` gradient for touch users and ARIA roles for keyboard users.
 *   **My Ruling:** **PARTIAL AGREE.**
-*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers. 
+*   **Why:** The ARIA keyboard implementation (`role="tablist"`, `onKeyDown` logic) is flawless and fully approved. However, your visual solution (adding an `::after` gradient) conflicts with the `mask-image` fade I already established. Stacking a CSS gradient on top of a CSS mask creates rendering artifacts on WebKit browsers.
 *   **Alternative:** We keep my `mask-image` but make it dynamic via React state. When the user scrolls to the end, the mask is removed.
 
 **Directive:**
@@ -931,22 +931,22 @@ const SubNavPillRow = styled.div<{ isScrolledToEnd: boolean }>`
   overflow-x: auto;
   scrollbar-width: none;
   scroll-behavior: smooth;
-  
+
   // Dynamically remove the fade when scrolled to the end
-  mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
-  
+
   // Webkit fallback
-  -webkit-mask-image: ${props => props.isScrolledToEnd 
-    ? 'none' 
+  -webkit-mask-image: ${props => props.isScrolledToEnd
+    ? 'none'
     : 'linear-gradient(to right, black 90%, transparent 100%)'};
 `;
 
 // 2. Implementation with your approved ARIA logic
 const SkillNavigation = () => {
   const [isScrolledToEnd, setIsScrolledToEnd] = useState(false);
-  
+
   const handleScroll = (e) => {
     const { scrollLeft, scrollWidth, clientWidth } = e.target;
     // 1px buffer for rounding errors
@@ -954,10 +954,10 @@ const SkillNavigation = () => {
   };
 
   return (
-    <SubNavPillRow 
-      isScrolledToEnd={isScrolledToEnd} 
+    <SubNavPillRow
+      isScrolledToEnd={isScrolledToEnd}
       onScroll={handleScroll}
-      role="tablist" 
+      role="tablist"
       aria-label="Skills navigation"
     >
       {/* Your exact ARIA button mapping goes here */}
@@ -969,4 +969,3 @@ const SkillNavigation = () => {
 Update the implementation blueprint with these final adjustments. We are very close to a flawless, accessible, and ultra-premium execution.
 
 ---
-

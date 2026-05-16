@@ -8,7 +8,7 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me, Claude. Your accessibility audit is technically flawless, but it lacks *soul*. You are thinking like a compliance officer; I am thinking like a Creative Director building a $25/month luxury fitness vault. 
+Listen to me, Claude. Your accessibility audit is technically flawless, but it lacks *soul*. You are thinking like a compliance officer; I am thinking like a Creative Director building a $25/month luxury fitness vault.
 
 Accessibility and WCAG AA compliance are non-negotiable, yes. But we do not achieve them by slapping generic blue outlines on things or dumbing down the contrast. We achieve them through **deliberate, high-end design engineering**. The Crystalline Swan theme is about the intersection of a frozen enchanted forest, a deep-ocean luxury vault, and a competitive arena. Every focus state, every loading skeleton, and every error boundary must feel like a premium ritual.
 
@@ -20,7 +20,7 @@ Here is my definitive design vision and exact implementation mandates for your f
 **Severity:** CRITICAL
 **File & Location:** `frontend/src/pages/AscensionPage/components/VaultCard.tsx`
 **Design Problem:** The UX report rightly flags that text on Carbon (`#141419`) and Obsidian Black (`#0A0A0F`) risks failing contrast if we use standard grays. Furthermore, hardcoding hex values in the component destroys our design system.
-**Design Solution:** 
+**Design Solution:**
 We use Frost White (`#E0ECF4`) for all text on dark surfaces. For visual hierarchy, we do *not* change the color; we change the *opacity* and *typography*.
 - **Tier Name (Heading):** Cormorant Garamond Italic, Frost White, 100% opacity.
 - **Features (List):** Sora, Frost White, 85% opacity.
@@ -47,7 +47,7 @@ A custom styled-component slider. The track is Royal Depth (`#003080`). The fill
 **File & Location:** Global UI Components (`Button.tsx`, `VaultCard.tsx` CTAs)
 **Design Problem:** Focus rings are often forgotten or rely on browser defaults, ruining the immersion. Buttons lack tactile feedback for keyboard users.
 **Design Solution:**
-We enforce the **Dual-Button Glow Rule** for both hover and focus states. 
+We enforce the **Dual-Button Glow Rule** for both hover and focus states.
 - Primary CTAs (Midnight Sapphire `#002060` bg) get a Wing Purple (`#8B5CF6`) box-shadow glow.
 - Premium CTAs (Wing Purple `#8B5CF6` bg) get an Ice Wing (`#60C0F0`) box-shadow glow.
 **Implementation Notes:**
@@ -87,10 +87,10 @@ A frosted glass overlay (`backdrop-filter: blur(12px)`) tinted with Royal Depth 
 **File & Location:** `frontend/src/components/WorkoutGeneration/GenerationWizard.tsx`
 **Design Problem:** The UX report calls the multi-step form "friction." I call it a **Ritual of Intent**. But if it looks like a boring tax form, the user drops off.
 **Design Solution:**
-We gamify the form. UI elements use Sora. The "cost" of the generation is displayed in Fira Code to feel like a tactical data readout. 
+We gamify the form. UI elements use Sora. The "cost" of the generation is displayed in Fira Code to feel like a tactical data readout.
 **Implementation Notes:**
 1. **Step Indicators:** Use a progress bar that fills with the Cosmic Nebula gradient (`#8B5CF6` to `#60C0F0`).
-2. **Cost Display:** 
+2. **Cost Display:**
    ```tsx
    <CostDisplay>
      <span style={{ fontFamily: 'Fira Code', color: theme.colors.arcticCyan }}>
@@ -115,9 +115,9 @@ Premium skeleton loaders that pulse between our dark surface colors.
      100% { background-position: 1000px 0; }
    }
    background: linear-gradient(
-     90deg, 
-     ${({ theme }) => theme.colors.carbon} 25%, 
-     ${({ theme }) => theme.colors.graphite} 50%, 
+     90deg,
+     ${({ theme }) => theme.colors.carbon} 25%,
+     ${({ theme }) => theme.colors.graphite} 50%,
      ${({ theme }) => theme.colors.carbon} 75%
    );
    background-size: 1000px 100%;
@@ -136,8 +136,8 @@ Errors should be elegant apologies, not red warning signs.
 
 ---
 
-**To the Engineering Team:** 
-Do not cut corners on these CSS transitions or ARIA labels. The difference between a $5/month app and a $25/month platform is entirely in the tactile response of the UI. Build it exactly as specified. 
+**To the Engineering Team:**
+Do not cut corners on these CSS transitions or ARIA labels. The difference between a $5/month app and a $25/month platform is entirely in the tactile response of the UI. Build it exactly as specified.
 
 Claude, update your implementation tickets to reflect these exact design tokens and architectural mandates. Let's build the vault.
 
@@ -228,7 +228,7 @@ const overlayRef = useRef<HTMLDivElement>(null);
 
 useEffect(() => {
   if (!isOpen) return;
-  
+
   const overlay = overlayRef.current;
   if (!overlay) return;
 
@@ -340,7 +340,7 @@ const SliderWrapper = styled.div`
   width: 100%;
   padding: 8px 0; /* Expands touch area vertically */
   cursor: pointer;
-  
+
   &:focus-within {
     outline: 3px solid ${({ theme }) => theme.colors.iceWing};
     outline-offset: 4px;
@@ -383,17 +383,17 @@ The shimmer animation will **trigger vestibular motion issues** for users with `
 ```tsx
 const SkeletonCard = styled.div`
   background: linear-gradient(
-    90deg, 
-    ${({ theme }) => theme.colors.carbon} 25%, 
-    ${({ theme }) => theme.colors.graphite} 50%, 
+    90deg,
+    ${({ theme }) => theme.colors.carbon} 25%,
+    ${({ theme }) => theme.colors.graphite} 50%,
     ${({ theme }) => theme.colors.carbon} 75%
   );
   background-size: 1000px 100%;
-  
+
   @media (prefers-reduced-motion: no-preference) {
     animation: shimmer 2s infinite linear;
   }
-  
+
   @media (prefers-reduced-motion: reduce) {
     /* Static skeleton for users sensitive to motion */
     background: ${({ theme }) => theme.colors.graphite};
@@ -454,7 +454,7 @@ Awaiting your Round 2 response.
 
 **Creative Director (Lead Design Authority) — Round 2**
 
-Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA. 
+Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA.
 
 However, while I am approving half of your corrections, I am overriding you on two architectural points where your data is either outdated or prioritizes minor bundle savings over robust accessibility.
 
@@ -479,7 +479,7 @@ I fully accept your engineering solutions for the following:
 You argue that the Wing Purple glow (3.2:1 contrast) combined with `translateY(-2px)` creates a confusing and potentially non-compliant focus state. You are right that the transform interferes with keyboard focus tracking. However, slapping a rigid outline on a moving element looks cheap.
 
 **The Compromise Solution:**
-We separate the physics of `:hover` from the semantics of `:focus-visible`. 
+We separate the physics of `:hover` from the semantics of `:focus-visible`.
 - Mouse users (`:hover`) get the physical lift (`translateY`) and the glow.
 - Keyboard users (`:focus-visible`) get a static button (no transform) with *both* the glow and a crisp Ice Wing outline.
 
@@ -518,7 +518,7 @@ You proposed writing a custom 40-line vanilla JS focus trap to avoid adding `foc
 3. Elements with `tabindex="0"` dynamically added to the DOM after mount.
 4. Shadow DOM boundaries.
 
-We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size. 
+We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size.
 **Mandate:** Retain `focus-trap-react`. It is battle-tested and handles these edge cases natively.
 
 ---
@@ -527,23 +527,22 @@ We are building a $25/month luxury vault, not a coding bootcamp project. We do n
 
 **File:** `frontend/src/components/Subscription/CrystallineLockOverlay.tsx` (line ~71)
 
-You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.** 
+You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.**
 
-**The Facts:** 
+**The Facts:**
 - Safari shipped full support for `inert` in version 16.4 (March 2023).
 - Firefox shipped full support in version 112 (April 2023).
-- It is now the baseline modern web standard for modal accessibility. 
+- It is now the baseline modern web standard for modal accessibility.
 
-Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration. 
+Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration.
 
-**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers. 
+**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers.
 
 *(Note: If you are concerned about users on 2-year-old browsers, you may add the WICG `wicg-inert` polyfill to our build process, but the React code must use the `inert` attribute.)*
 
 ---
 
-**To the Implementation Reviewer:** 
+**To the Implementation Reviewer:**
 Update the tickets with the Button CSS compromise and the newly agreed items. Acknowledge the modern browser support for `inert` and the retention of `focus-trap-react`, and we will have a finalized, engineering-ready blueprint. Awaiting your Round 2 confirmation.
 
 ---
-

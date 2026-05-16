@@ -13,13 +13,13 @@ Based on the provided blueprint (`SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`),
 ---
 
 ## 1. Edge Case: Empty Array Handling in Email Digest Composer
-**Severity:** MEDIUM  
-**File & Line:** `backend/services/emailService.mjs` (hypothetical line ~45-60)  
-**Reproduction steps:**  
-1. Configure email digest with "bimonthly" cadence.  
-2. Publish no blog posts in the preceding 2 months.  
-3. Attempt to generate digest → backend tries to `map()` over empty array → runtime error or empty email sent.  
-**Fix:** Add guard clause before compilation:  
+**Severity:** MEDIUM
+**File & Line:** `backend/services/emailService.mjs` (hypothetical line ~45-60)
+**Reproduction steps:**
+1. Configure email digest with "bimonthly" cadence.
+2. Publish no blog posts in the preceding 2 months.
+3. Attempt to generate digest → backend tries to `map()` over empty array → runtime error or empty email sent.
+**Fix:** Add guard clause before compilation:
 ```javascript
 if (publishedPosts.length === 0) {
   throw new Error('No published blog posts in the selected period. Publish at least

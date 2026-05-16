@@ -8,11 +8,11 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen up, engineering and product teams. As your Creative Director, I am locking in the visual specifications for the Coach Assistant upgrade. We are executing the **Enchanted Apex: Crystalline Swan** theme. This is not a suggestion; this is the final authority on how this platform will look and feel. 
+Listen up, engineering and product teams. As your Creative Director, I am locking in the visual specifications for the Coach Assistant upgrade. We are executing the **Enchanted Apex: Crystalline Swan** theme. This is not a suggestion; this is the final authority on how this platform will look and feel.
 
-We are building a premium, high-performance tool for elite trainers. The UI must be razor-sharp, accessible, and visually striking without being distracting. I have reviewed the UX research, and I am prescribing the exact design tokens, dimensions, and animations required to bring this to life. 
+We are building a premium, high-performance tool for elite trainers. The UI must be razor-sharp, accessible, and visually striking without being distracting. I have reviewed the UX research, and I am prescribing the exact design tokens, dimensions, and animations required to bring this to life.
 
-Throw out any old Galaxy-Swan hex codes. If I see `#00FFFF` in a pull request, I will reject it immediately. 
+Throw out any old Galaxy-Swan hex codes. If I see `#00FFFF` in a pull request, I will reject it immediately.
 
 Here are the **EXACT** design specifications for the Phase 1 components. Build it pixel-perfect.
 
@@ -26,14 +26,14 @@ This is the trainer’s command center. It needs to feel grounded but highly res
     *   Mobile Drawer Width: `85vw` (Max: `360px`).
 *   **Background Color:** `var(--color-carbon)` (`#141419`) with a `1px` right border of `var(--color-graphite)` (`#1A1A24`).
 *   **Item Height:** `64px` (Non-negotiable. Exceeds the 44px minimum touch target for mobile-first usability).
-*   **Hover State:** 
+*   **Hover State:**
     *   Background shifts to `var(--color-graphite)` (`#1A1A24`).
     *   Left border: `3px solid var(--color-ice-wing)` (`#60C0F0`).
-*   **Active State:** 
+*   **Active State:**
     *   Background: `var(--color-royal-depth)` (`#003080`) at `20%` opacity.
     *   Left border: `4px solid var(--color-arctic-cyan)` (`#50A0F0`).
     *   Text: `var(--color-frost-white)` (`#E0ECF4`) with `font-weight: 600`.
-*   **Transitions:** 
+*   **Transitions:**
     *   `transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-left 0.2s ease-out;`
 *   **Mobile Drawer Animation:**
     *   Slide in: `transform: translateX(-100%)` to `translateX(0)`.
@@ -94,7 +94,7 @@ This is the hero interaction of the voice-first AI. It needs to feel alive, tact
 
 *   **Orb Size:** `72px x 72px` circle. (Massive touch target for gym use).
 *   **Orb Background:** `var(--color-midnight-sapphire)` (`#002060`).
-*   **Dual-Button Glow (Active State):** 
+*   **Dual-Button Glow (Active State):**
     *   `box-shadow: 0 0 20px var(--color-wing-purple), 0 0 40px var(--color-arctic-cyan);`
     *   Transition: Blue → Purple glow on hover. Purple → Cyan glow on active recording.
 *   **Amplitude Rings (Visualizer):**
@@ -113,11 +113,11 @@ Identifies the AI Coach vs. the Trainer in the chat UI. Must break the grid slig
 
 *   **Size:** `28px x 28px` circular container.
 *   **Font:** `10px`, `font-weight: 800`, `text-transform: uppercase`, `letter-spacing: 0.05em`.
-*   **Color:** 
+*   **Color:**
     *   Text: `var(--color-frost-white)` (`#E0ECF4`).
     *   Background: `var(--color-royal-depth)` (`#003080`).
     *   Border: `2px solid var(--color-ice-wing)` (`#60C0F0`).
-*   **Placement:** 
+*   **Placement:**
     *   Absolute positioned on the top-left of the Coach message bubble.
     *   Offset: `top: -14px`, `left: -14px` (Overlaps the bubble corner exactly by 50%).
     *   *Note:* Ensure the parent message container has `margin-top: 16px` to accommodate the badge overlap.
@@ -128,7 +128,7 @@ For multimedia messaging (form check videos, progress photos). Must be compact b
 *   **Thumbnail Size:** `64px x 64px` (1:1 Aspect Ratio). `object-fit: cover`.
 *   **Border Radius:** `8px`.
 *   **Border:** `1px solid var(--color-graphite)` (`#1A1A24`).
-*   **Remove Button Placement:** 
+*   **Remove Button Placement:**
     *   Absolute positioned at the top-right corner.
     *   Offset: `top: -8px`, `right: -8px`.
 *   **Remove Button Specs:**
@@ -140,7 +140,7 @@ For multimedia messaging (form check videos, progress photos). Must be compact b
 ---
 
 ### Implementation Directives (CSS Custom Properties)
-Add these to `design-tokens.css` immediately. 
+Add these to `design-tokens.css` immediately.
 
 ```css
 :root {
@@ -155,10 +155,10 @@ Add these to `design-tokens.css` immediately.
   --color-obsidian-black: #0A0A0F;
   --color-carbon: #141419;
   --color-graphite: #1A1A24;
-  
+
   /* System / Semantic */
   --color-frost-alert: #7DD3FC; /* Error / Destructive */
-  
+
   /* Dual-Button Glow Tokens */
   --glow-idle: 0 0 15px rgba(96, 192, 240, 0.4); /* Ice Wing */
   --glow-hover: 0 0 20px rgba(139, 92, 246, 0.6); /* Wing Purple */
@@ -166,7 +166,7 @@ Add these to `design-tokens.css` immediately.
 }
 ```
 
-**Final Word:** Do not deviate from these specs. The Crystalline Swan theme relies on the precise interplay of deep darks (`Obsidian`, `Carbon`) and sharp, luminous accents (`Ice Wing`, `Arctic Cyan`). Implement the mobile touch targets exactly as specified—our trainers are using this on the gym floor, not at a desk. 
+**Final Word:** Do not deviate from these specs. The Crystalline Swan theme relies on the precise interplay of deep darks (`Obsidian`, `Carbon`) and sharp, luminous accents (`Ice Wing`, `Arctic Cyan`). Implement the mobile touch targets exactly as specified—our trainers are using this on the gym floor, not at a desk.
 
 Execute.
 
@@ -190,7 +190,7 @@ The `--color-carbon`, `--color-obsidian-black`, `--color-ice-wing`, and `--color
 
 ### ❌ DISPUTE #1: Provider Badge — Accessibility Violation
 
-**File Reference:** `components/chat/ProviderBadge.tsx`  
+**File Reference:** `components/chat/ProviderBadge.tsx`
 **Location:** Section 5 of Creative Director's specification
 
 **The Problem:**
@@ -223,18 +223,18 @@ Trainers wearing gloves, adjusting lighting conditions, or with mild presbyopia 
   width: auto;
   height: auto;
   padding: 4px 8px; /* Ensures hit area exceeds 44px */
-  
+
   /* Typography - 12px minimum for readability */
   font-size: 12px; /* Up from 10px */
   font-weight: 700;
   letter-spacing: 0.08em;
-  
+
   /* Existing color specs preserved */
   color: var(--color-frost-white);
   background: var(--color-royal-depth);
   border: 2px solid var(--color-ice-wing);
   border-radius: 14px; /* Adjust to pill shape */
-  
+
   /* Alignment adjustment */
   position: absolute;
   top: -16px;
@@ -256,7 +256,7 @@ Add aria-label for screen readers since the badge may not always display full te
 
 ```tsx
 // ProviderBadge.tsx - Line 15
-<span 
+<span
   className="provider-badge"
   role="img"
   aria-label={`AI Coach: ${providerName}`}
@@ -267,7 +267,7 @@ Add aria-label for screen readers since the badge may not always display full te
 
 ### ❌ DISPUTE #2: Mobile Drawer Width — Mathematical Conflict
 
-**File Reference:** `components/sidebar/Sidebar.css`  
+**File Reference:** `components/sidebar/Sidebar.css`
 **Location:** Section 1, Mobile Drawer Width
 
 **The Problem:**
@@ -278,7 +278,7 @@ Add aria-label for screen readers since the badge may not always display full te
 | `85vw` | On iPad Mini (744px width) | = 632.4px | ❌ Exceeds 360px max |
 | `85vw` | On viewport > 423px | Exceeds 360px cap | ❌ Fails |
 
-The specification states:  
+The specification states:
 > *Mobile Drawer Width: `85vw` (Max: `360px`)*
 
 However, **CSS `max-width` does not override `vw` units this way** on large mobile devices or tablets. The logical cascade is:
@@ -343,7 +343,7 @@ The Crystalline Swan theme is architecturally sound. The two disputes are implem
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-I appreciate the thorough review. This is exactly why we have this process—to ensure the Crystalline Swan aesthetic survives the transition from Figma to the DOM without compromising usability. 
+I appreciate the thorough review. This is exactly why we have this process—to ensure the Crystalline Swan aesthetic survives the transition from Figma to the DOM without compromising usability.
 
 Here is my ruling on your two disputes.
 
@@ -351,9 +351,9 @@ Here is my ruling on your two disputes.
 
 **File Reference:** `components/chat/ProviderBadge.tsx` & `components/badges/ProviderBadge.css`
 
-You are absolutely right about the 10px font size. I will not compromise on accessibility for our trainers on the gym floor. The bump to `12px` and the addition of the `aria-label` are **APPROVED**. 
+You are absolutely right about the 10px font size. I will not compromise on accessibility for our trainers on the gym floor. The bump to `12px` and the addition of the `aria-label` are **APPROVED**.
 
-However, I **REJECT** your proposed `border-radius: 14px` pill shape and the `max-width: 60px` text truncation. The Crystalline Swan theme relies on sharp, precise geometry. A bloated pill shape hanging off the corner of a chat bubble looks sloppy and breaks the grid tension. 
+However, I **REJECT** your proposed `border-radius: 14px` pill shape and the `max-width: 60px` text truncation. The Crystalline Swan theme relies on sharp, precise geometry. A bloated pill shape hanging off the corner of a chat bubble looks sloppy and breaks the grid tension.
 
 The badge must remain a **perfect circle**. To accommodate the 12px font, we will increase the circle size, and we will restrict the visual text to a 2-character monogram (e.g., "AI", "PT"), relying on your excellent `aria-label` suggestion for the full name.
 
@@ -366,23 +366,23 @@ The badge must remain a **perfect circle**. To accommodate the 12px font, we wil
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  
+
   /* Flexbox for perfect centering */
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Typography */
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  
+
   /* Colors (Unchanged) */
   color: var(--color-frost-white);
   background: var(--color-royal-depth);
   border: 2px solid var(--color-ice-wing);
-  
+
   /* Updated Offset to maintain 50% overlap */
   position: absolute;
   top: -16px;
@@ -395,7 +395,7 @@ The badge must remain a **perfect circle**. To accommodate the 12px font, we wil
 // Ensure the visual output is strictly a 2-character monogram
 const monogram = providerName === 'AI Coach' ? 'AI' : providerName.substring(0, 2).toUpperCase();
 
-<span 
+<span
   className="provider-badge"
   role="img"
   aria-label={`Message from: ${providerName}`}
@@ -408,7 +408,7 @@ const monogram = providerName === 'AI Coach' ? 'AI' : providerName.substring(0, 
 
 **File Reference:** `components/sidebar/Sidebar.css`
 
-For the record, standard CSS `max-width: 360px` *does* successfully override `width: 85vw` in the browser's rendering engine. However, your proposal to use `clamp()` is a superior engineering approach because it introduces a `280px` lower bound, which protects the UI on legacy micro-devices (like the iPhone SE) that I had overlooked. 
+For the record, standard CSS `max-width: 360px` *does* successfully override `width: 85vw` in the browser's rendering engine. However, your proposal to use `clamp()` is a superior engineering approach because it introduces a `280px` lower bound, which protects the UI on legacy micro-devices (like the iPhone SE) that I had overlooked.
 
 Your proposed CSS is **APPROVED**.
 
@@ -417,7 +417,7 @@ Your proposed CSS is **APPROVED**.
 /* components/sidebar/Sidebar.css */
 .sidebar-drawer {
   /* Protects against ultra-narrow screens while capping at 360px */
-  width: clamp(280px, 85vw, 360px); 
+  width: clamp(280px, 85vw, 360px);
 }
 ```
 
@@ -425,7 +425,7 @@ Your proposed CSS is **APPROVED**.
 
 ### Summary for Round 3
 
-We are aligned on the CSS architecture, the `clamp()` logic for the sidebar, and the updated 32px circular Provider Badge with monogram logic. 
+We are aligned on the CSS architecture, the `clamp()` logic for the sidebar, and the updated 32px circular Provider Badge with monogram logic.
 
 Update the PRs with these exact adjustments. Unless you have found any other structural flaws in the Phase 1 components, we are ready to merge and move to Phase 2 (Data Visualization & Charting).
 
@@ -480,15 +480,15 @@ function generateMonogram(providerName: string): string {
   if (providerName === 'AI Coach') {
     return 'AI';
   }
-  
+
   // Split on spaces and ampersands
   const words = providerName.split(/[\s&]+/);
-  
+
   if (words.length === 1) {
     // Single word: take first 2 characters
     return words[0].substring(0, 2).toUpperCase();
   }
-  
+
   // Multiple words: take first letter of first two words
   // "Mike Thompson" → "MT"
   // "John Smith Jr" → "JS"
@@ -499,7 +499,7 @@ function generateMonogram(providerName: string): string {
 // Usage
 const monogram = generateMonogram(providerName);
 
-<span 
+<span
   className="provider-badge"
   role="img"
   aria-label={`Message from ${providerName}`}
@@ -516,7 +516,7 @@ A trainer glancing at a chat interface during a session needs instant recognitio
 
 ### ⚠️ MINOR: aria-label Clarity
 
-The Creative Director's aria-label:  
+The Creative Director's aria-label:
 `aria-label={`Message from: ${providerName}`}`
 
 This is good, but slightly inconsistent with the aria role. I'd recommend:
@@ -550,7 +550,7 @@ This provides context: users know it's an avatar, it's AI-related, and the speci
 
 **File Reference:** `components/chat/ProviderBadge.tsx`
 
-You are entirely correct. I will own that oversight. "PE" for Personal Trainer or "MI" for Mike Thompson is visual garbage and completely fails the scannability test for a trainer mid-session. 
+You are entirely correct. I will own that oversight. "PE" for Personal Trainer or "MI" for Mike Thompson is visual garbage and completely fails the scannability test for a trainer mid-session.
 
 Your `generateMonogram` algorithm is elegant, standardizes the visual output perfectly, and ensures the UI remains sharp and instantly recognizable. The logic is **APPROVED**.
 
@@ -562,7 +562,7 @@ Your `generateMonogram` algorithm is elegant, standardizes the visual output per
 
 I am **REJECTING** your specific `aria-label` string proposal: `aria-label={`AI Coach avatar for ${providerName}`}`.
 
-While your intent to add the "avatar" context is correct, your execution introduces a critical semantic bug. The entire purpose of this badge is to differentiate the AI Coach *from* the human Trainer. If the provider is the human trainer (e.g., "Mike Thompson"), a screen reader announcing *"AI Coach avatar for Mike Thompson"* is factually incorrect and will severely confuse visually impaired users. 
+While your intent to add the "avatar" context is correct, your execution introduces a critical semantic bug. The entire purpose of this badge is to differentiate the AI Coach *from* the human Trainer. If the provider is the human trainer (e.g., "Mike Thompson"), a screen reader announcing *"AI Coach avatar for Mike Thompson"* is factually incorrect and will severely confuse visually impaired users.
 
 We must make the label dynamic based on the provider's identity.
 
@@ -576,13 +576,13 @@ function generateMonogram(providerName: string): string {
   if (providerName === 'AI Coach') {
     return 'AI';
   }
-  
+
   const words = providerName.split(/[\s&]+/);
-  
+
   if (words.length === 1) {
     return words[0].substring(0, 2).toUpperCase();
   }
-  
+
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
@@ -590,7 +590,7 @@ function generateMonogram(providerName: string): string {
 const monogram = generateMonogram(providerName);
 const isAI = providerName === 'AI Coach';
 
-<span 
+<span
   className="provider-badge"
   role="img"
   aria-label={isAI ? "AI Coach Avatar" : `Trainer Avatar: ${providerName}`}
@@ -603,9 +603,9 @@ const isAI = providerName === 'AI Coach';
 
 ### Summary for Round 4
 
-We have successfully stress-tested and locked the Phase 1 specifications. The Crystalline Swan theme is now mathematically sound, fully accessible, and visually uncompromising. 
+We have successfully stress-tested and locked the Phase 1 specifications. The Crystalline Swan theme is now mathematically sound, fully accessible, and visually uncompromising.
 
-Update the PR with the final `ProviderBadge.tsx` logic above. Once that is merged, I am officially closing Phase 1 design reviews. 
+Update the PR with the final `ProviderBadge.tsx` logic above. Once that is merged, I am officially closing Phase 1 design reviews.
 
 Prepare your systems for **Phase 2: Data Visualization & Charting**. I will be issuing the specifications for the `VolumeLoadGraph` and `1RM-Trendline` components next, and they will require strict adherence to our new SVG rendering standards.
 
@@ -635,7 +635,7 @@ The Creative Director's final `ProviderBadge.tsx` implementation is **fully appr
 The approved implementation uses `role="img"` on a span containing text content:
 
 ```tsx
-<span 
+<span
   className="provider-badge"
   role="img"
   aria-label={isAI ? "AI Coach Avatar" : `Trainer Avatar: ${providerName}`}
@@ -649,7 +649,7 @@ The approved implementation uses `role="img"` on a span containing text content:
 **Recommended Alternative — `role="presentation"`:**
 
 ```tsx
-<span 
+<span
   className="provider-badge"
   role="presentation"
   aria-hidden="true"
@@ -661,7 +661,7 @@ The approved implementation uses `role="img"` on a span containing text content:
 The `aria-label` should then be placed on the **parent message container** where the semantic meaning is clearer:
 
 ```tsx
-<div 
+<div
   className="message coach-message"
   aria-label={isAI ? "AI Coach message" : `Trainer ${providerName}'s message`}
 >
@@ -694,7 +694,7 @@ Awaiting **Phase 2: Data Visualization & Charting** specifications for `VolumeLo
 
 ### ✅ CONSENSUS REACHED (Phase 1 Finalization)
 
-You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now. 
+You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now.
 
 Your recommendation to use `role="presentation"` and `aria-hidden="true"` on the badge, while moving the semantic `aria-label` to the parent message container, is **APPROVED**. Update the Phase 1 PR with this final adjustment and merge it.
 
@@ -712,7 +712,7 @@ Here are the directives for the `VolumeLoadGraph` and the `1RM-Trendline`.
 **File Reference:** `components/charts/ChartBase.css`
 
 *   **Crisp Rendering:** All SVG lines and strokes MUST use `vector-effect="non-scaling-stroke"`. This ensures our 1px or 2px lines don't become blurry or bloated when the SVG scales responsively on mobile devices.
-*   **Gridlines:** 
+*   **Gridlines:**
     *   Color: `var(--color-graphite)` (`#1A1A24`).
     *   Style: `stroke-width="1"`, `stroke-dasharray="4 4"`.
     *   *Rule:* Horizontal gridlines only. Vertical gridlines create unnecessary visual noise.
@@ -787,4 +787,3 @@ Do NOT use native SVG `<title>` tags. They are slow, ugly, and inaccessible. We 
 Review these specifications. Pay special attention to the SVG filter logic and the animation staggers. If the math and accessibility hold up, we build it.
 
 ---
-

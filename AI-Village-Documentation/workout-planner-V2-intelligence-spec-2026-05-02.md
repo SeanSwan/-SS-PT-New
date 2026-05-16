@@ -127,7 +127,7 @@ The Village MUST decide A vs B vs C, and if A or C, the Village provides the can
   - Main exercise body (4-8 items)
   - Balance / Core / Stability (1-3 items, integrated into core day or appended to other days per NASM phase)
   - Cooldown / Recovery (1-2 items)
-  
+
   If the AI returns a session missing any required category, the constraint validator inserts a deterministic default from the eligible Rolodex slice for that category before saving. NO session ships without all four categories represented.
 
 - **F15**: This entire spec + all of Sean's voice notes go into the Village prompt.

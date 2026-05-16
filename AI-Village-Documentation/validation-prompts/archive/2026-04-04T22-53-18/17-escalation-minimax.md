@@ -64,11 +64,11 @@ const parsed = BatchSchema.safeParse(geminiResponse);
 if (!parsed.success) {
   console.error(`Batch ${batchNum} validation failed:`, parsed.error.flatten());
   // Log to error tracking, skip batch, continue with others
-  continue; 
+  continue;
 }
 
 // Sanitize strings (defense in depth)
-const sanitized = parsed.data.map(variation => 
+const sanitized = parsed.data.map(variation =>
   Object.fromEntries(
     Object.entries(variation).map(([k, v]) => [k, sanitizeString(v)])
   )
@@ -209,23 +209,23 @@ interface ApplyState {
   error: string | null;
 }
 
-const [applyState, setApplyState] = useState<ApplyState>({ 
-  status: 'idle', 
-  error: null 
+const [applyState, setApplyState] = useState<ApplyState>({
+  status: 'idle',
+  error: null
 });
 
 const handleApply = async (exerciseId: string, modType: string, value: string) => {
   setApplyState({ status: 'loading', error: null });
-  
+
   try {
     await api.applyModification(exerciseId, modType, value);
     setApplyState({ status: 'success', error: null });
     // Auto-reset after 2s
     setTimeout(() => setApplyState({ status: 'idle', error: null }), 2000);
   } catch (err) {
-    setApplyState({ 
-      status: 'error', 
-      error: err instanceof Error ? err.message : 'Failed to apply modification' 
+    setApplyState({
+      status: 'error',
+      error: err instanceof Error ? err.message : 'Failed to apply modification'
     });
   }
 };

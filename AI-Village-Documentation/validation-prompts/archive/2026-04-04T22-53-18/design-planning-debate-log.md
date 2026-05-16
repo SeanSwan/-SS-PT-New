@@ -8,11 +8,11 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-As the Creative Director of SwanStudios, I must immediately correct a fundamental disconnect in your request. You asked for design specs for a "Conversation Sidebar," "Markdown Renderer," and "Voice Recording Overlay." **Those components belong to an AI Chat interface, not the Board 2 Exercise Modifications plan you submitted for review.** 
+As the Creative Director of SwanStudios, I must immediately correct a fundamental disconnect in your request. You asked for design specs for a "Conversation Sidebar," "Markdown Renderer," and "Voice Recording Overlay." **Those components belong to an AI Chat interface, not the Board 2 Exercise Modifications plan you submitted for review.**
 
-I do not design blindly. I design to solve the exact UX friction points identified in the research: **Information Overload** and the **Missing "Apply" Workflow**. 
+I do not design blindly. I design to solve the exact UX friction points identified in the research: **Information Overload** and the **Missing "Apply" Workflow**.
 
-To execute the Board 2 Redesign flawlessly under the **Crystalline Swan** design system, we are discarding the static, overwhelming 10-row table. Instead, we are implementing a **Progressive Disclosure Accordion** and a **Contextual Action Sheet**. 
+To execute the Board 2 Redesign flawlessly under the **Crystalline Swan** design system, we are discarding the static, overwhelming 10-row table. Instead, we are implementing a **Progressive Disclosure Accordion** and a **Contextual Action Sheet**.
 
 Here is my definitive, prescriptive visual specification for the *actual* components required for Board 2.
 
@@ -30,7 +30,7 @@ Here is my definitive, prescriptive visual specification for the *actual* compon
 *   **Typography (Header):** `15px` Inter, SemiBold, `var(--swan-frost, #E0ECF4)`
 *   **AI Context Badge (If client has known pain):** `background: rgba(139, 92, 246, 0.15); color: var(--swan-wing-purple, #8B5CF6); border-radius: 4px; padding: 2px 6px; font-size: 11px;`
 *   **Chevron Icon:** `16x16px`, `color: var(--swan-ice-wing, #60C0F0)`
-*   **Animation (Expand/Collapse):** 
+*   **Animation (Expand/Collapse):**
     *   Height transition: `0.35s cubic-bezier(0.2, 0.8, 0.2, 1)`
     *   Chevron rotation: `transform: rotate(180deg); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);`
 
@@ -39,13 +39,13 @@ Here is my definitive, prescriptive visual specification for the *actual* compon
 
 *   **Row Height:** `48px` (Strict Apple HIG standard for touch targets).
 *   **Row Layout:** CSS Grid `grid-template-columns: 120px 1fr 32px;` (Label, Exercise Name, Action Icon).
-*   **Easy Variation Row (Regression):** 
+*   **Easy Variation Row (Regression):**
     *   Background: `rgba(96, 192, 240, 0.06)` (Ice Wing)
     *   Label Color: `var(--swan-ice-wing, #60C0F0)`
-*   **Hard Variation Row (Progression):** 
+*   **Hard Variation Row (Progression):**
     *   Background: `rgba(139, 92, 246, 0.06)` (Wing Purple)
     *   Label Color: `var(--swan-wing-purple, #8B5CF6)`
-*   **Pain Mod Rows (Alternating):** 
+*   **Pain Mod Rows (Alternating):**
     *   Even Rows: `var(--swan-obsidian, #0A0A0F)`
     *   Odd Rows: `var(--swan-carbon, #141419)`
 *   **Typography (Exercise Name):** `14px` Inter, Medium, `var(--swan-frost, #E0ECF4)`
@@ -78,7 +78,7 @@ Here is my definitive, prescriptive visual specification for the *actual* compon
     *   **Border Radius:** `12px`
     *   **Typography:** `16px` Inter, Bold, `var(--swan-frost, #E0ECF4)`
     *   **Background:** `linear-gradient(135deg, var(--swan-royal-depth, #003080), var(--swan-wing-purple, #8B5CF6))`
-    *   **MANDATORY Dual-Button Glow (Hover/Active):** 
+    *   **MANDATORY Dual-Button Glow (Hover/Active):**
         *   `box-shadow: 0 0 24px rgba(139, 92, 246, 0.4), inset 0 0 12px rgba(96, 192, 240, 0.3);`
         *   Transition: `box-shadow 0.3s ease-out`
 *   **Secondary Action Button ("Update Template Permanently"):**
@@ -138,7 +138,7 @@ Below are the merged specifications incorporating both plans.
 > ```tsx
 > // CHANGE FROM:
 > style={{ height: '56px', transition: 'height 0.35s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
-> 
+>
 > // TO:
 > style={{ height: isExpanded ? 'auto' : '56px', transition: 'height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-out' }}
 > ```
@@ -202,7 +202,7 @@ Specifications endorsed. ✅ **Full agreement.**
 > ```css
 > .action-sheet-primary-btn {
 >   /* Replace inline glow with subtle gradient + drop shadow only */
->   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35), 
+>   box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35),
 >               0 0 0 1px rgba(96, 192, 240, 0.2);
 > }
 > .action-sheet-primary-btn:active {
@@ -224,8 +224,8 @@ The original plan omits critical states for the **"Apply" action**.
 
 const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-<PrimaryButton 
-  onPress={handleApply} 
+<PrimaryButton
+  onPress={handleApply}
   disabled={applyState === 'loading'}
 >
   {applyState === 'loading' && <Spinner size={16} color="#E0ECF4" />}
@@ -250,7 +250,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
 
 ```tsx
 // ADD ARIA attributes:
-<button 
+<button
   aria-expanded={isExpanded}
   aria-controls={`mod-content-${exerciseId}`}
   onKeyDown={(e) => {
@@ -261,7 +261,7 @@ const [applyState, setApplyState] = useState<'idle' | 'loading' | 'success' | 'e
   <Chevron aria-hidden="true" />
 </button>
 
-<div 
+<div
   id={`mod-content-${exerciseId}`}
   role="region"
   aria-label={`Modifications for ${exerciseName}`}
@@ -289,4 +289,3 @@ I agree with the **Core Architecture** (Accordion + Grid + Badges + Action Sheet
 **Awaiting Creative Director's response on disputes 1–5 before proceeding to Round 2.**
 
 ---
-

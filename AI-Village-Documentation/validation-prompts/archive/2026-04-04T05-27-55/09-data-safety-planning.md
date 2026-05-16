@@ -8,10 +8,10 @@
 
 # Data Safety Audit: CLAUDE.md Token Optimization Plan
 
-**Auditor:** Data Safety Review  
-**Platform:** SwanStudios (sswanstudios.com) — Production SaaS  
-**Date:** 2025  
-**Scope:** 8 data safety findings as specified  
+**Auditor:** Data Safety Review
+**Platform:** SwanStudios (sswanstudios.com) — Production SaaS
+**Date:** 2025
+**Scope:** 8 data safety findings as specified
 **Verdict:** ⚠️ **AUDIT MISMATCH DETECTED — SEE CRITICAL FINDING #0**
 
 ---
@@ -48,10 +48,10 @@ These features appear to belong to a **different plan** — likely an AI Chat fe
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `HIGH` for the implied missing plan
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to JSONB, conversations, 
+SUBMITTED PLAN CONTAINS: Zero references to JSONB, conversations,
 messages, or file attachments.
 
-WHAT THE PLAN DOES: Reorganizes markdown documentation files in 
+WHAT THE PLAN DOES: Reorganizes markdown documentation files in
 docs/ai-workflow/references/. No database interaction whatsoever.
 ```
 
@@ -87,8 +87,8 @@ if (conversationSize > MAX_CONVERSATION_BYTES) {
 }
 
 -- RECOMMENDATION 2: Add a PostgreSQL constraint
-ALTER TABLE conversations 
-ADD CONSTRAINT check_messages_size 
+ALTER TABLE conversations
+ADD CONSTRAINT check_messages_size
 CHECK (pg_column_size(messages) < 524288); -- 512KB
 
 -- RECOMMENDATION 3: Track message count separately
@@ -109,7 +109,7 @@ ALTER TABLE conversations ADD COLUMN message_count INTEGER DEFAULT 0;
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `HIGH` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to soft delete, 
+SUBMITTED PLAN CONTAINS: Zero references to soft delete,
 status='deleted', conversations, or sidebar listing.
 
 THE PLAN DOES: Moves documentation files. No query logic changes.
@@ -125,8 +125,8 @@ THE PLAN DOES: Moves documentation files. No query logic changes.
 SELECT * FROM conversations WHERE user_id = $1;
 
 -- ✅ SAFE - explicit exclusion
-SELECT * FROM conversations 
-WHERE user_id = $1 
+SELECT * FROM conversations
+WHERE user_id = $1
   AND status != 'deleted'
   AND deleted_at IS NULL  -- belt AND suspenders
 ORDER BY updated_at DESC;
@@ -143,7 +143,7 @@ const Conversation = sequelize.define('Conversation', {
   // Sequelize paranoid mode - automatically adds deletedAt
   // and excludes soft-deleted records from ALL queries
   paranoid: true,
-  
+
   // Add a default scope that ALWAYS filters deleted
   defaultScope: {
     where: {
@@ -168,8 +168,8 @@ WHERE status != 'deleted'
 -- This makes it structurally impossible to accidentally query deleted records
 
 -- RECOMMENDATION: Index for performance
-CREATE INDEX idx_conversations_user_active 
-ON conversations(user_id, updated_at DESC) 
+CREATE INDEX idx_conversations_user_active
+ON conversations(user_id, updated_at DESC)
 WHERE status != 'deleted' AND deleted_at IS NULL;
 -- Partial index - only indexes non-deleted rows
 -- Sidebar queries become O(log n) on active records only
@@ -184,10 +184,10 @@ WHERE status != 'deleted' AND deleted_at IS NULL;
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `CRITICAL` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to R2, file storage, 
+SUBMITTED PLAN CONTAINS: Zero references to R2, file storage,
 attachments, or cleanup strategies.
 
-THE PLAN DOES: Reorganizes .md files in docs/. 
+THE PLAN DOES: Reorganizes .md files in docs/.
 No storage interaction.
 ```
 
@@ -198,7 +198,7 @@ RISK PROFILE:
 - Orphaned files in R2 = storage cost leak (financial)
 - Orphaned files containing user data = PRIVACY VIOLATION
 - No cleanup = GDPR/CCPA right-to-erasure failure
-- For wealthy clients (golf demographic): privacy breach = 
+- For wealthy clients (golf demographic): privacy breach =
   immediate churn + potential legal exposure
 ```
 
@@ -219,7 +219,7 @@ CREATE TABLE conversation_attachments (
   uploaded_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ,          -- soft delete mirrors conversation
   purged_at TIMESTAMPTZ,           -- R2 deletion confirmed
-  
+
   CONSTRAINT valid_mime CHECK (
     mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
     -- Explicit allowlist, not blocklist
@@ -227,8 +227,8 @@ CREATE TABLE conversation_attachments (
   CONSTRAINT reasonable_size CHECK (file_size_bytes < 10485760) -- 10MB max
 );
 
-CREATE INDEX idx_attachments_conversation 
-ON conversation_attachments(conversation_id) 
+CREATE INDEX idx_attachments_conversation
+ON conversation_attachments(conversation_id)
 WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_attachments_unpurged
@@ -243,37 +243,37 @@ WHERE purged_at IS NULL AND deleted_at IS NOT NULL;
 
 async function deleteConversation(conversationId, userId) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     // 1. Verify ownership BEFORE any deletion
     const conversation = await Conversation.findOne({
       where: { id: conversationId, userId },
       transaction
     });
-    
+
     if (!conversation) {
       throw new Error('Not found or unauthorized');
       // NEVER reveal which - prevents enumeration attacks
     }
-    
+
     // 2. Soft-delete the conversation
     await conversation.update(
       { status: 'deleted', deletedAt: new Date() },
       { transaction }
     );
-    
+
     // 3. Soft-delete all attachments (marks for R2 cleanup)
     await ConversationAttachment.update(
       { deletedAt: new Date() },
-      { 
+      {
         where: { conversationId, deletedAt: null },
-        transaction 
+        transaction
       }
     );
-    
+
     // 4. Commit DB changes FIRST
     await transaction.commit();
-    
+
     // 5. Queue R2 cleanup AFTER commit (async, with retry)
     await cleanupQueue.add('purge-r2-attachments', {
       conversationId,
@@ -282,7 +282,7 @@ async function deleteConversation(conversationId, userId) {
       attempts: 5,
       backoff: { type: 'exponential', delay: 2000 }
     });
-    
+
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -298,14 +298,14 @@ async function purgeOrphanedR2Files() {
     },
     limit: 100  // Process in batches
   });
-  
+
   for (const attachment of orphaned) {
     try {
       await r2Client.deleteObject({
         Bucket: 'your-bucket',
         Key: attachment.r2Key
       });
-      
+
       await attachment.update({ purgedAt: new Date() });
     } catch (error) {
       // Log but continue - will retry next run
@@ -334,10 +334,10 @@ async function purgeOrphanedR2Files() {
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `CRITICAL` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to voice recording, 
+SUBMITTED PLAN CONTAINS: Zero references to voice recording,
 audio, transcription, or Gemini audio processing.
 
-THE PLAN DOES: Reorganizes documentation. 
+THE PLAN DOES: Reorganizes documentation.
 Zero audio handling.
 ```
 
@@ -364,18 +364,18 @@ class VoiceProcessor {
     // It exists only in memory during this function call
     // Rationale: Voice biometrics = PII, health context = sensitive
     // Reviewed: [date] by [name]
-    
+
     let audioBuffer = null;
-    
+
     try {
       audioBuffer = await audioBlob.arrayBuffer();
-      
+
       // Send to Gemini for transcription ONLY
       const transcription = await geminiClient.transcribeAudio({
         audio: audioBuffer,
         mimeType: audioBlob.type
       });
-      
+
       // Store ONLY the text transcription
       return {
         type: 'voice_message',
@@ -384,7 +384,7 @@ class VoiceProcessor {
         // audioData: NEVER included
         // audioUrl: NEVER included
       };
-      
+
     } finally {
       // Explicit memory cleanup
       audioBuffer = null;
@@ -420,7 +420,7 @@ CREATE TABLE voice_interaction_logs (
   transcription_success BOOLEAN,
   error_code TEXT,
   -- NO: audio_content, transcription_text, audio_url
-  
+
   -- Auto-purge after 30 days (operational logs only)
   expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 days'
 );
@@ -446,33 +446,33 @@ Before enabling voice:
 **Severity:** `LOW` for submitted plan | Would be `HIGH` if chat feature plan existed
 
 ```
-SUBMITTED PLAN CONTAINS: Zero database migrations. 
+SUBMITTED PLAN CONTAINS: Zero database migrations.
 Zero API changes. Zero schema modifications.
 
-THE PLAN DOES: 
+THE PLAN DOES:
 1. Creates docs/ai-workflow/references/ directory
-2. Moves .md content into reference files  
+2. Moves .md content into reference files
 3. Rewrites CLAUDE.md as a shorter index file
 
-DATABASE IMPACT: NONE. These are markdown files read by Claude 
+DATABASE IMPACT: NONE. These are markdown files read by Claude
 (the AI assistant), not by the application or database.
 
-MIGRATION SAFETY VERDICT: ✅ SAFE — No migrations required or 
+MIGRATION SAFETY VERDICT: ✅ SAFE — No migrations required or
 implied. The "zero backend changes" claim is accurate for this plan.
 ```
 
 **The only real risk in the submitted plan:**
 
 ```
-RISK: If a reference doc is not created before CLAUDE.md is 
-updated to point to it, Claude will attempt to read a 
+RISK: If a reference doc is not created before CLAUDE.md is
+updated to point to it, Claude will attempt to read a
 non-existent file and fail silently or error.
 
 MITIGATION (already in the plan's Implementation Steps):
 Step 2: Extract sections BEFORE Step 3: Rewrite CLAUDE.md
 This ordering is correct. ✅
 
-ADDITIONAL RECOMMENDATION: 
+ADDITIONAL RECOMMENDATION:
 Add a validation step between Steps 2 and 3:
 
 # Verify all reference files exist before updating index

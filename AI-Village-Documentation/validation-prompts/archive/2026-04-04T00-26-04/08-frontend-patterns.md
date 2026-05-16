@@ -64,7 +64,7 @@ This is a robust architectural plan. Given the complexity of the "Bootcamp Build
 ### Strategic Answers to your "Questions for AI Village"
 
 1.  **Format vs. Sub-style:** Treat them as **Formats**. EMOM/Tabata/AMRAP have distinct timing logic that will break the standard "Station" model if forced into a sub-style.
-2.  **Optimal Station Count:** 
+2.  **Optimal Station Count:**
     *   Standard/Circuit: 6-8 stations.
     *   EMOM/AMRAP: 3-4 stations (to keep transitions tight).
 3.  **Rolodex UI:** **Sidebar on Desktop, Modal on Mobile.** The screen real estate on mobile is too precious for a permanent panel.

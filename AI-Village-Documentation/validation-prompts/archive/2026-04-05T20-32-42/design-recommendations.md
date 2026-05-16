@@ -157,7 +157,7 @@ const DraggableItem = styled.div`
     cursor: grabbing;
     border: 1px solid ${({ theme }) => theme.colors.ice};
     transform: scale(1.02);
-    box-shadow: 
+    box-shadow:
       0 15px 30px rgba(0, 0, 0, 0.5),
       0 0 20px rgba(96, 192, 240, 0.4),
       0 0 40px rgba(96, 192, 240, 0.2);
@@ -169,7 +169,7 @@ const DraggableItem = styled.div`
   @media (prefers-reduced-motion: reduce) {
     &.dragging {
       transform: scale(1);
-      box-shadow: 
+      box-shadow:
         0 4px 12px rgba(0, 0, 0, 0.4),
         0 0 8px rgba(96, 192, 240, 0.3);
     }
@@ -206,31 +206,31 @@ export const crystallineSwanTheme = {
     obsidian: '#0A0A0F',
     carbon: '#141419',
     graphite: '#1A1A24',
-    
+
     // Sapphire Depths
     midnight: '#002060',
     royal: '#003080',
-    
+
     // Frost Whites
     frost: '#E0ECF4',
     ice: '#60C0F0',
     arctic: '#50A0F0',
-    
+
     // Lavender Accents
     lavender: '#4070C0',
     wing: '#8B5CF6',
-    
+
     // Luxury Gold
     gilded: '#C6A84B',
   },
-  
+
   typography: {
     display: "'Cormorant Garamond', serif",
     body: "'Plus Jakarta Sans', sans-serif",
     ui: "'Sora', sans-serif",
     code: "'Fira Code', monospace",
   },
-  
+
   spacing: {
     xs: '4px',
     sm: '8px',
@@ -238,7 +238,7 @@ export const crystallineSwanTheme = {
     lg: '24px',
     xl: '48px',
   },
-  
+
   semantic: {
     surfacePrimary: '#141419',
     surfaceElevated: '#0A0A0F',
@@ -247,7 +247,7 @@ export const crystallineSwanTheme = {
     textPrimary: '#E0ECF4',
     textSecondary: 'rgba(224, 236, 244, 0.7)',
   },
-  
+
   motion: {
     easeLuxury: 'cubic-bezier(0.4, 0, 0.2, 1)',
     easeSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',

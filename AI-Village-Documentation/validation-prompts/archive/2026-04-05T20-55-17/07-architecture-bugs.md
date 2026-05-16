@@ -126,7 +126,7 @@ interface SecurityScanArchitecture {
     nvdFeed: { ttl: 7200, staleWhileRevalidate: 21600 };
     cisaKEV: { ttl: 3600 }; // Low TTL — actively exploited vulns change fast
   };
-  
+
   // 2. Queue-based processing
   jobQueue: {
     provider: 'BullMQ' | 'RQ';
@@ -134,7 +134,7 @@ interface SecurityScanArchitecture {
     retries: 3;
     backoff: 'exponential';
   };
-  
+
   // 3. Deduplication before storage
   dedupKey: 'CVE-ID'; // Prevents duplicate storage
 }
@@ -183,7 +183,7 @@ interface ContentPipelineErrorHandling {
     next_retry: Date;
     max_attempts: 5;
   };
-  
+
   // 2. Content versioning for rollback
   contentVersions: {
     content_id: string;
@@ -192,7 +192,7 @@ interface ContentPipelineErrorHandling {
     published: boolean;
     created_at: Date;
   };
-  
+
   // 3. Distribution status tracking
   distributionStatus: {
     content_id: string;
@@ -237,23 +237,23 @@ AES-256-GCM encryption, key from Render secrets"
 interface PlatformCredential {
   id: string;
   platform: 'facebook' | 'instagram' | 'twitter' | 'bluesky' | 'nextdoor';
-  
+
   // Encryption fields
   encrypted_token: Buffer;      // AES-256-GCM ciphertext
   encrypted_refresh_token: Buffer; // Separate for refresh
   iv: Buffer;                   // Unique per encryption
   auth_tag: Buffer;             // GCM authentication tag
-  
+
   // Key rotation
   key_version: number;          // Track which key version was used
   encrypted_with_key_id: string; // Reference to KMS key
-  
+
   // Metadata
   created_by: string;           // User ID (audit trail)
   created_at: Date;
   last_used_at: Date;           // Detect stale tokens
   expires_at: Date;             // For tokens with expiry
-  
+
   // Token scopes (encrypted)
   encrypted_scopes: Buffer;     // What permissions were granted
 }
@@ -293,14 +293,14 @@ interface WebhookRoutes {
     query: { 'hub.mode': string; 'hub.verify_token': string; 'hub.challenge': string };
     response: 'hub.challenge' string;
   };
-  
+
   // Webhook receiver
   'POST /webhooks/:platform': {
     headers: { 'x-hub-signature-256': string }; // HMAC verification
     body: PlatformWebhookPayload;
     actions: 'publish' | 'delete' | 'update' | 'rate_limit';
   };
-  
+
   // Track published posts for edit/delete sync
   PublishedPost: {
     platform: string;
@@ -335,7 +335,7 @@ interface WebhookRoutes {
 // MISSING: Content sanitization strategy
 interface ContentSanitization {
   sanitizer: 'DOMPurify' | 'isomorphic-dompurify'; // Client + Server
-  
+
   // Configuration per content type
   blogPost: {
     allowedTags: ['p', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'img', 'blockquote', 'code', 'pre'];
@@ -346,13 +346,13 @@ interface ContentSanitization {
     allowedSchemes: ['https'];
     stripEmpty: true;
   };
-  
+
   socialPost: {
     // No HTML allowed — plain text with link extraction
     maxLength: PlatformLimits; // Twitter=280, FB=63206, etc.
     linkify: true; // Convert URLs to links
   };
-  
+
   // Rich embeds (YouTube, etc.)
   embedPolicy: 'whitelist' | 'sandboxed-iframe' | 'none';
   allowedEmbedDomains: ['youtube.com', 'youtu.be', 'instagram.com'];
@@ -397,24 +397,24 @@ interface GeminiErrorHandling {
     backoffMs: [1000, 2000, 4000]; // Exponential
     retryableErrors: ['TIMEOUT', 'RATE_LIMITED', '503'];
   };
-  
+
   circuitBreaker: {
     failureThreshold: 5;
     resetTimeoutMs: 60000;
   };
-  
+
   budgetProtection: {
     monthlyLimitUsd: number; // FROM ENV
     alertAtPercent: 80;
     hardStopAt: 100;
   };
-  
+
   fallback: {
     'trending-topics': CachePreviousResults | 'Service temporarily unavailable';
     'blog-draft': DraftSaved | 'Failed to generate, please try again';
     'social-post': 'Unable to generate, try manual input';
   };
-  
+
   contentPolicy: {
     detectViolation: (response: string) => boolean;
     action: 'flag_for_review' | 'block' | 'log_and_proceed';

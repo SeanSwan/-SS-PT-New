@@ -14,10 +14,10 @@ I'm pleased we've reached alignment on the core typography and input specificati
 
 ## CONSENSUS REACHED ON PREVIOUS DISPUTES
 
-✅ **Typography breakpoints:** 16px/16px/15px approved  
-✅ **ChatInput padding/max-height:** Specification accepted  
-✅ **DictationOrb visual treatment:** Gradient + dual-layer glow approved  
-✅ **Semantic sizing system:** `compact`/`standard`/`primary` approved  
+✅ **Typography breakpoints:** 16px/16px/15px approved
+✅ **ChatInput padding/max-height:** Specification accepted
+✅ **DictationOrb visual treatment:** Gradient + dual-layer glow approved
+✅ **Semantic sizing system:** `compact`/`standard`/`primary` approved
 
 ---
 

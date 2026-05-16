@@ -8,9 +8,9 @@
 
 # Deep Architecture Review: SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md
 
-**Document Type:** Build Plan / Architecture Specification  
-**Reviewer:** Principal Software Engineer (Deep Architecture + Bug Hunt)  
-**Scope:** Strategic plan for subscription store, tier system, and AI feature gating  
+**Document Type:** Build Plan / Architecture Specification
+**Reviewer:** Principal Software Engineer (Deep Architecture + Bug Hunt)
+**Scope:** Strategic plan for subscription store, tier system, and AI feature gating
 
 ---
 
@@ -37,7 +37,7 @@ pro donation tiers: 15/25/40/60 msgs, 4/5/8/12 gens (scaling)
 elite: Infinity→300/50 (soft cap — warn, don't block)
 ```
 
-**Impact:** 
+**Impact:**
 - This contradiction will confuse developers implementing the feature
 - Marketing may promise "unlimited" while the code enforces limits
 - Users who exceed limits will experience unexpected behavior
@@ -145,13 +145,13 @@ router.get('/ai-usage-stats',
 - 50+ RPM → auto-cooldown 15 minutes (definitely automated)
 ```
 
-**Problem:** 
+**Problem:**
 - 20 RPM = 28,800 requests/day = ~864,000 monthly
 - While technically not a "monthly cap," this IS a throughput cap
 - Power users (trainers with many clients) could hit this legitimately
 - The contradiction between "unlimited" marketing and hard rate limits creates user experience problems
 
-**Fix:** 
+**Fix:**
 1. Increase rate limit to 60 RPM for paid tiers (1 req/second is reasonable)
 2. Add burst allowance (allow short spikes to 100 RPM)
 3. Document clearly: "Rate limiting is per-minute to prevent abuse, not a monthly cap"
@@ -187,20 +187,20 @@ export function resolveModelForTier(subscription, user) {
   if (user?.role === 'admin' || user?.role === 'trainer') {
     return process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   }
-  
+
   const tier = subscription?.tier || 'free';
   const amount = parseFloat(subscription?.amount) || 0;
-  
+
   // Define thresholds explicitly
   const THRESHOLDS = {
     gemini_2_5_flash: 5.00,  // Requires $5+ donation
     gemini_flash_lite: 0      // Default for everyone else
   };
-  
+
   if (tier === 'elite') return 'gemini-2.5-flash';
   if (tier === 'pro') {
-    return amount >= THRESHOLDS.gemini_2_5_flash 
-      ? 'gemini-2.5-flash' 
+    return amount >= THRESHOLDS.gemini_2_5_flash
+      ? 'gemini-2.5-flash'
       : 'gemini-2.0-flash-lite';
   }
   return 'gemini-2.0-flash-lite'; // free tier
@@ -238,52 +238,52 @@ export async function requireSubscription(requiredTier = 'free') {
     // ALWAYS check Stripe for current subscription status
     // Do NOT trust cached subscription state
     const user = req.user;
-    
+
     try {
       // Fetch REAL-TIME subscription status from Stripe
       const stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-      
+
       if (stripeCustomer.deleted) {
         // Customer deleted their Stripe account
         return res.status(402).json({ code: 'SUBSCRIPTION_INVALID' });
       }
-      
+
       const subscription = stripeCustomer.subscriptions?.data[0];
-      
+
       // Check if subscription is actually active
-      const isActive = subscription?.status === 'active' || 
+      const isActive = subscription?.status === 'active' ||
                         subscription?.status === 'trialing';
-      
+
       // Check period end
       const now = new Date();
       const periodEnd = new Date(subscription?.current_period_end * 1000);
-      
+
       if (!isActive || periodEnd < now) {
         // Subscription is invalid - force immediate downgrade
         await User.update(
           { subscriptionTier: 'free' },
           { where: { id: user.id } }
         );
-        return res.status(402).json({ 
+        return res.status(402).json({
           code: 'SUBSCRIPTION_EXPIRED',
-          expiredAt: periodEnd 
+          expiredAt: periodEnd
         });
       }
-      
+
       // Pass real-time subscription to downstream
       req.subscription = {
         tier: subscription.metadata.tier || 'free',
         amount: subscription.items.data[0].price.unit_amount / 100,
         periodEnd: periodEnd
       };
-      
+
       next();
     } catch (error) {
       // On Stripe error, FAIL CLOSED (deny access) not open
       console.error('Subscription verification failed:', error);
-      return res.status(503).json({ 
+      return res.status(503).json({
         code: 'SUBSCRIPTION_CHECK_FAILED',
-        retryable: true 
+        retryable: true
       });
     }
   };

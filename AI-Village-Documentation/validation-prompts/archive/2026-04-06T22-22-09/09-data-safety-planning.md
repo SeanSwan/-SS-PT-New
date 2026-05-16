@@ -48,10 +48,10 @@ Scenario B: Voice transcription stored in message metadata
 ```sql
 -- JSONB append is NOT atomic update of one element
 -- This is what actually happens on every new message:
-UPDATE conversations 
-SET messages = messages || '{"role":"user","content":"..."}' 
+UPDATE conversations
+SET messages = messages || '{"role":"user","content":"..."}'
 WHERE id = $1;
--- PostgreSQL reads ENTIRE messages column, deserializes, 
+-- PostgreSQL reads ENTIRE messages column, deserializes,
 -- appends, reserializes, writes ENTIRE column back.
 -- At 50MB, this is catastrophic for write throughput.
 ```
@@ -68,19 +68,19 @@ const MAX_CONVERSATION_JSONB_BYTES = 5 * 1024 * 1024; // 5MB hard limit
 
 async function appendMessage(conversationId: string, message: MessageObject) {
   const conversation = await Conversation.findByPk(conversationId);
-  
+
   // Measure current size before append
   const currentSize = Buffer.byteLength(
-    JSON.stringify(conversation.messages), 
+    JSON.stringify(conversation.messages),
     'utf8'
   );
-  
+
   if (currentSize > MAX_CONVERSATION_JSONB_BYTES) {
     // Archive old messages to a separate table, start fresh segment
     await archiveConversationSegment(conversationId, conversation.messages);
     conversation.messages = []; // Reset with archived reference
   }
-  
+
   // Never store base64 in JSONB — store R2 URL reference only
   if (message.attachments) {
     message.attachments = message.attachments.map(a => ({
@@ -92,7 +92,7 @@ async function appendMessage(conversationId: string, message: MessageObject) {
       // NO base64, NO thumbnail data, NO embedded content
     }));
   }
-  
+
   conversation.messages = [...conversation.messages, message];
   await conversation.save();
 }
@@ -102,7 +102,7 @@ async function appendMessage(conversationId: string, message: MessageObject) {
 
 ```sql
 -- Run this weekly in production
-SELECT 
+SELECT
   id,
   user_id,
   pg_column_size(messages) as messages_bytes,
@@ -128,7 +128,7 @@ CREATE TABLE conversation_messages (
   sequence_number INTEGER NOT NULL
 );
 
-CREATE INDEX idx_conv_messages_conversation_id 
+CREATE INDEX idx_conv_messages_conversation_id
   ON conversation_messages(conversation_id, sequence_number);
 ```
 
@@ -170,7 +170,7 @@ const conversations = await Conversation.findAll({
 
 // SAFE — what the query must look like:
 const conversations = await Conversation.findAll({
-  where: { 
+  where: {
     user_id: userId,
     status: { [Op.ne]: 'deleted' }  // Explicit exclusion
   },
@@ -186,16 +186,16 @@ const conversations = await Conversation.findAll({
 1. **Add a database-level constraint as a safety net:**
 
 ```sql
--- Partial index ensures deleted conversations are never accidentally 
+-- Partial index ensures deleted conversations are never accidentally
 -- included in index scans for active conversation queries
-CREATE INDEX idx_conversations_active_by_user 
+CREATE INDEX idx_conversations_active_by_user
   ON conversations(user_id, updated_at DESC)
   WHERE status != 'deleted';
 
 -- Verify the index is being used:
-EXPLAIN ANALYZE 
-SELECT id, title, updated_at 
-FROM conversations 
+EXPLAIN ANALYZE
+SELECT id, title, updated_at
+FROM conversations
 WHERE user_id = $1 AND status != 'deleted'
 ORDER BY updated_at DESC;
 ```
@@ -207,29 +207,29 @@ ORDER BY updated_at DESC;
 describe('Conversation sidebar safety', () => {
   it('NEVER returns deleted conversations in sidebar listing', async () => {
     const userId = testUser.id;
-    
+
     // Create and soft-delete a conversation
     const conv = await Conversation.create({ user_id: userId, status: 'active' });
     await conv.update({ status: 'deleted' });
-    
+
     const response = await request(app)
       .get('/api/conversations')
       .set('Authorization', `Bearer ${testToken}`);
-    
+
     const ids = response.body.map(c => c.id);
     expect(ids).not.toContain(conv.id); // This must pass
   });
-  
+
   it('NEVER returns another users conversations', async () => {
-    const otherUserConv = await Conversation.create({ 
-      user_id: otherUser.id, 
-      status: 'active' 
+    const otherUserConv = await Conversation.create({
+      user_id: otherUser.id,
+      status: 'active'
     });
-    
+
     const response = await request(app)
       .get('/api/conversations')
       .set('Authorization', `Bearer ${testToken}`); // Authenticated as testUser
-    
+
     const ids = response.body.map(c => c.id);
     expect(ids).not.toContain(otherUserConv.id); // Cross-user isolation
   });
@@ -248,7 +248,7 @@ Conversation.addScope('defaultScope', {
   where: { status: { [Op.ne]: 'deleted' } }
 }, { override: true });
 
-// WARNING: If you use Conversation.unscoped() anywhere, 
+// WARNING: If you use Conversation.unscoped() anywhere,
 // document exactly why and add a comment explaining the security exception
 ```
 
@@ -299,10 +299,10 @@ CREATE TABLE conversation_attachments (
   deletion_error TEXT                 -- Log R2 deletion failures
 );
 
-CREATE INDEX idx_conv_attachments_conversation 
+CREATE INDEX idx_conv_attachments_conversation
   ON conversation_attachments(conversation_id);
-CREATE INDEX idx_conv_attachments_pending_cleanup 
-  ON conversation_attachments(deleted_at) 
+CREATE INDEX idx_conv_attachments_pending_cleanup
+  ON conversation_attachments(deleted_at)
   WHERE r2_deleted_at IS NULL AND deleted_at IS NOT NULL;
 ```
 
@@ -320,29 +320,29 @@ async function cleanupOrphanedR2Objects() {
     },
     limit: 100  // Process in batches
   });
-  
+
   for (const attachment of pendingCleanup) {
     try {
       await r2Client.deleteObject({
         Bucket: attachment.r2Bucket,
         Key: attachment.r2Key
       });
-      
+
       // Only mark as deleted AFTER confirmed R2 deletion
-      await attachment.update({ 
+      await attachment.update({
         r2_deleted_at: new Date(),
         deletion_error: null
       });
-      
+
     } catch (error) {
       // Log failure but do NOT crash — retry next run
-      await attachment.update({ 
-        deletion_error: error.message 
+      await attachment.update({
+        deletion_error: error.message
       });
-      logger.error('R2 cleanup failed', { 
-        attachmentId: attachment.id, 
+      logger.error('R2 cleanup failed', {
+        attachmentId: attachment.id,
         r2Key: attachment.r2Key,
-        error: error.message 
+        error: error.message
       });
     }
   }
@@ -385,8 +385,8 @@ For a platform serving health-adjacent data for clients aged 30-55 (who are incr
 If you are sending audio to Google Gemini API:
 
 ```
-User speaks → Audio captured in browser → Sent to YOUR backend → 
-YOUR backend forwards to Gemini API → Gemini transcribes → 
+User speaks → Audio captured in browser → Sent to YOUR backend →
+YOUR backend forwards to Gemini API → Gemini transcribes →
 Transcript returned → Audio discarded (hopefully)
 
 Questions that MUST be answered:
@@ -406,7 +406,7 @@ Questions that MUST be answered:
 // This comment block must exist in your voice processing service
 /**
  * VOICE DATA POLICY - SwanStudios Production
- * 
+ *
  * Audio data handling:
  * - Audio is captured client-side as WebM/Opus or similar
  * - Audio is transmitted directly to Gemini API via browser (preferred)

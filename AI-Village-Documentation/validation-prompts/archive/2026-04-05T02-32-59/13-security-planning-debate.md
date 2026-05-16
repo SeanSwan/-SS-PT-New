@@ -20,7 +20,7 @@ The Secondary Security Planner (Nemotron 3 Super) agrees with all security findi
 - **Database Encryption:** Enforce PostgreSQL `pgcrypto` encryption at rest for `conversation_history` (JSONB) and `voice_transcripts` (BYTEA) using keys managed via AWS KMS or HashiCorp Vault. *Clarification:* Rotate keys every 90 days; audit key usage via CloudTrail/Vault logs.
 - **Row-Level Security (RLS):** Apply policies as specified:
   ```sql
-  CREATE POLICY user_is_owner ON conversations 
+  CREATE POLICY user_is_owner ON conversations
   USING (auth.uid() = user_id);
   ```
   *Clarification:* Ensure `auth.uid()` is derived from a verified JWT (e.g., via Supabase Auth or custom middleware) and enable `row_security` on relevant tables.

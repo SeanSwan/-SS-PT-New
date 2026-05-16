@@ -15,7 +15,7 @@ Below is the performance impact review and optimization strategy.
 ### 1. Bundle Size (Markdown & Highlighting)
 **Rating: HIGH**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~70-90KB (min+gzip). For a "wealthy golf client" on a potentially spotty country club Wi-Fi/LTE, this increases Time to Interactive (TTI).
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main bundle. Use `React.lazy(() => import('./MarkdownRenderer'))`.
     *   **Lightweight Alternatives:** Use `prismjs` or `lowlight` for highlighting, or better yet, only load highlighting for the "AI Village" developer views, not the end-user coach chat.
 

@@ -48,7 +48,7 @@ const IconWrapper = styled.div`
   margin-bottom: 24px;
   color: ${({ theme }) => theme.colors?.secondary || '#8B5CF6'};
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   /* Crystalline shimmer on hover */
   &:hover {
     background: ${({ theme }) => theme.colors?.accent?.split(' ')[0] || 'rgba(96, 192, 240, 0.15)'};
@@ -86,7 +86,7 @@ PROPOSED ALTERNATIVE: glow: 'rgba(80, 160, 240, 0.3)' for subtle emphasis
 
 ```css
 /* YOUR PROPOSED */
-font-family: 'Cormorant Garamond', serif; 
+font-family: 'Cormorant Garamond', serif;
 font-style: italic;
 
 /* CORRECT IMPLEMENTATION (ensure weight and style are explicit) */
@@ -115,8 +115,8 @@ The 44px touch target requirement is non-negotiable per WCAG 2.2 Level AA (Succe
 // <CapsuleButton variant="wingPurple">Follow Us</CapsuleButton>
 
 // REVISED:
-<CapsuleButton 
-  variant="wingPurple" 
+<CapsuleButton
+  variant="wingPurple"
   aria-label="Follow SwanStudios on social media"
 >
   Follow Us
@@ -133,13 +133,13 @@ const ScrollIndicatorEl = styled(motion.button)`
   border: none;
   padding: 12px;
   cursor: pointer;
-  
+
   &:focus-visible {
     outline: 2px solid #60C0F0;
     outline-offset: 2px;
     border-radius: 8px;
   }
-  
+
   /* Preserve motion animations */
   &[data-scrolled="true"] {
     opacity: 0;
@@ -204,8 +204,8 @@ colors: {
 ```css
 /* Implement Ice Wing as you specified, but document the aesthetic intent */
 background: linear-gradient(
-  90deg, 
-  transparent 0%, 
+  90deg,
+  transparent 0%,
   rgba(96, 192, 240, 0.4) 50%,  /* Ice Wing - crystalline fracture */
   transparent 100%
 );

@@ -59,20 +59,20 @@ QUESTIONS SUBMITTED FOR REVIEW:
 
 ```markdown
 ISSUE: The plan makes explicit data ownership promises to users:
-  - "Your workout history, your progress, your community — it lives 
+  - "Your workout history, your progress, your community — it lives
     here permanently and it belongs to you."
   - "Your Data, Your Story" promise card
   - "it becomes irreplaceable over time"
 
-RISK: These are legally and architecturally binding commitments being 
-made in public-facing marketing copy on a production platform at 
+RISK: These are legally and architecturally binding commitments being
+made in public-facing marketing copy on a production platform at
 sswanstudios.com. If the backend does not currently:
   - Provide data export functionality
   - Have a documented data retention policy
   - Have GDPR/CCPA deletion request handling
   - Back up user data with tested restore procedures
 
-...then publishing these promises creates legal exposure and user 
+...then publishing these promises creates legal exposure and user
 trust liability the moment a real user reads them.
 
 RECOMMENDATION:
@@ -85,12 +85,12 @@ Before deploying this copy, verify:
     in your Terms of Service
 
 DATABASE CHECK REQUIRED:
-  SELECT table_name, column_name 
-  FROM information_schema.columns 
+  SELECT table_name, column_name
+  FROM information_schema.columns
   WHERE column_name IN ('user_id', 'deleted_at', 'exported_at')
   ORDER BY table_name;
-  
-  -- Verify every user-generated content table has proper 
+
+  -- Verify every user-generated content table has proper
   -- user_id foreign keys enabling data portability queries
 ```
 
@@ -102,13 +102,13 @@ DATABASE CHECK REQUIRED:
 ```markdown
 ISSUE: The plan includes in the "For Trainers" section:
   "Fair fees. No surprises."
-  
+
 And in the vision document (which may inform copy):
   "Sean takes a small fair fee (~10% or less) on transactions"
 
-RISK: If the payment processing system (Stripe or equivalent) 
-currently charges a different fee structure, or if Stripe's own 
-fees are not factored into the "10% or less" claim, publishing 
+RISK: If the payment processing system (Stripe or equivalent)
+currently charges a different fee structure, or if Stripe's own
+fees are not factored into the "10% or less" claim, publishing
 this creates:
   - FTC deceptive advertising exposure
   - Trainer trust violations if actual fees differ
@@ -124,9 +124,9 @@ RECOMMENDATION:
 
 DATABASE CHECK:
   -- Verify current fee structure in your payments/transactions table
-  SELECT DISTINCT fee_percentage, fee_type, created_at 
+  SELECT DISTINCT fee_percentage, fee_type, created_at
   FROM trainer_transactions  -- or equivalent table name
-  ORDER BY created_at DESC 
+  ORDER BY created_at DESC
   LIMIT 10;
 ```
 
@@ -139,8 +139,8 @@ DATABASE CHECK:
 ISSUE: The plan explicitly describes:
   "Family-friendly and 18+ content properly separated"
   "Gaming & Streaming — Family and adult content separated"
-  
-This is mentioned in the vision as a platform feature, and the 
+
+This is mentioned in the vision as a platform feature, and the
 homepage will describe this capability to real users.
 
 RISK: If the database schema does not currently have:
@@ -149,12 +149,12 @@ RISK: If the database schema does not currently have:
   - Proper content filtering middleware
   - COPPA compliance for under-13 users
 
-...then advertising this separation to real users (including 
-potentially minors) before it exists is both a legal risk and 
+...then advertising this separation to real users (including
+potentially minors) before it exists is both a legal risk and
 a child safety risk.
 
 RECOMMENDATION:
-  □ Do NOT publish 18+ content separation claims until the 
+  □ Do NOT publish 18+ content separation claims until the
     architecture exists
   □ If this is future-state, remove from current homepage copy
   □ Age verification is a legal requirement, not a nice-to-have
@@ -162,14 +162,14 @@ RECOMMENDATION:
   □ Consult legal before any adult content platform features
 
 DATABASE CHECK REQUIRED:
-  SELECT column_name, data_type 
-  FROM information_schema.columns 
+  SELECT column_name, data_type
+  FROM information_schema.columns
   WHERE table_name IN ('users', 'content', 'posts', 'videos')
   AND column_name IN (
-    'age_verified', 'date_of_birth', 'content_rating', 
+    'age_verified', 'date_of_birth', 'content_rating',
     'is_adult_content', 'age_restriction'
   );
-  
+
   -- If this returns empty: the architecture does not exist yet.
   -- Remove 18+ separation claims from homepage copy immediately.
 ```
@@ -180,23 +180,23 @@ DATABASE CHECK REQUIRED:
 **Rating: MEDIUM**
 
 ```markdown
-ISSUE: The plan itself acknowledges this risk in AI Village Review 
-Question #2: "Is the 'Global Trainer Platform' positioning premature 
+ISSUE: The plan itself acknowledges this risk in AI Village Review
+Question #2: "Is the 'Global Trainer Platform' positioning premature
 given the current single-trainer setup?"
 
-The homepage will tell trainers in Amsterdam and Lagos they can 
+The homepage will tell trainers in Amsterdam and Lagos they can
 "bring their clients to SwanStudios" and "collect payments."
 
-RISK: 
+RISK:
   - International payment collection requires per-country compliance
   - Stripe Connect (or equivalent) has country-specific restrictions
   - Tax reporting obligations vary by jurisdiction
-  - If a trainer in Lagos signs up and cannot actually collect 
+  - If a trainer in Lagos signs up and cannot actually collect
     payments, this is a real user harmed by false advertising
 
 RECOMMENDATION:
   □ Audit Stripe Connect supported countries before publishing
-  □ Either qualify the claim ("Available in [X] countries") 
+  □ Either qualify the claim ("Available in [X] countries")
     or remove international examples until infrastructure exists
   □ "Any trainer, any city, any country" is a legal commitment
     if a trainer relies on it to build their business here
@@ -215,7 +215,7 @@ DATABASE CHECK:
 **Rating: LOW**
 
 ```markdown
-ISSUE: The mechanical changes in this plan (text swaps, new React 
+ISSUE: The mechanical changes in this plan (text swaps, new React
 components with no data fetching) carry minimal data safety risk.
 
 SPECIFIC CHANGES ASSESSED:
@@ -228,10 +228,10 @@ SPECIFIC CHANGES ASSESSED:
 
 RECOMMENDATION:
   □ Confirm new sections are purely presentational (no forms)
-  □ If "Trainer Sign Up" CTA links to a signup form, audit that 
+  □ If "Trainer Sign Up" CTA links to a signup form, audit that
     form's data handling separately
   □ If "Join the Community" CTA creates accounts, audit that flow
-  □ Verify no new analytics/tracking pixels are added with these 
+  □ Verify no new analytics/tracking pixels are added with these
     sections that weren't previously disclosed in privacy policy
 ```
 
@@ -259,7 +259,7 @@ RECOMMENDATION:
   □ Review privacy policy for accuracy against actual data flows
   □ Consider: Plausible Analytics or Fathom (privacy-first alternatives)
     that align with the platform's stated values
-  □ If Google Analytics is in use, this must be disclosed and 
+  □ If Google Analytics is in use, this must be disclosed and
     the "never sell" language must be qualified
 
 AUDIT COMMAND (check your HTML/bundle):
@@ -298,13 +298,13 @@ CREATE TABLE ai_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_ai_messages_conversation_created 
+CREATE INDEX idx_ai_messages_conversation_created
   ON ai_messages(conversation_id, created_at);
 
 -- Option B: If JSONB is kept, enforce size limit at application layer
 -- Add CHECK constraint:
-ALTER TABLE ai_conversations 
-  ADD CONSTRAINT messages_size_limit 
+ALTER TABLE ai_conversations
+  ADD CONSTRAINT messages_size_limit
   CHECK (pg_column_size(messages) < 1048576); -- 1MB hard limit
 
 -- NEVER store file content in JSONB. Store R2 URLs only.
@@ -321,13 +321,13 @@ ALTER TABLE ai_conversations
 -- VERIFY deleted conversations are excluded from sidebar:
 
 -- UNSAFE query (returns deleted conversations):
-SELECT id, title, updated_at FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, updated_at FROM ai_conversations
+WHERE user_id = $1
 ORDER BY updated_at DESC;
 
 -- SAFE query (must include status filter):
-SELECT id, title, updated_at FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, updated_at FROM ai_conversations
+WHERE user_id = $1
   AND status != 'deleted'  -- or: AND deleted_at IS NULL
 ORDER BY updated_at DESC
 LIMIT 50;  -- Always paginate
@@ -340,7 +340,7 @@ grep -r "ai_conversations\|findAll.*conversation" \
 
 -- Add database-level protection:
 CREATE VIEW active_conversations AS
-  SELECT * FROM ai_conversations 
+  SELECT * FROM ai_conversations
   WHERE status != 'deleted';
 -- Force all application queries through this view
 ```
@@ -395,13 +395,13 @@ Voice recordings may qualify as biometric data under:
 
 MANDATORY REQUIREMENTS:
   □ Voice data must NEVER be stored without explicit informed consent
-  □ Consent must be granular: "Your voice is sent to Google Gemini 
-    for transcription and immediately discarded. It is not stored 
+  □ Consent must be granular: "Your voice is sent to Google Gemini
+    for transcription and immediately discarded. It is not stored
     by SwanStudios."
   □ If Gemini retains audio: disclose Google's data retention policy
   □ Transcription text (not audio) may be stored as regular message content
   □ Audio buffer must be zeroed/garbage-collected after API call
-  □ No logging of audio data — ensure Express request logging 
+  □ No logging of audio data — ensure Express request logging
     does not capture multipart audio payloads
 
 IMPLEMENTATION REQUIREMENT:
@@ -415,10 +415,10 @@ IMPLEMENTATION REQUIREMENT:
       audioBuffer.fill(0);
     }
   }
-  
+
   // Privacy policy MUST state:
-  // "Voice recordings are transmitted directly to Google Gemini 
-  //  for transcription. SwanStudios does not store audio recordings. 
+  // "Voice recordings are transmitted directly to Google Gemini
+  //  for transcription. SwanStudios does not store audio recordings.
   //  Google's data handling: [link to Google AI privacy policy]"
 ```
 

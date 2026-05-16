@@ -11,7 +11,7 @@ CONSENSUS REACHED
 **TO:** Engineering & UI/UX Teams
 **SUBJECT:** FINAL MERGED SPECIFICATION — Coach Assistant UI (Crystalline Swan)
 
-Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof. 
+Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof.
 
 Below is the final, merged, and locked specification for the Coach Assistant UI. All teams are cleared to begin implementation immediately based on these exact parameters.
 
@@ -33,7 +33,7 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   --color-obsidian-black: #0A0A0F;
   --color-carbon: #141419;
   --color-graphite: #1A1A24;
-  
+
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-spatial: 0 8px 32px rgba(0, 32, 96, 0.15);
@@ -140,9 +140,9 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   font-size: 20px; font-weight: 600; color: var(--color-ice-wing); margin-bottom: 12px;
 }
 .markdown-content h3 {
-  font-size: 16px; 
+  font-size: 16px;
   font-weight: 800; /* Bumped for contrast */
-  color: var(--color-swan-dusk); 
+  color: var(--color-swan-dusk);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }

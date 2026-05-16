@@ -16,7 +16,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 ## Detailed Risk Assessment & Mitigations
 
 ### 1. PII Exposure in Conversation History
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** The plan mentions "Conversation history" in context but has **zero controls** for PII sanitization before any AI processing or storage.
 
 **Required Mitigations:**
@@ -26,7 +26,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - Audit all `Teach Me` content templates to ensure they cannot be tricked into echoing user PII via dynamic insertion.
 
 ### 2. File Attachment Risks (R2 + AI Analysis)
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** Mentions image uploads for AI analysis but lacks validation, scanning, or SSRF prevention.
 
 **Required Mitigations:**
@@ -37,7 +37,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Metadata stripping:** Remove EXIF data (GPS, device info) on upload.
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** No mention of storage duration, retention policy, or explicit user consent for voice processing.
 
 **Required Mitigations:**
@@ -48,7 +48,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Update Privacy Policy:** Explicitly state: "Voice recordings are processed by Google Gemini for transcription and are not stored by SwanStudios."
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Plan Gap:** No mention of encryption, field-level security, or access logging for sensitive JSONB message stores.
 
 **Required Mitigations:**
@@ -59,7 +59,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Audit trail:** Log all access to conversation tables (who, when, which conversation ID).
 
 ### 5. RBAC Enforcement
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** Role definitions exist but no technical enforcement strategy described.
 
 **Required Mitigations:**
@@ -69,7 +69,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Regular access reviews:** Quarterly audit of role assignments.
 
 ### 6. MediaRecorder API Risks (Browser Mic)
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Plan Gap:** No mention of secure stream handling or cleanup.
 
 **Required Mitigations:**
@@ -79,7 +79,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 - **Tab/window close:** Add `beforeunload` listener to ensure streams are killed if user navigates away.
 
 ### 7. Markdown Rendering XSS
-**Rating: HIGH**  
+**Rating: HIGH**
 **Plan Gap:** `react-markdown` with user-generated content is a known XSS vector if not configured securely.
 
 **Required Mitigations:**
@@ -93,7 +93,7 @@ The **content upgrade plan itself is low-risk** as it focuses on educational mat
 ## Additional Critical Concerns Not in Original List
 
 ### A. AI Prompt Injection via Teach Me Content
-**Rating: HIGH**  
+**Rating: HIGH**
 If `Teach Me` content is dynamically constructed from user input (e.g., "Show me how to train [client goal]"), an attacker could inject malicious prompts.
 
 **Mitigation:**
@@ -101,7 +101,7 @@ If `Teach Me` content is dynamically constructed from user input (e.g., "Show me
 - If dynamic, use a strict template system with parameterized inputs (no string concatenation).
 
 ### B. Third-Party AI Provider Data Logging
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 Gemini/OpenAI may log prompts by default for model improvement.
 
 **Mitigation:**
@@ -109,7 +109,7 @@ Gemini/OpenAI may log prompts by default for model improvement.
 - **Business associate agreements:** Ensure AI providers sign BAAs if handling PHI (unlikely for transcription only, but verify).
 
 ### C. Insecure Direct Object References (IDOR) in Teach Me
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 If `Teach Me` sections are fetched by ID (e.g., `/api/teach-me/:sectionId`), ensure users can't access sections meant for other roles (e.g., client accessing "Admin Strategy").
 
 **Mitigation:**

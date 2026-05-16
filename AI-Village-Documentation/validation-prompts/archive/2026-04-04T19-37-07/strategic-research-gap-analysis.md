@@ -6,9 +6,9 @@
 
 ---
 
-As a strategic product researcher and futurist operating in Q2 2026, I have analyzed the `BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md` for SwanStudios. While the plan excellently addresses the immediate mechanical flaws in the Bootcamp Builder (station math, unilateral exercises, new formats), it is building a *2024 solution for a 2026 market*. 
+As a strategic product researcher and futurist operating in Q2 2026, I have analyzed the `BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md` for SwanStudios. While the plan excellently addresses the immediate mechanical flaws in the Bootcamp Builder (station math, unilateral exercises, new formats), it is building a *2024 solution for a 2026 market*.
 
-To maintain SwanStudios' premium positioning for wealthy golf clients and working professionals, we must elevate this from a "workout generator" to an **autonomous, context-aware, and legally compliant fitness ecosystem**. 
+To maintain SwanStudios' premium positioning for wealthy golf clients and working professionals, we must elevate this from a "workout generator" to an **autonomous, context-aware, and legally compliant fitness ecosystem**.
 
 Here is the comprehensive gap analysis and future-proofing strategy, backed by 2025–2026 market intelligence.
 

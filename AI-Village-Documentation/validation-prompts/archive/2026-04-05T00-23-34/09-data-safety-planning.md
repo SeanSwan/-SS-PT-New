@@ -82,12 +82,12 @@ CREATE TABLE conversation_attachments (
   size_bytes BIGINT NOT NULL,
   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ,                  -- soft delete aligned with conversation
-  
+
   CONSTRAINT valid_size CHECK (size_bytes > 0 AND size_bytes <= 52428800) -- 50MB max
 );
 
-CREATE INDEX idx_conv_attachments_conversation 
-  ON conversation_attachments(conversation_id) 
+CREATE INDEX idx_conv_attachments_conversation
+  ON conversation_attachments(conversation_id)
   WHERE deleted_at IS NULL;
 ```
 
@@ -107,16 +107,16 @@ async function validateMessageSize(conversationId, newMessage) {
     attributes: ['id'],
     // Use raw query to check size without loading full JSONB
   });
-  
+
   const { rows } = await sequelize.query(
-    `SELECT octet_length(messages::text) as size_bytes 
+    `SELECT octet_length(messages::text) as size_bytes
      FROM conversations WHERE id = :id`,
     { replacements: { id: conversationId }, type: QueryTypes.SELECT }
   );
-  
+
   const currentSize = rows[0]?.size_bytes ?? 0;
   const newMessageSize = Buffer.byteLength(JSON.stringify(newMessage), 'utf8');
-  
+
   if (newMessageSize > MAX_SINGLE_MESSAGE_BYTES) {
     throw new Error('MESSAGE_TOO_LARGE');
   }
@@ -168,7 +168,7 @@ const conversations = await Conversation.findAll({
 ```sql
 -- Audit query: run against production to detect exposure
 -- If this returns rows, deleted conversations ARE visible to users
-SELECT 
+SELECT
   c.id,
   c.user_id,
   c.status,
@@ -176,7 +176,7 @@ SELECT
   c.title,
   COUNT(*) as times_would_appear_in_sidebar
 FROM conversations c
-WHERE c.status = 'deleted' 
+WHERE c.status = 'deleted'
    OR c.deleted_at IS NOT NULL
 GROUP BY c.id, c.user_id, c.status, c.deleted_at, c.title
 HAVING COUNT(*) > 0;
@@ -188,7 +188,7 @@ HAVING COUNT(*) > 0;
 -- Create a VIEW that enforces soft-delete at the database level
 -- This prevents any query from accidentally exposing deleted conversations
 CREATE OR REPLACE VIEW active_conversations AS
-SELECT 
+SELECT
   id,
   user_id,
   title,
@@ -297,49 +297,49 @@ export async function processPendingDeletions() {
 
   for (const deletion of pending) {
     const conversationId = deletion.resourceId;
-    
+
     // SAFETY CHECK: Confirm conversation is still deleted before purging files
     const conversation = await Conversation.findByPk(conversationId, {
       paranoid: false, // Include soft-deleted
     });
-    
+
     if (!conversation || conversation.status !== 'deleted') {
       // Conversation was restored — cancel deletion
       await deletion.update({ status: 'cancelled', reason: 'conversation_restored' });
       continue;
     }
-    
+
     // Fetch all attachment keys for this conversation
     const attachments = await ConversationAttachment.findAll({
       where: { conversationId },
       paranoid: false,
       attributes: ['id', 'r2Key'],
     });
-    
+
     if (attachments.length === 0) {
       await deletion.update({ status: 'completed', completedAt: new Date() });
       continue;
     }
-    
+
     // Delete from R2 in batches of 1000 (S3 API limit)
     const keys = attachments.map(a => ({ Key: a.r2Key }));
     const batches = chunkArray(keys, 1000);
-    
+
     for (const batch of batches) {
       await r2Client.send(new DeleteObjectsCommand({
         Bucket: process.env.R2_BUCKET_NAME,
         Delete: { Objects: batch, Quiet: false },
       }));
     }
-    
+
     // Hard delete attachment records (they're orphaned anyway)
     await ConversationAttachment.destroy({
       where: { conversationId },
       force: true, // Hard delete attachment records
     });
-    
-    await deletion.update({ 
-      status: 'completed', 
+
+    await deletion.update({
+      status: 'completed',
       completedAt: new Date(),
       filesDeleted: attachments.length,
     });
@@ -354,7 +354,7 @@ CREATE TABLE pending_deletions (
   resource_type TEXT NOT NULL,
   resource_id UUID NOT NULL,
   scheduled_for TIMESTAMPTZ NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' 
+  status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'completed', 'cancelled', 'failed')),
   files_deleted INTEGER,
   reason TEXT,
@@ -362,8 +362,8 @@ CREATE TABLE pending_deletions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_pending_deletions_scheduled 
-  ON pending_deletions(scheduled_for, status) 
+CREATE INDEX idx_pending_deletions_scheduled
+  ON pending_deletions(scheduled_for, status)
   WHERE status = 'pending';
 ```
 
@@ -412,13 +412,13 @@ The plan is **ambiguous** about voice recording lifecycle. "Sent to Gemini for t
 export async function transcribeVoiceMessage(req, res) {
   // Use multer memoryStorage — NEVER diskStorage for voice
   // Audio bytes live only in req.file.buffer (Node.js heap)
-  
+
   const audioBuffer = req.file?.buffer;
-  
+
   if (!audioBuffer) {
     return res.status(400).json({ error: 'No audio data received' });
   }
-  
+
   // Size limit: voice messages should be < 10MB (Gemini limit is 20MB inline)
   if (audioBuffer.length > 10 * 1024 *
 

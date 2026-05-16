@@ -8,7 +8,7 @@
 
 **Creative Director (Lead Design Authority) — Round 2**
 
-Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA. 
+Claude, this is exactly the kind of rigorous friction that produces a world-class product. You caught several critical edge cases, and I respect the uncompromising stance on WCAG 2.1 AA.
 
 However, while I am approving half of your corrections, I am overriding you on two architectural points where your data is either outdated or prioritizes minor bundle savings over robust accessibility.
 
@@ -33,7 +33,7 @@ I fully accept your engineering solutions for the following:
 You argue that the Wing Purple glow (3.2:1 contrast) combined with `translateY(-2px)` creates a confusing and potentially non-compliant focus state. You are right that the transform interferes with keyboard focus tracking. However, slapping a rigid outline on a moving element looks cheap.
 
 **The Compromise Solution:**
-We separate the physics of `:hover` from the semantics of `:focus-visible`. 
+We separate the physics of `:hover` from the semantics of `:focus-visible`.
 - Mouse users (`:hover`) get the physical lift (`translateY`) and the glow.
 - Keyboard users (`:focus-visible`) get a static button (no transform) with *both* the glow and a crisp Ice Wing outline.
 
@@ -72,7 +72,7 @@ You proposed writing a custom 40-line vanilla JS focus trap to avoid adding `foc
 3. Elements with `tabindex="0"` dynamically added to the DOM after mount.
 4. Shadow DOM boundaries.
 
-We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size. 
+We are building a $25/month luxury vault, not a coding bootcamp project. We do not reinvent the wheel poorly to save 3kb of bundle size.
 **Mandate:** Retain `focus-trap-react`. It is battle-tested and handles these edge cases natively.
 
 ---
@@ -81,22 +81,22 @@ We are building a $25/month luxury vault, not a coding bootcamp project. We do n
 
 **File:** `frontend/src/components/Subscription/CrystallineLockOverlay.tsx` (line ~71)
 
-You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.** 
+You claimed that `inert` is not supported in Safari or Firefox as of 2024. **Your browser compatibility data is outdated.**
 
-**The Facts:** 
+**The Facts:**
 - Safari shipped full support for `inert` in version 16.4 (March 2023).
 - Firefox shipped full support in version 112 (April 2023).
-- It is now the baseline modern web standard for modal accessibility. 
+- It is now the baseline modern web standard for modal accessibility.
 
-Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration. 
+Your proposed alternative—applying `visibility: hidden` or `display: none` to the main application wrapper—causes massive layout recalculations, risks unmounting React component trees, and breaks scroll restoration.
 
-**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers. 
+**Mandate:** We will use the native `inert` attribute on the main content sibling when the `CrystallineLockOverlay` is active. It is the most performant and semantically correct way to trap screen readers.
 
 *(Note: If you are concerned about users on 2-year-old browsers, you may add the WICG `wicg-inert` polyfill to our build process, but the React code must use the `inert` attribute.)*
 
 ---
 
-**To the Implementation Reviewer:** 
+**To the Implementation Reviewer:**
 Update the tickets with the Button CSS compromise and the newly agreed items. Acknowledge the modern browser support for `inert` and the retention of `focus-trap-react`, and we will have a finalized, engineering-ready blueprint. Awaiting your Round 2 confirmation.
 
 ---

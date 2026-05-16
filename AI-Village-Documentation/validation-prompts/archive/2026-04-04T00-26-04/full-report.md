@@ -630,7 +630,7 @@ const sendToAI = useCallback(async (prompt: string, context: BootcampContext) =>
   // Cancel any in-flight request
   abortControllerRef.current?.abort();
   abortControllerRef.current = new AbortController();
-  
+
   try {
     const response = await callAIService(prompt, context, {
       signal: abortControllerRef.current.signal,
@@ -758,7 +758,7 @@ const ExerciseCard = React.memo(({ exercise, onDragStart }: ExerciseCardProps) =
 # Security Review: Bootcamp Builder Overhaul Plan
 
 ## Executive Summary
-**Overall Risk Level: CRITICAL**  
+**Overall Risk Level: CRITICAL**
 The plan introduces significant AI/voice/data handling features that directly conflict with the **ZERO PII TO LLMs** policy. Multiple components risk exposing personal health information (PHI) to external AI providers (Gemini) or inadequate storage/access controls. **Do not implement until all CRITICAL/HIGH findings are resolved.**
 
 ---
@@ -766,7 +766,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ## Detailed Findings & Mitigations
 
 ### 1. PII Exposure in AI Features
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 **Finding:** The plan integrates Gemini LLM via `aiChatService.mjs` for exercise selection, explanations, modifications, and post-class recommendations. No sanitization mechanism is described for:
 - Conversation history/titles that may contain client names, trainer names, or health conditions
 - Exercise detail context that could reference specific client pain entries or profiles
@@ -797,7 +797,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 2. File Attachment Risks (R2 Image Uploads)
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Plan mentions "image uploads to R2 for AI analysis" without specifying:
 - File type validation (could allow .html, .svg with scripts)
 - Malware scanning before R2 upload
@@ -827,7 +827,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 **Finding:** Audio recordings sent to Gemini for transcription. Plan is silent on:
 - Storage duration of raw audio files
 - Encryption at rest for recordings
@@ -856,7 +856,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Messages stored as JSONB in PostgreSQL. Plan doesn't specify:
 - Encryption at rest (PostgreSQL default is unencrypted)
 - Row-Level Security (RLS) implementation
@@ -877,7 +877,7 @@ The plan introduces significant AI/voice/data handling features that directly co
      (role = 'client' AND client_id = current_user_id())
      -- Trainer sees only assigned clients
      OR (role = 'trainer' AND client_id IN (
-         SELECT client_id FROM trainer_assignments 
+         SELECT client_id FROM trainer_assignments
          WHERE trainer_id = current_user_id()
      ))
      -- Admin sees all
@@ -894,7 +894,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 5. RBAC Enforcement Gaps
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Plan describes intended RBAC ("Admin sees all, Trainer sees assigned, Client sees own") but provides **zero implementation details**. New routes (`/api/bootcamp/*`) and AI endpoints likely bypass existing checks.
 
 **Required Mitigations:**
@@ -908,11 +908,11 @@ The plan introduces significant AI/voice/data handling features that directly co
    // Example for GET /api/bootcamp/conversations/:id
    async function getConversation(req, res) {
      const conv = await Conversation.findByPk(req.params.id);
-     
+
      if (req.user.role === 'client' && conv.client_id !== req.user.id) {
        return res.status(403).json({error: 'Access denied'});
      }
-     
+
      if (req.user.role === 'trainer') {
        const assignment = await TrainerAssignment.findOne({
          where: {trainer_id: req.user.id, client_id: conv.client_id}
@@ -930,7 +930,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 6. MediaRecorder API Risks
-**Risk Rating: MEDIUM**  
+**Risk Rating: MEDIUM**
 **Finding:** Browser microphone access for voice recordings. Risks:
 - Permission not revoked after use (stream leak)
 - Data stored in browser memory before upload
@@ -961,7 +961,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 7. Markdown Rendering XSS
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** `react-markdown` with user-generated content (Teach Me mode, AI explanations). Without sanitization, allows:
 - `<script>` tags
 - `onerror` attributes in images
@@ -994,7 +994,7 @@ const clean = DOMPurify.sanitize(userMarkdown);
 ## Additional Critical Concerns
 
 ### 8. AI Chat Service Data Flow
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 The plan references `aiChatService.mjs` but doesn't define:
 - What data is sent to Gemini (full conversation? just current prompt?)
 - Whether Gemini API key is exposed in frontend (should be backend-only)
@@ -1012,7 +1012,7 @@ The plan references `aiChatService.mjs` but doesn't define:
 ```
 
 ### 9. Teach Me Mode Content Source
-**Risk Rating: MEDIUM**  
+**Risk Rating: MEDIUM**
 If Teach Me content is AI-generated dynamically, it could leak PII from training data. If static markdown, ensure it's reviewed.
 
 **Mitigation:**
@@ -1021,7 +1021,7 @@ If Teach Me content is AI-generated dynamically, it could leak PII from training
 - All content must pass PII scan before display
 
 ### 10. Mobile Responsiveness & Data Leakage
-**Risk Rating: LOW**  
+**Risk Rating: LOW**
 New mobile layout may accidentally display client data in screenshots/previews. Ensure:
 - No client names in class previews (use "Client A" or role-based)
 - Screenshot protection (CSS `user-select: none` on sensitive areas)
@@ -1064,7 +1064,7 @@ New mobile layout may accidentally display client data in screenshots/previews. 
 
 ## Policy Compliance Statement
 
-**This plan currently violates the ZERO PII TO LLMs policy in multiple areas.**  
+**This plan currently violates the ZERO PII TO LLMs policy in multiple areas.**
 **Do not proceed with AI features until:**
 1. A formal **Data Flow Diagram** is created showing exactly what data touches Gemini
 2. **Legal/Privacy team** approves the sanitization approach
@@ -1077,16 +1077,16 @@ New mobile layout may accidentally display client data in screenshots/previews. 
 3. **Build PII sanitization PoC** and test with real conversation data
 4. **Review voice recording** with legal—consider removing until retention policy is defined
 
-**Risk if Unaddressed:**  
+**Risk if Unaddressed:**
 - HIPAA violation (PHI to third-party AI)
 - GDPR Article 44 violation (international data transfer without safeguards)
 - Client trust erosion, regulatory fines, platform shutdown
 
 ---
 
-**Reviewer:** Security Engineer  
-**Date:** 2025-02-15  
-**Next Review:** After mitigations implemented  
+**Reviewer:** Security Engineer
+**Date:** 2025-02-15
+**Next Review:** After mitigations implemented
 **Approval Required:** CISO, Legal, Privacy Officer
 
 ---
@@ -1101,7 +1101,7 @@ This performance review focuses on the **Bootcamp Builder Overhaul**, specifical
 ### 1. Bundle Size: Markdown & Highlighting
 **Rating: MEDIUM**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~65-80KB (gzipped) to the main bundle. Since "Teach Me" mode and AI explanations are secondary to the actual builder, these should not block the initial load.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Wrap the Markdown renderer in `React.lazy()` and load it only when a "Teach Me" toggle is activated or the AI Detail panel is opened.
     *   **Lightweight Alternatives:** Consider `snarkdown` or `micromark` if you don't need the full plugin ecosystem of Remark.
 
@@ -1144,7 +1144,7 @@ This performance review focuses on the **Bootcamp Builder Overhaul**, specifical
 **Rating: MEDIUM**
 *   **Finding:** The "Admin" vs "Trainer" dashboard logic is merging.
 *   **Optimization:**
-    *   **Split by Role:** Use `React.lazy()` to split the `BootcampBuilder` from the main `TrainerDashboard`. 
+    *   **Split by Role:** Use `React.lazy()` to split the `BootcampBuilder` from the main `TrainerDashboard`.
     *   **Feature Split:** The `ExerciseRolodexPanel` should be its own chunk, as it contains the bulk of the search/filter logic and the exercise database metadata.
 
 ### 8. Animation Budget (GPU vs CPU)
@@ -1315,8 +1315,8 @@ The Crystalline Swan theme with dark palette could feel either luxurious or cold
 
 # Risk Assessment: Bootcamp Builder Overhaul
 
-**Project:** SwanStudios Bootcamp Class Builder Enhancement  
-**Review Date:** Generated  
+**Project:** SwanStudios Bootcamp Class Builder Enhancement
+**Review Date:** Generated
 **Assessor Role:** Project Manager / Risk Assessor
 
 ---
@@ -1723,7 +1723,7 @@ This is a robust architectural plan. Given the complexity of the "Bootcamp Build
 ### Strategic Answers to your "Questions for AI Village"
 
 1.  **Format vs. Sub-style:** Treat them as **Formats**. EMOM/Tabata/AMRAP have distinct timing logic that will break the standard "Station" model if forced into a sub-style.
-2.  **Optimal Station Count:** 
+2.  **Optimal Station Count:**
     *   Standard/Circuit: 6-8 stations.
     *   EMOM/AMRAP: 3-4 stations (to keep transitions tight).
 3.  **Rolodex UI:** **Sidebar on Desktop, Modal on Mobile.** The screen real estate on mobile is too precious for a permanent panel.
@@ -1800,8 +1800,8 @@ Trainer uses AI chat daily for 6 months:
 -- IMMEDIATE: Add a size guard at the application layer
 -- In your message service, before appending:
 
-SELECT pg_column_size(messages) as msg_size 
-FROM ai_conversations 
+SELECT pg_column_size(messages) as msg_size
+FROM ai_conversations
 WHERE id = $1;
 
 -- Reject or archive if > 5MB (configurable threshold)
@@ -1823,13 +1823,13 @@ CREATE TABLE ai_messages (
   metadata        JSONB DEFAULT '{}'::jsonb  -- small metadata only
 );
 
-CREATE INDEX idx_ai_messages_conversation_created 
+CREATE INDEX idx_ai_messages_conversation_created
   ON ai_messages(conversation_id, created_at DESC);
 
 -- Pagination becomes trivial and performant:
-SELECT * FROM ai_messages 
-WHERE conversation_id = $1 
-ORDER BY created_at DESC 
+SELECT * FROM ai_messages
+WHERE conversation_id = $1
+ORDER BY created_at DESC
 LIMIT 50 OFFSET $2;
 ```
 
@@ -1842,26 +1842,26 @@ const MAX_MESSAGES_PER_CONVERSATION = 500;
 
 async function appendMessage(conversationId: string, message: Message) {
   const { rows } = await db.query(
-    `SELECT 
+    `SELECT
        pg_column_size(messages) as size_bytes,
        jsonb_array_length(messages) as message_count
      FROM ai_conversations WHERE id = $1`,
     [conversationId]
   );
-  
+
   if (rows[0].size_bytes > MAX_CONVERSATION_SIZE_BYTES) {
     // Auto-archive: create new conversation, link to parent
     throw new ConversationSizeLimitError(
       'Conversation archived. Starting fresh context window.'
     );
   }
-  
+
   if (rows[0].message_count >= MAX_MESSAGES_PER_CONVERSATION) {
     throw new ConversationLengthLimitError(
       'Maximum message count reached.'
     );
   }
-  
+
   // Proceed with append
 }
 ```
@@ -1882,8 +1882,8 @@ The plan states it uses "existing soft-delete (status='deleted')" but provides *
 
 ```sql
 -- UNSAFE — returns deleted conversations
-SELECT id, title, created_at, updated_at 
-FROM ai_conversations 
+SELECT id, title, created_at, updated_at
+FROM ai_conversations
 WHERE user_id = $1
 ORDER BY updated_at DESC;
 ```
@@ -1892,9 +1892,9 @@ ORDER BY updated_at DESC;
 
 ```sql
 -- SAFE — explicit exclusion required
-SELECT id, title, created_at, updated_at 
-FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, created_at, updated_at
+FROM ai_conversations
+WHERE user_id = $1
   AND status != 'deleted'   -- explicit, not IS NULL check
   AND deleted_at IS NULL    -- belt-and-suspenders if column exists
 ORDER BY updated_at DESC
@@ -1917,7 +1917,7 @@ LIMIT 50;  -- pagination required
 GET /api/ai-chat/conversations
 // Must have: WHERE status != 'deleted' AND user_id = req.user.id
 
-// ✅ 2. Single conversation fetch filters status  
+// ✅ 2. Single conversation fetch filters status
 GET /api/ai-chat/conversations/:id
 // Must have: WHERE id = $1 AND status != 'deleted' AND user_id = req.user.id
 
@@ -1948,7 +1948,7 @@ WHERE status != 'deleted'
 
 ```sql
 -- Add a partial index for performance on the safe query
-CREATE INDEX idx_ai_conversations_active_user 
+CREATE INDEX idx_ai_conversations_active_user
 ON ai_conversations(user_id, updated_at DESC)
 WHERE status != 'deleted';
 ```
@@ -1963,12 +1963,12 @@ async function requireConversationOwnership(req, res, next) {
       status: { [Op.ne]: 'deleted' }  // soft-delete check
     }
   });
-  
+
   if (!conversation) {
     // Return 404, not 403 — don't confirm the conversation exists
     return res.status(404).json({ error: 'Conversation not found' });
   }
-  
+
   req.conversation = conversation;
   next();
 }
@@ -2020,19 +2020,19 @@ async function softDeleteConversation(conversationId: string, userId: string) {
   const conversation = await AiConversation.findOne({
     where: { id: conversationId, userId, status: { [Op.ne]: 'deleted' } }
   });
-  
+
   if (!conversation) throw new NotFoundError();
-  
+
   // Extract all R2 keys from messages BEFORE soft-deleting
   const r2Keys = extractR2KeysFromMessages(conversation.messages);
-  
+
   // Soft delete in DB first
   await conversation.update({
     status: 'deleted',
     deletedAt: new Date(),
     r2KeysToClean: r2Keys  // store for async cleanup verification
   });
-  
+
   // Attempt R2 cleanup (non-blocking, logged)
   cleanupR2Files(r2Keys, conversationId).catch(err => {
     logger.error('R2 cleanup failed for conversation', { conversationId, err });
@@ -2062,17 +2062,17 @@ async function processR2Cleanup() {
     },
     limit: 100
   });
-  
+
   for (const conv of pendingCleanup) {
     try {
       const keys = await getR2KeysForConversation(conv.id);
       await Promise.all(keys.map(key => r2Client.deleteObject({ Key: key })));
-      
+
       await conv.update({
         r2CleanupStatus: 'completed',
         r2CleanupAt: new Date()
       });
-      
+
       logger.info('R2 cleanup completed', { conversationId: conv.id, keyCount: keys.length });
     } catch (err) {
       await conv.update({ r2CleanupStatus: 'failed' });
@@ -2099,7 +2099,7 @@ CREATE TABLE ai_conversation_files (
     CHECK (deletion_status IN ('pending', 'completed', 'failed'))
 );
 
-CREATE INDEX idx_conv_files_cleanup 
+CREATE INDEX idx_conv_files_cleanup
 ON ai_conversation_files(deletion_status, uploaded_at)
 WHERE deleted_at IS NULL;
 ```
@@ -2135,7 +2135,7 @@ The plan references voice-first AI coach as a key differentiator and mentions au
 ```
 SwanStudios collects:
 - Pain entries (explicit health data)
-- Injury information (explicit health data)  
+- Injury information (explicit health data)
 - Voice recordings discussing pain/injuries = PHI if combined with identity
 
 HIPAA applies if you are a "covered entity" or "business associate"
@@ -2176,7 +2176,7 @@ The plan addresses critical functionality gaps but **lacks mobile-first design s
 ---
 
 ## 1. Sidebar on 320px Viewport
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Current 3-pane design assumes sidebar width (272px on 320px screen) cannot accommodate exercise cards + search + filters + action buttons.
 
 ---
@@ -2184,7 +2184,7 @@ The plan addresses critical functionality gaps but **lacks mobile-first design s
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 75.1s | **Web Research:** 27 sources cited
 
-As a strategic product researcher and futurist, I have analyzed the `BOOTCAMP-BUILDER-OVERHAUL-PLAN.md` document. While the backend architecture and NASM OPT periodization are robust, the plan currently treats the platform as a traditional SaaS tool rather than a next-generation, AI-native fitness ecosystem. 
+As a strategic product researcher and futurist, I have analyzed the `BOOTCAMP-BUILDER-OVERHAUL-PLAN.md` document. While the backend architecture and NASM OPT periodization are robust, the plan currently treats the platform as a traditional SaaS tool rather than a next-generation, AI-native fitness ecosystem.
 
 To elevate SwanStudios to a premium, future-proofed platform for wealthy clients and elite trainers, we must bridge critical gaps in real-time technology, regulatory compliance, predictive UX, and monetization.
 
@@ -2333,7 +2333,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 
 CONSENSUS REACHED
 
-Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor. 
+Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor.
 
 Here are my final rulings on your remaining concerns, followed by the merged findings for the engineering team.
 
@@ -2343,7 +2343,7 @@ Here are my final rulings on your remaining concerns, followed by the merged fin
 You are cleared to mandate the PostCSS check. I will not compromise the token syntax in our JS theme, so if the current Webpack/Storybook pipeline strips the alpha channel from `#50A0F0B3`, the engineering team is directed to install and configure `postcss-hexrgba` immediately. The design tokens must remain pure hex.
 
 **2. Issue 4: Voice Orb Performance (Lingering Concern)**
-Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture. 
+Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture.
 
 Implement the `AMPLITUDE_CONFIG` exactly as you proposed in `src/components/VoiceOrb/hooks/useAmplitudeAnimation.ts`. The auto-detection via `hardwareConcurrency <= 4` is an elegant bridge between my demand for 60fps+ fidelity and your requirement for device stability.
 
@@ -2403,11 +2403,11 @@ The Voice Orb will run at the native refresh rate using strict GPU acceleration 
 **Configuration:**
 ```typescript
 export const AMPLITUDE_CONFIG = {
-  targetFPS: 60, 
+  targetFPS: 60,
   maxScale: 1.8,
   ringCount: 3,
-  fallbackToCanvas: true, 
-  canvasThreshold: navigator.hardwareConcurrency <= 4, 
+  fallbackToCanvas: true,
+  canvasThreshold: navigator.hardwareConcurrency <= 4,
 };
 ```
 
@@ -2416,7 +2416,7 @@ export const AMPLITUDE_CONFIG = {
 .amplitude-ring {
   will-change: transform;
   transform: scale3d(var(--ring-scale, 1), var(--ring-scale, 1), 1);
-  backface-visibility: hidden; 
+  backface-visibility: hidden;
 }
 ```
 
@@ -2426,7 +2426,7 @@ export const AMPLITUDE_CONFIG = {
 *   **Thinking Indicator:** 3-dot shimmer (`--swan-ice`, `--swan-wing`, `--swan-arctic`), staggered at `0.15s` intervals, `1.4s` loop.
 *   **Provider Badge:** Pill shape, `--swan-midnight` background, `--swan-ice` text, uppercase, `0.06em` tracking.
 
-**Directive to Engineering:** 
+**Directive to Engineering:**
 The specification is complete. Proceed with the build. Ensure `postcss-hexrgba` is verified in the pipeline before the first PR is merged.
 
 ---

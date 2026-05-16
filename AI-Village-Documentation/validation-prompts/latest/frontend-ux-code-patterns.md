@@ -32,15 +32,15 @@ This review evaluates the **SwanStudios Platform Vision** document against the r
 
 ### 5. State Management
 *   **Finding:** The platform involves complex state: Voice input, AI processing, Stripe payments, and real-time social feeds.
-*   **Recommendation:** 
-    *   Use **React Query (TanStack Query)** for server state (workouts, analytics, social feed). 
-    *   Use **Zustand** for global UI state (e.g., `isRecording`, `activePhase`, `userTier`). 
+*   **Recommendation:**
+    *   Use **React Query (TanStack Query)** for server state (workouts, analytics, social feed).
+    *   Use **Zustand** for global UI state (e.g., `isRecording`, `activePhase`, `userTier`).
     *   Avoid `Context` for high-frequency updates like the `DictationOrb` status to prevent unnecessary re-renders.
 *   **Rating:** **MEDIUM** (Performance optimization)
 
 ### 6. Accessibility Gaps
 *   **Finding:** The "Crystalline Swan" theme relies heavily on color accents (Arctic Cyan, Wing Purple) for status.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Color-blindness:** Never use color alone to indicate state (e.g., "Phase 1" vs "Phase 2"). Use icons or text labels alongside colors.
     *   **Keyboard Traps:** Ensure the `DictationOrb` is fully keyboard-accessible (Space/Enter to toggle).
     *   **ARIA:** Use `aria-live="polite"` for the AI transcription feedback so screen readers announce when the AI has finished parsing a voice log.

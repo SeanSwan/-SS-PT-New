@@ -112,19 +112,19 @@ async function runValidator(
   timeoutMs: number = 120_000  // 120s, not 240s — fail fast
 ): Promise<ValidationResult> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const result = await Promise.race([
         callModel(config),
-        new Promise<never>((_, reject) => 
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs)
         )
       ]);
       return { ...result, retryCount: attempt };
     } catch (err) {
       lastError = err as Error;
-      
+
       // Do NOT retry on model-not-found — it will never succeed
       if (isModelNotFoundError(err)) {
         return {
@@ -137,14 +137,14 @@ async function runValidator(
           retryCount: attempt
         };
       }
-      
+
       // Exponential backoff for retryable errors
       if (attempt < maxRetries) {
         await sleep(1000 * Math.pow(2, attempt));
       }
     }
   }
-  
+
   // CRITICAL: Block pipeline if validator fails — do not archive partial results
   throw new PipelineBlockingError(
     `Validator ${config.name} failed after ${maxRetries + 1} attempts. ` +
@@ -209,7 +209,7 @@ async function validateModelRegistry(): Promise<void> {
       if (!isValid) throw new Error(`Model ${name} (${id}) is not available`);
     })
   );
-  
+
   const failures = results.filter(r => r.status === 'rejected');
   if (failures.length > 0) {
     // Fail at startup, not mid-pipeline
@@ -233,7 +233,7 @@ None of the six planning documents contain any prohibition against `sequelize.sy
 
 `sync({ force: true })` drops and recreates all tables. On `sswanstudios.com` in production, this means:
 - All user accounts deleted
-- All workout plans deleted  
+- All workout plans deleted
 - All session history deleted
 - All client-trainer relationships deleted
 - All conversation history deleted
@@ -269,13 +269,13 @@ export const migrator = new Umzug({
 // Startup check — run pending migrations, never sync
 export async function runMigrationsOnStartup(): Promise<void> {
   const pending = await migrator.pending();
-  
+
   if (pending.length > 0) {
     console.log(`Running ${pending.length} pending migrations...`);
     await migrator.up();
     console.log('Migrations complete.');
   }
-  
+
   // HARD BLOCK — if sync is called anywhere, throw
   const originalSync = sequelize.sync.bind(sequelize);
   sequelize.sync = async (options?: SyncOptions) => {
@@ -327,17 +327,17 @@ CONSENSUS REACHED
 ## Merged Findings: Critical Architecture Gaps Requiring Immediate Remediation
 
 ### F-01: Validator Pipeline Failure — Silent Data Loss in Consensus System
-**Agreed Issue:** Two validators (`04-performance-planning.md`, `05-competitive-intel.md`) produced zero output due to timeout (240s) and invalid model ID (0.2s failure), yet were archived as valid inputs to the consensus system, creating a 33% data deficit without provenance tracking.  
-**Agreed Fix:** Implement blocking validation pipeline with:  
-- Timeout reduced to 120s (fail fast)  
-- Model-specific error handling (no retries for `MODEL_ERROR`)  
-- Pipeline assertion blocking consensus on any validator failure  
-- Retry logic with exponential backoff for transient errors only  
-*Files to modify:* `validation-pipeline/runner.ts` (new implementation)  
+**Agreed Issue:** Two validators (`04-performance-planning.md`, `05-competitive-intel.md`) produced zero output due to timeout (240s) and invalid model ID (0.2s failure), yet were archived as valid inputs to the consensus system, creating a 33% data deficit without provenance tracking.
+**Agreed Fix:** Implement blocking validation pipeline with:
+- Timeout reduced to 120s (fail fast)
+- Model-specific error handling (no retries for `MODEL_ERROR`)
+- Pipeline assertion blocking consensus on any validator failure
+- Retry logic with exponential backoff for transient errors only
+*Files to modify:* `validation-pipeline/runner.ts` (new implementation)
 
-### F-02: Model ID Hardcoded Without Validation — Configuration Debt  
-**Agreed Issue:** Hardcoded model ID `gemini-3-flash-preview-20251217` (missing provider prefix) causes silent 404; inconsistency with `04-performance-planning.md` using `google/gemini-3-flash-preview-20251217` indicates fragmented configuration.  
-**Agreed Fix:** Centralized model registry with startup validation:  
+### F-02: Model ID Hardcoded Without Validation — Configuration Debt
+**Agreed Issue:** Hardcoded model ID `gemini-3-flash-preview-20251217` (missing provider prefix) causes silent 404; inconsistency with `04-performance-planning.md` using `google/gemini-3-flash-preview-20251217` indicates fragmented configuration.
+**Agreed Fix:** Centralized model registry with startup validation:
 ```typescript
 // config/model-registry.ts
 export const MODEL_REGISTRY = {
@@ -347,12 +347,12 @@ export const MODEL_REGISTRY = {
   DEEPSEEK_V3: 'deepseek/deepseek-v3.2-20251201',
   NEMOTRON_NANO: 'nvidia/nemotron-3-nano-30b-a3b:free',
 } as const;
-```  
-*Files to modify:* `05-competitive-intel.md` (remove hardcoded ID), add `config/model-registry.ts` and validation hook in pipeline initializer  
+```
+*Files to modify:* `05-competitive-intel.md` (remove hardcoded ID), add `config/model-registry.ts` and validation hook in pipeline initializer
 
-### F-03: No Migration Safety Policy — AI-Induced Data Annihilation Risk  
-**Agreed Issue:** Absence of explicit prohibition against `sequelize.sync({ force: true })` in all six planning documents enables AI executors to destroy production data (user accounts, workout plans, session history, etc.) when "fixing" database issues.  
-**Agreed Fix:** Mandatory migration policy enforced at code level:  
+### F-03: No Migration Safety Policy — AI-Induced Data Annihilation Risk
+**Agreed Issue:** Absence of explicit prohibition against `sequelize.sync({ force: true })` in all six planning documents enables AI executors to destroy production data (user accounts, workout plans, session history, etc.) when "fixing" database issues.
+**Agreed Fix:** Mandatory migration policy enforced at code level:
 ```typescript
 // database/migrator.ts
 export const migrator = new Umzug({ /* config */ });
@@ -366,12 +366,12 @@ export async function runMigrationsOnStartup() {
     return originalSync(options);
   };
 }
-```  
-*Files to modify:* All six validation documents (add migration policy section), create `database/MIGRATION_POLICY.md`, implement `database/migrator.ts`  
+```
+*Files to modify:* All six validation documents (add migration policy section), create `database/MIGRATION_POLICY.md`, implement `database/migrator.ts`
 
-### F-04: PII Leakage to External LLMs — Unenforced Security Policy  
-**Agreed Issue:** `03-security-planning.md` correctly identifies "ZERO PII TO LLMs" requirement but lacks enforcement mechanisms, relying on advisory guidelines that AI executors will ignore.  
-**Agreed Fix:** Implement runtime PII scanning and blocking:  
+### F-04: PII Leakage to External LLMs — Unenforced Security Policy
+**Agreed Issue:** `03-security-planning.md` correctly identifies "ZERO PII TO LLMs" requirement but lacks enforcement mechanisms, relying on advisory guidelines that AI executors will ignore.
+**Agreed Fix:** Implement runtime PII scanning and blocking:
 ```typescript
 // llm-gateway/pII-filter.ts
 export async function safeLLMPrompt(messages: Message[]): Promise<string> {
@@ -380,31 +380,30 @@ export async function safeLLMPrompt(messages: Message[]): Promise<string> {
     ...m,
     content: m.content.replace(piiPatterns, '[REDACTED_PII]')
   }));
-  
+
   if (hasPII(messages)) {
     auditLog.piiBlocked(messages);
     throw new Error('PII transmission blocked by policy');
   }
-  
+
   return callLLM(sanitized);
 }
-```  
-*Files to modify:* `03-security-planning.md` (add enforcement section), create `llm-gateway/pII-filter.ts`, integrate into all LLM call paths  
+```
+*Files to modify:* `03-security-planning.md` (add enforcement section), create `llm-gateway/pII-filter.ts`, integrate into all LLM call paths
 
 ## Consensus Summary
-All four critical findings represent systemic risks that would inevitably lead to production incidents:  
-1. **Data integrity failure** via broken validation pipeline (F-01)  
-2. **Configuration fragility** from unvalidated dependencies (F-02)  
-3. **Catastrophic data loss** from unsafe ORM usage (F-03)  
-4. **Regulatory violation** via uncontrolled PII exposure (F-04)  
+All four critical findings represent systemic risks that would inevitably lead to production incidents:
+1. **Data integrity failure** via broken validation pipeline (F-01)
+2. **Configuration fragility** from unvalidated dependencies (F-02)
+3. **Catastrophic data loss** from unsafe ORM usage (F-03)
+4. **Regulatory violation** via uncontrolled PII exposure (F-04)
 
-The agreed fixes establish:  
-- **Fail-fast validation** with explicit error states  
-- **Centralized, validated configuration**  
-- **Automated blocking of dangerous patterns**  
-- **Runtime enforcement of security policies**  
+The agreed fixes establish:
+- **Fail-fast validation** with explicit error states
+- **Centralized, validated configuration**
+- **Automated blocking of dangerous patterns**
+- **Runtime enforcement of security policies**
 
 Implementation must block further pipeline execution until these are resolved, as the current state risks cascading failures in downstream AI-generated code.
 
 ---
-

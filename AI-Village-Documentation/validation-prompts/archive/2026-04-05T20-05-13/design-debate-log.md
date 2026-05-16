@@ -8,7 +8,7 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me. I have reviewed the `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` document. Functionally, it is a masterpiece of architecture. Visually and experientially? It is a blank canvas that is currently begging to be painted with generic, uninspired SaaS components. 
+Listen to me. I have reviewed the `SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md` document. Functionally, it is a masterpiece of architecture. Visually and experientially? It is a blank canvas that is currently begging to be painted with generic, uninspired SaaS components.
 
 We are SwanStudios. We charge premium prices. We do not build "admin panels"—we build **Deep-Ocean Luxury Vaults** and **Enchanted Arenas**. If this Marketing Dashboard looks like a standard Bootstrap or Material UI template, I will personally delete the repository.
 
@@ -25,7 +25,7 @@ We are using the **Deep-Ocean Luxury Vault** aesthetic here. The overlay must ob
 *   **Overlay Backdrop:** `background: rgba(10, 10, 15, 0.75);` (Obsidian Black with opacity) + `backdrop-filter: blur(12px);`
 *   **Vault Card:** `background: #141419;` (Carbon) with a strict `1px solid #C6A84B` (Gilded Fern) border.
 *   **Typography:** The lock icon and the headline ("Premium Feature") must use Gilded Fern `#C6A84B`. The descriptive text uses Frost White `#E0ECF4` in `Sora` font.
-*   **CTA Button:** Midnight Sapphire `#002060` background. 
+*   **CTA Button:** Midnight Sapphire `#002060` background.
 *   **Hover State (MANDATORY):** On hover, the button must emit the Wing Purple glow: `box-shadow: 0 0 24px rgba(139, 92, 246, 0.6);` and scale `transform: translateY(-2px);`.
 *   **Plan B Text:** Swan Lavender `#4070C0`, `font-size: 0.875rem`, `font-style: italic`.
 
@@ -43,7 +43,7 @@ We are using the **Deep-Ocean Luxury Vault** aesthetic here. The overlay must ob
 **Design Solution:**
 We need "Magnetic Snap" visual feedback. The user must *feel* the card lift off the screen.
 *   **Base Card:** Royal Depth `#003080` background, `border-radius: 8px`.
-*   **Drag State (`:active` / `isDragging`):** 
+*   **Drag State (`:active` / `isDragging`):**
     *   `transform: scale(1.03) rotate(1deg);`
     *   `cursor: grabbing;`
     *   **Glow:** Ice Wing `#60C0F0` drop shadow: `box-shadow: 0 12px 32px rgba(96, 192, 240, 0.3);`
@@ -64,7 +64,7 @@ We need "Magnetic Snap" visual feedback. The user must *feel* the card lift off 
 **Design Solution:**
 *   **User Bubbles:** Simple, grounded. Royal Depth `#003080` background, Frost White `#E0ECF4` text.
 *   **Swan Coach Bubbles:** Graphite `#1A1A24` background. They do NOT have a solid border. They have a **Cosmic Nebula gradient border**.
-    *   *CSS Trick:* 
+    *   *CSS Trick:*
       ```css
       border: 1px solid transparent;
       background-image: linear-gradient(#1A1A24, #1A1A24), linear-gradient(135deg, #8B5CF6, #60C0F0);
@@ -86,9 +86,9 @@ We need "Magnetic Snap" visual feedback. The user must *feel* the card lift off 
 **Design Problem:** Data dashboards easily become cluttered and overwhelming. The plan lists "Site Audit, Keyword Research, Ranking Tracker" but provides no typographic hierarchy.
 **Design Solution:**
 Strict typographic enforcement. We separate *UI text* from *Data text*.
-*   **Data/Numbers:** MUST use `Fira Code`. 
+*   **Data/Numbers:** MUST use `Fira Code`.
 *   **Data Color:** Arctic Cyan `#50A0F0` is reserved EXCLUSIVELY for data visualization (charts, graphs, metric numbers). Do not use it for buttons.
-*   **Metric Cards:** Background Carbon `#141419`. 
+*   **Metric Cards:** Background Carbon `#141419`.
 *   **Headings:** `Plus Jakarta Sans`, Frost White `#E0ECF4`.
 *   **Loading State (Skeleton):** When the SEO audit is running, do not show a blank screen. Show a skeleton loader using a shimmer effect: `linear-gradient(90deg, #141419 0%, #1A1A24 50%, #141419 100%)`.
 
@@ -105,10 +105,10 @@ Strict typographic enforcement. We separate *UI text* from *Data text*.
 **Design Problem:** "NEVER auto-publish blog or email without Sean's approval." This is a high-stakes, destructive/constructive action. A standard "Submit" button is insufficient. It needs a dramatic, deliberate UX to prevent accidental clicks.
 **Design Solution:**
 A two-step "Vault Release" mechanism.
-*   **Primary CTA:** "Review & Approve" button. Background: Wing Purple `#8B5CF6`. 
+*   **Primary CTA:** "Review & Approve" button. Background: Wing Purple `#8B5CF6`.
 *   **Hover State:** Triggers the Ice Wing `#60C0F0` glow: `box-shadow: 0 0 25px rgba(96, 192, 240, 0.8);`.
-*   **Approval Modal:** When clicked, a modal appears (Obsidian Black `#0A0A0F` background). 
-*   **Drama Typography:** The confirmation prompt ("*Are you ready to release this to the world?*") MUST be in `Cormorant Garamond Italic`, colored Gilded Fern `#C6A84B`. 
+*   **Approval Modal:** When clicked, a modal appears (Obsidian Black `#0A0A0F` background).
+*   **Drama Typography:** The confirmation prompt ("*Are you ready to release this to the world?*") MUST be in `Cormorant Garamond Italic`, colored Gilded Fern `#C6A84B`.
 *   **Final Action:** A slider or a hold-to-confirm button (e.g., hold for 2 seconds) to actually publish, preventing any accidental misclicks on mobile.
 
 **Implementation Notes:**
@@ -118,7 +118,7 @@ A two-step "Vault Release" mechanism.
 ---
 
 ### Final Directive to Engineering
-Do not cut corners on these CSS values. The difference between a $10/month generic SaaS and a $200/month premium coaching platform is in the `box-shadow` opacities, the `backdrop-filter` blurs, and the strict adherence to typographic roles. 
+Do not cut corners on these CSS values. The difference between a $10/month generic SaaS and a $200/month premium coaching platform is in the `box-shadow` opacities, the `backdrop-filter` blurs, and the strict adherence to typographic roles.
 
 Update your component library tickets to reflect these exact specifications before you write a single line of backend logic.
 
@@ -167,7 +167,7 @@ Using `Cormorant Garamond Italic` in `#C6A84B` for the approval prompt creates a
 ## ⚠️ DISPUTES (Require Resolution)
 
 ### ❌ Dispute 1: Chat Gradient Border — Accessibility Violation
-**File:** `SwanCoachInterface.tsx`  
+**File:** `SwanCoachInterface.tsx`
 **Lines:** ~45-52 (the Cosmic Nebula gradient border CSS)
 
 **Problem:**
@@ -195,14 +195,14 @@ The proposed gradient border (`#8B5CF6` → `#60C0F0`) does not provide a **cons
 ```tsx
 // File: SwanCoachInterface.tsx — Line ~38
 // Add to CoachMessageBubble props:
-role="article" 
+role="article"
 aria-label={`Swan Coach response: ${firstLineOfMessage}`}
 ```
 
 ---
 
 ### ❌ Dispute 2: Hold-to-Confirm Button — Motor Accessibility Exclusion
-**File:** `BlogWriterPanel.tsx`  
+**File:** `BlogWriterPanel.tsx`
 **Lines:** ~18-22 (the 2-second hold mechanism)
 
 **Problem:**
@@ -229,7 +229,7 @@ const [confirmationStep, setConfirmationStep] = useState<'idle' | 'confirming'>(
 ---
 
 ### ❌ Dispute 3: Drag-and-Drop — Incomplete Accessibility
-**File:** `DistributionHub.tsx`  
+**File:** `DistributionHub.tsx`
 **Lines:** ~67-78 (the accessibility fallback)
 
 **Problem:**
@@ -249,7 +249,7 @@ const menuItems = [
 // ADD THIS:
 const reorderItems = [
   { label: "Move to Top", onClick: () => reorderCard(id, 'top') },
-  { label: "Move Up", onClick: () => reorderCard(id, 'up'), 
+  { label: "Move Up", onClick: () => reorderCard(id, 'up'),
     disabled: isFirstInDay },
   { label: "Move Down", onClick: () => reorderCard(id, 'down'),
     disabled: isLastInDay },
@@ -274,7 +274,7 @@ onKeyDown={(e) => {
 ## 📋 ADDITIONAL REQUIREMENTS
 
 ### Skeleton Loader Implementation
-**File:** `SEOAuditPanel.tsx`  
+**File:** `SEOAuditPanel.tsx`
 **Add this specification:**
 ```tsx
 // The shimmer animation must respect prefers-reduced-motion
@@ -324,7 +324,7 @@ Please provide updated specifications for the three disputed items. I will ratif
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-As the Creative Director, I appreciate a rigorous Implementation Reviewer. You have correctly identified areas where my pursuit of aesthetic perfection temporarily blinded me to strict WCAG compliance. A true luxury experience is inclusive; a vault that cannot be opened by all authorized users is just a broken door. 
+As the Creative Director, I appreciate a rigorous Implementation Reviewer. You have correctly identified areas where my pursuit of aesthetic perfection temporarily blinded me to strict WCAG compliance. A true luxury experience is inclusive; a vault that cannot be opened by all authorized users is just a broken door.
 
 I accept your additions for the `role="dialog"` on the Lock Overlay and the `prefers-reduced-motion` media query for the Skeleton Loader. Those are merged into the design system.
 
@@ -339,7 +339,7 @@ Here is my Round 2 Design Authority response.
 **Status:** PARTIAL DISAGREE
 
 **Why I Disagree:**
-Your proposed solution uses `border-image: linear-gradient(...) 1;`. This is a known CSS trap. The `border-image` property **does not support `border-radius`**. If you implement your code, the Swan Coach bubbles will have sharp, 90-degree corners, completely destroying the organic, fluid aesthetic of the Enchanted Forest design language. 
+Your proposed solution uses `border-image: linear-gradient(...) 1;`. This is a known CSS trap. The `border-image` property **does not support `border-radius`**. If you implement your code, the Swan Coach bubbles will have sharp, 90-degree corners, completely destroying the organic, fluid aesthetic of the Enchanted Forest design language.
 
 **The Compromise Solution:**
 We will keep my `background-clip` method (which perfectly supports `border-radius: 12px`), but we will implement strict graceful degradation and high-contrast support using `@media (forced-colors: active)` and a base fallback. I accept your ARIA additions.
@@ -352,7 +352,7 @@ We will keep my `background-clip` method (which perfectly supports `border-radiu
   border-radius: 12px;
   color: #E0ECF4;
   /* Base fallback for older browsers / screen readers */
-  border: 1px solid #8B5CF6; 
+  border: 1px solid #8B5CF6;
   position: relative;
 }
 
@@ -377,9 +377,9 @@ We will keep my `background-clip` method (which perfectly supports `border-radiu
 ```tsx
 // File: SwanCoachInterface.tsx — Line ~38
 // Accepted ARIA additions:
-<div 
-  className="coach-bubble" 
-  role="article" 
+<div
+  className="coach-bubble"
+  role="article"
   aria-label={`Swan Coach response: ${firstLineOfMessage}`}
 >
 ```
@@ -391,7 +391,7 @@ We will keep my `background-clip` method (which perfectly supports `border-radiu
 **Status:** PARTIAL DISAGREE
 
 **Why I Disagree:**
-You are absolutely correct that my 2-second hold violates WCAG 2.5.2 (Pointer Cancellation). I concede this point; we cannot exclude users with motor impairments. 
+You are absolutely correct that my 2-second hold violates WCAG 2.5.2 (Pointer Cancellation). I concede this point; we cannot exclude users with motor impairments.
 *However*, your proposed solution—a standard HTML checkbox—is visually repulsive for a high-stakes "Vault Release." It feels like accepting Terms & Conditions on a generic utility site.
 
 **The Compromise Solution:**
@@ -403,8 +403,8 @@ We will use your two-step modal logic, but the checkbox must be a **Crystalline 
 // The logic remains as you proposed, but the UI is strictly enforced:
 
 <label className="crystalline-checkbox-wrapper">
-  <input 
-    type="checkbox" 
+  <input
+    type="checkbox"
     className="visually-hidden"
     checked={isConfirmed}
     onChange={(e) => setIsConfirmed(e.target.checked)}
@@ -469,7 +469,7 @@ input[type="checkbox"]:checked + .custom-checkbox {
 **Status:** AGREE
 
 **Resolution:**
-Your addition of the `ArrowUp` and `ArrowDown` keydown events, combined with the `aria-live` announcements, is an elegant solution that perfectly bridges the gap between our visual "Magnetic Snap" and screen reader/keyboard requirements. 
+Your addition of the `ArrowUp` and `ArrowDown` keydown events, combined with the `aria-live` announcements, is an elegant solution that perfectly bridges the gap between our visual "Magnetic Snap" and screen reader/keyboard requirements.
 
 I approve the exact implementation you provided for `DistributionHub.tsx` lines ~70-78.
 
@@ -477,7 +477,7 @@ I approve the exact implementation you provided for `DistributionHub.tsx` lines 
 
 ### Summary for Round 2
 
-We are very close to a flawless blueprint. 
+We are very close to a flawless blueprint.
 1. Do you accept the `background-clip` CSS method to preserve the `border-radius` on the chat bubbles?
 2. Do you accept the custom `<CrystallineCheckbox>` component to maintain the aesthetic while satisfying WCAG 2.5.2?
 
@@ -509,7 +509,7 @@ The Creative Director has responded with technically superior solutions that pre
     border: 2px solid CanvasText;
     background: Canvas;
   }
-  
+
   /* Ensure text remains readable in forced colors mode */
   @media (forced-colors: active) {
     .coach-bubble::after {
@@ -534,7 +534,7 @@ The **Crystalline Checkbox** solution is elegant. It satisfies WCAG 2.5.2 (no ti
 // The SVG checkmark must be visible on the gradient background:
 
 {isConfirmed && (
-  <CheckIcon 
+  <CheckIcon
     color="#E0ECF4"  // Frost White on Cosmic Nebula gradient — verified WCAG AA ✓
   />
 )}
@@ -555,9 +555,9 @@ Your acceptance of ArrowUp/ArrowDown keydown events with `aria-live` announcemen
 ### SwanCoachInterface.tsx — Gradient Bubble
 ```tsx
 // File: SwanCoachInterface.tsx — Line ~38
-<div 
-  className="coach-bubble" 
-  role="article" 
+<div
+  className="coach-bubble"
+  role="article"
   aria-label={`Swan Coach response: ${firstLineOfMessage}`}
 >
 ```
@@ -575,7 +575,7 @@ Your acceptance of ArrowUp/ArrowDown keydown events with `aria-live` announcemen
 @supports (background-clip: padding-box) {
   .coach-bubble {
     border: 1px solid transparent;
-    background-image: linear-gradient(#1A1A24, #1A1A24), 
+    background-image: linear-gradient(#1A1A24, #1A1A24),
                       linear-gradient(135deg, #8B5CF6, #60C0F0);
     background-origin: border-box;
     background-clip: padding-box, border-box;
@@ -599,8 +599,8 @@ Your acceptance of ArrowUp/ArrowDown keydown events with `aria-live` announcemen
 const [isConfirmed, setIsConfirmed] = useState(false);
 
 <label className="crystalline-checkbox-wrapper">
-  <input 
-    type="checkbox" 
+  <input
+    type="checkbox"
     className="visually-hidden"
     checked={isConfirmed}
     onChange={(e) => setIsConfirmed(e.target.checked)}
@@ -614,7 +614,7 @@ const [isConfirmed, setIsConfirmed] = useState(false);
   </span>
 </label>
 
-<button 
+<button
   className="release-button"
   disabled={!isConfirmed}
   aria-disabled={!isConfirmed}
@@ -688,7 +688,7 @@ All disputed items have been resolved. The merged specifications are ready for e
 
 CONSENSUS REACHED
 
-As the Creative Director, I commend this rigorous review process. The tension between uncompromising aesthetic ambition and strict WCAG compliance has done exactly what it is supposed to do: it has forged a flawless, inclusive, and deeply premium design system. 
+As the Creative Director, I commend this rigorous review process. The tension between uncompromising aesthetic ambition and strict WCAG compliance has done exactly what it is supposed to do: it has forged a flawless, inclusive, and deeply premium design system.
 
 You correctly validated the contrast ratios, and your additions for the disabled button states and forced-colors readability are approved. (I have slightly cleaned up the CSS syntax for the `forced-colors` media query in the final merge to apply directly to the text rather than an empty pseudo-element, ensuring standard browser rendering).
 
@@ -713,7 +713,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
 *   **Implementation:**
     *   **Drag State:** `transform: scale(1.03) rotate(1deg); cursor: grabbing; box-shadow: 0 12px 32px rgba(96, 192, 240, 0.3);` (Ice Wing glow).
     *   **Drop Zone:** `2px dashed #8B5CF6` border with `rgba(139, 92, 246, 0.1)` background fill.
-    *   **Accessibility:** 
+    *   **Accessibility:**
         *   Cards must have `min-height: 48px`.
         *   Implement `onKeyDown` for `ArrowUp`/`ArrowDown` to reorder items.
         *   Use `aria-live="assertive"` to announce moves (e.g., "Post moved to Thursday").
@@ -741,7 +741,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
     @supports (background-clip: padding-box) {
       .coach-bubble {
         border: 1px solid transparent;
-        background-image: linear-gradient(#1A1A24, #1A1A24), 
+        background-image: linear-gradient(#1A1A24, #1A1A24),
                           linear-gradient(135deg, #8B5CF6, #60C0F0);
         background-origin: border-box;
         background-clip: padding-box, border-box;
@@ -784,8 +784,8 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
     const [isConfirmed, setIsConfirmed] = useState(false);
 
     <label className="crystalline-checkbox-wrapper">
-      <input 
-        type="checkbox" 
+      <input
+        type="checkbox"
         className="visually-hidden"
         checked={isConfirmed}
         onChange={(e) => setIsConfirmed(e.target.checked)}
@@ -799,7 +799,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
       </span>
     </label>
 
-    <button 
+    <button
       className="release-button"
       disabled={!isConfirmed}
       aria-disabled={!isConfirmed}
@@ -836,4 +836,3 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
 **Final Directive:** Engineering is cleared to build. Execute these tokens exactly as written.
 
 ---
-

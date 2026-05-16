@@ -52,9 +52,9 @@ import { ZodSchema, z } from 'zod';
 const AIInputSchema = z.object({
   sessionId: z.string().uuid(),
   action: z.enum([
-    'log_workout', 
-    'check_progress', 
-    'set_goals', 
+    'log_workout',
+    'check_progress',
+    'set_goals',
     'book_session',
     'get_nutrition',
     'generate_workout',
@@ -190,7 +190,7 @@ class AISecurityManager {
 const aiInputValidator = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validation = await AIInputSchema.safeParse(req.body);
-    
+
     if (!validation.success) {
       return res.status(400).json({
         error: 'Invalid AI request format',
@@ -212,7 +212,7 @@ const aiInputValidator = async (req: Request, res: Response, next: NextFunction)
       req.user.subscriptionTier,
       req.user.assignedTrainerId
     );
-    
+
     if (userContextHash !== validation.data.userContextHash) {
       return res.status(401).json({
         error: 'User context verification failed',
@@ -261,12 +261,12 @@ class AICostController {
   async recordCost(userId: string, tokens: number, model: string): Promise<void> {
     const cost = this.calculateCost(tokens, model);
     await this.insertSpendingRecord(userId, cost);
-    
+
     // Alert if approaching limits
     const tier = await this.getUserTier(userId);
     const limits = this.costLimits[tier as keyof typeof this.costLimits];
     const dailySpent = await this.getDailySpending(userId);
-    
+
     if (dailySpent > limits.daily * 0.8) {
       await this.sendCostAlert(userId, dailySpent, limits.daily);
     }
@@ -298,7 +298,7 @@ class AIOutputFilter {
       for (const pattern of this.sensitivePatterns) {
         output = output.replace(pattern, '[REDACTED]');
       }
-      
+
       // Remove any mention of other users' private data
       output = this.removeCrossUserData(output, requestingUserId);
     }

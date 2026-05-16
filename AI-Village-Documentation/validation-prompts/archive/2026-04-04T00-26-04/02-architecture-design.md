@@ -250,7 +250,7 @@ const sendToAI = useCallback(async (prompt: string, context: BootcampContext) =>
   // Cancel any in-flight request
   abortControllerRef.current?.abort();
   abortControllerRef.current = new AbortController();
-  
+
   try {
     const response = await callAIService(prompt, context, {
       signal: abortControllerRef.current.signal,

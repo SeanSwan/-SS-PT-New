@@ -534,9 +534,9 @@ This has **three race condition vectors**:
 const loadConversation = useCallback(async (id: string) => {
   // Abort controller pattern — mandatory, not optional
   const controller = new AbortController();
-  
+
   setLoadingConversationId(id); // track WHICH conversation is loading, not just boolean
-  
+
   try {
     const messages = await fetchConversation(id, { signal: controller.signal });
     // Guard: only commit if this is still the requested conversation
@@ -549,7 +549,7 @@ const loadConversation = useCallback(async (id: string) => {
   } finally {
     setLoadingConversationId(prev => prev === id ? null : prev);
   }
-  
+
   return () => controller.abort(); // cleanup returned for useEffect
 }, []); // stable identity — no deps that change
 ```
@@ -595,20 +595,20 @@ class ContentStudioTabErrorBoundary extends React.Component<
   { hasError: boolean; error: Error | null }
 > {
   state = { hasError: false, error: null };
-  
+
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
-  
+
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     // Log to your error tracking (Sentry, etc.)
     console.error(`[ContentStudio:${this.props.tabName}] Tab crashed:`, error, info);
   }
-  
+
   render() {
     if (this.state.hasError) {
       return (
-        <TabErrorFallback 
+        <TabErrorFallback
           tabName={this.props.tabName}
           error={this.state.error}
           onReset={() => this.setState({ hasError: false, error: null })}
@@ -665,7 +665,7 @@ Additionally, if the Rolodex component is not memoized and lives inside a parent
 // components/workout/ExerciseRolodex.tsx — MUST use virtualization
 // File budget: this file will exceed 300 lines if it owns:
 //   - virtualization logic
-//   - search/filter state  
+//   - search/filter state
 //   - category tabs
 //   - individual exercise row rendering
 //   - drag-to-add interaction
@@ -778,51 +778,51 @@ The refactor plan introduces significant new data processing vectors (AI convers
 ## Detailed Findings & Mitigations
 
 ### 1. PII Exposure in AI Conversations
-**Rating:** CRITICAL  
-**Plan Reference:** Sections 1, 5 (B, D), 7, 8, 10  
-**Issue:**  
-- AI terminals (Coach Assistant, Swan Coach Workout Builder) accept free-text/voice inputs containing client PII (names, injuries, health conditions).  
-- No mention of **client-side PII redaction** before sending to external AI providers (Gemini implied).  
-- Conversation history stored in PostgreSQL JSONB may contain raw PII in user/AI messages.  
-- "Teach Me" content generation could inadvertently include client-specific data.  
+**Rating:** CRITICAL
+**Plan Reference:** Sections 1, 5 (B, D), 7, 8, 10
+**Issue:**
+- AI terminals (Coach Assistant, Swan Coach Workout Builder) accept free-text/voice inputs containing client PII (names, injuries, health conditions).
+- No mention of **client-side PII redaction** before sending to external AI providers (Gemini implied).
+- Conversation history stored in PostgreSQL JSONB may contain raw PII in user/AI messages.
+- "Teach Me" content generation could inadvertently include client-specific data.
 
-**Impact:**  
+**Impact:**
 Direct violation of ZERO PII TO LLMs policy → regulatory penalties (HIPAA/GDPR), data breach, loss of client trust.
 
-**Mitigations:**  
-1. **Implement PII Detection/Redaction Layer**  
-   - Use on-device/library PII detection (e.g., `presidio`, `spacy` NER) **before** any data leaves client browser.  
-   - Redact: names, emails, phone numbers, addresses, exact dates, health identifiers, locations.  
-   - Replace with generic tokens: `[CLIENT_NAME]`, `[INJURY]`, `[DATE]`.  
-2. **AI Prompt Engineering**  
-   - System prompts must explicitly forbid AI from requesting/storing PII.  
-   - Example: *"Do not ask for or store personal identifiers. Use generic references like 'your client'."*  
-3. **Conversation Storage Sanitization**  
-   - Server-side middleware must re-sanitize stored JSONB messages before persistence.  
-   - Maintain audit log of redaction actions.  
-4. **Policy Enforcement**  
-   - Block any API route sending data to external AI if PII detection confidence > threshold.  
-   - Fallback: show error *"Please remove personal details from your request."*  
+**Mitigations:**
+1. **Implement PII Detection/Redaction Layer**
+   - Use on-device/library PII detection (e.g., `presidio`, `spacy` NER) **before** any data leaves client browser.
+   - Redact: names, emails, phone numbers, addresses, exact dates, health identifiers, locations.
+   - Replace with generic tokens: `[CLIENT_NAME]`, `[INJURY]`, `[DATE]`.
+2. **AI Prompt Engineering**
+   - System prompts must explicitly forbid AI from requesting/storing PII.
+   - Example: *"Do not ask for or store personal identifiers. Use generic references like 'your client'."*
+3. **Conversation Storage Sanitization**
+   - Server-side middleware must re-sanitize stored JSONB messages before persistence.
+   - Maintain audit log of redaction actions.
+4. **Policy Enforcement**
+   - Block any API route sending data to external AI if PII detection confidence > threshold.
+   - Fallback: show error *"Please remove personal details from your request."*
 
 ---
 
 ### 2. Conversation Data at Rest (PostgreSQL JSONB)
-**Rating:** CRITICAL  
-**Plan Reference:** Section 4, 5 (B, D)  
-**Issue:**  
-- Conversations stored as plain JSONB in PostgreSQL.  
-- No mention of **encryption at rest** for health data.  
-- RBAC described but **no database-level enforcement** (row-level security).  
+**Rating:** CRITICAL
+**Plan Reference:** Section 4, 5 (B, D)
+**Issue:**
+- Conversations stored as plain JSONB in PostgreSQL.
+- No mention of **encryption at rest** for health data.
+- RBAC described but **no database-level enforcement** (row-level security).
 
-**Impact:**  
+**Impact:**
 Database compromise → bulk PII/PHI exposure. Insider threat (DBA/admin) accessing all conversations.
 
-**Mitigations:**  
-1. **Encrypt JSONB Column**  
-   - Use PostgreSQL `pgcrypto` with per-row keys derived from user ID + server secret.  
-   - Alternatively, encrypt entire tablespace with TDE (if using cloud-managed PostgreSQL).  
-2. **Row-Level Security (RLS)**  
-   - Enable RLS on `conversations` table:  
+**Mitigations:**
+1. **Encrypt JSONB Column**
+   - Use PostgreSQL `pgcrypto` with per-row keys derived from user ID + server secret.
+   - Alternatively, encrypt entire tablespace with TDE (if using cloud-managed PostgreSQL).
+2. **Row-Level Security (RLS)**
+   - Enable RLS on `conversations` table:
      ```sql
      CREATE POLICY conversation_access ON conversations
      USING (
@@ -835,94 +835,94 @@ Database compromise → bulk PII/PHI exposure. Insider threat (DBA/admin) access
        -- Client: own only
        (current_user_role() = 'client' AND client_id = current_user_id())
      );
-     ```  
-3. **Audit Logging**  
-   - Log all conversation access with user ID, timestamp, client ID accessed.  
-4. **Key Management**  
-   - Store encryption keys in AWS Secrets Manager/HashiCorp Vault, not in code.  
-   - Rotate keys annually.  
+     ```
+3. **Audit Logging**
+   - Log all conversation access with user ID, timestamp, client ID accessed.
+4. **Key Management**
+   - Store encryption keys in AWS Secrets Manager/HashiCorp Vault, not in code.
+   - Rotate keys annually.
 
 ---
 
 ### 3. RBAC Enforcement Gaps
-**Rating:** CRITICAL  
-**Plan Reference:** Section 5 (B, D, I), 8  
-**Issue:**  
-- Plan describes intended RBAC (admin: all, trainer: assigned, client: own) but **no implementation details**.  
-- "Admin sees all conversations" → risk of over-privileged admin accounts.  
-- Trainer/client context switching mentioned (Section I) → risk of session fixation/confused deputy.  
+**Rating:** CRITICAL
+**Plan Reference:** Section 5 (B, D, I), 8
+**Issue:**
+- Plan describes intended RBAC (admin: all, trainer: assigned, client: own) but **no implementation details**.
+- "Admin sees all conversations" → risk of over-privileged admin accounts.
+- Trainer/client context switching mentioned (Section I) → risk of session fixation/confused deputy.
 
-**Impact:**  
+**Impact:**
 Trainer accesses other trainers' clients; admin accidentally modifies wrong client data; client views other clients' plans.
 
-**Mitigations:**  
-1. **Middleware Enforcement**  
-   - Create `@rbac('trainer:client:read')` decorator on all conversation/plan endpoints.  
-   - Verify `trainer_id` matches `client_id` assignment table **on every request**.  
-2. **Context Isolation**  
-   - Include `current_client_id` in JWT token after login (scoped to selected client in trainer view).  
-   - Reject requests where `current_client_id` ≠ resource `client_id` (unless admin).  
-3. **Admin Privilege Separation**  
-   - Split admin roles:  
-     - `super_admin` (full access)  
-     - `support_admin` (read-only, limited fields)  
-   - Require MFA for admin actions.  
-4. **Automated RBAC Tests**  
-   - Playwright tests (Section 9) must include:  
-     - Trainer attempting to access another trainer's client → 403.  
-     - Client accessing another client's plan → 403.  
+**Mitigations:**
+1. **Middleware Enforcement**
+   - Create `@rbac('trainer:client:read')` decorator on all conversation/plan endpoints.
+   - Verify `trainer_id` matches `client_id` assignment table **on every request**.
+2. **Context Isolation**
+   - Include `current_client_id` in JWT token after login (scoped to selected client in trainer view).
+   - Reject requests where `current_client_id` ≠ resource `client_id` (unless admin).
+3. **Admin Privilege Separation**
+   - Split admin roles:
+     - `super_admin` (full access)
+     - `support_admin` (read-only, limited fields)
+   - Require MFA for admin actions.
+4. **Automated RBAC Tests**
+   - Playwright tests (Section 9) must include:
+     - Trainer attempting to access another trainer's client → 403.
+     - Client accessing another client's plan → 403.
 
 ---
 
 ### 4. Voice Data Privacy & Retention
-**Rating:** HIGH  
-**Plan Reference:** Section 5 (D), 7  
-**Issue:**  
-- Audio recordings sent to Gemini for transcription.  
-- **No retention policy** defined (how long stored? where?).  
-- No mention of **encryption in transit/at rest** for voice blobs.  
-- MediaRecorder API usage unclear (client-side storage?).  
+**Rating:** HIGH
+**Plan Reference:** Section 5 (D), 7
+**Issue:**
+- Audio recordings sent to Gemini for transcription.
+- **No retention policy** defined (how long stored? where?).
+- No mention of **encryption in transit/at rest** for voice blobs.
+- MediaRecorder API usage unclear (client-side storage?).
 
-**Impact:**  
+**Impact:**
 Voice recordings = biometric data (PII/PHI). Unencrypted storage → breach. Indefinite retention → compliance violation.
 
-**Mitigations:**  
-1. **Ephemeral Processing**  
-   - Stream audio directly to transcription service; **never store** raw recordings.  
-   - If storage needed (e.g., for re-analysis), encrypt with client-specific key and auto-delete after 24h.  
-2. **Transparency & Consent**  
-   - Update privacy policy: *"Voice recordings are processed in real-time and not stored."*  
-   - In-app consent modal before first recording: *"We'll send your voice to our AI coach. No recordings are stored."*  
-3. **Secure Transmission**  
-   - Use HTTPS + TLS 1.3 for all audio uploads.  
-   - Implement certificate pinning in mobile app (if any).  
-4. **Client-Side Cleanup**  
-   - After `MediaRecorder.stop()`, revoke media stream tracks:  
+**Mitigations:**
+1. **Ephemeral Processing**
+   - Stream audio directly to transcription service; **never store** raw recordings.
+   - If storage needed (e.g., for re-analysis), encrypt with client-specific key and auto-delete after 24h.
+2. **Transparency & Consent**
+   - Update privacy policy: *"Voice recordings are processed in real-time and not stored."*
+   - In-app consent modal before first recording: *"We'll send your voice to our AI coach. No recordings are stored."*
+3. **Secure Transmission**
+   - Use HTTPS + TLS 1.3 for all audio uploads.
+   - Implement certificate pinning in mobile app (if any).
+4. **Client-Side Cleanup**
+   - After `MediaRecorder.stop()`, revoke media stream tracks:
      ```javascript
      stream.getTracks().forEach(track => track.stop());
-     ```  
-   - Clear any blob URLs: `URL.revokeObjectURL(blobUrl)`.  
+     ```
+   - Clear any blob URLs: `URL.revokeObjectURL(blobUrl)`.
 
 ---
 
 ### 5. File Upload (R2) & SSRF Risks
-**Rating:** HIGH  
-**Plan Reference:** Section 5 (E), 6  
-**Issue:**  
-- Equipment images uploaded to Cloudflare R2 for AI analysis.  
-- **No file validation** (type, size, malware scanning).  
-- AI analysis may fetch URLs from image metadata → **SSRF** risk.  
-- "Batch-first" workflow → many concurrent uploads → DoS potential.  
+**Rating:** HIGH
+**Plan Reference:** Section 5 (E), 6
+**Issue:**
+- Equipment images uploaded to Cloudflare R2 for AI analysis.
+- **No file validation** (type, size, malware scanning).
+- AI analysis may fetch URLs from image metadata → **SSRF** risk.
+- "Batch-first" workflow → many concurrent uploads → DoS potential.
 
-**Impact:**  
+**Impact:**
 Malicious file upload → RCE via image processing library (e.g., ImageMagick). SSRF → internal network scan/exploitation.
 
-**Mitigations:**  
-1. **Strict File Validation**  
-   - Server-side:  
-     - Allow only `image/jpeg`, `image/png`.  
-     - Max size: 5MB per file.  
-     - Use `sharp` or `jimp` to re-encode images (strips metadata/scripts).  
+**Mitigations:**
+1. **Strict File Validation**
+   - Server-side:
+     - Allow only `image/jpeg`, `image/png`.
+     - Max size: 5MB per file.
+     - Use `sharp` or `jimp` to re-encode images (strips metadata/scripts).
    - Client-side:
 
 ---
@@ -1784,7 +1784,7 @@ The Comprehensive Site Refactor Brief is a well-structured planning document wit
 WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
 ---------------------------|-----------------------------------
 1 week                     | Phase 5 pushed; no blocking of production
-2 weeks                    | Schedule slip affects sprint planning; 
+2 weeks                    | Schedule slip affects sprint planning;
                            | voice → markdown → UI feedback loop missed
 3+ weeks                   | Feature freeze triggered; entire roadmap slips
                            | Voice is a KEY DIFFERENTIATOR - delays here
@@ -1928,7 +1928,7 @@ WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
 
 1. **"22 new files" assumption:** This count is arbitrary without seeing current file structure. Likely undercounting by 30-50%.
 
-2. **"300 lines max" assumption:** 
+2. **"300 lines max" assumption:**
    - Voice component will realistically be 500-800 lines due to error handling, browser detection, fallback logic
    - AI terminal normalization will be 400-600 lines per terminal type
    - Markdown renderer with all edge cases could hit 600+ lines
@@ -2005,7 +2005,7 @@ WEEK DELAY FROM PHASE 4:  | CASCADING IMPACT
      /      \
     /--------\  Integration (Playwright + MSW)
    /          \ - API mocking for offline testing
-  /------------\ 
+  /------------\
  /              \ Unit (Jest + RTL)
 /----------------\ - Hooks, utilities, components
 ```
@@ -2209,10 +2209,10 @@ Scenario B: Voice transcription stored in message metadata
 ```sql
 -- JSONB append is NOT atomic update of one element
 -- This is what actually happens on every new message:
-UPDATE conversations 
-SET messages = messages || '{"role":"user","content":"..."}' 
+UPDATE conversations
+SET messages = messages || '{"role":"user","content":"..."}'
 WHERE id = $1;
--- PostgreSQL reads ENTIRE messages column, deserializes, 
+-- PostgreSQL reads ENTIRE messages column, deserializes,
 -- appends, reserializes, writes ENTIRE column back.
 -- At 50MB, this is catastrophic for write throughput.
 ```
@@ -2229,19 +2229,19 @@ const MAX_CONVERSATION_JSONB_BYTES = 5 * 1024 * 1024; // 5MB hard limit
 
 async function appendMessage(conversationId: string, message: MessageObject) {
   const conversation = await Conversation.findByPk(conversationId);
-  
+
   // Measure current size before append
   const currentSize = Buffer.byteLength(
-    JSON.stringify(conversation.messages), 
+    JSON.stringify(conversation.messages),
     'utf8'
   );
-  
+
   if (currentSize > MAX_CONVERSATION_JSONB_BYTES) {
     // Archive old messages to a separate table, start fresh segment
     await archiveConversationSegment(conversationId, conversation.messages);
     conversation.messages = []; // Reset with archived reference
   }
-  
+
   // Never store base64 in JSONB — store R2 URL reference only
   if (message.attachments) {
     message.attachments = message.attachments.map(a => ({
@@ -2253,7 +2253,7 @@ async function appendMessage(conversationId: string, message: MessageObject) {
       // NO base64, NO thumbnail data, NO embedded content
     }));
   }
-  
+
   conversation.messages = [...conversation.messages, message];
   await conversation.save();
 }
@@ -2263,7 +2263,7 @@ async function appendMessage(conversationId: string, message: MessageObject) {
 
 ```sql
 -- Run this weekly in production
-SELECT 
+SELECT
   id,
   user_id,
   pg_column_size(messages) as messages_bytes,
@@ -2289,7 +2289,7 @@ CREATE TABLE conversation_messages (
   sequence_number INTEGER NOT NULL
 );
 
-CREATE INDEX idx_conv_messages_conversation_id 
+CREATE INDEX idx_conv_messages_conversation_id
   ON conversation_messages(conversation_id, sequence_number);
 ```
 
@@ -2331,7 +2331,7 @@ const conversations = await Conversation.findAll({
 
 // SAFE — what the query must look like:
 const conversations = await Conversation.findAll({
-  where: { 
+  where: {
     user_id: userId,
     status: { [Op.ne]: 'deleted' }  // Explicit exclusion
   },
@@ -2347,16 +2347,16 @@ const conversations = await Conversation.findAll({
 1. **Add a database-level constraint as a safety net:**
 
 ```sql
--- Partial index ensures deleted conversations are never accidentally 
+-- Partial index ensures deleted conversations are never accidentally
 -- included in index scans for active conversation queries
-CREATE INDEX idx_conversations_active_by_user 
+CREATE INDEX idx_conversations_active_by_user
   ON conversations(user_id, updated_at DESC)
   WHERE status != 'deleted';
 
 -- Verify the index is being used:
-EXPLAIN ANALYZE 
-SELECT id, title, updated_at 
-FROM conversations 
+EXPLAIN ANALYZE
+SELECT id, title, updated_at
+FROM conversations
 WHERE user_id = $1 AND status != 'deleted'
 ORDER BY updated_at DESC;
 ```
@@ -2368,29 +2368,29 @@ ORDER BY updated_at DESC;
 describe('Conversation sidebar safety', () => {
   it('NEVER returns deleted conversations in sidebar listing', async () => {
     const userId = testUser.id;
-    
+
     // Create and soft-delete a conversation
     const conv = await Conversation.create({ user_id: userId, status: 'active' });
     await conv.update({ status: 'deleted' });
-    
+
     const response = await request(app)
       .get('/api/conversations')
       .set('Authorization', `Bearer ${testToken}`);
-    
+
     const ids = response.body.map(c => c.id);
     expect(ids).not.toContain(conv.id); // This must pass
   });
-  
+
   it('NEVER returns another users conversations', async () => {
-    const otherUserConv = await Conversation.create({ 
-      user_id: otherUser.id, 
-      status: 'active' 
+    const otherUserConv = await Conversation.create({
+      user_id: otherUser.id,
+      status: 'active'
     });
-    
+
     const response = await request(app)
       .get('/api/conversations')
       .set('Authorization', `Bearer ${testToken}`); // Authenticated as testUser
-    
+
     const ids = response.body.map(c => c.id);
     expect(ids).not.toContain(otherUserConv.id); // Cross-user isolation
   });
@@ -2409,7 +2409,7 @@ Conversation.addScope('defaultScope', {
   where: { status: { [Op.ne]: 'deleted' } }
 }, { override: true });
 
-// WARNING: If you use Conversation.unscoped() anywhere, 
+// WARNING: If you use Conversation.unscoped() anywhere,
 // document exactly why and add a comment explaining the security exception
 ```
 
@@ -2460,10 +2460,10 @@ CREATE TABLE conversation_attachments (
   deletion_error TEXT                 -- Log R2 deletion failures
 );
 
-CREATE INDEX idx_conv_attachments_conversation 
+CREATE INDEX idx_conv_attachments_conversation
   ON conversation_attachments(conversation_id);
-CREATE INDEX idx_conv_attachments_pending_cleanup 
-  ON conversation_attachments(deleted_at) 
+CREATE INDEX idx_conv_attachments_pending_cleanup
+  ON conversation_attachments(deleted_at)
   WHERE r2_deleted_at IS NULL AND deleted_at IS NOT NULL;
 ```
 
@@ -2481,29 +2481,29 @@ async function cleanupOrphanedR2Objects() {
     },
     limit: 100  // Process in batches
   });
-  
+
   for (const attachment of pendingCleanup) {
     try {
       await r2Client.deleteObject({
         Bucket: attachment.r2Bucket,
         Key: attachment.r2Key
       });
-      
+
       // Only mark as deleted AFTER confirmed R2 deletion
-      await attachment.update({ 
+      await attachment.update({
         r2_deleted_at: new Date(),
         deletion_error: null
       });
-      
+
     } catch (error) {
       // Log failure but do NOT crash — retry next run
-      await attachment.update({ 
-        deletion_error: error.message 
+      await attachment.update({
+        deletion_error: error.message
       });
-      logger.error('R2 cleanup failed', { 
-        attachmentId: attachment.id, 
+      logger.error('R2 cleanup failed', {
+        attachmentId: attachment.id,
         r2Key: attachment.r2Key,
-        error: error.message 
+        error: error.message
       });
     }
   }
@@ -2546,8 +2546,8 @@ For a platform serving health-adjacent data for clients aged 30-55 (who are incr
 If you are sending audio to Google Gemini API:
 
 ```
-User speaks → Audio captured in browser → Sent to YOUR backend → 
-YOUR backend forwards to Gemini API → Gemini transcribes → 
+User speaks → Audio captured in browser → Sent to YOUR backend →
+YOUR backend forwards to Gemini API → Gemini transcribes →
 Transcript returned → Audio discarded (hopefully)
 
 Questions that MUST be answered:
@@ -2567,7 +2567,7 @@ Questions that MUST be answered:
 // This comment block must exist in your voice processing service
 /**
  * VOICE DATA POLICY - SwanStudios Production
- * 
+ *
  * Audio data handling:
  * - Audio is captured client-side as WebM/Opus or similar
  * - Audio is transmitted directly to Gemini API via browser (preferred)
@@ -2581,44 +2581,44 @@ Questions that MUST be answered:
 ## [PASS] API Design & Backend Contracts
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 102.0s
 
-# API Surface Review – SwanStudios AI Chat Refactor  
-*Based on the **Comprehensive Site Refactor Brief** (2026‑04‑06) and the stated goal of “Phase 1 needs zero backend changes.”*  
+# API Surface Review – SwanStudios AI Chat Refactor
+*Based on the **Comprehensive Site Refactor Brief** (2026‑04‑06) and the stated goal of “Phase 1 needs zero backend changes.”*
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
 
 | Claim in Plan | What the Sidebar Needs | Likely Current Shape* | Verdict |
 |---------------|------------------------|-----------------------|---------|
 | Phase 1 requires **zero backend changes** for the AI‑chat sidebar. | `title`, `context` (preview/summary), `messageCount`, `lastMessageAt` (timestamp of most recent message). | Typical conversation object in a Sequelize/Postgres setup includes: `id`, `userId`, `title`, `createdAt`, `updatedAt`, `lastMessage` (JSONB or relation), `messageCount` (virtual or column). | **Probably sufficient** **if** the endpoint already returns: <br>• `title` <br>• `lastMessage` (or a `preview` field) → can be used for `context` <br>• `messageCount` (either stored column or computed via association) <br>• `updatedAt` (or `lastMessageAt` derived from `lastMessage.createdAt`). <br>**If any of those fields are missing, a minimal backend tweak is required** (e.g., add a virtual `messageCount` or expose `lastMessage.createdAt` as `lastMessageAt`). |
 
-> **Recommendation** – Verify the current payload. If it lacks any of the four fields, add a **backend‑only** selector/virtual field (no contract change) so the frontend can continue to work without a version bump.  
+> **Recommendation** – Verify the current payload. If it lacks any of the four fields, add a **backend‑only** selector/virtual field (no contract change) so the frontend can continue to work without a version bump.
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
 
-- **Current approach** (per plan): fetch the first 20 conversations (presumably ordered by `updatedAt` desc) and filter locally on the client.  
-- **Adequacy**: Acceptable **only** while the total conversation count per user stays low (< ~100) and the UI never needs to show more than the first 20 sorted items.  
-- **When to switch to server‑side search**:  
-  1. **Growth trigger** – average conversation count > 200 per active user **or** pagination beyond the first page is required.  
-  2. **UX trigger** – user expects instant results as they type (search‑as‑you‑go) and the client‑side list would cause noticeable lag or stale data.  
-  3. **Data trigger** – search must look inside message bodies (JSONB content) or across metadata (tags, tags‑like fields).  
+- **Current approach** (per plan): fetch the first 20 conversations (presumably ordered by `updatedAt` desc) and filter locally on the client.
+- **Adequacy**: Acceptable **only** while the total conversation count per user stays low (< ~100) and the UI never needs to show more than the first 20 sorted items.
+- **When to switch to server‑side search**:
+  1. **Growth trigger** – average conversation count > 200 per active user **or** pagination beyond the first page is required.
+  2. **UX trigger** – user expects instant results as they type (search‑as‑you‑go) and the client‑side list would cause noticeable lag or stale data.
+  3. **Data trigger** – search must look inside message bodies (JSONB content) or across metadata (tags, tags‑like fields).
 
-- **Recommended server‑side endpoint**:  
+- **Recommended server‑side endpoint**:
 
   ```http
   GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
   ```
 
-  - **SQL/Sequelize**: `WHERE title ILIKE '%${term}%' OR content::text ILIKE '%${term}%'` (if a `content` JSONB column stores concatenated message text).  
-  - **Index**: GIN index on the JSONB column (`content`) + B‑tree on `title` for ILIKE performance.  
+  - **SQL/Sequelize**: `WHERE title ILIKE '%${term}%' OR content::text ILIKE '%${term}%'` (if a `content` JSONB column stores concatenated message text).
+  - **Index**: GIN index on the JSONB column (`content`) + B‑tree on `title` for ILIKE performance.
 
-> **Recommendation** – Keep client‑side filtering for MVP/Phase 1, but instrument a **feature flag** that flips to server‑side search once any of the triggers above is met.  
+> **Recommendation** – Keep client‑side filtering for MVP/Phase 1, but instrument a **feature flag** that flips to server‑side search once any of the triggers above is met.
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -2630,13 +2630,13 @@ Questions that MUST be answered:
 | **Validation** | Enforce max size (e.g., 10 MB), allowed MIME types (image/*, video/*, application/pdf), and virus‑scan if needed. |
 | **Security** | Verify the authenticated user owns `:id` conversation before allowing upload. |
 
-> **Recommendation** – Keep the endpoint as‑is, but add: <br>1. **Ownership middleware** (check `conversation.userId === req.user.id`). <br>2. **Stream‑to‑R2** using the AWS‑SDK v3 compatible client (no temporary buffer). <br>3. **Response** includes a temporary, signed URL (if R2 requires) or a public CDN URL.  
+> **Recommendation** – Keep the endpoint as‑is, but add: <br>1. **Ownership middleware** (check `conversation.userId === req.user.id`). <br>2. **Stream‑to‑R2** using the AWS‑SDK v3 compatible client (no temporary buffer). <br>3. **Response** includes a temporary, signed URL (if R2 requires) or a public CDN URL.
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
 
-The existing message‑send endpoint is likely:  
+The existing message‑send endpoint is likely:
 
 ```http
 POST /api/ai-chat/conversations/:id/messages
@@ -2645,7 +2645,7 @@ POST /api/ai-chat/conversations/:id/messages
 
 To support images (and potentially other modalities) we have two clean options:
 
-### Option A – **Extended Request Body** (single‑step)  
+### Option A – **Extended Request Body** (single‑step)
 
 ```json
 {
@@ -2657,13 +2657,13 @@ To support images (and potentially other modalities) we have two clean options:
 }
 ```
 
-- **Pros**: One round‑trip, easy to reason about.  
-- **Cons**: Requires the client to know the attachment ID beforehand (forces upload‑then‑reference flow anyway) or to send large base64 payloads (bad for performance).  
+- **Pros**: One round‑trip, easy to reason about.
+- **Cons**: Requires the client to know the attachment ID beforehand (forces upload‑then‑reference flow anyway) or to send large base64 payloads (bad for performance).
 
-### Option B – **Upload‑Then‑Reference Flow** (recommended)  
+### Option B – **Upload‑Then‑Reference Flow** (recommended)
 
-1. **Upload file** → `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, url }`.  
-2. **Send message** → `POST /api/ai-chat/conversations/:id/messages`  
+1. **Upload file** → `POST /api/ai-chat/conversations/:id/attachments` → returns `{ id, url }`.
+2. **Send message** → `POST /api/ai-chat/conversations/:id/messages`
 
    ```json
    {
@@ -2672,14 +2672,14 @@ To support images (and potentially other modalities) we have two clean options:
    }
    ```
 
-- **Pros**: Decouples large binary transfer from message metadata, enables retry, progress UI, and reuse of the same attachment across multiple messages.  
-- **Cons**: Slightly more complex client orchestration (but trivial with a helper hook).  
+- **Pros**: Decouples large binary transfer from message metadata, enables retry, progress UI, and reuse of the same attachment across multiple messages.
+- **Cons**: Slightly more complex client orchestration (but trivial with a helper hook).
 
-> **Recommendation** – Adopt **Option B**. Keep the existing `/messages` endpoint unchanged except for adding an optional `attachmentIds: string[]` field. The backend will: <br>• Validate each ID belongs to the conversation and the user. <br>• Fetch the file URLs/metadata and forward them to Gemini (or store them with the message for later retrieval).  
+> **Recommendation** – Adopt **Option B**. Keep the existing `/messages` endpoint unchanged except for adding an optional `attachmentIds: string[]` field. The backend will: <br>• Validate each ID belongs to the conversation and the user. <br>• Fetch the file URLs/metadata and forward them to Gemini (or store them with the message for later retrieval).
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit | Rationale |
 |-----------|--------------------|----------------|-----------|
@@ -2689,34 +2689,34 @@ To support images (and potentially other modalities) we have two clean options:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High (chat flow) | **120 req/min** per user | Matches typical typing pace; leaves headroom for bot responses. |
 | **Search** (`GET /api/ai-chat/conversations?search=…`) | Typing‑ahead (potentially high) | **60 req/min** per user | Combine with debounce on client (e.g., 300 ms) to stay under limit. |
 
-> **Implementation** – Use a middleware like `express-rate-limit` with a **Redis store** (already likely present for Socket.io) to share limits across instances. Apply different limits per route via route‑specific limiters.  
+> **Implementation** – Use a middleware like `express-rate-limit` with a **Redis store** (already likely present for Socket.io) to share limits across instances. Apply different limits per route via route‑specific limiters.
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Polling  
+## 6. WebSocket Integration – Push vs. Polling
 
-- **Current**: Plan mentions Socket.io exists but the AI‑chat sidebar likely polls `GET /api/ai-chat/conversations` on interval or on mount.  
-- **Pros of WebSocket push**:  
-  - Instant update of `messageCount`, `lastMessageAt`, and new conversation titles (rename) without polling overhead.  
-  - Reduces unnecessary HTTP traffic, especially important for mobile battery life.  
-  - Enables real‑time indicators (typing, read receipts) for a richer chat feel.  
-- **Cons / Complexity**:  
-  - Requires maintaining socket rooms per user/conversation.  
-  - Must handle reconnection and missed events (e.g., store a “last seen” timestamp and reconcile on reconnect).  
+- **Current**: Plan mentions Socket.io exists but the AI‑chat sidebar likely polls `GET /api/ai-chat/conversations` on interval or on mount.
+- **Pros of WebSocket push**:
+  - Instant update of `messageCount`, `lastMessageAt`, and new conversation titles (rename) without polling overhead.
+  - Reduces unnecessary HTTP traffic, especially important for mobile battery life.
+  - Enables real‑time indicators (typing, read receipts) for a richer chat feel.
+- **Cons / Complexity**:
+  - Requires maintaining socket rooms per user/conversation.
+  - Must handle reconnection and missed events (e.g., store a “last seen” timestamp and reconcile on reconnect).
 
-> **Recommendation** – **Add a lightweight WebSocket layer** for conversation‑list updates:  
+> **Recommendation** – **Add a lightweight WebSocket layer** for conversation‑list updates:
 
-1. **Event**: `conversation:updated` payload `{ conversationId, title?, messageCount?, lastMessageAt? }`.  
-2. **Room**: Each user joins a private room `user:<userId>`; server broadcasts to that room when any of their conversations change.  
-3. **Fallback**: Keep the existing polling endpoint as a safety net (e.g., refetch on socket reconnect).  
+1. **Event**: `conversation:updated` payload `{ conversationId, title?, messageCount?, lastMessageAt? }`.
+2. **Room**: Each user joins a private room `user:<userId>`; server broadcasts to that room when any of their conversations change.
+3. **Fallback**: Keep the existing polling endpoint as a safety net (e.g., refetch on socket reconnect).
 
-This approach yields **near‑real‑time UI** with minimal backend change (just a publish after message creation/rename/upload).  
+This approach yields **near‑real‑time UI** with minimal backend change (just a publish after message creation/rename/upload).
 
----  
+---
 
-## 7. Response Contract – ConversationSummary Shape  
+## 7. Response Contract – ConversationSummary Shape
 
-The sidebar expects a TypeScript type similar to:  
+The sidebar expects a TypeScript type similar to:
 
 ```ts
 type ConversationSummary = {
@@ -2728,7 +2728,7 @@ type ConversationSummary = {
 };
 ```
 
-**Current GET /api/ai-chat/conversations** (assumed) likely returns:  
+**Current GET /api/ai-chat/conversations** (assumed) likely returns:
 
 ```json
 [
@@ -2743,15 +2743,15 @@ type ConversationSummary = {
 ]
 ```
 
-- **Mapping**:  
-  - `title` → direct.  
-  - `context` → derive from `lastMessage?.content` (trim to 100 chars).  
-  - `messageCount` → direct if stored; otherwise compute via `messages.count`.  
-  - `lastMessageAt` → `lastMessage?.createdAt` or fall back to `updatedAt`.  
+- **Mapping**:
+  - `title` → direct.
+  - `context` → derive from `lastMessage?.content` (trim to 100 chars).
+  - `messageCount` → direct if stored; otherwise compute via `messages.count`.
+  - `lastMessageAt` → `lastMessage?.createdAt` or fall back to `updatedAt`.
 
-If the API **does not** include `messageCount` or `lastMessage`, the frontend would need to make additional requests per conversation – unacceptable for a sidebar.  
+If the API **does not** include `messageCount` or `lastMessage`, the frontend would need to make additional requests per conversation – unacceptable for a sidebar.
 
-> **Recommendation** – Ensure the endpoint **always** returns `messageCount` (integer) and either `lastMessage` **or** a dedicated `lastMessageAt` field. If adding a column is undesirable, create a **virtual getter** in the Sequelize model:  
+> **Recommendation** – Ensure the endpoint **always** returns `messageCount` (integer) and either `lastMessage` **or** a dedicated `lastMessageAt` field. If adding a column is undesirable, create a **virtual getter** in the Sequelize model:
 
 ```js
 Conversation.getOptions = {
@@ -2762,11 +2762,11 @@ Conversation.getOptions = {
 };
 ```
 
-No contract change for consumers; the shape stays the same.  
+No contract change for consumers; the shape stays the same.
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -2777,11 +2777,11 @@ No contract change for consumers; the shape stays the same.
 | **Suggested Approach** | - Use **Redis** with **tags** or **patterns**: cache key `user:<id>:conversations`. <br>- On any mutation (message create, conversation update/delete), **delete** that key (or set a short TTL). <br>- Optionally, implement **write‑through**: after successful mutation, update the cached list incrementally (e.g., push new conversation, bump counters). |
 | **Cache Duration** | 5 minutes is fine **if** invalidation is immediate on mutation. Without invalidation, consider lowering to **30‑60 seconds** or adopting a **stale‑while‑revalidate** pattern (serve stale, fetch fresh in background). |
 
-> **Recommendation** – Keep the 5‑minute TTL **but** add **cache‑purge hooks** on the following endpoints: <br>• `POST /api/ai-chat/conversations/:id/messages` (new message) <br>• `PATCH /api/ai-chat/conversations/:id` (rename) <br>• `POST /api/ai-chat/conversations` (create) <br>• `DELETE /api/ai-chat/conversations/:id` (remove) <br>This yields near‑real‑time freshness without sacrificing the DB‑load benefits of caching.  
+> **Recommendation** – Keep the 5‑minute TTL **but** add **cache‑purge hooks** on the following endpoints: <br>• `POST /api/ai-chat/conversations/:id/messages` (new message) <br>• `PATCH /api/ai-chat/conversations/:id` (rename) <br>• `POST /api/ai-chat/conversations` (create) <br>• `DELETE /api/ai-chat/conversations/:id` (remove) <br>This yields near‑real‑time freshness without sacrificing the DB‑load benefits of caching.
 
----  
+---
 
-## 9. Consolidated API Design Recommendations  
+## 9. Consolidated API Design Recommendations
 
 | # | Area | Action | Reason |
 |---|------|--------|--------|
@@ -2919,7 +2919,7 @@ CONSENSUS REACHED
 **PROJECT:** SwanStudios Coach Assistant Upgrade (Crystalline Swan)
 **STATUS:** FINAL MASTER SPECIFICATION — APPROVED FOR ENGINEERING KICKOFF
 
-Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*. 
+Outstanding work. This is how a world-class product team operates—rigorous debate, precise refinements, and zero compromises on the final user experience. We have successfully forged the *Enchanted Apex*.
 
 Below is the finalized, merged specification. Engineering is cleared to begin implementation immediately. No deviations from this master document are permitted.
 
@@ -2968,11 +2968,11 @@ $breakpoint-mobile-strict: 430px;   /* Triggers Typography Scaling (iPhone 14/15
 ```scss
 @include tablet-portrait-down {
   .conversation-sidebar {
-    width: calc(100vw - 16px); 
+    width: calc(100vw - 16px);
     max-width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 16px);
     margin: 0 auto;
     padding-bottom: env(safe-area-inset-bottom);
-    
+
     /* Drag handle — iOS HIG compliant */
     &::before {
       content: '';
@@ -3040,7 +3040,7 @@ function handleDrag(translationY: number, velocity: number) {
 .recording-orb {
   background: var(--color-royal-depth);
   box-shadow: 0 0 0px transparent;
-  transition: 
+  transition:
     background-color 200ms ease-out,
     box-shadow 200ms ease-out;
 

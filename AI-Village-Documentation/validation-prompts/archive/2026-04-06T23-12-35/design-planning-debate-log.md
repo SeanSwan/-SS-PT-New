@@ -12,7 +12,7 @@
 **TO: ENGINEERING & PRODUCT TEAMS**
 **SUBJECT: VISUAL SPECIFICATION — COACH ASSISTANT UPGRADE (CRYSTALLINE SWAN)**
 
-Listen up. The UX research from Phase 1 is a bloodbath of clipped layouts, sticky scrolling, and fragmented AI terminals. We are building a *premium, enterprise-grade, voice-first AI coaching platform*. The current state is unacceptable. 
+Listen up. The UX research from Phase 1 is a bloodbath of clipped layouts, sticky scrolling, and fragmented AI terminals. We are building a *premium, enterprise-grade, voice-first AI coaching platform*. The current state is unacceptable.
 
 We are standardizing the Coach Assistant immediately. This is the central nervous system of SwanStudios. It must feel cold, sharp, magical, and flawlessly responsive. I am enforcing the **Crystalline Swan** design tokens with zero exceptions. The old Galaxy-Swan palette is dead—if I see `#00FFFF` in a pull request, I will reject it outright.
 
@@ -23,7 +23,7 @@ Here are my exact, prescriptive design specifications for the Coach Assistant up
 ### 1. Conversation Sidebar
 This is the unified drawer for all AI interactions. It must feel like a seamless sheet of dark glass sliding over the workspace, not a clunky web panel.
 
-*   **Width:** 
+*   **Width:**
     *   Desktop: `380px` (Fixed)
     *   Mobile (iPhone XR focus): `85vw` (Max width `360px`)
 *   **Background Color:** `var(--color-carbon)` (`#141419`) with a `1px` solid left border of `var(--color-graphite)` (`#1A1A24`).
@@ -47,7 +47,7 @@ This is the unified drawer for all AI interactions. It must feel like a seamless
 ### 2. Markdown Renderer
 AI responses must render flawlessly. No raw HTML. The typography must be highly legible on small screens, maintaining our sharp, crystalline aesthetic.
 
-*   **Code Block:** 
+*   **Code Block:**
     *   Background: `var(--color-obsidian-black)` (`#0A0A0F`).
     *   Border: `1px solid var(--color-graphite)` (`#1A1A24`).
     *   Border Radius: `8px`.
@@ -57,12 +57,12 @@ AI responses must render flawlessly. No raw HTML. The typography must be highly 
     *   Strings/Values: `var(--color-ice-wing)` (`#60C0F0`)
     *   Functions/Methods: `var(--color-arctic-cyan)` (`#50A0F0`)
     *   Comments: `var(--color-swan-lavender)` (`#4070C0`) at `60%` opacity.
-*   **Table Style:** 
+*   **Table Style:**
     *   Width: `100%`, `border-collapse: collapse`.
     *   Header Background: `var(--color-royal-depth)` (`#003080`).
     *   Cell Border: `1px solid var(--color-graphite)` (`#1A1A24`).
     *   Cell Padding: `12px 16px`.
-*   **Blockquote:** 
+*   **Blockquote:**
     *   Border Left: `4px solid var(--color-gilded-fern)` (`#C6A84B`).
     *   Background: `var(--color-carbon)` (`#141419`).
     *   Padding: `12px 20px`.
@@ -77,14 +77,14 @@ Standard spinners are cheap. We are building an AI that feels like it's processi
 
 *   **Bubble Shape:** Pill-shaped container. `border-radius: 24px`. Padding: `12px 20px`. Background: `var(--color-carbon)` (`#141419`). Border: `1px solid var(--color-graphite)` (`#1A1A24`).
 *   **Shimmer Animation Spec:** Three diamond shapes (rotated squares: `transform: rotate(45deg)`), `8px` by `8px`.
-*   **Visuals:** 
+*   **Visuals:**
     *   Base Color: `var(--color-swan-lavender)` (`#4070C0`).
     *   Peak Color: `var(--color-ice-wing)` (`#60C0F0`).
 *   **Timing & Easing:**
     *   Duration: `1.5s` infinite loop.
     *   Stagger: Dot 1 (`0s`), Dot 2 (`0.2s`), Dot 3 (`0.4s`).
     *   Easing: `cubic-bezier(0.4, 0, 0.2, 1)`.
-    *   Keyframes: 
+    *   Keyframes:
         *   `0%, 100%`: `transform: scale(0.5) rotate(45deg); opacity: 0.4; background: #4070C0;`
         *   `50%`: `transform: scale(1.2) rotate(45deg); opacity: 1; background: #60C0F0; box-shadow: 0 0 8px #60C0F0;`
 
@@ -93,30 +93,30 @@ This is our primary interaction model. It must be visually striking and provide 
 
 *   **Orb Size:** `80px` diameter (Massive, undeniable tap target).
 *   **Base State:** Background `var(--color-midnight-sapphire)` (`#002060`). Icon: Microphone, `var(--color-frost-white)` (`#E0ECF4`), `32px`.
-*   **Active/Listening State (Dual-Button Glow):** 
+*   **Active/Listening State (Dual-Button Glow):**
     *   The orb transitions to a glowing state. **Blue → Purple Glow**.
     *   `box-shadow: 0 0 24px 4px var(--color-wing-purple)` (`#8B5CF6`).
-*   **Amplitude Ring Specs (Audio Visualizer):** 
+*   **Amplitude Ring Specs (Audio Visualizer):**
     *   Three concentric rings radiating from the orb, reacting to voice volume.
     *   Base sizes: Ring 1 (`100px`), Ring 2 (`120px`), Ring 3 (`140px`).
     *   Border: `1px solid var(--color-arctic-cyan)` (`#50A0F0`).
     *   Animation: Scale outward and fade (`opacity: 0.8` → `0`) based on audio input amplitude.
-*   **Duration Label Style:** 
+*   **Duration Label Style:**
     *   Position: Centered, `24px` below the orb.
     *   Typography: `14px`, Monospace (system-ui mono), `var(--color-frost-white)` (`#E0ECF4`), Font Weight `500`.
 *   **Color Transitions:** `transition: background-color 0.3s ease, box-shadow 0.3s ease;`
 
 ### 5. Provider Badge
-Users must instantly know if they are reading a message from the AI, the System, or a Human Trainer. 
+Users must instantly know if they are reading a message from the AI, the System, or a Human Trainer.
 
 *   **Placement:** Inline, directly above the message bubble. `display: flex`, `align-items: center`, `gap: 8px`, `margin-bottom: 6px`.
 *   **Size:** Icon container is `24px` x `24px`, `border-radius: 4px`.
 *   **Typography:** `12px`, Font Weight `600`, Text Transform `uppercase`, Letter Spacing `0.5px`.
 *   **Styles:**
-    *   **AI (Swan):** 
+    *   **AI (Swan):**
         *   Icon BG: `var(--color-royal-depth)` (`#003080`).
         *   Text & Icon Color: `var(--color-ice-wing)` (`#60C0F0`).
-    *   **Human (Trainer/Client):** 
+    *   **Human (Trainer/Client):**
         *   Icon BG: `var(--color-carbon)` (`#141419`).
         *   Text & Icon Color: `var(--color-gilded-fern)` (`#C6A84B`).
     *   **System (Alerts/Logs):**
@@ -139,7 +139,7 @@ For equipment scans and form videos. These must look like polished UI elements, 
     *   Transition: `all 0.2s ease`.
 
 ---
-**Final Directive:** Do not approximate these values. Use the exact hex codes, easings, and pixel dimensions provided. The mobile experience on the iPhone XR will live or die by these tap targets and transition curves. Build it exactly as specified. 
+**Final Directive:** Do not approximate these values. Use the exact hex codes, easings, and pixel dimensions provided. The mobile experience on the iPhone XR will live or die by these tap targets and transition curves. Build it exactly as specified.
 
 **— Creative Director, SwanStudios**
 
@@ -175,7 +175,7 @@ I fully endorse the following specifications as written:
 > Three diamond shapes (rotated squares: `transform: rotate(45deg)`), `8px` by `8px`
 > Keyframes: `0%, 100%: transform: scale(0.5) rotate(45deg);`
 
-**Problem:**  
+**Problem:**
 Simultaneous `scale()` AND `rotate()` transforms on small elements (`8px`) cause significant rendering overhead on mobile GPUs. At `scale(0.5)`, these diamonds become `4px` — below the threshold where anti-aliasing produces clean rotated squares. This creates visual noise and potential "jitter" on iPhone XR's Liquid Retina display.
 
 **Proposed Alternative:**
@@ -216,17 +216,17 @@ Replace rotated squares with circular dots. The crystalline aesthetic can be mai
 .thinking-dot:nth-child(3) { animation: crystalline-pulse 1.5s ease-in-out 0.4s infinite; }
 ```
 
-**Rationale:**  
-- Eliminates expensive rotation transforms  
-- Maintains shimmer effect via color/shadow transitions  
-- Improves 60fps compliance on mid-tier mobile devices  
+**Rationale:**
+- Eliminates expensive rotation transforms
+- Maintains shimmer effect via color/shadow transitions
+- Improves 60fps compliance on mid-tier mobile devices
 - Scale-only animations are GPU-composited, not repainted
 
 ---
 
 ### **Issue #2: Thinking Indicator — Accessibility Contrast Failure (CRITICAL)**
 
-**Problem:**  
+**Problem:**
 The specified colors `#4070C0` (lavender) and `#60C0F0` (ice-wing) against `#141419` (carbon) background create a **contrast ratio of approximately 4.2:1** at peak brightness. While this meets WCAG AA for normal text, animated elements have a higher perceptual threshold. The "peak" state is brief (750ms) before returning to low-opacity state.
 
 **Proposed Fix:**
@@ -257,7 +257,7 @@ Brighten the base state to ensure consistent 4.5:1 minimum:
 **Specification cited:**
 > `inset 3px 0 0 0 var(--color-ice-wing)` (`#60C0F0`)
 
-**Problem:**  
+**Problem:**
 `inset` box shadows with hard offsets can render inconsistently across browsers (particularly Safari on iOS) due to sub-pixel anti-aliasing differences. The 3px offset is also aggressive for a sidebar item.
 
 **Proposed Alternative:**
@@ -285,9 +285,9 @@ Use a pseudo-element for cleaner rendering:
 }
 ```
 
-**Rationale:**  
-- `box-shadow: inset` is a paint operation; pseudo-element background is composited  
-- More predictable rendering across Safari/WebKit  
+**Rationale:**
+- `box-shadow: inset` is a paint operation; pseudo-element background is composited
+- More predictable rendering across Safari/WebKit
 - Easier to debug in DevTools
 
 ---
@@ -297,7 +297,7 @@ Use a pseudo-element for cleaner rendering:
 **Specification cited:**
 > `top: -8px`, `right: -8px` (breaks the bounding box)
 
-**Problem:**  
+**Problem:**
 On iPhone XR's 828px width, placing the remove button outside the thumbnail's bounding box creates two issues:
 
 1. **Accidental deletion:** A vertical swipe on the thumbnail (common scroll gesture) can trigger the remove button
@@ -345,7 +345,7 @@ Add a 44x44px invisible hit area around the button for WCAG compliance:
 **Specification cited:**
 > Text: Italicized, `var(--color-frost-white)` (`#E0ECF4`) at `80%` opacity
 
-**Problem:**  
+**Problem:**
 `#E0ECF4` at 80% opacity against `#141419` background creates an effective contrast ratio of approximately **7.8:1** — which is fine. However, opacity-based transparency can cause **halation/glow artifacts** on OLED displays (iPhone XR uses LCD, but this is a cross-platform concern).
 
 **Proposed Alternative:**
@@ -404,7 +404,7 @@ Awaiting Creative Director's response to these five implementation concerns. I r
 **TO: DESIGN IMPLEMENTATION REVIEWER**
 **SUBJECT: RE: VISUAL SPECIFICATION — COACH ASSISTANT UPGRADE**
 
-Good catches on the rendering overhead and accessibility thresholds. This is exactly why we have this review process—to ensure the Crystalline Swan aesthetic survives the transition from Figma to the DOM without melting the user's GPU. 
+Good catches on the rendering overhead and accessibility thresholds. This is exactly why we have this review process—to ensure the Crystalline Swan aesthetic survives the transition from Figma to the DOM without melting the user's GPU.
 
 I am approving your solutions for **Issue #3 (Sidebar Hover State)** and **Issue #5 (Markdown Blockquote)**. Using the `::before` pseudo-element for the sidebar border is a structurally superior approach, and calculating the solid hex `#B3CCE6` for the blockquote to avoid OLED halation is approved. Update `sidebar.css` and `markdown-renderer.css` accordingly.
 
@@ -414,7 +414,7 @@ However, we have friction on the remaining items. I will not compromise the prem
 
 ### ⚠️ DISPUTED: Issue #1: Thinking Indicator — Diamond Shape Performance
 **Your Proposal:** Revert to standard circular dots to avoid `scale()` + `rotate()` GPU overhead.
-**My Stance:** **REJECTED.** I explicitly stated that standard spinners are cheap. We are not building an iMessage clone; we are building a high-end AI coach. The diamond silhouette is non-negotiable. 
+**My Stance:** **REJECTED.** I explicitly stated that standard spinners are cheap. We are not building an iMessage clone; we are building a high-end AI coach. The diamond silhouette is non-negotiable.
 
 **Alternative Solution:** We achieve the diamond shape without the rotation transform penalty by using `clip-path`. This allows us to animate *only* the `scale` and `opacity`, keeping it on the GPU compositor. Note: Because `clip-path` cuts off standard `box-shadow`, we must use `filter: drop-shadow` for the glow.
 
@@ -430,7 +430,7 @@ However, we have friction on the remaining items. I will not compromise the prem
   width: 12px; /* Increased from 8px to account for visual mass lost to clip-path */
   height: 12px;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  background: var(--color-swan-lavender-base); 
+  background: var(--color-swan-lavender-base);
   will-change: transform, opacity; /* Hint to browser for GPU optimization */
 }
 
@@ -456,7 +456,7 @@ However, we have friction on the remaining items. I will not compromise the prem
 
 ### ⚠️ DISPUTED: Issue #2: Thinking Indicator — Accessibility Contrast
 **Your Proposal:** Brighten base state to `#50A0D0` and raise opacity to `0.6`.
-**My Stance:** **PARTIALLY ACCEPTED.** I agree with hitting the 4.5:1 WCAG AA minimum. However, if we brighten the base state to `#50A0D0` and keep the peak state at `#60C0F0`, the visual delta (the "shimmer") is destroyed. It will look like a static, glowing blob. 
+**My Stance:** **PARTIALLY ACCEPTED.** I agree with hitting the 4.5:1 WCAG AA minimum. However, if we brighten the base state to `#50A0D0` and keep the peak state at `#60C0F0`, the visual delta (the "shimmer") is destroyed. It will look like a static, glowing blob.
 
 **Alternative Solution:** If we raise the floor, we must raise the ceiling. We will use your accessible base color, but we will introduce a new, brighter peak token specifically for this animation to maintain the high-contrast shimmer.
 
@@ -470,7 +470,7 @@ However, we have friction on the remaining items. I will not compromise the prem
 
 ### ⚠️ DISPUTED: Issue #4: Attachment Remove Button — Touch Zone Collision
 **Your Proposal:** Move button fully inside the thumbnail (`top: 4px`, `right: 4px`) and add a 44x44px invisible hit area.
-**My Stance:** **PARTIALLY ACCEPTED.** The 44x44px invisible hit area via `::before` is a brilliant accessibility enhancement. Approved. However, moving the visible button fully inside the bounding box ruins the silhouette. It makes the thumbnail look cramped and boxed-in. 
+**My Stance:** **PARTIALLY ACCEPTED.** The 44x44px invisible hit area via `::before` is a brilliant accessibility enhancement. Approved. However, moving the visible button fully inside the bounding box ruins the silhouette. It makes the thumbnail look cramped and boxed-in.
 
 **Alternative Solution:** We compromise on the offset to reduce scroll-collision, but it *must* break the bounding box slightly to maintain the layered, dimensional feel. We will use a `-4px` offset. To prevent parent clipping, the *list container* holding the attachments must have padding, not the thumbnail wrapper itself.
 
@@ -690,11 +690,11 @@ CONSENSUS REACHED
 **TO: ENGINEERING & PRODUCT TEAMS; DESIGN IMPLEMENTATION REVIEWER**
 **SUBJECT: FINAL SPECIFICATION LOCK — COACH ASSISTANT UPGRADE (CRYSTALLINE SWAN)**
 
-Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets. 
+Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets.
 
-The specification is officially locked. Engineering is cleared to begin implementation immediately. 
+The specification is officially locked. Engineering is cleared to begin implementation immediately.
 
-Below is the final, merged source of truth for the Coach Assistant upgrade. 
+Below is the final, merged source of truth for the Coach Assistant upgrade.
 
 ---
 
@@ -799,9 +799,8 @@ blockquote p {
 *   **Provider Badges:** Inline flex, `24px` icon container, distinct colorways for AI (Swan), Human (Trainer), and System. (As originally specified).
 
 ---
-**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel. 
+**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel.
 
 **— Creative Director, SwanStudios**
 
 ---
-

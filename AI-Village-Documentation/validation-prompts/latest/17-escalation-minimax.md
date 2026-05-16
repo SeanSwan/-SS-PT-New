@@ -65,7 +65,7 @@ class ContentStudioTabErrorBoundary extends Component<Props, State> {
         userId: window.__CURRENT_USER_ID__,
       });
     });
-    
+
     this.setState({ errorInfo });
   }
 
@@ -81,14 +81,14 @@ class ContentStudioTabErrorBoundary extends Component<Props, State> {
           <Text color="muted" marginTop="small">
             This section encountered an unexpected error. Your work is safe.
           </Text>
-          
+
           {/* Show only in development */}
           {process.env.NODE_ENV === 'development' && this.state.error && (
             <pre style={{ fontSize: '12px', overflow: 'auto', marginTop: '16px' }}>
               {this.state.error.stack}
             </pre>
           )}
-          
+
           <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
             <Button onClick={this.handleReset} variant="primary">
               Try Again
@@ -123,7 +123,7 @@ export const ContentStudio: React.FC = () => {
   return (
     <div className="content-studio">
       <ContentStudioTabs.Nav />
-      
+
       <ContentStudioTabs.Panels>
         {ContentStudioTabs.map(({ id, label, Component }) => (
           <ContentStudioTabErrorBoundary key={id} tabName={label}>
@@ -236,7 +236,7 @@ export function useAIConversations(): UseAIConversationsReturn {
   const [conversations, setConversations] = useState<Record<string, Conversation>>({});
   const [loadingConversationId, setLoadingConversationId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  
+
   // Stable reference for abort controller
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -244,15 +244,15 @@ export function useAIConversations(): UseAIConversationsReturn {
     // Cancel any in-flight request
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    
+
     setLoadingConversationId(id);
     setError(null);
 
     try {
-      const messages = await fetchConversation(id, { 
-        signal: signal || abortControllerRef.current.signal 
+      const messages = await fetchConversation(id, {
+        signal: signal || abortControllerRef.current.signal
       });
-      
+
       setConversations(prev => ({
         ...prev,
         [id]: {
@@ -275,7 +275,7 @@ export function useAIConversations(): UseAIConversationsReturn {
 
   const sendMessage = useCallback(async (conversationId: string, content: string): Promise<void> => {
     const optimisticId = `temp-${Date.now()}`;
-    
+
     // Optimistic update
     setConversations(prev => ({
       ...prev,
@@ -291,7 +291,7 @@ export function useAIConversations(): UseAIConversationsReturn {
 
     try {
       const response = await sendMessageToAI(conversationId, content);
-      
+
       setConversations(prev => ({
         ...prev,
         [conversationId]: {
@@ -358,20 +358,20 @@ interface UseAITerminalUIReturn {
   toggleSidebar: () => void;
   openSidebar: () => void;
   closeSidebar: () => void;
-  
+
   // Selection state
   selectedConversationId: string | null;
   selectConversation: (id: string | null) => void;
-  
+
   // Input state
   inputValue: string;
   setInputValue: (value: string) => void;
   clearInput: () => void;
-  
+
   // Voice state
   isRecording: boolean;
   setIsRecording: (recording: boolean) => void;
-  
+
   // UI flags
   isExpanded: boolean;
   setIsExpanded: (expanded: boolean) => void;
@@ -436,11 +436,11 @@ interface UseAITerminalProps {
 
 export function useAITerminal({ config }: UseAITerminalProps): UseAITerminalReturn {
   const ui = useAITerminalUI();
-  const { 
-    conversations, 
-    loadingConversationId, 
-    error, 
-    loadConversation, 
+  const {
+    conversations,
+    loadingConversationId,
+    error,
+    loadConversation,
     sendMessage,
     createConversation,
     deleteConversation,
@@ -456,10 +456,10 @@ export function useAITerminal({ config }: UseAITerminalProps): UseAITerminalRetu
   // Load conversation when selected
   useEffect(() => {
     if (!ui.selectedConversationId) return;
-    
+
     // Cache hit - already loaded
     if (conversations[ui.selectedConversationId]?.loaded) return;
-    
+
     const cleanup = loadConversation(ui.selectedConversationId);
     return cleanup;
   }, [ui.selectedConversationId, loadConversation, conversations]);
@@ -473,13 +473,13 @@ export function useAITerminal({ config }: UseAITerminalProps): UseAITerminalRetu
 
   const handleSendMessage = useCallback(async (content: string): Promise<void> => {
     let targetId = ui.selectedConversationId;
-    
+
     if (!targetId) {
       const newConv = await createConversation();
       targetId = newConv.id;
       ui.selectConversation(targetId);
     }
-    
+
     await sendMessage(targetId, content);
     ui.clearInput();
   }, [ui.selectedConversationId, ui.selectConversation, ui.clearInput, createConversation, sendMessage]);
@@ -491,20 +491,20 @@ export function useAITerminal({ config }: UseAITerminalProps): UseAITerminalRetu
   return {
     // Namespaced conversations
     conversations: namespacedConversations,
-    currentConversation: ui.selectedConversationId 
-      ? conversations[ui.selectedConversationId] 
+    currentConversation: ui.selectedConversationId
+      ? conversations[ui.selectedConversationId]
       : null,
     isLoading: loadingConversationId === ui.selectedConversationId,
     error,
-    
+
     // UI state
     ...ui,
-    
+
     // Actions
     sendMessage: handleSendMessage,
     selectConversation: handleSelectConversation,
     deleteConversation,
-    
+
     // Config
     config,
   };

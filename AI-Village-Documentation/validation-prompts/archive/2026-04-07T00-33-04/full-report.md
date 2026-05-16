@@ -310,7 +310,7 @@ The plan demonstrates strong root-cause analysis (particularly the 3-part P0-3 d
 // Canonical contract decision (needs Sean sign-off before any code):
 interface WorkoutPlanCreateDTO {
   title: string;        // NOT name
-  userId: string;       // NOT clientId  
+  userId: string;       // NOT clientId
   nasmPhase: NASMPhase; // NOT goal
   planData: PlanData;   // NOT days (or days maps into planData)
   notes?: string;       // frontend sends this — add to model or strip server-side
@@ -356,10 +356,10 @@ router.get('/upcoming/:userId', protect, async (req, res) => {
   if (req.params.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  
+
   const { userId } = req.params;
   const now = new Date();
-  
+
   try {
     const sessions = await Session.findAll({
       where: {
@@ -382,10 +382,10 @@ router.get('/upcoming/:userId', protect, async (req, res) => {
 const useSessions = (userId: string) => {
   const [upcoming, setUpcoming] = useState<Session[]>([]);
   const [history, setHistory] = useState<Session[]>([]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
-    
+
     Promise.all([
       api.get(`/sessions/upcoming/${userId}`, { signal: controller.signal }),
       api.get(`/sessions/history/${userId}`, { signal: controller.signal }),
@@ -395,10 +395,10 @@ const useSessions = (userId: string) => {
     }).catch(err => {
       if (err.name !== 'AbortError') handleError(err);
     });
-    
+
     return () => controller.abort();
   }, [userId]);
-  
+
   return { upcoming, history };
 };
 ```
@@ -479,21 +479,21 @@ interface UseCoachAssistantReturn {
 const useCoachAssistant = (): UseCoachAssistantReturn => {
   const sidebar = useConversationSidebar();
   const { conversations } = useConversations();
-  
+
   // selectedConversationId drives message fetching — no circular dependency
   const { messages, isLoading, hasMore, loadMore, sendMessage } = useMessages(
     sidebar.selectedConversationId // null = no fetch
   );
-  
+
   const activeConversation = useMemo(
     () => conversations.find(c => c.id === sidebar.selectedConversationId) ?? null,
     [conversations, sidebar.selectedConversationId]
   );
-  
+
   // Stale state risk: if selectedConversationId changes while messages are loading,
   // useMessages must cancel the in-flight request. Enforce this in useMessages:
   // useEffect(() => { controller.abort(); }, [conversationId]);
-  
+
   return { sidebar, conversations, activeConversation, messages, ... };
 };
 ```
@@ -525,7 +525,7 @@ useEffect(() => {
     }
     return config;
   });
-  
+
   return () => authAxios.interceptors.request.eject(interceptorId);
 }, [authAxios, token]); // authAxios is stable, token changes update interceptor
 
@@ -557,7 +557,7 @@ const contextValue = useMemo(() => ({
 const ClientDetailView = ({ client }: { client: Client }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+
   // Reset ALL local state when client changes
   // This must be an exhaustive list — add a comment requiring review on new state additions
   useEffect(() => {
@@ -567,7 +567,7 @@ const ClientDetailView = ({ client }: { client: Client }) => {
     // Note: child component state cannot be reset from here
     // Any child with significant state should also use useEffect([client.id])
   }, [client.id]);
-  
+
   // ...
 };
 
@@ -595,8 +595,8 @@ const ClientDetailView = ({ client }: { client: Client }) => {
 ## Detailed Findings & Mitigations
 
 ### 1. **PII Exposure in Conversation History**
-**Rating: CRITICAL**  
-**Plan Coverage: ❌ NOT ADDRESSED**  
+**Rating: CRITICAL**
+**Plan Coverage: ❌ NOT ADDRESSED**
 The plan mentions conversation JSONB storage but **no sanitization logic** before AI processing. With voice-first AI coach and chat features, user messages likely contain names, conditions, injuries, etc.
 
 **Required Mitigations:**
@@ -625,8 +625,8 @@ const safeMessages = messages.map(msg => ({
 ---
 
 ### 2. **File Attachment Risks (R2 + AI Analysis)**
-**Rating: HIGH**  
-**Plan Coverage: ⚠️ PARTIAL (P0-4 mentions equipment scan but no security)**  
+**Rating: HIGH**
+**Plan Coverage: ⚠️ PARTIAL (P0-4 mentions equipment scan but no security)**
 Image uploads to R2 for AI analysis risk:
 - Malicious files (XSS via SVG, polyglots)
 - SSRF if AI service fetches user-provided URLs
@@ -637,18 +637,18 @@ Image uploads to R2 for AI analysis risk:
 // Upload validation middleware:
 const validateImageUpload = async (req, res, next) => {
   const file = req.file;
-  
+
   // 1. Type validation (magic bytes, not extension)
   const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!allowedTypes.includes(file.mimetype)) {
     return res.status(400).json({ error: 'Invalid image type' });
   }
-  
+
   // 2. Strip EXIF (use sharp: .withMetadata({ exif: false }))
   // 3. Re-encode to prevent polyglots (convert to PNG/JPEG)
   // 4. Max 10MB, dimension limits (4000x4000)
   // 5. Virus scan (ClamAV integration)
-  
+
   // 6. For AI analysis: NEVER pass user URLs to external services
   //    Instead: download from R2 → sanitize → send bytes to AI
   next();
@@ -673,8 +673,8 @@ const validateExternalUrl = (url) => {
 ---
 
 ### 3. **Voice Data Privacy & Retention**
-**Rating: CRITICAL**  
-**Plan Coverage: ❌ NOT ADDRESSED**  
+**Rating: CRITICAL**
+**Plan Coverage: ❌ NOT ADDRESSED**
 Audio recordings sent to Gemini **must not be stored** per HIPAA/PHI requirements. Plan doesn't mention:
 - Storage duration (should be transient: delete after transcription)
 - Encryption at rest for temporary storage
@@ -686,7 +686,7 @@ Audio recordings sent to Gemini **must not be stored** per HIPAA/PHI requirement
 const transcribeAudio = async (audioBuffer) => {
   // 1. Store temporarily in encrypted R2 (AES-256) with 5min TTL
   const tempKey = await encryptAndStore(audioBuffer, { ttl: 300 });
-  
+
   // 2. Call Gemini with STORAGE_CONFIG:
   const response = await geminiClient.generateContent({
     audio: { fileUri: tempKey },
@@ -695,16 +695,16 @@ const transcribeAudio = async (audioBuffer) => {
       dataRedaction: { enabled: true } // if available
     }
   });
-  
+
   // 3. Immediately delete temp file (fire-and-forget)
   await deleteTempFile(tempKey);
-  
+
   // 4. Return ONLY text transcript (never store audio)
   return response.text;
 };
 
 // Privacy policy update required:
-// "Voice recordings are processed in real-time and deleted within 5 minutes. 
+// "Voice recordings are processed in real-time and deleted within 5 minutes.
 //  We do not store audio recordings."
 ```
 
@@ -715,8 +715,8 @@ const transcribeAudio = async (audioBuffer) => {
 ---
 
 ### 4. **Conversation Data at Rest (PostgreSQL JSONB)**
-**Rating: HIGH**  
-**Plan Coverage: ⚠️ MENTIONED BUT NOT IMPLEMENTED**  
+**Rating: HIGH**
+**Plan Coverage: ⚠️ MENTIONED BUT NOT IMPLEMENTED**
 Phase 2 mentions "IDOR Vulnerability Assessment" but **no encryption or column-level security** for `conversations.messages` JSONB containing PII/PHI.
 
 **Required Mitigations:**
@@ -732,11 +732,11 @@ Phase 2 mentions "IDOR Vulnerability Assessment" but **no encryption or column-l
 CREATE POLICY conversation_access_policy ON conversations
   USING (
     -- Client: own only
-    (auth.uid() = client_id) 
-    OR 
+    (auth.uid() = client_id)
+    OR
     -- Trainer: assigned clients only
     (auth.uid() IN (
-      SELECT trainer_id FROM client_assignments 
+      SELECT trainer_id FROM client_assignments
       WHERE client_id = conversations.client_id
     ))
     OR
@@ -1007,8 +1007,8 @@ The Master Fix Plan is **technically solid** but **persona-blind**. It fixes bac
 
 # SwanStudios Implementation Plan — Risk Assessment & Feasibility Review
 
-**Review Date:** 2026-04-06  
-**Assessor Role:** Project Manager & Risk Assessor  
+**Review Date:** 2026-04-06
+**Assessor Role:** Project Manager & Risk Assessor
 **Scope:** Full plan review across dependency, technical, scope, effort, testing, rollback, migration, and sequencing dimensions
 
 ---
@@ -1045,7 +1045,7 @@ Phase 0 (P0 Blockers)
 
 ### Phase 4 Voice Concern
 
-> ⚠️ **CLARIFICATION REQUIRED:** The plan's Phase 4 covers **Architecture Patterns** (DB locking, SSE, SWR hooks) — no voice implementation is defined. If Phase 4 is intended to include voice, this is **not documented in the plan**. 
+> ⚠️ **CLARIFICATION REQUIRED:** The plan's Phase 4 covers **Architecture Patterns** (DB locking, SSE, SWR hooks) — no voice implementation is defined. If Phase 4 is intended to include voice, this is **not documented in the plan**.
 
 **If voice were added to Phase 4:**
 - **Risk:** HIGH — Voice/AI features are highest-uncertainty items; they would block downstream UX work
@@ -1411,7 +1411,7 @@ CREATE TABLE ai_messages (
 -- attachment_refs stores R2 keys, NOT base64 data:
 -- [{"key": "ai-chat/user-123/conv-456/file-789.pdf", "mime": "application/pdf", "size_bytes": 204800}]
 
-CREATE INDEX idx_ai_messages_conversation_id 
+CREATE INDEX idx_ai_messages_conversation_id
   ON ai_messages(conversation_id, created_at DESC);
 
 -- Hard limit enforcement at application layer:
@@ -1427,8 +1427,8 @@ CREATE OR REPLACE FUNCTION check_conversation_size()
 RETURNS TRIGGER AS $$
 BEGIN
   IF octet_length(NEW.messages::text) > 1048576 THEN -- 1MB warning
-    RAISE WARNING 'Conversation % exceeds 1MB: %KB', 
-      NEW.id, 
+    RAISE WARNING 'Conversation % exceeds 1MB: %KB',
+      NEW.id,
       octet_length(NEW.messages::text) / 1024;
   END IF;
   IF octet_length(NEW.messages::text) > 10485760 THEN -- 10MB block
@@ -1461,7 +1461,7 @@ Scenario A: Trainer deletes a client's workout plan
   → Client's dashboard still shows deleted plan if query lacks status filter
   → Client sees data they believe was removed
 
-Scenario B: User deletes their account (status='deleted')  
+Scenario B: User deletes their account (status='deleted')
   → Another user with admin access queries all clients
   → Deleted user's PII appears in admin list
   → GDPR/CCPA violation
@@ -1517,7 +1517,7 @@ const Session = sequelize.define('Session', {
 ```sql
 -- Find all queries missing soft-delete filter
 -- (Manual code review required — this finds the data risk)
-SELECT 
+SELECT
   schemaname,
   tablename,
   n_live_tup as live_rows,
@@ -1528,7 +1528,7 @@ ORDER BY n_live_tup DESC;
 
 -- Check for orphaned soft-deleted records that are still being served:
 SELECT COUNT(*) as deleted_sessions_count
-FROM sessions 
+FROM sessions
 WHERE status = 'deleted' OR deleted_at IS NOT NULL;
 -- If this returns > 0, verify no active queries are returning these rows
 ```
@@ -1562,7 +1562,7 @@ async function softDeleteConversation(conversationId, userId) {
       { status: 'deleted', deletedAt: new Date() },
       { where: { id: conversationId, userId }, transaction }
     );
-    
+
     // Queue R2 cleanup — do NOT delete R2 objects here
     // R2 deletion is async, non-transactional, can fail
     await R2CleanupQueue.create({
@@ -1570,7 +1570,7 @@ async function softDeleteConversation(conversationId, userId) {
       scheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30-day grace period
       status: 'pending'
     }, { transaction });
-    
+
     await transaction.commit();
   } catch (err) {
     await transaction.rollback();
@@ -1587,17 +1587,17 @@ async function processR2CleanupQueue() {
     },
     limit: 100
   });
-  
+
   for (const job of jobs) {
     try {
       const attachments = await getAttachmentKeysForConversation(job.conversationId);
       await Promise.all(attachments.map(key => r2Client.deleteObject(key)));
       await job.update({ status: 'completed', completedAt: new Date() });
     } catch (err) {
-      await job.update({ 
-        status: 'failed', 
+      await job.update({
+        status: 'failed',
         errorMessage: err.message,
-        retryCount: job.retryCount + 1 
+        retryCount: job.retryCount + 1
       });
       // Alert if retryCount > 3
     }
@@ -1675,11 +1675,11 @@ const VoiceConsentSchema = {
 async function processVoiceMessage(audioBuffer, userId) {
   // Validate: never log audio buffer to application logs
   const transcript = await geminiClient.transcribeAudio(audioBuffer);
-  
+
   // audioBuffer goes out of scope here — GC handles it
   // DO NOT: store audioBuffer to disk, S3, R2, or database
   // DO NOT: log audioBuffer size or hash (fingerprinting risk)
-  
+
   return {
     transcript,
     processingMethod: 'gemini_transcribe_discard',
@@ -1742,7 +1742,7 @@ Error: OpenRouter 429: {"error":{"message":"Provider returned error","code":429,
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 58.1s | **Web Research:** 14 sources cited
 
-This is a strategic review of the `MASTER-FIX-PLAN-2026-04-06.md`. While the current plan excellently addresses tactical technical debt, P0 crashes, and basic UI consistency, it is **highly reactive**. For a premium SaaS platform targeting wealthy clients and professionals in 2026, the plan completely misses the architectural, regulatory, and experiential shifts defining the current market. 
+This is a strategic review of the `MASTER-FIX-PLAN-2026-04-06.md`. While the current plan excellently addresses tactical technical debt, P0 crashes, and basic UI consistency, it is **highly reactive**. For a premium SaaS platform targeting wealthy clients and professionals in 2026, the plan completely misses the architectural, regulatory, and experiential shifts defining the current market.
 
 Here is the strategic gap analysis to elevate SwanStudios from a "fixed" app to a 10x market leader.
 
@@ -1848,7 +1848,7 @@ Here is the strategic gap analysis to elevate SwanStudios from a "fixed" app to 
 
 **GAP 12: Agent-to-Agent (A2A) Protocol Integration**
 * **What's missing:** The AI architecture implies a single, monolithic "Coach Assistant."
-* **Why it matters:** The A2A protocol (v1.0 released March 2026 by Google/Linux Foundation) standardizes how specialized AI agents communicate. A monolithic AI cannot expertly handle NASM programming, nutrition, *and* scheduling. 
+* **Why it matters:** The A2A protocol (v1.0 released March 2026 by Google/Linux Foundation) standardizes how specialized AI agents communicate. A monolithic AI cannot expertly handle NASM programming, nutrition, *and* scheduling.
 * **How to implement:** Break the AI into a multi-agent system. The "Coach Agent" handles user interaction, but uses A2A to query the "Nutrition Agent" (for macros) or the "Scheduling Agent" (to find calendar slots). This drastically reduces hallucinations and improves response quality.
 * **Priority:** MEDIUM (Roadmap)
 * **Source URL:** https://chatforest.com/a2a-protocol-v1
@@ -2002,7 +2002,7 @@ Error: OpenRouter 429: {"error":{"message":"Provider returned error","code":429,
 
 ### ✅ CONSENSUS REACHED (Phase 1 Finalization)
 
-You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now. 
+You are absolutely right about the screen reader duplication issue with `role="img"`. I will not push an accessibility flaw to a "Phase 2 Backlog." We fix it now.
 
 Your recommendation to use `role="presentation"` and `aria-hidden="true"` on the badge, while moving the semantic `aria-label` to the parent message container, is **APPROVED**. Update the Phase 1 PR with this final adjustment and merge it.
 
@@ -2020,7 +2020,7 @@ Here are the directives for the `VolumeLoadGraph` and the `1RM-Trendline`.
 **File Reference:** `components/charts/ChartBase.css`
 
 *   **Crisp Rendering:** All SVG lines and strokes MUST use `vector-effect="non-scaling-stroke"`. This ensures our 1px or 2px lines don't become blurry or bloated when the SVG scales responsively on mobile devices.
-*   **Gridlines:** 
+*   **Gridlines:**
     *   Color: `var(--color-graphite)` (`#1A1A24`).
     *   Style: `stroke-width="1"`, `stroke-dasharray="4 4"`.
     *   *Rule:* Horizontal gridlines only. Vertical gridlines create unnecessary visual noise.

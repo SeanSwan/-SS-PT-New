@@ -152,9 +152,9 @@ This specification has fundamental gaps that would result in multiple production
 
 **Default Tier (All Authenticated Users):**
 - Global: 1000 requests/minute per user
-- Per-endpoint: 
+- Per-endpoint:
   - `/api/v1/messages/*` → 60 requests/minute
-  - `/api/v1/workouts/*` → 30 requests/minute  
+  - `/api/v1/workouts/*` → 30 requests/minute
   - `/api/v1/nutrition/*` → 60 requests/minute
   - `/api/v1/ai/*` → 20 requests/minute (AI endpoints)
 
@@ -262,7 +262,7 @@ interface GenerateWorkoutRequest {
 **Frontend:**
 1. User actions trigger local state updates immediately (optimistic UI)
 2. Each exercise change queues to `pendingExercises` array
-3. On "Save Workout": 
+3. On "Save Workout":
    - Validate all pending exercises
    - Show progress indicator: "Saving... 3/10 exercises"
    - On each success: move from pending to saved

@@ -9,7 +9,7 @@
 # Security Review: Bootcamp Builder Overhaul Plan
 
 ## Executive Summary
-**Overall Risk Level: CRITICAL**  
+**Overall Risk Level: CRITICAL**
 The plan introduces significant AI/voice/data handling features that directly conflict with the **ZERO PII TO LLMs** policy. Multiple components risk exposing personal health information (PHI) to external AI providers (Gemini) or inadequate storage/access controls. **Do not implement until all CRITICAL/HIGH findings are resolved.**
 
 ---
@@ -17,7 +17,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ## Detailed Findings & Mitigations
 
 ### 1. PII Exposure in AI Features
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 **Finding:** The plan integrates Gemini LLM via `aiChatService.mjs` for exercise selection, explanations, modifications, and post-class recommendations. No sanitization mechanism is described for:
 - Conversation history/titles that may contain client names, trainer names, or health conditions
 - Exercise detail context that could reference specific client pain entries or profiles
@@ -48,7 +48,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 2. File Attachment Risks (R2 Image Uploads)
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Plan mentions "image uploads to R2 for AI analysis" without specifying:
 - File type validation (could allow .html, .svg with scripts)
 - Malware scanning before R2 upload
@@ -78,7 +78,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 **Finding:** Audio recordings sent to Gemini for transcription. Plan is silent on:
 - Storage duration of raw audio files
 - Encryption at rest for recordings
@@ -107,7 +107,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Messages stored as JSONB in PostgreSQL. Plan doesn't specify:
 - Encryption at rest (PostgreSQL default is unencrypted)
 - Row-Level Security (RLS) implementation
@@ -128,7 +128,7 @@ The plan introduces significant AI/voice/data handling features that directly co
      (role = 'client' AND client_id = current_user_id())
      -- Trainer sees only assigned clients
      OR (role = 'trainer' AND client_id IN (
-         SELECT client_id FROM trainer_assignments 
+         SELECT client_id FROM trainer_assignments
          WHERE trainer_id = current_user_id()
      ))
      -- Admin sees all
@@ -145,7 +145,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 5. RBAC Enforcement Gaps
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** Plan describes intended RBAC ("Admin sees all, Trainer sees assigned, Client sees own") but provides **zero implementation details**. New routes (`/api/bootcamp/*`) and AI endpoints likely bypass existing checks.
 
 **Required Mitigations:**
@@ -159,11 +159,11 @@ The plan introduces significant AI/voice/data handling features that directly co
    // Example for GET /api/bootcamp/conversations/:id
    async function getConversation(req, res) {
      const conv = await Conversation.findByPk(req.params.id);
-     
+
      if (req.user.role === 'client' && conv.client_id !== req.user.id) {
        return res.status(403).json({error: 'Access denied'});
      }
-     
+
      if (req.user.role === 'trainer') {
        const assignment = await TrainerAssignment.findOne({
          where: {trainer_id: req.user.id, client_id: conv.client_id}
@@ -181,7 +181,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 6. MediaRecorder API Risks
-**Risk Rating: MEDIUM**  
+**Risk Rating: MEDIUM**
 **Finding:** Browser microphone access for voice recordings. Risks:
 - Permission not revoked after use (stream leak)
 - Data stored in browser memory before upload
@@ -212,7 +212,7 @@ The plan introduces significant AI/voice/data handling features that directly co
 ```
 
 ### 7. Markdown Rendering XSS
-**Risk Rating: HIGH**  
+**Risk Rating: HIGH**
 **Finding:** `react-markdown` with user-generated content (Teach Me mode, AI explanations). Without sanitization, allows:
 - `<script>` tags
 - `onerror` attributes in images
@@ -245,7 +245,7 @@ const clean = DOMPurify.sanitize(userMarkdown);
 ## Additional Critical Concerns
 
 ### 8. AI Chat Service Data Flow
-**Risk Rating: CRITICAL**  
+**Risk Rating: CRITICAL**
 The plan references `aiChatService.mjs` but doesn't define:
 - What data is sent to Gemini (full conversation? just current prompt?)
 - Whether Gemini API key is exposed in frontend (should be backend-only)
@@ -263,7 +263,7 @@ The plan references `aiChatService.mjs` but doesn't define:
 ```
 
 ### 9. Teach Me Mode Content Source
-**Risk Rating: MEDIUM**  
+**Risk Rating: MEDIUM**
 If Teach Me content is AI-generated dynamically, it could leak PII from training data. If static markdown, ensure it's reviewed.
 
 **Mitigation:**
@@ -272,7 +272,7 @@ If Teach Me content is AI-generated dynamically, it could leak PII from training
 - All content must pass PII scan before display
 
 ### 10. Mobile Responsiveness & Data Leakage
-**Risk Rating: LOW**  
+**Risk Rating: LOW**
 New mobile layout may accidentally display client data in screenshots/previews. Ensure:
 - No client names in class previews (use "Client A" or role-based)
 - Screenshot protection (CSS `user-select: none` on sensitive areas)
@@ -315,7 +315,7 @@ New mobile layout may accidentally display client data in screenshots/previews. 
 
 ## Policy Compliance Statement
 
-**This plan currently violates the ZERO PII TO LLMs policy in multiple areas.**  
+**This plan currently violates the ZERO PII TO LLMs policy in multiple areas.**
 **Do not proceed with AI features until:**
 1. A formal **Data Flow Diagram** is created showing exactly what data touches Gemini
 2. **Legal/Privacy team** approves the sanitization approach
@@ -328,16 +328,16 @@ New mobile layout may accidentally display client data in screenshots/previews. 
 3. **Build PII sanitization PoC** and test with real conversation data
 4. **Review voice recording** with legal—consider removing until retention policy is defined
 
-**Risk if Unaddressed:**  
+**Risk if Unaddressed:**
 - HIPAA violation (PHI to third-party AI)
 - GDPR Article 44 violation (international data transfer without safeguards)
 - Client trust erosion, regulatory fines, platform shutdown
 
 ---
 
-**Reviewer:** Security Engineer  
-**Date:** 2025-02-15  
-**Next Review:** After mitigations implemented  
+**Reviewer:** Security Engineer
+**Date:** 2025-02-15
+**Next Review:** After mitigations implemented
 **Approval Required:** CISO, Legal, Privacy Officer
 
 ---

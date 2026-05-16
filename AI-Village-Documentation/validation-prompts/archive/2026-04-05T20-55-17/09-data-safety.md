@@ -150,7 +150,7 @@ The plan must be amended with one of these mandatory architectural decisions bef
 ### Option C: Hybrid (Recommended if E2EE branding is important)
 - New messages: true E2EE (Signal Protocol)
 - Key backup: Option A (passphrase-encrypted server backup)
-- Clearly communicate: "If you forget your backup passphrase, pre-backup messages 
+- Clearly communicate: "If you forget your backup passphrase, pre-backup messages
   cannot be recovered. Post-backup messages are always recoverable."
 
 ### WHAT MUST NOT BE BUILT:
@@ -160,7 +160,7 @@ The plan must be amended with one of these mandatory architectural decisions bef
 
 ### Required UX Before E2EE Goes Live:
 1. Mandatory key backup setup during onboarding (cannot skip)
-2. Persistent warning if backup not configured: "⚠️ Your messages are not backed up. 
+2. Persistent warning if backup not configured: "⚠️ Your messages are not backed up.
    If you lose this device, your conversation history cannot be recovered."
 3. "Export Encrypted Backup" button always visible in settings
 4. Recovery flow tested and documented before launch
@@ -193,7 +193,7 @@ up: async (queryInterface, Sequelize) => {
     encryptedRefreshToken: { type: Sequelize.TEXT },
     // ...
   });
-  
+
   // Developer "helpfully" migrates existing .env tokens into DB
   // But uses wrong encryption, or encryption key not yet set in Render
   // Result: tokens stored as plaintext OR migration fails and tokens are lost
@@ -230,7 +230,7 @@ The plan mentions "Token refresh lifecycle managed per-platform" but provides no
 ### Migration Safety Rules
 1. Migration creates table ONLY — does NOT attempt to migrate .env tokens automatically
 2. Token migration is a MANUAL admin action after migration runs successfully
-3. Migration MUST have complete down() that drops table (acceptable — tokens can be 
+3. Migration MUST have complete down() that drops table (acceptable — tokens can be
    re-entered manually, this is a configuration table not user data)
 4. Encryption key MUST be validated before any token write:
    ```javascript

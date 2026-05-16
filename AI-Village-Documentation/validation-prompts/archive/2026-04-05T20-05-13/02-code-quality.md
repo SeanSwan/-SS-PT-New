@@ -89,7 +89,7 @@ The plan describes a "toggle via API keys" pattern where the presence/absence of
 ```markdown
 ### API Key Architecture (MUST specify in plan)
 
-**Storage:** All third-party credentials stored in backend .env / Render 
+**Storage:** All third-party credentials stored in backend .env / Render
 environment variables ONLY. Never in database. Never sent to frontend.
 
 **Feature detection flow:**
@@ -132,8 +132,8 @@ DRAFT → PENDING_REVIEW → APPROVED → SCHEDULED → PUBLISHED
 
 Rules:
 - Blog posts: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.
-- Email digests: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.  
-- Social posts: Default PENDING_REVIEW. Sean can enable "auto-approve social" 
+- Email digests: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.
+- Social posts: Default PENDING_REVIEW. Sean can enable "auto-approve social"
   per-platform in Settings — but this is OPT-IN, not default.
 - Auto-schedule only moves APPROVED content, never DRAFT or PENDING_REVIEW.
 - Database: content_status enum('draft','pending_review','approved',
@@ -233,12 +233,12 @@ Social API calls fail. Rate limits, token expiry, platform outages, content poli
 
 socialDistributionService MUST implement:
 1. Per-platform retry: 3 attempts with exponential backoff (1s, 4s, 16s)
-2. On final failure: update social_posts.status = 'failed', 
+2. On final failure: update social_posts.status = 'failed',
    store error_message (VARCHAR 500)
 3. Failed post notification: in-app notification to admin user
-4. Partial success: each platform tracked independently 
+4. Partial success: each platform tracked independently
    (one row per platform per post, not one row for all platforms)
-5. Token refresh: OAuth tokens for Meta/TikTok expire — 
+5. Token refresh: OAuth tokens for Meta/TikTok expire —
    service must detect 401 and trigger re-auth flow
 6. Content policy rejection (Meta error code 100, subcode 1487390):
    surface human-readable message, do NOT retry automatically
@@ -272,7 +272,7 @@ If a developer implements this naively (dump all conversation history into every
 
 **Context strategy (Gemini Flash context window budget):**
   - Always include: client_profile (structured, ~500 tokens)
-  - Recent messages: last 10 exchanges (~2000 tokens)  
+  - Recent messages: last 10 exchanges (~2000 tokens)
   - Summarized history: Swan Coach generates rolling summary every 20 messages
     stored in conversation_summaries table (~500 tokens)
   - Total context budget: ~3000 tokens for history (leaves room for response)
@@ -305,9 +305,9 @@ A single runaway loop or a malicious user hammering the Swan Coach endpoint coul
 ```markdown
 ### Gemini Cost Controls (MANDATORY)
 
-1. Token tracking: log prompt_tokens + completion_tokens per request 
+1. Token tracking: log prompt_tokens + completion_tokens per request
    in gemini_usage_log table
-2. Daily budget alert: if daily spend > $2 (≈10% of monthly), 
+2. Daily budget alert: if daily spend > $2 (≈10% of monthly),
    send admin notification
 3. Hard rate limits per endpoint:
    - Swan Coach: 20 requests/hour per user

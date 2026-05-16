@@ -257,7 +257,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
   const [value, setValue] = useState(0);
   const hasAnimated = useRef(false);
   const targetRef = useRef(target);
-  
+
   // Keep ref current without re-triggering effect
   useEffect(() => { targetRef.current = target; }, [target]);
 
@@ -272,7 +272,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
     const duration = 2500;
     const startTime = performance.now();
     let rafId: number;
-    
+
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -283,7 +283,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
       }
     };
     rafId = requestAnimationFrame(animate);
-    
+
     // Cleanup: cancel animation if component unmounts mid-count
     return () => cancelAnimationFrame(rafId);
   }, [isVisible, prefersReduced]); // target intentionally excluded — use ref

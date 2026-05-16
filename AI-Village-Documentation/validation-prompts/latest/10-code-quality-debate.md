@@ -59,11 +59,11 @@ const toggleListening = useCallback(() => {
 
 ```typescript
 // Add to CONTEXTS object:
-coach_assistant: { 
-  label: 'Coach Assistant', 
-  icon: Sparkles, 
-  description: 'Master AI with access to all contexts', 
-  roles: ['trainer', 'admin'] 
+coach_assistant: {
+  label: 'Coach Assistant',
+  icon: Sparkles,
+  description: 'Master AI with access to all contexts',
+  roles: ['trainer', 'admin']
 },
 
 // Add to RESPONSE_STYLES array:
@@ -115,7 +115,7 @@ useEffect(() => {
     }
   }
   prevMessageCountRef.current = messages.length;
-  
+
   return () => {
     if (tts.speaking) tts.stop();
   };
@@ -149,8 +149,8 @@ declare global {
 
 ## 🚀 DEPLOYMENT AUTHORIZATION
 
-**Status:** All disputes resolved with technical verification.  
-**PR Status:** Ready for merge.  
+**Status:** All disputes resolved with technical verification.
+**PR Status:** Ready for merge.
 **Deployment Window:** Today (EOD as originally requested).
 
 **Post-Deployment Monitoring:**

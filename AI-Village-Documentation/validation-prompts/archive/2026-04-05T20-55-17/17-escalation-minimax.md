@@ -15,7 +15,7 @@ I'm ready to perform the deep-dive security analysis you're requesting, but ther
 You've included a heading `### 📋 3. Critical Alert Severity Encoding` pointing to `SecurityPanel.tsx`, but **no actual SecurityPanel.tsx code** was provided in your message. The document contains only:
 
 - ✅ Design specifications
-- ✅ Architecture decisions  
+- ✅ Architecture decisions
 - ✅ File manifests
 - ✅ API endpoint lists
 

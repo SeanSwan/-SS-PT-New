@@ -45,4 +45,3 @@
 - https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFb8CAN5zpKP_OcMVC_Qn-Kbx7PJUTHmENicaPqPX44dcC3Y3Rby7qr1RhT4vt1ICOstL1i382_Ktucf03X-aAFDimN_15EMaPrQIZo2Zjfw6JJjPIRF7UP8YofIdRAn9kUCEzjL90H3JJma2Bd_-MWU0MlOLikqKUkcHwZPdWVhgFUjq5GQLO02dhqIDm5sNPX7vwoxRECLOvz4cIPfoVd
 
 ---
-

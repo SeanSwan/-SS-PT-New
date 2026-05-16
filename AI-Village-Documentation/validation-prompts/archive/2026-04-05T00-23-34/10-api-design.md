@@ -25,7 +25,7 @@
 
 \*Based on the existing codebase (see `backend/controllers/aiChatController.mjs` – the handler returns `Conversation` model attributes only).
 
-**Recommendation:**  
+**Recommendation:**
 Modify the controller to **project** or **annotate** the query with the extra fields:
 
 ```sql
@@ -51,11 +51,11 @@ If the DB schema already stores a `summary` column on `conversations`, simply se
 - **Current plan:** Load the first 20 conversations and filter client‑side.
 - **Adequacy:** Acceptable only while a user has **≤ ~50** conversations. Beyond that, UI latency and memory usage grow, and the user cannot find older chats.
 
-**When to add server‑side search:**  
-- As soon as the product targets the **wealthy golf / professional** segment (expected > 100 conversations per power user).  
+**When to add server‑side search:**
+- As soon as the product targets the **wealthy golf / professional** segment (expected > 100 conversations per power user).
 - Or when the conversation list is paginated (e.g., infinite scroll) – the client will need to ask the server for the next page matching a query.
 
-**Recommended endpoint:**  
+**Recommended endpoint:**
 
 ```
 GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
@@ -122,7 +122,7 @@ Two common patterns:
 
 ### Changes to the message creation endpoint
 
-Current: `POST /api/ai-chat/conversations/:id/messages`  
+Current: `POST /api/ai-chat/conversations/:id/messages`
 Body: `{ content: string }`
 
 **New body:**
@@ -156,7 +156,7 @@ Implement via **express-rate-limit** (or Redis‑backed) with a key like `user:<
 
 ## 6. WebSocket Integration – Push vs Poll
 
-The project already uses **Socket.io** (see `backend/socket.io.mjs`).  
+The project already uses **Socket.io** (see `backend/socket.io.mjs`).
 
 **Current approach (implied):** Poll `GET /api/ai-chat/conversations` every few seconds to surface new messages or title changes.
 
@@ -202,7 +202,7 @@ export interface ConversationSummary {
 }
 ```
 
-Ensure the serializer (e.g., Sequelize `toJSON` or a custom transformer) **always** includes these fields, even if `null`/`0`.  
+Ensure the serializer (e.g., Sequelize `toJSON` or a custom transformer) **always** includes these fields, even if `null`/`0`.
 If the backend currently omits `context` or `messageCount`, add them as **virtual fields** or **selected columns** as shown in §1.
 
 ---
@@ -215,10 +215,10 @@ If the backend currently omits `context` or `messageCount`, add them as **virtua
 | **Invalidation** | None (time‑based only). | Misses immediate updates (new message, rename). |
 | **Scalability** | Simple in‑memory or Redis TTL. | Works but can be improved. |
 
-**Recommendation:**  
+**Recommendation:**
 
-1. **Short‑lived cache** – 30 seconds (or even 10 seconds) for the list endpoint.  
-2. **Event‑driven invalidation** – When a WS `conversation:updated` or `message:created` is emitted, **purge** the cached list for that user (e.g., `del user:<id>:conversation-list`).  
+1. **Short‑lived cache** – 30 seconds (or even 10 seconds) for the list endpoint.
+2. **Event‑driven invalidation** – When a WS `conversation:updated` or `message:created` is emitted, **purge** the cached list for that user (e.g., `del user:<id>:conversation-list`).
 3. **Optional:** Use **Redis tags** or a hash keyed by `userId` storing the latest `lastMessageAt` per conversation; the endpoint can then return a `304 Not Modified` if the client sends an `If-Modified-Since` header matching the cached timestamp.
 
 **Result:** Near‑real‑time list with minimal backend load, and no reliance on a fixed 5‑minute TTL.

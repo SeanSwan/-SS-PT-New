@@ -61,7 +61,7 @@ This is a defense-in-depth failure. The homepage is actively advertising and pro
 const useAuthNavigate = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth(); // your auth context
-  
+
   return (path: string, requiredRole?: string) => {
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(path)}`);
@@ -138,8 +138,8 @@ class OrientationFormErrorBoundary extends React.Component<
   state = { hasError: false, errorId: '' };
 
   static getDerivedStateFromError() {
-    return { 
-      hasError: true, 
+    return {
+      hasError: true,
       errorId: `ERR-${Date.now()}` // For support reference, NO PII
     };
   }
@@ -235,8 +235,8 @@ const [videoLoaded, setVideoLoaded] = useState(false);
     onLoadedData={() => setVideoLoaded(true)}
     initial={prefersReduced ? { opacity: 0.5 } : { scale: 1.1, opacity: 0 }}
     animate={
-      prefersReduced 
-        ? { opacity: 0.5 } 
+      prefersReduced
+        ? { opacity: 0.5 }
         : { scale: 1, opacity: videoLoaded ? 0.5 : 0 }
     }
     transition={{ duration: 2, ease: 'easeOut' }}
@@ -296,8 +296,8 @@ onClick={() => navigate('/signup?role=trainer')}
 const handleTrainerSignup = async () => {
   // Get a short-lived signed intent token from backend
   // This prevents role parameter tampering
-  const { data } = await api.post('/auth/signup-intent', { 
-    type: 'trainer_application' 
+  const { data } = await api.post('/auth/signup-intent', {
+    type: 'trainer_application'
   });
   navigate(`/signup?intent=${data.token}`);
 };

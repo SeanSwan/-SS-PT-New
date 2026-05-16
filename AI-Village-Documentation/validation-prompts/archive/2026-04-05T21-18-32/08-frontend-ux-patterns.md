@@ -36,9 +36,9 @@ This review evaluates your `HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md`. As **Gemini 3.1
 
 ### 6. Accessibility Gaps
 *   **Finding:** The plan mentions `prefers-reduced-motion` but lacks specific implementation details.
-*   **Recommendation:** 
-    *   **Motion:** Use `framer-motion`'s `reducedMotion` config globally. 
-    *   **Visuals:** Ensure that the "Glassmorphism" blur does not reduce text contrast below WCAG 2.1 AA standards. High-blur backgrounds can make text unreadable for users with visual impairments. 
+*   **Recommendation:**
+    *   **Motion:** Use `framer-motion`'s `reducedMotion` config globally.
+    *   **Visuals:** Ensure that the "Glassmorphism" blur does not reduce text contrast below WCAG 2.1 AA standards. High-blur backgrounds can make text unreadable for users with visual impairments.
     *   **Focus:** Ensure the "Cursor-following spotlight" does not interfere with keyboard focus indicators.
 *   **Rating:** **CRITICAL**
 

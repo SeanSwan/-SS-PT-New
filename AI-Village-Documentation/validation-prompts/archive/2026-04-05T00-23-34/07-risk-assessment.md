@@ -8,8 +8,8 @@
 
 # SwanStudios Implementation Plan — Risk & Feasibility Assessment
 
-**Document Reviewed:** `docs/ai-workflow/blueprints/COMPREHENSIVE-APP-AUDIT-2026-04-04.md`  
-**Date:** 2026-04-04  
+**Document Reviewed:** `docs/ai-workflow/blueprints/COMPREHENSIVE-APP-AUDIT-2026-04-04.md`
+**Date:** 2026-04-04
 **Prepared by:** AI Risk Assessment Module
 
 ---
@@ -74,11 +74,11 @@ Total markdown deps:   ~65KB gzipped (acceptable)
 ```typescript
 // Voice feature detection wrapper
 const useVoiceInput = () => {
-  const isSupported = typeof window !== 'undefined' && 
+  const isSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-  
-  return isSupported 
-    ? useNativeVoiceInput() 
+
+  return isSupported
+    ? useNativeVoiceInput()
     : useFallbackInput(); // Text-only fallback
 };
 ```
@@ -235,7 +235,7 @@ export const FEATURE_FLAGS = {
 
 // Backend feature flags
 const checkFeatureFlag = (userId: string, flag: string): boolean => {
-  return user.featureFlags.includes(flag) || 
+  return user.featureFlags.includes(flag) ||
          process.env[`DEFAULT_${flag}`] === 'true';
 };
 ```
@@ -293,7 +293,7 @@ const checkFeatureFlag = (userId: string, flag: string): boolean => {
 **Mitigation:**
 ```sql
 -- Pre-deployment migration (additive, safe)
-ALTER TABLE bootcamp_exercises 
+ALTER TABLE bootcamp_exercises
 ADD COLUMN IF NOT EXISTS elbow_mod VARCHAR(50),
 ADD COLUMN IF NOT EXISTS foot_mod VARCHAR(50),
 ADD COLUMN IF NOT EXISTS hip_mod VARCHAR(50);

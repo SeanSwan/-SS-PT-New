@@ -32,7 +32,7 @@ The plan introduces several global providers and interceptors. Without careful i
 *   **Rating: CRITICAL**
 *   **Issue:** Wrapping `App.tsx` in `PaywallProvider` and `FeatureAccessProvider`. If the `PaywallContext` state updates (e.g., a background 402 error or a trial timer tick), the **entire application tree** will re-render.
 *   **Impact:** Dropped frames during animations and laggy input in the `WorkoutForge`.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Memoize the Context Value.
     2.  Split the context into `PaywallStateContext` and `PaywallActionsContext` so components only calling `showPaywall()` don't re-render when the state changes.
     3.  Use `React.memo` on heavy dashboard cards (Victory Charts).
@@ -64,7 +64,7 @@ The plan introduces several global providers and interceptors. Without careful i
 *   **Rating: MEDIUM**
 *   **Issue:** `GET /api/admin/ai-usage-stats` queries `aiMessagesUsedThisMonth`.
 *   **Impact:** As the user base grows to the "1,000-5,000" range mentioned, a sequential scan on the `Users` table for stats will slow down the Admin UI.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Add a composite index on `(role, aiMessagesUsedThisMonth DESC)`.
     2.  Ensure the migration for `trainerType` includes an index, as it will be used frequently in middleware filters.
 

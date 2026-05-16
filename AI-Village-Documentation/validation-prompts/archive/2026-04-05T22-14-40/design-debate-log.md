@@ -8,11 +8,11 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me carefully, Claude. I am stepping in as Creative Director because this blueprint is suffering from a massive identity crisis. The UX Auditor from Phase 1 was absolutely right to sound the alarm, but they were too polite. 
+Listen to me carefully, Claude. I am stepping in as Creative Director because this blueprint is suffering from a massive identity crisis. The UX Auditor from Phase 1 was absolutely right to sound the alarm, but they were too polite.
 
-I am vetoing Section 1 of this blueprint entirely. We are **NOT** using "Dark Navy `#0D1117`" (which looks like a generic GitHub clone), and we are absolutely **NOT** building 4 random "Cyberpunk" themes. We are building a 7-star luxury fitness platform. Wealthy golf clients do not want "Void Crystal" or "Obsidian Aurora." They want **Crystalline Swan**. 
+I am vetoing Section 1 of this blueprint entirely. We are **NOT** using "Dark Navy `#0D1117`" (which looks like a generic GitHub clone), and we are absolutely **NOT** building 4 random "Cyberpunk" themes. We are building a 7-star luxury fitness platform. Wealthy golf clients do not want "Void Crystal" or "Obsidian Aurora." They want **Crystalline Swan**.
 
-Here is my definitive, uncompromising design vision for Round 1. We are enforcing the **Enchanted Apex** palette strictly. Obsidian Black background, Frost White text, and our proprietary Dual-Glow interaction model. 
+Here is my definitive, uncompromising design vision for Round 1. We are enforcing the **Enchanted Apex** palette strictly. Obsidian Black background, Frost White text, and our proprietary Dual-Glow interaction model.
 
 Here is my Round 1 Analysis and exact implementation directives.
 
@@ -24,7 +24,7 @@ Here is my Round 1 Analysis and exact implementation directives.
 - **Severity:** CRITICAL
 - **File & Location:** `ULTIMATE-7-STAR-VALIDATION.md` > Section 1. DEFAULT THEME
 - **Design Problem:** The blueprint specifies `#0D1117` and `#161B22` as the base, and suggests adding 4 extra themes including "Cyberpunk Cyan". This violates our core brand identity and introduces the retired Galaxy-Swan aesthetic. It also creates the massive WCAG contrast failure the auditor flagged.
-- **Design Solution:** Scrap the theme switcher. We have ONE flawless, ultra-premium theme: **Crystalline Swan (Dark Mode First)**. 
+- **Design Solution:** Scrap the theme switcher. We have ONE flawless, ultra-premium theme: **Crystalline Swan (Dark Mode First)**.
   - **App Background:** Obsidian Black `#0A0A0F`
   - **Card/Surface:** Carbon `#141419` with a 1px solid Graphite `#1A1A24` border.
   - **Primary Text:** Frost White `#E0ECF4`.
@@ -43,7 +43,7 @@ Here is my Round 1 Analysis and exact implementation directives.
   - **Secondary/Gaming Action (Purple):** Background Wing Purple `#8B5CF6`. On hover, it emits an Ice Wing Cyan glow.
   - **Premium CTA (Hero):** Cosmic Nebula gradient background (`linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%)`).
 - **Implementation Notes:**
-  1. **Primary Button CSS:** 
+  1. **Primary Button CSS:**
      `background: #002060; color: #E0ECF4; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);`
      `&:hover { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); transform: translateY(-2px); }`
   2. **Gaming Button CSS:**
@@ -75,7 +75,7 @@ Here is my Round 1 Analysis and exact implementation directives.
   - **Sora:** ALL interactive UI elements (Buttons, Tabs, Badges, Numpad).
   - **Cormorant Garamond Italic:** EXCLUSIVELY for Swan Coach's conversational greetings and premium luxury quotes.
 - **Implementation Notes:**
-  1. In the Onboarding Wizard (Section 2), when Swan Coach speaks: 
+  1. In the Onboarding Wizard (Section 2), when Swan Coach speaks:
      `<CoachMessage style={{ fontFamily: 'Cormorant Garamond', fontStyle: 'italic', fontSize: '28px', color: '#C6A84B' }}>"Welcome to the Apex. Let's forge your legacy."</CoachMessage>`
   2. Notice the use of Gilded Fern `#C6A84B` (Luxury Accent) for the coach's dramatic intro to establish the premium feel immediately.
 
@@ -83,7 +83,7 @@ Here is my Round 1 Analysis and exact implementation directives.
 - **Severity:** HIGH
 - **File & Location:** `ULTIMATE-7-STAR-VALIDATION.md` > Section 9. SWAN COACH HIVE MIND
 - **Design Problem:** Floating chat widgets usually look like cheap customer support add-ons (Intercom/Zendesk style). Ours needs to feel like an integrated AI deity.
-- **Design Solution:** 
+- **Design Solution:**
   - **Widget Button:** A floating orb using the Cosmic Nebula gradient, pulsing with a `box-shadow: 0 0 15px rgba(96, 192, 240, 0.5)`.
   - **Coach Bubbles:** Background Royal Depth `#003080`, Text Frost White `#E0ECF4`. Border-left: 3px solid Ice Wing `#60C0F0`.
   - **User Bubbles:** Background Carbon `#141419`, Text Frost White `#E0ECF4`. Border-right: 3px solid Wing Purple `#8B5CF6`.
@@ -93,7 +93,7 @@ Here is my Round 1 Analysis and exact implementation directives.
 
 ***
 
-**To my Design Collaborator (Claude):** 
+**To my Design Collaborator (Claude):**
 I have laid down the law on the visual language. The Crystalline Swan theme is now locked. Your turn. Look at Section 6 (Admin Dashboard) and Section 8 (Canada Immigration). With this dark, data-heavy UI, how are we going to structure the layout so Sean isn't overwhelmed by Fira Code numbers and Arctic Cyan charts? Debate me on the data visualization UX.
 
 ---
@@ -163,7 +163,7 @@ const NumpadKey = styled.button`
   color: #E0ECF4;
   user-select: none;
   touch-action: manipulation;
-  
+
   &:active {
     background: rgba(96, 192, 240, 0.2);
     box-shadow: inset 0 0 10px rgba(96, 192, 240, 0.3);
@@ -256,14 +256,14 @@ const MetricCard = styled.div`
   border: 1px solid #1A1A24;
   border-radius: 16px;
   padding: 24px;
-  
+
   h3 { /* Label */
     font-family: 'Cormorant Garamond';
     font-style: italic;
     color: #C6A84B;
     margin-bottom: 8px;
   }
-  
+
   .value { /* Number */
     font-family: 'Fira Code';
     font-size: 32px;
@@ -298,7 +298,7 @@ const ScorePanel = styled.div`
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 16px;
   padding: 24px;
-  
+
   .total-score {
     font-family: 'Fira Code';
     font-size: 48px;
@@ -330,4 +330,3 @@ const ScorePanel = styled.div`
 **Awaiting Creative Director's feedback on the data visualization proposals for Sections 6 and 8.**
 
 ---
-

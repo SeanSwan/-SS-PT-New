@@ -8,8 +8,8 @@
 
 # SwanStudios Implementation Plan — Risk Assessment & Feasibility Review
 
-**Review Date:** 2026-04-06  
-**Assessor Role:** Project Manager & Risk Assessor  
+**Review Date:** 2026-04-06
+**Assessor Role:** Project Manager & Risk Assessor
 **Scope:** Full plan review across dependency, technical, scope, effort, testing, rollback, migration, and sequencing dimensions
 
 ---
@@ -46,7 +46,7 @@ Phase 0 (P0 Blockers)
 
 ### Phase 4 Voice Concern
 
-> ⚠️ **CLARIFICATION REQUIRED:** The plan's Phase 4 covers **Architecture Patterns** (DB locking, SSE, SWR hooks) — no voice implementation is defined. If Phase 4 is intended to include voice, this is **not documented in the plan**. 
+> ⚠️ **CLARIFICATION REQUIRED:** The plan's Phase 4 covers **Architecture Patterns** (DB locking, SSE, SWR hooks) — no voice implementation is defined. If Phase 4 is intended to include voice, this is **not documented in the plan**.
 
 **If voice were added to Phase 4:**
 - **Risk:** HIGH — Voice/AI features are highest-uncertainty items; they would block downstream UX work

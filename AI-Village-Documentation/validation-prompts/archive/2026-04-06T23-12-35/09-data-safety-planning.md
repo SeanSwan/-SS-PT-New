@@ -67,7 +67,7 @@ BEFORE INSERT OR UPDATE ON conversations
 FOR EACH ROW EXECUTE FUNCTION check_conversation_size();
 
 -- 2. Add a monitoring query to your ops runbook
-SELECT 
+SELECT
   id,
   user_id,
   octet_length(messages::text) AS messages_bytes,
@@ -97,10 +97,10 @@ CREATE TABLE conversation_attachments (
   deleted_at TIMESTAMPTZ  -- soft delete for cleanup coordination
 );
 
-CREATE INDEX idx_conv_attachments_conversation_id 
+CREATE INDEX idx_conv_attachments_conversation_id
   ON conversation_attachments(conversation_id);
-CREATE INDEX idx_conv_attachments_deleted_at 
-  ON conversation_attachments(deleted_at) 
+CREATE INDEX idx_conv_attachments_deleted_at
+  ON conversation_attachments(deleted_at)
   WHERE deleted_at IS NULL;
 ```
 
@@ -180,7 +180,7 @@ WHERE status != 'deleted';
 ```
 
 ```sql
--- Audit query: find any conversation that is soft-deleted but 
+-- Audit query: find any conversation that is soft-deleted but
 -- whose messages are still being returned by any API call
 -- Run this as a canary check in your staging environment
 
@@ -189,7 +189,7 @@ SELECT c.id, c.user_id, c.status, c.updated_at,
 FROM conversations c
 WHERE c.status = 'deleted'
   AND c.updated_at > NOW() - INTERVAL '24 hours';
--- Any rows here after a delete operation indicate a query path 
+-- Any rows here after a delete operation indicate a query path
 -- that is writing to deleted conversations
 ```
 
@@ -245,9 +245,9 @@ CREATE TABLE r2_objects (
 
 CREATE INDEX idx_r2_objects_entity ON r2_objects(entity_type, entity_id);
 CREATE INDEX idx_r2_objects_user_id ON r2_objects(user_id);
-CREATE INDEX idx_r2_objects_pending_deletion 
-  ON r2_objects(deletion_requested_at) 
-  WHERE deletion_requested_at IS NOT NULL 
+CREATE INDEX idx_r2_objects_pending_deletion
+  ON r2_objects(deletion_requested_at)
+  WHERE deletion_requested_at IS NOT NULL
     AND deleted_from_r2_at IS NULL;
 ```
 
@@ -271,15 +271,15 @@ async function cleanupPendingR2Deletions() {
         Bucket: record.bucket,
         Key: record.r2_key
       });
-      
-      await record.update({ 
+
+      await record.update({
         deleted_from_r2_at: new Date(),
         deletion_error: null
       });
-      
+
       logger.info(`R2 cleanup: deleted ${record.r2_key} for user ${record.user_id}`);
     } catch (err) {
-      await record.update({ 
+      await record.update({
         deletion_error: err.message,
         // Exponential backoff: don't retry immediately
       });
@@ -308,9 +308,9 @@ async function deleteConversation(req, res) {
     // This is atomic with the conversation delete — either both happen or neither
     await R2Object.update(
       { deletion_requested_at: new Date() },
-      { 
+      {
         where: { entity_type: 'conversation_attachment', entity_id: conversationId },
-        transaction: t 
+        transaction: t
       }
     );
   });
@@ -318,7 +318,7 @@ async function deleteConversation(req, res) {
   // 3. The background worker handles actual R2 deletion asynchronously
   // Do NOT delete from R2 synchronously in the request handler —
   // if R2 is slow or down, you don't want the user's delete request to fail
-  
+
   res.json({ success: true });
 }
 ```

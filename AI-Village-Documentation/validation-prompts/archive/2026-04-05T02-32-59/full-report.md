@@ -758,17 +758,17 @@ The proposed changes are **content-only updates** (text replacements, new static
 ## Detailed Finding Analysis
 
 ### 1. PII Exposure in Conversation History
-**Rating:** CRITICAL (for the AI feature, not this plan)  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan's context mentions "conversation history" for the AI coach, but this document contains **zero implementation details** about sanitization. If user messages (text/voice transcripts) contain PII (names, locations, health details) and are stored/processed without stripping, this violates the ZERO PII TO LLMs policy.  
+**Rating:** CRITICAL (for the AI feature, not this plan)
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan's context mentions "conversation history" for the AI coach, but this document contains **zero implementation details** about sanitization. If user messages (text/voice transcripts) contain PII (names, locations, health details) and are stored/processed without stripping, this violates the ZERO PII TO LLMs policy.
 **Mitigation Required:**
 - Implement **PII detection/redaction** (using local models like Microsoft Presidio or AWS Comprehend Medical) **before** any data leaves the trusted environment.
 - **Never** send raw conversation history to external AI providers. Use synthetic/aggregated data for training.
 - Audit all conversation storage (PostgreSQL JSONB) for existing PII and purge/redact.
 
 ### 2. File Attachment Risks (Image Uploads to R2)
-**Rating:** HIGH (for the AI feature, not this plan)  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** HIGH (for the AI feature, not this plan)
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The context mentions image uploads to Cloudflare R2 for AI analysis. The plan provides **no security controls** for:
 - **Malicious file uploads**: No mention of file type validation, virus scanning, or content inspection.
 - **SSRF via image URLs**: If the AI feature fetches user-provided URLs, no safeguards against internal network access.
@@ -780,8 +780,8 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **R2 bucket policies**: Private buckets, signed URLs with short expiry, CORS restrictions.
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Rating:** CRITICAL  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** CRITICAL
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The context states audio recordings are sent to Gemini. The plan **does not specify**:
 - **Storage duration**: How long are raw audio files and transcripts kept?
 - **Retention policy**: Are they deleted after processing? After user deletion?
@@ -794,18 +794,18 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Legal review**: Update privacy policy to cover biometric data (voiceprints) and third-party processing.
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Rating:** HIGH  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan assumes conversations exist but provides **no encryption or access control details**. JSONB fields may contain PII.  
+**Rating:** HIGH
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan assumes conversations exist but provides **no encryption or access control details**. JSONB fields may contain PII.
 **Mitigation Required:**
 - **Encryption at rest**: Ensure PostgreSQL uses TDE (Transparent Data Encryption) or disk-level encryption (AWS RDS default is sufficient if managed).
 - **Column-level encryption**: For highly sensitive fields (e.g., health conditions), use application-level encryption (e.g., `pgcrypto`) with keys in KMS.
 - **Access controls**: Enforce row-level security (RLS) in PostgreSQL so users can only query their own conversations. **Never rely solely on application-layer checks**.
 
 ### 5. RBAC Enforcement
-**Rating:** HIGH  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan describes admin/trainer/client roles but **no implementation details** for enforcement. This is a classic "missing authorization" vulnerability.  
+**Rating:** HIGH
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan describes admin/trainer/client roles but **no implementation details** for enforcement. This is a classic "missing authorization" vulnerability.
 **Mitigation Required:**
 - **Backend middleware**: Every API endpoint fetching conversations must verify:
   ```javascript
@@ -821,8 +821,8 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Audit logs**: Log all conversation access with user ID, timestamp, and conversation ID.
 
 ### 6. MediaRecorder API Risks (Browser Microphone)
-**Rating:** MEDIUM  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** MEDIUM
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The voice feature uses `MediaRecorder`. Risks:
 - **Permission handling**: No mention of graceful denial handling or UI feedback.
 - **Stream cleanup**: Forgetting to `track.stop()` can leave microphone active.
@@ -834,9 +834,9 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Content Security Policy (CSP)**: Restrict `media-src` to trusted origins.
 
 ### 7. Markdown Rendering XSS
-**Rating:** MEDIUM  
-**Plan Relevance:** ⚠️ **Indirectly relevant** — the plan updates text content that *may* be rendered as markdown.  
-**Issue:** The platform uses `react-markdown`. If any new text sections (e.g., "Why We Built This", promise cards) are stored as user-editable markdown (unlikely for static content), XSS is possible via `<script>` or `onerror` in images.  
+**Rating:** MEDIUM
+**Plan Relevance:** ⚠️ **Indirectly relevant** — the plan updates text content that *may* be rendered as markdown.
+**Issue:** The platform uses `react-markdown`. If any new text sections (e.g., "Why We Built This", promise cards) are stored as user-editable markdown (unlikely for static content), XSS is possible via `<script>` or `onerror` in images.
 **Mitigation Required:**
 - **Sanitization**: Use `rehype-sanitize` with a strict allowlist (only `<p>`, `<strong>`, `<em>`, `<ul>`, `<li>`, etc.). **Never** allow `iframe`, `script`, or event handlers.
 - **Static content**: Ensure these new sections are **hardcoded strings**, not user-editable markdown. If they must be editable by admins, store as plain text and apply markdown server-side with sanitization.
@@ -888,7 +888,7 @@ Below is the performance impact assessment and optimization strategy.
 ### 1. Bundle Size: Markdown & High-Weight Dependencies
 **Rating: HIGH**
 Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~70-90KB (gzipped) to the main bundle. This will degrade the "First Contentful Paint" (FCP) for your wealthy golf/professional demographic who expect "Crystalline" speed.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main `vendor.js`. Use a dynamic import: `const Markdown = React.lazy(() => import('./components/MarkdownRender'))`.
     *   **Server-Side Pre-rendering:** Since the "Mission Statement" and "About" sections are static, parse the Markdown at **build time** (if using SSG) or on the **backend** to send raw HTML. Avoid shipping the parser to the client for static content.
 
@@ -990,7 +990,7 @@ Error: Google GenAI 404: {
 
 ### Recommendations for Sean:
 1. **Add "Trainer Tools Preview" section** showing:
-   - Voice-command interface mockup with "Log workout for [client]" 
+   - Voice-command interface mockup with "Log workout for [client]"
    - Quick-access to recent client sessions (3-tap maximum)
    - Mobile-first design demonstration
 2. **Hero CTA for Sean:** Add "Trainer Login" as prominent button alongside community/trainer finder
@@ -1180,11 +1180,11 @@ The plan describes a **community platform vision** but the existing codebase and
 The plan references phases (0→1→2→3→4→5) but **the actual phase breakdown with dependencies is missing from the document**. Based on the described features:
 
 ```
-Phase 0 (Infrastructure?) 
+Phase 0 (Infrastructure?)
     ↓
-Phase 1 (Text-only updates) → Phase 2 (New sections) 
+Phase 1 (Text-only updates) → Phase 2 (New sections)
     ↓
-Phase 3 (Markdown rendering) → Phase 4 (Voice integration) 
+Phase 3 (Markdown rendering) → Phase 4 (Voice integration)
     ↓
 Phase 5 (Polish/Testing)
 ```
@@ -1418,7 +1418,7 @@ export const FEATURE_FLAGS = {
 REACT_APP_FLAG_VOICE_COACH=false
 REACT_APP_FLAG_NEW_HOMEPAGE=true
 
-# .env.production  
+# .env.production
 REACT_APP_FLAG_VOICE_COACH=false  # Disabled until Phase 4 complete
 REACT_APP_FLAG_NEW_HOMEPAGE=true   # Enabled after Phase 1
 ```
@@ -1647,20 +1647,20 @@ QUESTIONS SUBMITTED FOR REVIEW:
 
 ```markdown
 ISSUE: The plan makes explicit data ownership promises to users:
-  - "Your workout history, your progress, your community — it lives 
+  - "Your workout history, your progress, your community — it lives
     here permanently and it belongs to you."
   - "Your Data, Your Story" promise card
   - "it becomes irreplaceable over time"
 
-RISK: These are legally and architecturally binding commitments being 
-made in public-facing marketing copy on a production platform at 
+RISK: These are legally and architecturally binding commitments being
+made in public-facing marketing copy on a production platform at
 sswanstudios.com. If the backend does not currently:
   - Provide data export functionality
   - Have a documented data retention policy
   - Have GDPR/CCPA deletion request handling
   - Back up user data with tested restore procedures
 
-...then publishing these promises creates legal exposure and user 
+...then publishing these promises creates legal exposure and user
 trust liability the moment a real user reads them.
 
 RECOMMENDATION:
@@ -1673,12 +1673,12 @@ Before deploying this copy, verify:
     in your Terms of Service
 
 DATABASE CHECK REQUIRED:
-  SELECT table_name, column_name 
-  FROM information_schema.columns 
+  SELECT table_name, column_name
+  FROM information_schema.columns
   WHERE column_name IN ('user_id', 'deleted_at', 'exported_at')
   ORDER BY table_name;
-  
-  -- Verify every user-generated content table has proper 
+
+  -- Verify every user-generated content table has proper
   -- user_id foreign keys enabling data portability queries
 ```
 
@@ -1690,13 +1690,13 @@ DATABASE CHECK REQUIRED:
 ```markdown
 ISSUE: The plan includes in the "For Trainers" section:
   "Fair fees. No surprises."
-  
+
 And in the vision document (which may inform copy):
   "Sean takes a small fair fee (~10% or less) on transactions"
 
-RISK: If the payment processing system (Stripe or equivalent) 
-currently charges a different fee structure, or if Stripe's own 
-fees are not factored into the "10% or less" claim, publishing 
+RISK: If the payment processing system (Stripe or equivalent)
+currently charges a different fee structure, or if Stripe's own
+fees are not factored into the "10% or less" claim, publishing
 this creates:
   - FTC deceptive advertising exposure
   - Trainer trust violations if actual fees differ
@@ -1712,9 +1712,9 @@ RECOMMENDATION:
 
 DATABASE CHECK:
   -- Verify current fee structure in your payments/transactions table
-  SELECT DISTINCT fee_percentage, fee_type, created_at 
+  SELECT DISTINCT fee_percentage, fee_type, created_at
   FROM trainer_transactions  -- or equivalent table name
-  ORDER BY created_at DESC 
+  ORDER BY created_at DESC
   LIMIT 10;
 ```
 
@@ -1727,8 +1727,8 @@ DATABASE CHECK:
 ISSUE: The plan explicitly describes:
   "Family-friendly and 18+ content properly separated"
   "Gaming & Streaming — Family and adult content separated"
-  
-This is mentioned in the vision as a platform feature, and the 
+
+This is mentioned in the vision as a platform feature, and the
 homepage will describe this capability to real users.
 
 RISK: If the database schema does not currently have:
@@ -1737,12 +1737,12 @@ RISK: If the database schema does not currently have:
   - Proper content filtering middleware
   - COPPA compliance for under-13 users
 
-...then advertising this separation to real users (including 
-potentially minors) before it exists is both a legal risk and 
+...then advertising this separation to real users (including
+potentially minors) before it exists is both a legal risk and
 a child safety risk.
 
 RECOMMENDATION:
-  □ Do NOT publish 18+ content separation claims until the 
+  □ Do NOT publish 18+ content separation claims until the
     architecture exists
   □ If this is future-state, remove from current homepage copy
   □ Age verification is a legal requirement, not a nice-to-have
@@ -1750,14 +1750,14 @@ RECOMMENDATION:
   □ Consult legal before any adult content platform features
 
 DATABASE CHECK REQUIRED:
-  SELECT column_name, data_type 
-  FROM information_schema.columns 
+  SELECT column_name, data_type
+  FROM information_schema.columns
   WHERE table_name IN ('users', 'content', 'posts', 'videos')
   AND column_name IN (
-    'age_verified', 'date_of_birth', 'content_rating', 
+    'age_verified', 'date_of_birth', 'content_rating',
     'is_adult_content', 'age_restriction'
   );
-  
+
   -- If this returns empty: the architecture does not exist yet.
   -- Remove 18+ separation claims from homepage copy immediately.
 ```
@@ -1768,23 +1768,23 @@ DATABASE CHECK REQUIRED:
 **Rating: MEDIUM**
 
 ```markdown
-ISSUE: The plan itself acknowledges this risk in AI Village Review 
-Question #2: "Is the 'Global Trainer Platform' positioning premature 
+ISSUE: The plan itself acknowledges this risk in AI Village Review
+Question #2: "Is the 'Global Trainer Platform' positioning premature
 given the current single-trainer setup?"
 
-The homepage will tell trainers in Amsterdam and Lagos they can 
+The homepage will tell trainers in Amsterdam and Lagos they can
 "bring their clients to SwanStudios" and "collect payments."
 
-RISK: 
+RISK:
   - International payment collection requires per-country compliance
   - Stripe Connect (or equivalent) has country-specific restrictions
   - Tax reporting obligations vary by jurisdiction
-  - If a trainer in Lagos signs up and cannot actually collect 
+  - If a trainer in Lagos signs up and cannot actually collect
     payments, this is a real user harmed by false advertising
 
 RECOMMENDATION:
   □ Audit Stripe Connect supported countries before publishing
-  □ Either qualify the claim ("Available in [X] countries") 
+  □ Either qualify the claim ("Available in [X] countries")
     or remove international examples until infrastructure exists
   □ "Any trainer, any city, any country" is a legal commitment
     if a trainer relies on it to build their business here
@@ -1803,7 +1803,7 @@ DATABASE CHECK:
 **Rating: LOW**
 
 ```markdown
-ISSUE: The mechanical changes in this plan (text swaps, new React 
+ISSUE: The mechanical changes in this plan (text swaps, new React
 components with no data fetching) carry minimal data safety risk.
 
 SPECIFIC CHANGES ASSESSED:
@@ -1816,10 +1816,10 @@ SPECIFIC CHANGES ASSESSED:
 
 RECOMMENDATION:
   □ Confirm new sections are purely presentational (no forms)
-  □ If "Trainer Sign Up" CTA links to a signup form, audit that 
+  □ If "Trainer Sign Up" CTA links to a signup form, audit that
     form's data handling separately
   □ If "Join the Community" CTA creates accounts, audit that flow
-  □ Verify no new analytics/tracking pixels are added with these 
+  □ Verify no new analytics/tracking pixels are added with these
     sections that weren't previously disclosed in privacy policy
 ```
 
@@ -1847,7 +1847,7 @@ RECOMMENDATION:
   □ Review privacy policy for accuracy against actual data flows
   □ Consider: Plausible Analytics or Fathom (privacy-first alternatives)
     that align with the platform's stated values
-  □ If Google Analytics is in use, this must be disclosed and 
+  □ If Google Analytics is in use, this must be disclosed and
     the "never sell" language must be qualified
 
 AUDIT COMMAND (check your HTML/bundle):
@@ -1886,13 +1886,13 @@ CREATE TABLE ai_messages (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_ai_messages_conversation_created 
+CREATE INDEX idx_ai_messages_conversation_created
   ON ai_messages(conversation_id, created_at);
 
 -- Option B: If JSONB is kept, enforce size limit at application layer
 -- Add CHECK constraint:
-ALTER TABLE ai_conversations 
-  ADD CONSTRAINT messages_size_limit 
+ALTER TABLE ai_conversations
+  ADD CONSTRAINT messages_size_limit
   CHECK (pg_column_size(messages) < 1048576); -- 1MB hard limit
 
 -- NEVER store file content in JSONB. Store R2 URLs only.
@@ -1909,13 +1909,13 @@ ALTER TABLE ai_conversations
 -- VERIFY deleted conversations are excluded from sidebar:
 
 -- UNSAFE query (returns deleted conversations):
-SELECT id, title, updated_at FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, updated_at FROM ai_conversations
+WHERE user_id = $1
 ORDER BY updated_at DESC;
 
 -- SAFE query (must include status filter):
-SELECT id, title, updated_at FROM ai_conversations 
-WHERE user_id = $1 
+SELECT id, title, updated_at FROM ai_conversations
+WHERE user_id = $1
   AND status != 'deleted'  -- or: AND deleted_at IS NULL
 ORDER BY updated_at DESC
 LIMIT 50;  -- Always paginate
@@ -1928,7 +1928,7 @@ grep -r "ai_conversations\|findAll.*conversation" \
 
 -- Add database-level protection:
 CREATE VIEW active_conversations AS
-  SELECT * FROM ai_conversations 
+  SELECT * FROM ai_conversations
   WHERE status != 'deleted';
 -- Force all application queries through this view
 ```
@@ -1983,13 +1983,13 @@ Voice recordings may qualify as biometric data under:
 
 MANDATORY REQUIREMENTS:
   □ Voice data must NEVER be stored without explicit informed consent
-  □ Consent must be granular: "Your voice is sent to Google Gemini 
-    for transcription and immediately discarded. It is not stored 
+  □ Consent must be granular: "Your voice is sent to Google Gemini
+    for transcription and immediately discarded. It is not stored
     by SwanStudios."
   □ If Gemini retains audio: disclose Google's data retention policy
   □ Transcription text (not audio) may be stored as regular message content
   □ Audio buffer must be zeroed/garbage-collected after API call
-  □ No logging of audio data — ensure Express request logging 
+  □ No logging of audio data — ensure Express request logging
     does not capture multipart audio payloads
 
 IMPLEMENTATION REQUIREMENT:
@@ -2003,10 +2003,10 @@ IMPLEMENTATION REQUIREMENT:
       audioBuffer.fill(0);
     }
   }
-  
+
   // Privacy policy MUST state:
-  // "Voice recordings are transmitted directly to Google Gemini 
-  //  for transcription. SwanStudios does not store audio recordings. 
+  // "Voice recordings are transmitted directly to Google Gemini
+  //  for transcription. SwanStudios does not store audio recordings.
   //  Google's data handling: [link to Google AI privacy policy]"
 ```
 
@@ -2023,12 +2023,12 @@ CLAIM
 ## [PASS] API Design & Backend Contracts
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 93.2s
 
-# API Surface Review – Homepage & About Page Vision Refactor  
-**Target:** Verify whether the current backend can support the frontend changes described in the plan without additional work (Phase 1 = zero backend changes).  
+# API Surface Review – Homepage & About Page Vision Refactor
+**Target:** Verify whether the current backend can support the frontend changes described in the plan without additional work (Phase 1 = zero backend changes).
 
----  
+---
 
-## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`  
+## 1. Existing API Sufficiency – `GET /api/ai-chat/conversations`
 
 | Required Sidebar Field | Currently Returned? | Comments / Gap |
 |------------------------|---------------------|----------------|
@@ -2039,9 +2039,9 @@ CLAIM
 | `lastMessageAt` (ISO timestamp) | ✅ | Needed for sorting & “last active” badge |
 | `unreadCount` (optional but useful) | ❓ | Not required for the plan, but nice‑to‑have for future UI. |
 
-**Verdict:**  
-- If the current response shape is `{ id, title, messageCount, lastMessageAt }` **without** a `context/preview`, the sidebar will lack the optional “preview line” that many chat UIs show.  
-- **Recommendation:** Add a lightweight `preview` (or `context`) field – e.g., the first 100 chars of the latest user message, or `null` if none. This is a **backward‑compatible** addition (existing clients ignore unknown fields).  
+**Verdict:**
+- If the current response shape is `{ id, title, messageCount, lastMessageAt }` **without** a `context/preview`, the sidebar will lack the optional “preview line” that many chat UIs show.
+- **Recommendation:** Add a lightweight `preview` (or `context`) field – e.g., the first 100 chars of the latest user message, or `null` if none. This is a **backward‑compatible** addition (existing clients ignore unknown fields).
 
 ```json
 {
@@ -2056,20 +2056,20 @@ CLAIM
 
 > **Zero‑backend‑change claim:** ✅ *Only if* the API already returns a `preview`/`context` field. Otherwise a tiny additive change is required.
 
----  
+---
 
-## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations  
+## 2. Search Endpoint – Client‑Side Filtering of 20 Conversations
 
 | Situation | Adequacy | When to Upgrade |
 |-----------|----------|-----------------|
 | **≤ 20 conversations** (current plan) | ✅ Client‑side filtering (JS `filter` on title) is instantaneous and saves a round‑trip. | – |
 | **> ~50 conversations** or **real‑time search as user types** | ❌ Client‑side becomes noticeable lag; also prevents server‑side ranking (e.g., recency, match quality). | Add `GET /api/ai-chat/conversations?search=<term>` that performs `ILIKE` on `title` **and** a JSONB column that stores concatenated message content (or a separate `search_text` tsvector). Return paginated results (`limit=20`, `offset`). |
-| **Future: fuzzy / typo‑tolerant** | ❌ | Consider PostgreSQL `pg_trgm` or a dedicated search service (Meilisearch, Typesense). |  
+| **Future: fuzzy / typo‑tolerant** | ❌ | Consider PostgreSQL `pg_trgm` or a dedicated search service (Meilisearch, Typesense). |
 
-**Recommendation:**  
-- Keep client‑side filtering for now (Phase 1).  
-- Add a **search endpoint** as soon as the conversation list exceeds ~50 items *or* product decides to show a search bar in the sidebar.  
-- Implementation sketch:  
+**Recommendation:**
+- Keep client‑side filtering for now (Phase 1).
+- Add a **search endpoint** as soon as the conversation list exceeds ~50 items *or* product decides to show a search bar in the sidebar.
+- Implementation sketch:
 
 ```http
 GET /api/ai-chat/conversations?search=swing&limit=20&offset=0
@@ -2083,9 +2083,9 @@ ORDER BY lastMessageAt DESC
 LIMIT $2 OFFSET $3;
 ```
 
----  
+---
 
-## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`  
+## 3. File Attachment Endpoint – `POST /api/ai-chat/conversations/:id/attachments`
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -2098,9 +2098,9 @@ LIMIT $2 OFFSET $3;
 
 **Verdict:** The proposed endpoint is **correct** as‑is, provided the backend implements the validation/storage details above. No breaking change needed.
 
----  
+---
 
-## 4. Multimodal Message API – Sending Images with Messages to Gemini  
+## 4. Multimodal Message API – Sending Images with Messages to Gemini
 
 Two common patterns:
 
@@ -2109,15 +2109,15 @@ Two common patterns:
 | **A. Inline base64** (`{ content, attachments: [{ data: "base64…", mimeType: "image/png" }] }`) | Single request; simple for tiny files (< 256 KB). | Bloated payload; base64 adds ~33% overhead; may exceed request size limits; not suitable for larger images. |
 | **B. Upload‑then‑reference** (recommended) | 1️⃣ `POST /api/ai-chat/conversations/:id/attachments` → returns `attachmentId`.<br>2️⃣ `POST /api/ai-chat/conversations/:id/messages` with `{ content, attachmentIds: [attachmentId] }`. | Slightly more complex (two round‑trips) but scales to any file size, enables reuse, and lets the backend run virus scans, throttling, etc. |
 
-**Recommendation:** Adopt **Pattern B** (upload‑then‑reference).  
+**Recommendation:** Adopt **Pattern B** (upload‑then‑reference).
 
-- **Message creation endpoint** (`POST /api/ai-chat/conversations/:id/messages`) should accept an optional `attachmentIds: string[]` array.  
-- The backend will fetch the attachment metadata, construct the Gemini multimodal payload (image URL + base64 if required by the SDK), and store the message with references to the attachments.  
+- **Message creation endpoint** (`POST /api/ai-chat/conversations/:id/messages`) should accept an optional `attachmentIds: string[]` array.
+- The backend will fetch the attachment metadata, construct the Gemini multimodal payload (image URL + base64 if required by the SDK), and store the message with references to the attachments.
 - Keep the existing `content` field for text‑only messages; the API remains backward compatible.
 
----  
+---
 
-## 5. Rate Limiting for New Operations  
+## 5. Rate Limiting for New Operations
 
 | Operation | Frequency (typical) | Suggested Limit (per IP / per user) | Rationale |
 |-----------|--------------------|--------------------------------------|-----------|
@@ -2127,13 +2127,13 @@ Two common patterns:
 | **Message send** (`POST /api/ai-chat/conversations/:id/messages`) | High during chat | **30 req/min** (≈1 every 2 s) | Allows lively conversation but caps rapid‑fire bots. |
 | **Search** (`GET /api/ai-chat/conversations?search=…`) | Typing‑ahead (if implemented) | **20 req/min** | Prevents excessive DB load from rapid keystrokes. |
 
-*Implementation tip:* Use a middleware like `express-rate-limit` with a Redis store for distributed limits, and differentiate limits by route and authenticated user ID (fallback to IP for anonymous).  
+*Implementation tip:* Use a middleware like `express-rate-limit` with a Redis store for distributed limits, and differentiate limits by route and authenticated user ID (fallback to IP for anonymous).
 
----  
+---
 
-## 6. WebSocket Integration – Push vs. Polling  
+## 6. WebSocket Integration – Push vs. Polling
 
-The plan mentions Socket.io already exists.  
+The plan mentions Socket.io already exists.
 
 | Feature | Polling (current) | WebSocket (push) |
 |---------|-------------------|------------------|
@@ -2143,19 +2143,19 @@ The plan mentions Socket.io already exists.
 | **Server load** | Each open tab creates a polling interval → many redundant requests. | Single persistent connection per tab → far less HTTP overhead. |
 | **Complexity** | Simple, works without WS infrastructure. | Requires WS server, room management, reconnection handling. |
 
-**Recommendation:**  
-- **Leverage the existing Socket.io server** to push **real‑time updates** for:  
-  - `newMessage` (includes message text & any attachment IDs)  
-  - `conversationUpdated` (title change, preview update)  
-  - `attachmentUploaded` (metadata for newly uploaded file)  
-- Keep the REST endpoints as the source of truth; WS messages are **optimistic UI updates** that are later reconciled with REST fetches (or rely on WS for correctness if you trust the server).  
-- Use **conversation‑scoped rooms** (`socket.join(conversationId)`) so each client only receives events relevant to the open chats.  
+**Recommendation:**
+- **Leverage the existing Socket.io server** to push **real‑time updates** for:
+  - `newMessage` (includes message text & any attachment IDs)
+  - `conversationUpdated` (title change, preview update)
+  - `attachmentUploaded` (metadata for newly uploaded file)
+- Keep the REST endpoints as the source of truth; WS messages are **optimistic UI updates** that are later reconciled with REST fetches (or rely on WS for correctness if you trust the server).
+- Use **conversation‑scoped rooms** (`socket.join(conversationId)`) so each client only receives events relevant to the open chats.
 
-If the team prefers to defer WS work, polling can stay for Phase 1, but **document** that WS integration is the next performance/scalability improvement.  
+If the team prefers to defer WS work, polling can stay for Phase 1, but **document** that WS integration is the next performance/scalability improvement.
 
----  
+---
 
-## 7. Response Contract – Are Existing Shapes Adequate for `ConversationSummary`?  
+## 7. Response Contract – Are Existing Shapes Adequate for `ConversationSummary`?
 
 Assuming the frontend defines a TypeScript type like:
 
@@ -2170,7 +2170,7 @@ type ConversationSummary = {
 };
 ```
 
-**Checklist:**  
+**Checklist:**
 
 | Field | Provided by current GET /api/ai-chat/conversations? | Action if missing |
 |-------|------------------------------------------------------|-------------------|
@@ -2181,11 +2181,11 @@ type ConversationSummary = {
 | `lastMessageAt` | ✅ | – |
 | `unreadCount` | ❓ (optional) | Not required for Phase 1; can be added later. |
 
-**Verdict:** The contract is **adequate** *only* if the API already returns a `preview`/`context`. Otherwise, augment the response with that field (non‑breaking).  
+**Verdict:** The contract is **adequate** *only* if the API already returns a `preview`/`context`. Otherwise, augment the response with that field (non‑breaking).
 
----  
+---
 
-## 8. Caching Strategy – 5‑Minute Cache on Conversation List  
+## 8. Caching Strategy – 5‑Minute Cache on Conversation List
 
 | Aspect | Evaluation |
 |--------|------------|
@@ -2195,14 +2195,14 @@ type ConversationSummary = {
 | **Per‑user vs. global** | Must be **user‑scoped** (different conversation lists per auth). Include user ID in cache key (`conversations:{userId}`). |
 | **Effect on sidebar** | Sidebar will show the most recent list after either: <br>   a) TTL expires (≤ 5 min), or <br>   b) Cache is purged by the mutation that caused the change. |
 
-**Recommendation:**  
-- Keep a **5‑minute TTL** as a safety net.  
-- Add **cache invalidation hooks** in the message, rename, and attachment upload handlers to delete (or update) the specific user’s conversation‑list cache entry.  
-- If using a CDN or edge cache, ensure the `Vary: Authorization` header is set so cached responses are not shared between users.  
+**Recommendation:**
+- Keep a **5‑minute TTL** as a safety net.
+- Add **cache invalidation hooks** in the message, rename, and attachment upload handlers to delete (or update) the specific user’s conversation‑list cache entry.
+- If using a CDN or edge cache, ensure the `Vary: Authorization` header is set so cached responses are not shared between users.
 
----  
+---
 
-# Summary of API Design Recommendations  
+# Summary of API Design Recommendations
 
 | # | Recommendation | Impact |
 |---|----------------|--------|
@@ -2215,9 +2215,9 @@ type ConversationSummary = {
 | 7 | Verify `ConversationSummary` type matches API response; add `preview` if absent. | Guarantees sidebar renders correctly. |
 | 8 | Maintain 5‑minute TTL cache **plus** invalidation on message/rename/upload events (user‑scoped key). | Near‑fresh data without excessive DB load. |
 
-Implementing the above will make the backend **fully ready** for the frontend changes outlined in the Homepage & About Page Vision Refactor, while keeping the Phase 1 claim of “zero backend changes” true **only** after the minor additive tweaks (preview field, cache invalidation hooks, and optional search endpoint) are in place.  
+Implementing the above will make the backend **fully ready** for the frontend changes outlined in the Homepage & About Page Vision Refactor, while keeping the Phase 1 claim of “zero backend changes” true **only** after the minor additive tweaks (preview field, cache invalidation hooks, and optional search endpoint) are in place.
 
----  
+---
 
 *Prepared for SwanStudios AI Village Review – 2026‑04‑05*
 
@@ -2255,7 +2255,7 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 - **What's missing:** The plan mentions a "voice-first AI coach" but lacks the modern browser architecture to support it without massive server costs. It misses **WebGPU integration** for local AI inference and the **2025 Web Speech API updates** (specifically on-device contextual biasing). Furthermore, the React stack should explicitly adopt the **React 19 Compiler**.
 - **Why it matters:** In late 2025, Chrome rolled out on-device Web Speech recognition and contextual biasing. This allows the browser to recognize fitness-specific jargon (e.g., "log 135 pounds on bench") instantly, offline, and without sending audio to a server. WebGPU allows complex AI models to run locally in the browser, drastically reducing latency and cloud compute costs. React 19's compiler eliminates the need for manual memoization, making the complex UI of a "social ecosystem" highly performant.
-- **How to implement:** 
+- **How to implement:**
   - Upgrade the frontend to React 19 to leverage the React Compiler for automatic performance optimization.
   - Implement TensorFlow.js with the WebGPU backend to run the AI coach's predictive models locally on the user's device.
   - Utilize the updated Web Speech API with a custom `recognition phrase list` (contextual biasing) tailored to the 840+ exercise database to ensure flawless voice recognition during sweaty, breathless workouts.
@@ -2264,9 +2264,9 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 ### 2. Regulatory & Compliance Gaps: The AI Liability Shield
 
-- **What's missing:** The plan completely omits **FDA "General Wellness" disclaimers** and **FTC AI Substantiation guardrails**. 
+- **What's missing:** The plan completely omits **FDA "General Wellness" disclaimers** and **FTC AI Substantiation guardrails**.
 - **Why it matters:** In January 2026, the FDA released updated guidance exempting fitness apps and wearables from strict medical device regulations *only if* they explicitly operate as "low-risk wellness products" and avoid diagnostic claims. Simultaneously, the FTC has launched aggressive crackdowns in 2025–2026 on deceptive AI claims and unregulated AI health advice. If the AI coach suggests a diet that harms a user, SwanStudios could face severe liability.
-- **How to implement:** 
+- **How to implement:**
   - **Homepage/About Page:** Add a clear "General Wellness" disclaimer in the footer stating the platform is for fitness tracking and community support, not medical diagnosis.
   - **Backend:** Implement strict prompt engineering guardrails for the AI coach. If a user asks a medical question, the AI must gracefully default to "consult a physician."
   - **Marketing:** Audit all copy to ensure we do not make quantifiable health promises (e.g., "AI guaranteed to lower blood pressure") that trigger FTC scrutiny.
@@ -2277,7 +2277,7 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 - **What's missing:** The plan focuses heavily on manual logging and social features but ignores **Wearable Integration (Apple Watch, Whoop, Oura)** and **Predictive Readiness Scores**.
 - **Why it matters:** The 2026 digital fitness ecosystem has shifted from manual input to "connected health". Users expect their app to passively pull HRV (Heart Rate Variability), sleep data, and continuous glucose monitor (CGM) data. If a user's Whoop strap indicates poor recovery, the NASM OPT 5-phase periodization should automatically adapt, suggesting a mobility day instead of heavy hypertrophy.
-- **How to implement:** 
+- **How to implement:**
   - Integrate Apple HealthKit and Google Health Connect APIs into the React Native/web ecosystem.
   - Create a "Readiness Dashboard" on the homepage that aggregates wearable data to adjust the user's daily NASM OPT phase dynamically.
 - **Priority:** **HIGH** (Next Sprint)
@@ -2287,7 +2287,7 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 - **What's missing:** The plan mentions "Octalysis gamification" (badges, XP, leaderboards), but 2026 UX standards require **SDT-aligned (Self-Determination Theory) gamification** and **"Zero UI" (hands-free) workout modes**.
 - **Why it matters:** Basic points and badges are viewed as manipulative in 2026 and suffer from high churn. The top gamified apps now use SDT to build intrinsic motivation (Autonomy, Competence, Relatedness). Additionally, users hate touching screens with sweaty hands. "Zero UI" (voice and gesture control) is a pivotal 2025/2026 UX trend.
-- **How to implement:** 
+- **How to implement:**
   - **Zero UI:** Design a "Workout Mode" that is entirely screenless. Users should be able to say, "Swan, next set," or "Swan, I only got 8 reps," and the app logs it via the Web Speech API.
   - **SDT Gamification:** Move beyond static badges. Implement dynamic difficulty scaling (Competence) and cooperative community challenges (Relatedness) where the IRL community and digital community work together to unlock platform-wide milestones.
 - **Priority:** **MEDIUM** (Roadmap)
@@ -2297,7 +2297,7 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 - **What's missing:** The "Global Trainer Platform" relies on a B2C transaction fee model (~10%), completely missing the highly lucrative **B2B Corporate Wellness** market.
 - **Why it matters:** Pure B2C fitness subscriptions are highly saturated. In 2026, the most profitable fitness platforms utilize hybrid monetization, heavily anchored by corporate wellness contracts. Companies pay premium rates for platforms that improve employee health, foster remote team community, and integrate with wearables. SwanStudios' unique blend of fitness, gaming, and social community is the perfect antidote to remote-worker burnout.
-- **How to implement:** 
+- **How to implement:**
   - Add a "For Employers" or "Corporate Wellness" card to the "Beyond the Gym" section on the homepage.
   - Develop a B2B HR dashboard that provides anonymized, aggregated health and engagement metrics for corporate teams.
   - Allow corporations to sponsor private "Guilds" or leaderboards within the app.
@@ -2308,7 +2308,7 @@ Here is the comprehensive gap analysis across the six requested domains.
 
 - **What's missing:** Preparation for **Spatial Computing and AR Fitness** (Apple Vision Pro, Meta Quest).
 - **Why it matters:** Following the maturation of the Apple Vision Pro in 2025/2026, AR fitness has become a concrete, rapidly growing category. Users are beginning to expect holographic trainers and real-time 3D form correction. If SwanStudios has an 840+ exercise database, it needs to be ready for 3D spatial environments.
-- **How to implement:** 
+- **How to implement:**
   - Begin attaching 3D spatial metadata (USDZ/glTF formats) to the 840+ exercise database.
   - Build a lightweight WebXR prototype within the React frontend that allows users with AR glasses to view a 3D holographic representation of the exercise form overlaying their physical environment.
 - **Priority:** **LOW** (Future)
@@ -2343,7 +2343,7 @@ The Secondary Security Planner (Nemotron 3 Super) agrees with all security findi
 - **Database Encryption:** Enforce PostgreSQL `pgcrypto` encryption at rest for `conversation_history` (JSONB) and `voice_transcripts` (BYTEA) using keys managed via AWS KMS or HashiCorp Vault. *Clarification:* Rotate keys every 90 days; audit key usage via CloudTrail/Vault logs.
 - **Row-Level Security (RLS):** Apply policies as specified:
   ```sql
-  CREATE POLICY user_is_owner ON conversations 
+  CREATE POLICY user_is_owner ON conversations
   USING (auth.uid() = user_id);
   ```
   *Clarification:* Ensure `auth.uid()` is derived from a verified JWT (e.g., via Supabase Auth or custom middleware) and enable `row_security` on relevant tables.
@@ -2426,7 +2426,7 @@ CONSENSUS REACHED
 **TO:** Engineering & UI/UX Teams
 **SUBJECT:** FINAL MERGED SPECIFICATION — Coach Assistant UI (Crystalline Swan)
 
-Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof. 
+Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof.
 
 Below is the final, merged, and locked specification for the Coach Assistant UI. All teams are cleared to begin implementation immediately based on these exact parameters.
 
@@ -2448,7 +2448,7 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   --color-obsidian-black: #0A0A0F;
   --color-carbon: #141419;
   --color-graphite: #1A1A24;
-  
+
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-spatial: 0 8px 32px rgba(0, 32, 96, 0.15);
@@ -2555,9 +2555,9 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   font-size: 20px; font-weight: 600; color: var(--color-ice-wing); margin-bottom: 12px;
 }
 .markdown-content h3 {
-  font-size: 16px; 
+  font-size: 16px;
   font-weight: 800; /* Bumped for contrast */
-  color: var(--color-swan-dusk); 
+  color: var(--color-swan-dusk);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }

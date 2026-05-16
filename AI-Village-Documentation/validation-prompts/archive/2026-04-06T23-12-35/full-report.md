@@ -470,16 +470,16 @@ Invert the dependency graph. Lift `conversationId` state to `useCoachAssistant` 
 // Correct composition
 const useCoachAssistant = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  
+
   // useAIChat is a pure data hook — takes conversationId as input
   const chat = useAIChat(activeConversationId);
-  
+
   // useConversationSidebar is a pure UI/list hook — receives a callback
   const sidebar = useConversationSidebar({
     onConversationSelect: setActiveConversationId,
     activeConversationId, // read-only, for highlight state
   });
-  
+
   return { chat, sidebar, activeConversationId };
 };
 ```
@@ -577,16 +577,16 @@ packages/
       AITerminalInput.tsx        # text input + voice toggle (~100 lines)
       AITerminalMessageList.tsx  # message rendering + markdown (~120 lines)
       AITerminalActions.tsx      # copy, read-aloud, export (~80 lines)
-    
+
     contexts/
       AITerminalContext.tsx      # shared state provider (~60 lines)
-    
+
     variants/
       CoachAssistantTerminal.tsx # composes primitives + coach context (~150 lines)
       WorkoutBuilderTerminal.tsx # composes primitives + workout context (~150 lines)
       BootCampTerminal.tsx       # composes primitives + bootcamp context (~120 lines)
       EquipmentScanTerminal.tsx  # composes primitives + scan context (~100 lines)
-    
+
     hooks/
       useAIChat.ts               # data fetching only (~120 lines)
       useVoiceInput.ts           # microphone + STT only (~100 lines)
@@ -664,7 +664,7 @@ const MessageItem = React.memo(({ message }: { message: Message }) => {
 // Separate it from the completed message list:
 const MessageList = () => {
   const { completedMessages, streamingMessage } = useAIChat(conversationId);
-  
+
   return (
     <>
       {completedMessages.map(msg => <MessageItem key={msg.id} message={msg} />)}
@@ -791,88 +791,88 @@ The brief implies `useCoachAssistant` handles: conversation management, message 
 ## [PASS] Security & Privacy Planning
 **Model:** stepfun/step-3.5-flash:free | **Duration:** 48.3s
 
-# Security Review: SwanStudios Refactor Plan  
-**Policy Context:** ZERO PII TO LLMs — No client names, emails, or personal data may reach external AI providers.  
-**Review Date:** 2026-04-06  
-**Scope:** Comprehensive site refactor plan for personal health data platform.  
+# Security Review: SwanStudios Refactor Plan
+**Policy Context:** ZERO PII TO LLMs — No client names, emails, or personal data may reach external AI providers.
+**Review Date:** 2026-04-06
+**Scope:** Comprehensive site refactor plan for personal health data platform.
 
 ---
 
-## 1. PII Exposure in AI Conversation History  
-**Rating:** CRITICAL  
-**Issue:** Conversation titles/previews in AI terminals (Coach Assistant, Swan Coach) may contain PII from user queries (e.g., "John's knee injury workout"). Plan does not mention sanitization before storage or AI processing.  
-**Impact:** Direct violation of ZERO PII TO LLMs policy; PII could be sent to Gemini/other LLMs or exposed in logs/previews.  
-**Mitigations:**  
-- Implement **client-side PII redaction** before any text is sent to AI APIs. Use deterministic masking (e.g., replace names/emails with `[CLIENT]`).  
-- Store only redacted conversation history in PostgreSQL JSONB.  
-- Audit all AI prompt engineering to ensure no PII is embedded in system/user prompts.  
-- Add automated tests verifying PII never leaves the client browser/backend.  
+## 1. PII Exposure in AI Conversation History
+**Rating:** CRITICAL
+**Issue:** Conversation titles/previews in AI terminals (Coach Assistant, Swan Coach) may contain PII from user queries (e.g., "John's knee injury workout"). Plan does not mention sanitization before storage or AI processing.
+**Impact:** Direct violation of ZERO PII TO LLMs policy; PII could be sent to Gemini/other LLMs or exposed in logs/previews.
+**Mitigations:**
+- Implement **client-side PII redaction** before any text is sent to AI APIs. Use deterministic masking (e.g., replace names/emails with `[CLIENT]`).
+- Store only redacted conversation history in PostgreSQL JSONB.
+- Audit all AI prompt engineering to ensure no PII is embedded in system/user prompts.
+- Add automated tests verifying PII never leaves the client browser/backend.
 
 ---
 
-## 2. File Attachment Risks (R2 Uploads)  
-**Rating:** HIGH  
-**Issue:** Equipment images uploaded to Cloudflare R2 for AI analysis. Plan lacks:  
-- File type validation (malicious `.svg` with scripts, `.html` uploads).  
-- SSRF protection if AI service fetches user-provided URLs.  
-- Virus/malware scanning.  
-**Impact:** Malicious file upload could lead to XSS, SSRF, or R2 bucket compromise.  
-**Mitigations:**  
-- **Validate file types** server-side (allow only `image/jpeg`, `image/png`, `image/webp`).  
-- **Scan uploads** with ClamAV or similar before processing.  
-- **Isolate R2 bucket**: Private bucket with presigned URLs; AI service accesses via temporary signed URLs, not user-supplied URLs.  
-- **Set strict CORS** on R2 to prevent unauthorized access.  
-- **Rate-limit** upload endpoints per user/IP.  
+## 2. File Attachment Risks (R2 Uploads)
+**Rating:** HIGH
+**Issue:** Equipment images uploaded to Cloudflare R2 for AI analysis. Plan lacks:
+- File type validation (malicious `.svg` with scripts, `.html` uploads).
+- SSRF protection if AI service fetches user-provided URLs.
+- Virus/malware scanning.
+**Impact:** Malicious file upload could lead to XSS, SSRF, or R2 bucket compromise.
+**Mitigations:**
+- **Validate file types** server-side (allow only `image/jpeg`, `image/png`, `image/webp`).
+- **Scan uploads** with ClamAV or similar before processing.
+- **Isolate R2 bucket**: Private bucket with presigned URLs; AI service accesses via temporary signed URLs, not user-supplied URLs.
+- **Set strict CORS** on R2 to prevent unauthorized access.
+- **Rate-limit** upload endpoints per user/IP.
 
 ---
 
-## 3. Voice Data Privacy  
-**Rating:** HIGH  
-**Issue:** Audio recordings sent to Gemini for transcription. Plan silent on:  
-- Whether raw audio is stored (and where).  
-- Retention period.  
-- Encryption in transit/at rest.  
-- User consent for recording.  
-**Impact:** Voice recordings are biometric PII; unauthorized storage/retention violates GDPR/HIPAA and privacy policy.  
-**Mitigations:**  
-- **Never store raw audio**. Process in-memory, discard after transcription.  
-- If storage is unavoidable:  
-  - Encrypt at rest (AES-256).  
-  - Auto-delete within 24 hours.  
-  - Log access with audit trail.  
-- **Explicit consent** UI before recording (per GDPR Art. 9).  
-- Update privacy policy to detail voice data handling.  
-- Verify Gemini's data retention policy (disable storage if possible).  
+## 3. Voice Data Privacy
+**Rating:** HIGH
+**Issue:** Audio recordings sent to Gemini for transcription. Plan silent on:
+- Whether raw audio is stored (and where).
+- Retention period.
+- Encryption in transit/at rest.
+- User consent for recording.
+**Impact:** Voice recordings are biometric PII; unauthorized storage/retention violates GDPR/HIPAA and privacy policy.
+**Mitigations:**
+- **Never store raw audio**. Process in-memory, discard after transcription.
+- If storage is unavoidable:
+  - Encrypt at rest (AES-256).
+  - Auto-delete within 24 hours.
+  - Log access with audit trail.
+- **Explicit consent** UI before recording (per GDPR Art. 9).
+- Update privacy policy to detail voice data handling.
+- Verify Gemini's data retention policy (disable storage if possible).
 
 ---
 
-## 4. Conversation Data at Rest (PostgreSQL JSONB)  
-**Rating:** HIGH  
-**Issue:** Messages stored as JSONB in PostgreSQL. Plan does not address:  
-- Encryption at rest (PostgreSQL TDE).  
-- Row-level access controls (who sees which conversations).  
-- Backup security.  
-**Impact:** Database compromise exposes full conversation history (potential PII).  
-**Mitigations:**  
-- Enable **PostgreSQL TDE** (transparent data encryption) or use encrypted volumes.  
-- Implement **row-level security (RLS)** policies:  
+## 4. Conversation Data at Rest (PostgreSQL JSONB)
+**Rating:** HIGH
+**Issue:** Messages stored as JSONB in PostgreSQL. Plan does not address:
+- Encryption at rest (PostgreSQL TDE).
+- Row-level access controls (who sees which conversations).
+- Backup security.
+**Impact:** Database compromise exposes full conversation history (potential PII).
+**Mitigations:**
+- Enable **PostgreSQL TDE** (transparent data encryption) or use encrypted volumes.
+- Implement **row-level security (RLS)** policies:
   ```sql
   CREATE POLICY conversation_access ON conversations
-  USING (user_id = current_user_id() OR 
+  USING (user_id = current_user_id() OR
          EXISTS (SELECT 1 FROM trainers_clients WHERE trainer_id = current_user_id() AND client_id = conversations.user_id));
-  ```  
-- **Encrypt JSONB fields** containing PII with application-level encryption (e.g., `pgcrypto`).  
-- **Audit logs** for all conversation access (admin/trainer views).  
-- **Backup encryption** and restricted access.  
+  ```
+- **Encrypt JSONB fields** containing PII with application-level encryption (e.g., `pgcrypto`).
+- **Audit logs** for all conversation access (admin/trainer views).
+- **Backup encryption** and restricted access.
 
 ---
 
-## 5. RBAC Enforcement  
-**Rating:** HIGH  
-**Issue:** Plan describes RBAC (admin sees all, trainer sees assigned clients, client sees own) but no enforcement mechanism specified.  
-**Impact:** Broken RBAC could allow trainers to view other trainers' clients or clients to see others' data.  
-**Mitigations:**  
-- **Enforce RBAC at API layer** (Express middleware):  
+## 5. RBAC Enforcement
+**Rating:** HIGH
+**Issue:** Plan describes RBAC (admin sees all, trainer sees assigned clients, client sees own) but no enforcement mechanism specified.
+**Impact:** Broken RBAC could allow trainers to view other trainers' clients or clients to see others' data.
+**Mitigations:**
+- **Enforce RBAC at API layer** (Express middleware):
   ```javascript
   const authorize = (role, resourceOwnerId) => {
     if (role === 'admin') return true;
@@ -880,52 +880,52 @@ The brief implies `useCoachAssistant` handles: conversation management, message 
     if (role === 'client' && userId === resourceOwnerId) return true;
     throw new ForbiddenError();
   };
-  ```  
-- **Database-level checks** (Sequelize scopes/RLS as above).  
-- **Unit/integration tests** for each role accessing unauthorized data.  
-- **Admin audit dashboard** showing all access logs to conversations.  
+  ```
+- **Database-level checks** (Sequelize scopes/RLS as above).
+- **Unit/integration tests** for each role accessing unauthorized data.
+- **Admin audit dashboard** showing all access logs to conversations.
 
 ---
 
-## 6. MediaRecorder API Risks  
-**Rating:** MEDIUM  
-**Issue:** Browser microphone access for voice input. Plan notes reliability issues but not:  
-- Permission denial handling.  
-- Stream cleanup (memory leaks, accidental recording).  
-- Data leakage (e.g., recordings cached in browser).  
-**Impact:** Unreleased microphone streams could be exploited by malicious scripts or leave audio in memory.  
-**Mitigations:**  
-- **Immediately stop tracks** on component unmount/error:  
+## 6. MediaRecorder API Risks
+**Rating:** MEDIUM
+**Issue:** Browser microphone access for voice input. Plan notes reliability issues but not:
+- Permission denial handling.
+- Stream cleanup (memory leaks, accidental recording).
+- Data leakage (e.g., recordings cached in browser).
+**Impact:** Unreleased microphone streams could be exploited by malicious scripts or leave audio in memory.
+**Mitigations:**
+- **Immediately stop tracks** on component unmount/error:
   ```javascript
   useEffect(() => {
     return () => {
       if (stream) stream.getTracks().forEach(track => track.stop());
     };
   }, []);
-  ```  
-- **Clear blobs/URLs** after upload: `URL.revokeObjectURL(blobUrl)`.  
-- **Permission UI**: Clear indicator when recording is active; require user gesture to start.  
-- **Sandbox iframes** for any third-party voice processing.  
+  ```
+- **Clear blobs/URLs** after upload: `URL.revokeObjectURL(blobUrl)`.
+- **Permission UI**: Clear indicator when recording is active; require user gesture to start.
+- **Sandbox iframes** for any third-party voice processing.
 
 ---
 
-## 7. Markdown Rendering XSS  
-**Rating:** HIGH  
-**Issue:** `react-markdown` used for AI responses; plan notes raw HTML tags appearing. If user-generated content (e.g., client notes) is rendered without sanitization, XSS possible.  
-**Impact:** XSS could steal session tokens, impersonate users, or exfiltrate data.  
-**Mitigations:**  
-- **Sanitize all markdown** with `DOMPurify` before rendering:  
+## 7. Markdown Rendering XSS
+**Rating:** HIGH
+**Issue:** `react-markdown` used for AI responses; plan notes raw HTML tags appearing. If user-generated content (e.g., client notes) is rendered without sanitization, XSS possible.
+**Impact:** XSS could steal session tokens, impersonate users, or exfiltrate data.
+**Mitigations:**
+- **Sanitize all markdown** with `DOMPurify` before rendering:
   ```javascript
   import DOMPurify from 'dompurify';
   const clean = DOMPurify.sanitize(markdown);
-  ```  
-- **Disable HTML in `react-markdown`**: `skipHtml={true}`.  
-- **Content Security Policy (CSP)** headers: `default-src 'self'; script-src 'self' 'nonce-...'`.  
-- **Audit all `react-markdown` instances** (AI terminals, exercise descriptions, client notes).  
+  ```
+- **Disable HTML in `react-markdown`**: `skipHtml={true}`.
+- **Content Security Policy (CSP)** headers: `default-src 'self'; script-src 'self' 'nonce-...'`.
+- **Audit all `react-markdown` instances** (AI terminals, exercise descriptions, client notes).
 
 ---
 
-## Summary & Critical Actions  
+## Summary & Critical Actions
 
 | Finding | Rating | Immediate Action Required |
 |---------|--------|---------------------------|
@@ -937,22 +937,22 @@ The brief implies `useCoachAssistant` handles: conversation management, message 
 | MediaRecorder cleanup | MEDIUM | Add stream stop/cleanup in all voice components. |
 | Markdown XSS | HIGH | Sanitize all markdown; enable CSP. |
 
-**Overall Risk:** **CRITICAL** — Multiple high-risk items could lead to PII exposure, data breaches, or policy violations.  
-**Recommendation:** **Pause all AI/voice/file-upload features** until mitigations are implemented and audited. Prioritize:  
-1. PII redaction for AI.  
-2. RBAC enforcement.  
-3. File upload security.  
-4. Conversation encryption.  
+**Overall Risk:** **CRITICAL** — Multiple high-risk items could lead to PII exposure, data breaches, or policy violations.
+**Recommendation:** **Pause all AI/voice/file-upload features** until mitigations are implemented and audited. Prioritize:
+1. PII redaction for AI.
+2. RBAC enforcement.
+3. File upload security.
+4. Conversation encryption.
 
-**Next Steps:**  
-- Conduct threat modeling session for AI workflows.  
-- Review all external AI provider agreements for data retention.  
-- Implement security testing in Playwright suite (XSS, RBAC bypass, PII leakage).  
-- Update privacy policy and consent flows.  
+**Next Steps:**
+- Conduct threat modeling session for AI workflows.
+- Review all external AI provider agreements for data retention.
+- Implement security testing in Playwright suite (XSS, RBAC bypass, PII leakage).
+- Update privacy policy and consent flows.
 
---- 
+---
 
-**Reviewer:** Security Engineer  
+**Reviewer:** Security Engineer
 **Approval Required:** CTO, Legal, Compliance before proceeding with AI/voice/file features.
 
 ---
@@ -1598,7 +1598,7 @@ BEFORE INSERT OR UPDATE ON conversations
 FOR EACH ROW EXECUTE FUNCTION check_conversation_size();
 
 -- 2. Add a monitoring query to your ops runbook
-SELECT 
+SELECT
   id,
   user_id,
   octet_length(messages::text) AS messages_bytes,
@@ -1628,10 +1628,10 @@ CREATE TABLE conversation_attachments (
   deleted_at TIMESTAMPTZ  -- soft delete for cleanup coordination
 );
 
-CREATE INDEX idx_conv_attachments_conversation_id 
+CREATE INDEX idx_conv_attachments_conversation_id
   ON conversation_attachments(conversation_id);
-CREATE INDEX idx_conv_attachments_deleted_at 
-  ON conversation_attachments(deleted_at) 
+CREATE INDEX idx_conv_attachments_deleted_at
+  ON conversation_attachments(deleted_at)
   WHERE deleted_at IS NULL;
 ```
 
@@ -1711,7 +1711,7 @@ WHERE status != 'deleted';
 ```
 
 ```sql
--- Audit query: find any conversation that is soft-deleted but 
+-- Audit query: find any conversation that is soft-deleted but
 -- whose messages are still being returned by any API call
 -- Run this as a canary check in your staging environment
 
@@ -1720,7 +1720,7 @@ SELECT c.id, c.user_id, c.status, c.updated_at,
 FROM conversations c
 WHERE c.status = 'deleted'
   AND c.updated_at > NOW() - INTERVAL '24 hours';
--- Any rows here after a delete operation indicate a query path 
+-- Any rows here after a delete operation indicate a query path
 -- that is writing to deleted conversations
 ```
 
@@ -1776,9 +1776,9 @@ CREATE TABLE r2_objects (
 
 CREATE INDEX idx_r2_objects_entity ON r2_objects(entity_type, entity_id);
 CREATE INDEX idx_r2_objects_user_id ON r2_objects(user_id);
-CREATE INDEX idx_r2_objects_pending_deletion 
-  ON r2_objects(deletion_requested_at) 
-  WHERE deletion_requested_at IS NOT NULL 
+CREATE INDEX idx_r2_objects_pending_deletion
+  ON r2_objects(deletion_requested_at)
+  WHERE deletion_requested_at IS NOT NULL
     AND deleted_from_r2_at IS NULL;
 ```
 
@@ -1802,15 +1802,15 @@ async function cleanupPendingR2Deletions() {
         Bucket: record.bucket,
         Key: record.r2_key
       });
-      
-      await record.update({ 
+
+      await record.update({
         deleted_from_r2_at: new Date(),
         deletion_error: null
       });
-      
+
       logger.info(`R2 cleanup: deleted ${record.r2_key} for user ${record.user_id}`);
     } catch (err) {
-      await record.update({ 
+      await record.update({
         deletion_error: err.message,
         // Exponential backoff: don't retry immediately
       });
@@ -1839,9 +1839,9 @@ async function deleteConversation(req, res) {
     // This is atomic with the conversation delete — either both happen or neither
     await R2Object.update(
       { deletion_requested_at: new Date() },
-      { 
+      {
         where: { entity_type: 'conversation_attachment', entity_id: conversationId },
-        transaction: t 
+        transaction: t
       }
     );
   });
@@ -1849,7 +1849,7 @@ async function deleteConversation(req, res) {
   // 3. The background worker handles actual R2 deletion asynchronously
   // Do NOT delete from R2 synchronously in the request handler —
   // if R2 is slow or down, you don't want the user's delete request to fail
-  
+
   res.json({ success: true });
 }
 ```
@@ -1920,12 +1920,12 @@ grep -r "getUserMedia\|MediaRecorder\|audio\|voice\|microphone\|transcri" \
 
 The plan states Phase 1 requires zero backend changes, but the current `GET /api/ai-chat/conversations` endpoint **does not** provide sufficient data for the sidebar requirements based on standard implementations and the plan's own context:
 
-- **Missing fields**: The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`. 
+- **Missing fields**: The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`.
   - `title` and `lastMessageAt` (or `updatedAt`) are likely present
   - `messageCount` is frequently omitted from conversation list endpoints (often requiring a separate count query or messages array length)
   - `context` is ambiguous but critical for AI chats—it likely refers to the conversation's system prompt, initial instructions, or summarization context. This is **almost certainly not** returned in a standard conversation list endpoint for performance reasons (context can be large)
 
-**Recommendation**: 
+**Recommendation**:
 - Add `messageCount: integer` and `lastMessageAt: ISO string` to the conversation list response if missing
 - For `context`, either:
   - Return a truncated/summarized version (e.g., first 100 chars) in the list
@@ -1956,12 +1956,12 @@ GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 ## 3. File Attachment Endpoint Design
 **Verdict: REST design is correct; multipart handling assumed**
 
-- **Endpoint**: `POST /api/ai-chat/conversations/:id/attachments` 
+- **Endpoint**: `POST /api/ai-chat/conversations/:id/attachments`
   - ✅ Correctly nests under conversation resource
   - ✅ Uses HTTP POST for creation
   - ✅ Follows REST conventions for sub-resources
 
-- **Multipart handling**: 
+- **Multipart handling**:
   - ✅ **Required** for file uploads (standard for binary data)
   - Must include: `file` (binary), optional `description` (text), `conversationId` (in path)
   - Should validate: file type (images: jpeg/png/webp/pdf), size (<10MB), virus scan
@@ -2032,20 +2032,20 @@ GET /api/ai-chat/conversations?search=<term>&limit=20&offset=0
 **Recommended WebSocket events**:
 ```javascript
 // Server → Client
-socket.emit('conversation:update', { 
+socket.emit('conversation:update', {
   conversationId: 'conv_123',
-  type: 'newMessage', 
-  data: { message: {...} } 
+  type: 'newMessage',
+  data: { message: {...} }
 });
-socket.emit('conversation:update', { 
-  conversationId: 'conv_123', 
-  type: 'titleChanged', 
-  data: { title: 'New Title' } 
+socket.emit('conversation:update', {
+  conversationId: 'conv_123',
+  type: 'titleChanged',
+  data: { title: 'New Title' }
 });
-socket.emit('conversation:update', { 
-  conversationId: 'conv_123', 
-  type: 'attachmentAdded', 
-  data: { attachment: {...} } 
+socket.emit('conversation:update', {
+  conversationId: 'conv_123',
+  type: 'attachmentAdded',
+  data: { attachment: {...} }
 });
 
 // Client → Server (for typing indicators, etc.)
@@ -2125,14 +2125,14 @@ type ConversationSummary = {
 // Client-side state management (e.g., React Query)
 const useConversations = () => {
   const queryClient = useQueryClient();
-  
+
   // Invalidate specific conversation on update
   const updateConversation = useCallback((update) => {
     queryClient.setQueryData(['conversations'], (old = []) =>
       old.map(c => c.id === update.id ? {...c, ...update} : c)
     );
   }, []);
-  
+
   // ... rest of hook
 };
 ```
@@ -2158,7 +2158,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 ## [PASS] Strategic Research & Gap Analysis
 **Model:** google/gemini-3.1-pro-preview | **Duration:** 68.8s
 
-This is a strategic gap analysis and future-proofing audit for SwanStudios, based on the technological, regulatory, and market landscape of **April 2026**. 
+This is a strategic gap analysis and future-proofing audit for SwanStudios, based on the technological, regulatory, and market landscape of **April 2026**.
 
 While the provided brief excellently captures immediate UX and bug-fix needs, it misses several critical macro-trends, compliance mandates, and architectural shifts required to position SwanStudios as an enterprise-grade, premium SaaS platform in 2026.
 
@@ -2194,7 +2194,7 @@ Here are the missing elements that will make this platform 10x better, more defe
 *   **Source:** [FDA 2026 General Wellness Guidance Updates](https://www.jdsupra.com/legalnews/digital-health-policy-fda-relaxes-2026)
 
 **GAP 4: WCAG 2.2 Mobile Accessibility Compliance**
-*   **What's missing:** The brief mentions "accessibility and readability" but lacks specific technical standards. 
+*   **What's missing:** The brief mentions "accessibility and readability" but lacks specific technical standards.
 *   **Why it matters:** With the DOJ's final rule taking effect in 2026, WCAG 2.2 Level AA is the definitive legal standard. WCAG 2.2 introduces strict rules for mobile: *Target Size (Minimum)* (2.5.8) requires tap targets to be at least 24x24 CSS pixels, and *Focus Not Obscured* (2.4.11) prevents floating AI buttons from covering interactive content (which the brief explicitly notes is currently happening).
 *   **How to implement:** Audit the React Native/styled-components library against WCAG 2.2. Enforce a minimum 44x44px touch target for all Rolodex and Builder buttons. Fix the z-index of the floating AI button to ensure it never obscures focusable elements.
 *   **Priority:** HIGH (Next Sprint)
@@ -2231,7 +2231,7 @@ Here are the missing elements that will make this platform 10x better, more defe
 
 **GAP 8: Octalysis "Epic Meaning" & "Empowerment"**
 *   **What's missing:** The brief correctly identifies that gamification is "too shallow" and suggests avatars and badges. However, badges only satisfy Core Drive 4 (Ownership).
-*   **Why it matters:** 2026 Octalysis trends show that long-term fitness retention is driven by Core Drive 1 (Epic Meaning—e.g., narrative-driven fitness) and Core Drive 3 (Empowerment of Creativity—e.g., letting users build and share their own custom challenges). 
+*   **Why it matters:** 2026 Octalysis trends show that long-term fitness retention is driven by Core Drive 1 (Epic Meaning—e.g., narrative-driven fitness) and Core Drive 3 (Empowerment of Creativity—e.g., letting users build and share their own custom challenges).
 *   **How to implement:** Shift the gamification architecture. Instead of just giving points for workouts, allow the wealthy golf demographic to create "Country Club Leaderboards" (Core Drive 5: Social Influence) and unlock narrative-driven golf-conditioning milestones (Core Drive 1).
 *   **Priority:** MEDIUM (Roadmap)
 *   **Source:** [Top 10 Gamification in Fitness Apps 2026 (Yu-kai Chou)](https://yukaichou.com/gamification-examples/top-10-gamification-fitness-apps/)
@@ -2297,11 +2297,11 @@ CONSENSUS REACHED
 **TO: ENGINEERING & PRODUCT TEAMS; DESIGN IMPLEMENTATION REVIEWER**
 **SUBJECT: FINAL SPECIFICATION LOCK — COACH ASSISTANT UPGRADE (CRYSTALLINE SWAN)**
 
-Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets. 
+Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets.
 
-The specification is officially locked. Engineering is cleared to begin implementation immediately. 
+The specification is officially locked. Engineering is cleared to begin implementation immediately.
 
-Below is the final, merged source of truth for the Coach Assistant upgrade. 
+Below is the final, merged source of truth for the Coach Assistant upgrade.
 
 ---
 
@@ -2406,7 +2406,7 @@ blockquote p {
 *   **Provider Badges:** Inline flex, `24px` icon container, distinct colorways for AI (Swan), Human (Trainer), and System. (As originally specified).
 
 ---
-**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel. 
+**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel.
 
 **— Creative Director, SwanStudios**
 

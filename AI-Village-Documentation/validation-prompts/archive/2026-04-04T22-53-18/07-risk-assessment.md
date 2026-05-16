@@ -173,7 +173,7 @@ const Board2Modifications = FEATURES.BOARD2_ENABLED ? Board2ModTable : null;
 
 // backend/routes/exerciseRoutes.mjs
 if (!FEATURES.BOARD2_ENABLED) {
-  return res.json({ 
+  return res.json({
     ...exercise,
     // Strip mod fields to maintain old behavior
   });
@@ -250,14 +250,14 @@ Migration                         Mock data setup
 Routes Update              ←→      Type definitions
     ↓                                    ↓
 Validation Script                  Hook implementation
-    ↓                                    
+    ↓
 Script Test (staging)         ↓
     ↓                         UI Components (with mock data)
 Population in staging         ↓
     ↓                         Integration with real API
 Production population         ↓
     ↓                         E2E + Visual tests
-Feature flag ON               
+Feature flag ON
 ```
 
 **Time Savings:** Frontend can begin development with mock data immediately, not waiting for population script.

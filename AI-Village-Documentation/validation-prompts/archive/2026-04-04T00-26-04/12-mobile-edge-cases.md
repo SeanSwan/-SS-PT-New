@@ -14,7 +14,7 @@ The plan addresses critical functionality gaps but **lacks mobile-first design s
 ---
 
 ## 1. Sidebar on 320px Viewport
-**Rating:** CRITICAL  
+**Rating:** CRITICAL
 **Issue:** Current 3-pane design assumes sidebar width (272px on 320px screen) cannot accommodate exercise cards + search + filters + action buttons.
 
 ---

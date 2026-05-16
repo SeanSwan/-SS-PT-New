@@ -561,10 +561,10 @@ This document describes approximately **18 months of engineering work** as a sin
 ## [PASS] Security
 **Model:** stepfun/step-3.5-flash:free | **Duration:** 47.2s
 
-# Security Audit Report: SwanStudios Platform Design Document  
-**Document:** `docs/ai-workflow/blueprints/ULTIMATE-7-STAR-VALIDATION.md`  
-**Auditor:** Step 3.5 Flash (SWE-bench 74.4%)  
-**Scope:** Design-level security review of platform architecture, feature specifications, and data flows.  
+# Security Audit Report: SwanStudios Platform Design Document
+**Document:** `docs/ai-workflow/blueprints/ULTIMATE-7-STAR-VALIDATION.md`
+**Auditor:** Step 3.5 Flash (SWE-bench 74.4%)
+**Scope:** Design-level security review of platform architecture, feature specifications, and data flows.
 **Note:** This audit assesses the *design document*—actual implementation may vary. Findings assume worst-case implementation unless explicitly mitigated in design.
 
 ---
@@ -589,7 +589,7 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 **Finding:** Floating chat widget on every page with "Context-Aware" capabilities and CRUD operations.
 *   **Rating: HIGH (Network & Bundle)**
 *   **Impact:** Loading a heavy LLM-chat interface on the critical path of the Homepage/Landing page will destroy LCP (Largest Contentful Paint) and TTI (Time to Interactive).
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Lazy Load:** The Chat Widget must be dynamically imported only when the user clicks the toggle.
     *   **Context Injection:** Instead of the widget "scraping" the page, use a `useSwanContext` hook to provide a memoized JSON object to the chat API, preventing N+1 data fetching calls just to give the AI context.
 
@@ -597,8 +597,8 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 **Finding:** MidJourney-like generation to "Replace sidebar icons... on the fly."
 *   **Rating: CRITICAL (Scalability & Memory)**
 *   **Impact:** Storing user-generated assets in a database as Base64 or frequent writes to S3 will bloat the storage layer. Applying these dynamically via JS will cause **Layout Shift (CLS)**.
-*   **Recommendation:** 
-    *   Implement an **Image Proxy/CDN** (like Cloudinary or Imgix) to handle resizing and WebP conversion on the fly. 
+*   **Recommendation:**
+    *   Implement an **Image Proxy/CDN** (like Cloudinary or Imgix) to handle resizing and WebP conversion on the fly.
     *   Cache generated icons locally in `IndexedDB` to prevent redundant network requests for UI elements.
 
 ### 4. Animation Tiers (`useAnimationTier`)
@@ -622,7 +622,7 @@ As a Performance and Scalability Engineer, I have reviewed the **ULTIMATE-7-STAR
 ### 7. Canada Immigration Tab (CRUD Logic)
 **Finding:** "Verify every clickable element... verify all CRUD operations."
 *   **Rating: MEDIUM (Database Efficiency)**
-*   **Impact:** Immigration trackers often involve large document uploads and complex state. 
+*   **Impact:** Immigration trackers often involve large document uploads and complex state.
 *   **Recommendation:** Ensure the PostgreSQL schema uses **JSONB** for the "Document Tracker" to allow flexibility without constant migrations, but add **GIN indexes** on the JSONB fields to ensure queries for "Submitted" vs "Pending" documents remain $O(1)$.
 
 ### 8. Scalability: Multi-Instance State
@@ -1246,11 +1246,11 @@ function useAnimationTier(): AnimationTier {
   const prefersReducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)'
   ).matches;
-  
+
   // Option 2: PerformanceObserver for actual frame timing
   // Option 3: User preference setting
   // Option 4: Explicit device tier from user agent (for mobile)
-  
+
   return { tier: 'essential', reason: 'reduced-motion-preferred' };
 }
 ```
@@ -1403,13 +1403,13 @@ interface AIConfiguration {
     messagesPerDay: number;          // e.g., 100/day
     burstAllowance: number;          // e.g., 15 for 10 seconds
   };
-  
+
   costControl: {
     monthlyBudgetUSD: number;        // e.g., $500/month
     costPerMessageUSD: number;        // e.g., $0.002
     alertThresholdPercent: number;    // e.g., 80% of budget
   };
-  
+
   fallback: {
     mode: 'cache' | 'degraded' | 'error';
     cacheDurationMinutes: number;
@@ -1470,7 +1470,7 @@ interface ServerHealthWidget {
   refreshIntervalMs: number;           // How often to poll
   retentionWindow: string;             // '5m', '1h', '24h'
   alertIntegration: 'slack' | 'email' | 'pagerduty';
-  
+
   // What to SHOW, not how to collect
   displayMetrics: {
     responseTimeP99: boolean;
@@ -1511,11 +1511,11 @@ interface ServerHealthWidget {
 ```typescript
 interface BootcampTimerConfig {
   mode: 'centralized' | 'distributed';
-  
+
   // If centralized:
   syncMechanism: 'websocket' | 'broadcast' | 'none';
   syncToleranceMs: number;              // Acceptable drift
-  
+
   // Audio:
   audioEnabledByDefault: boolean;
   hapticFeedback: boolean;
@@ -1567,18 +1567,18 @@ interface ImmigrationModuleRequirements {
   legalDisclaimerRequired: boolean;
   disclaimerText: string;
   jurisdiction: 'US_only' | 'Canada_only' | 'global';
-  
+
   // Data handling:
   encryptionStandard: 'AES-256' | 'PGP' | 'none';
   dataRetentionDays: number;
   automaticDeletionAfterDays: number;
   auditLogRequired: boolean;
-  
+
   // Monitoring:
   regulationChangeAlertService: string;  // e.g., '律商联讯'
   alertResponsibility: 'admin' | 'automated';
   updateFrequencyDays: number;
-  
+
   // Document storage:
   storageProvider: 'AWS_S3' | 'Azure' | 'local';
   complianceFramework: 'SOC2' | 'HIPAA' | 'PIPEDA' | 'none';
@@ -2303,7 +2303,7 @@ const NumpadKey = styled.button`
   color: #E0ECF4;
   user-select: none;
   touch-action: manipulation;
-  
+
   &:active {
     background: rgba(96, 192, 240, 0.2);
     box-shadow: inset 0 0 10px rgba(96, 192, 240, 0.3);
@@ -2396,14 +2396,14 @@ const MetricCard = styled.div`
   border: 1px solid #1A1A24;
   border-radius: 16px;
   padding: 24px;
-  
+
   h3 { /* Label */
     font-family: 'Cormorant Garamond';
     font-style: italic;
     color: #C6A84B;
     margin-bottom: 8px;
   }
-  
+
   .value { /* Number */
     font-family: 'Fira Code';
     font-size: 32px;
@@ -2438,7 +2438,7 @@ const ScorePanel = styled.div`
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 16px;
   padding: 24px;
-  
+
   .total-score {
     font-family: 'Fira Code';
     font-size: 48px;
@@ -2536,7 +2536,7 @@ interface JWTConfig {
 export const getJWTConfig = (configService: ConfigService): JWTConfig => ({
   accessToken: {
     // 256-bit entropy minimum — NEVER hardcode
-    secret: configService.get('JWT_ACCESS_SECRET', { infer: true }) || 
+    secret: configService.get('JWT_ACCESS_SECRET', { infer: true }) ||
             crypto.randomBytes(32).toString('hex'),
     expiresIn: '15m', // Short-lived = less exposure window
     algorithm: 'RS256', // Public key can live in client; only server has private key
@@ -2561,7 +2561,7 @@ export class JWTService {
 
   async generateTokens(userId: string, role: UserRole): Promise<TokenPair> {
     const config = getJWTConfig(this.configService);
-    
+
     const accessToken = this.jwtService.sign(
       { sub: userId, role, type: 'access' },
       {
@@ -2578,7 +2578,7 @@ export class JWTService {
   }
 
   async rotateRefreshToken(
-    oldToken: string, 
+    oldToken: string,
     userId: string
   ): Promise<TokenPair> {
     // 1. Validate old token
@@ -2628,9 +2628,9 @@ model RefreshToken {
   expiresAt     DateTime
   usedInRotation Boolean  @default(false)
   revokedAt     DateTime?
-  
+
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([familyId])
 }
@@ -2697,11 +2697,11 @@ CRITICAL Classification: OVER-STATED if implementation follows Blueprint Section
 // scripts/audit-jwt-config.ts
 async function auditJWTConfig() {
   const findings = [];
-  
+
   // 1. Check algorithm
   const token = verifyTokenSample(); // Grab any valid JWT
   const decoded = jwt.decode(token, { complete: true });
-  
+
   if (decoded.header.alg === 'HS256') {
     findings.push({
       severity: 'MEDIUM',
@@ -2709,7 +2709,7 @@ async function auditJWTConfig() {
       fix: 'Switch to RS256; share public key only with clients'
     });
   }
-  
+
   if (decoded.header.alg === 'none') {
     findings.push({
       severity: 'CRITICAL',
@@ -2731,7 +2731,7 @@ async function auditJWTConfig() {
   const refreshTokens = await db.refreshToken.count({
     where: { usedInRotation: false }
   });
-  
+
   if (refreshTokens === 0) {
     findings.push({
       severity: 'LOW',

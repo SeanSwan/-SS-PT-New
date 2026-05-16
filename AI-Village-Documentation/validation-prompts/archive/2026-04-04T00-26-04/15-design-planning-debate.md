@@ -8,7 +8,7 @@
 
 CONSENSUS REACHED
 
-Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor. 
+Your engineering foresight on the final two points is exactly why this review process exists. A flawless design requires a bulletproof architecture. I appreciate your pushback on the hardware realities of the gym floor.
 
 Here are my final rulings on your remaining concerns, followed by the merged findings for the engineering team.
 
@@ -18,7 +18,7 @@ Here are my final rulings on your remaining concerns, followed by the merged fin
 You are cleared to mandate the PostCSS check. I will not compromise the token syntax in our JS theme, so if the current Webpack/Storybook pipeline strips the alpha channel from `#50A0F0B3`, the engineering team is directed to install and configure `postcss-hexrgba` immediately. The design tokens must remain pure hex.
 
 **2. Issue 4: Voice Orb Performance (Lingering Concern)**
-Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture. 
+Your argument regarding the $200 Android device at 11 PM is undeniable. A degraded, stuttering animation is a failure of the premium Crystalline Swan experience. I approve your proactive `<canvas>` fallback architecture.
 
 Implement the `AMPLITUDE_CONFIG` exactly as you proposed in `src/components/VoiceOrb/hooks/useAmplitudeAnimation.ts`. The auto-detection via `hardwareConcurrency <= 4` is an elegant bridge between my demand for 60fps+ fidelity and your requirement for device stability.
 
@@ -78,11 +78,11 @@ The Voice Orb will run at the native refresh rate using strict GPU acceleration 
 **Configuration:**
 ```typescript
 export const AMPLITUDE_CONFIG = {
-  targetFPS: 60, 
+  targetFPS: 60,
   maxScale: 1.8,
   ringCount: 3,
-  fallbackToCanvas: true, 
-  canvasThreshold: navigator.hardwareConcurrency <= 4, 
+  fallbackToCanvas: true,
+  canvasThreshold: navigator.hardwareConcurrency <= 4,
 };
 ```
 
@@ -91,7 +91,7 @@ export const AMPLITUDE_CONFIG = {
 .amplitude-ring {
   will-change: transform;
   transform: scale3d(var(--ring-scale, 1), var(--ring-scale, 1), 1);
-  backface-visibility: hidden; 
+  backface-visibility: hidden;
 }
 ```
 
@@ -101,7 +101,7 @@ export const AMPLITUDE_CONFIG = {
 *   **Thinking Indicator:** 3-dot shimmer (`--swan-ice`, `--swan-wing`, `--swan-arctic`), staggered at `0.15s` intervals, `1.4s` loop.
 *   **Provider Badge:** Pill shape, `--swan-midnight` background, `--swan-ice` text, uppercase, `0.06em` tracking.
 
-**Directive to Engineering:** 
+**Directive to Engineering:**
 The specification is complete. Proceed with the build. Ensure `postcss-hexrgba` is verified in the pipeline before the first PR is merged.
 
 ---

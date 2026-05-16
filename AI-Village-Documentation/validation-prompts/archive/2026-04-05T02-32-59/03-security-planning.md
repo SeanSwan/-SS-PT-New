@@ -16,17 +16,17 @@ The proposed changes are **content-only updates** (text replacements, new static
 ## Detailed Finding Analysis
 
 ### 1. PII Exposure in Conversation History
-**Rating:** CRITICAL (for the AI feature, not this plan)  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan's context mentions "conversation history" for the AI coach, but this document contains **zero implementation details** about sanitization. If user messages (text/voice transcripts) contain PII (names, locations, health details) and are stored/processed without stripping, this violates the ZERO PII TO LLMs policy.  
+**Rating:** CRITICAL (for the AI feature, not this plan)
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan's context mentions "conversation history" for the AI coach, but this document contains **zero implementation details** about sanitization. If user messages (text/voice transcripts) contain PII (names, locations, health details) and are stored/processed without stripping, this violates the ZERO PII TO LLMs policy.
 **Mitigation Required:**
 - Implement **PII detection/redaction** (using local models like Microsoft Presidio or AWS Comprehend Medical) **before** any data leaves the trusted environment.
 - **Never** send raw conversation history to external AI providers. Use synthetic/aggregated data for training.
 - Audit all conversation storage (PostgreSQL JSONB) for existing PII and purge/redact.
 
 ### 2. File Attachment Risks (Image Uploads to R2)
-**Rating:** HIGH (for the AI feature, not this plan)  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** HIGH (for the AI feature, not this plan)
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The context mentions image uploads to Cloudflare R2 for AI analysis. The plan provides **no security controls** for:
 - **Malicious file uploads**: No mention of file type validation, virus scanning, or content inspection.
 - **SSRF via image URLs**: If the AI feature fetches user-provided URLs, no safeguards against internal network access.
@@ -38,8 +38,8 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **R2 bucket policies**: Private buckets, signed URLs with short expiry, CORS restrictions.
 
 ### 3. Voice Data Privacy (Gemini Transcription)
-**Rating:** CRITICAL  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** CRITICAL
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The context states audio recordings are sent to Gemini. The plan **does not specify**:
 - **Storage duration**: How long are raw audio files and transcripts kept?
 - **Retention policy**: Are they deleted after processing? After user deletion?
@@ -52,18 +52,18 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Legal review**: Update privacy policy to cover biometric data (voiceprints) and third-party processing.
 
 ### 4. Conversation Data at Rest (PostgreSQL JSONB)
-**Rating:** HIGH  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan assumes conversations exist but provides **no encryption or access control details**. JSONB fields may contain PII.  
+**Rating:** HIGH
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan assumes conversations exist but provides **no encryption or access control details**. JSONB fields may contain PII.
 **Mitigation Required:**
 - **Encryption at rest**: Ensure PostgreSQL uses TDE (Transparent Data Encryption) or disk-level encryption (AWS RDS default is sufficient if managed).
 - **Column-level encryption**: For highly sensitive fields (e.g., health conditions), use application-level encryption (e.g., `pgcrypto`) with keys in KMS.
 - **Access controls**: Enforce row-level security (RLS) in PostgreSQL so users can only query their own conversations. **Never rely solely on application-layer checks**.
 
 ### 5. RBAC Enforcement
-**Rating:** HIGH  
-**Plan Relevance:** ❌ Not addressed in this plan.  
-**Issue:** The plan describes admin/trainer/client roles but **no implementation details** for enforcement. This is a classic "missing authorization" vulnerability.  
+**Rating:** HIGH
+**Plan Relevance:** ❌ Not addressed in this plan.
+**Issue:** The plan describes admin/trainer/client roles but **no implementation details** for enforcement. This is a classic "missing authorization" vulnerability.
 **Mitigation Required:**
 - **Backend middleware**: Every API endpoint fetching conversations must verify:
   ```javascript
@@ -79,8 +79,8 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Audit logs**: Log all conversation access with user ID, timestamp, and conversation ID.
 
 ### 6. MediaRecorder API Risks (Browser Microphone)
-**Rating:** MEDIUM  
-**Plan Relevance:** ❌ Not addressed in this plan.  
+**Rating:** MEDIUM
+**Plan Relevance:** ❌ Not addressed in this plan.
 **Issue:** The voice feature uses `MediaRecorder`. Risks:
 - **Permission handling**: No mention of graceful denial handling or UI feedback.
 - **Stream cleanup**: Forgetting to `track.stop()` can leave microphone active.
@@ -92,9 +92,9 @@ The proposed changes are **content-only updates** (text replacements, new static
 - **Content Security Policy (CSP)**: Restrict `media-src` to trusted origins.
 
 ### 7. Markdown Rendering XSS
-**Rating:** MEDIUM  
-**Plan Relevance:** ⚠️ **Indirectly relevant** — the plan updates text content that *may* be rendered as markdown.  
-**Issue:** The platform uses `react-markdown`. If any new text sections (e.g., "Why We Built This", promise cards) are stored as user-editable markdown (unlikely for static content), XSS is possible via `<script>` or `onerror` in images.  
+**Rating:** MEDIUM
+**Plan Relevance:** ⚠️ **Indirectly relevant** — the plan updates text content that *may* be rendered as markdown.
+**Issue:** The platform uses `react-markdown`. If any new text sections (e.g., "Why We Built This", promise cards) are stored as user-editable markdown (unlikely for static content), XSS is possible via `<script>` or `onerror` in images.
 **Mitigation Required:**
 - **Sanitization**: Use `rehype-sanitize` with a strict allowlist (only `<p>`, `<strong>`, `<em>`, `<ul>`, `<li>`, etc.). **Never** allow `iframe`, `script`, or event handlers.
 - **Static content**: Ensure these new sections are **hardcoded strings**, not user-editable markdown. If they must be editable by admins, store as plain text and apply markdown server-side with sanitization.

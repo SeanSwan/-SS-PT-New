@@ -6,7 +6,7 @@
 
 ---
 
-As a strategic product researcher and futurist for SwanStudios, I have analyzed the "Board 2 Exercise Modifications" plan. While the core concept of mapping 10 variations across 883 exercises using Gemini 2.5 Flash is highly scalable, the plan has significant blind spots regarding 2026 regulatory shifts, modern React paradigms, and our core differentiators (Voice-first AI and Octalysis). 
+As a strategic product researcher and futurist for SwanStudios, I have analyzed the "Board 2 Exercise Modifications" plan. While the core concept of mapping 10 variations across 883 exercises using Gemini 2.5 Flash is highly scalable, the plan has significant blind spots regarding 2026 regulatory shifts, modern React paradigms, and our core differentiators (Voice-first AI and Octalysis).
 
 Here is the comprehensive gap analysis and future-proofing strategy to make this feature 10x better and legally secure.
 
@@ -17,7 +17,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 1: FDA 2026 Medical Device Exemption Violations**
 * **What's missing:** The plan uses clinical terminology like "Pain Mods," "Knee pain alternative," and "Lower back pain alternative."
 * **Why it matters:** In January 2026, the FDA issued updated guidance clarifying that AI-enabled fitness apps are exempt from stringent medical device regulations *only if* they do not make claims related to disease diagnosis or treatment. Using the word "pain" crosses the line into treating a medical condition, which could trigger FDA oversight and massive compliance costs.
-* **How to implement:** 
+* **How to implement:**
   * **DB Schema:** Rename fields from `kneeMod` to `kneeFriendly`, `backMod` to `backFriendly`, etc.
   * **UI Labels:** Change the "Pain Mods" section header to "Mobility Focus" or "Joint-Friendly Alternatives."
   * **Legal:** Add a standard medical disclaimer tooltip in the Crystalline Swan UI.
@@ -27,7 +27,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 2: FTC 2026 AI Guidelines (Lack of Human-in-the-Loop)**
 * **What's missing:** The plan states: *"Script writes directly to production DB."*
 * **Why it matters:** The FTC's 2025/2026 guidelines on AI health claims strictly prohibit the autonomous generation of health/fitness guidance without human oversight. Direct-to-production AI generation exposes SwanStudios to "AI washing" and deceptive practice fines if Gemini hallucinates a dangerous modification (e.g., suggesting a heavy deadlift for a lower back modification).
-* **How to implement:** 
+* **How to implement:**
   * Write the Gemini JSON output to a staging table (`ExerciseVariations_Draft`).
   * Build a simple admin dashboard where your NASM-certified trainer can bulk-review and click "Approve Batch" before the data migrates to the production `Exercises` table.
 * **Priority:** **CRITICAL** (Do now)
@@ -63,7 +63,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 * **Source:** [Accessibility in Fitness Apps: How to Train Inclusively (Feb 2025)](https://www.accessiway.com/blog/accessibility-in-fitness-apps-how-to-train-inclusively)
 
 **GAP 6: Octalysis Gamification Integration**
-* **What's missing:** The plan treats modifications purely as functional data. 
+* **What's missing:** The plan treats modifications purely as functional data.
 * **Why it matters:** In fitness psychology, taking an "easier" variation or modifying for a joint issue often feels like a failure, leading to churn. Under the Octalysis framework, we must reframe this using Core Drive 2 (Development & Accomplishment) and Core Drive 3 (Empowerment of Creativity).
 * **How to implement:** When a user selects a modification, trigger a gamified UI toast (using the *Gilded Fern #C6A84B* accent color): *"Smart Adaptation! Listening to your body keeps your streak alive."* Award them "Longevity Points" for logging the modification rather than skipping the workout.
 * **Priority:** **MEDIUM** (Roadmap)
@@ -83,7 +83,7 @@ Here is the comprehensive gap analysis and future-proofing strategy to make this
 **GAP 8: FHIR Data Portability for Physical Therapists**
 * **What's missing:** The data is locked inside SwanStudios.
 * **Why it matters:** By 2026, interoperability via FHIR (Fast Healthcare Interoperability Resources) is the gold standard. If a user consistently selects the `shoulderFriendly` modification over 6 months, that is vital diagnostic data for their physical therapist or orthopedic doctor.
-* **How to implement:** Build an export feature that maps the user's modification history into FHIR `Observation` resources. This allows the user to securely export their "Joint Stress Profile" to their healthcare provider's EHR system (Epic, Cerner). 
+* **How to implement:** Build an export feature that maps the user's modification history into FHIR `Observation` resources. This allows the user to securely export their "Joint Stress Profile" to their healthcare provider's EHR system (Epic, Cerner).
 * **Priority:** **LOW** (Future)
 * **Source:** [Integrate Wearable Device Data into EHRs with AI Intelligence (Sep 2025)](https://tateeda.com/blog/wearable-device-integration-with-ehr)
 

@@ -11,11 +11,11 @@ CONSENSUS REACHED
 **TO: ENGINEERING & PRODUCT TEAMS; DESIGN IMPLEMENTATION REVIEWER**
 **SUBJECT: FINAL SPECIFICATION LOCK — COACH ASSISTANT UPGRADE (CRYSTALLINE SWAN)**
 
-Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets. 
+Excellent work. This is how the design and engineering review process should function. We have successfully protected the premium, high-end aesthetic of the Crystalline Swan theme while ensuring flawless 60fps rendering, WCAG AAA accessibility compliance, and robust mobile touch targets.
 
-The specification is officially locked. Engineering is cleared to begin implementation immediately. 
+The specification is officially locked. Engineering is cleared to begin implementation immediately.
 
-Below is the final, merged source of truth for the Coach Assistant upgrade. 
+Below is the final, merged source of truth for the Coach Assistant upgrade.
 
 ---
 
@@ -120,6 +120,6 @@ blockquote p {
 *   **Provider Badges:** Inline flex, `24px` icon container, distinct colorways for AI (Swan), Human (Trainer), and System. (As originally specified).
 
 ---
-**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel. 
+**Final Directive to Engineering:** The blueprint is flawless. Build it to the pixel.
 
 **— Creative Director, SwanStudios**

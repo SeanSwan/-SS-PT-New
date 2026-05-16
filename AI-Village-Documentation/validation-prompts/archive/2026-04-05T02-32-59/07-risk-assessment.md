@@ -32,11 +32,11 @@
 The plan references phases (0→1→2→3→4→5) but **the actual phase breakdown with dependencies is missing from the document**. Based on the described features:
 
 ```
-Phase 0 (Infrastructure?) 
+Phase 0 (Infrastructure?)
     ↓
-Phase 1 (Text-only updates) → Phase 2 (New sections) 
+Phase 1 (Text-only updates) → Phase 2 (New sections)
     ↓
-Phase 3 (Markdown rendering) → Phase 4 (Voice integration) 
+Phase 3 (Markdown rendering) → Phase 4 (Voice integration)
     ↓
 Phase 5 (Polish/Testing)
 ```
@@ -270,7 +270,7 @@ export const FEATURE_FLAGS = {
 REACT_APP_FLAG_VOICE_COACH=false
 REACT_APP_FLAG_NEW_HOMEPAGE=true
 
-# .env.production  
+# .env.production
 REACT_APP_FLAG_VOICE_COACH=false  # Disabled until Phase 4 complete
 REACT_APP_FLAG_NEW_HOMEPAGE=true   # Enabled after Phase 1
 ```

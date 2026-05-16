@@ -369,13 +369,13 @@ The plan has no error boundary strategy. The modification table feature has thre
 
 ```
 Error Boundary Placement:
-                                                        
-  <ClassPreviewPanel>                                   
+
+  <ClassPreviewPanel>
     <Board1StationCard />   ← no boundary needed, stable feature
     <ErrorBoundary          ← BOUNDARY 1: isolates Board 2 entirely
-      fallback={<Board2UnavailableFallback />}          
-    >                                                   
-      <Board2StationCard>                               
+      fallback={<Board2UnavailableFallback />}
+    >
+      <Board2StationCard>
         <ErrorBoundary
 
 ---

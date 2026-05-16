@@ -8,7 +8,7 @@
 
 ## Creative Director (Lead Design Authority) — Round 1
 
-Listen to me, Claude. I’ve read the UX/Accessibility Audit. It’s thorough, it’s clinical, and it’s exactly why I need to step in before engineering turns my Crystalline Swan vision into a sterile, compliance-driven spreadsheet. 
+Listen to me, Claude. I’ve read the UX/Accessibility Audit. It’s thorough, it’s clinical, and it’s exactly why I need to step in before engineering turns my Crystalline Swan vision into a sterile, compliance-driven spreadsheet.
 
 We are building a **luxury personal training platform**. Our clients wear Rolexes, drive Porsches, and expect digital experiences that feel like stepping into a high-end vault. Yes, we will be WCAG 2.1 AA compliant. Yes, we will be accessible. But we will do it with *absolute uncompromising style*. We do not degrade the design for accessibility; we engineer accessibility *into* the luxury.
 
@@ -20,7 +20,7 @@ Here are my absolute, non-negotiable directives for Round 1. Update the blueprin
 **Severity:** CRITICAL
 **File & Location:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md` -> Design Tokens
 **Design Problem:** The auditor is right. `rgba(0, 32, 96, 0.4)` (Midnight Sapphire at 40%) over a variable background will cause `Frost White #E0ECF4` text to fail WCAG AA contrast ratios. It will look muddy and cheap.
-**Design Solution:** We do not abandon glass; we deepen the vault. 
+**Design Solution:** We do not abandon glass; we deepen the vault.
 *   **New Glass Token:** `--glass-bg: rgba(0, 48, 128, 0.65);` (A calculated opacity of Royal Depth #003080).
 *   **Blur:** Increase to `backdrop-filter: blur(24px);` to smooth out background noise.
 *   **Text Treatment:** All `Frost White #E0ECF4` text inside a `GlassCard` MUST have a subtle text shadow to guarantee legibility regardless of the background image. `text-shadow: 0 2px 4px rgba(10, 10, 15, 0.5);` (Obsidian Black).
@@ -55,7 +55,7 @@ Here are my absolute, non-negotiable directives for Round 1. Update the blueprin
 **Severity:** CRITICAL
 **File & Location:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md` -> Animation Library Choice
 **Design Problem:** Disabling all animations for `prefers-reduced-motion` makes the site look broken and cheap.
-**Design Solution:** We don't stop the motion; we *change the physics*. 
+**Design Solution:** We don't stop the motion; we *change the physics*.
 *   **Parallax:** `y` transforms become `0`. Backgrounds lock in place.
 *   **Staggered Reveals:** `y: 50` (slide up) becomes `y: 0`. We rely *only* on `opacity: 0` to `opacity: 1`.
 *   **Duration:** Cross-fades happen at `--duration-fast` (0.3s) instead of `--duration-slow` (1.2s).
@@ -68,7 +68,7 @@ Here are my absolute, non-negotiable directives for Round 1. Update the blueprin
 **Severity:** HIGH
 **File & Location:** Global UI Components
 **Design Problem:** 44x44px is the WCAG minimum. 44px is for standard apps. We are a luxury app.
-**Design Solution:** Minimum interactive hit area is **48x48px**. 
+**Design Solution:** Minimum interactive hit area is **48x48px**.
 *   If a visual button or icon (like the "Sticky sidebar navigation dots") is visually smaller (e.g., an 8px dot), it MUST have a transparent pseudo-element (`::after`) expanding its clickable area to 48x48px.
 **Implementation Notes:**
 1. Add a mixin to styled-components: `${touchTarget()}`.
@@ -78,7 +78,7 @@ Here are my absolute, non-negotiable directives for Round 1. Update the blueprin
 **Severity:** MEDIUM (Visually CRITICAL)
 **File & Location:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md` -> Loading States (New Section)
 **Design Problem:** Standard grey skeleton loaders look like a cheap SaaS template.
-**Design Solution:** "Crystalline Shimmer". 
+**Design Solution:** "Crystalline Shimmer".
 *   **Base:** `Carbon #141419`
 *   **Shimmer Gradient:** `linear-gradient(90deg, transparent, rgba(96, 192, 240, 0.1), transparent)` (Ice Wing at 10% opacity).
 *   **Animation:** Smooth infinite pan from left to right.
@@ -89,7 +89,7 @@ Here are my absolute, non-negotiable directives for Round 1. Update the blueprin
 ---
 
 ### Claude, your turn.
-I have laid down the law on the visual execution of these accessibility requirements. Review my solutions. Do you see any technical bottlenecks in implementing the `useSwanMotion` hook or the Aria-Hidden Double technique with Framer Motion? 
+I have laid down the law on the visual execution of these accessibility requirements. Review my solutions. Do you see any technical bottlenecks in implementing the `useSwanMotion` hook or the Aria-Hidden Double technique with Framer Motion?
 
 Do not suggest changing the colors. The Crystalline Swan palette is locked. Defend your engineering approach.
 
@@ -141,18 +141,18 @@ import { useEffect, useState } from 'react';
 
 export const useGlassContrastCheck = (textElementRef, glassElementRef) => {
   const [passesContrast, setPassesContrast] = useState(false);
-  
+
   useEffect(() => {
     // Use chroma.js or similar for runtime luminance calculation
     // after element composites with its background
     const checkContrast = () => {
       // Implementation would sample pixel colors and compute ratio
     };
-    
+
     window.addEventListener('resize', checkContrast);
     return () => window.removeEventListener('resize', checkContrast);
   }, []);
-  
+
   return passesContrast;
 };
 ```
@@ -211,15 +211,15 @@ import { useReducedMotion } from 'framer-motion';
 export const MOTION_VARIANTS = {
   standard: {
     hidden: { opacity: 0, y: 50 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: { duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }
     }
   },
   reduced: {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
       transition: { duration: 0.3 } // --duration-fast
     }
@@ -228,12 +228,12 @@ export const MOTION_VARIANTS = {
 
 export const useSwanMotion = (variantType = 'standard') => {
   const prefersReducedMotion = useReducedMotion();
-  
+
   return {
     initial: 'hidden',
     animate: 'visible',
-    variants: prefersReducedMotion 
-      ? MOTION_VARIANTS.reduced 
+    variants: prefersReducedMotion
+      ? MOTION_VARIANTS.reduced
       : MOTION_VARIANTS[variantType]
   };
 };
@@ -297,9 +297,9 @@ const Skeleton = ({ width, height, borderRadius, label = 'Loading content...' })
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    90deg, 
-    transparent, 
-    rgba(96, 192, 240, 0.1), 
+    90deg,
+    transparent,
+    rgba(96, 192, 240, 0.1),
     transparent
   );
   animation: crystalline-shimmer 1.5s infinite;
@@ -332,7 +332,7 @@ Once these four points are resolved, I will draft the **implementation tickets**
 
 ## Creative Director (Lead Design Authority) — Round 3
 
-This is exactly the kind of rigorous pushback I expect. You caught the accessibility gap in the skeletons, and you formalized the motion hook beautifully. 
+This is exactly the kind of rigorous pushback I expect. You caught the accessibility gap in the skeletons, and you formalized the motion hook beautifully.
 
 Let's clear the board: **I officially approve your implementations for Dispute #3 (`useSwanMotion` hook) and Dispute #4 (Skeleton Loaders).** Your code for both is elegant and production-ready. Update `components/Skeleton.jsx` and `hooks/useSwanMotion.js` exactly as you wrote them.
 
@@ -343,9 +343,9 @@ Now, let’s address where we still diverge. We need to protect both performance
 ### Dispute #1: Glass Morphism Contrast Checking
 **Verdict:** PARTIAL DISAGREEMENT (Reject Runtime, Accept Simulated CI)
 
-You are entirely correct that static CI/CD cannot calculate `backdrop-filter` composites. However, I **absolutely veto** the `useGlassContrastCheck` runtime pixel-sampling hook. 
+You are entirely correct that static CI/CD cannot calculate `backdrop-filter` composites. However, I **absolutely veto** the `useGlassContrastCheck` runtime pixel-sampling hook.
 
-Running JavaScript to sample pixel luminance on `window.resize` or scroll will cause layout thrashing and destroy our 60fps performance target. A luxury experience cannot stutter. 
+Running JavaScript to sample pixel luminance on `window.resize` or scroll will cause layout thrashing and destroy our 60fps performance target. A luxury experience cannot stutter.
 
 **The Solution:** We go all-in on your second suggestion—**Simulated CI/CD Testing via Headless Browser**.
 1.  **File:** `tests/e2e/accessibility/glass-contrast.spec.ts` (New Playwright test).
@@ -356,7 +356,7 @@ Running JavaScript to sample pixel luminance on `window.resize` or scroll will c
 ### Dispute #2: Text Shadow on Frost White
 **Verdict:** DISAGREE (Reject White Glow, Refine Dark Shadow)
 
-Your optical theory regarding the "foggy" appearance of dark shadows on light text is valid for standard web design, but your proposed solution—a luminous white halo (`text-shadow: 0 0 8px rgba(224, 236, 244, 0.3)`)—is a critical accessibility hazard. 
+Your optical theory regarding the "foggy" appearance of dark shadows on light text is valid for standard web design, but your proposed solution—a luminous white halo (`text-shadow: 0 0 8px rgba(224, 236, 244, 0.3)`)—is a critical accessibility hazard.
 
 If that GlassCard sits over a bright section of a background image, a white glow behind white text will completely obliterate the letterforms' edge definition. It creates a smudge, not a separation. We *must* use a dark shadow to anchor the text, but I concede that my original `0 2px 4px` is too heavy for small body copy.
 
@@ -424,7 +424,7 @@ for (const bg of BRAND_BACKGROUNDS) {
       // Set the background dynamically for testing
       document.body.style.backgroundImage = `url('/backgrounds/${bg}')`;
     });
-    
+
     const glassCard = page.locator('.GlassCard');
     await expect(glassCard).toHaveContrastRatio(4.5, { backgroundImage: bg });
   });
@@ -453,7 +453,7 @@ The refined split tokens are optically superior:
 :root {
   /* For Headings — Cormorant Garamond Italic (18px+) */
   --glass-text-shadow-display: 0 2px 4px rgba(10, 10, 15, 0.5);
-  
+
   /* For Body — Plus Jakarta Sans (14-16px) */
   --glass-text-shadow-ui: 0 1px 2px rgba(10, 10, 15, 0.85);
 }
@@ -498,7 +498,7 @@ CONSENSUS REACHED
 
 Excellent work. This is how design and engineering should collaborate. We have successfully protected the Crystalline Swan aesthetic—maintaining our high-end, vault-like luxury feel—while engineering WCAG 2.1 AA compliance directly into the platform's DNA. No compromises. No degraded fallbacks.
 
-You have my official sign-off to generate the Engineering Implementation Tickets based on the following finalized blueprints. 
+You have my official sign-off to generate the Engineering Implementation Tickets based on the following finalized blueprints.
 
 ***
 
@@ -549,4 +549,3 @@ You have my official sign-off to generate the Engineering Implementation Tickets
 Lock these into the sprint. I look forward to reviewing the staging environment.
 
 ---
-

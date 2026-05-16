@@ -10,8 +10,8 @@
 
 ## Executive Summary
 
-**Document Type:** Design Specification / UX Blueprint (Markdown)  
-**Reviewed:** 2026-04-05  
+**Document Type:** Design Specification / UX Blueprint (Markdown)
+**Reviewed:** 2026-04-05
 **Verdict:** PENDING — Contains CRITICAL architectural flaws in the encryption model, inconsistent design tokens, unverified technical assumptions, and scope creep that threatens production delivery.
 
 ---
@@ -82,7 +82,7 @@ Use opacity variation only — never swap the underlying color family.
 
 5 components appear in BOTH the Homepage AND About sections lists but are NOT in the Reusable Animation Components table:
 - `ParallaxLayer`
-- `GlassCard`  
+- `GlassCard`
 - `AnimatedCounter`
 - `TextSplitter`
 - `ScrollReveal` (mentioned but no dedicated component entry)
@@ -293,7 +293,7 @@ But provides **zero guidance** on:
 - [ ] Parallax backgrounds must be `aria-hidden="true"`
 - [ ] Counter animations must announce final values via `aria-live="polite"`
 
-### Keyboard Navigation  
+### Keyboard Navigation
 - [ ] All interactive elements in focus order
 - [ ] Parallax must not trap keyboard focus
 - [ ] Escape key exits any modal/overlay immediately

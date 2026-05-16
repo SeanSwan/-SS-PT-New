@@ -619,7 +619,7 @@ Below is the performance impact review and optimization strategy.
 ### 1. Bundle Size (Markdown & Highlighting)
 **Rating: HIGH**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~70-90KB (min+gzip). For a "wealthy golf client" on a potentially spotty country club Wi-Fi/LTE, this increases Time to Interactive (TTI).
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Do not include these in the main bundle. Use `React.lazy(() => import('./MarkdownRenderer'))`.
     *   **Lightweight Alternatives:** Use `prismjs` or `lowlight` for highlighting, or better yet, only load highlighting for the "AI Village" developer views, not the end-user coach chat.
 
@@ -1260,10 +1260,10 @@ Here is the technical review of your component architecture plan:
 
 # Data Safety Audit: CLAUDE.md Token Optimization Plan
 
-**Auditor:** Data Safety Review  
-**Platform:** SwanStudios (sswanstudios.com) — Production SaaS  
-**Date:** 2025  
-**Scope:** 8 data safety findings as specified  
+**Auditor:** Data Safety Review
+**Platform:** SwanStudios (sswanstudios.com) — Production SaaS
+**Date:** 2025
+**Scope:** 8 data safety findings as specified
 **Verdict:** ⚠️ **AUDIT MISMATCH DETECTED — SEE CRITICAL FINDING #0**
 
 ---
@@ -1300,10 +1300,10 @@ These features appear to belong to a **different plan** — likely an AI Chat fe
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `HIGH` for the implied missing plan
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to JSONB, conversations, 
+SUBMITTED PLAN CONTAINS: Zero references to JSONB, conversations,
 messages, or file attachments.
 
-WHAT THE PLAN DOES: Reorganizes markdown documentation files in 
+WHAT THE PLAN DOES: Reorganizes markdown documentation files in
 docs/ai-workflow/references/. No database interaction whatsoever.
 ```
 
@@ -1339,8 +1339,8 @@ if (conversationSize > MAX_CONVERSATION_BYTES) {
 }
 
 -- RECOMMENDATION 2: Add a PostgreSQL constraint
-ALTER TABLE conversations 
-ADD CONSTRAINT check_messages_size 
+ALTER TABLE conversations
+ADD CONSTRAINT check_messages_size
 CHECK (pg_column_size(messages) < 524288); -- 512KB
 
 -- RECOMMENDATION 3: Track message count separately
@@ -1361,7 +1361,7 @@ ALTER TABLE conversations ADD COLUMN message_count INTEGER DEFAULT 0;
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `HIGH` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to soft delete, 
+SUBMITTED PLAN CONTAINS: Zero references to soft delete,
 status='deleted', conversations, or sidebar listing.
 
 THE PLAN DOES: Moves documentation files. No query logic changes.
@@ -1377,8 +1377,8 @@ THE PLAN DOES: Moves documentation files. No query logic changes.
 SELECT * FROM conversations WHERE user_id = $1;
 
 -- ✅ SAFE - explicit exclusion
-SELECT * FROM conversations 
-WHERE user_id = $1 
+SELECT * FROM conversations
+WHERE user_id = $1
   AND status != 'deleted'
   AND deleted_at IS NULL  -- belt AND suspenders
 ORDER BY updated_at DESC;
@@ -1395,7 +1395,7 @@ const Conversation = sequelize.define('Conversation', {
   // Sequelize paranoid mode - automatically adds deletedAt
   // and excludes soft-deleted records from ALL queries
   paranoid: true,
-  
+
   // Add a default scope that ALWAYS filters deleted
   defaultScope: {
     where: {
@@ -1420,8 +1420,8 @@ WHERE status != 'deleted'
 -- This makes it structurally impossible to accidentally query deleted records
 
 -- RECOMMENDATION: Index for performance
-CREATE INDEX idx_conversations_user_active 
-ON conversations(user_id, updated_at DESC) 
+CREATE INDEX idx_conversations_user_active
+ON conversations(user_id, updated_at DESC)
 WHERE status != 'deleted' AND deleted_at IS NULL;
 -- Partial index - only indexes non-deleted rows
 -- Sidebar queries become O(log n) on active records only
@@ -1436,10 +1436,10 @@ WHERE status != 'deleted' AND deleted_at IS NULL;
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `CRITICAL` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to R2, file storage, 
+SUBMITTED PLAN CONTAINS: Zero references to R2, file storage,
 attachments, or cleanup strategies.
 
-THE PLAN DOES: Reorganizes .md files in docs/. 
+THE PLAN DOES: Reorganizes .md files in docs/.
 No storage interaction.
 ```
 
@@ -1450,7 +1450,7 @@ RISK PROFILE:
 - Orphaned files in R2 = storage cost leak (financial)
 - Orphaned files containing user data = PRIVACY VIOLATION
 - No cleanup = GDPR/CCPA right-to-erasure failure
-- For wealthy clients (golf demographic): privacy breach = 
+- For wealthy clients (golf demographic): privacy breach =
   immediate churn + potential legal exposure
 ```
 
@@ -1471,7 +1471,7 @@ CREATE TABLE conversation_attachments (
   uploaded_at TIMESTAMPTZ DEFAULT NOW(),
   deleted_at TIMESTAMPTZ,          -- soft delete mirrors conversation
   purged_at TIMESTAMPTZ,           -- R2 deletion confirmed
-  
+
   CONSTRAINT valid_mime CHECK (
     mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'application/pdf')
     -- Explicit allowlist, not blocklist
@@ -1479,8 +1479,8 @@ CREATE TABLE conversation_attachments (
   CONSTRAINT reasonable_size CHECK (file_size_bytes < 10485760) -- 10MB max
 );
 
-CREATE INDEX idx_attachments_conversation 
-ON conversation_attachments(conversation_id) 
+CREATE INDEX idx_attachments_conversation
+ON conversation_attachments(conversation_id)
 WHERE deleted_at IS NULL;
 
 CREATE INDEX idx_attachments_unpurged
@@ -1495,37 +1495,37 @@ WHERE purged_at IS NULL AND deleted_at IS NOT NULL;
 
 async function deleteConversation(conversationId, userId) {
   const transaction = await sequelize.transaction();
-  
+
   try {
     // 1. Verify ownership BEFORE any deletion
     const conversation = await Conversation.findOne({
       where: { id: conversationId, userId },
       transaction
     });
-    
+
     if (!conversation) {
       throw new Error('Not found or unauthorized');
       // NEVER reveal which - prevents enumeration attacks
     }
-    
+
     // 2. Soft-delete the conversation
     await conversation.update(
       { status: 'deleted', deletedAt: new Date() },
       { transaction }
     );
-    
+
     // 3. Soft-delete all attachments (marks for R2 cleanup)
     await ConversationAttachment.update(
       { deletedAt: new Date() },
-      { 
+      {
         where: { conversationId, deletedAt: null },
-        transaction 
+        transaction
       }
     );
-    
+
     // 4. Commit DB changes FIRST
     await transaction.commit();
-    
+
     // 5. Queue R2 cleanup AFTER commit (async, with retry)
     await cleanupQueue.add('purge-r2-attachments', {
       conversationId,
@@ -1534,7 +1534,7 @@ async function deleteConversation(conversationId, userId) {
       attempts: 5,
       backoff: { type: 'exponential', delay: 2000 }
     });
-    
+
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -1550,14 +1550,14 @@ async function purgeOrphanedR2Files() {
     },
     limit: 100  // Process in batches
   });
-  
+
   for (const attachment of orphaned) {
     try {
       await r2Client.deleteObject({
         Bucket: 'your-bucket',
         Key: attachment.r2Key
       });
-      
+
       await attachment.update({ purgedAt: new Date() });
     } catch (error) {
       // Log but continue - will retry next run
@@ -1586,10 +1586,10 @@ async function purgeOrphanedR2Files() {
 **Severity:** `NOT APPLICABLE TO SUBMITTED PLAN` → Audited as `CRITICAL` for implied system
 
 ```
-SUBMITTED PLAN CONTAINS: Zero references to voice recording, 
+SUBMITTED PLAN CONTAINS: Zero references to voice recording,
 audio, transcription, or Gemini audio processing.
 
-THE PLAN DOES: Reorganizes documentation. 
+THE PLAN DOES: Reorganizes documentation.
 Zero audio handling.
 ```
 
@@ -1616,18 +1616,18 @@ class VoiceProcessor {
     // It exists only in memory during this function call
     // Rationale: Voice biometrics = PII, health context = sensitive
     // Reviewed: [date] by [name]
-    
+
     let audioBuffer = null;
-    
+
     try {
       audioBuffer = await audioBlob.arrayBuffer();
-      
+
       // Send to Gemini for transcription ONLY
       const transcription = await geminiClient.transcribeAudio({
         audio: audioBuffer,
         mimeType: audioBlob.type
       });
-      
+
       // Store ONLY the text transcription
       return {
         type: 'voice_message',
@@ -1636,7 +1636,7 @@ class VoiceProcessor {
         // audioData: NEVER included
         // audioUrl: NEVER included
       };
-      
+
     } finally {
       // Explicit memory cleanup
       audioBuffer = null;
@@ -1672,7 +1672,7 @@ CREATE TABLE voice_interaction_logs (
   transcription_success BOOLEAN,
   error_code TEXT,
   -- NO: audio_content, transcription_text, audio_url
-  
+
   -- Auto-purge after 30 days (operational logs only)
   expires_at TIMESTAMPTZ DEFAULT NOW() + INTERVAL '30 days'
 );
@@ -1698,33 +1698,33 @@ Before enabling voice:
 **Severity:** `LOW` for submitted plan | Would be `HIGH` if chat feature plan existed
 
 ```
-SUBMITTED PLAN CONTAINS: Zero database migrations. 
+SUBMITTED PLAN CONTAINS: Zero database migrations.
 Zero API changes. Zero schema modifications.
 
-THE PLAN DOES: 
+THE PLAN DOES:
 1. Creates docs/ai-workflow/references/ directory
-2. Moves .md content into reference files  
+2. Moves .md content into reference files
 3. Rewrites CLAUDE.md as a shorter index file
 
-DATABASE IMPACT: NONE. These are markdown files read by Claude 
+DATABASE IMPACT: NONE. These are markdown files read by Claude
 (the AI assistant), not by the application or database.
 
-MIGRATION SAFETY VERDICT: ✅ SAFE — No migrations required or 
+MIGRATION SAFETY VERDICT: ✅ SAFE — No migrations required or
 implied. The "zero backend changes" claim is accurate for this plan.
 ```
 
 **The only real risk in the submitted plan:**
 
 ```
-RISK: If a reference doc is not created before CLAUDE.md is 
-updated to point to it, Claude will attempt to read a 
+RISK: If a reference doc is not created before CLAUDE.md is
+updated to point to it, Claude will attempt to read a
 non-existent file and fail silently or error.
 
 MITIGATION (already in the plan's Implementation Steps):
 Step 2: Extract sections BEFORE Step 3: Rewrite CLAUDE.md
 This ordering is correct. ✅
 
-ADDITIONAL RECOMMENDATION: 
+ADDITIONAL RECOMMENDATION:
 Add a validation step between Steps 2 and 3:
 
 # Verify all reference files exist before updating index
@@ -1738,43 +1738,43 @@ for file in docs/ai-
 # API Surface Review for CLAUDE.md Token Optimization Plan
 
 ## 1. Existing API Sufficiency — Sidebar Data Requirements
-**Assessment:** The plan claims Phase 1 needs zero backend changes, but the current `GET /api/ai-chat/conversations` endpoint **does not return sufficient data** for the sidebar as described.  
-**Issue:** The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`. Typical implementations of this endpoint return only `id`, `title`, `createdAt`, and `updatedAt` (where `updatedAt` may serve as `lastMessageAt`), but lack:  
-- `messageCount` (would require loading full conversation to count messages client-side, causing N+1 queries)  
-- `context` (AI conversation context is not stored in the conversation metadata; it must be derived from message history)  
-**Recommendation:**  
-- Add `messageCount: number` and `lastMessageAt: string (ISO timestamp)` to the conversation list response.  
-- `context` should **not** be included in the list endpoint (it is conversation-specific and large); instead, compute a lightweight preview (e.g., first 50 chars of first message) client-side if needed for UI, or store a `previewText` field in the conversation model.  
-- **Backend change required:** Modify the conversation list query to include `COUNT(messages) AS messageCount` and `MAX(messages.createdAt) AS lastMessageAt` via Sequelize eager loading or raw SQL.  
+**Assessment:** The plan claims Phase 1 needs zero backend changes, but the current `GET /api/ai-chat/conversations` endpoint **does not return sufficient data** for the sidebar as described.
+**Issue:** The sidebar requires `title`, `context`, `messageCount`, and `lastMessageAt`. Typical implementations of this endpoint return only `id`, `title`, `createdAt`, and `updatedAt` (where `updatedAt` may serve as `lastMessageAt`), but lack:
+- `messageCount` (would require loading full conversation to count messages client-side, causing N+1 queries)
+- `context` (AI conversation context is not stored in the conversation metadata; it must be derived from message history)
+**Recommendation:**
+- Add `messageCount: number` and `lastMessageAt: string (ISO timestamp)` to the conversation list response.
+- `context` should **not** be included in the list endpoint (it is conversation-specific and large); instead, compute a lightweight preview (e.g., first 50 chars of first message) client-side if needed for UI, or store a `previewText` field in the conversation model.
+- **Backend change required:** Modify the conversation list query to include `COUNT(messages) AS messageCount` and `MAX(messages.createdAt) AS lastMessageAt` via Sequelize eager loading or raw SQL.
 > *Without this, the plan’s "zero backend changes" claim is invalid for sidebar functionality.*
 
 ## 2. Search Endpoint — Client-Side vs. Server-Side Filtering
-**Assessment:** Client-side filtering of 20 conversations is **only adequate for users with very low conversation volume** (<20 total conversations). For the target market (wealthy golf clients, working professionals), users will likely accumulate 50+ conversations over time, making client-side filtering on a fixed 20-item window insufficient.  
-**Issue:**  
-- If a user has >20 conversations, client-side filtering misses older conversations.  
-- Loading all conversations just to filter client-side wastes bandwidth (especially problematic for mobile users on metered connections).  
-**Recommendation:**  
-- **Implement server-side search immediately** for `GET /api/ai-chat/conversations?search=<term>` using:  
+**Assessment:** Client-side filtering of 20 conversations is **only adequate for users with very low conversation volume** (<20 total conversations). For the target market (wealthy golf clients, working professionals), users will likely accumulate 50+ conversations over time, making client-side filtering on a fixed 20-item window insufficient.
+**Issue:**
+- If a user has >20 conversations, client-side filtering misses older conversations.
+- Loading all conversations just to filter client-side wastes bandwidth (especially problematic for mobile users on metered connections).
+**Recommendation:**
+- **Implement server-side search immediately** for `GET /api/ai-chat/conversations?search=<term>` using:
   ```sql
   WHERE (title ILIKE '%$1%' OR EXISTS (
-    SELECT 1 FROM messages 
-    WHERE messages.conversationId = conversations.id 
+    SELECT 1 FROM messages
+    WHERE messages.conversationId = conversations.id
     AND content ILIKE '%$1%'
   ))
-  ```  
-- Keep client-side filtering as a fallback for instant results on the cached list, but **always** fetch search results from the server.  
-- **When to add:** Phase 0 (before launch). Delaying server-side search risks poor UX for power users and increases client-side processing load.  
+  ```
+- Keep client-side filtering as a fallback for instant results on the cached list, but **always** fetch search results from the server.
+- **When to add:** Phase 0 (before launch). Delaying server-side search risks poor UX for power users and increases client-side processing load.
 > *The plan’s reliance on client-side filtering is a premature optimization that will fail at scale.*
 
 ## 3. File Attachment Endpoint — REST Design Validation
-**Assessment:** The proposed `POST /api/ai-chat/conversations/:id/attachments` endpoint is **REST-correct** and follows standard sub-resource patterns.  
-**Validation:**  
-- ✅ Correctly nests attachments under conversations (a file belongs to a specific conversation).  
-- ✅ Uses POST for creation (idempotency not required for uploads).  
-- ✅ Multipart/form-data is the appropriate encoding for file uploads (handles binary data + metadata like filename).  
-**Recommendations for Implementation:**  
-- **Request:** `multipart/form-data` with `file` (required) and optional `description` (text).  
-- **Response:** Return attachment metadata:  
+**Assessment:** The proposed `POST /api/ai-chat/conversations/:id/attachments` endpoint is **REST-correct** and follows standard sub-resource patterns.
+**Validation:**
+- ✅ Correctly nests attachments under conversations (a file belongs to a specific conversation).
+- ✅ Uses POST for creation (idempotency not required for uploads).
+- ✅ Multipart/form-data is the appropriate encoding for file uploads (handles binary data + metadata like filename).
+**Recommendations for Implementation:**
+- **Request:** `multipart/form-data` with `file` (required) and optional `description` (text).
+- **Response:** Return attachment metadata:
   ```json
   {
     "id": "uuid",
@@ -1784,20 +1784,20 @@ for file in docs/ai-
     "size": "number (bytes)",
     "createdAt": "ISO timestamp"
   }
-  ```  
-- **Security:** Validate file type (allow images: `image/jpeg`, `image/png`, `image/webp`; block executables), enforce size limits (e.g., 10MB/file), and scan for malware via backend service (e.g., ClamAV).  
-- **Backend change required:** Yes — this is a new endpoint. The plan correctly identifies it as needed, but it contradicts the "zero backend changes" claim for Phase 1.  
+  ```
+- **Security:** Validate file type (allow images: `image/jpeg`, `image/png`, `image/webp`; block executables), enforce size limits (e.g., 10MB/file), and scan for malware via backend service (e.g., ClamAV).
+- **Backend change required:** Yes — this is a new endpoint. The plan correctly identifies it as needed, but it contradicts the "zero backend changes" claim for Phase 1.
 > *This endpoint is necessary and well-designed; implement it as proposed.*
 
 ## 4. Multimodal Message API — Image Handling with Gemini
-**Assessment:** The current message API (`POST /api/ai-chat/conversations/:id/messages`) **cannot handle multimodal input** as it likely only accepts a `content: string` field.  
-**Issue:** Sending images to Gemini requires either:  
-- Embedding image data directly in the message (inefficient, base64 bloats payload)  
-- Referencing pre-uploaded assets (cleaner, leverages attachment endpoint)  
-**Recommendation:**  
-- **Adopt an upload-then-reference flow** (using the attachment endpoint from Section 3):  
-  1. Client uploads image(s) via `POST /api/ai-chat/conversations/:id/attachments` → gets `attachmentId`.  
-  2. Client sends message via `POST /api/ai-chat/conversations/:id/messages` with:  
+**Assessment:** The current message API (`POST /api/ai-chat/conversations/:id/messages`) **cannot handle multimodal input** as it likely only accepts a `content: string` field.
+**Issue:** Sending images to Gemini requires either:
+- Embedding image data directly in the message (inefficient, base64 bloats payload)
+- Referencing pre-uploaded assets (cleaner, leverages attachment endpoint)
+**Recommendation:**
+- **Adopt an upload-then-reference flow** (using the attachment endpoint from Section 3):
+  1. Client uploads image(s) via `POST /api/ai-chat/conversations/:id/attachments` → gets `attachmentId`.
+  2. Client sends message via `POST /api/ai-chat/conversations/:id/messages` with:
      ```json
      {
        "content": "string (optional, can be empty for image-only messages)",
@@ -1805,40 +1805,40 @@ for file in docs/ai-
          { "id": "attachmentId", "type": "image" }
        ]
      }
-     ```  
-- **Do NOT** modify the message endpoint to accept multipart/form-data (mixes concerns; complicates caching and rate limiting).  
-- **Backend change required:** Yes — extend the message creation handler to:  
-  - Validate attachment IDs belong to the conversation.  
-  - Fetch attachment metadata (URL, contentType) to construct Gemini multimodal prompt.  
-  - Pass image URLs (or signed URLs) to Gemini API alongside text content.  
+     ```
+- **Do NOT** modify the message endpoint to accept multipart/form-data (mixes concerns; complicates caching and rate limiting).
+- **Backend change required:** Yes — extend the message creation handler to:
+  - Validate attachment IDs belong to the conversation.
+  - Fetch attachment metadata (URL, contentType) to construct Gemini multimodal prompt.
+  - Pass image URLs (or signed URLs) to Gemini API alongside text content.
 > *This approach decouples upload from messaging, enables reuse of attachments, and is industry-standard (Slack, Discord, etc.).*
 
 ## 5. Rate Limiting for New Operations
-**Assessment:** Proposed operations need tailored rate limits; generic limits would either hinder UX or enable abuse.  
-**Recommendations:**  
+**Assessment:** Proposed operations need tailored rate limits; generic limits would either hinder UX or enable abuse.
+**Recommendations:**
 | Operation                | Suggested Limit      | Rationale                                                                 |
 |--------------------------|----------------------|---------------------------------------------------------------------------|
 | Sidebar list (GET /conversations) | 30 requests/minute | Allows frequent navigation (e.g., switching tabs) but prevents polling loops. Burst to 60 for SPA route changes. |
 | Conversation rename (PUT /conversations/:id) | 5 requests/minute  | Infrequent action; high limits risk abuse (e.g., renaming spam).          |
 | File upload (POST /conversations/:id/attachments) | 10 requests/minute | Prevents DoS via large file uploads; adjust based on storage costs.       |
 | Message sending (POST /conversations/:id/messages) | 20 requests/minute | Standard chat limit; accommodates rapid typing but blocks spam bots.      |
-**Implementation Notes:**  
-- Use **user-ID-based** limits (not IP) to handle shared networks (e.g., offices, golf clubs).  
-- Apply stricter limits for anonymous users (if applicable) vs. authenticated.  
-- Return `429 Too Many Requests` with `Retry-After` header and clear error message.  
+**Implementation Notes:**
+- Use **user-ID-based** limits (not IP) to handle shared networks (e.g., offices, golf clubs).
+- Apply stricter limits for anonymous users (if applicable) vs. authenticated.
+- Return `429 Too Many Requests` with `Retry-After` header and clear error message.
 > *Sidebar list every page load is acceptable at 30/min; rename/upload limits prevent abuse without impacting legitimate use.*
 
 ## 6. WebSocket Integration for Conversation Updates
-**Assessment:** The plan correctly notes Socket.io exists, but **relying on polling for conversation updates is suboptimal** for a real-time chat experience.  
-**Issue:**  
-- Polling (e.g., every 5s) delays sidebar updates (new message count, last message time) by up to polling interval.  
-- Wastes bandwidth on unchanged data; poor UX for active conversations.  
-**Recommendation:**  
-- **Push conversation updates via WebSocket** for:  
-  - `newMessage`: Update `messageCount` and `lastMessageAt` for the specific conversation in sidebar.  
-  - `conversationRenamed`: Update `title` in sidebar.  
-  - `conversationDeleted`: Remove conversation from sidebar list.  
-  - `attachmentAdded`: (Optional) Show attachment preview in message composer if relevant.  
+**Assessment:** The plan correctly notes Socket.io exists, but **relying on polling for conversation updates is suboptimal** for a real-time chat experience.
+**Issue:**
+- Polling (e.g., every 5s) delays sidebar updates (new message count, last message time) by up to polling interval.
+- Wastes bandwidth on unchanged data; poor UX for active conversations.
+**Recommendation:**
+- **Push conversation updates via WebSocket** for:
+  - `newMessage`: Update `messageCount` and `lastMessageAt` for the specific conversation in sidebar.
+  - `conversationRenamed`: Update `title` in sidebar.
+  - `conversationDeleted`: Remove conversation from sidebar list.
+  - `attachmentAdded`: (Optional) Show attachment preview in message composer if relevant.
 - **Keep polling only as a fallback** for clients that lose WebSocket connection (reconnect logicck
 
 ---
@@ -1863,7 +1863,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 ## Detailed Breakdown
 
 ### 1. Sidebar on 320px Viewport
-**Rating: CRITICAL**  
+**Rating: CRITICAL**
 **Issue:** 85vw = 272px on 320px leaves only 48px for chat area. With conversation titles, timestamps, and action buttons, content will overflow or require excessive truncation.
 
 **CSS/React Solutions:**
@@ -1872,23 +1872,23 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 const Sidebar = styled.aside`
   /* Mobile-first: full width on smallest screens */
   width: 100%;
-  
+
   @media (min-width: 430px) {
     width: 85vw; /* Only apply 85vw at/above 430px */
     max-width: 320px;
   }
-  
+
   /* Ensure minimum content area */
   @media (max-width: 429px) {
     .conversation-item {
       padding: 12px 8px;
       font-size: 0.875rem;
     }
-    
+
     .timestamp {
       display: none; /* Hide timestamps on 320-375px */
     }
-    
+
     .action-buttons {
       opacity: 0.7;
       padding: 4px;
@@ -1899,7 +1899,7 @@ const Sidebar = styled.aside`
 // Alternative: Bottom navigation on mobile
 const MobileNav = styled.nav`
   display: block;
-  
+
   @media (min-width: 768px) {
     display: none;
   }
@@ -1911,7 +1911,7 @@ const MobileNav = styled.nav`
 ---
 
 ### 2. Voice Recording on iOS Safari
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** iOS Safari requires WebKit prefixes for MediaRecorder and has strict auto-play policies for TTS.
 
 **CSS/React Solutions:**
@@ -1919,40 +1919,40 @@ const MobileNav = styled.nav`
 // MediaRecorder with iOS Safari compatibility
 const useMediaRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
-  
+
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           sampleRate: 44100
-        } 
+        }
       });
-      
+
       // Check for MediaRecorder support with WebKit prefix
-      const MediaRecorderClass = window.MediaRecorder || 
+      const MediaRecorderClass = window.MediaRecorder ||
         (window as any).webkitMediaRecorder;
-      
+
       if (!MediaRecorderClass) {
         throw new Error('MediaRecorder not supported on this browser');
       }
-      
+
       const recorder = new MediaRecorderClass(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
-      
+
       // iOS Safari requires user interaction for audio playback
-      const audioContext = new (window.AudioContext || 
+      const audioContext = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
-      
+
       return recorder;
     } catch (error) {
       console.error('Voice recording failed:', error);
       // Fallback: show UI instructions for iOS
     }
   };
-  
+
   return { startRecording, isRecording };
 };
 
@@ -1962,12 +1962,12 @@ const speakText = async (text: string) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
     utterance.pitch = 1;
-    
+
     // iOS requires resume on user interaction
     if (speechSynthesis.paused) {
       speechSynthesis.resume();
     }
-    
+
     speechSynthesis.speak(utterance);
   }
 };
@@ -1978,7 +1978,7 @@ const speakText = async (text: string) => {
 ---
 
 ### 3. Mobile Keyboard Management
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** Virtual keyboard can push sidebar off-screen or cause layout shifts. Need to manage viewport height dynamically.
 
 **CSS/React Solutions:**
@@ -1988,21 +1988,21 @@ const ChatContainer = styled.div<{ keyboardOpen: boolean }>`
   /* Use dynamic viewport units */
   height: ${props => props.keyboardOpen ? '100dvh' : '100vh'};
   height: ${props => props.keyboardOpen ? 'calc(100vh - env(keyboard-inset-height, 0px))' : '100vh'};
-  
+
   /* iOS Safari safe area */
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  
+
   /* Prevent layout shift */
   display: flex;
   flex-direction: column;
-  
+
   .messages-area {
     flex: 1;
     overflow-y: auto;
     /* Ensure visible when keyboard opens */
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .input-area {
     /* Fixed position at bottom */
     position: sticky;
@@ -2015,7 +2015,7 @@ const ChatContainer = styled.div<{ keyboardOpen: boolean }>`
 // Hook for keyboard detection
 const useKeyboardHeight = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  
+
   useEffect(() => {
     const handleResize = () => {
       const visualViewport = window.visualViewport;
@@ -2024,16 +2024,16 @@ const useKeyboardHeight = () => {
         setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('visualViewportChange', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('visualViewportChange', handleResize);
     };
   }, []);
-  
+
   return keyboardHeight;
 };
 ```
@@ -2043,7 +2043,7 @@ const useKeyboardHeight = () => {
 ---
 
 ### 4. Offline/Slow Network Handling
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Issue:** Conversations list failure needs graceful empty states and retry mechanisms.
 
 **CSS/React Solutions:**
@@ -2052,20 +2052,20 @@ const useKeyboardHeight = () => {
 const ConversationsList = () => {
   const { data, error, isLoading, refetch } = useConversations();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-  
+
   if (!isOnline) {
     return (
       <OfflineBanner>
@@ -2077,21 +2077,21 @@ const ConversationsList = () => {
       </OfflineBanner>
     );
   }
-  
+
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Couldn't load conversations"
         message="Check your connection and try again"
         onRetry={refetch}
       />
     );
   }
-  
+
   if (isLoading) {
     return <SkeletonLoader count={5} />;
   }
-  
+
   if (data?.length === 0) {
     return (
       <EmptyState
@@ -2105,7 +2105,7 @@ const ConversationsList = () => {
       />
     );
   }
-  
+
   return <ConversationListContent data={data} />;
 };
 
@@ -2118,7 +2118,7 @@ const ConversationsList = () => {
 ---
 
 ### 5. Long Conversation Titles
-**Rating: MEDIUM**  
+**Rating: MEDIUM**
 **Issue:** Auto-generated titles from first message need truncation strategy.
 
 **CSS/React Solutions:**
@@ -2131,14 +2131,14 @@ const ConversationTitle = styled.h3<{ isMobile: boolean }>`
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  
+
   /* Fallback for non-webkit */
   max-height: ${props => props.isMobile ? '3rem' : '1.5rem'};
-  
+
   /* Ensure readability */
   font-size: ${props => props.isMobile ? '0.875rem' : '1rem'};
   line-height: 1.5;
-  
+
   /* Prevent title from breaking UI */
   word-break: break-word;
 `;
@@ -2147,25 +2147,25 @@ const ConversationTitle = styled.h3<{ isMobile: boolean }>`
 const generateTitle = (firstMessage: string, maxLength: number = 50) => {
   const words = firstMessage.trim().split(/\s+/);
   let title = words[0];
-  
+
   for (let i = 1; i < words.length; i++) {
     if ((title + ' ' + words[i]).length > maxLength) {
       return title + '...';
     }
     title += ' ' + words[i];
   }
-  
+
   return title || 'New Conversation';
 };
 
 // Usage in conversation item
 const ConversationItem = ({ conversation }: { conversation: Conversation }) => {
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const title = useMemo(() => 
-    generateTitle(conversation.firstMessage), 
+  const title = useMemo(() =>
+    generateTitle(conversation.firstMessage),
     [conversation.firstMessage]
   );
-  
+
   return (
     <div className="conversation-item">
       <ConversationTitle isMobile={isMobile}>
@@ -2182,7 +2182,7 @@ const ConversationItem = ({ conversation }: { conversation: Conversation }) => {
 ---
 
 ### 6. Large Message History (100+ messages)
-**Rating: HIGH**  
+**Rating: HIGH**
 **Issue:** Unoptimized rendering of long conversations will cause performance issues on mobile devices.
 
 **CSS/React Solutions:**
@@ -2197,7 +2197,7 @@ const MessageList = ({ messages }: { messages: Message[] }) => {
       <MessageBubble message={messages[index]} />
     </div>
   );
-  
+
   return (
     <AutoSizer>
       {({ height, width }) => (
@@ -2219,13 +2219,13 @@ const MessageList = ({ messages }: { messages: Message[] }) => {
 const MessageContainer = styled.div`
   /* Enable GPU acceleration */
   transform: translateZ(0);
-  
+
   /* CSS containment for performance */
   contain: content;
-  
+
   /* Smooth scrolling */
   scroll-behavior: smooth;
-  
+
   /* Message items */
   .message {
     /* Promote to own layer */
@@ -2239,10 +2239,10 @@ const useInfiniteMessages = (conversationId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const loadMore = useCallback(async () => {
     if (isLoading || !hasMore) return;
-    
+
     setIsLoading(true);
     try {
       const oldestMessage = messages[messages.length - 1];
@@ -2250,14 +2250,14 @@ const useInfiniteMessages = (conversationId: string) => {
         before: oldestMessage?.id,
         limit: 30
       });
-      
+
       setMessages(prev => [...prev, ...newMessages]);
       setHasMore(newMessages.length === 30);
     } finally {
       setIsLoading(false);
     }
   }, [conversationId, messages, isLoading, hasMore]);
-  
+
   // Intersection Observer for infinite scroll
   const observerRef = useRef<IntersectionObserver>();
   const lastMessageRef = useCallback((node: HTMLDivElement) => {
@@ -2269,7 +2269,7 @@ const useInfiniteMessages = (conversationId: string) => {
     });
     if (node) observerRef.current.observe(node);
   }, [hasMore, loadMore]);
-  
+
   return { messages, hasMore, isLoading, lastMessageRef };
 };
 ```
@@ -2279,7 +2279,7 @@ const useInfiniteMessages = (conversationId: string) => {
 ---
 
 ### 7. RTL Language Support
-**Rating: LOW** (Not immediate but architectural)  
+**Rating: LOW** (Not immediate but architectural)
 **Issue:** Sidebar and layout need to flip correctly for RTL languages.
 
 **CSS/React Solutions:**
@@ -2288,16 +2288,16 @@ const useInfiniteMessages = (conversationId: string) => {
 const Sidebar = styled.aside`
   /* Instead of margin-left, use margin-inline-start */
   margin-inline-start: 0;
-  
+
   /* Instead of padding-left/right */
   padding-inline: 16px;
-  
+
   /* Instead of left/right positioning */
   inset-inline-start: 0;
-  
+
   /* Text alignment */
   text-align: start; /* Automatically LTR/RTL */
-  
+
   /* Flexbox with logical
 
 ---
@@ -2307,7 +2307,7 @@ const Sidebar = styled.aside`
 
 As a strategic product researcher and futurist, I have reviewed the `CLAUDE-MD-TOKEN-OPTIMIZATION-PLAN.md`. While the plan is operationally brilliant for reducing token overhead and organizing AI workflows, it is **strategically incomplete**. It focuses entirely on *how* the AI reads the codebase, but misses critical reference blueprints for *what* a premium 2026 fitness SaaS must actually build to survive.
 
-If SwanStudios is targeting wealthy golf clients and working professionals in 2026, the platform must integrate cutting-edge health tech, strict compliance boundaries, and modern monetization models. 
+If SwanStudios is targeting wealthy golf clients and working professionals in 2026, the platform must integrate cutting-edge health tech, strict compliance boundaries, and modern monetization models.
 
 Here are the critical gaps missing from your AI workflow reference index, backed by 2025–2026 market intelligence.
 
@@ -2524,9 +2524,9 @@ For the **legitimate concern** (reference doc loading):
 
 The "CRITICAL" finding should be **reclassified** as:
 
-> **Classification:** Documentation Infrastructure Optimization  
-> **Security Impact:** None (content relocated, not modified)  
-> **Audit Required:** No  
+> **Classification:** Documentation Infrastructure Optimization
+> **Security Impact:** None (content relocated, not modified)
+> **Audit Required:** No
 > **Implementation Status:** Ready to proceed
 
 **Response to the finding author:**

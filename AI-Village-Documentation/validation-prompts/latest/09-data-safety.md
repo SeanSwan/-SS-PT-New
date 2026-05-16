@@ -115,26 +115,26 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true, // ALWAYS nullable on add — never break existing rows
       }, { transaction });
-      
+
       // 2. Backfill data BEFORE making NOT NULL
       await queryInterface.sequelize.query(
         `UPDATE "Users" SET "newField" = 'default_value' WHERE "newField" IS NULL`,
         { transaction }
       );
-      
+
       // 3. Only then add constraints
       await queryInterface.changeColumn('Users', 'newField', {
         type: Sequelize.STRING,
         allowNull: false,
       }, { transaction });
-      
+
       await transaction.commit();
     } catch (err) {
       await transaction.rollback();
       throw err;
     }
   },
-  
+
   down: async (queryInterface, Sequelize) => {
     // EVERY migration MUST have a working down() — no exceptions
     await queryInterface.removeColumn('Users', 'newField');
@@ -278,7 +278,7 @@ The `06-persona-alignment.md` document describes role-specific dashboard configu
 ### Absolute Rules
 1. NEVER use `User.update()` with spread from req.body without explicit field allowlist
 2. NEVER include 'password' field in any migration bulkUpdate
-3. NEVER use `User.save()` after modifying non-password fields on a User instance 
+3. NEVER use `User.save()` after modifying non-password fields on a User instance
    that was fetched without `attributes: { exclude: ['password'] }`
    (Sequelize will re-save the hash — but if the instance is stale, it may save undefined)
 

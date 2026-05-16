@@ -36,8 +36,8 @@ However, I have identified **three performance concerns** and **one typography d
 
 #### **Issue 1: Performance Risk — `backdrop-filter` on Sidebar**
 
-**File:** `ConversationSidebar.css` (or styled-component)  
-**Location:** Background declaration  
+**File:** `ConversationSidebar.css` (or styled-component)
+**Location:** Background declaration
 **Current:**
 ```css
 background-color: rgba(10, 10, 15, 0.85);
@@ -66,8 +66,8 @@ backdrop-filter: blur(12px); /* Reduce blur radius by 50% */
 
 #### **Issue 2: Mobile Safe Area Violation**
 
-**File:** `ConversationSidebar.css`  
-**Location:** Width specification  
+**File:** `ConversationSidebar.css`
+**Location:** Width specification
 **Current:**
 ```css
 /* Mobile Drawer Animation */
@@ -90,8 +90,8 @@ padding-left: env(safe-area-inset-left);   /* iOS notch handling */
 
 #### **Issue 3: Typography Hierarchy — H1 Font-Size Too Small**
 
-**File:** `MarkdownRenderer.css`  
-**Location:** H1 specification  
+**File:** `MarkdownRenderer.css`
+**Location:** H1 specification
 **Current:**
 ```css
 H1: 22px, Font-weight 700
@@ -111,8 +111,8 @@ To maintain scale, H2 should remain at 18px (no change), but consider adding a b
 
 #### **Issue 4: Voice Recording — Amplitude Ring Performance**
 
-**File:** `VoiceOverlay.css`  
-**Location:** Amplitude Ring Animation  
+**File:** `VoiceOverlay.css`
+**Location:** Amplitude Ring Animation
 **Current:**
 ```css
 /* Three concentric rings, scale from 1 to 1.8, fading opacity to 0 */

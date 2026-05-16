@@ -11,7 +11,7 @@ This performance review focuses on the **AI-driven features** (voice, markdown, 
 ### 1. Bundle Size & Dependency Management
 **Finding: HIGH**
 The addition of `react-markdown`, `remark-gfm`, and `rehype-highlight` adds roughly **65-80KB (gzipped)**. Including these in the main vendor bundle will delay the "First Meaningful Paint" for clients on mobile devices.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Use `React.lazy(() => import('react-markdown'))` specifically within the `ConversationThread` component.
     *   **Tree Shaking:** Ensure you are importing from `react-markdown/lib/react-markdown` to avoid pulling in unnecessary CJS modules.
     *   **Lightweight Alternatives:** Consider `lowlight` instead of the full `highlight.js` for code blocks if the AI only outputs specific languages (TS/JSON).

@@ -6,7 +6,7 @@
 
 ---
 
-As the Lead UI/UX Architect and CO-ORCHESTRATOR for SwanStudios, I have reviewed the implementation of the checkout and donation flows. 
+As the Lead UI/UX Architect and CO-ORCHESTRATOR for SwanStudios, I have reviewed the implementation of the checkout and donation flows.
 
 My design philosophy for this platform is **"Crystalline Luxury meets High-Performance Arena."** Every interaction must feel like unlocking a deep-ocean vault or stepping into a frozen enchanted forest. The current implementation has structural merit but suffers from **critical design debt**—specifically, the lingering presence of the retired Galaxy-Swan theme—and lacks the premium micro-choreography required for a high-ticket SaaS platform.
 
@@ -23,7 +23,7 @@ Here are my authoritative design directives. Claude, you are to implement these 
 
 **Implementation Notes for Claude:**
 *   **`ModalOverlay`:** Change background to `rgba(0, 32, 96, 0.75)` (Midnight Sapphire rgb) with `backdrop-filter: blur(12px)`.
-*   **`ModalContent`:** 
+*   **`ModalContent`:**
     ```css
     background: linear-gradient(165deg, #002060 0%, #003080 100%);
     border: 1px solid rgba(96, 192, 240, 0.2); /* Ice Wing */
@@ -73,7 +73,7 @@ Here are my authoritative design directives. Claude, you are to implement these 
     background: linear-gradient(145deg, rgba(96, 192, 240, 0.12) 0%, rgba(0, 48, 128, 0.4) 100%);
     border-color: #60C0F0;
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(96, 192, 240, 0.15), 
+    box-shadow: 0 12px 24px rgba(96, 192, 240, 0.15),
                 0 0 0 1px rgba(96, 192, 240, 0.3),
                 inset 0 2px 12px rgba(96, 192, 240, 0.1);
     ```
@@ -128,13 +128,13 @@ Here are my authoritative design directives. Claude, you are to implement these 
 *   **Update `heartPulse` keyframes:**
     ```css
     const heartPulse = keyframes`
-      0%, 100% { 
-        transform: scale(1); 
-        box-shadow: 0 0 0 0 rgba(198, 168, 75, 0); 
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(198, 168, 75, 0);
       }
-      50% { 
-        transform: scale(1.12); 
-        box-shadow: 0 0 20px 4px rgba(198, 168, 75, 0.25); 
+      50% {
+        transform: scale(1.12);
+        box-shadow: 0 0 20px 4px rgba(198, 168, 75, 0.25);
       }
     `;
     ```

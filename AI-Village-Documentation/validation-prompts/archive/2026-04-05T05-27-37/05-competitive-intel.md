@@ -41,7 +41,7 @@
 interface FeatureGaps {
   p0_critical: [
     "Native iOS/Android application",
-    "Video exercise demonstration library", 
+    "Video exercise demonstration library",
     "Real-time trainer-client messaging",
     "Integrated payment/subscription processing",
     "Client progress tracking dashboard"
@@ -78,7 +78,7 @@ const differentiationStrengths = {
     uniqueAngle: "Pain-aware, corrective exercise-focused training",
     proof: "NCEP certification + 26 years field experience"
   },
-  
+
   // 2. Niche Specialization
   golfPerformance: {
     strength: "Golf-specific training vertical",
@@ -90,7 +90,7 @@ const differentiationStrengths = {
     ],
     marketGap: "No competitor owns golf-specific personal training"
   },
-  
+
   // 3. AI + Human Hybrid
   aiAugmentedCoaching: {
     strength: "AI as coach amplifier, not replacement",
@@ -98,14 +98,14 @@ const differentiationStrengths = {
     automation: "Program generation, progress analysis",
     humanElement: "Real coach reviews every program"
   },
-  
+
   // 4. Community Ownership
   platformOwnership: {
     strength: "Trainer-first, community-owned model",
     differentiator: "Trainers keep clients, fair 10% fee",
     competitorsExploit: "Platforms lock in trainers, extract value"
   },
-  
+
   // 5. Design Excellence
   crystallineSwanUX: {
     strength: "Premium cinematic experience",
@@ -163,10 +163,10 @@ interface PricingStructure {
       features: ["Virtual coaching", "Basic tracking", "Exercise library"]
     },
     {
-      name: "Signature Performance", 
+      name: "Signature Performance",
       sessions: "8/month",
       price: 249,
-      period: "monthly", 
+      period: "monthly",
       popular: true,
       features: ["Unlimited messaging", "NASM assessment", "Nutrition basics", "Video calls"]
     },
@@ -178,14 +178,14 @@ interface PricingStructure {
       features: ["AI programming", "Golf/athlete specializations", "Priority booking", "Body tracking"]
     }
   ],
-  
+
   // B2B: Trainer Subscription
   trainerTiers: [
     { name: "Starter", clients: 10, fee: "8%", price: 29 },
     { name: "Growth", clients: 50, fee: "6%", price: 79 },
     { name: "Scale", clients: 200, fee: "5%", price: 199 }
   ],
-  
+
   // B2B2C: Corporate Wellness
   corporate: {
     perEmployee: 15-40,
@@ -212,7 +212,7 @@ const upsellFunnel = {
       conversionTarget: "Monthly subscription"
     }
   ],
-  
+
   // 2. Cross-Sell Opportunities
   crossSells: [
     { from: "Fitness", to: "Nutrition", margin: "40%", trigger: "Week 4 progress" },
@@ -220,7 +220,7 @@ const upsellFunnel = {
     { from: "Individual", to: "Corporate", margin: "25%", trigger: "Company code entry" },
     { from: "Base Program", to: "1:1 Video Sessions", margin: "50%", trigger: "Stagnation detected" }
   ],
-  
+
   // 3. Lifetime Value Maximization
   ltvEnhancers: [
     { type: "Annual prepay", discount: "20%", target: "Churn reduction" },
@@ -244,7 +244,7 @@ const conversionTests = [
   {
     test: "CTA copy: 'Join Community' vs 'Start Training'",
     hypothesis: "Action-oriented copy improves click-through",
-    priority: "P1", 
+    priority: "P1",
     metric: "Button click rate"
   },
   {
@@ -302,7 +302,7 @@ const techStackAnalysis = {
     uiQuality: "★★★★★ Premium glassmorphism, cinematic parallax",
     scalabilityRisk: "Monolithic frontend, heavy client rendering"
   },
-  
+
   competitors: {
     trainerize: {
       stack: "React Native (mobile), Node backend, PostgreSQL",
@@ -331,20 +331,20 @@ const positioning = {
     "Corporate executives (wellness budget)",
     "Trainers seeking fair platform terms"
   ],
-  
+
   primaryMessage: "Where elite personal training meets AI precision — built by trainers, for trainers.",
-  
+
   differentiators: [
     "NASM-licensed coaching with 26 years expertise",
-    "AI amplifies your coach, never replaces them", 
+    "AI amplifies your coach, never replaces them",
     "Pain-aware, corrective exercise-focused",
     "Golf performance specialization",
     "Community-first, trainer-owned platform"
   ],
-  
+
   competitiveMoat: [
     "Golf vertical dominance",
-    "Proprietary pain-assessment methodology", 
+    "Proprietary pain-assessment methodology",
     "Trainer ownership model (sticky network effects)",
     "Crystalline Swan brand equity"
   ]
@@ -380,7 +380,7 @@ const technicalBlockers = {
       solution: "Build complete Node.js/Express API with auth, database"
     }
   ],
-  
+
   // P1: Will Limiting Scaling
   high: [
     {

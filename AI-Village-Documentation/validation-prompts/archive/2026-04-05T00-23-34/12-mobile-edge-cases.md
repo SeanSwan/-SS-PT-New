@@ -13,8 +13,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 1. Sidebar on 320px — Layout Squeeze Risk
-**Rating:** HIGH  
-**Issue:** 85vw = 272px on 320px screens leaves only 48px for chat area. With conversation titles (auto-generated, potentially long), timestamps, and action buttons (call, delete, etc.), content will overflow or wrap poorly.  
+**Rating:** HIGH
+**Issue:** 85vw = 272px on 320px screens leaves only 48px for chat area. With conversation titles (auto-generated, potentially long), timestamps, and action buttons (call, delete, etc.), content will overflow or wrap poorly.
 **Solutions:**
 - **CSS:** Use `min-width` constraints and responsive typography:
   ```css
@@ -44,8 +44,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 2. Voice Recording on iOS Safari
-**Rating:** CRITICAL  
-**Issue:** iOS Safari requires `webkitMediaRecorder` prefix and has strict autoplay policies for TTS. Without proper handling, voice features will fail on ~50% of mobile users.  
+**Rating:** CRITICAL
+**Issue:** iOS Safari requires `webkitMediaRecorder` prefix and has strict autoplay policies for TTS. Without proper handling, voice features will fail on ~50% of mobile users.
 **Solutions:**
 - **MediaRecorder Polyfill:**
   ```javascript
@@ -54,14 +54,14 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
     // Fallback: show "Voice not supported on this browser"
   }
   ```
-- **TTS Autoplay Policy:** Must be triggered by user gesture (button click). Use `speechSynthesis.speak()` only inside click handlers.  
+- **TTS Autoplay Policy:** Must be triggered by user gesture (button click). Use `speechSynthesis.speak()` only inside click handlers.
 - **Permissions:** Explicitly request microphone access with `navigator.mediaDevices.getUserMedia({ audio: true })` and handle iOS's one-time permission prompt.
 
 ---
 
 ## 3. Keyboard on Mobile — Viewport Management
-**Rating:** HIGH  
-**Issue:** Virtual keyboard reduces `window.innerHeight`, potentially pushing fixed sidebar/chat off-screen or causing layout shifts.  
+**Rating:** HIGH
+**Issue:** Virtual keyboard reduces `window.innerHeight`, potentially pushing fixed sidebar/chat off-screen or causing layout shifts.
 **Solutions:**
 - **Visual Viewport API:**
   ```javascript
@@ -87,8 +87,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 4. Offline/Slow Network — Empty State UX
-**Rating:** MEDIUM  
-**Issue:** Plan doesn't specify error handling for conversations list failures. Users see blank screens with no recovery path.  
+**Rating:** MEDIUM
+**Issue:** Plan doesn't specify error handling for conversations list failures. Users see blank screens with no recovery path.
 **Solutions:**
 - **React Query / SWR Pattern:**
   ```tsx
@@ -108,8 +108,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 5. Long Conversation Titles — Truncation Strategy
-**Rating:** MEDIUM  
-**Issue:** Auto-generated titles from first message can be lengthy (e.g., "How do I modify the bench press for my shoulder impingement?").  
+**Rating:** MEDIUM
+**Issue:** Auto-generated titles from first message can be lengthy (e.g., "How do I modify the bench press for my shoulder impingement?").
 **Solutions:**
 - **CSS Multi-line Truncation:**
   ```css
@@ -124,16 +124,16 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
   ```
 - **React:** Pre-truncate in component if title > 100 chars:
   ```tsx
-  const displayTitle = title.length > 100 
-    ? title.substring(0, 100) + '...' 
+  const displayTitle = title.length > 100
+    ? title.substring(0, 100) + '...'
     : title;
   ```
 
 ---
 
 ## 6. Large Message History — Virtual Scrolling
-**Rating:** HIGH  
-**Issue:** 100+ messages in a conversation will cause DOM bloat and jank on low-end devices.  
+**Rating:** HIGH
+**Issue:** 100+ messages in a conversation will cause DOM bloat and jank on low-end devices.
 **Solutions:**
 - **Virtual Scrolling:** Use `react-window` or `@tanstack/react-virtual`:
   ```tsx
@@ -151,8 +151,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 7. RTL Languages — CSS Logical Properties
-**Rating:** LOW (Future-proofing)  
-**Issue:** Sidebar layout uses physical properties (`left`, `margin-left`) that won't flip in RTL.  
+**Rating:** LOW (Future-proofing)
+**Issue:** Sidebar layout uses physical properties (`left`, `margin-left`) that won't flip in RTL.
 **Solutions:**
 - **CSS Logical Properties:**
   ```css
@@ -174,8 +174,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 8. Reduced Motion — Accessibility Compliance
-**Rating:** MEDIUM  
-**Issue:** Voice orb pulsing, sidebar slide, and thinking indicators may trigger vestibular disorders.  
+**Rating:** MEDIUM
+**Issue:** Voice orb pulsing, sidebar slide, and thinking indicators may trigger vestibular disorders.
 **Solutions:**
 - **CSS Media Query:**
   ```css
@@ -199,8 +199,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 9. Screen Reader — ARIA Landmarks & Roles
-**Rating:** HIGH  
-**Issue:** Without proper landmarks, screen reader users cannot navigate between sidebar and chat.  
+**Rating:** HIGH
+**Issue:** Without proper landmarks, screen reader users cannot navigate between sidebar and chat.
 **Solutions:**
 - **Landmark Structure:**
   ```tsx
@@ -233,8 +233,8 @@ Based on the provided comprehensive audit plan, I've evaluated the 10 specified 
 ---
 
 ## 10. 4K Ultrawide — Max-Width Constraints
-**Rating:** MEDIUM  
-**Issue:** On 3840px ultrawide, sidebar and chat may stretch too wide, harming readability (line length >100 chars).  
+**Rating:** MEDIUM
+**Issue:** On 3840px ultrawide, sidebar and chat may stretch too wide, harming readability (line length >100 chars).
 **Solutions:**
 - **Container Queries (or Max-Width):**
   ```css

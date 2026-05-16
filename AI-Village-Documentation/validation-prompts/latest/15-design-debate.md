@@ -142,7 +142,7 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
 ```css
 /* Cosmic Nebula gradient — needs reduced-motion fallback */
 @keyframes cosmicPulse {
-  0%, 100% { 
+  0%, 100% {
     border-image: linear-gradient(135deg, #8B5CF6, #60C0F0) 1;
   }
   50% {
@@ -194,7 +194,7 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
     overflow-x: visible;
     flex-direction: column; /* Stack on narrow mobile */
   }
-  
+
   .tab-bar--tab-dropdown-trigger {
     display: flex; /* Show dropdown trigger */
   }
@@ -216,8 +216,8 @@ letter-spacing: 0.02em;            /* Premium micro-tracking */
 </div>
 
 {isOpen && (
-  <ul 
-    role="listbox" 
+  <ul
+    role="listbox"
     aria-label="Content categories"
     className="tab-dropdown-menu"
   >

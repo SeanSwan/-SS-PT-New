@@ -6,12 +6,12 @@
 
 ---
 
-# SwanStudios UI/UX Review – Actionable Recommendations  
-*Prepared for the SwanStudios refactor team*  
+# SwanStudios UI/UX Review – Actionable Recommendations
+*Prepared for the SwanStudios refactor team*
 
----  
+---
 
-## 1. Persona Alignment  
+## 1. Persona Alignment
 
 | Persona | Current UI/UX Fit | Recommended Enhancements |
 |---------|-------------------|--------------------------|
@@ -29,9 +29,9 @@
 | **AI terminal overlay stuck / non‑dismissable**. | Users lose control; trust erodes. | • Add a **clear “X” close button** with a higher z‑index; ensure overlay can be dismissed by tapping outside or swiping down. |
 | **No onboarding tour for new features**. | Users miss key value props. | • Deploy a **progressive product tour** (Duolingo‑style) that walks users through the new AI terminal, Rolodex, and dashboard customization the first time they open the app. |
 
----  
+---
 
-## 3. Trust Signals  
+## 3. Trust Signals
 
 | Trust Element | Current Visibility | Recommendation |
 |---------------|-------------------|----------------|
@@ -41,9 +41,9 @@
 | **Trainer Experience** | Only admin bio shows 25+ years. | • Show **trainer tenure** and **client count** next to each trainer’s name in the scheduler. |
 | **Media & Press** | Absent. | • Link to **press mentions** (e.g., “Featured in *Fitness Magazine*”) with small logos; use **Gilded Fern** for hover states. |
 
----  
+---
 
-## 4. Emotional Design (Crystalline Swan Theme)  
+## 4. Emotional Design (Crystalline Swan Theme)
 
 | Emotional Goal | Current Palette / Typography | Actionable Tweaks |
 |----------------|------------------------------|-------------------|
@@ -53,9 +53,9 @@
 | **Clarity & Readability** | Plus Jakarta Sans (headings), Cormorant Garamond Italic (drama), Fira Code (data), Sora (UI). | • Ensure **heading hierarchy** is clear: H1 = 28‑32 px, H2 = 22‑24 px, body = 16‑18 px. <br>• Use **Cormorant Garamond Italic** sparingly for **call‑out quotes** to add drama without overwhelming. |
 | **Gaming‑Style Fun** | Wing Purple (#8B5CF6) as secondary accent. | • Use **Wing Purple** for **gamified elements** (e.g., streak counters, badge icons) to tie into the “gaming” persona. |
 
----  
+---
 
-## 5. Retention Hooks  
+## 5. Retention Hooks
 
 | Hook | Current State | Enhancements |
 |------|---------------|--------------|
@@ -66,9 +66,9 @@
 | **Certification Milestones** | NASM OPT periodization mentioned. | • Celebrate **certification completions** with a **badge animation** and a **certificate download**. <br>• Offer a **“Trainer Hall of Fame”** page showcasing top performers. |
 | **Retention Emails / Pushes** | Not detailed. | • Send **weekly “Swan Summary”** emails with progress, upcoming plans, and a **personalized motivational quote**. <br>• Use **behavior‑triggered pushes** (e.g., “You haven’t logged a workout in 3 days – let’s get back on track”). |
 
----  
+---
 
-## 6. Accessibility for Target Demographics  
+## 6. Accessibility for Target Demographics
 
 | Concern | Current Risk | Concrete Fixes |
 |---------|--------------|----------------|
@@ -79,24 +79,24 @@
 | **Mobile‑First Layout** | Desktop‑centric designs cause clipping on iPhone XR. | • Adopt a **mobile‑first component library**: stack columns, use **bottom sheets** for modals, and **collapsible accordions** for settings. <br>• Test on **iPhone SE (2022)** and **Pixel 4a** to verify legibility and performance. |
 | **Visual Simplicity for Cognitive Load** | Dense dashboards may overwhelm busy professionals. | • Use **progressive disclosure**: show only primary actions; hide advanced settings behind an “Advanced” toggle. <br>• Provide **high‑contrast “Focus Mode”** that simplifies the UI to essential metrics only. |
 
----  
+---
 
 ### Quick‑Start Checklist (Top‑Priority)
 
-1. **Add persistent “+ Add Exercise” FAB** and virtualized Rolodex.  2. **Implement WCAG‑AA contrast audit** and fix any failing color combos.  
-3. **Create a unified AI terminal hook** (`useAITerminal`) with abort‑controller fetch pattern.  
-4. **Introduce certification badges** and a testimonial carousel on the homepage.  
-5. **Launch a progressive onboarding tour** for new features.  
-6. **Deploy mobile‑first navigation** (bottom bar + scrollable tabs).  
-7. **Add gamified “Swan Level”** with badge unlocks and streak tracking.  
-8. **Enforce PII redaction** before any AI conversation is sent.  
+1. **Add persistent “+ Add Exercise” FAB** and virtualized Rolodex.  2. **Implement WCAG‑AA contrast audit** and fix any failing color combos.
+3. **Create a unified AI terminal hook** (`useAITerminal`) with abort‑controller fetch pattern.
+4. **Introduce certification badges** and a testimonial carousel on the homepage.
+5. **Launch a progressive onboarding tour** for new features.
+6. **Deploy mobile‑first navigation** (bottom bar + scrollable tabs).
+7. **Add gamified “Swan Level”** with badge unlocks and streak tracking.
+8. **Enforce PII redaction** before any AI conversation is sent.
 
----  
+---
 
-*Prepared by the SwanStudios UX Research & Architecture Review Team*  
-*Date: 2026‑04‑06*  
+*Prepared by the SwanStudios UX Research & Architecture Review Team*
+*Date: 2026‑04‑06*
 
----  
+---
 
 *End of Report*
 

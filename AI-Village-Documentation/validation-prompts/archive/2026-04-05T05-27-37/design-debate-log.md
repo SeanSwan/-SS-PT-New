@@ -12,11 +12,11 @@
 **TO:** Lead Software Engineer (Claude)
 **SUBJECT:** Design Authority Review — Round 1: HomePage.V4.tsx
 
-I have reviewed the engineering implementation alongside the UX/Accessibility audit. Let me be clear: SwanStudios charges a premium for elite, science-backed training. Our UI cannot look like a washed-out, inaccessible template, nor can it contain ghosts of our retired design systems. 
+I have reviewed the engineering implementation alongside the UX/Accessibility audit. Let me be clear: SwanStudios charges a premium for elite, science-backed training. Our UI cannot look like a washed-out, inaccessible template, nor can it contain ghosts of our retired design systems.
 
 The cinematic motion (the `CINEMATIC_EASE` cubic-bezier) is excellent. You nailed the physics. But the execution of the **Crystalline Swan** design tokens is sloppy, the accessibility is a liability, and the mobile touch targets are unacceptable for a modern SaaS platform.
 
-The UX Auditor made a slight error regarding our dark tokens (Obsidian Black `#0A0A0F` and Carbon `#141419` *are* indeed our active dark tokens, not retired), but their core point remains: you are bypassing the theme engine and hardcoding values. 
+The UX Auditor made a slight error regarding our dark tokens (Obsidian Black `#0A0A0F` and Carbon `#141419` *are* indeed our active dark tokens, not retired), but their core point remains: you are bypassing the theme engine and hardcoding values.
 
 Here are my prescriptive, non-negotiable directives to fix this code.
 
@@ -25,7 +25,7 @@ Here are my prescriptive, non-negotiable directives to fix this code.
 ### DIRECTIVE 1: The "Galaxy-Swan" Purge & Token Enforcement
 **Severity:** HIGH
 **File & Location:** Global Styled Components (`IconWrapper`, `CinematicDivider`, `MainWrapper`, Fallbacks)
-**Design Problem:** You are using `#8B5CF6` (Wing Purple) as the fallback for `theme.colors.primary`. Our primary color is **Midnight Sapphire `#002060`**. Furthermore, `IconWrapper` contains literal hardcoded RGB values from the retired Galaxy-Swan theme (`0, 255, 255`). 
+**Design Problem:** You are using `#8B5CF6` (Wing Purple) as the fallback for `theme.colors.primary`. Our primary color is **Midnight Sapphire `#002060`**. Furthermore, `IconWrapper` contains literal hardcoded RGB values from the retired Galaxy-Swan theme (`0, 255, 255`).
 
 **Design Solution & Implementation Notes:**
 1. **Fix Primary Fallbacks:** Search the entire file for `theme.colors?.primary || '#8B5CF6'`. Replace EVERY instance with `theme.colors?.primary || '#002060'`. Wing Purple is our *Secondary/Glow Accent*, not our primary.
@@ -58,28 +58,28 @@ Rewrite the `capsuleColors` configuration exactly as follows to enforce the cros
 ```typescript
 const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color: string; hoverBorder: string; hoverBg: string; glow: string; focus: string }> = {
   // Blue Button -> Purple Glow (#8B5CF6)
-  default: { 
-    border: 'rgba(0,32,96,0.8)', bg: 'rgba(0,32,96,0.6)', color: '#E0ECF4', 
-    hoverBorder: '#8B5CF6', hoverBg: 'rgba(0,32,96,0.9)', glow: 'rgba(139,92,246,0.5)', focus: '#8B5CF6' 
+  default: {
+    border: 'rgba(0,32,96,0.8)', bg: 'rgba(0,32,96,0.6)', color: '#E0ECF4',
+    hoverBorder: '#8B5CF6', hoverBg: 'rgba(0,32,96,0.9)', glow: 'rgba(139,92,246,0.5)', focus: '#8B5CF6'
   },
   // Purple Button -> Cyan Glow (#60C0F0)
-  wingPurple: { 
-    border: 'rgba(139,92,246,0.5)', bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6', 
-    hoverBorder: '#60C0F0', hoverBg: 'rgba(139,92,246,0.25)', glow: 'rgba(96,192,240,0.5)', focus: '#60C0F0' 
+  wingPurple: {
+    border: 'rgba(139,92,246,0.5)', bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6',
+    hoverBorder: '#60C0F0', hoverBg: 'rgba(139,92,246,0.25)', glow: 'rgba(96,192,240,0.5)', focus: '#60C0F0'
   },
   // Data/Dashboard Button -> No Glow, just Arctic Cyan solid
-  arcticCyan: { 
-    border: 'rgba(80,160,240,0.4)', bg: 'rgba(80,160,240,0.15)', color: '#50A0F0', 
-    hoverBorder: '#50A0F0', hoverBg: 'rgba(80,160,240,0.25)', glow: 'transparent', focus: '#50A0F0' 
+  arcticCyan: {
+    border: 'rgba(80,160,240,0.4)', bg: 'rgba(80,160,240,0.15)', color: '#50A0F0',
+    hoverBorder: '#50A0F0', hoverBg: 'rgba(80,160,240,0.25)', glow: 'transparent', focus: '#50A0F0'
   },
   // Luxury Button -> Gold Glow
-  gilded: { 
-    border: 'rgba(198,168,75,0.4)', bg: 'rgba(198,168,75,0.15)', color: '#C6A84B', 
-    hoverBorder: '#C6A84B', hoverBg: 'rgba(198,168,75,0.25)', glow: 'rgba(198,168,75,0.4)', focus: '#C6A84B' 
+  gilded: {
+    border: 'rgba(198,168,75,0.4)', bg: 'rgba(198,168,75,0.15)', color: '#C6A84B',
+    hoverBorder: '#C6A84B', hoverBg: 'rgba(198,168,75,0.25)', glow: 'rgba(198,168,75,0.4)', focus: '#C6A84B'
   },
-  royalDepth: { 
-    border: 'rgba(0,48,128,0.6)', bg: 'rgba(0,48,128,0.4)', color: '#60C0F0', 
-    hoverBorder: '#8B5CF6', hoverBg: 'rgba(0,48,128,0.6)', glow: 'rgba(139,92,246,0.4)', focus: '#8B5CF6' 
+  royalDepth: {
+    border: 'rgba(0,48,128,0.6)', bg: 'rgba(0,48,128,0.4)', color: '#60C0F0',
+    hoverBorder: '#8B5CF6', hoverBg: 'rgba(0,48,128,0.6)', glow: 'rgba(139,92,246,0.4)', focus: '#8B5CF6'
   },
 };
 ```
@@ -94,7 +94,7 @@ const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color:
    ```css
    color: ${({ theme }) => theme.text?.secondary || 'rgba(224, 236, 244, 0.85)'}; /* Frost White at 85% */
    ```
-2. **Typography Enforcement:** 
+2. **Typography Enforcement:**
    * `HeroHeadline` MUST use `Cormorant Garamond Italic`. Update the font-family rule to explicitly enforce the italic style if the font weight allows, or ensure the font-style is italicized for the drama effect: `font-family: 'Cormorant Garamond', serif; font-style: italic;`
    * `SectionTitle` MUST use `Plus Jakarta Sans`.
    * `StatNumber` MUST use `Fira Code`. Update `StatNumber` CSS:
@@ -113,7 +113,7 @@ const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color:
    /* EXACT CSS FOR CapsuleButton */
    min-height: 44px; /* NON-NEGOTIABLE */
    padding: 10px 20px;
-   
+
    @media (max-width: 430px) {
      min-height: 44px; /* DO NOT SHRINK ON MOBILE */
      padding: 10px 16px;
@@ -157,7 +157,7 @@ Remove the inline `style={{ backgroundColor: ... }}` from the JSX.
 ---
 
 **Next Steps for Engineering:**
-Implement these exact CSS values and structural changes. Do not alter the Crystalline Swan hex codes. Once you have applied these fixes, report back, and we will review the form focus management and the store navigation flow. 
+Implement these exact CSS values and structural changes. Do not alter the Crystalline Swan hex codes. Once you have applied these fixes, report back, and we will review the form focus management and the store navigation flow.
 
 Execute.
 
@@ -208,7 +208,7 @@ const IconWrapper = styled.div`
   margin-bottom: 24px;
   color: ${({ theme }) => theme.colors?.secondary || '#8B5CF6'};
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   /* Crystalline shimmer on hover */
   &:hover {
     background: ${({ theme }) => theme.colors?.accent?.split(' ')[0] || 'rgba(96, 192, 240, 0.15)'};
@@ -246,7 +246,7 @@ PROPOSED ALTERNATIVE: glow: 'rgba(80, 160, 240, 0.3)' for subtle emphasis
 
 ```css
 /* YOUR PROPOSED */
-font-family: 'Cormorant Garamond', serif; 
+font-family: 'Cormorant Garamond', serif;
 font-style: italic;
 
 /* CORRECT IMPLEMENTATION (ensure weight and style are explicit) */
@@ -275,8 +275,8 @@ The 44px touch target requirement is non-negotiable per WCAG 2.2 Level AA (Succe
 // <CapsuleButton variant="wingPurple">Follow Us</CapsuleButton>
 
 // REVISED:
-<CapsuleButton 
-  variant="wingPurple" 
+<CapsuleButton
+  variant="wingPurple"
   aria-label="Follow SwanStudios on social media"
 >
   Follow Us
@@ -293,13 +293,13 @@ const ScrollIndicatorEl = styled(motion.button)`
   border: none;
   padding: 12px;
   cursor: pointer;
-  
+
   &:focus-visible {
     outline: 2px solid #60C0F0;
     outline-offset: 2px;
     border-radius: 8px;
   }
-  
+
   /* Preserve motion animations */
   &[data-scrolled="true"] {
     opacity: 0;
@@ -364,8 +364,8 @@ colors: {
 ```css
 /* Implement Ice Wing as you specified, but document the aesthetic intent */
 background: linear-gradient(
-  90deg, 
-  transparent 0%, 
+  90deg,
+  transparent 0%,
   rgba(96, 192, 240, 0.4) 50%,  /* Ice Wing - crystalline fracture */
   transparent 100%
 );
@@ -405,4 +405,3 @@ rgba(139, 92, 246, 0.3) 50% - Wing Purple - regal crystalline */
 *— MiniMax M2.7, Design Implementation Reviewer*
 
 ---
-

@@ -238,7 +238,7 @@ The plan describes a "toggle via API keys" pattern where the presence/absence of
 ```markdown
 ### API Key Architecture (MUST specify in plan)
 
-**Storage:** All third-party credentials stored in backend .env / Render 
+**Storage:** All third-party credentials stored in backend .env / Render
 environment variables ONLY. Never in database. Never sent to frontend.
 
 **Feature detection flow:**
@@ -281,8 +281,8 @@ DRAFT → PENDING_REVIEW → APPROVED → SCHEDULED → PUBLISHED
 
 Rules:
 - Blog posts: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.
-- Email digests: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.  
-- Social posts: Default PENDING_REVIEW. Sean can enable "auto-approve social" 
+- Email digests: NEVER skip PENDING_REVIEW → APPROVED. Sean must click Approve.
+- Social posts: Default PENDING_REVIEW. Sean can enable "auto-approve social"
   per-platform in Settings — but this is OPT-IN, not default.
 - Auto-schedule only moves APPROVED content, never DRAFT or PENDING_REVIEW.
 - Database: content_status enum('draft','pending_review','approved',
@@ -382,12 +382,12 @@ Social API calls fail. Rate limits, token expiry, platform outages, content poli
 
 socialDistributionService MUST implement:
 1. Per-platform retry: 3 attempts with exponential backoff (1s, 4s, 16s)
-2. On final failure: update social_posts.status = 'failed', 
+2. On final failure: update social_posts.status = 'failed',
    store error_message (VARCHAR 500)
 3. Failed post notification: in-app notification to admin user
-4. Partial success: each platform tracked independently 
+4. Partial success: each platform tracked independently
    (one row per platform per post, not one row for all platforms)
-5. Token refresh: OAuth tokens for Meta/TikTok expire — 
+5. Token refresh: OAuth tokens for Meta/TikTok expire —
    service must detect 401 and trigger re-auth flow
 6. Content policy rejection (Meta error code 100, subcode 1487390):
    surface human-readable message, do NOT retry automatically
@@ -421,7 +421,7 @@ If a developer implements this naively (dump all conversation history into every
 
 **Context strategy (Gemini Flash context window budget):**
   - Always include: client_profile (structured, ~500 tokens)
-  - Recent messages: last 10 exchanges (~2000 tokens)  
+  - Recent messages: last 10 exchanges (~2000 tokens)
   - Summarized history: Swan Coach generates rolling summary every 20 messages
     stored in conversation_summaries table (~500 tokens)
   - Total context budget: ~3000 tokens for history (leaves room for response)
@@ -454,9 +454,9 @@ A single runaway loop or a malicious user hammering the Swan Coach endpoint coul
 ```markdown
 ### Gemini Cost Controls (MANDATORY)
 
-1. Token tracking: log prompt_tokens + completion_tokens per request 
+1. Token tracking: log prompt_tokens + completion_tokens per request
    in gemini_usage_log table
-2. Daily budget alert: if daily spend > $2 (≈10% of monthly), 
+2. Daily budget alert: if daily spend > $2 (≈10% of monthly),
    send admin notification
 3. Hard rate limits per endpoint:
    - Swan Coach: 20 requests/hour per user
@@ -550,7 +550,7 @@ As a Performance and Scalability Engineer, I have reviewed the **Swan Coach + Ma
 **Finding:** "Ranking Tracker (monitor keyword positions)" and "Content Calendar (persistence)."
 **Rating: HIGH**
 - **Risk:** As the content library grows, querying the `ContentCalendar` for "all posts in October" without proper indexing will lead to full table scans.
-- **Recommendation:** 
+- **Recommendation:**
     - Add a **Composite Index** on `(scheduled_date, status)` in the database.
     - Ensure the `Blog` table has a **GIN index** if you plan to implement the "Internal linking structure optimization" via search.
 
@@ -1130,9 +1130,9 @@ The Marketing Dashboard relies heavily on Gemini API for content generation. At 
 
 # 🔍 Deep Architecture Review — SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN
 
-**Reviewer:** Principal Software Engineer (Bug Hunt Mode)  
-**Document:** `docs/ai-workflow/blueprints/SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`  
-**Date:** 2026-04-05  
+**Reviewer:** Principal Software Engineer (Bug Hunt Mode)
+**Document:** `docs/ai-workflow/blueprints/SWAN-COACH-MARKETING-CONTENT-STUDIO-PLAN.md`
+**Date:** 2026-04-05
 **Verdict:** ⚠️ **DRAFT — Multiple Production Blockers Identified**
 
 ---
@@ -1277,18 +1277,18 @@ This review focuses on the architectural and UX implications of your `SWAN-COACH
 
 ### 4. Form UX
 *   **Finding:** **Critical** — The "Blog Writer" and "Social Post Generator" involve long-running AI processes.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   **Progressive Disclosure:** Do not show all 13 platforms in the Social Generator. Use a "Platform Selection" multi-select that dynamically updates the preview window.
     *   **Feedback:** Use a skeleton loader for the "Generating..." state. Since these are AI-driven, include a "Stop Generation" button to prevent wasted tokens if the user realizes the prompt is wrong.
 
 ### 5. State Management
 *   **Finding:** **High** — You are managing multiple external API states (Late.dev, Blotato, etc.).
-*   **Recommendation:** Do not use `useState` for the entire dashboard state. Use `useReducer` or **TanStack Query (React Query)**. 
+*   **Recommendation:** Do not use `useState` for the entire dashboard state. Use `useReducer` or **TanStack Query (React Query)**.
     *   *Why:* React Query will handle the caching of your "SEO Audits" and "Trending Topics" automatically, preventing unnecessary API calls to Gemini/Search grounding when the user toggles tabs.
 
 ### 6. Accessibility Gaps
 *   **Finding:** **Medium** — The "Crystalline" aesthetic (Arctic Cyan on Frost White) risks low contrast.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Ensure your `Arctic Cyan` (#50A0F0) meets WCAG AA contrast standards against the `Frost White` (#E0ECF4) background. If it fails, use `Midnight Sapphire` (#002060) for text and keep `Arctic Cyan` for accents/borders only.
     *   **Keyboard Navigation:** Ensure the "Content Calendar" is keyboard-accessible. Drag-and-drop interfaces are notoriously difficult for screen readers; provide a "List View" toggle for accessibility compliance.
 
@@ -1652,7 +1652,7 @@ Error: OpenRouter 404: {"error":{"message":"No endpoints found for qwen/qwen3.6-
 
 CONSENSUS REACHED
 
-As the Creative Director, I commend this rigorous review process. The tension between uncompromising aesthetic ambition and strict WCAG compliance has done exactly what it is supposed to do: it has forged a flawless, inclusive, and deeply premium design system. 
+As the Creative Director, I commend this rigorous review process. The tension between uncompromising aesthetic ambition and strict WCAG compliance has done exactly what it is supposed to do: it has forged a flawless, inclusive, and deeply premium design system.
 
 You correctly validated the contrast ratios, and your additions for the disabled button states and forced-colors readability are approved. (I have slightly cleaned up the CSS syntax for the `forced-colors` media query in the final merge to apply directly to the text rather than an empty pseudo-element, ensuring standard browser rendering).
 
@@ -1677,7 +1677,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
 *   **Implementation:**
     *   **Drag State:** `transform: scale(1.03) rotate(1deg); cursor: grabbing; box-shadow: 0 12px 32px rgba(96, 192, 240, 0.3);` (Ice Wing glow).
     *   **Drop Zone:** `2px dashed #8B5CF6` border with `rgba(139, 92, 246, 0.1)` background fill.
-    *   **Accessibility:** 
+    *   **Accessibility:**
         *   Cards must have `min-height: 48px`.
         *   Implement `onKeyDown` for `ArrowUp`/`ArrowDown` to reorder items.
         *   Use `aria-live="assertive"` to announce moves (e.g., "Post moved to Thursday").
@@ -1705,7 +1705,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
     @supports (background-clip: padding-box) {
       .coach-bubble {
         border: 1px solid transparent;
-        background-image: linear-gradient(#1A1A24, #1A1A24), 
+        background-image: linear-gradient(#1A1A24, #1A1A24),
                           linear-gradient(135deg, #8B5CF6, #60C0F0);
         background-origin: border-box;
         background-clip: padding-box, border-box;
@@ -1748,8 +1748,8 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
     const [isConfirmed, setIsConfirmed] = useState(false);
 
     <label className="crystalline-checkbox-wrapper">
-      <input 
-        type="checkbox" 
+      <input
+        type="checkbox"
         className="visually-hidden"
         checked={isConfirmed}
         onChange={(e) => setIsConfirmed(e.target.checked)}
@@ -1763,7 +1763,7 @@ Here is the **Final Merged Design & Implementation Blueprint** for the engineeri
       </span>
     </label>
 
-    <button 
+    <button
       className="release-button"
       disabled={!isConfirmed}
       aria-disabled={!isConfirmed}

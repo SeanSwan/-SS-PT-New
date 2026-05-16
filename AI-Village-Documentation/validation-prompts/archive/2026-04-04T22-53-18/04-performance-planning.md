@@ -21,7 +21,7 @@ As a Web Performance Engineer reviewing the **Board 2 Exercise Modifications Pla
 ### 1. Bundle Size & Code Splitting
 **Finding: HIGH**
 The inclusion of `react-markdown`, `remark-gfm`, and `rehype-highlight` is overkill for simple exercise names.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Avoid Markdown for Table Cells:** Exercise names like "Safety Bar Squat" do not require Markdown. Use standard `<span>` or `<div>`.
     *   **Lazy Load if Necessary:** If Markdown is required for "Coach Notes," use `const ReactMarkdown = React.lazy(() => import('react-markdown'))`.
     *   **Split Boundary:** Create a `ModificationTable.tsx` component and wrap it in `React.lazy`. This ensures the heavy table logic and potential Markdown libs are only loaded when the user switches to "Board 2."
@@ -78,7 +78,7 @@ The "Voice orb" and "Sidebar slide" must not trigger layout shifts.
 3.  **MEDIUM:** Use **CSS Grid** for the Modification Table instead of `<table>` tags. Grid is more performant for responsive layouts and allows for easier "alternating background" logic without deep DOM nesting.
 4.  **LOW:** Implement a **Cache-First strategy** (Workbox/Service Worker) for the exercise modification data. Since this data only changes when the Gemini script runs, it should be cached indefinitely on the client.
 
-**Performance Score Estimate:** 
+**Performance Score Estimate:**
 *   *Current Plan:* 62/100 (Lighthouse)
 *   *With Optimizations:* 94/100 (Lighthouse)
 

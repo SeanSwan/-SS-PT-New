@@ -13,7 +13,7 @@ This performance review focuses on the **Bootcamp Builder Overhaul**, specifical
 ### 1. Bundle Size: Markdown & Highlighting
 **Rating: MEDIUM**
 *   **Finding:** Adding `react-markdown`, `remark-gfm`, and `rehype-highlight` adds ~65-80KB (gzipped) to the main bundle. Since "Teach Me" mode and AI explanations are secondary to the actual builder, these should not block the initial load.
-*   **Optimization:** 
+*   **Optimization:**
     *   **Lazy Load:** Wrap the Markdown renderer in `React.lazy()` and load it only when a "Teach Me" toggle is activated or the AI Detail panel is opened.
     *   **Lightweight Alternatives:** Consider `snarkdown` or `micromark` if you don't need the full plugin ecosystem of Remark.
 
@@ -56,7 +56,7 @@ This performance review focuses on the **Bootcamp Builder Overhaul**, specifical
 **Rating: MEDIUM**
 *   **Finding:** The "Admin" vs "Trainer" dashboard logic is merging.
 *   **Optimization:**
-    *   **Split by Role:** Use `React.lazy()` to split the `BootcampBuilder` from the main `TrainerDashboard`. 
+    *   **Split by Role:** Use `React.lazy()` to split the `BootcampBuilder` from the main `TrainerDashboard`.
     *   **Feature Split:** The `ExerciseRolodexPanel` should be its own chunk, as it contains the bulk of the search/filter logic and the exercise database metadata.
 
 ### 8. Animation Budget (GPU vs CPU)

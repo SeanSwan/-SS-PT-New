@@ -68,7 +68,7 @@ interface JWTConfig {
 export const getJWTConfig = (configService: ConfigService): JWTConfig => ({
   accessToken: {
     // 256-bit entropy minimum — NEVER hardcode
-    secret: configService.get('JWT_ACCESS_SECRET', { infer: true }) || 
+    secret: configService.get('JWT_ACCESS_SECRET', { infer: true }) ||
             crypto.randomBytes(32).toString('hex'),
     expiresIn: '15m', // Short-lived = less exposure window
     algorithm: 'RS256', // Public key can live in client; only server has private key
@@ -93,7 +93,7 @@ export class JWTService {
 
   async generateTokens(userId: string, role: UserRole): Promise<TokenPair> {
     const config = getJWTConfig(this.configService);
-    
+
     const accessToken = this.jwtService.sign(
       { sub: userId, role, type: 'access' },
       {
@@ -110,7 +110,7 @@ export class JWTService {
   }
 
   async rotateRefreshToken(
-    oldToken: string, 
+    oldToken: string,
     userId: string
   ): Promise<TokenPair> {
     // 1. Validate old token
@@ -160,9 +160,9 @@ model RefreshToken {
   expiresAt     DateTime
   usedInRotation Boolean  @default(false)
   revokedAt     DateTime?
-  
+
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([familyId])
 }
@@ -229,11 +229,11 @@ CRITICAL Classification: OVER-STATED if implementation follows Blueprint Section
 // scripts/audit-jwt-config.ts
 async function auditJWTConfig() {
   const findings = [];
-  
+
   // 1. Check algorithm
   const token = verifyTokenSample(); // Grab any valid JWT
   const decoded = jwt.decode(token, { complete: true });
-  
+
   if (decoded.header.alg === 'HS256') {
     findings.push({
       severity: 'MEDIUM',
@@ -241,7 +241,7 @@ async function auditJWTConfig() {
       fix: 'Switch to RS256; share public key only with clients'
     });
   }
-  
+
   if (decoded.header.alg === 'none') {
     findings.push({
       severity: 'CRITICAL',
@@ -263,7 +263,7 @@ async function auditJWTConfig() {
   const refreshTokens = await db.refreshToken.count({
     where: { usedInRotation: false }
   });
-  
+
   if (refreshTokens === 0) {
     findings.push({
       severity: 'LOW',

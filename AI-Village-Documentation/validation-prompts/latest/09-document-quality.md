@@ -86,9 +86,9 @@ CRITICAL GAPS:
 **Rating: MEDIUM**
 
 ### Specific Enough:
-✅ File names provided (`aiDataWriteService.mjs`, `aiChatService.mjs`)  
-✅ Field names specified (`firstName`, `lastName`, `clientSource`)  
-✅ Enum values defined (`'move_fitness'`, `'swanstudios'`)  
+✅ File names provided (`aiDataWriteService.mjs`, `aiChatService.mjs`)
+✅ Field names specified (`firstName`, `lastName`, `clientSource`)
+✅ Enum values defined (`'move_fitness'`, `'swanstudios'`)
 
 ### Too Vague:
 | Recommendation | Issue | Actionable Alternative |

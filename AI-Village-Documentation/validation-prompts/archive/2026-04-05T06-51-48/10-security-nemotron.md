@@ -264,7 +264,7 @@ So I'll look for risks in the planned implementations.
 
 Let me list potential findings:
 
-1. **Data flow: PII exposure in admin usage dashboard** 
+1. **Data flow: PII exposure in admin usage dashboard**
    - In Phase 7, Admin AI Usage Dashboard shows per-user AI usage patterns, including potentially PII if user identifiers are displayed. While intended for admins, if access controls are flawed or if data is exported, PII could be leaked. The plan doesn't specify anonymization or minimization of PII in usage logs.
    - Rating: MEDIUM (since admins are trusted, but risk if compromised)
 

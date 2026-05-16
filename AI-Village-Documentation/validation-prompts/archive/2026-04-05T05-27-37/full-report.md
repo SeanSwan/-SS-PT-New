@@ -477,7 +477,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
   const [value, setValue] = useState(0);
   const hasAnimated = useRef(false);
   const targetRef = useRef(target);
-  
+
   // Keep ref current without re-triggering effect
   useEffect(() => { targetRef.current = target; }, [target]);
 
@@ -492,7 +492,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
     const duration = 2500;
     const startTime = performance.now();
     let rafId: number;
-    
+
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -503,7 +503,7 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
       }
     };
     rafId = requestAnimationFrame(animate);
-    
+
     // Cleanup: cancel animation if component unmounts mid-count
     return () => cancelAnimationFrame(rafId);
   }, [isVisible, prefersReduced]); // target intentionally excluded — use ref
@@ -622,7 +622,7 @@ The component is a visually rich, "cinematic" landing page. While the UX is high
 **Finding: Video Asset Loading Strategy**
 *   **Rating: HIGH**
 *   **Issue:** The Hero video uses `preload="metadata"`. While this saves initial bandwidth, the `source src={VIDEO.swans}` is a single file.
-*   **Recommendation:** 
+*   **Recommendation:**
     1.  Implement **Adaptive Bitrate Streaming** (HLS/DASH) for the background video.
     2.  Add a media query check to provide a lower-resolution version for mobile devices to save user data.
     3.  Ensure the server serving `VIDEO.swans` supports **Byte-Range Requests** (Status 206) to allow seeking and partial downloads.
@@ -718,7 +718,7 @@ The component is a visually rich, "cinematic" landing page. While the UX is high
 interface FeatureGaps {
   p0_critical: [
     "Native iOS/Android application",
-    "Video exercise demonstration library", 
+    "Video exercise demonstration library",
     "Real-time trainer-client messaging",
     "Integrated payment/subscription processing",
     "Client progress tracking dashboard"
@@ -755,7 +755,7 @@ const differentiationStrengths = {
     uniqueAngle: "Pain-aware, corrective exercise-focused training",
     proof: "NCEP certification + 26 years field experience"
   },
-  
+
   // 2. Niche Specialization
   golfPerformance: {
     strength: "Golf-specific training vertical",
@@ -767,7 +767,7 @@ const differentiationStrengths = {
     ],
     marketGap: "No competitor owns golf-specific personal training"
   },
-  
+
   // 3. AI + Human Hybrid
   aiAugmentedCoaching: {
     strength: "AI as coach amplifier, not replacement",
@@ -775,14 +775,14 @@ const differentiationStrengths = {
     automation: "Program generation, progress analysis",
     humanElement: "Real coach reviews every program"
   },
-  
+
   // 4. Community Ownership
   platformOwnership: {
     strength: "Trainer-first, community-owned model",
     differentiator: "Trainers keep clients, fair 10% fee",
     competitorsExploit: "Platforms lock in trainers, extract value"
   },
-  
+
   // 5. Design Excellence
   crystallineSwanUX: {
     strength: "Premium cinematic experience",
@@ -840,10 +840,10 @@ interface PricingStructure {
       features: ["Virtual coaching", "Basic tracking", "Exercise library"]
     },
     {
-      name: "Signature Performance", 
+      name: "Signature Performance",
       sessions: "8/month",
       price: 249,
-      period: "monthly", 
+      period: "monthly",
       popular: true,
       features: ["Unlimited messaging", "NASM assessment", "Nutrition basics", "Video calls"]
     },
@@ -855,14 +855,14 @@ interface PricingStructure {
       features: ["AI programming", "Golf/athlete specializations", "Priority booking", "Body tracking"]
     }
   ],
-  
+
   // B2B: Trainer Subscription
   trainerTiers: [
     { name: "Starter", clients: 10, fee: "8%", price: 29 },
     { name: "Growth", clients: 50, fee: "6%", price: 79 },
     { name: "Scale", clients: 200, fee: "5%", price: 199 }
   ],
-  
+
   // B2B2C: Corporate Wellness
   corporate: {
     perEmployee: 15-40,
@@ -889,7 +889,7 @@ const upsellFunnel = {
       conversionTarget: "Monthly subscription"
     }
   ],
-  
+
   // 2. Cross-Sell Opportunities
   crossSells: [
     { from: "Fitness", to: "Nutrition", margin: "40%", trigger: "Week 4 progress" },
@@ -897,7 +897,7 @@ const upsellFunnel = {
     { from: "Individual", to: "Corporate", margin: "25%", trigger: "Company code entry" },
     { from: "Base Program", to: "1:1 Video Sessions", margin: "50%", trigger: "Stagnation detected" }
   ],
-  
+
   // 3. Lifetime Value Maximization
   ltvEnhancers: [
     { type: "Annual prepay", discount: "20%", target: "Churn reduction" },
@@ -921,7 +921,7 @@ const conversionTests = [
   {
     test: "CTA copy: 'Join Community' vs 'Start Training'",
     hypothesis: "Action-oriented copy improves click-through",
-    priority: "P1", 
+    priority: "P1",
     metric: "Button click rate"
   },
   {
@@ -979,7 +979,7 @@ const techStackAnalysis = {
     uiQuality: "★★★★★ Premium glassmorphism, cinematic parallax",
     scalabilityRisk: "Monolithic frontend, heavy client rendering"
   },
-  
+
   competitors: {
     trainerize: {
       stack: "React Native (mobile), Node backend, PostgreSQL",
@@ -1008,20 +1008,20 @@ const positioning = {
     "Corporate executives (wellness budget)",
     "Trainers seeking fair platform terms"
   ],
-  
+
   primaryMessage: "Where elite personal training meets AI precision — built by trainers, for trainers.",
-  
+
   differentiators: [
     "NASM-licensed coaching with 26 years expertise",
-    "AI amplifies your coach, never replaces them", 
+    "AI amplifies your coach, never replaces them",
     "Pain-aware, corrective exercise-focused",
     "Golf performance specialization",
     "Community-first, trainer-owned platform"
   ],
-  
+
   competitiveMoat: [
     "Golf vertical dominance",
-    "Proprietary pain-assessment methodology", 
+    "Proprietary pain-assessment methodology",
     "Trainer ownership model (sticky network effects)",
     "Crystalline Swan brand equity"
   ]
@@ -1057,7 +1057,7 @@ const technicalBlockers = {
       solution: "Build complete Node.js/Express API with auth, database"
     }
   ],
-  
+
   // P1: Will Limiting Scaling
   high: [
     {
@@ -1374,22 +1374,22 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
 
   useEffect(() => {
     if (!isVisible) return;
-    
+
     if (prefersReduced) {
       setValue(target);
       hasAnimated.current = true;
       return;
     }
-    
+
     // Always restart animation on visibility change or target change
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
-    
+
     const duration = 2500;
     const startTime = performance.now();
     const startValue = value; // Capture current displayed value for smooth transition
-    
+
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
@@ -1400,10 +1400,10 @@ const useCountUp = (target: number, isVisible: boolean, prefersReduced: boolean)
         animationRef.current = requestAnimationFrame(animate);
       }
     };
-    
+
     animationRef.current = requestAnimationFrame(animate);
     hasAnimated.current = true;
-    
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -1492,7 +1492,7 @@ const IconWrapper = styled.div`
 </VideoEl>
 ```
 
-**Bug:** 
+**Bug:**
 1. `aria-hidden="true"` is correct for decorative video, but the caption track has no `src` attribute, causing console warnings
 2. The poster image path is hardcoded while the video source comes from a config
 
@@ -1527,7 +1527,7 @@ const IconWrapper = styled.div`
 - Multiple animation systems
 - Hardcoded navigation routes
 
-**Impact:** 
+**Impact:**
 - Impossible to test individual sections in isolation
 - Bundle size implications
 - Code review becomes error-prone
@@ -1601,7 +1601,7 @@ const { prefersReduced } = useContext(MotionContext);
 ```typescript
 const SectionErrorBoundary = ({ children, sectionName }: { children: React.ReactNode; sectionName: string }) => {
   const [hasError, setHasError] = useState(false);
-  
+
   return (
     <ErrorBoundary onError={(error) => {
       console.error(`[HomePage] ${sectionName} crashed:`, error);
@@ -1828,7 +1828,7 @@ This is a defense-in-depth failure. The homepage is actively advertising and pro
 const useAuthNavigate = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth(); // your auth context
-  
+
   return (path: string, requiredRole?: string) => {
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(path)}`);
@@ -1905,8 +1905,8 @@ class OrientationFormErrorBoundary extends React.Component<
   state = { hasError: false, errorId: '' };
 
   static getDerivedStateFromError() {
-    return { 
-      hasError: true, 
+    return {
+      hasError: true,
       errorId: `ERR-${Date.now()}` // For support reference, NO PII
     };
   }
@@ -2002,8 +2002,8 @@ const [videoLoaded, setVideoLoaded] = useState(false);
     onLoadedData={() => setVideoLoaded(true)}
     initial={prefersReduced ? { opacity: 0.5 } : { scale: 1.1, opacity: 0 }}
     animate={
-      prefersReduced 
-        ? { opacity: 0.5 } 
+      prefersReduced
+        ? { opacity: 0.5 }
         : { scale: 1, opacity: videoLoaded ? 0.5 : 0 }
     }
     transition={{ duration: 2, ease: 'easeOut' }}
@@ -2063,8 +2063,8 @@ onClick={() => navigate('/signup?role=trainer')}
 const handleTrainerSignup = async () => {
   // Get a short-lived signed intent token from backend
   // This prevents role parameter tampering
-  const { data } = await api.post('/auth/signup-intent', { 
-    type: 'trainer_application' 
+  const { data } = await api.post('/auth/signup-intent', {
+    type: 'trainer_application'
   });
   navigate(`/signup?intent=${data.token}`);
 };
@@ -2209,38 +2209,38 @@ const FALLBACK_TESTIMONIALS = [
 # Security Review: HomePage.V4.tsx (Secondary Opinion)
 
 ## 1. Data Flow Analysis
-**Finding**: No explicit PII handling visible in this component, but dependency on OrientationForm creates indirect risk  
-**Rating**: MEDIUM  
-**Details**: While this file contains no direct PII collection (names, emails, phones), it imports `OrientationForm` which likely handles user data for trainer matching. A primary scan might miss that PII flows through this imported component without seeing its implementation. The form data could potentially be logged or transmitted insecurely in the OrientationForm component itself.  
+**Finding**: No explicit PII handling visible in this component, but dependency on OrientationForm creates indirect risk
+**Rating**: MEDIUM
+**Details**: While this file contains no direct PII collection (names, emails, phones), it imports `OrientationForm` which likely handles user data for trainer matching. A primary scan might miss that PII flows through this imported component without seeing its implementation. The form data could potentially be logged or transmitted insecurely in the OrientationForm component itself.
 **Mitigation**: Review OrientationForm separately for PII handling, ensure TLS encryption for all API calls, and implement strict input sanitization.
 
 ## 2. API Boundary Security
-**Finding**: No direct API calls visible, but navigation patterns may bypass security checks  
-**Rating**: LOW  
-**Details**: This file uses `useNavigate()` for client-side routing to protected routes (`/user-dashboard`, `/dashboard/*`). A primary scan might focus on backend API security but miss that frontend route guards could be bypassed if not properly implemented (e.g., if route protection relies solely on client-side checks without backend validation).  
+**Finding**: No direct API calls visible, but navigation patterns may bypass security checks
+**Rating**: LOW
+**Details**: This file uses `useNavigate()` for client-side routing to protected routes (`/user-dashboard`, `/dashboard/*`). A primary scan might focus on backend API security but miss that frontend route guards could be bypassed if not properly implemented (e.g., if route protection relies solely on client-side checks without backend validation).
 **Mitigation**: Ensure all protected routes have corresponding backend authentication checks, not just frontend route guards.
 
 ## 3. Dependency Chain Risks
-**Finding**: framer-motion dependency with extensive animation usage  
-**Rating**: LOW  
-**Details**: The component heavily relies on `framer-motion` for animations (parallax effects, staggered reveals, etc.). While framer-motion is generally secure, a primary vulnerability scan might not flag it as a potential risk vector for side-channel attacks via animation timing (theoretically possible in highly sensitive contexts, though unlikely here). More practically, outdated versions could contain unpatched vulnerabilities.  
+**Finding**: framer-motion dependency with extensive animation usage
+**Rating**: LOW
+**Details**: The component heavily relies on `framer-motion` for animations (parallax effects, staggered reveals, etc.). While framer-motion is generally secure, a primary vulnerability scan might not flag it as a potential risk vector for side-channel attacks via animation timing (theoretically possible in highly sensitive contexts, though unlikely here). More practically, outdated versions could contain unpatched vulnerabilities.
 **Mitigation**: Pin framer-motion to a specific, vetted version in package.json and monitor for security advisories.
 
 ## 4. Cryptographic Safety
-**Finding**: No cryptographic operations visible in this file  
-**Rating**: INFO  
-**Details**: This presentation-layer component doesn't handle password hashing, token generation, or session management. Cryptographic operations would occur in the backend or auth-specific frontend components not shown here.  
+**Finding**: No cryptographic operations visible in this file
+**Rating**: INFO
+**Details**: This presentation-layer component doesn't handle password hashing, token generation, or session management. Cryptographic operations would occur in the backend or auth-specific frontend components not shown here.
 **Note**: A primary scan might incorrectly flag the absence of crypto here as an issue, but it's appropriately handled at the correct layer.
 
 ## 5. Infrastructure Security
-**Finding**: Helmet used for SEO but missing critical security headers  
-**Rating**: MEDIUM  
+**Finding**: Helmet used for SEO but missing critical security headers
+**Rating**: MEDIUM
 **Details**: The component uses `react-helmet-async` to set title and meta description for SEO, but omits critical security headers like:
 - `Content-Security-Policy` (CSP)
 - `X-Frame-Options` (clickjacking protection)
 - `X-Content-Type-Options` (MIME sniffing protection)
 - `Referrer-Policy` (referrer leakage prevention)
-A primary scan might detect Helmet usage but miss that it's not configured for security hardening.  
+A primary scan might detect Helmet usage but miss that it's not configured for security hardening.
 **Mitigation**: Configure Helmet with security defaults:
 ```jsx
 <Helmet>
@@ -2253,13 +2253,13 @@ A primary scan might detect Helmet usage but miss that it's not configured for s
 ```
 
 ## 6. Privacy Compliance
-**Finding**: No explicit privacy controls or consent mechanisms visible  
-**Rating**: LOW  
+**Finding**: No explicit privacy controls or consent mechanisms visible
+**Rating**: LOW
 **Details**: As a marketing homepage, this component doesn't appear to process personal data directly. However, it lacks:
 - Consent mechanisms for any potential analytics/tracking
 - Data minimization principles (though it's primarily static content)
 - Clear links to privacy policy or data deletion requests
-A primary scan might miss that while no PII is visibly collected here, the page serves as an entry point to data-collecting flows (like OrientationForm) without upfront privacy notices.  
+A primary scan might miss that while no PII is visibly collected here, the page serves as an entry point to data-collecting flows (like OrientationForm) without upfront privacy notices.
 **Mitigation**: Add a privacy policy link in the footer (not shown in this snippet) and ensure consent is obtained before any data collection in downstream components.
 
 ## Summary of Critical Findings Primary Scan Might Miss
@@ -2415,7 +2415,7 @@ const IconWrapper = styled.div`
   margin-bottom: 24px;
   color: ${({ theme }) => theme.colors?.secondary || '#8B5CF6'};
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   /* Crystalline shimmer on hover */
   &:hover {
     background: ${({ theme }) => theme.colors?.accent?.split(' ')[0] || 'rgba(96, 192, 240, 0.15)'};
@@ -2453,7 +2453,7 @@ PROPOSED ALTERNATIVE: glow: 'rgba(80, 160, 240, 0.3)' for subtle emphasis
 
 ```css
 /* YOUR PROPOSED */
-font-family: 'Cormorant Garamond', serif; 
+font-family: 'Cormorant Garamond', serif;
 font-style: italic;
 
 /* CORRECT IMPLEMENTATION (ensure weight and style are explicit) */
@@ -2482,8 +2482,8 @@ The 44px touch target requirement is non-negotiable per WCAG 2.2 Level AA (Succe
 // <CapsuleButton variant="wingPurple">Follow Us</CapsuleButton>
 
 // REVISED:
-<CapsuleButton 
-  variant="wingPurple" 
+<CapsuleButton
+  variant="wingPurple"
   aria-label="Follow SwanStudios on social media"
 >
   Follow Us
@@ -2500,13 +2500,13 @@ const ScrollIndicatorEl = styled(motion.button)`
   border: none;
   padding: 12px;
   cursor: pointer;
-  
+
   &:focus-visible {
     outline: 2px solid #60C0F0;
     outline-offset: 2px;
     border-radius: 8px;
   }
-  
+
   /* Preserve motion animations */
   &[data-scrolled="true"] {
     opacity: 0;
@@ -2571,8 +2571,8 @@ colors: {
 ```css
 /* Implement Ice Wing as you specified, but document the aesthetic intent */
 background: linear-gradient(
-  90deg, 
-  transparent 0%, 
+  90deg,
+  transparent 0%,
   rgba(96, 192, 240, 0.4) 50%,  /* Ice Wing - crystalline fracture */
   transparent 100%
 );
@@ -2706,13 +2706,13 @@ const SecurityMetaTags = () => (
     {/* Meta tags only — NOT equivalent to HTTP headers */}
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="robots" content="index, follow" />
-    
+
     {/* Theme color for mobile browsers */}
     <meta name="theme-color" content="#002060" />
-    
+
     {/* Open Graph security hints (limited protection) */}
     <meta property="og:image:alt" content="" />
-    
+
     {/* Viewport with security hints */}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </Helmet>

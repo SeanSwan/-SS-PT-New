@@ -12,9 +12,9 @@
 **TO:** Engineering & UI/UX Teams
 **SUBJECT:** FINAL DESIGN SPECIFICATION — Coach Assistant UI (Crystalline Swan)
 
-Listen closely. The Homepage and About page refactor establishes our soul—the "Global Trainer Platform" and the "Health-First Community." But a vision without execution is just a hallucination. The **Coach Assistant** is the engine that makes this platform viable for trainers scaling their business. It must feel like an extension of their own mind: frictionless, multimodal, and deeply integrated into the Crystalline Swan aesthetic. 
+Listen closely. The Homepage and About page refactor establishes our soul—the "Global Trainer Platform" and the "Health-First Community." But a vision without execution is just a hallucination. The **Coach Assistant** is the engine that makes this platform viable for trainers scaling their business. It must feel like an extension of their own mind: frictionless, multimodal, and deeply integrated into the Crystalline Swan aesthetic.
 
-I have reviewed the UX research. We are moving beyond flat design into **Spatial UI** and **Emotion-First UX**. The interface must breathe. It must react. 
+I have reviewed the UX research. We are moving beyond flat design into **Spatial UI** and **Emotion-First UX**. The interface must breathe. It must react.
 
 I am mandating the following exact specifications for the Coach Assistant components. **Do not deviate.** The retired Galaxy-Swan palette is dead; if I see `#00FFFF` in a pull request, I will reject it immediately.
 
@@ -32,7 +32,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
   --color-obsidian-black: #0A0A0F;
   --color-carbon: #141419;
   --color-graphite: #1A1A24;
-  
+
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-spatial: 0 8px 32px rgba(0, 32, 96, 0.15);
@@ -50,7 +50,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
 *   **Hover State:** Background shifts to `--color-graphite`. Left border inset `4px solid --color-ice-wing`.
 *   **Active State:** Background shifts to `--color-royal-depth`. Left border inset `4px solid --color-wing-purple`. Text color brightens to `--color-frost-white`.
 *   **Transition Timing:** `background-color 0.25s --ease-out-expo, border-color 0.25s --ease-out-expo`.
-*   **Mobile Drawer Animation:** 
+*   **Mobile Drawer Animation:**
     *   Closed: `transform: translateX(-100%); opacity: 0;`
     *   Open: `transform: translateX(0); opacity: 1;`
     *   Timing: `0.4s --ease-out-expo`. Include a `--color-obsidian-black` backdrop overlay at `60%` opacity.
@@ -66,7 +66,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
     *   Variables/Base Text: `--color-frost-white`
 *   **Table Style:** `width: 100%; border-collapse: collapse;`. Header background `--color-graphite`. Cells have `1px solid --color-carbon` bottom borders. Padding `12px 16px`.
 *   **Blockquote:** Used for AI coaching insights. Left border `4px solid --color-gilded-fern`. Background `rgba(198, 168, 75, 0.05)`. Padding `16px`. Text color `--color-frost-white` with `font-style: italic`.
-*   **Heading Sizes:** 
+*   **Heading Sizes:**
     *   H1: `24px`, `font-weight: 700`, `--color-frost-white`, `margin-bottom: 16px`.
     *   H2: `20px`, `font-weight: 600`, `--color-ice-wing`, `margin-bottom: 12px`.
     *   H3: `16px`, `font-weight: 600`, `--color-swan-lavender`, `margin-bottom: 8px`.
@@ -77,7 +77,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
 *   **Bubble Shape:** Pill-shaped. `border-radius: 24px`. `padding: 12px 20px`. Background: `--color-carbon`. Border: `1px solid rgba(96, 192, 240, 0.2)`.
 *   **Shimmer Animation Spec:** Inside the pill, three distinct circular nodes (`8px` diameter).
 *   **Color/Shimmer:** Nodes default to `--color-midnight-sapphire`. The shimmer is a keyframe animation that ripples `--color-ice-wing` across the three nodes sequentially.
-*   **Timing & Easing:** 
+*   **Timing & Easing:**
     *   Ripple duration: `1.2s infinite`.
     *   Easing: `cubic-bezier(0.4, 0, 0.2, 1)`.
     *   Delay: Node 1 (`0s`), Node 2 (`0.15s`), Node 3 (`0.3s`).
@@ -86,7 +86,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
 *The core of our multimodal, voice-first interaction. It must command attention and provide immediate, visceral feedback.*
 
 *   **Orb Size:** `80px` diameter. Centered in the lower third of the screen.
-*   **Amplitude Ring Specs:** 3 concentric rings radiating from the orb. 
+*   **Amplitude Ring Specs:** 3 concentric rings radiating from the orb.
     *   Base state: `border: 2px solid --color-arctic-cyan`, `opacity: 0`.
     *   Active state: Rings scale from `1x` to `2.5x` based on microphone input volume (bind this to the Web Audio API analyzer node).
 *   **Duration Label Style:** Positioned `24px` below the orb. Font: `14px` monospace (e.g., Roboto Mono), `font-weight: 500`, `--color-frost-white`.
@@ -111,7 +111,7 @@ I am mandating the following exact specifications for the Coach Assistant compon
 
 *   **Thumbnail Size:** `80px x 80px` square in the composer area. `object-fit: cover`.
 *   **Border Radius:** `12px` (slightly softer than code blocks to indicate media). Border: `2px solid --color-graphite`.
-*   **Remove Button Placement:** Absolute positioned at the top-right corner. 
+*   **Remove Button Placement:** Absolute positioned at the top-right corner.
     *   Offset: `top: -8px; right: -8px;`
     *   Size: `24px x 24px` perfect circle.
     *   Style: Background `--color-obsidian-black`, Icon (X) `--color-frost-white`. `border: 1px solid --color-graphite`.
@@ -119,8 +119,8 @@ I am mandating the following exact specifications for the Coach Assistant compon
 
 ---
 
-**Implementation Note:** 
-These specs are final. Build them exactly as written. The Crystalline Swan theme relies on the precise interplay of these deep blues, purples, and stark whites. If the contrast feels off on your monitor, check your monitor, not my hex codes. 
+**Implementation Note:**
+These specs are final. Build them exactly as written. The Crystalline Swan theme relies on the precise interplay of these deep blues, purples, and stark whites. If the contrast feels off on your monitor, check your monitor, not my hex codes.
 
 Execute.
 
@@ -241,7 +241,7 @@ The specification completely omits accessibility (a11y) requirements. This is a 
   .thinking-indicator {
     animation: none;
   }
-  
+
   .thinking-indicator .node {
     background-color: var(--color-ice-wing);
     opacity: 0.7;
@@ -356,7 +356,7 @@ I recognize the Crystalline Swan aesthetic vision is strong. These disputes are 
 **TO:** Design Implementation Reviewer (MiniMax M2.7)
 **SUBJECT:** RE: Design Implementation Review — Round 1
 
-Engineering, this is exactly the friction that produces diamonds. Your rigorous review of the Crystalline Swan spec is appreciated. A vision without structural integrity is just a painting, and we are building an engine. 
+Engineering, this is exactly the friction that produces diamonds. Your rigorous review of the Crystalline Swan spec is appreciated. A vision without structural integrity is just a painting, and we are building an engine.
 
 Let's address your disputes. I am approving several of your technical corrections, but I am holding the line on our spatial and brand directives.
 
@@ -367,11 +367,11 @@ You are absolutely right. "Health-First Community" means *everyone*. Omitting a1
 *   **Approved:** `prefers-reduced-motion` fallback for the Thinking Indicator.
 *   **Approved:** `aria-live="polite"` visually hidden span for screen readers.
 *   **Approved:** `:focus-visible` states for the Sidebar.
-*   **Approved:** Keyboard fallback trigger for the Voice Recording Overlay. 
+*   **Approved:** Keyboard fallback trigger for the Voice Recording Overlay.
 *   *Implementation Note:* Inject these directly into the respective component CSS files exactly as you proposed.
 
 **2. The `border: inset` Syntax Error (Dispute 1)**
-You caught a semantic slip. I visualized an inset effect to prevent layout jitter (which standard borders cause on hover), but wrote invalid CSS. 
+You caught a semantic slip. I visualized an inset effect to prevent layout jitter (which standard borders cause on hover), but wrote invalid CSS.
 *   **Approved Fix:** We will use your `box-shadow` suggestion to maintain the box model integrity.
 *   **Code Update (`conversation-sidebar.css`):**
 ```css
@@ -394,7 +394,7 @@ You caught a semantic slip. I visualized an inset effect to prevent layout jitte
 
 **1. Spatial UI Overlay Clipping (Dispute 2)**
 *   **Your Stance:** Proposed Option A (Clip-Safe) or Option B (True Spatial), recommending Option A to avoid clipping bugs.
-*   **My Stance:** **DISAGREE with Option A. Mandating Option B.** We do not compromise the spatial aesthetic for "clip-safe" mediocrity. The badge *must* break the bounding box to establish Z-axis depth. 
+*   **My Stance:** **DISAGREE with Option A. Mandating Option B.** We do not compromise the spatial aesthetic for "clip-safe" mediocrity. The badge *must* break the bounding box to establish Z-axis depth.
 *   **Mandated Code (`message-bubble.css`):**
 ```css
 .message-container {
@@ -433,7 +433,7 @@ You caught a semantic slip. I visualized an inset effect to prevent layout jitte
 ---
 
 **Summary for Round 2:**
-Integrate the a11y specs and the `box-shadow` hover states. Implement Option B for the Spatial Badges, and update the H3 variable name and weight. 
+Integrate the a11y specs and the `box-shadow` hover states. Implement Option B for the Spatial Badges, and update the H3 variable name and weight.
 
 Confirm these adjustments so we can lock this specification and begin the build.
 
@@ -565,7 +565,7 @@ CONSENSUS REACHED
 **TO:** Engineering & UI/UX Teams
 **SUBJECT:** FINAL MERGED SPECIFICATION — Coach Assistant UI (Crystalline Swan)
 
-Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof. 
+Excellent work, Engineering. This is how we build a world-class product. By stress-testing the aesthetic vision against structural and accessible realities, we have forged a specification that is both beautiful and bulletproof.
 
 Below is the final, merged, and locked specification for the Coach Assistant UI. All teams are cleared to begin implementation immediately based on these exact parameters.
 
@@ -587,7 +587,7 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   --color-obsidian-black: #0A0A0F;
   --color-carbon: #141419;
   --color-graphite: #1A1A24;
-  
+
   --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --shadow-spatial: 0 8px 32px rgba(0, 32, 96, 0.15);
@@ -694,9 +694,9 @@ Below is the final, merged, and locked specification for the Coach Assistant UI.
   font-size: 20px; font-weight: 600; color: var(--color-ice-wing); margin-bottom: 12px;
 }
 .markdown-content h3 {
-  font-size: 16px; 
+  font-size: 16px;
   font-weight: 800; /* Bumped for contrast */
-  color: var(--color-swan-dusk); 
+  color: var(--color-swan-dusk);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
 }
@@ -839,4 +839,3 @@ Lock the repository. Let's build.
 *Health First. Community Always.*
 
 ---
-

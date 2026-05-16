@@ -6,7 +6,7 @@
 
 ---
 
-As a strategic product researcher and futurist, I have analyzed the `BOOTCAMP-BUILDER-OVERHAUL-PLAN.md` document. While the backend architecture and NASM OPT periodization are robust, the plan currently treats the platform as a traditional SaaS tool rather than a next-generation, AI-native fitness ecosystem. 
+As a strategic product researcher and futurist, I have analyzed the `BOOTCAMP-BUILDER-OVERHAUL-PLAN.md` document. While the backend architecture and NASM OPT periodization are robust, the plan currently treats the platform as a traditional SaaS tool rather than a next-generation, AI-native fitness ecosystem.
 
 To elevate SwanStudios to a premium, future-proofed platform for wealthy clients and elite trainers, we must bridge critical gaps in real-time technology, regulatory compliance, predictive UX, and monetization.
 

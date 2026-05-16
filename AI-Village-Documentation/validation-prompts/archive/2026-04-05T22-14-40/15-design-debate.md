@@ -69,7 +69,7 @@ const NumpadKey = styled.button`
   color: #E0ECF4;
   user-select: none;
   touch-action: manipulation;
-  
+
   &:active {
     background: rgba(96, 192, 240, 0.2);
     box-shadow: inset 0 0 10px rgba(96, 192, 240, 0.3);
@@ -162,14 +162,14 @@ const MetricCard = styled.div`
   border: 1px solid #1A1A24;
   border-radius: 16px;
   padding: 24px;
-  
+
   h3 { /* Label */
     font-family: 'Cormorant Garamond';
     font-style: italic;
     color: #C6A84B;
     margin-bottom: 8px;
   }
-  
+
   .value { /* Number */
     font-family: 'Fira Code';
     font-size: 32px;
@@ -204,7 +204,7 @@ const ScorePanel = styled.div`
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 16px;
   padding: 24px;
-  
+
   .total-score {
     font-family: 'Fira Code';
     font-size: 48px;

@@ -8,7 +8,7 @@
 
 # Risk Assessment & Feasibility Review: Bootcamp Format Upgrade Plan
 
-**Document**: `docs/ai-workflow/blueprints/BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md`  
+**Document**: `docs/ai-workflow/blueprints/BOOTCAMP-FORMAT-COMPREHENSIVE-UPGRADE-PLAN.md`
 **Review Scope**: The plan excerpt focuses on format/style changes. The mention of "Phase 4 (voice)" and "22 new files" suggests additional context not included. This review addresses the visible plan plus extrapolated risks from the referenced full document.
 
 ---
@@ -37,7 +37,7 @@
 The provided plan doesn't explicitly enumerate phases, but based on the referenced "Phase 4 (voice)" and typical upgrade patterns, I'm assuming:
 
 ```
-Phase 0 (Foundation) → Phase 1 (Formats) → Phase 2 (UI Components) → 
+Phase 0 (Foundation) → Phase 1 (Formats) → Phase 2 (UI Components) →
 Phase 3 (Timing Logic) → Phase 4 (Voice) → Phase 5 (Polish)
 ```
 
@@ -100,7 +100,7 @@ function calculateStationTime(
   rounds: number,
   workSec: number
 ): number {
-  const effectiveTimePerExercise = exercises.map(ex => 
+  const effectiveTimePerExercise = exercises.map(ex =>
     ex.unilateral ? workSec * 2 : workSec
   );
   const stationTime = effectiveTimePerExercise.reduce((a, b) => a + b, 0);
@@ -127,7 +127,7 @@ The plan mentions voice but not implementation details. Quick compatibility chec
 
 ### Bundle Size Accuracy
 
-`react-markdown` for teaching-me panel: 
+`react-markdown` for teaching-me panel:
 - Current: ~40KB gzipped (core) + remark plugins
 - Adding `remark-gfm`, `rehype-raw`, syntax highlighting could add 15-30KB
 - Acceptable if lazy-loaded, but not if rendered on initial page load
@@ -231,7 +231,7 @@ describe('calculateWorkoutTime', () => {
   it('calculates 2x8_r3 correctly', () => {
     expect(calculateWorkoutTime('2x8_r3')).toBe(2280); // 38 min in seconds
   });
-  
+
   it('doubles unilateral exercise time', () => {
     const exercises = [
       { name: 'Single-leg bridge', unilateral: true, durationSec: 30 },
@@ -239,7 +239,7 @@ describe('calculateWorkoutTime', () => {
     ];
     expect(calculateStationTime(exercises, 3)).toBe(180); // 60 + 30 * 3
   });
-  
+
   it('handles mixed_unilateral format', () => {
     // This test will catch the calculation discrepancy noted earlier
   });
