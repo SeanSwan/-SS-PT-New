@@ -60,8 +60,8 @@
  * @returns {number} Current level (0+)
  */
 export function calculateLevel(totalPoints) {
-  if (totalPoints <= 0) return 0;
-  return Math.floor(0.1 * Math.sqrt(totalPoints));
+  if (totalPoints <= 0) return 1;
+  return Math.max(1, Math.floor(0.1 * Math.sqrt(totalPoints)));
 }
 
 /**
@@ -70,7 +70,7 @@ export function calculateLevel(totalPoints) {
  * @returns {number} Points threshold (ceiling to avoid float gaps)
  */
 export function pointsForLevel(level) {
-  if (level <= 0) return 0;
+  if (level <= 1) return 0;
   return Math.ceil(Math.pow(level / 0.1, 2));
 }
 

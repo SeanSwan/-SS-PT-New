@@ -47,4 +47,33 @@ describe('gamification schema drift regressions', () => {
     expect(source).toMatch(/addColumn\('Gamifications',\s*'recoveryDaysCompleted'/);
     expect(source).toMatch(/defaultValue:\s*0/);
   });
+
+  it('achievement awards use Achievement.xpReward and update derived user progression fields', () => {
+    const source = readBackendFile('controllers/gamificationController.mjs');
+
+    expect(source).toMatch(/const\s+getAchievementPointValue\s*=\s*\(achievement\)\s*=>/);
+    expect(source).not.toMatch(/achievement\.pointValue/);
+    expect(source).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(newBalance\)/);
+    expect(source).toMatch(/const\s+newTier\s*=\s*getTier\(newLevel\)/);
+    expect(source).toMatch(/user\.update\(\{\s*points:\s*newBalance,\s*level:\s*newLevel,\s*tier:\s*newTier\s*\}/);
+  });
+
+  it('challenge completion XP updates derived user progression fields', () => {
+    const source = readBackendFile('controllers/challengeController.mjs');
+
+    expect(source).toMatch(/import\s+\{\s*calculateLevel,\s*getTier\s*\}\s+from\s+'..\/utils\/levelingAlgorithm\.mjs'/);
+    expect(source).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(newBalance\)/);
+    expect(source).toMatch(/const\s+newTier\s*=\s*getTier\(newLevel\)/);
+    expect(source).toMatch(/user\.update\(\{\s*points:\s*newBalance,\s*level:\s*newLevel,\s*tier:\s*newTier\s*\}/);
+  });
+
+  it('manual milestone bonus awards update derived user progression fields', () => {
+    const source = readBackendFile('controllers/gamificationController.mjs');
+
+    expect(source).toMatch(/let\s+finalBalance\s*=\s*user\.points/);
+    expect(source).toMatch(/finalBalance\s*=\s*user\.points\s*\+\s*totalBonusPoints/);
+    expect(source).toMatch(/const\s+newLevel\s*=\s*calculateLevel\(finalBalance\)/);
+    expect(source).toMatch(/const\s+newTier\s*=\s*getTier\(newLevel\)/);
+    expect(source).toMatch(/user\.update\(\{\s*points:\s*finalBalance,\s*level:\s*newLevel,\s*tier:\s*newTier\s*\}/);
+  });
 });

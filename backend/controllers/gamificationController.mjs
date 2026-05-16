@@ -413,6 +413,7 @@ import ComebackChallenge from '../models/ComebackChallenge.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
+import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 
 // Safe attribute list for UserAchievement — only columns from the .cjs migration.
 // The model defines extra fields (maxProgress, etc.) that don't exist in the
@@ -425,6 +426,11 @@ const SAFE_USER_ACHIEVEMENT_ATTRS = [
 ];
 
 const weeklyRecapWorkoutSources = ['workout_completion', 'workout_completed'];
+
+const getAchievementPointValue = (achievement) => {
+  const parsed = Number(achievement?.xpReward);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 // SECURITY FIX #10: Sanitize error messages for non-admin responses
 // Only admin users see detailed error messages; everyone else gets generic
@@ -1197,7 +1203,7 @@ const gamificationController = {
             isCompleted: true,
             progress: 100,
             earnedAt: new Date(),
-            pointsAwarded: achievement.pointValue
+            pointsAwarded: getAchievementPointValue(achievement)
           }, { transaction });
         }
       } else {
@@ -1208,16 +1214,19 @@ const gamificationController = {
           isCompleted: true,
           progress: 100,
           earnedAt: new Date(),
-          pointsAwarded: achievement.pointValue
+          pointsAwarded: getAchievementPointValue(achievement)
         }, { transaction });
       }
       
       // Award points to user
-      const newBalance = user.points + achievement.pointValue;
+      const achievementPoints = getAchievementPointValue(achievement);
+      const newBalance = user.points + achievementPoints;
+      const newLevel = calculateLevel(newBalance);
+      const newTier = getTier(newLevel);
       
       await PointTransaction.create({
         userId,
-        points: achievement.pointValue,
+        points: achievementPoints,
         balance: newBalance,
         transactionType: 'earn',
         source: 'achievement_earned',
@@ -1226,8 +1235,8 @@ const gamificationController = {
         metadata: { achievementId: achievement.id }
       }, { transaction });
       
-      // Update user points
-      await user.update({ points: newBalance }, { transaction });
+      // Update user points and derived progression fields together.
+      await user.update({ points: newBalance, level: newLevel, tier: newTier }, { transaction });
       
       // Commit the transaction
       await transaction.commit();
@@ -1235,7 +1244,9 @@ const gamificationController = {
       return res.status(200).json({
         success: true,
         message: 'Achievement awarded successfully',
-        userAchievement
+        userAchievement,
+        pointsAwarded: achievementPoints,
+        newBalance
       });
     } catch (error) {
       await transaction.rollback();
@@ -1300,12 +1311,15 @@ const gamificationController = {
           const user = await User.findByPk(userId);
           
           if (user) {
-            const newBalance = user.points + achievement.pointValue;
+            const achievementPoints = getAchievementPointValue(achievement);
+            const newBalance = user.points + achievementPoints;
+            const newLevel = calculateLevel(newBalance);
+            const newTier = getTier(newLevel);
             
             // Create point transaction
             await PointTransaction.create({
               userId,
-              points: achievement.pointValue,
+              points: achievementPoints,
               balance: newBalance,
               transactionType: 'earn',
               source: 'achievement_earned',
@@ -1314,11 +1328,11 @@ const gamificationController = {
               metadata: { achievementId: achievement.id }
             });
             
-            // Update user points
-            await user.update({ points: newBalance });
+            // Update user points and derived progression fields together.
+            await user.update({ points: newBalance, level: newLevel, tier: newTier });
             
             // Update pointsAwarded in userAchievement
-            await userAchievement.update({ pointsAwarded: achievement.pointValue });
+            await userAchievement.update({ pointsAwarded: achievementPoints });
           }
         }
       } else {
@@ -1339,12 +1353,15 @@ const gamificationController = {
             const user = await User.findByPk(userId);
             
             if (user && userAchievement.achievement) {
-              const newBalance = user.points + userAchievement.achievement.pointValue;
+              const achievementPoints = getAchievementPointValue(userAchievement.achievement);
+              const newBalance = user.points + achievementPoints;
+              const newLevel = calculateLevel(newBalance);
+              const newTier = getTier(newLevel);
               
               // Create point transaction
               await PointTransaction.create({
                 userId,
-                points: userAchievement.achievement.pointValue,
+                points: achievementPoints,
                 balance: newBalance,
                 transactionType: 'earn',
                 source: 'achievement_earned',
@@ -1353,11 +1370,11 @@ const gamificationController = {
                 metadata: { achievementId: userAchievement.achievement.id }
               });
               
-              // Update user points
-              await user.update({ points: newBalance });
+              // Update user points and derived progression fields together.
+              await user.update({ points: newBalance, level: newLevel, tier: newTier });
               
               // Update pointsAwarded in userAchievement
-              await userAchievement.update({ pointsAwarded: userAchievement.achievement.pointValue });
+              await userAchievement.update({ pointsAwarded: achievementPoints });
             }
           }
         }
@@ -1991,6 +2008,7 @@ const gamificationController = {
       // Award new milestones
       const awardedMilestones = [];
       let totalBonusPoints = 0;
+      let finalBalance = user.points;
       
       for (const milestone of newMilestones) {
         // Create user milestone record
@@ -2007,21 +2025,23 @@ const gamificationController = {
       
       // Award bonus points for all milestones in a single transaction
       if (totalBonusPoints > 0) {
-        const newBalance = user.points + totalBonusPoints;
+        finalBalance = user.points + totalBonusPoints;
+        const newLevel = calculateLevel(finalBalance);
+        const newTier = getTier(newLevel);
         
         // Create point transaction for bonuses
         await PointTransaction.create({
           userId,
           points: totalBonusPoints,
-          balance: newBalance,
+          balance: finalBalance,
           transactionType: 'bonus',
           source: 'milestone_reached',
           description: `Milestone Bonuses: ${newMilestones.map(m => m.name).join(', ')}`,
           metadata: { milestoneIds: newMilestones.map(m => m.id) }
         }, { transaction });
         
-        // Update user points
-        await user.update({ points: newBalance }, { transaction });
+        // Update user progression fields together so visible level/tier stay in sync.
+        await user.update({ points: finalBalance, level: newLevel, tier: newTier }, { transaction });
       }
       
       // Commit the transaction
@@ -2032,7 +2052,7 @@ const gamificationController = {
         message: 'Milestones awarded successfully',
         awardedMilestones,
         totalBonusPoints,
-        newBalance: user.points + totalBonusPoints
+        newBalance: finalBalance
       });
     } catch (error) {
       await transaction.rollback();
@@ -2260,6 +2280,9 @@ const gamificationController = {
           awardedBy: req.user?.id
         }, { transaction });
       }
+
+      updatedStats.level = calculateLevel(updatedStats.points);
+      updatedStats.tier = getTier(updatedStats.level);
       
       // Create main workout completion transaction
       const pointTransaction = await PointTransaction.create({
@@ -2322,6 +2345,8 @@ const gamificationController = {
       // Award milestone bonus points
       if (totalMilestoneBonus > 0) {
         const finalBalance = updatedStats.points + totalMilestoneBonus;
+        const finalLevel = calculateLevel(finalBalance);
+        const finalTier = getTier(finalLevel);
 
         await PointTransaction.create({
           userId: targetUserId,
@@ -2335,7 +2360,11 @@ const gamificationController = {
         }, { transaction });
 
         // Update user points again
-        await user.update({ points: finalBalance }, { transaction });
+        await user.update({
+          points: finalBalance,
+          level: finalLevel,
+          tier: finalTier
+        }, { transaction });
       }
 
       // Tag workout session with milestone info (if workoutId provided and milestones earned)

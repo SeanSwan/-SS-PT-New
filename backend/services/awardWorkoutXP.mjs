@@ -28,6 +28,7 @@ import logger from '../utils/logger.mjs';
 import eventBus from './eventBus.mjs';
 import { createWorkoutAutoPost, createStreakAutoPost } from './socialAutoPost.mjs';
 import { detectCombos, sumExerciseXP } from './gamificationComboService.mjs';
+import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 
 /**
  * Award XP for a workout completion.
@@ -240,6 +241,9 @@ export async function awardWorkoutXP({
     );
   }
 
+  updatedStats.level = calculateLevel(updatedStats.points);
+  updatedStats.tier = getTier(updatedStats.level);
+
   // ── Main workout completion transaction ────────────────────────────
   const workoutPointsOnly =
     pointsToAward -
@@ -318,6 +322,8 @@ export async function awardWorkoutXP({
 
   if (totalMilestoneBonus > 0) {
     const finalBalance = updatedStats.points + totalMilestoneBonus;
+    const finalLevel = calculateLevel(finalBalance);
+    const finalTier = getTier(finalLevel);
 
     await PointTransaction.create(
       {
@@ -333,7 +339,11 @@ export async function awardWorkoutXP({
       { transaction }
     );
 
-    await user.update({ points: finalBalance }, { transaction });
+    await user.update({
+      points: finalBalance,
+      level: finalLevel,
+      tier: finalTier,
+    }, { transaction });
   }
 
   // ── Tag workout session with milestone info ────────────────────────

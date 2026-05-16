@@ -10,6 +10,7 @@ import db from '../database.mjs';
 
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
+import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 
 const challengeController = {
   /**
@@ -482,6 +483,8 @@ const challengeController = {
         
         if (user && totalXpReward > 0) {
           const newBalance = user.points + totalXpReward;
+          const newLevel = calculateLevel(newBalance);
+          const newTier = getTier(newLevel);
           
           // Create point transaction
           await PointTransaction.create({
@@ -495,8 +498,8 @@ const challengeController = {
             metadata: { challengeId: challenge.id }
           }, { transaction });
           
-          // Update user points
-          await user.update({ points: newBalance }, { transaction });
+          // Update user progression fields together so visible level/tier stay in sync.
+          await user.update({ points: newBalance, level: newLevel, tier: newTier }, { transaction });
         }
 
         // Update challenge completion stats
