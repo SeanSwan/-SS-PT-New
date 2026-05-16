@@ -1,0 +1,7 @@
+interface:
+  display_name: "Swan Oracle"
+  short_description: "GPT Pro review packets for Swan strategy"
+  default_prompt: "Use $swan-oracle to create a GPT Pro Oracle review packet for this SwanStudios surface."
+
+policy:
+  allow_implicit_invocation: true

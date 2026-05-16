@@ -9,12 +9,13 @@
 
 - **`swan-design-router` is the ONLY default-exposed design brain.** All UI/visual work auto-routes through it (CLAUDE.md rule 40).
 - **`closeout-evidence-lock` is the default closeout skill.** All substantial task closeouts auto-route through it (rule 41).
+- **`swan-oracle` is advisory only.** It creates GPT Pro / GPT-5.5-class review packets and classifies returned recommendations. It does not override `swan-design-router`, Codex/Claude review gates, tests, privacy, or repo evidence.
 - **`requesting-code-review` is REMOVED from default use.** It depends on a missing `superpowers:code-reviewer` subagent and silently fails. Its substantive checklist is preserved inside `closeout-evidence-lock`. Do NOT dispatch to `requesting-code-review` from any new code path.
 - **8 skills are quarantined from default-steering** (explicit-invocation-only): `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design`, `design-taste-frontend`, `stitch-design-taste`, `redesign-existing-projects`, `web-design-guidelines`, `requesting-code-review`.
 
 ---
 
-## Swan orchestration layer (5 skills, all default-active — Phase 1 landed 2026-04-12)
+## Swan orchestration layer (6 skills, all default-active)
 
 Location: `.claude/skills/`
 
@@ -25,6 +26,7 @@ Location: `.claude/skills/`
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
 | `swan-design-router` | Only default-exposed design brain. Loads `SWAN-CINEMATIC-DESIGN-SYSTEM.md` + `SWAN-ASSET-STORYBOARDING.md`. Enforces styled-components-first, Crystalline Swan palette, Dual-Button Glow rule, 2-3 concept-direction ideation gate for net-new surfaces. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock (rule 28) + dual-pass hostile review (rule 17) + post-task hygiene check (rule 38) + forbidden-language filter (rule 34). Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) from retired `requesting-code-review`. |
+| `swan-oracle` | Advisory GPT Pro / GPT-5.5-class review packet builder. Used for deep product, UX/UI, architecture, and progress-gap review. Oracle output must be classified as `ADOPT`, `REJECT`, `DEFER`, or `NEEDS PROBE` before implementation. |
 
 ---
 
@@ -73,7 +75,7 @@ These skills have been relocated from `.agents/skills/` to `archive/quarantined-
 
 ## Skill count summary (post-Phase-3, 2026-04-12)
 
-- **Default-exposed `.claude/skills/`:** 13 (5 Swan orchestration + 8 KEEP core)
+- **Default-exposed `.claude/skills/`:** 14 (6 Swan orchestration + 8 KEEP core)
 - **Reference libraries (router-loaded from `.agents/skills/`, not default-exposed):** 2 (`frontend-design`, `ui-ux-pro-max`)
 - **Quarantined (relocated to `archive/quarantined-skills/2026-04-12/`, explicit-invocation-only):** 8
 - **Broader installed library (`.agents/skills/`):** 26 entries remaining after Phase 3 quarantine — including 16 additional technical reference docs not mirrored into `.claude/skills/` (their default-steering behavior is not relied on here) and the 2 reference libraries loaded by `swan-design-router`
@@ -89,4 +91,5 @@ Full Swan layer documentation:
 - `docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md` (rules 32-39 workflow)
 - `docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md` (visual source of truth, loaded by `swan-design-router`)
 - `docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md` (asset + Seedance templates, loaded by `swan-design-router`)
+- `docs/ai-workflow/references/SWAN-ORACLE-GPT-PRO.md` (GPT Pro / GPT-5.5-class Oracle packets and response classification)
 - `ACTIVE-INDEX.md` at repo root (one-page surface/archive map)

@@ -1,3 +1,8 @@
+---
+name: systematic-debugging
+description: Use when encountering any bug, test failure, build failure, or unexpected behavior before proposing fixes; requires root cause investigation before changes.
+---
+
 ## Skill: systematic-debugging
 
 ## Current Score: 10.0/11 (90.9%)

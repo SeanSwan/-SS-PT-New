@@ -1,3 +1,8 @@
+---
+name: verification-before-completion
+description: Use before claiming completion, success, test pass, build pass, or readiness; requires fresh verification evidence before making completion claims.
+---
+
 ## Skill: verification-before-completion
 
 ## Overview
