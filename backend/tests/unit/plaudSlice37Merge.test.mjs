@@ -199,7 +199,7 @@ describe('Slice 3.7 — plaudMergeController source contract', () => {
 
   it('supports uploaded_at_asc order mode for time-aware clip puzzles', () => {
     expect(MERGE_CTRL_SRC).toMatch(/uploaded_at_asc/);
-    expect(MERGE_CTRL_SRC).toMatch(/uploaded_at ASC/);
+    expect(MERGE_CTRL_SRC).toMatch(/COALESCE\(recorded_at, uploaded_at\) ASC/);
   });
 
   it('persists encrypted clip timeline metadata with the merge payload', () => {

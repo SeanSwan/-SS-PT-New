@@ -17,7 +17,7 @@
  *   8. Down migration drops everything in reverse-dependency order
  *   9. PlaudClip model exposes clipSource / clipExternalId / applaudEventId
  *      with correct field mappings (snake_case in DB, camelCase in JS)
- *  10. PlaudClip clipSource validator enforces the same enum as the migration
+ *  10. PlaudClip clipSource validator includes the later local-sync enum extension
  *  11. PlaudWebhookNonce model exists with composite primary key
  *  12. PlaudWebhookNonce uses timestamps: false (matches plaud_merge_locks)
  *  13. associations.mjs imports + destructures + returns PlaudWebhookNonce
@@ -123,9 +123,9 @@ describe('Slice 5.1 — PlaudClip model additions', () => {
     expect(src).toMatch(/clipSource:\s*\{[\s\S]{0,200}field:\s*'clip_source'/);
   });
 
-  it('clipSource validator enforces the same enum as the migration', () => {
+  it('clipSource validator includes manual upload, webhook, and local sync sources', () => {
     expect(src).toMatch(
-      /clipSource:[\s\S]{0,400}isIn:\s*\[\[\s*'manual_upload',\s*'applaud_webhook'\s*\]\]/,
+      /clipSource:[\s\S]{0,400}isIn:\s*\[\[\s*'manual_upload',\s*'applaud_webhook',\s*'applaud_local_sync'\s*\]\]/,
     );
   });
 
