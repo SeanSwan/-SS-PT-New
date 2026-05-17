@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-05-17 (QA smoke canonicalization + legacy script inventory)
+**Last updated:** 2026-05-17 (QA smoke canonicalization + backend root script hygiene)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -189,6 +189,7 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | `archive/pending-deletion/2026-05-17/legacy-playwright-python/` | Retired Python Playwright QA scripts removed from active `tests/` |
 | `archive/pending-deletion/2026-05-17/legacy-live-login-e2e/` | Retired non-canonical root-level frontend E2E specs/helpers removed from active `frontend/e2e/` |
 | `archive/pending-deletion/2026-05-17/backend-secret-scan-blockers/` | Retired direct-production backend repair script sanitized after blocking secret scan |
+| `archive/pending-deletion/2026-05-17/backend-root-oneoff-scripts/` | Retired backend root one-off repair/debug/test scripts that had no non-archive references |
 | `archive/pending-deletion/` | Staged for deletion, includes historical cleanup subfolders |
 | `docs/archive/` | ~27 superseded fix/complete summaries (ACCESSIBILITY, ADMIN_DASHBOARD_RESTORED, CONNECTION_FIX_COMPLETE, …) |
 | `docs/ai-workflow/archive/` | 6 subfolders: `design/`, `homepage-refactor/`, `master-plans/`, `old-versions/`, `phase-0/`, `week-reports/` |
@@ -216,6 +217,7 @@ Production smoke skips local Playwright `webServer` startup via
 
 Current QA cleanup inventory:
 - `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-05-17.md` - Phase 1 non-destructive classification of legacy QA scripts and archive candidates
+- `docs/ai-workflow/BACKEND-ROOT-SCRIPT-HYGIENE-INVENTORY-2026-05-17.md` - backend root one-off script classification and archive list
 - `frontend/e2e/README.md` and `tests/README.md` - routing notes so agents do not mistake legacy scripts for the smoke gate
 
 | Folder | Purpose |
