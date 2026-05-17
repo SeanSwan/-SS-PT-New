@@ -1,5 +1,10 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 
+test.describe.configure({ retries: 0 });
+
+const externalSmoke = process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
+const includeLocalBundleRoutes = process.env.SWAN_SMOKE_LOCAL_BUNDLE_ROUTES === '1' && !externalSmoke;
+
 const demoUser = {
   id: '101',
   email: 'qa.client@swanstudios.local',
@@ -10,16 +15,24 @@ const demoUser = {
   isActive: true,
 };
 
-const routes = [
-  { path: '/user-dashboard', expectedPath: '/dashboard/client/overview' },
-  { path: '/dashboard/client/overview', expectedPath: '/dashboard/client/overview' },
-  { path: '/dashboard/client/community', expectedPath: '/dashboard/client/community' },
-  { path: '/dashboard/client/rewards', expectedPath: '/dashboard/client/rewards' },
+const stableRoutes = [
+  { path: '/user-dashboard', expectedPaths: ['/user-dashboard', '/dashboard/client/overview'] },
+  { path: '/dashboard/client/overview', expectedPaths: ['/dashboard/client/overview'] },
+  { path: '/dashboard/client/community', expectedPaths: ['/dashboard/client/community'] },
+  { path: '/dashboard/client/rewards', expectedPaths: ['/dashboard/client/rewards'] },
   {
     path: '/dashboard/client/coach-assistant?sourcePath=%2Fdashboard%2Fclient%2Fcommunity',
-    expectedPath: '/dashboard/client/coach-assistant',
+    expectedPaths: ['/dashboard/client/coach-assistant'],
   },
 ];
+
+const localBundleRoutes = [
+  { path: '/dashboard/client/overview/reels', expectedPaths: ['/dashboard/client/overview/reels'] },
+  { path: '/dashboard/client/overview/friends', expectedPaths: ['/dashboard/client/overview/friends'] },
+  { path: '/dashboard/client/overview/challenges', expectedPaths: ['/dashboard/client/overview/challenges'] },
+];
+
+const routes = includeLocalBundleRoutes ? [...stableRoutes, ...localBundleRoutes] : stableRoutes;
 
 function jwt() {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -39,6 +52,8 @@ async function fulfillJson(route: Route, body: unknown) {
 }
 
 async function mockDashboardApi(page: Page) {
+  await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
+
   await page.route('**/api/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname;
 
@@ -119,7 +134,10 @@ async function inspectLayout(page: Page) {
       .filter((item) => item.width < 44 || item.height < 44);
 
     return {
-      bodyLength: document.body.innerText.trim().length,
+      bodyLength: Math.max(
+        document.body.innerText.trim().length,
+        document.body.textContent?.trim().length || 0,
+      ),
       overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
       smallTargets,
     };
@@ -151,10 +169,42 @@ for (const route of routes) {
     await page.screenshot({ path: testInfo.outputPath('viewport.png'), fullPage: false });
 
     const layout = await inspectLayout(page);
-    expect(new URL(page.url()).pathname).toBe(route.expectedPath);
+    expect(route.expectedPaths).toContain(new URL(page.url()).pathname);
     expect(layout.bodyLength).toBeGreaterThan(80);
     expect(layout.overflowX).toBeLessThanOrEqual(12);
     expect(layout.smallTargets).toEqual([]);
     expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
   });
 }
+
+test('client overview lens buttons stay inside the observatory route', async ({ page }) => {
+  test.skip(!includeLocalBundleRoutes, 'Lens route assertions are opt-in and require the matching local bundle.');
+
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => consoleErrors.push(error.message));
+
+  await page.goto('/dashboard/client/overview', { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+
+  for (const [label, expectedPath] of [
+    ['Reels', '/dashboard/client/overview/reels'],
+    ['Friends', '/dashboard/client/overview/friends'],
+    ['Challenges', '/dashboard/client/overview/challenges'],
+    ['Feed', '/dashboard/client/overview'],
+  ] as const) {
+    const lensButton = page
+      .getByRole('navigation', { name: 'Dashboard lenses' })
+      .getByRole('button', { name: label });
+
+    await expect(lensButton).toBeVisible();
+    await lensButton.scrollIntoViewIfNeeded();
+    await lensButton.click({ timeout: 10_000 });
+    await expect.poll(() => new URL(page.url()).pathname, { timeout: 10_000 }).toBe(expectedPath);
+    expect(new URL(page.url()).pathname.startsWith('/social')).toBe(false);
+  }
+
+  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+});

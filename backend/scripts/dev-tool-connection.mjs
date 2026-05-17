@@ -95,7 +95,10 @@ async function testDevToolConnections() {
   // Method 4: Connection string
   console.log('\n4. Testing with connection string...');
   try {
-    const connectionString = `postgresql://${baseConfig.user}:${process.env.PG_PASSWORD}@${baseConfig.host}:${baseConfig.port}/${baseConfig.database}`;
+    const connectionString = process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error('Set PG_CONNECTION_STRING or DATABASE_URL to test connection-string access.');
+    }
     const client4 = new Client({
       connectionString,
       ssl: false

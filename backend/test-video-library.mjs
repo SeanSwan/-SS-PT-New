@@ -5,7 +5,7 @@
  * Tests all 10 Video Library endpoints to verify implementation
  */
 
-const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0YWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJ0b2tlblR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3NjM0NzAwNTYsImV4cCI6MTc2MzU1NjQ1Nn0.EWibAJrPyD8mv2K-3WYE1BckhUUlKRnKL0Wm1bW6e7U";
+const TOKEN = process.env.SWAN_TEST_VIDEO_LIBRARY_TOKEN || "";
 const BASE_URL = "http://localhost:10000";
 
 async function apiRequest(endpoint, options = {}) {

@@ -9,8 +9,8 @@
 import { Sequelize } from 'sequelize';
 import fetch from 'node-fetch';
 
-// Production database URL (Render PostgreSQL)
-const RENDER_DATABASE_URL = process.env.DATABASE_URL || 'postgresql://swanstudios_user:your-password@dpg-database-host/swanstudios_db';
+// Production database URL (Render PostgreSQL). No fallback is allowed in archive.
+const RENDER_DATABASE_URL = process.env.DATABASE_URL || '';
 
 class ProductionDashboardFixer {
   constructor() {

@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-05-15 (repo hygiene cleanup: retired MCP/theme/mock/demo/debug artifacts)
+**Last updated:** 2026-05-17 (QA smoke canonicalization + legacy script inventory)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -186,6 +186,9 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | `archive/` | Top-level historical archive |
 | `archive/cleanup-2026-05-12/` | Current cleanup pass: archived root specs/docs and dormant dashboard code |
 | `archive/pending-deletion/2026-05-15/` | Current staged cleanup: retired MCP docs/runtime, retired theme docs, public debug artifacts, dangerous admin/password scripts, unmounted demo panels, legacy theme infra, stale source-folder docs, stale gamification hook/scripts/mock challenge fixtures, stale shop order history, stale client-dashboard workout variant, old schedule/mock API services, and unmounted schedule/homepage/checkout variants |
+| `archive/pending-deletion/2026-05-17/legacy-playwright-python/` | Retired Python Playwright QA scripts removed from active `tests/` |
+| `archive/pending-deletion/2026-05-17/legacy-live-login-e2e/` | Retired non-canonical root-level frontend E2E specs/helpers removed from active `frontend/e2e/` |
+| `archive/pending-deletion/2026-05-17/backend-secret-scan-blockers/` | Retired direct-production backend repair script sanitized after blocking secret scan |
 | `archive/pending-deletion/` | Staged for deletion, includes historical cleanup subfolders |
 | `docs/archive/` | ~27 superseded fix/complete summaries (ACCESSIBILITY, ADMIN_DASHBOARD_RESTORED, CONNECTION_FIX_COMPLETE, …) |
 | `docs/ai-workflow/archive/` | 6 subfolders: `design/`, `homepage-refactor/`, `master-plans/`, `old-versions/`, `phase-0/`, `week-reports/` |
@@ -199,6 +202,22 @@ These files describe future work that is NOT yet built. Read only when scoping t
 
 ## 🖼️ QA artifact locations
 
+Canonical smoke command:
+- `npm run qa:smoke` - local/default canonical Playwright smoke
+- `npm run qa:smoke:prod` - production URL canonical Playwright smoke
+
+Canonical smoke files:
+- `scripts/qa/playwright-smoke.mjs` - default smoke launcher for AI agents and humans
+- `frontend/e2e/client-dashboard-oracle-smoke.spec.ts` - Client Dashboard smoke
+- `frontend/e2e/marketing-native-publishing-smoke.spec.ts` - admin Marketing native publishing smoke
+
+Production smoke skips local Playwright `webServer` startup via
+`SWAN_PLAYWRIGHT_SKIP_WEBSERVER=1`.
+
+Current QA cleanup inventory:
+- `docs/ai-workflow/REPO-HYGIENE-INVENTORY-2026-05-17.md` - Phase 1 non-destructive classification of legacy QA scripts and archive candidates
+- `frontend/e2e/README.md` and `tests/README.md` - routing notes so agents do not mistake legacy scripts for the smoke gate
+
 | Folder | Purpose |
 |---|---|
 | `qa-screenshots/` | Legacy QA screenshots |
@@ -207,6 +226,10 @@ These files describe future work that is NOT yet built. Read only when scoping t
 | `playwright-qa-screenshots/` | Playwright test runs, ignored if regenerated |
 | `playwright-qa-full/` | Full-page Playwright captures, ignored if regenerated |
 | `.swan/archive/cleanup-2026-05-12/` | Local ignored archive for generated root captures/logs and Playwright MCP captures |
+
+The old `tests/*.py` scripts and non-canonical root-level `frontend/e2e/*`
+helpers were moved to `archive/pending-deletion/2026-05-17/`. They are not the
+default smoke path and should only be restored after modernization.
 
 ---
 

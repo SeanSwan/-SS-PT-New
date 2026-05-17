@@ -110,7 +110,7 @@ async function configureStripeKeys() {
       console.log('\n🔓 STANDARD KEY CONFIGURATION');
       console.log('=============================');
       console.log('From your Stripe dashboard, I can see you have:');
-      console.log('• Publishable key: pk_live_51J7acMKE5XFS1YwGlyEfwS26fcg1UNk9BXg9e...');
+      console.log('• Publishable key: pk_live_[from-your-dashboard]...');
       console.log('• Secret key options available');
       console.log('');
       console.log('🚨 CRITICAL: Both keys must be from the SAME account!');

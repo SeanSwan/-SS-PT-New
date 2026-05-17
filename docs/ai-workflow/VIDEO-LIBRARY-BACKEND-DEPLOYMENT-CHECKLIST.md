@@ -83,7 +83,7 @@ YOUTUBE_API_KEY=your_youtube_api_key_here
 JWT_SECRET=your_jwt_secret_key_here
 
 # Database (should already exist)
-DATABASE_URL=postgresql://user:password@localhost:5432/swanstudios_pt
+DATABASE_URL=<set from Render/PostgreSQL service environment>
 ```
 
 **Get YouTube API Key:**

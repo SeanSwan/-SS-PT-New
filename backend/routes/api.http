@@ -1,5 +1,5 @@
 GET http://localhost:5000/api/auth/validate-token
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InVzZXIiLCJpYXQiOjE3MzkzNDM0ODQsImV4cCI6MTczOTM1NDI4NH0.Zya4LnKqV75UwQl3cDrkjRIdxUMM9Q5xkTK24_UBHEU
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
 
 ### Submit Orientation Form
 POST http://localhost:5000/api/orientation/signup

@@ -25,7 +25,7 @@ TRUST_PROXY=true
 REDIS_ENABLED=false
 
 # Database URL (should be auto-set by Render PostgreSQL addon)
-DATABASE_URL=postgresql://user:password@host:port/database
+DATABASE_URL=<auto-set-by-render-postgresql>
 
 # ⚠️ CRITICAL NOTES:
 # 1. Replace placeholder values with actual secure secrets

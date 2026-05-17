@@ -654,7 +654,7 @@ Deterministic, no-network eval harness that tests the AI validation pipeline (`r
      - `frontend/src/components/.../hooks/useClientActions.ts` — Extracted handlers (~90 lines out of monolith)
      - `frontend/src/components/.../AdminClientManagementView.tsx` — Menu items for legacy route
      - `frontend/src/components/.../ClientsManagementSection.tsx` — **CRITICAL:** Menu items wired into production Clients tab
-     - `frontend/e2e/admin-onboarding-workout.spec.ts` — 12 Playwright E2E test specs
+     - `archive/pending-deletion/2026-05-17/legacy-live-login-e2e/admin-onboarding-workout.spec.ts` — historical 12-spec Playwright E2E artifact; not the current smoke gate
    - **Production bug fixed:** Phase 1C originally wired menu items to `AdminClientManagementView.tsx` but production dashboard uses `ClientsManagementSection.tsx` — fixed in `d604e56b`
    - **Production verification (Playwright on sswanstudios.com):**
      - Start Onboarding → Panel opens with 7-step wizard, draft data, status badge ✅
