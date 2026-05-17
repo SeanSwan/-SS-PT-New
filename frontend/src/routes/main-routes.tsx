@@ -3,7 +3,7 @@
  * Application route definitions — Crystalline Swan theme, dark-first.
  */
 import React, { Suspense } from 'react';
-import { RouteObject, Navigate, Outlet, useParams } from 'react-router-dom';
+import { RouteObject, Navigate, Outlet } from 'react-router-dom';
 
 // Layout and Error Handling
 import Layout from '../components/Layout/layout';
@@ -268,13 +268,16 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
-const SocialTabRedirect: React.FC = () => {
-  const { tab } = useParams<{ tab?: string }>();
-  const safeTab = tab === 'reels' || tab === 'friends' || tab === 'challenges' ? tab : '';
-  const target = safeTab ? `/dashboard/client/community/${safeTab}` : '/dashboard/client/overview';
-
-  return <Navigate to={target} replace />;
-};
+const UserDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/UserDashboard/UserDashboard.V3'),
+  'User Dashboard',
+  () => import('../components/UserDashboard')
+);
+const SocialPage = lazyLoadWithErrorHandling(
+  () => import('../pages/Social/SocialPage.V3'),
+  'Social Hub',
+  () => import('../pages/Social/SocialPage')
+);
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
 const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -695,11 +698,17 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/dashboard/trainer/overview" replace />
     },
     
-    // Legacy user dashboard URL now resolves to the canonical client dashboard.
-    {
-      path: 'user-dashboard',
-      element: <Navigate to="/dashboard/client/overview" replace />
-    },
+      // User dashboard is a separate social/creator surface from the PT client dashboard.
+      {
+        path: 'user-dashboard',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <UserDashboard />
+            </Suspense>
+          </ProtectedRoute>
+        )
+      },
     
     // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT
     {
@@ -737,12 +746,14 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Legacy social URLs resolve into the canonical client dashboard.
+    // Social Hub Routes — /social, /social/friends, /social/challenges
     {
       path: 'social',
       element: (
         <ProtectedRoute>
-          <SocialTabRedirect />
+          <Suspense fallback={<PageLoader />}>
+            <SocialPage />
+          </Suspense>
         </ProtectedRoute>
       )
     },
@@ -750,7 +761,9 @@ const MainRoutes: RouteObject = {
       path: 'social/:tab',
       element: (
         <ProtectedRoute>
-          <SocialTabRedirect />
+          <Suspense fallback={<PageLoader />}>
+            <SocialPage />
+          </Suspense>
         </ProtectedRoute>
       )
     },

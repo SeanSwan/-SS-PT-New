@@ -32,6 +32,7 @@ const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color:
 };
 
 const CAPSULES: { variant: CapsuleVariant; icon: React.ReactNode; label: string; to: string }[] = [
+  { variant: 'royalDepth', icon: <img src={logoImg} alt="" width={16} height={16} />, label: 'SwanStudios Social', to: '/social' },
   { variant: 'arcticCyan', icon: <UserCircle size={16} />, label: 'Client Dashboard', to: '/dashboard/client/overview' },
   { variant: 'gilded', icon: <Camera size={16} />, label: 'SwanStudios Photography', to: '/gallery' },
   { variant: 'default', icon: <FileSignature size={16} />, label: 'Waiver', to: '/waiver' },

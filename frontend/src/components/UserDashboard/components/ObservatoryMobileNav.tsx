@@ -9,7 +9,7 @@
  * ----------------------------------------------------------------------------
  * Spec adherence (Phase 19 receipt Section 19B):
  *   - Inbox tab is OMITTED (no canonical inbox route proven)
- *   - Reels is a route CTA to the dashboard-native community reels lens
+ *   - Reels is a route CTA to /social/reels (not a fake panel)
  *   - All items meet the 44px minimum touch target
  * ============================================================================
  */
@@ -46,7 +46,7 @@ const ObservatoryMobileNav: React.FC<ObservatoryMobileNavProps> = ({
       </MobileBottomNavItem>
       <MobileBottomNavItem
         type="button"
-        onClick={() => onNavigate('/dashboard/client/community/reels')}
+        onClick={() => onNavigate('/social/reels')}
         aria-label="Browse reels"
       >
         <Film size={20} aria-hidden="true" />

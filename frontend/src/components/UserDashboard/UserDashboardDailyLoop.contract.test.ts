@@ -69,26 +69,34 @@ describe('UserDashboard V3 daily loop contract', () => {
     });
   });
 
-  it('keeps user-dashboard as a canonical client dashboard redirect instead of a competing app shell', () => {
+  it('keeps user-dashboard as its own user/social dashboard surface', () => {
     const routeSource = readSource('src/routes/main-routes.tsx');
 
     expect(routeSource).toContain("path: 'user-dashboard'");
-    expect(routeSource).toContain('<Navigate to="/dashboard/client/overview" replace />');
-    expect(routeSource).not.toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
+    expect(routeSource).toContain("() => import('../components/UserDashboard/UserDashboard.V3')");
+    expect(routeSource).toContain('<UserDashboard />');
+    expect(routeSource).not.toContain("path: 'user-dashboard',\n      element: <Navigate to=\"/dashboard/client/overview\" replace />");
   });
 
-  it('removes live navigation affordances that advertise user-dashboard as a separate destination', () => {
+  it('keeps user dashboard navigation separate from the client training dashboard', () => {
     const selectorSource = readSource('src/components/DashboardSelector/DashboardSelector.tsx');
     const mobileMenuSource = readSource('src/components/Header/components/MobileMenu.tsx');
     const signupSource = readSource('src/pages/OptimizedSignupModal.tsx');
-    const heroSource = readSource('src/pages/HomePage/components/sections/HeroSection.tsx');
     const vipConversionSource = readSource('src/pages/gallery/VIPConversionModal.tsx');
 
-    expect(selectorSource).not.toContain("path: '/user-dashboard'");
-    expect(mobileMenuSource).not.toContain('to="/user-dashboard"');
-    expect(signupSource).not.toContain("navigate('/user-dashboard')");
-    expect(heroSource).not.toContain("to: '/user-dashboard'");
+    expect(selectorSource).toContain("title: 'User Dashboard'");
+    expect(selectorSource).toContain("path: '/user-dashboard'");
+    expect(selectorSource).toContain("return ['admin', 'trainer', 'client', 'user'].includes(user.role);");
+    expect(mobileMenuSource).toContain('to="/user-dashboard"');
+    expect(signupSource).toContain("navigate('/user-dashboard')");
     expect(vipConversionSource).not.toContain("window.open('/user-dashboard/schedule'");
+  });
+
+  it('allows trainers to open the client training dashboard without making it the user dashboard', () => {
+    const universalLayoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+
+    expect(universalLayoutSource).toContain("userRole === 'trainer' && urlRole === 'client'");
+    expect(universalLayoutSource).toContain("const userRole = rawRole === 'user' ? 'client' : rawRole;");
   });
 
   it('keeps Home as the daily return surface with the health loop and coach action launcher', () => {
@@ -112,99 +120,18 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(clientHomeSource).not.toContain("../../../UserDashboard/components/HomeTab");
   });
 
-  it('routes Social Hub to the same client observatory surface with real social lenses', () => {
+  it('keeps Social Hub off the client dashboard implementation', () => {
     const routeSource = readSource('src/routes/main-routes.tsx');
     const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
-    const observatoryHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome.tsx');
 
     expect(routeSource).toContain("path: 'social'");
-    expect(routeSource).toContain('const SocialTabRedirect: React.FC = () => {');
-    expect(routeSource).toContain('return <Navigate to={target} replace />;');
-    expect(routeSource).not.toContain("() => import('../pages/Social/SocialPage.V3')");
+    expect(routeSource).toContain("() => import('../pages/Social/SocialPage.V3')");
+    expect(routeSource).not.toContain("() => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome')");
     expect(observatoryDataSource).toContain("export type LensId = 'feed' | 'reels' | 'friends' | 'challenges'");
     expect(observatoryDataSource).toContain("{ id: 'feed', label: 'Feed'");
     expect(observatoryDataSource).toContain("{ id: 'reels', label: 'Reels'");
     expect(observatoryDataSource).toContain("{ id: 'friends', label: 'Friends'");
     expect(observatoryDataSource).toContain("{ id: 'challenges', label: 'Challenges'");
-    expect(observatoryHomeSource).toContain("const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'))");
-    expect(observatoryHomeSource).toContain("const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'))");
-    expect(observatoryHomeSource).toContain("const VerticalReels = lazy(() => import('../../../../Social/Reels/VerticalReels'))");
-  });
-
-  it('promotes one dashboard entry instead of a separate top-level Social Hub', () => {
-    const selectorSource = readSource('src/components/DashboardSelector/DashboardSelector.tsx');
-    const mobileMenuSource = readSource('src/components/Header/components/MobileMenu.tsx');
-    const headerStateSource = readSource('src/components/Header/useHeaderState.ts');
-
-    expect(selectorSource).toContain("type DashboardType = 'admin' | 'trainer' | 'client'");
-    expect(selectorSource).toContain("const dashboardTypes: DashboardType[] = ['admin', 'trainer', 'client']");
-    expect(selectorSource).not.toContain("| 'user'");
-    expect(selectorSource).not.toContain("case 'user'");
-    expect(selectorSource).not.toContain('Social Hub');
-    expect(selectorSource).not.toContain("path: '/social'");
-
-    expect(mobileMenuSource).not.toContain('to="/social"');
-    expect(mobileMenuSource).not.toContain('Social Hub');
-    expect(headerStateSource).toContain("return user.role === 'admin' || user.role === 'client' || user.role === 'user';");
-  });
-
-  it('routes public social CTAs into the canonical dashboard/community source', () => {
-    const signupSource = readSource('src/pages/OptimizedSignupModal.tsx');
-    const profileMenuSource = readSource('src/components/Header/ProfileSection.tsx');
-    const homeV3Source = readSource('src/pages/HomePage/components/HomePage.V3.tsx');
-    const heroSectionSource = readSource('src/pages/HomePage/components/sections/HeroSection.tsx');
-    const socialSectionSource = readSource('src/pages/HomePage/components/sections/SocialSection.tsx');
-    const homeTabSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
-    const mobileNavSource = readSource('src/components/UserDashboard/components/ObservatoryMobileNav.tsx');
-    const communityDataSource = readSource('src/components/UserDashboard/components/CommunityTab.data.ts');
-    const socialFeedSource = readSource('src/components/Social/Feed/SocialFeed.tsx');
-    const friendSidebarSource = readSource('src/components/Social/Feed/components/FriendSuggestionsSidebar.tsx');
-
-    [
-      signupSource,
-      profileMenuSource,
-      homeV3Source,
-      heroSectionSource,
-      socialSectionSource,
-      homeTabSource,
-      mobileNavSource,
-      communityDataSource,
-      socialFeedSource,
-      friendSidebarSource,
-    ].forEach((source) => {
-      expect(source).not.toContain("navigate('/social')");
-      expect(source).not.toContain("to: '/social'");
-      expect(source).not.toContain("navigate('/social/reels");
-      expect(source).not.toContain("navigate('/social/challenges");
-      expect(source).not.toContain("navigate('/social/friends");
-      expect(source).not.toContain("onNavigate('/social/reels");
-      expect(source).not.toContain("path: '/social/friends'");
-    });
-
-    expect(signupSource).toContain("navigate('/dashboard/client/overview')");
-    expect(profileMenuSource).toContain("navigate('/dashboard/client/overview')");
-    expect(homeV3Source).toContain("navigate('/dashboard/client/community')");
-    expect(heroSectionSource).toContain("to: '/dashboard/client/overview'");
-    expect(socialSectionSource).toContain("navigate('/dashboard/client/community')");
-  });
-
-  it('uses the observatory lens system for the client community route', () => {
-    const layoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
-    const clientCommunitySource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx');
-    const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
-
-    expect(layoutSource).toContain("{ path: '/community', component: ClientCommunityPage");
-    expect(layoutSource).toContain("{ path: '/community/:tab', component: ClientCommunityPage");
-    expect(clientCommunitySource).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
-    expect(clientCommunitySource).toContain('<ClientObservatoryHome />');
-    expect(clientCommunitySource).not.toContain('useSocialChallenges');
-    expect(clientCommunitySource).not.toContain('useSocialFeed');
-
-    expect(observatoryDataSource).toContain("path: '/dashboard/client/community'");
-    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/reels'");
-    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/friends'");
-    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/challenges'");
-    expect(observatoryDataSource).not.toContain("path: '/social'");
   });
 
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {

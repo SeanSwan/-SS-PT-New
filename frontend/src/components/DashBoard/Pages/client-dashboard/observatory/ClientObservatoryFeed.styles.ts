@@ -4,7 +4,7 @@
  */
 
 import styled from 'styled-components';
-import { focusRing, ObservatoryCard } from './ClientObservatoryShell.styles';
+import { focusRing, ObservatoryCard, ButtonBase } from './ClientObservatoryShell.styles';
 
 export const FeatureGrid = styled.div`
   display: grid;
@@ -157,6 +157,35 @@ export const ComposerActions = styled.div`
   flex-wrap: wrap;
 `;
 
+export const MiniActionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+`;
+
+export const MiniAction = styled.button`
+  min-height: 70px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 82%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.38rem;
+  padding: 0.8rem;
+  cursor: pointer;
+  ${focusRing}
+
+  svg { color: var(--accent-primary, #60C0F0); }
+  span { font: 800 0.78rem/1.1 'Sora', sans-serif; }
+`;
+
 export const FeedCard = styled(ObservatoryCard)``;
 
 export const FeedHeader = styled.div`
@@ -244,4 +273,50 @@ export const EmptyState = styled.div`
   border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
   color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 66%, transparent));
   font: 700 0.9rem/1.5 'Sora', sans-serif;
+`;
+
+export const WidgetCard = styled(ObservatoryCard)``;
+
+export const WidgetHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+`;
+
+export const WidgetList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+`;
+
+export const WidgetRow = styled.div`
+  min-height: 52px;
+  border-radius: 14px;
+  padding: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 58%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
+`;
+
+export const WidgetLabel = styled.span`
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent));
+  font: 700 0.78rem/1.35 'Sora', sans-serif;
+`;
+
+export const WidgetValue = styled.strong`
+  color: var(--text-primary, #E0ECF4);
+  font: 900 0.9rem/1.1 'Fira Code', monospace;
+`;
+
+export const SmallButton = styled(ButtonBase)`
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
 `;

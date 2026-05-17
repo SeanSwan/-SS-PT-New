@@ -155,11 +155,11 @@ const HomeTab: React.FC<HomeTabProps> = ({
       return;
     }
     if (target === 'reels') {
-      navigate('/dashboard/client/community/reels');
+      navigate('/social/reels');
       return;
     }
     if (target === 'challenges') {
-      navigate('/dashboard/client/community/challenges');
+      navigate('/social/challenges');
       return;
     }
     setActiveLens(target);

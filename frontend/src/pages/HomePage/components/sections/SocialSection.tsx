@@ -131,7 +131,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({ tier }) => {
             <GlowButton
               text="Join the Community"
               variant="cosmic"
-              onClick={() => navigate('/dashboard/client/community')}
+              onClick={() => navigate('/social')}
               style={{ minWidth: 220, minHeight: 44 }}
             />
           </div>

@@ -892,7 +892,7 @@ const OptimizedSignupModal: React.FC = () => {
             navigate('/dashboard/client/overview');
             break;
           default:
-            navigate('/dashboard/client/overview');
+            navigate('/user-dashboard');
         }
       } else {
         console.error('❌ Registration failed with result:', result);

@@ -631,7 +631,6 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
-      { path: '/community/:tab', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Watch and join live workout streams' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
@@ -679,8 +678,10 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const urlRole = dashboardIndex >= 0 ? pathSegments[dashboardIndex + 1] : null;
   const validUrlRoles = ['admin', 'trainer', 'client'];
 
-  // Use URL role if it's valid AND the user has permission to view it (admins can view all)
-  const activeRole = (urlRole && validUrlRoles.includes(urlRole) && (userRole === 'admin' || urlRole === userRole))
+  // Use URL role if it's valid AND the user has permission to view it.
+  // Admins can view all role dashboards; trainers may also inspect the client training surface.
+  const canViewUrlRole = userRole === 'admin' || urlRole === userRole || (userRole === 'trainer' && urlRole === 'client');
+  const activeRole = (urlRole && validUrlRoles.includes(urlRole) && canViewUrlRole)
     ? urlRole
     : userRole;
 

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { ChevronDown, LayoutDashboard, Users, User } from 'lucide-react';
+import { ChevronDown, LayoutDashboard, Users, User, UserCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-type DashboardType = 'admin' | 'trainer' | 'client';
+type DashboardType = 'admin' | 'trainer' | 'client' | 'user';
 
-const dashboardTypes: DashboardType[] = ['admin', 'trainer', 'client'];
+const dashboardTypes: DashboardType[] = ['admin', 'trainer', 'client', 'user'];
 
 const dashboardMeta = {
   admin: {
@@ -32,6 +32,14 @@ const dashboardMeta = {
     badge: 'CLIENT',
     Icon: User,
     iconColor: 'var(--gilded-fern, #C6A84B)'
+  },
+  user: {
+    title: 'User Dashboard',
+    description: 'Social profile and community features',
+    path: '/user-dashboard',
+    badge: 'SOCIAL',
+    Icon: UserCircle,
+    iconColor: 'rgb(var(--status-success-rgb, 34, 197, 94))'
   }
 };
 
@@ -165,7 +173,8 @@ const DashboardSelector: React.FC = () => {
   const activeDashboardByType: Record<DashboardType, boolean> = {
     admin: currentPath.includes('/dashboard/admin'),
     trainer: currentPath.includes('/dashboard/trainer'),
-    client: currentPath.includes('/dashboard/client') || currentPath.includes('/social')
+    client: currentPath.includes('/dashboard/client'),
+    user: currentPath.includes('/user-dashboard') || currentPath.includes('/social')
   };
 
   const isEnabled = (dashboardType: DashboardType) => {
@@ -177,7 +186,9 @@ const DashboardSelector: React.FC = () => {
       case 'trainer':
         return user.role === 'admin' || user.role === 'trainer';
       case 'client':
-        return user.role === 'admin' || user.role === 'client' || user.role === 'user';
+        return ['admin', 'trainer', 'client', 'user'].includes(user.role);
+      case 'user':
+        return true; // All authenticated users can access user dashboard
       default:
         return false;
     }
@@ -228,7 +239,7 @@ const DashboardSelector: React.FC = () => {
   // If user only has access to one dashboard, show a direct link instead of dropdown
   if (accessibleDashboards.length <= 1) {
     const singleDashboard = accessibleDashboards[0];
-    const dashboard = dashboardMeta[singleDashboard ?? 'client'];
+    const dashboard = dashboardMeta[singleDashboard ?? 'user'];
     const DashboardIcon = dashboard.Icon;
     
     return (
@@ -239,7 +250,7 @@ const DashboardSelector: React.FC = () => {
           style={{ cursor: 'pointer' }}
         >
           <DashboardIcon size={16} />
-          {dashboard.title}
+          {singleDashboard === 'user' ? 'My Dashboard' : dashboard.title}
         </SelectorButton>
       </SelectorContainer>
     );
