@@ -88,10 +88,10 @@ export const OBSERVATORY_ASSETS = {
 };
 
 export const LENS_TABS: LensTab[] = [
-  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/social' },
-  { id: 'reels', label: 'Reels', Icon: Video, path: '/social/reels' },
-  { id: 'friends', label: 'Friends', Icon: Users, path: '/social/friends' },
-  { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/social/challenges' },
+  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/dashboard/client/community' },
+  { id: 'reels', label: 'Reels', Icon: Video, path: '/dashboard/client/community/reels' },
+  { id: 'friends', label: 'Friends', Icon: Users, path: '/dashboard/client/community/friends' },
+  { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/dashboard/client/community/challenges' },
 ];
 
 export const QUICK_ACTIONS: QuickAction[] = [

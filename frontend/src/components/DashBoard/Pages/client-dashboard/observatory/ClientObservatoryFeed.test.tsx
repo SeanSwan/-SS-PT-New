@@ -19,7 +19,6 @@ describe('ClientObservatoryFeed XP receipt', () => {
         }}
         onPostTextChange={noop}
         onCreatePost={async () => {}}
-        onNavigate={noop}
       />
     );
 

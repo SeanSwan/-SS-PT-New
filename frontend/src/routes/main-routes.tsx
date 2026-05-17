@@ -3,7 +3,7 @@
  * Application route definitions — Crystalline Swan theme, dark-first.
  */
 import React, { Suspense } from 'react';
-import { RouteObject, Navigate, Outlet } from 'react-router-dom';
+import { RouteObject, Navigate, Outlet, useParams } from 'react-router-dom';
 
 // Layout and Error Handling
 import Layout from '../components/Layout/layout';
@@ -268,11 +268,13 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
-const SocialPage = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome'),
-  'Client Observatory Social Hub',
-  () => import('../pages/Social/SocialPage.V3')
-);
+const SocialTabRedirect: React.FC = () => {
+  const { tab } = useParams<{ tab?: string }>();
+  const safeTab = tab === 'reels' || tab === 'friends' || tab === 'challenges' ? tab : '';
+  const target = safeTab ? `/dashboard/client/community/${safeTab}` : '/dashboard/client/overview';
+
+  return <Navigate to={target} replace />;
+};
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
 const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -735,14 +737,12 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Social Hub Routes — /social, /social/friends, /social/challenges
+    // Legacy social URLs resolve into the canonical client dashboard.
     {
       path: 'social',
       element: (
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <SocialPage />
-          </Suspense>
+          <SocialTabRedirect />
         </ProtectedRoute>
       )
     },
@@ -750,9 +750,7 @@ const MainRoutes: RouteObject = {
       path: 'social/:tab',
       element: (
         <ProtectedRoute>
-          <Suspense fallback={<PageLoader />}>
-            <SocialPage />
-          </Suspense>
+          <SocialTabRedirect />
         </ProtectedRoute>
       )
     },

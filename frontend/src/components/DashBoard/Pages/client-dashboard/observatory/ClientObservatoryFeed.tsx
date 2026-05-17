@@ -9,7 +9,6 @@ import {
   FeedPostPreview,
   OBSERVATORY_ASSETS,
   POST_CATEGORIES,
-  QUICK_ACTIONS,
   compactNumber,
   countCollection,
   timeLabel,
@@ -34,8 +33,6 @@ import {
   FeatureGrid,
   FeedCard,
   FeedHeader,
-  MiniAction,
-  MiniActionGrid,
   PostAuthor,
   PostAvatar,
   PostBody,
@@ -70,7 +67,6 @@ interface ClientObservatoryFeedProps {
     visibility: 'friends';
     media: File | null;
   }) => Promise<void>;
-  onNavigate: (path: string) => void;
 }
 
 function postAuthor(post: FeedPostPreview): string {
@@ -88,7 +84,6 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   postReceipt,
   onPostTextChange,
   onCreatePost,
-  onNavigate,
 }) => {
   const [category, setCategory] = useState<(typeof POST_CATEGORIES)[number]>('Training');
   const [postType, setPostType] = useState('training');
@@ -142,10 +137,10 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                 Turn today&apos;s lift, stretch, meal prep, or recovery note into a community moment.
               </MutedText>
             </div>
-            <PrimaryButton type="button" onClick={handleCreateReel}>
+            <ReelChip>
               <Play size={16} aria-hidden="true" />
-              Create Reel
-            </PrimaryButton>
+              Reel composer
+            </ReelChip>
           </ReelOverlay>
         </ReelCard>
 
@@ -160,9 +155,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                   </SectionKicker>
                   <SectionTitle>Share training momentum</SectionTitle>
                 </div>
-                <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-                  Open Feed
-                </GhostButton>
+                <ReelChip>XP preview</ReelChip>
               </ComposerTop>
 
               <CategoryRow aria-label="Post category">
@@ -225,15 +218,6 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
         </ComposerCard>
       </FeatureGrid>
 
-      <MiniActionGrid aria-label="Dashboard quick actions">
-        {QUICK_ACTIONS.map(({ label, Icon, path }) => (
-          <MiniAction key={path} type="button" onClick={() => onNavigate(path)} aria-label={label}>
-            <Icon size={18} aria-hidden="true" />
-            <span>{label}</span>
-          </MiniAction>
-        ))}
-      </MiniActionGrid>
-
       <FeedCard aria-label="Community feed preview">
         <CardInner>
           <FeedHeader>
@@ -244,9 +228,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
               </SectionKicker>
               <SectionTitle>Latest orbit signals</SectionTitle>
             </div>
-            <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-              View All
-            </GhostButton>
+            <ReelChip>{compactNumber(posts.length)} visible</ReelChip>
           </FeedHeader>
 
           {feedLoading && (
@@ -291,10 +273,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
           {!feedLoading && posts.length > 0 && (
             <ComposerActions style={{ marginTop: '0.9rem' }}>
               <MutedText>{compactNumber(posts.length)} visible updates in this preview</MutedText>
-              <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-                <ImagePlus size={16} aria-hidden="true" />
-                Create More
-              </GhostButton>
+              <MutedText>Next signal ready.</MutedText>
             </ComposerActions>
           )}
         </CardInner>

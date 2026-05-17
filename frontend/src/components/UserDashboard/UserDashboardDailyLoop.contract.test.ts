@@ -118,7 +118,9 @@ describe('UserDashboard V3 daily loop contract', () => {
     const observatoryHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome.tsx');
 
     expect(routeSource).toContain("path: 'social'");
-    expect(routeSource).toContain("() => import('../components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome')");
+    expect(routeSource).toContain('const SocialTabRedirect: React.FC = () => {');
+    expect(routeSource).toContain('return <Navigate to={target} replace />;');
+    expect(routeSource).not.toContain("() => import('../pages/Social/SocialPage.V3')");
     expect(observatoryDataSource).toContain("export type LensId = 'feed' | 'reels' | 'friends' | 'challenges'");
     expect(observatoryDataSource).toContain("{ id: 'feed', label: 'Feed'");
     expect(observatoryDataSource).toContain("{ id: 'reels', label: 'Reels'");
@@ -127,6 +129,82 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(observatoryHomeSource).toContain("const FriendsList = lazy(() => import('../../../../Social/Friends/FriendsList'))");
     expect(observatoryHomeSource).toContain("const ChallengesView = lazy(() => import('../../../../Social/Challenges/ChallengesView'))");
     expect(observatoryHomeSource).toContain("const VerticalReels = lazy(() => import('../../../../Social/Reels/VerticalReels'))");
+  });
+
+  it('promotes one dashboard entry instead of a separate top-level Social Hub', () => {
+    const selectorSource = readSource('src/components/DashboardSelector/DashboardSelector.tsx');
+    const mobileMenuSource = readSource('src/components/Header/components/MobileMenu.tsx');
+    const headerStateSource = readSource('src/components/Header/useHeaderState.ts');
+
+    expect(selectorSource).toContain("type DashboardType = 'admin' | 'trainer' | 'client'");
+    expect(selectorSource).toContain("const dashboardTypes: DashboardType[] = ['admin', 'trainer', 'client']");
+    expect(selectorSource).not.toContain("| 'user'");
+    expect(selectorSource).not.toContain("case 'user'");
+    expect(selectorSource).not.toContain('Social Hub');
+    expect(selectorSource).not.toContain("path: '/social'");
+
+    expect(mobileMenuSource).not.toContain('to="/social"');
+    expect(mobileMenuSource).not.toContain('Social Hub');
+    expect(headerStateSource).toContain("return user.role === 'admin' || user.role === 'client' || user.role === 'user';");
+  });
+
+  it('routes public social CTAs into the canonical dashboard/community source', () => {
+    const signupSource = readSource('src/pages/OptimizedSignupModal.tsx');
+    const profileMenuSource = readSource('src/components/Header/ProfileSection.tsx');
+    const homeV3Source = readSource('src/pages/HomePage/components/HomePage.V3.tsx');
+    const heroSectionSource = readSource('src/pages/HomePage/components/sections/HeroSection.tsx');
+    const socialSectionSource = readSource('src/pages/HomePage/components/sections/SocialSection.tsx');
+    const homeTabSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
+    const mobileNavSource = readSource('src/components/UserDashboard/components/ObservatoryMobileNav.tsx');
+    const communityDataSource = readSource('src/components/UserDashboard/components/CommunityTab.data.ts');
+    const socialFeedSource = readSource('src/components/Social/Feed/SocialFeed.tsx');
+    const friendSidebarSource = readSource('src/components/Social/Feed/components/FriendSuggestionsSidebar.tsx');
+
+    [
+      signupSource,
+      profileMenuSource,
+      homeV3Source,
+      heroSectionSource,
+      socialSectionSource,
+      homeTabSource,
+      mobileNavSource,
+      communityDataSource,
+      socialFeedSource,
+      friendSidebarSource,
+    ].forEach((source) => {
+      expect(source).not.toContain("navigate('/social')");
+      expect(source).not.toContain("to: '/social'");
+      expect(source).not.toContain("navigate('/social/reels");
+      expect(source).not.toContain("navigate('/social/challenges");
+      expect(source).not.toContain("navigate('/social/friends");
+      expect(source).not.toContain("onNavigate('/social/reels");
+      expect(source).not.toContain("path: '/social/friends'");
+    });
+
+    expect(signupSource).toContain("navigate('/dashboard/client/overview')");
+    expect(profileMenuSource).toContain("navigate('/dashboard/client/overview')");
+    expect(homeV3Source).toContain("navigate('/dashboard/client/community')");
+    expect(heroSectionSource).toContain("to: '/dashboard/client/overview'");
+    expect(socialSectionSource).toContain("navigate('/dashboard/client/community')");
+  });
+
+  it('uses the observatory lens system for the client community route', () => {
+    const layoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const clientCommunitySource = readSource('src/components/DashBoard/Pages/client-dashboard/ClientCommunityPage.tsx');
+    const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
+
+    expect(layoutSource).toContain("{ path: '/community', component: ClientCommunityPage");
+    expect(layoutSource).toContain("{ path: '/community/:tab', component: ClientCommunityPage");
+    expect(clientCommunitySource).toContain("import ClientObservatoryHome from './observatory/ClientObservatoryHome'");
+    expect(clientCommunitySource).toContain('<ClientObservatoryHome />');
+    expect(clientCommunitySource).not.toContain('useSocialChallenges');
+    expect(clientCommunitySource).not.toContain('useSocialFeed');
+
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/community'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/reels'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/friends'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/community/challenges'");
+    expect(observatoryDataSource).not.toContain("path: '/social'");
   });
 
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {

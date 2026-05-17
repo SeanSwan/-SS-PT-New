@@ -616,14 +616,14 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           <ButtonGroup>
             <ContainedButton
               $color="primary"
-              onClick={() => navigate('/social/challenges')}
+              onClick={() => navigate('/dashboard/client/community/challenges')}
             >
               <Trophy size={16} style={{ marginRight: 6 }} />
               Browse Challenges
             </ContainedButton>
             <OutlinedButton
               $color="primary"
-              onClick={() => navigate('/social/friends')}
+              onClick={() => navigate('/dashboard/client/community/friends')}
             >
               <Users size={16} style={{ marginRight: 6 }} />
               Find Friends

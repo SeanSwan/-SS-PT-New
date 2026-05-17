@@ -33,8 +33,8 @@
  *
  * CLICK-OUTCOME FLOWCHART:
  * [Button: "Add Friend"] -> sendFriendRequest(userId) -> POST /api/social/friendships/request/:id -> Shows "Sent" badge
- * [Link: "See All"]      -> navigates to /social/friends
- * [Avatar / Name]        -> navigates to /social/profile/:id (future)
+ * [Link: "See All"]      -> navigates to /dashboard/client/community/friends
+ * [Avatar / Name]        -> navigates to /profile/:id (future)
  *
  * DATA FLOW:
  * Props In:  { className? }
@@ -213,7 +213,7 @@ const FriendSuggestionsSidebar: React.FC<FriendSuggestionsSidebarProps> = ({
   );
 
   const handleSeeAll = useCallback(() => {
-    navigate('/social/friends');
+    navigate('/dashboard/client/community/friends');
   }, [navigate]);
 
   return (

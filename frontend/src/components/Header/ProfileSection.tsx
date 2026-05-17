@@ -380,7 +380,7 @@ const ProfileSection: React.FC = () => {
                         </ListItemButton>
                         <ListItemButton
                           selected={selectedIndex === 1}
-                          onClick={() => navigate('/social')}
+                          onClick={() => navigate('/dashboard/client/overview')}
                           tabIndex={open ? 0 : -1}
                           disabled={!open}
                           style={{ borderRadius: `${borderRadius}px` }}
@@ -392,7 +392,7 @@ const ProfileSection: React.FC = () => {
                             primary={
                               <Grid container spacing={1} style={{ justifyContent: 'space-between' }}>
                                 <Grid item>
-                                  <Typography variant="body2">Social Profile</Typography>
+                                  <Typography variant="body2">Client Observatory</Typography>
                                 </Grid>
                                 <Grid item>
                                   <Chip

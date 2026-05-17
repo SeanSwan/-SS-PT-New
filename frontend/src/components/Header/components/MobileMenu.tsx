@@ -271,11 +271,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </motion.div>
           )}
           <motion.div variants={itemVariants}>
-            <MobileNavLink to="/social" onClick={closeMobileMenu} $isActive={isActive('/social')}>
-              <User size={20} /> Social Hub
-            </MobileNavLink>
-          </motion.div>
-          <motion.div variants={itemVariants}>
             <MobileNavLink to="/video-library" onClick={closeMobileMenu} $isActive={isActive('/video-library')}>
               <Video size={20} /> Video Library
             </MobileNavLink>

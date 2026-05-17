@@ -188,7 +188,6 @@ const ClientObservatoryHome: React.FC = () => {
         postReceipt={postReceipt}
         onPostTextChange={handlePostTextChange}
         onCreatePost={handleCreatePost}
-        onNavigate={handleNavigate}
       />
     );
   }, [
@@ -229,11 +228,14 @@ const ClientObservatoryHome: React.FC = () => {
           <ClientObservatoryWidgets
             achievements={achievements}
             challenge={challenges[0]}
+            feedLoading={feedQuery.isLoading}
+            posts={posts}
+            displayName={displayName}
+            points={points}
             leaderboard={leaderboard}
             progress={progress}
             streakDays={streakDays}
             tags={tags}
-            onNavigate={handleNavigate}
           />
         </SideColumn>
       </MainGrid>

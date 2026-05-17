@@ -964,11 +964,11 @@ const HomePageV3: React.FC = () => {
       <ParallaxHero videoSrc={VIDEO.swans} overlayOpacity={0.55} minHeight="100vh">
         <QuickNav aria-label="Quick navigation">
           <GlowButton
-            text="Social Profile"
+            text="Community"
             variant="accent"
             size="small"
             leftIcon={<Globe size={14} />}
-            onClick={() => navigate('/social')}
+            onClick={() => navigate('/dashboard/client/community')}
           />
           <GlowButton
             text="Dashboard"
@@ -1352,7 +1352,7 @@ const HomePageV3: React.FC = () => {
                 text="Join the Community"
                 variant="accent"
                 size="large"
-                onClick={() => navigate('/social')}
+                onClick={() => navigate('/dashboard/client/community')}
               />
             </div>
           </ScrollReveal>
