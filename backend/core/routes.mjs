@@ -444,7 +444,7 @@ export const setupRoutes = async (app) => {
   }
 
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
-  app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Social media publishing via Postiz
+  app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Native social publishing
   app.use('/api/admin/marketing-calendar', adminMarketingCalendarRoutes); // Persisted Marketing calendar + PT awareness
   app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)
   app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10

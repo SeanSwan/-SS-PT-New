@@ -231,6 +231,9 @@ export const getSprintExerciseMemory = () => getModel('SprintExerciseMemory');
 // Gallery Message Model
 export const getGalleryMessage = () => getModel('GalleryMessage');
 export const getMarketingCalendarItem = () => getModel('MarketingCalendarItem');
+export const getSocialPublishingAccount = () => getModel('SocialPublishingAccount');
+export const getSocialPublishingJob = () => getModel('SocialPublishingJob');
+export const getSocialPublishingAttempt = () => getModel('SocialPublishingAttempt');
 
 // Export Sequelize operators for routes
 export { Op };

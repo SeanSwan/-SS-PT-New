@@ -163,7 +163,7 @@ export const StatusBanner = styled.div<{ $tone?: StatusTone; $spaced?: boolean }
   gap: 8px;
 `;
 
-export const PostizWarningText = styled.span`
+export const PublisherWarningText = styled.span`
   color: var(--warning, #F59E0B);
 `;
 

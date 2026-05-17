@@ -204,6 +204,9 @@ const setupAssociations = async () => {
     const LeadModule = await import('./Lead.mjs');
     const LeadActivityModule = await import('./LeadActivity.mjs');
     const MarketingCalendarItemModule = await import('./MarketingCalendarItem.mjs');
+    const SocialPublishingAccountModule = await import('./SocialPublishingAccount.mjs');
+    const SocialPublishingJobModule = await import('./SocialPublishingJob.mjs');
+    const SocialPublishingAttemptModule = await import('./SocialPublishingAttempt.mjs');
 
     // AI Chat & Macro Logging Models
     const AiConversationModule = await import('./AiConversation.mjs');
@@ -399,6 +402,9 @@ const setupAssociations = async () => {
     const Lead = LeadModule.default;
     const LeadActivity = LeadActivityModule.default;
     const MarketingCalendarItem = MarketingCalendarItemModule.default;
+    const SocialPublishingAccount = SocialPublishingAccountModule.default;
+    const SocialPublishingJob = SocialPublishingJobModule.default;
+    const SocialPublishingAttempt = SocialPublishingAttemptModule.default;
 
     // AI Chat & Macro Logging
     const AiConversation = AiConversationModule.default;
@@ -505,7 +511,7 @@ const setupAssociations = async () => {
         BootcampSprint, SprintWeek, SprintClassSlot, SprintExerciseMemory,
         // Photo Gallery & Lead Generation Models
         GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, GalleryMessage,
-        MarketingCalendarItem,
+        MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
         // Video Chat + Avatar + Olympics Models
         VideoSession, AvatarHome, OlympicEvent,
         // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.1)
@@ -1243,6 +1249,17 @@ const setupAssociations = async () => {
     MarketingCalendarItem.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater', constraints: false });
     console.log('✅ Marketing Calendar model integrated');
 
+    // Native Social Publishing Associations
+    User.hasMany(SocialPublishingAccount, { foreignKey: 'createdBy', as: 'createdSocialPublishingAccounts', constraints: false });
+    SocialPublishingAccount.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
+    User.hasMany(SocialPublishingJob, { foreignKey: 'createdBy', as: 'createdSocialPublishingJobs', constraints: false });
+    SocialPublishingJob.belongsTo(User, { foreignKey: 'createdBy', as: 'creator', constraints: false });
+    SocialPublishingJob.hasMany(SocialPublishingAttempt, { foreignKey: 'jobId', as: 'attempts', constraints: false });
+    SocialPublishingAttempt.belongsTo(SocialPublishingJob, { foreignKey: 'jobId', as: 'job', constraints: false });
+    SocialPublishingAccount.hasMany(SocialPublishingAttempt, { foreignKey: 'accountId', as: 'attempts', constraints: false });
+    SocialPublishingAttempt.belongsTo(SocialPublishingAccount, { foreignKey: 'accountId', as: 'account', constraints: false });
+    console.log('✅ Native Social Publishing models integrated');
+
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -1415,7 +1432,7 @@ const setupAssociations = async () => {
       GalleryEvent, GalleryPhoto, GalleryVisitor, EnhancementRequest, GalleryDonation, GalleryReferral, PhotoVote, GalleryMessage,
 
       // CRM Lead Management Models
-      Lead, LeadActivity, MarketingCalendarItem,
+      Lead, LeadActivity, MarketingCalendarItem, SocialPublishingAccount, SocialPublishingJob, SocialPublishingAttempt,
 
       // AI Chat & Macro Logging Models
       AiConversation,

@@ -6,11 +6,12 @@
  *
  * Owns social account connection, compliance checks, publish/schedule calls,
  * and planning helper endpoints for the admin Marketing command center.
+ * Native SwanStudios provider adapters are primary; Postiz is optional.
  */
 
 import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
-import postiz from '../services/postizClient.mjs';
+import nativePublisher, { PROVIDER_CAPABILITIES } from '../services/nativeSocialPublishingService.mjs';
 import { checkCompliance } from '../services/complianceCheck.mjs';
 import {
   getAutoPostTemplates,
@@ -20,24 +21,21 @@ import {
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
-const POSTIZ_PLATFORMS = ['instagram', 'facebook', 'youtube', 'bluesky', 'tiktok'];
-const DIRECT_API_PLATFORMS = ['nextdoor'];
-const SUPPORTED_PLATFORMS = [...POSTIZ_PLATFORMS, ...DIRECT_API_PLATFORMS];
-const NEXTDOOR_DIRECT_API_MESSAGE =
-  'Nextdoor uses its direct partner API, not Postiz OAuth. Set NEXTDOOR_API_URL and NEXTDOOR_API_KEY after developer approval to enable publishing.';
+const SUPPORTED_PLATFORMS = PROVIDER_CAPABILITIES.map(provider => provider.id);
+const PROVIDER_BY_ID = new Map(PROVIDER_CAPABILITIES.map(provider => [provider.id, provider]));
+
+const getAdminSafeConnectError = (err) => {
+  const message = String(err?.message || '');
+  if (message.startsWith('Native credential encryption is not configured.')) return message;
+  if (message.startsWith('Bluesky session failed:')) return message;
+  return 'Failed to initiate connection';
+};
 
 router.use(protect, adminOnly);
 
-const sendPostizResult = (res, result, fallbackStatus = 502) => {
-  if (!result.success) {
-    return res.status(fallbackStatus).json({ success: false, message: result.error });
-  }
-  return res.json({ success: true, data: result.data });
-};
-
 router.get('/health', async (_req, res) => {
   try {
-    const health = await postiz.checkHealth();
+    const health = await nativePublisher.getHealth();
     return res.json({ success: true, data: health });
   } catch (err) {
     logger.error('Social publishing health check failed:', err.message);
@@ -47,8 +45,7 @@ router.get('/health', async (_req, res) => {
 
 router.get('/accounts', async (_req, res) => {
   try {
-    const result = await postiz.listConnectedAccounts();
-    return sendPostizResult(res, result);
+    return res.json({ success: true, data: await nativePublisher.listAccounts() });
   } catch (err) {
     logger.error('Failed to list social accounts:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to list accounts' });
@@ -65,29 +62,36 @@ router.post('/connect/:platform', async (req, res) => {
     });
   }
 
-  if (DIRECT_API_PLATFORMS.includes(platform)) {
-    return res.status(501).json({ success: false, message: NEXTDOOR_DIRECT_API_MESSAGE });
-  }
-
   try {
-    const result = await postiz.getOAuthUrl(platform);
-    if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
+    if (platform === 'bluesky' && req.body?.identifier && req.body?.appPassword) {
+      const account = await nativePublisher.connectBluesky(req.body, { userId: req.user?.id });
+      logger.info(`[AUDIT] Admin ${req.user.id} connected native Bluesky account ${account.profile || account.id}`);
+      return res.status(201).json({ success: true, data: account });
     }
-    logger.info(`[AUDIT] Admin ${req.user.id} initiated ${platform} OAuth connection`);
-    return res.json({ success: true, data: result.data });
+
+    const provider = PROVIDER_BY_ID.get(platform);
+    return res.status(platform === 'bluesky' ? 200 : 501).json({
+      success: platform === 'bluesky',
+      data: {
+        platform,
+        provider,
+        connectionType: provider.connectionType,
+        message: platform === 'bluesky'
+          ? 'Submit identifier and appPassword to connect Bluesky natively.'
+          : provider.notes,
+      },
+      message: provider.notes,
+    });
   } catch (err) {
-    logger.error(`Failed to get OAuth URL for ${platform}:`, err.message);
-    return res.status(500).json({ success: false, message: 'Failed to initiate connection' });
+    logger.error(`Failed to connect ${platform}:`, err.message);
+    return res.status(500).json({ success: false, message: getAdminSafeConnectError(err) });
   }
 });
 
 router.delete('/accounts/:integrationId', async (req, res) => {
   try {
-    const result = await postiz.disconnectAccount(req.params.integrationId);
-    if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
-    }
+    const deleted = await nativePublisher.deleteAccount(req.params.integrationId);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Social account not found' });
     logger.info(`[AUDIT] Admin ${req.user.id} disconnected integration ${req.params.integrationId}`);
     return res.json({ success: true, message: 'Account disconnected' });
   } catch (err) {
@@ -122,16 +126,13 @@ router.post('/publish', async (req, res) => {
     : content;
 
   try {
-    const result = await postiz.publishPost({
+    const result = await nativePublisher.publish({
       content: finalContent,
       platformIds,
       mediaUrl,
       scheduledAt,
-    });
-
-    if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
-    }
+      compliance,
+    }, { userId: req.user?.id });
 
     logger.info(
       `[AUDIT] Admin ${req.user.id} ${scheduledAt ? 'scheduled' : 'published'} social post ` +
@@ -140,7 +141,7 @@ router.post('/publish', async (req, res) => {
 
     return res.json({
       success: true,
-      data: result.data,
+      data: result.data || result,
       compliance: {
         warnings: compliance.warnings,
         autoTags: compliance.autoTags,
@@ -155,8 +156,7 @@ router.post('/publish', async (req, res) => {
 router.get('/history', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
   try {
-    const result = await postiz.getPostHistory(limit);
-    return sendPostizResult(res, result);
+    return res.json({ success: true, data: await nativePublisher.getHistory(limit) });
   } catch (err) {
     logger.error('Failed to fetch post history:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to fetch history' });
@@ -165,8 +165,9 @@ router.get('/history', async (req, res) => {
 
 router.get('/posts/:postId', async (req, res) => {
   try {
-    const result = await postiz.getPostStatus(req.params.postId);
-    return sendPostizResult(res, result);
+    const job = await nativePublisher.getJob(req.params.postId);
+    if (!job) return res.status(404).json({ success: false, message: 'Social post job not found' });
+    return res.json({ success: true, data: job });
   } catch (err) {
     logger.error('Failed to fetch post status:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to fetch status' });

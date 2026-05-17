@@ -59,6 +59,7 @@ import logger from './utils/logger.mjs';
 // when off — safe to call unconditionally.
 import { startPlaudR2MirrorWorker, stopPlaudR2MirrorWorker } from './jobs/plaudR2MirrorWorker.mjs';
 import { startPlaudCronJobs, stopPlaudCronJobs } from './jobs/plaudCronJobs.mjs';
+import { startMarketingPublisherWorker, stopMarketingPublisherWorker } from './jobs/marketingPublisherWorker.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
 // Prevent server crashes from unhandled promise rejections
@@ -126,6 +127,12 @@ let appInstance = null;
       logger.error('PLAUD worker/cron bootstrap failed (non-fatal): %s', plaudErr.message);
     }
 
+    try {
+      startMarketingPublisherWorker();
+    } catch (marketingErr) {
+      logger.error('Marketing publisher worker bootstrap failed (non-fatal): %s', marketingErr.message);
+    }
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
 
   } catch (error) {
@@ -144,8 +151,9 @@ const gracefulShutdown = async (signal) => {
   try {
     stopPlaudR2MirrorWorker();
     stopPlaudCronJobs();
+    stopMarketingPublisherWorker();
   } catch (err) {
-    logger.warn('PLAUD worker/cron shutdown error: %s', err.message);
+    logger.warn('Worker/cron shutdown error: %s', err.message);
   }
 
   if (appInstance && appInstance.locals.redisClient) {

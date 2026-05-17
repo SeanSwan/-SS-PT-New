@@ -1,7 +1,7 @@
 /**
  * PANEL: Social Post Generator
  * PARENT: MarketingWorkspace
- * PURPOSE: Compose and approve social posts before publishing through Postiz.
+ * PURPOSE: Compose and approve social posts before native publishing.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -65,7 +65,7 @@ const SocialPostGenerator: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>(['#SwanStudios', '#PersonalTraining']);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
-  const [postizConfigured, setPostizConfigured] = useState<boolean | null>(null);
+  const [nativeConfigured, setNativeConfigured] = useState<boolean | null>(null);
   const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
@@ -85,9 +85,9 @@ const SocialPostGenerator: React.FC = () => {
       try {
         const healthResponse = await fetch('/api/admin/social-publishing/health', { headers });
         const healthData = await healthResponse.json();
-        const configured = healthData.data?.configured === true;
+        const configured = healthData.data?.configured === true && healthData.data?.mode === 'native';
         if (!active) return;
-        setPostizConfigured(configured);
+        setNativeConfigured(configured);
         if (!configured) return;
 
         const accountsResponse = await fetch('/api/admin/social-publishing/accounts', { headers });
@@ -96,7 +96,7 @@ const SocialPostGenerator: React.FC = () => {
           setConnectedAccounts(accountsData.data);
         }
       } catch {
-        if (active) setPostizConfigured(false);
+        if (active) setNativeConfigured(false);
       }
     };
 
@@ -163,10 +163,10 @@ const SocialPostGenerator: React.FC = () => {
         setCaption('');
         setComplianceResult(null);
       } else {
-        setPublishStatus(data.message || 'Failed to publish. Check Postiz connection.');
+        setPublishStatus(data.message || 'Failed to publish. Check native account connection.');
       }
     } catch {
-      setPublishStatus('Network error. Is Postiz running?');
+      setPublishStatus('Network error. Native publisher did not respond.');
     } finally {
       setPublishing(false);
     }
@@ -228,7 +228,7 @@ const SocialPostGenerator: React.FC = () => {
         </HashtagSection>
 
         <SocialPostAccounts
-          postizConfigured={postizConfigured}
+          nativeConfigured={nativeConfigured}
           connectedAccounts={connectedAccounts}
           selectedAccountIds={selectedAccountIds}
           onToggleAccount={toggleAccount}

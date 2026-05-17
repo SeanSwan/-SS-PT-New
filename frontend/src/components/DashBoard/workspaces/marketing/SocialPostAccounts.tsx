@@ -1,5 +1,5 @@
 /**
- * Account picker for Postiz-connected social publishing targets.
+ * Account picker for native social publishing targets.
  */
 
 import React from 'react';
@@ -11,31 +11,31 @@ import {
   CatLabel,
   PlatformCheck,
   PlatformCheckboxes,
-  PostizWarningText,
+  PublisherWarningText,
   StatusBanner,
 } from './SocialPostGenerator.styles';
 
 interface SocialPostAccountsProps {
-  postizConfigured: boolean | null;
+  nativeConfigured: boolean | null;
   connectedAccounts: ConnectedAccount[];
   selectedAccountIds: string[];
   onToggleAccount: (accountId: string) => void;
 }
 
 const SocialPostAccounts: React.FC<SocialPostAccountsProps> = ({
-  postizConfigured,
+  nativeConfigured,
   connectedAccounts,
   selectedAccountIds,
   onToggleAccount,
 }) => (
   <>
     <CatLabel>Publish to:</CatLabel>
-    {postizConfigured === false && (
+    {nativeConfigured === false && (
       <StatusBanner $tone="warning">
         <Link2 size={14} />
-        <PostizWarningText>
-          Postiz not configured. Set POSTIZ_API_URL and POSTIZ_API_KEY in .env to enable publishing.
-        </PostizWarningText>
+        <PublisherWarningText>
+          Native social publishing needs account setup before publishing is enabled.
+        </PublisherWarningText>
       </StatusBanner>
     )}
 
@@ -58,7 +58,7 @@ const SocialPostAccounts: React.FC<SocialPostAccountsProps> = ({
     ) : (
       <StatusBanner>
         <Link2 size={14} />
-        No social accounts connected yet. Connect accounts via Postiz to start publishing.
+        No social accounts connected yet. Connect Bluesky from Analytics to start publishing.
       </StatusBanner>
     )}
   </>

@@ -37,7 +37,7 @@ const SocialPostPreview: React.FC<SocialPostPreviewProps> = ({ config, caption, 
       <Shield size={14} />
       <PublishingNote>
         All posts checked for FTC/FDA compliance before publishing.
-        Powered by Postiz scheduling engine.
+        Powered by SwanStudios native scheduling.
       </PublishingNote>
     </StatusBanner>
   </div>

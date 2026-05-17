@@ -70,6 +70,16 @@ const SOCIAL_POST_GENERATOR_FILE = join(
   'marketing',
   'SocialPostGenerator.tsx',
 );
+const SOCIAL_CONNECT_PANEL_FILE = join(
+  REPO_ROOT,
+  'frontend',
+  'src',
+  'components',
+  'DashBoard',
+  'workspaces',
+  'marketing',
+  'SocialConnectPanel.tsx',
+);
 const SOCIAL_POST_GENERATOR_CONFIG_FILE = join(
   REPO_ROOT,
   'frontend',
@@ -96,9 +106,16 @@ const ADMIN_SOCIAL_PUBLISHING_ROUTES_FILE = join(
   'routes',
   'adminSocialPublishingRoutes.mjs',
 );
+const NATIVE_SOCIAL_PUBLISHING_SERVICE_FILE = join(
+  REPO_ROOT,
+  'backend',
+  'services',
+  'nativeSocialPublishingService.mjs',
+);
 const APPROVAL_QUEUE_FILES = [
   'SocialPostAccounts.tsx',
   'SocialPostComplianceResult.tsx',
+  'SocialConnectPanel.tsx',
   'SocialPostGenerator.config.ts',
   'SocialPostGenerator.styles.ts',
   'SocialPostGenerator.tsx',
@@ -125,14 +142,17 @@ describe('MarketingWorkspace command-center contract', () => {
   const calendarApiSource = readFileSync(CALENDAR_API_FILE, 'utf-8');
   const calendarStylesSource = readFileSync(CALENDAR_STYLES_FILE, 'utf-8');
   const socialAnalyticsSource = readFileSync(SOCIAL_ANALYTICS_FILE, 'utf-8');
+  const socialConnectPanelSource = readFileSync(SOCIAL_CONNECT_PANEL_FILE, 'utf-8');
   const socialPostGeneratorSource = readFileSync(SOCIAL_POST_GENERATOR_FILE, 'utf-8');
   const socialPostGeneratorConfigSource = readFileSync(SOCIAL_POST_GENERATOR_CONFIG_FILE, 'utf-8');
   const socialPostGeneratorStylesSource = readFileSync(SOCIAL_POST_GENERATOR_STYLES_FILE, 'utf-8');
   const adminSocialPublishingRoutesSource = readFileSync(ADMIN_SOCIAL_PUBLISHING_ROUTES_FILE, 'utf-8');
+  const nativeSocialPublishingServiceSource = readFileSync(NATIVE_SOCIAL_PUBLISHING_SERVICE_FILE, 'utf-8');
   const approvalQueueSources = APPROVAL_QUEUE_FILES.map(file => ({
     file,
     source: readFileSync(file, 'utf-8'),
   }));
+  const nativePublishingSource = `${socialAnalyticsSource}\n${socialConnectPanelSource}`;
 
   it('is mounted as the admin marketing route', () => {
     expect(layoutSource).toContain("path: '/marketing'");
@@ -196,7 +216,7 @@ describe('MarketingWorkspace command-center contract', () => {
     expect(filterChipBlock).toContain('min-height: 44px');
   });
 
-  it('checks social-publishing health before reading integration data', () => {
+  it('checks native social-publishing health before reading account data', () => {
     const analyticsHealthIndex = socialAnalyticsSource.indexOf(
       "fetch('/api/admin/social-publishing/health'",
     );
@@ -214,15 +234,30 @@ describe('MarketingWorkspace command-center contract', () => {
     expect(analyticsAccountsIndex).toBeGreaterThan(analyticsHealthIndex);
     expect(generatorHealthIndex).toBeGreaterThanOrEqual(0);
     expect(generatorAccountsIndex).toBeGreaterThan(generatorHealthIndex);
-    expect(socialAnalyticsSource).toContain('if (!configured) return;');
-    expect(socialPostGeneratorSource).toContain('if (!configured) return;');
+    expect(socialAnalyticsSource).toContain('healthData.data?.mode === \'native\'');
+    expect(socialPostGeneratorSource).toContain('healthData.data?.mode === \'native\'');
   });
 
-  it('tracks Nextdoor as a first-class marketing platform without routing it through Postiz OAuth', () => {
+  it('uses SwanStudios native publishing instead of requiring Postiz in the UI', () => {
+    const approvalQueueSource = approvalQueueSources.map(item => item.source).join('\n');
+    const nativeUiSource = `${approvalQueueSource}\n${socialConnectPanelSource}`;
+    expect(nativeUiSource).toContain('Native social publishing');
+    expect(nativeUiSource).not.toContain('Postiz not configured');
+    expect(nativeUiSource).not.toContain('Connect accounts via Postiz');
+  });
+
+  it('supports native Bluesky connection and provider-gated Nextdoor readiness', () => {
     expect(socialPostGeneratorConfigSource).toContain('nextdoor');
     expect(socialPostGeneratorConfigSource).toContain("name: 'Nextdoor'");
-    expect(socialAnalyticsSource).toContain('nextdoor');
-    expect(adminSocialPublishingRoutesSource).toContain("'nextdoor'");
-    expect(adminSocialPublishingRoutesSource).toContain('NEXTDOOR_API');
+    expect(nativePublishingSource).toContain("fetch('/api/admin/social-publishing/connect/bluesky'");
+    expect(nativePublishingSource).toContain('appPassword');
+    expect(nativePublishingSource).toContain('nextdoor');
+    expect(adminSocialPublishingRoutesSource).toContain('PROVIDER_CAPABILITIES');
+    expect(nativeSocialPublishingServiceSource).toContain("id: 'nextdoor'");
+    expect(nativeSocialPublishingServiceSource).toContain('partner_required');
+  });
+
+  it('returns immediate native publish results instead of only scheduled-job data', () => {
+    expect(adminSocialPublishingRoutesSource).toContain('data: result.data || result');
   });
 });
