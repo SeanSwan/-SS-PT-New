@@ -9,6 +9,7 @@ export default defineConfig({
     react()
   ],
   server: {
+    host: '0.0.0.0',
     port: 5173,
     open: true,
     proxy: {
@@ -41,6 +42,7 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true, // Enable sourcemaps to debug the styled-components issue
     minify: 'esbuild', // Re-enabled minification for production
+    chunkSizeWarningLimit: 1200,
     // Force new file paths to bypass Cloudflare CDN cache
     // Changed from /assets/ to /v3/ to force cache miss
     rollupOptions: {

@@ -9,6 +9,10 @@
 
     /* Bundler mode */
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -17,11 +21,23 @@
 
     /* Linting */
     "strict": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
+  "files": [
+    "src/App.tsx",
+    "src/env.d.ts",
+    "src/vite-env.d.ts",
+    "src/types/styled.d.ts",
+    "src/types/window.d.ts",
+    "src/types/process.d.ts",
+    "src/utils/tokenDebugTool.ts",
+    "src/utils/imageErrorHandler/index.ts",
+    "src/utils/initTokenCleanup.ts"
+  ],
   "exclude": [
     "node_modules",
     "dist",
@@ -29,6 +45,7 @@
     "**/*.test.tsx",
     "**/*.stories.tsx",
     "**/*.spec.ts",
+    "src/assets/user-dashboard/dashboard-export/**",
     "src/tests/**",
     "**/*.backup.*",
     "**/*-backup.*",

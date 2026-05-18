@@ -25,4 +25,10 @@ interface Window {
    * Flag for mock WebSocket mode
    */
   REACT_APP_MOCK_WEBSOCKET?: string;
+
+  debugTokens?: () => unknown;
+  cleanupTokens?: () => boolean;
+  showTokenInfo?: () => unknown;
+  clearAuthData?: () => void;
+  gtag?: (...args: unknown[]) => void;
 }

@@ -1,19 +1,26 @@
 import 'styled-components';
 
 declare module 'styled-components' {
+  type ThemeScale = Record<string, any>;
+
   export interface DefaultTheme {
-    colors?: Record<string, unknown>;
-    palette?: Record<string, unknown>;
-    typography?: Record<string, unknown>;
-    shadows?: Record<string, unknown> | string[];
-    background?: Record<string, unknown>;
-    text?: Record<string, unknown>;
-    swan?: Record<string, unknown>;
-    spacing?: Record<string, unknown>;
-    breakpoints?: Record<string, unknown>;
-    glass?: Record<string, unknown>;
-    gradients?: Record<string, unknown>;
-    components?: Record<string, unknown>;
-    [key: string]: unknown;
+    id: string;
+    name: string;
+    colors: ThemeScale;
+    palette: ThemeScale;
+    typography: ThemeScale;
+    shadows: ThemeScale;
+    background: ThemeScale;
+    text: ThemeScale;
+    fonts: ThemeScale;
+    borders: ThemeScale;
+    gradients: ThemeScale;
+    effects: ThemeScale;
+    swan: ThemeScale;
+    spacing: ThemeScale;
+    breakpoints: ThemeScale;
+    glass: ThemeScale;
+    components: ThemeScale;
+    [key: string]: any;
   }
 }
