@@ -2,14 +2,14 @@
  * ============================================================================
  * COMPONENT: ObservatoryShell
  * PURPOSE: Phase 19B Crystalline Creator Observatory shell - thin orchestrator
- *          that composes the left rail, right rail, and mobile bottom nav
- *          around the dashboard's existing main-column tab content.
+ *          that composes the left rail and right rail around the dashboard's
+ *          existing main-column tab content.
  * OWNER:   Claude Opus 4.7
  * UPDATED: 2026-04-29
  * ----------------------------------------------------------------------------
  * This file holds zero hooks and zero rendering details - those live in
- * ObservatoryLeftRail, ObservatoryRightRail, and ObservatoryMobileNav so each
- * presentational module stays under the Rule 4 300-line cap.
+ * ObservatoryLeftRail and ObservatoryRightRail so each presentational module
+ * stays under the Rule 4 300-line cap.
  *
  * Spec adherence (Phase 19 receipt Section 19B):
  *   - No second mount of useGamificationData / useSocialFeed / useActivityTicker
@@ -30,17 +30,14 @@ import {
 } from '../styles/ObservatoryShellLayoutStyles';
 import ObservatoryLeftRail from './ObservatoryLeftRail';
 import ObservatoryRightRail from './ObservatoryRightRail';
-import ObservatoryMobileNav from './ObservatoryMobileNav';
 import type {
   ObservatoryNavItem,
-  ObservatoryNextBestAction,
   ObservatoryBadge,
 } from './ObservatoryShellTypes';
 import type { TabId } from '../types/UserDashboardTypes';
 
 export type {
   ObservatoryNavItem,
-  ObservatoryNextBestAction,
   ObservatoryBadge,
 } from './ObservatoryShellTypes';
 
@@ -48,7 +45,6 @@ interface ObservatoryShellProps {
   activeTab: TabId;
   profileHeaderVisible?: boolean;
   onTabChange: (tab: TabId) => void;
-  onNavigate: (path: string) => void;
   observatoryLevel: number;
   observatoryPoints: number;
   observatoryTierName: string;
@@ -57,7 +53,6 @@ interface ObservatoryShellProps {
   observatoryStreakDays: number;
   topBadges: ObservatoryBadge[];
   navItems: ReadonlyArray<ObservatoryNavItem>;
-  nextBestActions: ReadonlyArray<ObservatoryNextBestAction>;
   children: React.ReactNode;
 }
 
@@ -65,7 +60,6 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   activeTab,
   profileHeaderVisible = false,
   onTabChange,
-  onNavigate,
   observatoryLevel,
   observatoryPoints,
   observatoryTierName,
@@ -74,7 +68,6 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   observatoryStreakDays,
   topBadges,
   navItems,
-  nextBestActions,
   children,
 }) => {
   return (
@@ -99,15 +92,8 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
           profileHeaderVisible={profileHeaderVisible}
           observatoryTierName={observatoryTierName}
           topBadges={topBadges}
-          nextBestActions={nextBestActions}
         />
       </ObservatoryGrid>
-
-      <ObservatoryMobileNav
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        onNavigate={onNavigate}
-      />
     </>
   );
 };

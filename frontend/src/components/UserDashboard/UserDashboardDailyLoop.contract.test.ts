@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -134,6 +134,33 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(observatoryDataSource).toContain("{ id: 'challenges', label: 'Challenges'");
   });
 
+  it('keeps client observatory lenses inside the client dashboard instead of reopening Social Hub', () => {
+    const universalLayoutSource = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
+    const observatoryHomeSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryHome.tsx');
+
+    expect(universalLayoutSource).toContain("path: '/overview/:tab'");
+    expect(observatoryHomeSource).toContain("const lensFromRoute = (tab?: string): LensId =>");
+
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/overview'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/overview/reels'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/overview/friends'");
+    expect(observatoryDataSource).toContain("path: '/dashboard/client/overview/challenges'");
+    expect(observatoryDataSource).not.toContain("path: '/social'");
+    expect(observatoryDataSource).not.toContain("path: '/social/");
+  });
+
+  it('keeps client observatory feed controls from duplicating the same community destination', () => {
+    const observatoryDataSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryData.ts');
+    const observatoryFeedSource = readSource('src/components/DashBoard/Pages/client-dashboard/observatory/ClientObservatoryFeed.tsx');
+
+    expect(observatoryDataSource).not.toContain("{ label: 'Community'");
+    expect(observatoryFeedSource).not.toContain("Open Feed");
+    expect(observatoryFeedSource).not.toContain("View All");
+    expect(observatoryFeedSource).not.toContain("Create More");
+    expect(observatoryFeedSource).not.toContain("onNavigate('/dashboard/client/community')");
+  });
+
   it('uses a wrapped phone tab layout so Community and Profile are not clipped', () => {
     const stylesSource = readSource('src/components/UserDashboard/styles/DashboardV3NavigationStatusStyles.ts');
 
@@ -170,6 +197,63 @@ describe('UserDashboard V3 daily loop contract', () => {
     expectStyleBlockContains(bannerActionSource, 'BannerUploadButton', 'pointer-events: auto;');
     expectStyleBlockContains(profilePhotoSource, 'ProfileImageSection', 'pointer-events: none;');
     expectStyleBlockContains(uploadSource, 'ImageUploadButton', 'pointer-events: auto;');
+  });
+
+  it('keeps every mounted UserDashboard V3 tab reachable from primary navigation', () => {
+    const tabBarSource = readSource('src/components/UserDashboard/components/UserDashboardTabBarV3.tsx');
+    const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
+    const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
+    const expectedTabs = [
+      'home',
+      'feed',
+      'reels',
+      'creative',
+      'photos',
+      'about',
+      'activity',
+      'nutrition',
+      'progress',
+      'community',
+      'profile',
+    ];
+
+    expectedTabs.forEach((tabId) => {
+      expect(tabsSource, `${tabId} panel must exist before navigation can expose it`)
+        .toContain(`<TabPanel id="${tabId}"`);
+      expect(tabBarSource, `${tabId} must be reachable from sticky tab navigation`)
+        .toContain(`id: '${tabId}'`);
+      expect(adapterSource, `${tabId} must be reachable from desktop observatory rail`)
+        .toContain(`id: '${tabId}'`);
+    });
+  });
+
+  it('keeps shared role-dashboard workspaces independent from UserDashboard-only chrome', () => {
+    const nutritionWorkspaceSource = readSource('src/components/DashBoard/workspaces/NutritionWorkspace.tsx');
+    const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
+
+    expect(nutritionWorkspaceSource).not.toContain('UserDashboardSectionChrome.styles');
+    expect(nutritionWorkspaceSource).not.toContain('visionPanelCss');
+    expect(nutritionWorkspaceSource).not.toContain('visionCardCss');
+    expect(tabsSource).toContain('<SectionChrome id="nutrition">');
+    expect(tabsSource).toContain('<NutritionWorkspace />');
+  });
+
+  it('keeps local Vite dev reachable from loopback and phone/LAN QA devices', () => {
+    const viteConfigSource = readSource('vite.config.ts');
+
+    expect(viteConfigSource).toContain("host: '0.0.0.0'");
+    expect(viteConfigSource).not.toContain("host: '127.0.0.1'");
+  });
+
+  it('uses a dashboard-framed Reels viewer inside UserDashboard instead of standalone full-screen assumptions', () => {
+    const tabsSource = readSource('src/components/UserDashboard/components/UserDashboardTabsV3.tsx');
+    const reelsSource = readSource('src/components/Social/Reels/VerticalReels.tsx');
+    const reelsStylesSource = readSource('src/components/Social/Reels/VerticalReels.styles.ts');
+
+    expect(tabsSource).toContain('<VerticalReels frame="dashboard" />');
+    expect(reelsSource).toContain("frame?: 'standalone' | 'dashboard'");
+    expect(reelsStylesSource).toContain('$frame: ReelsFrame');
+    expect(reelsStylesSource).toContain("$frame === 'dashboard'");
   });
 
   it('keeps desktop observatory rails below the profile banner on non-home tabs', () => {
@@ -244,17 +328,33 @@ describe('UserDashboard V3 daily loop contract', () => {
 
   it('locks the accepted Open Design Home shell responsive and mobile nav rules', () => {
     const homeDataSource = readSource('src/components/UserDashboard/components/HomeTabVision.data.ts');
+    const homeSource = readSource('src/components/UserDashboard/components/HomeTab.tsx');
     const homeLayoutSource = readSource('src/components/UserDashboard/components/HomeTabVision.styles.ts');
+    const homeHeroSource = readSource('src/components/UserDashboard/components/HomeTabVisionHero.styles.ts');
     const cardStylesSource = readSource('src/components/UserDashboard/components/HomeTabVisionCards.styles.ts');
+    const leftRailSource = readSource('src/components/UserDashboard/components/HomeTabVisionLeftRail.tsx');
+    const shellSource = readSource('src/components/UserDashboard/components/ObservatoryShell.tsx');
+    const observatoryRightRailSource = readSource('src/components/UserDashboard/components/ObservatoryRightRail.tsx');
+    const swanCoachDockSource = readSource('src/components/UserDashboard/components/SwanCoachDock.tsx');
+    const swanCoachLauncherSource = readSource('src/components/UserDashboard/components/SwanCoachActionLauncher.tsx');
     const rightRailSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.tsx');
     const rightRailStylesSource = readSource('src/components/UserDashboard/components/HomeTabVisionRightRail.styles.ts');
-    const sharedMobileNavSource = readSource('src/components/UserDashboard/components/ObservatoryMobileNav.tsx');
+    const retiredMobileNavPath = resolve(process.cwd(), 'src/components/UserDashboard/components/ObservatoryMobileNav.tsx');
 
-    expect(homeDataSource).toContain("{ id: 'progress', label: 'Progress'");
+    expect(homeDataSource).not.toContain('QUICK_ACTIONS');
+    expect(homeDataSource).not.toContain('MOBILE_NAV_ITEMS');
     expect(homeDataSource).not.toContain("{ id: 'inbox'");
     expect(homeDataSource).not.toContain('Mail,');
-    expect(sharedMobileNavSource).toContain("onClick={() => onTabChange('progress')}");
-    expect(sharedMobileNavSource).not.toContain('Four items');
+    expect(homeSource).not.toContain('Use the desktop rail');
+    expect(leftRailSource).not.toContain('Create Post');
+    expect(shellSource).not.toContain('ObservatoryMobileNav');
+    expect(observatoryRightRailSource).not.toContain('Next Best Action');
+    expect(swanCoachDockSource).not.toContain("label: 'Log Workout'");
+    expect(swanCoachDockSource).not.toContain("label: 'View Progress'");
+    expect(swanCoachLauncherSource).not.toContain('Progress</SecondaryButton>');
+    expect(existsSync(retiredMobileNavPath)).toBe(false);
+    expect(homeHeroSource).toContain('display: none;');
+    expect(homeHeroSource).toContain('@media (max-width: 1023px)');
 
     expect(homeLayoutSource).toContain('grid-template-columns: minmax(216px, 260px) minmax(0, 1fr) minmax(300px, 380px);');
     expect(homeLayoutSource).toContain('@media (max-width: 1500px) and (min-width: 1321px)');
