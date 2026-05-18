@@ -26,11 +26,9 @@ import {
   Dumbbell,
   ExternalLink,
   Phone,
-  DollarSign,
   AlertTriangle,
   CheckCircle,
   Star,
-  Users,
   FileText,
   Info,
 } from 'lucide-react';
@@ -418,6 +416,11 @@ const StepDetail = styled.div`
   margin-top: 4px;
 `;
 
+const InlinePhone = styled(Phone)`
+  display: inline;
+  vertical-align: middle;
+`;
+
 /* ── Tables ── */
 
 const TableWrapper = styled.div`
@@ -457,6 +460,10 @@ const Td = styled.td`
   vertical-align: top;
 `;
 
+const TdBright = styled(Td)`
+  color: #E0ECF4;
+`;
+
 const TdHighlight = styled(Td)`
   color: #E0ECF4;
   font-weight: 500;
@@ -480,7 +487,7 @@ const TdBadge = styled(Td)<{ $level: 'elite' | 'excellent' | 'verygood' }>`
 
 /* ── Callout Boxes ── */
 
-const CalloutBox = styled.div<{ $variant?: 'info' | 'warning' | 'success' | 'gold' }>`
+const CalloutBox = styled.div<{ $variant?: 'info' | 'warning' | 'success' | 'gold' | 'critical' }>`
   padding: 16px 20px;
   border-radius: 12px;
   margin: 12px 0;
@@ -556,6 +563,21 @@ const CostValue = styled.span<{ $total?: boolean }>`
   font-weight: 500;
   font-size: ${(p) => (p.$total ? '16px' : '14px')};
   color: ${(p) => (p.$total ? '#C6A84B' : '#E0ECF4')};
+`;
+
+const CostRowsGroup = styled.div`
+  margin-top: 8px;
+`;
+
+const SelfEmployedStatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+`;
+
+const StrongBright = styled.strong`
+  color: #E0ECF4;
 `;
 
 /* ── Inline Badges / Labels ── */
@@ -754,6 +776,10 @@ const BodyText = styled.p`
   margin: 4px 0;
 `;
 
+const BodyTextTight = styled(BodyText)`
+  margin: 0;
+`;
+
 const ExternalAnchor = styled.a`
   color: #60C0F0;
   text-decoration: none;
@@ -791,12 +817,6 @@ const ScoreValue = styled.span<{ $highlight?: boolean }>`
 `;
 
 /* ── Divider ── */
-
-const Divider = styled.hr`
-  border: none;
-  border-top: 1px solid rgba(96, 192, 240, 0.1);
-  margin: 16px 0;
-`;
 
 /* ═══════════════════════════════════════════════════════════════════
    COLLAPSIBLE SECTION WRAPPER
@@ -856,7 +876,7 @@ const MarriageSection: React.FC = () => (
         <StepNumber $color="rgba(239, 68, 68, 0.25)">2</StepNumber>
         <StepContent>
           <StepTitle>Show Up Together</StepTitle>
-          <StepDesc>Both parties must appear in person with valid photo IDs (driver's license, passport, or state ID).</StepDesc>
+          <StepDesc>Both parties must appear in person with valid photo IDs (driver&apos;s license, passport, or state ID).</StepDesc>
         </StepContent>
       </StepItem>
 
@@ -865,7 +885,7 @@ const MarriageSection: React.FC = () => (
         <StepContent>
           <StepTitle>Pay Fees</StepTitle>
           <StepDesc>License + ceremony fees vary by type.</StepDesc>
-          <div style={{ marginTop: 8 }}>
+          <CostRowsGroup>
             <CostRow><CostLabel>Public License</CostLabel><CostValue>$61</CostValue></CostRow>
             <CostRow><CostLabel>Confidential License</CostLabel><CostValue>$66</CostValue></CostRow>
             <CostRow><CostLabel>Ceremony</CostLabel><CostValue>$28</CostValue></CostRow>
@@ -874,7 +894,7 @@ const MarriageSection: React.FC = () => (
               <CostLabel><strong>Total Estimate (3 copies)</strong></CostLabel>
               <CostValue $total>~$140</CostValue>
             </CostRow>
-          </div>
+          </CostRowsGroup>
         </StepContent>
       </StepItem>
 
@@ -944,7 +964,7 @@ const ChickasawSection: React.FC = () => (
           Call Chickasaw Nation Tribal Government Services and submit your family tree chart with supporting documents.
         </StepDesc>
         <StepDetail>
-          <Phone size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> TGS: (580) 436-7250
+          <InlinePhone size={12} /> TGS: (580) 436-7250
         </StepDetail>
       </StepContent>
     </StepItem>
@@ -967,7 +987,7 @@ const ChickasawSection: React.FC = () => (
           WHTI-compliant border crossing document. Requires an in-person interview in Ada, Oklahoma.
         </StepDesc>
         <StepDetail>
-          <Phone size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> ETC Office: (580) 436-7259
+          <InlinePhone size={12} /> ETC Office: (580) 436-7259
         </StepDetail>
       </StepContent>
     </StepItem>
@@ -993,17 +1013,17 @@ const JayTreatySection: React.FC = () => (
         </thead>
         <tbody>
           <tr>
-            <Td style={{ color: '#E0ECF4' }}>
+            <TdBright>
               Canadian-born Indigenous with 50%+ blood quantum can enter, live, and work in the US freely.
               No visa needed. Codified in <strong>INA Section 289</strong>.
-            </Td>
-            <Td style={{ color: '#E0ECF4' }}>
+            </TdBright>
+            <TdBright>
               Does <strong>NOT</strong> currently recognize Jay Treaty rights. However:
               <br /><br />
               <strong>Oct 2024:</strong> IRCC issued Temporary Public Policy for Indigenous work/study permits.
               <br />
               <strong>APM SP52:</strong> Commits to legislative amendments to IRPA.
-            </Td>
+            </TdBright>
           </tr>
         </tbody>
       </StyledTable>
@@ -1012,7 +1032,7 @@ const JayTreatySection: React.FC = () => (
     <CalloutBox $variant="warning">
       <CalloutIcon $color="#f97316"><AlertTriangle size={18} /></CalloutIcon>
       <CalloutText>
-        Canada's position is evolving. The Oct 2024 Temporary Public Policy and APM SP52 amendments signal progress,
+        Canada&apos;s position is evolving. The Oct 2024 Temporary Public Policy and APM SP52 amendments signal progress,
         but legislative change has not yet been enacted. Monitor IRCC updates closely.
       </CalloutText>
     </CalloutBox>
@@ -1025,7 +1045,7 @@ const FamilyPathwaySection: React.FC = () => (
   <>
     <SubHeader>The Strategy</SubHeader>
     <BodyText>
-      Spouse B enrolls in a Canadian Master's program (MEd). Spouse A gets a spousal Open Work Permit (OWP).
+      Spouse B enrolls in a Canadian Master&apos;s program (MEd). Spouse A gets a spousal Open Work Permit (OWP).
       4 kids attend free public school. Grandma joins on a Super Visa.
     </BodyText>
 
@@ -1033,13 +1053,13 @@ const FamilyPathwaySection: React.FC = () => (
       <CalloutIcon $color="#ef4444"><AlertTriangle size={18} /></CalloutIcon>
       <CalloutText>
         <strong>Critical Rule Change (January 2025):</strong> Spousal OWP is now LIMITED to spouses of
-        Master's (16+ months) or PhD students only. Diploma and bachelor's students no longer qualify.
+        Master&apos;s (16+ months) or PhD students only. Diploma and bachelor&apos;s students no longer qualify.
       </CalloutText>
     </CalloutBox>
 
     <SubHeader>Why Spouse B Leads</SubHeader>
     <BodyText>
-      The principal applicant has a college degree and can pursue a Master's. The spouse has a GED and cannot directly enter a Master's program.
+      The principal applicant has a college degree and can pursue a Master&apos;s. The spouse has a GED and cannot directly enter a Master&apos;s program.
       This makes them the study permit holder and the spouse the OWP recipient.
     </BodyText>
 
@@ -1089,10 +1109,10 @@ const FamilyPathwaySection: React.FC = () => (
 
 const SelfEmployedSection: React.FC = () => (
   <>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+    <SelfEmployedStatusRow>
       <StatusBadge $status="paused">PAUSED since April 2024</StatusBadge>
-      <BodyText style={{ margin: 0 }}>Expected reopen: <strong style={{ color: '#E0ECF4' }}>2027</strong></BodyText>
-    </div>
+      <BodyTextTight>Expected reopen: <StrongBright>2027</StrongBright></BodyTextTight>
+    </SelfEmployedStatusRow>
 
     <BodyText>
       Why it fits: 26 years NASM-certified Personal Trainer. The program specifically includes
@@ -1249,7 +1269,7 @@ const PTMarketSection: React.FC = () => (
       <CalloutIcon $color="#C6A84B"><Star size={18} /></CalloutIcon>
       <CalloutText>
         <strong>WHY MONTREAL:</strong> Cost of living 30-40% lower than Toronto/Vancouver. Westmount is
-        English-speaking (easy transition). French immersion earns bonus immigration points. Canada's #2 AI hub.
+        English-speaking (easy transition). French immersion earns bonus immigration points. Canada&apos;s #2 AI hub.
         Cheapest international tuition. Lowest CRS cutoffs in recent draws.
       </CalloutText>
     </CalloutBox>

@@ -261,10 +261,6 @@ const Card = styled.div`
   }
 `;
 
-const FullCard = styled(Card)`
-  grid-column: 1 / -1;
-`;
-
 const CardTitle = styled.h3`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 16px;
@@ -290,7 +286,7 @@ const FieldGroup = styled.div<{ $full?: boolean }>`
   ${(p) => p.$full && 'grid-column: 1 / -1;'}
 `;
 
-const Label = styled.label`
+const Label = styled.span`
   font-size: 12px;
   font-weight: 600;
   color: rgba(224, 236, 244, 0.6);
@@ -319,23 +315,6 @@ const Select = styled.select`
   option {
     background: #001040;
     color: #E0ECF4;
-  }
-`;
-
-const NumberInput = styled.input`
-  min-height: 44px;
-  padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.6);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 8px;
-  color: #E0ECF4;
-  font-family: 'Fira Code', monospace;
-  font-size: 13px;
-  width: 100%;
-
-  &:focus {
-    outline: none;
-    border-color: #8B5CF6;
   }
 `;
 
@@ -467,12 +446,12 @@ const PrincipalNote = styled.div`
 
 /* ── Strategy Tip ── */
 
-const StrategyTip = styled.div`
+const StrategyTip = styled.div<{ $relaxed?: boolean }>`
   display: flex;
   align-items: flex-start;
   gap: 8px;
   padding: 8px 12px;
-  margin-top: 4px;
+  margin-top: ${(p) => (p.$relaxed ? '12px' : '4px')};
   background: rgba(96, 192, 240, 0.05);
   border: 1px solid rgba(96, 192, 240, 0.1);
   border-radius: 8px;
@@ -653,6 +632,29 @@ const DrawStatus = styled.div<{ $status: 'green' | 'yellow' | 'red' }>`
     '#ef4444'};
 `;
 
+const DrawDelta = styled.div`
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  color: rgba(224, 236, 244, 0.4);
+  margin-top: 4px;
+`;
+
+const DrawNote = styled.div`
+  font-size: 10px;
+  color: rgba(224, 236, 244, 0.35);
+  margin-top: 2px;
+`;
+
+const FrenchBonusBanner = styled.div`
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: rgba(198, 168, 75, 0.1);
+  border: 1px solid rgba(198, 168, 75, 0.25);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #C6A84B;
+`;
+
 /* ── Self-Employed Score Section ── */
 
 const CollapsibleHeader = styled.button`
@@ -731,11 +733,19 @@ const SERow = styled.tr<{ $highlight?: boolean }>`
   background: ${(p) => (p.$highlight ? 'rgba(198, 168, 75, 0.08)' : 'transparent')};
 `;
 
-const SECell = styled.td<{ $gold?: boolean }>`
+const SECell = styled.td<{ $gold?: boolean; $strong?: boolean; $large?: boolean }>`
   padding: 10px;
   color: ${(p) => (p.$gold ? '#C6A84B' : 'rgba(224, 236, 244, 0.7)')};
   font-family: ${(p) => (p.$gold ? "'Fira Code', monospace" : 'inherit')};
-  font-weight: ${(p) => (p.$gold ? 700 : 400)};
+  font-size: ${(p) => (p.$large ? '16px' : 'inherit')};
+  font-weight: ${(p) => (p.$gold || p.$strong ? 700 : 400)};
+
+  ${(p) =>
+    p.$strong &&
+    !p.$gold &&
+    styledCss`
+      color: #E0ECF4;
+    `}
 
   &:last-child, &:nth-child(2) {
     text-align: right;
@@ -1076,7 +1086,7 @@ const CRSCalculator: React.FC = () => {
             </ToggleButton>
           </ToggleRow>
 
-          <StrategyTip style={{ marginTop: 12 }}>
+          <StrategyTip $relaxed>
             <Info size={14} />
             Ontario HCP and BC Tech PNP are the strongest provincial programs.
           </StrategyTip>
@@ -1102,13 +1112,13 @@ const CRSCalculator: React.FC = () => {
                     {status === 'yellow' && 'Within 50 pts'}
                     {status === 'red' && 'Below cutoff'}
                   </DrawStatus>
-                  <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: 'rgba(224,236,244,0.4)', marginTop: 4 }}>
+                  <DrawDelta>
                     {breakdown.total >= d.cutoff ? `+${breakdown.total - d.cutoff}` : `${breakdown.total - d.cutoff}`}
-                  </div>
+                  </DrawDelta>
                   {d.note && (
-                    <div style={{ fontSize: 10, color: 'rgba(224,236,244,0.35)', marginTop: 2 }}>
+                    <DrawNote>
                       {d.note}
-                    </div>
+                    </DrawNote>
                   )}
                 </DrawCard>
               );
@@ -1116,17 +1126,9 @@ const CRSCalculator: React.FC = () => {
           </DrawGrid>
 
           {frenchBonus(effectivePrimary) > 0 && (
-            <div style={{
-              marginTop: 16,
-              padding: '12px 16px',
-              background: 'rgba(198, 168, 75, 0.1)',
-              border: '1px solid rgba(198, 168, 75, 0.25)',
-              borderRadius: 10,
-              fontSize: 13,
-              color: '#C6A84B',
-            }}>
+            <FrenchBonusBanner>
               French Bonus Active: +{frenchBonus(effectivePrimary)} points (NCLC 7+ achieved)
-            </div>
+            </FrenchBonusBanner>
           )}
         </Card>
       </Container>
@@ -1178,9 +1180,9 @@ const CRSCalculator: React.FC = () => {
                 <SECell>6</SECell>
               </SERow>
               <SERow $highlight>
-                <SECell style={{ fontWeight: 700, color: '#E0ECF4' }}>ESTIMATED TOTAL</SECell>
-                <SECell $gold style={{ fontSize: 16 }}>68-80</SECell>
-                <SECell style={{ fontWeight: 700, color: '#E0ECF4' }}>Pass: 35</SECell>
+                <SECell $strong>ESTIMATED TOTAL</SECell>
+                <SECell $gold $large>68-80</SECell>
+                <SECell $strong>Pass: 35</SECell>
               </SERow>
             </tbody>
           </SETable>

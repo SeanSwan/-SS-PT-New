@@ -225,12 +225,12 @@ const FullWidthCard = styled.div`
   }
 `;
 
-const Card = styled.div`
+const Card = styled.div<{ $index?: number }>`
   ${glassSurface}
   padding: 24px;
   box-shadow: 0 0 24px rgba(139, 92, 246, 0.15);
   animation: ${fadeInUp} 0.4s ease-out both;
-  animation-delay: calc(var(--index, 0) * 0.05s);
+  animation-delay: ${(p) => (p.$index ?? 0) * 0.05}s;
 
   @media (max-width: 768px) {
     padding: 16px;
@@ -243,6 +243,9 @@ const CardTitle = styled.h3`
   font-weight: 700;
   color: #E0ECF4;
   margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 /* ══════════════════════════════════════════════════════════════════
@@ -259,13 +262,13 @@ const PathwayGrid = styled.div`
   @media (min-width: 1920px) { grid-template-columns: repeat(6, 1fr); }
 `;
 
-const PathwayCard = styled.div<{ $color: string; $primary: boolean }>`
+const PathwayCard = styled.div<{ $color: string; $primary: boolean; $index?: number }>`
   ${glassSurface}
   padding: 20px;
   transition: all 0.25s ease;
   cursor: default;
   animation: ${fadeInUp} 0.4s ease-out both;
-  animation-delay: calc(var(--index, 0) * 0.05s);
+  animation-delay: ${(p) => (p.$index ?? 0) * 0.05}s;
 
   ${(p) =>
     p.$primary &&
@@ -344,13 +347,13 @@ const FamilyGrid = styled.div`
   @media (max-width: 480px)  { grid-template-columns: 1fr; }
 `;
 
-const FamilyCard = styled.div<{ $color: string }>`
+const FamilyCard = styled.div<{ $color: string; $index?: number }>`
   ${glassSurface}
   padding: 20px;
   text-align: center;
   transition: all 0.25s ease;
   animation: ${fadeInUp} 0.4s ease-out both;
-  animation-delay: calc(var(--index, 0) * 0.05s);
+  animation-delay: ${(p) => (p.$index ?? 0) * 0.05}s;
 
   ${glassSurfaceHover}
 `;
@@ -466,6 +469,12 @@ const StatLabel = styled.span`
   color: rgba(224, 236, 244, 0.6);
 `;
 
+const EmptyStatLabel = styled(StatLabel)`
+  display: block;
+  text-align: center;
+  padding: 20px 0;
+`;
+
 /* ── Phase Cards ── */
 
 const PhaseRow = styled.div`
@@ -532,13 +541,13 @@ const MonthGrid = styled.div`
   @media (max-width: 480px)  { grid-template-columns: 1fr; }
 `;
 
-const MonthCell = styled.div<{ $status: 'complete' | 'active' | 'pending' }>`
+const MonthCell = styled.div<{ $status: 'complete' | 'active' | 'pending'; $index?: number }>`
   ${glassSurface}
   padding: 16px;
   min-height: 44px;
   transition: all 0.25s ease;
   animation: ${fadeInUp} 0.4s ease-out both;
-  animation-delay: calc(var(--index, 0) * 0.05s);
+  animation-delay: ${(p) => (p.$index ?? 0) * 0.05}s;
 
   ${(p) =>
     p.$status === 'complete' &&
@@ -1017,7 +1026,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
                 key={pw.title}
                 $color={pw.color}
                 $primary={pw.primary}
-                style={{ '--index': i } as React.CSSProperties}
+                $index={i}
               >
                 <PathwayIconWrap $color={pw.color}>
                   <Icon size={22} />
@@ -1047,7 +1056,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
               <FamilyCard
                 key={fm.name}
                 $color={fm.color}
-                style={{ '--index': i } as React.CSSProperties}
+                $index={i}
               >
                 <FamilyIconWrap $color={fm.color}>
                   <Icon size={22} />
@@ -1063,7 +1072,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
 
       {/* ═══ 3. PROGRESS RING + PHASE CARDS ═══ */}
       <TwoColGrid>
-        <Card style={{ '--index': 0 } as React.CSSProperties}>
+        <Card $index={0}>
           <CardTitle>Overall Progress</CardTitle>
           <RingContainer>
             <RingSVG viewBox="0 0 160 160">
@@ -1097,7 +1106,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
           </RingContainer>
         </Card>
 
-        <Card style={{ '--index': 1 } as React.CSSProperties}>
+        <Card $index={1}>
           <CardTitle>Immigration Phases</CardTitle>
           <PhaseRow>
             {PHASES.map((ph, i) => (
@@ -1124,10 +1133,10 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
             <MonthCell
               key={m.month}
               $status={m.status}
-              style={{ '--index': i } as React.CSSProperties}
+              $index={i}
             >
               <MonthNumber $status={m.status}>
-                {m.status === 'complete' && <Check size={12} />}
+                {(m.status as string) === 'complete' && <Check size={12} />}
                 {m.status === 'active' && <AlertCircle size={12} />}
                 Month {m.month}
               </MonthNumber>
@@ -1176,7 +1185,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
       {/* ═══ 6. CRS QUICK VIEW ═══ */}
       <FullWidthCard>
         <CardTitle>
-          <TrendingUp size={18} color="#C6A84B" style={{ marginRight: 8, verticalAlign: 'middle' }} />
+          <TrendingUp size={18} color="#C6A84B" />
           CRS Quick View
         </CardTitle>
         <CRSRow>
@@ -1217,13 +1226,13 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
 
       {/* ═══ 7. PRIORITY ACTIONS + MILESTONES + CATEGORIES ═══ */}
       <TwoColGrid>
-        <Card style={{ '--index': 0 } as React.CSSProperties}>
+        <Card $index={0}>
           <CardTitle>Next Priority Actions</CardTitle>
           <ActionList>
             {priorityActions.length === 0 && (
-              <StatLabel style={{ textAlign: 'center', padding: '20px 0' }}>
+              <EmptyStatLabel>
                 All tasks completed!
-              </StatLabel>
+              </EmptyStatLabel>
             )}
             {priorityActions.map((task) => (
               <ActionItem key={task.id} $priority={task.priority} onClick={() => handleToggle(task)}>
@@ -1235,7 +1244,7 @@ const ImmigrationDashboard: React.FC<Props> = ({ tasks, documents, studySessions
           </ActionList>
         </Card>
 
-        <Card style={{ '--index': 1 } as React.CSSProperties}>
+        <Card $index={1}>
           <CardTitle>Days Until Milestones</CardTitle>
           <MilestoneGrid>
             {milestones.map((m) => (
