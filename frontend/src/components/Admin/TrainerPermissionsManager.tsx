@@ -18,19 +18,19 @@
  * Designed for SwanStudios Platform - Production Ready
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled, { ThemeProvider, keyframes } from 'styled-components';
-import { 
-  Shield, ShieldCheck, ShieldAlert, ShieldOff, User, Users, 
-  Settings, Eye, EyeOff, Calendar, Clock, AlertTriangle, 
-  CheckCircle, XCircle, Plus, Minus, Edit, Trash2, Info,
-  BarChart3, Activity, Target, Award, Zap, Lock, Unlock,
-  Search, Filter, RefreshCw, Download, Save, X, ChevronDown,
-  ChevronUp, HelpCircle, Star, Crown, Key, MessageSquare
+import styled, { keyframes } from 'styled-components';
+import {
+  Shield, ShieldCheck, User, Users,
+  Calendar, Clock, AlertTriangle,
+  CheckCircle, XCircle,
+  BarChart3, Activity, Target, Award,
+  Filter, RefreshCw, Download, X,
+  Crown, Key, MessageSquare
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
 import { 
   trainerPermissionService, 
   TrainerPermission 
@@ -48,7 +48,7 @@ interface PermissionType {
   label: string;
   description: string;
   critical: boolean;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: LucideIcon;
 }
 
 interface PermissionRequest {
@@ -73,13 +73,16 @@ interface TrainerWithPermissions {
   lastName: string;
   email: string;
   permissions: TrainerPermission[];
-  permissionsByType: Record<string, {
-    hasPermission: boolean;
-    permission: TrainerPermission | null;
-    isExpiringSoon: boolean;
-    daysUntilExpiration: number | null;
-  }>;
+  permissionsByType: Record<string, PermissionData>;
   totalActivePermissions: number;
+}
+
+interface PermissionData {
+  hasPermission: boolean;
+  permission: TrainerPermission | null;
+  isExpiringSoon: boolean;
+  daysUntilExpiration: number | null;
+  isExpired?: boolean;
 }
 
 interface PermissionStats {
@@ -175,7 +178,7 @@ const Header = styled.div`
 
 const HeaderTop = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: flex-start;
   gap: ${permissionTheme.spacing.lg};
   margin-bottom: ${permissionTheme.spacing.lg};
@@ -409,7 +412,7 @@ const PermissionCard = styled(motion.div)<{ critical?: boolean; hasPermission?: 
 
 const PermissionHeader = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: flex-start;
   margin-bottom: ${permissionTheme.spacing.sm};
 `;
@@ -508,7 +511,7 @@ const PermissionsSummary = styled.div`
   background: ${permissionTheme.colors.background};
   border-top: 1px solid ${permissionTheme.colors.border};
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
 `;
 
@@ -530,6 +533,13 @@ const LoadingSpinner = styled.div`
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+`;
+
+const LoadingCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
 `;
 
 const SearchBar = styled.div`
@@ -605,6 +615,11 @@ const BulkActionText = styled.div`
   margin-right: ${permissionTheme.spacing.md};
 `;
 
+const BulkButtons = styled.div`
+  display: flex;
+  gap: ${permissionTheme.spacing.sm};
+`;
+
 const TrainerCheckbox = styled.input`
   position: absolute;
   top: ${permissionTheme.spacing.md};
@@ -632,12 +647,34 @@ const RequestsBadge = styled.div`
   animation: ${warningPulse} 2s ease-in-out infinite;
 `;
 
+const RequestsButtonWrap = styled.div`
+  position: relative;
+`;
+
 const RequestsPanel = styled(motion.div)`
   background: ${permissionTheme.colors.surface};
   border-radius: ${permissionTheme.borderRadius.lg};
   border: 1px solid ${permissionTheme.colors.border};
   margin-bottom: ${permissionTheme.spacing.xl};
   overflow: hidden;
+`;
+
+const RequestsPanelHeader = styled.div`
+  padding: ${permissionTheme.spacing.lg};
+  border-bottom: 1px solid ${permissionTheme.colors.border};
+  background: ${permissionTheme.colors.background};
+`;
+
+const RequestsPanelTitle = styled.h3`
+  margin: 0;
+  color: ${permissionTheme.colors.text};
+  display: flex;
+  align-items: center;
+  gap: ${permissionTheme.spacing.sm};
+`;
+
+const WarningTitleIcon = styled(AlertTriangle)`
+  color: ${permissionTheme.colors.warning};
 `;
 
 const RequestItem = styled(motion.div)`
@@ -671,6 +708,52 @@ const RequestInfo = styled.div`
 const RequestActions = styled.div`
   display: flex;
   gap: ${permissionTheme.spacing.sm};
+`;
+
+const RequestDate = styled.p`
+  margin-top: ${permissionTheme.spacing.xs};
+  display: flex;
+  align-items: center;
+`;
+
+const RequestClock = styled(Clock)`
+  margin-right: 4px;
+`;
+
+const SearchActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const ToggleLoadingSpinner = styled(LoadingSpinner)`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+`;
+
+const SummaryIconRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const WarningCrown = styled(Crown)`
+  color: ${permissionTheme.colors.warning};
+`;
+
+const MutedKey = styled(Key)`
+  color: ${permissionTheme.colors.textSecondary};
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  color: ${permissionTheme.colors.textSecondary};
+  padding: ${permissionTheme.spacing.xxl};
+  font-size: 1.1rem;
 `;
 
 // ==================== PERMISSION TEMPLATES ====================
@@ -755,13 +838,16 @@ const PERMISSION_TYPES: PermissionType[] = [
   }
 ];
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({ 
   trainerId, 
   onPermissionChange 
 }) => {
-  const { user } = useAuth();
   const [trainers, setTrainers] = useState<TrainerWithPermissions[]>([]);
   const [stats, setStats] = useState<PermissionStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -775,37 +861,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   const [showRequests, setShowRequests] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
-  // Load data on mount
-  useEffect(() => {
-    loadData();
-  }, [trainerId]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      
-      // If specific trainerId provided, load only that trainer
-      if (trainerId) {
-        await loadSingleTrainer(trainerId);
-      } else {
-        await loadAllTrainers();
-      }
-
-      // Load statistics
-      const statsResponse = await trainerPermissionService.getPermissionStats();
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
-      }
-
-    } catch (error) {
-      console.error('Failed to load permission data:', error);
-      toast.error('Failed to load permission data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSingleTrainer = async (id: number) => {
+  const loadSingleTrainer = useCallback(async (id: number) => {
     try {
       const response = await trainerPermissionService.getTrainerPermissions(id);
       if (response.success && response.data) {
@@ -824,9 +880,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
     } catch (error) {
       console.error('Failed to load trainer permissions:', error);
     }
-  };
+  }, []);
 
-  const loadAllTrainers = async () => {
+  const loadAllTrainers = useCallback(async () => {
     try {
       // Mock trainers data - in production, this would come from user service
       const mockTrainers = [
@@ -860,7 +916,37 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
     } catch (error) {
       console.error('Failed to load trainers:', error);
     }
-  };
+  }, []);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // If specific trainerId provided, load only that trainer
+      if (trainerId) {
+        await loadSingleTrainer(trainerId);
+      } else {
+        await loadAllTrainers();
+      }
+
+      // Load statistics
+      const statsResponse = await trainerPermissionService.getPermissionStats();
+      if (statsResponse.success && statsResponse.data) {
+        setStats(statsResponse.data);
+      }
+
+    } catch (error) {
+      console.error('Failed to load permission data:', error);
+      toast.error('Failed to load permission data');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAllTrainers, loadSingleTrainer, trainerId]);
+
+  // Load data on mount
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const togglePermission = async (trainerId: number, permissionType: string, currentlyHas: boolean) => {
     const permissionKey = `${trainerId}-${permissionType}`;
@@ -899,9 +985,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
       await loadData();
       onPermissionChange?.();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to toggle permission:', error);
-      toast.error(error.message || 'Failed to update permission');
+      toast.error(getErrorMessage(error, 'Failed to update permission'));
     } finally {
       setProcessingPermissions(prev => {
         const newSet = new Set(prev);
@@ -922,7 +1008,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
 
     setBulkProcessing(true);
     try {
-      const operations = [];
+      const operations: Array<Promise<unknown>> = [];
       
       for (const trainerId of trainerIds) {
         // First revoke all permissions for clean slate
@@ -957,7 +1043,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
       setSelectedTemplate('');
       setSelectedTrainers(new Set());
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to apply template:', error);
       toast.error('Failed to apply template');
     } finally {
@@ -971,7 +1057,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
 
     setBulkProcessing(true);
     try {
-      const operations = [];
+      const operations: Array<Promise<unknown>> = [];
       
       for (const trainerId of operation.trainerIds) {
         if (operation.action === 'grant') {
@@ -1003,7 +1089,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
       toast.success(`Bulk ${operation.action} completed for ${operation.trainerIds.length} trainer(s)`);
       setSelectedTrainers(new Set());
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to perform bulk operation:', error);
       toast.error('Failed to perform bulk operation');
     } finally {
@@ -1062,7 +1148,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
         onPermissionChange?.();
       }
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to handle request:', error);
       toast.error('Failed to process request');
     }
@@ -1105,8 +1191,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
     });
   }, [trainers, searchQuery]);
 
-  const getPermissionStatus = (permissionData: any) => {
+  const getPermissionStatus = (permissionData: PermissionData): 'active' | 'expiring' | 'expired' | 'inactive' => {
     if (!permissionData.hasPermission) return 'inactive';
+    if (permissionData.isExpired) return 'expired';
     if (permissionData.isExpiringSoon) return 'expiring';
     return 'active';
   };
@@ -1123,16 +1210,15 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   if (loading) {
     return (
       <PermissionsContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <LoadingCenter>
           <LoadingSpinner />
-        </div>
+        </LoadingCenter>
       </PermissionsContainer>
     );
   }
 
   return (
-    <ThemeProvider theme={permissionTheme}>
-      <PermissionsContainer
+    <PermissionsContainer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -1175,7 +1261,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 Apply Template
               </Button>
               
-              <div style={{ position: 'relative' }}>
+              <RequestsButtonWrap>
                 <Button 
                   variant={permissionRequests.length > 0 ? "warning" : "secondary"} 
                   onClick={() => setShowRequests(!showRequests)}
@@ -1187,7 +1273,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 {permissionRequests.length > 0 && (
                   <RequestsBadge>{permissionRequests.length}</RequestsBadge>
                 )}
-              </div>
+              </RequestsButtonWrap>
               
               <Button variant="secondary" onClick={loadData}>
                 <RefreshCw size={16} />
@@ -1244,22 +1330,12 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div style={{ 
-                padding: permissionTheme.spacing.lg,
-                borderBottom: `1px solid ${permissionTheme.colors.border}`,
-                background: permissionTheme.colors.background
-              }}>
-                <h3 style={{ 
-                  margin: 0, 
-                  color: permissionTheme.colors.text,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: permissionTheme.spacing.sm
-                }}>
-                  <AlertTriangle size={20} color={permissionTheme.colors.warning} />
+              <RequestsPanelHeader>
+                <RequestsPanelTitle>
+                  <WarningTitleIcon size={20} />
                   Pending Permission Requests ({permissionRequests.length})
-                </h3>
-              </div>
+                </RequestsPanelTitle>
+              </RequestsPanelHeader>
               
               {permissionRequests.map((request) => {
                 const permissionType = PERMISSION_TYPES.find(p => p.key === request.permissionType);
@@ -1272,15 +1348,15 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                   >
                     <RequestInfo>
                       <h4>
-                        {request.trainerName} requests "{permissionType?.label || request.permissionType}"
+                        {request.trainerName} requests <q>{permissionType?.label || request.permissionType}</q>
                       </h4>
                       <p>
                         <strong>Reason:</strong> {request.reason}
                       </p>
-                      <p style={{ marginTop: permissionTheme.spacing.xs }}>
-                        <Clock size={14} style={{ marginRight: '4px' }} />
+                      <RequestDate>
+                        <RequestClock size={14} />
                         Requested {new Date(request.requestedAt).toLocaleDateString()}
-                      </p>
+                      </RequestDate>
                     </RequestInfo>
                     
                     <RequestActions>
@@ -1315,7 +1391,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <SearchActions>
               {selectedTrainers.size > 0 && (
                 <>
                   <Button 
@@ -1351,7 +1427,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 <Filter size={16} />
                 Filter
               </Button>
-            </div>
+            </SearchActions>
           </SearchBar>
         )}
 
@@ -1362,7 +1438,6 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: trainer.id * 0.1 }}
-              style={{ position: 'relative' }}
             >
               {/* Selection Checkbox */}
               <TrainerCheckbox
@@ -1416,20 +1491,13 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                             checked={permissionData.hasPermission}
                             disabled={isProcessing}
                             onClick={() => togglePermission(
-                              trainer.id, 
-                              permType.key, 
+                              trainer.id,
+                              permType.key,
                               permissionData.hasPermission
                             )}
                           >
                             {isProcessing && (
-                              <LoadingSpinner style={{ 
-                                position: 'absolute', 
-                                top: '50%', 
-                                left: '50%', 
-                                transform: 'translate(-50%, -50%)',
-                                width: '12px',
-                                height: '12px'
-                              }} />
+                              <ToggleLoadingSpinner />
                             )}
                           </ToggleSwitch>
                           <ToggleLabel active={permissionData.hasPermission}>
@@ -1458,27 +1526,22 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 <SummaryText>
                   Active Permissions: {trainer.totalActivePermissions} / {PERMISSION_TYPES.length}
                 </SummaryText>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <SummaryIconRow>
                   {trainer.totalActivePermissions === PERMISSION_TYPES.length ? (
-                    <Crown size={16} style={{ color: permissionTheme.colors.warning }} />
+                    <WarningCrown size={16} />
                   ) : (
-                    <Key size={16} style={{ color: permissionTheme.colors.textSecondary }} />
+                    <MutedKey size={16} />
                   )}
-                </div>
+                </SummaryIconRow>
               </PermissionsSummary>
             </TrainerCard>
           ))}
         </TrainersGrid>
 
         {filteredTrainers.length === 0 && (
-          <div style={{ 
-            textAlign: 'center', 
-            color: permissionTheme.colors.textSecondary,
-            padding: permissionTheme.spacing.xxl,
-            fontSize: '1.1rem'
-          }}>
+          <EmptyState>
             {searchQuery ? 'No trainers match your search' : 'No trainers found'}
-          </div>
+          </EmptyState>
         )}
 
         {/* Bulk Action Bar */}
@@ -1494,7 +1557,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 {selectedTrainers.size} trainer{selectedTrainers.size > 1 ? 's' : ''} selected
               </BulkActionText>
               
-              <div style={{ display: 'flex', gap: permissionTheme.spacing.sm }}>
+              <BulkButtons>
                 {/* Quick Permission Actions */}
                 <Button
                   variant="success"
@@ -1546,12 +1609,11 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                   <X size={16} />
                   Cancel
                 </Button>
-              </div>
+              </BulkButtons>
             </BulkActionBar>
           )}
         </AnimatePresence>
-      </PermissionsContainer>
-    </ThemeProvider>
+    </PermissionsContainer>
   );
 };
 

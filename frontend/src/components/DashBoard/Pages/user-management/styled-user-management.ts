@@ -127,6 +127,15 @@ export const StyledTableCell = styled.td<{ $align?: string }>`
   text-align: ${props => props.$align || 'left'};
 `;
 
+export const CompactTableCell = styled(StyledTableCell)`
+  padding-left: 0.5rem;
+`;
+
+export const UserManagementTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
 export const StyledTableRow = styled.tr`
   transition: all 0.2s ease;
   background: transparent;
@@ -459,6 +468,14 @@ export const BodyText = styled.p<{ $muted?: boolean }>`
   line-height: 1.5;
 `;
 
+export const IntroBodyText = styled(BodyText)`
+  margin-bottom: 1.5rem;
+`;
+
+export const RetryActionWrap = styled.div`
+  margin-top: 1rem;
+`;
+
 export const UserName = styled.span`
   font-size: 0.95rem;
   font-weight: 500;
@@ -475,6 +492,14 @@ export const ModalSubText = styled.p`
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.5;
+`;
+
+export const PermissionsSection = styled.div`
+  margin-bottom: 2rem;
+`;
+
+export const SettingsGroup = styled.div<{ $mb?: string }>`
+  margin-bottom: ${props => props.$mb || '0'};
 `;
 
 export const LoadingContainer = styled.div`

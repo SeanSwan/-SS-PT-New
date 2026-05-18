@@ -108,6 +108,16 @@ const Label = styled.label`
   margin-bottom: 6px;
 `;
 
+const GroupLabel = styled.div`
+  display: block;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  margin-bottom: 6px;
+`;
+
 const TextArea = styled.textarea`
   width: 100%;
   min-height: 80px;
@@ -241,6 +251,46 @@ const StatusMsg = styled.div<{ $type: 'success' | 'error' }>`
   color: ${({ $type }) => $type === 'success' ? '#10B981' : '#EF4444'};
 `;
 
+const CreditZap = styled(Zap)`
+  vertical-align: middle;
+  margin-right: 4px;
+`;
+
+const SpinningRefresh = styled(RefreshCw)<{ $duration: string }>`
+  animation: spin ${({ $duration }) => $duration} linear infinite;
+`;
+
+const UploadDropZone = styled.div`
+  padding: 40px 24px;
+  border-radius: 12px;
+  border: 2px dashed rgba(96, 192, 240, 0.2);
+  text-align: center;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.85));
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  margin-bottom: 16px;
+`;
+
+const UploadDropIcon = styled(Upload)`
+  margin-bottom: 8px;
+  opacity: 0.5;
+`;
+
+const UploadHint = styled.div`
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.7;
+`;
+
+const PreviewIcon = styled(Image)`
+  margin-bottom: 8px;
+  opacity: 0.4;
+`;
+
+const ActionSpacing = styled.div`
+  margin-top: 10px;
+`;
+
 const BadgeCreatorPage: React.FC = () => {
   const [mode, setMode] = useState<'generate' | 'upload' | 'gallery' | 'batch' | 'marketplace'>('generate');
   const [styles, setStyles] = useState<ArtStyle[]>([]);
@@ -336,26 +386,26 @@ const BadgeCreatorPage: React.FC = () => {
         <Title><Sparkles size={22} /> Badge Creator</Title>
         {credits && (
           <CreditBadge>
-            <Zap size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+            <CreditZap size={12} />
             {credits.remaining}/{credits.max} generations left
           </CreditBadge>
         )}
       </Header>
 
       <ModeTabs>
-        <ModeTab $active={mode === 'generate'} onClick={() => setMode('generate')}>
+        <ModeTab type="button" $active={mode === 'generate'} onClick={() => setMode('generate')}>
           <Sparkles size={16} /> AI Generate
         </ModeTab>
-        <ModeTab $active={mode === 'batch'} onClick={() => setMode('batch')}>
+        <ModeTab type="button" $active={mode === 'batch'} onClick={() => setMode('batch')}>
           <Layers size={16} /> Batch
         </ModeTab>
-        <ModeTab $active={mode === 'upload'} onClick={() => setMode('upload')}>
+        <ModeTab type="button" $active={mode === 'upload'} onClick={() => setMode('upload')}>
           <Upload size={16} /> Upload
         </ModeTab>
-        <ModeTab $active={mode === 'gallery'} onClick={() => setMode('gallery')}>
+        <ModeTab type="button" $active={mode === 'gallery'} onClick={() => setMode('gallery')}>
           <Grid3X3 size={16} /> Gallery
         </ModeTab>
-        <ModeTab $active={mode === 'marketplace'} onClick={() => setMode('marketplace')}>
+        <ModeTab type="button" $active={mode === 'marketplace'} onClick={() => setMode('marketplace')}>
           <ShoppingBag size={16} /> Marketplace
         </ModeTab>
       </ModeTabs>
@@ -383,14 +433,15 @@ const BadgeCreatorPage: React.FC = () => {
         <div>
           {mode === 'generate' ? (
             <>
-              <Label>Describe your badge</Label>
+              <Label htmlFor="badge-prompt">Describe your badge</Label>
               <TextArea
+                id="badge-prompt"
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 placeholder="e.g., Golden swan shield badge, crystalline ice texture, premium fitness achievement..."
               />
 
-              <Label>Select art style</Label>
+              <GroupLabel>Select art style</GroupLabel>
               <StyleBrowser
                 styles={styles}
                 selectedId={selectedStyle?.id || null}
@@ -398,47 +449,39 @@ const BadgeCreatorPage: React.FC = () => {
               />
 
               <ActionBtn
+                type="button"
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || !selectedStyle || generating || (credits?.remaining ?? 0) <= 0}
               >
-                {generating ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />}
+                {generating ? <SpinningRefresh size={16} $duration="1s" /> : <Sparkles size={16} />}
                 {generating ? 'Generating...' : 'Generate Badge'}
               </ActionBtn>
             </>
           ) : (
             <>
-              <Label>Upload badge image</Label>
-              <div style={{
-                padding: '40px 24px',
-                borderRadius: 12,
-                border: '2px dashed rgba(96, 192, 240, 0.2)',
-                textAlign: 'center',
-                color: 'var(--text-secondary, rgba(224, 236, 244, 0.85))',
-                fontFamily: 'Sora, sans-serif',
-                fontSize: 14,
-                marginBottom: 16,
-              }}>
-                <Upload size={32} style={{ marginBottom: 8, opacity: 0.5 }} />
+              <GroupLabel>Upload badge image</GroupLabel>
+              <UploadDropZone>
+                <UploadDropIcon size={32} />
                 <div>Drag & drop or click to upload</div>
-                <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>PNG, SVG, or GIF — max 2MB</div>
-              </div>
+                <UploadHint>PNG, SVG, or GIF — max 2MB</UploadHint>
+              </UploadDropZone>
             </>
           )}
         </div>
 
         <Card>
-          <Label>Preview</Label>
+          <GroupLabel>Preview</GroupLabel>
           <PreviewArea>
             {generating ? (
               <GeneratingOverlay>
-                <RefreshCw size={28} style={{ animation: 'spin 1.5s linear infinite' }} />
+                <SpinningRefresh size={28} $duration="1.5s" />
                 Creating your badge...
               </GeneratingOverlay>
             ) : generatedUrl ? (
               <img src={generatedUrl} alt="Generated badge" />
             ) : (
               <EmptyPreview>
-                <Image size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+                <PreviewIcon size={32} />
                 <div>Your badge will appear here</div>
               </EmptyPreview>
             )}
@@ -446,31 +489,32 @@ const BadgeCreatorPage: React.FC = () => {
 
           {generatedUrl && (
             <>
-              <Label>Badge name</Label>
+              <Label htmlFor="badge-save-name">Badge name</Label>
               <Input
+                id="badge-save-name"
                 value={saveName}
                 onChange={e => setSaveName(e.target.value)}
                 placeholder="e.g., Golden Swan Shield"
               />
 
-              <Label>Rarity tier</Label>
-              <RaritySelect value={saveRarity} onChange={e => setSaveRarity(e.target.value)}>
+              <Label htmlFor="badge-rarity-tier">Rarity tier</Label>
+              <RaritySelect id="badge-rarity-tier" value={saveRarity} onChange={e => setSaveRarity(e.target.value)}>
                 <option value="common">Common (Swan Lavender)</option>
                 <option value="rare">Rare (Gilded Fern)</option>
                 <option value="epic">Epic (Wing Purple)</option>
                 <option value="legendary">Legendary (Animated Gradient)</option>
               </RaritySelect>
 
-              <ActionBtn onClick={handleSave} disabled={!saveName.trim() || saving}>
+              <ActionBtn type="button" onClick={handleSave} disabled={!saveName.trim() || saving}>
                 <Save size={16} />
                 {saving ? 'Saving...' : 'Save Badge'}
               </ActionBtn>
 
-              <div style={{ marginTop: 10 }}>
-                <ActionBtn $variant="secondary" onClick={handleGenerate} disabled={generating}>
+              <ActionSpacing>
+                <ActionBtn type="button" $variant="secondary" onClick={handleGenerate} disabled={generating}>
                   <RefreshCw size={14} /> Regenerate
                 </ActionBtn>
-              </div>
+              </ActionSpacing>
             </>
           )}
         </Card>

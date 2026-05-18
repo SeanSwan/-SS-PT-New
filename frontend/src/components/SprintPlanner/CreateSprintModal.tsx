@@ -15,6 +15,7 @@ import {
   ModalOverlay, ModalContent, ModalTitle,
   FormGrid, FormField, FullWidthField,
   PrimaryButton, SecondaryButton, ActionBar,
+  FormLegend, ModalActions, SprintToggleButton,
 } from './SprintPlannerStyles';
 
 interface Props {
@@ -84,14 +85,15 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose} role="dialog" aria-modal="true">
-      <ModalContent onClick={e => e.stopPropagation()}>
+    <ModalOverlay onPointerDown={onClose} role="dialog" aria-modal="true">
+      <ModalContent onPointerDown={e => e.stopPropagation()}>
         <ModalTitle>Create Sprint Plan</ModalTitle>
 
         <FormGrid>
           <FullWidthField>
-            <label>Sprint Name</label>
+            <label htmlFor="sprint-name">Sprint Name</label>
             <input
+              id="sprint-name"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g., Q2 2026 Bootcamp Sprint"
@@ -99,78 +101,69 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
           </FullWidthField>
 
           <FormField>
-            <label>Start Date</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            <label htmlFor="sprint-start-date">Start Date</label>
+            <input id="sprint-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
           </FormField>
 
           <FormField>
-            <label>Duration (weeks)</label>
+            <label htmlFor="sprint-duration">Duration (weeks)</label>
             <input
+              id="sprint-duration"
               type="number" min={4} max={16} value={durationWeeks}
               onChange={e => setDurationWeeks(Number(e.target.value))}
             />
           </FormField>
 
           <FullWidthField>
-            <label>Class Days</label>
+            <FormLegend>Class Days</FormLegend>
             <ActionBar>
               {DAY_OPTIONS.map(day => (
-                <SecondaryButton
+                <SprintToggleButton
                   key={day}
                   type="button"
                   onClick={() => toggleDay(day)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '0.75rem',
-                    minHeight: '36px',
-                    background: selectedDays.includes(day) ? 'rgba(96,192,240,0.15)' : 'transparent',
-                    borderColor: selectedDays.includes(day) ? '#60C0F0' : undefined,
-                  }}
+                  $selected={selectedDays.includes(day)}
+                  $tone="cyan"
                 >
                   {day.slice(0, 3).toUpperCase()}
-                </SecondaryButton>
+                </SprintToggleButton>
               ))}
             </ActionBar>
           </FullWidthField>
 
           <FullWidthField>
-            <label>Focus Rotation</label>
+            <FormLegend>Focus Rotation</FormLegend>
             <ActionBar>
               {FOCUS_OPTIONS.map(focus => (
-                <SecondaryButton
+                <SprintToggleButton
                   key={focus}
                   type="button"
                   onClick={() => toggleFocus(focus)}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '0.75rem',
-                    minHeight: '36px',
-                    background: focusRotation.includes(focus) ? 'rgba(139,92,246,0.15)' : 'transparent',
-                    borderColor: focusRotation.includes(focus) ? '#8B5CF6' : undefined,
-                  }}
+                  $selected={focusRotation.includes(focus)}
+                  $tone="purple"
                 >
                   {focus.replace('_', ' ')}
-                </SecondaryButton>
+                </SprintToggleButton>
               ))}
             </ActionBar>
           </FullWidthField>
 
           <FormField>
-            <label>Default Format</label>
-            <select value={defaultFormat} onChange={e => setDefaultFormat(e.target.value)}>
+            <label htmlFor="sprint-format">Default Format</label>
+            <select id="sprint-format" value={defaultFormat} onChange={e => setDefaultFormat(e.target.value)}>
               {FORMAT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
           </FormField>
 
           <FormField>
-            <label>Progression Strategy</label>
-            <select value={strategy} onChange={e => setStrategy(e.target.value)}>
+            <label htmlFor="sprint-strategy">Progression Strategy</label>
+            <select id="sprint-strategy" value={strategy} onChange={e => setStrategy(e.target.value)}>
               {STRATEGY_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </FormField>
         </FormGrid>
 
-        <ActionBar style={{ marginTop: '24px', justifyContent: 'flex-end' }}>
+        <ModalActions>
           <SecondaryButton onClick={onClose} type="button">Cancel</SecondaryButton>
           <PrimaryButton
             onClick={handleSubmit}
@@ -179,7 +172,7 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
           >
             {loading ? 'Creating...' : 'Create Sprint'}
           </PrimaryButton>
-        </ActionBar>
+        </ModalActions>
       </ModalContent>
     </ModalOverlay>
   );

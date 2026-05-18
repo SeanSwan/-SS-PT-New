@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../ui/buttons/GlowButton';
@@ -10,8 +10,6 @@ import {
   Edit,
   UserPlus,
   Shield,
-  Users,
-  Dumbbell,
   CheckCircle2,
   Lock,
 } from 'lucide-react';
@@ -28,14 +26,14 @@ import {
   StyledTableCell,
   StyledTableHead,
   StyledTableHeadCell,
+  CompactTableCell,
   StyledButton,
-  IconButtonContainer,
-  StyledIconButton,
   LoadingContainer,
   LoadingSpinner,
   EmptyStateContainer,
   EmptyStateIcon,
   EmptyStateText,
+  UserManagementTable,
   // New styled components replacing MUI
   ModalOverlay,
   ModalPanel,
@@ -49,9 +47,13 @@ import {
   DescriptionBox,
   SectionTitle,
   BodyText,
+  IntroBodyText,
   UserName,
   UserMeta,
   ModalSubText,
+  PermissionsSection,
+  RetryActionWrap,
+  SettingsGroup,
   FormGrid,
   FormField,
   FormLabel,
@@ -75,12 +77,23 @@ interface User {
   photo?: string;
 }
 
-interface Permission {
-  id: string;
-  name: string;
-  description: string;
-  roles: string[];
+interface ApiErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
 }
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null) {
+    const maybeError = error as ApiErrorLike;
+    return maybeError.response?.data?.message || maybeError.message || fallback;
+  }
+
+  return fallback;
+};
 
 /**
  * Modern User Management System Component
@@ -112,52 +125,16 @@ const ModernUserManagementSystem: React.FC = () => {
     email: '',
     username: '',
     password: '',
-    role: 'user' as const,
+    role: 'user' as User['role'],
     isActive: true,
   });
 
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-
-  // Pagination state
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-
-  // Fetch users
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await authAxios.get('/api/auth/users');
-
-      if (response.data && response.data.success) {
-        setUsers(response.data.users || []);
-        applyFilters(response.data.users || [], searchTerm, roleFilter);
-
-        toast({
-          title: "Success",
-          description: "Users loaded successfully",
-        });
-      } else {
-        throw new Error(response.data?.message || 'Failed to fetch users');
-      }
-    } catch (err: any) {
-      console.error('Error fetching users:', err);
-      setError(err.response?.data?.message || err.message || 'Error connecting to the server');
-      toast({
-        title: "Error",
-        description: "Could not load users. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filter defaults stay centralized until the search/filter controls are restored.
+  const searchTerm = '';
+  const roleFilter = 'all';
 
   // Apply filters to users
-  const applyFilters = (userList: User[], term: string, role: string) => {
+  const applyFilters = useCallback((userList: User[], term: string, role: string) => {
     let result = [...userList];
 
     // Apply search filter
@@ -177,38 +154,49 @@ const ModernUserManagementSystem: React.FC = () => {
     }
 
     setFilteredUsers(result);
-  };
+  }, []);
+
+  // Fetch users
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await authAxios.get('/api/auth/users');
+
+      if (response.data && response.data.success) {
+        setUsers(response.data.users || []);
+        applyFilters(response.data.users || [], searchTerm, roleFilter);
+
+        toast({
+          title: "Success",
+          description: "Users loaded successfully",
+        });
+      } else {
+        throw new Error(response.data?.message || 'Failed to fetch users');
+      }
+    } catch (err: unknown) {
+      console.error('Error fetching users:', err);
+      setError(getApiErrorMessage(err, 'Error connecting to the server'));
+      toast({
+        title: "Error",
+        description: "Could not load users. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [applyFilters, authAxios, roleFilter, searchTerm, toast]);
 
   // Load users on component mount
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // Update filters when search term or role filter changes
   useEffect(() => {
     applyFilters(users, searchTerm, roleFilter);
-  }, [searchTerm, roleFilter, users]);
-
-  // Handle search input change
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
-  // Handle role filter change
-  const handleRoleFilterChange = (role: string) => {
-    setRoleFilter(role);
-  };
-
-  // Handle page change
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  // Handle rows per page change
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+  }, [applyFilters, searchTerm, roleFilter, users]);
 
   // Handle edit user
   const handleEditUser = (user: User) => {
@@ -252,11 +240,11 @@ const ModernUserManagementSystem: React.FC = () => {
       } else {
         throw new Error(response.data?.message || 'Failed to update user');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating user:', err);
       toast({
         title: "Error",
-        description: err.response?.data?.message || err.message || 'Error updating user',
+        description: getApiErrorMessage(err, 'Error updating user'),
         variant: "destructive",
       });
     }
@@ -295,11 +283,11 @@ const ModernUserManagementSystem: React.FC = () => {
       } else {
         throw new Error(response.data?.message || 'Failed to create user');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating user:', err);
       toast({
         title: "Error",
-        description: err.response?.data?.message || err.message || 'Error creating user',
+        description: getApiErrorMessage(err, 'Error creating user'),
         variant: "destructive",
       });
     }
@@ -313,25 +301,6 @@ const ModernUserManagementSystem: React.FC = () => {
   // Handle show security settings
   const handleShowSecuritySettings = () => {
     setIsSecurityModalOpen(true);
-  };
-
-  // Get role color for chips
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'error';
-      case 'trainer':
-        return 'warning';
-      case 'client':
-        return 'success';
-      default:
-        return 'default';
-    }
-  };
-
-  // Get pagination
-  const getPaginatedUsers = () => {
-    return filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   };
 
   // Handle select change for forms
@@ -377,9 +346,9 @@ const ModernUserManagementSystem: React.FC = () => {
                   <GlassPanel>
                     <SectionTitle>Sample User List</SectionTitle>
 
-                    <BodyText $muted style={{ marginBottom: '1.5rem' }}>
-                      Below is a representation of the user management interface. When fully implemented, you'll be able to:
-                    </BodyText>
+                    <IntroBodyText $muted>
+                      Below is a representation of the user management interface. When fully implemented, you&apos;ll be able to:
+                    </IntroBodyText>
 
                     {loading ? (
                       <LoadingContainer>
@@ -389,24 +358,25 @@ const ModernUserManagementSystem: React.FC = () => {
                       <EmptyStateContainer>
                         <EmptyStateIcon>&#9888;&#65039;</EmptyStateIcon>
                         <EmptyStateText>{error}</EmptyStateText>
-                        <GlowButton
-                          variant="cosmic"
-                          size="small"
-                          onClick={fetchUsers}
-                          style={{ marginTop: '1rem' }}
-                        >
-                          Retry
-                        </GlowButton>
+                        <RetryActionWrap>
+                          <GlowButton
+                            variant="cosmic"
+                            size="small"
+                            onClick={fetchUsers}
+                          >
+                            Retry
+                          </GlowButton>
+                        </RetryActionWrap>
                       </EmptyStateContainer>
                     ) : (
                       <div>
                         {/* Real User List Table */}
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <UserManagementTable>
                           <tbody>
-                            {users && users.length > 0 ? (
-                              users.map(user => (
+                            {filteredUsers && filteredUsers.length > 0 ? (
+                              filteredUsers.map(user => (
                                 <StyledTableRow key={user.id}>
-                                  <StyledTableCell style={{ paddingLeft: '0.5rem' }}>
+                                  <CompactTableCell>
                                     <FlexRow $gap="0.75rem">
                                       <User size={20} />
                                       <div>
@@ -417,7 +387,7 @@ const ModernUserManagementSystem: React.FC = () => {
                                         </UserMeta>
                                       </div>
                                     </FlexRow>
-                                  </StyledTableCell>
+                                  </CompactTableCell>
                                   <StyledTableCell $align="right">
                                     <GlowButton
                                       variant="cosmic"
@@ -433,7 +403,7 @@ const ModernUserManagementSystem: React.FC = () => {
                               // Sample users if none loaded
                               <>
                                 <StyledTableRow>
-                                  <StyledTableCell style={{ paddingLeft: '0.5rem' }}>
+                                  <CompactTableCell>
                                     <FlexRow $gap="0.75rem">
                                       <User size={20} />
                                       <div>
@@ -444,7 +414,7 @@ const ModernUserManagementSystem: React.FC = () => {
                                         </UserMeta>
                                       </div>
                                     </FlexRow>
-                                  </StyledTableCell>
+                                  </CompactTableCell>
                                   <StyledTableCell $align="right">
                                     <GlowButton
                                       variant="cosmic"
@@ -456,7 +426,7 @@ const ModernUserManagementSystem: React.FC = () => {
                                   </StyledTableCell>
                                 </StyledTableRow>
                                 <StyledTableRow>
-                                  <StyledTableCell style={{ paddingLeft: '0.5rem' }}>
+                                  <CompactTableCell>
                                     <FlexRow $gap="0.75rem">
                                       <User size={20} />
                                       <div>
@@ -467,7 +437,7 @@ const ModernUserManagementSystem: React.FC = () => {
                                         </UserMeta>
                                       </div>
                                     </FlexRow>
-                                  </StyledTableCell>
+                                  </CompactTableCell>
                                   <StyledTableCell $align="right">
                                     <GlowButton
                                       variant="cosmic"
@@ -481,7 +451,7 @@ const ModernUserManagementSystem: React.FC = () => {
                               </>
                             )}
                           </tbody>
-                        </table>
+                        </UserManagementTable>
                       </div>
                     )}
                   </GlassPanel>
@@ -762,9 +732,9 @@ const ModernUserManagementSystem: React.FC = () => {
               Manage what different user roles can access in the system. Changes will affect all users with the selected role.
             </ModalSubText>
 
-            <div style={{ marginBottom: '2rem' }}>
+            <PermissionsSection>
               <SectionTitle>Role Permissions</SectionTitle>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <UserManagementTable>
                 <thead>
                   <StyledTableHead>
                     <StyledTableHeadCell>Permission</StyledTableHeadCell>
@@ -811,8 +781,8 @@ const ModernUserManagementSystem: React.FC = () => {
                     <StyledTableCell $align="center">-</StyledTableCell>
                   </StyledTableRow>
                 </tbody>
-              </table>
-            </div>
+              </UserManagementTable>
+            </PermissionsSection>
           </ModalContentStyled>
           <ModalActions>
             <StyledButton onClick={() => setIsPermissionsModalOpen(false)}>
@@ -835,7 +805,7 @@ const ModernUserManagementSystem: React.FC = () => {
             </ModalSubText>
 
             <SubTitle>Password Policy</SubTitle>
-            <div style={{ marginBottom: '1.5rem' }}>
+            <SettingsGroup $mb="1.5rem">
               <FormField $fullWidth>
                 <FormLabel htmlFor="sec-pwd-length">Minimum Password Length</FormLabel>
                 <FormSelect id="sec-pwd-length" defaultValue="8">
@@ -854,10 +824,10 @@ const ModernUserManagementSystem: React.FC = () => {
                   <option value="high">High (letters + numbers + symbols)</option>
                 </FormSelect>
               </FormField>
-            </div>
+            </SettingsGroup>
 
             <SubTitle>Account Security</SubTitle>
-            <div>
+            <SettingsGroup>
               <FormField $fullWidth>
                 <FormLabel htmlFor="sec-timeout">Session Timeout</FormLabel>
                 <FormSelect id="sec-timeout" defaultValue="30">
@@ -876,7 +846,7 @@ const ModernUserManagementSystem: React.FC = () => {
                   <option value="10">10 attempts</option>
                 </FormSelect>
               </FormField>
-            </div>
+            </SettingsGroup>
           </ModalContentStyled>
           <ModalActions>
             <StyledButton $variant="outlined" onClick={() => setIsSecurityModalOpen(false)}>

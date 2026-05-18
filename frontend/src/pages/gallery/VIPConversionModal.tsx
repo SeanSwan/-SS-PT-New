@@ -6,7 +6,7 @@
  * Design: Gemini 3.1 Pro directive — cosmic glassmorphism with spring animations.
  */
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
@@ -309,29 +309,6 @@ const BulletIcon = styled.span`
   flex-shrink: 0;
 `;
 
-const IncludesList = styled.div`
-  margin-bottom: 20px;
-`;
-
-const IncludesItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const IncludesIcon = styled.span`
-  font-size: 16px;
-  flex-shrink: 0;
-`;
-
 // ── Journey Timeline styled components ────────────────────────────────
 const TimelineContainer = styled.div`
   position: relative;
@@ -562,7 +539,6 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
 
   // Auth state — pre-populate from localStorage if already logged in
   const [userToken, setUserToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [userId, setUserId] = useState<string | null>(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -594,7 +570,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
       setUserToken(existingToken);
       setStep('checkout');
     }
-  }, [isOpen]);
+  }, [isOpen, step]);
 
   // Check for ?vip=success on mount
   useEffect(() => {
@@ -653,7 +629,6 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
       }
 
       setUserToken(data.token);
-      setUserId(data.userId);
       setStep('checkout');
     } catch {
       setError('Network error. Please check your connection and try again.');
@@ -731,8 +706,9 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
 
       <form onSubmit={handleAccountSubmit}>
         <InputGroup>
-          <Label>Email</Label>
+          <Label htmlFor="vip-email">Email</Label>
           <Input
+            id="vip-email"
             type="email"
             value={emailValue}
             readOnly
@@ -744,18 +720,19 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         {!isLoginMode && (
           <NameRow>
             <InputGroup>
-              <Label>First Name *</Label>
+              <Label htmlFor="vip-first-name">First Name *</Label>
               <Input
+                id="vip-first-name"
                 type="text"
                 placeholder="First"
                 value={firstNameValue}
                 onChange={e => setFirstNameValue(e.target.value)}
-                autoFocus
               />
             </InputGroup>
             <InputGroup>
-              <Label>Last Name *</Label>
+              <Label htmlFor="vip-last-name">Last Name *</Label>
               <Input
+                id="vip-last-name"
                 type="text"
                 placeholder="Last"
                 value={lastNameValue}
@@ -766,20 +743,21 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         )}
 
         <InputGroup>
-          <Label>Password * (min 8 characters)</Label>
+          <Label htmlFor="vip-password">Password * (min 8 characters)</Label>
           <Input
+            id="vip-password"
             type="password"
             placeholder="Create a password"
             value={passwordValue}
             onChange={e => setPasswordValue(e.target.value)}
-            autoFocus={isLoginMode}
           />
         </InputGroup>
 
         {!isLoginMode && (
           <InputGroup>
-            <Label>Phone (for session reminders)</Label>
+            <Label htmlFor="vip-phone">Phone (for session reminders)</Label>
             <Input
+              id="vip-phone"
               type="tel"
               placeholder="(555) 123-4567"
               value={phoneValue}
@@ -799,7 +777,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         </PrimaryButton>
       </form>
 
-      <ToggleLink onClick={() => { setIsLoginMode(!isLoginMode); setError(''); }}>
+      <ToggleLink type="button" onClick={() => { setIsLoginMode(!isLoginMode); setError(''); }}>
         {isLoginMode ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
       </ToggleLink>
     </motion.div>
@@ -894,7 +872,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
 
       {error && <ErrorText>{error}</ErrorText>}
 
-      <PrimaryButton onClick={handleCheckout} $loading={loading} disabled={loading}>
+      <PrimaryButton type="button" onClick={handleCheckout} $loading={loading} disabled={loading}>
         {loading ? 'Redirecting to checkout...' : 'Proceed to Checkout'}
       </PrimaryButton>
     </motion.div>
@@ -922,13 +900,13 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         <SuccessDescription>
           Your VIP package includes a complimentary NASM Assessment orientation AND a full
           PT training session with Sean — plus your personalized 90-Day Blueprint.
-          That's 2 hours of expert training + photo enhancements included.
+          That&apos;s 2 hours of expert training + photo enhancements included.
         </SuccessDescription>
 
-        <PrimaryButton onClick={handleViewGallery}>
+        <PrimaryButton type="button" onClick={handleViewGallery}>
           View Your Enhanced Gallery
         </PrimaryButton>
-        <SecondaryButton onClick={handleBookSession}>
+        <SecondaryButton type="button" onClick={handleBookSession}>
           Book Your PT Session
         </SecondaryButton>
       </SuccessContainer>
@@ -943,16 +921,16 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={onClose}
+          onPointerDown={onClose}
         >
           <ModalContainer
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={springTransition}
-            onClick={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
           >
-            <CloseButton onClick={onClose} aria-label="Close modal">
+            <CloseButton type="button" onClick={onClose} aria-label="Close modal">
               &#x2715;
             </CloseButton>
 

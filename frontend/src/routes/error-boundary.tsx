@@ -35,6 +35,73 @@ const AlertMessage = styled.div`
   line-height: 1.4;
 `;
 
+const ErrorPanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  background: linear-gradient(
+    135deg,
+    var(--bg-primary, #002060),
+    var(--bg-elevated, #1e1e3f)
+  );
+  color: var(--text-primary, #E0ECF4);
+  padding: 2rem;
+  text-align: center;
+`;
+
+const ErrorTitle = styled.h2`
+  color: var(--error, #ff416c);
+  margin-bottom: 1rem;
+`;
+
+const ErrorCopy = styled.p`
+  margin-bottom: 2rem;
+  max-width: 600px;
+`;
+
+const RefreshButton = styled.button`
+  min-height: 44px;
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary, #60C0F0),
+    var(--accent-cyan, #00c8ff)
+  );
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  color: var(--bg-primary, #002060);
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 1rem;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
+const TechnicalDetails = styled.details`
+  margin-top: 2rem;
+  text-align: left;
+  max-width: 600px;
+`;
+
+const TechnicalSummary = styled.summary`
+  cursor: pointer;
+  color: var(--accent-primary, #60C0F0);
+`;
+
+const TechnicalPre = styled.pre`
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  overflow: auto;
+`;
+
 // Custom Alert Component
 const Alert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <AlertContainer>
@@ -53,9 +120,9 @@ const ErrorBoundary: React.FC = () => {
     // Handle specific HTTP error codes
     switch (error.status) {
       case 404:
-        return <Alert>Error 404 - This page doesn't exist!</Alert>;
+        return <Alert>Error 404 - This page doesn&apos;t exist!</Alert>;
       case 401:
-        return <Alert>Error 401 - You aren't authorized to see this</Alert>;
+        return <Alert>Error 401 - You aren&apos;t authorized to see this</Alert>;
       case 503:
         return <Alert>Error 503 - Looks like our API is down</Alert>;
       case 418:
@@ -68,51 +135,24 @@ const ErrorBoundary: React.FC = () => {
   // Default error message - Enhanced for React error #306
   console.error('Application Error:', error);
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '50vh',
-      background: 'linear-gradient(135deg, #002060, #1e1e3f)',
-      color: 'white',
-      padding: '2rem',
-      textAlign: 'center'
-    }}>
-      <h2 style={{ color: '#ff416c', marginBottom: '1rem' }}>Application Error</h2>
-      <p style={{ marginBottom: '2rem', maxWidth: '600px' }}>
-        We're experiencing a temporary issue. The site is loading but encountered an error.
+    <ErrorPanel>
+      <ErrorTitle>Application Error</ErrorTitle>
+      <ErrorCopy>
+        We&apos;re experiencing a temporary issue. The site is loading but encountered an error.
         Please refresh the page or try again in a few moments.
-      </p>
-      <button
+      </ErrorCopy>
+      <RefreshButton
         onClick={() => window.location.reload()}
-        style={{
-          background: 'linear-gradient(135deg, #60C0F0, #00c8ff)',
-          border: 'none',
-          padding: '0.75rem 1.5rem',
-          borderRadius: '8px',
-          color: '#002060',
-          fontWeight: 500,
-          cursor: 'pointer',
-          fontSize: '1rem'
-        }}
       >
         Refresh Page
-      </button>
-      <details style={{ marginTop: '2rem', textAlign: 'left', maxWidth: '600px' }}>
-        <summary style={{ cursor: 'pointer', color: '#00a0e3' }}>Technical Details</summary>
-        <pre style={{
-          background: 'rgba(255,255,255,0.1)',
-          padding: '1rem',
-          borderRadius: '4px',
-          marginTop: '0.5rem',
-          fontSize: '0.8rem',
-          overflow: 'auto'
-        }}>
+      </RefreshButton>
+      <TechnicalDetails>
+        <TechnicalSummary>Technical Details</TechnicalSummary>
+        <TechnicalPre>
           {error instanceof Error ? error.message : 'Unknown error occurred'}
-        </pre>
-      </details>
-    </div>
+        </TechnicalPre>
+      </TechnicalDetails>
+    </ErrorPanel>
   );
 };
 

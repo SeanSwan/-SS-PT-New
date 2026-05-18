@@ -135,6 +135,10 @@ const FormGroup = styled.div`
   margin-bottom: 16px;
 `;
 
+const FormGroupFlex = styled(FormGroup)`
+  flex: 1;
+`;
+
 const FormRow = styled.div`
   display: flex;
   gap: 12px;
@@ -143,13 +147,6 @@ const FormRow = styled.div`
   @media (max-width: 600px) {
     flex-direction: column;
   }
-`;
-
-const LoadingMsg = styled.div`
-  text-align: center;
-  padding: 32px;
-  color: rgba(224, 236, 244, 0.65);
-  font-size: 14px;
 `;
 
 // --- Timeline Components ---
@@ -209,6 +206,10 @@ const NodeLabel = styled.div`
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+`;
+
+const CurrentNodeLabel = styled(NodeLabel)`
+  color: #60c0f0;
 `;
 
 const NextNodeCircle = styled(NodeCircle)`
@@ -361,6 +362,66 @@ const TagGrid = styled.div`
   border-radius: 8px;
 `;
 
+const SelectedCount = styled.div`
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(224, 236, 244, 0.65);
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const InlineActionRow = styled.div`
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+`;
+
+const ErrorBanner = styled.div`
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  color: #FF4757;
+  font-size: 14px;
+`;
+
+const SuccessBanner = styled.div`
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+  color: #00FF88;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 16px;
+`;
+
+const SpacedNasmBadge = styled(NasmBadge)`
+  margin-left: 8px;
+`;
+
+const BoundaryContainer = styled(Container)`
+  text-align: center;
+  padding-top: 80px;
+`;
+
+const BoundaryTitle = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(224, 236, 244, 0.7);
+  margin-bottom: 8px;
+`;
+
+const BoundaryCopy = styled.p`
+  color: rgba(224, 236, 244, 0.65);
+  margin-bottom: 16px;
+`;
+
 // --- Categories ---
 
 const CATEGORIES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core', 'full_body'];
@@ -475,26 +536,27 @@ const VariationEnginePage: React.FC = () => {
         <Section>
           <SectionTitle>Configuration</SectionTitle>
           <FormRow>
-            <FormGroup style={{ flex: 1 }}>
-              <Label>Client ID</Label>
+            <FormGroupFlex>
+              <Label htmlFor="variation-client-id">Client ID</Label>
               <Input
+                id="variation-client-id"
                 type="number"
                 placeholder="Enter client ID"
                 value={clientId}
                 onChange={e => setClientId(e.target.value)}
               />
-            </FormGroup>
-            <FormGroup style={{ flex: 1 }}>
-              <Label>Rotation Pattern</Label>
-              <Select value={rotationPattern} onChange={e => setRotationPattern(e.target.value)}>
+            </FormGroupFlex>
+            <FormGroupFlex>
+              <Label htmlFor="variation-rotation-pattern">Rotation Pattern</Label>
+              <Select id="variation-rotation-pattern" value={rotationPattern} onChange={e => setRotationPattern(e.target.value)}>
                 <option value="standard">Standard (2:1) BUILD-BUILD-SWITCH</option>
                 <option value="aggressive">Aggressive (1:1) BUILD-SWITCH</option>
                 <option value="conservative">Conservative (3:1) BUILD-BUILD-BUILD-SWITCH</option>
               </Select>
-            </FormGroup>
-            <FormGroup style={{ flex: 1 }}>
-              <Label>NASM Phase (optional)</Label>
-              <Select value={nasmPhase} onChange={e => setNasmPhase(e.target.value)}>
+            </FormGroupFlex>
+            <FormGroupFlex>
+              <Label htmlFor="variation-nasm-phase">NASM Phase (optional)</Label>
+              <Select id="variation-nasm-phase" value={nasmPhase} onChange={e => setNasmPhase(e.target.value)}>
                 <option value="">Any</option>
                 <option value="1">Phase 1 - Stabilization</option>
                 <option value="2">Phase 2 - Strength Endurance</option>
@@ -502,7 +564,7 @@ const VariationEnginePage: React.FC = () => {
                 <option value="4">Phase 4 - Max Strength</option>
                 <option value="5">Phase 5 - Power</option>
               </Select>
-            </FormGroup>
+            </FormGroupFlex>
           </FormRow>
         </Section>
 
@@ -511,7 +573,7 @@ const VariationEnginePage: React.FC = () => {
           <Section>
             <SectionTitle>Rotation Timeline</SectionTitle>
             <TimelineWrapper>
-              {timeline.map((entry, i) => (
+              {timeline.map(entry => (
                 <TimelineNode key={entry.id} $type={entry.sessionType}>
                   <NodeCircle $type={entry.sessionType}>
                     {entry.sessionType === 'build' ? 'B' : 'S'}
@@ -526,9 +588,9 @@ const VariationEnginePage: React.FC = () => {
                 <NextNodeCircle $type={nextType} $current>
                   {nextType === 'build' ? 'B' : 'S'}
                 </NextNodeCircle>
-                <NodeLabel style={{ color: '#60c0f0' }}>
+                <CurrentNodeLabel>
                   Next: {nextType === 'build' ? 'Build' : 'Switch'}
-                </NodeLabel>
+                </CurrentNodeLabel>
               </TimelineNode>
             </TimelineWrapper>
           </Section>
@@ -540,6 +602,7 @@ const VariationEnginePage: React.FC = () => {
           <PillBar>
             {CATEGORIES.map(c => (
               <Pill
+                type="button"
                 key={c}
                 $active={category === c}
                 onClick={() => { setCategory(c); setSelectedExercises([]); }}
@@ -552,6 +615,7 @@ const VariationEnginePage: React.FC = () => {
           <TagGrid>
             {exercises.map(ex => (
               <ExerciseTag
+                type="button"
                 key={ex.key}
                 $selected={selectedExercises.includes(ex.key)}
                 onClick={() => toggleExercise(ex.key)}
@@ -562,32 +626,28 @@ const VariationEnginePage: React.FC = () => {
           </TagGrid>
 
           {selectedExercises.length > 0 && (
-            <div style={{ marginTop: 12, fontSize: 13, color: 'rgba(224, 236, 244, 0.65)' }}>
+            <SelectedCount>
               {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
-            </div>
+            </SelectedCount>
           )}
         </Section>
 
         {/* Generate Button */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+        <ButtonRow>
           <PrimaryButton
+            type="button"
             onClick={handleGenerate}
             disabled={loading || !clientId || selectedExercises.length === 0}
           >
             {loading ? 'Generating...' : 'Generate Variation'}
           </PrimaryButton>
-        </div>
+        </ButtonRow>
 
         {/* Error Banner */}
         {error && (
-          <div style={{
-            padding: 12, borderRadius: 8, marginBottom: 16,
-            background: 'rgba(255, 71, 87, 0.1)',
-            border: '1px solid rgba(255, 71, 87, 0.25)',
-            color: '#FF4757', fontSize: 14,
-          }}>
+          <ErrorBanner>
             {error}
-          </div>
+          </ErrorBanner>
         )}
 
         {/* Swap Suggestions */}
@@ -633,34 +693,29 @@ const VariationEnginePage: React.FC = () => {
                     )}
 
                     {(!swap.replacement || swap.replacement === swap.original) && (
-                      <NasmBadge $confidence="Keep" style={{ marginLeft: 8 }}>
+                      <SpacedNasmBadge $confidence="Keep">
                         Keep
-                      </NasmBadge>
+                      </SpacedNasmBadge>
                     )}
                   </SwapRow>
                 </SwapCardWrapper>
               ))}
 
               {!accepted && (
-                <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-                  <PrimaryButton onClick={handleAccept}>
+                <InlineActionRow>
+                  <PrimaryButton type="button" onClick={handleAccept}>
                     Accept Variation
                   </PrimaryButton>
-                  <GhostButton onClick={() => { setSuggestions(null); setLogId(null); }}>
+                  <GhostButton type="button" onClick={() => { setSuggestions(null); setLogId(null); }}>
                     Discard
                   </GhostButton>
-                </div>
+                </InlineActionRow>
               )}
 
               {accepted && (
-                <div style={{
-                  padding: 12, borderRadius: 8,
-                  background: 'rgba(0, 255, 136, 0.1)',
-                  border: '1px solid rgba(0, 255, 136, 0.2)',
-                  color: '#00FF88', fontSize: 14, fontWeight: 600, marginTop: 16,
-                }}>
+                <SuccessBanner>
                   Variation accepted and logged.
-                </div>
+                </SuccessBanner>
               )}
             </Section>
           )}
@@ -683,17 +738,17 @@ class VariationEngineErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <PageWrapper>
-          <Container style={{ textAlign: 'center', paddingTop: 80 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(224, 236, 244, 0.7)', marginBottom: 8 }}>
+          <BoundaryContainer>
+            <BoundaryTitle>
               Something went wrong
-            </div>
-            <p style={{ color: 'rgba(224, 236, 244, 0.65)', marginBottom: 16 }}>
+            </BoundaryTitle>
+            <BoundaryCopy>
               The Variation Engine encountered an error.
-            </p>
-            <PrimaryButton onClick={() => this.setState({ hasError: false })}>
+            </BoundaryCopy>
+            <PrimaryButton type="button" onClick={() => this.setState({ hasError: false })}>
               Try Again
             </PrimaryButton>
-          </Container>
+          </BoundaryContainer>
         </PageWrapper>
       );
     }

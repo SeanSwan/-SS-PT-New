@@ -50,6 +50,11 @@ export const ActionBar = styled.div`
   flex-wrap: wrap;
 `;
 
+export const ModalActions = styled(ActionBar)`
+  margin-top: 24px;
+  justify-content: flex-end;
+`;
+
 // ── Buttons ──────────────────────────────────────────────────────────
 export const PrimaryButton = styled.button`
   background: var(--accent-primary, #002060);
@@ -90,6 +95,20 @@ export const SecondaryButton = styled(PrimaryButton)`
   }
 `;
 
+export const SprintToggleButton = styled(SecondaryButton)<{ $selected: boolean; $tone: 'cyan' | 'purple' }>`
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  min-height: 36px;
+  background: ${({ $selected, $tone }) => {
+    if (!$selected) return 'transparent';
+    return $tone === 'cyan' ? 'rgba(96,192,240,0.15)' : 'rgba(139,92,246,0.15)';
+  }};
+  border-color: ${({ $selected, $tone }) => {
+    if (!$selected) return undefined;
+    return $tone === 'cyan' ? '#60C0F0' : '#8B5CF6';
+  }};
+`;
+
 export const GenerateButton = styled(PrimaryButton)`
   background: linear-gradient(135deg, #8B5CF6, #60C0F0);
   border: none;
@@ -112,6 +131,10 @@ export const Card = styled.div`
   }
 `;
 
+export const SpacedCard = styled(Card)`
+  margin-bottom: 16px;
+`;
+
 export const SprintCard = styled(Card)`
   cursor: pointer;
   display: flex;
@@ -121,6 +144,29 @@ export const SprintCard = styled(Card)`
   &:hover {
     animation: ${pulseGlow} 2s ease infinite;
   }
+`;
+
+export const SprintCardHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+export const SprintCardTitle = styled.h3`
+  margin: 0;
+  font-size: 1rem;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+`;
+
+export const SprintDateRange = styled.div`
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Fira Code', monospace;
+`;
+
+export const SprintMeta = styled.div`
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.6);
 `;
 
 export const SprintGrid = styled.div`
@@ -175,6 +221,24 @@ export const ProgressText = styled.div`
   color: var(--text-muted, rgba(255,255,255,0.5));
   margin-top: 4px;
   font-family: 'Fira Code', monospace;
+`;
+
+export const ProgressHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+`;
+
+export const ProgressMetric = styled.span`
+  font-family: 'Fira Code', monospace;
+`;
+
+export const CompactBackButton = styled(SecondaryButton)`
+  margin-bottom: 8px;
+  padding: 4px 12px;
+  min-height: 32px;
+  font-size: 0.75rem;
 `;
 
 // ── Timeline / Week View ─────────────────────────────────────────────
@@ -264,6 +328,13 @@ export const SlotsRow = styled.div`
   gap: 8px;
   flex-wrap: wrap;
   flex: 1;
+`;
+
+export const TimelineList = styled.div``;
+
+export const WeekTheme = styled.span`
+  font-size: 0.65rem;
+  opacity: 0.6;
 `;
 
 // ── Calendar ─────────────────────────────────────────────────────────
@@ -401,6 +472,13 @@ export const FullWidthField = styled(FormField)`
   grid-column: 1 / -1;
 `;
 
+export const FormLegend = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, rgba(255,255,255,0.7));
+`;
+
 // ── Modal / Slide Panel ──────────────────────────────────────────────
 export const ModalOverlay = styled.div`
   position: fixed;
@@ -448,6 +526,10 @@ export const SkeletonPulse = styled.div`
   &[role="status"] { /* a11y */ }
 `;
 
+export const SprintCardSkeleton = styled(SkeletonPulse)`
+  height: 140px;
+`;
+
 // ── Tabs ─────────────────────────────────────────────────────────────
 export const TabBar = styled.div`
   display: flex;
@@ -455,6 +537,10 @@ export const TabBar = styled.div`
   background: var(--bg-elevated, #141419);
   border-radius: 10px;
   padding: 4px;
+`;
+
+export const SpacedTabBar = styled(TabBar)`
+  margin-bottom: 20px;
 `;
 
 export const Tab = styled.button<{ $active: boolean }>`

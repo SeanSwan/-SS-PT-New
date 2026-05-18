@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useMemo, memo } from 'react';
+import styled from 'styled-components';
 import {
   ClipboardList, MessageCircle, Activity, Shield,
   Wrench, ChevronDown, Home, Star,
@@ -38,6 +39,81 @@ interface HowToPerformTabProps {
   data: ExerciseTeachData;
 }
 
+const HeaderLabel = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const InstructionList = styled.ol`
+  margin: 0;
+  padding-left: 20px;
+`;
+
+const Stack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const MuscleBlock = styled.div`
+  margin-bottom: 8px;
+`;
+
+const MuscleLabel = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted, rgba(224, 236, 244, 0.65));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const MuscleText = styled.div<{ $tone: 'primary' | 'secondary' }>`
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-family: 'Sora', sans-serif;
+  color: ${({ $tone }) => (
+    $tone === 'primary'
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--text-secondary, rgba(224, 236, 244, 0.7))'
+  )};
+`;
+
+const SafetyWarningStacked = styled(SafetyWarning)`
+  margin-top: 8px;
+`;
+
+const EquipmentTagWrap = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const EmptyEquipment = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-family: 'Sora', sans-serif;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+`;
+
+const EquipmentMeta = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  font-family: 'Sora', sans-serif;
+  color: var(--text-muted, rgba(224, 236, 244, 0.65));
+`;
+
+const EquipmentMetaItem = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Accordion Section (reusable)
 // ─────────────────────────────────────────────────────────────
@@ -53,15 +129,16 @@ const Section: React.FC<{
   return (
     <div>
       <AccordionHeader
+        type="button"
         $expanded={expanded}
         onClick={() => setExpanded(prev => !prev)}
         aria-expanded={expanded}
         aria-controls={`section-${id}`}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <HeaderLabel>
           {icon}
           {title}
-        </span>
+        </HeaderLabel>
         <ChevronDown size={16} />
       </AccordionHeader>
       <AccordionBody $expanded={expanded} id={`section-${id}`} role="region">
@@ -110,11 +187,11 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
         defaultOpen
       >
         {instructionSteps.length > 0 ? (
-          <ol style={{ margin: 0, paddingLeft: 20 }}>
+          <InstructionList>
             {instructionSteps.map((step, i) => (
               <InstructionStep key={i}>{step}</InstructionStep>
             ))}
-          </ol>
+          </InstructionList>
         ) : (
           <EmptyDataMsg>Instructions coming soon</EmptyDataMsg>
         )}
@@ -123,42 +200,28 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
       {/* Coaching Cues */}
       {coachingCues.length > 0 && (
         <Section id="cues" title="Coaching Cues" icon={<MessageCircle size={15} />}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Stack>
             {coachingCues.map((cue, i) => (
               <CueChip key={i}>{cue}</CueChip>
             ))}
-          </div>
+          </Stack>
         </Section>
       )}
 
       {/* Muscles Worked */}
       <Section id="muscles" title="Muscles Worked" icon={<Activity size={15} />}>
-        <div style={{ marginBottom: 8 }}>
-          <span style={{
-            fontFamily: "'Sora', sans-serif",
-            fontSize: '0.68rem',
-            fontWeight: 600,
-            color: 'var(--text-muted, rgba(224,236,244,0.65))',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-          }}>Primary</span>
-          <div style={{ marginTop: 4, fontSize: '0.78rem', fontFamily: "'Sora', sans-serif", color: 'var(--accent-primary, #60C0F0)' }}>
+        <MuscleBlock>
+          <MuscleLabel>Primary</MuscleLabel>
+          <MuscleText $tone="primary">
             {ensureArray(data.primaryMuscles).join(', ') || 'General'}
-          </div>
-        </div>
+          </MuscleText>
+        </MuscleBlock>
         {ensureArray(data.secondaryMuscles).length > 0 && (
           <div>
-            <span style={{
-              fontFamily: "'Sora', sans-serif",
-              fontSize: '0.68rem',
-              fontWeight: 600,
-              color: 'var(--text-muted, rgba(224,236,244,0.65))',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}>Secondary</span>
-            <div style={{ marginTop: 4, fontSize: '0.78rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-secondary, rgba(224,236,244,0.7))' }}>
+            <MuscleLabel>Secondary</MuscleLabel>
+            <MuscleText $tone="secondary">
               {ensureArray(data.secondaryMuscles).join(', ')}
-            </div>
+            </MuscleText>
           </div>
         )}
       </Section>
@@ -198,9 +261,9 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
         <Section id="safety" title="Safety & Contraindications" icon={<Shield size={15} />}>
           {data.safetyTips && <SafetyWarning>{data.safetyTips}</SafetyWarning>}
           {data.contraindicationNotes && (
-            <SafetyWarning style={{ marginTop: 8 }}>
+            <SafetyWarningStacked>
               <strong>Contraindications:</strong> {data.contraindicationNotes}
-            </SafetyWarning>
+            </SafetyWarningStacked>
           )}
         </Section>
       )}
@@ -208,24 +271,24 @@ const HowToPerformTab: React.FC<HowToPerformTabProps> = ({ data }) => {
       {/* Equipment */}
       <Section id="equipment" title="Equipment Needed" icon={<Wrench size={15} />}>
         {equipmentNeeded.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <EquipmentTagWrap>
             {equipmentNeeded.map((eq, i) => (
               <EquipmentTag key={i}>{eq}</EquipmentTag>
             ))}
-          </div>
+          </EquipmentTagWrap>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-secondary, rgba(224,236,244,0.7))' }}>
+          <EmptyEquipment>
             <span>Bodyweight — No equipment needed</span>
-          </div>
+          </EmptyEquipment>
         )}
-        <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.72rem', fontFamily: "'Sora', sans-serif", color: 'var(--text-muted, rgba(224,236,244,0.65))' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <EquipmentMeta>
+          <EquipmentMetaItem>
             <Home size={13} /> {data.canBePerformedAtHome ? 'Home-friendly' : 'Gym required'}
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          </EquipmentMetaItem>
+          <EquipmentMetaItem>
             <Star size={13} /> {data.experiencePointsEarned} XP
-          </span>
-        </div>
+          </EquipmentMetaItem>
+        </EquipmentMeta>
       </Section>
     </div>
   );

@@ -17,16 +17,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { 
-  Users, UserPlus, CreditCard, Calendar, TrendingUp, 
-  AlertTriangle, CheckCircle, Plus, Minus, RefreshCw,
-  Search, Filter, Download, Eye, Edit, Clock
+  Users, CreditCard, Calendar,
+  AlertTriangle, CheckCircle, Plus, RefreshCw,
+  Filter, Download, Eye
 } from 'lucide-react';
 
 // Import services
 import sessionService from '../../services/sessionService';
-import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/use-toast';
 
 // ==================== INTERFACES ====================
@@ -43,6 +42,15 @@ interface Client {
   createdAt: string;
 }
 
+interface SessionClientResponse {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  availableSessions?: number;
+  createdAt?: string;
+}
+
 interface SessionSummary {
   userId: number;
   available: number;
@@ -57,6 +65,10 @@ interface SessionAllocationManagerProps {
 }
 
 // ==================== STYLED COMPONENTS ====================
+
+const allocationSpin = keyframes`
+  to { transform: rotate(360deg); }
+`;
 
 const Container = styled(motion.div)`
   background: var(--glass-bg, rgba(10, 14, 26, 0.7));
@@ -116,7 +128,7 @@ const SearchInput = styled.input`
   }
 `;
 
-const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
+const Button = styled.button.attrs({ type: 'button' })<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   border: none;
@@ -333,6 +345,24 @@ const IconButton = styled.button`
   }
 `;
 
+const LoadingCenter = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+`;
+
+const LoadingRefresh = styled(RefreshCw)`
+  animation: ${allocationSpin} 1s linear infinite;
+  color: #3b82f6;
+`;
+
+const EmptyState = styled.div`
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
 const Modal = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -408,10 +438,13 @@ const ModalContent = styled(motion.div)`
   }
 `;
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  return error instanceof Error ? error.message : fallback;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onSessionCountChange }) => {
-  const { user } = useAuth();
   const { toast } = useToast();
   
   // State
@@ -423,21 +456,16 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
   const [addSessionCount, setAddSessionCount] = useState(1);
   const [addSessionReason, setAddSessionReason] = useState('');
   
-  // Load data on mount
-  useEffect(() => {
-    loadClientSessionData();
-  }, []);
-  
-  const loadClientSessionData = async () => {
+  const loadClientSessionData = useCallback(async () => {
     try {
       setLoading(true);
       
       // Get all clients first
-      const clientsResponse = await sessionService.getClients();
+      const clientsResponse = await sessionService.getClients() as SessionClientResponse[];
       
       // Get session summaries for each client
       const clientsWithSessions = await Promise.all(
-        clientsResponse.map(async (client: any) => {
+        clientsResponse.map(async (client) => {
           try {
             // Get session summary from backend
             const sessionSummaryResponse = await fetch(`/api/sessions/user-summary/${client.id}`, {
@@ -468,7 +496,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               availableSessions: client.availableSessions || 0, // 🚨 CRITICAL: Use client field directly
               totalSessionsPurchased: summary.total,
               sessionsUsed: summary.completed,
-              lastSessionDate: null, // TODO: Get from backend
+              lastSessionDate: undefined, // TODO: Get from backend
               createdAt: client.createdAt || new Date().toISOString()
             };
           } catch (error) {
@@ -481,7 +509,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               availableSessions: client.availableSessions || 0,
               totalSessionsPurchased: 0,
               sessionsUsed: 0,
-              lastSessionDate: null,
+              lastSessionDate: undefined,
               createdAt: client.createdAt || new Date().toISOString()
             };
           }
@@ -499,11 +527,16 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [toast]);
+
+  // Load data on mount
+  useEffect(() => {
+    loadClientSessionData();
+  }, [loadClientSessionData]);
+
   const handleAddSessions = async () => {
     if (!selectedClient) return;
-    
+
     try {
       const response = await fetch('/api/sessions/add-to-user', {
         method: 'POST',
@@ -535,14 +568,14 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
         setAddSessionCount(1);
         setAddSessionReason('');
       } else {
-        const errorData = await response.json();
+        const errorData = await response.json() as { message?: string };
         throw new Error(errorData.message || 'Failed to add sessions');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding sessions:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to add sessions',
+        description: getErrorMessage(error, 'Failed to add sessions'),
         variant: 'destructive'
       });
     }
@@ -574,9 +607,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
   if (loading) {
     return (
       <Container>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-          <RefreshCw size={32} style={{ animation: 'spin 1s linear infinite', color: '#3b82f6' }} />
-        </div>
+        <LoadingCenter>
+          <LoadingRefresh size={32} />
+        </LoadingCenter>
       </Container>
     );
   }
@@ -711,13 +744,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
         ))}
         
         {filteredClients.length === 0 && (
-          <div style={{ 
-            padding: '2rem', 
-            textAlign: 'center', 
-            color: 'rgba(255, 255, 255, 0.6)' 
-          }}>
+          <EmptyState>
             {searchQuery ? 'No clients match your search' : 'No clients found'}
-          </div>
+          </EmptyState>
         )}
       </ClientsTable>
       
@@ -728,13 +757,13 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowAddModal(false)}
+            onPointerDown={() => setShowAddModal(false)}
           >
             <ModalContent
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             >
               <h3>
                 <Plus size={20} />
@@ -742,8 +771,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               </h3>
               
               <div className="form-group">
-                <label>Number of Sessions</label>
+                <label htmlFor="session-allocation-count">Number of Sessions</label>
                 <input
+                  id="session-allocation-count"
                   type="number"
                   min="1"
                   max="50"
@@ -754,8 +784,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               </div>
               
               <div className="form-group">
-                <label>Reason (Optional)</label>
+                <label htmlFor="session-allocation-reason">Reason (Optional)</label>
                 <textarea
+                  id="session-allocation-reason"
                   value={addSessionReason}
                   onChange={(e) => setAddSessionReason(e.target.value)}
                   placeholder="Reason for adding sessions (e.g., Promotional bonus, Refund, etc.)"
