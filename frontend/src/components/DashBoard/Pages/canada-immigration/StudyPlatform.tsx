@@ -339,11 +339,6 @@ const IceHighlight = styled.span`
   font-weight: 700;
 `;
 
-const PurpleHighlight = styled.span`
-  color: #8B5CF6;
-  font-weight: 700;
-`;
-
 /* ── Data Table ── */
 
 const DataTable = styled.div`
@@ -448,11 +443,20 @@ const PointBadge = styled.div`
   margin: 16px 0;
 `;
 
-const PointValue = styled.div`
+type AccentTone = 'ice' | 'gold' | 'purple' | 'green';
+
+const accentToneColor: Record<AccentTone, string> = {
+  ice: '#60C0F0',
+  gold: '#C6A84B',
+  purple: '#8B5CF6',
+  green: '#22c55e',
+};
+
+const PointValue = styled.div<{ $tone?: AccentTone }>`
   font-family: 'Fira Code', monospace;
   font-size: 28px;
   font-weight: 700;
-  color: #60C0F0;
+  color: ${(p) => accentToneColor[p.$tone || 'ice']};
   margin-bottom: 4px;
 `;
 
@@ -564,6 +568,25 @@ const CertProgress = styled.div`
   margin-bottom: 8px;
 `;
 
+const CertHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+`;
+
+const CertFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const CertSessions = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+`;
+
 const CertFill = styled.div<{ $pct: number }>`
   height: 100%;
   width: ${(p) => p.$pct}%;
@@ -616,6 +639,13 @@ const InvestmentLabel = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   color: rgba(224, 236, 244, 0.5);
+`;
+
+const InvestmentFootnote = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+  margin-top: 8px;
 `;
 
 /* ── Study Progression Timeline ── */
@@ -683,6 +713,39 @@ const TimelineActivity = styled.div`
   }
 `;
 
+const LegendRow = styled.div`
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+`;
+
+const LegendItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const LegendDot = styled.div<{ $color: string; $shape?: 'circle' | 'square' }>`
+  width: 10px;
+  height: 10px;
+  border-radius: ${(p) => (p.$shape === 'square' ? '3px' : '50%')};
+  background: ${(p) => p.$color};
+`;
+
+const LegendText = styled.span<{ $compact?: boolean }>`
+  font-family: 'Sora', sans-serif;
+  font-size: ${(p) => (p.$compact ? '11px' : '12px')};
+  color: rgba(224, 236, 244, ${(p) => (p.$compact ? 0.5 : 0.6)});
+`;
+
+const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+`;
+
 /* ── French progression timeline ── */
 
 const FrenchStepCard = styled.div`
@@ -712,6 +775,13 @@ const FrenchStepDetail = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   color: rgba(224, 236, 244, 0.55);
+`;
+
+const FrenchStepActivity = styled.div`
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  color: #E0ECF4;
+  margin-bottom: 4px;
 `;
 
 /* ── Vocab ── */
@@ -819,6 +889,14 @@ const ChartBar = styled.div<{ $height: number; $color: string }>`
   }
 `;
 
+const ChartEmpty = styled.div`
+  text-align: center;
+  padding: 40px 0;
+  color: rgba(224, 236, 244, 0.4);
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+`;
+
 /* ── Log Session Form ── */
 
 const FormRow = styled.div`
@@ -868,6 +946,10 @@ const Input = styled.input`
 
   &:focus { outline: none; border-color: #8B5CF6; }
   &::placeholder { color: rgba(224,236,244,0.3); }
+`;
+
+const StudyNotesInput = styled(Input)`
+  width: 240px;
 `;
 
 const LogButton = styled.button`
@@ -1122,9 +1204,7 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
                 <FrenchStepHeader>
                   <FrenchStepPeriod>{step.months}</FrenchStepPeriod>
                 </FrenchStepHeader>
-                <div style={{ fontFamily: "'Sora', sans-serif", fontSize: 13, color: '#E0ECF4', marginBottom: 4 }}>
-                  {step.activity}
-                </div>
+                <FrenchStepActivity>{step.activity}</FrenchStepActivity>
                 <FrenchStepDetail>{step.detail}</FrenchStepDetail>
               </FrenchStepCard>
             ))}
@@ -1247,14 +1327,9 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
             <InvestmentSummary>
               <InvestmentValue>$415 - $615</InvestmentValue>
               <InvestmentLabel>Total investment for 3 solid certifications</InvestmentLabel>
-              <div style={{
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 12,
-                color: 'rgba(224,236,244,0.5)',
-                marginTop: 8,
-              }}>
+              <InvestmentFootnote>
                 Do in parallel with IELTS/French during evenings/weekends
-              </div>
+              </InvestmentFootnote>
             </InvestmentSummary>
           </GlassCard>
 
@@ -1262,9 +1337,9 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
           <SectionGrid>
             {certProgress.map((cert) => (
               <CertCard key={cert.name}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                <CertHeader>
                   <CertName>{cert.num === 0 ? '(Optional) ' : `${cert.num}. `}{cert.name}</CertName>
-                </div>
+                </CertHeader>
                 <CertPlatform>{cert.platform}</CertPlatform>
                 <CertMeta>
                   <CertMetaItem><DollarSign /> {cert.cost}</CertMetaItem>
@@ -1282,14 +1357,12 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
                 <CertProgress>
                   <CertFill $pct={cert.pct} />
                 </CertProgress>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 12, color: 'rgba(224,236,244,0.5)' }}>
-                    {cert.sessions} sessions logged
-                  </span>
+                <CertFooter>
+                  <CertSessions>{cert.sessions} sessions logged</CertSessions>
                   <CertLink href={cert.link} target="_blank" rel="noopener noreferrer">
                     Open platform <ExternalLink />
                   </CertLink>
-                </div>
+                </CertFooter>
               </CertCard>
             ))}
           </SectionGrid>
@@ -1320,36 +1393,34 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
           </TimelineContainer>
 
           {/* Legend */}
-          <div style={{ display: 'flex', gap: 20, marginTop: 20, flexWrap: 'wrap' }}>
+          <LegendRow>
             {[
               { label: 'IELTS / English', color: '#60C0F0' },
               { label: 'AI Certifications', color: '#8B5CF6' },
               { label: 'French / TEF', color: '#C6A84B' },
             ].map((l) => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: l.color }} />
-                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 12, color: 'rgba(224,236,244,0.6)' }}>
-                  {l.label}
-                </span>
-              </div>
+              <LegendItem key={l.label}>
+                <LegendDot $color={l.color} />
+                <LegendText>{l.label}</LegendText>
+              </LegendItem>
             ))}
-          </div>
+          </LegendRow>
 
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 20 }}>
+          <SummaryGrid>
             <PointBadge>
-              <PointValue style={{ color: '#60C0F0' }}>136 CRS</PointValue>
+              <PointValue $tone="ice">136 CRS</PointValue>
               <PointLabel>IELTS CLB 9 (English)</PointLabel>
             </PointBadge>
             <PointBadge>
-              <PointValue style={{ color: '#C6A84B' }}>+50 CRS</PointValue>
+              <PointValue $tone="gold">+50 CRS</PointValue>
               <PointLabel>French NCLC 7</PointLabel>
             </PointBadge>
             <PointBadge>
-              <PointValue style={{ color: '#8B5CF6' }}>0 CRS</PointValue>
+              <PointValue $tone="purple">0 CRS</PointValue>
               <PointLabel>AI Certs (job readiness)</PointLabel>
             </PointBadge>
-          </div>
+          </SummaryGrid>
         </GlassCard>
       )}
 
@@ -1364,24 +1435,24 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
               ))}
             </ChartContainer>
           ) : (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: 'rgba(224,236,244,0.4)', fontFamily: "'Sora', sans-serif", fontSize: 14 }}>
+            <ChartEmpty>
               No study sessions logged yet. Use the form below to start tracking.
-            </div>
+            </ChartEmpty>
           )}
 
-          <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
+          <LegendRow>
             {[
               { label: 'IELTS', color: '#60C0F0' },
               { label: 'French', color: '#C6A84B' },
               { label: 'AI Cert', color: '#8B5CF6' },
               { label: 'Other', color: '#22c55e' },
             ].map((l) => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 3, background: l.color }} />
-                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 11, color: 'rgba(224,236,244,0.5)' }}>{l.label}</span>
-              </div>
+              <LegendItem key={l.label}>
+                <LegendDot $color={l.color} $shape="square" />
+                <LegendText $compact>{l.label}</LegendText>
+              </LegendItem>
             ))}
-          </div>
+          </LegendRow>
         </GlassCard>
       )}
 
@@ -1409,12 +1480,11 @@ const StudyPlatform: React.FC<Props> = ({ studySessions, addStudySession }) => {
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="study-notes">Notes (optional)</Label>
-            <Input
+            <StudyNotesInput
               id="study-notes"
               placeholder="What did you study?"
               value={logNotes}
               onChange={(e) => setLogNotes(e.target.value)}
-              style={{ width: 240 }}
             />
           </FieldGroup>
           <LogButton onClick={handleLog} disabled={submitting}>
