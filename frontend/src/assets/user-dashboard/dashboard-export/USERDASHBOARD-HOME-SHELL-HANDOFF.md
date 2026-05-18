@@ -4,6 +4,20 @@
 
 This handoff covers `userdashboard-home-shell-prototype.html`, a continuation prototype for the existing UserDashboard V3 / Crystalline Creator Observatory direction. It does not redesign the dashboard from scratch. Home is the primary high-fidelity surface; Community, Reels, Progress, Profile, Workouts, and Rewards are represented as shared-shell extensions to prove the system can scale without replacing every tab in the first pass.
 
+## Button Consolidation Update
+
+The latest prototype pass intentionally reduces duplicate controls that previously led to the same destination or action.
+
+- Desktop destination navigation lives only in the left rail.
+- Mobile destination navigation lives only in the bottom nav.
+- Quick Post owns the create-post flow; the side-rail Create Post duplicate was removed.
+- The Reels spotlight is a content module; its duplicate Create Reel destination button was removed.
+- The former lens selector row was removed because it duplicated left-rail and bottom-nav destinations.
+- Right-rail `View all` / `View` buttons were replaced with state labels such as `5 stories`, `3 updates`, `+12 earned`, `78%`, and `3 tags`.
+- Quick Post now has one Add Media button; the duplicate inline media icon was removed.
+
+Production port rule: do not reintroduce a second button for the same job unless it is hidden at the same breakpoint where the canonical control is visible.
+
 Primary references used:
 
 - `OPEN-DESIGN-USERDASHBOARD-GO-PROMPT.md`
@@ -20,22 +34,22 @@ Primary references used:
 - `open-design-reference-pack-2026-05-14/production-context/frontend/src/components/UserDashboard/components/HomeTab.tsx`
 - `open-design-reference-pack-2026-05-14/production-context/frontend/src/components/UserDashboard/components/ObservatoryShell.tsx`
 - `open-design-reference-pack-2026-05-14/production-context/frontend/src/components/UserDashboard/components/ObservatoryShellAdapter.ts`
-- `open-design-reference-pack-2026-05-14/production-context/frontend/src/components/UserDashboard/components/ObservatoryMobileNav.tsx`
+- `open-design-reference-pack-2026-05-14/production-context/frontend/src/components/UserDashboard/components/ObservatoryMobileNav.tsx` (historical reference only; do not port back into runtime)
 
 ## Component Map
 
 | Prototype area | Production target | Notes |
 | --- | --- | --- |
-| App shell grid | `ObservatoryShell`, `HomeTab` | Desktop uses left rail, center column, right rail. Mobile hides desktop rails and uses bottom nav. |
-| Left navigation | `HomeTabVisionLeftRail`, `ObservatoryLeftRail` | Home-first nav includes Home, Reels, Community, Progress, Profile, Workouts, Rewards as prototype extension targets. Production adapter currently exposes Home, Feed, Progress, Community, Profile. |
+| App shell grid | `ObservatoryShell`, `HomeTab` | Desktop uses left rail, center column, right rail. Mobile relies on the wrapped sticky tab navigation; the old bottom nav is retired. |
+| Left navigation | `HomeTabVisionLeftRail`, `ObservatoryLeftRail` | Home-first nav includes Home, Feed, Reels, Creative, Photos, About, Activity, Nutrition, Progress, Community, Profile. Do not add duplicate destination buttons inside cards. |
 | Top utility row | `HomeTabVisionCenter`, profile/header utility actions | Search, messages, notifications, XP pill are visual shell cues only in the prototype. Wire only to proven production routes/actions. |
 | Hero profile/banner | `HomeTabVisionCenter`, `UserDashboardProfileHeaderV3` | Preserves avatar ring, level hex, tier chip, stats, edit/share/settings actions. |
-| Lens selector | `HomeTabVisionCenter` | Reels, Feed, Creative, Photos, Activity, Training switch active shell context. |
-| Reels spotlight | `HomeTabVisionCenter` | High-fidelity Home module with play CTA and Create Reel action. |
+| Home focus selector | `HomeTabVisionCenter` | Removed from the accepted prototype because it duplicated dashboard destination navigation. If production keeps a similar strip, make it non-navigational status content or hide the duplicate destination controls. |
+| Reels spotlight | `HomeTabVisionCenter` | High-fidelity Home module with play CTA only. Do not add a second Reels destination button inside this card. |
 | Quick Post | `HomeTabVisionCenter` and `useCreatePost` flow | Prototype stages a draft locally; production should use `buildHomePostPayload` and `useCreatePost`. |
 | Feed post preview | `HomeTabVisionCenter` / social feed card | Local preview updates when a draft is staged. |
 | Right rail widgets | `HomeTabVisionRightRail`, `ObservatoryRightRail` | Stories, activity, challenge, badges, leaderboard, momentum, trending remain modular cards. |
-| Mobile bottom nav | `HomeTabVisionCards.styles`, `ObservatoryMobileNav` | Prototype uses Home, Reels, Create, Progress, Profile. It avoids a fake Inbox route. |
+| Mobile bottom nav | retired | Historical prototype only. Runtime uses sticky tabs and desktop left rail; do not reintroduce a second mobile destination nav. |
 
 ## Styled-Components Plan
 
@@ -71,6 +85,7 @@ Production guardrails:
 - Keep all mobile nav items at 44px minimum touch target.
 - Do not add Inbox unless a canonical route is proven.
 - Keep Create central and thumb-reachable.
+- Do not duplicate mobile nav destinations with separate in-page buttons on the same viewport.
 - At widths `300`, `332`, `390`, and `430px`, hide desktop rails, keep cards single-column, and prevent horizontal overflow.
 
 ## Mock / Live-Ready Data Contracts

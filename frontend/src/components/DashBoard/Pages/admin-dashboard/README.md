@@ -24,11 +24,7 @@ The Enhanced Admin Dashboard is a comprehensive command center for the SwanStudi
 - **Status:** Archived as an unmounted legacy panel during the 2026-05 cleanup. Rebuild against real endpoints before remounting.
 
 ### 🤖 AI Monitoring Panel
-- **Model Performance Tracking**: Real-time AI model metrics
-- **Accuracy Monitoring**: Performance trends and alerts
-- **Optimization Recommendations**: AI-driven suggestions for improvement
-- **Resource Utilization**: GPU and CPU usage monitoring
-- **Model Versioning**: Track different model versions and their performance
+- **Status:** Archived as an unmounted legacy panel during the 2026-05 frontend cleanup. Rebuild against real mounted admin observability endpoints before remounting.
 
 ### 🔒 Security Monitoring Panel
 - **Status:** Archived as an unmounted legacy panel during the 2026-05 cleanup. Rebuild against real endpoints before remounting.
@@ -44,7 +40,6 @@ admin-dashboard/
 ├── admin-dashboard-view.tsx          # Main dashboard component
 ├── components/
 │   ├── RevenueAnalyticsPanel.tsx     # Financial analytics
-│   ├── AIMonitoringPanel.tsx         # AI/ML monitoring
 ├── index.ts                          # Component exports
 └── README.md                         # This documentation
 ```
