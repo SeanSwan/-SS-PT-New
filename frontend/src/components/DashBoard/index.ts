@@ -26,15 +26,6 @@ export { default as AdminGamificationView } from './Pages/admin-gamification/adm
 // Navigation Components
 export { default as AdminStellarSidebar } from './Pages/admin-dashboard/AdminStellarSidebar';
 
-// Management Sections (All Production Ready)
-export {
-  ClientsManagementSection,
-  PackagesManagementSection,
-  ContentModerationSection,
-  NotificationsSection,
-  AdminSettingsSection
-} from './Pages/admin-dashboard/sections';
-
 // === ANALYTICS & BUSINESS INTELLIGENCE ===
 export { default as RevenueAnalyticsPanel } from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 export { default as PendingOrdersAdminPanel } from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';

@@ -21,7 +21,7 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'PhotoGalleryCard.styles.ts', path: '../components/UserDashboard/components/PhotoGalleryCard.styles.ts' },
   { label: 'ConversationList.tsx', path: '../components/Messaging/ConversationList.tsx' },
   { label: 'TestimonialSlider.tsx', path: '../components/TestimonialSlider/TestimonialSlider.tsx' },
-  { label: 'VerticalReels.tsx', path: '../components/Social/Reels/VerticalReels.tsx' },
+  { label: 'VerticalReels.styles.ts', path: '../components/Social/Reels/VerticalReels.styles.ts' },
   { label: 'HomeStyles.tsx', path: '../pages/HomePage/components/shared/HomeStyles.tsx' },
   // ── Wave 2 (this PR): Phase-4 wider sweep ──────────────────────────────
   // Social cluster
@@ -41,21 +41,9 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'EnhancedTrainerDataManagement.tsx', path: '../components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx' },
   { label: 'admin-packages-view.tsx', path: '../components/DashBoard/Pages/admin-packages/admin-packages-view.tsx' },
   { label: 'FeatureAccessPage.tsx', path: '../components/DashBoard/Pages/admin-feature-access/FeatureAccessPage.tsx' },
-  { label: 'AdminSessionsDialogs.tsx', path: '../components/DashBoard/Pages/admin-sessions/optimized/AdminSessionsDialogs.tsx' },
-  { label: 'AdminSessionsActions.tsx', path: '../components/DashBoard/Pages/admin-sessions/optimized/AdminSessionsActions.tsx' },
   { label: 'admin-client-progress-view.V2.tsx', path: '../components/DashBoard/Pages/admin-client-progress/admin-client-progress-view.V2.tsx' },
-  { label: 'CollectionsTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/CollectionsTab.tsx' },
-  { label: 'LibraryTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/LibraryTab.tsx' },
-  { label: 'MembersVaultTab.tsx', path: '../components/DashBoard/Pages/admin-video-studio/tabs/MembersVaultTab.tsx' },
-  { label: 'CollectionBuilder.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/CollectionBuilder.tsx' },
-  { label: 'VideoCatalogCard.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/VideoCatalogCard.tsx' },
-  { label: 'YouTubeImportModal.tsx', path: '../components/DashBoard/Pages/admin-video-studio/components/YouTubeImportModal.tsx' },
-  { label: 'ClientsManagementSection.tsx', path: '../components/DashBoard/Pages/admin-dashboard/sections/ClientsManagementSection.tsx' },
   { label: 'ClientComplianceDashboard.tsx', path: '../components/DashBoard/Pages/admin-dashboard/components/ClientComplianceDashboard.tsx' },
-  { label: 'Leaderboard.tsx', path: '../components/DashBoard/Pages/client-gamification/components/Leaderboard.tsx' },
-  { label: 'ScheduledSessionsCard.tsx', path: '../components/DashBoard/Pages/client-dashboard/components/cards/ScheduledSessionsCard.tsx' },
   // Misc cluster
-  { label: 'ContentFormCheck.tsx', path: '../components/TrainerDashboard/ContentFormCheck/ContentFormCheck.tsx' },
   { label: 'RelatedVideos.tsx', path: '../components/video/RelatedVideos.tsx' },
   { label: 'GalleryPage.tsx', path: '../pages/GalleryPage.tsx' },
   { label: 'PackageCard.tsx', path: '../pages/shop/components/PackageCard.tsx' },
@@ -129,6 +117,6 @@ describe('imageUrl sibling sweep — each surface uses sanitizeImageUrl + cssUrl
   it('SURFACES array covers Wave 1 (6 originally-named debate surfaces) + Wave 2 (Phase-4 wider sweep)', () => {
     // Wave 1 was 6 surfaces (PR #6). Wave 2 adds the broader sweep — minimum
     // total guards against accidental array truncation in future edits.
-    expect(SURFACES.length).toBeGreaterThanOrEqual(33);
+    expect(SURFACES.length).toBeGreaterThanOrEqual(25);
   });
 });

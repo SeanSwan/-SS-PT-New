@@ -115,13 +115,19 @@ const FilterSelect = styled.select`
   }
 `;
 
-const CommandButton = styled(motion.button)`
+const CommandButton = styled(motion.button)<{ $variant?: 'default' | 'success' | 'neutral' }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: ${({ $variant }) => {
+    if ($variant === 'success') return 'linear-gradient(45deg, #10b981 0%, #60C0F0 100%)';
+    if ($variant === 'neutral') return 'rgba(255, 255, 255, 0.1)';
+    return 'linear-gradient(45deg, #3b82f6 0%, #60C0F0 100%)';
+  }};
+  border: 1px solid ${({ $variant }) => (
+    $variant === 'neutral' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(59, 130, 246, 0.3)'
+  )};
   border-radius: 8px;
   color: #ffffff;
   font-weight: 600;
@@ -377,6 +383,62 @@ const LoadingSpinner = styled(motion.div)`
   height: 200px;
   font-size: 1.1rem;
   color: rgba(255, 255, 255, 0.7);
+`;
+
+const LoadingIcon = styled(RefreshCw)`
+  margin-right: 1rem;
+`;
+
+const ErrorIcon = styled(AlertTriangle)`
+  margin-bottom: 0.5rem;
+`;
+
+const SearchFieldShell = styled.div`
+  position: relative;
+  flex: 1;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const UserHeaderLeft = styled.div`
+  display: flex;
+  align-items: flex-start;
+`;
+
+const UserFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const StatusText = styled.span<{ $active?: boolean }>`
+  color: ${({ $active }) => ($active ? '#10b981' : '#ef4444')};
+`;
+
+const EmptyUsersState = styled(motion.div)`
+  text-align: center;
+  padding: 3rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const EmptyUsersIcon = styled(Users)`
+  margin-bottom: 1rem;
+  opacity: 0.5;
+`;
+
+const ClientPasswordHint = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 0.5rem;
 `;
 
 const ModalOverlay = styled(motion.div)`
@@ -767,7 +829,7 @@ const UsersManagementSection: React.FC = () => {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
-          <RefreshCw size={32} color="#60C0F0" style={{ marginRight: '1rem' }} />
+          <LoadingIcon size={32} color="#60C0F0" />
           Loading users...
         </LoadingSpinner>
       </ManagementContainer>
@@ -778,10 +840,10 @@ const UsersManagementSection: React.FC = () => {
     return (
       <ManagementContainer>
         <ErrorMessage>
-          <AlertTriangle size={24} style={{ marginBottom: '0.5rem' }} />
+          <ErrorIcon size={24} />
           <div>{error}</div>
           <CommandButton
-            style={{ marginTop: '1rem' }}
+            $variant="neutral"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={fetchUsers}
@@ -827,7 +889,7 @@ const UsersManagementSection: React.FC = () => {
         transition={{ duration: 0.5, delay: 0.1 }}
       >
         <SearchContainer>
-          <div style={{ position: 'relative', flex: 1 }}>
+          <SearchFieldShell>
             <SearchIcon>
               <Search size={16} />
             </SearchIcon>
@@ -837,7 +899,7 @@ const UsersManagementSection: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </SearchFieldShell>
           
           <FilterSelect
             value={roleFilter}
@@ -859,12 +921,12 @@ const UsersManagementSection: React.FC = () => {
           </FilterSelect>
         </SearchContainer>
         
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <ButtonRow>
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddClientModal(true)}
-            style={{ background: 'linear-gradient(45deg, #10b981 0%, #60C0F0 100%)' }}
+            $variant="success"
           >
             <UserPlus size={16} />
             Add Client
@@ -885,7 +947,7 @@ const UsersManagementSection: React.FC = () => {
             <Download size={16} />
             Export
           </CommandButton>
-        </div>
+        </ButtonRow>
       </ActionBar>
 
       {/* Users Grid */}
@@ -901,7 +963,7 @@ const UsersManagementSection: React.FC = () => {
               whileHover={{ scale: 1.02 }}
             >
               <UserHeader>
-                <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                <UserHeaderLeft>
                   <UserAvatar>
                     {getUserInitials(user.firstName, user.lastName)}
                   </UserAvatar>
@@ -912,7 +974,7 @@ const UsersManagementSection: React.FC = () => {
                       {user.role}
                     </UserRole>
                   </UserInfo>
-                </div>
+                </UserHeaderLeft>
                 
                 <ActionMenu>
                   <ActionButton
@@ -994,44 +1056,30 @@ const UsersManagementSection: React.FC = () => {
                 </StatItem>
               </UserStats>
               
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.6)',
-                marginTop: '1rem',
-                paddingTop: '1rem',
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-              }}>
+              <UserFooter>
                 <span>Joined: {formatDate(user.createdAt)}</span>
                 <span>
                   Status: {user.isActive ? (
-                    <span style={{ color: '#10b981' }}>Active</span>
+                    <StatusText $active>Active</StatusText>
                   ) : (
-                    <span style={{ color: '#ef4444' }}>Inactive</span>
+                    <StatusText>Inactive</StatusText>
                   )}
                 </span>
-              </div>
+              </UserFooter>
             </UserCard>
           ))}
         </AnimatePresence>
       </UsersGrid>
       
       {filteredUsers.length === 0 && !loading && (
-        <motion.div
+        <EmptyUsersState
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          style={{
-            textAlign: 'center',
-            padding: '3rem',
-            color: 'rgba(255, 255, 255, 0.6)'
-          }}
         >
-          <Users size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+          <EmptyUsersIcon size={48} />
           <h3>No users found</h3>
           <p>Try adjusting your search or filters</p>
-        </motion.div>
+        </EmptyUsersState>
       )}
 
       {/* Add Client Modal */}
@@ -1041,13 +1089,23 @@ const UsersManagementSection: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowAddClientModal(false)}
+            role="button"
+            tabIndex={0}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setShowAddClientModal(false);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setShowAddClientModal(false);
+              }
+            }}
           >
             <ModalContent
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
             >
               <ModalTitle>
                 <UserPlus size={24} color="#60C0F0" />
@@ -1055,8 +1113,9 @@ const UsersManagementSection: React.FC = () => {
               </ModalTitle>
 
               <FormField>
-                <FormLabel>First Name *</FormLabel>
+                <FormLabel htmlFor="new-client-first-name">First Name *</FormLabel>
                 <FormInput
+                  id="new-client-first-name"
                   type="text"
                   placeholder="First name"
                   value={newClient.firstName}
@@ -1065,8 +1124,9 @@ const UsersManagementSection: React.FC = () => {
               </FormField>
 
               <FormField>
-                <FormLabel>Last Name *</FormLabel>
+                <FormLabel htmlFor="new-client-last-name">Last Name *</FormLabel>
                 <FormInput
+                  id="new-client-last-name"
                   type="text"
                   placeholder="Last name"
                   value={newClient.lastName}
@@ -1075,8 +1135,9 @@ const UsersManagementSection: React.FC = () => {
               </FormField>
 
               <FormField>
-                <FormLabel>Email *</FormLabel>
+                <FormLabel htmlFor="new-client-email">Email *</FormLabel>
                 <FormInput
+                  id="new-client-email"
                   type="email"
                   placeholder="client@example.com"
                   value={newClient.email}
@@ -1085,8 +1146,9 @@ const UsersManagementSection: React.FC = () => {
               </FormField>
 
               <FormField>
-                <FormLabel>Phone</FormLabel>
+                <FormLabel htmlFor="new-client-phone">Phone</FormLabel>
                 <FormInput
+                  id="new-client-phone"
                   type="tel"
                   placeholder="(optional)"
                   value={newClient.phone}
@@ -1095,8 +1157,9 @@ const UsersManagementSection: React.FC = () => {
               </FormField>
 
               <FormField>
-                <FormLabel>Password</FormLabel>
+                <FormLabel htmlFor="new-client-password">Password</FormLabel>
                 <FormInput
+                  id="new-client-password"
                   type="text"
                   placeholder="Default: ***REDACTED-USER-PW***"
                   value={newClient.password}
@@ -1104,9 +1167,9 @@ const UsersManagementSection: React.FC = () => {
                 />
               </FormField>
 
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.5rem' }}>
+              <ClientPasswordHint>
                 Client will be prompted to change password on first login.
-              </div>
+              </ClientPasswordHint>
 
               <ModalActions>
                 <CommandButton
@@ -1116,7 +1179,7 @@ const UsersManagementSection: React.FC = () => {
                     setShowAddClientModal(false);
                     setNewClient({ firstName: '', lastName: '', email: '', phone: '', password: '' });
                   }}
-                  style={{ background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                  $variant="neutral"
                 >
                   Cancel
                 </CommandButton>
@@ -1125,7 +1188,7 @@ const UsersManagementSection: React.FC = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddClient}
                   disabled={addingClient || !newClient.firstName || !newClient.lastName || !newClient.email}
-                  style={{ background: 'linear-gradient(45deg, #10b981 0%, #60C0F0 100%)' }}
+                  $variant="success"
                 >
                   <UserPlus size={16} />
                   {addingClient ? 'Creating...' : 'Create Client'}
