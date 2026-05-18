@@ -39,6 +39,7 @@ export * from './gamification';
 // Services interface
 export interface Services {
   sessionService: typeof sessionService;
+  session: typeof sessionService;
   yoloAnalysis: typeof YoloAnalysisService;
   clientProgress: ReturnType<typeof createClientProgressService>;
   enhancedProgressAnalytics: ReturnType<typeof createEnhancedProgressAnalyticsService>;
@@ -48,6 +49,7 @@ export interface Services {
 export const createServices = (axiosInstance: typeof axios): Services => {
   return {
     sessionService: sessionService,
+    session: sessionService,
     yoloAnalysis: YoloAnalysisService,
     clientProgress: createClientProgressService(axiosInstance),
     enhancedProgressAnalytics: createEnhancedProgressAnalyticsService(axiosInstance)
@@ -57,6 +59,7 @@ export const createServices = (axiosInstance: typeof axios): Services => {
 // Centralized export of all services (ORIGINAL - DO NOT MODIFY)
 const services = {
   sessionService: sessionService,
+  session: sessionService,
   yoloAnalysis: YoloAnalysisService
 };
 

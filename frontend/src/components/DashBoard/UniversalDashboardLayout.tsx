@@ -117,14 +117,11 @@ const AdminViewAsWrapper = React.lazy(() => import('./Pages/admin-clients/compon
 
 // Client dashboard pages (replacing stubs)
 const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));
-// ClientHomeTab replaces ClientOverviewPage at /overview — same route, new component.
-// ClientOverviewPage kept as a fallback import but no longer the default.
+// ClientHomeTab is the canonical /overview route.
 const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHomeTab'));
-const ClientOverviewPage = React.lazy(() => import('./Pages/client-dashboard/ClientOverviewPage'));
 const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/ClientProfilePage'));
 const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
 const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));
-const ClientWorkoutForgePage = React.lazy(() => import('./Pages/client-dashboard/ClientWorkoutForgePage'));
 const BodyMapPage = React.lazy(() => import('../BodyMap'));
 
 // Trainer dashboard pages
@@ -474,7 +471,7 @@ const ClientProgressDashboardPage = React.lazy(
 // Wrapper component for detailed NASM analytics — kept for deep-link access
 const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
-  return <NASMProgressCharts clientId={user?.id || 0} />;
+  return <NASMProgressCharts clientId={Number(user?.id || 0)} />;
 };
 
 const ADMIN_PLAUD_COMMAND_CENTER_PATH = '/dashboard/admin/coach-assistant?workspace=plaud';
@@ -493,7 +490,7 @@ const AdminPlaudCommandCenterRedirect: React.FC = () => {
 interface RoleConfig {
   routes: Array<{
     path: string;
-    component: React.ComponentType;
+    component: React.ComponentType<any>;
     title: string;
     description: string;
   }>;
@@ -623,6 +620,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
   client: {
     routes: [
       { path: '/overview', component: ClientHomeTab, title: 'Home', description: 'Your fitness journey hub' },
+      { path: '/overview/:tab', component: ClientHomeTab, title: 'Home', description: 'Your fitness journey hub' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
       { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },
@@ -821,7 +819,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
 
   if (isLoading) {
     return (
-      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole } as any}>
         <UniversalGlobalStyles />
         <UniversalLayoutContainer>
           <LoadingState />
@@ -832,7 +830,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
 
   if (error) {
     return (
-      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole } as any}>
         <UniversalGlobalStyles />
         <UniversalLayoutContainer>
           <ErrorState />
@@ -843,7 +841,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
 
   return (
     <GlobalClientProvider>
-      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole }}>
+      <ThemeProvider theme={{ ...universalTheme, currentRole: activeRole } as any}>
         <UniversalGlobalStyles />
         <UniversalLayoutContainer>
           {/* Role-specific Stellar Sidebar */}

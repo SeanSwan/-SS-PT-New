@@ -4,6 +4,7 @@
  */
 import React, { Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
 
 // Layout and Error Handling
 import Layout from '../components/Layout/layout';
@@ -11,40 +12,41 @@ import ErrorBoundary from './error-boundary';
 
 // Route Protection Components
 import ProtectedRoute from './protected-route';
-import { DashboardWrapper } from '../components/DashboardWrapper';
 
 // Custom Routes
 import DebugRoutes from './debug-routes';
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 
-// Loading Component for Code Splitting
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const LoaderShell = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  background: var(--bg-base, #0A0A0F);
+  color: var(--text-primary, #E0ECF4);
+`;
+
+const LoaderSpinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 4px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent-primary, #60C0F0);
+  animation: ${spin} 1s linear infinite;
+`;
+
 const PageLoader: React.FC = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '50vh',
-    background: 'var(--bg-base, #0A0A0F)',
-    color: 'white'
-  }}>
-    <div style={{
-      border: '4px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '50%',
-      borderTop: '4px solid #60C0F0',
-      width: '50px',
-      height: '50px',
-      animation: 'spin 1s linear infinite'
-    }}>
-    </div>
-  </div>
+  <LoaderShell>
+    <LoaderSpinner />
+  </LoaderShell>
 );
 
 // Lazy-loaded Components
-const ClientOnboardingWizard = lazyLoadWithErrorHandling(
-  () => import('../pages/onboarding/ClientOnboardingWizard'),
-  'Client Onboarding Wizard'
-);
-
 // v4.0 HOMEPAGE: Gemini 3.1 Pro cinematic redesign — parallax, weighted motion, glassmorphism
 // Falls back to V3 (Claude's version) if V4 fails to load
 const HomePage = lazyLoadWithErrorHandling(
@@ -140,12 +142,6 @@ const CheckoutView = lazyLoadWithErrorHandling(
   'Genesis Checkout'
 );
 
-// Crystalline Swan Theme Showcase
-const SwanBrandShowcase = lazyLoadWithErrorHandling(
-  () => import('../components/SwanBrandShowcase.component'),
-  'Swan Brand Theme Showcase'
-);
-
 // All testing routes now redirect to main production store
 // No need for separate testing components
 const ProductDetail = lazyLoadWithErrorHandling(
@@ -204,11 +200,6 @@ const UnauthorizedPage = lazyLoadWithErrorHandling(
 );
 
 // Schedule Related Components - Emergency fallback retained, primary component activated
-const EmergencyAdminScheduleIntegration = lazyLoadWithErrorHandling(
-  () => import('../components/UniversalMasterSchedule/EmergencyAdminScheduleIntegration'),
-  'Emergency Admin Schedule Integration'
-);
-
 // Primary schedule component — switched from emergency placeholder 2026-02-14
 const UniversalMasterSchedule = lazyLoadWithErrorHandling(
   () => import('../components/UniversalMasterSchedule/UniversalMasterSchedule'),
@@ -233,7 +224,7 @@ const SubscriptionSuccessPage = lazyLoadWithErrorHandling(
 
 // Protected Pages
 const EmergencyDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/EmergencyDashboard'),
+  () => import('../components/Emergency/EmergencyDashboard'),
   'Emergency Dashboard'
 );
 const WorkoutDashboard = lazyLoadWithErrorHandling(
@@ -255,10 +246,6 @@ const PlaudMergePage = lazyLoadWithErrorHandling(
 const TheAestheticCodex = lazyLoadWithErrorHandling(
   () => import('../core/TheAestheticCodex'),
   'The Aesthetic Codex'
-);
-const TrainerDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/TrainerDashboard/TrainerDashboard'),
-  'Trainer Dashboard'
 );
 const AdvancedGamificationPage = lazyLoadWithErrorHandling(
   () => import('../pages/AdvancedGamificationPage'),
@@ -285,7 +272,7 @@ const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
       () => import('../pages/DesignPlayground/DesignPlaygroundLayout'),
       'Design Playground Viewer'
     )
-  : null;
+  : (() => null);
 
 /**
  * Main application routes configuration
@@ -441,14 +428,10 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Crystalline Swan Theme Showcase
+    // Retired theme showcase: keep the URL non-breaking without shipping the old Galaxy reference page.
     {
       path: 'theme-showcase',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanBrandShowcase />
-        </Suspense>
-      )
+      element: <Navigate to="/" replace />
     },
     
     // 🏔️ ASCENSION — Tier comparison / pricing page

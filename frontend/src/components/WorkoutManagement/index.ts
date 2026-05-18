@@ -5,10 +5,6 @@
  * to enable easy importing across the application
  */
 
-// Core Workout Management
-export { default as AdminWorkoutManagement } from './AdminWorkoutManagement';
-export { default as TrainerWorkoutManagement } from '../TrainerDashboard/WorkoutManagement/TrainerWorkoutManagement';
-
 // Shared Components
 export { default as ExerciseLibrary } from './ExerciseLibrary';
 export { default as WorkoutPlanBuilder } from './WorkoutPlanBuilder';

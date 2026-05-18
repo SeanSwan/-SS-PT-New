@@ -11,7 +11,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StyleSheetManager } from 'styled-components';
+import { StyleSheetManager, type ShouldForwardProp } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
@@ -87,11 +87,10 @@ import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer'
 import { logger } from '@/utils/logger';
 
 // Custom shouldForwardProp function to filter out props that cause warnings
-const shouldForwardProp = (prop: string, defaultValidatorFn?: (prop: string) => boolean) => {
+const shouldForwardProp: ShouldForwardProp<'web'> = (prop) => {
   // Filter out common styling props that shouldn't be forwarded to DOM
   const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
-  const isValidProp = typeof defaultValidatorFn === 'function' ? defaultValidatorFn(prop) : true;
-  return isValidProp && !nonDOMProps.includes(prop);
+  return !nonDOMProps.includes(prop);
 };
 
 // Create React Query client
