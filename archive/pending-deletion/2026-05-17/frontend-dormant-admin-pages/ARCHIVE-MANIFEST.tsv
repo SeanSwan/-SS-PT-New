@@ -1,0 +1,7 @@
+source_path	archive_path	decision	proof
+frontend/src/pages/admin/AdminBadgesManagement.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/AdminBadgesManagement.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
+frontend/src/pages/admin/AdminVideoLibrary.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/AdminVideoLibrary.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
+frontend/src/pages/admin/BaselineMeasurementsEntry.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/BaselineMeasurementsEntry.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
+frontend/src/pages/admin/ClientProfile.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/ClientProfile.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
+frontend/src/pages/admin/MovementScreenManager.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/MovementScreenManager.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
+frontend/src/pages/admin/VideoLibraryTest.tsx	archive/pending-deletion/2026-05-17/frontend-dormant-admin-pages/frontend/src/pages/admin/VideoLibraryTest.tsx	safe archive/removal candidate	rg found no active imports outside frontend/src/pages/admin
