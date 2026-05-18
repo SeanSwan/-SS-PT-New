@@ -909,14 +909,15 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
                 notifyClient: actionInputs.notifyClients === 'yes'
               });
               break;
-            case 'reschedule':
+            case 'reschedule': {
               const offsetMinutes = parseInt(actionInputs.timeOffset);
               const newDate = new Date(session.start.getTime() + offsetMinutes * 60000);
               result = await sessionService.updateSession(session.id, {
                 sessionDate: newDate.toISOString()
               });
               break;
-            case 'duplicate':
+            }
+            case 'duplicate': {
               const dayOffset = parseInt(actionInputs.dateOffset);
               const duplicateDate = new Date(session.start.getTime() + dayOffset * 24 * 60 * 60 * 1000);
               result = await sessionService.createSession({
@@ -929,6 +930,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
                 status: 'available'
               });
               break;
+            }
             case 'export':
               // Export would be handled differently, creating a file
               result = { exported: true };
@@ -1138,7 +1140,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
           </div>
         );
 
-      case 2: // Confirm & Execute
+      case 2: { // Confirm & Execute
         const severity = getAlertSeverity(currentConfig.warningLevel);
 
         return (
@@ -1215,8 +1217,9 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
             </CollapsibleContent>
           </div>
         );
+      }
 
-      case 3: // Results
+      case 3: { // Results
         const successCount = results.filter(r => r.success).length;
         const failureCount = results.length - successCount;
 
@@ -1277,6 +1280,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
             </StyledList>
           </div>
         );
+      }
 
       default:
         return null;
