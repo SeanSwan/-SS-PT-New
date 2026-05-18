@@ -67,7 +67,6 @@ const UserDashboardV3: React.FC = () => {
                 activeTab={dashboard.activeTab}
                 profileHeaderVisible={dashboard.activeTab !== 'home'}
                 onTabChange={handleTabChange}
-                onNavigate={dashboard.navigate}
                 observatoryLevel={dashboard.observatoryLevel}
                 observatoryPoints={dashboard.observatoryPoints}
                 observatoryTierName={dashboard.observatoryTierName}
@@ -76,7 +75,6 @@ const UserDashboardV3: React.FC = () => {
                 observatoryStreakDays={dashboard.observatoryStreakDays}
                 topBadges={dashboard.topBadges}
                 navItems={OBSERVATORY_NAV_ITEMS}
-                nextBestActions={dashboard.observatoryNextBest}
               >
                 <UserDashboardTabBarV3
                   activeTab={dashboard.activeTab}
@@ -89,7 +87,7 @@ const UserDashboardV3: React.FC = () => {
                   showRepositionPanel={dashboard.showRepositionPanel}
                   onToggleRepositionPanel={dashboard.toggleRepositionPanel}
                   onBannerPositionChange={dashboard.handleBannerPositionChange}
-                  profile={dashboard.profile}
+                  profile={dashboard.profile as any}
                   displayStats={dashboard.displayStats}
                   topBadges={dashboard.topBadges}
                   level={dashboard.levelProgress?.level}
@@ -141,7 +139,7 @@ const UserDashboardV3: React.FC = () => {
             {dashboard.showEditModal && (
               <Suspense fallback={null}>
                 <EditProfileModal
-                  profile={dashboard.profile}
+                  profile={dashboard.profile as any}
                   onClose={() => dashboard.setShowEditModal(false)}
                   onSave={async (data) => {
                     await dashboard.updateProfile(data);

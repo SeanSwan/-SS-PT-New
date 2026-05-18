@@ -3,16 +3,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import {
-  buildObservatoryNextBestActions,
   getTransformationPhotos,
   getTransformationVisibility,
 } from '../components/ObservatoryShellAdapter';
-import { resetUserDashboardTabScroll } from '../components/UserDashboardTabScroll';
 import type { TabId } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import { isBannerObjectPosition, type BannerObjectPosition } from '../../../services/profileService';
@@ -22,7 +19,6 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function useUserDashboardV3Controller() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const {
     profile,
     stats,
@@ -126,19 +122,14 @@ export function useUserDashboardV3Controller() {
   }, [gamProfile?.data?.achievements]);
 
   const transformationPhotos = useMemo(
-    () => getTransformationPhotos(profile as Record<string, unknown> | null | undefined),
+    () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null | undefined),
     [profile],
   );
 
   const transformationVisibility = useMemo(
-    () => getTransformationVisibility(profile as Record<string, unknown> | null | undefined),
+    () => getTransformationVisibility(profile as unknown as Record<string, unknown> | null | undefined),
     [profile],
   );
-
-  const observatoryNextBest = useMemo(() => buildObservatoryNextBestActions(navigate, (tab) => {
-    setActiveTab(tab);
-    resetUserDashboardTabScroll();
-  }, user?.role), [navigate, user?.role]);
 
   // 2026-05-10 SLICE 1 — AI Village 15-brain Phase-2B consensus + Architecture
   // & Bug Hunter agreement: the prior implementation revoked the optimistic
@@ -274,9 +265,8 @@ export function useUserDashboardV3Controller() {
     observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
     observatoryTierName: levelProgress?.tierDisplay?.name ?? 'Bronze Forge',
     observatoryProgressPct: levelProgress?.progressPercent ?? 0,
-    observatoryXpToNext: levelProgress?.pointsToNextLevel ?? 0,
+    observatoryXpToNext: levelProgress?.pointsNeededForNext ?? 0,
     observatoryStreakDays: gamProfile?.data?.streakDays ?? 0,
-    observatoryNextBest,
     topBadges,
     transformationPhotos,
     transformationVisibility,
@@ -292,7 +282,6 @@ export function useUserDashboardV3Controller() {
     handleEditProfile,
     handleSettings,
     handleShare,
-    navigate,
   };
 }
 
