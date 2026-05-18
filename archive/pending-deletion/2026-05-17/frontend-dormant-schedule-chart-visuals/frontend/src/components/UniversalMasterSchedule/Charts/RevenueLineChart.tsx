@@ -93,6 +93,16 @@ const RevenueLineChart: React.FC<RevenueLineChartProps> = ({
     }
   };
 
+  const chartData = data.length > 0 ? data : [{ date: '', revenue: 0, sessions: 0 }];
+  const maxValue = Math.max(1, ...chartData.map(point => Math.max(point.revenue, point.projected || 0)));
+  const xFor = (index: number) => chartData.length === 1 ? 50 : (index / (chartData.length - 1)) * 100;
+  const yFor = (value: number) => 90 - (value / maxValue) * 72;
+  const revenuePoints = chartData.map((point, index) => `${xFor(index)},${yFor(point.revenue)}`).join(' ');
+  const projectedPoints = chartData
+    .map((point, index) => typeof point.projected === 'number' ? `${xFor(index)},${yFor(point.projected)}` : null)
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -100,77 +110,30 @@ const RevenueLineChart: React.FC<RevenueLineChartProps> = ({
       transition={{ duration: 0.5 }}
       style={{ width: '100%', height }}
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          {/* Gradient definitions */}
-          <defs>
-            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-            </linearGradient>
-            <linearGradient id="projectedGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.2} />
-              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
-            </linearGradient>
-          </defs>
-          
-          {/* Grid */}
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="rgba(255, 255, 255, 0.1)" 
-            vertical={false}
-          />
-          
-          {/* Axes */}
-          <XAxis 
-            dataKey="date" 
-            tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
-            tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            tickFormatter={formatXAxis}
-          />
-          <YAxis 
-            tick={{ fill: 'rgba(255, 255, 255, 0.7)', fontSize: 12 }}
-            tickLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            axisLine={{ stroke: 'rgba(255, 255, 255, 0.2)' }}
-            tickFormatter={formatYAxis}
-          />
-          
-          {/* Tooltip */}
-          <Tooltip content={<CustomTooltip />} />
-          
-          {/* Main revenue area */}
-          <Area
-            type="monotone"
-            dataKey="revenue"
-            stroke="#3b82f6"
-            strokeWidth={3}
-            fill="url(#revenueGradient)"
-            fillOpacity={1}
-            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-            activeDot={{ 
-              r: 6, 
-              fill: '#3b82f6', 
-              stroke: 'white', 
-              strokeWidth: 2,
-              filter: 'drop-shadow(0 0 6px rgba(59, 130, 246, 0.8))'
-            }}
-          />
-          
-          {/* Projected revenue line (if enabled) */}
-          {showProjection && (
-            <Line
-              type="monotone"
-              dataKey="projected"
-              stroke="#f59e0b"
-              strokeWidth={2}
-              strokeDasharray="8 8"
-              dot={false}
-              activeDot={{ r: 4, fill: '#f59e0b' }}
-            />
-          )}
-        </AreaChart>
-      </ResponsiveContainer>
+      <svg viewBox="0 0 100 100" role="img" aria-label="Revenue trend" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        {[18, 36, 54, 72, 90].map(y => (
+          <line key={y} x1="0" x2="100" y1={y} y2={y} stroke="rgba(255, 255, 255, 0.1)" strokeDasharray="3 3" />
+        ))}
+        <polygon points={`0,90 ${revenuePoints} 100,90`} fill="url(#revenueGradient)" />
+        <polyline points={revenuePoints} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {showProjection && projectedPoints && (
+          <polyline points={projectedPoints} fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+        {chartData.map((point, index) => (
+          <circle key={`${point.date}-${index}`} cx={xFor(index)} cy={yFor(point.revenue)} r="2.8" fill="#3b82f6">
+            <title>{`${formatXAxis(point.date)}: ${formatYAxis(point.revenue)}`}</title>
+          </circle>
+        ))}
+        <text x="0" y="10" fill="rgba(255,255,255,0.72)" fontSize="6">{formatYAxis(maxValue)}</text>
+        <text x="0" y="99" fill="rgba(255,255,255,0.55)" fontSize="5">{formatXAxis(chartData[0].date)}</text>
+        <text x="100" y="99" fill="rgba(255,255,255,0.55)" fontSize="5" textAnchor="end">{formatXAxis(chartData[chartData.length - 1].date)}</text>
+      </svg>
     </motion.div>
   );
 };

@@ -210,6 +210,18 @@ const SessionDistributionPieChart: React.FC<SessionDistributionPieChartProps> = 
   const totalSessions = data.reduce((sum, item) => sum + item.value, 0);
   const completedSessions = data.find(item => item.status === 'completed')?.value || 0;
   const completionRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0;
+  let segmentStart = 0;
+  const conicSegments = data.map((item) => {
+    const start = segmentStart;
+    const end = start + item.percentage;
+    segmentStart = end;
+    return `${item.color} ${start}% ${end}%`;
+  }).join(', ');
+  const legendPayload = data.map(item => ({
+    color: item.color,
+    value: item.name,
+    payload: item
+  }));
 
   return (
     <motion.div
@@ -218,36 +230,41 @@ const SessionDistributionPieChart: React.FC<SessionDistributionPieChartProps> = 
       transition={{ duration: 0.5, delay: 0.2 }}
       style={{ width: '100%', height, position: 'relative' }}
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="45%"
-            labelLine={false}
-            label={showLabels ? CustomLabel : false}
-            outerRadius={outerRadius}
-            innerRadius={innerRadius}
-            fill="#8884d8"
-            dataKey="value"
-            animationBegin={0}
-            animationDuration={animationDuration}
-          >
-            {data.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.color}
-                stroke="rgba(255, 255, 255, 0.1)"
-                strokeWidth={2}
-              />
-            ))}
-          </Pie>
-          
-          <Tooltip content={<CustomTooltip />} />
-          
-          {showLegend && <Legend content={<CustomLegend />} />}
-        </PieChart>
-      </ResponsiveContainer>
+      <div
+        role="img"
+        aria-label="Session distribution"
+        style={{
+          width: `${outerRadius * 2}px`,
+          height: `${outerRadius * 2}px`,
+          maxWidth: '72%',
+          maxHeight: '72%',
+          aspectRatio: '1 / 1',
+          margin: '0 auto',
+          borderRadius: '50%',
+          background: conicSegments || 'rgba(255,255,255,0.08)',
+          border: '2px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 0 28px rgba(59, 130, 246, 0.18)',
+          transition: `transform ${animationDuration}ms ease`,
+        }}
+      >
+        <div style={{
+          width: `${innerRadius * 2}px`,
+          height: `${innerRadius * 2}px`,
+          maxWidth: '56%',
+          maxHeight: '56%',
+          borderRadius: '50%',
+          background: 'rgba(5, 8, 22, 0.92)',
+          margin: '50%',
+          transform: 'translate(-50%, -50%)',
+          border: '1px solid rgba(255,255,255,0.08)'
+        }} />
+      </div>
+      {showLabels && data.length > 0 && (
+        <div style={{ display: 'none' }}>
+          {data.map(item => `${item.name}: ${item.percentage.toFixed(0)}%`).join(', ')}
+        </div>
+      )}
+      {showLegend && <CustomLegend payload={legendPayload} />}
       
       {/* Center statistics display */}
       <div style={{
