@@ -362,9 +362,15 @@ const Checkbox = styled.button<{ $status: string }>`
   }
 `;
 
-const TaskInfo = styled.div`
+const TaskInfo = styled.button`
   flex: 1;
   min-width: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
 `;
 
 const TaskTitle = styled.div<{ $done: boolean }>`
@@ -469,7 +475,7 @@ const BlockingNote = styled.div`
   line-height: 1.5;
 `;
 
-const FieldLabel = styled.label`
+const FieldLabel = styled.span`
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   color: rgba(224, 236, 244, 0.5);
@@ -748,7 +754,7 @@ const MasterChecklist: React.FC<Props> = ({ tasks, updateTask }) => {
                   {statusIcon(task.status)}
                 </Checkbox>
 
-                <TaskInfo onClick={() => toggleExpand(task.id)}>
+                <TaskInfo type="button" onClick={() => toggleExpand(task.id)}>
                   <TaskTitle $done={task.status === 'completed'}>{task.title}</TaskTitle>
                   <BadgeRow>
                     <Badge $bg="rgba(96,192,240,0.15)" $color="#60C0F0">

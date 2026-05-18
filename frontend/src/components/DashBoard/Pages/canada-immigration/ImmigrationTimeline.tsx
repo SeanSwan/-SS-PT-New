@@ -545,13 +545,25 @@ const TaskCard = styled.div<{ $catColor: string; $done: boolean }>`
   }
 `;
 
-const TaskHeader = styled.div`
+const TaskHeader = styled.button`
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 10px 14px;
+  border: 0;
+  background: transparent;
   cursor: pointer;
   min-height: 44px;
+  text-align: left;
+`;
+
+const PhaseAwardIcon = styled(Award)`
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 6px;
+  color: #22C55E;
 `;
 
 const StatusDot = styled.div<{ $status: string }>`
@@ -624,6 +636,10 @@ const TaskDetail = styled.div`
 const TaskDetailLabel = styled.span`
   color: rgba(224, 236, 244, 0.35);
   margin-right: 6px;
+`;
+
+const CostAmount = styled.span`
+  color: #C6A84B;
 `;
 
 const StatusToggle = styled.button`
@@ -815,15 +831,7 @@ const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask 
                     <PhaseHeaderRow>
                       <PhaseName>
                         {pg.phase === 4 && (
-                          <Award
-                            style={{
-                              width: 18,
-                              height: 18,
-                              verticalAlign: 'middle',
-                              marginRight: 6,
-                              color: '#22C55E',
-                            }}
-                          />
+                          <PhaseAwardIcon />
                         )}
                         {pg.name}
                       </PhaseName>
@@ -869,7 +877,7 @@ const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask 
 
                       return (
                         <TaskCard key={task.id} $catColor={catColor} $done={task.status === 'completed'}>
-                          <TaskHeader onClick={() => toggleExpand(task.id)}>
+                          <TaskHeader type="button" onClick={() => toggleExpand(task.id)}>
                             <StatusDot $status={task.status} />
                             <TaskTitle $done={task.status === 'completed'}>{task.title}</TaskTitle>
                             <TaskPriority $p={task.priority}>{task.priority}</TaskPriority>
@@ -886,7 +894,7 @@ const ImmigrationTimeline: React.FC<Props> = ({ tasks, updateTask, onToggleTask 
                               {task.cost && (
                                 <TaskDetail>
                                   <TaskDetailLabel>Cost:</TaskDetailLabel>
-                                  <span style={{ color: '#C6A84B' }}>{task.cost}</span>
+                                  <CostAmount>{task.cost}</CostAmount>
                                 </TaskDetail>
                               )}
                               {task.dueDate && (
