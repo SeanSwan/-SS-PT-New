@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { logger } from '@/utils/logger';
 import {
   createAuthSessionExpiredError,
@@ -84,22 +84,23 @@ export const createProductionApiClient = (
       ProductionTokenManager.resetAuthFailureCount();
       return response;
     },
-    async (error: AxiosError) => {
-      const originalRequest = error.config as any;
+    async (error: any) => {
+      const apiError: any = error;
+      const originalRequest = apiError.config as any;
       const isCanceledRequest =
-        error.code === 'ERR_CANCELED'
-        || error.name === 'CanceledError'
-        || error.message === 'canceled'
-        || axios.isCancel(error);
+        apiError.code === 'ERR_CANCELED'
+        || apiError.name === 'CanceledError'
+        || apiError.message === 'canceled'
+        || axios.isCancel(apiError);
 
       if (isCanceledRequest) {
-        return Promise.reject(error);
+        return Promise.reject(apiError);
       }
 
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      if (apiError.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
 
-        const errorData = error.response.data as any;
+        const errorData = apiError.response.data as any;
 
         if (errorData?.errorCode === 'TOKEN_EXPIRED' || errorData?.message?.includes('expired')) {
           logger.log('[API] Token expired, attempting refresh...');
@@ -122,24 +123,24 @@ export const createProductionApiClient = (
         }
       }
 
-      const errorData = error.response?.data as any;
+      const errorData = apiError.response?.data as any;
       if (errorData?.degraded === true) {
-        (error as any).isDegraded = true;
+        apiError.isDegraded = true;
       }
 
       const isNotificationsEndpoint = originalRequest?.url?.includes('/notifications');
-      const is503Error = error.response?.status === 503;
+      const is503Error = apiError.response?.status === 503;
 
       if (!(isNotificationsEndpoint && is503Error)) {
         console.error('[API] Response error:', {
-          status: error.response?.status,
-          message: error.message,
+          status: apiError.response?.status,
+          message: apiError.message,
           url: originalRequest?.url
         });
       }
 
-      if (error.response?.status === 402) {
-        const data = error.response.data as any;
+      if (apiError.response?.status === 402) {
+        const data = apiError.response.data as any;
         const isBackground = originalRequest?._isBackgroundRequest === true;
 
         if (!isBackground && paywallTrigger) {
@@ -148,7 +149,7 @@ export const createProductionApiClient = (
         }
       }
 
-      return Promise.reject(error);
+      return Promise.reject(apiError);
     }
   );
 

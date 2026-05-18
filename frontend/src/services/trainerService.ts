@@ -338,7 +338,7 @@ class TrainerService {
    * Validate trainer data before submission
    */
   validateTrainerData(trainerData) {
-    const errors = {};
+    const errors: Record<string, string> = {};
     
     // Required fields
     if (!trainerData.firstName?.trim()) {

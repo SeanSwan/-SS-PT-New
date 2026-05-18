@@ -253,7 +253,7 @@ class PackageService {
     if (!featuresText) return [];
     
     // Common feature patterns
-    const features = [];
+    const features: string[] = [];
     const text = featuresText.toLowerCase();
     
     if (text.includes('personal trainer') || text.includes('1-on-1')) {
@@ -499,7 +499,7 @@ class PackageService {
    * Validate package data before submission
    */
   validatePackageData(packageData) {
-    const errors = {};
+    const errors: Record<string, string> = {};
     
     // Required fields
     if (!packageData.name?.trim()) {

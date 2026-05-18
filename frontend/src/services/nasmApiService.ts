@@ -101,6 +101,7 @@ export interface ExerciseEntry {
 
 export interface DailyWorkoutForm {
   id: string;
+  formId?: string;
   sessionId?: string;
   clientId: number;
   trainerId: number;
@@ -215,7 +216,7 @@ export class ClientTrainerAssignmentService {
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
       if (filters?.includeInactive) queryParams.append('includeInactive', filters.includeInactive.toString());
 
-      const response = await this.api.get(`/api/assignments?${queryParams.toString()}`);
+      const response = (await this.api.get(`/api/assignments?${queryParams.toString()}`)).data;
       return {
         success: response.success,
         data: response.assignments,
@@ -232,7 +233,7 @@ export class ClientTrainerAssignmentService {
    */
   async getTrainerAssignments(trainerId: number): Promise<ApiResponse<ClientTrainerAssignment[]>> {
     try {
-      const response = await this.api.get(`/api/assignments/trainer/${trainerId}`);
+      const response = (await this.api.get(`/api/assignments/trainer/${trainerId}`)).data;
       return {
         success: response.success,
         data: response.assignments
@@ -248,7 +249,7 @@ export class ClientTrainerAssignmentService {
    */
   async getClientAssignment(clientId: number): Promise<ApiResponse<ClientTrainerAssignment>> {
     try {
-      const response = await this.api.get(`/api/assignments/client/${clientId}`);
+      const response = (await this.api.get(`/api/assignments/client/${clientId}`)).data;
       return {
         success: response.success,
         data: response.assignment
@@ -268,7 +269,7 @@ export class ClientTrainerAssignmentService {
     notes?: string;
   }): Promise<ApiResponse<ClientTrainerAssignment>> {
     try {
-      const response = await this.api.post('/api/assignments', data);
+      const response = (await this.api.post('/api/assignments', data)).data;
       return {
         success: response.success,
         data: response.assignment,
@@ -288,7 +289,7 @@ export class ClientTrainerAssignmentService {
     notes?: string;
   }): Promise<ApiResponse<ClientTrainerAssignment>> {
     try {
-      const response = await this.api.put(`/api/assignments/${id}`, data);
+      const response = (await this.api.put(`/api/assignments/${id}`, data)).data;
       return {
         success: response.success,
         data: response.assignment,
@@ -305,7 +306,7 @@ export class ClientTrainerAssignmentService {
    */
   async deleteAssignment(id: number): Promise<ApiResponse<void>> {
     try {
-      const response = await this.api.delete(`/api/assignments/${id}`);
+      const response = (await this.api.delete(`/api/assignments/${id}`)).data;
       return {
         success: response.success,
         message: response.message
@@ -321,7 +322,7 @@ export class ClientTrainerAssignmentService {
    */
   async getUnassignedClients(): Promise<ApiResponse<any[]>> {
     try {
-      const response = await this.api.get('/assignments/unassigned/clients');
+      const response = (await this.api.get('/assignments/unassigned/clients')).data;
       return {
         success: response.success,
         data: response.clients
@@ -337,7 +338,7 @@ export class ClientTrainerAssignmentService {
    */
   async getAssignmentStats(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.api.get('/assignments/stats');
+      const response = (await this.api.get('/assignments/stats')).data;
       return {
         success: response.success,
         data: response.stats
@@ -377,7 +378,7 @@ export class TrainerPermissionService {
       if (filters?.page) queryParams.append('page', filters.page.toString());
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
 
-      const response = await this.api.get(`/api/trainer-permissions?${queryParams.toString()}`);
+      const response = (await this.api.get(`/api/trainer-permissions?${queryParams.toString()}`)).data;
       return {
         success: response.success,
         data: response.permissions,
@@ -394,7 +395,7 @@ export class TrainerPermissionService {
    */
   async getTrainerPermissions(trainerId: number): Promise<ApiResponse<any>> {
     try {
-      const response = await this.api.get(`/api/trainer-permissions/trainer/${trainerId}`);
+      const response = (await this.api.get(`/api/trainer-permissions/trainer/${trainerId}`)).data;
       return {
         success: response.success,
         data: {
@@ -420,7 +421,7 @@ export class TrainerPermissionService {
     notes?: string;
   }): Promise<ApiResponse<TrainerPermission>> {
     try {
-      const response = await this.api.post('/api/trainer-permissions/grant', data);
+      const response = (await this.api.post('/api/trainer-permissions/grant', data)).data;
       return {
         success: response.success,
         data: response.permission,
@@ -437,7 +438,7 @@ export class TrainerPermissionService {
    */
   async revokePermission(id: number, notes?: string): Promise<ApiResponse<TrainerPermission>> {
     try {
-      const response = await this.api.put(`/api/trainer-permissions/${id}/revoke`, { notes });
+      const response = (await this.api.put(`/api/trainer-permissions/${id}/revoke`, { notes })).data;
       return {
         success: response.success,
         data: response.permission,
@@ -457,7 +458,7 @@ export class TrainerPermissionService {
     notes?: string;
   }): Promise<ApiResponse<TrainerPermission>> {
     try {
-      const response = await this.api.put(`/api/trainer-permissions/${id}/extend`, data);
+      const response = (await this.api.put(`/api/trainer-permissions/${id}/extend`, data)).data;
       return {
         success: response.success,
         data: response.permission,
@@ -477,7 +478,7 @@ export class TrainerPermissionService {
     permissionType: string;
   }): Promise<ApiResponse<any>> {
     try {
-      const response = await this.api.post('/api/trainer-permissions/check', data);
+      const response = (await this.api.post('/api/trainer-permissions/check', data)).data;
       return {
         success: response.success,
         data: {
@@ -498,7 +499,7 @@ export class TrainerPermissionService {
    */
   async getPermissionTypes(): Promise<ApiResponse<any[]>> {
     try {
-      const response = await this.api.get('/api/trainer-permissions/types');
+      const response = (await this.api.get('/api/trainer-permissions/types')).data;
       return {
         success: response.success,
         data: response.permissionTypes
@@ -514,7 +515,7 @@ export class TrainerPermissionService {
    */
   async getPermissionStats(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.api.get('/api/trainer-permissions/stats');
+      const response = (await this.api.get('/api/trainer-permissions/stats')).data;
       return {
         success: response.success,
         data: response.stats
@@ -602,7 +603,7 @@ export class DailyWorkoutFormService {
       if (filters?.limit) queryParams.append('limit', filters.limit.toString());
       if (filters?.mcpProcessed !== undefined) queryParams.append('mcpProcessed', filters.mcpProcessed.toString());
 
-      const response = await this.api.get(`/api/workout-forms?${queryParams.toString()}`);
+      const response = (await this.api.get(`/api/workout-forms?${queryParams.toString()}`)).data;
       return {
         success: response.success,
         data: response.forms,
@@ -619,7 +620,7 @@ export class DailyWorkoutFormService {
    */
   async getWorkoutForm(id: string): Promise<ApiResponse<DailyWorkoutForm & { stats: any }>> {
     try {
-      const response = await this.api.get(`/api/workout-forms/${id}`);
+      const response = (await this.api.get(`/api/workout-forms/${id}`)).data;
       return {
         success: response.success,
         data: {
@@ -648,7 +649,7 @@ export class DailyWorkoutFormService {
       if (params?.startDate) queryParams.append('startDate', params.startDate);
       if (params?.endDate) queryParams.append('endDate', params.endDate);
 
-      const response = await this.api.get(`/api/workout-forms/client/${clientId}/progress?${queryParams.toString()}`);
+      const response = (await this.api.get(`/api/workout-forms/client/${clientId}/progress?${queryParams.toString()}`)).data;
       return {
         success: response.success,
         data: {
@@ -667,7 +668,7 @@ export class DailyWorkoutFormService {
    */
   async reprocessForm(id: string): Promise<ApiResponse<void>> {
     try {
-      const response = await this.api.post(`/api/workout-forms/${id}/reprocess`);
+      const response = (await this.api.post(`/api/workout-forms/${id}/reprocess`)).data;
       return {
         success: response.success,
         message: response.message
@@ -683,7 +684,7 @@ export class DailyWorkoutFormService {
    */
   async getWorkoutFormStats(): Promise<ApiResponse<any>> {
     try {
-      const response = await this.api.get('/api/workout-forms/stats/overview');
+      const response = (await this.api.get('/api/workout-forms/stats/overview')).data;
       return {
         success: response.success,
         data: response.stats

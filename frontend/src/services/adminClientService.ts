@@ -602,7 +602,7 @@ class AdminClientService {
    * Validate client data before submission
    */
   validateClientData(clientData) {
-    const errors = {};
+    const errors: Record<string, string> = {};
     
     // Required fields
     if (!clientData.firstName?.trim()) {
