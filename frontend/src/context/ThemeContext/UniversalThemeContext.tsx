@@ -1677,7 +1677,7 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={contextValue}>
-      <StyledThemeProvider theme={mergedTheme}>
+      <StyledThemeProvider theme={mergedTheme as any}>
         {children}
       </StyledThemeProvider>
     </ThemeContext.Provider>

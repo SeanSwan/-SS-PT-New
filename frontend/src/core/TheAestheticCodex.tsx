@@ -408,7 +408,7 @@ const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
   cursor: pointer;
 `;
 
-const CheckboxLabel = styled.span`
+const CheckboxLabel = styled.label`
   ${applyTypography(swanStudiosTheme.typography.body.medium)};
   color: ${swanStudiosTheme.text.primary};
   cursor: pointer;
@@ -920,30 +920,33 @@ const LayoutSystemSection: React.FC = () => (
         <div style={{ display: 'grid', gap: swanStudiosTheme.spacing.md }}>
           {Object.entries(swanStudiosTheme.spacing)
             .filter(([, value]) => typeof value === 'string')
-            .map(([key, value]) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: swanStudiosTheme.spacing.md }}>
-              <span style={{ 
-                ...swanStudiosTheme.typography.ui.label,
-                color: swanStudiosTheme.text.secondary,
-                minWidth: '60px'
-              }}>
-                {key}:
-              </span>
-              <div style={{
-                background: swanStudiosTheme.primary.main,
-                width: value,
-                height: '20px',
-                borderRadius: '4px'
-              }} />
-              <span style={{ 
-                ...swanStudiosTheme.typography.body.small,
-                color: swanStudiosTheme.text.secondary,
-                fontFamily: 'Monaco, monospace'
-              }}>
-                {value}
-              </span>
-            </div>
-          ))}
+            .map(([key, value]) => {
+              const spacingValue = value as string;
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: swanStudiosTheme.spacing.md }}>
+                  <span style={{
+                    ...swanStudiosTheme.typography.ui.label,
+                    color: swanStudiosTheme.text.secondary,
+                    minWidth: '60px'
+                  }}>
+                    {key}:
+                  </span>
+                  <div style={{
+                    background: swanStudiosTheme.primary.main,
+                    width: spacingValue,
+                    height: '20px',
+                    borderRadius: '4px'
+                  }} />
+                  <span style={{
+                    ...swanStudiosTheme.typography.body.small,
+                    color: swanStudiosTheme.text.secondary,
+                    fontFamily: 'Monaco, monospace'
+                  }}>
+                    {spacingValue}
+                  </span>
+                </div>
+              );
+          })}
         </div>
       </LayoutExample>
     </LayoutShowcase>

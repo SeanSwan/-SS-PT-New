@@ -273,7 +273,10 @@ export const swanStudiosTheme = {
     ...themeUtils,
 
     // Helper to get spacing value
-    getSpacing: (size: keyof typeof spacing): string => spacing[size],
+    getSpacing: (size: keyof typeof spacing): string => {
+      const value = spacing[size];
+      return typeof value === 'string' ? value : '';
+    },
 
     // Helper to get typography style
     getTypography: (category: keyof typeof typography, variant: string): any => {
