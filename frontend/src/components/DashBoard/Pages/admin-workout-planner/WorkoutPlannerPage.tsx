@@ -1271,13 +1271,13 @@ const WorkoutPlannerPage: React.FC = () => {
             ) : filteredExercises.length === 0 ? (
               <EmptyMessage>No exercises match your filters.</EmptyMessage>
             ) : (
-              <List
-                rowComponent={ExerciseRowRenderer}
-                rowCount={filteredExercises.length}
-                rowHeight={64}
-                rowProps={{}}
-                style={{ height: 420, overflowX: 'hidden' }}
-              />
+              React.createElement(List, {
+                rowComponent: ExerciseRowRenderer,
+                rowCount: filteredExercises.length,
+                rowHeight: 64,
+                rowProps: {},
+                style: { height: 420, overflowX: 'hidden' as const },
+              })
             )}
           </div>
         </Panel>

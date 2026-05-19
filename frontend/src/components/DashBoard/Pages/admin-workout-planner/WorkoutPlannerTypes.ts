@@ -69,6 +69,9 @@ export interface GeneratedWorkout {
     tempo: string;
     rest: number;
     intensity: number;
+    recommendedWeightMin?: number;
+    recommendedWeightMax?: number;
+    basedOn1RM?: number;
   }[];
   swapSuggestions: { original: string; replacements: string[] }[];
   cooldown: { name: string; duration?: string; sets?: number; reps?: number }[];
