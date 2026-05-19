@@ -1,5 +1,6 @@
 import { PlaceholderImageService } from '../../services/placeholder';
 import { logger } from '@/utils/logger';
+import React from 'react';
 
 /**
  * Global Image Error Handler
@@ -104,7 +105,8 @@ class ImageErrorHandler {
     // Find all images with placeholder URLs
     const images = document.querySelectorAll('img[src*="placeholder"]');
     
-    images.forEach((img: HTMLImageElement) => {
+    images.forEach((node) => {
+      const img = node as HTMLImageElement;
       const originalSrc = img.src;
       const replacedSrc = PlaceholderImageService.replacePlaceholderUrl(originalSrc);
       

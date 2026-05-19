@@ -214,7 +214,7 @@ interface LeaderboardParams {
 export function useLeaderboard(params: LeaderboardParams = {}) {
   const { authAxios } = useAuth();
   return useQuery({
-    queryKey: queryKeys.gamification.leaderboard(params),
+    queryKey: queryKeys.gamification.leaderboard(params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/v1/gamification/leaderboard', {
         params: { limit: params.limit || 5 },
@@ -239,7 +239,7 @@ interface WorkoutSessionParams {
 export function useWorkoutSessions(params: WorkoutSessionParams = {}) {
   const { authAxios } = useAuth();
   return useQuery({
-    queryKey: queryKeys.workouts.sessions(params),
+    queryKey: queryKeys.workouts.sessions(params as Record<string, unknown>),
     queryFn: async ({ signal }) => {
       const res = await authAxios.get('/api/workout/sessions', {
         params: { limit: params.limit || 50, page: params.page || 1 },

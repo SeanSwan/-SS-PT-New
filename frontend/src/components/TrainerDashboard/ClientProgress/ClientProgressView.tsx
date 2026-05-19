@@ -262,7 +262,7 @@ const ClientProgressView: React.FC = () => {
       const currentClientId = searchParams.get('clientId');
       const newClientId = String(activeClient.id);
       if (currentClientId !== newClientId) {
-        setSelectedClientId(activeClient.id);
+        setSelectedClientId(Number(activeClient.id));
         setSearchParams(prev => {
           const next = new URLSearchParams(prev);
           next.set('clientId', newClientId);
@@ -272,7 +272,7 @@ const ClientProgressView: React.FC = () => {
     }
   }, [activeClient?.id, user?.role, searchParams, setSearchParams]);
 
-  const resolvedClientId = user?.role === 'client' ? user?.id : selectedClientId;
+  const resolvedClientId = user?.role === 'client' ? Number(user?.id) : selectedClientId;
   const { data, isLoading, error } = useClientProgress(resolvedClientId, true);
 
   const handleClientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -284,7 +284,7 @@ const ClientProgressView: React.FC = () => {
     }
     setSelectedClientId(id);
     setSearchParams({ clientId: String(id) });
-    const client = clientList.find(c => c.id === id);
+    const client = clientList.find(c => Number(c.id) === id);
     if (client) setActiveClient(client);
   };
 

@@ -994,7 +994,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                 <SubTitle>Progress Chart</SubTitle>
 
                 <ProgressAreaChart
-                  data={goal.progressHistory.map(point => ({
+                  data={(goal.progressHistory ?? []).map(point => ({
                     date: point.date,
                     progress: (point.value / goal.targetValue) * 100
                   }))}
@@ -1010,7 +1010,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                     <div>
                       <InsightLabel>Predicted Completion</InsightLabel>
                       <InsightValue>
-                        {new Date(goal.insights.predictedCompletion).toLocaleDateString()}
+                        {new Date(goal.insights.predictedCompletion ?? Date.now()).toLocaleDateString()}
                       </InsightValue>
                     </div>
                     <div>

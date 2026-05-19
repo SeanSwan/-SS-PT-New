@@ -234,8 +234,14 @@ const ENDPOINTS = [
   { name: 'Workouts', url: '/api/workout/plans', key: 'workouts' }
 ];
 
+type EndpointStatus = typeof ENDPOINTS[number] & {
+  status: string;
+  error: string | null;
+  data: any | null;
+};
+
 const ApiDebugger = () => {
-  const [endpointStatus, setEndpointStatus] = useState(
+  const [endpointStatus, setEndpointStatus] = useState<EndpointStatus[]>(
     ENDPOINTS.map(endpoint => ({
       ...endpoint,
       status: 'unchecked',
@@ -259,7 +265,7 @@ const ApiDebugger = () => {
     
     try {
       // Attempt to request a small endpoint
-      await fetch('/api/health', { method: 'GET', timeout: 5000 });
+      await fetch('/api/health', { method: 'GET' });
       setBackendStatus('online');
     } catch (error) {
       console.error('Backend connection error:', error);
@@ -313,7 +319,7 @@ const ApiDebugger = () => {
         newStatus[i] = {
           ...endpoint,
           status: 'error',
-          error: error.message || 'Unknown error',
+          error: error instanceof Error ? error.message : 'Unknown error',
           data: null
         };
         

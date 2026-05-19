@@ -7,7 +7,7 @@
  * IMPORTANT: This should ONLY be used during development and NEVER in production.
  */
 
-import { setUser } from '../store/slices/authSlice';
+import { logout } from '../store/slices/authSlice';
 import store from '../store';
 import { clearMemoryStore } from './dev-memory-store';
 import { logger } from '@/utils/logger';
@@ -40,7 +40,7 @@ export const devLogout = () => {
   try {
     // 1. Clear Redux store first
     try {
-      store.dispatch(setUser(null));
+      store.dispatch(logout());
       store.dispatch(setToken(null));
       reduxCleared = true;
       logger.log('[DEV MODE] Redux auth state cleared');
@@ -118,7 +118,7 @@ export const devLogout = () => {
       // Force null dispatch to Redux one more time
       try {
         store.dispatch({ type: 'auth/FORCE_LOGOUT' });
-        store.dispatch(setUser(null));
+        store.dispatch(logout());
         store.dispatch(setToken(null));
       } catch (e) { /* silent fail */ }
       

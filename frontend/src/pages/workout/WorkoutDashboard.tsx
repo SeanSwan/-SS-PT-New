@@ -250,11 +250,11 @@ const WorkoutDashboard: React.FC = () => {
       )}
       
       {activeTab === 'planner' && (
-        <WorkoutPlanner />
+        <WorkoutPlanner clientId={selectedClientId || null} userRole={user?.role || 'client'} />
       )}
 
       {activeTab === 'sessions' && (
-        <RecentSessions />
+        <RecentSessions clientId={selectedClientId || null} userRole={user?.role || 'client'} />
       )}
     </DashboardContainer>
   );

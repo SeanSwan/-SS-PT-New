@@ -98,7 +98,7 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
       });
 
       const res = await fetch(`${API_BASE}/api/restaurant/search?${params}`, {
-        headers: getHeaders(),
+        headers: getHeaders() as HeadersInit,
         signal: controller.signal,
       });
 
@@ -131,7 +131,7 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
     setDetailLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/restaurant/food/${foodId}`, {
-        headers: getHeaders(),
+        headers: getHeaders() as HeadersInit,
       });
 
       if (!res.ok) return null;

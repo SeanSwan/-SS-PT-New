@@ -27,7 +27,7 @@ export function isValidSegmentDateOverride(value?: string): boolean {
 
 export function isSegmentDateOverrideFuture(value: string | undefined, referenceDate: string | undefined): boolean {
   if (!isRealIsoDate(value) || !isRealIsoDate(referenceDate)) return false;
-  return value > referenceDate;
+  return value! > referenceDate!;
 }
 
 export function isSegmentReadyForApproval(

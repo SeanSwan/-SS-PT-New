@@ -174,10 +174,10 @@ export function PlaudMergeReview({
       }
     } catch (err) {
       setSegmentApprovals((prev) => {
-        const next = {
+        const next: Record<string, SegmentApprovalState> = {
           ...prev,
           [segment.segmentId]: {
-            status: 'error',
+            status: 'error' as const,
             error: errorMessage(err, 'Failed to approve segment'),
           },
         };

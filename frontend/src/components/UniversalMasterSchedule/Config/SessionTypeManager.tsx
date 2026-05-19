@@ -126,12 +126,12 @@ const SessionTypeManager: React.FC = () => {
 
     const payload = {
       name: form.name.trim(),
-      description: form.description.trim() || null,
+      description: form.description.trim() || undefined,
       duration: Number(form.duration),
       bufferBefore: Number(form.bufferBefore),
       bufferAfter: Number(form.bufferAfter),
       color: form.color || DEFAULT_COLOR,
-      price: form.price ? Number(form.price) : null,
+      price: form.price ? Number(form.price) : undefined,
       isActive: form.isActive
     };
 

@@ -17,7 +17,7 @@ interface GestureState {
   direction: 'up' | 'down' | 'left' | 'right' | null;
 }
 
-interface GestureCallbacks {
+export interface GestureCallbacks {
   onSwipeLeft?: (gesture: GestureState) => void;
   onSwipeRight?: (gesture: GestureState) => void;
   onSwipeUp?: (gesture: GestureState) => void;
@@ -30,7 +30,7 @@ interface GestureCallbacks {
   onPinchEnd?: (scale: number) => void;
 }
 
-interface GestureOptions {
+export interface GestureOptions {
   swipeThreshold?: number;
   velocityThreshold?: number;
   longPressDelay?: number;

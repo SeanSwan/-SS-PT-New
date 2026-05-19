@@ -81,7 +81,7 @@ const BootcampBuilderPage: React.FC = () => {
   const isOverTime = totalClassMin > 55;
 
   // Selected rolodex exercise (for detail panel)
-  const [selectedRolodexId, setSelectedRolodexId] = useState<number | null>(null);
+  const [selectedRolodexId, setSelectedRolodexId] = useState<string | number | null>(null);
 
   // Auto-create empty station structure in Manual/Hybrid mode when format changes
   useEffect(() => {
@@ -288,7 +288,7 @@ const BootcampBuilderPage: React.FC = () => {
       totalWorkoutMin: bootcamp.totalWorkoutMin,
       totalClassMin: bootcamp.totalClassMin,
       expectedParticipants: bootcamp.expectedParticipants,
-      stations: bootcamp.stations,
+      stations: bootcamp.stations as any,
       exercises: bootcamp.exercises,
       overflowPlan: bootcamp.overflowPlan,
     });

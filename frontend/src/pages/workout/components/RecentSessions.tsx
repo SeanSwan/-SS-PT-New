@@ -15,6 +15,7 @@ interface WorkoutSession {
   status: string;
   experiencePointsEarned: number;
   completionPercentage: number;
+  trainerNotes?: string;
   exercises: any[];
   client?: {
     firstName: string;

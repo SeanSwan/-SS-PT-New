@@ -689,8 +689,9 @@ const UserProfilePage: React.FC = () => {
 
           {/* Transformation Before/After Photos (respects visibility) */}
           {(() => {
-            const settings = (profile as Record<string, unknown>)?.transformationSettings as Record<string, unknown> | undefined;
-            const photos = ((profile as Record<string, unknown>)?.transformationPhotos || []) as TransformationPhoto[];
+            const profileRecord = profile as unknown as Record<string, unknown>;
+            const settings = profileRecord.transformationSettings as Record<string, unknown> | undefined;
+            const photos = (profileRecord.transformationPhotos || []) as TransformationPhoto[];
             const showOnProfile = settings?.showOnProfile ?? false;
             const vis = (settings?.defaultVisibility as string) || 'private';
             if (!showOnProfile && !isOwnProfile) return null;

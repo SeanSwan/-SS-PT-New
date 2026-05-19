@@ -27,6 +27,7 @@ import { logger } from '@/utils/logger';
 interface SessionEvent {
   id: string;
   title: string;
+  sessionDate?: string | Date;
   start: Date;
   end: Date;
   status: 'available' | 'booked' | 'confirmed' | 'completed' | 'cancelled' | 'blocked';
