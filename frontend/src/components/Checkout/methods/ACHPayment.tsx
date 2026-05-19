@@ -6,9 +6,9 @@
  *
  * Flow:
  * 1. Call backend to create PaymentIntent
- * 2. Use stripe.confirmUsBankAccountPayment() to collect bank details
- * 3. User authorizes via Stripe Financial Connections
- * 4. Payment processes asynchronously (webhook handles completion)
+ * 2. Use stripe.collectBankAccountForPayment() to collect bank details
+ * 3. Confirm only when Stripe returns requires_confirmation
+ * 4. Payment processes asynchronously or waits for microdeposit verification
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import styled from 'styled-components';
@@ -22,6 +22,12 @@ import { useCart } from '../../../context/CartContext';
 import ProcessingOverlay from '../ProcessingOverlay';
 import PriceMismatchModal from '../PriceMismatchModal';
 import { logger } from '@/utils/logger';
+import {
+  AchPaymentIntentDecision,
+  AchUiStatus,
+  getAchAccountHolderName,
+  resolveAchPaymentIntentDecision,
+} from './achPaymentState';
 
 /** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
 function getPersistedIdempotencyKey(fingerprint: string): string {
@@ -60,13 +66,12 @@ interface ACHPaymentProps {
   onSuccess?: (orderNumber: string) => void;
 }
 
-type ACHStatus = 'idle' | 'creating' | 'confirming' | 'processing' | 'succeeded' | 'error';
-
 const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess }) => {
   const { user } = useAuth();
   const { refreshCart } = useCart();
-  const [status, setStatus] = useState<ACHStatus>('idle');
+  const [status, setStatus] = useState<AchUiStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
 
   // Derive stable cart fingerprint from items for idempotency key binding
@@ -76,7 +81,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
   // Cleanup localStorage on successful payment
   useEffect(() => {
     if (status === 'succeeded' || status === 'processing') {
-      try { localStorage.removeItem(`payment-idemp-ach-${cartFingerprint}`); } catch {}
+      try { localStorage.removeItem(`payment-idemp-ach-${cartFingerprint}`); } catch { /* best-effort idempotency cleanup */ }
     }
   }, [status, cartFingerprint]);
 
@@ -88,18 +93,48 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
 
   const totalWithFee = total + fee;
 
+  const rotateIdempotencyKey = useCallback(() => {
+    const newKey = uuidv4();
+    idempotencyKey.current = newKey;
+    try { localStorage.setItem(`payment-idemp-ach-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch { /* best-effort idempotency persistence */ }
+  }, [cartFingerprint]);
+
+  const applyPaymentDecision = useCallback(async (decision: AchPaymentIntentDecision, oNum: string) => {
+    setStatus(decision.uiStatus);
+    setStatusMessage(decision.message);
+
+    if (decision.uiStatus === 'error') {
+      setErrorMsg(decision.message);
+      if (decision.kind === 'retry_payment_method') rotateIdempotencyKey();
+      return;
+    }
+
+    if (decision.shouldCallSuccess) {
+      await refreshCart();
+      onSuccess?.(oNum);
+    }
+  }, [onSuccess, refreshCart, rotateIdempotencyKey]);
+
   const handleACHPayment = useCallback(async () => {
     if (status !== 'idle') return;
+    const accountHolder = getAchAccountHolderName(user);
+    if (!accountHolder.ok) {
+      setErrorMsg(accountHolder.message || 'Enter the account holder name before connecting a bank account.');
+      setStatus('error');
+      return;
+    }
+
     setStatus('creating');
     setErrorMsg('');
+    setStatusMessage('');
 
     try {
       // Step 1: Create PaymentIntent on backend
       const res = await api.post('/api/payments/ach/create-intent', {
         items,
         customerInfo: {
-          name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
-          email: user?.email || '',
+          name: accountHolder.name,
+          email: user?.email?.trim() || '',
           userId: user?.id,
         },
         total,
@@ -114,14 +149,15 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       setOrderNumber(oNum);
 
       // Step 2: Load Stripe and collect bank details through Financial Connections.
-      setStatus('confirming');
+      setStatus('collecting');
       const stripe = await getStripe();
       if (!stripe) throw new Error('Stripe failed to load');
 
-      const billingDetails = {
-        name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
-        email: user?.email || '',
+      const billingDetails: { name: string; email?: string } = {
+        name: accountHolder.name!,
       };
+      const email = user?.email?.trim();
+      if (email) billingDetails.email = email;
 
       const collectResult = await stripe.collectBankAccountForPayment({
         clientSecret,
@@ -137,31 +173,19 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         throw new Error(collectResult.error.message || 'Bank verification failed');
       }
 
-      let paymentIntent = collectResult.paymentIntent;
-
-      if (paymentIntent?.status === 'requires_confirmation') {
+      const collectDecision = resolveAchPaymentIntentDecision(collectResult.paymentIntent, 'collect');
+      if (collectDecision.shouldConfirm) {
+        setStatus('confirming');
         const confirmResult = await stripe.confirmUsBankAccountPayment(clientSecret);
         if (confirmResult.error) {
           throw new Error(confirmResult.error.message || 'Bank authorization failed');
         }
-        paymentIntent = confirmResult.paymentIntent;
+        const confirmDecision = resolveAchPaymentIntentDecision(confirmResult.paymentIntent, 'confirm');
+        await applyPaymentDecision(confirmDecision, oNum);
+        return;
       }
 
-      // Step 3: Check payment status
-      if (paymentIntent?.status === 'processing') {
-        setStatus('processing');
-        await refreshCart();
-        onSuccess?.(oNum);
-      } else if (paymentIntent?.status === 'succeeded') {
-        setStatus('succeeded');
-        await refreshCart();
-        onSuccess?.(oNum);
-      } else if (paymentIntent?.status === 'requires_action') {
-        // Micro-deposits verification needed — Stripe handles the UI
-        setStatus('processing');
-      } else {
-        throw new Error(`Unexpected payment status: ${paymentIntent?.status}`);
-      }
+      await applyPaymentDecision(collectDecision, oNum);
     } catch (err: any) {
       setStatus('error');
       const data = err.response?.data;
@@ -174,30 +198,27 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         });
         setErrorMsg('Prices have been updated. Please review the changes.');
         // Price changed = new payload, so new idempotency key (also update localStorage)
-        const newKey = uuidv4();
-        idempotencyKey.current = newKey;
-        try { localStorage.setItem(`payment-idemp-ach-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
+        rotateIdempotencyKey();
       } else if (data?.code === 'PAYMENT_INTENT_FAILED') {
         setErrorMsg(data.userMessage || 'Payment processing failed.');
         // Stripe confirmed failure — safe to regenerate key for retry
-        const newKey = uuidv4();
-        idempotencyKey.current = newKey;
-        try { localStorage.setItem(`payment-idemp-ach-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
+        rotateIdempotencyKey();
       } else {
         setErrorMsg(err.message || 'ACH payment failed');
         // Network errors: keep same key so retry is idempotent (prevents double-billing)
       }
     }
-  }, [status, items, user, total, refreshCart, onSuccess]);
+  }, [status, user, items, total, applyPaymentDecision, rotateIdempotencyKey]);
 
   const reset = () => {
     setStatus('idle');
     setErrorMsg('');
+    setStatusMessage('');
   };
 
   return (
     <Container>
-      {(status === 'creating' || status === 'confirming') && (
+      {(status === 'creating' || status === 'collecting' || status === 'confirming') && (
         <ProcessingOverlay transactionId={orderNumber || undefined} />
       )}
 
@@ -260,7 +281,17 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           <Clock size={18} />
           <div>
             <strong>Payment Processing</strong>
-            <p>Order #{orderNumber} — Your ACH transfer is being processed. This typically takes 1-3 business days. You'll receive a confirmation email once complete.</p>
+            <p>{statusMessage || `Order #${orderNumber} — Your ACH transfer is being processed. This typically takes 1-3 business days. You'll receive a confirmation email once complete.`}</p>
+          </div>
+        </StatusBanner>
+      )}
+
+      {status === 'microdeposit_verification' && (
+        <StatusBanner $type="info">
+          <AlertCircle size={18} />
+          <div>
+            <strong>Microdeposit Verification Needed</strong>
+            <p>{statusMessage || 'Stripe needs microdeposit verification before this ACH payment can continue. Check your email for verification instructions.'}</p>
           </div>
         </StatusBanner>
       )}
@@ -269,8 +300,8 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         <StatusBanner $type="success">
           <ShieldCheck size={18} />
           <div>
-            <strong>Payment Confirmed!</strong>
-            <p>Order #{orderNumber} — Your ACH payment has been processed successfully.</p>
+            <strong>Payment Accepted</strong>
+            <p>{statusMessage || `Order #${orderNumber} — Your ACH payment has been accepted. Backend confirmation remains the source of truth for fulfillment.`}</p>
           </div>
         </StatusBanner>
       )}
@@ -294,9 +325,9 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         />
       )}
 
-      {(status === 'creating' || status === 'confirming') && (
+      {(status === 'creating' || status === 'collecting' || status === 'confirming') && (
         <GlowButton
-          text={status === 'creating' ? 'Setting up...' : 'Connecting to your bank...'}
+          text={status === 'creating' ? 'Setting up...' : status === 'collecting' ? 'Connecting to your bank...' : 'Confirming authorization...'}
           theme="purple"
           size="large"
           disabled
@@ -305,7 +336,8 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
 
       <Note>
         You'll be prompted to connect your bank account via Stripe's secure Financial Connections.
-        Your banking credentials are never shared with SwanStudios.
+        ACH is not instant like card checkout; it can process for several business days or require
+        microdeposit verification. Your banking credentials are never shared with SwanStudios.
       </Note>
     </Container>
   );

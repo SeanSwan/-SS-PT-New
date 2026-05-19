@@ -1,0 +1,73 @@
+import { describe, expect, it } from 'vitest';
+import {
+  getAchAccountHolderName,
+  resolveAchPaymentIntentDecision,
+} from './achPaymentState';
+
+describe('ACH payment state helpers', () => {
+  it('trims and requires an account holder name', () => {
+    expect(getAchAccountHolderName({ firstName: ' Sean ', lastName: ' Swan ' })).toEqual({
+      ok: true,
+      name: 'Sean Swan',
+    });
+
+    expect(getAchAccountHolderName({ firstName: ' ', lastName: '' })).toEqual({
+      ok: false,
+      message: 'Enter the account holder name before connecting a bank account.',
+    });
+  });
+
+  it('routes collection retry status to a recoverable bank retry', () => {
+    expect(resolveAchPaymentIntentDecision({ status: 'requires_payment_method' }, 'collect')).toMatchObject({
+      kind: 'retry_payment_method',
+      uiStatus: 'error',
+      shouldCallSuccess: false,
+    });
+  });
+
+  it('routes collection confirmation status to the confirm step', () => {
+    expect(resolveAchPaymentIntentDecision({ status: 'requires_confirmation' }, 'collect')).toMatchObject({
+      kind: 'confirm',
+      shouldConfirm: true,
+      shouldCallSuccess: false,
+    });
+  });
+
+  it('routes confirmed processing status to webhook-backed pending success', () => {
+    expect(resolveAchPaymentIntentDecision({ status: 'processing' }, 'confirm')).toMatchObject({
+      kind: 'processing',
+      uiStatus: 'processing',
+      shouldCallSuccess: true,
+    });
+  });
+
+  it('routes microdeposit verification to next-step copy without calling success', () => {
+    const decision = resolveAchPaymentIntentDecision({
+      status: 'requires_action',
+      next_action: {
+        type: 'verify_with_microdeposits',
+        verify_with_microdeposits: {
+          arrival_date: 1_765_843_200,
+          hosted_verification_url: 'https://payments.stripe.test/verify',
+          microdeposit_type: 'descriptor_code',
+        },
+      },
+    }, 'confirm');
+
+    expect(decision).toMatchObject({
+      kind: 'microdeposit_verification',
+      uiStatus: 'microdeposit_verification',
+      shouldCallSuccess: false,
+    });
+    expect(decision.message.toLowerCase()).toContain('microdeposit');
+    expect(decision.message).toContain('1-2 business days');
+  });
+
+  it('routes unknown statuses to a safe recoverable fallback', () => {
+    expect(resolveAchPaymentIntentDecision({ status: 'canceled' }, 'confirm')).toMatchObject({
+      kind: 'recoverable_error',
+      uiStatus: 'error',
+      shouldCallSuccess: false,
+    });
+  });
+});
