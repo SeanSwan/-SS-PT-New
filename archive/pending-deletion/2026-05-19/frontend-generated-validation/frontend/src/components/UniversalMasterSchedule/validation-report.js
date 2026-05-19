@@ -4,6 +4,7 @@
  * This file validates that all components and dependencies are properly configured
  * after the critical error fixes have been applied.
  */
+const logger = console;
 
 // Simulate testing the key functionalities
 logger.log('🔬 Universal Master Schedule - Error Fix Validation');
