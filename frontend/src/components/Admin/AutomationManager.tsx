@@ -362,7 +362,7 @@ const AutomationManager: React.FC = () => {
               <Label required>Trigger Event</Label>
               <CustomSelect
                 value={triggerEvent}
-                onChange={setTriggerEvent}
+                onChange={(value) => setTriggerEvent(String(value))}
                 options={triggerEventOptions}
                 placeholder="Select trigger"
               />
@@ -497,7 +497,7 @@ const AutomationManager: React.FC = () => {
                 <Label required>Trigger Event</Label>
                 <CustomSelect
                   value={testEvent}
-                  onChange={setTestEvent}
+                  onChange={(value) => setTestEvent(String(value))}
                   options={triggerEventOptions}
                 />
               </FormField>

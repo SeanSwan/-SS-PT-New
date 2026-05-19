@@ -60,6 +60,7 @@ const ASSESSMENT_TYPES = [
   { value: 'performance_test', label: 'Performance Test' },
 ] as const;
 
+type AssessmentType = typeof ASSESSMENT_TYPES[number]['value'];
 // OHSA checkpoint keys — maps to NASM kinetic chain checkpoints
 // Backend model key → frontend label mapping
 const OHSA_CHECKPOINTS = [
@@ -423,7 +424,7 @@ const SubmitStatus = styled.span<{ $success?: boolean }>`
 
 const TrainerAssessmentsPage: React.FC = () => {
   const { authAxios, user } = useAuth();
-  const [assessmentType, setAssessmentType] = useState(ASSESSMENT_TYPES[0].value);
+  const [assessmentType, setAssessmentType] = useState<AssessmentType>('movement_screen');
   const [teachMode, setTeachMode] = useState(false);
   const [clientId, setClientId] = useState('');
   const [notes, setNotes] = useState('');

@@ -167,10 +167,10 @@ const NotificationsList = styled.div`
   }
 `;
 
-const NotificationItem = styled(motion.div)`
+const NotificationItem = styled(motion.div)<{ $priorityColor?: string }>`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 4px solid ${props => props.priorityColor || '#3b82f6'};
+  border-left: 4px solid ${props => props.$priorityColor || '#3b82f6'};
   border-radius: 8px;
   padding: 1rem;
   cursor: pointer;
@@ -179,7 +179,7 @@ const NotificationItem = styled(motion.div)`
   
   &:hover {
     background: rgba(255, 255, 255, 0.08);
-    border-color: ${props => props.priorityColor || '#3b82f6'};
+    border-color: ${props => props.$priorityColor || '#3b82f6'};
     transform: translateX(4px);
   }
   
@@ -564,7 +564,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
             filteredNotifications.map((notification, index) => (
               <NotificationItem
                 key={notification.id}
-                priorityColor={getPriorityColor(notification.priority)}
+                $priorityColor={getPriorityColor(notification.priority)}
                 className={`${!notification.isRead ? 'unread' : ''} ${notification.priority === 'critical' ? 'urgent' : ''}`}
                 onClick={() => handleNotificationClick(notification)}
                 initial={{ opacity: 0, x: 100 }}

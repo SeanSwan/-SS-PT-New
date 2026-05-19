@@ -183,7 +183,7 @@ const TrainerHeader = styled.div`
   margin-bottom: 1rem;
 `;
 
-const TrainerAvatar = styled.div`
+const TrainerAvatar = styled.div<{ $verified?: boolean }>`
   width: 70px;
   height: 70px;
   border-radius: 50%;
@@ -207,7 +207,7 @@ const TrainerAvatar = styled.div`
     border-radius: 50%;
     background: #10b981;
     border: 2px solid #0a0a0f;
-    display: ${props => props.verified ? 'block' : 'none'};
+    display: ${props => props.$verified ? 'block' : 'none'};
   }
 `;
 
@@ -832,7 +832,7 @@ const TrainersManagementSection: React.FC = () => {
             >
               <TrainerHeader>
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <TrainerAvatar verified={trainer.verified}>
+                  <TrainerAvatar $verified={trainer.verified}>
                     {getUserInitials(trainer.name)}
                   </TrainerAvatar>
                   <TrainerInfo>
