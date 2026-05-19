@@ -47,6 +47,7 @@ data/
 
 # Temporary files
 *.tmp
+eslint-*.tmp.json
 *.temp
 .cache/
 .temp/
