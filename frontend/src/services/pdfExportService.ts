@@ -179,6 +179,11 @@ export interface PDFBootcampExercise {
   hardVariation: string | null;
   equipmentRequired: string | null;
   stationIndex?: number;
+  kneeMod?: string | null;
+  shoulderMod?: string | null;
+  ankleMod?: string | null;
+  wristMod?: string | null;
+  backMod?: string | null;
 }
 
 export interface PDFBootcampStation {

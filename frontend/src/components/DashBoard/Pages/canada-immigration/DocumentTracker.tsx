@@ -66,7 +66,7 @@ type CatKey =
 interface CatMeta {
   label: string;
   color: string;
-  Icon: React.FC<{ size?: number; color?: string }>;
+  Icon: React.ComponentType<any>;
 }
 
 const CAT_CONFIG: Record<CatKey | string, CatMeta> = {
