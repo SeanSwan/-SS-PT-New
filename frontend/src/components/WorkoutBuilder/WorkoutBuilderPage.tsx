@@ -14,8 +14,6 @@ import type {
   ClientContext,
   GeneratedWorkout,
   GeneratedPlan,
-  WorkoutExercise,
-  Explanation,
 } from '../../hooks/useWorkoutBuilderAPI';
 import CorrectiveRecommendationsPanel, {
   type CompensationInput,
@@ -83,7 +81,7 @@ const PanelTitle = styled.h2`
   margin: 0 0 12px;
 `;
 
-const Label = styled.label`
+const Label = styled.span`
   display: block;
   font-size: 12px;
   font-weight: 500;
@@ -121,8 +119,8 @@ const FormGroup = styled.div`
   margin-bottom: 12px;
 `;
 
-const PrimaryButton = styled.button`
-  width: 100%;
+const PrimaryButton = styled.button<{ $auto?: boolean }>`
+  width: ${({ $auto }) => $auto ? 'auto' : '100%'};
   padding: 10px;
   background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
@@ -135,13 +133,6 @@ const PrimaryButton = styled.button`
   transition: opacity 0.2s;
   &:hover { opacity: 0.85; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const SecondaryButton = styled(PrimaryButton)`
-  background: transparent;
-  border: 1px solid rgba(96, 192, 240, 0.25);
-  color: #60c0f0;
-  &:hover { background: rgba(96, 192, 240, 0.08); opacity: 1; }
 `;
 
 // --- Context Sidebar Widgets ---
@@ -175,10 +166,12 @@ const ContextValue = styled.div`
   color: #e0ecf4;
 `;
 
-const ContextMeta = styled.div`
+const ContextMeta = styled.div<{ $center?: boolean; $pad?: number; $top?: number; $warning?: boolean }>`
   font-size: 11px;
-  color: rgba(224, 236, 244, 0.5);
-  margin-top: 2px;
+  color: ${({ $warning }) => $warning ? '#FFB800' : 'rgba(224, 236, 244, 0.5)'};
+  margin-top: ${({ $top }) => $top ? `${$top}px` : '2px'};
+  padding: ${({ $pad }) => $pad ? `${$pad}px` : 0};
+  text-align: ${({ $center }) => $center ? 'center' : 'left'};
 `;
 
 // --- Exercise Card ---
@@ -221,6 +214,11 @@ const ExerciseParams = styled.div`
   gap: 12px;
   font-size: 12px;
   color: rgba(224, 236, 244, 0.7);
+`;
+
+const InlineReason = styled.span`
+  font-size: 11px;
+  color: rgba(224,236,244,0.5);
 `;
 
 const ParamChip = styled.span`
@@ -287,17 +285,18 @@ const SectionDivider = styled.div`
   border-bottom: 1px solid rgba(96, 192, 240, 0.1);
 `;
 
-const ErrorBanner = styled.div`
+const ErrorBanner = styled.div<{ $top?: number }>`
   padding: 12px;
   border-radius: 8px;
   background: rgba(255, 71, 87, 0.1);
   border: 1px solid rgba(255, 71, 87, 0.25);
   color: #FF4757;
   font-size: 13px;
+  margin-top: ${({ $top }) => $top ? `${$top}px` : 0};
   margin-bottom: 12px;
 `;
 
-const SuccessBanner = styled.div`
+const SuccessBanner = styled.div<{ $bottom?: number }>`
   padding: 12px;
   border-radius: 8px;
   background: rgba(0, 255, 136, 0.08);
@@ -305,6 +304,68 @@ const SuccessBanner = styled.div`
   color: #00FF88;
   font-size: 13px;
   font-weight: 600;
+  margin-bottom: ${({ $bottom }) => $bottom ? `${$bottom}px` : 0};
+`;
+
+const CorrectivePanelWrap = styled.div`
+  margin-top: 4px;
+`;
+
+const ModeToggleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const ModeToggleButton = styled.button<{ $active: boolean }>`
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: #60c0f0;
+  cursor: pointer;
+  font: inherit;
+  opacity: ${({ $active }) => $active ? 1 : 0.5};
+`;
+
+const ConfigRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+`;
+
+const ConfigField = styled(FormGroup)`
+  flex: 1;
+  min-width: 120px;
+`;
+
+const CompactConfigField = styled(FormGroup)`
+  flex: 1;
+  min-width: 100px;
+`;
+
+const PhaseName = styled.div`
+  font-size: 13px;
+  color: #e0ecf4;
+  margin-bottom: 4px;
+`;
+
+const ErrorBoundaryPanel = styled.div`
+  text-align: center;
+  padding-top: 80px;
+`;
+
+const ErrorBoundaryTitle = styled.div`
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(224,236,244,0.7);
+  margin-bottom: 8px;
+`;
+
+const ErrorBoundaryCopy = styled.p`
+  color: rgba(224,236,244,0.5);
+  margin-bottom: 16px;
 `;
 
 // --- Component ---
@@ -466,12 +527,12 @@ const WorkoutBuilderPage: React.FC = () => {
                   Only renders meaningful content when comps exist; the
                   panel handles empty/loading/error states internally. */}
               {parsedClientId && context.movement.compensations.length > 0 && (
-                <div style={{ marginTop: 4 }}>
+                <CorrectivePanelWrap>
                   <CorrectiveRecommendationsPanel
                     clientId={parsedClientId}
                     compensations={context.movement.compensations as CompensationInput[]}
                   />
-                </div>
+                </CorrectivePanelWrap>
               )}
 
               <ContextCard $severity="info">
@@ -495,7 +556,7 @@ const WorkoutBuilderPage: React.FC = () => {
           )}
 
           {!context && clientId && (
-            <ContextMeta style={{ textAlign: 'center', padding: 16 }}>
+            <ContextMeta $center $pad={16}>
               Loading client data...
             </ContextMeta>
           )}
@@ -504,57 +565,53 @@ const WorkoutBuilderPage: React.FC = () => {
         {/* Center: Workout Canvas */}
         <Panel>
           <PanelTitle>
-            <span
-              style={{ cursor: 'pointer', opacity: mode === 'workout' ? 1 : 0.5 }}
-              onClick={() => setMode('workout')}
-            >
-              Single Workout
-            </span>
-            {' | '}
-            <span
-              style={{ cursor: 'pointer', opacity: mode === 'plan' ? 1 : 0.5 }}
-              onClick={() => setMode('plan')}
-            >
-              Training Plan
-            </span>
+            <ModeToggleGroup>
+              <ModeToggleButton type="button" $active={mode === 'workout'} onClick={() => setMode('workout')}>
+                Single Workout
+              </ModeToggleButton>
+              <span>|</span>
+              <ModeToggleButton type="button" $active={mode === 'plan'} onClick={() => setMode('plan')}>
+                Training Plan
+              </ModeToggleButton>
+            </ModeToggleGroup>
           </PanelTitle>
 
           {/* Config Row */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <ConfigRow>
             {mode === 'workout' ? (
               <>
-                <FormGroup style={{ flex: 1, minWidth: 120 }}>
+                <ConfigField>
                   <Label>Category</Label>
                   <Select value={category} onChange={e => setCategory(e.target.value)}>
                     {CATEGORIES.map(c => (
                       <option key={c.value} value={c.value}>{c.label}</option>
                     ))}
                   </Select>
-                </FormGroup>
-                <FormGroup style={{ flex: 1, minWidth: 100 }}>
+                </ConfigField>
+                <CompactConfigField>
                   <Label>Exercises</Label>
                   <Input type="number" value={exerciseCount} onChange={e => setExerciseCount(e.target.value)} />
-                </FormGroup>
-                <FormGroup style={{ flex: 1, minWidth: 120 }}>
+                </CompactConfigField>
+                <ConfigField>
                   <Label>Rotation</Label>
                   <Select value={rotationPattern} onChange={e => setRotationPattern(e.target.value)}>
                     <option value="standard">Standard (2:1)</option>
                     <option value="aggressive">Aggressive (1:1)</option>
                     <option value="conservative">Conservative (3:1)</option>
                   </Select>
-                </FormGroup>
+                </ConfigField>
               </>
             ) : (
               <>
-                <FormGroup style={{ flex: 1, minWidth: 100 }}>
+                <CompactConfigField>
                   <Label>Weeks</Label>
                   <Input type="number" value={planWeeks} onChange={e => setPlanWeeks(e.target.value)} />
-                </FormGroup>
-                <FormGroup style={{ flex: 1, minWidth: 100 }}>
+                </CompactConfigField>
+                <CompactConfigField>
                   <Label>Sessions/Week</Label>
                   <Input type="number" value={sessionsPerWeek} onChange={e => setSessionsPerWeek(e.target.value)} />
-                </FormGroup>
-                <FormGroup style={{ flex: 1, minWidth: 120 }}>
+                </CompactConfigField>
+                <ConfigField>
                   <Label>Goal</Label>
                   <Select value={primaryGoal} onChange={e => setPrimaryGoal(e.target.value)}>
                     <option value="general_fitness">General Fitness</option>
@@ -563,12 +620,12 @@ const WorkoutBuilderPage: React.FC = () => {
                     <option value="fat_loss">Fat Loss</option>
                     <option value="athletic_performance">Athletic Performance</option>
                   </Select>
-                </FormGroup>
+                </ConfigField>
               </>
             )}
 
             {context && context.equipment.length > 0 && (
-              <FormGroup style={{ flex: 1, minWidth: 120 }}>
+              <ConfigField>
                 <Label>Location</Label>
                 <Select value={equipmentProfileId} onChange={e => setEquipmentProfileId(e.target.value)}>
                   <option value="">Any equipment</option>
@@ -576,9 +633,9 @@ const WorkoutBuilderPage: React.FC = () => {
                     <option key={ep.id} value={ep.id}>{ep.name}</option>
                   ))}
                 </Select>
-              </FormGroup>
+              </ConfigField>
             )}
-          </div>
+          </ConfigRow>
 
           <PrimaryButton
             onClick={handleGenerate}
@@ -587,7 +644,7 @@ const WorkoutBuilderPage: React.FC = () => {
             {loading ? 'Generating...' : mode === 'workout' ? 'Generate Workout' : 'Generate Plan'}
           </PrimaryButton>
 
-          {error && <ErrorBanner style={{ marginTop: 12 }}>{error}</ErrorBanner>}
+          {error && <ErrorBanner $top={12}>{error}</ErrorBanner>}
 
           {/* Workout Result */}
           <AnimatePresence>
@@ -612,7 +669,7 @@ const WorkoutBuilderPage: React.FC = () => {
                         <ExerciseParams>
                           {w.duration && <ParamChip>{w.duration}</ParamChip>}
                           {w.sets && <ParamChip>{w.sets} x {w.reps}</ParamChip>}
-                          {w.reason && <span style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)' }}>{w.reason}</span>}
+                          {w.reason && <InlineReason>{w.reason}</InlineReason>}
                         </ExerciseParams>
                       </ExerciseCard>
                     ))}
@@ -669,7 +726,7 @@ const WorkoutBuilderPage: React.FC = () => {
                   {plan.planSummary.durationWeeks}-Week Plan | {plan.planSummary.totalSessions} Sessions
                 </SectionDivider>
 
-                <SuccessBanner style={{ marginBottom: 12 }}>
+                <SuccessBanner $bottom={12}>
                   {plan.recommendations.length} AI recommendations applied
                 </SuccessBanner>
 
@@ -679,18 +736,18 @@ const WorkoutBuilderPage: React.FC = () => {
                       <ExerciseName>Mesocycle {mc.mesocycle}: Weeks {mc.weeks}</ExerciseName>
                       <AiBadge>Phase {mc.nasmPhase}</AiBadge>
                     </ExerciseHeader>
-                    <div style={{ fontSize: 13, color: '#e0ecf4', marginBottom: 4 }}>
+                    <PhaseName>
                       {mc.phaseName}
-                    </div>
+                    </PhaseName>
                     <ExerciseParams>
                       <ParamChip>{mc.params.sets} sets</ParamChip>
                       <ParamChip>{mc.params.reps} reps</ParamChip>
                       <ParamChip>{mc.params.intensity}</ParamChip>
                       <ParamChip>{mc.params.rest} rest</ParamChip>
                     </ExerciseParams>
-                    <ContextMeta style={{ marginTop: 6 }}>{mc.overloadStrategy}</ContextMeta>
+                    <ContextMeta $top={6}>{mc.overloadStrategy}</ContextMeta>
                     {mc.deloadWeek && (
-                      <ContextMeta style={{ color: '#FFB800' }}>Deload: Week {mc.deloadWeek}</ContextMeta>
+                      <ContextMeta $warning>Deload: Week {mc.deloadWeek}</ContextMeta>
                     )}
                   </ExerciseCard>
                 ))}
@@ -728,7 +785,7 @@ const WorkoutBuilderPage: React.FC = () => {
           ))}
 
           {!workout && !plan && (
-            <ContextMeta style={{ textAlign: 'center', padding: 24 }}>
+            <ContextMeta $center $pad={24}>
               Generate a workout to see AI reasoning and insights
             </ContextMeta>
           )}
@@ -776,17 +833,17 @@ class WorkoutBuilderErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <PageWrapper>
-          <div style={{ textAlign: 'center', paddingTop: 80 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, color: 'rgba(224,236,244,0.7)', marginBottom: 8 }}>
+          <ErrorBoundaryPanel>
+            <ErrorBoundaryTitle>
               Something went wrong
-            </div>
-            <p style={{ color: 'rgba(224,236,244,0.5)', marginBottom: 16 }}>
+            </ErrorBoundaryTitle>
+            <ErrorBoundaryCopy>
               The Workout Builder encountered an error.
-            </p>
-            <PrimaryButton style={{ width: 'auto', padding: '10px 24px' }} onClick={() => this.setState({ hasError: false })}>
+            </ErrorBoundaryCopy>
+            <PrimaryButton $auto onClick={() => this.setState({ hasError: false })}>
               Try Again
             </PrimaryButton>
-          </div>
+          </ErrorBoundaryPanel>
         </PageWrapper>
       );
     }

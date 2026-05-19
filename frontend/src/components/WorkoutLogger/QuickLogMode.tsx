@@ -45,14 +45,12 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
   const [currentSetIdx, setCurrentSetIdx] = useState(0);
 
   const exercise = exercises[currentExerciseIdx];
-  if (!exercise) return null;
-
-  const set = exercise.sets[currentSetIdx];
-  if (!set) return null;
-
-  const overload = ghostPreFill.getOverload(exercise.exerciseName, currentSetIdx);
+  const set = exercise?.sets[currentSetIdx];
+  const overload = exercise ? ghostPreFill.getOverload(exercise.exerciseName, currentSetIdx) : null;
 
   const handleLogSet = useCallback(() => {
+    if (!exercise || !set) return;
+
     // Signal that this set was logged (triggers rest timer in parent)
     onSetLogged(currentExerciseIdx, currentSetIdx);
 
@@ -63,7 +61,7 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
       setCurrentExerciseIdx(prev => prev + 1);
       setCurrentSetIdx(0);
     }
-  }, [currentExerciseIdx, currentSetIdx, exercise.sets.length, exercises.length, onSetLogged]);
+  }, [currentExerciseIdx, currentSetIdx, exercise, exercises.length, onSetLogged, set]);
 
   const handleApplyOverload = useCallback(() => {
     if (!overload) return;
@@ -83,6 +81,8 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
       setCurrentSetIdx(0);
     }
   }, [currentExerciseIdx, exercises.length]);
+
+  if (!exercise || !set) return null;
 
   const isSetComplete = set.weight > 0 && set.reps > 0;
 

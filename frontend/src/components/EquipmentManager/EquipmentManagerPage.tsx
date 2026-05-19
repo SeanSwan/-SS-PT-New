@@ -22,8 +22,6 @@ import {
 import type {
   EquipmentProfile,
   EquipmentItem,
-  ExerciseMapping,
-  ScanResult,
 } from '../../hooks/useEquipmentAPI';
 import {
   createEquipmentScanQueue,
@@ -94,22 +92,24 @@ const BackButton = styled.button`
   &:hover { background: rgba(96, 192, 240, 0.1); }
 `;
 
-const PrimaryButton = styled.button`
-  padding: 10px 24px;
+const PrimaryButton = styled.button<{ $stretch?: boolean; $top?: boolean; $compact?: boolean; $large?: boolean }>`
+  padding: ${({ $compact }) => ($compact ? '6px 12px' : '10px 24px')};
   background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
   border: none;
   border-radius: 8px;
   color: #fff;
-  font-size: 14px;
+  font-size: ${({ $compact }) => ($compact ? '12px' : '14px')};
   font-weight: 600;
   cursor: pointer;
-  min-height: 44px;
+  min-height: ${({ $compact, $large }) => ($large ? '48px' : $compact ? '36px' : '44px')};
+  flex: ${({ $stretch }) => ($stretch ? 1 : 'initial')};
+  margin-top: ${({ $top }) => ($top ? '16px' : 0)};
   transition: opacity 0.2s;
   &:hover { opacity: 0.85; }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const DangerButton = styled.button`
+const DangerButton = styled.button<{ $stretch?: boolean; $large?: boolean }>`
   padding: 8px 14px;
   border: 1px solid rgba(255, 71, 87, 0.3);
   background: transparent;
@@ -118,12 +118,13 @@ const DangerButton = styled.button`
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  min-height: 44px;
+  min-height: ${({ $large }) => ($large ? '48px' : '44px')};
+  flex: ${({ $stretch }) => ($stretch ? 1 : 'initial')};
   transition: all 0.2s;
   &:hover { background: rgba(255, 71, 87, 0.1); }
 `;
 
-const GhostButton = styled.button`
+const GhostButton = styled.button<{ $stretch?: boolean }>`
   padding: 8px 14px;
   border: 1px solid rgba(96, 192, 240, 0.2);
   background: transparent;
@@ -133,21 +134,26 @@ const GhostButton = styled.button`
   font-weight: 500;
   cursor: pointer;
   min-height: 44px;
+  flex: ${({ $stretch }) => ($stretch ? 1 : 'initial')};
   transition: all 0.2s;
   &:hover { background: rgba(96, 192, 240, 0.1); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 `;
 
-const Card = styled(motion.div)`
+const Card = styled(motion.div)<{ $interactive?: boolean }>`
   background: rgba(0, 32, 96, 0.5);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(96, 192, 240, 0.15);
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 10px;
-  cursor: pointer;
+  cursor: ${({ $interactive }) => ($interactive ? 'pointer' : 'default')};
   transition: border-color 0.2s;
   &:hover { border-color: rgba(96, 192, 240, 0.35); }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
 
   @media (max-width: 600px) {
     padding: 14px 16px;
@@ -271,6 +277,10 @@ const ScanQueueSummary = styled.div`
   font-size: 13px;
 `;
 
+const ScanQueueSummaryCompact = styled(ScanQueueSummary)`
+  margin: -8px 0 16px;
+`;
+
 const ScanQueueList = styled.ol`
   display: grid;
   gap: 6px;
@@ -287,6 +297,11 @@ const EmptyState = styled.div`
   text-align: center;
   padding: 48px 20px;
   color: rgba(224, 236, 244, 0.65);
+`;
+
+const EmptyCopy = styled.p`
+  color: rgba(224, 236, 244, 0.65);
+  margin-bottom: 16px;
 `;
 
 const EmptyTitle = styled.div`
@@ -350,13 +365,15 @@ const Label = styled.label`
   margin-bottom: 6px;
 `;
 
-const FormGroup = styled.div`
+const FormGroup = styled.div<{ $stretch?: boolean }>`
   margin-bottom: 16px;
+  flex: ${({ $stretch }) => ($stretch ? 1 : 'initial')};
 `;
 
-const FormRow = styled.div`
+const FormRow = styled.div<{ $top?: boolean }>`
   display: flex;
   gap: 12px;
+  margin-top: ${({ $top }) => ($top ? '8px' : 0)};
 
   @media (max-width: 600px) {
     flex-direction: column;
@@ -403,6 +420,14 @@ const ModalTitle = styled.h2`
   margin: 0 0 16px;
 `;
 
+const DetailTitle = styled(Title)`
+  margin-top: 12px;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
 // Camera / Scan UI
 const CameraArea = styled.div`
   position: relative;
@@ -442,6 +467,7 @@ const ScanningText = styled.div`
   color: #60c0f0;
   font-size: 14px;
   font-weight: 600;
+  margin-top: 12px;
 `;
 
 const PreviewImage = styled.img`
@@ -449,6 +475,38 @@ const PreviewImage = styled.img`
   max-height: 200px;
   border-radius: 8px;
   object-fit: contain;
+`;
+
+const ScanPreviewFrame = styled.div`
+  margin-bottom: 16px;
+  text-align: center;
+`;
+
+const AiAlias = styled.span`
+  font-size: 12px;
+  color: rgba(224, 236, 244, 0.5);
+  margin-left: 8px;
+`;
+
+const AiConfidenceBlock = styled.div`
+  margin-bottom: 16px;
+`;
+
+const AiConfidenceLabel = styled.div`
+  font-size: 13px;
+  color: rgba(224, 236, 244, 0.7);
+  margin-bottom: 4px;
+`;
+
+const SuggestedExerciseList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const DescriptionText = styled.div`
+  font-size: 13px;
+  color: rgba(224, 236, 244, 0.7);
 `;
 
 const ConfidenceMeter = styled.div<{ $value: number }>`
@@ -533,6 +591,11 @@ const ScanErrorActions = styled.div`
   flex-wrap: wrap;
 `;
 
+const ErrorContainer = styled(Container)`
+  text-align: center;
+  padding-top: 80px;
+`;
+
 // --- Location Icons ---
 const LOCATION_ICONS: Record<string, string> = {
   gym: '🏋️',
@@ -575,7 +638,6 @@ const EquipmentManagerPage: React.FC = () => {
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
-  const [lastScanResult, setLastScanResult] = useState<{ item: EquipmentItem; scanResult: ScanResult } | null>(null);
   const [scanQueue, setScanQueue] = useState<EquipmentScanQueueItem[]>([]);
   const [activeScanItem, setActiveScanItem] = useState<EquipmentScanQueueItem | null>(null);
   const [showAddItem, setShowAddItem] = useState(false);
@@ -718,7 +780,6 @@ const EquipmentManagerPage: React.FC = () => {
     setScanError(null);
     try {
       const result = await api.scanEquipment(selectedProfile.id, queueItem.file);
-      setLastScanResult(result);
       setShowApproval(result.item);
       setApprovalOverrides({
         name: result.scanResult.suggestedName,
@@ -775,7 +836,6 @@ const EquipmentManagerPage: React.FC = () => {
 
   const handleCloseApproval = () => {
     setShowApproval(null);
-    setLastScanResult(null);
     setScanPreview(null);
     setActiveScanItem(null);
   };
@@ -789,7 +849,6 @@ const EquipmentManagerPage: React.FC = () => {
         category: approvalOverrides.category || undefined,
       });
       setShowApproval(null);
-      setLastScanResult(null);
       setScanPreview(null);
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
@@ -804,7 +863,6 @@ const EquipmentManagerPage: React.FC = () => {
     try {
       await api.rejectItem(selectedProfile.id, showApproval.id);
       setShowApproval(null);
-      setLastScanResult(null);
       setScanPreview(null);
       setActiveScanItem(null);
       loadItems(selectedProfile.id);
@@ -818,12 +876,43 @@ const EquipmentManagerPage: React.FC = () => {
     setView('list');
     setSelectedProfile(null);
     setItems([]);
-    setLastScanResult(null);
     setScanPreview(null);
     setScanQueue([]);
     setActiveScanItem(null);
     setScanError(null);
     resetScanInputs();
+  };
+
+  const openApprovalReview = (item: EquipmentItem) => {
+    if (item.approvalStatus !== 'pending') return;
+    setShowApproval(item);
+    const scan = item.aiScanData;
+    if (scan) {
+      setApprovalOverrides({
+        name: scan.suggestedName || item.name,
+        trainerLabel: '',
+        category: scan.suggestedCategory || item.category,
+      });
+    }
+  };
+
+  const handleCardKeyDown = (
+    event: React.KeyboardEvent,
+    action: () => void,
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      action();
+    }
+  };
+
+  const handleBackdropClick = (
+    event: React.MouseEvent,
+    action: () => void,
+  ) => {
+    if (event.target === event.currentTarget) {
+      action();
+    }
   };
 
   // ── Render: Profile List ──────────────────────────────────────────
@@ -865,7 +954,7 @@ const EquipmentManagerPage: React.FC = () => {
             <EmptyState>
               <EmptyTitle>No equipment profiles yet</EmptyTitle>
               <p>Create your first location profile to start tracking equipment.</p>
-              <PrimaryButton onClick={() => setShowCreateProfile(true)} style={{ marginTop: 16 }}>
+              <PrimaryButton onClick={() => setShowCreateProfile(true)} $top>
                 Get Started
               </PrimaryButton>
             </EmptyState>
@@ -874,7 +963,11 @@ const EquipmentManagerPage: React.FC = () => {
               {profiles.map(p => (
                 <Card
                   key={p.id}
+                  $interactive
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleSelectProfile(p)}
+                  onKeyDown={(event) => handleCardKeyDown(event, () => handleSelectProfile(p))}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -908,26 +1001,31 @@ const EquipmentManagerPage: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setShowCreateProfile(false)}
+                onClick={(event) => handleBackdropClick(event, () => setShowCreateProfile(false))}
+                role="presentation"
               >
                 <ModalContent
                   initial={{ y: 100 }}
                   animate={{ y: 0 }}
                   exit={{ y: 100 }}
-                  onClick={e => e.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="equipment-create-profile-title"
                 >
-                  <ModalTitle>New Location Profile</ModalTitle>
+                  <ModalTitle id="equipment-create-profile-title">New Location Profile</ModalTitle>
                   <FormGroup>
-                    <Label>Profile Name</Label>
+                    <Label htmlFor="equipment-profile-name">Profile Name</Label>
                     <Input
+                      id="equipment-profile-name"
                       placeholder="e.g., Hotel Gym, John's Home"
                       value={newProfile.name}
                       onChange={e => setNewProfile(p => ({ ...p, name: e.target.value }))}
                     />
                   </FormGroup>
                   <FormGroup>
-                    <Label>Location Type</Label>
+                    <Label htmlFor="equipment-profile-location-type">Location Type</Label>
                     <Select
+                      id="equipment-profile-location-type"
                       value={newProfile.locationType}
                       onChange={e => setNewProfile(p => ({ ...p, locationType: e.target.value }))}
                     >
@@ -939,18 +1037,19 @@ const EquipmentManagerPage: React.FC = () => {
                     </Select>
                   </FormGroup>
                   <FormGroup>
-                    <Label>Description (optional)</Label>
+                    <Label htmlFor="equipment-profile-description">Description (optional)</Label>
                     <TextArea
+                      id="equipment-profile-description"
                       placeholder="Notes about this location..."
                       value={newProfile.description}
                       onChange={e => setNewProfile(p => ({ ...p, description: e.target.value }))}
                     />
                   </FormGroup>
                   <FormRow>
-                    <GhostButton onClick={() => setShowCreateProfile(false)} style={{ flex: 1 }}>
+                    <GhostButton onClick={() => setShowCreateProfile(false)} $stretch>
                       Cancel
                     </GhostButton>
-                    <PrimaryButton onClick={handleCreateProfile} style={{ flex: 1 }}>
+                    <PrimaryButton onClick={handleCreateProfile} $stretch>
                       Create Profile
                     </PrimaryButton>
                   </FormRow>
@@ -971,9 +1070,9 @@ const EquipmentManagerPage: React.FC = () => {
         <Header>
           <div>
             <BackButton onClick={handleBack}>Back to Profiles</BackButton>
-            <Title style={{ marginTop: 12 }}>
+            <DetailTitle>
               {LOCATION_ICONS[selectedProfile?.locationType || 'custom']} {selectedProfile?.name}
-            </Title>
+            </DetailTitle>
             <Subtitle>{selectedProfile?.description || 'Equipment at this location'}</Subtitle>
           </div>
           <ScanActionGroup>
@@ -990,18 +1089,16 @@ const EquipmentManagerPage: React.FC = () => {
         </Header>
 
         {/* Hidden file inputs: camera capture stays separate from mobile gallery picking. */}
-        <input
+        <HiddenFileInput
           ref={cameraInputRef}
           type="file"
           {...getEquipmentScanInputProps('camera')}
-          style={{ display: 'none' }}
           onChange={(event) => handleFileSelected(event, 'camera')}
         />
-        <input
+        <HiddenFileInput
           ref={galleryInputRef}
           type="file"
           {...getEquipmentScanInputProps('gallery')}
-          style={{ display: 'none' }}
           onChange={(event) => handleFileSelected(event, 'gallery')}
         />
 
@@ -1041,7 +1138,7 @@ const EquipmentManagerPage: React.FC = () => {
             <ScanOverlay>
               <ScanLineEl />
             </ScanOverlay>
-            <ScanningText style={{ marginTop: 12 }}>
+            <ScanningText>
               {activeScanItem ? `Analyzing ${activeScanItem.fileName}...` : 'Analyzing equipment...'}
             </ScanningText>
           </CameraArea>
@@ -1063,39 +1160,32 @@ const EquipmentManagerPage: React.FC = () => {
         {items.length === 0 && !scanning ? (
           <EmptyState>
             <EmptyTitle>No equipment here yet</EmptyTitle>
-            <p>Tap "Swan Coach Scan" or choose multiple library photos to queue equipment scans.</p>
+            <p>Tap Swan Coach Scan or choose multiple library photos to queue equipment scans.</p>
           </EmptyState>
         ) : (
           <AnimatePresence>
             {items.map(item => (
               <Card
                 key={item.id}
+                $interactive={item.approvalStatus === 'pending'}
+                role={item.approvalStatus === 'pending' ? 'button' : undefined}
+                tabIndex={item.approvalStatus === 'pending' ? 0 : undefined}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                onClick={() => {
-                  if (item.approvalStatus === 'pending') {
-                    setShowApproval(item);
-                    const scan = item.aiScanData;
-                    if (scan) {
-                      setApprovalOverrides({
-                        name: scan.suggestedName || item.name,
-                        trainerLabel: '',
-                        category: scan.suggestedCategory || item.category,
-                      });
-                    }
-                  }
-                }}
-                style={{ cursor: item.approvalStatus === 'pending' ? 'pointer' : 'default' }}
+                onClick={item.approvalStatus === 'pending' ? () => openApprovalReview(item) : undefined}
+                onKeyDown={item.approvalStatus === 'pending'
+                  ? (event) => handleCardKeyDown(event, () => openApprovalReview(item))
+                  : undefined}
               >
                 <CardHeader>
                   <CardInfo>
                     <CardTitle>
                       {item.trainerLabel || item.name}
                       {item.trainerLabel && item.trainerLabel !== item.name && (
-                        <span style={{ fontSize: 12, color: 'rgba(224, 236, 244, 0.5)', marginLeft: 8 }}>
+                        <AiAlias>
                           (AI: {item.name})
-                        </span>
+                        </AiAlias>
                       )}
                     </CardTitle>
                     <CardMeta>
@@ -1115,18 +1205,10 @@ const EquipmentManagerPage: React.FC = () => {
                     {item.approvalStatus === 'pending' && (
                       <>
                         <PrimaryButton
-                          style={{ padding: '6px 12px', fontSize: 12, minHeight: 36 }}
+                          $compact
                           onClick={(e) => {
                             e.stopPropagation();
-                            setShowApproval(item);
-                            const scan = item.aiScanData;
-                            if (scan) {
-                              setApprovalOverrides({
-                                name: scan.suggestedName || item.name,
-                                trainerLabel: '',
-                                category: scan.suggestedCategory || item.category,
-                              });
-                            }
+                            openApprovalReview(item);
                           }}
                         >
                           Review
@@ -1150,27 +1232,32 @@ const EquipmentManagerPage: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowAddItem(false)}
+              onClick={(event) => handleBackdropClick(event, () => setShowAddItem(false))}
+              role="presentation"
             >
               <ModalContent
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
                 exit={{ y: 100 }}
-                onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="equipment-add-item-title"
               >
-                <ModalTitle>Add Equipment</ModalTitle>
+                <ModalTitle id="equipment-add-item-title">Add Equipment</ModalTitle>
                 <FormGroup>
-                  <Label>Equipment Name</Label>
+                  <Label htmlFor="equipment-item-name">Equipment Name</Label>
                   <Input
+                    id="equipment-item-name"
                     placeholder="e.g., Adjustable Dumbbells"
                     value={newItem.name}
                     onChange={e => setNewItem(i => ({ ...i, name: e.target.value }))}
                   />
                 </FormGroup>
                 <FormRow>
-                  <FormGroup style={{ flex: 1 }}>
-                    <Label>Category</Label>
+                  <FormGroup $stretch>
+                    <Label htmlFor="equipment-item-category">Category</Label>
                     <Select
+                      id="equipment-item-category"
                       value={newItem.category}
                       onChange={e => setNewItem(i => ({ ...i, category: e.target.value }))}
                     >
@@ -1179,9 +1266,10 @@ const EquipmentManagerPage: React.FC = () => {
                       ))}
                     </Select>
                   </FormGroup>
-                  <FormGroup style={{ flex: 1 }}>
-                    <Label>Resistance Type</Label>
+                  <FormGroup $stretch>
+                    <Label htmlFor="equipment-item-resistance-type">Resistance Type</Label>
                     <Select
+                      id="equipment-item-resistance-type"
                       value={newItem.resistanceType}
                       onChange={e => setNewItem(i => ({ ...i, resistanceType: e.target.value }))}
                     >
@@ -1198,16 +1286,17 @@ const EquipmentManagerPage: React.FC = () => {
                   </FormGroup>
                 </FormRow>
                 <FormGroup>
-                  <Label>Description (optional)</Label>
+                  <Label htmlFor="equipment-item-description">Description (optional)</Label>
                   <TextArea
+                    id="equipment-item-description"
                     placeholder="What is this equipment used for?"
                     value={newItem.description}
                     onChange={e => setNewItem(i => ({ ...i, description: e.target.value }))}
                   />
                 </FormGroup>
                 <FormRow>
-                  <GhostButton onClick={() => setShowAddItem(false)} style={{ flex: 1 }}>Cancel</GhostButton>
-                  <PrimaryButton onClick={handleAddItem} style={{ flex: 1 }}>Add Equipment</PrimaryButton>
+                  <GhostButton onClick={() => setShowAddItem(false)} $stretch>Cancel</GhostButton>
+                  <PrimaryButton onClick={handleAddItem} $stretch>Add Equipment</PrimaryButton>
                 </FormRow>
               </ModalContent>
             </Modal>
@@ -1221,48 +1310,53 @@ const EquipmentManagerPage: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={handleCloseApproval}
+              onClick={(event) => handleBackdropClick(event, handleCloseApproval)}
+              role="presentation"
             >
               <ModalContent
                 initial={{ y: 100 }}
                 animate={{ y: 0 }}
                 exit={{ y: 100 }}
-                onClick={e => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="equipment-approval-title"
               >
-                <ModalTitle>Review AI Scan</ModalTitle>
+                <ModalTitle id="equipment-approval-title">Review AI Scan</ModalTitle>
                 {activeScanItem && (
-                  <ScanQueueSummary style={{ margin: '-8px 0 16px' }}>
+                  <ScanQueueSummaryCompact>
                     {activeScanItem.fileName}
                     {scanQueue.length > 0 ? ` - ${scanQueue.length} queued after this` : ''}
-                  </ScanQueueSummary>
+                  </ScanQueueSummaryCompact>
                 )}
 
                 {scanPreview && (
-                  <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                  <ScanPreviewFrame>
                     <PreviewImage src={scanPreview} alt="Scanned equipment" />
-                  </div>
+                  </ScanPreviewFrame>
                 )}
 
                 {showApproval.aiScanData && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, color: 'rgba(224, 236, 244, 0.7)', marginBottom: 4 }}>
+                  <AiConfidenceBlock>
+                    <AiConfidenceLabel>
                       AI Confidence: {Math.round(showApproval.aiScanData.confidence * 100)}%
-                    </div>
+                    </AiConfidenceLabel>
                     <ConfidenceMeter $value={showApproval.aiScanData.confidence} />
-                  </div>
+                  </AiConfidenceBlock>
                 )}
 
                 <FormGroup>
-                  <Label>Equipment Name</Label>
+                  <Label htmlFor="equipment-approval-name">Equipment Name</Label>
                   <Input
+                    id="equipment-approval-name"
                     value={approvalOverrides.name}
                     onChange={e => setApprovalOverrides(o => ({ ...o, name: e.target.value }))}
                   />
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Your Label (optional)</Label>
+                  <Label htmlFor="equipment-approval-trainer-label">Your Label (optional)</Label>
                   <Input
+                    id="equipment-approval-trainer-label"
                     placeholder="Custom name if different from AI suggestion"
                     value={approvalOverrides.trainerLabel}
                     onChange={e => setApprovalOverrides(o => ({ ...o, trainerLabel: e.target.value }))}
@@ -1270,8 +1364,9 @@ const EquipmentManagerPage: React.FC = () => {
                 </FormGroup>
 
                 <FormGroup>
-                  <Label>Category</Label>
+                  <Label htmlFor="equipment-approval-category">Category</Label>
                   <Select
+                    id="equipment-approval-category"
                     value={approvalOverrides.category}
                     onChange={e => setApprovalOverrides(o => ({ ...o, category: e.target.value }))}
                   >
@@ -1283,29 +1378,29 @@ const EquipmentManagerPage: React.FC = () => {
 
                 {showApproval.aiScanData?.suggestedExercises && showApproval.aiScanData.suggestedExercises.length > 0 && (
                   <FormGroup>
-                    <Label>Suggested Exercises</Label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    <Label as="div">Suggested Exercises</Label>
+                    <SuggestedExerciseList>
                       {showApproval.aiScanData.suggestedExercises.map((ex, i) => (
                         <Badge key={i}>{ex}</Badge>
                       ))}
-                    </div>
+                    </SuggestedExerciseList>
                   </FormGroup>
                 )}
 
                 {showApproval.description && (
                   <FormGroup>
-                    <Label>Description</Label>
-                    <div style={{ fontSize: 13, color: 'rgba(224, 236, 244, 0.7)' }}>
+                    <Label as="div">Description</Label>
+                    <DescriptionText>
                       {showApproval.description}
-                    </div>
+                    </DescriptionText>
                   </FormGroup>
                 )}
 
-                <FormRow style={{ marginTop: 8 }}>
-                  <DangerButton onClick={handleReject} style={{ flex: 1, minHeight: 48 }}>
+                <FormRow $top>
+                  <DangerButton onClick={handleReject} $stretch $large>
                     {scanQueue.length > 0 ? 'Reject & Next' : 'Reject'}
                   </DangerButton>
-                  <PrimaryButton onClick={handleApprove} style={{ flex: 1, minHeight: 48 }}>
+                  <PrimaryButton onClick={handleApprove} $stretch $large>
                     {scanQueue.length > 0 ? 'Confirm & Next' : 'Confirm'}
                   </PrimaryButton>
                 </FormRow>
@@ -1334,15 +1429,15 @@ class EquipmentManagerErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <PageWrapper>
-          <Container style={{ textAlign: 'center', paddingTop: 80 }}>
+          <ErrorContainer>
             <EmptyTitle>Something went wrong</EmptyTitle>
-            <p style={{ color: 'rgba(224, 236, 244, 0.65)', marginBottom: 16 }}>
+            <EmptyCopy>
               The Equipment Manager encountered an error.
-            </p>
+            </EmptyCopy>
             <PrimaryButton onClick={() => this.setState({ hasError: false })}>
               Try Again
             </PrimaryButton>
-          </Container>
+          </ErrorContainer>
         </PageWrapper>
       );
     }
