@@ -29,7 +29,9 @@ export type GlowButtonColorScheme =
   | 'purple'
   | 'emerald'
   | 'ruby'
-  | 'cosmic';
+  | 'cosmic'
+  | 'cyan'
+  | 'red';
 
 export type GlowButtonSize = 'small' | 'medium' | 'large';
 
@@ -86,6 +88,8 @@ const LEGACY_VARIANT_MAP: Record<string, CanonicalVariant> = {
   emerald: 'success',
   ruby: 'danger',
   cosmic: 'primary',
+  cyan: 'accent',
+  red: 'danger',
 };
 
 /** Resolve any variant (including legacy names) to a canonical variant key. */
