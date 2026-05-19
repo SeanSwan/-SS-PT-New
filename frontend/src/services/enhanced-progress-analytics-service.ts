@@ -3,6 +3,8 @@ import { AxiosInstance } from 'axios';
 import { ClientProgressData, ClientProgressServiceInterface, createClientProgressService } from './client-progress-service';
 import { logger } from '@/utils/logger';
 
+export type { ClientProgressData } from './client-progress-service';
+
 // Enhanced analytics interfaces
 export interface ComparisonData {
   comparisonType: 'average' | 'clients' | 'historical' | 'goals';

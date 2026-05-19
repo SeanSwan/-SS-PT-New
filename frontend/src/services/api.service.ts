@@ -215,6 +215,10 @@ class ProductionApiService {
       delete this.client.defaults.headers.common['Authorization'];
     }
   }
+
+  getAuthorizationHeader() {
+    return this.client.defaults.headers.common['Authorization'] || null;
+  }
 }
 
 const productionApiService = new ProductionApiService();

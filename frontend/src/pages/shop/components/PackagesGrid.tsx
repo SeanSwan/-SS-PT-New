@@ -68,13 +68,13 @@ interface StoreItem {
 
 // Component Props Interface
 interface PackagesGridProps {
-  packages: StoreItem[];
+  packages: any[];
   canViewPrices: boolean;
   canPurchase: boolean;
   revealPrices: { [key: string]: boolean };
   isAddingToCart: number | null;
   onTogglePrice: (packageId: number) => void;
-  onAddToCart: (pkg: StoreItem) => void;
+  onAddToCart: (pkg: any) => void;
 }
 
 // Styled Components
@@ -241,7 +241,7 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
     return packageList.map(pkg => (
       <PackageCard
         key={pkg.id}
-        package={pkg}
+        package={pkg as any}
         activeSpecial={pkg.activeSpecial}
         canViewPrices={canViewPrices}
         canPurchase={canPurchase}

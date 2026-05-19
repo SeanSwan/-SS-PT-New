@@ -3,8 +3,9 @@ import React from 'react';
 import styled from 'styled-components';
 
 interface ProductRecommendationsProps {
-  type: 'personalized' | 'popular' | 'cart';
+  type: 'personalized' | 'popular' | 'cart' | 'complementary';
   title: string;
+  itemId?: number | string;
   limit: number;
 }
 
