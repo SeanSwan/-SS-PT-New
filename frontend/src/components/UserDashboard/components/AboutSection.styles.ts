@@ -5,15 +5,12 @@
 import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import styled from 'styled-components';
+import { visionCardCss, visionPanelCss } from './UserDashboardSectionChrome.styles';
 
 export const AboutContainer = styled(motion.div)`
   padding: 2rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  ${visionPanelCss}
   color: var(--text-primary, #E0ECF4);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(24px);
 
   @media (max-width: 768px) {
     padding: 1.5rem;
@@ -34,9 +31,7 @@ export const SectionGrid = styled.div`
 export const InfoCard = styled(motion.div)<{ $spaced?: boolean }>`
   margin-top: ${({ $spaced }) => ($spaced ? '2rem' : 0)};
   padding: 1.5rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-elevated, rgba(0, 48, 128, 0.85)));
+  ${visionCardCss}
   transition: border-color 0.3s ease, transform 0.3s ease;
 
   &:hover {
@@ -73,8 +68,8 @@ export const InfoItem = styled.div`
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem;
-  border-radius: 8px;
-  background: var(--bg-base, #0A0A0F);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
   transition: background 0.3s ease;
 
   &:hover {

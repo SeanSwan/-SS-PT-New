@@ -1,14 +1,13 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import {
+  visionAccentButtonCss,
+  visionControlCss,
+  visionPanelCss,
+} from './UserDashboardSectionChrome.styles';
 
 export const GalleryContainer = styled(motion.div)`
-  background: var(--bg-elevated, #141419);
-  backdrop-filter: blur(18px);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.16));
-  border-radius: 8px;
-  box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.15),
-    0 8px 16px rgba(0, 0, 0, 0.1);
+  ${visionPanelCss}
   color: var(--text-primary, #E0ECF4);
   padding: 2rem;
 
@@ -52,26 +51,12 @@ export const GalleryTitle = styled.h2`
 
 export const UploadButton = styled(motion.button)`
   align-items: center;
-  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
-  border: 0;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.28);
-  color: var(--button-text, #0A0A0F);
+  ${visionAccentButtonCss}
   cursor: pointer;
   display: flex;
-  font-weight: 700;
   gap: 0.5rem;
   justify-content: center;
-  min-height: 44px;
   padding: 0.75rem 1.5rem;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.36);
-    outline: none;
-    transform: translateY(-2px);
-  }
 
   &:disabled {
     cursor: progress;
@@ -95,9 +80,9 @@ export const SearchAndFilterContainer = styled.div`
 `;
 
 export const SearchInput = styled.input`
-  background: var(--bg-base, #0A0A0F);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.16));
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
+  border: 1px solid var(--vision-border);
+  border-radius: 16px;
   color: var(--text-primary, #E0ECF4);
   flex: 1 1 240px;
   font-size: 1rem;
@@ -123,25 +108,12 @@ export const SearchInput = styled.input`
 
 export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   align-items: center;
-  background: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--bg-elevated, #141419)')};
-  border: 1px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(224, 236, 244, 0.16))')};
-  border-radius: 8px;
-  color: ${({ $active }) => ($active ? 'var(--button-text, #0A0A0F)' : 'var(--text-secondary, rgba(224, 236, 244, 0.76))')};
+  ${({ $active }) => ($active ? visionAccentButtonCss : visionControlCss)}
+  color: ${({ $active }) => ($active ? 'var(--text-inverse, #0F172A)' : 'var(--text-secondary, rgba(224, 236, 244, 0.76))')};
   cursor: pointer;
   display: flex;
-  font-weight: 700;
   gap: 0.5rem;
-  min-height: 44px;
   padding: 0.75rem 1rem;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
-
-  &:hover,
-  &:focus-visible {
-    background: var(--accent-primary, #60C0F0);
-    color: var(--button-text, #0A0A0F);
-    outline: none;
-    transform: translateY(-1px);
-  }
 `;
 
 export const StatusMessage = styled.p`

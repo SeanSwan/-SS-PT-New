@@ -4,7 +4,8 @@
 
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
+import { visionCardCss, visionPanelCss } from './UserDashboardSectionChrome.styles';
 
 export const CommunityContainer = styled.div`
   width: 100%;
@@ -37,7 +38,8 @@ export const DiscoveryGrid = styled.div`
   }
 `;
 
-export const DiscoveryCard = styled(motion.button)<{ $dim?: boolean }>`
+const discoveryCardCss = css<{ $dim?: boolean }>`
+  ${visionCardCss}
   position: relative;
   min-height: 108px;
   display: flex;
@@ -45,17 +47,13 @@ export const DiscoveryCard = styled(motion.button)<{ $dim?: boolean }>`
   align-items: flex-start;
   gap: 0.5rem;
   padding: 1.125rem 1rem 1rem;
-  border: 1px solid
-    ${({ $dim }) => ($dim ? 'rgba(255, 255, 255, 0.04)' : 'var(--border-soft, rgba(255, 255, 255, 0.06))')};
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  border-color: ${({ $dim }) => ($dim ? 'rgba(255, 255, 255, 0.04)' : 'var(--vision-border)')};
   color: var(--text-primary, #E0ECF4);
   font-family: inherit;
   text-align: left;
-  cursor: ${({ $dim }) => ($dim ? 'default' : 'pointer')};
   opacity: ${({ $dim }) => ($dim ? 0.55 : 1)};
   transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(18px);
 
   &:hover:not([aria-disabled='true']) {
     border-color: rgba(96, 192, 240, 0.3);
@@ -71,6 +69,15 @@ export const DiscoveryCard = styled(motion.button)<{ $dim?: boolean }>`
     min-height: 96px;
     padding: 1rem 0.875rem 0.875rem;
   }
+`;
+
+export const DiscoveryCard = styled(motion.button)<{ $dim?: boolean }>`
+  ${discoveryCardCss}
+  cursor: ${({ $dim }) => ($dim ? 'default' : 'pointer')};
+`;
+
+export const DiscoveryStaticCard = styled(motion.div)<{ $dim?: boolean }>`
+  ${discoveryCardCss}
 `;
 
 export const CardIconWrap = styled.div<{ $colorRgb?: string }>`
@@ -119,15 +126,13 @@ export const SoonPill = styled.span`
 `;
 
 export const EventsBanner = styled(motion.div)`
+  ${visionPanelCss}
   display: flex;
   align-items: center;
   gap: 0.875rem;
   padding: 1rem 1.25rem;
-  border: 1px solid rgba(198, 168, 75, 0.18);
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  border-color: rgba(198, 168, 75, 0.18);
   box-shadow: inset 0 1px 0 rgba(198, 168, 75, 0.06);
-  backdrop-filter: blur(12px);
 
   @media (max-width: 375px) {
     gap: 0.75rem;

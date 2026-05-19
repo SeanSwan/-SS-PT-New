@@ -9,36 +9,36 @@
  * ============================================================================
  */
 
-import { Activity, Dumbbell, Sparkles, Trophy, UserCircle2, Users, Home } from 'lucide-react';
+import {
+  Activity,
+  Aperture,
+  Camera,
+  Dumbbell,
+  Home,
+  Info,
+  Sparkles,
+  UserCircle2,
+  Users,
+  Utensils,
+  Video,
+} from 'lucide-react';
 
 import type { TransformationPhoto, PhotoVisibility } from './TransformationPhotoTypes';
-import type {
-  ObservatoryNavItem,
-  ObservatoryNextBestAction,
-} from './ObservatoryShellTypes';
-import type { TabId } from '../types/UserDashboardTypes';
-import { getLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
+import type { ObservatoryNavItem } from './ObservatoryShellTypes';
 
 export const OBSERVATORY_NAV_ITEMS: ReadonlyArray<ObservatoryNavItem> = [
   { id: 'home',      label: 'Home',      Icon: Home },
   { id: 'feed',      label: 'Feed',      Icon: Sparkles },
-  { id: 'progress',  label: 'Progress',  Icon: Activity },
+  { id: 'reels',     label: 'Reels',     Icon: Video },
+  { id: 'creative',  label: 'Creative',  Icon: Aperture },
+  { id: 'photos',    label: 'Photos',    Icon: Camera },
+  { id: 'about',     label: 'About',     Icon: Info },
+  { id: 'activity',  label: 'Activity',  Icon: Activity },
+  { id: 'nutrition', label: 'Nutrition', Icon: Utensils },
+  { id: 'progress',  label: 'Progress',  Icon: Dumbbell },
   { id: 'community', label: 'Community', Icon: Users },
   { id: 'profile',   label: 'Profile',   Icon: UserCircle2 },
 ];
-
-export function buildObservatoryNextBestActions(
-  navigate: (path: string) => void,
-  changeTab: (tab: TabId) => void,
-  role?: string | null,
-): ReadonlyArray<ObservatoryNextBestAction> {
-  return [
-    { label: 'Log Workout',    Icon: Dumbbell, run: () => navigate(getLogWorkoutDashboardPath(role)) },
-    { label: 'View Progress',  Icon: Trophy,   run: () => changeTab('progress') },
-    { label: 'Explore Feed',   Icon: Sparkles, run: () => changeTab('feed') },
-    { label: 'Find Community', Icon: Users,    run: () => changeTab('community') },
-  ];
-}
 
 export function getTransformationPhotos(
   profile: Record<string, unknown> | null | undefined,

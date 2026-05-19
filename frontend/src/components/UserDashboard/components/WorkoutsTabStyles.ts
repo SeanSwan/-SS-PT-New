@@ -3,12 +3,19 @@
  */
 
 import styled from 'styled-components';
+import {
+  visionAccentButtonCss,
+  visionCardCss,
+  visionControlCss,
+  visionPanelCss,
+} from './UserDashboardSectionChrome.styles';
 
 export const Container = styled.div`
+  ${visionPanelCss}
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 8px 0;
+  padding: clamp(1rem, 1.5vw, 1.4rem);
 `;
 
 export const Header = styled.div`
@@ -31,31 +38,13 @@ export const SectionTitle = styled.h3`
 `;
 
 export const LogButton = styled.button`
+  ${visionAccentButtonCss}
   min-width: 44px;
-  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 10px 20px;
-  border: 0;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-purple, #8B5CF6), var(--accent-primary, #60C0F0));
-  color: var(--button-text, #FFFFFF);
   cursor: pointer;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.85rem;
-  font-weight: 600;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 4px;
-  }
 `;
 
 export const StatsRow = styled.div`
@@ -69,14 +58,12 @@ export const StatsRow = styled.div`
 `;
 
 export const StatCard = styled.div`
+  ${visionCardCss}
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
   padding: 16px;
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(20, 20, 25, 0.8));
 `;
 
 export const StatIcon = styled.div`
@@ -99,10 +86,8 @@ export const StatLabel = styled.span`
 `;
 
 export const CategorySection = styled.div`
+  ${visionCardCss}
   overflow: hidden;
-  border: 1px solid rgba(96, 192, 240, 0.08);
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(20, 20, 25, 0.7));
 `;
 
 export const CategoryHeader = styled.div`
@@ -161,10 +146,9 @@ export const ChartContainer = styled.div`
 `;
 
 export const ErrorCard = styled.div`
+  ${visionCardCss}
   padding: 16px 20px;
   border-left: 4px solid var(--error, #C92A54);
-  border-radius: 8px;
-  background: rgba(26, 26, 36, 0.95);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
 
@@ -174,21 +158,7 @@ export const ErrorCard = styled.div`
 `;
 
 export const RetryButton = styled.button`
-  min-height: 44px;
+  ${visionControlCss}
   padding: 8px 16px;
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 8px;
-  background: rgba(96, 192, 240, 0.1);
-  color: var(--accent-primary, #60C0F0);
   cursor: pointer;
-  font-family: 'Sora', sans-serif;
-
-  &:hover {
-    background: rgba(96, 192, 240, 0.2);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 4px;
-  }
 `;

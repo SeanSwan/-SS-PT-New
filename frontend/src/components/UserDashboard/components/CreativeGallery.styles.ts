@@ -4,15 +4,16 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import {
+  visionAccentButtonCss,
+  visionControlCss,
+  visionPanelCss,
+} from './UserDashboardSectionChrome.styles';
 
 export const GalleryContainer = styled(motion.div)`
   padding: 2rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  ${visionPanelCss}
   color: var(--text-primary, #E0ECF4);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(24px);
 
   @media (max-width: 768px) {
     padding: 1.5rem;
@@ -48,29 +49,12 @@ export const GalleryTitle = styled.h2`
 `;
 
 export const UploadButton = styled(motion.button)`
-  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border: 0;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-purple, #8B5CF6));
-  color: var(--button-text, #FFFFFF);
+  ${visionAccentButtonCss}
   cursor: pointer;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(96, 192, 240, 0.24);
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-
-  &:hover {
-    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.34);
-    transform: translateY(-2px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 3px;
-  }
 
   @media (max-width: 768px) {
     width: 100%;
@@ -90,27 +74,11 @@ export const TagsContainer = styled.div`
 `;
 
 export const Tag = styled(motion.button)<{ $active?: boolean }>`
-  min-height: 44px;
   padding: 0.5rem 1rem;
-  border: 1px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(255, 255, 255, 0.08))')};
-  border-radius: 8px;
-  background: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--bg-elevated, rgba(0, 48, 128, 0.85))')};
-  color: ${({ $active }) => ($active ? 'var(--button-text, #FFFFFF)' : 'var(--text-secondary, #94a3b8)')};
+  ${({ $active }) => ($active ? visionAccentButtonCss : visionControlCss)}
+  color: ${({ $active }) => ($active ? 'var(--text-inverse, #0F172A)' : 'var(--text-secondary, #94a3b8)')};
   cursor: pointer;
   font-size: 0.875rem;
-  font-weight: 500;
-  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
-
-  &:hover {
-    background: var(--accent-primary, #60C0F0);
-    color: var(--button-text, #FFFFFF);
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const GalleryGrid = styled.div`

@@ -141,6 +141,10 @@ export const TabNavigation = styled.div`
   top: 0.5rem;
   z-index: 50;
 
+  @media (min-width: 1025px) {
+    display: none;
+  }
+
   @supports not (backdrop-filter: blur(20px)) {
     /* iOS <= 16.1 fallback: solid bg so the sticky strip stays opaque. */
     background: var(--bg-elevated, #141419);

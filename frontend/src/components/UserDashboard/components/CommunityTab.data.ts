@@ -8,7 +8,7 @@ export interface CommunityCardDef {
   label: string;
   Icon: LucideIcon;
   colorRgb?: string;
-  action?: 'tab-feed' | 'nav';
+  action?: 'nav';
   path?: string;
   soon?: boolean;
 }
@@ -17,7 +17,6 @@ export const COMMUNITY_CARDS: CommunityCardDef[] = [
   {
     label: 'Community Feed',
     Icon: Rss,
-    action: 'tab-feed',
   },
   {
     label: 'Challenges',

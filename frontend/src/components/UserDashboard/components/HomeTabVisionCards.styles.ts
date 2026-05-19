@@ -231,18 +231,14 @@ export const StoryStrip = styled.div`
   @media (max-width: 430px) { grid-auto-columns: 58px; }
 `;
 
-export const StoryItem = styled.button`
+export const StoryItem = styled.div`
   min-width: 0;
-  border: 0;
-  background: transparent;
   color: var(--vision-soft);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35rem;
   font: 700 0.68rem/1.15 var(--font-ui, 'Sora', sans-serif);
-  cursor: pointer;
-  ${focusRing}
 `;
 
 export const StoryBubble = styled.div`
@@ -253,46 +249,4 @@ export const StoryBubble = styled.div`
   background: conic-gradient(from 90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-primary, #60C0F0));
 
   > div { width: 100%; height: 100%; border-radius: inherit; overflow: hidden; background: var(--bg-elevated, #141419); }
-`;
-
-export const MobileBottomNav = styled.nav`
-  position: fixed;
-  left: max(0.75rem, env(safe-area-inset-left));
-  right: max(0.75rem, env(safe-area-inset-right));
-  bottom: max(0.75rem, env(safe-area-inset-bottom));
-  z-index: 30;
-  display: none;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.35rem;
-  border-radius: 22px;
-  border: 1px solid var(--vision-border);
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent);
-  backdrop-filter: blur(18px);
-  padding: 0.45rem;
-
-  @media (max-width: 760px) {
-    display: grid;
-  }
-`;
-
-export const MobileNavButton = styled.button<{ $active?: boolean }>`
-  min-height: 52px;
-  border: 0;
-  border-radius: 16px;
-  background: ${({ $active }) => ($active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)' : 'transparent')};
-  color: ${({ $active }) => ($active ? 'var(--text-primary, #E0ECF4)' : 'var(--vision-soft)')};
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.22rem;
-  font: 800 0.62rem/1 var(--font-ui, 'Sora', sans-serif);
-  cursor: pointer;
-  transform: ${({ $active }) => ($active ? 'translateY(-3px)' : 'none')};
-  transition: transform 0.22s ease, color 0.22s ease, background 0.22s ease;
-  ${focusRing}
-
-  svg {
-    color: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'currentColor')};
-  }
 `;

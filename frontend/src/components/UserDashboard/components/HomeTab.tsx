@@ -29,9 +29,6 @@ import HomeTabVisionRightRail from './HomeTabVisionRightRail';
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import {
   clampPercent,
-  compactNumber,
-  MOBILE_NAV_ITEMS,
-  QUICK_ACTIONS,
   type VisionTarget,
 } from './HomeTabVision.data';
 import {
@@ -46,16 +43,9 @@ import {
   CenterColumn,
   CreatorPage,
   CreatorShell,
-  NextActionCopy,
   Panel,
   SupportShell,
 } from './HomeTabVision.styles';
-import {
-  ButtonRow,
-  GlassButton,
-  MobileBottomNav,
-  MobileNavButton,
-} from './HomeTabVisionCards.styles';
 interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
@@ -146,18 +136,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
   };
 
   const runAction = (target: VisionTarget) => {
-    if (target === 'log-workout') {
-      navigate(logWorkoutPath);
-      return;
-    }
-    if (target === 'schedule') {
-      navigate('/dashboard/client/schedule');
-      return;
-    }
-    if (target === 'reels') {
-      navigate('/social/reels');
-      return;
-    }
     if (target === 'challenges') {
       navigate('/social/challenges');
       return;
@@ -238,7 +216,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
               progressPercent={progressPercent}
               tierName={tierName}
               logWorkoutPath={logWorkoutPath}
-              onTabChange={(tab) => onTabChange(tab as TabId)}
             />
           </Panel>
 
@@ -253,7 +230,6 @@ const HomeTab: React.FC<HomeTabProps> = ({
                 streakDays={streakDays}
                 level={level}
                 tierName={tierName}
-                onTabChange={(tab) => onTabChange(tab as TabId)}
               />
               {hasEliteAccess && (
                 <SwanCoachActionLauncher
@@ -261,36 +237,12 @@ const HomeTab: React.FC<HomeTabProps> = ({
                   userRole={user?.role}
                   streakDays={streakDays}
                   level={level}
-                  onTabChange={(tab) => onTabChange(tab as TabId)}
                 />
               )}
             </Panel>
           )}
         </CenterColumn>
-        <Panel>
-          <strong>Next Best Action</strong>
-          <NextActionCopy>
-            {compactNumber(points)} XP banked. Turn today into another visible proof point.
-          </NextActionCopy>
-          <ButtonRow>
-            {QUICK_ACTIONS.map(({ id, label, Icon, target }) => (
-              <GlassButton key={id} type="button" $variant="ghost" onClick={() => runAction(target)}>
-                <Icon size={16} aria-hidden="true" />
-                {label}
-              </GlassButton>
-            ))}
-          </ButtonRow>
-        </Panel>
       </SupportShell>
-
-      <MobileBottomNav aria-label="Mobile dashboard navigation">
-        {MOBILE_NAV_ITEMS.map(({ id, label, Icon, target }) => (
-          <MobileNavButton key={id} type="button" $active={id === 'home'} onClick={() => runAction(target)}>
-            <Icon size={18} aria-hidden="true" />
-            {label}
-          </MobileNavButton>
-        ))}
-      </MobileBottomNav>
     </CreatorPage>
   );
 };

@@ -9,8 +9,8 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders as a premium branded block inside HomeTab.
- * Elite path: personalized greeting, context-aware quick-action chips wired
- * to real routes. Non-elite path: animated capability pills, locked overlay
+ * Elite path: personalized greeting plus one Swan Coach entry point. Non-elite
+ * path: animated capability pills, locked overlay
  * tone, and a glowing upgrade CTA to /ascension.
  *
  * HOW IT FITS IN THE APP: Consumed by HomeTab.tsx. isElite prop is resolved
@@ -29,11 +29,11 @@
 
 import React from 'react';
 import {
-  Sparkles, Dumbbell, Target, BarChart2,
+  Sparkles, Target,
   ChevronRight, Lock, Zap,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getLogWorkoutDashboardPath, getSwanCoachDashboardPath } from './swanCoachDashboardRoute';
+import { getSwanCoachDashboardPath } from './swanCoachDashboardRoute';
 import {
   ActionChip,
   ChipRow,
@@ -78,13 +78,10 @@ interface SwanCoachDockProps {
   streakDays: number;
   level: number;
   tierName: string;
-  onTabChange?: (tab: string) => void;
 }
 
 const ELITE_CHIPS = [
-  { label: 'Log Workout', Icon: Dumbbell, action: 'workout' },
-  { label: 'View Progress', Icon: BarChart2, action: 'progress' },
-  { label: 'Ask Swan Coach', Icon: Target, action: 'coach' },
+  { label: 'Open Swan Coach', Icon: Target },
 ] as const;
 
 const TEASER_PILLS = [
@@ -101,7 +98,6 @@ const SwanCoachDock: React.FC<SwanCoachDockProps> = ({
   streakDays,
   level,
   tierName,
-  onTabChange,
 }) => {
   const navigate = useNavigate();
 
@@ -129,14 +125,10 @@ const SwanCoachDock: React.FC<SwanCoachDockProps> = ({
             </EliteHeader>
 
             <ChipRow role="group" aria-label="Quick actions">
-              {ELITE_CHIPS.map(({ label, Icon, action }) => (
+              {ELITE_CHIPS.map(({ label, Icon }) => (
                 <ActionChip
                   key={label}
-                  onClick={() => {
-                    if (action === 'progress' && onTabChange) onTabChange('progress');
-                    else if (action === 'coach') navigate(getSwanCoachDashboardPath(userRole));
-                    else navigate(getLogWorkoutDashboardPath(userRole));
-                  }}
+                  onClick={() => navigate(getSwanCoachDashboardPath(userRole))}
                   aria-label={label}
                 >
                   <Icon size={15} />

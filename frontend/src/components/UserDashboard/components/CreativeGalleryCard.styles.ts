@@ -5,14 +5,13 @@
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
+import { visionCardCss, visionPanelCss } from './UserDashboardSectionChrome.styles';
 
 export const VideoCard = styled(motion.button)`
   position: relative;
   overflow: hidden;
   padding: 0;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-elevated, rgba(0, 48, 128, 0.85)));
+  ${visionCardCss}
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -89,6 +88,7 @@ export const StatItem = styled.div`
 `;
 
 export const UploadCard = styled(motion.button)`
+  ${visionPanelCss}
   min-height: 280px;
   display: flex;
   align-items: center;
@@ -96,8 +96,6 @@ export const UploadCard = styled(motion.button)`
   flex-direction: column;
   padding: 2rem;
   border: 2px dashed var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-elevated, rgba(0, 48, 128, 0.85)));
   color: inherit;
   cursor: pointer;
   text-align: center;

@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Crown,
   Dumbbell,
-  Flame,
   Heart,
   Sparkles,
   Trophy,
@@ -29,17 +28,42 @@ import {
   ButtonRow,
   Chip,
   Fill,
-  GlassButton,
   StoryBubble,
   StoryItem,
   StoryStrip,
 } from './HomeTabVisionCards.styles';
 import {
+  ActivityCopy,
+  ActivityGrid,
+  ActivityItem,
+  ActivityUser,
+  BadgeImage,
+  ChallengeBody,
+  ChallengeCopy,
+  ChallengeCrown,
+  ChallengeTitle,
+  EmptyState,
+  FullWidthAction,
+  GoldMeta,
   LeaderboardList,
   LeaderboardName,
   LeaderboardPoints,
   LeaderboardRank,
   LeaderboardRow,
+  MomentumBar,
+  MomentumBars,
+  MomentumLayout,
+  MomentumRing,
+  MomentumValue,
+  MutedTiny,
+  RailHeader,
+  SceneFrame,
+  SoftParagraph,
+  StoryImage,
+  TagName,
+  TransformationGrid,
+  TrendingGrid,
+  TrendingRow,
 } from './HomeTabVisionRightRail.styles';
 import { CrystalScene, MiniScene, Sparkline } from './HomeTabVisionScenes';
 
@@ -81,27 +105,27 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
   trendingLoading,
   onAction,
 }) => {
-  const challengeButtonTarget: VisionTarget = activeChallenge?.joined ? 'progress' : 'challenges';
+  const challengeButtonTarget: VisionTarget = 'challenges';
   const challengeButtonLabel = activeChallenge
-    ? activeChallenge.joined ? 'View Progress' : 'Open Challenges'
+    ? 'Open Challenges'
     : 'Explore Challenges';
 
   return (
   <RightRail aria-label="Creator observatory widgets">
     <Panel>
-      <ButtonRow style={{ justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+      <RailHeader $spaced>
         <Eyebrow>Stories from the Garden</Eyebrow>
-        <button type="button" onClick={() => onAction('feed')} style={linkButtonStyle}>View all</button>
-      </ButtonRow>
+        <Chip>Live</Chip>
+      </RailHeader>
       <StoryStrip>
         {stories.map((story) => (
-          <StoryItem key={story.id} type="button" onClick={() => onAction(story.isCreate ? 'feed' : 'community')}>
+          <StoryItem key={story.id}>
             <StoryBubble>
               <div>
                 {story.isCreate ? (
-                  <img src={logoSrc} alt="" aria-hidden="true" style={imageFillStyle} />
+                  <StoryImage src={logoSrc} alt="" aria-hidden="true" />
                 ) : story.mediaUrl ? (
-                  <img src={story.mediaUrl} alt="" aria-hidden="true" style={imageFillStyle} />
+                  <StoryImage src={story.mediaUrl} alt="" aria-hidden="true" />
                 ) : (
                   <MiniScene tone={story.tone} />
                 )}
@@ -114,88 +138,88 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
     </Panel>
 
     <Panel>
-      <ButtonRow style={{ justifyContent: 'space-between' }}>
+      <RailHeader>
         <Eyebrow>Live Activity</Eyebrow>
         <Chip $tone={liveActivityConnected ? 'cyan' : 'violet'}>
           {liveActivityConnected ? 'Live' : 'Recent'}
         </Chip>
-      </ButtonRow>
+      </RailHeader>
       {liveActivityItems.length ? (
-        <div style={activityGridStyle}>
+        <ActivityGrid>
           {liveActivityItems.map((item) => {
             const Icon = iconForActivity(item);
             return (
-              <div key={item.id} style={activityItemStyle}>
+              <ActivityItem key={item.id}>
                 <Chip>
                   <Icon size={13} aria-hidden="true" />
                 </Chip>
-                <div style={activityCopyStyle}>
-                  <strong style={{ color: 'var(--text-primary, #E0ECF4)' }}>{item.user}</strong> {item.action}
-                  <div style={mutedTinyStyle}>{item.time}</div>
-                </div>
-              </div>
+                <ActivityCopy>
+                  <ActivityUser>{item.user}</ActivityUser> {item.action}
+                  <MutedTiny>{item.time}</MutedTiny>
+                </ActivityCopy>
+              </ActivityItem>
             );
           })}
-        </div>
+        </ActivityGrid>
       ) : (
-        <p style={emptyStateStyle}>No community activity has landed yet.</p>
+        <EmptyState>No community activity has landed yet.</EmptyState>
       )}
     </Panel>
 
     <Panel $tone="gold">
-      <ButtonRow style={{ justifyContent: 'space-between' }}>
+      <RailHeader>
         <Eyebrow $tone="gold">Active Challenge</Eyebrow>
-        <span style={goldMetaStyle}>
+        <GoldMeta>
           {activeChallenge ? `${activeChallenge.daysLeft}D left` : challengeLoading ? 'Syncing' : 'Ready'}
-        </span>
-      </ButtonRow>
+        </GoldMeta>
+      </RailHeader>
       {activeChallenge ? (
-        <ButtonRow style={{ alignItems: 'stretch', marginTop: '0.9rem' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+        <ChallengeBody>
+          <ChallengeCopy>
             <ButtonRow>
               <Chip $tone="gold">
                 <Dumbbell size={14} aria-hidden="true" />
               </Chip>
-              <strong style={{ fontSize: '1.05rem' }}>{activeChallenge.title}</strong>
+              <ChallengeTitle>{activeChallenge.title}</ChallengeTitle>
             </ButtonRow>
-            <p style={softParagraphStyle}>
+            <SoftParagraph>
               {compactNumber(activeChallenge.participants)} creators are in. Reward: {activeChallenge.reward}.
-            </p>
+            </SoftParagraph>
             <Bar>
               <Fill $pct={activeChallenge.progress} $gold />
             </Bar>
-          </div>
-          <div style={challengeCrownStyle}>
+          </ChallengeCopy>
+          <ChallengeCrown>
             <Chip $tone="gold">
               <Crown size={30} aria-hidden="true" />
             </Chip>
-          </div>
-        </ButtonRow>
+          </ChallengeCrown>
+        </ChallengeBody>
       ) : (
-        <p style={emptyStateStyle}>
+        <EmptyState>
           {challengeLoading ? 'Checking the challenge board.' : 'No real active challenge is live yet.'}
-        </p>
+        </EmptyState>
       )}
-      <GlassButton type="button" $variant="accent" onClick={() => onAction(challengeButtonTarget)} style={{ width: '100%', marginTop: '0.9rem' }}>
+      <FullWidthAction type="button" $variant="accent" onClick={() => onAction(challengeButtonTarget)}>
         {challengeButtonLabel}
-      </GlassButton>
+      </FullWidthAction>
     </Panel>
 
     <Panel>
-      <ButtonRow style={{ justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+      <RailHeader $spaced>
         <Eyebrow>Badges</Eyebrow>
         <Eyebrow>Leaderboard</Eyebrow>
-      </ButtonRow>
+      </RailHeader>
       {badges.length ? (
         <ButtonRow>
           {badges.map((badge, index) => (
             <Chip key={badge.id} $tone={index === 1 ? 'gold' : index === 2 ? 'violet' : 'cyan'} title={badge.name}>
-              {badge.imageUrl ? <img src={badge.imageUrl} alt="" aria-hidden="true" style={badgeImageStyle} /> : badge.icon}
+              {badge.imageUrl ? <BadgeImage src={badge.imageUrl} alt="" aria-hidden="true" /> : badge.icon}
             </Chip>
           ))}
         </ButtonRow>
       ) : (
-        <p style={emptyStateStyle}>Earn a badge to fill this showcase.</p>
+        <EmptyState>Earn a badge to fill this showcase.</EmptyState>
       )}
       <LeaderboardList>
         {leaderboardRows.map((row, index) => (
@@ -211,88 +235,58 @@ const HomeTabVisionRightRail: React.FC<HomeTabVisionRightRailProps> = ({
     <Panel>
       <Eyebrow>Trending</Eyebrow>
       {trendingTags.length ? (
-        <div style={trendingGridStyle}>
+        <TrendingGrid>
           {trendingTags.map((tag, index) => (
-            <div key={tag.name} style={trendingRowStyle}>
+            <TrendingRow key={tag.name}>
               <div>
-                <strong style={tagNameStyle}>#{tag.name}</strong>
-                <div style={mutedTinyStyle}>{tag.count ? `${compactNumber(tag.count)} posts` : 'new'}</div>
+                <TagName>#{tag.name}</TagName>
+                <MutedTiny>{tag.count ? `${compactNumber(tag.count)} posts` : 'new'}</MutedTiny>
               </div>
               <Sparkline seed={index + 1} />
-            </div>
+            </TrendingRow>
           ))}
-        </div>
+        </TrendingGrid>
       ) : (
-        <p style={emptyStateStyle}>{trendingLoading ? 'Loading trend signals.' : 'No trending tags yet.'}</p>
+        <EmptyState>{trendingLoading ? 'Loading trend signals.' : 'No trending tags yet.'}</EmptyState>
       )}
     </Panel>
 
     <Panel>
-      <ButtonRow style={{ justifyContent: 'space-between', marginBottom: '0.8rem' }}>
+      <RailHeader $spaced>
         <Eyebrow>Weekly Momentum</Eyebrow>
         <Chip>{progressPercent}%</Chip>
-      </ButtonRow>
-      <div style={{ display: 'grid', gridTemplateColumns: '92px 1fr', gap: '1rem', alignItems: 'center' }}>
-        <div style={{ position: 'relative', width: 92, height: 92 }}>
+      </RailHeader>
+      <MomentumLayout>
+        <MomentumRing>
           <svg width="92" height="92" viewBox="0 0 92 92" aria-hidden="true">
             <circle cx="46" cy="46" r="36" stroke="color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)" strokeWidth="7" fill="none" />
             <circle cx="46" cy="46" r="36" stroke="var(--accent-primary, #60C0F0)" strokeWidth="7" fill="none" strokeLinecap="round" strokeDasharray="226" strokeDashoffset={226 * (1 - progressPercent / 100)} transform="rotate(-90 46 46)" />
           </svg>
-          <strong style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>{progressPercent}%</strong>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 4, height: 76 }}>
+          <MomentumValue>{progressPercent}%</MomentumValue>
+        </MomentumRing>
+        <MomentumBars>
           {[38, 52, 60, 70, 78, 86, 100].map((height, index) => (
-            <div key={height} style={{ width: 18, height: `${height}%`, borderRadius: 5, background: index === 6 ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)' }} />
+            <MomentumBar key={height} $height={height} $gold={index === 6} />
           ))}
-        </div>
-      </div>
+        </MomentumBars>
+      </MomentumLayout>
     </Panel>
 
     <Panel>
       <Eyebrow>Transformation</Eyebrow>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 34px 1fr', gap: '0.55rem', alignItems: 'center', marginTop: '0.8rem' }}>
-        <div style={{ borderRadius: 14, overflow: 'hidden', aspectRatio: '4 / 3' }}><CrystalScene tone="violet" /></div>
+      <TransformationGrid>
+        <SceneFrame><CrystalScene tone="violet" /></SceneFrame>
         <Chip><ArrowRight size={16} aria-hidden="true" /></Chip>
-        <div style={{ borderRadius: 14, overflow: 'hidden', aspectRatio: '4 / 3' }}><CrystalScene tone="cyan" /></div>
-      </div>
+        <SceneFrame><CrystalScene tone="cyan" /></SceneFrame>
+      </TransformationGrid>
     </Panel>
 
     <Panel>
       <Eyebrow>Next Best Action</Eyebrow>
-      <p style={softParagraphStyle}>Share progress and turn today into visible momentum.</p>
-      <ButtonRow>
-        <GlassButton type="button" $variant="accent" onClick={() => onAction('reels')}>Create Reel</GlassButton>
-        <GlassButton type="button" $variant="primary" onClick={() => onAction('feed')}>Share Update</GlassButton>
-      </ButtonRow>
+      <SoftParagraph>Share progress and turn today into visible momentum.</SoftParagraph>
     </Panel>
   </RightRail>
   );
-};
-
-const imageFillStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' };
-const badgeImageStyle: React.CSSProperties = { width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' };
-const activityGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.75rem', marginTop: '0.9rem' };
-const activityItemStyle: React.CSSProperties = { display: 'flex', gap: '0.55rem', minWidth: 0 };
-const activityCopyStyle: React.CSSProperties = { minWidth: 0, fontSize: '0.76rem', color: 'var(--vision-soft)' };
-const emptyStateStyle: React.CSSProperties = { color: 'var(--vision-soft)', margin: '0.8rem 0 0', lineHeight: 1.45 };
-const softParagraphStyle: React.CSSProperties = { margin: '0.6rem 0 0.8rem', color: 'var(--vision-soft)', lineHeight: 1.45 };
-const mutedTinyStyle: React.CSSProperties = { color: 'var(--text-muted, rgba(224,236,244,0.55))', fontSize: '0.68rem' };
-const goldMetaStyle: React.CSSProperties = { color: 'var(--accent-gold, #C6A84B)', fontSize: '0.75rem', fontWeight: 900 };
-const challengeCrownStyle: React.CSSProperties = { display: 'grid', placeItems: 'center', width: 86 };
-const trendingGridStyle: React.CSSProperties = { display: 'grid', gap: '0.6rem', marginTop: '0.8rem' };
-const trendingRowStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.8rem', alignItems: 'center' };
-const tagNameStyle: React.CSSProperties = { color: 'var(--accent-primary, #60C0F0)', fontSize: '0.82rem' };
-
-const linkButtonStyle: React.CSSProperties = {
-  border: 0,
-  background: 'transparent',
-  color: 'var(--accent-primary, #60C0F0)',
-  minHeight: 44,
-  padding: '0 0.35rem',
-  display: 'inline-flex',
-  alignItems: 'center',
-  fontWeight: 800,
-  cursor: 'pointer',
 };
 
 export default HomeTabVisionRightRail;

@@ -6,18 +6,18 @@
  *
  * WIREFRAME:
  * [Discover label]
- * [Community Feed] [Challenges] [Find Friends] [Factions & XP]
+ * [Community Feed status] [Challenges status] [Find Friends] [Factions & XP status]
  * [Local Events banner]
  *
  * DATA FLOW:
- * Props In: { onTabChange }
+ * Props In: none.
  * State: none.
  * API Calls: none.
- * Events: feed card changes dashboard tab, route cards navigate, non-live cards are gated.
+ * Events: route cards navigate, non-live cards are information-only.
  * Children: none.
  *
  * ARCHITECTURE:
- * CommunityTab -> COMMUNITY_CARDS -> discovery buttons
+ * CommunityTab -> COMMUNITY_CARDS -> status cards plus one unique friends path
  * CommunityTab -> Local Events banner
  */
 
@@ -32,6 +32,7 @@ import {
   CommunityContainer,
   DiscoveryCard,
   DiscoveryGrid,
+  DiscoveryStaticCard,
   EventsBadge,
   EventsBanner,
   EventsIcon,
@@ -42,16 +43,11 @@ import {
   SoonPill,
 } from './CommunityTab.styles';
 
-interface CommunityTabProps {
-  onTabChange: (tab: string) => void;
-}
-
-const CommunityTab: React.FC<CommunityTabProps> = ({ onTabChange }) => {
+const CommunityTab: React.FC = () => {
   const navigate = useNavigate();
 
   const handleCard = (card: CommunityCardDef) => {
     if (card.soon || card.action === undefined) return;
-    if (card.action === 'tab-feed') onTabChange('feed');
     if (card.action === 'nav' && card.path) navigate(card.path);
   };
 
@@ -64,6 +60,30 @@ const CommunityTab: React.FC<CommunityTabProps> = ({ onTabChange }) => {
       <DiscoveryGrid>
         {COMMUNITY_CARDS.map((card, index) => {
           const { label, Icon, colorRgb, soon } = card;
+          const isInteractive = card.action === 'nav' && Boolean(card.path) && !soon;
+
+          if (!isInteractive) {
+            return (
+              <DiscoveryStaticCard
+                key={label}
+                $dim={soon}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: soon ? 0.55 : 1, y: 0 }}
+                transition={{ duration: 0.4, delay: index * 0.07 }}
+              >
+                <CardIconWrap $colorRgb={colorRgb}>
+                  <Icon size={18} />
+                </CardIconWrap>
+                <CardLabel>{label}</CardLabel>
+                {soon && (
+                  <SoonPill>
+                    <Lock size={9} />
+                    Soon
+                  </SoonPill>
+                )}
+              </DiscoveryStaticCard>
+            );
+          }
 
           return (
             <DiscoveryCard
@@ -71,26 +91,18 @@ const CommunityTab: React.FC<CommunityTabProps> = ({ onTabChange }) => {
               $dim={soon}
               type="button"
               onClick={() => handleCard(card)}
-              aria-disabled={soon ? 'true' : undefined}
-              aria-label={soon ? `${label} coming soon` : label}
+              aria-label={label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: soon ? 0.55 : 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.07 }}
-              whileHover={soon ? {} : { y: -3 }}
-              whileTap={soon ? {} : { scale: 0.97 }}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: 0.97 }}
             >
               <CardIconWrap $colorRgb={colorRgb}>
                 <Icon size={18} />
               </CardIconWrap>
               <CardLabel>{label}</CardLabel>
-              {soon ? (
-                <SoonPill>
-                  <Lock size={9} />
-                  Soon
-                </SoonPill>
-              ) : (
-                <CardArrow size={14} />
-              )}
+              <CardArrow size={14} />
             </DiscoveryCard>
           );
         })}

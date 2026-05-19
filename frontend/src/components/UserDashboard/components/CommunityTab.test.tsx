@@ -9,23 +9,29 @@ vi.mock('react-router-dom', () => ({
 }));
 
 describe('CommunityTab', () => {
-  it('routes the live community feed card back to the feed tab', () => {
-    const onTabChange = vi.fn();
+  it('keeps the already-mounted feed surface from becoming a duplicate button', () => {
+    render(<CommunityTab />);
 
-    render(<CommunityTab onTabChange={onTabChange} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Community Feed' }));
-
-    expect(onTabChange).toHaveBeenCalledWith('feed');
+    expect(screen.getByText('Community Feed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Community Feed' })).toBeNull();
   });
 
   it('keeps non-live roadmap cards from firing navigation actions', () => {
-    const onTabChange = vi.fn();
     mockNavigate.mockClear();
 
-    render(<CommunityTab onTabChange={onTabChange} />);
-    fireEvent.click(screen.getByRole('button', { name: /challenges coming soon/i }));
+    render(<CommunityTab />);
+    expect(screen.getByText('Challenges')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /challenges/i })).toBeNull();
 
-    expect(onTabChange).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the unique friends route as a real action', () => {
+    mockNavigate.mockClear();
+
+    render(<CommunityTab />);
+    fireEvent.click(screen.getByRole('button', { name: 'Find Friends' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/social/friends');
   });
 });

@@ -20,7 +20,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart2, CheckCircle2, Mic, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Mic, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   ActionForm,
@@ -48,7 +48,6 @@ interface SwanCoachActionLauncherProps {
   userRole?: string | null;
   streakDays: number;
   level: number;
-  onTabChange: (tab: string) => void;
 }
 
 interface ReceiptState {
@@ -72,7 +71,6 @@ const SwanCoachActionLauncher: React.FC<SwanCoachActionLauncherProps> = ({
   userRole,
   streakDays,
   level,
-  onTabChange,
 }) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
@@ -199,10 +197,6 @@ const SwanCoachActionLauncher: React.FC<SwanCoachActionLauncherProps> = ({
           <SecondaryButton type="button" onClick={() => navigate(getSwanCoachDashboardPath(userRole))}>
             Open Swan Coach
             <ArrowRight size={15} />
-          </SecondaryButton>
-          <SecondaryButton type="button" onClick={() => onTabChange('progress')}>
-            <BarChart2 size={15} />
-            Progress
           </SecondaryButton>
         </ButtonRow>
 

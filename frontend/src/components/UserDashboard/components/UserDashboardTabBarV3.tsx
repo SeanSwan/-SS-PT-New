@@ -9,7 +9,20 @@
  * ProfileHeader, panels in the scroll content) stays intact.
  */
 import React from 'react';
-import { Activity, Home, Sparkles, User, Users, type LucideIcon } from 'lucide-react';
+import {
+  Activity,
+  Aperture,
+  Camera,
+  Dumbbell,
+  Home,
+  Info,
+  Sparkles,
+  User,
+  Users,
+  Utensils,
+  Video,
+  type LucideIcon,
+} from 'lucide-react';
 import { Tab, TabNavigation } from '../styles/DashboardV3Styles';
 import type { TabId } from '../types/UserDashboardTypes';
 
@@ -21,7 +34,13 @@ interface UserDashboardTabBarV3Props {
 const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon }> = [
   { id: 'home', label: 'Home', Icon: Home },
   { id: 'feed', label: 'Feed', Icon: Sparkles },
-  { id: 'progress', label: 'Progress', Icon: Activity },
+  { id: 'reels', label: 'Reels', Icon: Video },
+  { id: 'creative', label: 'Creative', Icon: Aperture },
+  { id: 'photos', label: 'Photos', Icon: Camera },
+  { id: 'about', label: 'About', Icon: Info },
+  { id: 'activity', label: 'Activity', Icon: Activity },
+  { id: 'nutrition', label: 'Nutrition', Icon: Utensils },
+  { id: 'progress', label: 'Progress', Icon: Dumbbell },
   { id: 'community', label: 'Community', Icon: Users },
   { id: 'profile', label: 'Profile', Icon: User },
 ];

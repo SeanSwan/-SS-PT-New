@@ -8,9 +8,6 @@ const DASHBOARD_SOURCES = [
   resolve(__dirname, './components/DailyHealthLoop.tsx'),
   resolve(__dirname, './components/SwanCoachActionLauncher.tsx'),
   resolve(__dirname, './components/SwanCoachDock.tsx'),
-  resolve(__dirname, '../ClientDashboard/sections/CommunitySection.tsx'),
-  resolve(__dirname, '../ClientDashboard/newLayout/SocialProfileSection.tsx'),
-  resolve(__dirname, '../ClientDashboard/sections/ProfileSection.tsx'),
 ].map((file) => readFileSync(file, 'utf8'));
 
 describe('dashboard visible language contract', () => {

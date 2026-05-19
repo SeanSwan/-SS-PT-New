@@ -4,6 +4,12 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import {
+  visionAccentButtonCss,
+  visionCardCss,
+  visionControlCss,
+  visionPanelCss,
+} from './UserDashboardSectionChrome.styles';
 
 export const ActivityContainer = styled(motion.div)`
   width: 100%;
@@ -11,12 +17,8 @@ export const ActivityContainer = styled(motion.div)`
   box-sizing: border-box;
   overflow: visible;
   padding: 2rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  ${visionPanelCss}
   color: var(--text-primary, #E0ECF4);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(24px);
 
   @media (max-width: 768px) {
     padding: 1.5rem;
@@ -75,26 +77,11 @@ export const FilterButton = styled(motion.button)<{ $active?: boolean }>`
   gap: 0.5rem;
   flex-shrink: 0;
   padding: 0.5rem 1rem;
-  border: 1px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(255, 255, 255, 0.08))')};
-  border-radius: 8px;
-  background: ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--bg-elevated, rgba(0, 48, 128, 0.85))')};
-  color: ${({ $active }) => ($active ? 'var(--button-text, #FFFFFF)' : 'var(--text-secondary, #94a3b8)')};
+  ${({ $active }) => ($active ? visionAccentButtonCss : visionControlCss)}
+  color: ${({ $active }) => ($active ? 'var(--text-inverse, #0F172A)' : 'var(--text-secondary, #94a3b8)')};
   cursor: pointer;
   font-size: 0.875rem;
-  font-weight: 500;
   white-space: nowrap;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-
-  &:hover {
-    border-color: var(--accent-primary, #60C0F0);
-    background: var(--accent-primary, #60C0F0);
-    color: var(--button-text, #FFFFFF);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const StatsOverview = styled.div`
@@ -122,9 +109,7 @@ export const StatsOverview = styled.div`
 
 export const StatCard = styled(motion.div)`
   padding: 1.5rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-elevated, rgba(0, 48, 128, 0.85)));
+  ${visionCardCss}
   transition: border-color 0.3s ease;
 
   &:hover {
@@ -172,9 +157,7 @@ export const ActivityItem = styled(motion.div)`
   position: relative;
   overflow: hidden;
   padding: 1.25rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-surface, var(--bg-elevated, rgba(0, 48, 128, 0.85)));
+  ${visionCardCss}
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
   &:hover {

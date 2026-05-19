@@ -2,7 +2,7 @@
  * ============================================================================
  * TYPES: ObservatoryShellTypes
  * PURPOSE: Shared prop/data types for the Phase 19B Observatory shell and
- *          its three sub-components (left rail, right rail, mobile nav).
+ *          its shell sub-components.
  * OWNER:   Claude Opus 4.7
  * UPDATED: 2026-04-29
  * ============================================================================
@@ -15,12 +15,6 @@ export interface ObservatoryNavItem {
   id: TabId;
   label: string;
   Icon: LucideIcon;
-}
-
-export interface ObservatoryNextBestAction {
-  label: string;
-  Icon: LucideIcon;
-  run: () => void;
 }
 
 export interface ObservatoryBadge {

@@ -2,7 +2,7 @@
  * ============================================================================
  * STYLES: ObservatoryLeftRailStyles
  * PURPOSE: Phase 19B Observatory shell - left rail brand block, nav items,
- *          create CTA, and momentum cards (level + creator streak).
+ *          nav items and momentum cards (level + creator streak).
  * OWNER:   Claude Opus 4.7
  * UPDATED: 2026-04-29
  * ----------------------------------------------------------------------------
@@ -110,47 +110,6 @@ export const LeftRailNavItem = styled.button<{ $active?: boolean }>`
     color: ${p => p.$active
       ? 'var(--accent-primary, #60C0F0)'
       : 'currentColor'};
-  }
-`;
-
-export const LeftRailCreateButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 44px;
-  padding: 0.625rem 1rem;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent);
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent),
-    color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)
-  );
-  color: var(--text-primary, #E0ECF4);
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  margin-top: 0.25rem;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 `;
 

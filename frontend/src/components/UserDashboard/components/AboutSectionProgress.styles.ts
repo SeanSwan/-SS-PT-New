@@ -4,6 +4,7 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { visionCardCss } from './UserDashboardSectionChrome.styles';
 
 export const GoalsList = styled.div`
   display: flex;
@@ -12,10 +13,9 @@ export const GoalsList = styled.div`
 `;
 
 export const GoalItem = styled(motion.div)`
+  ${visionCardCss}
   padding: 1rem;
   border-left: 4px solid var(--accent-primary, #60C0F0);
-  border-radius: 8px;
-  background: var(--bg-base, #0A0A0F);
   transition: background 0.3s ease, transform 0.3s ease;
 
   &:hover {
@@ -89,9 +89,8 @@ export const AchievementsList = styled.div`
 
 export const AchievementItem = styled(motion.div)<{ $rarityColor?: string }>`
   padding: 1rem;
-  border: 1px solid ${({ $rarityColor }) => ($rarityColor ? `color-mix(in srgb, ${$rarityColor} 35%, transparent)` : 'transparent')};
-  border-radius: 8px;
-  background: var(--bg-base, #0A0A0F);
+  ${visionCardCss}
+  border-color: ${({ $rarityColor }) => ($rarityColor ? `color-mix(in srgb, ${$rarityColor} 35%, transparent)` : 'var(--vision-border)')};
   text-align: center;
   transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 

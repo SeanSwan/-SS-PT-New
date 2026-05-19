@@ -10,8 +10,8 @@
  * HomeTab data and routes, so it does not create a new backend dependency.
  *
  * HOW IT FITS IN THE APP: Rendered by HomeTab between the MomentumCard and
- * SwanCoachDock. CTAs either switch existing dashboard tabs or navigate to the
- * existing workout route.
+ * SwanCoachDock. Daily Mission owns the single Log Workout CTA; the rail is
+ * information-only so it does not duplicate the dashboard section nav.
  *
  * KEY DECISIONS:
  * - No fake XP claims. Reward language stays tied to existing visible surfaces.
@@ -54,7 +54,6 @@ interface DailyHealthLoopProps {
   progressPercent: number;
   tierName: string;
   logWorkoutPath: string;
-  onTabChange: (tab: string) => void;
 }
 
 function getMissionCopy(streakDays: number, level: number, progressPercent: number) {
@@ -84,7 +83,6 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
   progressPercent,
   tierName,
   logWorkoutPath,
-  onTabChange,
 }) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
@@ -116,22 +114,20 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
         </PrimaryAction>
       </MissionPanel>
 
-      <RailPanel aria-label="Next best paths">
-        <MicroCard type="button" onClick={() => onTabChange('progress')}>
+      <RailPanel aria-label="Daily context">
+        <MicroCard>
           <IconWell $tone="gold"><Sparkles size={18} /></IconWell>
           <MicroText>
             <MicroTitle>{tierName}</MicroTitle>
             <MicroSub>Review the trend before chasing the next badge.</MicroSub>
           </MicroText>
-          <Arrow size={16} />
         </MicroCard>
-        <MicroCard type="button" onClick={() => onTabChange('community')}>
+        <MicroCard>
           <IconWell $tone="purple"><Users size={18} /></IconWell>
           <MicroText>
             <MicroTitle>Community Support</MicroTitle>
             <MicroSub>Ask for encouragement without auto-posting your private work.</MicroSub>
           </MicroText>
-          <Arrow size={16} />
         </MicroCard>
       </RailPanel>
     </LoopShell>

@@ -2,7 +2,7 @@
  * ============================================================================
  * STYLES: ObservatoryRightRailStyles
  * PURPOSE: Phase 19B Observatory shell - right rail tier card, badges grid,
- *          empty state, and Next Best Action list.
+ *          and empty states.
  * OWNER:   Claude Opus 4.7
  * UPDATED: 2026-04-29
  * ----------------------------------------------------------------------------
@@ -62,48 +62,4 @@ export const RightRailEmptyState = styled.p`
   color: var(--text-muted, rgba(224, 236, 244, 0.5));
   text-align: center;
   padding: 0.75rem 0.5rem;
-`;
-
-export const RightRailActionList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-export const RightRailActionItem = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 44px;
-  padding: 0.625rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
-  color: var(--text-primary, #E0ECF4);
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  & svg {
-    color: var(--accent-primary, #60C0F0);
-    flex-shrink: 0;
-  }
 `;

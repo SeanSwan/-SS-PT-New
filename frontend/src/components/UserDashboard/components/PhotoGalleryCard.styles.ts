@@ -1,12 +1,11 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
+import { visionCardCss, visionPanelCss } from './UserDashboardSectionChrome.styles';
 
 export const PhotoCard = styled(motion.article)`
   aspect-ratio: 1;
-  background: var(--bg-surface, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.16));
-  border-radius: 8px;
+  ${visionCardCss}
   cursor: pointer;
   overflow: hidden;
   position: relative;
@@ -113,11 +112,10 @@ export const ActionButton = styled(motion.button)`
 `;
 
 export const UploadCard = styled(motion.button)`
+  ${visionPanelCss}
   align-items: center;
   aspect-ratio: 1;
-  background: var(--bg-surface, #1A1A24);
   border: 2px dashed var(--border-soft, rgba(224, 236, 244, 0.16));
-  border-radius: 8px;
   color: var(--text-primary, #E0ECF4);
   cursor: pointer;
   display: flex;

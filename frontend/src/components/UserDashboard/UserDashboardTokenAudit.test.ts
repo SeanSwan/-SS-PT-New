@@ -14,7 +14,6 @@ const dashboardFiles = [
   'src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts',
   'src/components/UserDashboard/styles/ObservatoryLeftRailStyles.ts',
   'src/components/UserDashboard/styles/ObservatoryRightRailStyles.ts',
-  'src/components/UserDashboard/styles/ObservatoryMobileNavStyles.ts',
   'src/components/UserDashboard/components/DailyHealthLoop.styles.ts',
   'src/components/UserDashboard/components/HomeTabActions.styles.ts',
   'src/components/UserDashboard/components/HomeTabMomentum.styles.ts',

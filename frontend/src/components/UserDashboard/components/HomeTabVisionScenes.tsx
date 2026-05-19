@@ -27,7 +27,7 @@ const toneVars: Record<Tone, { rim: string; deep: string; soft: string }> = {
   },
 };
 
-function suffix(prefix: string) {
+function useSvgSuffix(prefix: string) {
   return `${prefix}-${useId().replace(/:/g, '')}`;
 }
 
@@ -60,7 +60,7 @@ export const Sparkline: React.FC<{ seed?: number; tone?: Tone }> = ({ seed = 1, 
 };
 
 export const MiniScene: React.FC<{ tone?: Tone }> = ({ tone = 'violet' }) => {
-  const id = suffix(`mini-${tone}`);
+  const id = useSvgSuffix(`mini-${tone}`);
   const vars = toneVars[tone];
 
   return (
@@ -80,10 +80,10 @@ export const MiniScene: React.FC<{ tone?: Tone }> = ({ tone = 'violet' }) => {
 };
 
 export const HeroRanges: React.FC = () => {
-  const far = suffix('range-far');
-  const mid = suffix('range-mid');
-  const near = suffix('range-near');
-  const glow = suffix('range-glow');
+  const far = useSvgSuffix('range-far');
+  const mid = useSvgSuffix('range-mid');
+  const near = useSvgSuffix('range-near');
+  const glow = useSvgSuffix('range-glow');
 
   return (
     <svg viewBox="0 0 1400 320" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -132,8 +132,8 @@ export const HeroRanges: React.FC = () => {
 };
 
 export const CrystalScene: React.FC<{ tone?: Tone }> = ({ tone = 'violet' }) => {
-  const sky = suffix(`sky-${tone}`);
-  const aura = suffix(`aura-${tone}`);
+  const sky = useSvgSuffix(`sky-${tone}`);
+  const aura = useSvgSuffix(`aura-${tone}`);
   const vars = toneVars[tone];
 
   return (

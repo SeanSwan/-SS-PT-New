@@ -4,14 +4,13 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import {
   ImagePlus,
   Loader2,
   MoreHorizontal,
   Play,
   Send,
-  Settings,
-  Share2,
   Sparkles,
 } from 'lucide-react';
 import { HERO_LENSES, POST_MOODS, type VisionTarget } from './HomeTabVision.data';
@@ -43,7 +42,6 @@ import {
 import {
   AvatarFrame,
   AvatarInner,
-  HeroActionRow,
   HeroBanner,
   HeroContent,
   HeroMeta,
@@ -92,6 +90,42 @@ const swapToFallback = (fallbackSrc: string) => (event: React.SyntheticEvent<HTM
   event.currentTarget.onerror = null;
   event.currentTarget.src = fallbackSrc;
 };
+
+const SpreadButtonRow = styled(ButtonRow)`
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+`;
+
+const ComposerActions = styled(ButtonRow)`
+  justify-content: space-between;
+  margin-top: 0.75rem;
+`;
+
+const SpotlightTitle = styled.h2`
+  margin: 0.85rem 0 0.25rem;
+  font-size: 1.35rem;
+`;
+
+const CaptionCopy = styled.p`
+  margin: 0;
+  color: var(--vision-soft);
+  line-height: 1.55;
+`;
+
+const HandleStamp = styled.div`
+  color: var(--vision-soft);
+  font-size: 0.8rem;
+`;
+
+const FeedCopy = styled.p`
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  line-height: 1.6;
+`;
+
+const FeedVideoFrame = styled(VideoFrame)`
+  min-height: 280px;
+`;
 
 const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
   avatarSrc,
@@ -184,16 +218,6 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
         </StatsStrip>
       </HeroContent>
 
-      <HeroActionRow>
-        <GlassButton type="button" $variant="ghost" onClick={() => onAction('profile')}>Edit Profile</GlassButton>
-        <GlassButton type="button" $variant="ghost" onClick={() => onAction('profile')}>
-          <Share2 size={15} aria-hidden="true" />
-          Share
-        </GlassButton>
-        <GlassButton type="button" $variant="ghost" onClick={() => onAction('profile')} aria-label="Profile settings">
-          <Settings size={16} aria-hidden="true" />
-        </GlassButton>
-      </HeroActionRow>
     </HeroBanner>
 
     <LensStrip aria-label="Creator dashboard sections">
@@ -209,31 +233,28 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
 
     <CenterGrid>
       <Panel $tone="violet">
-        <ButtonRow style={{ justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+        <SpreadButtonRow>
           <Eyebrow $tone="violet">
             <Sparkles size={14} aria-hidden="true" />
             Reels Spotlight
           </Eyebrow>
           <Chip $tone="violet">Reel of the Day</Chip>
-        </ButtonRow>
+        </SpreadButtonRow>
         <VideoFrame>
           <CrystalScene tone="violet" />
           <PlayBadge type="button" aria-label="Preview spotlight reel">
             <Play size={22} fill="currentColor" aria-hidden="true" />
           </PlayBadge>
         </VideoFrame>
-        <h2 style={{ margin: '0.85rem 0 0.25rem', fontSize: '1.35rem' }}>Rise Through</h2>
-        <p style={{ margin: 0, color: 'var(--vision-soft)', lineHeight: 1.55 }}>{latestCaption}</p>
-        <GlassButton type="button" $variant="accent" onClick={() => onAction('reels')} style={{ width: '100%', marginTop: '1rem' }}>
-          Create Reel
-        </GlassButton>
+        <SpotlightTitle>Rise Through</SpotlightTitle>
+        <CaptionCopy>{latestCaption}</CaptionCopy>
       </Panel>
 
       <Panel as="form" $tone="cyan" onSubmit={onSubmitPost}>
-        <ButtonRow style={{ justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+        <SpreadButtonRow>
           <Eyebrow>Quick Post</Eyebrow>
           <Chip $tone="gold">+25 XP</Chip>
-        </ButtonRow>
+        </SpreadButtonRow>
         <ComposerInput
           value={postText}
           onChange={(event) => onPostTextChange(event.target.value)}
@@ -249,7 +270,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
             </MoodButton>
           ))}
         </MoodScroller>
-        <ButtonRow style={{ justifyContent: 'space-between', marginTop: '0.75rem' }}>
+        <ComposerActions>
           <GlassButton
             type="button"
             $variant="ghost"
@@ -263,7 +284,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
             {isPosting ? <Loader2 size={16} aria-hidden="true" /> : <Send size={16} aria-hidden="true" />}
             Post It
           </GlassButton>
-        </ButtonRow>
+        </ComposerActions>
       </Panel>
     </CenterGrid>
 
@@ -275,7 +296,7 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
           </AvatarMini>
           <div>
             <strong>{displayName}</strong>
-            <div style={{ color: 'var(--vision-soft)', fontSize: '0.8rem' }}>{handle} · just now</div>
+            <HandleStamp>{handle} · just now</HandleStamp>
           </div>
         </ButtonRow>
         <ButtonRow>
@@ -285,15 +306,15 @@ const HomeTabVisionCenter: React.FC<HomeTabVisionCenterProps> = ({
           </IconButton>
         </ButtonRow>
       </FeedHeader>
-      <p style={{ margin: 0, color: 'var(--text-primary, #E0ECF4)', lineHeight: 1.6 }}>
+      <FeedCopy>
         {latestCaption || 'New set. New energy. Let us build.'}
-      </p>
-      <VideoFrame style={{ minHeight: 280 }}>
+      </FeedCopy>
+      <FeedVideoFrame>
         <CrystalScene tone="cyan" />
         <PlayBadge type="button" aria-label="Preview feed media">
           <Play size={22} fill="currentColor" aria-hidden="true" />
         </PlayBadge>
-      </VideoFrame>
+      </FeedVideoFrame>
       <ButtonRow>
         <Chip>1.3K likes</Chip>
         <Chip $tone="violet">86 comments</Chip>

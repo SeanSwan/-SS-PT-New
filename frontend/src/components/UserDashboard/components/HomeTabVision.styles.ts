@@ -142,17 +142,7 @@ export const SupportShell = styled(CreatorShell)`
     > ${CenterColumn} {
       grid-column: 2;
     }
-
-    > ${Panel} {
-      grid-column: 3;
-    }
   }
-`;
-
-export const NextActionCopy = styled.p`
-  margin: 0.55rem 0 0;
-  color: var(--vision-soft);
-  font: 700 0.9rem/1.55 var(--font-ui, 'Sora', sans-serif);
 `;
 
 export const BrandBlock = styled.div`

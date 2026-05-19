@@ -183,22 +183,16 @@ export const StatValue = styled.strong<{ $gold?: boolean }>`
   font: 800 1.35rem/1 var(--font-ui, 'Sora', sans-serif);
 `;
 
-export const HeroActionRow = styled.div`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-  padding: 0 clamp(1rem, 2.4vw, 2.25rem) 1.5rem;
-`;
-
 export const LensStrip = styled.nav`
-  display: flex;
+  display: none;
   align-items: flex-start;
   gap: clamp(0.75rem, 1.4vw, 1.35rem);
   overflow-x: auto;
   padding: 1.1rem 0.2rem 0.2rem;
+
+  @media (max-width: 1023px) {
+    display: flex;
+  }
 `;
 
 export const LensButton = styled.button<{ $active?: boolean }>`

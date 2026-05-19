@@ -4,6 +4,7 @@
 
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import { visionControlCss } from './UserDashboardSectionChrome.styles';
 
 export const ActivityContent = styled.div`
   min-width: 0;
@@ -83,24 +84,9 @@ export const ShowMoreButton = styled(motion.button)`
   gap: 0.5rem;
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.08));
-  border-radius: 8px;
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
+  ${visionControlCss}
   color: var(--text-secondary, #94a3b8);
   cursor: pointer;
-  font-weight: 500;
-  transition: background 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-
-  &:hover {
-    border-color: var(--accent-primary, #60C0F0);
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-    color: var(--accent-primary, #60C0F0);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
 `;
 
 export const EmptyState = styled.div`

@@ -66,9 +66,9 @@ export const RailPanel = styled.div`
   gap: 0.75rem;
 `;
 
-export const MicroCard = styled.button`
+export const MicroCard = styled.div`
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   gap: 0.75rem;
   min-height: 82px;
@@ -77,29 +77,8 @@ export const MicroCard = styled.button`
   background: color-mix(in srgb, var(--surface-primary, #003080) 68%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-soft, #E0ECF4) 9%, transparent);
   color: var(--text-primary, #E0ECF4);
-  cursor: pointer;
   font-family: inherit;
   text-align: left;
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
-    box-shadow: 0 10px 24px color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      transform: none;
-    }
-  }
 `;
 
 export const IconWell = styled.div<{ $tone?: 'gold' | 'purple' }>`
