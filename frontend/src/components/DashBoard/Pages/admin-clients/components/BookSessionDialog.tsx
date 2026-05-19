@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
 import {
   Dialog,
   DialogTitle,
@@ -17,14 +18,66 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Box,
-  Typography,
   Alert,
   CircularProgress
 } from '../../../../ui/primitives/components';
 import { CalendarCheck, X } from 'lucide-react';
 
 import { useBookSessionForClient } from '../../../../../hooks/useClientBillingOverview';
+
+const BookSessionDialogSurface = styled(Dialog)`
+  background: linear-gradient(
+    135deg,
+    var(--surface-strong, #1e293b),
+    var(--bg-base, #0f172a)
+  );
+  border: 1px solid var(--accent-border, rgba(139, 92, 246, 0.2));
+`;
+
+const StyledDialogTitle = styled(DialogTitle)`
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const TitleIcon = styled(CalendarCheck)`
+  color: var(--accent-primary, #60c0f0);
+`;
+
+const ErrorAlert = styled(Alert)`
+  margin-bottom: 16px;
+`;
+
+const FormStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+`;
+
+const HintText = styled.p`
+  margin: 0;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  font-size: 0.75rem;
+`;
+
+const StyledDialogActions = styled(DialogActions)`
+  padding: 16px 24px 24px;
+`;
+
+const CancelButton = styled(Button)`
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+`;
+
+const SubmitButton = styled(Button)`
+  min-height: 44px;
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary, #3b82f6),
+    var(--accent-secondary, #1d4ed8)
+  );
+`;
 
 interface BookSessionDialogProps {
   open: boolean;
@@ -122,8 +175,8 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
 
       onSuccess?.();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to book session');
+    } catch (err: unknown) {
+      setError(err instanceof Error && err.message ? err.message : 'Failed to book session');
     }
   };
 
@@ -133,43 +186,38 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
   const minDate = tomorrow.toISOString().split('T')[0];
 
   return (
-    <Dialog
+    <BookSessionDialogSurface
       open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        style: {
-          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-          border: '1px solid rgba(139, 92, 246, 0.2)'
-        }
-      }}
     >
-      <DialogTitle style={{ color: 'white', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <CalendarCheck size={20} style={{ color: '#60C0F0' }} />
+      <StyledDialogTitle>
+        <TitleIcon size={20} />
         Book Session for {clientName || 'Client'}
-      </DialogTitle>
+      </StyledDialogTitle>
 
       <DialogContent>
         {error && (
-          <Alert severity="error" style={{ marginBottom: 16 }}>
+          <ErrorAlert severity="error">
             {error}
-          </Alert>
+          </ErrorAlert>
         )}
 
-        <Box style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 8 }}>
+        <FormStack>
           {/* Date */}
           <TextField
-            style={{ width: '100%' }}
+            fullWidth
             label="Session Date"
             type="date"
             value={sessionDate}
+            min={minDate}
             onChange={(e) => setSessionDate(e.target.value)}
           />
 
           {/* Time */}
           <TextField
-            style={{ width: '100%' }}
+            fullWidth
             label="Session Time"
             type="time"
             value={sessionTime}
@@ -211,41 +259,36 @@ const BookSessionDialog: React.FC<BookSessionDialogProps> = ({
 
           {/* Notes */}
           <TextField
-            style={{ width: '100%' }}
+            fullWidth
             label="Notes (Optional)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Any special instructions or notes for this session..."
           />
 
-          <Typography variant="caption" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            This will deduct 1 session credit from the client's account.
-          </Typography>
-        </Box>
+          <HintText>
+            This will deduct 1 session credit from the client&apos;s account.
+          </HintText>
+        </FormStack>
       </DialogContent>
 
-      <DialogActions style={{ padding: '16px 24px 24px' }}>
-        <Button
+      <StyledDialogActions>
+        <CancelButton
           onClick={onClose}
           startIcon={<X size={16} />}
-          style={{ color: 'rgba(255,255,255,0.7)' }}
         >
           Cancel
-        </Button>
-        <Button
+        </CancelButton>
+        <SubmitButton
           variant="contained"
           onClick={handleSubmit}
           disabled={bookSessionMutation.isPending}
           startIcon={bookSessionMutation.isPending ? <CircularProgress size={20} /> : <CalendarCheck size={16} />}
-          style={{
-            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-            minHeight: 44
-          }}
         >
           {bookSessionMutation.isPending ? 'Booking...' : 'Book Session'}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        </SubmitButton>
+      </StyledDialogActions>
+    </BookSessionDialogSurface>
   );
 };
 
