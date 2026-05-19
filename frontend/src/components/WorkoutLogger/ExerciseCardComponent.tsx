@@ -80,7 +80,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               {[1, 2, 3, 4, 5].map((rating) => (
                 <StarButton
                   key={rating}
-                  $filled={rating <= exercise.formRating}
+                  $filled={rating <= (exercise.formRating ?? 0)}
                   onClick={() => onUpdateExercise(exerciseIndex, 'formRating', rating)}
                   aria-label={`Set form rating to ${rating} stars`}
                   aria-pressed={rating === exercise.formRating}
@@ -89,7 +89,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                 </StarButton>
               ))}
             </StarRatingContainer>
-            <SliderValue>{exercise.formRating}/5</SliderValue>
+            <SliderValue>{exercise.formRating ?? 0}/5</SliderValue>
           </div>
         </RatingGroup>
         <RatingGroup>
@@ -184,10 +184,10 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                 type="range"
                 min={1}
                 max={10}
-                value={set.rpe}
+                value={set.rpe ?? 1}
                 onChange={(e) => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(e.target.value))}
               />
-              <SliderValue>{set.rpe}</SliderValue>
+              <SliderValue>{set.rpe ?? 1}</SliderValue>
             </div>
           </SetCell>
           <SetCell data-label="Form">
@@ -196,7 +196,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                 {[1, 2, 3, 4, 5].map((rating) => (
                   <StarButton
                     key={rating}
-                    $filled={rating <= set.formQuality}
+                    $filled={rating <= (set.formQuality ?? 0)}
                     onClick={() => onUpdateSet(exerciseIndex, setIndex, 'formQuality', rating)}
                     aria-label={`Set ${set.setNumber} form quality: ${rating} stars`}
                     aria-pressed={rating === set.formQuality}

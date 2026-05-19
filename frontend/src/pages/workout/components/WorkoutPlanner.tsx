@@ -84,7 +84,7 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
           exerciseId: exercise.id,
           orderIndex: index,
           setsCompleted: 0,
-          setDetails: Array(exercise.recommendedSets || 3).fill().map((_, setIndex) => ({
+          setDetails: Array.from({ length: exercise.recommendedSets || 3 }).map((_, setIndex) => ({
             setNumber: setIndex + 1,
             reps: exercise.recommendedReps || 10,
             weight: 0,

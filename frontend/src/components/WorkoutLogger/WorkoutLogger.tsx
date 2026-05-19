@@ -44,7 +44,7 @@ import {
   type WorkoutPlanTransfer,
   type WorkoutExerciseTransfer,
 } from '../../utils/parseAIWorkoutPlan';
-import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
+import { exportWorkoutLoggerPDF, type PDFExerciseEntry } from '../../services/pdfExportService';
 
 // Sub-components
 import { CS, withAlpha, shimmer, getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION, reducedMotionSafe } from './WorkoutLoggerCS';
@@ -121,6 +121,43 @@ interface Client {
   email: string;
   availableSessions: number | null;
   phone?: string;
+}
+
+interface PlannedExercise {
+  exerciseId?: string | number;
+  id?: string | number;
+  exerciseName?: string;
+  name?: string;
+  sets?: unknown[] | number | string;
+  weight?: number | string;
+  targetReps?: number | string;
+  reps?: number | string;
+  tempo?: string;
+  restTime?: number | string;
+  restSeconds?: number | string;
+}
+
+interface PlannedSession {
+  exercises?: PlannedExercise[];
+  weekNumber?: number | string;
+  dayLabel?: string;
+  dayNumber?: number | string;
+}
+
+interface PlannedDay {
+  dayName?: string;
+  exercises?: PlannedExercise[];
+}
+
+interface CurrentWorkoutPlanResponse {
+  currentSession?: PlannedSession;
+  data?: {
+    currentSession?: PlannedSession;
+  };
+  plan?: {
+    currentSession?: PlannedSession;
+    days?: PlannedDay[];
+  };
 }
 
 // ==================== MAIN COMPONENT ====================
@@ -208,7 +245,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [submittedFormId, setSubmittedFormId] = useState<string | null>(null);
-  const [isLoadingClient, setIsLoadingClient] = useState(true);
+  const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(false);
 
@@ -646,21 +683,26 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         return;
       }
       const response = await api.get(`/api/workouts/${effectiveClientId}/current`);
-      const data = response?.data ?? response;
+      const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
 
-      const exerciseToEntry = (ex: any): ExerciseEntry => {
-        const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
+      const numberOr = (value: number | string | undefined, fallback: number) => {
+        const parsed = typeof value === 'number' ? value : Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+      };
+
+      const exerciseToEntry = (ex: PlannedExercise): ExerciseEntry => {
+        const setCount = Array.isArray(ex.sets) ? ex.sets.length : numberOr(ex.sets, 3);
         return {
-          exerciseId: ex.exerciseId || ex.id || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          exerciseId: String(ex.exerciseId || ex.id || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
           exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
           sets: Array.from({ length: setCount }, (_, i) => ({
             setNumber: i + 1,
-            weight: ex.weight || 0,
-            reps: ex.targetReps || ex.reps || 10,
+            weight: numberOr(ex.weight, 0),
+            reps: numberOr(ex.targetReps ?? ex.reps, 10),
             // Phase 16: today's-plan prefilled sets default to null rating.
             rpe: null,
             tempo: ex.tempo || '',
-            restTime: ex.restTime || ex.restSeconds || 60,
+            restTime: numberOr(ex.restTime ?? ex.restSeconds, 60),
             formQuality: null,
             notes: '',
           })),
@@ -683,7 +725,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         ?? data?.plan?.currentSession
         ?? null;
       const cursorExercises = Array.isArray(cursorSession?.exercises) ? cursorSession.exercises : [];
-      if (cursorExercises.length > 0) {
+      if (cursorSession && cursorExercises.length > 0) {
         const prefilled = cursorExercises.map(exerciseToEntry);
         setExercises(prev => [...prev, ...prefilled]);
         const weekNum = cursorSession.weekNumber ?? '?';
@@ -703,7 +745,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const todayName = dayNames[dayOfWeek];
 
       const planDay = data.plan.days.find(
-        (d: any) => d.dayName?.toLowerCase() === todayName.toLowerCase()
+        (day) => day.dayName?.toLowerCase() === todayName.toLowerCase()
       ) || data.plan.days[dayOfWeek % data.plan.days.length];
 
       if (!planDay?.exercises?.length) {
@@ -724,13 +766,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // ── Exercise CRUD (Phase 6: pre-fill from last session) ──
   //
-  // Phase 16 (2026-04-16): createEmptySet returns null rating fields
-  // instead of seeded 5/3. addExercise also stamps `formRating: null`
-  // on the new exercise entry. See Phase 16 debate summary for scope.
-  const createEmptySet = useCallback((setNumber: number): ExerciseSet => ({
-    setNumber, weight: 0, reps: 0, rpe: null, tempo: '', restTime: 60, formQuality: null, notes: ''
-  }), []);
-
+  // Phase 16 (2026-04-16): new exercise entries keep formRating null
+  // instead of seeding a false rating. See Phase 16 debate summary for scope.
   const addExercise = useCallback((exercise: Exercise | ExerciseSlim) => {
     // Trigger ghost data fetch for pre-fill — but NEVER on client self-mode.
     // The underlying /api/admin/clients/:id/workouts endpoint is admin-only
@@ -786,7 +823,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }));
   }, []);
 
-  const updateSet = useCallback((exerciseIndex: number, setIndex: number, field: keyof ExerciseSet, value: any) => {
+  const updateSet = useCallback(<K extends keyof ExerciseSet,>(
+    exerciseIndex: number,
+    setIndex: number,
+    field: K,
+    value: ExerciseSet[K]
+  ) => {
     setExercises(prev => prev.map((exercise, i) => {
       if (i !== exerciseIndex) return exercise;
       return {
@@ -798,7 +840,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     }));
   }, []);
 
-  const updateExercise = useCallback((exerciseIndex: number, field: keyof ExerciseEntry, value: any) => {
+  const updateExercise = useCallback(<K extends keyof ExerciseEntry,>(
+    exerciseIndex: number,
+    field: K,
+    value: ExerciseEntry[K]
+  ) => {
     setExercises(prev => prev.map((exercise, i) =>
       i !== exerciseIndex ? exercise : { ...exercise, [field]: value }
     ));
@@ -815,13 +861,31 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       toast.error('Add exercises before exporting');
       return;
     }
+    const pdfExercises: PDFExerciseEntry[] = exercises.map((exercise) => ({
+      exerciseId: exercise.exerciseId,
+      exerciseName: exercise.exerciseName,
+      sets: exercise.sets.map((set) => ({
+        setNumber: set.setNumber,
+        weight: set.weight,
+        reps: set.reps,
+        rpe: set.rpe ?? 0,
+        tempo: set.tempo,
+        restTime: set.restTime,
+        formQuality: set.formQuality ?? 0,
+        notes: set.notes,
+      })),
+      formRating: exercise.formRating ?? 0,
+      painLevel: exercise.painLevel,
+      performanceNotes: exercise.performanceNotes,
+    }));
+
     exportWorkoutLoggerPDF({
       clientName: client ? `${client.firstName} ${client.lastName}` : 'Client',
       trainerName: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : undefined,
       date: new Date().toISOString().split('T')[0],
-      exercises,
+      exercises: pdfExercises,
       sessionNotes,
-      overallIntensity,
+      overallIntensity: overallIntensity ?? undefined,
     });
     toast.success('PDF exported');
   }, [exercises, client, user, sessionNotes, overallIntensity]);
@@ -881,7 +945,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
-      const response = await dailyWorkoutFormService.submitWorkoutForm(formData);
+      const response = await dailyWorkoutFormService.submitWorkoutForm(
+        formData as Parameters<typeof dailyWorkoutFormService.submitWorkoutForm>[0]
+      );
 
       if (response.success && response.data) {
         toast.success('Workout logged successfully! Session deducted and points earned.');
@@ -956,9 +1022,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   if (!client) {
     return (
       <WorkoutLoggerContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <CenteredLoader>
           <LoadingSpinner />
-        </div>
+        </CenteredLoader>
       </WorkoutLoggerContainer>
     );
   }
@@ -1000,7 +1066,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         <WorkoutLoggerHeader
           clientFirstName={client.firstName}
           clientLastName={client.lastName}
-          availableSessions={client.availableSessions}
+          availableSessions={client.availableSessions ?? 0}
           totalSets={totalSets}
           estimatedDuration={estimatedDuration}
           currentOPTPhase={currentOPTPhase}
@@ -1044,7 +1110,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* NASM Warmup (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Warmup & Corrective"
-          icon={<Heart size={18} style={{ color: CS.gaming }} />}
+          icon={<WarmupProtocolIcon size={18} />}
           sectionKey="warmup"
           selectedItems={selectedWarmup}
           recommendedItems={getRecommendedProtocolItems('warmup', currentOPTPhase)}
@@ -1161,7 +1227,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* NASM Balance & Core (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Balance, Core & Stability"
-          icon={<Shield size={18} style={{ color: '#8B5CF6' }} />}
+          icon={<BalanceProtocolIcon size={18} />}
           sectionKey="balance_core"
           selectedItems={selectedBalanceCore}
           recommendedItems={getRecommendedProtocolItems('balance_core', currentOPTPhase)}
@@ -1175,7 +1241,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* NASM Cooldown (2026-04-17: compact rolodex-first card) */}
         <CompactProtocolSection
           title="Cooldown & Recovery"
-          icon={<RotateCcw size={18} style={{ color: CS.accent }} />}
+          icon={<CooldownProtocolIcon size={18} />}
           sectionKey="cooldown"
           selectedItems={selectedCooldown}
           recommendedItems={getRecommendedProtocolItems('cooldown', currentOPTPhase)}
@@ -1256,7 +1322,7 @@ const TimerFAB = styled.button`
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  background: var(--bg-elevated, ${CS.primary});
+  background: var(--bg-elevated, ${CS.surface});
   border: 1px solid var(--accent-primary, rgba(96, 192, 240, 0.3));
   color: var(--text-primary, #E0ECF4);
   cursor: pointer;
@@ -1310,6 +1376,25 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   border-top-color: #ffffff;
   animation: ${spin} 0.8s ease-in-out infinite;
+`;
+
+const CenteredLoader = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+`;
+
+const WarmupProtocolIcon = styled(Heart)`
+  color: ${CS.gaming};
+`;
+
+const BalanceProtocolIcon = styled(Shield)`
+  color: var(--accent-secondary, #8B5CF6);
+`;
+
+const CooldownProtocolIcon = styled(RotateCcw)`
+  color: ${CS.accent};
 `;
 
 const ExerciseSection = styled.div`

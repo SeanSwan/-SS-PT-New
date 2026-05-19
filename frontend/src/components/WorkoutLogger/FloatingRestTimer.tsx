@@ -30,7 +30,7 @@ const FloatingRestTimer: React.FC<FloatingRestTimerProps> = ({ onClose }) => {
   const [restDuration, setRestDuration] = useState(90);
   const [minimized, setMinimized] = useState(false);
 
-  const { secondsLeft, isRunning, start, stop, reset } = useRestTimer(restDuration);
+  const { secondsLeft, isRunning, start, stop, reset } = useRestTimer({ defaultSeconds: restDuration });
 
   const formatTime = (s: number) => {
     const mins = Math.floor(s / 60);

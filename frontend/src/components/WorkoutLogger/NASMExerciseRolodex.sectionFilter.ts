@@ -86,7 +86,6 @@ export interface ExerciseSlimSubset {
 // The shared module stores nameKeywords as a regex source string
 // (no slashes) + flags so both TS and Node-MJS compile them via
 // `new RegExp(source, flags)`.
-// @ts-expect-error — JS file referenced from TS; types declared inline below.
 import sharedPatterns from '../../../../shared/sectionPatterns.mjs';
 
 interface SharedPatternEntry {
