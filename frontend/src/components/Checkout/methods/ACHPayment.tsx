@@ -50,9 +50,9 @@ function getPersistedIdempotencyKey(fingerprint: string): string {
 let stripeInstance: Promise<Stripe | null> | null = null;
 function getStripe() {
   if (!stripeInstance) {
-    const key = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+    const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
     if (!key) {
-      logger.warn('[ACH] VITE_STRIPE_PUBLIC_KEY not set — Stripe ACH unavailable');
+      logger.warn('[ACH] VITE_STRIPE_PUBLISHABLE_KEY not set — Stripe ACH unavailable');
       return Promise.resolve(null);
     }
     stripeInstance = loadStripe(key);

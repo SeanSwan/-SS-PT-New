@@ -352,7 +352,9 @@ export const getApiKeyInfo = async () => {
   try {
     const apiKeys = {
       stripe: {
-        publishableKey: maskApiKey(process.env.STRIPE_PUBLISHABLE_KEY),
+        publishableKey: maskApiKey(
+          process.env.VITE_STRIPE_PUBLISHABLE_KEY || process.env.STRIPE_PUBLISHABLE_KEY
+        ),
         secretKey: maskApiKey(process.env.STRIPE_SECRET_KEY),
         webhookSecret: maskApiKey(process.env.STRIPE_WEBHOOK_SECRET),
         status: process.env.STRIPE_SECRET_KEY ? 'configured' : 'not_configured',

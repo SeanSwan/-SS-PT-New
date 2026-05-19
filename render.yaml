@@ -40,8 +40,8 @@ services:
         length: 32
       - key: STRIPE_SECRET_KEY
         sync: false  # Set manually in Render dashboard
-      - key: STRIPE_PUBLISHABLE_KEY
-        sync: false  # Set manually in Render dashboard
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false  # Set manually in Render dashboard; canonical Vite/Stripe publishable key
       - key: REDIS_URL
         fromService:
           type: redis
@@ -78,6 +78,8 @@ services:
         value: https://sswanstudios.com
       - key: VITE_BACKEND_URL
         value: https://sswanstudios.com
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false  # Set manually in Render dashboard; exposed to Stripe.js at build time
       - key: NODE_ENV
         value: production
 
@@ -101,7 +103,9 @@ databases:
 
 # Environment variables to set manually in Render dashboard:
 # - STRIPE_SECRET_KEY: Your Stripe secret key
-# - STRIPE_PUBLISHABLE_KEY: Your Stripe publishable key
+# - VITE_STRIPE_PUBLISHABLE_KEY: Your Stripe publishable key for Vite builds and backend readiness checks
+# - STRIPE_WEBHOOK_SECRET: Your Stripe webhook signing secret
+# - ENCRYPTION_MASTER_KEY: 64-character hex key for at-rest encryption
 # - EMAIL_SERVICE_API_KEY: If using email service
 # - Any other third-party API keys
 
