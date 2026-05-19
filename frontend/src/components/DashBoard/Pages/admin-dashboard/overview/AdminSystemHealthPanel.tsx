@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from 'styled-components';
+import styled from 'styled-components';
 import { CommandCard } from '../AdminDashboardCards';
 import { CommandGrid, StatusIndicator, CommandButton } from './AdminOverview.styles';
 import { SystemHealthMetric } from './AdminOverview.types';
@@ -10,45 +10,116 @@ interface AdminSystemHealthPanelProps {
 }
 
 const AdminSystemHealthPanel: React.FC<AdminSystemHealthPanelProps> = ({ systemHealth, onRefresh }) => {
-  const theme = useTheme() as any;
-  const muted = theme?.text?.muted || 'rgba(255, 255, 255, 0.6)';
   return (
-    <CommandCard style={{ padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '0.25rem' }}>System Health</h3>
-          <p style={{ color: muted, fontSize: '0.875rem' }}>
+    <PanelCard>
+      <PanelHeader>
+        <HeaderCopy>
+          <PanelTitle>System Health</PanelTitle>
+          <PanelDescription>
             Live infrastructure status and response metrics
-          </p>
-        </div>
+          </PanelDescription>
+        </HeaderCopy>
         <CommandButton onClick={onRefresh || (() => {})}>Refresh</CommandButton>
-      </div>
+      </PanelHeader>
 
       <CommandGrid>
         {systemHealth.map((service) => (
-          <CommandCard key={service.service} style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ServiceCard key={service.service}>
+            <ServiceHeader>
+              <ServiceNameGroup>
                 <StatusIndicator status={service.status} />
-                <span style={{ fontWeight: 600 }}>{service.service}</span>
-              </div>
-              <span style={{ color: muted, fontSize: '0.75rem' }}>
+                <ServiceName>{service.service}</ServiceName>
+              </ServiceNameGroup>
+              <UptimeText>
                 {service.uptime.toFixed(2)}% uptime
-              </span>
-            </div>
-            <div style={{ fontSize: '0.8rem', color: muted, marginBottom: '0.5rem' }}>
+              </UptimeText>
+            </ServiceHeader>
+            <DetailsText>
               {service.details}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
+            </DetailsText>
+            <MetricsRow>
               <span>Resp: {service.responseTime}ms</span>
               <span>Err: {service.errorRate}%</span>
               <span>Thr: {service.throughput}</span>
-            </div>
-          </CommandCard>
+            </MetricsRow>
+          </ServiceCard>
         ))}
       </CommandGrid>
-    </CommandCard>
+    </PanelCard>
   );
 };
+
+const PanelCard = styled(CommandCard)`
+  padding: 2rem;
+`;
+
+const PanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 520px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+const HeaderCopy = styled.div`
+  min-width: 0;
+`;
+
+const PanelTitle = styled.h3`
+  font-size: 1.2rem;
+  margin: 0 0 0.25rem;
+`;
+
+const PanelDescription = styled.p`
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  font-size: 0.875rem;
+  margin: 0;
+`;
+
+const ServiceCard = styled(CommandCard)`
+  padding: 1.5rem;
+`;
+
+const ServiceHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+`;
+
+const ServiceNameGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+`;
+
+const ServiceName = styled.span`
+  font-weight: 600;
+`;
+
+const UptimeText = styled.span`
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  font-size: 0.75rem;
+  white-space: nowrap;
+`;
+
+const DetailsText = styled.div`
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+`;
+
+const MetricsRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+`;
 
 export default AdminSystemHealthPanel;

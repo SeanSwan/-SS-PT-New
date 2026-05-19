@@ -20,6 +20,12 @@ import BodyMap from '../../../BodyMap';
 
 // ─── Interfaces (unchanged from blueprint) ─────────────────────────────────────
 interface Client { id: string; name: string; }
+interface RawClient {
+  id: string | number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
 interface BodyMeasurement {
   id?: string;
   userId: string;
@@ -49,6 +55,32 @@ interface BodyMeasurement {
 interface RecentMeasurement extends BodyMeasurement {
   id: string;
   recorder?: { firstName?: string; lastName?: string; username?: string };
+}
+interface MeasurementStats {
+  totalMeasurements?: number;
+  daysSinceStart?: number;
+  totalChange?: {
+    weight?: string | number | null;
+    bodyFat?: string | number | null;
+    waist?: string | number | null;
+  };
+}
+interface MeasurementMilestone {
+  celebrationMessage?: string;
+}
+type RadarMeasurementKey =
+  | 'neck'
+  | 'shoulders'
+  | 'chest'
+  | 'rightBicep'
+  | 'naturalWaist'
+  | 'hips'
+  | 'rightThigh'
+  | 'rightCalf';
+interface RadarDatum {
+  metric: string;
+  first: number;
+  current: number;
 }
 
 // ─── Framer Motion Variants ─────────────────────────────────────────────────────
@@ -83,6 +115,80 @@ const measurementFields: { key: keyof BodyMeasurement; label: string }[] = [
 ];
 
 const negativeIsBetter = ['weight', 'bodyFatPercentage', 'naturalWaist', 'hips', 'neck'];
+const RADAR_LABEL_MAP: Record<RadarMeasurementKey, string> = {
+  neck: 'Neck',
+  shoulders: 'Shoulders',
+  chest: 'Chest',
+  rightBicep: 'Bicep',
+  naturalWaist: 'Waist',
+  hips: 'Hips',
+  rightThigh: 'Thigh',
+  rightCalf: 'Calf',
+};
+const TREND_CHART_PADDING = { top: 10, bottom: 50, left: 55, right: 55 };
+const CHART_ANIMATION = { duration: 800, easing: 'cubicInOut' as const };
+const CHART_AXIS_STYLE = {
+  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+  tickLabels: { fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+};
+const DEPENDENT_AXIS_STYLE = {
+  ...CHART_AXIS_STYLE,
+  axisLabel: { fill: 'rgba(255,255,255,0.3)', fontSize: 10, padding: 40 },
+};
+const RADAR_AXIS_STYLE = {
+  axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
+  tickLabels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11, fontFamily: "'Sora', sans-serif" },
+  grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
+};
+const RADAR_DEPENDENT_AXIS_STYLE = {
+  axis: { stroke: 'none' },
+  tickLabels: { fill: 'rgba(255, 255, 255, 0.3)', fontSize: 9 },
+  grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
+};
+const VICTORY_TOOLTIP_STYLE = {
+  fill: 'var(--text-primary, #E0ECF4)',
+  fontFamily: "'Fira Code', monospace",
+  fontSize: 9,
+};
+const VICTORY_TOOLTIP_FLYOUT_STYLE = {
+  fill: 'var(--bg-card, #141419)',
+  stroke: 'rgba(139, 92, 246, 0.3)',
+};
+const WEIGHT_AREA_STYLE = {
+  data: {
+    fill: 'rgba(139, 92, 246, 0.15)',
+    stroke: '#8B5CF6',
+    strokeWidth: 2.5,
+  },
+};
+const BODY_FAT_LINE_STYLE = {
+  data: { stroke: '#8B5CF6', strokeWidth: 2, strokeDasharray: '6,3' },
+};
+const WAIST_LINE_STYLE = {
+  data: { stroke: '#4ECDC4', strokeWidth: 2 },
+};
+const LEGEND_STYLE = {
+  labels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12, fontFamily: "'Sora', sans-serif" },
+};
+const RADAR_FIRST_AREA_STYLE = {
+  data: {
+    fill: 'rgba(139, 92, 246, 0.1)',
+    stroke: '#8B5CF6',
+    strokeWidth: 2,
+  },
+};
+const RADAR_CURRENT_AREA_STYLE = {
+  data: {
+    fill: 'rgba(139, 92, 246, 0.25)',
+    stroke: '#50A0F0',
+    strokeWidth: 2,
+  },
+};
+const victoryElement = (
+  component: React.ElementType,
+  props: Record<string, unknown>,
+) => React.createElement(component, props);
 
 // ─── Keyframe Animations ────────────────────────────────────────────────────────
 const spin = keyframes`
@@ -195,16 +301,21 @@ const PhotoGrid = styled.div`
   }
 `;
 
-const FlexRow = styled.div<{ $gap?: number }>`
+const FlexRow = styled.div<{ $gap?: number; $relative?: boolean; $centerWrap?: boolean }>`
   display: flex;
   gap: ${({ $gap }) => $gap ?? 8}px;
   align-items: center;
+  position: ${({ $relative }) => ($relative ? 'relative' : 'static')};
+  justify-content: ${({ $centerWrap }) => ($centerWrap ? 'center' : 'flex-start')};
+  flex-wrap: ${({ $centerWrap }) => ($centerWrap ? 'wrap' : 'nowrap')};
 `;
 
-const FlexStack = styled.div<{ $gap?: number }>`
+const FlexStack = styled.div<{ $gap?: number; $field?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: ${({ $gap }) => $gap ?? 8}px;
+  margin-top: ${({ $field }) => ($field ? '12px' : 0)};
+  flex: ${({ $field }) => ($field ? 1 : 'initial')};
 `;
 
 const HeaderRow = styled.div`
@@ -228,7 +339,7 @@ const InputWrapper = styled.div`
   gap: 4px;
 `;
 
-const StyledLabel = styled.label`
+const StyledLabel = styled.span`
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.55);
   padding-left: 2px;
@@ -306,11 +417,14 @@ const DropdownList = styled.div`
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 `;
 
-const DropdownItem = styled.div<{ $highlighted?: boolean }>`
+const DropdownItem = styled.button<{ $highlighted?: boolean }>`
+  width: 100%;
   padding: 10px 14px;
   cursor: pointer;
   color: rgba(255, 255, 255, 0.85);
   font-size: 0.95rem;
+  text-align: left;
+  border: 0;
   background: ${({ $highlighted }) =>
     $highlighted ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
   transition: background 0.15s ease;
@@ -318,6 +432,44 @@ const DropdownItem = styled.div<{ $highlighted?: boolean }>`
   &:hover {
     background: rgba(139, 92, 246, 0.15);
   }
+
+  &:disabled {
+    cursor: default;
+    color: rgba(255, 255, 255, 0.45);
+  }
+`;
+
+const EmbeddedClientBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(96, 192, 240, 0.08);
+  border: 1px solid rgba(96, 192, 240, 0.25);
+  border-radius: 8px;
+  color: var(--accent-primary, #60C0F0);
+  font-size: 0.95rem;
+  font-weight: 500;
+  min-height: 44px;
+`;
+
+const ClearClientButton = styled.button`
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #4070C0);
+`;
+
+const TightSubsectionTitle = styled(SubsectionTitle)`
+  margin: 0;
 `;
 
 // ─── Button Components ──────────────────────────────────────────────────────────
@@ -422,17 +574,23 @@ const ChangeChip = styled.span<{ $variant?: 'success' | 'error' | 'default' }>`
 
 // ─── List Components ────────────────────────────────────────────────────────────
 
-const MeasurementList = styled.ul`
+const MeasurementList = styled.div`
   list-style: none;
   margin: 0;
   padding: 0;
 `;
 
-const MeasurementListItem = styled.li`
+const MeasurementListItem = styled.button`
+  width: 100%;
   padding: 10px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
   border-radius: 8px;
+  background: transparent;
   cursor: pointer;
+  text-align: left;
   transition: background 0.15s ease;
 
   &:hover {
@@ -495,6 +653,22 @@ const SaveWrapper = styled.div`
 const ChangeCenter = styled.div`
   text-align: center;
   padding-top: 8px;
+`;
+
+const CenteredStatsRow = styled(FlexRow)`
+  margin-top: 8px;
+`;
+
+const AccentStat = styled.span`
+  color: var(--accent-secondary, #8B5CF6);
+`;
+
+const ModalSection = styled.div`
+  margin-top: 16px;
+`;
+
+const TightSectionTitle = styled(SectionTitle)`
+  margin-bottom: 4px;
 `;
 
 // ─── Detail Modal Components ─────────────────────────────────────────────────────
@@ -723,7 +897,7 @@ const ChartRow = styled.div`
   }
 `;
 
-const CustomTooltipBox = styled.div`
+const _CustomTooltipBox = styled.div`
   background: rgba(0, 32, 96, 0.95);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 10px;
@@ -783,7 +957,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [savedPhotoUrls, setSavedPhotoUrls] = useState<string[]>([]);
   const [detailMeasurement, setDetailMeasurement] = useState<RecentMeasurement | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<MeasurementStats | null>(null);
 
   // Autocomplete state
   const [clientSearch, setClientSearch] = useState('');
@@ -795,11 +969,6 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   );
 
   // ─── Chart Data Memos ──────────────────────────────────────────────────────
-  const radarLabelMap: Record<string, string> = {
-    neck: 'Neck', shoulders: 'Shoulders', chest: 'Chest', rightBicep: 'Bicep',
-    naturalWaist: 'Waist', hips: 'Hips', rightThigh: 'Thigh', rightCalf: 'Calf',
-  };
-
   const trendData = useMemo(() => {
     if (recentMeasurements.length < 2) return [];
     return [...recentMeasurements]
@@ -812,18 +981,18 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       }));
   }, [recentMeasurements]);
 
-  const radarData = useMemo(() => {
+  const radarData = useMemo<RadarDatum[]>(() => {
     if (recentMeasurements.length < 2) return [];
     const sorted = [...recentMeasurements]
       .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime());
     const first = sorted[0];
     const latest = sorted[sorted.length - 1];
-    const fields = ['neck', 'shoulders', 'chest', 'rightBicep', 'naturalWaist', 'hips', 'rightThigh', 'rightCalf'] as const;
+    const fields: readonly RadarMeasurementKey[] = ['neck', 'shoulders', 'chest', 'rightBicep', 'naturalWaist', 'hips', 'rightThigh', 'rightCalf'];
     return fields
       .map(f => ({
-        metric: radarLabelMap[f] || f,
-        first: (first as any)[f] || 0,
-        current: (latest as any)[f] || 0,
+        metric: RADAR_LABEL_MAP[f],
+        first: first[f] || 0,
+        current: latest[f] || 0,
       }))
       .filter(d => d.first > 0 || d.current > 0);
   }, [recentMeasurements]);
@@ -847,7 +1016,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       try {
         const clientsRes = await apiService.get('/api/admin/clients');
         const rawClients = clientsRes.data?.data?.clients || clientsRes.data?.clients || clientsRes.data || [];
-        const mapped = (Array.isArray(rawClients) ? rawClients : []).map((c: any) => ({
+        const mapped = (Array.isArray(rawClients) ? rawClients : []).map((c: RawClient) => ({
           id: String(c.id),
           name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Client ${c.id}`,
         }));
@@ -1012,8 +1181,12 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       const saveData = response.data?.data || response.data;
       const milestones = saveData?.milestones || saveData?.milestonesAchieved || [];
       if (milestones.length > 0) {
-        milestones.forEach((milestone: any) => {
-          toast({ title: 'Milestone!', description: milestone.celebrationMessage, variant: 'success' });
+        milestones.forEach((milestone: MeasurementMilestone) => {
+          toast({
+            title: 'Milestone!',
+            description: milestone.celebrationMessage || 'A measurement milestone was reached.',
+            variant: 'success',
+          });
         });
       }
       setSelectedClient(null);
@@ -1075,28 +1248,16 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
           {embeddedClientId ? (
             <InputWrapper>
               <StyledLabel>Client</StyledLabel>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 14px',
-                background: 'rgba(96, 192, 240, 0.08)',
-                border: '1px solid rgba(96, 192, 240, 0.25)',
-                borderRadius: 8,
-                color: '#60C0F0',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                minHeight: 44,
-              }}>
-                <Ruler size={16} style={{ opacity: 0.7 }} />
+              <EmbeddedClientBadge>
+                <Ruler size={16} />
                 {selectedClient?.name || embeddedClientName || `Client #${embeddedClientId}`}
-              </div>
+              </EmbeddedClientBadge>
             </InputWrapper>
           ) : (
             <AutocompleteWrapper ref={autocompleteRef}>
               <InputWrapper>
                 <StyledLabel>Select Client</StyledLabel>
-                <FlexRow $gap={0} style={{ position: 'relative' }}>
+                <FlexRow $gap={0} $relative>
                   <StyledInput
                     type="text"
                     placeholder="Search clients..."
@@ -1112,27 +1273,13 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                     $hasAdornment={!!selectedClient}
                   />
                   {selectedClient && (
-                    <button
+                    <ClearClientButton
                       type="button"
                       onClick={handleClearClient}
                       aria-label="Clear selected client"
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        bottom: 0,
-                        width: 44,
-                        height: 44,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-muted, #4070C0)',
-                      }}
                     >
                       <X size={16} />
-                    </button>
+                    </ClearClientButton>
                   )}
                 </FlexRow>
               </InputWrapper>
@@ -1142,6 +1289,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                     filteredClients.map((client) => (
                       <DropdownItem
                         key={client.id}
+                        type="button"
                         $highlighted={selectedClient?.id === client.id}
                         onClick={() => handleSelectClient(client)}
                       >
@@ -1149,7 +1297,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                       </DropdownItem>
                     ))
                   ) : (
-                    <DropdownItem>No clients found</DropdownItem>
+                    <DropdownItem type="button" disabled>No clients found</DropdownItem>
                   )}
                 </DropdownList>
               )}
@@ -1180,9 +1328,9 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
             {/* Measurement Fields */}
             <GlassPanel>
               <HeaderRow>
-                <SubsectionTitle style={{ margin: 0 }}>
+                <TightSubsectionTitle>
                   New Measurements for {selectedClient.name}
-                </SubsectionTitle>
+                </TightSubsectionTitle>
                 <OutlinedButton
                   onClick={handleCopyLast}
                   disabled={!latestMeasurement}
@@ -1196,7 +1344,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                 {measurementFields.map(({ key, label }) => (
                   <DarkPanel key={key}>
                     <FieldLabel>{label}</FieldLabel>
-                    <FlexStack $gap={12} style={{ marginTop: 12, flex: 1 }}>
+                    <FlexStack $gap={12} $field>
                       {/* Previous value */}
                       <InputWrapper>
                         <StyledLabel>Previous</StyledLabel>
@@ -1300,8 +1448,8 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                 {recentMeasurements.map((measurement) => (
                   <MeasurementListItem
                     key={measurement.id}
+                    type="button"
                     onClick={() => setDetailMeasurement(measurement)}
-                    style={{ cursor: 'pointer' }}
                   >
                     <ListPrimary>
                       {new Date(measurement.measurementDate).toLocaleDateString()}
@@ -1345,7 +1493,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                     { label: 'Body Fat Change', value: stats.totalChange.bodyFat, unit: '%', Icon: Activity },
                     { label: 'Waist Change', value: stats.totalChange.waist, unit: 'in', Icon: Ruler },
                   ].map(({ label, value, unit, Icon }) => {
-                    const numVal = value !== null && value !== undefined ? parseFloat(value) : null;
+                    const numVal = value !== null && value !== undefined ? Number(value) : null;
                     const isPositiveChange = numVal !== null && numVal < 0;
                     return (
                       <HeroMetricCard
@@ -1381,81 +1529,39 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                     <ChartTitle3D>Trend Over Time</ChartTitle3D>
                     <VictoryChart
                       height={300}
-                      padding={{ top: 10, bottom: 50, left: 55, right: 55 }}
-                      animate={{ duration: 800, easing: 'cubicInOut' }}
+                      padding={TREND_CHART_PADDING}
+                      animate={CHART_ANIMATION}
                       containerComponent={
                         <VictoryVoronoiContainer
                           labels={({ datum }) => `${datum.date}\nWeight: ${datum.weight?.toFixed(1) ?? '—'} lbs\nBody Fat: ${datum.bodyFat?.toFixed(1) ?? '—'}%\nWaist: ${datum.waist?.toFixed(1) ?? '—'} in`}
                           labelComponent={
-                            <VictoryTooltip
-                              flyoutStyle={{ fill: 'var(--bg-card, #141419)', stroke: 'rgba(139, 92, 246, 0.3)' }}
-                              style={{ fill: 'var(--text-primary, #E0ECF4)', fontFamily: "'Fira Code', monospace", fontSize: 9 }}
-                              cornerRadius={8}
-                            />
+                            victoryElement(VictoryTooltip, {
+                              flyoutStyle: VICTORY_TOOLTIP_FLYOUT_STYLE,
+                              style: VICTORY_TOOLTIP_STYLE,
+                              cornerRadius: 8,
+                            })
                           }
                         />
                       }
                     >
-                      <VictoryAxis
-                        style={{
-                          axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
-                          tickLabels: { fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-                          grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-                        }}
-                      />
-                      <VictoryAxis
-                        dependentAxis
-                        label="lbs / in"
-                        style={{
-                          axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
-                          tickLabels: { fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-                          grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-                          axisLabel: { fill: 'rgba(255,255,255,0.3)', fontSize: 10, padding: 40 },
-                        }}
-                      />
-                      <VictoryArea
-                        data={trendData}
-                        x="date"
-                        y="weight"
-                        style={{
-                          data: {
-                            fill: 'rgba(139, 92, 246, 0.15)',
-                            stroke: '#8B5CF6',
-                            strokeWidth: 2.5,
-                          },
-                        }}
-                      />
-                      <VictoryLine
-                        data={trendData}
-                        x="date"
-                        y="bodyFat"
-                        style={{
-                          data: { stroke: '#8B5CF6', strokeWidth: 2, strokeDasharray: '6,3' },
-                        }}
-                      />
-                      <VictoryLine
-                        data={trendData}
-                        x="date"
-                        y="waist"
-                        style={{
-                          data: { stroke: '#4ECDC4', strokeWidth: 2 },
-                        }}
-                      />
+                      {victoryElement(VictoryAxis, { style: CHART_AXIS_STYLE })}
+                      {victoryElement(VictoryAxis, { dependentAxis: true, label: 'lbs / in', style: DEPENDENT_AXIS_STYLE })}
+                      {victoryElement(VictoryArea, { data: trendData, x: 'date', y: 'weight', style: WEIGHT_AREA_STYLE })}
+                      {victoryElement(VictoryLine, { data: trendData, x: 'date', y: 'bodyFat', style: BODY_FAT_LINE_STYLE })}
+                      {victoryElement(VictoryLine, { data: trendData, x: 'date', y: 'waist', style: WAIST_LINE_STYLE })}
                     </VictoryChart>
-                    <VictoryLegend
-                      orientation="horizontal"
-                      gutter={20}
-                      height={30}
-                      style={{
-                        labels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12, fontFamily: "'Sora', sans-serif" },
-                      }}
-                      colorScale={['#8B5CF6', '#8B5CF6', '#4ECDC4']}
-                      data={[
+                    {victoryElement(VictoryLegend, {
+                      orientation: 'horizontal',
+                      gutter: 20,
+                      height: 30,
+                      style: LEGEND_STYLE,
+                      colorScale: ['#8B5CF6', '#8B5CF6', '#4ECDC4'],
+                      data: [
                         { name: 'Weight (lbs)' },
                         { name: 'Body Fat (%)' },
                         { name: 'Waist (in)' },
-                      ]}
-                    />
+                      ],
+                    })}
                   </div>
                 </ChartWrapper3D>
 
@@ -1467,56 +1573,34 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                       <VictoryChart
                         polar
                         height={300}
-                        animate={{ duration: 800, easing: 'cubicInOut' }}
+                        animate={CHART_ANIMATION}
                       >
-                        <VictoryPolarAxis
-                          tickValues={radarData.map((_: any, i: number) => i)}
-                          tickFormat={radarData.map((d: any) => d.metric)}
-                          style={{
-                            axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
-                            tickLabels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11, fontFamily: "'Sora', sans-serif" },
-                            grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
-                          }}
-                        />
-                        <VictoryPolarAxis
-                          dependentAxis
-                          style={{
-                            axis: { stroke: 'none' },
-                            tickLabels: { fill: 'rgba(255, 255, 255, 0.3)', fontSize: 9 },
-                            grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
-                          }}
-                        />
-                        <VictoryArea
-                          data={radarData.map((d: any, i: number) => ({ x: i, y: d.first }))}
-                          style={{
-                            data: {
-                              fill: 'rgba(139, 92, 246, 0.1)',
-                              stroke: '#8B5CF6',
-                              strokeWidth: 2,
-                            },
-                          }}
-                        />
-                        <VictoryArea
-                          data={radarData.map((d: any, i: number) => ({ x: i, y: d.current }))}
-                          style={{
-                            data: {
-                              fill: 'rgba(139, 92, 246, 0.25)',
-                              stroke: '#50A0F0',
-                              strokeWidth: 2,
-                            },
-                          }}
-                        />
+                        {victoryElement(VictoryPolarAxis, {
+                          tickValues: radarData.map((_, i) => i),
+                          tickFormat: radarData.map((d) => d.metric),
+                          style: RADAR_AXIS_STYLE,
+                        })}
+                        {victoryElement(VictoryPolarAxis, {
+                          dependentAxis: true,
+                          style: RADAR_DEPENDENT_AXIS_STYLE,
+                        })}
+                        {victoryElement(VictoryArea, {
+                          data: radarData.map((d, i) => ({ x: i, y: d.first })),
+                          style: RADAR_FIRST_AREA_STYLE,
+                        })}
+                        {victoryElement(VictoryArea, {
+                          data: radarData.map((d, i) => ({ x: i, y: d.current })),
+                          style: RADAR_CURRENT_AREA_STYLE,
+                        })}
                       </VictoryChart>
-                      <VictoryLegend
-                        orientation="horizontal"
-                        gutter={20}
-                        height={30}
-                        style={{
-                          labels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12, fontFamily: "'Sora', sans-serif" },
-                        }}
-                        colorScale={['#8B5CF6', '#50A0F0']}
-                        data={[{ name: 'First' }, { name: 'Current' }]}
-                      />
+                      {victoryElement(VictoryLegend, {
+                        orientation: 'horizontal',
+                        gutter: 20,
+                        height: 30,
+                        style: LEGEND_STYLE,
+                        colorScale: ['#8B5CF6', '#50A0F0'],
+                        data: [{ name: 'First' }, { name: 'Current' }],
+                      })}
                     </div>
                   </ChartWrapper3D>
                 )}
@@ -1524,12 +1608,12 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
 
               {/* Summary stats */}
               {stats && (
-                <FlexRow $gap={24} style={{ justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                <CenteredStatsRow $gap={24} $centerWrap>
                   <BodyText>
-                    <span style={{ color: 'var(--accent-secondary, #8B5CF6)' }}>{stats.totalMeasurements}</span> measurements over{' '}
-                    <span style={{ color: 'var(--accent-secondary, #8B5CF6)' }}>{stats.daysSinceStart}</span> days
+                    <AccentStat>{stats.totalMeasurements}</AccentStat> measurements over{' '}
+                    <AccentStat>{stats.daysSinceStart}</AccentStat> days
                   </BodyText>
-                </FlexRow>
+                </CenteredStatsRow>
               )}
             </GlassPanel>
           </ProgressGraphSection>
@@ -1550,21 +1634,21 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setDetailMeasurement(null)}
           >
             <ModalContent
+              role="dialog"
+              aria-modal="true"
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
             >
               <ModalHeader>
                 <div>
-                  <SectionTitle style={{ marginBottom: 4 }}>
+                  <TightSectionTitle>
                     {new Date(detailMeasurement.measurementDate).toLocaleDateString('en-US', {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
                     })}
-                  </SectionTitle>
+                  </TightSectionTitle>
                   {detailMeasurement.recorder && (
                     <BodyText>
                       Recorded by {detailMeasurement.recorder.firstName || detailMeasurement.recorder.username || 'Trainer'}
@@ -1598,14 +1682,14 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
               </DetailGrid>
 
               {detailMeasurement.notes && (
-                <div style={{ marginTop: 16 }}>
+                <ModalSection>
                   <SubsectionTitle>Notes</SubsectionTitle>
                   <BodyText>{detailMeasurement.notes}</BodyText>
-                </div>
+                </ModalSection>
               )}
 
               {detailMeasurement.photoUrls && detailMeasurement.photoUrls.length > 0 && (
-                <div style={{ marginTop: 16 }}>
+                <ModalSection>
                   <SubsectionTitle>Progress Photos</SubsectionTitle>
                   <DetailPhotoGrid>
                     {detailMeasurement.photoUrls.map((url, i) => (
@@ -1614,7 +1698,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
                       </PhotoPreviewWrapper>
                     ))}
                   </DetailPhotoGrid>
-                </div>
+                </ModalSection>
               )}
             </ModalContent>
           </ModalOverlay>

@@ -236,6 +236,89 @@ const RefreshButton = styled(motion.button)`
   }
 `;
 
+const LoadingState = styled.div`
+  text-align: center;
+  padding: 2rem;
+`;
+
+const LoadingRefreshIcon = styled(RefreshCw)`
+  color: var(--accent-primary, #60c0f0);
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  margin: 1rem 0 0;
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  @media (max-width: 520px) {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+`;
+
+const ErrorBanner = styled.div`
+  align-items: center;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--color-error, #ef4444);
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+`;
+
+const LastUpdatedText = styled.span`
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  font-size: 0.75rem;
+  margin-left: auto;
+`;
+
+const EmptySignupsState = styled.div`
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  padding: 2rem;
+  text-align: center;
+`;
+
+const LoadMoreRow = styled.div`
+  padding: 0.75rem;
+  text-align: center;
+`;
+
+const LoadMoreButton = styled.button`
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: var(--accent-primary, #60c0f0);
+  cursor: pointer;
+  font-size: 0.85rem;
+  min-height: 44px;
+  padding: 0.5rem 1.5rem;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+  }
+`;
+
+const AutoRefreshIndicator = styled.div`
+  align-items: center;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  display: flex;
+  font-size: 0.75rem;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  text-align: center;
+`;
+
 // Types
 interface RecentSignup {
   id: string;
@@ -280,11 +363,33 @@ interface DatabaseHealth {
   timestamp: string;
 }
 
+interface ApiEnvelope<T> {
+  success?: boolean;
+  data: T;
+}
+
+interface AuthAxiosLike {
+  get: <T>(url: string) => Promise<{ data: ApiEnvelope<T> }>;
+}
+
+interface SignupsListData {
+  signups?: RecentSignup[];
+  pagination?: {
+    hasMore?: boolean;
+  };
+}
+
 interface Props {
-  authAxios: any;
+  authAxios: AuthAxiosLike;
   autoRefresh?: boolean;
   refreshInterval?: number;
 }
+
+const isDegradedError = (err: unknown): boolean =>
+  typeof err === 'object' &&
+  err !== null &&
+  'isDegraded' in err &&
+  Boolean((err as { isDegraded?: boolean }).isDegraded);
 
 const RealTimeSignupMonitoring: React.FC<Props> = ({ 
   authAxios, 
@@ -319,13 +424,13 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   // Fetch dashboard statistics (summary cards only)
   const fetchDashboardStats = useCallback(async () => {
     try {
-      const response = await authAxios.get('/api/admin/dashboard-stats');
+      const response = await authAxios.get<DashboardStats>('/api/admin/dashboard-stats');
       if (response.data.success) {
         setDashboardStats(response.data.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching dashboard stats:', err);
-      if (!(err as any).isDegraded) {
+      if (!isDegradedError(err)) {
         setError('Failed to fetch dashboard statistics');
       }
     }
@@ -339,14 +444,14 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
         offset: String(offset)
       });
       if (includeTotal) params.set('includeTotal', 'true');
-      const response = await authAxios.get(`/api/admin/signups-list?${params}`);
+      const response = await authAxios.get<SignupsListData>(`/api/admin/signups-list?${params}`);
       if (response.data.success) {
         const freshSignups = response.data.data.signups || [];
         setSignupsHasMore(response.data.data.pagination?.hasMore ?? false);
         // Upsert into accumulated state
         setRecentSignups(prev => upsertSignups(prev, freshSignups));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching signups list:', err);
     }
   }, [authAxios, upsertSignups]);
@@ -354,13 +459,13 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   // Fetch database health
   const fetchDatabaseHealth = useCallback(async () => {
     try {
-      const response = await authAxios.get('/api/admin/database-health');
+      const response = await authAxios.get<DatabaseHealth>('/api/admin/database-health');
       if (response.data.success) {
         setDatabaseHealth(response.data.data);
       } else {
         setDatabaseHealth(response.data.data);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching database health:', err);
       setDatabaseHealth({
         status: 'error',
@@ -467,12 +572,12 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <RefreshCw size={32} color="#60C0F0" className="animate-spin" />
-          <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+        <LoadingState>
+          <LoadingRefreshIcon size={32} className="animate-spin" />
+          <LoadingText>
             Loading database monitoring...
-          </p>
-        </div>
+          </LoadingText>
+        </LoadingState>
       </MonitoringPanel>
     );
   }
@@ -492,7 +597,7 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
           Real-time Signup Monitoring
         </h3>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <HeaderActions>
           <StatusIndicator className={dbStatus.className}>
             {dbStatus.icon}
             {dbStatus.text}
@@ -507,21 +612,14 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
             <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
             Refresh
           </RefreshButton>
-        </div>
+        </HeaderActions>
       </HeaderSection>
 
       {error && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: '8px',
-          padding: '1rem',
-          marginBottom: '1rem',
-          color: '#ef4444'
-        }}>
-          <AlertTriangle size={16} style={{ marginRight: '0.5rem' }} />
+        <ErrorBanner>
+          <AlertTriangle size={16} />
           {error}
-        </div>
+        </ErrorBanner>
       )}
 
       {/* Statistics Grid */}
@@ -608,9 +706,9 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
         <div className="signup-header">
           <Clock size={16} />
           Recent Signups (Live)
-          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+          <LastUpdatedText>
             Last updated: {lastRefresh.toLocaleTimeString()}
-          </span>
+          </LastUpdatedText>
         </div>
         
         <AnimatePresence>
@@ -644,50 +742,30 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
               </motion.div>
             ))
           ) : (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.5)' }}>
+            <EmptySignupsState>
               No recent signups to display
-            </div>
+            </EmptySignupsState>
           )}
         </AnimatePresence>
 
         {signupsHasMore && (
-          <div style={{ textAlign: 'center', padding: '0.75rem' }}>
-            <button
+          <LoadMoreRow>
+            <LoadMoreButton
               onClick={handleLoadMoreSignups}
               disabled={isRefreshing}
-              style={{
-                background: 'rgba(59, 130, 246, 0.2)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: '8px',
-                color: '#3b82f6',
-                padding: '0.5rem 1.5rem',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                minHeight: '44px'
-              }}
             >
               {isRefreshing ? 'Loading...' : 'Load More Signups'}
-            </button>
-          </div>
+            </LoadMoreButton>
+          </LoadMoreRow>
         )}
       </RecentSignupsList>
 
       {/* Auto-refresh indicator */}
       {autoRefresh && (
-        <div style={{
-          marginTop: '1rem',
-          padding: '0.5rem',
-          textAlign: 'center',
-          fontSize: '0.75rem',
-          color: 'rgba(255, 255, 255, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem'
-        }}>
+        <AutoRefreshIndicator>
           <Zap size={12} />
           Auto-refreshing every {refreshInterval / 1000} seconds
-        </div>
+        </AutoRefreshIndicator>
       )}
     </MonitoringPanel>
   );

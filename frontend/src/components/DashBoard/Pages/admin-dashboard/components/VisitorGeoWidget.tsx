@@ -186,6 +186,19 @@ const VisitorGeoWidget: React.FC = () => {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
+  const handleModalOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.currentTarget === e.target) {
+      setShowFullModal(false);
+    }
+  }, []);
+
+  const handleModalOverlayKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setShowFullModal(false);
+    }
+  }, []);
+
   const activeNow = anonData?.activeNow || 0;
   const totalTracked = (geoData?.totalVisitors || 0);
   const totalAnon = anonData?.last24h || 0;
@@ -292,7 +305,7 @@ const VisitorGeoWidget: React.FC = () => {
                 </EmptyState>
               )}
               {anonData?.recentVisitors?.map((v, i) => (
-                <LiveRow key={`anon-${i}`} onClick={() => setSelectedVisitor(v)} $clickable>
+                <LiveRow key={`anon-${i}`} type="button" onClick={() => setSelectedVisitor(v)} $clickable>
                   <LiveDotSmall $recent={Date.now() - new Date(v.lastSeen).getTime() < 300000} />
                   <LiveInfo>
                     <LiveLocation>
@@ -308,11 +321,11 @@ const VisitorGeoWidget: React.FC = () => {
                     <SourceBadge $variant="anonymous">anon</SourceBadge>
                     <LiveTime>{timeAgo(v.lastSeen)}</LiveTime>
                   </LiveMeta>
-                  <ChevronRight size={14} style={{ opacity: 0.3, flexShrink: 0 }} />
+                  <MutedChevron size={14} />
                 </LiveRow>
               ))}
               {geoData?.visitors?.slice(0, 10).map((v, i) => (
-                <LiveRow key={`user-${v.userId || i}`} onClick={() => setSelectedVisitor(v)} $clickable>
+                <LiveRow key={`user-${v.userId || i}`} type="button" onClick={() => setSelectedVisitor(v)} $clickable>
                   <LiveDotSmall $recent={Date.now() - new Date(v.lastActive).getTime() < 300000} />
                   <LiveInfo>
                     <LiveLocation>
@@ -328,7 +341,7 @@ const VisitorGeoWidget: React.FC = () => {
                     </SourceBadge>
                     <LiveTime>{timeAgo(v.lastActive)}</LiveTime>
                   </LiveMeta>
-                  <ChevronRight size={14} style={{ opacity: 0.3, flexShrink: 0 }} />
+                  <MutedChevron size={14} />
                 </LiveRow>
               ))}
             </GeoList>
@@ -340,7 +353,7 @@ const VisitorGeoWidget: React.FC = () => {
               {allCountries.length === 0 && <EmptyState><Globe size={32} /><span>No country data yet</span></EmptyState>}
               {allCountries.map((c, i) => (
                 <GeoRow key={c.countryCode || i}>
-                  <BarBg style={{ width: `${(c.count / maxCountry) * 100}%` }} />
+                  <BarBg $pct={(c.count / maxCountry) * 100} />
                   <GeoFlag>{countryFlag(c.countryCode)}</GeoFlag>
                   <GeoName>{c.country}</GeoName>
                   <GeoCount>{c.count}</GeoCount>
@@ -355,7 +368,7 @@ const VisitorGeoWidget: React.FC = () => {
               {allCities.length === 0 && <EmptyState><MapPin size={32} /><span>No city data yet</span></EmptyState>}
               {allCities.map((c, i) => (
                 <GeoRow key={`${c.city}-${i}`}>
-                  <BarBg style={{ width: `${(c.count / maxCity) * 100}%` }} />
+                  <BarBg $pct={(c.count / maxCity) * 100} />
                   <GeoFlag>{countryFlag(c.countryCode)}</GeoFlag>
                   <GeoName>
                     {c.city}
@@ -375,7 +388,7 @@ const VisitorGeoWidget: React.FC = () => {
                 const maxP = anonData.topPages[0]?.views || 1;
                 return (
                   <GeoRow key={p.page}>
-                    <BarBg style={{ width: `${(p.views / maxP) * 100}%` }} />
+                    <BarBg $pct={(p.views / maxP) * 100} />
                     <PageRank>#{i + 1}</PageRank>
                     <GeoName>{pageName(p.page)}</GeoName>
                     <PageViews>
@@ -501,10 +514,21 @@ const VisitorGeoWidget: React.FC = () => {
 
       {/* ── Full-Screen Modal ── */}
       {showFullModal && createPortal(
-        <ModalOverlay onClick={() => setShowFullModal(false)}>
-          <ModalContent onClick={e => e.stopPropagation()}>
+        <ModalOverlay
+          role="button"
+          tabIndex={0}
+          aria-label="Close visitor intelligence modal"
+          onClick={handleModalOverlayClick}
+          onKeyDown={handleModalOverlayKeyDown}
+        >
+          <ModalContent
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="visitor-intelligence-title"
+            tabIndex={-1}
+          >
             <ModalHeader>
-              <ModalTitle>
+              <ModalTitle id="visitor-intelligence-title">
                 <Globe size={20} />
                 Visitor Intelligence — Full View
               </ModalTitle>
@@ -518,7 +542,7 @@ const VisitorGeoWidget: React.FC = () => {
                 </ModalSectionTitle>
                 <ModalList>
                   {anonData?.recentVisitors?.map((v, i) => (
-                    <ModalRow key={`anon-${i}`} onClick={() => setSelectedVisitor(v)}>
+                    <ModalRow key={`anon-${i}`} type="button" onClick={() => setSelectedVisitor(v)}>
                       <LiveDotSmall $recent={Date.now() - new Date(v.lastSeen).getTime() < 300000} />
                       <ModalRowInfo>
                         <span>{countryFlag(v.countryCode)} {v.city || v.country || 'Unknown'}</span>
@@ -547,7 +571,7 @@ const VisitorGeoWidget: React.FC = () => {
                 </ModalSectionTitle>
                 <ModalList>
                   {geoData?.visitors?.map((v, i) => (
-                    <ModalRow key={`user-${v.userId || i}`} onClick={() => setSelectedVisitor(v)}>
+                    <ModalRow key={`user-${v.userId || i}`} type="button" onClick={() => setSelectedVisitor(v)}>
                       <LiveDotSmall $recent={Date.now() - new Date(v.lastActive).getTime() < 300000} />
                       <ModalRowInfo>
                         <span>{countryFlag(v.countryCode)} {v.name}</span>
@@ -576,7 +600,7 @@ const VisitorGeoWidget: React.FC = () => {
                 )}
                 <ModalList>
                   {historyData?.visitors?.map((v: any) => (
-                    <ModalRow key={v.id} onClick={() => setSelectedVisitor({
+                    <ModalRow key={v.id} type="button" onClick={() => setSelectedVisitor({
                       ip: v.ip,
                       country: v.country || 'Unknown',
                       countryCode: v.country_code,
@@ -891,12 +915,17 @@ const GeoList = styled.div`
 `;
 
 // ── Live Feed Rows ──
-const LiveRow = styled.div<{ $clickable?: boolean }>`
+const LiveRow = styled.button<{ $clickable?: boolean }>`
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 10px 12px;
   border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   transition: all 0.2s;
   cursor: ${p => p.$clickable ? 'pointer' : 'default'};
 
@@ -974,10 +1003,11 @@ const GeoRow = styled.div`
   }
 `;
 
-const BarBg = styled.div`
+const BarBg = styled.div<{ $pct: number }>`
   position: absolute;
   left: 0; top: 0;
   height: 100%;
+  width: ${({ $pct }) => $pct}%;
   background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), rgba(96, 192, 240, 0.06));
   border-radius: 10px;
   transform-origin: left;
@@ -1207,6 +1237,11 @@ const PageTag = styled.span`
   color: ${ICE_WING};
 `;
 
+const MutedChevron = styled(ChevronRight)`
+  opacity: 0.3;
+  flex-shrink: 0;
+`;
+
 // ── Full-Screen Modal ──
 const ModalOverlay = styled.div`
   position: fixed;
@@ -1292,12 +1327,18 @@ const ModalList = styled.div`
   gap: 4px;
 `;
 
-const ModalRow = styled.div`
+const ModalRow = styled.button`
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  min-height: 44px;
   padding: 12px 14px;
+  border: 0;
   border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
   transition: all 0.2s;
 

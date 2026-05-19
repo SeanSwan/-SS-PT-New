@@ -24,10 +24,10 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
-  Bell, BellRing, DollarSign, UserPlus, AlertTriangle,
-  CheckCircle, Clock, Mail, ShoppingBag, CreditCard,
-  TrendingUp, Star, Shield, Eye, EyeOff, RefreshCw,
-  X, ExternalLink, MessageCircle, Users, Activity,
+  Bell, UserPlus, AlertTriangle,
+  CheckCircle, Clock, ShoppingBag, CreditCard,
+  TrendingUp, Star, Eye, EyeOff, RefreshCw,
+  MessageCircle, Activity,
   RotateCcw, ShieldAlert, ChevronDown
 } from 'lucide-react';
 
@@ -41,11 +41,6 @@ const notificationPulse = keyframes`
 const urgentBlink = keyframes`
   0%, 50% { opacity: 1; }
   25%, 75% { opacity: 0.3; }
-`;
-
-const slideIn = keyframes`
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
 `;
 
 // Styled Components
@@ -200,9 +195,9 @@ const NotificationContent = styled.div`
   gap: 1rem;
 `;
 
-const NotificationIcon = styled.div`
-  background: ${props => props.color || 'rgba(59, 130, 246, 0.2)'};
-  color: ${props => props.color || '#3b82f6'};
+const NotificationIcon = styled.div<{ $color?: string }>`
+  background: ${({ $color }) => $color || 'rgba(59, 130, 246, 0.2)'};
+  color: ${({ $color }) => $color || '#3b82f6'};
   border-radius: 8px;
   padding: 0.5rem;
   display: flex;
@@ -270,6 +265,59 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const ErrorBanner = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: var(--color-error, #ef4444);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+`;
+
+const MessageToggle = styled.button`
+  background: transparent;
+  border: 0;
+  color: var(--accent-primary, #60c0f0);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-left: 4px;
+  padding: 0 0.25rem;
+`;
+
+const ActionRequiredBadge = styled.div`
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  color: var(--color-warning, #f59e0b);
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+`;
+
+const EmptyCheckIcon = styled(CheckCircle)`
+  margin-bottom: 1rem;
+  opacity: 0.5;
+`;
+
+const LoadMoreRow = styled.div`
+  margin-top: 1rem;
+  text-align: center;
+`;
+
+const LoadMoreControl = styled(ControlButton)`
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 0.5rem 1.5rem;
+`;
+
+const LoadMoreLabel = styled.span`
+  margin-left: 0.5rem;
+`;
+
 // Interface definitions
 interface Notification {
   id: string;
@@ -285,6 +333,28 @@ interface Notification {
   actionRequired?: boolean;
   userId?: number;
   userName?: string;
+}
+
+interface FinanceNotificationPayload {
+  id?: string;
+  type?: Notification['type'];
+  title?: string;
+  message?: string;
+  amount?: number;
+  timestamp?: string;
+  createdAt?: string;
+  priority?: Notification['priority'];
+  userId?: number;
+  userName?: string;
+}
+
+interface ContactPayload {
+  id: string | number;
+  name?: string;
+  email?: string;
+  message?: string;
+  createdAt?: string;
+  priority?: string;
 }
 
 interface ContactNotificationsProps {
@@ -335,6 +405,18 @@ const formatTimeAgo = (timestamp: string) => {
 
 const PAGE_SIZE = 20;
 
+const isDegradedError = (err: unknown): boolean =>
+  typeof err === 'object' &&
+  err !== null &&
+  'isDegraded' in err &&
+  Boolean((err as { isDegraded?: boolean }).isDegraded);
+
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (typeof err !== 'object' || err === null) return fallback;
+  const response = (err as { response?: { data?: { message?: string } } }).response;
+  return response?.data?.message || fallback;
+};
+
 // Upsert helper: merges fresh data into accumulated state, dedupes by id, sorts deterministically
 const upsertNotifications = (existing: Notification[], ...newBatches: Notification[][]): Notification[] => {
   const merged = new Map<string, Notification>();
@@ -354,6 +436,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   showActions = true
 }) => {
   const { authAxios } = useAuth();
+  const pageSize = initialPageSize;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -368,47 +451,47 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   const [contactHasMore, setContactHasMore] = useState(true);
 
   // Map raw API data to Notification interface
-  const mapFinanceNotifications = (data: any[]): Notification[] =>
-    data.map((notif: any) => ({
+  const mapFinanceNotifications = (data: FinanceNotificationPayload[]): Notification[] =>
+    data.map((notif) => ({
       id: notif.id || `fin_${Math.random().toString(36).slice(2)}`,
-      type: notif.type,
-      title: notif.title,
-      message: notif.message,
+      type: notif.type || 'system_alert',
+      title: notif.title || 'Business notification',
+      message: notif.message || 'A business event needs review.',
       amount: notif.amount,
-      timestamp: notif.timestamp || notif.createdAt,
-      priority: notif.priority,
+      timestamp: notif.timestamp || notif.createdAt || new Date().toISOString(),
+      priority: notif.priority || 'medium',
       isRead: false,
       actionRequired: notif.type === 'payment_failed',
       userId: notif.userId,
       userName: notif.userName
     }));
 
-  const mapContactNotifications = (contacts: any[]): Notification[] =>
-    contacts.map((contact: any) => ({
+  const mapContactNotifications = (contacts: ContactPayload[]): Notification[] =>
+    contacts.map((contact) => ({
       id: `contact_${contact.id}`,
       type: 'contact' as const,
       title: 'New Contact Form Submission',
-      message: `${contact.name} (${contact.email}) sent: "${contact.message}"`,
-      timestamp: contact.createdAt,
+      message: `${contact.name || 'Unknown'} (${contact.email || 'no email'}) sent: "${contact.message || 'No message'}"`,
+      timestamp: contact.createdAt || new Date().toISOString(),
       priority: (contact.priority === 'urgent' ? 'high' : 'medium') as 'high' | 'medium',
       isRead: false,
       actionRequired: true,
-      userName: contact.name
+      userName: contact.name || 'Unknown'
     }));
 
   // Fetch page of data from both sources and upsert into state
-  const fetchPage = useCallback(async (fOffset: number, cOffset: number, isRefresh: boolean) => {
+  const fetchPage = useCallback(async (fOffset: number, cOffset: number, _isRefresh: boolean) => {
     try {
       setRefreshing(true);
       setError(null);
 
       const [financeRes, contactRes] = await Promise.all([
-        authAxios.get(`/api/admin/finance/notifications?limit=${PAGE_SIZE}&offset=${fOffset}`).catch((err: any) => {
-          if (err.isDegraded) return { data: { success: false } };
+        authAxios.get(`/api/admin/finance/notifications?limit=${pageSize}&offset=${fOffset}`).catch((err: unknown) => {
+          if (isDegradedError(err)) return { data: { success: false } };
           throw err;
         }),
-        authAxios.get(`/api/contact?limit=${PAGE_SIZE}&offset=${cOffset}`).catch((err: any) => {
-          if (err.isDegraded) return { data: { success: false } };
+        authAxios.get(`/api/contact?limit=${pageSize}&offset=${cOffset}`).catch((err: unknown) => {
+          if (isDegradedError(err)) return { data: { success: false } };
           throw err;
         })
       ]);
@@ -430,17 +513,17 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
       // Upsert into accumulated state (preserves loaded history)
       setNotifications(prev => upsertNotifications(prev, newFinance, newContacts));
-    } catch (err: any) {
-      if (err.isDegraded) {
+    } catch (err: unknown) {
+      if (isDegradedError(err)) {
         setError('Some data temporarily unavailable');
       } else {
-        setError(err.response?.data?.message || 'Failed to load notifications');
+        setError(getErrorMessage(err, 'Failed to load notifications'));
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [authAxios]);
+  }, [authAxios, pageSize]);
 
   // Initial load
   useEffect(() => {
@@ -456,12 +539,12 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   // Load More handler
   const handleLoadMore = useCallback(() => {
-    const nextFinanceOffset = financeHasMore ? financeOffset + PAGE_SIZE : financeOffset;
-    const nextContactOffset = contactHasMore ? contactOffset + PAGE_SIZE : contactOffset;
+    const nextFinanceOffset = financeHasMore ? financeOffset + pageSize : financeOffset;
+    const nextContactOffset = contactHasMore ? contactOffset + pageSize : contactOffset;
     if (financeHasMore) setFinanceOffset(nextFinanceOffset);
     if (contactHasMore) setContactOffset(nextContactOffset);
     fetchPage(nextFinanceOffset, nextContactOffset, false);
-  }, [financeOffset, contactOffset, financeHasMore, contactHasMore, fetchPage]);
+  }, [financeOffset, contactOffset, financeHasMore, contactHasMore, fetchPage, pageSize]);
 
   // Handle notification click — complete type→destination mapping
   const handleNotificationClick = (notification: Notification) => {
@@ -479,6 +562,16 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
     };
     const dest = destinationMap[notification.type];
     if (dest) window.open(dest, '_blank');
+  };
+
+  const handleNotificationKeyDown = (
+    event: React.KeyboardEvent,
+    notification: Notification
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleNotificationClick(notification);
+    }
   };
 
   // Toggle expandable message
@@ -545,17 +638,9 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       </NotificationHeader>
 
       {error && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: '8px',
-          padding: '1rem',
-          color: '#ef4444',
-          marginBottom: '1rem',
-          fontSize: '0.875rem'
-        }}>
+        <ErrorBanner>
           {error}
-        </div>
+        </ErrorBanner>
       )}
 
       <NotificationsList>
@@ -566,7 +651,10 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                 key={notification.id}
                 $priorityColor={getPriorityColor(notification.priority)}
                 className={`${!notification.isRead ? 'unread' : ''} ${notification.priority === 'critical' ? 'urgent' : ''}`}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleNotificationClick(notification)}
+                onKeyDown={(e) => handleNotificationKeyDown(e, notification)}
                 initial={{ opacity: 0, x: 100 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -100 }}
@@ -574,7 +662,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                 whileHover={{ scale: 1.02 }}
               >
                 <NotificationContent>
-                  <NotificationIcon color={getPriorityColor(notification.priority)}>
+                  <NotificationIcon $color={getPriorityColor(notification.priority)}>
                     {getTypeIcon(notification.type)}
                   </NotificationIcon>
                   
@@ -584,18 +672,18 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                       {notification.message.length > 150 && !expandedMessages.has(notification.id)
                         ? <>
                             {notification.message.slice(0, 150)}...
-                            <span
-                              style={{ color: '#60C0F0', cursor: 'pointer', marginLeft: '4px' }}
+                            <MessageToggle
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
-                            >show more</span>
+                            >show more</MessageToggle>
                           </>
                         : <>
                             {notification.message}
                             {notification.message.length > 150 && (
-                              <span
-                                style={{ color: '#60C0F0', cursor: 'pointer', marginLeft: '4px' }}
+                              <MessageToggle
+                                type="button"
                                 onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
-                              >show less</span>
+                              >show less</MessageToggle>
                             )}
                           </>
                       }
@@ -616,25 +704,16 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                   </NotificationDetails>
                   
                   {notification.actionRequired && (
-                    <div style={{
-                      background: 'rgba(245, 158, 11, 0.2)',
-                      border: '1px solid rgba(245, 158, 11, 0.3)',
-                      borderRadius: '6px',
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.75rem',
-                      color: '#f59e0b',
-                      fontWeight: 500,
-                      flexShrink: 0
-                    }}>
+                    <ActionRequiredBadge>
                       Action Required
-                    </div>
+                    </ActionRequiredBadge>
                   )}
                 </NotificationContent>
               </NotificationItem>
             ))
           ) : (
             <EmptyState>
-              <CheckCircle size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+              <EmptyCheckIcon size={48} />
               <div>All caught up! No new notifications.</div>
             </EmptyState>
           )}
@@ -642,18 +721,17 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       </NotificationsList>
 
       {(financeHasMore || contactHasMore) && (
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <ControlButton
+        <LoadMoreRow>
+          <LoadMoreControl
             onClick={handleLoadMore}
             disabled={refreshing}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            style={{ padding: '0.5rem 1.5rem', borderRadius: '8px' }}
           >
             <ChevronDown size={16} />
-            <span style={{ marginLeft: '0.5rem' }}>Load More</span>
-          </ControlButton>
-        </div>
+            <LoadMoreLabel>Load More</LoadMoreLabel>
+          </LoadMoreControl>
+        </LoadMoreRow>
       )}
     </NotificationsContainer>
   );

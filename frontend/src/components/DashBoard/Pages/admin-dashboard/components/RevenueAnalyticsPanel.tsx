@@ -149,11 +149,11 @@ const ControlsContainer = styled.div`
   flex-wrap: wrap;
 `;
 
-const ActionButton = styled(motion.button)`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+const ActionButton = styled(motion.button)<{ $autoRefresh?: boolean }>`
+  background: ${({ $autoRefresh }) => ($autoRefresh ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)')};
+  border: 1px solid ${({ $autoRefresh }) => ($autoRefresh ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)')};
   border-radius: 12px;
-  color: #3b82f6;
+  color: ${({ $autoRefresh }) => ($autoRefresh ? '#10b981' : '#3b82f6')};
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -328,6 +328,73 @@ const TransactionItem = styled.div`
   }
 `;
 
+const LoadingTitle = styled.div`
+  color: #3b82f6;
+  font-size: 1.125rem;
+  font-weight: 500;
+`;
+
+const LoadingSubtitle = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+`;
+
+const ErrorTitle = styled.div`
+  color: #ef4444;
+  font-size: 1.25rem;
+  font-weight: 600;
+`;
+
+const ErrorMessage = styled.div`
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1.5rem;
+`;
+
+const LastUpdatedText = styled.div`
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+`;
+
+const TransactionDetails = styled.div`
+  min-width: 0;
+`;
+
+const TransactionCustomer = styled.div`
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #ffffff;
+`;
+
+const TransactionPackage = styled.div`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+`;
+
+const TransactionDate = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const TransactionAmountBlock = styled.div`
+  text-align: right;
+`;
+
+const TransactionAmount = styled.div`
+  color: #10b981;
+  font-weight: 700;
+  font-size: 1.125rem;
+  margin-bottom: 0.25rem;
+`;
+
+const TransactionStatus = styled.div<{ $completed: boolean }>`
+  font-size: 0.875rem;
+  color: ${({ $completed }) => ($completed ? '#10b981' : '#f59e0b')};
+  font-weight: 500;
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -369,6 +436,47 @@ const chartColors = {
 };
 
 const pieChartColors = ['#60C0F0', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const victoryTooltipProps = {
+  flyoutStyle: { fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' },
+  style: { fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 },
+};
+
+const revenueAxisProps = {
+  style: {
+    axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
+    tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
+    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+  },
+};
+
+const revenueAreaProps = {
+  style: {
+    data: {
+      fill: 'rgba(80, 160, 240, 0.15)',
+      stroke: '#50A0F0',
+      strokeWidth: 3,
+    },
+  },
+};
+
+const transactionLineProps = {
+  style: {
+    data: { stroke: '#C6A84B', strokeWidth: 2 },
+  },
+};
+
+const packagePieProps = {
+  style: {
+    labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
+  },
+};
+
+const packageLegendProps = {
+  style: {
+    labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" },
+  },
+};
 
 // =====================================================
 // MAIN COMPONENT
@@ -512,12 +620,12 @@ const RevenueAnalyticsPanel: React.FC = () => {
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
-          <div style={{ color: '#3b82f6', fontSize: '1.125rem', fontWeight: 500 }}>
+          <LoadingTitle>
             Loading Revenue Analytics...
-          </div>
-          <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
+          </LoadingTitle>
+          <LoadingSubtitle>
             Connecting to real-time financial data
-          </div>
+          </LoadingSubtitle>
         </LoadingContainer>
       </AnalyticsContainer>
     );
@@ -536,12 +644,12 @@ const RevenueAnalyticsPanel: React.FC = () => {
       >
         <ErrorContainer>
           <AlertTriangle size={48} color="#ef4444" />
-          <div style={{ color: '#ef4444', fontSize: '1.25rem', fontWeight: 600 }}>
+          <ErrorTitle>
             Failed to Load Revenue Analytics
-          </div>
-          <div style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1.5rem' }}>
+          </ErrorTitle>
+          <ErrorMessage>
             {error}
-          </div>
+          </ErrorMessage>
           <ActionButton onClick={handleRefresh}>
             <RefreshCw size={16} />
             Retry Connection
@@ -594,11 +702,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
 
           <ActionButton
             onClick={toggleAutoRefresh}
-            style={{
-              background: autoRefresh ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-              borderColor: autoRefresh ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)',
-              color: autoRefresh ? '#10b981' : '#3b82f6'
-            }}
+            $autoRefresh={autoRefresh}
           >
             <Activity size={16} />
             {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
@@ -723,8 +827,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
                   labels={({ datum }) => `${datum.month}\nRevenue: $${datum.revenue?.toLocaleString()}\nTransactions: ${datum.transactions}`}
                   labelComponent={
                     <VictoryTooltip
-                      flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
-                      style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                      {...victoryTooltipProps}
                       cornerRadius={8}
                     />
                   }
@@ -733,40 +836,24 @@ const RevenueAnalyticsPanel: React.FC = () => {
             >
               <VictoryAxis
                 tickFormat={(t: string) => t}
-                style={{
-                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
-                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
-                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-                }}
+                {...revenueAxisProps}
               />
               <VictoryAxis
                 dependentAxis
                 tickFormat={(value: number) => `$${(value / 1000).toFixed(0)}k`}
-                style={{
-                  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
-                  tickLabels: { fill: '#E0ECF4', fontSize: 12, fontFamily: "'Fira Code', monospace" },
-                  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-                }}
+                {...revenueAxisProps}
               />
               <VictoryArea
                 data={revenueData.revenueHistory}
                 x="month"
                 y="revenue"
-                style={{
-                  data: {
-                    fill: 'rgba(80, 160, 240, 0.15)',
-                    stroke: '#50A0F0',
-                    strokeWidth: 3,
-                  },
-                }}
+                {...revenueAreaProps}
               />
               <VictoryLine
                 data={revenueData.revenueHistory}
                 x="month"
                 y="transactions"
-                style={{
-                  data: { stroke: '#C6A84B', strokeWidth: 2 },
-                }}
+                {...transactionLineProps}
               />
             </VictoryChart>
           </ChartCard>
@@ -793,22 +880,17 @@ const RevenueAnalyticsPanel: React.FC = () => {
               labels={({ datum }) => datum.name}
               labelComponent={
                 <VictoryTooltip
-                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
-                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
+                  {...victoryTooltipProps}
                   cornerRadius={8}
                 />
               }
-              style={{
-                labels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Sora', sans-serif" },
-              }}
+              {...packagePieProps}
             />
             <VictoryLegend
               orientation="horizontal"
               gutter={16}
               height={60}
-              style={{
-                labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" },
-              }}
+              {...packageLegendProps}
               colorScale={pieChartColors}
               data={revenueData.topPackages.map((pkg: any) => ({ name: pkg.name }))}
             />
@@ -823,60 +905,35 @@ const RevenueAnalyticsPanel: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.7 }}
         >
-          <ChartTitle>
-            <Clock size={20} />
-            Recent High-Value Transactions
-            <div style={{ 
-              marginLeft: 'auto', 
-              fontSize: '0.875rem', 
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontWeight: 400
-            }}>
+            <ChartTitle>
+              <Clock size={20} />
+              Recent High-Value Transactions
+            <LastUpdatedText>
               Last updated: {lastUpdated.toLocaleTimeString()}
-            </div>
-          </ChartTitle>
+            </LastUpdatedText>
+            </ChartTitle>
           
           {revenueData.recentTransactions.slice(0, 5).map((transaction: any, index: number) => (
             <TransactionItem key={transaction.id}>
-              <div>
-                <div style={{ 
-                  fontWeight: 600, 
-                  marginBottom: '0.25rem',
-                  color: '#ffffff'
-                }}>
+              <TransactionDetails>
+                <TransactionCustomer>
                   {transaction.customer?.name || 'Unknown Customer'}
-                </div>
-                <div style={{ 
-                  fontSize: '0.875rem', 
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  marginBottom: '0.25rem'
-                }}>
+                </TransactionCustomer>
+                <TransactionPackage>
                   {transaction.package}
-                </div>
-                <div style={{ 
-                  fontSize: '0.75rem', 
-                  color: 'rgba(255, 255, 255, 0.5)'
-                }}>
+                </TransactionPackage>
+                <TransactionDate>
                   {new Date(transaction.date).toLocaleString()}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ 
-                  color: '#10b981', 
-                  fontWeight: 700,
-                  fontSize: '1.125rem',
-                  marginBottom: '0.25rem'
-                }}>
+                </TransactionDate>
+              </TransactionDetails>
+              <TransactionAmountBlock>
+                <TransactionAmount>
                   ${transaction.amount.toLocaleString()}
-                </div>
-                <div style={{ 
-                  fontSize: '0.875rem',
-                  color: transaction.status === 'Completed' ? '#10b981' : '#f59e0b',
-                  fontWeight: 500
-                }}>
+                </TransactionAmount>
+                <TransactionStatus $completed={transaction.status === 'Completed'}>
                   {transaction.status}
-                </div>
-              </div>
+                </TransactionStatus>
+              </TransactionAmountBlock>
             </TransactionItem>
           ))}
         </TransactionsContainer>
