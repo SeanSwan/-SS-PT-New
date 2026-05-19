@@ -892,7 +892,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
                 <Label>Food Quality</Label>
                 <StyledSelect
                   value={item.quality}
-                  onChange={(e) => handleFoodItemChange(item.id, 'quality', e.target.value)}
+                  onChange={(e) => handleFoodItemChange(item.id, 'quality', e.target.value as FoodItem['quality'])}
                 >
                   {FOOD_QUALITY.map((quality) => (
                     <option key={quality.value} value={quality.value}>

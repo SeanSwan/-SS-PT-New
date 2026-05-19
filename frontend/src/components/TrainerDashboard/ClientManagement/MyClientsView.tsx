@@ -832,7 +832,7 @@ const MyClientsView: React.FC = () => {
   if (loading) {
     return (
       <LoadingContainer>
-        <LoadingSpinner size={48} />
+        <LoadingSpinner size="large" />
         <h3 style={{ marginTop: '1rem', marginBottom: '0.5rem' }}>
           Loading Your Clients...
         </h3>

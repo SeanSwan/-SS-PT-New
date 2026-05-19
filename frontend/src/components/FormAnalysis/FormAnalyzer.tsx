@@ -337,7 +337,7 @@ const FormAnalyzer: React.FC = () => {
   return (
     <PageWrapper>
       <VideoContainer>
-        <Video ref={videoRef} playsInline muted autoPlay />
+        <Video ref={videoRef as React.Ref<HTMLVideoElement>} playsInline muted autoPlay />
 
         <VideoOverlay refs={overlayRefs} />
 

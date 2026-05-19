@@ -129,7 +129,7 @@ const BarProgressChart: React.FC<BarProgressChartProps> = ({
           data={chartData}
           style={{
             data: {
-              fill: ({ datum }: { datum: any }) => datum.fill,
+              fill: ({ datum }: any) => datum.fill,
               width: 16,
             },
           }}

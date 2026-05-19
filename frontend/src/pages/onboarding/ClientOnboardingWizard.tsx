@@ -412,7 +412,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const steps = WIZARD_STEPS;
-  const CurrentSection = steps[currentStep].component;
+  const CurrentSection = steps[currentStep].component as React.ComponentType<any>;
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   const handleNext = () => {
@@ -566,7 +566,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             transition={{ duration: 0.25 }}
           >
             <Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem', color: FROST_WHITE }}>Loading...</div>}>
-              <CurrentSection formData={formData} updateFormData={updateFormData} />
+              <CurrentSection formData={formData} updateFormData={updateFormData} data={formData} updateData={updateFormData} />
             </Suspense>
           </motion.div>
         </AnimatePresence>

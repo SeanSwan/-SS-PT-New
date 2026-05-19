@@ -282,7 +282,7 @@ const ShareChartModal: React.FC<ShareChartModalProps> = ({
 
     const result = await createPost({
       content: caption || `My ${chartTitle} progress`,
-      type: 'milestone',
+      type: 'achievement',
       visibility,
       media: chartImage,
     });

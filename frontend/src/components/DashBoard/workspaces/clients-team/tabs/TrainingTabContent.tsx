@@ -422,7 +422,13 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
       case 'copilot':
         return (
           <Suspense fallback={<SuspenseFallback />}>
-            <WorkoutCopilotPanel inline={true} />
+            <WorkoutCopilotPanel
+              inline={true}
+              open={true}
+              onClose={() => undefined}
+              clientId={Number(clientId)}
+              clientName={clientName || 'Client'}
+            />
           </Suspense>
         );
       case 'history':

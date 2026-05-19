@@ -130,7 +130,13 @@ const MarketingCalendar: React.FC = () => {
     if (!lastItem) return;
     try {
       const nextDate = new Date(new Date(lastItem.scheduledAt).getTime() + minutes * 60000);
-      const result = await updateMarketingCalendarItem(lastItem.id, { ...lastItem, scheduledAt: nextDate.toISOString() });
+      const result = await updateMarketingCalendarItem(lastItem.id, {
+        ...lastItem,
+        content: lastItem.content ?? undefined,
+        platform: lastItem.platform ?? undefined,
+        campaignName: lastItem.campaignName ?? undefined,
+        scheduledAt: nextDate.toISOString(),
+      });
       upsertItem(result.item);
       setLastItem(result.item);
       setLastAdvisories(result.advisories);

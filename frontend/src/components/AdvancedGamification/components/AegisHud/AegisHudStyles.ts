@@ -193,13 +193,13 @@ export const BarFill = styled.div<{ $width: number; $color: string; $animate?: b
   }
 
   /* Shimmer on high values */
-  ${({ $width }) => $width >= 80 && css`
+  ${({ $width, $color }) => $width >= 80 && css`
     background-size: 200% 100%;
     background-image: linear-gradient(
       90deg,
-      ${({ $color }: { $color: string }) => $color} 0%,
-      ${({ $color }: { $color: string }) => `color-mix(in srgb, ${$color} 70%, white)`} 50%,
-      ${({ $color }: { $color: string }) => $color} 100%
+      ${$color} 0%,
+      ${`color-mix(in srgb, ${$color} 70%, white)`} 50%,
+      ${$color} 100%
     );
     animation: ${shimmer} 3s ease-in-out infinite;
   `}

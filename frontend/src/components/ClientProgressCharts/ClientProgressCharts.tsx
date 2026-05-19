@@ -883,7 +883,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
                 <Share2 size={16} />
               </ShareIconBtn>
             </ChartHeader>
-            <FormQualityChart data={progressData.formQualityData} />
+            <FormQualityChart data={progressData.formQualityData as any} />
           </ChartCard>
         )}
 

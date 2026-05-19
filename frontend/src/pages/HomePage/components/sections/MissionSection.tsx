@@ -72,7 +72,7 @@ const MissionSection: React.FC<MissionSectionProps> = ({ tier }) => {
 
   const content = (
     <GlassCard>
-      <SectionHeader {...(animate ? cinematicReveal : {})}>
+      <SectionHeader variants={animate ? cinematicReveal : undefined}>
         <SectionTitle>{title}</SectionTitle>
       </SectionHeader>
       {PARAGRAPHS.map((text, i) => (

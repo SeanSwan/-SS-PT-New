@@ -375,7 +375,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
   // Calculate totals
   const cartItems = cart?.items || [];
   const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = parseFloat(item.price) || 0;
+    const itemPrice = Number(item.price) || 0;
     const itemQuantity = item.quantity || 0;
     return sum + (itemPrice * itemQuantity);
   }, 0);

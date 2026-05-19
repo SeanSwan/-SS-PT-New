@@ -79,7 +79,7 @@ const FileAttachmentButton: React.FC<FileAttachmentButtonProps> = memo(({
         <Paperclip size={16} />
       </AttachBtn>
       <HiddenInput
-        ref={inputRef}
+        ref={inputRef as React.Ref<HTMLInputElement>}
         type="file"
         multiple
         accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.txt,.csv,.json"

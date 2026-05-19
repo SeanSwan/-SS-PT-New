@@ -913,7 +913,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
 
   // Simple star rating renderer
   const renderStars = (rating: number) => {
-    const stars = [];
+    const stars: React.ReactElement[] = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(<StarIcon key={i} $filled={i <= Math.round(rating)} size={14} />);
     }

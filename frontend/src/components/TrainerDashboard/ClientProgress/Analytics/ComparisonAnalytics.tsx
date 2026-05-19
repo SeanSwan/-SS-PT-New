@@ -581,7 +581,7 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
               </tr>
             </StyledThead>
             <tbody>
-              {comparisonAnalytics.metrics.map((metric: ComparisonMetric) => (
+              {comparisonAnalytics.metrics.map((metric) => (
                 <tr key={metric.name}>
                   <StyledTd>
                     <MetricName>

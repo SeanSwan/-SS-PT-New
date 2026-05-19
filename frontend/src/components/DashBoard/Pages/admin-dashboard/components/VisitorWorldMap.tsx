@@ -179,7 +179,7 @@ const VisitorWorldMap: React.FC = () => {
             onMoveEnd={({ coordinates, zoom: z }) => { setCenter(coordinates); setZoom(z); }}
             filterZoomEvent={(evt) => {
               // Block scroll/wheel zoom — only allow programmatic zoom via buttons
-              if ('type' in evt && (evt as Event).type === 'wheel') return false;
+              if ('type' in evt && (evt as unknown as Event).type === 'wheel') return false;
               return true;
             }}
           >

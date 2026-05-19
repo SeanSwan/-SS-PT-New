@@ -331,6 +331,14 @@ const CheckoutCancel: React.FC = () => {
   const sessionId = searchParams.get('session_id');
   const reason = searchParams.get('reason') || 'user_cancelled';
   const step = searchParams.get('step') || 'unknown';
+  const cartItems = cart?.items || [];
+  const subtotal = cartItems.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (item.quantity || 0), 0);
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
+  const sessionCount = cartItems.reduce((sum: number, item: any) => {
+    const itemSessions = item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || item.sessions || item.totalSessions || 0;
+    return sum + itemSessions * (item.quantity || 0);
+  }, 0);
   
   // Log cancellation for analytics
   useEffect(() => {
@@ -469,10 +477,13 @@ const CheckoutCancel: React.FC = () => {
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
                   <OrderReviewStep 
+                    cart={cart}
+                    subtotal={subtotal}
+                    tax={tax}
+                    total={total}
+                    sessionCount={sessionCount}
                     showDetailedBreakdown={false}
-                    showSessionDetails={true}
                     compact={true}
-                    showPromoSection={false}
                   />
                 </motion.div>
               )}

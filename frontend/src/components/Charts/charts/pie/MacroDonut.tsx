@@ -79,7 +79,7 @@ const MacroDonut: React.FC<MacroDonutProps> = ({
               style={{
                 labels: { fill: CHART_COLORS.frostWhite, fontSize: 11, fontFamily: "'Sora', sans-serif" },
                 data: {
-                  fill: ({ datum }: { datum: { color: string } }) => datum.color,
+                  fill: ({ datum }: any) => datum.color,
                   stroke: CHART_COLORS.midnightSapphire,
                   strokeWidth: 2,
                 },

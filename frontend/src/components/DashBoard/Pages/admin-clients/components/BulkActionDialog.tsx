@@ -159,7 +159,7 @@ const BulkActionDialog: React.FC<BulkActionDialogProps> = ({
   const [selectedAction, setSelectedAction] = useState<BulkAction['type'] | ''>('');
   const [note, setNote] = useState('');
 
-  const actionOptions = useMemo(
+  const actionOptions = useMemo<Array<{ type: BulkAction['type']; label: string; description: string }>>(
     () => [
       { type: 'message', label: 'Message', description: 'Send in-app updates.' },
       { type: 'email', label: 'Email', description: 'Send email notifications.' },
