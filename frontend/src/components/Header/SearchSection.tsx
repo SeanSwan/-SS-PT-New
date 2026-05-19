@@ -20,20 +20,19 @@ import Transitions from '../ui/Transitions';
 // assets
 import { IconAdjustmentsHorizontal, IconSearch, IconX } from '@tabler/icons-react';
 
-interface HeaderAvatarProps {
+interface HeaderAvatarProps extends React.ComponentProps<typeof Avatar> {
   children: React.ReactNode;
-  [key: string]: any;
 }
 
 const SearchAvatar = styled(Avatar)`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: var(--accent-secondary-15, rgba(139, 92, 246, 0.15));
+  color: var(--accent-secondary, #8B5CF6);
 
   &:hover {
-    background: #8B5CF6;
-    color: rgba(139, 92, 246, 0.15);
+    background: var(--accent-secondary, #8B5CF6);
+    color: var(--bg-base, #030712);
   }
 `;
 
@@ -41,7 +40,7 @@ const SearchInputMobile = styled(OutlinedInput)`
   width: 100%;
   margin-left: 4px;
   padding: 0 16px;
-  background: #002060;
+  background: var(--bg-elevated, #002060);
 
   & input {
     background: transparent;
@@ -78,6 +77,44 @@ const DesktopSearchBox = styled(Box)`
   }
 `;
 
+const AdornmentGap = styled(Box)`
+  margin-left: 16px;
+`;
+
+const CloseAvatar = styled(Avatar)`
+  background: color-mix(in srgb, var(--warning-accent, #F59E0B) 15%, transparent);
+  color: var(--warning-accent, #F59E0B);
+  cursor: pointer;
+`;
+
+const MobileAnchorBox = styled(Box)`
+  margin-left: 16px;
+`;
+
+const MobileSearchCard = styled(Card)`
+  background: var(--bg-elevated, #002060);
+  border: 0;
+  box-shadow: none;
+  width: 95vw;
+`;
+
+const HeaderSearchPopper = styled(Popper)`
+  z-index: var(--z-dropdown, 1700);
+`;
+
+const MobileSearchContent = styled(Box)`
+  padding: 16px;
+`;
+
+const MobileSearchGrid = styled(Grid)`
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const MobileSearchGridItem = styled(Grid)`
+  flex: 1;
+`;
+
 const HeaderAvatarComponent = forwardRef<HTMLDivElement, HeaderAvatarProps>(
   ({ children, ...others }, ref) => {
     return (
@@ -91,6 +128,7 @@ const HeaderAvatarComponent = forwardRef<HTMLDivElement, HeaderAvatarProps>(
     );
   }
 );
+HeaderAvatarComponent.displayName = 'HeaderAvatarComponent';
 
 // Mobile search component
 function MobileSearch({ value, setValue, onClose }: {
@@ -114,19 +152,11 @@ function MobileSearch({ value, setValue, onClose }: {
           <HeaderAvatarComponent>
             <IconAdjustmentsHorizontal stroke={1.5} size="20px" />
           </HeaderAvatarComponent>
-          <Box style={{ marginLeft: 16 }}>
-            <Avatar
-              variant="rounded"
-              style={{
-                background: 'rgba(255, 152, 0, 0.15)',
-                color: '#ff9800',
-                cursor: 'pointer',
-              }}
-              onClick={onClose}
-            >
+          <AdornmentGap>
+            <CloseAvatar variant="rounded" onClick={onClose}>
               <IconX stroke={1.5} size="20px" />
-            </Avatar>
-          </Box>
+            </CloseAvatar>
+          </AdornmentGap>
         </InputAdornment>
       }
       aria-describedby="search-helper-text"
@@ -142,30 +172,30 @@ const SearchSection: React.FC = () => {
   return (
     <>
       <MobileSearchBox>
-        <Box style={{ marginLeft: 16 }} ref={anchorRef}>
+        <MobileAnchorBox ref={anchorRef}>
           <HeaderAvatarComponent onClick={() => setMobileOpen(!mobileOpen)}>
             <IconSearch stroke={1.5} size="19.2px" />
           </HeaderAvatarComponent>
-        </Box>
-        <Popper
+        </MobileAnchorBox>
+        <HeaderSearchPopper
           open={mobileOpen}
           anchorEl={anchorRef.current}
           placement="bottom-start"
         >
           {() => (
             <Transitions type="zoom" in={mobileOpen}>
-              <Card style={{ background: '#002060', border: 0, boxShadow: 'none', width: '95vw' }}>
-                <Box style={{ padding: 16 }}>
-                  <Grid container style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Grid item style={{ flex: 1 }}>
+              <MobileSearchCard>
+                <MobileSearchContent>
+                  <MobileSearchGrid container>
+                    <MobileSearchGridItem item>
                       <MobileSearch value={value} setValue={setValue} onClose={() => setMobileOpen(false)} />
-                    </Grid>
-                  </Grid>
-                </Box>
-              </Card>
+                    </MobileSearchGridItem>
+                  </MobileSearchGrid>
+                </MobileSearchContent>
+              </MobileSearchCard>
             </Transitions>
           )}
-        </Popper>
+        </HeaderSearchPopper>
       </MobileSearchBox>
       <DesktopSearchBox>
         <SearchInputDesktop

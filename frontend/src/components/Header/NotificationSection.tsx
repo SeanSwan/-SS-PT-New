@@ -29,23 +29,43 @@ import Transitions from '../ui/Transitions';
 import { IconBell } from '@tabler/icons-react';
 import NotificationList from './NotificationList';
 
-// notification status options
-const status = [
-  { value: 'all', label: 'All Notification' },
-  { value: 'new', label: 'New' },
-  { value: 'unread', label: 'Unread' },
-  { value: 'other', label: 'Other' },
-];
-
 const NotificationBadge = styled(Avatar)`
   transition: all 0.2s ease-in-out;
   cursor: pointer;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8B5CF6;
+  background: var(--accent-secondary-15, rgba(139, 92, 246, 0.15));
+  color: var(--accent-secondary, #8B5CF6);
 
   &:hover {
-    background: #8B5CF6;
-    color: rgba(139, 92, 246, 0.15);
+    background: var(--accent-secondary, #8B5CF6);
+    color: var(--bg-surface, #0A0A0F);
+  }
+`;
+
+const NotificationTriggerShell = styled(Box)`
+  margin-left: 16px;
+`;
+
+const ColumnGrid = styled(Grid)`
+  flex-direction: column;
+`;
+
+const HeaderGrid = styled(Grid)`
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
+`;
+
+const MarkReadLink = styled(Link)`
+  color: var(--accent-secondary, #8B5CF6);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--accent-primary, #60C0F0);
+    text-decoration: underline;
+    outline: none;
   }
 `;
 
@@ -56,6 +76,27 @@ const NotificationScrollableContent = styled(Box)`
   &::-webkit-scrollbar {
     width: 5px;
   }
+`;
+
+const SearchShell = styled(Box)`
+  padding: 2px 16px;
+`;
+
+const FullWidthTextField = styled(TextField)`
+  width: 100%;
+`;
+
+const DividerGrid = styled(Grid)`
+  padding: 0;
+`;
+
+const FooterActions = styled(CardActions)`
+  padding: 10px;
+  justify-content: center;
+`;
+
+const HeaderNotificationPopper = styled(Popper)`
+  z-index: var(--z-dropdown, 1700);
 `;
 
 const NotificationSection: React.FC = () => {
@@ -95,7 +136,7 @@ const NotificationSection: React.FC = () => {
 
   return (
     <>
-      <Box style={{ marginLeft: 16 }}>
+      <NotificationTriggerShell>
         <NotificationBadge
           variant="rounded"
           ref={anchorRef}
@@ -105,14 +146,14 @@ const NotificationSection: React.FC = () => {
         >
           <IconBell stroke={1.5} size="20px" />
         </NotificationBadge>
-      </Box>
-      <Popper
+      </NotificationTriggerShell>
+      <HeaderNotificationPopper
         placement={downMD ? 'bottom' : 'bottom-end'}
         open={open}
         anchorEl={anchorRef.current}
         modifiers={[{ name: 'offset', options: { offset: [downMD ? 5 : 0, 20] } }]}
       >
-        {({ TransitionProps }: any) => (
+        {({ TransitionProps }: { TransitionProps: React.HTMLAttributes<HTMLElement> }) => (
           <ClickAwayListener onClickAway={handleClose}>
             <Transitions position={downMD ? 'top' : 'top-right'} in={open} {...TransitionProps}>
               <Paper>
@@ -123,9 +164,9 @@ const NotificationSection: React.FC = () => {
                     content={false}
                     boxShadow="0 16px 48px rgba(0, 0, 0, 0.3)"
                   >
-                    <Grid container style={{ flexDirection: 'column' }} spacing={2}>
+                    <ColumnGrid container spacing={2}>
                       <Grid item xs={12}>
-                        <Grid container style={{ alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 0' }}>
+                        <HeaderGrid container>
                           <Grid item>
                             <Stack direction="row" spacing={2}>
                               <Typography variant="subtitle1">All Notification</Typography>
@@ -137,51 +178,45 @@ const NotificationSection: React.FC = () => {
                             </Stack>
                           </Grid>
                           <Grid item>
-                            <Typography
-                              component={Link}
-                              to="#"
-                              variant="subtitle2"
-                              style={{ color: '#8B5CF6' }}
-                            >
+                            <MarkReadLink to="#">
                               Mark as all read
-                            </Typography>
+                            </MarkReadLink>
                           </Grid>
-                        </Grid>
+                        </HeaderGrid>
                       </Grid>
                       <Grid item xs={12}>
                         <NotificationScrollableContent>
-                          <Grid container style={{ flexDirection: 'column' }} spacing={2}>
+                          <ColumnGrid container spacing={2}>
                             <Grid item xs={12}>
-                              <Box style={{ padding: '2px 16px' }}>
-                                <TextField
+                              <SearchShell>
+                                <FullWidthTextField
                                   id="outlined-select-currency-native"
                                   value={value}
                                   onChange={handleChange}
                                   placeholder="Filter notifications"
-                                  style={{ width: '100%' }}
                                 />
-                              </Box>
+                              </SearchShell>
                             </Grid>
-                            <Grid item xs={12} style={{ padding: 0 }}>
+                            <DividerGrid item xs={12}>
                               <Divider />
-                            </Grid>
-                          </Grid>
+                            </DividerGrid>
+                          </ColumnGrid>
                           <NotificationList />
                         </NotificationScrollableContent>
                       </Grid>
-                    </Grid>
-                    <CardActions style={{ padding: 10, justifyContent: 'center' }}>
+                    </ColumnGrid>
+                    <FooterActions>
                       <Button size="small">
                         View All
                       </Button>
-                    </CardActions>
+                    </FooterActions>
                   </MainCard>
                 )}
               </Paper>
             </Transitions>
           </ClickAwayListener>
         )}
-      </Popper>
+      </HeaderNotificationPopper>
     </>
   );
 };
