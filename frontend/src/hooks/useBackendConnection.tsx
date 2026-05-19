@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import styled from 'styled-components';
 import { logger } from '@/utils/logger';
 
@@ -38,13 +38,38 @@ const DEFAULT_CONFIG = {
   forceUnavailableMode: false
 };
 
+interface BackendConnectionConfig {
+  maxRetries: number;
+  retryDelay: number;
+  maxRetryDelay: number;
+  backoffMultiplier: number;
+  healthCheckInterval: number;
+  apiUrl: string;
+  forceUnavailableMode: boolean;
+}
+
+interface BackendConnectionError {
+  success: false;
+  message: string;
+  error?: string;
+  timestamp?: string;
+  silenced?: boolean;
+  status?: number;
+  data?: unknown;
+  connectionRefused?: boolean;
+  blockedByClient?: boolean;
+  request?: boolean;
+  isHealthCheck?: boolean;
+  response?: AxiosResponse;
+}
+
 // Function to check if the endpoint is a health check
 const isHealthEndpoint = (url) => {
   return url.endsWith('/health') || url === '/health';
 };
 
 // Enhanced error handling function that includes blocked by client detection
-const handleApiError = (error, endpoint) => {
+const handleApiError = (error: any, endpoint: string): BackendConnectionError => {
   // In development mode, don't log non-critical backend connection errors
   if (process.env.NODE_ENV === 'development' &&
       (isHealthEndpoint(endpoint) || endpoint.includes('/api/auth/'))) {
@@ -58,7 +83,7 @@ const handleApiError = (error, endpoint) => {
   }
 
   // Prepare basic error object
-  const errorObj = {
+  const errorObj: BackendConnectionError = {
     success: false,
     message: 'API request failed',
     error: error.message,
@@ -102,7 +127,7 @@ const handleApiError = (error, endpoint) => {
 };
 
 // Create axios instance for health checks
-const createApiInstance = (baseURL) => {
+const createApiInstance = (baseURL: string) => {
   return axios.create({
     baseURL,
     timeout: 5000,
@@ -117,17 +142,17 @@ const createApiInstance = (baseURL) => {
  * @param {Object} config - Configuration options
  * @returns {Object} Connection state and utilities
  */
-export const useBackendConnection = (config = {}) => {
-  const fullConfig = { ...DEFAULT_CONFIG, ...config };
+export const useBackendConnection = (config: Partial<BackendConnectionConfig> = {}) => {
+  const fullConfig: BackendConnectionConfig = { ...DEFAULT_CONFIG, ...config };
   const [connectionState, setConnectionState] = useState(CONNECTION_STATES.CONNECTING);
   const [retryCount, setRetryCount] = useState(0);
-  const [lastError, setLastError] = useState(null);
+  const [lastError, setLastError] = useState<BackendConnectionError | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
   // Ref to track if component is mounted and timeout IDs for cleanup
   const isMountedRef = useRef(true);
-  const timeoutRef = useRef(null);
-  const healthCheckIntervalRef = useRef(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const healthCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Enhanced circuit breaker to prevent infinite loops
   const circuitBreakerRef = useRef({ attempts: 0, lastAttempt: 0, isBlocked: false });
@@ -139,7 +164,7 @@ export const useBackendConnection = (config = {}) => {
   const apiInstance = createApiInstance(fullConfig.apiUrl);
 
   // Calculate retry delay with exponential backoff
-  const calculateRetryDelay = useCallback((attempt) => {
+  const calculateRetryDelay = useCallback((attempt: number) => {
     const delay = fullConfig.retryDelay * Math.pow(fullConfig.backoffMultiplier, attempt);
     return Math.min(delay, fullConfig.maxRetryDelay);
   }, [fullConfig.retryDelay, fullConfig.backoffMultiplier, fullConfig.maxRetryDelay]);
@@ -163,7 +188,7 @@ export const useBackendConnection = (config = {}) => {
         return true;
       }
       const errorObj = {
-        success: false,
+        success: false as const,
         message: `Health check failed with status: ${response.status}`,
         response: response
       };
@@ -582,7 +607,7 @@ const ConnectionRetryButton = styled.button`
   }
 `;
 
-export const ConnectionStatusBanner = ({ connection }) => {
+export const ConnectionStatusBanner = ({ connection }: { connection: ReturnType<typeof useBackendConnection> }) => {
   const { connectionState, isRetrying, retryCount, maxRetries, lastError, manualRetry } = connection;
 
   if (connectionState === CONNECTION_STATES.CONNECTED) {
@@ -662,8 +687,8 @@ export const ConnectionStatusBanner = ({ connection }) => {
 /**
  * Higher-order component that provides connection context
  */
-export const withBackendConnection = (WrappedComponent) => {
-  return function WithBackendConnectionComponent(props) {
+export const withBackendConnection = (WrappedComponent: React.ComponentType<any>) => {
+  return function WithBackendConnectionComponent(props: Record<string, any>) {
     const connection = useBackendConnection();
 
     return (

@@ -5,14 +5,23 @@ import { logger } from '@/utils/logger';
 
 // Flag to track the WebSocket server status
 // Always set to false in development mode to prevent connection attempts
-let webSocketServerAvailable = process.env.NODE_ENV === 'development' ? false : null;
+let webSocketServerAvailable: boolean | null = process.env.NODE_ENV === 'development' ? false : null;
 // Flag to prevent multiple server checks
 let webSocketServerCheckInProgress = false;
 
 // Helper to create a mock WebSocket instance
-function createMockWebSocket(verbose = false) {
+type SocketNotification = Record<string, any>;
+type SocketMessage = any;
+type ManagedSocket = WebSocket & { isClosing?: boolean };
+
+interface UseSocketOptions {
+  maxReconnectAttempts?: number;
+  reconnectIntervalMs?: number;
+}
+
+function createMockWebSocket(verbose = false): ManagedSocket {
   // Create an object that mimics the WebSocket interface
-  const mockSocket = {
+  const mockSocket: any = {
     readyState: 1, // WebSocket.OPEN (ALWAYS OPEN)
     isClosing: false, // Custom flag to track intentional close
     send: (data) => {
@@ -21,7 +30,7 @@ function createMockWebSocket(verbose = false) {
       if (data === 'ping') {
         setTimeout(() => {
           if (mockSocket.onmessage && !mockSocket.isClosing) {
-            mockSocket.onmessage({ data: 'pong' });
+            mockSocket.onmessage({ data: 'pong' } as MessageEvent);
           }
         }, 100);
       }
@@ -48,11 +57,11 @@ function createMockWebSocket(verbose = false) {
   // Simulate connection established
   setTimeout(() => {
     if (mockSocket.onopen) {
-      mockSocket.onopen({ target: mockSocket });
+      mockSocket.onopen({ target: mockSocket } as Event);
     }
   }, 100);
   
-  return mockSocket;
+  return mockSocket as ManagedSocket;
 }
 
 // Check if WebSocket server is available (do this once at module load time)
@@ -164,26 +173,26 @@ if (process.env.NODE_ENV !== 'development' && webSocketServerAvailable === null 
  * @param {Object} options - Configuration options
  * @returns {Object} WebSocket state and methods
  */
-export function useSocket(endpoint = '', options = {}) {
+export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
   const { isAuthenticated, token } = useAuth();
   const { toast } = useToast();
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState<ManagedSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState(null);
-  const [error, setError] = useState(null);
-  const reconnectTimeoutRef = useRef(null);
+  const [lastMessage, setLastMessage] = useState<SocketMessage>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxReconnectAttempts = options.maxReconnectAttempts || 5;
   const reconnectIntervalMs = options.reconnectIntervalMs || 3000;
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<SocketNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [useMockSocket, setUseMockSocket] = useState(false);
   const connectionCheckCompletedRef = useRef(false);
   const forceMockForLegacyWs = endpoint.startsWith('/ws/');
 
   // Custom message handler - keeps track of notifications
-  const handleNotification = useCallback((notification) => {
+  const handleNotification = useCallback((notification: SocketNotification) => {
     if (notification?.type === 'notification') {
       setNotifications(prev => [notification, ...prev.slice(0, 49)]);
       setUnreadCount(prev => prev + 1);
@@ -196,7 +205,7 @@ export function useSocket(endpoint = '', options = {}) {
   }, []);
 
   // Improved message handling with error boundaries
-  const handleWebSocketMessage = useCallback((event) => {
+  const handleWebSocketMessage = useCallback((event: MessageEvent) => {
     try {
       // Try to parse as JSON first
       const parsedData = JSON.parse(event.data);
@@ -214,12 +223,12 @@ export function useSocket(endpoint = '', options = {}) {
   }, [handleNotification]);
 
   // Send message to WebSocket
-  const sendMessage = useCallback((data) => {
+  const sendMessage = useCallback((data: unknown) => {
     if (socket && isConnected) {
       if (typeof data === 'object') {
         socket.send(JSON.stringify(data));
       } else {
-        socket.send(data);
+        socket.send(data as string | Blob | ArrayBufferLike | ArrayBufferView<ArrayBufferLike>);
       }
       return true;
     }
@@ -322,7 +331,7 @@ export function useSocket(endpoint = '', options = {}) {
       // Construct full WebSocket URL with authentication token
       const fullUrl = `${SOCKET_URL}${endpoint}${token ? `?token=${token}` : ''}`;
       logger.log(`Attempting WebSocket connection to ${endpoint}`);
-      const newSocket = new WebSocket(fullUrl);
+      const newSocket = new WebSocket(fullUrl) as ManagedSocket;
 
       // Set up event handlers
       newSocket.onopen = () => {
@@ -404,7 +413,7 @@ export function useSocket(endpoint = '', options = {}) {
 
       setSocket(newSocket);
       return newSocket;
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating WebSocket:', err);
       setError(`Error creating WebSocket: ${err.message}`);
       setUseMockSocket(true);
