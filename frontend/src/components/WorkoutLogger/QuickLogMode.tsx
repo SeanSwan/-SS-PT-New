@@ -85,6 +85,8 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
   if (!exercise || !set) return null;
 
   const isSetComplete = set.weight > 0 && set.reps > 0;
+  const weightInputId = `quick-log-weight-${currentExerciseIdx}-${currentSetIdx}`;
+  const repsInputId = `quick-log-reps-${currentExerciseIdx}-${currentSetIdx}`;
 
   return (
     <QuickLogContainer>
@@ -117,8 +119,9 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
       {/* Quick Input Row */}
       <InputRow>
         <InputGroup>
-          <InputLabel>Weight (lbs)</InputLabel>
+          <InputLabel htmlFor={weightInputId}>Weight (lbs)</InputLabel>
           <QuickInput
+            id={weightInputId}
             type="number"
             inputMode="decimal"
             value={set.weight || ''}
@@ -129,8 +132,9 @@ const QuickLogMode: React.FC<QuickLogModeProps> = React.memo(({
         </InputGroup>
 
         <InputGroup>
-          <InputLabel>Reps</InputLabel>
+          <InputLabel htmlFor={repsInputId}>Reps</InputLabel>
           <QuickInput
+            id={repsInputId}
             type="number"
             inputMode="numeric"
             value={set.reps || ''}
