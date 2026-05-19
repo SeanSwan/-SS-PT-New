@@ -249,11 +249,13 @@ export function createAiWorkoutService(authAxios: any) {
     async generateLongHorizonDraft(params: {
       userId: number;
       horizonMonths: 3 | 6 | 12;
+      equipmentProfileId?: number;
       overrideReason?: string;
     }): Promise<LongHorizonGenerateResponse> {
       const { data } = await authAxios.post(`${BASE}/long-horizon/generate`, {
         userId: params.userId,
         horizonMonths: params.horizonMonths,
+        equipmentProfileId: params.equipmentProfileId,
         overrideReason: params.overrideReason?.trim() || undefined,
       });
       return data;

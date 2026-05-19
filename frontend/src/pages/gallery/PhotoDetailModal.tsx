@@ -201,17 +201,17 @@ const OptionCard = styled.button<{ $accent: string; $glowColor: string }>`
   }
 `;
 
-const OptionIcon = styled.div<{ $bg: string }>`
+const OptionIcon = styled.div<{ $bg?: string }>`
   width: 48px;
   height: 48px;
   min-width: 48px;
   border-radius: 14px;
-  background: ${p => p.$bg}1A;
-  border: 1px solid ${p => p.$bg}33;
+  background: ${p => p.$bg || GILDED}1A;
+  border: 1px solid ${p => p.$bg || GILDED}33;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.$bg};
+  color: ${p => p.$bg || GILDED};
   font-size: 22px;
 `;
 

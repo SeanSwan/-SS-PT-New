@@ -264,7 +264,7 @@ const ClientProfilePage: React.FC = () => {
         <Card>
           <SectionTitle>Your Companion</SectionTitle>
           <Suspense fallback={<div style={{ color: 'var(--text-muted)', padding: '1rem', textAlign: 'center' }}>Loading...</div>}>
-            <CompanionPet userId={user.id as number} size={140} compact showControls={false} />
+            <CompanionPet userId={user.id as unknown as number} size={140} compact showControls={false} />
           </Suspense>
         </Card>
       )}

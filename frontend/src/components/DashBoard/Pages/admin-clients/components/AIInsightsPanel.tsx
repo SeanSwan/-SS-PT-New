@@ -97,6 +97,7 @@ const FlexRow = styled.div<{
   $gap?: number;
   $wrap?: boolean;
   $mb?: number;
+  $mt?: number;
 }>`
   display: flex;
   ${({ $justify }) => $justify && css`justify-content: ${$justify};`}
@@ -104,6 +105,7 @@ const FlexRow = styled.div<{
   ${({ $gap }) => $gap != null && css`gap: ${$gap}px;`}
   ${({ $wrap }) => $wrap && css`flex-wrap: wrap;`}
   ${({ $mb }) => $mb != null && css`margin-bottom: ${$mb}px;`}
+  ${({ $mt }) => $mt != null && css`margin-top: ${$mt}px;`}
 `;
 
 const FlexCol = styled.div<{ $align?: string }>`

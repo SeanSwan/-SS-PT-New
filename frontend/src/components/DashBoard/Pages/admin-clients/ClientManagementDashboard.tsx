@@ -176,7 +176,6 @@ const ClientManagementDashboard: React.FC = () => {
         size="lg"
       >
         <ClientOnboardingWizard
-          embedded
           onComplete={() => setShowOnboarding(false)}
           onCancel={() => setShowOnboarding(false)}
         />

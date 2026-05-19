@@ -37,7 +37,20 @@ export interface Comment {
 export interface Post {
   id: string;
   content: string;
-  type: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
+  type:
+    | 'general'
+    | 'workout'
+    | 'achievement'
+    | 'challenge'
+    | 'transformation'
+    | 'milestone'
+    | 'creative'
+    | 'dance'
+    | 'music'
+    | 'singing'
+    | 'art'
+    | 'gaming'
+    | 'comedy';
   createdAt: string;
   user: {
     id: string;

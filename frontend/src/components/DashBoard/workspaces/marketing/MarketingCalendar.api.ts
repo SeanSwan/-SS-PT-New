@@ -36,6 +36,7 @@ export interface MarketingCalendarPayload {
   content?: string;
   channel: CalendarChannel;
   platform?: string;
+  campaignName?: string;
   status?: MarketingCalendarStatus;
   scheduledAt: string;
   durationMinutes: number;

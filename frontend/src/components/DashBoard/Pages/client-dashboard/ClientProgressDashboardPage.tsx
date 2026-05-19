@@ -431,7 +431,7 @@ const ClientProgressDashboardPage: React.FC = () => {
           <CardTitle>Your Companion</CardTitle>
           {user?.id ? (
             <Suspense fallback={<Skeleton $h="140px" />}>
-              <CompanionPet userId={user.id as number} size={120} compact showControls={false} />
+              <CompanionPet userId={user.id as unknown as number} size={120} compact showControls={false} />
             </Suspense>
           ) : (
             <Skeleton $h="120px" />
