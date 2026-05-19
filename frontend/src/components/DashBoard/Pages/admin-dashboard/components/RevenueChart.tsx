@@ -72,7 +72,7 @@ const normalizeRevenueData = (value: unknown): RevenueChartData => {
   const payload = (value && typeof value === 'object' ? value : {}) as Partial<RevenueChartData> & {
     overview?: Partial<RevenueChartData['overview']>;
   };
-  const overview = payload.overview ?? {};
+  const overview: Partial<RevenueChartData['overview']> = payload.overview ?? {};
 
   return {
     overview: {

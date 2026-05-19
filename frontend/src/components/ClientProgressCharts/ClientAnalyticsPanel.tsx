@@ -77,6 +77,8 @@ interface ClientAnalyticsPanelProps {
 const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({ userId, compact = false }) => {
   const { data: dashboard, loading: dashLoading } = useDashboardAnalytics(userId);
   const { data: prData, loading: prLoading } = usePersonalRecords(userId);
+  const dashboardData = dashboard as any;
+  const personalRecordsData = prData as any;
 
   const kpis = [
     {

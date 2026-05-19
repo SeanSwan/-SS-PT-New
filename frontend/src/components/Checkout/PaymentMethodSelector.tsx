@@ -130,7 +130,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
 
       if (res.data?.success) {
         toastSuccess(`Order placed! Your ${selectedMethod} payment is pending confirmation.`);
-        try { localStorage.removeItem(`payment-idemp-offline-${cartFingerprint}`); } catch {}
+        try { localStorage.removeItem(`payment-idemp-offline-${cartFingerprint}`); } catch { /* best-effort idempotency cleanup */ }
         await refreshCart();
       } else {
         throw new Error(res.data?.message || 'Order creation failed');
@@ -147,7 +147,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
         // Price changed = new payload, so new idempotency key (persist to localStorage)
         const newKey = uuidv4();
         idempotencyKey.current = newKey;
-        try { localStorage.setItem(`payment-idemp-offline-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch {}
+        try { localStorage.setItem(`payment-idemp-offline-${cartFingerprint}`, JSON.stringify({ key: newKey, timestamp: Date.now() })); } catch { /* best-effort idempotency persistence */ }
       } else {
         toastError(data?.message || err.message || 'Failed to place order');
         // Network errors: keep same key so retry is idempotent (prevents double-billing)
@@ -268,7 +268,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ total, ch
               storefrontItemId: item.storefrontItemId || item.id,
               quantity: item.quantity,
               price: item.price,
-              name: item.packageName || item.name,
+              name: item.packageName || item.name || 'SwanStudios item',
             }))}
             onSuccess={() => {
               toastSuccess('ACH payment initiated! Processing takes 1-3 business days.');

@@ -9,6 +9,8 @@ import { logger } from '@/utils/logger';
 // Define types for TypeScript
 interface CartItem {
   id: number;
+  name?: string;
+  packageName?: string;
   quantity: number;
   price: number;
   storefrontItemId: number;
