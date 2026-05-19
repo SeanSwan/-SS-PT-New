@@ -113,25 +113,38 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       const { clientSecret, orderNumber: oNum } = res.data;
       setOrderNumber(oNum);
 
-      // Step 2: Load Stripe and confirm with bank account
+      // Step 2: Load Stripe and collect bank details through Financial Connections.
       setStatus('confirming');
       const stripe = await getStripe();
       if (!stripe) throw new Error('Stripe failed to load');
 
-      const { error, paymentIntent } = await stripe.confirmUsBankAccountPayment(clientSecret, {
-        payment_method: {
-          us_bank_account: {
-            account_holder_type: 'individual',
-          },
-          billing_details: {
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
-            email: user?.email || '',
+      const billingDetails = {
+        name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',
+        email: user?.email || '',
+      };
+
+      const collectResult = await stripe.collectBankAccountForPayment({
+        clientSecret,
+        params: {
+          payment_method_type: 'us_bank_account',
+          payment_method_data: {
+            billing_details: billingDetails,
           },
         },
       });
 
-      if (error) {
-        throw new Error(error.message || 'Bank verification failed');
+      if (collectResult.error) {
+        throw new Error(collectResult.error.message || 'Bank verification failed');
+      }
+
+      let paymentIntent = collectResult.paymentIntent;
+
+      if (paymentIntent?.status === 'requires_confirmation') {
+        const confirmResult = await stripe.confirmUsBankAccountPayment(clientSecret);
+        if (confirmResult.error) {
+          throw new Error(confirmResult.error.message || 'Bank authorization failed');
+        }
+        paymentIntent = confirmResult.paymentIntent;
       }
 
       // Step 3: Check payment status
