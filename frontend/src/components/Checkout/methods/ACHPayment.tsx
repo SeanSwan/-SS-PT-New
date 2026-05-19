@@ -10,7 +10,7 @@
  * 3. Confirm only when Stripe returns requires_confirmation
  * 4. Payment processes asynchronously or waits for microdeposit verification
  */
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { Building2, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
@@ -25,8 +25,9 @@ import { logger } from '@/utils/logger';
 import {
   AchPaymentIntentDecision,
   AchUiStatus,
-  getAchAccountHolderName,
+  getAchProfileAccountHolderName,
   resolveAchPaymentIntentDecision,
+  validateAchAccountHolderName,
 } from './achPaymentState';
 
 /** localStorage-backed idempotency key with 24hr TTL (9-Brain Phase 2 consensus) */
@@ -69,10 +70,13 @@ interface ACHPaymentProps {
 const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess }) => {
   const { user } = useAuth();
   const { refreshCart } = useCart();
+  const profileAccountHolderName = useMemo(() => getAchProfileAccountHolderName(user), [user]);
   const [status, setStatus] = useState<AchUiStatus>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState(profileAccountHolderName);
+  const [accountHolderTouched, setAccountHolderTouched] = useState(false);
 
   // Derive stable cart fingerprint from items for idempotency key binding
   const cartFingerprint = items.map(i => `${i.storefrontItemId}:${i.quantity}`).sort().join('|');
@@ -84,6 +88,12 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
       try { localStorage.removeItem(`payment-idemp-ach-${cartFingerprint}`); } catch { /* best-effort idempotency cleanup */ }
     }
   }, [status, cartFingerprint]);
+
+  useEffect(() => {
+    if (!accountHolderTouched && profileAccountHolderName) {
+      setAccountHolderName(profileAccountHolderName);
+    }
+  }, [accountHolderTouched, profileAccountHolderName]);
 
   const [priceMismatch, setPriceMismatch] = useState<{
     expectedTotal: number;
@@ -117,7 +127,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
 
   const handleACHPayment = useCallback(async () => {
     if (status !== 'idle') return;
-    const accountHolder = getAchAccountHolderName(user);
+    const accountHolder = validateAchAccountHolderName(accountHolderName);
     if (!accountHolder.ok) {
       setErrorMsg(accountHolder.message || 'Enter the account holder name before connecting a bank account.');
       setStatus('error');
@@ -208,7 +218,7 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
         // Network errors: keep same key so retry is idempotent (prevents double-billing)
       }
     }
-  }, [status, user, items, total, applyPaymentDecision, rotateIdempotencyKey]);
+  }, [status, user, accountHolderName, items, total, applyPaymentDecision, rotateIdempotencyKey]);
 
   const reset = () => {
     setStatus('idle');
@@ -275,6 +285,27 @@ const ACHPayment: React.FC<ACHPaymentProps> = ({ total, fee, items, onSuccess })
           <AmountValue>${totalWithFee.toFixed(2)}</AmountValue>
         </AmountRow>
       </AmountBox>
+
+      <AccountHolderField>
+        <AccountHolderLabel htmlFor="ach-account-holder-name">Account holder name</AccountHolderLabel>
+        <AccountHolderInput
+          id="ach-account-holder-name"
+          value={accountHolderName}
+          onChange={(event) => {
+            setAccountHolderTouched(true);
+            setAccountHolderName(event.target.value);
+            if (status === 'error') {
+              setErrorMsg('');
+              setStatusMessage('');
+            }
+          }}
+          placeholder="Name on bank account"
+          autoComplete="name"
+        />
+        <AccountHolderHint>
+          Use the exact name on the bank account. This is sent to Stripe for ACH authorization.
+        </AccountHolderHint>
+      </AccountHolderField>
 
       {status === 'processing' && (
         <StatusBanner $type="info">
@@ -446,6 +477,47 @@ const AmountDivider = styled.div`
   height: 1px;
   background: rgba(96, 192, 240, 0.1);
   margin: 8px 0;
+`;
+
+const AccountHolderField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const AccountHolderLabel = styled.label`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #E0ECF4;
+`;
+
+const AccountHolderInput = styled.input`
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(96, 192, 240, 0.24);
+  background: rgba(0, 32, 96, 0.42);
+  color: #E0ECF4;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+
+  &:focus {
+    border-color: rgba(96, 192, 240, 0.72);
+    box-shadow: 0 0 0 3px rgba(96, 192, 240, 0.16);
+  }
+
+  &::placeholder {
+    color: rgba(224, 236, 244, 0.44);
+  }
+`;
+
+const AccountHolderHint = styled.p`
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(224, 236, 244, 0.68);
 `;
 
 const StatusBanner = styled.div<{ $type: 'info' | 'success' | 'error' }>`

@@ -52,7 +52,15 @@ export interface AchPaymentIntentDecision {
 const ACCOUNT_HOLDER_NAME_REQUIRED = 'Enter the account holder name before connecting a bank account.';
 
 export function getAchAccountHolderName(user: AchUserNameSource | null | undefined): AchAccountHolderNameResult {
-  const name = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.replace(/\s+/g, ' ').trim();
+  return validateAchAccountHolderName(getAchProfileAccountHolderName(user));
+}
+
+export function getAchProfileAccountHolderName(user: AchUserNameSource | null | undefined): string {
+  return `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.replace(/\s+/g, ' ').trim();
+}
+
+export function validateAchAccountHolderName(value: string | null | undefined): AchAccountHolderNameResult {
+  const name = (value ?? '').replace(/\s+/g, ' ').trim();
   if (!name) {
     return { ok: false, message: ACCOUNT_HOLDER_NAME_REQUIRED };
   }

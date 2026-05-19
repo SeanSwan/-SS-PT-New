@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   getAchAccountHolderName,
+  getAchProfileAccountHolderName,
+  validateAchAccountHolderName,
   resolveAchPaymentIntentDecision,
 } from './achPaymentState';
 
@@ -14,6 +16,25 @@ describe('ACH payment state helpers', () => {
     expect(getAchAccountHolderName({ firstName: ' ', lastName: '' })).toEqual({
       ok: false,
       message: 'Enter the account holder name before connecting a bank account.',
+    });
+  });
+
+  it('prefills the account holder name from profile names when available', () => {
+    expect(getAchProfileAccountHolderName({ firstName: '  Sean ', lastName: '   Swan  ' })).toBe('Sean Swan');
+  });
+
+  it('requires manual account holder name when profile name is empty', () => {
+    expect(getAchProfileAccountHolderName({ firstName: ' ', lastName: '' })).toBe('');
+    expect(validateAchAccountHolderName('')).toEqual({
+      ok: false,
+      message: 'Enter the account holder name before connecting a bank account.',
+    });
+  });
+
+  it('trims and accepts manually entered account holder names', () => {
+    expect(validateAchAccountHolderName('  Move Fitness LLC  ')).toEqual({
+      ok: true,
+      name: 'Move Fitness LLC',
     });
   });
 
