@@ -70,7 +70,7 @@ interface MessageData {
   replyTo?: string;
   edited?: boolean;
   editedAt?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface Attachment {
@@ -182,22 +182,10 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
-
 // ─── Styled Components ───────────────────────────────────────────────────────
 
 const PageWrapper = styled.div`
   padding: 24px;
-`;
-
-const GlassPanel = styled.div`
-  background: ${theme.bg};
-  backdrop-filter: blur(12px);
-  border: 1px solid ${theme.border};
-  border-radius: ${theme.radius};
 `;
 
 const SectionHeading = styled.h4`
@@ -217,20 +205,31 @@ const SubHeading = styled.h6`
   margin: 0;
 `;
 
-const BodyText = styled.p`
+const BodyText = styled.p<{ $top?: boolean }>`
   color: ${theme.textSecondary};
   font-size: 1rem;
-  margin: 0;
+  margin: ${({ $top }) => ($top ? '8px 0 0' : 0)};
 `;
 
-const CaptionText = styled.span`
+const CaptionText = styled.span<{ $shrink?: boolean }>`
   color: ${theme.textSecondary};
   font-size: 0.75rem;
+  flex-shrink: ${({ $shrink }) => ($shrink ? 0 : 'initial')};
 `;
 
-const SmallText = styled.span`
+const SmallText = styled.span<{ $truncate?: boolean; $block?: boolean; $bottom?: boolean }>`
+  display: ${({ $block }) => ($block ? 'block' : 'inline')};
   color: ${theme.textSecondary};
   font-size: 0.875rem;
+  margin-bottom: ${({ $bottom }) => ($bottom ? '12px' : 0)};
+  ${({ $truncate }) =>
+    $truncate &&
+    css`
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
+    `}
 `;
 
 const ChatContainer = styled.div`
@@ -725,30 +724,157 @@ const EmptyState = styled.div`
   color: #666;
 `;
 
-const FlexRow = styled.div`
+const FlexRow = styled.div<{
+  $gap?: number;
+  $between?: boolean;
+  $alignStart?: boolean;
+  $bottom?: boolean;
+  $wrap?: boolean;
+  $shrink?: boolean;
+}>`
   display: flex;
+  align-items: ${({ $alignStart }) => ($alignStart ? 'flex-start' : 'center')};
+  justify-content: ${({ $between }) => ($between ? 'space-between' : 'flex-start')};
+  gap: ${({ $gap }) => $gap ?? 0}px;
+  margin-bottom: ${({ $bottom }) => ($bottom ? '24px' : 0)};
+  flex-wrap: ${({ $wrap }) => ($wrap ? 'wrap' : 'nowrap')};
+  flex-shrink: ${({ $shrink }) => ($shrink ? 0 : 'initial')};
+`;
+
+const FlexCol = styled.div<{ $fill?: boolean; $gap?: number }>`
+  display: flex;
+  flex-direction: column;
+  flex: ${({ $fill }) => ($fill ? 1 : 'initial')};
+  min-width: ${({ $fill }) => ($fill ? 0 : 'auto')};
+  gap: ${({ $gap }) => $gap ?? 0}px;
+`;
+
+const AbsolutePinnedStar = styled(Star)`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+`;
+
+const ConversationName = styled.span`
+  color: ${theme.text};
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const MessageRow = styled.div<{ $own?: boolean }>`
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: ${({ $own }) => ($own ? 'row-reverse' : 'row')};
+  gap: 8px;
+`;
+
+const MessageContentWrap = styled.div`
+  max-width: 70%;
+`;
+
+const MessageMetaRow = styled.div<{ $own?: boolean }>`
+  margin-top: 4px;
+  display: flex;
+  justify-content: ${({ $own }) => ($own ? 'flex-end' : 'flex-start')};
+  gap: 6px;
   align-items: center;
 `;
 
-const FlexCol = styled.div`
+const SectionBlock = styled.div`
+  padding: 24px;
+`;
+
+const HeaderBlock = styled.div`
+  margin-bottom: 32px;
+`;
+
+const SectionSubTitle = styled.h6`
+  color: ${theme.accent};
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 24px;
+`;
+
+const MetricValue = styled.h4<{ $tone: 'accent' | 'green' | 'orange' }>`
+  color: ${({ $tone }) =>
+    $tone === 'green' ? theme.green : $tone === 'orange' ? theme.orange : theme.accent};
+  font-weight: 700;
+  font-size: 1.75rem;
+  margin: 0;
+`;
+
+const TemplateTagRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+`;
+
+const ConversationListHeader = styled.div`
+  padding: 12px;
+  border-bottom: 1px solid ${theme.borderSubtle};
+`;
+
+const ConversationListBody = styled.div`
+  padding: 0;
+`;
+
+const ChatHeader = styled(FlexRow)`
+  padding: 16px;
+  border-bottom: 1px solid ${theme.borderSubtle};
+`;
+
+const MessagesPane = styled.div`
+  flex-grow: 1;
+  padding: 16px;
+  overflow: auto;
   display: flex;
   flex-direction: column;
+`;
+
+const ComposerPanel = styled.div`
+  padding: 16px;
+  border-top: 1px solid ${theme.borderSubtle};
+`;
+
+const AttachmentRow = styled.div`
+  margin-bottom: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const ChannelRow = styled.div`
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+`;
+
+const EmptyStateHeading = styled(SubHeading)`
+  color: ${theme.textSecondary};
 `;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface CommunicationCenterProps {
   clientId?: string;
-  onMessageSend?: (message: any) => void;
+  onMessageSend?: (message: MessageData) => void;
   onCallStart?: (type: 'voice' | 'video', participantId: string) => void;
   onTemplateCreate?: (template: NotificationTemplate) => void;
 }
 
 const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
-  clientId,
+  clientId: _clientId,
   onMessageSend,
   onCallStart,
-  onTemplateCreate
+  onTemplateCreate: _onTemplateCreate
 }) => {
   // State management
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -757,12 +883,10 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<'app' | 'sms' | 'email'>('app');
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [, setShowTemplates] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  const [showComposer, setShowComposer] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
+  const [, setShowComposer] = useState(false);
+  const [isTyping] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
 
@@ -770,7 +894,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Mock data
-  const mockParticipants: Participant[] = [
+  const mockParticipants = useMemo<Participant[]>(() => [
     {
       id: '1',
       name: 'John Doe',
@@ -806,9 +930,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       preferredChannel: 'app',
       timezone: 'America/Chicago'
     }
-  ];
+  ], []);
 
-  const mockConversations: Conversation[] = [
+  const mockConversations = useMemo<Conversation[]>(() => [
     {
       id: 'conv1',
       participantIds: ['1'],
@@ -890,9 +1014,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       updatedAt: new Date(Date.now() - 7200000).toISOString(),
       isOnline: true
     }
-  ];
+  ], [mockParticipants]);
 
-  const mockNotificationTemplates: NotificationTemplate[] = [
+  const mockNotificationTemplates = useMemo<NotificationTemplate[]>(() => [
     {
       id: 'tpl1',
       name: 'Appointment Reminder',
@@ -923,7 +1047,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
         frequency: 'once'
       }
     }
-  ];
+  ], []);
 
   const mockAnalytics: CommunicationAnalytics = {
     totalMessages: 1247,
@@ -952,7 +1076,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
     if (mockConversations.length > 0) {
       setSelectedConversation(mockConversations[0]);
     }
-  }, []);
+  }, [mockConversations]);
 
   // Load messages for selected conversation
   useEffect(() => {
@@ -1084,29 +1208,28 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
           <OnlineIndicator $isOnline={conversation.participants[0].isOnline} />
         )}
         {conversation.isPinned && (
-          <Star
+          <AbsolutePinnedStar
             size={14}
             fill={theme.gold}
             color={theme.gold}
-            style={{ position: 'absolute', top: -5, right: -5 }}
           />
         )}
       </RelativeWrapper>
 
-      <FlexCol style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <FlexRow style={{ justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ color: theme.text, fontWeight: 600, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <FlexCol $fill $gap={2}>
+        <FlexRow $between $gap={8}>
+          <ConversationName>
             {conversation.isGroup ? conversation.groupName : conversation.participants[0].name}
-          </span>
-          <CaptionText style={{ flexShrink: 0 }}>
+          </ConversationName>
+          <CaptionText $shrink>
             {formatDistanceToNow(new Date(conversation.lastMessage.timestamp), { addSuffix: true })}
           </CaptionText>
         </FlexRow>
-        <FlexRow style={{ justifyContent: 'space-between', gap: 8 }}>
-          <SmallText style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+        <FlexRow $between $gap={8}>
+          <SmallText $truncate>
             {conversation.lastMessage.content}
           </SmallText>
-          <FlexRow style={{ gap: 6, flexShrink: 0 }}>
+          <FlexRow as="span" $gap={6} $shrink>
             {renderStatusIcon(conversation.lastMessage.status, 16)}
             {conversation.unreadCount > 0 && (
               <UnreadBadge>{conversation.unreadCount}</UnreadBadge>
@@ -1121,78 +1244,65 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const renderMessage = (message: MessageData) => {
     const isOwn = message.senderId === 'admin';
     return (
-      <div
+      <MessageRow
         key={message.id}
-        style={{
-          marginBottom: 16,
-          display: 'flex',
-          flexDirection: isOwn ? 'row-reverse' : 'row',
-          gap: 8
-        }}
+        $own={isOwn}
       >
         {!isOwn && <Avatar $size={32} $src={message.senderAvatar} />}
-        <div style={{ maxWidth: '70%' }}>
+        <MessageContentWrap>
           <MessageBubble $isOwn={isOwn}>
             {message.content}
           </MessageBubble>
-          <div
-            style={{
-              marginTop: 4,
-              display: 'flex',
-              justifyContent: isOwn ? 'flex-end' : 'flex-start',
-              gap: 6,
-              alignItems: 'center'
-            }}
-          >
+          <MessageMetaRow $own={isOwn}>
             <CaptionText>
               {format(new Date(message.timestamp), 'HH:mm')}
             </CaptionText>
             {isOwn && renderStatusIcon(message.status)}
-          </div>
-        </div>
-      </div>
+          </MessageMetaRow>
+        </MessageContentWrap>
+      </MessageRow>
     );
   };
 
   // Render analytics dashboard
   const renderAnalytics = () => (
-    <div style={{ padding: 24 }}>
-      <h6 style={{ color: theme.accent, marginBottom: 24, fontSize: '1.15rem', fontWeight: 600, margin: '0 0 24px' }}>
+    <SectionBlock>
+      <SectionSubTitle>
         Communication Analytics
-      </h6>
+      </SectionSubTitle>
       <GridContainer>
         <CardPanel>
-          <h4 style={{ color: theme.accent, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+          <MetricValue $tone="accent">
             {mockAnalytics.totalMessages}
-          </h4>
+          </MetricValue>
           <SmallText>Total Messages</SmallText>
           <ProgressBar $value={85} $color={theme.accent} />
         </CardPanel>
         <CardPanel>
-          <h4 style={{ color: theme.green, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+          <MetricValue $tone="green">
             {mockAnalytics.responseRate}%
-          </h4>
+          </MetricValue>
           <SmallText>Response Rate</SmallText>
           <ProgressBar $value={mockAnalytics.responseRate} $color={theme.green} />
         </CardPanel>
         <CardPanel>
-          <h4 style={{ color: theme.orange, fontWeight: 700, fontSize: '1.75rem', margin: 0 }}>
+          <MetricValue $tone="orange">
             {mockAnalytics.avgResponseTime}min
-          </h4>
+          </MetricValue>
           <SmallText>Avg Response Time</SmallText>
           <ProgressBar $value={75} $color={theme.orange} />
         </CardPanel>
       </GridContainer>
-    </div>
+    </SectionBlock>
   );
 
   // Render templates management
   const renderTemplates = () => (
-    <div style={{ padding: 24 }}>
-      <FlexRow style={{ justifyContent: 'space-between', marginBottom: 24 }}>
-        <h6 style={{ color: theme.accent, fontSize: '1.15rem', fontWeight: 600, margin: 0 }}>
+    <SectionBlock>
+      <FlexRow $between $bottom>
+        <SectionSubTitle>
           Notification Templates
-        </h6>
+        </SectionSubTitle>
         <ActionButton $variant="contained">
           <Plus size={18} />
           Create Template
@@ -1201,42 +1311,42 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       <GridTwoCol>
         {mockNotificationTemplates.map((template) => (
           <CardPanel key={template.id}>
-            <FlexRow style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <FlexRow $between $alignStart $gap={12}>
               <SubHeading>{template.name}</SubHeading>
-              <ToggleSwitch>
-                <input type="checkbox" defaultChecked={template.isActive} />
+              <ToggleSwitch aria-label={`Toggle ${template.name}`}>
+                <input type="checkbox" defaultChecked={template.isActive} aria-label={`Toggle ${template.name}`} />
                 <span />
               </ToggleSwitch>
             </FlexRow>
-            <SmallText style={{ display: 'block', marginBottom: 12 }}>
+            <SmallText $block $bottom>
               {template.content.substring(0, 100)}...
             </SmallText>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <TemplateTagRow>
               {template.channels.map((channel) => (
                 <TagChip key={channel}>{channel}</TagChip>
               ))}
-            </div>
+            </TemplateTagRow>
             <CaptionText>
               Trigger: {template.triggers[0]}
             </CaptionText>
           </CardPanel>
         ))}
       </GridTwoCol>
-    </div>
+    </SectionBlock>
   );
 
   return (
     <PageWrapper>
       {/* Header */}
-      <div style={{ marginBottom: 32 }}>
+      <HeaderBlock>
         <SectionHeading>
           <MessageSquare size={40} />
           Communication Center
         </SectionHeading>
-        <BodyText style={{ marginTop: 8 }}>
+        <BodyText $top>
           Connect with clients across multiple channels and manage all communications
         </BodyText>
-      </div>
+      </HeaderBlock>
 
       {/* Tab Navigation */}
       <TabBar>
@@ -1259,7 +1369,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
         <ChatContainer>
           {/* Conversation List */}
           <ConversationListPanel>
-            <div style={{ padding: 12, borderBottom: `1px solid ${theme.borderSubtle}` }}>
+            <ConversationListHeader>
               <SearchInputWrapper>
                 <Search size={16} />
                 <SearchInput
@@ -1268,10 +1378,10 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </SearchInputWrapper>
-            </div>
-            <div style={{ padding: 0 }}>
+            </ConversationListHeader>
+            <ConversationListBody>
               {filteredConversations.map(renderConversationItem)}
-            </div>
+            </ConversationListBody>
           </ConversationListPanel>
 
           {/* Chat Area */}
@@ -1279,14 +1389,8 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
-                <FlexRow
-                  style={{
-                    padding: 16,
-                    borderBottom: `1px solid ${theme.borderSubtle}`,
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <FlexRow style={{ gap: 12 }}>
+                <ChatHeader $between>
+                  <FlexRow $gap={12}>
                     <Avatar
                       $src={
                         selectedConversation.isGroup
@@ -1310,7 +1414,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       </CaptionText>
                     </FlexCol>
                   </FlexRow>
-                  <FlexRow style={{ gap: 4 }}>
+                  <FlexRow $gap={4}>
                     <RoundButton
                       title="Voice Call"
                       onClick={() => onCallStart?.('voice', selectedConversation.participants[0].id)}
@@ -1327,13 +1431,13 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       <MoreVertical size={20} />
                     </RoundButton>
                   </FlexRow>
-                </FlexRow>
+                </ChatHeader>
 
                 {/* Messages */}
-                <div style={{ flexGrow: 1, padding: 16, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+                <MessagesPane>
                   {messages.map(renderMessage)}
                   {isTyping && (
-                    <FlexRow style={{ gap: 8, marginTop: 16 }}>
+                    <FlexRow $gap={8}>
                       <Avatar $size={24} $src={selectedConversation.participants[0].avatar} />
                       <CaptionText>
                         {selectedConversation.participants[0].name} is typing...
@@ -1342,12 +1446,12 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                     </FlexRow>
                   )}
                   <div ref={messagesEndRef} />
-                </div>
+                </MessagesPane>
 
                 {/* Message Input */}
-                <div style={{ padding: 16, borderTop: `1px solid ${theme.borderSubtle}` }}>
+                <ComposerPanel>
                   {attachments.length > 0 && (
-                    <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <AttachmentRow>
                       {attachments.map((file, index) => (
                         <AttachmentChip key={index}>
                           {file.name}
@@ -1356,9 +1460,9 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                           </RemoveChipButton>
                         </AttachmentChip>
                       ))}
-                    </div>
+                    </AttachmentRow>
                   )}
-                  <FlexRow style={{ gap: 8 }}>
+                  <FlexRow $gap={8}>
                     <MessageInput
                       placeholder="Type a message..."
                       value={newMessage}
@@ -1371,11 +1475,10 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       }}
                       rows={1}
                     />
-                    <input
+                    <HiddenFileInput
                       type="file"
                       ref={fileInputRef}
                       multiple
-                      style={{ display: 'none' }}
                       onChange={handleFileUpload}
                     />
                     <RoundButton title="Attach File" onClick={() => fileInputRef.current?.click()}>
@@ -1392,7 +1495,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       <Send size={18} />
                     </ActionButton>
                   </FlexRow>
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <ChannelRow>
                     <ChannelChip
                       $active={selectedChannel === 'app'}
                       onClick={() => setSelectedChannel('app')}
@@ -1411,15 +1514,15 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                     >
                       Email
                     </ChannelChip>
-                  </div>
-                </div>
+                  </ChannelRow>
+                </ComposerPanel>
               </>
             ) : (
               <EmptyState>
                 <MessageSquare size={64} />
-                <SubHeading style={{ color: theme.textSecondary }}>
+                <EmptyStateHeading>
                   Select a conversation to start messaging
-                </SubHeading>
+                </EmptyStateHeading>
               </EmptyState>
             )}
           </ChatArea>
