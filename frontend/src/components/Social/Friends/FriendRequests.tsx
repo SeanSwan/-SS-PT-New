@@ -107,8 +107,8 @@ const AcceptBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   background: rgba(139, 92, 246, 0.15);
@@ -124,8 +124,8 @@ const DeclineBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: 1px solid rgba(244, 67, 54, 0.4);
   background: transparent;
@@ -225,7 +225,7 @@ const FriendRequests: React.FC<FriendRequestsProps> = ({ open, onClose }) => {
   };
 
   return (
-    <CustomModal isOpen={open} onClose={onClose} title="" size="medium">
+    <CustomModal isOpen={open} onClose={onClose} title="" size="md">
       <ModalHeader>
         <UserCheck size={20} />
         <HeaderTitle>Friend Requests</HeaderTitle>

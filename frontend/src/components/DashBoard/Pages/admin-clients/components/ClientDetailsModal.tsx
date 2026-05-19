@@ -19,7 +19,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import CustomModal from '../../../../UniversalMasterSchedule/ui/CustomModal';
-import { EnhancedAdminClient } from '../EnhancedAdminClientManagementView';
+import type { EnhancedAdminClient } from '../EnhancedAdminClientManagementView';
 
 const Summary = styled.div`
   display: grid;
@@ -88,7 +88,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ open, onClose, 
       isOpen={open}
       onClose={onClose}
       title="Client Details"
-      size="large"
+      size="lg"
     >
       <Summary>
         <NameRow>

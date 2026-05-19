@@ -21,7 +21,7 @@ interface DragState {
  * Enhanced with dragging and minimize functionality
  */
 const Debug: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const { user, loading: isLoading } = useAuth();
   const location = useLocation();
   const [isMinimized, setIsMinimized] = useState(() => {
     const saved = localStorage.getItem('debugPanel_minimized');
@@ -39,16 +39,7 @@ const Debug: React.FC = () => {
     startPosY: 0
   });
   const panelRef = useRef<HTMLDivElement>(null);
-  
-  // Don't show in production
-  if (import.meta.env.PROD) {
-    return null;
-  }
-  
-  // Only show if explicitly enabled
-  if (!import.meta.env.VITE_DEV_MODE) {
-    return null;
-  }
+  const shouldHide = import.meta.env.PROD || !import.meta.env.VITE_DEV_MODE;
   
   const getDashboardAccess = () => {
     if (!user) return 'No user logged in';
@@ -67,13 +58,15 @@ const Debug: React.FC = () => {
   
   // Save minimized state to localStorage
   useEffect(() => {
+    if (shouldHide) return;
     localStorage.setItem('debugPanel_minimized', isMinimized.toString());
-  }, [isMinimized]);
+  }, [isMinimized, shouldHide]);
   
   // Save position to localStorage
   useEffect(() => {
+    if (shouldHide) return;
     localStorage.setItem('debugPanel_position', JSON.stringify(position));
-  }, [position]);
+  }, [position, shouldHide]);
   
   // Mouse event handlers for dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -108,6 +101,8 @@ const Debug: React.FC = () => {
   
   // Add global mouse events for dragging
   useEffect(() => {
+    if (shouldHide) return;
+
     if (dragState.isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -119,11 +114,15 @@ const Debug: React.FC = () => {
         document.body.style.userSelect = '';
       };
     }
-  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY]);
+  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY, shouldHide]);
   
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
   };
+
+  if (shouldHide) {
+    return null;
+  }
   
   return (
     <>

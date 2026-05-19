@@ -308,7 +308,7 @@ class PerformanceMonitor {
       });
     } else {
       // Fallback: use DOMContentLoaded + 1s
-      window.addEventListener('load', () => {
+      (globalThis.window as Window).addEventListener('load', () => {
         setTimeout(() => {
           this.metrics.tti = performance.now();
 

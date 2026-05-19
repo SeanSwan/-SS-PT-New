@@ -62,7 +62,7 @@ export const initializeApiMonitoring = () => {
       }
     });
 
-    return originalXHROpen.apply(this, args);
+    return originalXHROpen.apply(this, args as Parameters<XMLHttpRequest['open']>);
   };
 };
 

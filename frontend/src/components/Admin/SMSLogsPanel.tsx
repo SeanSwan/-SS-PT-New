@@ -223,7 +223,7 @@ const SMSLogsPanel: React.FC = () => {
             <Label>Status</Label>
             <CustomSelect
               value={status}
-              onChange={setStatus}
+              onChange={(value) => setStatus(String(value))}
               options={statusOptions}
             />
           </FormField>

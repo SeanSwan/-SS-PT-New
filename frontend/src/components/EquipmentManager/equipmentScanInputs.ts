@@ -1,3 +1,5 @@
+import type { InputHTMLAttributes } from 'react';
+
 export type EquipmentScanSource = 'camera' | 'gallery';
 
 export type EquipmentScanQueueItem = {
@@ -25,7 +27,7 @@ export function isMobileScanDevice(context: ScanDeviceContext = {}): boolean {
     || (maxTouchPoints > 1 && coarsePointer);
 }
 
-export function getEquipmentScanInputProps(source: EquipmentScanSource) {
+export function getEquipmentScanInputProps(source: EquipmentScanSource): Pick<InputHTMLAttributes<HTMLInputElement>, 'accept' | 'capture' | 'multiple'> {
   if (source === 'camera') {
     return {
       accept: 'image/*',

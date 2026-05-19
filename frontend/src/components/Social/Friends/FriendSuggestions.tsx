@@ -122,8 +122,8 @@ const OutlineBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
@@ -171,8 +171,8 @@ const SearchBtn = styled.button`
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  padding: 6px 12px;
-  min-height: 32px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   background: rgba(139, 92, 246, 0.15);
@@ -328,7 +328,7 @@ const FriendSuggestions: React.FC<FriendSuggestionsProps> = ({ open, onClose }) 
   };
 
   return (
-    <CustomModal isOpen={open} onClose={onClose} title="" size="medium">
+    <CustomModal isOpen={open} onClose={onClose} title="" size="md">
       <ModalHeader>
         <UserPlus size={20} color="rgba(139, 92, 246, 0.8)" />
         <HeaderTitle>Find Friends</HeaderTitle>

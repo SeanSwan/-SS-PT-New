@@ -1118,7 +1118,7 @@ const MetricCell = styled.div`
 `;
 
 // ─── Define interfaces ────────────────────────────────────────────
-interface EnhancedAdminClient {
+export interface EnhancedAdminClient {
   id: string;
   firstName: string;
   lastName: string;
