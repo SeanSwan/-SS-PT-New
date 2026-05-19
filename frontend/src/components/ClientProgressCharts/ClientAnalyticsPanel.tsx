@@ -83,21 +83,21 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({ userId, com
   const kpis = [
     {
       label: 'Workouts',
-      value: dashboard?.exerciseTotals?.totalSessions ?? '—',
+      value: dashboardData?.exerciseTotals?.totalSessions ?? '—',
     },
     {
       label: 'Total Volume',
-      value: dashboard?.exerciseTotals?.totalVolume
-        ? `${(dashboard.exerciseTotals.totalVolume / 1000).toFixed(1)}k`
+      value: dashboardData?.exerciseTotals?.totalVolume
+        ? `${(dashboardData.exerciseTotals.totalVolume / 1000).toFixed(1)}k`
         : '—',
     },
     {
       label: 'Personal Records',
-      value: prData?.records?.length ?? '—',
+      value: personalRecordsData?.records?.length ?? '—',
     },
     {
       label: 'Avg/Week',
-      value: dashboard?.frequency?.weeklyAverage ?? '—',
+      value: dashboardData?.frequency?.weeklyAverage ?? '—',
     },
   ];
 
