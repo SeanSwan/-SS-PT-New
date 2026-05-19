@@ -227,7 +227,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
 
           {/* Weight Area */}
           <VictoryArea
-            data={chartData.map(d => ({ x: d.x, y: d.weight, ...d }))}
+            data={chartData.map(d => ({ ...d, x: d.x, y: d.weight }))}
             interpolation="monotoneX"
             style={{
               data: {
@@ -241,9 +241,9 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           {/* Body Fat Line — normalized to weight scale */}
           <VictoryLine
             data={chartData.map(d => ({
+              ...d,
               x: d.x,
               y: normalizeBodyFat(d.bodyFat),
-              ...d,
             }))}
             interpolation="monotoneX"
             style={{
@@ -254,9 +254,9 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           {/* Body Fat Dots */}
           <VictoryScatter
             data={chartData.map(d => ({
+              ...d,
               x: d.x,
               y: normalizeBodyFat(d.bodyFat),
-              ...d,
             }))}
             size={4}
             style={{

@@ -150,7 +150,22 @@ const CoachCommandCenterPage: React.FC = () => {
     ? pickReviewNextMergeRequestId(coachQueue.items)
     : null;
   const initialReviewMergeRequestId = directMergeRequestId || reviewNextMergeRequestId || undefined;
-  const summary = coachQueue.summary;
+  const summary = useMemo(() => {
+    const queueSummary = coachQueue.summary;
+    return {
+      total: queueSummary.total ?? 0,
+      actionable: queueSummary.actionable ?? 0,
+      today: queueSummary.today ?? 0,
+      unprocessed: queueSummary.unprocessed ?? 0,
+      processing: queueSummary.processing ?? 0,
+      readyReview: queueSummary.readyReview ?? 0,
+      needsClarification: queueSummary.needsClarification ?? 0,
+      duplicateHold: queueSummary.duplicateHold ?? 0,
+      failed: queueSummary.failed ?? 0,
+      needsClient: queueSummary.needsClient ?? 0,
+      preparedDrafts: queueSummary.preparedDrafts ?? 0,
+    };
+  }, [coachQueue.summary]);
   const selectedClientLabel = activeThread ? activeThreadTitle : 'Selected client';
 
   const statusMetrics = useMemo<QueueMetric[]>(() => [
@@ -208,7 +223,8 @@ const CoachCommandCenterPage: React.FC = () => {
 
   const rightRailItems = useMemo(() => {
     const liveItems = coachQueue.items.slice(0, 4).map((item) => {
-      const source = item.sourceLabel || item.source || item.kind;
+      const queueItem = item as any;
+      const source = queueItem.sourceLabel || queueItem.source || queueItem.kind;
       const status = item.queueStatus ? item.queueStatus.replace(/_/g, ' ') : 'pending review';
       return `${source}: ${status}`;
     });

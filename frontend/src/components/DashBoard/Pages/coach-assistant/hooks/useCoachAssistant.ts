@@ -252,12 +252,12 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
   // ── Merge chat-lane messages with command-lane messages ──
   const chatMessages: CoachMessageData[] = chat.activeConversation?.messages?.length
-    ? chat.activeConversation.messages.map((m, i) => ({
+      ? chat.activeConversation.messages.map((m, i) => ({
         id: `${chat.activeConversation!.id}-${i}`,
-        role: m.role,
+        role: m.role as CoachMessageData['role'],
         content: m.content,
         timestamp: m.timestamp,
-        metadata: m.metadata,
+        metadata: m.metadata as CoachMessageData['metadata'],
       }))
     : localMessages;
 
@@ -267,7 +267,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     ? allMessages
     : [{
         id: 'welcome',
-        role: WELCOME_MESSAGE.role,
+        role: WELCOME_MESSAGE.role as CoachMessageData['role'],
         content: WELCOME_MESSAGE.content,
         timestamp: WELCOME_MESSAGE.timestamp,
       }];
@@ -284,7 +284,10 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
     let cmdResult: Awaited<ReturnType<typeof executeCommand>> | { type: 'fallback_to_chat' };
     if (isCommandLaneCandidate(trimmedText)) {
-      cmdResult = await executeCommand(trimmedText, { selectedClientId: targetClientId, routeContext });
+      cmdResult = await executeCommand(trimmedText, {
+        selectedClientId: targetClientId,
+        routeContext: routeContext as unknown as Record<string, unknown> | null,
+      });
     } else {
       cmdResult = { type: 'fallback_to_chat' };
     }

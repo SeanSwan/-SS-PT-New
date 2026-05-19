@@ -354,7 +354,7 @@ const SwanCoachAssistantPage: React.FC = () => {
       };
       (async () => {
         if (cancelled) return;
-        const result = await coach.sendMessageWithFood(message, foodContext);
+        const result: any = await coach.sendMessageWithFood(message, foodContext);
         if (cancelled) return;
         if (result?.paywallRequired) {
           // Free-tier user — surface the paywall overlay so they can upgrade
@@ -650,19 +650,20 @@ const SwanCoachAssistantPage: React.FC = () => {
       } else {
         // Phase 13: propagate failure kind so CoachMessage can render a
         // duplicate-date / future-date hint in the editable date control.
+        const failure = apply.failure;
         coach.updateTranscriptReview(reviewMsgId, {
           applying: false,
-          applyError: apply.failure.error,
+          applyError: failure.error,
           applyErrorKind:
-            apply.failure.kind === 'duplicate_date'
+            failure.kind === 'duplicate_date'
               ? 'duplicate_date'
-              : apply.failure.kind === 'future_date'
+              : failure.kind === 'future_date'
                 ? 'future_date'
-                : apply.failure.kind === 'validation'
+                : failure.kind === 'validation'
                   ? 'validation'
-                  : apply.failure.kind === 'network'
+                  : failure.kind === 'network'
                     ? 'network'
-                    : apply.failure.kind === 'server'
+                    : failure.kind === 'server'
                       ? 'server'
                       : 'other',
         });

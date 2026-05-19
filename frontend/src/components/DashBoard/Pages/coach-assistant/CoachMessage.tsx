@@ -464,10 +464,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       )}
 
       {/* Workout Import Results Card */}
-      {workoutImports?.length > 0 && (
+      {(workoutImports?.length ?? 0) > 0 && (
         <ActionCard>
           <CardTitle><Dumbbell size={16} /> Workout Import Results</CardTitle>
-          {workoutImports.map((w: any, i: number) => (
+          {(workoutImports ?? []).map((w: any, i: number) => (
             <CardRow key={i}>
               <CardLabel>{w.date || `Workout ${i + 1}`}</CardLabel>
               {w.success ? (
