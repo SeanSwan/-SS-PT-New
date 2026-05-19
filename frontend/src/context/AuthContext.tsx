@@ -5,6 +5,7 @@ import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxL
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
 import { createAdminClientService, AdminClientServiceInterface } from '../services/adminClientService';
+import sessionService from '../services/session-service';
 import { useBackendConnection } from '../hooks/useBackendConnection';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
@@ -18,11 +19,14 @@ export interface User {
   id: string;
   email: string;
   username: string;
+  phone?: string;
   firstName: string;
   lastName: string;
   role: 'admin' | 'trainer' | 'client' | 'user';
+  fitnessGoal?: string;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   profileImageUrl?: string;
+  photo?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -37,7 +41,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}>;
+  login: (username: string, password: string) => Promise<{success: boolean, user: User | null, error?: string, message?: string, forcePasswordChange?: boolean, tempToken?: string}>;
   logout: () => void;
   register: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
   updateUser: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
@@ -45,6 +49,7 @@ interface AuthContextType {
   forgotPassword: (email: string) => Promise<{success: boolean}>;
   checkPermission: (permission: string) => boolean;
   services: {
+    session: typeof sessionService;
     clientProgress: ClientProgressServiceInterface;
     exercise: ExerciseServiceInterface;
     adminClient: AdminClientServiceInterface;
@@ -67,6 +72,7 @@ const AuthContext = createContext<AuthContextType>({
   forgotPassword: async () => ({ success: false }),
   checkPermission: () => false,
   services: {
+    session: sessionService,
     clientProgress: null as any,
     exercise: null as any,
     adminClient: null as any
@@ -91,6 +97,12 @@ const clearEmergencyAdminBypass = () => {
   sessionStorage.removeItem('admin_emergency_mode');
 };
 
+const useOptionalReduxAuth = () => {
+  const dispatch = useDispatch();
+  const reduxUser = useSelector((state: any) => state.auth?.user);
+  return { dispatch, reduxUser };
+};
+
 // Auth Provider Component - PRODUCTION VERSION
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -99,21 +111,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [token, setToken] = useState<string | null>(null);
   
   // Redux integration (optional)
-  let dispatch: any = null;
-  let reduxUser: any = null;
-  
-  try {
-    dispatch = useDispatch();
-    reduxUser = useSelector((state: any) => state.auth?.user);
-  } catch (error) {
-    logger.log('Redux not available, using local state only');
-  }
+  const { dispatch, reduxUser } = useOptionalReduxAuth();
   
   // Create services with authenticated axios instance — memoized since apiService is a singleton
+  const authApiClient = apiService as unknown as AxiosInstance;
   const services = useMemo(() => ({
-    clientProgress: createClientProgressService(apiService),
-    exercise: createExerciseService(apiService),
-    adminClient: createAdminClientService(apiService)
+    session: sessionService,
+    clientProgress: createClientProgressService(authApiClient),
+    exercise: createExerciseService(authApiClient),
+    adminClient: createAdminClientService(authApiClient)
   }), []);
   
   // Token refresh function - Properly memoized to prevent re-creation
@@ -484,7 +490,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     forgotPassword,
     checkPermission,
     services,
-    authAxios: apiService
+    authAxios: authApiClient
   }), [user, loading, error, token, login, logout, register, updateUser, refreshToken, forgotPassword, checkPermission, services]);
   
   return (

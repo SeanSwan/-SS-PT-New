@@ -387,7 +387,7 @@ const ErrorMessage = styled(motion.p)`
   font-size: 0.9rem;
 `;
 
-const ConnectionStatus = styled(motion.div)`
+const ConnectionStatus = styled(motion.div)<{ $connected: boolean }>`
   position: absolute;
   bottom: 10px;
   right: 10px;
@@ -395,7 +395,7 @@ const ConnectionStatus = styled(motion.div)`
   color: rgba(255, 255, 255, 0.6);
   padding: 2px 6px;
   border-radius: 4px;
-  background: ${props => props.theme.connected ? 'rgba(0, 200, 0, 0.2)' : 'rgba(200, 0, 0, 0.2)'};
+  background: ${props => props.$connected ? 'rgba(0, 200, 0, 0.2)' : 'rgba(200, 0, 0, 0.2)'};
 `;
 
 /**
@@ -509,11 +509,12 @@ const EnhancedLoginModal: React.FC = () => {
 
       // Check if login was successful and has user data
       if (result.success && result.user) {
-        logger.log('Login successful!', { role: result.user.role });
+        const loginUser = result.user;
+        logger.log('Login successful!', { role: loginUser.role });
         setTimeout(() => {
-          if (result.user.role === "admin") {
+          if (loginUser.role === "admin") {
             navigate("/dashboard/admin");
-          } else if (result.user.role === "trainer") {
+          } else if (loginUser.role === "trainer") {
             navigate("/dashboard/trainer/overview");
           } else {
             navigate("/dashboard/client/overview");
@@ -749,7 +750,7 @@ const EnhancedLoginModal: React.FC = () => {
           )}
           
           {serverStatus.checked && (
-            <ConnectionStatus theme={{ connected: serverStatus.connected }}>
+            <ConnectionStatus $connected={serverStatus.connected}>
               {serverStatus.connected ? "✓ Server Connected" : "⚠ Server Offline"}
             </ConnectionStatus>
           )}
