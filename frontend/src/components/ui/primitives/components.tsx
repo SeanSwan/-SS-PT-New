@@ -20,6 +20,234 @@ type TypographyVariant =
   | 'caption'
   | 'overline';
 type GridSize = number | 'auto' | boolean;
+type PrimitiveStyleProps = { $style?: React.CSSProperties };
+type PaletteSlot = { main?: string };
+type PopperModifier = { name: string; options?: Record<string, unknown> };
+type TabChildProps = {
+  value?: string | number;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  $selected?: boolean;
+  $indicatorColor?: string;
+};
+
+const unitlessCssProperties = new Set([
+  'animationIterationCount',
+  'borderImageOutset',
+  'borderImageSlice',
+  'borderImageWidth',
+  'boxFlex',
+  'boxFlexGroup',
+  'boxOrdinalGroup',
+  'columnCount',
+  'columns',
+  'flex',
+  'flexGrow',
+  'flexPositive',
+  'flexShrink',
+  'flexNegative',
+  'flexOrder',
+  'gridArea',
+  'gridRow',
+  'gridRowEnd',
+  'gridRowSpan',
+  'gridRowStart',
+  'gridColumn',
+  'gridColumnEnd',
+  'gridColumnSpan',
+  'gridColumnStart',
+  'fontWeight',
+  'lineClamp',
+  'lineHeight',
+  'opacity',
+  'order',
+  'orphans',
+  'tabSize',
+  'widows',
+  'zIndex',
+  'zoom',
+]);
+
+const toCssName = (property: string) =>
+  property.startsWith('--')
+    ? property
+    : property.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+
+const toCssValue = (property: string, value: string | number) =>
+  typeof value === 'number' && value !== 0 && !unitlessCssProperties.has(property)
+    ? `${value}px`
+    : String(value);
+
+const applyPrimitiveStyle = ({ $style }: PrimitiveStyleProps) => {
+  if (!$style) return '';
+
+  return css`
+    ${Object.entries($style)
+      .filter((entry): entry is [string, string | number] => entry[1] !== undefined && entry[1] !== null)
+      .map(([property, value]) => `${toCssName(property)}: ${toCssValue(property, value)};`)
+      .join('\n')}
+  `;
+};
+const isPaletteSlot = (value: unknown): value is PaletteSlot => typeof value === 'object' && value !== null;
+
+const PrimitiveDiv = styled.div<PrimitiveStyleProps>(applyPrimitiveStyle);
+const PrimitiveSpan = styled.span<PrimitiveStyleProps>(applyPrimitiveStyle);
+const PrimitiveHr = styled.hr<PrimitiveStyleProps>(applyPrimitiveStyle);
+const PrimitiveUl = styled.ul<PrimitiveStyleProps>(applyPrimitiveStyle);
+const PrimitiveLabel = styled.label<PrimitiveStyleProps>(applyPrimitiveStyle);
+
+const InlineFlexSpan = styled.span`
+  display: inline-flex;
+`;
+
+const AlertIconSlot = styled.span`
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+`;
+
+const AlertMessageSlot = styled.div`
+  flex: 1;
+`;
+
+const IconSlot = styled.span`
+  display: inline-flex;
+  font-size: 1.1em;
+`;
+
+const ChipDeleteButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+`;
+
+const CloseButton = styled.button`
+  min-width: 32px;
+  min-height: 32px;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+`;
+
+const TooltipShell = styled.span`
+  position: relative;
+  display: inline-flex;
+`;
+
+const SecondaryActionSlot = styled.span`
+  margin-left: auto;
+  flex-shrink: 0;
+`;
+
+const ListPrimaryText = styled.div`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #FFFFFF;
+`;
+
+const ListSecondaryText = styled.div`
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: ${alpha('#FFFFFF', 0.6)};
+`;
+
+const SnackbarMessage = styled.div`
+  padding: 12px 24px;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+`;
+
+const InputAdornmentRoot = styled.div<{ $position: 'start' | 'end' } & PrimitiveStyleProps>`
+  display: flex;
+  align-items: center;
+  color: ${alpha('#FFFFFF', 0.5)};
+  ${({ $position }) => ($position === 'start' ? 'margin-right: 8px;' : 'margin-left: 8px;')}
+  ${applyPrimitiveStyle}
+`;
+
+const TextAreaInput = styled.textarea`
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #FFFFFF;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+`;
+
+const TextFieldRoot = styled.div<PrimitiveStyleProps>`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  ${applyPrimitiveStyle}
+`;
+
+const TextFieldLabel = styled.label<{ $error: boolean }>`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: ${({ $error }) => ($error ? '#ef4444' : alpha('#FFFFFF', 0.7))};
+`;
+
+const HelperText = styled.span<{ $error: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $error }) => ($error ? '#ef4444' : alpha('#FFFFFF', 0.5))};
+`;
+
+const FormControlLabelText = styled.span`
+  font-size: 0.875rem;
+  color: #FFFFFF;
+`;
+
+const RadioGroupRoot = styled.div<{ $row: boolean } & PrimitiveStyleProps>`
+  display: flex;
+  flex-direction: ${({ $row }) => ($row ? 'row' : 'column')};
+  gap: 8px;
+  ${applyPrimitiveStyle}
+`;
+
+const RadioRoot = styled.span<PrimitiveStyleProps & { $disabled?: boolean }>`
+  display: inline-flex;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  ${applyPrimitiveStyle}
+`;
+
+const VisuallyHiddenInput = styled.input`
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+`;
+
+const ModalBackdropButton = styled.button<{ $open?: boolean }>`
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+  ${({ $open }) =>
+    $open !== undefined &&
+    css`
+      opacity: ${$open ? 1 : 0};
+      visibility: ${$open ? 'visible' : 'hidden'};
+    `}
+`;
 
 export interface BoxProps extends React.HTMLAttributes<HTMLElement>, StyleSystemProps {
   component?: keyof JSX.IntrinsicElements;
@@ -126,7 +354,7 @@ const GridRoot = styled.div<{
   $md?: GridSize;
   $lg?: GridSize;
   $xl?: GridSize;
-}>`
+} & PrimitiveStyleProps>`
   box-sizing: border-box;
   min-width: 0;
   ${({ $container, $columns, $spacing, $rowSpacing, $columnSpacing }) =>
@@ -142,6 +370,7 @@ const GridRoot = styled.div<{
   ${({ $md }) => $md !== undefined && css`@media (min-width:${BREAKPOINT_VALUES.md}px){grid-column:${spanFor($md)};}`}
   ${({ $lg }) => $lg !== undefined && css`@media (min-width:${BREAKPOINT_VALUES.lg}px){grid-column:${spanFor($lg)};}`}
   ${({ $xl }) => $xl !== undefined && css`@media (min-width:${BREAKPOINT_VALUES.xl}px){grid-column:${spanFor($xl)};}`}
+  ${applyPrimitiveStyle}
 `;
 
 export interface GridProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -165,7 +394,7 @@ export const Grid = forwardRef<HTMLDivElement, GridProps>((props, ref) => {
   return (
     <GridRoot
       ref={ref}
-      style={mergeStyle(style, sx, system)}
+      $style={mergeStyle(style, sx, system)}
       $container={container}
       $columns={columns}
       $spacing={spacing}
@@ -193,14 +422,14 @@ export const Paper = forwardRef<HTMLDivElement, PaperProps>(({ elevation = 1, va
   const theme = useSwanTheme();
   const system = getSystemStyles({ ...rest, sx });
   const primaryColor =
-    typeof (theme as Record<string, unknown>)?.primary === 'object'
-      ? String(((theme as Record<string, any>).primary?.main ?? '#8B5CF6'))
+    isPaletteSlot((theme as Record<string, unknown>)?.primary)
+      ? String(((theme as Record<string, PaletteSlot>).primary?.main ?? '#8B5CF6'))
       : '#8B5CF6';
   const background = String(theme?.background?.surface ?? alpha('#002060', 0.65));
   const border = variant === 'outlined' ? `1px solid ${alpha(primaryColor, 0.35)}` : '1px solid transparent';
   const shadow = variant === 'elevation' ? `0 ${Math.max(1, elevation) * 4}px ${Math.max(1, elevation) * 12}px rgba(0,0,0,0.24)` : 'none';
 
-  return <div ref={ref} style={mergeStyle(style, sx, { ...system, background, border, boxShadow: shadow, borderRadius: '12px' })} {...rest} />;
+  return <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, { ...system, background, border, boxShadow: shadow, borderRadius: '12px' })} {...rest} />;
 });
 Paper.displayName = 'Paper';
 
@@ -219,7 +448,7 @@ export const Stack = forwardRef<HTMLDivElement, StackProps>(({ direction = 'colu
       )
     : childArray;
 
-  return <div ref={ref} style={mergeStyle(style, sx, system)} {...rest}>{withDividers}</div>;
+  return <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, system)} {...rest}>{withDividers}</PrimitiveDiv>;
 });
 Stack.displayName = 'Stack';
 
@@ -234,9 +463,9 @@ export const Container = forwardRef<HTMLDivElement, ContainerProps>(({ maxWidth 
     maxWidth === false ? 'none' : typeof maxWidth === 'number' ? `${maxWidth}px` : `${BREAKPOINT_VALUES[maxWidth]}px`;
 
   return (
-    <div
+    <PrimitiveDiv
       ref={ref}
-      style={mergeStyle(style, sx, {
+      $style={mergeStyle(style, sx, {
         ...system,
         width: '100%',
         maxWidth: resolvedMaxWidth,
@@ -257,9 +486,9 @@ export interface DividerProps extends React.HTMLAttributes<HTMLHRElement>, Style
 }
 
 export const Divider = forwardRef<HTMLHRElement, DividerProps>(({ orientation = 'horizontal', light = false, sx, style, ...rest }, ref) => (
-  <hr
+  <PrimitiveHr
     ref={ref}
-    style={mergeStyle(style, sx, {
+    $style={mergeStyle(style, sx, {
       border: 0,
       margin: 0,
       alignSelf: 'stretch',
@@ -308,7 +537,7 @@ const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
   large: { padding: '10px 28px', fontSize: '1rem', minHeight: '48px' },
 };
 
-const StyledButton = styled.button<{ $variant: ButtonVariant; $btnColor: string; $fullWidth: boolean; $disabled: boolean }>`
+const StyledButton = styled.button<{ $variant: ButtonVariant; $btnColor: string; $fullWidth: boolean; $disabled: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -347,6 +576,7 @@ const StyledButton = styled.button<{ $variant: ButtonVariant; $btnColor: string;
       border: none;
       &:hover:not(:disabled) { background: ${alpha($btnColor, 0.08)}; }
     `}
+  ${applyPrimitiveStyle}
 `;
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
@@ -371,12 +601,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         $fullWidth={fullWidth}
         $disabled={disabled}
         disabled={disabled}
-        style={mergeStyle(style, sx, { ...system, ...sizeStyles[size] })}
+        $style={mergeStyle(style, sx, { ...system, ...sizeStyles[size] })}
         {...rest}
       >
-        {startIcon && <span style={{ display: 'inline-flex' }}>{startIcon}</span>}
+        {startIcon && <InlineFlexSpan>{startIcon}</InlineFlexSpan>}
         {children}
-        {endIcon && <span style={{ display: 'inline-flex' }}>{endIcon}</span>}
+        {endIcon && <InlineFlexSpan>{endIcon}</InlineFlexSpan>}
       </StyledButton>
     );
   }
@@ -385,7 +615,7 @@ Button.displayName = 'Button';
 
 /* ─── IconButton ────────────────────────────────────────────────────────────── */
 
-const StyledIconButton = styled.button<{ $size: number; $iconColor: string; $disabled: boolean }>`
+const StyledIconButton = styled.button<{ $size: number; $iconColor: string; $disabled: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -400,6 +630,7 @@ const StyledIconButton = styled.button<{ $size: number; $iconColor: string; $dis
   transition: background 0.2s;
   padding: 0;
   &:hover:not(:disabled) { background: ${({ $iconColor }) => alpha($iconColor, 0.08)}; }
+  ${applyPrimitiveStyle}
 `;
 
 export interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
@@ -413,7 +644,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   ({ size = 'medium', color = '#FFFFFF', sx, style, disabled = false, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <StyledIconButton ref={ref} $size={iconButtonSizes[size]} $iconColor={color} $disabled={disabled} disabled={disabled} style={mergeStyle(style, sx, system)} {...rest} />
+      <StyledIconButton ref={ref} $size={iconButtonSizes[size]} $iconColor={color} $disabled={disabled} disabled={disabled} $style={mergeStyle(style, sx, system)} {...rest} />
     );
   }
 );
@@ -421,7 +652,7 @@ IconButton.displayName = 'IconButton';
 
 /* ─── Avatar ────────────────────────────────────────────────────────────────── */
 
-const AvatarRoot = styled.div<{ $size: number; $bgColor: string }>`
+const AvatarRoot = styled.div<{ $size: number; $bgColor: string } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -435,6 +666,7 @@ const AvatarRoot = styled.div<{ $size: number; $bgColor: string }>`
   font-size: ${({ $size }) => `${$size * 0.4}px`};
   flex-shrink: 0;
   img { width: 100%; height: 100%; object-fit: cover; }
+  ${applyPrimitiveStyle}
 `;
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -448,7 +680,7 @@ export const Avatar = forwardRef<HTMLDivElement, AvatarProps>(
   ({ src, alt = '', size = 40, bgColor = '#8B5CF6', sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <AvatarRoot ref={ref} $size={size} $bgColor={bgColor} style={mergeStyle(style, sx, system)} {...rest}>
+      <AvatarRoot ref={ref} $size={size} $bgColor={bgColor} $style={mergeStyle(style, sx, system)} {...rest}>
         {src ? <img src={src} alt={alt} /> : children}
       </AvatarRoot>
     );
@@ -458,7 +690,7 @@ Avatar.displayName = 'Avatar';
 
 /* ─── Chip ──────────────────────────────────────────────────────────────────── */
 
-const ChipRoot = styled.span<{ $chipColor: string; $chipVariant: 'filled' | 'outlined'; $chipSize: 'small' | 'medium'; $clickable: boolean }>`
+const ChipRoot = styled.span<{ $chipColor: string; $chipVariant: 'filled' | 'outlined'; $chipSize: 'small' | 'medium'; $clickable: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -480,6 +712,7 @@ const ChipRoot = styled.span<{ $chipColor: string; $chipVariant: 'filled' | 'out
   ${({ $clickable, $chipColor }) =>
     $clickable &&
     css`&:hover { background: ${alpha($chipColor, 0.3)}; }`}
+  ${applyPrimitiveStyle}
 `;
 
 export interface ChipProps extends React.HTMLAttributes<HTMLSpanElement>, StyleSystemProps {
@@ -496,14 +729,36 @@ export const Chip = forwardRef<HTMLSpanElement, ChipProps>(
   ({ label, color = '#8B5CF6', variant = 'filled', size = 'medium', icon, deleteIcon, onDelete, sx, style, children, onClick, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <ChipRoot ref={ref} $chipColor={color} $chipVariant={variant} $chipSize={size} $clickable={!!onClick} onClick={onClick} style={mergeStyle(style, sx, system)} {...rest}>
-        {icon && <span style={{ display: 'inline-flex', fontSize: '1.1em' }}>{icon}</span>}
+      <ChipRoot
+        ref={ref}
+        {...rest}
+        $chipColor={color}
+        $chipVariant={variant}
+        $chipSize={size}
+        $clickable={!!onClick}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onClick(e as unknown as React.MouseEvent<HTMLSpanElement>);
+          }
+          rest.onKeyDown?.(e);
+        }}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : rest.tabIndex}
+        $style={mergeStyle(style, sx, system)}
+      >
+        {icon && <IconSlot>{icon}</IconSlot>}
         {label ?? children}
         {onDelete && (
-          <span role="button" tabIndex={0} onClick={(e) => { e.stopPropagation(); onDelete(); }} onKeyDown={(e) => { if (e.key === 'Enter') onDelete(); }}
-            style={{ display: 'inline-flex', cursor: 'pointer', marginLeft: 2, opacity: 0.7 }}>
+          <ChipDeleteButton
+            type="button"
+            aria-label="Delete chip"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onDelete(); }}
+          >
             {deleteIcon ?? '×'}
-          </span>
+          </ChipDeleteButton>
         )}
       </ChipRoot>
     );
@@ -513,13 +768,14 @@ Chip.displayName = 'Chip';
 
 /* ─── Card / CardContent / CardActions ──────────────────────────────────────── */
 
-const CardRoot = styled.div<{ $elevation: number }>`
+const CardRoot = styled.div<{ $elevation: number } & PrimitiveStyleProps>`
   background: ${alpha('#002060', 0.65)};
   border: 1px solid ${alpha('#8B5CF6', 0.15)};
   border-radius: 12px;
   box-shadow: ${({ $elevation }) => `0 ${$elevation * 4}px ${$elevation * 12}px rgba(0,0,0,0.24)`};
   overflow: hidden;
   transition: box-shadow 0.2s, border-color 0.2s;
+  ${applyPrimitiveStyle}
 `;
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -531,19 +787,19 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(({ elevation = 1, vari
   const system = getSystemStyles({ ...rest, sx });
   const border = variant === 'outlined' ? `1px solid ${alpha('#8B5CF6', 0.35)}` : undefined;
   const shadow = variant === 'outlined' ? 'none' : undefined;
-  return <CardRoot ref={ref} $elevation={elevation} style={mergeStyle(style, sx, { ...system, ...(border ? { border } : {}), ...(shadow ? { boxShadow: shadow } : {}) })} {...rest} />;
+  return <CardRoot ref={ref} $elevation={elevation} $style={mergeStyle(style, sx, { ...system, ...(border ? { border } : {}), ...(shadow ? { boxShadow: shadow } : {}) })} {...rest} />;
 });
 Card.displayName = 'Card';
 
 export const CardContent = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & StyleSystemProps>(({ sx, style, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
-  return <div ref={ref} style={mergeStyle(style, sx, { ...system, padding: '16px' })} {...rest} />;
+  return <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, { ...system, padding: '16px' })} {...rest} />;
 });
 CardContent.displayName = 'CardContent';
 
 export const CardActions = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & StyleSystemProps>(({ sx, style, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
-  return <div ref={ref} style={mergeStyle(style, sx, { ...system, display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '8px' })} {...rest} />;
+  return <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, { ...system, display: 'flex', alignItems: 'center', padding: '8px 16px', gap: '8px' })} {...rest} />;
 });
 CardActions.displayName = 'CardActions';
 
@@ -602,7 +858,7 @@ const alertColors: Record<string, { bg: string; border: string; text: string }> 
   info: { bg: alpha('#8B5CF6', 0.08), border: alpha('#8B5CF6', 0.3), text: '#67e8f9' },
 };
 
-const AlertRoot = styled.div<{ $severity: string }>`
+const AlertRoot = styled.div<{ $severity: string } & PrimitiveStyleProps>`
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -613,6 +869,7 @@ const AlertRoot = styled.div<{ $severity: string }>`
   background: ${({ $severity }) => alertColors[$severity]?.bg ?? alertColors.info.bg};
   border: 1px solid ${({ $severity }) => alertColors[$severity]?.border ?? alertColors.info.border};
   color: ${({ $severity }) => alertColors[$severity]?.text ?? alertColors.info.text};
+  ${applyPrimitiveStyle}
 `;
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -626,12 +883,12 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>(
   ({ severity = 'info', onClose, icon, action, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <AlertRoot ref={ref} $severity={severity} role="alert" style={mergeStyle(style, sx, system)} {...rest}>
-        {icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>}
-        <div style={{ flex: 1 }}>{children}</div>
+      <AlertRoot ref={ref} $severity={severity} role="alert" $style={mergeStyle(style, sx, system)} {...rest}>
+        {icon && <AlertIconSlot>{icon}</AlertIconSlot>}
+        <AlertMessageSlot>{children}</AlertMessageSlot>
         {action}
         {onClose && (
-          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4, opacity: 0.7 }}>×</button>
+          <CloseButton type="button" onClick={onClose} aria-label="Close">×</CloseButton>
         )}
       </AlertRoot>
     );
@@ -641,7 +898,7 @@ Alert.displayName = 'Alert';
 
 /* ─── Tooltip ───────────────────────────────────────────────────────────────── */
 
-const TooltipBubble = styled.span`
+const TooltipBubble = styled.span<PrimitiveStyleProps>`
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -655,6 +912,7 @@ const TooltipBubble = styled.span`
   pointer-events: none;
   z-index: 9999;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  ${applyPrimitiveStyle}
 `;
 
 export interface TooltipProps {
@@ -668,27 +926,28 @@ export const Tooltip: React.FC<TooltipProps> = ({ title, children, placement = '
   const [show, setShow] = React.useState(false);
   if (!title) return children;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}
+    <TooltipShell
       onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}
       onFocus={() => setShow(true)} onBlur={() => setShow(false)}>
       {children}
       {show && (
-        <TooltipBubble style={placement === 'bottom' ? { bottom: 'auto', top: 'calc(100% + 8px)' } : undefined}>
+        <TooltipBubble $style={placement === 'bottom' ? { bottom: 'auto', top: 'calc(100% + 8px)' } : undefined}>
           {title}
         </TooltipBubble>
       )}
-    </span>
+    </TooltipShell>
   );
 };
 
 /* ─── LinearProgress ────────────────────────────────────────────────────────── */
 
-const ProgressTrack = styled.div<{ $trackColor: string }>`
+const ProgressTrack = styled.div<{ $trackColor: string } & PrimitiveStyleProps>`
   width: 100%;
   height: 4px;
   border-radius: 2px;
   background: ${({ $trackColor }) => alpha($trackColor, 0.2)};
   overflow: hidden;
+  ${applyPrimitiveStyle}
 `;
 
 const ProgressBar = styled.div<{ $barColor: string; $value: number }>`
@@ -709,7 +968,7 @@ export const LinearProgress = forwardRef<HTMLDivElement, LinearProgressProps>(
   ({ value = 0, variant = 'determinate', color = '#8B5CF6', sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <ProgressTrack ref={ref} $trackColor={color} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} style={mergeStyle(style, sx, system)} {...rest}>
+      <ProgressTrack ref={ref} $trackColor={color} role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} $style={mergeStyle(style, sx, system)} {...rest}>
         <ProgressBar $barColor={color} $value={variant === 'indeterminate' ? 100 : value} />
       </ProgressTrack>
     );
@@ -720,19 +979,20 @@ LinearProgress.displayName = 'LinearProgress';
 /* ─── List / ListItem / ListItemButton / ListItemIcon / ListItemText / ListItemAvatar ─── */
 
 export const List = forwardRef<HTMLUListElement, React.HTMLAttributes<HTMLUListElement> & StyleSystemProps & { dense?: boolean; disablePadding?: boolean }>(
-  ({ dense = false, disablePadding = false, sx, style, ...rest }, ref) => {
+  ({ dense: _dense = false, disablePadding = false, sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
-    return <ul ref={ref} role="list" style={mergeStyle(style, sx, { ...system, listStyle: 'none', margin: 0, padding: disablePadding ? 0 : '8px 0' })} {...rest} />;
+    return <PrimitiveUl ref={ref} $style={mergeStyle(style, sx, { ...system, listStyle: 'none', margin: 0, padding: disablePadding ? 0 : '8px 0' })} {...rest} />;
   }
 );
 List.displayName = 'List';
 
-const ListItemRoot = styled.li<{ $disableGutters: boolean; $divider: boolean }>`
+const ListItemRoot = styled.li<{ $disableGutters: boolean; $divider: boolean } & PrimitiveStyleProps>`
   display: flex;
   align-items: center;
   padding: ${({ $disableGutters }) => ($disableGutters ? '8px 0' : '8px 16px')};
   gap: 12px;
   ${({ $divider }) => $divider && css`border-bottom: 1px solid ${alpha('#FFFFFF', 0.08)};`}
+  ${applyPrimitiveStyle}
 `;
 
 export interface ListItemProps extends React.LiHTMLAttributes<HTMLLIElement>, StyleSystemProps {
@@ -745,49 +1005,48 @@ export const ListItem = forwardRef<HTMLLIElement, ListItemProps>(
   ({ disableGutters = false, divider = false, secondaryAction, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
     return (
-      <ListItemRoot ref={ref} $disableGutters={disableGutters} $divider={divider} style={mergeStyle(style, sx, system)} {...rest}>
+      <ListItemRoot ref={ref} $disableGutters={disableGutters} $divider={divider} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
-        {secondaryAction && <span style={{ marginLeft: 'auto', flexShrink: 0 }}>{secondaryAction}</span>}
+        {secondaryAction && <SecondaryActionSlot>{secondaryAction}</SecondaryActionSlot>}
       </ListItemRoot>
     );
   }
 );
 ListItem.displayName = 'ListItem';
 
-const ListItemButtonRoot = styled.li<{ $selected: boolean }>`
+const ListItemButtonRoot = styled.button<{ $selected: boolean } & PrimitiveStyleProps>`
   display: flex;
   align-items: center;
   padding: 8px 16px;
   gap: 12px;
   cursor: pointer;
   border-radius: 8px;
+  border: 0;
   transition: background 0.15s;
   background: ${({ $selected }) => ($selected ? alpha('#8B5CF6', 0.1) : 'transparent')};
+  color: inherit;
+  font: inherit;
+  width: 100%;
+  text-align: left;
   &:hover { background: ${alpha('#FFFFFF', 0.06)}; }
+  ${applyPrimitiveStyle}
 `;
 
-export interface ListItemButtonProps extends React.LiHTMLAttributes<HTMLLIElement>, StyleSystemProps {
+export interface ListItemButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
   selected?: boolean;
 }
 
-export const ListItemButton = forwardRef<HTMLLIElement, ListItemButtonProps>(
+export const ListItemButton = forwardRef<HTMLButtonElement, ListItemButtonProps>(
   ({ selected = false, sx, style, onClick, onKeyDown, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest, sx });
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLLIElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        (e.currentTarget as HTMLElement).click();
-      }
-      onKeyDown?.(e);
-    };
-    return <ListItemButtonRoot ref={ref} $selected={selected} role="button" tabIndex={0} onClick={onClick} onKeyDown={handleKeyDown} style={mergeStyle(style, sx, system)} {...rest} />;
+    return <ListItemButtonRoot ref={ref} $selected={selected} type="button" onClick={onClick} onKeyDown={onKeyDown} $style={mergeStyle(style, sx, system)} {...rest} />;
   }
 );
 ListItemButton.displayName = 'ListItemButton';
 
 export const ListItemIcon = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement> & StyleSystemProps>(({ sx, style, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
-  return <span ref={ref} style={mergeStyle(style, sx, { ...system, display: 'inline-flex', minWidth: '40px', color: alpha('#FFFFFF', 0.7) })} {...rest} />;
+  return <PrimitiveSpan ref={ref} $style={mergeStyle(style, sx, { ...system, display: 'inline-flex', minWidth: '40px', color: alpha('#FFFFFF', 0.7) })} {...rest} />;
 });
 ListItemIcon.displayName = 'ListItemIcon';
 
@@ -799,24 +1058,24 @@ export interface ListItemTextProps extends React.HTMLAttributes<HTMLDivElement>,
 export const ListItemText = forwardRef<HTMLDivElement, ListItemTextProps>(({ primary, secondary, sx, style, children, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
   return (
-    <div ref={ref} style={mergeStyle(style, sx, { ...system, flex: 1, minWidth: 0 })} {...rest}>
-      {primary && <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#FFFFFF' }}>{primary}</div>}
-      {secondary && <div style={{ fontSize: '0.75rem', color: alpha('#FFFFFF', 0.6), marginTop: 2 }}>{secondary}</div>}
+    <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, { ...system, flex: 1, minWidth: 0 })} {...rest}>
+      {primary && <ListPrimaryText>{primary}</ListPrimaryText>}
+      {secondary && <ListSecondaryText>{secondary}</ListSecondaryText>}
       {children}
-    </div>
+    </PrimitiveDiv>
   );
 });
 ListItemText.displayName = 'ListItemText';
 
 export const ListItemAvatar = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & StyleSystemProps>(({ sx, style, ...rest }, ref) => {
   const system = getSystemStyles({ ...rest, sx });
-  return <div ref={ref} style={mergeStyle(style, sx, { ...system, display: 'flex', flexShrink: 0 })} {...rest} />;
+  return <PrimitiveDiv ref={ref} $style={mergeStyle(style, sx, { ...system, display: 'flex', flexShrink: 0 })} {...rest} />;
 });
 ListItemAvatar.displayName = 'ListItemAvatar';
 
 /* ─── Switch ────────────────────────────────────────────────────────────────── */
 
-const SwitchLabel = styled.label<{ $checked: boolean; $switchColor: string; $disabled: boolean }>`
+const SwitchLabel = styled.label<{ $checked: boolean; $switchColor: string; $disabled: boolean } & PrimitiveStyleProps>`
   position: relative;
   display: inline-flex;
   width: 42px;
@@ -842,9 +1101,10 @@ const SwitchLabel = styled.label<{ $checked: boolean; $switchColor: string; $dis
       transition: left 0.2s;
     }
   }
+  ${applyPrimitiveStyle}
 `;
 
-export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>, StyleSystemProps {
+export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | keyof StyleSystemProps>, StyleSystemProps {
   color?: string;
 }
 
@@ -861,7 +1121,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
     };
 
     return (
-      <SwitchLabel $checked={!!resolvedChecked} $switchColor={color} $disabled={disabled} style={mergeStyle(style, sx, system)}>
+      <SwitchLabel $checked={!!resolvedChecked} $switchColor={color} $disabled={disabled} $style={mergeStyle(style, sx, system)}>
         <input ref={ref} type="checkbox" {...(isControlled ? { checked } : { defaultChecked })} disabled={disabled} onChange={handleChange} {...rest} />
         <span />
       </SwitchLabel>
@@ -903,7 +1163,7 @@ export const Snackbar = forwardRef<HTMLDivElement, SnackbarProps>(
 
     return (
       <SnackbarRoot ref={ref} $open={open} role="status" aria-live="polite" {...rest}>
-        {children ?? (message && <div style={{ background: '#1e293b', color: '#e2e8f0', padding: '12px 24px', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>{message}</div>)}
+        {children ?? (message && <SnackbarMessage>{message}</SnackbarMessage>)}
       </SnackbarRoot>
     );
   }
@@ -912,12 +1172,13 @@ Snackbar.displayName = 'Snackbar';
 
 /* ─── Collapse ─────────────────────────────────────────────────────────────── */
 
-const CollapseRoot = styled.div<{ $in: boolean; $timeout: number }>`
+const CollapseRoot = styled.div<{ $in: boolean; $timeout: number } & PrimitiveStyleProps>`
   overflow: hidden;
   transition: max-height ${({ $timeout }) => $timeout}ms ease,
               opacity ${({ $timeout }) => $timeout}ms ease;
   max-height: ${({ $in }) => ($in ? '2000px' : '0')};
   opacity: ${({ $in }) => ($in ? 1 : 0)};
+  ${applyPrimitiveStyle}
 `;
 
 export interface CollapseProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -945,7 +1206,7 @@ export const Collapse = forwardRef<HTMLDivElement, CollapseProps>(
     if (unmountOnExit && !mounted && !isOpen) return null;
 
     return (
-      <CollapseRoot ref={ref} $in={isOpen} $timeout={ms} style={mergeStyle(style, sx, system)} {...rest}>
+      <CollapseRoot ref={ref} $in={isOpen} $timeout={ms} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </CollapseRoot>
     );
@@ -992,26 +1253,21 @@ export interface InputAdornmentProps extends React.HTMLAttributes<HTMLDivElement
 
 export const InputAdornment = forwardRef<HTMLDivElement, InputAdornmentProps>(
   ({ position, style, children, ...rest }, ref) => (
-    <div
+    <InputAdornmentRoot
       ref={ref}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        color: alpha('#FFFFFF', 0.5),
-        ...(position === 'start' ? { marginRight: 8 } : { marginLeft: 8 }),
-        ...style,
-      }}
+      $position={position}
+      $style={style}
       {...rest}
     >
       {children}
-    </div>
+    </InputAdornmentRoot>
   )
 );
 InputAdornment.displayName = 'InputAdornment';
 
 /* ─── OutlinedInput ────────────────────────────────────────────────────────── */
 
-const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean }>`
+const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean } & PrimitiveStyleProps>`
   display: flex;
   align-items: center;
   background: ${alpha('#002060', 0.6)};
@@ -1036,9 +1292,10 @@ const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean }>`
     &::placeholder { color: ${alpha('#FFFFFF', 0.4)}; }
     &:disabled { cursor: not-allowed; }
   }
+  ${applyPrimitiveStyle}
 `;
 
-export interface OutlinedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>, StyleSystemProps {
+export interface OutlinedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | keyof StyleSystemProps>, StyleSystemProps {
   startAdornment?: React.ReactNode;
   endAdornment?: React.ReactNode;
   fullWidth?: boolean;
@@ -1062,23 +1319,42 @@ export const OutlinedInput = forwardRef<HTMLInputElement, OutlinedInputProps>(
       setFocused(false);
       onBlur?.(e);
     };
+    const setTextareaRef = (node: HTMLTextAreaElement | null) => {
+      if (typeof ref === 'function') {
+        ref(node as unknown as HTMLInputElement);
+        return;
+      }
+      if (ref) {
+        (ref as React.MutableRefObject<HTMLInputElement | null>).current = node as unknown as HTMLInputElement;
+      }
+    };
+    const handleTextareaFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      setFocused(true);
+      onFocus?.(e as unknown as React.FocusEvent<HTMLInputElement>);
+    };
+    const handleTextareaBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      setFocused(false);
+      onBlur?.(e as unknown as React.FocusEvent<HTMLInputElement>);
+    };
+    const textareaInputProps = restInputProps as React.TextareaHTMLAttributes<HTMLTextAreaElement>;
+    const textareaProps = rest as React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
     return (
-      <OutlinedInputRoot $focused={focused} $disabled={disabled} style={mergeStyle(style, sx, { ...system, ...(fullWidth ? { width: '100%' } : {}) })}>
+      <OutlinedInputRoot $focused={focused} $disabled={disabled} $style={mergeStyle(style, sx, { ...system, ...(fullWidth ? { width: '100%' } : {}) })}>
         {startAdornment}
         {multiline ? (
-          <textarea
-            ref={ref as any}
+          <TextAreaInput
+            ref={setTextareaRef}
             rows={rows}
             disabled={disabled}
-            onFocus={handleFocus as any}
-            onBlur={handleBlur as any}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontFamily: 'inherit', fontSize: '0.875rem', resize: 'vertical' }}
-            {...(restInputProps as any)}
-            {...(rest as any)}
+            onFocus={handleTextareaFocus}
+            onBlur={handleTextareaBlur}
+            className={inputClassName}
+            {...textareaInputProps}
+            {...textareaProps}
           />
         ) : (
-          <input ref={ref} disabled={disabled} onFocus={handleFocus} onBlur={handleBlur} {...restInputProps} {...rest} />
+          <input ref={ref} disabled={disabled} onFocus={handleFocus} onBlur={handleBlur} className={inputClassName} {...restInputProps} {...rest} />
         )}
         {endAdornment}
       </OutlinedInputRoot>
@@ -1097,23 +1373,24 @@ export interface TextFieldProps extends Omit<OutlinedInputProps, 'label'> {
 }
 
 export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
-  ({ label, helperText, error = false, variant = 'outlined', sx, style, id, ...rest }, ref) => {
+  ({ label, helperText, error = false, variant: _variant = 'outlined', sx, style, id, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
-    const inputId = id || `text-field-${React.useId?.() ?? Math.random().toString(36).slice(2)}`;
+    const generatedId = React.useId();
+    const inputId = id || `text-field-${generatedId.replace(/:/g, '')}`;
     return (
-      <div style={mergeStyle(style, sx, { ...system, display: 'flex', flexDirection: 'column', gap: '4px' })}>
+      <TextFieldRoot $style={mergeStyle(style, sx, system)}>
         {label && (
-          <label htmlFor={inputId} style={{ fontSize: '0.75rem', fontWeight: 500, color: error ? '#ef4444' : alpha('#FFFFFF', 0.7) }}>
+          <TextFieldLabel htmlFor={inputId} $error={error}>
             {label}
-          </label>
+          </TextFieldLabel>
         )}
         <OutlinedInput ref={ref} id={inputId} {...rest} />
         {helperText && (
-          <span style={{ fontSize: '0.75rem', color: error ? '#ef4444' : alpha('#FFFFFF', 0.5) }}>
+          <HelperText $error={error}>
             {helperText}
-          </span>
+          </HelperText>
         )}
-      </div>
+      </TextFieldRoot>
     );
   }
 );
@@ -1136,9 +1413,9 @@ export const FormControlLabel = forwardRef<HTMLLabelElement, FormControlLabelPro
     const isReversed = labelPlacement === 'start' || labelPlacement === 'top';
 
     return (
-      <label
+      <PrimitiveLabel
         ref={ref}
-        style={mergeStyle(style, sx, {
+        $style={mergeStyle(style, sx, {
           ...system,
           display: 'inline-flex',
           alignItems: 'center',
@@ -1150,8 +1427,8 @@ export const FormControlLabel = forwardRef<HTMLLabelElement, FormControlLabelPro
         {...rest}
       >
         {cloneElement(control, { disabled, ...(value !== undefined ? { value } : {}) })}
-        <span style={{ fontSize: '0.875rem', color: '#FFFFFF' }}>{label}</span>
-      </label>
+        <FormControlLabelText>{label}</FormControlLabelText>
+      </PrimitiveLabel>
     );
   }
 );
@@ -1183,9 +1460,9 @@ export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(
 
     return (
       <RadioContext.Provider value={{ name, value: resolvedValue, onChange: handleChange }}>
-        <div ref={ref} role="radiogroup" style={{ display: 'flex', flexDirection: row ? 'row' : 'column', gap: '8px', ...style }} {...rest}>
+        <RadioGroupRoot ref={ref} role="radiogroup" $row={row} $style={style} {...rest}>
           {children}
-        </div>
+        </RadioGroupRoot>
       </RadioContext.Provider>
     );
   }
@@ -1212,7 +1489,7 @@ const RadioDot = styled.span<{ $checked: boolean; $radioColor: string; $radioSiz
   }
 `;
 
-export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'>, StyleSystemProps {
+export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | keyof StyleSystemProps>, StyleSystemProps {
   color?: string;
   size?: 'small' | 'medium';
 }
@@ -1231,8 +1508,8 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
     };
 
     return (
-      <span style={mergeStyle(style, sx, { ...system, display: 'inline-flex', cursor: disabled ? 'not-allowed' : 'pointer' })}>
-        <input
+      <RadioRoot $disabled={disabled} $style={mergeStyle(style, sx, system)}>
+        <VisuallyHiddenInput
           ref={ref}
           type="radio"
           value={value}
@@ -1240,11 +1517,10 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
           onChange={handleChange}
           name={resolvedName}
           disabled={disabled}
-          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
           {...rest}
         />
         <RadioDot $checked={!!resolvedChecked} $radioColor={color} $radioSize={radioSize} />
-      </span>
+      </RadioRoot>
     );
   }
 );
@@ -1252,7 +1528,7 @@ Radio.displayName = 'Radio';
 
 /* ─── Fab (Floating Action Button) ─────────────────────────────────────────── */
 
-const FabRoot = styled.button<{ $fabSize: number; $fabColor: string; $disabled: boolean }>`
+const FabRoot = styled.button<{ $fabSize: number; $fabColor: string; $disabled: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1271,6 +1547,7 @@ const FabRoot = styled.button<{ $fabSize: number; $fabColor: string; $disabled: 
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     transform: translateY(-1px);
   }
+  ${applyPrimitiveStyle}
 `;
 
 export interface FabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
@@ -1293,7 +1570,7 @@ export const Fab = forwardRef<HTMLButtonElement, FabProps>(
         $fabColor={color}
         $disabled={disabled}
         disabled={disabled}
-        style={mergeStyle(style, sx, {
+        $style={mergeStyle(style, sx, {
           ...system,
           ...(extended ? { width: 'auto', borderRadius: '24px', padding: '0 16px', gap: '8px' } : {}),
         })}
@@ -1306,7 +1583,7 @@ Fab.displayName = 'Fab';
 
 /* ─── Slider ───────────────────────────────────────────────────────────────── */
 
-const SliderRoot = styled.div<{ $disabled: boolean }>`
+const SliderRoot = styled.div<{ $disabled: boolean } & PrimitiveStyleProps>`
   position: relative;
   width: 100%;
   height: 36px;
@@ -1315,6 +1592,7 @@ const SliderRoot = styled.div<{ $disabled: boolean }>`
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   touch-action: none;
+  ${applyPrimitiveStyle}
 `;
 
 const SliderTrack = styled.div`
@@ -1448,7 +1726,7 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>(
           if (!isControlled) setInternalValue(newVal);
           if (onChange) onChange(new Event('change'), newVal);
         }}
-        style={mergeStyle(style, sx, system)}
+        $style={mergeStyle(style, sx, system)}
         {...rest}
       >
         <SliderTrack ref={trackRef} />
@@ -1463,18 +1741,18 @@ Slider.displayName = 'Slider';
 
 /* ─── Popper ───────────────────────────────────────────────────────────────── */
 
-export interface PopperProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+export interface PopperProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children' | keyof StyleSystemProps>, StyleSystemProps {
   open: boolean;
   anchorEl?: HTMLElement | null;
   placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end';
   disablePortal?: boolean;
   transition?: boolean;
-  modifiers?: Array<{ name: string; options?: Record<string, any> }>;
+  modifiers?: PopperModifier[];
   children?: React.ReactNode | ((props: { TransitionProps: { in: boolean } }) => React.ReactNode);
 }
 
 export const Popper = forwardRef<HTMLDivElement, PopperProps>(
-  ({ open, anchorEl, placement = 'bottom', disablePortal = false, transition = false, modifiers, sx, style, children, ...rest }, ref) => {
+  ({ open, anchorEl, placement = 'bottom', disablePortal = false, transition: _transition = false, modifiers, sx, style, children, ...rest }, ref) => {
     const [pos, setPos] = React.useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
 
@@ -1519,9 +1797,9 @@ export const Popper = forwardRef<HTMLDivElement, PopperProps>(
     const content = typeof children === 'function' ? children({ TransitionProps: transitionProps }) : children;
 
     return (
-      <div
+      <PrimitiveDiv
         ref={ref}
-        style={mergeStyle(style, sx, {
+        $style={mergeStyle(style, sx, {
           ...system,
           position: disablePortal ? 'absolute' : 'fixed',
           top: `${pos.top}px`,
@@ -1531,7 +1809,7 @@ export const Popper = forwardRef<HTMLDivElement, PopperProps>(
         {...rest}
       >
         {content}
-      </div>
+      </PrimitiveDiv>
     );
   }
 );
@@ -1539,13 +1817,9 @@ Popper.displayName = 'Popper';
 
 /* ─── Drawer ───────────────────────────────────────────────────────────────── */
 
-const DrawerBackdrop = styled.div<{ $open: boolean }>`
-  position: fixed;
-  inset: 0;
+const DrawerBackdrop = styled(ModalBackdropButton)<{ $open: boolean }>`
   background: rgba(0, 0, 0, 0.5);
   z-index: 1199;
-  opacity: ${({ $open }) => ($open ? 1 : 0)};
-  visibility: ${({ $open }) => ($open ? 'visible' : 'hidden')};
   transition: opacity 0.3s, visibility 0.3s;
 `;
 
@@ -1554,7 +1828,7 @@ const DrawerPanel = styled.div<{
   $anchor: 'left' | 'right' | 'top' | 'bottom';
   $width: string | number;
   $variant: 'temporary' | 'persistent' | 'permanent';
-}>`
+} & PrimitiveStyleProps>`
   position: ${({ $variant }) => ($variant === 'permanent' ? 'relative' : 'fixed')};
   z-index: 1200;
   background: ${alpha('#002060', 0.95)};
@@ -1588,6 +1862,7 @@ const DrawerPanel = styled.div<{
       case 'bottom': return css`transform: translateY(100%);`;
     }
   }}
+  ${applyPrimitiveStyle}
 `;
 
 export interface DrawerProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -1604,7 +1879,7 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     const keepMounted = ModalProps?.keepMounted ?? false;
     const paperStyle = PaperProps?.sx ?? PaperProps?.style ?? {};
-    const width = (paperStyle as any)?.width ?? 256;
+    const width = paperStyle.width ?? 256;
 
     // For permanent variant, always show without backdrop
     if (variant === 'permanent') {
@@ -1615,7 +1890,7 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(
           $anchor={anchor}
           $width={width}
           $variant="permanent"
-          style={mergeStyle(style, sx, { ...system, ...paperStyle })}
+          $style={mergeStyle(style, sx, { ...system, ...paperStyle })}
           {...rest}
         >
           {children}
@@ -1628,14 +1903,14 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(
 
     return (
       <>
-        {variant === 'temporary' && <DrawerBackdrop $open={open} onClick={onClose} />}
+        {variant === 'temporary' && <DrawerBackdrop type="button" aria-label="Close drawer" $open={open} onClick={onClose} />}
         <DrawerPanel
           ref={ref}
           $open={open}
           $anchor={anchor}
           $width={width}
           $variant={variant}
-          style={mergeStyle(style, sx, { ...system, ...paperStyle })}
+          $style={mergeStyle(style, sx, { ...system, ...paperStyle })}
           {...rest}
         >
           {children}
@@ -1654,7 +1929,7 @@ const skeletonPulse = keyframes`
   100% { opacity: 0.4; }
 `;
 
-const SkeletonRoot = styled.span<{ $variant: string; $width?: string | number; $height?: string | number }>`
+const SkeletonRoot = styled.span<{ $variant: string; $width?: string | number; $height?: string | number } & PrimitiveStyleProps>`
   display: block;
   background: ${alpha('#FFFFFF', 0.1)};
   animation: ${skeletonPulse} 1.5s ease-in-out infinite;
@@ -1667,6 +1942,7 @@ const SkeletonRoot = styled.span<{ $variant: string; $width?: string | number; $
   ${({ $width }) => $width !== undefined && css`width: ${typeof $width === 'number' ? `${$width}px` : $width};`}
   ${({ $height }) => $height !== undefined && css`height: ${typeof $height === 'number' ? `${$height}px` : $height};`}
   ${({ $variant, $height }) => $variant === 'text' && !$height && css`height: 1em;`}
+  ${applyPrimitiveStyle}
 `;
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLSpanElement>, StyleSystemProps {
@@ -1679,7 +1955,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLSpanElement>, St
 export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(
   ({ variant = 'text', width, height, sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
-    return <SkeletonRoot ref={ref} $variant={variant} $width={width} $height={height} style={mergeStyle(style, sx, system)} {...rest} />;
+    return <SkeletonRoot ref={ref} $variant={variant} $width={width} $height={height} $style={mergeStyle(style, sx, system)} {...rest} />;
   }
 );
 Skeleton.displayName = 'Skeleton';
@@ -1695,9 +1971,9 @@ export const Toolbar = forwardRef<HTMLDivElement, ToolbarProps>(
   ({ variant = 'regular', disableGutters = false, sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <div
+      <PrimitiveDiv
         ref={ref}
-        style={mergeStyle(style, sx, {
+        $style={mergeStyle(style, sx, {
           ...system,
           display: 'flex',
           alignItems: 'center',
@@ -1714,7 +1990,7 @@ Toolbar.displayName = 'Toolbar';
 
 /* ─── ButtonBase ───────────────────────────────────────────────────────────── */
 
-const ButtonBaseRoot = styled.button`
+const ButtonBaseRoot = styled.button<PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1729,6 +2005,7 @@ const ButtonBaseRoot = styled.button`
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   &:disabled { cursor: not-allowed; opacity: 0.5; }
+  ${applyPrimitiveStyle}
 `;
 
 export interface ButtonBaseProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
@@ -1742,20 +2019,18 @@ export const ButtonBase = forwardRef<HTMLButtonElement, ButtonBaseProps>(
     if (component) {
       return React.createElement(component, { ref, style: mergeStyle(style, sx, system), ...rest });
     }
-    return <ButtonBaseRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest} />;
+    return <ButtonBaseRoot ref={ref} $style={mergeStyle(style, sx, system)} {...rest} />;
   }
 );
 ButtonBase.displayName = 'ButtonBase';
 
 /* ─── Menu / MenuItem ──────────────────────────────────────────────────────── */
 
-const MenuBackdrop = styled.div`
-  position: fixed;
-  inset: 0;
+const MenuBackdrop = styled(ModalBackdropButton)`
   z-index: 1299;
 `;
 
-const MenuPaper = styled.div<{ $open: boolean }>`
+const MenuPaper = styled.div<{ $open: boolean } & PrimitiveStyleProps>`
   position: fixed;
   z-index: 1300;
   background: ${alpha('#0f172a', 0.95)};
@@ -1769,6 +2044,7 @@ const MenuPaper = styled.div<{ $open: boolean }>`
   opacity: ${({ $open }) => ($open ? 1 : 0)};
   transform: ${({ $open }) => ($open ? 'scale(1)' : 'scale(0.95)')};
   transition: opacity 0.15s, transform 0.15s;
+  ${applyPrimitiveStyle}
 `;
 
 export interface MenuProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -1792,8 +2068,8 @@ export const Menu = forwardRef<HTMLDivElement, MenuProps>(
 
     return (
       <>
-        <MenuBackdrop onClick={onClose} />
-        <MenuPaper ref={ref} $open={open} style={{ top: `${pos.top}px`, left: `${pos.left}px` }} role="menu" {...rest}>
+        <MenuBackdrop type="button" aria-label="Close menu" onClick={onClose} />
+        <MenuPaper ref={ref} $open={open} $style={{ top: `${pos.top}px`, left: `${pos.left}px` }} role="menu" {...rest}>
           {children}
         </MenuPaper>
       </>
@@ -1802,7 +2078,7 @@ export const Menu = forwardRef<HTMLDivElement, MenuProps>(
 );
 Menu.displayName = 'Menu';
 
-const MenuItemRoot = styled.div<{ $selected: boolean; $disabled: boolean }>`
+const MenuItemRoot = styled.div<{ $selected: boolean; $disabled: boolean } & PrimitiveStyleProps>`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1813,6 +2089,7 @@ const MenuItemRoot = styled.div<{ $selected: boolean; $disabled: boolean }>`
   background: ${({ $selected }) => ($selected ? alpha('#8B5CF6', 0.1) : 'transparent')};
   transition: background 0.15s;
   &:hover:not([aria-disabled='true']) { background: ${alpha('#FFFFFF', 0.06)}; }
+  ${applyPrimitiveStyle}
 `;
 
 export interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -1824,7 +2101,7 @@ export interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement>, Sty
 export const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
   ({ selected = false, disabled = false, sx, style, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
-    return <MenuItemRoot ref={ref} $selected={selected} $disabled={disabled} role="menuitem" aria-disabled={disabled} tabIndex={disabled ? -1 : 0} style={mergeStyle(style, sx, system)} {...rest} />;
+    return <MenuItemRoot ref={ref} $selected={selected} $disabled={disabled} role="menuitem" aria-disabled={disabled} tabIndex={disabled ? -1 : 0} $style={mergeStyle(style, sx, system)} {...rest} />;
   }
 );
 MenuItem.displayName = 'MenuItem';
@@ -1843,16 +2120,14 @@ const dialogSlideUp = keyframes`
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 `;
 
-const DialogBackdrop = styled.div<{ $open: boolean }>`
-  position: fixed;
-  inset: 0;
+const DialogBackdrop = styled(ModalBackdropButton)<{ $open: boolean }>`
   z-index: 1300;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   animation: ${dialogFadeIn} 0.2s ease-out;
 `;
 
-const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean; $fullScreen?: boolean }>`
+const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean; $fullScreen?: boolean } & PrimitiveStyleProps>`
   position: fixed;
   z-index: 1301;
   display: flex;
@@ -1909,17 +2184,17 @@ const DialogPanel = styled.div<{ $maxWidth: string; $fullWidth: boolean; $fullSc
       max-height: calc(100% - 32px);
     `}
   }
+  ${applyPrimitiveStyle}
 `;
 
-export interface DialogProps extends StyleSystemProps {
+export interface DialogProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children' | keyof StyleSystemProps>, Omit<StyleSystemProps, 'maxWidth'> {
   open: boolean;
   onClose?: () => void;
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
   fullWidth?: boolean;
   fullScreen?: boolean;
   children?: React.ReactNode;
-  PaperProps?: { sx?: any; style?: React.CSSProperties; className?: string };
-  [key: string]: any;
+  PaperProps?: { sx?: React.CSSProperties; style?: React.CSSProperties; className?: string };
 }
 
 export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
@@ -1945,7 +2220,7 @@ export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
 
     return ReactDOM.createPortal(
       <>
-        <DialogBackdrop $open={open} onClick={onClose} />
+        <DialogBackdrop type="button" aria-label="Close dialog" $open={open} onClick={onClose} />
         <DialogPanel
           ref={ref}
           $maxWidth={maxWidth === false ? 'sm' : maxWidth}
@@ -1953,7 +2228,7 @@ export const Dialog = forwardRef<HTMLDivElement, DialogProps>(
           $fullScreen={fullScreen}
           role="dialog"
           aria-modal="true"
-          style={{ ...paperStyle, ...style }}
+          $style={mergeStyle(style, sx, paperStyle)}
           className={PaperProps?.className}
           {...rest}
         >
@@ -1968,7 +2243,7 @@ Dialog.displayName = 'Dialog';
 
 /* ─── DialogTitle ─────────────────────────────────────────────────────────── */
 
-const DialogTitleRoot = styled.div`
+const DialogTitleRoot = styled.div<PrimitiveStyleProps>`
   padding: 16px 24px;
   font-size: 1.25rem;
   font-weight: 600;
@@ -1976,6 +2251,7 @@ const DialogTitleRoot = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  ${applyPrimitiveStyle}
 `;
 
 export interface DialogTitleProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {}
@@ -1984,7 +2260,7 @@ export const DialogTitle = forwardRef<HTMLDivElement, DialogTitleProps>(
   ({ sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <DialogTitleRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest}>
+      <DialogTitleRoot ref={ref} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </DialogTitleRoot>
     );
@@ -1994,7 +2270,7 @@ DialogTitle.displayName = 'DialogTitle';
 
 /* ─── DialogContent ──────────────────────────────────────────────────────── */
 
-const DialogContentRoot = styled.div<{ $dividers: boolean }>`
+const DialogContentRoot = styled.div<{ $dividers: boolean } & PrimitiveStyleProps>`
   padding: 16px 24px;
   flex: 1 1 auto;
   overflow-y: auto;
@@ -2013,6 +2289,7 @@ const DialogContentRoot = styled.div<{ $dividers: boolean }>`
     background: ${alpha('#FFFFFF', 0.2)};
     border-radius: 3px;
   }
+  ${applyPrimitiveStyle}
 `;
 
 export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -2023,7 +2300,7 @@ export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
   ({ dividers = false, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <DialogContentRoot ref={ref} $dividers={dividers} style={mergeStyle(style, sx, system)} {...rest}>
+      <DialogContentRoot ref={ref} $dividers={dividers} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </DialogContentRoot>
     );
@@ -2033,12 +2310,13 @@ DialogContent.displayName = 'DialogContent';
 
 /* ─── DialogActions ──────────────────────────────────────────────────────── */
 
-const DialogActionsRoot = styled.div`
+const DialogActionsRoot = styled.div<PrimitiveStyleProps>`
   padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  ${applyPrimitiveStyle}
 `;
 
 export interface DialogActionsProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {}
@@ -2047,7 +2325,7 @@ export const DialogActions = forwardRef<HTMLDivElement, DialogActionsProps>(
   ({ sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <DialogActionsRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest}>
+      <DialogActionsRoot ref={ref} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </DialogActionsRoot>
     );
@@ -2061,7 +2339,7 @@ DialogActions.displayName = 'DialogActions';
 
 /* ─── FormControl ────────────────────────────────────────────────────────── */
 
-const FormControlRoot = styled.div<{ $fullWidth: boolean; $error: boolean; $disabled: boolean }>`
+const FormControlRoot = styled.div<{ $fullWidth: boolean; $error: boolean; $disabled: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   flex-direction: column;
   position: relative;
@@ -2072,6 +2350,7 @@ const FormControlRoot = styled.div<{ $fullWidth: boolean; $error: boolean; $disa
   vertical-align: top;
   ${({ $fullWidth }) => $fullWidth && css`width: 100%;`}
   ${({ $disabled }) => $disabled && css`opacity: 0.6; pointer-events: none;`}
+  ${applyPrimitiveStyle}
 `;
 
 export interface FormControlProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
@@ -2086,7 +2365,7 @@ export const FormControl = forwardRef<HTMLDivElement, FormControlProps>(
   ({ fullWidth = false, error = false, disabled = false, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <FormControlRoot ref={ref} $fullWidth={fullWidth} $error={error} $disabled={disabled} style={mergeStyle(style, sx, system)} {...rest}>
+      <FormControlRoot ref={ref} $fullWidth={fullWidth} $error={error} $disabled={disabled} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </FormControlRoot>
     );
@@ -2096,13 +2375,14 @@ FormControl.displayName = 'FormControl';
 
 /* ─── InputLabel ─────────────────────────────────────────────────────────── */
 
-const InputLabelRoot = styled.label<{ $shrink: boolean; $error: boolean }>`
+const InputLabelRoot = styled.label<{ $shrink: boolean; $error: boolean } & PrimitiveStyleProps>`
   display: block;
   font-size: ${({ $shrink }) => ($shrink ? '0.75rem' : '1rem')};
   color: ${({ $error }) => ($error ? '#f44336' : 'rgba(255, 255, 255, 0.7)')};
   margin-bottom: 4px;
   transition: all 0.15s ease;
   transform-origin: top left;
+  ${applyPrimitiveStyle}
 `;
 
 export interface InputLabelProps extends React.LabelHTMLAttributes<HTMLLabelElement>, StyleSystemProps {
@@ -2114,7 +2394,7 @@ export const InputLabel = forwardRef<HTMLLabelElement, InputLabelProps>(
   ({ shrink = false, error = false, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <InputLabelRoot ref={ref} $shrink={shrink} $error={error} style={mergeStyle(style, sx, system)} {...rest}>
+      <InputLabelRoot ref={ref} $shrink={shrink} $error={error} $style={mergeStyle(style, sx, system)} {...rest}>
         {children}
       </InputLabelRoot>
     );
@@ -2124,7 +2404,7 @@ InputLabel.displayName = 'InputLabel';
 
 /* ─── Select ─────────────────────────────────────────────────────────────── */
 
-const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: string }>`
+const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: string } & PrimitiveStyleProps>`
   appearance: none;
   background: ${alpha('#002060', 0.6)};
   border: 1px solid ${alpha('#FFFFFF', 0.23)};
@@ -2148,12 +2428,14 @@ const SelectRoot = styled.select<{ $fullWidth: boolean; $error: boolean; $size: 
     background: #0f172a;
     color: #FFFFFF;
   }
+  ${applyPrimitiveStyle}
 `;
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement>, StyleSystemProps {
+export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size' | keyof StyleSystemProps>, StyleSystemProps {
   fullWidth?: boolean;
   error?: boolean;
   label?: string;
+  size?: ButtonSize;
   variant?: 'outlined' | 'filled' | 'standard';
   native?: boolean;
 }
@@ -2162,7 +2444,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ fullWidth = false, error = false, size = 'medium', label, sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     return (
-      <SelectRoot ref={ref} $fullWidth={fullWidth} $error={error} $size={size} style={mergeStyle(style, sx, system)} aria-label={label} {...rest}>
+      <SelectRoot ref={ref} $fullWidth={fullWidth} $error={error} $size={size} $style={mergeStyle(style, sx, system)} aria-label={label} {...rest}>
         {children}
       </SelectRoot>
     );
@@ -2174,7 +2456,7 @@ Select.displayName = 'Select';
    TABS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const TabsRoot = styled.div<{ $variant: string }>`
+const TabsRoot = styled.div<{ $variant: string } & PrimitiveStyleProps>`
   display: flex;
   border-bottom: 1px solid ${alpha('#FFFFFF', 0.12)};
   position: relative;
@@ -2186,9 +2468,10 @@ const TabsRoot = styled.div<{ $variant: string }>`
     css`
       & > * { flex: 1; }
     `}
+  ${applyPrimitiveStyle}
 `;
 
-export interface TabsProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+export interface TabsProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange' | keyof StyleSystemProps>, StyleSystemProps {
   value?: string | number;
   onChange?: (event: React.SyntheticEvent, newValue: string | number) => void;
   variant?: 'standard' | 'fullWidth' | 'scrollable';
@@ -2200,18 +2483,21 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(
   ({ value, onChange, variant = 'standard', indicatorColor = '#8B5CF6', sx, style, children, ...rest }, ref) => {
     const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
     const childrenWithProps = Children.map(children, (child) => {
-      if (!React.isValidElement(child)) return child;
-      return cloneElement(child as React.ReactElement<any>, {
-        $selected: (child as React.ReactElement<any>).props.value === value,
+      if (!React.isValidElement<TabChildProps>(child)) return child;
+      const childValue = child.props.value;
+      return cloneElement(child, {
+        $selected: childValue === value,
         $indicatorColor: indicatorColor,
-        onClick: (e: React.MouseEvent) => {
-          (child as React.ReactElement<any>).props.onClick?.(e);
-          onChange?.(e, (child as React.ReactElement<any>).props.value);
+        onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+          child.props.onClick?.(e);
+          if (childValue !== undefined) {
+            onChange?.(e, childValue);
+          }
         },
       });
     });
     return (
-      <TabsRoot ref={ref} $variant={variant} role="tablist" style={mergeStyle(style, sx, system)} {...rest}>
+      <TabsRoot ref={ref} $variant={variant} role="tablist" $style={mergeStyle(style, sx, system)} {...rest}>
         {childrenWithProps}
       </TabsRoot>
     );
@@ -2221,7 +2507,7 @@ Tabs.displayName = 'Tabs';
 
 /* ─── Tab ────────────────────────────────────────────────────────────────── */
 
-const TabRoot = styled.button<{ $selected: boolean; $indicatorColor: string; $disabled: boolean }>`
+const TabRoot = styled.button<{ $selected: boolean; $indicatorColor: string; $disabled: boolean } & PrimitiveStyleProps>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2259,6 +2545,7 @@ const TabRoot = styled.button<{ $selected: boolean; $indicatorColor: string; $di
     outline: 2px solid #8B5CF6;
     outline-offset: -2px;
   }
+  ${applyPrimitiveStyle}
 `;
 
 export interface TabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
@@ -2282,7 +2569,7 @@ export const Tab = forwardRef<HTMLButtonElement, TabProps>(
         $indicatorColor={$indicatorColor}
         $disabled={disabled}
         disabled={disabled}
-        style={mergeStyle(style, sx, system)}
+        $style={mergeStyle(style, sx, system)}
         {...rest}
       >
         {icon && iconPosition === 'start' && icon}
@@ -2293,4 +2580,3 @@ export const Tab = forwardRef<HTMLButtonElement, TabProps>(
   }
 );
 Tab.displayName = 'Tab';
-
