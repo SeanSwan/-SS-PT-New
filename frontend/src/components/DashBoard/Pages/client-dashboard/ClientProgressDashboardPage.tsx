@@ -42,8 +42,8 @@ import React, { useState, useEffect, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, Star, Zap, Flame, Trophy, Target,
-  Award, ChevronRight, Dumbbell, Calendar,
+  TrendingUp, Star, Zap, Trophy,
+  ChevronRight, Dumbbell, Calendar,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
@@ -110,14 +110,14 @@ const PageTitle = styled.h1`
   color: var(--text-primary, #E0ECF4);
 `;
 
-const StatsStrip = styled.div`
+const StatsStrip = styled.div<{ $bottom?: string }>`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: ${({ $bottom }) => $bottom ?? '1.25rem'};
 `;
 
-const StatCard = styled.div<{ $accent?: string }>`
+const StatCard = styled.div<{ $accent?: string; $delay?: number }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 12px;
@@ -126,7 +126,7 @@ const StatCard = styled.div<{ $accent?: string }>`
   flex-direction: column;
   gap: 0.25rem;
   animation: ${countUp} 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 60ms);
+  animation-delay: ${({ $delay = 0 }) => `${$delay * 60}ms`};
 
   &:hover {
     border-color: ${({ $accent }) => $accent || 'var(--accent-primary, rgba(96, 192, 240, 0.2))'};
@@ -211,22 +211,38 @@ const SplitRow = styled.div`
   }
 `;
 
-const Card = styled.div`
+const Card = styled.div<{ $bottom?: string }>`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
   border-radius: 12px;
   padding: 1.25rem;
+  margin-bottom: ${({ $bottom }) => $bottom ?? 0};
 `;
 
-const CardTitle = styled.h3`
+const CardTitle = styled.h3<{ $bottom?: string }>`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--accent-primary, #60C0F0);
-  margin: 0 0 0.75rem;
+  margin: ${({ $bottom }) => `0 0 ${$bottom ?? '0.75rem'}`};
   display: flex;
   align-items: center;
   gap: 0.5rem;
+`;
+
+const LabelStar = styled(Star)`
+  vertical-align: middle;
+  margin-right: 4px;
+`;
+
+const TrailingChevron = styled(ChevronRight)`
+  margin-left: auto;
+`;
+
+const ChartsLoading = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
 `;
 
 const RecapGrid = styled.div`
@@ -310,15 +326,15 @@ const Skeleton = styled.div<{ $w?: string; $h?: string }>`
 // ─────────────────────────────────────────────────────────────
 
 const TIER_COLORS: Record<string, string> = {
-  bronze: '#CD7F32',
-  silver: '#C0C0C0',
-  gold: '#878681',
-  platinum: '#8B5CF6',
-  bronze_forge: '#CD7F32',
-  silver_edge: '#C0C0C0',
-  titanium_core: '#878681',
-  obsidian_warrior: '#0A0A0F',
-  crystalline_swan: '#60C0F0',
+  bronze: 'var(--tier-bronze, #CD7F32)',
+  silver: 'var(--tier-silver, #C0C0C0)',
+  gold: 'var(--tier-gold, #C6A84B)',
+  platinum: 'var(--accent-secondary, #8B5CF6)',
+  bronze_forge: 'var(--tier-bronze, #CD7F32)',
+  silver_edge: 'var(--tier-silver, #C0C0C0)',
+  titanium_core: 'var(--tier-gold, #C6A84B)',
+  obsidian_warrior: 'var(--bg-base, #0A0A0F)',
+  crystalline_swan: 'var(--accent-primary, #60C0F0)',
 };
 
 const TIER_LABELS: Record<string, string> = {
@@ -333,6 +349,28 @@ const TIER_LABELS: Record<string, string> = {
   crystalline_swan: 'Crystalline Swan',
 };
 
+interface WeeklyRecap {
+  thisWeek?: {
+    workouts?: number;
+    surpriseMultipliers?: number;
+    totalXP?: number;
+  };
+  current?: {
+    streak?: number;
+  };
+}
+
+interface PersonalRecord {
+  exerciseName?: string;
+  exercise?: string;
+  weight?: string | number;
+  estimated1RM?: string | number;
+  value?: string | number;
+  unit?: string;
+  reps?: string | number;
+  date?: string;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -343,14 +381,24 @@ const ClientProgressDashboardPage: React.FC = () => {
   const { profile } = useGamificationData();
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAdvancedAccess = isPro || isElite || isTrial;
-  const [weeklyRecap, setWeeklyRecap] = useState<any>(null);
-  const [personalRecords, setPersonalRecords] = useState<any[]>([]);
+  const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
 
   // Fetch weekly recap
   useEffect(() => {
     if (!authAxios || !user?.id) return;
     authAxios.get(`/api/gamification/users/${user.id}/weekly-recap`)
-      .then(res => setWeeklyRecap(res.data?.data || res.data))
+      .then(res => {
+        const payload = res.data as unknown;
+        const recap = (
+          typeof payload === 'object' &&
+          payload !== null &&
+          'data' in payload
+        )
+          ? (payload as { data?: WeeklyRecap }).data ?? null
+          : payload as WeeklyRecap;
+        setWeeklyRecap(recap ?? null);
+      })
       .catch(() => { /* silent */ });
   }, [authAxios, user?.id]);
 
@@ -360,14 +408,15 @@ const ClientProgressDashboardPage: React.FC = () => {
     // Client-safe namespace: userId derived from JWT, never from URL.
     authAxios.get(`/api/client/analytics/personal-records`)
       .then(res => {
-        const records = res.data?.data ?? res.data?.records ?? [];
-        setPersonalRecords(Array.isArray(records) ? records : []);
+        const payload = res.data as { data?: unknown; records?: unknown };
+        const records = payload.data ?? payload.records ?? [];
+        setPersonalRecords(Array.isArray(records) ? records as PersonalRecord[] : []);
       })
       .catch(() => setPersonalRecords([]));
   }, [authAxios, user?.id]);
 
   const p = profile.data;
-  const tierColor = TIER_COLORS[p?.tier || 'bronze'] || '#CD7F32';
+  const tierColor = TIER_COLORS[p?.tier || 'bronze'] || 'var(--tier-bronze, #CD7F32)';
   const tierLabel = TIER_LABELS[p?.tier || 'bronze'] || 'Bronze Forge';
 
   return (
@@ -378,19 +427,19 @@ const ClientProgressDashboardPage: React.FC = () => {
 
       {/* Stats Strip */}
       <StatsStrip>
-        <StatCard style={{ '--i': 0 } as React.CSSProperties} $accent={tierColor}>
+        <StatCard $delay={0} $accent={tierColor}>
           <StatLabel>Level</StatLabel>
           <StatValue $color="var(--accent-primary, #60C0F0)">{p?.level || 1}</StatValue>
         </StatCard>
-        <StatCard style={{ '--i': 1 } as React.CSSProperties} $accent={tierColor}>
+        <StatCard $delay={1} $accent={tierColor}>
           <StatLabel>Tier</StatLabel>
           <StatValue $color={tierColor}>{tierLabel}</StatValue>
         </StatCard>
-        <StatCard style={{ '--i': 2 } as React.CSSProperties}>
+        <StatCard $delay={2}>
           <StatLabel>Total XP</StatLabel>
           <StatValue>{(p?.points || 0).toLocaleString()}</StatValue>
         </StatCard>
-        <StatCard style={{ '--i': 3 } as React.CSSProperties}>
+        <StatCard $delay={3}>
           {/* Canonical-surface-audit 2026-04-13: real field is
               data.thisWeek.workouts from gamificationController.getWeeklyRecap.
               Removed misleading p?.achievements?.length fallback that was
@@ -401,11 +450,11 @@ const ClientProgressDashboardPage: React.FC = () => {
             {weeklyRecap?.thisWeek?.workouts ?? 0}
           </StatValue>
         </StatCard>
-        <StatCard style={{ '--i': 4 } as React.CSSProperties}>
+        <StatCard $delay={4}>
           <StatLabel>Streak</StatLabel>
-          <StatValue $color="#F59E0B">{(weeklyRecap?.current?.streak ?? p?.streakDays) || 0}d</StatValue>
+          <StatValue $color="var(--accent-gold, #C6A84B)">{(weeklyRecap?.current?.streak ?? p?.streakDays) || 0}d</StatValue>
         </StatCard>
-        <StatCard style={{ '--i': 5 } as React.CSSProperties}>
+        <StatCard $delay={5}>
           <StatLabel>PRs</StatLabel>
           <StatValue $color="var(--accent-gold, #C6A84B)">
             {personalRecords.length}
@@ -416,7 +465,7 @@ const ClientProgressDashboardPage: React.FC = () => {
       {/* XP Progress Bar */}
       <XpBarWrap>
         <XpBarLabel>
-          <Star size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+          <LabelStar size={14} />
           Level {p?.level || 1} → {(p?.level || 1) + 1}
         </XpBarLabel>
         <XpBarTrack>
@@ -479,11 +528,11 @@ const ClientProgressDashboardPage: React.FC = () => {
 
       {/* Personal Records Highlights */}
       {personalRecords.length > 0 && (
-        <Card style={{ marginBottom: '1.25rem' }}>
+        <Card $bottom="1.25rem">
           <CardTitle><Trophy size={16} /> Personal Records</CardTitle>
-          <StatsStrip style={{ marginBottom: 0 }}>
-            {personalRecords.slice(0, 4).map((pr: any, i: number) => (
-              <StatCard key={i} style={{ '--i': i } as React.CSSProperties} $accent="var(--accent-gold, #C6A84B)">
+          <StatsStrip $bottom="0">
+            {personalRecords.slice(0, 4).map((pr: PersonalRecord, i: number) => (
+              <StatCard key={`${pr.exerciseName || pr.exercise || 'pr'}-${i}`} $delay={i} $accent="var(--accent-gold, #C6A84B)">
                 <StatLabel>{pr.exerciseName || pr.exercise || 'Exercise'}</StatLabel>
                 <StatValue $color="var(--accent-gold, #C6A84B)">
                   {pr.weight || pr.estimated1RM || pr.value || '—'}
@@ -501,15 +550,15 @@ const ClientProgressDashboardPage: React.FC = () => {
           the broken PascalCase endpoints were disabled. */}
       <ChartsSection>
         <ChartsSectionHeader>
-          <CardTitle style={{ marginBottom: 0 }}>
+          <CardTitle $bottom="0">
             <Zap size={16} /> Progress Charts
           </CardTitle>
         </ChartsSectionHeader>
         {user?.id ? (
           <Suspense fallback={
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            <ChartsLoading>
               Loading charts...
-            </div>
+            </ChartsLoading>
           }>
             <CanonicalProgressChartsGrid userId={user.id} />
           </Suspense>
@@ -529,7 +578,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         <DetailedLink onClick={() => navigate('/dashboard/client/progress/detailed')}>
           <Dumbbell size={18} />
           View Detailed NASM Analytics (14 Charts)
-          <ChevronRight size={16} style={{ marginLeft: 'auto' }} />
+          <TrailingChevron size={16} />
         </DetailedLink>
       </CrystallineLockOverlay>
     </PageWrap>

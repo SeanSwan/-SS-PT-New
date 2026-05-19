@@ -28,11 +28,6 @@ const coachPulse = keyframes`
   50% { box-shadow: 0 0 35px rgba(139, 92, 246, 0.3); }
 `;
 
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 // ── Styled Components ───────────────────────────────────────────────────────
 
 const PageContainer = styled.div`
@@ -74,6 +69,19 @@ const Card = styled.div`
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   backdrop-filter: blur(12px);
+`;
+
+const InlineErrorCard = styled(Card)`
+  border-color: rgba(239, 68, 68, 0.3);
+  margin-bottom: 1rem;
+`;
+
+const InlineErrorMessage = styled.div`
+  color: var(--error-accent, #ef4444);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
 `;
 
 const StatusCard = styled(Card)<{ $status: 'granted' | 'withdrawn' | 'none' }>`
@@ -166,6 +174,16 @@ const MetaValue = styled.span`
   color: rgba(255, 255, 255, 0.85);
 `;
 
+const DangerMetaValue = styled(MetaValue)`
+  color: var(--error-accent, #ef4444);
+`;
+
+const MutedConsentNote = styled.div`
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+`;
+
 const SectionTitle = styled.h3`
   font-size: 1.125rem;
   font-weight: 600;
@@ -204,6 +222,12 @@ const PrivacyIcon = styled.span<{ $color?: string }>`
   color: ${({ $color }) => $color || '#60C0F0'};
 `;
 
+const WithdrawWarningIcon = styled(AlertTriangle)`
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--error-accent, #ef4444);
+`;
+
 const ConsentDisclosure = styled.div`
   background: rgba(139, 92, 246, 0.04);
   border: 1px solid rgba(139, 92, 246, 0.15);
@@ -230,6 +254,10 @@ const ButtonRow = styled.div`
   gap: 1rem;
   margin-top: 1.5rem;
   flex-wrap: wrap;
+`;
+
+const ConfirmButtonRow = styled(ButtonRow)`
+  margin-top: 1rem;
 `;
 
 const ConsentButton = styled.button<{ $variant: 'grant' | 'withdraw' }>`
@@ -378,6 +406,23 @@ const SectionDivider = styled.hr`
 
 type ConsentState = 'granted' | 'withdrawn' | 'none';
 
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error) return err.message || fallback;
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const message = (err as { message?: unknown }).message;
+    return typeof message === 'string' && message.length > 0 ? message : fallback;
+  }
+  return fallback;
+};
+
+const getErrorStatus = (err: unknown): number | undefined => {
+  if (typeof err === 'object' && err !== null && 'status' in err) {
+    const status = (err as { status?: unknown }).status;
+    return typeof status === 'number' ? status : undefined;
+  }
+  return undefined;
+};
+
 const AiConsentScreen: React.FC = () => {
   const [status, setStatus] = useState<ConsentStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -392,8 +437,8 @@ const AiConsentScreen: React.FC = () => {
       setError(null);
       const data = await getConsentStatus();
       setStatus(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load consent status.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to load consent status.'));
     } finally {
       setLoading(false);
     }
@@ -415,8 +460,8 @@ const AiConsentScreen: React.FC = () => {
       await grantConsent();
       await fetchStatus();
       showToast('Swan Coach consent granted successfully.');
-    } catch (err: any) {
-      setError(err.message || 'Failed to grant consent.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Failed to grant consent.'));
     } finally {
       setActionLoading(false);
     }
@@ -430,11 +475,11 @@ const AiConsentScreen: React.FC = () => {
       await fetchStatus();
       setConfirmWithdraw(false);
       showToast('Swan Coach consent withdrawn. Swan Coach features are now disabled.');
-    } catch (err: any) {
-      if (err.status === 404) {
+    } catch (err: unknown) {
+      if (getErrorStatus(err) === 404) {
         setError('No consent record found to withdraw.');
       } else {
-        setError(err.message || 'Failed to withdraw consent.');
+        setError(getErrorMessage(err, 'Failed to withdraw consent.'));
       }
     } finally {
       setActionLoading(false);
@@ -521,12 +566,12 @@ const AiConsentScreen: React.FC = () => {
 
       {/* Inline error */}
       {error && status && (
-        <Card style={{ borderColor: 'rgba(239, 68, 68, 0.3)', marginBottom: '1rem' }}>
-          <div style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem' }}>
+        <InlineErrorCard>
+          <InlineErrorMessage>
             <AlertTriangle size={18} />
             {error}
-          </div>
-        </Card>
+          </InlineErrorMessage>
+        </InlineErrorCard>
       )}
 
       {/* Current Status Card */}
@@ -555,16 +600,16 @@ const AiConsentScreen: React.FC = () => {
             {status.profile.withdrawnAt && (
               <MetaItem>
                 <MetaLabel>Withdrawn On</MetaLabel>
-                <MetaValue style={{ color: '#ef4444' }}>{formatDate(status.profile.withdrawnAt)}</MetaValue>
+                <DangerMetaValue>{formatDate(status.profile.withdrawnAt)}</DangerMetaValue>
               </MetaItem>
             )}
           </MetaGrid>
         )}
 
         {consentState === 'none' && (
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+          <MutedConsentNote>
             You have not yet opted in to Swan Coach features. Review the information below and grant consent to get started.
-          </div>
+          </MutedConsentNote>
         )}
       </StatusCard>
 
@@ -673,12 +718,12 @@ const AiConsentScreen: React.FC = () => {
             transition={{ duration: 0.25 }}
           >
             <WithdrawWarning>
-              <AlertTriangle size={20} color="#ef4444" style={{ flexShrink: 0, marginTop: 2 }} />
+              <WithdrawWarningIcon size={20} />
               <div>
                 <strong>Are you sure?</strong> Withdrawing consent will immediately disable all Swan Coach
                 workout features. Your existing workout plans will remain, but no new Swan Coach-generated plans
                 can be created until you re-grant consent.
-                <ButtonRow style={{ marginTop: '1rem' }}>
+                <ConfirmButtonRow>
                   <ConsentButton
                     $variant="withdraw"
                     onClick={handleWithdraw}
@@ -689,7 +734,7 @@ const AiConsentScreen: React.FC = () => {
                   <RetryButton onClick={() => setConfirmWithdraw(false)}>
                     Cancel
                   </RetryButton>
-                </ButtonRow>
+                </ConfirmButtonRow>
               </div>
             </WithdrawWarning>
           </motion.div>
@@ -703,7 +748,7 @@ const AiConsentScreen: React.FC = () => {
           <Card>
             <SectionTitle>
               <AlertTriangle size={20} color="#f59e0b" />
-              What's Disabled
+              What Is Disabled
             </SectionTitle>
             <PrivacyList>
               <PrivacyItem>

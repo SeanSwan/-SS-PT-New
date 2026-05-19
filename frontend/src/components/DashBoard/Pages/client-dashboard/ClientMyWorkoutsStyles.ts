@@ -37,6 +37,13 @@ export const Title = styled.h2`
   margin: 0;
 `;
 
+export const AccentIconSlot = styled.span<{ $muted?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-primary, #60C0F0);
+  opacity: ${({ $muted }) => ($muted ? 0.3 : 1)};
+`;
+
 export const LogBtn = styled.button`
   display: flex;
   align-items: center;
@@ -75,6 +82,10 @@ export const StatCard = styled.div`
   background: var(--bg-elevated, #141419);
   border: 1px solid var(--border-soft, rgba(96,192,240,0.15));
   border-radius: 12px;
+`;
+
+export const StatIconSlot = styled(AccentIconSlot)`
+  justify-content: center;
 `;
 
 export const StatValue = styled.span`

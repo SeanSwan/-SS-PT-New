@@ -292,6 +292,64 @@ function useNumericBarWidth(points: ChartPoint[]): number[] {
   }, [points]);
 }
 
+const workoutFrequencyBarProps = {
+  style: { data: { fill: CHART_COLORS.iceWing } },
+};
+
+const weeklyVolumeAreaProps = {
+  style: {
+    data: {
+      fill: hexAlpha(CHART_COLORS.wingPurple, 0.3),
+      stroke: CHART_COLORS.wingPurple,
+      strokeWidth: 2,
+    },
+  },
+};
+
+const setsRepsLegendProps = {
+  style: { labels: { fill: CHART_COLORS.textSecondary, fontSize: 10 } },
+};
+
+const setsBarProps = {
+  style: { data: { fill: CHART_COLORS.arcticCyan } },
+};
+
+const repsBarProps = {
+  style: { data: { fill: CHART_COLORS.gildedFern } },
+};
+
+const durationLineProps = {
+  style: { data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } },
+};
+
+const intensityLineProps = {
+  style: { data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2 } },
+};
+
+const anchorLegendProps = {
+  style: { labels: { fill: CHART_COLORS.textSecondary, fontSize: 9 } },
+};
+
+const lineStyleProps = (color: string) => ({
+  style: { data: { stroke: color, strokeWidth: 2 } },
+});
+
+const movementPieProps = {
+  style: {
+    labels: {
+      fill: CHART_COLORS.textSecondary,
+      fontFamily: "'Fira Code', monospace",
+      fontSize: 9,
+    },
+  },
+};
+
+const RecoveryAlertIcon = styled(AlertTriangle)`
+  vertical-align: -2px;
+  margin-right: 4px;
+  color: ${CHART_COLORS.crimsonFrost};
+`;
+
 // #1 — Workout Frequency
 const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => (
   <ChartCard data-testid="chart-card-workoutFrequency">
@@ -314,7 +372,7 @@ const WorkoutFrequencyCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => (
           <VictoryAxis dependentAxis />
           <VictoryBar
             data={data}
-            style={{ data: { fill: CHART_COLORS.iceWing } }}
+            {...workoutFrequencyBarProps}
             labels={({ datum }) => `${datum.x}: ${datum.y}`}
             labelComponent={<VictoryTooltip renderInPortal={false} />}
             cornerRadius={{ top: 3 }}
@@ -398,13 +456,7 @@ const WeeklyVolumeCard: React.FC<{
           <VictoryAxis dependentAxis />
           <VictoryArea
             data={data}
-            style={{
-              data: {
-                fill: hexAlpha(CHART_COLORS.wingPurple, 0.3),
-                stroke: CHART_COLORS.wingPurple,
-                strokeWidth: 2,
-              },
-            }}
+            {...weeklyVolumeAreaProps}
             labels={({ datum }) => `${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`}
             labelComponent={<VictoryTooltip renderInPortal={false} />}
           />
@@ -439,7 +491,7 @@ const SetsRepsTrendCard: React.FC<{
             y={0}
             orientation="horizontal"
             gutter={16}
-            style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10 } }}
+            {...setsRepsLegendProps}
             data={[
               { name: 'Sets', symbol: { fill: CHART_COLORS.arcticCyan } },
               { name: 'Reps', symbol: { fill: CHART_COLORS.gildedFern } },
@@ -450,13 +502,13 @@ const SetsRepsTrendCard: React.FC<{
           <VictoryGroup offset={8}>
             <VictoryBar
               data={bundle.sets}
-              style={{ data: { fill: CHART_COLORS.arcticCyan } }}
+              {...setsBarProps}
               labels={({ datum }) => `Sets ${datum.x}: ${datum.y}`}
               labelComponent={<VictoryTooltip renderInPortal={false} />}
             />
             <VictoryBar
               data={bundle.reps}
-              style={{ data: { fill: CHART_COLORS.gildedFern } }}
+              {...repsBarProps}
               labels={({ datum }) => `Reps ${datum.x}: ${datum.y}`}
               labelComponent={<VictoryTooltip renderInPortal={false} />}
             />
@@ -489,7 +541,7 @@ const DurationTrendCard: React.FC<{ data: ChartPoint[] }> = ({ data }) => (
           <VictoryAxis dependentAxis />
           <VictoryLine
             data={data}
-            style={{ data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } }}
+            {...durationLineProps}
             labels={({ datum }) => `${datum.x}: ${datum.y}min`}
             labelComponent={<VictoryTooltip renderInPortal={false} />}
           />
@@ -524,7 +576,7 @@ const IntensityRpeCard: React.FC<{
           <VictoryAxis dependentAxis />
           <VictoryLine
             data={data}
-            style={{ data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2 } }}
+            {...intensityLineProps}
             labels={({ datum }) => `${datum.x}: ${datum.y} (${datum.source})`}
             labelComponent={<VictoryTooltip renderInPortal={false} />}
           />
@@ -617,7 +669,7 @@ const AnchorLiftsCard: React.FC<{
               y={0}
               orientation="horizontal"
               gutter={10}
-              style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 9 } }}
+              {...anchorLegendProps}
               data={series.map((s) => ({ name: s.name, symbol: { fill: s.color } }))}
             />
             <VictoryAxis />
@@ -626,7 +678,7 @@ const AnchorLiftsCard: React.FC<{
               <VictoryLine
                 key={s.name}
                 data={s.data}
-                style={{ data: { stroke: s.color, strokeWidth: 2 } }}
+                {...lineStyleProps(s.color)}
               />
             ))}
           </VictoryChart>
@@ -689,13 +741,7 @@ const MovementPatternBalanceCard: React.FC<{
           innerRadius={40}
           padAngle={2}
           height={200}
-          style={{
-            labels: {
-              fill: CHART_COLORS.textSecondary,
-              fontFamily: "'Fira Code', monospace",
-              fontSize: 9,
-            },
-          }}
+          {...movementPieProps}
           labels={({ datum }) => `${datum.x}`}
         />
       )}
@@ -757,7 +803,7 @@ const RecoverySignalCard: React.FC<{
           {data.slice(0, 6).map((row) => (
             <BarRow key={row.x}>
               <BarLabel title={row.x}>
-                <AlertTriangle size={11} style={{ verticalAlign: '-2px', marginRight: 4, color: CHART_COLORS.crimsonFrost }} />
+                <RecoveryAlertIcon size={11} />
                 {row.x}
               </BarLabel>
               <BarTrack>
@@ -791,6 +837,10 @@ const LoadingStrip = styled.div`
   font-size: 0.85rem;
 `;
 
+const ErrorLoadingStrip = styled(LoadingStrip)`
+  color: ${CHART_COLORS.crimsonFrost};
+`;
+
 interface CanonicalProgressChartsGridProps {
   /** Currently unused — the hook pulls userId from JWT — but kept on
    *  the API surface for parity with the old ProfileChartsGrid so call
@@ -806,9 +856,9 @@ const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = 
   }
   if (error) {
     return (
-      <LoadingStrip style={{ color: CHART_COLORS.crimsonFrost }}>
+      <ErrorLoadingStrip>
         {error}
-      </LoadingStrip>
+      </ErrorLoadingStrip>
     );
   }
 

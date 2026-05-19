@@ -31,9 +31,9 @@
  * │ Fitness Goals | Notifications | Theme                      │
  * └────────────────────────────────────────────────────────────┘
  */
-import React, { useState, useCallback, useEffect, Suspense } from 'react';
+import React, { useState, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
-import { User as UserIcon, Mail, Target, Bell, Palette, BarChart3, Save } from 'lucide-react';
+import { User as UserIcon, Target, Bell, Palette, Save } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import EditProfileChartToggles, {
   DEFAULT_CHART_VISIBILITY,
@@ -101,16 +101,21 @@ const InfoGrid = styled.div`
   @media (max-width: 480px) { grid-template-columns: 1fr; }
 `;
 
-const InfoItem = styled.div`
-  label {
-    display: block; font-size: 0.75rem;
-    color: var(--text-muted, #94a3b8); margin-bottom: 0.25rem;
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  span {
-    font-size: 0.9375rem; font-weight: 500;
-    color: var(--text-primary, #E0ECF4);
-  }
+const InfoItem = styled.div``;
+
+const InfoLabel = styled.span`
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const InfoValue = styled.span`
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const GoalTextArea = styled.textarea`
@@ -174,6 +179,18 @@ const ChartPreviewWrap = styled.div`
   margin-top: 1rem;
 `;
 
+const LoadingFallback = styled.div<{ $large?: boolean }>`
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  padding: ${({ $large }) => ($large ? '2rem' : '1rem')};
+  text-align: center;
+`;
+
+const SaveRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+`;
+
 const ThemeNote = styled.p`
   font-size: 0.875rem; color: var(--text-secondary, #94a3b8);
   margin: 0;
@@ -185,10 +202,14 @@ const ThemeNote = styled.p`
 
 const ClientProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const profileUser = user as (typeof user & {
+    chartVisibility?: ProfileChartVisibility;
+    photo?: string;
+  }) | null;
   const [goalText, setGoalText] = useState(user?.fitnessGoal || '');
   const [notifPrefs, setNotifPrefs] = useState({ email: true, push: true, sms: false });
   const [chartVisibility, setChartVisibility] = useState<ProfileChartVisibility>(
-    () => (user as any)?.chartVisibility || DEFAULT_CHART_VISIBILITY
+    () => profileUser?.chartVisibility || DEFAULT_CHART_VISIBILITY
   );
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -237,8 +258,8 @@ const ClientProfilePage: React.FC = () => {
       {/* Avatar + Name */}
       <Card>
         <AvatarRow>
-          {(user as any)?.photo
-            ? <AvatarImg src={(user as any).photo} alt="Profile" />
+          {profileUser?.photo
+            ? <AvatarImg src={profileUser.photo} alt="Profile" />
             : <Avatar>{initials}</Avatar>
           }
           <NameBlock>
@@ -252,10 +273,10 @@ const ClientProfilePage: React.FC = () => {
       <Card>
         <SectionTitle><UserIcon size={18} /> Personal Information</SectionTitle>
         <InfoGrid>
-          <InfoItem><label>Full Name</label><span>{user?.firstName} {user?.lastName}</span></InfoItem>
-          <InfoItem><label>Email</label><span>{user?.email || 'Not set'}</span></InfoItem>
-          <InfoItem><label>Username</label><span>{user?.username || 'Not set'}</span></InfoItem>
-          <InfoItem><label>Member Since</label><span>{memberSince}</span></InfoItem>
+          <InfoItem><InfoLabel>Full Name</InfoLabel><InfoValue>{user?.firstName} {user?.lastName}</InfoValue></InfoItem>
+          <InfoItem><InfoLabel>Email</InfoLabel><InfoValue>{user?.email || 'Not set'}</InfoValue></InfoItem>
+          <InfoItem><InfoLabel>Username</InfoLabel><InfoValue>{user?.username || 'Not set'}</InfoValue></InfoItem>
+          <InfoItem><InfoLabel>Member Since</InfoLabel><InfoValue>{memberSince}</InfoValue></InfoItem>
         </InfoGrid>
       </Card>
 
@@ -263,7 +284,7 @@ const ClientProfilePage: React.FC = () => {
       {user?.id && (
         <Card>
           <SectionTitle>Your Companion</SectionTitle>
-          <Suspense fallback={<div style={{ color: 'var(--text-muted)', padding: '1rem', textAlign: 'center' }}>Loading...</div>}>
+          <Suspense fallback={<LoadingFallback>Loading...</LoadingFallback>}>
             <CompanionPet userId={user.id as unknown as number} size={140} compact showControls={false} />
           </Suspense>
         </Card>
@@ -275,7 +296,7 @@ const ClientProfilePage: React.FC = () => {
           chartVisibility={chartVisibility}
           onToggle={handleChartToggle}
         />
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+        <SaveRow>
           <SaveButton onClick={handleSaveCharts} disabled={saving}>
             <Save size={14} />
             {saving ? 'Saving...' : 'Save Chart Settings'}
@@ -283,12 +304,12 @@ const ClientProfilePage: React.FC = () => {
           {saveStatus && (
             <SaveStatus $success={saveStatus === 'Saved'}>{saveStatus}</SaveStatus>
           )}
-        </div>
+        </SaveRow>
 
         {/* Live Preview */}
         <ChartPreviewWrap>
           {user?.id && (
-            <Suspense fallback={<div style={{ color: 'var(--text-muted)', padding: '2rem', textAlign: 'center' }}>Loading charts...</div>}>
+            <Suspense fallback={<LoadingFallback $large>Loading charts...</LoadingFallback>}>
               <ProfileChartsGrid
                 userId={user.id}
                 chartVisibility={chartVisibility}

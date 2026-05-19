@@ -44,7 +44,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   Dumbbell, Calendar, Clock, Flame, TrendingUp,
-  ChevronDown, ChevronUp, Star, Weight, Zap
+  ChevronDown, ChevronUp, Weight, Zap
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
@@ -55,6 +55,7 @@ import {
   MetaItem, ExpandBtn, WorkoutBody, ExerciseBlock, ExerciseName, SetTable, SetTableHead,
   SetTableRow, SetTh, SetTd, SetBadge, WorkoutNotes, NoSetsText, EmptyState, EmptyTitle,
   EmptyText, ErrorCard, RetryBtn, ShimmerCard,
+  AccentIconSlot, StatIconSlot,
 } from './ClientMyWorkoutsStyles';
 
 // ─────────────────────────────────────────────────────────────
@@ -171,7 +172,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
   return (
     <PageContainer>
       <Header>
-        <Title><Dumbbell size={22} style={{ color: 'var(--accent-primary, #60C0F0)' }} /> My Workouts</Title>
+        <Title><AccentIconSlot><Dumbbell size={22} /></AccentIconSlot> My Workouts</Title>
         <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
           <Dumbbell size={16} /> Log Workout
         </LogBtn>
@@ -183,7 +184,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
         // the user on a fake-empty state with no Previous control.
         <>
           <EmptyState>
-            <Dumbbell size={48} style={{ opacity: 0.3, color: 'var(--accent-primary, #60C0F0)' }} />
+            <AccentIconSlot $muted><Dumbbell size={48} /></AccentIconSlot>
             <EmptyTitle>
               {page > 1 ? 'End of history' : 'No workouts logged yet'}
             </EmptyTitle>
@@ -217,17 +218,17 @@ const ClientMyWorkoutsPage: React.FC = () => {
               called out in the canonical-surface-audit 2026-04-13 review. */}
           <StatsRow>
             <StatCard>
-              <TrendingUp size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
+              <StatIconSlot><TrendingUp size={18} /></StatIconSlot>
               <StatValue>{totalWorkouts}</StatValue>
               <StatLabel>On This Page</StatLabel>
             </StatCard>
             <StatCard>
-              <Calendar size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
+              <StatIconSlot><Calendar size={18} /></StatIconSlot>
               <StatValue>{thisWeek}</StatValue>
               <StatLabel>This Week (on page)</StatLabel>
             </StatCard>
             <StatCard>
-              <Weight size={18} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
+              <StatIconSlot><Weight size={18} /></StatIconSlot>
               <StatValue>{totalVolume > 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</StatValue>
               <StatLabel>Page Volume (lbs)</StatLabel>
             </StatCard>

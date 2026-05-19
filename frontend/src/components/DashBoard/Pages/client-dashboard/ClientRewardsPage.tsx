@@ -55,6 +55,27 @@ const TIERS = [
 const getTierForLevel = (level: number) =>
   TIERS.find(t => level >= t.min && level <= t.max) || TIERS[0];
 
+interface AchievementRecord {
+  id?: string | number;
+  achievement?: {
+    tier?: string;
+    rarity?: string;
+    name?: string;
+    description?: string;
+  };
+  name?: string;
+  title?: string;
+  description?: string;
+}
+
+interface PointTransaction {
+  id: string | number;
+  description?: string;
+  source?: string;
+  transactionType?: string;
+  points?: number;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
@@ -143,6 +164,11 @@ const BadgeIcon = styled.div<{ $rarity?: string }>`
   color: var(--accent-primary, #60C0F0);
 `;
 
+const AchievementDescription = styled.span`
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+`;
+
 const EmptyState = styled.p`
   color: var(--text-muted, #94a3b8); font-size: 0.875rem;
   text-align: center; padding: 1.5rem 0;
@@ -171,8 +197,10 @@ const BadgePlaceholder = styled.div`
   gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted, #94a3b8);
 `;
 
-const ShimmerBlock = styled.div`
-  height: 80px; border-radius: 12px;
+const ShimmerBlock = styled.div<{ $height?: string; $bottom?: string }>`
+  height: ${({ $height }) => $height || '80px'};
+  margin-bottom: ${({ $bottom }) => $bottom || 0};
+  border-radius: 12px;
   background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, rgba(96,192,240,0.06) 50%, var(--bg-elevated, #141419) 75%);
   background-size: 200% 100%; animation: ${shimmer} 1.5s infinite;
 `;
@@ -193,7 +221,7 @@ const ClientRewardsPage: React.FC = () => {
   const error = gamification.profile.error || gamification.error;
 
   if (gamification.isLoading || gamification.profile.isLoading) {
-    return <PageWrap><ShimmerBlock style={{ marginBottom: 12 }} /><ShimmerBlock style={{ height: 200 }} /></PageWrap>;
+    return <PageWrap><ShimmerBlock $bottom="12px" /><ShimmerBlock $height="200px" /></PageWrap>;
   }
 
   const level = gamData?.level || 1;
@@ -230,11 +258,11 @@ const ClientRewardsPage: React.FC = () => {
           <h3><Award size={18} /> Recent Achievements</h3>
           {achievements.length === 0
             ? <EmptyState>Complete workouts and challenges to earn achievements!</EmptyState>
-            : achievements.slice(0, 5).map((a: any, i: number) => (
+            : (achievements as AchievementRecord[]).slice(0, 5).map((a, i) => (
               <AchievementItem key={a.id || i}>
                 <BadgeIcon $rarity={a.achievement?.tier || a.achievement?.rarity}><Star size={16} /></BadgeIcon>
                 <div><div>{a.achievement?.name || a.name || a.title || 'Achievement'}</div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{a.achievement?.description || a.description || ''}</span></div>
+                <AchievementDescription>{a.achievement?.description || a.description || ''}</AchievementDescription></div>
               </AchievementItem>
             ))
           }
@@ -243,12 +271,12 @@ const ClientRewardsPage: React.FC = () => {
           <h3><TrendingUp size={18} /> Point History</h3>
           {transactions.length === 0
             ? <EmptyState>Point history will appear here as you earn XP from workouts, social posts, and streaks.</EmptyState>
-            : transactions.slice(0, 5).map((tx: any) => (
+            : (transactions as PointTransaction[]).slice(0, 5).map((tx) => (
               <AchievementItem key={tx.id}>
                 <BadgeIcon><TrendingUp size={16} /></BadgeIcon>
                 <div>
                   <div>{tx.description || tx.source || 'Point activity'}</div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>{tx.source || 'gamification'}</span>
+                  <AchievementDescription>{tx.source || 'gamification'}</AchievementDescription>
                 </div>
                 <TransactionPoints $kind={tx.transactionType}>
                   {tx.transactionType === 'spend' ? '-' : '+'}{Number(tx.points || 0).toLocaleString()} XP
@@ -265,7 +293,7 @@ const ClientRewardsPage: React.FC = () => {
           ? <EmptyState>Earned badges will appear here after achievements are completed.</EmptyState>
           : (
             <BadgeGrid>
-              {achievements.slice(0, 6).map((a: any, i: number) => (
+              {(achievements as AchievementRecord[]).slice(0, 6).map((a, i) => (
                 <BadgePlaceholder key={a.id || i} title={a.achievement?.name || a.name || 'Achievement'}>
                   <Shield size={24} /><span>Earned</span>
                 </BadgePlaceholder>
