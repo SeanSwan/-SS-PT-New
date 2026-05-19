@@ -226,7 +226,101 @@ const ModValue = styled.span`
   color: var(--text-primary, #E0ECF4);
 `;
 
-const MOD_FIELDS: Array<{ key: string; label: string; icon: string; type: 'easy' | 'hard' | 'joint' }> = [
+const ModCount = styled.span`
+  font-size: 10px;
+  margin-left: auto;
+  opacity: 0.5;
+`;
+
+const EmptyModState = styled.div`
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.4;
+  padding: 8px 14px;
+`;
+
+const TimingBadgeRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+`;
+
+const FlowSummary = styled.span`
+  margin-left: auto;
+  opacity: 0.6;
+`;
+
+const MutedDuration = styled.span`
+  opacity: 0.6;
+`;
+
+const AlternativeHint = styled.div`
+  color: var(--text-muted, rgba(224, 236, 244, 0.45));
+  font-size: 11px;
+  font-style: italic;
+  padding: 8px 0 4px;
+`;
+
+const StationMetaRow = styled.div`
+  align-items: center;
+  display: flex;
+  gap: 6px;
+`;
+
+const StationEmptyState = styled.div`
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.4;
+  padding: 12px 14px;
+`;
+
+const ExerciseRowFill = styled(ExerciseRow)`
+  flex: 1;
+`;
+
+const ExerciseMeta = styled.span`
+  align-items: center;
+  display: flex;
+  gap: 6px;
+`;
+
+const SetupTime = styled.span`
+  font-size: 10px;
+  opacity: 0.5;
+`;
+
+const OverflowItems = styled.div`
+  margin-top: 6px;
+`;
+
+const OverflowLap = styled.span`
+  margin-right: 8px;
+`;
+
+const SaveAction = styled.div`
+  margin-top: 12px;
+`;
+
+const EmptyPanelState = styled.div`
+  opacity: 0.5;
+  padding: 40px;
+  text-align: center;
+`;
+
+type ModificationKey =
+  | 'easyVariation'
+  | 'hardVariation'
+  | 'kneeMod'
+  | 'shoulderMod'
+  | 'backMod'
+  | 'ankleMod'
+  | 'wristMod'
+  | 'elbowMod'
+  | 'footMod'
+  | 'hipMod';
+
+const MOD_FIELDS: Array<{ key: ModificationKey; label: string; icon: string; type: 'easy' | 'hard' | 'joint' }> = [
   { key: 'easyVariation', label: 'Easier Version', icon: '🟢', type: 'easy' },
   { key: 'hardVariation', label: 'Harder Version', icon: '🔴', type: 'hard' },
   { key: 'kneeMod', label: 'Knee-Friendly', icon: '🦵', type: 'joint' },
@@ -243,7 +337,7 @@ const MOD_FIELDS: Array<{ key: string; label: string; icon: string; type: 'easy'
 const ExerciseModAccordion: React.FC<{ ex: BootcampExercise; exIdx: number }> = ({ ex, exIdx }) => {
   const [open, setOpen] = useState(false);
   const mods = MOD_FIELDS.filter(m => {
-    const val = (ex as any)[m.key];
+    const val = ex[m.key];
     return typeof val === 'string' && val.length > 0 && val !== 'N/A' && val !== 'n/a' && val.trim().length > 0;
   });
 
@@ -252,24 +346,24 @@ const ExerciseModAccordion: React.FC<{ ex: BootcampExercise; exIdx: number }> = 
       <ModAccordionHeader onClick={() => setOpen(!open)}>
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         <span>{exIdx + 1}. {ex.exerciseName}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.5 }}>
+        <ModCount>
           {mods.length} alternatives
-        </span>
+        </ModCount>
       </ModAccordionHeader>
       {open && mods.length > 0 && (
         <ModTable>
           {mods.map((mod, i) => (
             <ModRow key={mod.key} $even={i % 2 === 0} $type={mod.type}>
               <ModLabel>{mod.icon} {mod.label}</ModLabel>
-              <ModValue>{(ex as any)[mod.key]}</ModValue>
+              <ModValue>{ex[mod.key]}</ModValue>
             </ModRow>
           ))}
         </ModTable>
       )}
       {open && mods.length === 0 && (
-        <div style={{ padding: '8px 14px', fontSize: 11, opacity: 0.4, fontStyle: 'italic' }}>
+        <EmptyModState>
           No modifications available yet — data is being populated
-        </div>
+        </EmptyModState>
       )}
     </div>
   );
@@ -329,7 +423,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   const { board1Exercises, stationExercises } = useMemo(() => {
     if (!bootcamp) return { board1Exercises: [], stationExercises: {} };
 
-    const b1 = bootcamp.exercises.filter(ex => (ex as any).board !== 'alternative');
+    const b1 = bootcamp.exercises.filter(ex => ex.board !== 'alternative');
 
     // For Board 1 (main), group by station
     const grouped = b1.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
@@ -345,9 +439,8 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   // Board 2 is always available when there are exercises
   const hasBoard2 = board1Exercises.length > 0;
 
-  const stretches = (bootcamp as any)?.stretches ?? [];
-  const flowData: Array<{ station: number; flowScore: number; maxSetupSec: number; bottleneck: boolean }> =
-    (bootcamp as any)?.flowData ?? [];
+  const stretches = bootcamp?.stretches ?? [];
+  const flowData: NonNullable<GeneratedBootcamp['flowData']> = bootcamp?.flowData ?? [];
   const avgFlowScore = flowData.length > 0
     ? Math.round(flowData.reduce((sum, f) => sum + f.flowScore, 0) / flowData.length)
     : 100;
@@ -360,17 +453,17 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
         {bootcamp && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             {/* Timing Badges */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <TimingBadgeRow>
               <TimingBadge>{bootcamp.totalClassMin} min total</TimingBadge>
               <TimingBadge>{bootcamp.demoDuration} min demo</TimingBadge>
-              {stretches.length > 0 && <TimingBadge>{(bootcamp as any).stretchDurationMin ?? 3} min stretch</TimingBadge>}
+              {stretches.length > 0 && <TimingBadge>{bootcamp.stretchDurationMin ?? 3} min stretch</TimingBadge>}
               <TimingBadge>{bootcamp.totalWorkoutMin} min workout</TimingBadge>
               <TimingBadge>{bootcamp.clearDuration} min clear</TimingBadge>
               <TimingBadge>{bootcamp.stationCount || 'No'} stations</TimingBadge>
-              {(bootcamp as any).classStyle && (bootcamp as any).classStyle !== 'standard' && (
-                <TimingBadge>{(bootcamp as any).classStyle}</TimingBadge>
+              {bootcamp.classStyle && bootcamp.classStyle !== 'standard' && (
+                <TimingBadge>{bootcamp.classStyle}</TimingBadge>
               )}
-            </div>
+            </TimingBadgeRow>
 
             {/* Flow Optimization Insight */}
             {flowData.length > 0 && activeBoard === 'main' && (
@@ -378,12 +471,12 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                 <span>Flow</span>
                 <FlowMeter $score={avgFlowScore} />
                 <FlowBadge $score={avgFlowScore}>{avgFlowScore}/100</FlowBadge>
-                <span style={{ marginLeft: 'auto', opacity: 0.6 }}>
+                <FlowSummary>
                   {flowData.filter(f => f.bottleneck).length === 0
                     ? 'All stations optimized'
                     : `${flowData.filter(f => f.bottleneck).length} bottleneck${flowData.filter(f => f.bottleneck).length > 1 ? 's' : ''}`
                   }
-                </span>
+                </FlowSummary>
               </FlowInsightBar>
             )}
 
@@ -414,10 +507,10 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
               <>
                 <SectionDivider>Warm-Up Stretch</SectionDivider>
                 <StretchSection>
-                  {stretches.map((s: any, i: number) => (
+                  {stretches.map((s, i) => (
                     <StretchItem key={i}>
                       <span>{s.sortOrder ?? i + 1}. {s.exerciseName}</span>
-                      <span style={{ opacity: 0.6 }}>{s.durationSec}s</span>
+                      <MutedDuration>{s.durationSec}s</MutedDuration>
                     </StretchItem>
                   ))}
                 </StretchSection>
@@ -427,9 +520,9 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
             {/* ── Board 2: Joint-Friendly Alternatives (Modification Accordions) ── */}
             {activeBoard === 'alternative' && (
               <>
-                <div style={{ padding: '8px 0 4px', fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                <AlternativeHint>
                   Tap any exercise to see joint-friendly alternatives. Same exercises as Board 1 with modification options.
-                </div>
+                </AlternativeHint>
                 {bootcamp.stations.length > 0 ? (
                   bootcamp.stations.map((station, si) => {
                     const exercises = stationExercises[si] ?? [];
@@ -464,18 +557,13 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
             {activeBoard === 'main' && bootcamp.stations.length > 0 ? (
               bootcamp.stations.map((station, si) => {
                 const exercises = stationExercises[si] ?? [];
-                if (exercises.length === 0 && activeBoard === 'alternative') return null;
+                if (exercises.length === 0 && (activeBoard as 'main' | 'alternative') === 'alternative') return null;
 
                 return (
                   <ClickableStationCard
                     key={station.stationNumber}
                     $active={activeStation === si}
                     onClick={() => onSelectStation?.(si)}
-                    style={
-                      activeBoard === 'alternative'
-                        ? { borderColor: 'rgba(255, 107, 53, 0.3)', background: 'rgba(255, 107, 53, 0.04)' }
-                        : undefined
-                    }
                   >
                     <StationHeader>
                       <StationName>
@@ -483,11 +571,11 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                         {activeStation === si && (
                           <BoardLabel $board="main">ADDING HERE</BoardLabel>
                         )}
-                        {activeBoard === 'alternative' && (
+                        {(activeBoard as 'main' | 'alternative') === 'alternative' && (
                           <BoardLabel $board="alternative">MODIFIED</BoardLabel>
                         )}
                       </StationName>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <StationMetaRow>
                         {exercises.length > 0 && (
                           <TimingBadge>
                             {exercises.length} ex · {Math.ceil(exercises.reduce((s, e) => s + (e.durationSec || 35) + (e.restSec || 15), 0) / 60)}min
@@ -502,12 +590,12 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                             {flowData[si].bottleneck && ' ⚠'}
                           </FlowBadge>
                         )}
-                      </div>
+                      </StationMetaRow>
                     </StationHeader>
                     {exercises.length === 0 && (
-                      <div style={{ padding: '12px 14px', opacity: 0.4, fontSize: 12, fontStyle: 'italic' }}>
+                      <StationEmptyState>
                         {activeStation === si ? 'Click "+" on exercises to add here' : 'Click to select this station, then add exercises'}
-                      </div>
+                      </StationEmptyState>
                     )}
                     {exercises.map((ex, exIdx) => {
                       // Use sortOrder + stationIndex for a unique match instead of indexOf
@@ -518,23 +606,22 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                       return (
                         <React.Fragment key={`${si}-${ex.sortOrder}-${exIdx}-${activeBoard}`}>
                           <ExRowWithDelete>
-                            <ExerciseRow
+                            <ExerciseRowFill
                               $isCardio={ex.isCardioFinisher}
                               onClick={(e) => { e.stopPropagation(); onSelectExercise(ex); }}
                               type="button"
-                              style={{ flex: 1 }}
                             >
                               <span>
                                 {exIdx + 1}. {ex.exerciseName}
                                 {ex.isCardioFinisher && ' (cardio finisher)'}
                               </span>
-                              <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                {(ex as any).setupTimeSec > 5 && (
-                                  <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                              <ExerciseMeta>
+                                {(ex.setupTimeSec ?? 0) > 5 && (
+                                  <SetupTime>{ex.setupTimeSec}s setup</SetupTime>
                                 )}
                                 {ex.durationSec}s
-                              </span>
-                            </ExerciseRow>
+                              </ExerciseMeta>
+                            </ExerciseRowFill>
                             {onDeleteExercise && (
                               <DeleteBtn
                                 onClick={(e) => { e.stopPropagation(); onDeleteExercise(globalIdx); }}
@@ -545,10 +632,10 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                               </DeleteBtn>
                             )}
                           </ExRowWithDelete>
-                          {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
+                          {activeBoard === 'main' && (ex.easyVariation || ex.kneeMod || ex.backMod) && (
                             <RegressionLine>
-                              <span className="label">{ex.easyVariation ? 'Easier:' : (ex as any).kneeMod ? '🦵 Knee:' : (ex as any).backMod ? '🔙 Back:' : '💪 Mod:'}</span>
-                              {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
+                              <span className="label">{ex.easyVariation ? 'Easier:' : ex.kneeMod ? 'Knee:' : ex.backMod ? 'Back:' : 'Mod:'}</span>
+                              {ex.easyVariation || ex.kneeMod || ex.backMod || ex.shoulderMod}
                             </RegressionLine>
                           )}
                         </React.Fragment>
@@ -573,17 +660,17 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                         type="button"
                       >
                         <span>{idx + 1}. {ex.exerciseName}</span>
-                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          {(ex as any).setupTimeSec > 5 && (
-                            <span style={{ fontSize: 10, opacity: 0.5 }}>{(ex as any).setupTimeSec}s setup</span>
+                        <ExerciseMeta>
+                          {(ex.setupTimeSec ?? 0) > 5 && (
+                            <SetupTime>{ex.setupTimeSec}s setup</SetupTime>
                           )}
                           {ex.durationSec}s
-                        </span>
+                        </ExerciseMeta>
                       </ExerciseRow>
-                      {activeBoard === 'main' && (ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod) && (
+                      {activeBoard === 'main' && (ex.easyVariation || ex.kneeMod || ex.backMod) && (
                         <RegressionLine>
                           <span className="label">Easier:</span>
-                          {ex.easyVariation || (ex as any).kneeMod || (ex as any).backMod || (ex as any).shoulderMod}
+                          {ex.easyVariation || ex.kneeMod || ex.backMod || ex.shoulderMod}
                         </RegressionLine>
                       )}
                     </React.Fragment>
@@ -597,30 +684,30 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                 <SectionDivider>Overflow Plan</SectionDivider>
                 <InsightCard $type="overflow">
                   <strong>Lap Rotation</strong> (triggers at {bootcamp.overflowPlan.triggerCount}+ participants)
-                  <div style={{ marginTop: 6 }}>
+                  <OverflowItems>
                     {bootcamp.overflowPlan.lapExercises.map((lap, i) => (
-                      <span key={i} style={{ marginRight: 8 }}>
+                      <OverflowLap key={i}>
                         {lap.name} ({lap.durationMin}min)
-                      </span>
+                      </OverflowLap>
                     ))}
-                  </div>
+                  </OverflowItems>
                 </InsightCard>
               </>
             )}
 
-            <div style={{ marginTop: 12 }}>
+            <SaveAction>
               <PrimaryButton $floorMode={floorMode} onClick={onSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save as Template'}
               </PrimaryButton>
-            </div>
+            </SaveAction>
           </motion.div>
         )}
       </AnimatePresence>
 
       {!bootcamp && !loading && (
-        <div style={{ textAlign: 'center', padding: 40, opacity: 0.5 }}>
+        <EmptyPanelState>
           Configure your class and click Generate
-        </div>
+        </EmptyPanelState>
       )}
     </Panel>
   );

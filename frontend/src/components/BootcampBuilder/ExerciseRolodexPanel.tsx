@@ -22,7 +22,7 @@ export interface RolodexExercise extends ExerciseSlim {}
 interface ExerciseRolodexPanelProps {
   onAddExercise: (exercise: RolodexExercise, stationIndex?: number) => void;
   onSelectExercise?: (exercise: RolodexExercise) => void;
-  selectedId?: number | null;
+  selectedId?: string | number | null;
   targetStation?: number;
   /** Show compact format/station info at top (Manual mode) */
   formatLabel?: string;
@@ -388,7 +388,7 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
           return (
             <ExerciseCard
               key={ex.id}
-              $selected={selectedId === ex.id}
+              $selected={String(selectedId ?? '') === String(ex.id)}
               onClick={() => handleCardClick(ex)}
               style={{ flex: 1 }}
             >
@@ -508,10 +508,10 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
           <EmptyMsg>No exercises match your filters.</EmptyMsg>
         ) : (
           <List
-            rowComponent={PairedRowRenderer}
+            rowComponent={PairedRowRenderer as any}
             rowCount={exercisePairs.length}
             rowHeight={60}
-            rowProps={{}}
+            rowProps={{} as any}
             style={{ height: Math.min(exercisePairs.length, 7) * 60, overflowX: 'hidden' }}
           />
         )}
