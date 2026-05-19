@@ -643,55 +643,6 @@
       margin-top: 20px;
     }
 
-    .lens-row {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(78px, 1fr));
-      gap: clamp(8px, 1.5vw, 16px);
-      padding: 0 4px;
-    }
-
-    .lens-button {
-      min-height: 92px;
-      border-radius: 20px;
-      background: transparent;
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      gap: 7px;
-      border: 1px solid transparent;
-    }
-
-    .lens-button .lens-puck {
-      width: 62px;
-      height: 62px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      color: rgba(224, 236, 244, 0.74);
-      border: 1px solid rgba(96, 192, 240, 0.24);
-      background: radial-gradient(circle at 50% 120%, rgba(127, 197, 251, 0.17), transparent 58%), linear-gradient(160deg, rgba(8, 18, 42, 0.9), rgba(4, 8, 20, 0.96));
-      box-shadow: inset 0 1px 0 rgba(127, 197, 251, 0.1);
-      transition: transform 180ms var(--ease-out), border-color 180ms var(--ease-out), box-shadow 180ms var(--ease-out);
-    }
-
-    .lens-button:hover .lens-puck {
-      transform: translateY(-2px);
-      border-color: rgba(127, 197, 251, 0.52);
-    }
-
-    .lens-button[aria-pressed="true"] .lens-puck {
-      color: #fff;
-      border-color: rgba(139, 92, 246, 0.7);
-      background: radial-gradient(circle at 50% 118%, rgba(178, 148, 240, 0.28), transparent 62%), linear-gradient(160deg, rgba(70, 32, 160, 0.62), rgba(20, 8, 60, 0.9));
-      box-shadow: 0 0 30px rgba(139, 92, 246, 0.48), inset 0 1px 0 rgba(178, 148, 240, 0.42);
-    }
-
-    .lens-label {
-      font-size: 12px;
-      font-weight: 700;
-    }
-
     .module-grid {
       display: grid;
       grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
@@ -1272,10 +1223,6 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
-      .lens-row {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
       .module-grid,
       .spotlight-card,
       .mini-panels,
@@ -1318,19 +1265,6 @@
 
       h1 {
         font-size: clamp(30px, 11vw, 40px);
-      }
-
-      .lens-row {
-        gap: 8px;
-      }
-
-      .lens-button {
-        min-height: 82px;
-      }
-
-      .lens-button .lens-puck {
-        width: 54px;
-        height: 54px;
       }
 
       .panel {
@@ -1425,9 +1359,6 @@
           <button class="nav-button" type="button" data-view="workouts"><span class="nav-icon"><svg class="icon"><use href="#i-workout"/></svg></span><span class="nav-label">Workouts</span></button>
           <button class="nav-button" type="button" data-view="rewards"><span class="nav-icon"><svg class="icon"><use href="#i-rewards"/></svg></span><span class="nav-label">Rewards</span></button>
         </div>
-        <div style="margin-top:14px">
-          <button class="primary-action" type="button" data-focus-post><svg class="icon"><use href="#i-plus"/></svg>Create Post</button>
-        </div>
       </nav>
 
       <section class="panel" aria-labelledby="level-title">
@@ -1514,22 +1445,8 @@
               <span><span class="stat-label">Following</span><span class="stat-value">312</span></span>
               <span><span class="stat-label">XP Balance</span><span class="stat-value gold">18,450</span></span>
             </div>
-            <div class="hero-actions">
-              <button class="ghost-action" type="button"><svg class="icon"><use href="#i-user"/></svg>Edit Profile</button>
-              <button class="ghost-action" type="button"><svg class="icon"><use href="#i-share"/></svg>Share</button>
-              <button class="ghost-action" type="button" aria-label="Profile settings"><svg class="icon"><use href="#i-progress"/></svg></button>
-            </div>
           </div>
         </div>
-      </section>
-
-      <section class="lens-row" aria-label="Home lens selector">
-        <button class="lens-button" type="button" data-view="reels" aria-pressed="true"><span class="lens-puck"><svg class="icon"><use href="#i-reels"/></svg></span><span class="lens-label">Reels</span></button>
-        <button class="lens-button" type="button" data-view="home" aria-pressed="false"><span class="lens-puck"><svg class="icon"><use href="#i-home"/></svg></span><span class="lens-label">Feed</span></button>
-        <button class="lens-button" type="button" data-view="profile" aria-pressed="false"><span class="lens-puck"><svg class="icon"><use href="#i-spark"/></svg></span><span class="lens-label">Creative</span></button>
-        <button class="lens-button" type="button" data-view="profile" aria-pressed="false"><span class="lens-puck"><svg class="icon"><use href="#i-image"/></svg></span><span class="lens-label">Photos</span></button>
-        <button class="lens-button" type="button" data-view="progress" aria-pressed="false"><span class="lens-puck"><svg class="icon"><use href="#i-progress"/></svg></span><span class="lens-label">Activity</span></button>
-        <button class="lens-button" type="button" data-view="workouts" aria-pressed="false"><span class="lens-puck"><svg class="icon"><use href="#i-workout"/></svg></span><span class="lens-label">Training</span></button>
       </section>
 
       <section class="module-grid" aria-label="Home modules">
@@ -1560,7 +1477,6 @@
               <div class="engagement-group muted">
                 <span>12.4K views</span><span>2.1K likes</span><span>156 comments</span>
               </div>
-              <button class="primary-action" type="button" data-view="reels"><svg class="icon"><use href="#i-plus"/></svg>Create Reel</button>
             </div>
           </div>
         </article>
@@ -1574,7 +1490,6 @@
             <div class="quick-input-wrap">
               <label class="sr-only" for="postText">What are you creating today?</label>
               <input class="quick-input" id="postText" type="text" maxlength="140" placeholder="What are you creating today?" />
-              <button class="icon-button" type="button" id="mediaButton" aria-label="Add media"><svg class="icon"><use href="#i-image"/></svg></button>
               <input id="mediaInput" type="file" accept="image/*,video/*" hidden />
             </div>
             <div class="mood-row" aria-label="Post mood">
@@ -1585,7 +1500,7 @@
               <button class="mood-button" type="button" data-mood="Community" aria-pressed="false"><svg class="icon"><use href="#i-community"/></svg>Community</button>
             </div>
             <div class="quick-actions">
-              <button class="ghost-action" type="button" id="mediaName"><svg class="icon"><use href="#i-image"/></svg>Add Media</button>
+              <button class="ghost-action" type="button" id="mediaButton"><svg class="icon"><use href="#i-image"/></svg><span id="mediaName">Add Media</span></button>
               <button class="ghost-action" type="button">Everyone</button>
               <span class="xp-preview"><svg class="icon"><use href="#i-spark"/></svg>+25 XP</span>
               <button class="primary-action" style="width:auto;min-width:132px" type="submit" id="postSubmit"><span>Stage Post</span><svg class="icon"><use href="#i-send"/></svg></button>
@@ -1640,7 +1555,7 @@
 
     <aside class="right-rail" aria-label="Home right rail">
       <section class="panel">
-        <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Stories from the Garden</span><button class="pill-button" type="button">View all</button></div>
+        <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Stories from the Garden</span><span class="muted" style="font-size:11px">5 stories</span></div>
         <div class="story-row">
           <div class="story"><div class="story-ring"><div class="story-core"></div></div><span>Your Story</span></div>
           <div class="story"><div class="story-ring"><div class="story-core"></div></div><span>CrystalBloom</span></div>
@@ -1651,7 +1566,7 @@
       </section>
 
       <section class="panel">
-        <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Live Activity</span><button class="pill-button" type="button">View all</button></div>
+        <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Live Activity</span><span class="muted" style="font-size:11px">3 updates</span></div>
         <div class="activity-list">
           <div class="activity-item"><span class="activity-avatar">I</span><span><strong>IronMuse</strong> completed a challenge<br><span class="muted">2m ago</span></span><span class="small-orb"><svg class="icon"><use href="#i-rewards"/></svg></span></div>
           <div class="activity-item"><span class="activity-avatar">P</span><span><strong>PixelPainter</strong> earned a badge<br><span class="muted">7m ago</span></span><span class="small-orb"><svg class="icon"><use href="#i-spark"/></svg></span></div>
@@ -1670,12 +1585,11 @@
           </div>
           <div class="badge-hex gold" style="width:84px;height:94px;justify-self:end"><svg class="icon" style="width:38px;height:38px"><use href="#i-workout"/></svg></div>
         </div>
-        <button class="primary-action" type="button" style="margin-top:14px;background:linear-gradient(135deg,#8A6A2A,#DAC36E);color:#140E04">Join Challenge</button>
       </section>
 
       <section class="mini-panels">
         <div class="panel">
-          <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Badges</span><button class="pill-button" type="button">View all</button></div>
+          <div class="split-row" style="margin-bottom:12px"><span class="eyebrow">Badges</span><span class="muted" style="font-size:11px">+12 earned</span></div>
           <div class="badge-grid"><span class="badge-hex"><svg class="icon"><use href="#i-spark"/></svg></span><span class="badge-hex gold"><svg class="icon"><use href="#i-rewards"/></svg></span><span class="badge-hex violet"><svg class="icon"><use href="#i-progress"/></svg></span><span class="badge-hex" style="background:rgba(8,18,42,.7);border:1px dashed rgba(127,197,251,.3)">+12</span></div>
         </div>
         <div class="panel">
@@ -1690,7 +1604,7 @@
 
       <section class="mini-panels">
         <div class="panel">
-          <div class="split-row" style="margin-bottom:10px"><span class="eyebrow">Weekly Momentum</span><button class="pill-button" type="button">View</button></div>
+          <div class="split-row" style="margin-bottom:10px"><span class="eyebrow">Weekly Momentum</span><span class="muted" style="font-size:11px">78%</span></div>
           <div class="momentum-layout">
             <div class="ring">
               <svg viewBox="0 0 96 96" width="96" height="96" style="position:absolute"><circle cx="48" cy="48" r="38" stroke="rgba(96,192,240,.18)" stroke-width="7" fill="none"/><circle cx="48" cy="48" r="38" stroke="#7FC5FB" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="238.7" stroke-dashoffset="52.5" transform="rotate(-90 48 48)"/></svg>
@@ -1700,7 +1614,7 @@
           </div>
         </div>
         <div class="panel">
-          <div class="split-row" style="margin-bottom:10px"><span class="eyebrow">Trending</span><button class="pill-button" type="button">View all</button></div>
+          <div class="split-row" style="margin-bottom:10px"><span class="eyebrow">Trending</span><span class="muted" style="font-size:11px">3 tags</span></div>
           <div class="stack">
             <div class="split-row"><span># StrengthSurge</span><svg class="sparkline" viewBox="0 0 68 20"><polyline points="0,16 8,12 16,14 24,8 32,10 40,5 48,9 56,4 66,6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
             <div class="split-row"><span># CreateDaily</span><svg class="sparkline" viewBox="0 0 68 20"><polyline points="0,14 8,15 16,10 24,11 32,8 40,12 48,7 56,8 66,3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
@@ -1749,7 +1663,7 @@
         copy: "Use the same rail, top utility row, XP beats, and mobile bottom nav across Community, Reels, Progress, Profile, Workouts, and Rewards without rebuilding the visual system.",
         category: "Workout Share",
         feed: "New set. New energy. Let's build.",
-        modules: ["Creator lens stays primary", "Right rail carries live widgets", "Bottom nav keeps Home, Reels, Create, Progress, Profile reachable"]
+        modules: ["Creator workspace stays primary", "Right rail carries live widgets", "Bottom nav keeps Home, Reels, Create, Progress, Profile reachable"]
       },
       reels: {
         context: "Reels Observatory",
@@ -1759,7 +1673,7 @@
         copy: "The spotlight module becomes the lead surface, while the feed card and right rail keep activity, challenges, and XP context close.",
         category: "Reels Preview",
         feed: "28 second training reel staged for review. Caption, category, visibility, and XP preview stay explicit.",
-        modules: ["Spotlight-first composition", "Create Reel CTA remains reachable", "No automatic publishing implied"]
+        modules: ["Spotlight-first composition", "Reels nav remains the single destination path", "No automatic publishing implied"]
       },
       community: {
         context: "Community Observatory",
@@ -1843,12 +1757,8 @@
 
       document.querySelectorAll("[data-view]").forEach((button) => {
         const isActive = button.dataset.view === view;
-        if (button.classList.contains("lens-button")) {
-          button.setAttribute("aria-pressed", String(isActive || (view === "reels" && button.dataset.view === "reels")));
-        } else {
-          if (isActive) button.setAttribute("aria-current", "page");
-          else button.removeAttribute("aria-current");
-        }
+        if (isActive) button.setAttribute("aria-current", "page");
+        else button.removeAttribute("aria-current");
       });
     }
 
@@ -1905,16 +1815,9 @@
     });
 
     mediaButton.addEventListener("click", () => mediaInput.click());
-    mediaName.addEventListener("click", () => mediaInput.click());
     mediaInput.addEventListener("change", () => {
       const file = mediaInput.files && mediaInput.files[0];
-      mediaName.replaceChildren();
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-      svg.setAttribute("class", "icon");
-      use.setAttribute("href", "#i-image");
-      svg.appendChild(use);
-      mediaName.append(svg, document.createTextNode(file ? file.name.slice(0, 18) : "Add Media"));
+      mediaName.textContent = file ? file.name.slice(0, 18) : "Add Media";
     });
 
     likeButton.addEventListener("click", () => {
