@@ -221,7 +221,7 @@ export const useBulkOperations = (dependencies: {
     }
     
     switch (action) {
-      case 'confirm':
+      case 'confirm': {
         const confirmableEvents = selectedEvents.filter(e => 
           e.status === 'scheduled' || e.status === 'booked'
         );
@@ -238,8 +238,9 @@ export const useBulkOperations = (dependencies: {
           };
         }
         break;
+      }
         
-      case 'cancel':
+      case 'cancel': {
         const cancellableEvents = selectedEvents.filter(e => 
           e.status !== 'completed' && e.status !== 'cancelled'
         );
@@ -250,8 +251,9 @@ export const useBulkOperations = (dependencies: {
           };
         }
         break;
+      }
         
-      case 'delete':
+      case 'delete': {
         const deletableEvents = selectedEvents.filter(e => 
           e.status === 'available' || e.status === 'cancelled'
         );
@@ -262,8 +264,9 @@ export const useBulkOperations = (dependencies: {
           };
         }
         break;
+      }
         
-      case 'reassign':
+      case 'reassign': {
         const reassignableEvents = selectedEvents.filter(e => 
           e.status !== 'completed'
         );
@@ -274,6 +277,7 @@ export const useBulkOperations = (dependencies: {
           };
         }
         break;
+      }
         
       default:
         break;

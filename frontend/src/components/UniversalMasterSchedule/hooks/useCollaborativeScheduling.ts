@@ -839,13 +839,14 @@ export const useCollaborativeScheduling = ({
           ));
           break;
           
-        case 'pong':
+        case 'pong': {
           // Heartbeat response - update connection quality based on latency
           const latency = Date.now() - new Date(data.timestamp).getTime();
           if (latency < 100) setConnectionQuality('excellent');
           else if (latency < 300) setConnectionQuality('good');
           else setConnectionQuality('poor');
           break;
+        }
       }
     };
     

@@ -15,7 +15,7 @@ const TOKENS = {
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
   swanCyan: '#8B5CF6',
   cosmicPurple: '#8B5CF6',
-  deepSpace: '#0A0A1A',
+  deepSpace: '#0A0A0F',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
   glassStroke: 'rgba(139, 92, 246, 0.1)',

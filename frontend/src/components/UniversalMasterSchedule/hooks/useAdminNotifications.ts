@@ -229,14 +229,16 @@ export const useAdminNotifications = ({
         case 'today':
           if (notificationDate.toDateString() !== now.toDateString()) return false;
           break;
-        case 'week':
+        case 'week': {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           if (notificationDate < weekAgo) return false;
           break;
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           if (notificationDate < monthAgo) return false;
           break;
+        }
       }
     }
     

@@ -298,16 +298,18 @@ export const sortSessions = (
       case 'date':
         comparison = new Date(a.start).getTime() - new Date(b.start).getTime();
         break;
-      case 'client':
+      case 'client': {
         const clientA = `${a.client?.firstName || ''} ${a.client?.lastName || ''}`.trim();
         const clientB = `${b.client?.firstName || ''} ${b.client?.lastName || ''}`.trim();
         comparison = clientA.localeCompare(clientB);
         break;
-      case 'trainer':
+      }
+      case 'trainer': {
         const trainerA = `${a.trainer?.firstName || ''} ${a.trainer?.lastName || ''}`.trim();
         const trainerB = `${b.trainer?.firstName || ''} ${b.trainer?.lastName || ''}`.trim();
         comparison = trainerA.localeCompare(trainerB);
         break;
+      }
       case 'status':
         comparison = a.status.localeCompare(b.status);
         break;

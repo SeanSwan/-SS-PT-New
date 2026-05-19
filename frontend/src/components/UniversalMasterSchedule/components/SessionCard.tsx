@@ -14,7 +14,7 @@ const TOKENS = {
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
   swanCyan: '#8B5CF6',
   cosmicPurple: '#8B5CF6',
-  deepSpace: '#0A0A1A',
+  deepSpace: '#0A0A0F',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
   successGreen: '#10b981',
@@ -92,6 +92,10 @@ const SessionCard: React.FC<SessionCardProps> = ({
       $statusColor={statusColor}
       $variant={variant}
       $isSoon={isSoon}
+      $interactive={Boolean(onSelect)}
+      type="button"
+      disabled={!onSelect}
+      aria-label={`Select ${session.status} session on ${dateStr} at ${timeStr}`}
       onClick={() => onSelect?.(session)}
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
@@ -176,15 +180,24 @@ const pulseGlow = keyframes`
   50% { box-shadow: 0 0 12px 4px rgba(139, 92, 246, 0.15); }
 `;
 
-const CardWrapper = styled(motion.div)<{ $statusColor: string; $variant: string; $isSoon: boolean }>`
+const CardWrapper = styled(motion.button)<{
+  $statusColor: string;
+  $variant: string;
+  $isSoon: boolean;
+  $interactive: boolean;
+}>`
   position: relative;
+  width: 100%;
   background: ${TOKENS.elevatedGlass};
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid ${TOKENS.purpleStroke};
   border-radius: 16px;
   overflow: hidden;
-  cursor: pointer;
+  cursor: ${p => p.$interactive ? 'pointer' : 'default'};
+  color: inherit;
+  font: inherit;
+  text-align: left;
   transition: border-color 0.2s;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 

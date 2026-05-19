@@ -53,6 +53,10 @@ interface StorefrontPackage {
   packageType: string;
 }
 
+type StorefrontPackageWithStatus = StorefrontPackage & {
+  isActive?: boolean;
+};
+
 interface LastPackageInfo {
   packageId: number;
   packageName: string;
@@ -163,7 +167,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [cardsLoading, setCardsLoading] = useState(false);
-  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const [attachingTestCard, setAttachingTestCard] = useState(false);
 
   // Venmo/Zelle confirmation gate
@@ -208,12 +211,13 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const result = await response.json();
+      const result = await response.json() as {
+        items?: StorefrontPackageWithStatus[];
+        data?: { packages?: StorefrontPackageWithStatus[] };
+      };
       if (response.ok) {
         const items = result.items || result.data?.packages || [];
-        const active = (items as StorefrontPackage[]).filter(
-          (p: any) => p.isActive !== false
-        );
+        const active = items.filter((p) => p.isActive !== false);
         setPackages(active);
       }
     } catch (err) {
@@ -237,7 +241,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         setLastPackage(result.data);
         // Only auto-select if the package is in the active packages list
         const available = activePackages || packages;
-        const isActive = available.some((p: any) => p.id === result.data.packageId);
+        const isActive = available.some((p) => p.id === result.data.packageId);
         if (isActive) {
           setSelectedPackageId(result.data.packageId);
         }
@@ -254,7 +258,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setCardsLoading(true);
     setSavedCards([]);
     setSelectedCardId(null);
-    setHasStripeCustomer(false);
     try {
       const token = getToken();
       if (!token) return;
@@ -264,7 +267,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       const result = await response.json();
       if (response.ok && result.success) {
         setSavedCards(result.paymentMethods || []);
-        setHasStripeCustomer(result.hasStripeCustomer || false);
       }
     } catch (err) {
       console.error('Error fetching saved cards:', err);
@@ -294,11 +296,10 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       setModalMode('package');
       setSavedCards([]);
       setSelectedCardId(null);
-      setHasStripeCustomer(false);
       setShowPaymentConfirmation(false);
       resetIdempotencyToken();
     }
-  }, [open, fetchClientsNeedingPayment, fetchPackages]);
+  }, [open, fetchClientsNeedingPayment, fetchPackages, resetIdempotencyToken]);
 
   // Auto-select preselected client when client list AND packages are loaded
   useEffect(() => {
@@ -310,7 +311,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         fetchSavedCards(match.id);
       }
     }
-  }, [preselectedClientId, clients, packages, fetchLastPackage]);
+  }, [preselectedClientId, clients, packages, fetchLastPackage, fetchSavedCards]);
 
   // Fetch last package and saved cards when client is manually selected
   const handleSelectClient = (client: ClientNeedingPayment) => {
@@ -611,7 +612,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setDuplicateWindowMessage('');
     setSelectedCardId(null);
     setSavedCards([]);
-    setHasStripeCustomer(false);
     setShowPaymentConfirmation(false);
     resetIdempotencyToken();
   };
@@ -695,7 +695,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       )}
     >
       {error && (
-        <ErrorText style={{ marginBottom: '1rem' }}>{error}</ErrorText>
+        <ErrorBlock>{error}</ErrorBlock>
       )}
 
       {success && (
@@ -739,7 +739,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
             />
             <Caption secondary>{forceReason.trim().length}/10 min characters</Caption>
           </FormField>
-          <FlexBox gap="0.5rem" style={{ marginTop: '0.5rem' }}>
+          <ForceOverrideActions>
             <OutlinedButton
               onClick={() => {
                 setShowForceOverride(false);
@@ -757,7 +757,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
               {applying ? <Spinner size={16} /> : <AlertTriangle size={16} />}
               Confirm Override
             </ForceOverrideButton>
-          </FlexBox>
+          </ForceOverrideActions>
         </ForceOverrideContainer>
       )}
 
@@ -768,9 +768,9 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       </SectionHeader>
 
       {loading ? (
-        <FlexBox justify="center" style={{ padding: '2rem' }}>
+        <CenteredPad $pad="2rem">
           <Spinner size={32} />
-        </FlexBox>
+        </CenteredPad>
       ) : clients.length === 0 ? (
         <EmptyState>
           <Caption secondary>No clients with exhausted credits have upcoming sessions.</Caption>
@@ -780,6 +780,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
           {clients.map((client) => (
             <ClientCard
               key={client.id}
+              type="button"
               $selected={selectedClient?.id === client.id}
               onClick={() => handleSelectClient(client)}
             >
@@ -807,11 +808,11 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       {/* Apply Section - shown when client is selected */}
       {selectedClient && (
         <ApplySection>
-          <FlexBox justify="space-between" align="center" style={{ marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <SectionHeader style={{ marginBottom: 0 }}>
+          <ApplyHeaderRow>
+            <InlineSectionHeader>
               <CreditCard size={18} />
               <SmallText>Apply Credits to {selectedClient.name}</SmallText>
-            </SectionHeader>
+            </InlineSectionHeader>
             <ModeToggle>
               <ModeButton
                 $active={modalMode === 'package'}
@@ -828,7 +829,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                 <DollarSign size={14} /> Manual
               </ModeButton>
             </ModeToggle>
-          </FlexBox>
+          </ApplyHeaderRow>
 
           {modalMode === 'package' ? (
             <>
@@ -843,9 +844,9 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
               {/* Package Selection Grid */}
               <Label>Select Package</Label>
               {packagesLoading ? (
-                <FlexBox justify="center" style={{ padding: '1rem' }}>
+                <CenteredPad>
                   <Spinner size={24} />
-                </FlexBox>
+                </CenteredPad>
               ) : packages.length === 0 ? (
                 <EmptyState>
                   <Caption secondary>No packages found in storefront.</Caption>
@@ -859,6 +860,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                     return (
                       <PackageCard
                         key={pkg.id}
+                        type="button"
                         $selected={selectedPackageId === pkg.id}
                         $isLast={isLast}
                         onClick={() => setSelectedPackageId(pkg.id)}
@@ -877,7 +879,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
               )}
 
               {/* Payment Method */}
-              <FormField style={{ marginTop: '1rem' }}>
+              <SpacedFormField>
                 <Label>Payment Method</Label>
                 <PaymentMethodGrid>
                   {PAYMENT_METHODS.map((m) => (
@@ -895,15 +897,15 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                     </PaymentMethodButton>
                   ))}
                 </PaymentMethodGrid>
-              </FormField>
+              </SpacedFormField>
 
               {/* Stripe Card-on-File Section */}
               {paymentMethod === 'stripe' && selectedClient && (
                 <StripeCardSection>
                   {cardsLoading ? (
-                    <FlexBox justify="center" style={{ padding: '1rem' }}>
+                    <CenteredPad>
                       <Spinner size={24} />
-                    </FlexBox>
+                    </CenteredPad>
                   ) : savedCards.length > 0 ? (
                     <>
                       <Label>Select Card</Label>
@@ -911,11 +913,12 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                         {savedCards.map((card) => (
                           <CardOption
                             key={card.id}
+                            type="button"
                             $selected={selectedCardId === card.id}
                             onClick={() => setSelectedCardId(card.id)}
                           >
                             <CreditCard size={16} />
-                            <span style={{ textTransform: 'capitalize' }}>{card.brand}</span>
+                            <CapitalizedBodyText as="span">{card.brand}</CapitalizedBodyText>
                             <span>****{card.last4}</span>
                             <Caption secondary>{card.expMonth}/{card.expYear}</Caption>
                           </CardOption>
@@ -957,16 +960,16 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                       const config = PAYMENT_METHOD_CONFIG[paymentMethod];
                       const isValid = !config?.validation || config.validation.test(paymentReference.trim());
                       return !isValid ? (
-                        <Caption style={{ color: '#ef4444', marginTop: '0.25rem' }}>
+                        <ValidationCaption>
                           {config?.validationMsg}
-                        </Caption>
+                        </ValidationCaption>
                       ) : null;
                     })()
                   )}
                   {PAYMENT_METHOD_CONFIG[paymentMethod]?.instructions && (
-                    <Caption secondary style={{ marginTop: '0.25rem' }}>
+                    <InstructionCaption secondary>
                       {PAYMENT_METHOD_CONFIG[paymentMethod].instructions}
-                    </Caption>
+                    </InstructionCaption>
                   )}
                 </FormField>
               )}
@@ -982,7 +985,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                     Please confirm you have received the {paymentMethod === 'venmo' ? 'Venmo' : 'Zelle'} payment
                     from {selectedClient.name} before applying credits.
                   </Caption>
-                  <FlexBox gap="0.5rem" style={{ marginTop: '0.75rem' }}>
+                  <ForceOverrideActions>
                     <OutlinedButton onClick={() => setShowPaymentConfirmation(false)}>
                       Cancel
                     </OutlinedButton>
@@ -996,7 +999,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                     >
                       Confirm & Apply
                     </GlowButton>
-                  </FlexBox>
+                  </ForceOverrideActions>
                 </ConfirmationBanner>
               )}
 
@@ -1029,13 +1032,13 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
                   </SummaryRow>
                   <SummaryRow>
                     <Caption secondary>Payment</Caption>
-                    <BodyText style={{ textTransform: 'capitalize' }}>{paymentMethod === 'stripe' ? 'Card on File' : paymentMethod}</BodyText>
+                    <CapitalizedBodyText>{paymentMethod === 'stripe' ? 'Card on File' : paymentMethod}</CapitalizedBodyText>
                   </SummaryRow>
                   <SummaryRow>
                     <Caption secondary>New Balance</Caption>
-                    <BodyText style={{ color: '#00FF88', fontWeight: 700 }}>
+                    <PositiveBodyText>
                       {(selectedClient.availableSessions || 0) + pkgSessions} credits
-                    </BodyText>
+                    </PositiveBodyText>
                   </SummaryRow>
                 </SummaryCard>
               )}
@@ -1085,6 +1088,27 @@ const SectionHeader = styled.div`
   color: rgba(255, 255, 255, 0.8);
 `;
 
+const InlineSectionHeader = styled(SectionHeader)`
+  margin-bottom: 0;
+`;
+
+const ErrorBlock = styled(ErrorText)`
+  margin-bottom: 1rem;
+`;
+
+const ForceOverrideActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+const CenteredPad = styled.div<{ $pad?: string }>`
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  padding: ${({ $pad }) => $pad ?? '1rem'};
+`;
+
 const ClientList = styled.div`
   display: flex;
   flex-direction: column;
@@ -1094,7 +1118,7 @@ const ClientList = styled.div`
   margin-bottom: 1rem;
 `;
 
-const ClientCard = styled.div<{ $selected?: boolean }>`
+const ClientCard = styled.button<{ $selected?: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1102,8 +1126,11 @@ const ClientCard = styled.div<{ $selected?: boolean }>`
   border-radius: 10px;
   background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
   border: 1px solid ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.5)' : 'rgba(255, 255, 255, 0.08)'};
+  color: inherit;
   cursor: pointer;
+  text-align: left;
   transition: all 150ms ease-out;
+  width: 100%;
   min-height: 44px;
 
   &:hover {
@@ -1116,6 +1143,15 @@ const ClientCard = styled.div<{ $selected?: boolean }>`
     align-items: flex-start;
     gap: 0.5rem;
   }
+`;
+
+const ApplyHeaderRow = styled.div`
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 `;
 
 const ClientAvatar = styled.div`
@@ -1224,11 +1260,12 @@ const PackageGrid = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const PackageCard = styled.div<{ $selected: boolean; $isLast?: boolean }>`
+const PackageCard = styled.button<{ $selected: boolean; $isLast?: boolean }>`
   position: relative;
   padding: 0.75rem;
   border-radius: 10px;
   cursor: pointer;
+  color: inherit;
   transition: all 150ms ease;
   text-align: center;
   min-height: 44px;
@@ -1246,6 +1283,19 @@ const PackageCard = styled.div<{ $selected: boolean; $isLast?: boolean }>`
     background: rgba(139, 92, 246, 0.1);
     border-color: rgba(139, 92, 246, 0.4);
   }
+`;
+
+const SpacedFormField = styled(FormField)`
+  margin-top: 1rem;
+`;
+
+const ValidationCaption = styled(Caption)`
+  color: #ef4444;
+  margin-top: 0.25rem;
+`;
+
+const InstructionCaption = styled(Caption)`
+  margin-top: 0.25rem;
 `;
 
 const LastBadge = styled.span`
@@ -1329,6 +1379,15 @@ const SummaryRow = styled.div`
   }
 `;
 
+const CapitalizedBodyText = styled(BodyText)`
+  text-transform: capitalize;
+`;
+
+const PositiveBodyText = styled(BodyText)`
+  color: #00FF88;
+  font-weight: 700;
+`;
+
 const ForceOverrideContainer = styled.div`
   padding: 1.25rem;
   border-radius: 12px;
@@ -1370,7 +1429,7 @@ const CardGrid = styled.div`
   margin-bottom: 0.75rem;
 `;
 
-const CardOption = styled.div<{ $selected: boolean }>`
+const CardOption = styled.button<{ $selected: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1378,6 +1437,7 @@ const CardOption = styled.div<{ $selected: boolean }>`
   min-height: 44px;
   border-radius: 8px;
   cursor: pointer;
+  text-align: left;
   transition: all 150ms ease;
   font-weight: 600;
   font-size: 0.85rem;

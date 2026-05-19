@@ -786,9 +786,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       )}
     >
       {formError && (
-        <ErrorText style={{ marginBottom: '1rem' }}>
+        <SpacedErrorText>
           {formError}
-        </ErrorText>
+        </SpacedErrorText>
       )}
 
       {/* Phase D: No-Show Reason Input */}
@@ -930,9 +930,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       </DetailGrid>
 
       {isBlocked && session.reason && (
-        <SmallText secondary style={{ marginBottom: '1rem' }}>
+        <SpacedSmallText secondary>
           Block reason: {session.reason}
-        </SmallText>
+        </SpacedSmallText>
       )}
 
       {session.packageInfo && (
@@ -964,7 +964,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               </PackageDetail>
               <PackageDetail>
                 <PackageLabel>Sessions Remaining</PackageLabel>
-                <PackageValue style={{ color: '#00FF88' }}>
+                <PackageValue $tone="success">
                   {Math.max(0, session.packageInfo.sessionsRemaining ?? 0)}
                 </PackageValue>
               </PackageDetail>
@@ -990,7 +990,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           ) : (
             <PackageDetail>
               <PackageLabel>Plan Type</PackageLabel>
-              <PackageValue style={{ color: '#FFD700' }}>Unlimited</PackageValue>
+              <PackageValue $tone="gold">Unlimited</PackageValue>
             </PackageDetail>
           )}
         </PackageSection>
@@ -1009,7 +1009,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       </FormField>
 
       <FlexBox gap="1rem" wrap>
-        <FormField style={{ flex: 1, minWidth: '160px' }}>
+        <FlexibleFormField $flex={1} $minWidth="160px">
           <Label htmlFor="trainer-rating">Trainer Rating (1-5)</Label>
           <StyledInput
             id="trainer-rating"
@@ -1022,9 +1022,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             disabled={!canManage}
             placeholder="Optional"
           />
-        </FormField>
+        </FlexibleFormField>
 
-        <FormField style={{ flex: 2, minWidth: '220px' }}>
+        <FlexibleFormField $flex={2} $minWidth="220px">
           <Label htmlFor="client-feedback">Client Feedback</Label>
           <StyledTextarea
             id="client-feedback"
@@ -1034,7 +1034,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             disabled={!canManage}
             placeholder="Share feedback for the client..."
           />
-        </FormField>
+        </FlexibleFormField>
       </FlexBox>
 
       {/* Client Feedback Section - shown for completed sessions in client mode */}
@@ -1049,9 +1049,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
           {!feedbackSubmitted ? (
             <>
-              <SmallText secondary style={{ marginBottom: '1rem' }}>
+              <FeedbackIntro secondary>
                 How was your training session? Your feedback helps us improve.
-              </SmallText>
+              </FeedbackIntro>
 
               <StarRatingContainer>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -1065,13 +1065,13 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   </StarButton>
                 ))}
                 {clientRating > 0 && (
-                  <span style={{ marginLeft: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>
+                  <RatingValue>
                     {clientRating} / 5
-                  </span>
+                  </RatingValue>
                 )}
               </StarRatingContainer>
 
-              <FormField style={{ marginTop: '1rem' }}>
+              <FormFieldTopSpaced>
                 <Label htmlFor="client-feedback-comment">Comments (optional)</Label>
                 <StyledTextarea
                   id="client-feedback-comment"
@@ -1080,22 +1080,21 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                   rows={3}
                   placeholder="Share your thoughts about the session..."
                 />
-              </FormField>
+              </FormFieldTopSpaced>
 
-              <GlowButton
+              <FeedbackSubmitButton
                 variant="primary"
                 size="medium"
                 onClick={handleSubmitFeedback}
                 disabled={feedbackLoading || clientRating === 0}
                 isLoading={feedbackLoading}
-                style={{ marginTop: '1rem' }}
               >
                 {feedbackLoading ? 'Submitting...' : 'Submit Feedback'}
-              </GlowButton>
+              </FeedbackSubmitButton>
             </>
           ) : (
             <FeedbackThankYou>
-              <span style={{ fontSize: '2rem' }}>🎉</span>
+              <CelebrationIcon>🎉</CelebrationIcon>
               <BodyText>Thank you for your feedback!</BodyText>
               <Caption secondary>
                 Your rating: {clientRating} / 5 stars
@@ -1145,16 +1144,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Go Back
               </LateCancelBackButton>
-              <GlowButton
+              <LateCancelActionButton
                 variant="ruby"
                 size="medium"
                 onClick={handleConfirmLateCancellation}
                 disabled={loading}
                 isLoading={loading}
-                style={{ flex: 1 }}
               >
                 {loading ? 'Cancelling...' : 'I Understand, Cancel Session'}
-              </GlowButton>
+              </LateCancelActionButton>
             </LateCancelButtonRow>
           </LateCancelWarningPanel>
         ) : (
@@ -1169,9 +1167,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 {lateCancelWarning.hoursUntilSession.toFixed(1)} hours until session
               </LateCancelHoursLeft>
             </LateCancelSessionInfo>
-            <LateCancelWarningMessage style={{ color: 'rgba(16, 185, 129, 0.9)' }}>
+            <PositiveLateCancelWarningMessage>
               {lateCancelWarning.warningMessage}
-            </LateCancelWarningMessage>
+            </PositiveLateCancelWarningMessage>
             <FormField>
               <Label htmlFor="cancel-reason">Cancellation Reason (optional)</Label>
               <StyledInput
@@ -1189,16 +1187,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               >
                 Go Back
               </LateCancelBackButton>
-              <GlowButton
+              <LateCancelActionButton
                 variant="emerald"
                 size="medium"
                 onClick={handleConfirmLateCancellation}
                 disabled={loading}
                 isLoading={loading}
-                style={{ flex: 1 }}
               >
                 {loading ? 'Cancelling...' : 'Cancel Session (No Fee)'}
-              </GlowButton>
+              </LateCancelActionButton>
             </LateCancelButtonRow>
           </EarlyCancelPanel>
         )
@@ -1265,44 +1262,46 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
           <ChargeTypeGrid>
             <ChargeOption
+              htmlFor="charge-type-full"
               $selected={chargeType === 'full'}
               $variant="danger"
-              onClick={() => {
-                setChargeType('full');
-                setChargeAmount(String(defaultFullCharge));
-                setRestoreCredit(false);
-              }}
             >
               <ChargeOptionHeader>
-                <input
+                <ChargeRadio
+                  id="charge-type-full"
                   type="radio"
                   name="chargeType"
                   checked={chargeType === 'full'}
-                  onChange={() => {}}
+                  onChange={() => {
+                    setChargeType('full');
+                    setChargeAmount(String(defaultFullCharge));
+                    setRestoreCredit(false);
+                  }}
                 />
                 <span>Full Session Charge (Default)</span>
               </ChargeOptionHeader>
               <Caption secondary>
-                Charge the full session rate based on client's package.
+                Charge the full session rate based on client&apos;s package.
               </Caption>
               <ChargeAmount $variant="danger">${defaultFullCharge.toFixed(2)}</ChargeAmount>
             </ChargeOption>
 
             <ChargeOption
+              htmlFor="charge-type-late-fee"
               $selected={chargeType === 'late_fee'}
               $variant="warning"
-              onClick={() => {
-                setChargeType('late_fee');
-                setChargeAmount(String(defaultLateFee));
-                setRestoreCredit(false);
-              }}
             >
               <ChargeOptionHeader>
-                <input
+                <ChargeRadio
+                  id="charge-type-late-fee"
                   type="radio"
                   name="chargeType"
                   checked={chargeType === 'late_fee'}
-                  onChange={() => {}}
+                  onChange={() => {
+                    setChargeType('late_fee');
+                    setChargeAmount(String(defaultLateFee));
+                    setRestoreCredit(false);
+                  }}
                 />
                 <span>Late Cancellation Fee (50%)</span>
               </ChargeOptionHeader>
@@ -1313,20 +1312,21 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             </ChargeOption>
 
             <ChargeOption
+              htmlFor="charge-type-partial"
               $selected={chargeType === 'partial'}
               $variant="warning"
-              onClick={() => {
-                setChargeType('partial');
-                setChargeAmount(String(Math.round(defaultFullCharge * 0.5)));
-                setRestoreCredit(false);
-              }}
             >
               <ChargeOptionHeader>
-                <input
+                <ChargeRadio
+                  id="charge-type-partial"
                   type="radio"
                   name="chargeType"
                   checked={chargeType === 'partial'}
-                  onChange={() => {}}
+                  onChange={() => {
+                    setChargeType('partial');
+                    setChargeAmount(String(Math.round(defaultFullCharge * 0.5)));
+                    setRestoreCredit(false);
+                  }}
                 />
                 <span>Custom Amount</span>
               </ChargeOptionHeader>
@@ -1348,20 +1348,21 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             </ChargeOption>
 
             <ChargeOption
+              htmlFor="charge-type-none"
               $selected={chargeType === 'none'}
               $variant="success"
-              onClick={() => {
-                setChargeType('none');
-                setChargeAmount('');
-                setRestoreCredit(true);
-              }}
             >
               <ChargeOptionHeader>
-                <input
+                <ChargeRadio
+                  id="charge-type-none"
                   type="radio"
                   name="chargeType"
                   checked={chargeType === 'none'}
-                  onChange={() => {}}
+                  onChange={() => {
+                    setChargeType('none');
+                    setChargeAmount('');
+                    setRestoreCredit(true);
+                  }}
                 />
                 <span>No Charge</span>
               </ChargeOptionHeader>
@@ -1381,7 +1382,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
                 onChange={(e) => setRestoreCredit(e.target.checked)}
               />
               <label htmlFor="restore-credit">
-                <SmallText>Restore session credit to client's account</SmallText>
+                <SmallText>Restore session credit to client&apos;s account</SmallText>
               </label>
             </RestoreCreditOption>
           )}
@@ -1404,6 +1405,23 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 };
 
 export default SessionDetailModal;
+
+const SpacedErrorText = styled(ErrorText)`
+  margin-bottom: 1rem;
+`;
+
+const SpacedSmallText = styled(SmallText)`
+  margin-bottom: 1rem;
+`;
+
+const FlexibleFormField = styled(FormField)<{ $flex: number; $minWidth: string }>`
+  flex: ${({ $flex }) => $flex};
+  min-width: ${({ $minWidth }) => $minWidth};
+`;
+
+const FormFieldTopSpaced = styled(FormField)`
+  margin-top: 1rem;
+`;
 
 const DetailGrid = styled.div`
   display: grid;
@@ -1544,6 +1562,10 @@ const LateCancelWarningMessage = styled.p`
   margin: 0 0 1rem 0;
 `;
 
+const PositiveLateCancelWarningMessage = styled(LateCancelWarningMessage)`
+  color: rgba(16, 185, 129, 0.9);
+`;
+
 const LateCancelFeeBox = styled.div`
   display: flex;
   justify-content: space-between;
@@ -1588,6 +1610,10 @@ const LateCancelButtonRow = styled.div`
   display: flex;
   gap: 0.75rem;
   margin-top: 1rem;
+`;
+
+const LateCancelActionButton = styled(GlowButton)`
+  flex: 1;
 `;
 
 const LateCancelContinueButton = styled.button`
@@ -1692,8 +1718,17 @@ const PackageLabel = styled.span`
   font-size: 0.875rem;
 `;
 
-const PackageValue = styled.span`
-  color: white;
+const PackageValue = styled.span<{ $tone?: 'success' | 'gold' }>`
+  color: ${({ $tone }) => {
+    switch ($tone) {
+      case 'success':
+        return '#00FF88';
+      case 'gold':
+        return '#FFD700';
+      default:
+        return 'white';
+    }
+  }};
   font-size: 0.875rem;
   font-weight: 500;
 `;
@@ -1725,12 +1760,16 @@ const ChargeTypeGrid = styled.div`
   margin: 1rem 0;
 `;
 
-const ChargeOption = styled.div<{ $selected: boolean; $variant: 'success' | 'warning' | 'danger' }>`
+const ChargeOption = styled.label<{ $selected: boolean; $variant: 'success' | 'warning' | 'danger' }>`
   position: relative;
+  display: block;
   padding: 1rem;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 44px;
+  width: 100%;
+  text-align: left;
 
   background: ${props => {
     if (!props.$selected) return 'rgba(255, 255, 255, 0.03)';
@@ -1777,6 +1816,14 @@ const ChargeOptionHeader = styled.div`
     font-weight: 600;
     font-size: 0.9rem;
   }
+`;
+
+const ChargeRadio = styled.input`
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+  flex-shrink: 0;
 `;
 
 const ChargeAmount = styled.div<{ $variant: 'success' | 'warning' | 'danger' }>`
@@ -1890,6 +1937,10 @@ const FeedbackSubmittedBadge = styled.span`
   font-weight: 500;
 `;
 
+const FeedbackIntro = styled(SmallText)`
+  margin-bottom: 1rem;
+`;
+
 const StarRatingContainer = styled.div`
   display: flex;
   align-items: center;
@@ -1915,6 +1966,15 @@ const StarButton = styled.button<{ $active: boolean }>`
   }
 `;
 
+const RatingValue = styled.span`
+  margin-left: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const FeedbackSubmitButton = styled(GlowButton)`
+  margin-top: 1rem;
+`;
+
 const FeedbackThankYou = styled.div`
   display: flex;
   flex-direction: column;
@@ -1922,6 +1982,10 @@ const FeedbackThankYou = styled.div`
   gap: 0.5rem;
   padding: 1.5rem;
   text-align: center;
+`;
+
+const CelebrationIcon = styled.span`
+  font-size: 2rem;
 `;
 
 // Phase D: Attendance Styled Components

@@ -6,16 +6,16 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Search, Clock, MapPin, User, Check, ChevronDown } from 'lucide-react';
+import { X, Search, Clock, MapPin, User, Check } from 'lucide-react';
 
 const TOKENS = {
   surfaceGlass: 'rgba(0, 32, 96, 0.6)',
   elevatedGlass: 'rgba(30, 30, 50, 0.7)',
   swanCyan: '#8B5CF6',
   cosmicPurple: '#8B5CF6',
-  deepSpace: '#0A0A1A',
+  deepSpace: '#0A0A0F',
   stellarWhite: '#f0f0ff',
   mutedText: '#8892b0',
   successGreen: '#10b981',
@@ -109,6 +109,8 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
       {isOpen && (
         <>
           <Backdrop
+            type="button"
+            aria-label="Close booking drawer"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -143,21 +145,16 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
               <SlotDate>{dateStr}</SlotDate>
               <SlotMeta>
                 <Clock size={12} />
-                <select
+                <DurationSelect
                   value={slotDuration}
                   onChange={(e) => onDurationChange?.(Number(e.target.value))}
-                  style={{
-                    background: 'rgba(0, 32, 96, 0.6)', border: '1px solid rgba(96, 192, 240, 0.2)',
-                    borderRadius: 6, color: '#E0ECF4', padding: '4px 8px', fontSize: 13,
-                    cursor: 'pointer', minHeight: 32,
-                  }}
                   aria-label="Session duration"
                 >
                   <option value={30}>30 min</option>
                   <option value={45}>45 min</option>
                   <option value={60}>60 min</option>
                   <option value={90}>90 min</option>
-                </select>
+                </DurationSelect>
                 {slotLocation && <><MapPin size={12} /> {slotLocation}</>}
               </SlotMeta>
               {trainerName && (
@@ -201,7 +198,7 @@ const BookingDrawer: React.FC<BookingDrawerProps> = ({
                       </ClientItem>
                     ))}
                     {filteredClients.length === 0 && (
-                      <EmptySearch>No clients match "{searchTerm}"</EmptySearch>
+                      <EmptySearch>No clients match {searchTerm}</EmptySearch>
                     )}
                   </ClientList>
                 </>
@@ -257,10 +254,12 @@ export default BookingDrawer;
 
 // ---- Styled Components ----
 
-const Backdrop = styled(motion.div)`
+const Backdrop = styled(motion.button)`
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  border: 0;
+  padding: 0;
   z-index: 999;
 `;
 
@@ -373,6 +372,17 @@ const SlotMeta = styled.div`
   margin-top: 8px;
   font-size: 13px;
   color: ${TOKENS.mutedText};
+`;
+
+const DurationSelect = styled.select`
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid rgba(96, 192, 240, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 32, 96, 0.6);
+  color: ${TOKENS.stellarWhite};
+  font-size: 13px;
+  cursor: pointer;
 `;
 
 const SlotTrainer = styled.div`
