@@ -213,7 +213,7 @@ const FeaturesList = styled.ul`
   margin: 0 0 2rem 0;
 `;
 
-const FeatureItem = styled.li`
+const FeatureItem = styled.li<{ $productTheme?: string }>`
   color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.5rem;
   padding-left: 1.5rem;
@@ -223,7 +223,7 @@ const FeatureItem = styled.li`
     content: '✓';
     position: absolute;
     left: 0;
-    color: ${({ theme }) => theme === 'cosmic' ? '#60C0F0' : '#8B5CF6'};
+    color: ${({ $productTheme }) => $productTheme === 'cosmic' ? '#60C0F0' : '#8B5CF6'};
   }
 `;
 
@@ -548,7 +548,7 @@ const ProductDetail: React.FC = () => {
                   <FeaturesTitle>Included Features:</FeaturesTitle>
                   <FeaturesList>
                     {features.map((feature, index) => (
-                      <FeatureItem key={index} theme={product.theme}>
+                      <FeatureItem key={index} $productTheme={product.theme}>
                         {feature}
                       </FeatureItem>
                     ))}
@@ -580,7 +580,7 @@ const ProductDetail: React.FC = () => {
                 <AddToCartWrapper>
                   <GlowButton
                     text={addingToCart ? "Adding..." : "Add to Cart"}
-                    theme={product.theme || 'purple'}
+                    theme={(product.theme || 'purple') as any}
                     size="large"
                     isLoading={addingToCart}
                     disabled={addingToCart}
@@ -597,7 +597,7 @@ const ProductDetail: React.FC = () => {
         
         {/* Complementary product recommendations */}
         <ProductRecommendations
-          type="complementary"
+          type={"complementary" as any}
           title="You Might Also Like"
           itemId={product.id}
           limit={3}

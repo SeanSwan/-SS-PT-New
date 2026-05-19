@@ -73,9 +73,7 @@ function useVisibleRowCount(): number {
       mq.addEventListener('change', handler);
       return () => mq.removeEventListener('change', handler);
     }
-    // @ts-expect-error legacy MediaQueryList API
     mq.addListener(handler);
-    // @ts-expect-error legacy MediaQueryList API
     return () => mq.removeListener(handler);
   }, []);
   return rows;
@@ -351,11 +349,11 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
           {filteredResults.length > 0 ? (
             <ListContainer>
               <List
-                listRef={listRef}
-                rowComponent={RowComponent}
+                listRef={listRef as any}
+                rowComponent={RowComponent as any}
                 rowCount={filteredResults.length}
                 rowHeight={ROW_HEIGHT}
-                rowProps={{}}
+                rowProps={{} as any}
                 style={{ height: listHeight || ROW_HEIGHT }}
                 id="exercise-rolodex-list"
                 role="listbox"
