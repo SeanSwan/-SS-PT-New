@@ -22,7 +22,7 @@ import type { Faction } from '../../../hooks/social/useFaction';
 // SECTION: Icon Map
 // ─────────────────────────────────────────────────────────────
 
-const ICON_MAP: Record<string, React.FC<{ size: number }>> = {
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
   shield: Shield,
   zap: Zap,
   star: Star,

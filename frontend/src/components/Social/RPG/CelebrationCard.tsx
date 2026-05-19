@@ -45,7 +45,7 @@ export interface CelebrationData {
 // SECTION: Config Maps
 // ─────────────────────────────────────────────────────────────
 
-const TYPE_CONFIG: Record<CelebrationType, { icon: React.FC<{ size: number }>; gradient: string; label: string }> = {
+const TYPE_CONFIG: Record<CelebrationType, { icon: React.ComponentType<any>; gradient: string; label: string }> = {
   level_up:       { icon: TrendingUp, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #60C0F0 100%)', label: 'LEVEL UP' },
   achievement:    { icon: Trophy,     gradient: 'linear-gradient(135deg, #C6A84B 0%, #8B5CF6 100%)', label: 'ACHIEVEMENT' },
   streak:         { icon: Flame,      gradient: 'linear-gradient(135deg, #ef4444 0%, #f59e0b 100%)', label: 'STREAK' },
