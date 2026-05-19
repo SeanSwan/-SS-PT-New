@@ -24,11 +24,10 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
   Brain,
   TrendingUp,
-  Lightbulb,
   AlertTriangle,
   CheckCircle2,
   Info,
@@ -39,12 +38,6 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
-// Victory chart components (migrated from Recharts — imports available for future chart usage)
-import {
-  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
-  VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
-  VictoryPolarAxis,
-} from 'victory';
 import { logger } from '@/utils/logger';
 
 // ── Crystalline Swan Theme Tokens ──
@@ -67,16 +60,6 @@ const theme = {
   glass: 'rgba(255,255,255,0.02)',
   glassHover: 'rgba(255,255,255,0.05)',
 };
-
-// ── Keyframes ──
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
-
-const progressFill = keyframes`
-  from { stroke-dashoffset: 282.7; }
-`;
 
 // ── Primitive Styled Components ──
 
@@ -108,12 +91,6 @@ const FlexRow = styled.div<{
   ${({ $mt }) => $mt != null && css`margin-top: ${$mt}px;`}
 `;
 
-const FlexCol = styled.div<{ $align?: string }>`
-  display: flex;
-  flex-direction: column;
-  ${({ $align }) => $align && css`align-items: ${$align};`}
-`;
-
 const GridContainer = styled.div<{ $cols?: string; $gap?: number }>`
   display: grid;
   grid-template-columns: ${({ $cols }) => $cols || '1fr'};
@@ -136,18 +113,6 @@ const ControlsGrid = styled.div`
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
-`;
-
-// ── GlassPanel ──
-const GlassPanel = styled.div<{ $noPad?: boolean }>`
-  background: ${theme.bg};
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid ${theme.border};
-  border-radius: 16px;
-  ${({ $noPad }) => !$noPad && css`padding: 20px;`}
-  position: relative;
-  overflow: hidden;
 `;
 
 // ── Cards ──
@@ -202,29 +167,33 @@ const Heading4 = styled.h2<{ $color?: string }>`
   line-height: 1.3;
 `;
 
-const Heading6 = styled.h3<{ $color?: string; $capitalize?: boolean }>`
+const Heading6 = styled.h3<{ $color?: string; $capitalize?: boolean; $mb?: number; $m?: string }>`
   font-size: 1.1rem;
   font-weight: 600;
   color: ${({ $color }) => $color || theme.text};
   margin: 0 0 4px 0;
+  ${({ $mb }) => $mb != null && css`margin-bottom: ${$mb}px;`}
+  ${({ $m }) => $m && css`margin: ${$m};`}
   line-height: 1.4;
   ${({ $capitalize }) => $capitalize && css`text-transform: capitalize;`}
 `;
 
-const BodyText = styled.p<{ $color?: string; $fw?: number; $mb?: number }>`
+const BodyText = styled.p<{ $color?: string; $fw?: number; $mb?: number; $mt?: number }>`
   font-size: 0.875rem;
   color: ${({ $color }) => $color || theme.textMuted};
   margin: 0;
   ${({ $fw }) => $fw && css`font-weight: ${$fw};`}
   ${({ $mb }) => $mb != null && css`margin-bottom: ${$mb}px;`}
+  ${({ $mt }) => $mt != null && css`margin-top: ${$mt}px;`}
   line-height: 1.5;
 `;
 
-const CaptionText = styled.span<{ $color?: string; $fw?: number; $block?: boolean }>`
+const CaptionText = styled.span<{ $color?: string; $fw?: number; $block?: boolean; $mb?: number }>`
   font-size: 0.75rem;
   color: ${({ $color }) => $color || theme.textMuted};
   ${({ $fw }) => $fw && css`font-weight: ${$fw};`}
   ${({ $block }) => $block && css`display: block;`}
+  ${({ $mb }) => $mb != null && css`margin-bottom: ${$mb}px;`}
   line-height: 1.4;
 `;
 
@@ -243,7 +212,7 @@ const ChipStyled = styled.span<{
   white-space: nowrap;
   line-height: 1.4;
 
-  ${({ $outlined, $textColor }) =>
+  ${({ $outlined, $textColor, $bgColor }) =>
     $outlined
       ? css`
           background: transparent;
@@ -251,7 +220,7 @@ const ChipStyled = styled.span<{
           color: ${$textColor || theme.textMuted};
         `
       : css`
-          background: ${({ $bgColor }: any) => $bgColor || 'rgba(255,255,255,0.1)'};
+          background: ${$bgColor || 'rgba(255,255,255,0.1)'};
           color: ${$textColor || theme.text};
           border: none;
         `}
@@ -514,6 +483,39 @@ const HiddenCheckbox = styled.input`
   height: 0;
 `;
 
+const AnimatedProgressCircle = styled.circle`
+  transition: stroke-dashoffset 0.6s ease;
+`;
+
+const SectionHeading = styled(Heading6)`
+  margin-bottom: 16px;
+`;
+
+const RiskProgressFrame = styled.div`
+  display: flex;
+  justify-content: center;
+  position: relative;
+`;
+
+const RiskProgressCenter = styled.div`
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+`;
+
+const RiskProbabilityValue = styled.span`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${theme.text};
+`;
+
+const RightAlignedBlock = styled.div`
+  text-align: right;
+`;
+
 // ── Circular Progress (SVG) ──
 const CircularProgressSVG: React.FC<{
   value: number;
@@ -527,7 +529,7 @@ const CircularProgressSVG: React.FC<{
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle
+      <AnimatedProgressCircle
         cx={size / 2}
         cy={size / 2}
         r={radius}
@@ -546,7 +548,6 @@ const CircularProgressSVG: React.FC<{
         strokeDasharray={circumference}
         strokeDashoffset={offset}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        style={{ transition: 'stroke-dashoffset 0.6s ease' }}
       />
     </svg>
   );
@@ -583,7 +584,7 @@ interface AIInsight {
     label: string;
     callback: () => void;
   };
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: string;
   modelUsed: string;
   evidencePoints: string[];
@@ -634,9 +635,9 @@ interface AIInsightsPanelProps {
 }
 
 const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
-  clientId,
+  clientId: _clientId,
   refreshInterval = 30000,
-  onInsightAction,
+  onInsightAction: _onInsightAction,
   onRecommendationImplement
 }) => {
   // State management
@@ -644,7 +645,6 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [riskAssessments, setRiskAssessments] = useState<RiskAssessment[]>([]);
   const [models, setModels] = useState<PredictionModel[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
   const [confidenceThreshold, setConfidenceThreshold] = useState(70);
@@ -866,7 +866,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
     }
   ];
 
-  const mockModels: PredictionModel[] = [
+  const mockModels = useMemo<PredictionModel[]>(() => [
     {
       id: 'm1',
       name: 'Performance Predictor',
@@ -897,7 +897,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       predictions: 634,
       category: 'Recovery'
     }
-  ];
+  ], []);
 
   // Initialize data
   useEffect(() => {
@@ -905,7 +905,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
     setRecommendations(generateMockRecommendations());
     setRiskAssessments(generateMockRisks());
     setModels(mockModels);
-  }, []);
+  }, [mockModels]);
 
   // Auto-refresh insights
   useEffect(() => {
@@ -942,7 +942,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   }, [insights, selectedCategory, showOnlyActionable, confidenceThreshold]);
 
   // Get icon for insight type
-  const getInsightIcon = (type: string, category: string) => {
+  const getInsightIcon = (type: string) => {
     switch (type) {
       case 'recommendation':
         return <Sparkles size={20} />;
@@ -989,7 +989,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
       <FlexRow $justify="space-between" $align="flex-start" $mb={16}>
         <FlexRow $align="center" $gap={12}>
           <AvatarCircle $bgColor={getInsightColor(insight.type)}>
-            {getInsightIcon(insight.type, insight.category)}
+            {getInsightIcon(insight.type)}
           </AvatarCircle>
           <div>
             <Heading6>{insight.title}</Heading6>
@@ -1054,7 +1054,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
         </AccordionBody>
       </AccordionWrapper>
 
-      <FlexRow $justify="space-between" $align="center" $mt={12} style={{ marginTop: 12 }}>
+      <FlexRow $justify="space-between" $align="center" $mt={12}>
         <CaptionText $color={theme.textMuted}>
           {new Date(insight.timestamp).toLocaleString()}
         </CaptionText>
@@ -1070,9 +1070,9 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   // Render recommendations section
   const renderRecommendations = () => (
     <div>
-      <Heading6 $color={theme.purple} style={{ marginBottom: 16 }}>
+      <SectionHeading $color={theme.purple}>
         AI Recommendations
-      </Heading6>
+      </SectionHeading>
       <GridContainer $cols="1fr 1fr" $gap={16}>
         {recommendations.map((rec) => (
           <CardPanel key={rec.id}>
@@ -1145,9 +1145,9 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   // Render risk assessments
   const renderRiskAssessments = () => (
     <div>
-      <Heading6 $color={theme.warning} style={{ marginBottom: 16 }}>
+      <SectionHeading $color={theme.warning}>
         Risk Assessments
-      </Heading6>
+      </SectionHeading>
       <GridContainer $cols="1fr 1fr" $gap={16}>
         {riskAssessments.map((risk) => (
           <CardPanel key={risk.id}>
@@ -1169,7 +1169,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             </FlexRow>
 
             <SectionBox $mb={16}>
-              <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+              <RiskProgressFrame>
                 <CircularProgressSVG
                   value={risk.probability}
                   size={100}
@@ -1179,25 +1179,13 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
                     risk.probability > 40 ? '#ff9800' : '#4caf50'
                   }
                 />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    bottom: 0,
-                    right: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column'
-                  }}
-                >
-                  <span style={{ fontSize: '1.75rem', fontWeight: 700, color: theme.text }}>
+                <RiskProgressCenter>
+                  <RiskProbabilityValue>
                     {risk.probability}%
-                  </span>
+                  </RiskProbabilityValue>
                   <CaptionText $color={theme.textMuted}>Risk</CaptionText>
-                </div>
-              </div>
+                </RiskProgressCenter>
+              </RiskProgressFrame>
             </SectionBox>
 
             <CaptionText $color={theme.textMuted} $block>
@@ -1257,9 +1245,9 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   // Render AI models overview
   const renderModelsOverview = () => (
     <div>
-      <Heading6 $color={theme.cyan} style={{ marginBottom: 16 }}>
+      <SectionHeading $color={theme.cyan}>
         Active AI Models
-      </Heading6>
+      </SectionHeading>
       <GridContainer $cols="1fr 1fr 1fr" $gap={16}>
         {models.map((model) => (
           <AIModelCardStyled key={model.id}>
@@ -1299,14 +1287,14 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
                   {model.predictions.toLocaleString()}
                 </Heading6>
               </div>
-              <div style={{ textAlign: 'right' }}>
+              <RightAlignedBlock>
                 <CaptionText $color={theme.textMuted} $block>
                   Last Trained
                 </CaptionText>
                 <BodyText $color={theme.text}>
                   {new Date(model.lastTrained).toLocaleDateString()}
                 </BodyText>
-              </div>
+              </RightAlignedBlock>
             </FlexRow>
           </AIModelCardStyled>
         ))}
@@ -1322,7 +1310,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           <Brain size={40} />
           AI Insights &amp; Analytics
         </Heading4>
-        <BodyText style={{ marginTop: 8 }}>
+        <BodyText $mt={8}>
           Advanced Swan Coach insights, predictions, and personalized recommendations
         </BodyText>
       </SectionBox>
@@ -1347,7 +1335,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           </div>
 
           <SectionBox $px={8}>
-            <CaptionText $color={theme.textMuted} $block style={{ marginBottom: 8 }}>
+            <CaptionText $color={theme.textMuted} $block $mb={8}>
               Confidence Threshold: {confidenceThreshold}%
             </CaptionText>
             <RangeInput
@@ -1360,8 +1348,9 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             />
           </SectionBox>
 
-          <ToggleLabel>
+          <ToggleLabel htmlFor="ai-insights-actionable-only">
             <HiddenCheckbox
+              id="ai-insights-actionable-only"
               type="checkbox"
               checked={showOnlyActionable}
               onChange={(e) => setShowOnlyActionable(e.target.checked)}
@@ -1392,7 +1381,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             $expanded={expandedAccordion === 'insights'}
             onClick={() => setExpandedAccordion(expandedAccordion === 'insights' ? '' : 'insights')}
           >
-            <Heading6 $color={theme.purple} style={{ margin: 0 }}>
+            <Heading6 $color={theme.purple} $m="0">
               AI Insights ({filteredInsights.length})
             </Heading6>
             <ChevronDown size={20} />
@@ -1409,7 +1398,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             $expanded={expandedAccordion === 'recommendations'}
             onClick={() => setExpandedAccordion(expandedAccordion === 'recommendations' ? '' : 'recommendations')}
           >
-            <Heading6 $color={theme.purple} style={{ margin: 0 }}>
+            <Heading6 $color={theme.purple} $m="0">
               Smart Recommendations
             </Heading6>
             <ChevronDown size={20} />
@@ -1424,7 +1413,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             $expanded={expandedAccordion === 'risks'}
             onClick={() => setExpandedAccordion(expandedAccordion === 'risks' ? '' : 'risks')}
           >
-            <Heading6 $color={theme.purple} style={{ margin: 0 }}>
+            <Heading6 $color={theme.purple} $m="0">
               Risk Assessments
             </Heading6>
             <ChevronDown size={20} />
@@ -1439,7 +1428,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
             $expanded={expandedAccordion === 'models'}
             onClick={() => setExpandedAccordion(expandedAccordion === 'models' ? '' : 'models')}
           >
-            <Heading6 $color={theme.purple} style={{ margin: 0 }}>
+            <Heading6 $color={theme.purple} $m="0">
               AI Models Overview
             </Heading6>
             <ChevronDown size={20} />

@@ -41,9 +41,7 @@ import {
   TrendingUp,
   TrendingDown,
   Lock,
-  CheckCircle2,
   PartyPopper,
-  ChevronDown,
   BadgeCheck,
   Swords,
   BarChart3,
@@ -182,6 +180,16 @@ const rarityBorderColor = (rarity: string) =>
   rarity === 'rare' ? 'rgba(33,150,243,0.5)' :
   'rgba(76,175,80,0.5)';
 
+type SpacingProps = {
+  $mt?: number;
+  $mb?: number;
+};
+
+const spacingStyles = css<SpacingProps>`
+  ${({ $mt }) => $mt !== undefined && css`margin-top: ${$mt}px;`}
+  ${({ $mb }) => $mb !== undefined && css`margin-bottom: ${$mb}px;`}
+`;
+
 // ─── Animations ───────────────────────────────────────────────────────────────
 
 const pulseGlow = keyframes`
@@ -223,12 +231,13 @@ const HeaderSubtitle = styled.p`
 `;
 
 /* Glass Panel base for cards */
-const GlassPanel = styled.div`
+const GlassPanel = styled.div<SpacingProps>`
   background: ${T.bgCard};
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid ${T.glassBorder};
   transition: all 0.3s ease;
+  ${spacingStyles}
 
   &:hover {
     transform: translateY(-4px);
@@ -237,8 +246,10 @@ const GlassPanel = styled.div`
   }
 `;
 
-const CardBody = styled.div`
+const CardBody = styled.div<{ $center?: boolean } & SpacingProps>`
   padding: 20px;
+  text-align: ${({ $center }) => ($center ? 'center' : 'left')};
+  ${spacingStyles}
 `;
 
 /* Achievement card with transient $props */
@@ -257,13 +268,6 @@ const AchievementCardPanel = styled.div<{ $unlocked?: boolean; $rarity?: string 
     transform: ${({ $unlocked }) => ($unlocked ? 'translateY(-2px)' : 'none')};
     box-shadow: ${({ $unlocked }) => ($unlocked ? '0 8px 24px rgba(255,215,0,0.1)' : 'none')};
   }
-`;
-
-/* Grid helpers */
-const GridContainer = styled.div<{ $cols?: string; $gap?: number }>`
-  display: grid;
-  grid-template-columns: ${({ $cols }) => $cols || '1fr'};
-  gap: ${({ $gap }) => $gap ?? 24}px;
 `;
 
 /* Responsive grid that adapts across breakpoints */
@@ -620,7 +624,7 @@ const SelectDropdown = styled.select`
 `;
 
 /* Avatar circle */
-const AvatarCircle = styled.div<{ $size?: number; $borderColor?: string }>`
+const AvatarCircle = styled.div<{ $size?: number; $borderColor?: string; $opacity?: number; $center?: boolean }>`
   width: ${({ $size }) => $size ?? 48}px;
   height: ${({ $size }) => $size ?? 48}px;
   min-width: ${({ $size }) => $size ?? 48}px;
@@ -632,6 +636,8 @@ const AvatarCircle = styled.div<{ $size?: number; $borderColor?: string }>`
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+  opacity: ${({ $opacity }) => $opacity ?? 1};
+  ${({ $center }) => $center && css`margin: 0 auto 8px auto;`}
 
   img {
     width: 100%;
@@ -765,6 +771,11 @@ const ChangeIndicator = styled.div`
   justify-content: flex-end;
 `;
 
+const ChangeText = styled.span`
+  font-size: 0.75rem;
+  color: ${T.textMuted};
+`;
+
 /* Filter controls bar */
 const ControlsBar = styled.div`
   display: flex;
@@ -825,6 +836,16 @@ const ModalOverlay = styled.div`
   padding: 24px;
 `;
 
+const ModalDismissLayer = styled.button`
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+`;
+
 const ModalPanel = styled.div`
   background: linear-gradient(135deg, #1a1a2e, #16213e);
   border-radius: 16px;
@@ -865,35 +886,42 @@ const CelebrationIcon = styled.div`
   margin-bottom: 16px;
 `;
 
-const SectionTitle = styled.h3<{ $color?: string }>`
+const SectionTitle = styled.h3<{ $color?: string } & SpacingProps>`
   color: ${({ $color }) => $color || T.gold};
   margin: 0 0 8px 0;
   font-weight: 700;
   font-size: 1.125rem;
+  ${spacingStyles}
 `;
 
-const TextMuted = styled.span`
+const TextMuted = styled.span<{ $block?: boolean; $mt?: number; $mb?: number }>`
+  display: ${({ $block }) => ($block ? 'block' : 'inline')};
   color: ${T.textMuted};
   font-size: 0.85rem;
+  ${spacingStyles}
 `;
 
-const FlexRow = styled.div<{ $justify?: string; $gap?: number; $wrap?: boolean }>`
+const FlexRow = styled.div<{ $justify?: string; $gap?: number; $wrap?: boolean } & SpacingProps>`
   display: flex;
   align-items: center;
   justify-content: ${({ $justify }) => $justify || 'flex-start'};
   gap: ${({ $gap }) => $gap ?? 8}px;
   flex-wrap: ${({ $wrap }) => ($wrap ? 'wrap' : 'nowrap')};
+  ${spacingStyles}
 `;
 
-const FlexSpaceBetween = styled.div`
+const FlexSpaceBetween = styled.div<SpacingProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  ${spacingStyles}
 `;
 
-const GoldText = styled.span`
+const GoldText = styled.span<{ $block?: boolean; $mt?: number }>`
+  display: ${({ $block }) => ($block ? 'block' : 'inline')};
   color: ${T.gold};
   font-weight: 600;
+  ${({ $mt }) => $mt !== undefined && css`margin-top: ${$mt}px;`}
 `;
 
 const SuccessText = styled.span`
@@ -910,6 +938,68 @@ const AchievementHeaderRow = styled.div`
   margin-bottom: 12px;
 `;
 
+const InlineMetric = styled.span<{ $weight?: number; $size?: string }>`
+  font-weight: ${({ $weight }) => $weight ?? 400};
+  font-size: ${({ $size }) => $size ?? '0.85rem'};
+`;
+
+const AchievementTitleText = styled.div`
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 4px;
+`;
+
+const TimelineDescription = styled.div`
+  font-size: 0.85rem;
+  color: ${T.textMuted};
+  margin-top: 4px;
+`;
+
+const ProgressBlock = styled.div<SpacingProps>`
+  ${spacingStyles}
+`;
+
+const BadgeImage = styled.img`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
+const BadgeCount = styled.div`
+  font-size: 0.75rem;
+  color: ${T.gold};
+  margin-top: 8px;
+`;
+
+const ChallengeTitle = styled.div`
+  font-weight: 600;
+  font-size: 1.1rem;
+`;
+
+const ModalTitle = styled.h2`
+  color: ${T.gold};
+  margin: 0 0 16px 0;
+`;
+
+const ModalAchievementName = styled.div`
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+`;
+
+const CelebrationPointsChip = styled(ChipTag)`
+  background: ${T.gold};
+  color: #002060;
+  font-weight: 700;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+`;
+
+const ModalActions = styled.div`
+  margin-top: 24px;
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface GamificationOverviewProps {
@@ -921,7 +1011,7 @@ interface GamificationOverviewProps {
 
 const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   clientId,
-  onAchievementCelebrate,
+  onAchievementCelebrate: _onAchievementCelebrate,
   onChallengeJoin,
   onChallengeCreate
 }) => {
@@ -930,7 +1020,6 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   const [showCelebration, setShowCelebration] = useState<string | null>(null);
   const [filteredCategory, setFilteredCategory] = useState<string>('all');
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
-  const [expandedAccordion, setExpandedAccordion] = useState<string | false>('stats');
 
   // Mock data
   const clientLevel: Level = {
@@ -952,7 +1041,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   const streakDays = 35;
   const totalPoints = 15680;
 
-  const mockAchievements: Achievement[] = [
+  const mockAchievements = useMemo<Achievement[]>(() => [
     {
       id: '1',
       title: 'First Steps',
@@ -1027,7 +1116,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       rarity: 'legendary',
       secretAchievement: true
     }
-  ];
+  ], []);
 
   const mockBadges: Badge[] = [
     {
@@ -1183,33 +1272,33 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       <OverviewTopGrid>
         {/* User Level and Progress */}
         <GlassPanel>
-          <CardBody style={{ textAlign: 'center' }}>
+          <CardBody $center>
             <LevelCircle>
               <LevelNumber>{clientLevel.level}</LevelNumber>
             </LevelCircle>
-            <SectionTitle $color={T.gold} style={{ marginTop: 16 }}>
+            <SectionTitle $color={T.gold} $mt={16}>
               {clientLevel.name}
             </SectionTitle>
             <TextMuted>{clientLevel.description}</TextMuted>
 
-            <div style={{ marginTop: 24 }}>
-              <FlexSpaceBetween style={{ marginBottom: 8 }}>
+            <ProgressBlock $mt={24}>
+              <FlexSpaceBetween $mb={8}>
                 <TextMuted>Level Progress</TextMuted>
-                <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                <InlineMetric $weight={600}>
                   {currentXP - clientLevel.minXP}/{nextLevelXP} XP
-                </span>
+                </InlineMetric>
               </FlexSpaceBetween>
               <ProgressTrack $height={12}>
                 <ProgressFill $pct={((currentXP - clientLevel.minXP) / nextLevelXP) * 100} />
               </ProgressTrack>
-            </div>
+            </ProgressBlock>
           </CardBody>
         </GlassPanel>
 
         {/* Quick Stats */}
         <GlassPanel>
           <CardBody>
-            <SectionTitle $color={T.gold} style={{ marginBottom: 20 }}>
+            <SectionTitle $color={T.gold} $mb={20}>
               Your Gaming Stats
             </SectionTitle>
             <StatsGrid>
@@ -1241,9 +1330,9 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       </OverviewTopGrid>
 
       {/* Recent Achievements Timeline */}
-      <GlassPanel style={{ marginTop: 24 }}>
+      <GlassPanel $mt={24}>
         <CardBody>
-          <SectionTitle $color={T.gold} style={{ marginBottom: 20 }}>
+          <SectionTitle $color={T.gold} $mb={20}>
             Recent Achievements
           </SectionTitle>
           <TimelineWrapper>
@@ -1262,11 +1351,11 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                     {index < arr.length - 1 && <TimelineConnectorLine />}
                   </TimelineDotWrapper>
                   <TimelineBody>
-                    <span style={{ fontWeight: 600, fontSize: '1rem' }}>{achievement.title}</span>
-                    <div style={{ fontSize: '0.85rem', color: T.textMuted, marginTop: 4 }}>
+                    <AchievementTitleText>{achievement.title}</AchievementTitleText>
+                    <TimelineDescription>
                       {achievement.description}
-                    </div>
-                    <FlexRow $gap={8} style={{ marginTop: 8 }}>
+                    </TimelineDescription>
+                    <FlexRow $gap={8} $mt={8}>
                       <ChipTag $rarity={achievement.rarity}>{achievement.rarity}</ChipTag>
                       <ChipTag $outline>+{achievement.points} points</ChipTag>
                     </FlexRow>
@@ -1284,7 +1373,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   const renderAchievements = () => (
     <div>
       <ControlsBar>
-        <SectionTitle $color={T.gold} style={{ margin: 0 }}>
+        <SectionTitle $color={T.gold} $mb={0}>
           Achievements ({filteredAchievements.length})
         </SectionTitle>
         <ControlsRight>
@@ -1335,18 +1424,18 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                   <AvatarCircle
                     $size={48}
                     $borderColor={achievement.isUnlocked ? T.gold : '#666'}
-                    style={{ opacity: achievement.isUnlocked ? 1 : 0.5 }}
+                    $opacity={achievement.isUnlocked ? 1 : 0.5}
                   >
                     {achievement.isUnlocked
                       ? <Trophy size={22} color={T.gold} />
                       : <Lock size={22} color="#666" />}
                   </AvatarCircle>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 4 }}>
+                    <AchievementTitleText>
                       {achievement.secretAchievement && !achievement.isUnlocked
                         ? '???'
                         : achievement.title}
-                    </div>
+                    </AchievementTitleText>
                     <TextMuted>
                       {achievement.secretAchievement && !achievement.isUnlocked
                         ? 'Secret Achievement'
@@ -1364,26 +1453,26 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                 )}
               </AchievementHeaderRow>
 
-              <FlexRow $gap={8} style={{ marginBottom: 12 }}>
+              <FlexRow $gap={8} $mb={12}>
                 <ChipTag $rarity={achievement.rarity}>{achievement.rarity}</ChipTag>
                 <ChipTag $outline>{achievement.category}</ChipTag>
                 <ChipTag $color={T.gold} $outline>{achievement.points} pts</ChipTag>
               </FlexRow>
 
               {!achievement.isUnlocked && !achievement.secretAchievement && (
-                <div style={{ marginTop: 12 }}>
-                  <FlexSpaceBetween style={{ marginBottom: 6 }}>
+                <ProgressBlock $mt={12}>
+                  <FlexSpaceBetween $mb={6}>
                     <TextMuted>Progress</TextMuted>
-                    <span style={{ fontSize: '0.75rem' }}>
+                    <InlineMetric $size="0.75rem">
                       {achievement.progress}/{achievement.maxProgress}
-                    </span>
+                    </InlineMetric>
                   </FlexSpaceBetween>
                   <ProgressTrack $height={8}>
                     <ProgressFill
                       $pct={(achievement.progress / achievement.maxProgress) * 100}
                     />
                   </ProgressTrack>
-                </div>
+                </ProgressBlock>
               )}
 
               {achievement.isUnlocked && achievement.unlockedDate && (
@@ -1402,7 +1491,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
 
   const renderBadges = () => (
     <div>
-      <SectionTitle $color={T.gold} style={{ marginBottom: 20 }}>
+      <SectionTitle $color={T.gold} $mb={20}>
         Badge Collection ({mockBadges.length})
       </SectionTitle>
       <BadgesGrid>
@@ -1411,25 +1500,24 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
             <AvatarCircle
               $size={64}
               $borderColor={rarityColor(badge.rarity)}
-              style={{ margin: '0 auto 8px auto' }}
+              $center
             >
               {badge.iconUrl ? (
-                <img
+                <BadgeImage
                   src={badge.iconUrl}
                   alt={badge.name}
-                  style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling && ((e.target as HTMLImageElement).nextElementSibling as HTMLElement).style.removeProperty('display'); }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />
               ) : null}
-              <BadgeCheck size={28} color={rarityColor(badge.rarity)} style={badge.iconUrl ? { display: 'none' } : undefined} />
+              {!badge.iconUrl && <BadgeCheck size={28} color={rarityColor(badge.rarity)} />}
             </AvatarCircle>
             <BadgeName>{badge.name}</BadgeName>
             <BadgeDescription>{badge.description}</BadgeDescription>
             <ChipTag $rarity={badge.rarity}>{badge.rarity}</ChipTag>
             {badge.count && (
-              <div style={{ fontSize: '0.75rem', color: T.gold, marginTop: 8 }}>
+              <BadgeCount>
                 Count: {badge.count}
-              </div>
+              </BadgeCount>
             )}
           </BadgePanel>
         ))}
@@ -1442,7 +1530,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   const renderChallenges = () => (
     <div>
       <ControlsBar>
-        <SectionTitle $color={T.gold} style={{ margin: 0 }}>
+        <SectionTitle $color={T.gold} $mb={0}>
           Active Challenges
         </SectionTitle>
         <ActionButton onClick={onChallengeCreate}>
@@ -1453,30 +1541,30 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       <ChallengesGrid>
         {mockChallenges.map((challenge) => (
           <ChallengePanel key={challenge.id}>
-            <FlexSpaceBetween style={{ marginBottom: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>
+            <FlexSpaceBetween $mb={12}>
+              <ChallengeTitle>
                 {challenge.title}
-              </div>
+              </ChallengeTitle>
               <StatusChip $status={challenge.status}>{challenge.status}</StatusChip>
             </FlexSpaceBetween>
 
-            <TextMuted style={{ display: 'block', marginBottom: 12 }}>
+            <TextMuted $block $mb={12}>
               {challenge.description}
             </TextMuted>
 
-            <FlexRow $gap={8} style={{ marginBottom: 12 }}>
+            <FlexRow $gap={8} $mb={12}>
               <ChipTag $outline>{challenge.type}</ChipTag>
               <DifficultyChip $difficulty={challenge.difficulty}>{challenge.difficulty}</DifficultyChip>
               <ChipTag $outline>{challenge.participants} participants</ChipTag>
             </FlexRow>
 
             {challenge.progress && challenge.status === 'active' && (
-              <div style={{ marginBottom: 16 }}>
-                <FlexSpaceBetween style={{ marginBottom: 6 }}>
+              <ProgressBlock $mb={16}>
+                <FlexSpaceBetween $mb={6}>
                   <TextMuted>Your Progress</TextMuted>
-                  <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                  <InlineMetric $weight={600}>
                     {challenge.progress.current}/{challenge.progress.target} {challenge.progress.unit}
-                  </span>
+                  </InlineMetric>
                 </FlexSpaceBetween>
                 <ProgressTrack $height={8}>
                   <ProgressFill
@@ -1484,16 +1572,16 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                     $color={T.green}
                   />
                 </ProgressTrack>
-              </div>
+              </ProgressBlock>
             )}
 
-            <div style={{ marginBottom: 16 }}>
+            <ProgressBlock $mb={16}>
               <TextMuted>Top Rewards:</TextMuted>
-              <GoldText style={{ display: 'block', marginTop: 4 }}>
+              <GoldText $block $mt={4}>
                 1st: {challenge.rewards[0].points} points
                 {challenge.rewards[0].extras && ` + ${challenge.rewards[0].extras}`}
               </GoldText>
-            </div>
+            </ProgressBlock>
 
             <ActionButton
               $variant={challenge.joined ? 'outline' : 'filled'}
@@ -1515,7 +1603,7 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
 
   const renderLeaderboard = () => (
     <div>
-      <SectionTitle $color={T.gold} style={{ marginBottom: 20 }}>
+      <SectionTitle $color={T.gold} $mb={20}>
         Monthly Leaderboard
       </SectionTitle>
       <LeaderList>
@@ -1543,11 +1631,11 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
               <ChangeIndicator>
                 {entry.change === 'up' && <TrendingUp size={16} color={T.green} />}
                 {entry.change === 'down' && <TrendingDown size={16} color={T.red} />}
-                <span style={{ fontSize: '0.75rem', color: T.textMuted }}>
+                <ChangeText>
                   {entry.change === 'same' ? 'No change' :
                    entry.change === 'up' ? `+${entry.position_change}` :
                    entry.position_change}
-                </span>
+                </ChangeText>
               </ChangeIndicator>
             </LeaderPoints>
           </LeaderItem>
@@ -1617,7 +1705,12 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       {/* Celebration Modal */}
       <AnimatePresence>
         {showCelebration && (
-          <ModalOverlay onClick={() => setShowCelebration(null)}>
+          <ModalOverlay>
+            <ModalDismissLayer
+              type="button"
+              aria-label="Close achievement celebration"
+              onClick={() => setShowCelebration(null)}
+            />
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -1632,29 +1725,23 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                 <CelebrationIcon>
                   <PartyPopper size={80} color={T.gold} />
                 </CelebrationIcon>
-                <h2 style={{ color: T.gold, margin: '0 0 16px 0' }}>
+                <ModalTitle>
                   Achievement Unlocked!
-                </h2>
-                <div style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: 8 }}>
+                </ModalTitle>
+                <ModalAchievementName>
                   {mockAchievements.find(a => a.id === showCelebration)?.title}
-                </div>
-                <TextMuted style={{ display: 'block', marginBottom: 20 }}>
+                </ModalAchievementName>
+                <TextMuted $block $mb={20}>
                   {mockAchievements.find(a => a.id === showCelebration)?.description}
                 </TextMuted>
-                <ChipTag style={{
-                  background: T.gold,
-                  color: '#002060',
-                  fontWeight: 700,
-                  padding: '6px 16px',
-                  fontSize: '0.85rem',
-                }}>
+                <CelebrationPointsChip>
                   +{mockAchievements.find(a => a.id === showCelebration)?.points} Points
-                </ChipTag>
-                <div style={{ marginTop: 24 }}>
+                </CelebrationPointsChip>
+                <ModalActions>
                   <ActionButton onClick={() => setShowCelebration(null)}>
                     Awesome!
                   </ActionButton>
-                </div>
+                </ModalActions>
               </ModalPanel>
             </motion.div>
           </ModalOverlay>

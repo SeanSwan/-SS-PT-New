@@ -23,7 +23,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
   TrendingUp,
   TrendingDown,
@@ -48,7 +48,7 @@ import {
 import ClientProgressCharts from '../../../../ClientProgressCharts/ClientProgressCharts';
 // Victory chart components (migrated from Recharts)
 import {
-  VictoryChart, VictoryLine, VictoryBar, VictoryPie, VictoryArea,
+  VictoryChart, VictoryLine,
   VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
 } from 'victory';
 
@@ -130,14 +130,16 @@ interface BodyMeasurement {
 }
 
 // ─── Keyframes ───────────────────────────────────────────────────
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
+type Timeframe = '7d' | '30d' | '90d' | '1y';
 
-const progressFill = keyframes`
-  from { stroke-dashoffset: 283; }
-`;
+interface VictoryTooltipDatum {
+  month?: string;
+  week?: string;
+  _y?: number;
+}
+
+const isTimeframe = (value: string): value is Timeframe =>
+  value === '7d' || value === '30d' || value === '90d' || value === '1y';
 
 // ─── Styled Components ──────────────────────────────────────────
 const DashboardWrapper = styled.div`
@@ -266,7 +268,7 @@ const ActionButton = styled.button<{
   }}
 `;
 
-const GlassPanel = styled.div<{ $noPadding?: boolean }>`
+const GlassPanel = styled.div<{ $noPadding?: boolean; $textAlign?: 'left' | 'center' }>`
   background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.05));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -275,6 +277,7 @@ const GlassPanel = styled.div<{ $noPadding?: boolean }>`
   position: relative;
   overflow: hidden;
   padding: ${({ $noPadding }) => $noPadding ? '0' : '24px'};
+  text-align: ${({ $textAlign }) => $textAlign || 'left'};
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 
   &::before {
@@ -324,16 +327,6 @@ const MetricBox = styled.div`
   border-radius: 12px;
   background: ${theme.glass};
   border: 1px solid ${theme.glassBorder};
-`;
-
-const GridContainer = styled.div<{ $columns?: string; $gap?: number }>`
-  display: grid;
-  grid-template-columns: ${({ $columns }) => $columns || '1fr'};
-  gap: ${({ $gap }) => $gap ?? 24}px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const GridRow2Col = styled.div<{ $ratio?: string }>`
@@ -393,12 +386,21 @@ const SectionRow = styled.div`
   margin-bottom: 24px;
 `;
 
-const FlexRow = styled.div<{ $gap?: number; $justify?: string; $align?: string; $wrap?: boolean }>`
+const FlexRow = styled.div<{
+  $gap?: number;
+  $justify?: string;
+  $align?: string;
+  $wrap?: boolean;
+  $mt?: number;
+  $mb?: number;
+}>`
   display: flex;
   gap: ${({ $gap }) => $gap ?? 8}px;
   justify-content: ${({ $justify }) => $justify || 'flex-start'};
   align-items: ${({ $align }) => $align || 'center'};
   flex-wrap: ${({ $wrap }) => $wrap ? 'wrap' : 'nowrap'};
+  margin-top: ${({ $mt }) => ($mt != null ? `${$mt}px` : 0)};
+  margin-bottom: ${({ $mb }) => ($mb != null ? `${$mb}px` : 0)};
 `;
 
 const FlexCol = styled.div<{ $gap?: number }>`
@@ -496,9 +498,11 @@ const ChartBox = styled.div`
   height: 300px;
 `;
 
-const LabelSmall = styled.span<{ $color?: string }>`
+const LabelSmall = styled.span<{ $color?: string; $block?: boolean; $mt?: number }>`
   font-size: 0.75rem;
   color: ${({ $color }) => $color || theme.textMuted};
+  display: ${({ $block }) => ($block ? 'block' : 'inline')};
+  margin-top: ${({ $mt }) => ($mt != null ? `${$mt}px` : 0)};
 `;
 
 const LabelBody = styled.p<{ $color?: string }>`
@@ -526,11 +530,11 @@ const ValueMedium = styled.span<{ $color?: string }>`
   color: ${({ $color }) => $color || theme.text};
 `;
 
-const Heading6 = styled.h4<{ $color?: string; $capitalize?: boolean }>`
+const Heading6 = styled.h4<{ $color?: string; $capitalize?: boolean; $mb?: number }>`
   font-size: 1.125rem;
   font-weight: 600;
   color: ${({ $color }) => $color || theme.text};
-  margin: 0 0 8px 0;
+  margin: 0 0 ${({ $mb }) => $mb ?? 8}px 0;
   text-transform: ${({ $capitalize }) => $capitalize ? 'capitalize' : 'none'};
 `;
 
@@ -581,6 +585,65 @@ const SpacerV = styled.div<{ $size?: number }>`
   height: ${({ $size }) => $size ?? 16}px;
 `;
 
+const MilestoneContent = styled.div`
+  flex: 1;
+`;
+
+const MetricSection = styled.div<{ $mb?: number }>`
+  margin-bottom: ${({ $mb }) => $mb ?? 16}px;
+`;
+
+const ChartSection = styled.div`
+  margin-bottom: 32px;
+`;
+
+const PreviewNotice = styled.div`
+  background: rgba(198, 168, 75, 0.1);
+  border: 1px solid rgba(198, 168, 75, 0.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #c6a84b;
+  font-family: 'Sora', sans-serif;
+`;
+
+const AchievementIcon = styled(PartyPopper)`
+  margin-bottom: 8px;
+`;
+
+const chartAxisStyleProps = {
+  style: {
+    axis: { stroke: '#E0ECF4' },
+    tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" },
+    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+  },
+};
+
+const measurementAxisStyleProps = {
+  style: {
+    axis: { stroke: '#E0ECF4' },
+    tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" },
+    grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+  },
+};
+
+const chartTooltipProps = {
+  style: { fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 },
+  flyoutStyle: { fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' },
+};
+
+const chartLegendStyleProps = {
+  style: {
+    labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" },
+  },
+};
+
+const overallLineStyleProps = { style: { data: { stroke: '#60C0F0', strokeWidth: 3 } } };
+const strengthLineStyleProps = { style: { data: { stroke: '#ff6b6b', strokeWidth: 2 } } };
+const enduranceLineStyleProps = { style: { data: { stroke: '#4ECDC4', strokeWidth: 2 } } };
+const flexibilityLineStyleProps = { style: { data: { stroke: '#C6A84B', strokeWidth: 2 } } };
+
 // ─── Component ───────────────────────────────────────────────────
 interface ClientProgressDashboardProps {
   clientId: string;
@@ -590,16 +653,15 @@ interface ClientProgressDashboardProps {
 
 const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
   clientId,
-  onMilestoneUpdate,
+  onMilestoneUpdate: _onMilestoneUpdate,
   onAssessmentSchedule
 }) => {
   // State management
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('30d');
   const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'measurements'>('overview');
-  const [expandedAccordion, setExpandedAccordion] = useState<string | false>('milestones');
 
   // Mock data for demonstration
-  const mockMilestones: MilestoneItem[] = [
+  const mockMilestones = useMemo<MilestoneItem[]>(() => [
     {
       id: '1',
       title: 'First 5K Run',
@@ -651,9 +713,9 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         icon: '/icons/nutrition.png'
       }
     }
-  ];
+  ], []);
 
-  const mockAssessments: AssessmentMetric[] = [
+  const mockAssessments = useMemo<AssessmentMetric[]>(() => [
     {
       id: '1',
       name: 'Overall Fitness',
@@ -702,7 +764,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
       improvement: 5.1,
       percentile: 85
     }
-  ];
+  ], []);
 
   const mockWorkouts: WorkoutSummary[] = [
     {
@@ -855,11 +917,11 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
       <Grid3Col>
         {mockMilestones.map((milestone) => (
           <CardPanel $completed={milestone.status === 'completed'} key={milestone.id}>
-            <FlexRow $justify="space-between" $align="flex-start" style={{ marginBottom: 16 }}>
-              <div style={{ flex: 1 }}>
+            <FlexRow $justify="space-between" $align="flex-start" $mb={16}>
+              <MilestoneContent>
                 <Heading6>{milestone.title}</Heading6>
                 <LabelBody>{milestone.description}</LabelBody>
-                <FlexRow $gap={8} style={{ marginTop: 8 }}>
+                <FlexRow $gap={8} $mt={8}>
                   <ChipTag>
                     {getCategoryIcon(milestone.category)}
                     {milestone.category}
@@ -868,14 +930,14 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                     {milestone.difficulty}
                   </DifficultyChip>
                 </FlexRow>
-              </div>
+              </MilestoneContent>
               <StatusAvatar $color={getStatusColor(milestone.status)}>
                 {getStatusIcon(milestone.status)}
               </StatusAvatar>
             </FlexRow>
 
-            <div style={{ marginBottom: 16 }}>
-              <FlexRow $justify="space-between" style={{ marginBottom: 8 }}>
+            <MetricSection>
+              <FlexRow $justify="space-between" $mb={8}>
                 <LabelBody>Progress</LabelBody>
                 <BodyText $weight={600}>
                   {milestone.currentValue}/{milestone.targetValue} {milestone.unit}
@@ -887,7 +949,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                   $color={milestone.status === 'completed' ? theme.green : theme.cyan}
                 />
               </ProgressBarTrack>
-            </div>
+            </MetricSection>
 
             {milestone.reward && (
               <RewardBox>
@@ -939,15 +1001,15 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
           <Heading6>Assessment Scores Over Time</Heading6>
           <ChartBox>
             <VictoryChart height={250} padding={{ top: 30, bottom: 40, left: 50, right: 20 }} domain={{ y: [5, 10] }}
-              containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.month}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              containerComponent={<VictoryVoronoiContainer labels={({ datum }: { datum: VictoryTooltipDatum }) => `${datum.month}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip {...chartTooltipProps} />} />}
             >
-              <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
-              <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="overall" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#60C0F0', strokeWidth: 3 } }} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="strength" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#ff6b6b', strokeWidth: 2 } }} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="endurance" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="flexibility" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#C6A84B', strokeWidth: 2 } }} />
-              <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Overall', symbol: { fill: '#60C0F0' } }, { name: 'Strength', symbol: { fill: '#ff6b6b' } }, { name: 'Endurance', symbol: { fill: '#4ECDC4' } }, { name: 'Flexibility', symbol: { fill: '#C6A84B' } }]} />
+              <VictoryAxis {...chartAxisStyleProps} />
+              <VictoryAxis dependentAxis {...chartAxisStyleProps} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="overall" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="strength" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="endurance" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
+              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="flexibility" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...flexibilityLineStyleProps} />
+              <VictoryLegend x={60} y={5} orientation="horizontal" {...chartLegendStyleProps} data={[{ name: 'Overall', symbol: { fill: '#60C0F0' } }, { name: 'Strength', symbol: { fill: '#ff6b6b' } }, { name: 'Endurance', symbol: { fill: '#4ECDC4' } }, { name: 'Flexibility', symbol: { fill: '#C6A84B' } }]} />
             </VictoryChart>
           </ChartBox>
         </DarkCard>
@@ -955,7 +1017,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         <FlexCol $gap={16}>
           {mockAssessments.map((assessment) => (
             <MetricBox key={assessment.id}>
-              <FlexRow $gap={8} $justify="center" style={{ marginBottom: 8 }}>
+              <FlexRow $gap={8} $justify="center" $mb={8}>
                 <ValueLarge $color={theme.cyan}>
                   {assessment.value}
                 </ValueLarge>
@@ -964,7 +1026,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                 </ValueMedium>
               </FlexRow>
               <LabelBody>{assessment.name}</LabelBody>
-              <FlexRow $gap={6} $justify="center" style={{ marginBottom: 8 }}>
+              <FlexRow $gap={6} $justify="center" $mb={8}>
                 {assessment.improvement > 0 ? (
                   <TrendingUp size={16} color={theme.green} />
                 ) : (
@@ -1002,14 +1064,14 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
           <Heading6>Measurement Trends</Heading6>
           <ChartBox>
             <VictoryChart height={250} padding={{ top: 30, bottom: 40, left: 50, right: 20 }}
-              containerComponent={<VictoryVoronoiContainer labels={({ datum }: any) => `${datum.week}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }} flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }} />} />}
+              containerComponent={<VictoryVoronoiContainer labels={({ datum }: { datum: VictoryTooltipDatum }) => `${datum.week}: ${datum._y?.toFixed(1)}`} labelComponent={<VictoryTooltip {...chartTooltipProps} />} />}
             >
-              <VictoryAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
-              <VictoryAxis dependentAxis style={{ axis: { stroke: '#E0ECF4' }, tickLabels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Fira Code', monospace" }, grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' } }} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="weight" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#60C0F0', strokeWidth: 3 } }} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="bodyFat" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#ff6b6b', strokeWidth: 2 } }} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="muscleMass" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} style={{ data: { stroke: '#4ECDC4', strokeWidth: 2 } }} />
-              <VictoryLegend x={60} y={5} orientation="horizontal" style={{ labels: { fill: '#E0ECF4', fontSize: 9, fontFamily: "'Sora', sans-serif" } }} data={[{ name: 'Weight (kg)', symbol: { fill: '#60C0F0' } }, { name: 'Body Fat (%)', symbol: { fill: '#ff6b6b' } }, { name: 'Muscle Mass (kg)', symbol: { fill: '#4ECDC4' } }]} />
+              <VictoryAxis {...measurementAxisStyleProps} />
+              <VictoryAxis dependentAxis {...chartAxisStyleProps} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="weight" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="bodyFat" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
+              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="muscleMass" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
+              <VictoryLegend x={60} y={5} orientation="horizontal" {...chartLegendStyleProps} data={[{ name: 'Weight (kg)', symbol: { fill: '#60C0F0' } }, { name: 'Body Fat (%)', symbol: { fill: '#ff6b6b' } }, { name: 'Muscle Mass (kg)', symbol: { fill: '#4ECDC4' } }]} />
             </VictoryChart>
           </ChartBox>
         </DarkCard>
@@ -1023,7 +1085,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
 
             return (
               <DarkCard key={measurement.id}>
-                <FlexRow $justify="space-between" style={{ marginBottom: 12 }}>
+                <FlexRow $justify="space-between" $mb={12}>
                   <Heading6 $capitalize>
                     {measurement.type.replace('_', ' ')}
                   </Heading6>
@@ -1065,8 +1127,8 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
     <div>
       <OverviewGrid>
         {/* Overall Progress Card */}
-        <GlassPanel style={{ textAlign: 'center' }}>
-          <Heading6 $color={theme.cyan} style={{ marginBottom: 16 }}>
+        <GlassPanel $textAlign="center">
+          <Heading6 $color={theme.cyan} $mb={16}>
             Overall Progress
           </Heading6>
           <CircularProgress value={overallProgress.overallScore} size={100} />
@@ -1075,7 +1137,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
 
         {/* Quick Stats */}
         <GlassPanel>
-          <Heading6 $color={theme.cyan} style={{ marginBottom: 24 }}>
+          <Heading6 $color={theme.cyan} $mb={24}>
             Progress Summary
           </Heading6>
           <Grid4Col>
@@ -1115,7 +1177,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
 
       {/* Recent Achievements */}
       <GlassPanel>
-        <Heading6 $color={theme.cyan} style={{ marginBottom: 24 }}>
+        <Heading6 $color={theme.cyan} $mb={24}>
           Recent Achievements
         </Heading6>
         <Grid3Col>
@@ -1123,7 +1185,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
             .filter(m => m.status === 'completed')
             .map((achievement) => (
               <AchievementPanel key={achievement.id}>
-                <PartyPopper size={40} color={theme.gold} style={{ marginBottom: 8 }} />
+                <AchievementIcon size={40} color={theme.gold} />
                 <Heading6>{achievement.title}</Heading6>
                 <LabelBody>{achievement.description}</LabelBody>
                 {achievement.reward && (
@@ -1131,7 +1193,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                     {achievement.reward.type}: {achievement.reward.value}
                   </RewardChip>
                 )}
-                <LabelSmall $color={theme.textMuted} style={{ display: 'block', marginTop: 8 }}>
+                <LabelSmall $color={theme.textMuted} $block $mt={8}>
                   Completed on {new Date(achievement.completedDate!).toLocaleDateString()}
                 </LabelSmall>
               </AchievementPanel>
@@ -1152,24 +1214,20 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
       </SectionHeader>
 
       {/* Demo data notice */}
-      <div style={{
-        background: 'rgba(198, 168, 75, 0.1)',
-        border: '1px solid rgba(198, 168, 75, 0.3)',
-        borderRadius: 8,
-        padding: '10px 16px',
-        marginBottom: 16,
-        fontSize: 13,
-        color: '#C6A84B',
-        fontFamily: "'Sora', sans-serif"
-      }}>
+      <PreviewNotice>
         Preview Mode — Charts display sample data. Real progress will populate as sessions are completed.
-      </div>
+      </PreviewNotice>
 
       {/* Controls */}
       <ControlsRow>
         <NativeSelect
           value={selectedTimeframe}
-          onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+          onChange={(e) => {
+            const nextTimeframe = e.target.value;
+            if (isTimeframe(nextTimeframe)) {
+              setSelectedTimeframe(nextTimeframe);
+            }
+          }}
           title="Timeframe"
         >
           <option value="7d">Last 7 Days</option>
@@ -1219,12 +1277,12 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
 
       {viewMode === 'detailed' && (
         <div>
-          <div style={{ marginBottom: 32 }}>
+          <ChartSection>
             {renderMilestones()}
-          </div>
-          <div style={{ marginBottom: 32 }}>
+          </ChartSection>
+          <ChartSection>
             {renderAssessments()}
-          </div>
+          </ChartSection>
         </div>
       )}
 

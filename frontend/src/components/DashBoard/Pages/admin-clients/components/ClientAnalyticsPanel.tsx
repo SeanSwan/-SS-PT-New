@@ -25,7 +25,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
   TrendingUp,
   TrendingDown,
@@ -39,7 +39,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Lightbulb,
-  BarChart3,
   MoreVertical
 } from 'lucide-react';
 import {
@@ -67,19 +66,27 @@ interface AnalyticsMetric {
   status: 'excellent' | 'good' | 'warning' | 'critical';
 }
 
-interface ClientSegment {
-  label: string;
-  value: number;
-  percentage: number;
-  color: string;
-}
-
 interface PredictionData {
   type: 'retention' | 'progress' | 'churn' | 'revenue';
   probability: number;
   confidence: number;
   period: string;
   factors: string[];
+}
+
+interface AnalyticsInsight {
+  type: 'achievement' | 'recommendation' | 'warning';
+  title: string;
+  description: string;
+  confidence: number;
+  actionable: boolean;
+  timestamp: string;
+}
+
+interface WorkoutAnalysisDatum {
+  month?: string;
+  workouts?: number;
+  intensity?: number;
 }
 
 /* ────── Styled Components ────── */
@@ -464,18 +471,59 @@ const ComparisonTitle = styled.h3`
   margin: 0 0 8px 0;
 `;
 
+const RotatedSvg = styled.svg`
+  transform: rotate(-90deg);
+`;
+
+const AnimatedProgressCircle = styled.circle`
+  transition: stroke-dashoffset 0.6s ease;
+`;
+
+const SpacedCardTitle = styled(CardTitle)`
+  margin-bottom: 24px;
+`;
+
+const SpacedCardTitleWithIcon = styled(CardTitleWithIcon)`
+  margin-bottom: 24px;
+`;
+
+const InsightsStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const ActionOutlineButton = styled(OutlineButton)`
+  flex-shrink: 0;
+`;
+
+const FactorsWrap = styled.div`
+  margin-top: 8px;
+`;
+
+const PreviewNotice = styled.div`
+  background: rgba(198, 168, 75, 0.1);
+  border: 1px solid rgba(198, 168, 75, 0.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #C6A84B;
+  font-family: 'Sora', sans-serif;
+`;
+
 /* ────── SVG Circular Progress ────── */
 const CircularProgressWidget: React.FC<{ value: number; size?: number; color: string }> = ({ value, size = 100, color }) => {
   const r = (size - 8) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (value / 100) * circ;
   return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+    <RotatedSvg width={size} height={size}>
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={4} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4}
+      <AnimatedProgressCircle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={4}
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-    </svg>
+      />
+    </RotatedSvg>
   );
 };
 
@@ -488,15 +536,13 @@ interface ClientAnalyticsPanelProps {
 }
 
 const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
-  clientId,
+  clientId: _clientId,
   timePeriod = '30d',
-  onMetricChange
+  onMetricChange: _onMetricChange
 }) => {
   // State management
-  const [loading, setLoading] = useState(false);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['workouts', 'progress', 'engagement']);
   const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'comparison'>('overview');
-  const [insights, setInsights] = useState<any[]>([]);
+  const [insights, setInsights] = useState<AnalyticsInsight[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
 
   // Mock data for demonstration
@@ -559,14 +605,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
     }
   ];
 
-  const mockSegmentData: ClientSegment[] = [
-    { label: 'Strength Training', value: 45, percentage: 35.2, color: '#ff6b6b' },
-    { label: 'Cardio', value: 38, percentage: 29.7, color: '#4ecdc4' },
-    { label: 'Flexibility', value: 25, percentage: 19.5, color: '#45b7d1' },
-    { label: 'Recovery', value: 20, percentage: 15.6, color: '#96ceb4' }
-  ];
-
-  const mockInsights = [
+  const mockInsights = useMemo<AnalyticsInsight[]>(() => [
     {
       type: 'achievement',
       title: 'Personal Record Alert',
@@ -591,9 +630,9 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       actionable: true,
       timestamp: '2 days ago'
     }
-  ];
+  ], []);
 
-  const mockPredictions: PredictionData[] = [
+  const mockPredictions = useMemo<PredictionData[]>(() => [
     {
       type: 'retention',
       probability: 94,
@@ -615,12 +654,12 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       period: 'Next 90 days',
       factors: ['Low risk profile', 'High satisfaction scores']
     }
-  ];
+  ], []);
 
   useEffect(() => {
     setInsights(mockInsights);
     setPredictions(mockPredictions);
-  }, []);
+  }, [mockInsights, mockPredictions]);
 
   // Chart configurations
   const chartColors = {
@@ -637,6 +676,71 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
     status === 'good' ? chartColors.primary :
     status === 'warning' ? chartColors.warning :
     chartColors.error;
+
+  const hiddenAxisProps = {
+    style: { axis: { stroke: 'none' }, tickLabels: { fill: 'none' } }
+  };
+
+  const sparklineStyleProps = {
+    style: { data: { stroke: chartColors.primary, strokeWidth: 2 } }
+  };
+
+  const workoutTooltipProps = {
+    style: { fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 },
+    flyoutStyle: { fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }
+  };
+
+  const workoutAxisProps = {
+    style: {
+      axis: { stroke: '#E0ECF4' },
+      tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace", angle: -45, textAnchor: 'end' },
+      grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+    }
+  };
+
+  const workoutDependentAxisProps = {
+    style: {
+      axis: { stroke: '#E0ECF4' },
+      tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" },
+      grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
+    }
+  };
+
+  const workoutBarStyleProps = {
+    style: { data: { fill: chartColors.primary, opacity: 0.8 } }
+  };
+
+  const workoutLineStyleProps = {
+    style: { data: { stroke: chartColors.secondary, strokeWidth: 3 } }
+  };
+
+  const legendStyleProps = {
+    style: { labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }
+  };
+
+  const bodyPolarAxisProps = {
+    style: {
+      axis: { stroke: 'rgba(255,255,255,0.1)' },
+      tickLabels: { fill: '#e2e8f0', fontSize: 11, fontFamily: "'Fira Code', monospace", padding: 15 },
+      grid: { stroke: 'rgba(255,255,255,0.1)' },
+    }
+  };
+
+  const bodyDependentAxisProps = {
+    style: {
+      axis: { stroke: 'none' },
+      tickLabels: { fill: 'none' },
+      grid: { stroke: 'rgba(255,255,255,0.1)' },
+    }
+  };
+
+  const bodyCurrentAreaStyleProps = {
+    style: { data: { fill: `${chartColors.primary}40`, stroke: chartColors.primary, strokeWidth: 2 } }
+  };
+
+  const bodyTargetAreaStyleProps = {
+    style: { data: { fill: 'transparent', stroke: chartColors.success, strokeWidth: 2, strokeDasharray: '5,5' } }
+  };
 
   // Render metric card
   const renderMetricCard = (metric: AnalyticsMetric) => (
@@ -677,15 +781,15 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
           height={60}
           padding={{ top: 5, bottom: 5, left: 5, right: 5 }}
         >
-          <VictoryAxis style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'none' } }} />
-          <VictoryAxis dependentAxis style={{ axis: { stroke: 'none' }, tickLabels: { fill: 'none' } }} />
+          <VictoryAxis {...hiddenAxisProps} />
+          <VictoryAxis dependentAxis {...hiddenAxisProps} />
           <VictoryLine
             data={metric.trend.slice(-7)}
             x="period"
             y="value"
             interpolation="monotoneX"
             animate={{ duration: 800, easing: 'cubicInOut' }}
-            style={{ data: { stroke: chartColors.primary, strokeWidth: 2 } }}
+            {...sparklineStyleProps}
           />
         </VictoryChart>
       </SparklineWrap>
@@ -703,7 +807,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
   // Render workout analysis chart
   const renderWorkoutAnalysisChart = () => (
     <GlassCard>
-      <CardTitle style={{ marginBottom: 24 }}>Workout Analysis</CardTitle>
+      <SpacedCardTitle>Workout Analysis</SpacedCardTitle>
       <ChartContainer>
         <VictoryChart
           height={400}
@@ -711,37 +815,28 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
           domainPadding={{ x: 20 }}
           containerComponent={
             <VictoryVoronoiContainer
-              labels={({ datum }: any) => `${datum.month}\nWorkouts: ${datum.workouts}\nIntensity: ${datum.intensity}`}
+              labels={({ datum }: { datum: WorkoutAnalysisDatum }) => `${datum.month}\nWorkouts: ${datum.workouts}\nIntensity: ${datum.intensity}`}
               labelComponent={
                 <VictoryTooltip
-                  style={{ fill: '#E0ECF4', fontFamily: "'Fira Code', monospace", fontSize: 10 }}
-                  flyoutStyle={{ fill: '#141419', stroke: 'rgba(139, 92, 246, 0.3)' }}
+                  {...workoutTooltipProps}
                 />
               }
             />
           }
         >
           <VictoryAxis
-            style={{
-              axis: { stroke: '#E0ECF4' },
-              tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace", angle: -45, textAnchor: 'end' },
-              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-            }}
+            {...workoutAxisProps}
           />
           <VictoryAxis
             dependentAxis
-            style={{
-              axis: { stroke: '#E0ECF4' },
-              tickLabels: { fill: '#E0ECF4', fontSize: 10, fontFamily: "'Fira Code', monospace" },
-              grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-            }}
+            {...workoutDependentAxisProps}
           />
           <VictoryBar
             data={workoutAnalysisData}
             x="month"
             y="workouts"
             animate={{ duration: 800, easing: 'cubicInOut' }}
-            style={{ data: { fill: chartColors.primary, opacity: 0.8 } }}
+            {...workoutBarStyleProps}
           />
           <VictoryLine
             data={workoutAnalysisData}
@@ -749,13 +844,13 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
             y="intensity"
             interpolation="monotoneX"
             animate={{ duration: 800, easing: 'cubicInOut' }}
-            style={{ data: { stroke: chartColors.secondary, strokeWidth: 3 } }}
+            {...workoutLineStyleProps}
           />
           <VictoryLegend
             x={60}
             y={5}
             orientation="horizontal"
-            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }}
+            {...legendStyleProps}
             data={[
               { name: 'Workouts', symbol: { fill: chartColors.primary } },
               { name: 'Intensity', symbol: { fill: chartColors.secondary, type: 'minus' } },
@@ -779,7 +874,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
   // Render body composition radar chart
   const renderBodyCompositionChart = () => (
     <GlassCard>
-      <CardTitle style={{ marginBottom: 24 }}>Body Composition Analysis</CardTitle>
+      <SpacedCardTitle>Body Composition Analysis</SpacedCardTitle>
       <ChartContainer>
         <VictoryChart
           polar
@@ -789,38 +884,26 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
           <VictoryPolarAxis
             tickValues={bodyCompositionData.map((_, i) => i)}
             tickFormat={bodyCompositionData.map(d => d.metric)}
-            style={{
-              axis: { stroke: 'rgba(255,255,255,0.1)' },
-              tickLabels: { fill: '#e2e8f0', fontSize: 11, fontFamily: "'Fira Code', monospace", padding: 15 },
-              grid: { stroke: 'rgba(255,255,255,0.1)' },
-            }}
+            {...bodyPolarAxisProps}
           />
           <VictoryPolarAxis
             dependentAxis
-            style={{
-              axis: { stroke: 'none' },
-              tickLabels: { fill: 'none' },
-              grid: { stroke: 'rgba(255,255,255,0.1)' },
-            }}
+            {...bodyDependentAxisProps}
           />
           <VictoryArea
             data={bodyCompositionData.map((d, i) => ({ x: i, y: d.current }))}
             animate={{ duration: 800, easing: 'cubicInOut' }}
-            style={{
-              data: { fill: `${chartColors.primary}40`, stroke: chartColors.primary, strokeWidth: 2 },
-            }}
+            {...bodyCurrentAreaStyleProps}
           />
           <VictoryArea
             data={bodyCompositionData.map((d, i) => ({ x: i, y: d.target }))}
-            style={{
-              data: { fill: 'transparent', stroke: chartColors.success, strokeWidth: 2, strokeDasharray: '5,5' },
-            }}
+            {...bodyTargetAreaStyleProps}
           />
           <VictoryLegend
             x={120}
             y={10}
             orientation="horizontal"
-            style={{ labels: { fill: '#E0ECF4', fontSize: 11, fontFamily: "'Sora', sans-serif" } }}
+            {...legendStyleProps}
             data={[
               { name: 'Current', symbol: { fill: chartColors.primary } },
               { name: 'Target', symbol: { fill: chartColors.success } },
@@ -839,7 +922,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
         <OutlineButton><RefreshCw size={16} /> Refresh</OutlineButton>
       </CardTitleRow>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <InsightsStack>
         {insights.map((insight, index) => (
           <InsightCard key={index}>
             <InsightRow>
@@ -861,19 +944,19 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
                 </InsightFooter>
               </InsightBody>
               {insight.actionable && (
-                <OutlineButton style={{ flexShrink: 0 }}>Take Action</OutlineButton>
+                <ActionOutlineButton>Take Action</ActionOutlineButton>
               )}
             </InsightRow>
           </InsightCard>
         ))}
-      </div>
+      </InsightsStack>
     </GlassCard>
   );
 
   // Render predictions panel
   const renderPredictions = () => (
     <GlassCard>
-      <CardTitleWithIcon style={{ marginBottom: 24 }}><Sparkles size={20} /> Predictive Analytics</CardTitleWithIcon>
+      <SpacedCardTitleWithIcon><Sparkles size={20} /> Predictive Analytics</SpacedCardTitleWithIcon>
 
       <PredictionsGrid>
         {predictions.map((prediction, index) => {
@@ -897,11 +980,11 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
               </CircularWrap>
 
               <CaptionText>Key factors:</CaptionText>
-              <div style={{ marginTop: 8 }}>
+              <FactorsWrap>
                 {prediction.factors.map((factor, idx) => (
                   <FactorChip key={idx} $color={color}>{factor}</FactorChip>
                 ))}
-              </div>
+              </FactorsWrap>
             </PredictionCard>
           );
         })}
@@ -918,18 +1001,9 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       </SectionHeader>
 
       {/* Demo data notice */}
-      <div style={{
-        background: 'rgba(198, 168, 75, 0.1)',
-        border: '1px solid rgba(198, 168, 75, 0.3)',
-        borderRadius: 8,
-        padding: '10px 16px',
-        marginBottom: 16,
-        fontSize: 13,
-        color: '#C6A84B',
-        fontFamily: "'Sora', sans-serif"
-      }}>
+      <PreviewNotice>
         Preview Mode — Charts display sample data. Real analytics will populate as client sessions are logged.
-      </div>
+      </PreviewNotice>
 
       {/* Control Panel */}
       <ControlPanel>
