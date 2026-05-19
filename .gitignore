@@ -60,6 +60,9 @@ tests/screenshots/
 qa-audit/
 *.tsbuildinfo
 
+# Generated design handoff bundles
+frontend/src/assets/user-dashboard/dashboard-export/*.zip
+
 # Large media files — hosted on Cloudflare R2, not in git
 frontend/public/*.mp4
 frontend/src/assets/*.mp4
