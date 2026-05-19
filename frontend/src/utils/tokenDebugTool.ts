@@ -7,6 +7,10 @@
 
 import tokenCleanup from './tokenCleanup';
 import { logger } from '@/utils/logger';
+import apiService from '../services/api.service';
+
+type StorageKind = 'localStorage' | 'sessionStorage';
+type TokenMap = Record<string, string>;
 
 class TokenDebugTool {
   constructor() {
@@ -55,9 +59,9 @@ class TokenDebugTool {
   /**
    * Get all token-related items from storage
    */
-  getAllStorageTokens(storageType) {
+  getAllStorageTokens(storageType: StorageKind): TokenMap {
     const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
-    const tokens = {};
+    const tokens: TokenMap = {};
     
     // Common token key names
     const tokenKeys = [
@@ -80,23 +84,20 @@ class TokenDebugTool {
    */
   checkAxiosHeaders() {
     try {
-      // Import api service to check headers
-      import('../services/api.service').then(module => {
-        const authHeader = module.apiClient.defaults.headers.common['Authorization'];
-        logger.log('Authorization header:', authHeader);
-        return authHeader || 'No Authorization header found';
-      });
-      return 'Checking...';
+      const authHeader = apiService.getAuthorizationHeader();
+      logger.log('Authorization header:', authHeader);
+      return authHeader || 'No Authorization header found';
     } catch (error) {
-      return `Error checking headers: ${error.message}`;
+      const message = error instanceof Error ? error.message : String(error);
+      return `Error checking headers: ${message}`;
     }
   }
 
   /**
    * Get recommendations based on token status
    */
-  getRecommendations(tokenInfo) {
-    const recommendations = [];
+  getRecommendations(tokenInfo: { hasToken?: boolean; isValid?: boolean; expired?: boolean }): string[] {
+    const recommendations: string[] = [];
     
     if (!tokenInfo.hasToken) {
       recommendations.push('❌ No token found - User needs to log in');
@@ -142,7 +143,7 @@ class TokenDebugTool {
   /**
    * Test token validation
    */
-  testTokenValidation(testToken) {
+  testTokenValidation(testToken?: string | null): boolean {
     if (!testToken) {
       testToken = localStorage.getItem('token');
     }

@@ -784,7 +784,7 @@ const OptimizedSignupModal: React.FC = () => {
     }
     
     // Password validation
-    const passwordErrors = [];
+    const passwordErrors: string[] = [];
     if (formData.password.length < 8) {
       passwordErrors.push("Password must be at least 8 characters long");
     }
