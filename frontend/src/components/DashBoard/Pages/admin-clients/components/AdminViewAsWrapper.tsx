@@ -322,7 +322,7 @@ const AdminViewAsWrapper: React.FC = () => {
         : [];
 
       // Extract gamification (optional)
-      let gamification = null;
+      let gamification: any = null;
       if (gamRes.status === 'fulfilled' && gamRes.value.data) {
         const g = gamRes.value.data.profile || gamRes.value.data.data || gamRes.value.data;
         const hasExplicitXpProgress = g.xpProgress != null || g.nextLevelProgress != null;

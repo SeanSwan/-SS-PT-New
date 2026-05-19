@@ -750,15 +750,17 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
                     setDraggedClient(client.id);
                   }}
                   onDragStart={(event) => {
-                    event.dataTransfer.setData('text/plain', String(client.id));
-                    event.dataTransfer.effectAllowed = 'move';
+                    const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
+                    dragEvent.dataTransfer.setData('text/plain', String(client.id));
+                    dragEvent.dataTransfer.effectAllowed = 'move';
                     setDraggedClient(client.id);
                   }}
                   onDragEnd={(event) => {
+                    const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
                     let fallbackTrainerId = dropTrainerIdRef.current;
-                    if (fallbackTrainerId === null && event.clientX > 0 && event.clientY > 0) {
+                    if (fallbackTrainerId === null && dragEvent.clientX > 0 && dragEvent.clientY > 0) {
                       const zone = document
-                        .elementFromPoint(event.clientX, event.clientY)
+                        .elementFromPoint(dragEvent.clientX, dragEvent.clientY)
                         ?.closest('[data-testid^="trainer-zone-"]');
                       const zoneTestId = zone?.getAttribute('data-testid') || '';
                       const parsedTrainerId = Number(zoneTestId.replace('trainer-zone-', ''));
