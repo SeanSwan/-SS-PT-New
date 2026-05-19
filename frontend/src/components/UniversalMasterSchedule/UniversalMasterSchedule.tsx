@@ -239,7 +239,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     notifyClient: true,
     trainerId: undefined as string | number | undefined,
     clientId: undefined as string | number | undefined,
-    manualClientName: ''
+    manualClientName: '',
+    sessionTypeId: undefined as string | number | undefined,
+    bufferBefore: undefined as number | undefined,
+    bufferAfter: undefined as number | undefined
   });
   const [useManualClient, setUseManualClient] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -329,7 +332,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         notifyClient: true,
         trainerId: undefined,
         clientId: undefined,
-        manualClientName: ''
+        manualClientName: '',
+        sessionTypeId: undefined,
+        bufferBefore: undefined,
+        bufferAfter: undefined
       });
       setUseManualClient(false);
       setIsSlotSelected(false);
@@ -416,7 +422,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           notifyClient: true,
           trainerId: undefined,
           clientId: undefined,
-          manualClientName: ''
+          manualClientName: '',
+          sessionTypeId: undefined,
+          bufferBefore: undefined,
+          bufferAfter: undefined
         });
         setUseManualClient(false);
         if (statusFilter && statusFilter !== 'total') {
@@ -730,7 +739,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             notifyClient: true,
             trainerId: undefined,
             clientId: undefined,
-            manualClientName: ''
+            manualClientName: '',
+            sessionTypeId: undefined,
+            bufferBefore: undefined,
+            bufferAfter: undefined
           });
           setUseManualClient(false);
           setIsSlotSelected(false);
@@ -767,7 +779,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       {mode === 'client' ? (
         <ClientTimeline
-          sessions={displaySessions}
+          sessions={displaySessions as any}
           onBook={handleBookingDialog}
           onSelect={handleSelectSession}
           creditsDisplay={creditsDisplay}

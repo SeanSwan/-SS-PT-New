@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import { useSocket } from "../../../../hooks/use-socket";
 import GlowButton from '../../../ui/buttons/GlowButton'; // Ensure path is correct
@@ -25,7 +24,6 @@ import {
   Download,
   Eye,
   CheckCircle,
-  AlertCircle,
   ArrowDown,
   ArrowUp,
   Trash2,
@@ -95,19 +93,31 @@ const BulkActionsBar = styled(motion.div)`
   backdrop-filter: blur(5px);
 `;
 
-const FlexRow = styled.div<{ $gap?: string; $align?: string; $justify?: string; $wrap?: boolean }>`
+const FlexRow = styled.div<{
+  $gap?: string;
+  $align?: string;
+  $justify?: string;
+  $wrap?: boolean;
+  $top?: string;
+  $bottom?: string;
+  $flex?: number;
+}>`
   display: flex;
   flex-direction: row;
   align-items: ${p => p.$align || 'center'};
   justify-content: ${p => p.$justify || 'flex-start'};
   gap: ${p => p.$gap || '0.5rem'};
   flex-wrap: ${p => p.$wrap ? 'wrap' : 'nowrap'};
+  flex: ${p => p.$flex ?? 'initial'};
+  margin-top: ${p => p.$top || 0};
+  margin-bottom: ${p => p.$bottom || 0};
 `;
 
-const FlexCol = styled.div<{ $gap?: string }>`
+const FlexCol = styled.div<{ $gap?: string; $flex?: number }>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.$gap || '0.5rem'};
+  flex: ${p => p.$flex ?? 'initial'};
 `;
 
 const ViewToggleContainer = styled.div`
@@ -125,15 +135,22 @@ const TitleText = styled.span`
   color: #e2e8f0;
 `;
 
-const SubtitleText = styled.span`
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
 const BulkSelectedText = styled.span`
   font-size: 1rem;
   font-weight: 500;
   color: #e2e8f0;
+`;
+
+const TrainerSectionWrap = styled(motion.div)`
+  margin-top: 2rem;
+`;
+
+const TitleIcon = styled(User)`
+  margin-right: 0.5rem;
+`;
+
+const DialogPanelNarrow = styled(DialogPanel)<{ $maxWidth: string }>`
+  max-width: ${({ $maxWidth }) => $maxWidth};
 `;
 
 const NativeTable = styled.table`
@@ -247,11 +264,13 @@ const SessionCountChip = styled.span<{ $hasAvailable?: boolean }>`
   background: ${p => p.$hasAvailable ? 'rgba(46, 125, 50, 0.1)' : 'rgba(211, 47, 47, 0.1)'};
 `;
 
-const CellPrimaryText = styled.span`
+const CellPrimaryText = styled.span<{ $top?: string; $bottom?: string }>`
   font-size: 0.875rem;
   font-weight: 500;
   color: #e2e8f0;
   display: block;
+  margin-top: ${p => p.$top || 0};
+  margin-bottom: ${p => p.$bottom || 0};
 `;
 
 const CellSecondaryText = styled.span`
@@ -535,11 +554,12 @@ const OverlineLabel = styled.span`
   margin-bottom: 0.25rem;
 `;
 
-const DetailValue = styled.span`
+const DetailValue = styled.span<{ $top?: string }>`
   font-size: 1rem;
   font-weight: 500;
   color: #e2e8f0;
   display: block;
+  margin-top: ${p => p.$top || 0};
 `;
 
 const NotesBox = styled.div`
@@ -554,18 +574,20 @@ const NotesBox = styled.div`
   font-size: 0.875rem;
 `;
 
-const DetailGrid = styled.div`
+const DetailGrid = styled.div<{ $top?: string }>`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
+  margin-top: ${p => p.$top || 0};
 
   @media (max-width: 600px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const DetailFullRow = styled.div`
+const DetailFullRow = styled.div<{ $top?: string }>`
   grid-column: 1 / -1;
+  margin-top: ${p => p.$top || 0};
 `;
 
 /* Trainer Assignment Section styled components */
@@ -607,15 +629,18 @@ const PanelHeading = styled.h3<{ $color?: string }>`
   font-weight: 600;
 `;
 
-const SessionSelectItem = styled.div<{ $selected?: boolean }>`
+const SessionSelectItem = styled.button<{ $selected?: boolean }>`
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 0.5rem;
   border: ${p => p.$selected ? '2px solid #8B5CF6' : '1px solid rgba(255, 255, 255, 0.2)'};
   border-radius: 8px;
   margin: 0.5rem 0;
   cursor: pointer;
   background: ${p => p.$selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
+  color: inherit;
+  text-align: left;
   min-height: 44px;
   transition: all 0.2s ease;
 
@@ -662,6 +687,12 @@ const DateInput = styled(FormInput)`
   font-size: 0.85rem;
 `;
 
+const SessionSelectIcon = styled(CheckSquare)<{ $selected: boolean }>`
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  color: ${({ $selected }) => ($selected ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-muted, #666)')};
+`;
+
 
 // Interface for client data
 interface Client {
@@ -693,10 +724,32 @@ interface Session {
   trainerId: string | null; // Allow null
   location?: string;
   notes?: string;
-  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'assigned';
   client?: Client | null; // Allow null
   trainer?: Trainer | null; // Allow null
 }
+
+type SortKey = 'client' | 'trainer' | 'sessionDate' | 'location' | 'duration' | 'status';
+type SortConfig = { key: SortKey; direction: 'ascending' | 'descending' };
+type ToastFn = ReturnType<typeof useToast>['toast'];
+
+interface AssignmentStatistics {
+  sessionSummary?: {
+    assigned?: number;
+    available?: number;
+  };
+  assignmentRate?: number;
+  trainerWorkload?: unknown[];
+}
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const response = (error as { response?: { data?: { message?: unknown } } }).response;
+    if (typeof response?.data?.message === 'string') return response.data.message;
+  }
+  return fallback;
+};
 
 /**
  * Enhanced Admin Sessions View Component
@@ -705,7 +758,6 @@ interface Session {
  * with improved styling, animations, and user experience.
  */
 const EnhancedAdminSessionsView: React.FC = () => {
-  const { user } = useAuth(); // Remove authAxios destructuring
   const { toast } = useToast();
 
   // State for data, loading and errors
@@ -727,7 +779,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'sessionDate', direction: 'descending' });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'sessionDate', direction: 'descending' });
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -776,7 +828,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
   });
 
   // Fetch sessions from API using our session service
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError(null); // Reset error on new fetch
     try {
@@ -784,7 +836,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       const result = await services.sessionService.getSessions();
 
       if (result.success && result.data && Array.isArray(result.data)) {
-        setSessions(result.data);
+        setSessions(result.data as unknown as Session[]);
 
         // Calculate stats
         const today = new Date().toLocaleDateString();
@@ -835,9 +887,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching sessions:', err);
-      const errorMsg = err.message || 'Error connecting to the server';
+      const errorMsg = getErrorMessage(err, 'Error connecting to the server');
       setError(errorMsg);
       toast({
         title: "Error",
@@ -847,10 +899,10 @@ const EnhancedAdminSessionsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Fetch clients for adding sessions
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     setLoadingClients(true);
     try {
       // Use the user service endpoint for clients
@@ -866,9 +918,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching clients:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Could not load clients';
+      const errorMsg = getErrorMessage(err, 'Could not load clients');
       toast({
         title: "Error",
         description: errorMsg,
@@ -877,10 +929,10 @@ const EnhancedAdminSessionsView: React.FC = () => {
     } finally {
       setLoadingClients(false);
     }
-  };
+  }, [toast]);
 
   // Fetch trainers for session assignment using the correct API endpoint
-  const fetchTrainers = async () => {
+  const fetchTrainers = useCallback(async () => {
     setLoadingTrainers(true);
     try {
       // Use the existing API endpoint for trainers
@@ -896,9 +948,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching trainers:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Could not load trainers';
+      const errorMsg = getErrorMessage(err, 'Could not load trainers');
       toast({
         title: "Error",
         description: errorMsg,
@@ -907,14 +959,14 @@ const EnhancedAdminSessionsView: React.FC = () => {
     } finally {
       setLoadingTrainers(false);
     }
-  };
+  }, [toast]);
 
   // Load data on component mount
   useEffect(() => {
     fetchSessions();
     fetchClients();
     fetchTrainers();
-  }, []); // Remove the authAxios dependency since we're using apiService
+  }, [fetchClients, fetchSessions, fetchTrainers]);
 
   // Handle WebSocket messages for real-time updates
   useEffect(() => {
@@ -994,8 +1046,8 @@ const EnhancedAdminSessionsView: React.FC = () => {
     const sortableItems = [...filteredSessions];
     if (sortConfig) {
       sortableItems.sort((a, b) => {
-        let aValue: any = null;
-        let bValue: any = null;
+        let aValue: string | number = '';
+        let bValue: string | number = '';
 
         switch (sortConfig.key) {
           case 'client':
@@ -1010,9 +1062,19 @@ const EnhancedAdminSessionsView: React.FC = () => {
             aValue = new Date(a.sessionDate).getTime();
             bValue = new Date(b.sessionDate).getTime();
             break;
+          case 'duration':
+            aValue = a.duration;
+            bValue = b.duration;
+            break;
+          case 'location':
+            aValue = a.location || '';
+            bValue = b.location || '';
+            break;
+          case 'status':
+            aValue = a.status || '';
+            bValue = b.status || '';
+            break;
           default:
-            aValue = a[sortConfig.key as keyof Session];
-            bValue = b[sortConfig.key as keyof Session];
             break;
         }
 
@@ -1135,9 +1197,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
          fetchSessions();
          setOpenEditDialog(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating session:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error updating session';
+      const errorMsg = getErrorMessage(err, 'Server error updating session');
       toast({
         title: "Error",
         description: errorMsg,
@@ -1204,9 +1266,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating session:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error creating session';
+      const errorMsg = getErrorMessage(err, 'Server error creating session');
       toast({
         title: "Error",
         description: errorMsg,
@@ -1265,9 +1327,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('[AdminSessions] Error adding sessions:', err);
-      const errorMsg = err.message || 'Server error adding sessions';
+      const errorMsg = getErrorMessage(err, 'Server error adding sessions');
       toast({
         title: "Error",
         description: errorMsg,
@@ -1293,7 +1355,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         description: "Session deleted successfully",
       });
       fetchSessions();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting session:', err);
       toast({ title: "Error", description: "Failed to delete session", variant: "destructive" });
     } finally {
@@ -1303,7 +1365,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
-  const handleSort = (key: string) => {
+  const handleSort = (key: SortKey) => {
     let direction: 'ascending' | 'descending' = 'ascending';
     if (sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
@@ -1353,7 +1415,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       fetchSessions();
       setSelectedIds([]); // Clear selection
       setBulkDeleteReason('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error bulk deleting sessions:', err);
       toast({ title: "Error", description: "Failed to delete selected sessions.", variant: "destructive" });
     } finally {
@@ -1438,12 +1500,6 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   size="small"
                   leftIcon={<TableIcon size={16} />}
                   onClick={() => setViewMode('table')}
-                  style={{
-                    background: viewMode === 'table'
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)'
-                        : 'rgba(30, 58, 138, 0.3)',
-                    border: viewMode === 'table' ? '1px solid #3b82f6' : '1px solid transparent'
-                  }}
                 />
                 <GlowButton
                   text="Calendar"
@@ -1451,12 +1507,6 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   size="small"
                   leftIcon={<CalendarDays size={16} />}
                   onClick={() => setViewMode('calendar')}
-                  style={{
-                    background: viewMode === 'calendar'
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)'
-                      : 'rgba(30, 58, 138, 0.3)',
-                    border: viewMode === 'calendar' ? '1px solid #3b82f6' : '1px solid transparent'
-                  }}
                 />
               </ViewToggleContainer>
 
@@ -1606,10 +1656,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
                       <StyledTableHead>
                         <CheckboxCell>
                           <CheckboxWrapper
+                            htmlFor="sessions-select-all"
                             $indeterminate={selectedIds.length > 0 && selectedIds.length < sortedSessions.length}
                             $checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
                           >
                             <HiddenCheckbox
+                              id="sessions-select-all"
                               checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
                               onChange={handleSelectAll}
                               aria-label="select all sessions"
@@ -1670,9 +1722,11 @@ const EnhancedAdminSessionsView: React.FC = () => {
                             >
                               <CheckboxBodyCell>
                                 <CheckboxWrapper
+                                  htmlFor={`session-select-${session.id}`}
                                   $checked={selectedIds.indexOf(session.id) !== -1}
                                 >
                                   <HiddenCheckbox
+                                    id={`session-select-${session.id}`}
                                     checked={selectedIds.indexOf(session.id) !== -1}
                                     onChange={() => handleSelectOne(session.id)}
                                     aria-label={`select session ${session.id}`}
@@ -1884,7 +1938,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   <DetailValue>{selectedSession.id || 'N/A'}</DetailValue>
                 </DetailFullRow>
 
-                <DetailGrid style={{ marginTop: '1.25rem' }}>
+                <DetailGrid $top="1.25rem">
                   <div>
                     <OverlineLabel>Status</OverlineLabel>
                     <ChipContainer chipstatus={selectedSession.status}>
@@ -1908,20 +1962,20 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 </DetailGrid>
 
                 {/* Client Details */}
-                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                <DetailFullRow $top="1.25rem">
                   <OverlineLabel>Client</OverlineLabel>
                   {selectedSession.client ? (
-                    <FlexRow $gap="0.75rem" style={{ marginTop: '0.5rem' }}>
+                    <FlexRow $gap="0.75rem" $top="0.5rem">
                       <AvatarCircle $size={40}>
                         {selectedSession.client.photo
                           ? <img src={selectedSession.client.photo} alt={`${selectedSession.client.firstName} ${selectedSession.client.lastName}`} />
                           : <>{selectedSession.client.firstName?.[0]}{selectedSession.client.lastName?.[0]}</>
                         }
                       </AvatarCircle>
-                      <div style={{ flex: 1 }}>
+                      <FlexCol $gap="0.25rem" $flex={1}>
                         <DetailValue>{selectedSession.client.firstName} {selectedSession.client.lastName}</DetailValue>
                         <CellSecondaryText>{selectedSession.client.email}</CellSecondaryText>
-                      </div>
+                      </FlexCol>
                       <SessionCountChip $hasAvailable={(selectedSession.client.availableSessions ?? 0) > 0}>
                         {selectedSession.client.availableSessions ?? 0} sessions
                       </SessionCountChip>
@@ -1932,10 +1986,10 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 </DetailFullRow>
 
                 {/* Trainer Details */}
-                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                <DetailFullRow $top="1.25rem">
                   <OverlineLabel>Trainer</OverlineLabel>
                   {selectedSession.trainer ? (
-                    <FlexRow $gap="0.75rem" style={{ marginTop: '0.5rem' }}>
+                    <FlexRow $gap="0.75rem" $top="0.5rem">
                       <AvatarCircle $size={40}>
                         {selectedSession.trainer.photo
                           ? <img src={selectedSession.trainer.photo} alt={`${selectedSession.trainer.firstName} ${selectedSession.trainer.lastName}`} />
@@ -1953,7 +2007,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 </DetailFullRow>
 
                 {/* Notes */}
-                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                <DetailFullRow $top="1.25rem">
                   <OverlineLabel>Notes</OverlineLabel>
                   <NotesBox>
                     {selectedSession.notes || <MutedText>No notes for this session.</MutedText>}
@@ -2249,7 +2303,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
       {/* Add Sessions Dialog */}
       <StyledDialog $open={openAddSessionsDialog} onClick={() => setOpenAddSessionsDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+        <DialogPanelNarrow onClick={(e: React.MouseEvent) => e.stopPropagation()} $maxWidth="480px">
           <DialogTitleBar>
             <FlexRow $gap="0.75rem">
               <Zap size={22} />
@@ -2258,7 +2312,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
           </DialogTitleBar>
           <DialogContentArea>
             <DialogDescriptionText>
-              Manually add purchased or complimentary sessions to a client's account.
+              Manually add purchased or complimentary sessions to a client&apos;s account.
             </DialogDescriptionText>
             <FormGrid $columns={1}>
                {/* Client Select */}
@@ -2319,12 +2373,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
                disabled={!selectedClient || sessionsToAdd <= 0} // Basic validation
              />
           </DialogActionsBar>
-        </DialogPanel>
+        </DialogPanelNarrow>
       </StyledDialog>
 
       {/* Delete Confirmation Dialog */}
       <StyledDialog $open={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+        <DialogPanelNarrow onClick={(e: React.MouseEvent) => e.stopPropagation()} $maxWidth="420px">
           <DialogTitleBar>
             <FlexRow $gap="0.75rem">
               <Trash2 size={22} />
@@ -2336,7 +2390,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
               Are you sure you want to delete this session? This action cannot be undone.
             </DialogDescriptionText>
             {sessionToDelete && (
-              <DetailValue style={{ marginTop: '0.5rem' }}>
+              <DetailValue $top="0.5rem">
                 Session {sessionToDelete.id} - {formatDate(sessionToDelete.sessionDate)}
               </DetailValue>
             )}
@@ -2358,12 +2412,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
               disabled={isProcessing}
             />
           </DialogActionsBar>
-        </DialogPanel>
+        </DialogPanelNarrow>
       </StyledDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
       <StyledDialog $open={openBulkDeleteDialog} onClick={() => setOpenBulkDeleteDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+        <DialogPanelNarrow onClick={(e: React.MouseEvent) => e.stopPropagation()} $maxWidth="480px">
           <DialogTitleBar>
             <FlexRow $gap="0.75rem">
               <Trash2 size={22} />
@@ -2402,20 +2456,19 @@ const EnhancedAdminSessionsView: React.FC = () => {
               disabled={isProcessing}
             />
           </DialogActionsBar>
-        </DialogPanel>
+        </DialogPanelNarrow>
       </StyledDialog>
 
       {/* TRAINER ASSIGNMENT SECTION */}
-      <motion.div
+      <TrainerSectionWrap
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        style={{ marginTop: '2rem' }}
       >
         <StyledCard>
           <CardHeader>
             <CardTitle>
-              <User size={24} style={{ marginRight: '0.5rem' }} />
+              <TitleIcon size={24} />
               Trainer Assignment Center
             </CardTitle>
           </CardHeader>
@@ -2429,7 +2482,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
             />
           </CardContent>
         </StyledCard>
-      </motion.div>
+      </TrainerSectionWrap>
 
     </PageContainer>
   );
@@ -2447,7 +2500,7 @@ interface TrainerAssignmentSectionProps {
   clients: Client[];
   trainers: Trainer[];
   onAssignmentSuccess: () => void;
-  toast: any;
+  toast: ToastFn;
 }
 
 const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
@@ -2462,7 +2515,7 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
   const [assignmentMode, setAssignmentMode] = useState<'single' | 'bulk'>('single');
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [assignmentStats, setAssignmentStats] = useState<any>(null);
+  const [assignmentStats, setAssignmentStats] = useState<AssignmentStatistics | null>(null);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
 
   // Get unassigned sessions for the selected client
@@ -2528,10 +2581,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
       } else {
         throw new Error(response.message);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Assignment Failed",
-        description: error.message || 'Failed to assign trainer',
+        description: getErrorMessage(error, 'Failed to assign trainer'),
         variant: "destructive"
       });
     } finally {
@@ -2557,10 +2610,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
       } else {
         throw new Error(response.message);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Removal Failed",
-        description: error.message || 'Failed to remove assignment',
+        description: getErrorMessage(error, 'Failed to remove assignment'),
         variant: "destructive"
       });
     } finally {
@@ -2664,27 +2717,25 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
 
             {selectedClient && (
               <div>
-                <CellPrimaryText style={{ marginBottom: '0.5rem' }}>
+                <CellPrimaryText $bottom="0.5rem">
                   Unassigned Sessions: {unassignedSessions.length}
                 </CellPrimaryText>
 
-                <FlexRow $gap="0.5rem" style={{ marginBottom: '1rem' }}>
+                <FlexRow $gap="0.5rem" $bottom="1rem">
                   <GlowButton
                     text="Assign All Available"
-                    theme="cyan"
+                    theme={assignmentMode === 'single' ? 'accent' : 'ghost'}
                     size="small"
                     onClick={() => setAssignmentMode('single')}
-                    variant={assignmentMode === 'single' ? 'solid' : 'outline'}
                   />
                   <GlowButton
                     text="Select Specific"
-                    theme="purple"
+                    theme={assignmentMode === 'bulk' ? 'purple' : 'ghost'}
                     size="small"
                     onClick={() => {
                       setAssignmentMode('bulk');
                       setOpenBulkDialog(true);
                     }}
-                    variant={assignmentMode === 'bulk' ? 'solid' : 'outline'}
                   />
                 </FlexRow>
               </div>
@@ -2772,10 +2823,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
 
       {/* Bulk Selection Dialog */}
       <StyledDialog $open={openBulkDialog} onClick={() => setOpenBulkDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+        <DialogPanelNarrow onClick={(e: React.MouseEvent) => e.stopPropagation()} $maxWidth="700px">
           <DialogTitleBar>Select Sessions to Assign</DialogTitleBar>
           <DialogContentArea>
-            <CellPrimaryText style={{ marginBottom: '1rem' }}>
+            <CellPrimaryText $bottom="1rem">
               Select specific sessions to assign to the trainer:
             </CellPrimaryText>
 
@@ -2793,10 +2844,9 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                       );
                     }}
                   >
-                    <CheckSquare
+                    <SessionSelectIcon
                       size={20}
-                      color={selectedSessions.includes(session.id) ? '#8B5CF6' : '#666'}
-                      style={{ marginRight: '0.5rem', flexShrink: 0 }}
+                      $selected={selectedSessions.includes(session.id)}
                     />
                     <div>
                       <CellPrimaryText>
@@ -2815,7 +2865,7 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
               </MutedText>
             )}
 
-            <CellPrimaryText style={{ marginTop: '1rem' }}>
+            <CellPrimaryText $top="1rem">
               Selected: {selectedSessions.length} sessions
             </CellPrimaryText>
           </DialogContentArea>
@@ -2840,7 +2890,7 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
               disabled={selectedSessions.length === 0}
             />
           </DialogActionsBar>
-        </DialogPanel>
+        </DialogPanelNarrow>
       </StyledDialog>
     </div>
   );

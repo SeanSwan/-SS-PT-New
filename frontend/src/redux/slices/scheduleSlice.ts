@@ -78,6 +78,11 @@ interface ScheduleState {
   expandedTrainerIds: (string | number)[];
 }
 
+const isUpcomingScheduleSession = (session: Pick<Session, 'status' | 'sessionDate' | 'start'>): boolean => {
+  return ['available', 'booked', 'scheduled', 'confirmed'].includes(session.status)
+    && new Date(String(session.sessionDate || session.start || '')).getTime() > Date.now();
+};
+
 // Initial state
 const initialState: ScheduleState = {
   sessions: [],
@@ -127,7 +132,7 @@ const initialState: ScheduleState = {
  */
 export const fetchEvents = createAsyncThunk(
   'schedule/fetchEvents',
-  async (filters?: FilterOptions, { rejectWithValue }) => {
+  async (filters: FilterOptions | undefined, { rejectWithValue }) => {
     try {
       // Use unified service - role-based filtering handled by backend
       const sessions = await universalMasterScheduleService.getSessions(filters);
@@ -141,10 +146,7 @@ export const fetchEvents = createAsyncThunk(
         completed: sessions.filter(s => s.status === 'completed').length,
         cancelled: sessions.filter(s => s.status === 'cancelled').length,
         blocked: sessions.filter(s => s.status === 'blocked').length,
-        upcoming: sessions.filter(s => 
-          ['available', 'booked', 'scheduled', 'confirmed'].includes(s.status) && 
-          new Date(s.sessionDate || s.start) > new Date()
-        ).length
+        upcoming: sessions.filter(isUpcomingScheduleSession).length
       };
       
       return { 
@@ -459,10 +461,7 @@ const scheduleSlice = createSlice({
           completed: sessions.filter(s => s.status === 'completed').length,
           cancelled: sessions.filter(s => s.status === 'cancelled').length,
           blocked: sessions.filter(s => s.status === 'blocked').length,
-          upcoming: sessions.filter(s => 
-            ['available', 'booked', 'scheduled', 'confirmed'].includes(s.status) && 
-            new Date(s.sessionDate || s.start) > new Date()
-          ).length
+          upcoming: sessions.filter(isUpcomingScheduleSession).length
         };
       }
     },
@@ -481,10 +480,7 @@ const scheduleSlice = createSlice({
         completed: sessions.filter(s => s.status === 'completed').length,
         cancelled: sessions.filter(s => s.status === 'cancelled').length,
         blocked: sessions.filter(s => s.status === 'blocked').length,
-        upcoming: sessions.filter(s => 
-          ['available', 'booked', 'scheduled', 'confirmed'].includes(s.status) && 
-          new Date(s.sessionDate || s.start) > new Date()
-        ).length
+        upcoming: sessions.filter(isUpcomingScheduleSession).length
       };
     },
     
@@ -502,10 +498,7 @@ const scheduleSlice = createSlice({
         completed: sessions.filter(s => s.status === 'completed').length,
         cancelled: sessions.filter(s => s.status === 'cancelled').length,
         blocked: sessions.filter(s => s.status === 'blocked').length,
-        upcoming: sessions.filter(s => 
-          ['available', 'booked', 'scheduled', 'confirmed'].includes(s.status) && 
-          new Date(s.sessionDate || s.start) > new Date()
-        ).length
+        upcoming: sessions.filter(isUpcomingScheduleSession).length
       };
     },
     
@@ -593,7 +586,7 @@ const scheduleSlice = createSlice({
       // ==================== FETCH CALENDAR EVENTS ====================
       .addCase(fetchCalendarEvents.fulfilled, (state, action) => {
         // Update sessions with calendar events (merge or replace as needed)
-        state.sessions = action.payload;
+        state.sessions = action.payload as unknown as Session[];
       })
       
       // ==================== FETCH TRAINERS ====================

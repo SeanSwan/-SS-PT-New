@@ -90,8 +90,8 @@ class UniversalMasterScheduleService {
       if (filters?.customDateStart) params.append('startDate', filters.customDateStart);
       if (filters?.customDateEnd) params.append('endDate', filters.customDateEnd);
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-      if (filters?.clientId) params.append('userId', filters.clientId); // Backend uses 'userId' for client filtering
+      if (filters?.trainerId) params.append('trainerId', String(filters.trainerId));
+      if (filters?.clientId) params.append('userId', String(filters.clientId)); // Backend uses 'userId' for client filtering
       if (filters?.location) params.append('location', filters.location);
       if (filters?.confirmed !== undefined) params.append('confirmed', filters.confirmed.toString());
       // MindBody Parity: Admin view scope toggle ('my' = my schedule only, 'global' = all trainers)
@@ -145,7 +145,7 @@ class UniversalMasterScheduleService {
         ...session,
         start: session.start || session.sessionDate,
         end: session.end || new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000)
-      }));
+      })) as unknown as SessionEvent[];
     } catch (error: any) {
       console.error('Error fetching calendar events:', error);
       return []; // Return empty array for graceful degradation

@@ -16,12 +16,18 @@
 export interface Session {
   id: string;
   sessionDate: string;
+  start?: string | Date;
+  end?: string | Date;
   duration: number;
   userId: string | null;
   trainerId: string | null;
+  sessionTypeId?: string | number | null;
+  sessionType?: string | null;
+  bufferBefore?: number | null;
+  bufferAfter?: number | null;
   location?: string;
   notes?: string;
-  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'blocked';
+  status: 'available' | 'requested' | 'scheduled' | 'booked' | 'confirmed' | 'completed' | 'cancelled' | 'blocked';
   notifyClient?: boolean;
   recurringGroupId?: string | null;
   isBlocked?: boolean;
@@ -57,7 +63,7 @@ export interface Client {
   phone?: string;
   photo?: string;
   availableSessions: number;
-  role: 'client';
+  role: 'client' | string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,7 +79,7 @@ export interface Trainer {
   phone?: string;
   photo?: string;
   specialties?: string;
-  role: 'trainer';
+  role: 'trainer' | string;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,8 +114,9 @@ export interface ClientTrainerAssignment {
 export interface SessionEvent {
   id: string;
   title: string;
-  start: Date;
-  end: Date;
+  sessionDate?: string;
+  start: Date | string;
+  end: Date | string;
   allDay?: boolean;
   status: Session['status'];
   userId?: string | null;
@@ -167,17 +174,19 @@ export type AdminViewScope = 'my' | 'global';
  * Filter options for the schedule view
  */
 export interface FilterOptions {
-  trainerId: string;
-  clientId: string;
-  status: 'all' | Session['status'];
-  dateRange: 'all' | 'today' | 'week' | 'month' | 'custom';
-  location: string;
-  searchTerm: string;
+  trainerId?: string | number | null;
+  clientId?: string | number | null;
+  status?: 'all' | Session['status'] | string | null;
+  dateRange?: 'all' | 'today' | 'week' | 'month' | 'custom' | string | null;
+  location?: string | null;
+  searchTerm?: string | null;
+  role?: string | null;
   customDateStart?: string;
   customDateEnd?: string;
   // MindBody Parity: Admin view scope toggle
   adminScope?: AdminViewScope;
   confirmed?: boolean;
+  userId?: string | number | null;
 }
 
 /**
@@ -199,20 +208,31 @@ export interface AdvancedFilterOptions extends FilterOptions {
  * Schedule statistics for dashboard display
  */
 export interface ScheduleStats {
-  totalSessions: number;
-  availableSessions: number;
-  bookedSessions: number;
-  completedSessions: number;
-  cancelledSessions: number;
-  revenue: number;
-  utilizationRate: number;
-  averageSessionDuration: number;
-  topTrainer: {
+  total: number;
+  available: number;
+  booked: number;
+  scheduled?: number;
+  confirmed: number;
+  completed: number;
+  cancelled: number;
+  blocked: number;
+  upcoming: number;
+  staleAvailable?: number;
+  other?: number;
+  totalSessions?: number;
+  availableSessions?: number;
+  bookedSessions?: number;
+  completedSessions?: number;
+  cancelledSessions?: number;
+  revenue?: number;
+  utilizationRate?: number;
+  averageSessionDuration?: number;
+  topTrainer?: {
     id: string;
     name: string;
     sessionsCount: number;
   } | null;
-  topClient: {
+  topClient?: {
     id: string;
     name: string;
     sessionsCount: number;

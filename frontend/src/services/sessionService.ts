@@ -41,6 +41,11 @@ class SessionService {
   constructor() {
     this.apiService = apiService;
   }
+
+  async getClients(): Promise<any[]> {
+    const response = await this.apiService.get('/api/sessions/users/clients');
+    return response.data?.data ?? response.data ?? [];
+  }
   
   // ==================== SESSION CRUD OPERATIONS ====================
   
@@ -53,8 +58,8 @@ class SessionService {
     try {
       const params = new URLSearchParams();
       
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-      if (filters?.clientId) params.append('clientId', filters.clientId);
+      if (filters?.trainerId) params.append('trainerId', String(filters.trainerId));
+      if (filters?.clientId) params.append('clientId', String(filters.clientId));
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.location) params.append('location', filters.location);
       if (filters?.searchTerm) params.append('search', filters.searchTerm);
@@ -439,7 +444,7 @@ class SessionService {
     try {
       const params = new URLSearchParams();
       
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
+      if (filters?.trainerId) params.append('trainerId', String(filters.trainerId));
       if (filters?.dateRange && filters.dateRange !== 'all') {
         params.append('dateRange', filters.dateRange);
       }
@@ -495,7 +500,7 @@ class SessionService {
     try {
       const params = new URLSearchParams({ status: 'available' });
       
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
+      if (filters?.trainerId) params.append('trainerId', String(filters.trainerId));
       if (filters?.dateRange) params.append('dateRange', filters.dateRange);
       if (filters?.startDate) params.append('startDate', filters.startDate);
       if (filters?.endDate) params.append('endDate', filters.endDate);
@@ -625,7 +630,7 @@ class SessionService {
     try {
       const params = new URLSearchParams({ format });
       
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
+      if (filters?.trainerId) params.append('trainerId', String(filters.trainerId));
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.dateRange && filters.dateRange !== 'all') {
         params.append('dateRange', filters.dateRange);
