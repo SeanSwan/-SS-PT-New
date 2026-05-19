@@ -32,7 +32,11 @@ import {
 // ─── Keyframes ──────────────────────────────────────────────────
 // ─── Styled Components ──────────────────────────────────────────
 // ─── Component ──────────────────────────────────────────────────
-const VerticalReels: React.FC = () => {
+interface VerticalReelsProps {
+  frame?: 'standalone' | 'dashboard';
+}
+
+const VerticalReels: React.FC<VerticalReelsProps> = ({ frame = 'standalone' }) => {
   const { posts, likePost } = useSocialFeed();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [muted, setMuted] = useState(true);
@@ -125,7 +129,7 @@ const VerticalReels: React.FC = () => {
 
   if (mediaPosts.length === 0) {
     return (
-      <ReelsContainer>
+      <ReelsContainer $frame={frame}>
         <EmptyState>
           <Play size={48} />
           <h3>No Reels Yet</h3>
@@ -137,6 +141,7 @@ const VerticalReels: React.FC = () => {
 
   return (
     <ReelsContainer
+      $frame={frame}
       ref={containerRef}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}

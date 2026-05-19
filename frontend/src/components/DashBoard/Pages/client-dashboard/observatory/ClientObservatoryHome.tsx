@@ -144,7 +144,7 @@ const ClientObservatoryHome: React.FC = () => {
             <SectionTitle>Reels</SectionTitle>
             <MutedText>Review training clips and creator media in the observatory feed.</MutedText>
             <Suspense fallback={<MutedText>Loading reels...</MutedText>}>
-              <VerticalReels />
+              <VerticalReels frame="dashboard" />
             </Suspense>
           </CardInner>
         </ObservatoryCard>

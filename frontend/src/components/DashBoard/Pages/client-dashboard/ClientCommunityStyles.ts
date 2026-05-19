@@ -97,6 +97,10 @@ export const PostInput = styled.textarea`
   }
 `;
 
+export const PostContentArea = styled.div`
+  flex: 1;
+`;
+
 export const HashtagHint = styled.div`
   font-size: 0.75rem;
   color: var(--text-muted, #94a3b8);
@@ -104,6 +108,21 @@ export const HashtagHint = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
+`;
+
+export const CharacterCounter = styled.span<{ $danger?: boolean }>`
+  margin-left: auto;
+  color: ${({ $danger }) => ($danger ? 'var(--error-accent, #C92A54)' : 'inherit')};
+`;
+
+export const CompactErrorBox = styled.div`
+  background: var(--bg-elevated, #141419);
+  border-left: 4px solid var(--error-accent, #C92A54);
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.875rem;
+  margin-top: 8px;
+  padding: 0.5rem;
 `;
 
 export const TwoCol = styled.div`
@@ -162,6 +181,17 @@ export const ChallengeFooter = styled.div`
   color: var(--text-muted, #94a3b8);
 `;
 
+export const ChallengeProgressInline = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+export const ChallengeTime = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+`;
+
 export const ProgressBarOuter = styled.div`
   flex: 1;
   max-width: 120px;
@@ -190,6 +220,17 @@ export const LeaderRow = styled.div`
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
   &:last-child { border-bottom: none; }
+`;
+
+export const LeaderName = styled.span`
+  flex: 1;
+  font-size: 0.875rem;
+`;
+
+export const LeaderPoints = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--accent-primary, #60C0F0);
 `;
 
 // AI Village Phase 3: Luxury metal RankBadge tokens
@@ -239,8 +280,9 @@ export const EmptyState = styled.p`
   padding: 1.5rem 0;
 `;
 
-export const ShimmerBlock = styled.div`
-  height: 80px;
+export const ShimmerBlock = styled.div<{ $height?: string; $bottom?: string }>`
+  height: ${({ $height }) => $height || '80px'};
+  margin-bottom: ${({ $bottom }) => $bottom || 0};
   border-radius: 12px;
   background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, rgba(96,192,240,0.06) 50%, var(--bg-elevated, #141419) 75%);
   background-size: 200% 100%;

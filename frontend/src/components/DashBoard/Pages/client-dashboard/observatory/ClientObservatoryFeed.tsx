@@ -34,6 +34,7 @@ import {
   FeatureGrid,
   FeedCard,
   FeedHeader,
+  HiddenFileInput,
   MiniAction,
   MiniActionGrid,
   PostAuthor,
@@ -70,7 +71,7 @@ interface ClientObservatoryFeedProps {
     visibility: 'friends';
     media: File | null;
   }) => Promise<void>;
-  onNavigate: (path: string) => void;
+  onNavigate?: (path: string) => void;
 }
 
 function postAuthor(post: FeedPostPreview): string {
@@ -88,7 +89,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   postReceipt,
   onPostTextChange,
   onCreatePost,
-  onNavigate,
+  onNavigate = (path: string) => { window.location.href = path; },
 }) => {
   const [category, setCategory] = useState<(typeof POST_CATEGORIES)[number]>('Training');
   const [postType, setPostType] = useState('training');
@@ -160,9 +161,6 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                   </SectionKicker>
                   <SectionTitle>Share training momentum</SectionTitle>
                 </div>
-                <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-                  Open Feed
-                </GhostButton>
               </ComposerTop>
 
               <CategoryRow aria-label="Post category">
@@ -203,13 +201,12 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
 
               <ComposerActions>
                 <MutedText>{mediaFile ? mediaFile.name : `${trimmedPost.length}/500 characters`}</MutedText>
-                <input
+                <HiddenFileInput
                   ref={fileInputRef}
                   type="file"
                   accept="image/*,video/*"
                   aria-label="Attach media to quick post"
                   onChange={handleMediaChange}
-                  style={{ display: 'none' }}
                 />
                 <GhostButton type="button" onClick={() => fileInputRef.current?.click()}>
                   <ImagePlus size={16} aria-hidden="true" />
@@ -244,9 +241,6 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
               </SectionKicker>
               <SectionTitle>Latest orbit signals</SectionTitle>
             </div>
-            <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-              View All
-            </GhostButton>
           </FeedHeader>
 
           {feedLoading && (
@@ -289,12 +283,8 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
           )}
 
           {!feedLoading && posts.length > 0 && (
-            <ComposerActions style={{ marginTop: '0.9rem' }}>
+            <ComposerActions $top="0.9rem">
               <MutedText>{compactNumber(posts.length)} visible updates in this preview</MutedText>
-              <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/community')}>
-                <ImagePlus size={16} aria-hidden="true" />
-                Create More
-              </GhostButton>
             </ComposerActions>
           )}
         </CardInner>

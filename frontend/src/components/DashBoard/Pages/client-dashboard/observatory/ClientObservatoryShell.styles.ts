@@ -109,8 +109,8 @@ export const SectionTitle = styled.h2`
   letter-spacing: 0;
 `;
 
-export const MutedText = styled.p`
-  margin: 0;
+export const MutedText = styled.p<{ $top?: string }>`
+  margin: ${({ $top }) => ($top ? `${$top} 0 0` : 0)};
   color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 68%, transparent));
   font: 500 0.9rem/1.55 'Sora', sans-serif;
 `;
@@ -166,10 +166,11 @@ export const IconButton = styled(ButtonBase)`
   border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
 `;
 
-export const ProgressTrack = styled.div`
+export const ProgressTrack = styled.div<{ $top?: string }>`
   position: relative;
   overflow: hidden;
   height: 8px;
+  margin-top: ${({ $top }) => $top || 0};
   border-radius: 999px;
   background: color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
 `;

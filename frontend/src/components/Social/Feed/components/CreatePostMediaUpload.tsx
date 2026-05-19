@@ -41,6 +41,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import { Camera, X } from 'lucide-react';
 import {
   MediaPreviewWrapper,
@@ -52,6 +53,29 @@ import {
   BodyText,
 } from '../styles/CreatePostStyles';
 import type { CreatePostMediaUploadProps } from '../types/CreatePostTypes';
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const CompactMediaPreviewWrapper = styled(MediaPreviewWrapper)`
+  flex: 1;
+  margin-top: 0;
+`;
+
+const TransformationPreviewImage = styled.img`
+  width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+`;
+
+const VideoPreview = styled.video`
+  width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #000;
+`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Transformation Upload
@@ -73,28 +97,25 @@ const TransformationUpload: React.FC<Pick<
   onRemoveAfterImage,
 }) => (
   <TransformationImageContainer>
-    <input
+    <HiddenFileInput
       ref={beforeImageRef}
       type="file"
       accept="image/*"
-      style={{ display: 'none' }}
       onChange={onBeforeImageSelect}
     />
-    <input
+    <HiddenFileInput
       ref={afterImageRef}
       type="file"
       accept="image/*"
-      style={{ display: 'none' }}
       onChange={onAfterImageSelect}
     />
 
-    <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
+    <CompactMediaPreviewWrapper>
       <TransformationImageBox onClick={() => beforeImageRef.current?.click()}>
         {beforePreview ? (
-          <img
+          <TransformationPreviewImage
             src={beforePreview}
             alt="Before"
-            style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }}
           />
         ) : (
           <PlaceholderContent>
@@ -108,15 +129,14 @@ const TransformationUpload: React.FC<Pick<
           <X size={16} />
         </RemoveMediaButton>
       )}
-    </MediaPreviewWrapper>
+    </CompactMediaPreviewWrapper>
 
-    <MediaPreviewWrapper style={{ flex: 1, marginTop: 0 }}>
+    <CompactMediaPreviewWrapper>
       <TransformationImageBox onClick={() => afterImageRef.current?.click()}>
         {afterPreview ? (
-          <img
+          <TransformationPreviewImage
             src={afterPreview}
             alt="After"
-            style={{ width: '100%', maxHeight: '150px', objectFit: 'cover' }}
           />
         ) : (
           <PlaceholderContent>
@@ -130,7 +150,7 @@ const TransformationUpload: React.FC<Pick<
           <X size={16} />
         </RemoveMediaButton>
       )}
-    </MediaPreviewWrapper>
+    </CompactMediaPreviewWrapper>
   </TransformationImageContainer>
 );
 
@@ -148,17 +168,12 @@ const GeneralMediaPreview: React.FC<Pick<
   return (
     <MediaPreviewWrapper>
       {media?.type.startsWith('video/') ? (
-        <video
+        <VideoPreview
           src={mediaPreview}
           controls
-          style={{
-            width: '100%',
-            maxHeight: '300px',
-            borderRadius: '8px',
-            objectFit: 'contain',
-            background: '#000',
-          }}
-        />
+        >
+          <track kind="captions" label="Uploaded video captions" srcLang="en" />
+        </VideoPreview>
       ) : (
         <MediaPreview src={mediaPreview} alt="Upload preview" />
       )}

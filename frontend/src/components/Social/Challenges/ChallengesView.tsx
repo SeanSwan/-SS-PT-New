@@ -228,8 +228,8 @@ const CategoryPill = styled.button<{ $active: boolean; $color: string }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 14px;
-  min-height: 36px;
+  padding: 10px 16px;
+  min-height: 44px;
   border-radius: 20px;
   border: 1px solid ${({ $active, $color }) => $active ? $color : 'rgba(148, 163, 184, 0.2)'};
   background: ${({ $active, $color }) => $active ? `${$color}22` : 'transparent'};

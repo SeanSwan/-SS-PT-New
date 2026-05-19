@@ -586,7 +586,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           {posts.map(post => (
             <PostCard
               key={post.id}
-              post={post}
+              post={post as any}
               onLike={() => handleLikeToggle(post.id, post.isLiked)}
               onReact={reactToPost}
               onRemoveReaction={removeReaction}
@@ -613,22 +613,24 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           <BodyText2 $color="rgba(255,255,255,0.85)" $paragraph>
             Introduce yourself to the community — share a post and earn your first points!
           </BodyText2>
-          <ButtonGroup>
-            <ContainedButton
-              $color="primary"
-              onClick={() => navigate('/social/challenges')}
-            >
-              <Trophy size={16} style={{ marginRight: 6 }} />
-              Browse Challenges
-            </ContainedButton>
-            <OutlinedButton
-              $color="primary"
-              onClick={() => navigate('/social/friends')}
-            >
-              <Users size={16} style={{ marginRight: 6 }} />
-              Find Friends
-            </OutlinedButton>
-          </ButtonGroup>
+          {variant === 'full' && (
+            <ButtonGroup>
+              <ContainedButton
+                $color="primary"
+                onClick={() => navigate('/social/challenges')}
+              >
+                <Trophy size={16} style={{ marginRight: 6 }} />
+                Browse Challenges
+              </ContainedButton>
+              <OutlinedButton
+                $color="primary"
+                onClick={() => navigate('/social/friends')}
+              >
+                <Users size={16} style={{ marginRight: 6 }} />
+                Find Friends
+              </OutlinedButton>
+            </ButtonGroup>
+          )}
           <WelcomeTip>
             <Zap size={14} />
             Tip: Post publicly so everyone can see your journey

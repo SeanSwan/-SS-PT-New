@@ -6,13 +6,15 @@
 import styled from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 
-export const ReelsContainer = styled.div`
+export type ReelsFrame = 'standalone' | 'dashboard';
+
+export const ReelsContainer = styled.div<{ $frame: ReelsFrame }>`
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: ${({ $frame }) => ($frame === 'dashboard' ? 'min(100%, 720px)' : '520px')};
   margin: 0 auto;
-  height: calc(100vh - 180px);
-  min-height: 520px;
+  height: ${({ $frame }) => ($frame === 'dashboard' ? 'clamp(520px, 68vh, 760px)' : 'calc(100vh - 180px)')};
+  min-height: ${({ $frame }) => ($frame === 'dashboard' ? '480px' : '520px')};
   overflow: hidden;
   border-radius: 22px;
   background:
@@ -27,7 +29,8 @@ export const ReelsContainer = styled.div`
   @media (max-width: 768px) {
     max-width: 100%;
     border-radius: 18px;
-    height: calc(100vh - 120px);
+    height: ${({ $frame }) => ($frame === 'dashboard' ? 'min(72vh, 640px)' : 'calc(100vh - 120px)')};
+    min-height: 440px;
   }
 `;
 

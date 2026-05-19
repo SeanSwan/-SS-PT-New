@@ -85,7 +85,7 @@ const NotificationBell: React.FC = memo(() => {
       await api.put('/api/notifications/read-all');
       setUnreadCount(0);
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    } catch {}
+    } catch { /* best-effort notification refresh */ }
   };
 
   return (

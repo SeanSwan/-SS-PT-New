@@ -124,7 +124,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
           <ProgressTrack role="progressbar" aria-label="Challenge progress" aria-valuenow={challengePct} aria-valuemin={0} aria-valuemax={100}>
             <ProgressFill $pct={challengePct} />
           </ProgressTrack>
-          <MutedText style={{ marginTop: '0.75rem' }}>
+          <MutedText $top="0.75rem">
             {challenge?.description || 'Join a community challenge when you are ready to compete.'}
           </MutedText>
         </CardInner>

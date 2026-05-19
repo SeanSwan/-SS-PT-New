@@ -114,7 +114,7 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progress}
-            style={{ marginTop: '0.85rem' }}
+            $top="0.85rem"
           >
             <ProgressFill $pct={progress} />
           </ProgressTrack>

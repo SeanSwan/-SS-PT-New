@@ -61,8 +61,8 @@ const OutlineBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: transparent;
@@ -119,8 +119,8 @@ const TextBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  min-height: 36px;
+  padding: 10px 14px;
+  min-height: 44px;
   border-radius: 6px;
   border: none;
   background: transparent;
@@ -186,8 +186,8 @@ const RemoveBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: transparent;

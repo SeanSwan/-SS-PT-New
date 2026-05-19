@@ -88,16 +88,15 @@ export const OBSERVATORY_ASSETS = {
 };
 
 export const LENS_TABS: LensTab[] = [
-  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/social' },
-  { id: 'reels', label: 'Reels', Icon: Video, path: '/social/reels' },
-  { id: 'friends', label: 'Friends', Icon: Users, path: '/social/friends' },
-  { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/social/challenges' },
+  { id: 'feed', label: 'Feed', Icon: MessageCircle, path: '/dashboard/client/overview' },
+  { id: 'reels', label: 'Reels', Icon: Video, path: '/dashboard/client/overview/reels' },
+  { id: 'friends', label: 'Friends', Icon: Users, path: '/dashboard/client/overview/friends' },
+  { id: 'challenges', label: 'Challenges', Icon: Trophy, path: '/dashboard/client/overview/challenges' },
 ];
 
 export const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Log Workout', Icon: Dumbbell, path: '/dashboard/client/log-workout' },
   { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },
-  { label: 'Community', Icon: MessageCircle, path: '/dashboard/client/community' },
   { label: 'Progress', Icon: Flame, path: '/dashboard/client/progress' },
 ];
 

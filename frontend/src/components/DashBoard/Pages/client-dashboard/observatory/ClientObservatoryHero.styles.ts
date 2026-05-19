@@ -23,6 +23,7 @@ export const HeroCard = styled(ObservatoryCard)`
     position: absolute;
     inset: auto -10% -34% 28%;
     height: 62%;
+    pointer-events: none;
     background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent), transparent 68%);
     filter: blur(22px);
     animation: ${lensGlow} 7s ease-in-out infinite;
@@ -201,11 +202,14 @@ export const TierBadge = styled.span<{ $tone: string }>`
 `;
 
 export const LensRail = styled.nav`
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: repeat(6, minmax(96px, 1fr));
   gap: 0.75rem;
   box-sizing: border-box;
   padding: 0 clamp(1.15rem, 2vw, 2rem) clamp(1.15rem, 2vw, 2rem);
+  scroll-margin-top: 96px;
 
   @media (max-width: 900px) {
     display: flex;
@@ -216,7 +220,10 @@ export const LensRail = styled.nav`
 `;
 
 export const LensButton = styled.button<{ $active: boolean }>`
+  position: relative;
+  z-index: 2;
   min-height: 92px;
+  scroll-margin-top: 96px;
   border: 1px solid ${({ $active }) => (
     $active
       ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 54%, transparent)'

@@ -149,12 +149,17 @@ export const PostReceiptMessage = styled.span`
   font: 800 0.78rem/1.35 'Sora', sans-serif;
 `;
 
-export const ComposerActions = styled.div`
+export const ComposerActions = styled.div<{ $top?: string }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+  margin-top: ${({ $top }) => $top || 0};
+`;
+
+export const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 export const MiniActionGrid = styled.div`

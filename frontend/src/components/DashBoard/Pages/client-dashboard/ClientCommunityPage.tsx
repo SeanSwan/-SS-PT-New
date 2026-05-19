@@ -67,10 +67,39 @@ import {
   ChallengeCard, ChallengeTitle, ChallengeDesc, ChallengeFooter, ProgressBarOuter,
   ProgressBarInner, LeaderRow, RankBadge, FeedPost, EmptyState, ShimmerBlock,
   ErrorBox, PointsChip,
+  CharacterCounter, ChallengeProgressInline, ChallengeTime, CompactErrorBox,
+  LeaderName, LeaderPoints, PostContentArea,
 } from './ClientCommunityStyles';
 
 // Styled components extracted to ClientCommunityStyles.ts per 300-line rule
 const MAX_POST_LENGTH = 500;
+
+interface LeaderboardEntry {
+  firstName?: string;
+  username?: string;
+  totalPoints?: number;
+  points?: number;
+}
+
+interface CommunityChallenge {
+  id?: string | number;
+  title?: string;
+  name?: string;
+  description?: string;
+  progress?: number;
+  daysRemaining?: number;
+}
+
+interface CommunityFeedPost {
+  id?: string | number;
+  user?: {
+    firstName?: string;
+  };
+  authorName?: string;
+  content?: string;
+  text?: string;
+  createdAt?: string;
+}
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -105,7 +134,7 @@ const ClientCommunityPage: React.FC = () => {
 
   // Memoize leaderboard mapping to avoid recomputing on every render
   const leaderData = useMemo(() => {
-    return leaderboard.slice(0, 5).map((u: any, i: number) => ({
+    return (leaderboard as LeaderboardEntry[]).slice(0, 5).map((u, i) => ({
       name: u.firstName || u.username || `Athlete ${i + 1}`,
       xp: u.totalPoints || u.points || 0,
     }));
@@ -114,8 +143,8 @@ const ClientCommunityPage: React.FC = () => {
   if (loading) {
     return (
       <PageWrap>
-        <ShimmerBlock style={{ marginBottom: 12 }} />
-        <ShimmerBlock style={{ height: 200 }} />
+        <ShimmerBlock $bottom="12px" />
+        <ShimmerBlock $height="200px" />
       </PageWrap>
     );
   }
@@ -129,7 +158,7 @@ const ClientCommunityPage: React.FC = () => {
 
       {/* Quick Post with Hashtag Support */}
       <PostBox>
-        <div style={{ flex: 1 }}>
+        <PostContentArea>
           <PostInput
             value={postText}
             onChange={e => setPostText(e.target.value)}
@@ -141,12 +170,12 @@ const ClientCommunityPage: React.FC = () => {
             <Hash size={12} />
             Type #hashtags to categorize your post
             <PointsChip>+15 XP</PointsChip>
-            <span style={{ marginLeft: 'auto', color: postText.length > MAX_POST_LENGTH * 0.9 ? 'var(--error-accent, #C92A54)' : undefined }}>
+            <CharacterCounter $danger={postText.length > MAX_POST_LENGTH * 0.9}>
               {postText.length}/{MAX_POST_LENGTH}
-            </span>
+            </CharacterCounter>
           </HashtagHint>
-          {createPost.error && <ErrorBox style={{ marginTop: 8, padding: '0.5rem' }}>{createPost.error.message || 'Failed to create post'}</ErrorBox>}
-        </div>
+          {createPost.error && <CompactErrorBox>{createPost.error.message || 'Failed to create post'}</CompactErrorBox>}
+        </PostContentArea>
         <PostBtn onClick={handlePost} disabled={createPost.isPending || !postText.trim()} aria-label="Create post">
           <Send size={16} aria-hidden="true" /> Post
         </PostBtn>
@@ -183,21 +212,21 @@ const ClientCommunityPage: React.FC = () => {
           <h3><Swords size={18} aria-hidden="true" /> Active Challenges</h3>
           {challenges.length === 0
             ? <EmptyState>No active challenges right now. Check back soon!</EmptyState>
-            : challenges.slice(0, 3).map((c: any, i: number) => (
+            : (challenges as CommunityChallenge[]).slice(0, 3).map((c, i) => (
               <ChallengeCard key={c.id || i}>
                 <ChallengeTitle>{c.title || c.name || 'Challenge'}</ChallengeTitle>
                 <ChallengeDesc>{c.description || 'Complete this challenge to earn rewards.'}</ChallengeDesc>
                 <ChallengeFooter>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <ChallengeProgressInline>
                     <ProgressBarOuter>
                       <ProgressBarInner $pct={c.progress || 0} />
                     </ProgressBarOuter>
                     {c.progress || 0}%
-                  </div>
-                  <span>
-                    <Clock size={12} style={{ marginRight: 4 }} aria-hidden="true" />
+                  </ChallengeProgressInline>
+                  <ChallengeTime>
+                    <Clock size={12} aria-hidden="true" />
                     {c.daysRemaining || '?'} days left
-                  </span>
+                  </ChallengeTime>
                 </ChallengeFooter>
               </ChallengeCard>
             ))
@@ -215,14 +244,10 @@ const ClientCommunityPage: React.FC = () => {
             : leaderData.map((l, i) => (
               <LeaderRow key={i}>
                 <RankBadge $rank={i + 1}>{i + 1}</RankBadge>
-                <span style={{ flex: 1, fontSize: '0.875rem' }}>{l.name}</span>
-                <span style={{
-                  fontFamily: "'Fira Code', monospace",
-                  fontSize: '0.75rem',
-                  color: 'var(--accent-primary, #60C0F0)'
-                }}>
+                <LeaderName>{l.name}</LeaderName>
+                <LeaderPoints>
                   {l.xp.toLocaleString()} XP
-                </span>
+                </LeaderPoints>
               </LeaderRow>
             ))}
         </SectionCard>
@@ -237,7 +262,7 @@ const ClientCommunityPage: React.FC = () => {
                 ? `No posts tagged #${filters.hashtag} yet. Be the first!`
                 : 'No posts yet. Be the first to share something!'}
             </EmptyState>
-          : feed.map((p: any, i: number) => (
+          : (feed as CommunityFeedPost[]).map((p, i) => (
             <FeedPost key={p.id || i}>
               <div className="post-author">
                 {p.user?.firstName || p.authorName || 'Community Member'}
