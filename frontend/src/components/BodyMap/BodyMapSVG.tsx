@@ -137,6 +137,7 @@ const ResponsiveSVG = styled.svg`
   max-width: 280px;
   display: block;
   margin: 0 auto;
+  overflow: visible;
 
   ${device.xxxl} {
     max-width: 360px;
@@ -153,6 +154,12 @@ const ZoomContainer = styled.div`
     touch-action: manipulation;
     overflow: visible;
   }
+`;
+
+const ZoomContent = styled.div<{ $scale: number; $x: number; $y: number; $isPinching: boolean }>`
+  transform: ${({ $scale, $x, $y }) => `scale(${$scale}) translate(${$x / $scale}px, ${$y / $scale}px)`};
+  transform-origin: center center;
+  transition: ${({ $isPinching }) => $isPinching ? 'none' : 'transform 0.2s ease-out'};
 `;
 
 /**
@@ -426,14 +433,34 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
   const panRef = useRef<{ startX: number; startY: number; startTx: number; startTy: number } | null>(null);
 
-  // Track whether anatomical images loaded successfully
+  // Track whether anatomical images loaded successfully.
   const [frontImgLoaded, setFrontImgLoaded] = useState(false);
   const [backImgLoaded, setBackImgLoaded] = useState(false);
 
-  // Reset image load state when gender changes
+  // Reset and preload image state when gender changes.
   React.useEffect(() => {
+    let active = true;
+    const frontImage = new Image();
+    const backImage = new Image();
+
     setFrontImgLoaded(false);
     setBackImgLoaded(false);
+
+    frontImage.onload = () => { if (active) setFrontImgLoaded(true); };
+    frontImage.onerror = () => { if (active) setFrontImgLoaded(false); };
+    backImage.onload = () => { if (active) setBackImgLoaded(true); };
+    backImage.onerror = () => { if (active) setBackImgLoaded(false); };
+
+    frontImage.src = getAnatomyImagePath(gender, 'front');
+    backImage.src = getAnatomyImagePath(gender, 'back');
+
+    return () => {
+      active = false;
+      frontImage.onload = null;
+      frontImage.onerror = null;
+      backImage.onload = null;
+      backImage.onerror = null;
+    };
   }, [gender]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -619,12 +646,6 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   const getFrontOutline = () => gender === 'female' ? <FemaleFrontOutline /> : <MaleFrontOutline />;
   const getBackOutline = () => gender === 'female' ? <FemaleBackOutline /> : <MaleBackOutline />;
 
-  const zoomStyle: React.CSSProperties = {
-    transform: `scale(${scale}) translate(${translate.x / scale}px, ${translate.y / scale}px)`,
-    transformOrigin: 'center center',
-    transition: pinchRef.current ? 'none' : 'transform 0.2s ease-out',
-  };
-
   return (
     <MapContainer>
       <ViewPanel>
@@ -634,8 +655,8 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div style={zoomStyle}>
-            <ResponsiveSVG viewBox="0 0 200 320" style={{ overflow: 'visible' }}>
+          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+            <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
               {/* Layer 1: Anatomical image (if available) */}
               <image
@@ -643,11 +664,9 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
                 x="20" y="4" width="160" height="310"
                 preserveAspectRatio="xMidYMid meet"
                 opacity={frontImgLoaded ? 0.85 : 0}
-                onLoad={() => setFrontImgLoaded(true)}
-                onError={() => setFrontImgLoaded(false)}
-                style={{ pointerEvents: 'none' }}
+                pointerEvents="none"
               />
-              {/* Layer 2: SVG outline (visible when image not loaded, faded when image loads) */}
+              {/* Layer 2: SVG outline remains visible when the image is not available. */}
               <g opacity={frontImgLoaded ? 0.3 : 1}>
                 {getFrontOutline()}
               </g>
@@ -656,7 +675,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               {/* Layer 4: Anatomical labels */}
               {renderLabels(FRONT_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </div>
+          </ZoomContent>
         </ZoomContainer>
       </ViewPanel>
 
@@ -667,8 +686,8 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          <div style={zoomStyle}>
-            <ResponsiveSVG viewBox="0 0 200 320" style={{ overflow: 'visible' }}>
+          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+            <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
               {/* Layer 1: Anatomical image */}
               <image
@@ -676,9 +695,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
                 x="20" y="4" width="160" height="310"
                 preserveAspectRatio="xMidYMid meet"
                 opacity={backImgLoaded ? 0.85 : 0}
-                onLoad={() => setBackImgLoaded(true)}
-                onError={() => setBackImgLoaded(false)}
-                style={{ pointerEvents: 'none' }}
+                pointerEvents="none"
               />
               <g opacity={backImgLoaded ? 0.3 : 1}>
                 {getBackOutline()}
@@ -686,7 +703,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               {renderRegions(BACK_VIEW_REGIONS)}
               {renderLabels(BACK_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </div>
+          </ZoomContent>
         </ZoomContainer>
       </ViewPanel>
     </MapContainer>

@@ -137,6 +137,16 @@ const Label = styled.label`
   margin-bottom: 6px;
 `;
 
+const GroupLabel = styled.div`
+  display: block;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+`;
+
 const SliderContainer = styled.div`
   display: flex;
   align-items: center;
@@ -495,7 +505,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
   return (
     <>
-      <Overlay $isOpen={isOpen} onClick={onClose} />
+      <Overlay $isOpen={isOpen} onPointerDown={onClose} role="presentation" />
       <Panel $isOpen={isOpen}>
         <DragHandle />
         <PanelHeader>
@@ -505,9 +515,10 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Pain Level Slider */}
         <FormGroup>
-          <Label>Pain Level</Label>
+          <Label htmlFor="pain-entry-level">Pain Level</Label>
           <SliderContainer>
             <Slider
+              id="pain-entry-level"
               type="range"
               min={1}
               max={10}
@@ -524,8 +535,8 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Pain Type */}
         <FormGroup>
-          <Label>Pain Type</Label>
-          <Select value={painType} onChange={(e) => setPainType(e.target.value as PainType)}>
+          <Label htmlFor="pain-entry-type">Pain Type</Label>
+          <Select id="pain-entry-type" value={painType} onChange={(e) => setPainType(e.target.value as PainType)}>
             {PAIN_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
@@ -534,8 +545,8 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Side */}
         <FormGroup>
-          <Label>Side</Label>
-          <Select value={side} onChange={(e) => {
+          <Label htmlFor="pain-entry-side">Side</Label>
+          <Select id="pain-entry-side" value={side} onChange={(e) => {
             const newSide = e.target.value as PainSide;
             setSide(newSide);
             // Swap to matching region when side changes (e.g., right_shoulder → left_shoulder)
@@ -556,8 +567,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Description */}
         <FormGroup>
-          <Label>{isClientMode ? 'Describe Your Pain' : 'Client Description'}</Label>
+          <Label htmlFor="pain-entry-description">{isClientMode ? 'Describe Your Pain' : 'Client Description'}</Label>
           <TextArea
+            id="pain-entry-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={isClientMode
@@ -569,8 +581,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Onset Date */}
         <FormGroup>
-          <Label>When did it start?</Label>
+          <Label htmlFor="pain-entry-onset">When did it start?</Label>
           <Input
+            id="pain-entry-onset"
             type="date"
             value={onsetDate}
             onChange={(e) => setOnsetDate(e.target.value)}
@@ -581,7 +594,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Aggravating Movements */}
         <FormGroup>
-          <Label>{isClientMode ? 'What Makes It Worse?' : 'Aggravating Movements'}</Label>
+          <GroupLabel>{isClientMode ? 'What Makes It Worse?' : 'Aggravating Movements'}</GroupLabel>
           <ChipGrid>
             {AGGRAVATING_MOVEMENTS.map((mv) => (
               <Chip
@@ -597,7 +610,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
         {/* Relieving Factors */}
         <FormGroup>
-          <Label>{isClientMode ? 'What Helps?' : 'Relieving Factors'}</Label>
+          <GroupLabel>{isClientMode ? 'What Helps?' : 'Relieving Factors'}</GroupLabel>
           <ChipGrid>
             {RELIEVING_FACTORS.map((rf) => (
               <Chip
@@ -618,7 +631,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
             {/* Postural Syndrome */}
             <FormGroup>
-              <Label>Postural Syndrome</Label>
+              <GroupLabel>Postural Syndrome</GroupLabel>
               <SyndromeToggle>
                 <SyndromeBtn
                   $active={posturalSyndrome === 'none'}
@@ -646,8 +659,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
             {/* AI Notes */}
             <FormGroup>
-              <Label>Swan Coach Guidance Notes</Label>
+              <Label htmlFor="pain-entry-ai-notes">Swan Coach Guidance Notes</Label>
               <TextArea
+                id="pain-entry-ai-notes"
                 value={aiNotes}
                 onChange={(e) => setAiNotes(e.target.value)}
                 placeholder="Guidance for Swan Coach when generating workouts, e.g., 'Focus on thoracic mobility before any pressing...'"
@@ -659,8 +673,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 
             {/* Trainer Notes (private) */}
             <FormGroup>
-              <Label>Trainer Notes (Private)</Label>
+              <Label htmlFor="pain-entry-trainer-notes">Trainer Notes (Private)</Label>
               <TextArea
+                id="pain-entry-trainer-notes"
                 value={trainerNotes}
                 onChange={(e) => setTrainerNotes(e.target.value)}
                 placeholder="Internal notes — not sent to Swan Coach..."
