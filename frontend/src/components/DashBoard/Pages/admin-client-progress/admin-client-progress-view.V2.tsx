@@ -33,17 +33,16 @@
  * └──────────┴─────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
-import { useToast } from '../../../../hooks/use-toast';
 import { useTable } from '../../../../hooks/useTable';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 
 import {
   Search, Users, Trophy, UserCheck, RefreshCw,
-  TrendingUp, ChevronRight
+  ChevronRight
 } from 'lucide-react';
 
 import { PageTitle, SectionTitle, BodyText, SmallText, Caption } from '../../../ui-kit/Typography';
@@ -52,12 +51,10 @@ import { Card, CardHeader, CardBody, GridContainer, FlexBox } from '../../../ui-
 import { StyledInput } from '../../../ui-kit/Input';
 import Table from '../../../ui-kit/Table';
 import Pagination from '../../../ui-kit/Pagination';
-import Badge, { getStatusVariant } from '../../../ui-kit/Badge';
+import Badge from '../../../ui-kit/Badge';
 import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
 import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-kit/Container';
-
-// Victory Charts — lazy-loaded for bundle optimization
-const ClientProgressCharts = lazy(() => import('../../../ClientProgressCharts/ClientProgressCharts'));
+import ClientProgressCharts from '../../../ClientProgressCharts/ClientProgressCharts';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Frost Shimmer Skeleton
@@ -91,6 +88,75 @@ const HeaderCard = styled(Card)`
   background: linear-gradient(135deg, rgba(0, 32, 96, 0.4), rgba(139, 92, 246, 0.08));
   border-color: rgba(96, 192, 240, 0.15);
   margin-bottom: 2rem;
+`;
+
+const HeaderTitle = styled(PageTitle)`
+  margin-bottom: 0.5rem;
+`;
+
+const MutedBodyText = styled(BodyText)`
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+`;
+
+const SidebarColumn = styled.div`
+  grid-column: span 3;
+`;
+
+const MainColumn = styled.div`
+  grid-column: span 9;
+`;
+
+const SectionTitleSpaced = styled(SectionTitle)`
+  margin-bottom: 1rem;
+`;
+
+const ClientMeta = styled.div`
+  flex: 1;
+`;
+
+const StrongSmallText = styled(SmallText)<{ $large?: boolean }>`
+  font-weight: ${({ $large }) => ($large ? 700 : 600)};
+  font-size: ${({ $large }) => ($large ? '1.25rem' : 'inherit')};
+  margin-bottom: ${({ $large }) => ($large ? 0 : '0.25rem')};
+`;
+
+const MutedCaption = styled(Caption)`
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+`;
+
+const EmptyClientList = styled.div`
+  padding: 2rem;
+  text-align: center;
+`;
+
+const StatsGrid = styled(GridContainer)`
+  margin-bottom: 2rem;
+`;
+
+const ProgressSummaryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+`;
+
+const StrongBodyText = styled(BodyText)`
+  font-weight: 600;
+`;
+
+const ProgressSummaryFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+`;
+
+const LeaderboardFooter = styled.div`
+  padding: 1.5rem;
+  border-top: 1px solid rgba(96, 192, 240, 0.05);
+`;
+
+const RefreshIcon = styled(RefreshCw)`
+  margin-right: 0.5rem;
 `;
 
 const Avatar = styled.div<{ src?: string }>`
@@ -215,6 +281,10 @@ const SearchContainer = styled.div`
   input { padding-left: 2.75rem; }
 `;
 
+const LeaderboardSearch = styled(SearchContainer)`
+  max-width: 300px;
+`;
+
 const ClientListContainer = styled(Card)`
   height: 600px;
   display: flex;
@@ -282,7 +352,6 @@ interface Client {
 // ─────────────────────────────────────────────────────────────
 const AdminClientProgressView: React.FC = () => {
   const { authAxios, services } = useAuth();
-  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
@@ -291,14 +360,13 @@ const AdminClientProgressView: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [tabValue, setTabValue] = useState(0);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const {
     paginatedData: paginatedLeaderboard,
     currentPage, totalPages, rowsPerPage,
     hasNextPage, hasPrevPage, totalItems,
     searchTerm: leaderboardSearch,
-    handlePageChange, handleRowsPerPageChange,
+    handleRowsPerPageChange,
     handleSearch: handleLeaderboardSearch,
     goToNextPage, goToPrevPage
   } = useTable<LeaderboardEntry>({
@@ -309,39 +377,26 @@ const AdminClientProgressView: React.FC = () => {
     initialSortOrder: 'desc'
   });
 
-  useEffect(() => {
-    fetchClients();
-    fetchLeaderboard();
-  }, []);
-
-  useEffect(() => {
-    if (selectedClientId) {
-      fetchClientProgress(selectedClientId);
-    }
-  }, [selectedClientId]);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
       const response = await authAxios.get('/api/auth/clients');
       if (response.data?.success) {
         setClients(response.data.clients);
-        if (response.data.clients.length > 0 && !selectedClientId) {
-          setSelectedClientId(response.data.clients[0].id);
+        if (response.data.clients.length > 0) {
+          setSelectedClientId((currentClientId) => currentClientId ?? response.data.clients[0].id);
         }
       } else {
         setClients([]);
-        setError('Unable to load clients.');
       }
     } catch {
       setClients([]);
-      setError('Unable to load clients. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [authAxios]);
 
-  const fetchClientProgress = async (clientId: string) => {
+  const fetchClientProgress = useCallback(async (clientId: string) => {
     try {
       const result = await services.clientProgress.getClientProgressById(clientId);
       if (result?.success) {
@@ -350,9 +405,9 @@ const AdminClientProgressView: React.FC = () => {
     } catch (err) {
       console.error('Error fetching progress:', err);
     }
-  };
+  }, [services.clientProgress]);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       const result = await services.clientProgress.getLeaderboard();
       if (result?.success) {
@@ -361,7 +416,18 @@ const AdminClientProgressView: React.FC = () => {
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
     }
-  };
+  }, [services.clientProgress]);
+
+  useEffect(() => {
+    fetchClients();
+    fetchLeaderboard();
+  }, [fetchClients, fetchLeaderboard]);
+
+  useEffect(() => {
+    if (selectedClientId) {
+      fetchClientProgress(selectedClientId);
+    }
+  }, [selectedClientId, fetchClientProgress]);
 
   const filteredClients = clients.filter(client => {
     const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
@@ -390,10 +456,10 @@ const AdminClientProgressView: React.FC = () => {
           <CardBody padding="1.5rem">
             <FlexBox justify="space-between" align="center">
               <div>
-                <PageTitle style={{ marginBottom: '0.5rem' }}>Client Progress Dashboard</PageTitle>
-                <BodyText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                <HeaderTitle>Client Progress Dashboard</HeaderTitle>
+                <MutedBodyText>
                   Monitor and manage client progression through the NASM protocol system
-                </BodyText>
+                </MutedBodyText>
               </div>
               <FlexBox gap="0.75rem">
                 <OutlinedButton onClick={() => window.location.href = '/dashboard/client-trainer-assignments'}>
@@ -437,10 +503,10 @@ const AdminClientProgressView: React.FC = () => {
         <TabPanel isActive={tabValue === 0} role="tabpanel">
           <GridContainer columns={12} gap="1.5rem">
             {/* Client List Sidebar */}
-            <div style={{ gridColumn: 'span 3' }}>
+            <SidebarColumn>
               <ClientListContainer>
                 <ClientListHeader>
-                  <SectionTitle style={{ marginBottom: '1rem' }}>Clients</SectionTitle>
+                  <SectionTitleSpaced>Clients</SectionTitleSpaced>
                   <SearchContainer>
                     <Search size={18} />
                     <StyledInput
@@ -462,41 +528,41 @@ const AdminClientProgressView: React.FC = () => {
                           <Avatar>
                             {client.firstName[0]}{client.lastName[0]}
                           </Avatar>
-                          <div style={{ flex: 1 }}>
-                            <SmallText style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                          <ClientMeta>
+                            <StrongSmallText>
                               {client.firstName} {client.lastName}
-                            </SmallText>
-                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                            </StrongSmallText>
+                            <MutedCaption>
                               @{client.username}
-                            </Caption>
-                          </div>
+                            </MutedCaption>
+                          </ClientMeta>
                         </FlexBox>
                       </ClientItem>
                     ))
                   ) : (
-                    <div style={{ padding: '2rem', textAlign: 'center' }}>
-                      <BodyText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                    <EmptyClientList>
+                      <MutedBodyText>
                         No clients found
-                      </BodyText>
-                    </div>
+                      </MutedBodyText>
+                    </EmptyClientList>
                   )}
                 </ClientListScroll>
               </ClientListContainer>
-            </div>
+            </SidebarColumn>
 
             {/* Progress Details + Victory Charts */}
-            <div style={{ gridColumn: 'span 9' }}>
+            <MainColumn>
               {clientProgress && selectedClient ? (
                 <div>
                   {/* Stats Cards */}
                   <Card>
                     <CardHeader>
                       <SectionTitle>
-                        {selectedClient.firstName} {selectedClient.lastName}'s Progress
+                        {selectedClient.firstName} {selectedClient.lastName}&apos;s Progress
                       </SectionTitle>
                     </CardHeader>
                     <CardBody>
-                      <GridContainer columns={4} gap="1.5rem" style={{ marginBottom: '2rem' }}>
+                      <StatsGrid columns={4} gap="1.5rem">
                         <StatsCard>
                           <CardBody>
                             <StatValue>{clientProgress.workoutsCompleted}</StatValue>
@@ -521,25 +587,25 @@ const AdminClientProgressView: React.FC = () => {
                             <StatLabel>Level</StatLabel>
                           </CardBody>
                         </StatsCard>
-                      </GridContainer>
+                      </StatsGrid>
 
                       <div>
-                        <FlexBox align="center" gap="1rem" style={{ marginBottom: '0.5rem' }}>
-                          <BodyText style={{ fontWeight: 600 }}>Overall Progress</BodyText>
+                        <ProgressSummaryHeader>
+                          <StrongBodyText>Overall Progress</StrongBodyText>
                           <Badge variant="primary">{getLevelName(clientProgress.overallLevel)}</Badge>
-                        </FlexBox>
+                        </ProgressSummaryHeader>
                         <ProgressBarContainer>
                           <ProgressBar>
                             <ProgressFill value={clientProgress.experiencePoints} />
                           </ProgressBar>
-                          <FlexBox justify="space-between" style={{ marginTop: '0.5rem' }}>
-                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                          <ProgressSummaryFooter>
+                            <MutedCaption>
                               {clientProgress.experiencePoints} XP
-                            </Caption>
-                            <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                            </MutedCaption>
+                            <MutedCaption>
                               Next Level: {clientProgress.overallLevel + 1}
-                            </Caption>
-                          </FlexBox>
+                            </MutedCaption>
+                          </ProgressSummaryFooter>
                         </ProgressBarContainer>
                       </div>
                     </CardBody>
@@ -569,7 +635,7 @@ const AdminClientProgressView: React.FC = () => {
                   </CardBody>
                 </Card>
               )}
-            </div>
+            </MainColumn>
           </GridContainer>
         </TabPanel>
 
@@ -579,14 +645,14 @@ const AdminClientProgressView: React.FC = () => {
             <CardHeader>
               <FlexBox justify="space-between" align="center">
                 <SectionTitle>Client Progress Leaderboard</SectionTitle>
-                <SearchContainer style={{ maxWidth: '300px' }}>
+                <LeaderboardSearch>
                   <Search size={18} />
                   <StyledInput
                     placeholder="Search leaderboard..."
                     value={leaderboardSearch}
                     onChange={(e) => handleLeaderboardSearch(e.target.value)}
                   />
-                </SearchContainer>
+                </LeaderboardSearch>
               </FlexBox>
             </CardHeader>
             <CardBody padding="0">
@@ -606,9 +672,9 @@ const AdminClientProgressView: React.FC = () => {
                       {paginatedLeaderboard.map((entry, index) => (
                         <Table.Row key={entry.userId}>
                           <Table.Cell>
-                            <BodyText style={{ fontWeight: 700, fontSize: '1.25rem' }}>
+                            <StrongSmallText as="span" $large>
                               #{((currentPage - 1) * rowsPerPage) + index + 1}
-                            </BodyText>
+                            </StrongSmallText>
                           </Table.Cell>
                           <Table.Cell>
                             <FlexBox align="center" gap="0.75rem">
@@ -616,12 +682,12 @@ const AdminClientProgressView: React.FC = () => {
                                 {entry.client?.firstName?.[0]}{entry.client?.lastName?.[0]}
                               </Avatar>
                               <div>
-                                <SmallText style={{ fontWeight: 600 }}>
+                                <StrongSmallText>
                                   {entry.client?.firstName} {entry.client?.lastName}
-                                </SmallText>
-                                <Caption style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                                </StrongSmallText>
+                                <MutedCaption>
                                   @{entry.client?.username}
-                                </Caption>
+                                </MutedCaption>
                               </div>
                             </FlexBox>
                           </Table.Cell>
@@ -650,11 +716,11 @@ const AdminClientProgressView: React.FC = () => {
                     </Table.Body>
                   </Table>
 
-                  <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(96, 192, 240, 0.05)' }}>
+                  <LeaderboardFooter>
                     <FlexBox justify="space-between" align="center">
-                      <SmallText style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.6))' }}>
+                      <MutedCaption as="span">
                         Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, totalItems)} of {totalItems} clients
-                      </SmallText>
+                      </MutedCaption>
 
                       <Pagination>
                         <Pagination.PrevButton
@@ -675,7 +741,7 @@ const AdminClientProgressView: React.FC = () => {
                         />
                       </Pagination>
                     </FlexBox>
-                  </div>
+                  </LeaderboardFooter>
                 </>
               ) : (
                 <EmptyState
@@ -684,7 +750,7 @@ const AdminClientProgressView: React.FC = () => {
                   message="Client progress data will appear here once workouts are completed"
                   action={
                     <PrimaryButton onClick={fetchLeaderboard}>
-                      <RefreshCw size={16} style={{ marginRight: '0.5rem' }} />
+                      <RefreshIcon size={16} />
                       Refresh Leaderboard
                     </PrimaryButton>
                   }
