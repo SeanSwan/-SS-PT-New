@@ -252,7 +252,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { getTrainerPermissions } from '../models/index.mjs';
+import { getTrainerPermissions as getTrainerPermissionsModel } from '../models/index.mjs';
 import { PERMISSION_TYPES } from '../models/TrainerPermissions.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
@@ -265,7 +265,7 @@ import { Op } from 'sequelize';
  */
 export const hasTrainerPermission = async (trainerId, permissionType) => {
   try {
-    const TrainerPermissions = getTrainerPermissions();
+    const TrainerPermissions = getTrainerPermissionsModel();
     
     const permission = await TrainerPermissions.findOne({
       where: {
@@ -521,7 +521,7 @@ export const requireAnyPermission = (acceptedPermissions) => {
  */
 export const getTrainerPermissions = async (trainerId) => {
   try {
-    const TrainerPermissions = getTrainerPermissions();
+    const TrainerPermissions = getTrainerPermissionsModel();
     
     const permissions = await TrainerPermissions.findAll({
       where: {

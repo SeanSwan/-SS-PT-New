@@ -416,7 +416,7 @@ export const p0SecurityMonitoring = () => {
         // XSS attempts
         /<script|javascript:|onload=|onerror=/i,
         // Path traversal
-        /\.\.[\/\\]/,
+        /\.\.[/\\]/,
         // Command injection
         /[;&|`$()]/
       ];

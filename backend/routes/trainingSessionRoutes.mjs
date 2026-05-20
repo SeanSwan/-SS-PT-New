@@ -135,7 +135,7 @@ router.get('/summary', protect, async (req, res) => {
         const status = row.status;
         const count = parseInt(row.count);
         
-        if (summary.hasOwnProperty(status)) {
+        if (Object.prototype.hasOwnProperty.call(summary, status)) {
           summary[status] = count;
         }
         summary.total += count;
@@ -163,7 +163,7 @@ router.get('/summary', protect, async (req, res) => {
         const status = row.status;
         const count = parseInt(row.count);
         
-        if (summary.hasOwnProperty(status)) {
+        if (Object.prototype.hasOwnProperty.call(summary, status)) {
           summary[status] = count;
         }
         summary.total += count;

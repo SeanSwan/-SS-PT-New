@@ -257,6 +257,7 @@ async function createWorkoutSession(sessionData) {
  * @returns {Promise<Object>} Updated workout session
  */
 async function updateWorkoutSession(sessionId, sessionData) {
+  const { WorkoutSession, WorkoutExercise, Set } = getAllModels();
   const transaction = await sequelize.transaction();
   
   try {
@@ -427,6 +428,7 @@ async function updateWorkoutSession(sessionId, sessionData) {
  * @returns {Promise<boolean>} Success status
  */
 async function deleteWorkoutSession(sessionId) {
+  const { WorkoutSession } = getAllModels();
   const session = await WorkoutSession.findByPk(sessionId);
   
   if (!session) {
@@ -445,6 +447,7 @@ async function deleteWorkoutSession(sessionId) {
  * @returns {Promise<Object>} Updated client progress
  */
 async function updateClientProgress(userId, sessionId, transaction) {
+  const { WorkoutSession, WorkoutExercise, Exercise, Set, ClientProgress } = getAllModels();
   // Get the workout session with exercises
   const session = await WorkoutSession.findByPk(sessionId, {
     include: [
@@ -758,6 +761,7 @@ function updatePersonalRecords(currentPRs, newPRs) {
  * @returns {Promise<Object>} Updated gamification data
  */
 async function updateGamification(userId, metrics, session, transaction) {
+  const { Gamification } = getAllModels();
   // Get or create gamification data
   let gamification = await Gamification.findOne({
     where: { userId }
@@ -820,6 +824,7 @@ async function updateGamification(userId, metrics, session, transaction) {
  * @returns {Promise<void>}
  */
 async function checkAchievements(userId, gamification, metrics, session, transaction) {
+  const { Achievement } = getAllModels();
   // Get all available achievements
   const achievements = await Achievement.findAll();
   
@@ -903,6 +908,7 @@ async function checkAchievements(userId, gamification, metrics, session, transac
  * @returns {Promise<Array>} Array of recommended exercises
  */
 async function getExerciseRecommendations(userId, options = {}) {
+  const { ClientProgress, MuscleGroup, Equipment, Exercise } = getAllModels();
   const { 
     goal = 'general',
     difficulty = 'all',
@@ -1099,6 +1105,7 @@ function sortExercisesByUserGoals(exercises, clientProgress, goal) {
  * @returns {Promise<Object>} Created workout plan
  */
 async function createWorkoutPlan(planData) {
+  const { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } = getAllModels();
   const transaction = await sequelize.transaction();
   
   try {
@@ -1175,6 +1182,7 @@ async function createWorkoutPlan(planData) {
  * @returns {Promise<Object>} Workout plan
  */
 async function getWorkoutPlanById(planId) {
+  const { WorkoutPlan, User, WorkoutPlanDay, WorkoutPlanDayExercise, Exercise } = getAllModels();
   return WorkoutPlan.findByPk(planId, {
     include: [
       {
@@ -1218,6 +1226,7 @@ async function getWorkoutPlanById(planId) {
  * @returns {Promise<Object>} Updated workout plan
  */
 async function updateWorkoutPlan(planId, planData) {
+  const { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } = getAllModels();
   const transaction = await sequelize.transaction();
   
   try {
@@ -1359,6 +1368,7 @@ async function updateWorkoutPlan(planId, planData) {
  * @returns {Promise<boolean>} Success status
  */
 async function deleteWorkoutPlan(planId) {
+  const { WorkoutPlan } = getAllModels();
   const plan = await WorkoutPlan.findByPk(planId);
   
   if (!plan) {
@@ -1376,6 +1386,7 @@ async function deleteWorkoutPlan(planId) {
  * @returns {Promise<Array>} Array of created workout sessions
  */
 async function generateWorkoutSessions(planId, options = {}) {
+  const { WorkoutSession, WorkoutExercise, Set } = getAllModels();
   const { startDate = new Date(), weeks = 4, userId } = options;
   
   // Get the workout plan
@@ -1514,6 +1525,7 @@ function parseSetScheme(setScheme) {
  * @returns {Promise<Object>} Client progress data
  */
 async function getClientProgress(userId) {
+  const { ClientProgress, User } = getAllModels();
   return ClientProgress.findOne({
     where: { userId },
     include: [
@@ -1533,6 +1545,7 @@ async function getClientProgress(userId) {
  * @returns {Promise<Object>} Workout statistics
  */
 async function getWorkoutStatistics(userId, options = {}) {
+  const { WorkoutSession, WorkoutExercise, Exercise, MuscleGroup, Set } = getAllModels();
   const { 
     startDate, 
     endDate,

@@ -56,25 +56,20 @@ const progressController = {
       } else {
         switch (timeframe) {
           case 'weekly':
-            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            dateFilter.date = { [Op.gte]: weekAgo.toISOString().split('T')[0] };
+            dateFilter.date = { [Op.gte]: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] };
             break;
           case 'monthly':
-            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            dateFilter.date = { [Op.gte]: monthAgo.toISOString().split('T')[0] };
+            dateFilter.date = { [Op.gte]: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] };
             break;
           case 'quarterly':
-            const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-            dateFilter.date = { [Op.gte]: quarterAgo.toISOString().split('T')[0] };
+            dateFilter.date = { [Op.gte]: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] };
             break;
           case 'yearly':
-            const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-            dateFilter.date = { [Op.gte]: yearAgo.toISOString().split('T')[0] };
+            dateFilter.date = { [Op.gte]: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] };
             break;
           default:
             // Default to last 30 days
-            const defaultStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            dateFilter.date = { [Op.gte]: defaultStart.toISOString().split('T')[0] };
+            dateFilter.date = { [Op.gte]: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] };
         }
       }
 

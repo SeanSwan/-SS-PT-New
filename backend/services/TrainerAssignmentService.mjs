@@ -638,7 +638,7 @@ class TrainerAssignmentService {
       };
 
       sessionStats.forEach(stat => {
-        if (sessionSummary.hasOwnProperty(stat.status)) {
+        if (Object.prototype.hasOwnProperty.call(sessionSummary, stat.status)) {
           sessionSummary[stat.status] = parseInt(stat.count);
           sessionSummary.total += parseInt(stat.count);
         }

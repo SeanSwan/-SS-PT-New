@@ -302,7 +302,7 @@ async function migrateWorkoutPlanData() {
     const structure = workoutPlan.workoutStructure;
     
     for (const dayKey in structure) {
-      if (!structure.hasOwnProperty(dayKey)) continue;
+      if (!Object.prototype.hasOwnProperty.call(structure, dayKey)) continue;
       
       const day = structure[dayKey];
       const dayNumber = parseInt(dayKey.replace('day', ''), 10) || dayCount + 1;

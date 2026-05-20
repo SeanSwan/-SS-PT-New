@@ -557,12 +557,13 @@ export class AccessibilityAwareAuth {
         case 'boolean':
           return typeof value === 'boolean' ? value : schema.default;
           
-        case 'number':
+        case 'number': {
           const numValue = typeof value === 'number' ? value : parseFloat(value);
           if (isNaN(numValue)) return schema.default;
           if (schema.min !== undefined && numValue < schema.min) return schema.min;
           if (schema.max !== undefined && numValue > schema.max) return schema.max;
           return numValue;
+        }
           
         case 'string':
           if (typeof value !== 'string') return schema.default;

@@ -429,7 +429,7 @@ async function leaveSessionRoom(socket, sessionId) {
 function updateConnectionMetrics(userRole, action) {
   const metricKey = `${userRole.toLowerCase()}Connections`;
   
-  if (connectionMetrics.hasOwnProperty(metricKey)) {
+  if (Object.prototype.hasOwnProperty.call(connectionMetrics, metricKey)) {
     if (action === 'connect') {
       connectionMetrics[metricKey]++;
     } else if (action === 'disconnect' && connectionMetrics[metricKey] > 0) {
