@@ -16,6 +16,39 @@ const ALLOWED_TYPES = [
   'image/jpeg', 'image/png', 'image/webp',
 ];
 
+interface AnalysisIssue {
+  severity_score?: number;
+  type?: string;
+  message?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+type AnalysisRecommendation = string | {
+  message?: string;
+  [key: string]: unknown;
+};
+
+interface AnalysisResult {
+  overallScore?: number | null;
+  findings?: {
+    symmetryScore?: number;
+    rangeOfMotionPercent?: number;
+    fatigueDetected?: boolean;
+    fatigueOnsetRep?: number;
+    compensations?: AnalysisIssue[];
+  };
+  repCount?: number | null;
+  recommendations?: AnalysisRecommendation[];
+}
+
+const getIssueSeverity = (issue: AnalysisIssue): 'critical' | 'warning' | 'info' => {
+  const score = issue.severity_score ?? 0;
+  if (score > 0.7) return 'critical';
+  if (score > 0.4) return 'warning';
+  return 'info';
+};
+
 // --- Styled Components ---
 
 const Container = styled.div`
@@ -28,7 +61,12 @@ const Container = styled.div`
   width: 100%;
 `;
 
-const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const DropZone = styled.button<{ $isDragging: boolean; $hasFile: boolean }>`
+  width: 100%;
   border: 2px dashed ${({ $isDragging, $hasFile }) =>
     $hasFile ? 'rgba(0, 255, 136, 0.3)' :
     $isDragging ? 'rgba(96, 192, 240, 0.6)' :
@@ -37,6 +75,7 @@ const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
   padding: 40px 20px;
   text-align: center;
   cursor: pointer;
+  font: inherit;
   transition: all 0.3s ease;
   background: ${({ $isDragging }) =>
     $isDragging ? 'rgba(96, 192, 240, 0.08)' : 'rgba(0, 32, 96, 0.3)'};
@@ -46,16 +85,24 @@ const DropZone = styled.div<{ $isDragging: boolean; $hasFile: boolean }>`
     border-color: rgba(96, 192, 240, 0.4);
     background: rgba(96, 192, 240, 0.05);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 4px;
+  }
 `;
 
-const DropLabel = styled.p`
-  font-size: 14px;
+const DropLabel = styled.p<{ $compact?: boolean }>`
+  font-size: ${({ $compact }) => ($compact ? '12px' : '14px')};
   color: rgba(224, 236, 244, 0.6);
   margin: 8px 0 0;
 `;
 
 const DropIcon = styled.div`
-  font-size: 40px;
+  align-items: center;
+  color: var(--accent-primary, #60C0F0);
+  display: flex;
+  justify-content: center;
   margin-bottom: 8px;
 `;
 
@@ -77,6 +124,10 @@ const ExerciseGrid = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+`;
+
+const SpacedExerciseGrid = styled(ExerciseGrid)`
+  margin-top: 8px;
 `;
 
 const ExercisePill = styled.button<{ $selected: boolean }>`
@@ -170,9 +221,9 @@ const FindingsList = styled.ul`
   text-align: left;
 `;
 
-const FindingItem = styled.li<{ $severity: string }>`
+const FindingItem = styled.li<{ $severity: string; $topMargin?: string }>`
   padding: 8px 12px;
-  margin-bottom: 6px;
+  margin: ${({ $topMargin }) => ($topMargin ? `${$topMargin} 0 6px` : '0 0 6px')};
   border-radius: 12px;
   font-size: 13px;
   color: ${({ $severity }) =>
@@ -191,10 +242,42 @@ const StatusText = styled.p`
   text-align: center;
 `;
 
+const ProcessingStatusText = styled(StatusText)`
+  margin-top: 8px;
+`;
+
 const ErrorText = styled.p`
   font-size: 13px;
   color: #FF4757;
   text-align: center;
+`;
+
+const MetricsRow = styled.div`
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin: 12px 0;
+`;
+
+const MetricCell = styled.div`
+  text-align: center;
+`;
+
+const MetricValue = styled.div<{ $color: string }>`
+  color: ${({ $color }) => $color};
+  font-size: 24px;
+  font-weight: 700;
+`;
+
+const MetricLabel = styled.div`
+  color: rgba(224, 236, 244, 0.5);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+`;
+
+const ResultSection = styled.div`
+  margin-top: 12px;
 `;
 
 // --- Component ---
@@ -207,7 +290,7 @@ const UploadTab: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'processing' | 'complete' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const handleFile = useCallback((f: File) => {
     if (!ALLOWED_TYPES.includes(f.type)) {
@@ -259,14 +342,15 @@ const UploadTab: React.FC = () => {
 
   const scoreColor = result?.overallScore != null ? getScoreColor(result.overallScore) : '#60C0F0';
   const grade = result?.overallScore != null ? getScoreGrade(result.overallScore) : null;
+  const compensations = result?.findings?.compensations ?? [];
+  const recommendations = result?.recommendations ?? [];
 
   return (
     <Container>
-      <input
+      <HiddenFileInput
         ref={fileInputRef}
         type="file"
         accept="video/*,image/*"
-        style={{ display: 'none' }}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) handleFile(f);
@@ -274,6 +358,8 @@ const UploadTab: React.FC = () => {
       />
 
       <DropZone
+        type="button"
+        aria-label={file ? 'Change form analysis media file' : 'Choose form analysis media file'}
         $isDragging={isDragging}
         $hasFile={!!file}
         onClick={() => fileInputRef.current?.click()}
@@ -293,14 +379,14 @@ const UploadTab: React.FC = () => {
         ) : (
           <>
             <DropLabel>Drop a video or photo here</DropLabel>
-            <DropLabel style={{ fontSize: 12 }}>or tap to browse</DropLabel>
+            <DropLabel $compact>or tap to browse</DropLabel>
           </>
         )}
       </DropZone>
 
       <div>
         <SectionLabel>Exercise</SectionLabel>
-        <ExerciseGrid style={{ marginTop: 8 }}>
+        <SpacedExerciseGrid>
           {EXERCISE_NAMES.map(ex => (
             <ExercisePill
               key={ex}
@@ -310,7 +396,7 @@ const UploadTab: React.FC = () => {
               {ex}
             </ExercisePill>
           ))}
-        </ExerciseGrid>
+        </SpacedExerciseGrid>
       </div>
 
       {error && <ErrorText>{error}</ErrorText>}
@@ -324,9 +410,9 @@ const UploadTab: React.FC = () => {
               transition={{ duration: 2, ease: 'easeInOut' }}
             />
           </ProgressBar>
-          <StatusText style={{ marginTop: 8 }}>
+          <ProcessingStatusText>
             {status === 'uploading' ? 'Uploading...' : 'AI is analyzing your form...'}
-          </StatusText>
+          </ProcessingStatusText>
         </div>
       )}
 
@@ -345,65 +431,65 @@ const UploadTab: React.FC = () => {
 
             {/* Symmetry & ROM metrics */}
             {(result.findings?.symmetryScore != null || result.findings?.rangeOfMotionPercent != null) && (
-              <div style={{ display: 'flex', gap: 16, justifyContent: 'center', margin: '12px 0' }}>
+              <MetricsRow>
                 {result.findings.symmetryScore != null && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: result.findings.symmetryScore >= 85 ? '#00FF88' : result.findings.symmetryScore >= 70 ? '#FFB800' : '#FF4757' }}>
+                  <MetricCell>
+                    <MetricValue $color={result.findings.symmetryScore >= 85 ? '#00FF88' : result.findings.symmetryScore >= 70 ? '#FFB800' : '#FF4757'}>
                       {result.findings.symmetryScore}%
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>Symmetry</div>
-                  </div>
+                    </MetricValue>
+                    <MetricLabel>Symmetry</MetricLabel>
+                  </MetricCell>
                 )}
                 {result.findings.rangeOfMotionPercent != null && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: result.findings.rangeOfMotionPercent >= 80 ? '#00FF88' : result.findings.rangeOfMotionPercent >= 60 ? '#FFB800' : '#FF4757' }}>
+                  <MetricCell>
+                    <MetricValue $color={result.findings.rangeOfMotionPercent >= 80 ? '#00FF88' : result.findings.rangeOfMotionPercent >= 60 ? '#FFB800' : '#FF4757'}>
                       {result.findings.rangeOfMotionPercent}%
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>ROM</div>
-                  </div>
+                    </MetricValue>
+                    <MetricLabel>ROM</MetricLabel>
+                  </MetricCell>
                 )}
                 {result.repCount != null && result.repCount > 0 && (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 24, fontWeight: 700, color: '#60C0F0' }}>
+                  <MetricCell>
+                    <MetricValue $color="#60C0F0">
                       {result.repCount}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(224,236,244,0.5)', letterSpacing: 1, textTransform: 'uppercase' as const }}>Reps</div>
-                  </div>
+                    </MetricValue>
+                    <MetricLabel>Reps</MetricLabel>
+                  </MetricCell>
                 )}
-              </div>
+              </MetricsRow>
             )}
 
             {/* Fatigue warning */}
             {result.findings?.fatigueDetected && (
-              <FindingItem $severity="warning" style={{ marginTop: 8 }}>
+              <FindingItem $severity="warning" $topMargin="8px">
                 Fatigue detected{result.findings.fatigueOnsetRep ? ` starting at rep ${result.findings.fatigueOnsetRep}` : ''} — form degradation observed in later reps
               </FindingItem>
             )}
 
-            {result.findings?.compensations?.length > 0 && (
-              <div style={{ marginTop: 12 }}>
+            {compensations.length > 0 && (
+              <ResultSection>
                 <SectionLabel>Compensations Detected</SectionLabel>
                 <FindingsList>
-                  {result.findings.compensations.map((f: any, i: number) => (
-                    <FindingItem key={i} $severity={f.severity_score > 0.7 ? 'critical' : f.severity_score > 0.4 ? 'warning' : 'info'}>
+                  {compensations.map((f, i) => (
+                    <FindingItem key={i} $severity={getIssueSeverity(f)}>
                       {f.type || f.message || f.description || JSON.stringify(f)}
                     </FindingItem>
                   ))}
                 </FindingsList>
-              </div>
+              </ResultSection>
             )}
 
-            {result.recommendations?.length > 0 && (
-              <div style={{ marginTop: 12 }}>
+            {recommendations.length > 0 && (
+              <ResultSection>
                 <SectionLabel>Recommendations</SectionLabel>
                 <FindingsList>
-                  {result.recommendations.map((r: any, i: number) => (
+                  {recommendations.map((r, i) => (
                     <FindingItem key={i} $severity="info">
                       {typeof r === 'string' ? r : r.message || JSON.stringify(r)}
                     </FindingItem>
                   ))}
                 </FindingsList>
-              </div>
+              </ResultSection>
             )}
           </ResultCard>
         )}

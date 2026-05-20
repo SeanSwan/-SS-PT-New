@@ -10,7 +10,7 @@
  *  3. Form Rules (angle_threshold, landmark_deviation, bilateral_symmetry)
  *  4. Review + Validate (schema summary, validation result, save)
  */
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCustomExerciseAPI } from '../../hooks/useCustomExerciseAPI';
@@ -24,8 +24,6 @@ import type {
   ExerciseTemplate,
   CustomExercise,
 } from '../../hooks/useCustomExerciseAPI';
-import { LANDMARK } from './constants';
-
 // --- Landmark name map for UI ---
 const LANDMARK_NAMES: Record<number, string> = {
   0: 'Nose', 1: 'L Eye Inner', 2: 'L Eye', 3: 'L Eye Outer',
@@ -130,7 +128,7 @@ const FormGroup = styled.div`
   margin-bottom: 16px;
 `;
 
-const Label = styled.label`
+const Label = styled.span`
   display: block;
   font-size: 12px;
   font-weight: 600;
@@ -211,7 +209,12 @@ const Column = styled.div<{ $flex?: number }>`
   flex: ${({ $flex }) => $flex ?? 1};
 `;
 
-const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
+const Button = styled.button<{
+  $variant?: 'primary' | 'secondary' | 'danger';
+  $compact?: boolean;
+  $fullWidth?: boolean;
+  $bottom?: number;
+}>`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
@@ -220,6 +223,8 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   cursor: pointer;
   min-height: 44px;
   min-width: 44px;
+  width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'auto')};
+  margin-bottom: ${({ $bottom = 0 }) => $bottom}px;
   transition: all 0.2s;
 
   background: ${({ $variant }) =>
@@ -248,6 +253,12 @@ const Button = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   }
 `;
 
+const CompactButton = styled(Button)`
+  min-height: 44px;
+  padding: 4px 10px;
+  font-size: 12px;
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   gap: 8px;
@@ -269,6 +280,12 @@ const RuleHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+`;
+
+const BadgeRow = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
 `;
 
 const RuleTypeBadge = styled.span<{ $type: string }>`
@@ -463,6 +480,15 @@ interface StepProps {
   setSchema: React.Dispatch<React.SetStateAction<MechanicsSchema>>;
 }
 
+type PrimaryAngle = NonNullable<MechanicsSchema['primaryAngle']>;
+type RulePatch =
+  | Partial<AngleThresholdRule>
+  | Partial<LandmarkDeviationRule>
+  | Partial<BilateralSymmetryRule>;
+type RuleSeverity = FormRule['severity'];
+type LandmarkTripletField = 'landmarks' | 'leftLandmarks' | 'rightLandmarks';
+type RuleAxis = LandmarkDeviationRule['axis'];
+
 interface MetadataProps {
   name: string;
   setName: (n: string) => void;
@@ -483,6 +509,7 @@ const MetadataStep: React.FC<MetadataProps> = ({
     <FormGroup>
       <Label>Exercise Name *</Label>
       <Input
+        aria-label="Exercise name"
         value={name}
         onChange={e => setName(e.target.value)}
         placeholder="e.g., Bulgarian Split Squat"
@@ -492,7 +519,7 @@ const MetadataStep: React.FC<MetadataProps> = ({
       <Column>
         <FormGroup>
           <Label>Category</Label>
-          <Select value={category} onChange={e => setCategory(e.target.value)}>
+          <Select aria-label="Exercise category" value={category} onChange={e => setCategory(e.target.value)}>
             {CATEGORIES.map(c => (
               <option key={c} value={c}>
                 {c.replace(/_/g, ' ')}
@@ -505,6 +532,7 @@ const MetadataStep: React.FC<MetadataProps> = ({
     <FormGroup>
       <Label>Description (optional)</Label>
       <TextArea
+        aria-label="Exercise description"
         value={description}
         onChange={e => setDescription(e.target.value)}
         placeholder="Notes for yourself or other trainers..."
@@ -517,7 +545,7 @@ const MetadataStep: React.FC<MetadataProps> = ({
       ) : (
         <TemplateGrid>
           {templates.map(t => (
-            <TemplateCard key={t.key} onClick={() => onTemplateSelect(t.key)}>
+            <TemplateCard key={t.key} type="button" onClick={() => onTemplateSelect(t.key)}>
               <TemplateName>{t.name}</TemplateName>
               <TemplateInfo>
                 {t.category.replace(/_/g, ' ')} | {t.ruleCount} rules
@@ -533,7 +561,7 @@ const MetadataStep: React.FC<MetadataProps> = ({
 const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
   const pa = schema.primaryAngle;
 
-  const updatePrimary = (field: string, value: any) => {
+  const updatePrimary = <K extends keyof PrimaryAngle>(field: K, value: PrimaryAngle[K]) => {
     setSchema(prev => ({
       ...prev,
       primaryAngle: {
@@ -575,6 +603,7 @@ const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
       <FormGroup>
         <Label>Joint Name (for display)</Label>
         <Input
+          aria-label="Joint name"
           value={pa?.joint || ''}
           onChange={e => updatePrimary('joint', e.target.value)}
           placeholder="e.g., left_knee"
@@ -586,6 +615,7 @@ const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
           {[0, 1, 2].map(i => (
             <Column key={i}>
               <Select
+                aria-label={`Tracking landmark ${i + 1}`}
                 value={pa?.landmarks?.[i] ?? [23, 25, 27][i]}
                 onChange={e => setLandmark(i as 0 | 1 | 2, parseInt(e.target.value, 10))}
               >
@@ -604,6 +634,7 @@ const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
           <FormGroup>
             <Label>Start Angle (top of rep)</Label>
             <Input
+              aria-label="Start angle"
               type="number"
               value={pa?.repPhases?.startAngle ?? 170}
               onChange={e => updateRepPhase('startAngle', parseFloat(e.target.value))}
@@ -614,6 +645,7 @@ const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
           <FormGroup>
             <Label>Bottom Angle (bottom of rep)</Label>
             <Input
+              aria-label="Bottom angle"
               type="number"
               value={pa?.repPhases?.bottomAngle ?? 90}
               onChange={e => updateRepPhase('bottomAngle', parseFloat(e.target.value))}
@@ -624,6 +656,7 @@ const RepMechanicsStep: React.FC<StepProps> = ({ schema, setSchema }) => {
           <FormGroup>
             <Label>Hysteresis</Label>
             <Input
+              aria-label="Hysteresis"
               type="number"
               value={pa?.repPhases?.hysteresis ?? 10}
               onChange={e => updateRepPhase('hysteresis', parseFloat(e.target.value))}
@@ -652,19 +685,31 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
     }));
   };
 
-  const updateRule = (idx: number, updates: Partial<FormRule>) => {
+  const updateRule = (idx: number, updates: RulePatch) => {
     setSchema(prev => ({
       ...prev,
       formRules: prev.formRules.map((r, i) => (i === idx ? { ...r, ...updates } as FormRule : r)),
     }));
   };
 
-  const updateRuleLandmark = (ruleIdx: number, lmIdx: 0 | 1 | 2, value: number, field: string = 'landmarks') => {
+  const getRuleTriplet = (rule: FormRule, field: LandmarkTripletField): [number, number, number] => {
+    if (field === 'landmarks' && rule.type === 'angle_threshold') return rule.landmarks;
+    if (field === 'leftLandmarks' && rule.type === 'bilateral_symmetry') return rule.leftLandmarks;
+    if (field === 'rightLandmarks' && rule.type === 'bilateral_symmetry') return rule.rightLandmarks;
+    return [23, 25, 27];
+  };
+
+  const updateRuleLandmark = (
+    ruleIdx: number,
+    lmIdx: 0 | 1 | 2,
+    value: number,
+    field: LandmarkTripletField = 'landmarks',
+  ) => {
     setSchema(prev => ({
       ...prev,
       formRules: prev.formRules.map((r, i) => {
         if (i !== ruleIdx) return r;
-        const arr = [...((r as any)[field] || [23, 25, 27])] as [number, number, number];
+        const arr = [...getRuleTriplet(r, field)] as [number, number, number];
         arr[lmIdx] = value;
         return { ...r, [field]: arr } as FormRule;
       }),
@@ -680,7 +725,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
       {schema.formRules.map((rule, idx) => (
         <RuleCard key={idx}>
           <RuleHeader>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <BadgeRow>
               <RuleTypeBadge $type={rule.type}>
                 {rule.type === 'angle_threshold'
                   ? 'Angle'
@@ -689,10 +734,10 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                     : 'Symmetry'}
               </RuleTypeBadge>
               <SeverityBadge $severity={rule.severity}>{rule.severity}</SeverityBadge>
-            </div>
-            <Button $variant="danger" onClick={() => removeRule(idx)} style={{ padding: '4px 10px', minHeight: 'auto', fontSize: 12 }}>
+            </BadgeRow>
+            <CompactButton $variant="danger" onClick={() => removeRule(idx)}>
               Remove
-            </Button>
+            </CompactButton>
           </RuleHeader>
 
           <Row>
@@ -700,6 +745,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
               <FormGroup>
                 <Label>Rule Name</Label>
                 <Input
+                  aria-label={`Rule ${idx + 1} name`}
                   value={rule.name}
                   onChange={e => updateRule(idx, { name: e.target.value })}
                   placeholder="e.g., Knee Depth Check"
@@ -710,8 +756,9 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
               <FormGroup>
                 <Label>Severity</Label>
                 <Select
+                  aria-label={`Rule ${idx + 1} severity`}
                   value={rule.severity}
-                  onChange={e => updateRule(idx, { severity: e.target.value as any })}
+                  onChange={e => updateRule(idx, { severity: e.target.value as RuleSeverity })}
                 >
                   <option value="info">Info</option>
                   <option value="warning">Warning</option>
@@ -730,6 +777,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                   {[0, 1, 2].map(i => (
                     <Column key={i}>
                       <Select
+                        aria-label={`Rule ${idx + 1} angle landmark ${i + 1}`}
                         value={(rule as AngleThresholdRule).landmarks[i]}
                         onChange={e =>
                           updateRuleLandmark(idx, i as 0 | 1 | 2, parseInt(e.target.value, 10))
@@ -750,9 +798,10 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                   <FormGroup>
                     <Label>Min Angle</Label>
                     <Input
+                      aria-label={`Rule ${idx + 1} minimum angle`}
                       type="number"
                       value={(rule as AngleThresholdRule).min}
-                      onChange={e => updateRule(idx, { min: parseFloat(e.target.value) } as any)}
+                      onChange={e => updateRule(idx, { min: parseFloat(e.target.value) })}
                     />
                   </FormGroup>
                 </Column>
@@ -760,9 +809,10 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                   <FormGroup>
                     <Label>Max Angle</Label>
                     <Input
+                      aria-label={`Rule ${idx + 1} maximum angle`}
                       type="number"
                       value={(rule as AngleThresholdRule).max}
-                      onChange={e => updateRule(idx, { max: parseFloat(e.target.value) } as any)}
+                      onChange={e => updateRule(idx, { max: parseFloat(e.target.value) })}
                     />
                   </FormGroup>
                 </Column>
@@ -776,8 +826,9 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                 <FormGroup>
                   <Label>Landmark A</Label>
                   <Select
+                    aria-label={`Rule ${idx + 1} landmark A`}
                     value={(rule as LandmarkDeviationRule).landmarkA}
-                    onChange={e => updateRule(idx, { landmarkA: parseInt(e.target.value, 10) } as any)}
+                    onChange={e => updateRule(idx, { landmarkA: parseInt(e.target.value, 10) })}
                   >
                     {Array.from({ length: 33 }, (_, li) => (
                       <option key={li} value={li}>{li}: {LANDMARK_NAMES[li]}</option>
@@ -789,8 +840,9 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                 <FormGroup>
                   <Label>Landmark B</Label>
                   <Select
+                    aria-label={`Rule ${idx + 1} landmark B`}
                     value={(rule as LandmarkDeviationRule).landmarkB}
-                    onChange={e => updateRule(idx, { landmarkB: parseInt(e.target.value, 10) } as any)}
+                    onChange={e => updateRule(idx, { landmarkB: parseInt(e.target.value, 10) })}
                   >
                     {Array.from({ length: 33 }, (_, li) => (
                       <option key={li} value={li}>{li}: {LANDMARK_NAMES[li]}</option>
@@ -802,8 +854,9 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                 <FormGroup>
                   <Label>Axis</Label>
                   <Select
+                    aria-label={`Rule ${idx + 1} axis`}
                     value={(rule as LandmarkDeviationRule).axis}
-                    onChange={e => updateRule(idx, { axis: e.target.value } as any)}
+                    onChange={e => updateRule(idx, { axis: e.target.value as RuleAxis })}
                   >
                     <option value="x">X (horizontal)</option>
                     <option value="y">Y (vertical)</option>
@@ -815,10 +868,11 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                 <FormGroup>
                   <Label>Max Deviation</Label>
                   <Input
+                    aria-label={`Rule ${idx + 1} maximum deviation`}
                     type="number"
                     step="0.01"
                     value={(rule as LandmarkDeviationRule).maxDeviation}
-                    onChange={e => updateRule(idx, { maxDeviation: parseFloat(e.target.value) } as any)}
+                    onChange={e => updateRule(idx, { maxDeviation: parseFloat(e.target.value) })}
                   />
                 </FormGroup>
               </Column>
@@ -835,6 +889,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                       {[0, 1, 2].map(i => (
                         <Column key={i}>
                           <Select
+                            aria-label={`Rule ${idx + 1} left landmark ${i + 1}`}
                             value={(rule as BilateralSymmetryRule).leftLandmarks[i]}
                             onChange={e =>
                               updateRuleLandmark(idx, i as 0 | 1 | 2, parseInt(e.target.value, 10), 'leftLandmarks')
@@ -858,6 +913,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
                       {[0, 1, 2].map(i => (
                         <Column key={i}>
                           <Select
+                            aria-label={`Rule ${idx + 1} right landmark ${i + 1}`}
                             value={(rule as BilateralSymmetryRule).rightLandmarks[i]}
                             onChange={e =>
                               updateRuleLandmark(idx, i as 0 | 1 | 2, parseInt(e.target.value, 10), 'rightLandmarks')
@@ -876,9 +932,10 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
               <FormGroup>
                 <Label>Max Difference (degrees)</Label>
                 <Input
+                  aria-label={`Rule ${idx + 1} maximum difference`}
                   type="number"
                   value={(rule as BilateralSymmetryRule).maxDiff}
-                  onChange={e => updateRule(idx, { maxDiff: parseFloat(e.target.value) } as any)}
+                  onChange={e => updateRule(idx, { maxDiff: parseFloat(e.target.value) })}
                 />
               </FormGroup>
             </>
@@ -887,6 +944,7 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
           <FormGroup>
             <Label>Coaching Cue</Label>
             <Input
+              aria-label={`Rule ${idx + 1} coaching cue`}
               value={rule.cue}
               onChange={e => updateRule(idx, { cue: e.target.value })}
               placeholder="e.g., Push your knees out over your toes"
@@ -897,14 +955,14 @@ const FormRulesStep: React.FC<StepProps> = ({ schema, setSchema }) => {
 
       <Row>
         <Column>
-          <Select value={addType} onChange={e => setAddType(e.target.value as FormRule['type'])}>
+          <Select aria-label="Rule type to add" value={addType} onChange={e => setAddType(e.target.value as FormRule['type'])}>
             <option value="angle_threshold">Angle Threshold</option>
             <option value="landmark_deviation">Landmark Deviation</option>
             <option value="bilateral_symmetry">Bilateral Symmetry</option>
           </Select>
         </Column>
         <Column>
-          <Button $variant="secondary" onClick={addRule} style={{ width: '100%' }}>
+          <Button $variant="secondary" onClick={addRule} $fullWidth>
             + Add Rule
           </Button>
         </Column>
@@ -957,7 +1015,7 @@ const BiomechanicsStudio: React.FC<BiomechanicsStudioProps> = ({
       .then(res => setTemplates(res.templates))
       .catch(() => {})
       .finally(() => setLoadingTemplates(false));
-  }, []);
+  }, [api]);
 
   // Load existing exercise if editing
   useEffect(() => {
@@ -971,7 +1029,7 @@ const BiomechanicsStudio: React.FC<BiomechanicsStudioProps> = ({
     }).catch(() => {
       setStatusMsg({ type: 'error', text: 'Failed to load exercise' });
     });
-  }, [editExerciseId]);
+  }, [api, editExerciseId]);
 
   const handleTemplateSelect = useCallback(async (key: string) => {
     try {
@@ -1014,8 +1072,8 @@ const BiomechanicsStudio: React.FC<BiomechanicsStudioProps> = ({
 
       setStatusMsg({ type: 'success', text: `Exercise "${res.exercise.name}" saved (v${res.exercise.version})` });
       onSaved?.(res.exercise);
-    } catch (err: any) {
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to save' });
+    } catch (err: unknown) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save' });
     } finally {
       setSaving(false);
     }
@@ -1105,7 +1163,7 @@ const BiomechanicsStudio: React.FC<BiomechanicsStudioProps> = ({
                         </SummaryStat>
                       </SummaryGrid>
 
-                      <Button $variant="secondary" onClick={handleValidate} style={{ marginBottom: 12 }}>
+                      <Button $variant="secondary" onClick={handleValidate} $bottom={12}>
                         Validate Schema
                       </Button>
 
