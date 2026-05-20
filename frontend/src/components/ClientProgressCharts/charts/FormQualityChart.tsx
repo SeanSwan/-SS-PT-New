@@ -34,69 +34,13 @@ import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProg
 
 // ==================== STYLED COMPONENTS ====================
 
-const ChartContainer = styled(motion.div)`
+const ChartContainer = styled(motion.div)<{ $height: number }>`
   width: 100%;
-  height: 320px;
+  height: ${props => props.$height}px;
 
   @media (max-width: 768px) {
-    height: 280px;
+    height: min(${props => props.$height}px, 280px);
   }
-`;
-
-const TooltipContainer = styled.div`
-  background: linear-gradient(
-    135deg,
-    rgba(0, 32, 96, 0.95) 0%,
-    rgba(0, 48, 128, 0.9) 100%
-  );
-  border: 1px solid rgba(96, 192, 240, 0.3);
-  border-radius: 12px;
-  padding: 1rem;
-  color: #E0ECF4;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipLabel = styled.div`
-  font-weight: 600;
-  color: #8B5CF6;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TooltipValue = styled.div`
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const TooltipDetail = styled.div`
-  font-size: 0.875rem;
-  color: #b8c9db;
-  margin-top: 0.25rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const QualityBadge = styled.span<{ quality: string }>`
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  background: ${props => {
-    switch (props.quality) {
-      case 'excellent': return 'linear-gradient(135deg, #C6A84B, #a08930)';
-      case 'good': return 'linear-gradient(135deg, #60C0F0, #50A0F0)';
-      case 'fair': return 'linear-gradient(135deg, #C6A84B, #a08930)';
-      case 'poor': return 'linear-gradient(135deg, #ef4444, #dc2626)';
-      default: return 'linear-gradient(135deg, #6b7280, #4b5563)';
-    }
-  }};
-  color: white;
 `;
 
 const NoDataContainer = styled.div`
@@ -107,6 +51,16 @@ const NoDataContainer = styled.div`
   height: 320px;
   color: #b8c9db;
   text-align: center;
+`;
+
+const NoDataTitle = styled.h4`
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #b8c9db);
+`;
+
+const NoDataCopy = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
 `;
 
 const LegendContainer = styled.div`
@@ -131,6 +85,102 @@ const LegendDot = styled.div<{ color: string }>`
   border-radius: 50%;
   background: ${props => props.color};
 `;
+
+// ==================== VICTORY STYLE PROPS ====================
+
+const TOOLTIP_PROPS = {
+  flyoutStyle: {
+    fill: '#141419',
+    stroke: 'rgba(139, 92, 246, 0.3)',
+    strokeWidth: 1,
+  },
+  style: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+};
+
+const X_AXIS_PROPS = {
+  style: {
+    axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+    tickLabels: {
+      fill: '#E0ECF4',
+      fontSize: 11,
+      fontFamily: "'Fira Code', monospace",
+    },
+    grid: { stroke: 'none' },
+  },
+};
+
+const Y_AXIS_PROPS = {
+  style: {
+    axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
+    tickLabels: {
+      fill: '#E0ECF4',
+      fontSize: 11,
+      fontFamily: "'Fira Code', monospace",
+    },
+    grid: {
+      stroke: 'rgba(96, 192, 240, 0.08)',
+      strokeDasharray: '4,4',
+    },
+  },
+};
+
+const EXCELLENT_ZONE_PROPS = {
+  style: { data: { fill: 'rgba(198, 168, 75, 0.1)', stroke: 'none' } },
+};
+
+const GOOD_ZONE_PROPS = {
+  style: { data: { fill: 'rgba(96, 192, 240, 0.08)', stroke: 'none' } },
+};
+
+const FAIR_ZONE_PROPS = {
+  style: { data: { fill: 'rgba(198, 168, 75, 0.06)', stroke: 'none' } },
+};
+
+const POOR_ZONE_PROPS = {
+  style: { data: { fill: 'rgba(239, 68, 68, 0.08)', stroke: 'none' } },
+};
+
+const TARGET_LINE_PROPS = {
+  style: {
+    data: {
+      stroke: 'rgba(139, 92, 246, 0.8)',
+      strokeWidth: 2,
+      strokeDasharray: '5,5',
+    },
+  },
+};
+
+const AVERAGE_LINE_PROPS = {
+  style: {
+    data: {
+      stroke: 'rgba(96, 192, 240, 0.6)',
+      strokeWidth: 1,
+      strokeDasharray: '3,3',
+    },
+  },
+};
+
+const FORM_AREA_PROPS = {
+  style: {
+    data: { fill: 'url(#victoryFormGradient)', stroke: 'none' },
+  },
+};
+
+const FORM_LINE_PROPS = {
+  style: {
+    data: { stroke: '#8B5CF6', strokeWidth: 3 },
+  },
+};
+
+const FORM_SCATTER_PROPS = {
+  style: {
+    data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
+  },
+};
 
 // ==================== UTILITY FUNCTIONS ====================
 
@@ -168,7 +218,6 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
   animate = true,
   showAverage = true,
   targetFormRating = 4.0,
-  theme,
   className
 }) => {
   // ==================== COMPUTED VALUES ====================
@@ -197,37 +246,21 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
     return sum / chartData.length;
   }, [chartData]);
 
-  const currentTrend = useMemo(() => {
-    if (chartData.length < 2) return 'stable';
-
-    const recent = chartData.slice(-3);
-    const older = chartData.slice(0, -3);
-
-    if (recent.length === 0 || older.length === 0) return 'stable';
-
-    const recentAvg = recent.reduce((sum, d) => sum + d.averageForm, 0) / recent.length;
-    const olderAvg = older.reduce((sum, d) => sum + d.averageForm, 0) / older.length;
-
-    if (recentAvg > olderAvg + 0.2) return 'improving';
-    if (recentAvg < olderAvg - 0.2) return 'declining';
-    return 'stable';
-  }, [chartData]);
-
   // ==================== RENDER ====================
 
   if (!data || data.length === 0) {
     return (
-      <ChartContainer className={className}>
+      <ChartContainer className={className} $height={height}>
         <NoDataContainer>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Form Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <NoDataTitle>No Form Data</NoDataTitle>
+            <NoDataCopy>
               Get your trainer to rate your form during workouts!
-            </p>
+            </NoDataCopy>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -263,7 +296,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
         </LegendContainer>
       )}
 
-      <ChartContainer>
+      <ChartContainer $height={height}>
         <VictoryChart
           padding={{ top: 30, right: 30, left: 50, bottom: 50 }}
           domain={{ y: [1, 5] }}
@@ -281,16 +314,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
                 }}
                 labelComponent={
                   <VictoryTooltip
-                    flyoutStyle={{
-                      fill: '#141419',
-                      stroke: 'rgba(139, 92, 246, 0.3)',
-                      strokeWidth: 1,
-                    }}
-                    style={{
-                      fill: '#E0ECF4',
-                      fontSize: 11,
-                      fontFamily: "'Fira Code', monospace",
-                    }}
+                    {...TOOLTIP_PROPS}
                     cornerRadius={8}
                     flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                   />
@@ -310,15 +334,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
 
           {/* X Axis */}
           <VictoryAxis
-            style={{
-              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-              tickLabels: {
-                fill: '#E0ECF4',
-                fontSize: 11,
-                fontFamily: "'Fira Code', monospace",
-              },
-              grid: { stroke: 'none' },
-            }}
+            {...X_AXIS_PROPS}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.displayDate)}
           />
@@ -326,18 +342,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
           {/* Y Axis */}
           <VictoryAxis
             dependentAxis
-            style={{
-              axis: { stroke: 'rgba(96, 192, 240, 0.3)' },
-              tickLabels: {
-                fill: '#E0ECF4',
-                fontSize: 11,
-                fontFamily: "'Fira Code', monospace",
-              },
-              grid: {
-                stroke: 'rgba(96, 192, 240, 0.08)',
-                strokeDasharray: '4,4',
-              },
-            }}
+            {...Y_AXIS_PROPS}
             tickFormat={(t: number) => `${t}\u2605`}
           />
 
@@ -348,7 +353,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               { x: chartData[0]?.x ?? 0, y: 5, y0: 4.5 },
               { x: chartData[chartData.length - 1]?.x ?? 1, y: 5, y0: 4.5 },
             ]}
-            style={{ data: { fill: 'rgba(198, 168, 75, 0.1)', stroke: 'none' } }}
+            {...EXCELLENT_ZONE_PROPS}
           />
           {/* Good zone 3.5-4.5 */}
           <VictoryArea
@@ -356,7 +361,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               { x: chartData[0]?.x ?? 0, y: 4.5, y0: 3.5 },
               { x: chartData[chartData.length - 1]?.x ?? 1, y: 4.5, y0: 3.5 },
             ]}
-            style={{ data: { fill: 'rgba(96, 192, 240, 0.08)', stroke: 'none' } }}
+            {...GOOD_ZONE_PROPS}
           />
           {/* Fair zone 2.5-3.5 */}
           <VictoryArea
@@ -364,7 +369,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               { x: chartData[0]?.x ?? 0, y: 3.5, y0: 2.5 },
               { x: chartData[chartData.length - 1]?.x ?? 1, y: 3.5, y0: 2.5 },
             ]}
-            style={{ data: { fill: 'rgba(198, 168, 75, 0.06)', stroke: 'none' } }}
+            {...FAIR_ZONE_PROPS}
           />
           {/* Poor zone 1-2.5 */}
           <VictoryArea
@@ -372,7 +377,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               { x: chartData[0]?.x ?? 0, y: 2.5, y0: 1 },
               { x: chartData[chartData.length - 1]?.x ?? 1, y: 2.5, y0: 1 },
             ]}
-            style={{ data: { fill: 'rgba(239, 68, 68, 0.08)', stroke: 'none' } }}
+            {...POOR_ZONE_PROPS}
           />
 
           {/* Target reference line */}
@@ -381,13 +386,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
               { x: chartData[0]?.x ?? 0, y: targetFormRating },
               { x: chartData[chartData.length - 1]?.x ?? 1, y: targetFormRating },
             ]}
-            style={{
-              data: {
-                stroke: 'rgba(139, 92, 246, 0.8)',
-                strokeWidth: 2,
-                strokeDasharray: '5,5',
-              },
-            }}
+            {...TARGET_LINE_PROPS}
           />
 
           {/* Average reference line */}
@@ -397,13 +396,7 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
                 { x: chartData[0]?.x ?? 0, y: averageFormRating },
                 { x: chartData[chartData.length - 1]?.x ?? 1, y: averageFormRating },
               ]}
-              style={{
-                data: {
-                  stroke: 'rgba(96, 192, 240, 0.6)',
-                  strokeWidth: 1,
-                  strokeDasharray: '3,3',
-                },
-              }}
+              {...AVERAGE_LINE_PROPS}
             />
           )}
 
@@ -411,27 +404,21 @@ const FormQualityChart: React.FC<FormQualityChartProps> = ({
           <VictoryArea
             data={chartData}
             interpolation="monotoneX"
-            style={{
-              data: { fill: 'url(#victoryFormGradient)', stroke: 'none' },
-            }}
+            {...FORM_AREA_PROPS}
           />
 
           {/* Main data line */}
           <VictoryLine
             data={chartData}
             interpolation="monotoneX"
-            style={{
-              data: { stroke: '#8B5CF6', strokeWidth: 3 },
-            }}
+            {...FORM_LINE_PROPS}
           />
 
           {/* Data points */}
           <VictoryScatter
             data={chartData}
             size={4}
-            style={{
-              data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
-            }}
+            {...FORM_SCATTER_PROPS}
           />
         </VictoryChart>
       </ChartContainer>

@@ -43,6 +43,98 @@ const NoDataContainer = styled.div`
   text-align: center;
 `;
 
+const NoDataTitle = styled.h4`
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #b8c9db);
+`;
+
+const NoDataCopy = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
+const TOOLTIP_PROPS = {
+  flyoutStyle: {
+    fill: '#141419',
+    stroke: 'rgba(139, 92, 246, 0.3)',
+    strokeWidth: 1,
+  },
+  style: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+};
+
+const ANGULAR_AXIS_PROPS = {
+  style: {
+    axis: { stroke: 'rgba(96, 192, 240, 0.1)' },
+    tickLabels: {
+      fill: '#E0ECF4',
+      fontSize: 11,
+      fontFamily: "'Fira Code', monospace",
+      padding: 15,
+    },
+    grid: {
+      stroke: 'rgba(96, 192, 240, 0.1)',
+      strokeDasharray: '4,4',
+    },
+  },
+};
+
+const RADIAL_AXIS_PROPS = {
+  style: {
+    axis: { stroke: 'none' },
+    tickLabels: {
+      fill: '#b8c9db',
+      fontSize: 9,
+      fontFamily: "'Fira Code', monospace",
+    },
+    grid: {
+      stroke: 'rgba(96, 192, 240, 0.08)',
+      strokeDasharray: '4,4',
+    },
+  },
+};
+
+const PREVIOUS_AREA_PROPS = {
+  style: {
+    data: {
+      fill: '#8B5CF6',
+      fillOpacity: 0.15,
+      stroke: '#8B5CF6',
+      strokeWidth: 2,
+      strokeDasharray: '5,5',
+    },
+  },
+};
+
+const CURRENT_AREA_PROPS = {
+  style: {
+    data: {
+      fill: '#60C0F0',
+      fillOpacity: 0.25,
+      stroke: '#60C0F0',
+      strokeWidth: 2,
+    },
+  },
+};
+
+const LEGEND_PROPS = {
+  style: {
+    labels: {
+      fill: '#E0ECF4',
+      fontFamily: "'Sora', sans-serif",
+      fontSize: 10,
+    },
+  },
+};
+
+type MuscleGroupDatum = {
+  label: string;
+  y?: number;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
@@ -83,10 +175,10 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Muscle Group Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <NoDataTitle>No Muscle Group Data</NoDataTitle>
+            <NoDataCopy>
               Log workouts to see your muscle group volume distribution!
-            </p>
+            </NoDataCopy>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -108,21 +200,12 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
           containerComponent={
             <VictoryVoronoiContainer
               labels={({ datum }) => {
-                const d = datum as any;
+                const d = datum as MuscleGroupDatum;
                 return `${d.label}: ${d.y?.toLocaleString()} lbs`;
               }}
               labelComponent={
                 <VictoryTooltip
-                  flyoutStyle={{
-                    fill: '#141419',
-                    stroke: 'rgba(139, 92, 246, 0.3)',
-                    strokeWidth: 1,
-                  }}
-                  style={{
-                    fill: '#E0ECF4',
-                    fontSize: 11,
-                    fontFamily: "'Fira Code', monospace",
-                  }}
+                  {...TOOLTIP_PROPS}
                   cornerRadius={8}
                   flyoutPadding={{ top: 6, bottom: 6, left: 10, right: 10 }}
                 />
@@ -134,36 +217,13 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
           <VictoryPolarAxis
             tickValues={data.map((_, i) => i)}
             tickFormat={data.map(d => d.muscleGroup)}
-            style={{
-              axis: { stroke: 'rgba(96, 192, 240, 0.1)' },
-              tickLabels: {
-                fill: '#E0ECF4',
-                fontSize: 11,
-                fontFamily: "'Fira Code', monospace",
-                padding: 15,
-              },
-              grid: {
-                stroke: 'rgba(96, 192, 240, 0.1)',
-                strokeDasharray: '4,4',
-              },
-            }}
+            {...ANGULAR_AXIS_PROPS}
           />
 
           {/* Radial axis (values) */}
           <VictoryPolarAxis
             dependentAxis
-            style={{
-              axis: { stroke: 'none' },
-              tickLabels: {
-                fill: '#b8c9db',
-                fontSize: 9,
-                fontFamily: "'Fira Code', monospace",
-              },
-              grid: {
-                stroke: 'rgba(96, 192, 240, 0.08)',
-                strokeDasharray: '4,4',
-              },
-            }}
+            {...RADIAL_AXIS_PROPS}
             tickCount={5}
           />
 
@@ -171,29 +231,14 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
           {hasPrevious && previousData.length > 0 && (
             <VictoryArea
               data={previousData}
-              style={{
-                data: {
-                  fill: '#8B5CF6',
-                  fillOpacity: 0.15,
-                  stroke: '#8B5CF6',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5',
-                },
-              }}
+              {...PREVIOUS_AREA_PROPS}
             />
           )}
 
           {/* Current period area */}
           <VictoryArea
             data={currentData}
-            style={{
-              data: {
-                fill: '#60C0F0',
-                fillOpacity: 0.25,
-                stroke: '#60C0F0',
-                strokeWidth: 2,
-              },
-            }}
+            {...CURRENT_AREA_PROPS}
           />
 
           {/* Legend */}
@@ -202,13 +247,7 @@ const MuscleGroupRadar: React.FC<MuscleGroupRadarProps> = ({ data }) => {
             y={5}
             orientation="horizontal"
             gutter={16}
-            style={{
-              labels: {
-                fill: '#E0ECF4',
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 10,
-              },
-            }}
+            {...LEGEND_PROPS}
             data={[
               { name: 'Current Period', symbol: { fill: '#60C0F0' } },
               ...(hasPrevious

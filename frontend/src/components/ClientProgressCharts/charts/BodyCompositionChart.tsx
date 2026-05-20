@@ -46,6 +46,16 @@ const NoDataContainer = styled.div`
   text-align: center;
 `;
 
+const NoDataTitle = styled.h4`
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #b8c9db);
+`;
+
+const NoDataCopy = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+`;
+
 // ==================== CONSTANTS ====================
 
 const AXIS_STYLE = {
@@ -59,6 +69,86 @@ const AXIS_STYLE = {
     stroke: 'rgba(96, 192, 240, 0.08)',
     strokeDasharray: '4,4',
   },
+};
+
+const TOOLTIP_PROPS = {
+  flyoutStyle: {
+    fill: '#141419',
+    stroke: 'rgba(139, 92, 246, 0.3)',
+    strokeWidth: 1,
+  },
+  style: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+};
+
+const WEIGHT_AXIS_PROPS = {
+  style: {
+    ...AXIS_STYLE,
+    tickLabels: { ...AXIS_STYLE.tickLabels, fill: '#60C0F0' },
+    axisLabel: {
+      fill: '#60C0F0',
+      fontSize: 12,
+      fontFamily: "'Fira Code', monospace",
+      padding: 40,
+    },
+  },
+};
+
+const BODY_FAT_AXIS_PROPS = {
+  style: {
+    axis: { stroke: 'rgba(139, 92, 246, 0.3)' },
+    tickLabels: {
+      fill: '#8B5CF6',
+      fontSize: 11,
+      fontFamily: "'Fira Code', monospace",
+    },
+    grid: { stroke: 'none' },
+    axisLabel: {
+      fill: '#8B5CF6',
+      fontSize: 12,
+      fontFamily: "'Fira Code', monospace",
+      padding: 50,
+    },
+  },
+};
+
+const WEIGHT_AREA_PROPS = {
+  style: {
+    data: {
+      fill: 'url(#victoryBodyWeightGradient)',
+      stroke: '#60C0F0',
+      strokeWidth: 2,
+    },
+  },
+};
+
+const BODY_FAT_LINE_PROPS = {
+  style: {
+    data: { stroke: '#8B5CF6', strokeWidth: 2 },
+  },
+};
+
+const BODY_FAT_SCATTER_PROPS = {
+  style: {
+    data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
+  },
+};
+
+const LEGEND_PROPS = {
+  style: {
+    labels: {
+      fill: '#E0ECF4',
+      fontFamily: "'Sora', sans-serif",
+      fontSize: 10,
+    },
+  },
+};
+
+type BodyCompositionDatum = BodyCompositionDataPoint & {
+  displayDate: string;
 };
 
 // ==================== MAIN COMPONENT ====================
@@ -107,10 +197,10 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Body Composition Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <NoDataTitle>No Body Composition Data</NoDataTitle>
+            <NoDataCopy>
               Log your body measurements to track composition changes!
-            </p>
+            </NoDataCopy>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -138,7 +228,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           containerComponent={
             <VictoryVoronoiContainer
               labels={({ datum }) => {
-                const d = datum as any;
+                const d = datum as BodyCompositionDatum;
                 const parts = [`${d.displayDate}`];
                 if (d.weight !== undefined) parts.push(`Weight: ${d.weight} lbs`);
                 if (d.bodyFat !== undefined) parts.push(`Body Fat: ${d.bodyFat}%`);
@@ -147,16 +237,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
               }}
               labelComponent={
                 <VictoryTooltip
-                  flyoutStyle={{
-                    fill: '#141419',
-                    stroke: 'rgba(139, 92, 246, 0.3)',
-                    strokeWidth: 1,
-                  }}
-                  style={{
-                    fill: '#E0ECF4',
-                    fontSize: 11,
-                    fontFamily: "'Fira Code', monospace",
-                  }}
+                  {...TOOLTIP_PROPS}
                   cornerRadius={8}
                   flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                 />
@@ -175,7 +256,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
 
           {/* X Axis */}
           <VictoryAxis
-            style={AXIS_STYLE}
+            {...{ style: AXIS_STYLE }}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.displayDate)}
           />
@@ -183,16 +264,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           {/* Left Y Axis — Weight */}
           <VictoryAxis
             dependentAxis
-            style={{
-              ...AXIS_STYLE,
-              tickLabels: { ...AXIS_STYLE.tickLabels, fill: '#60C0F0' },
-              axisLabel: {
-                fill: '#60C0F0',
-                fontSize: 12,
-                fontFamily: "'Fira Code', monospace",
-                padding: 40,
-              },
-            }}
+            {...WEIGHT_AXIS_PROPS}
             label="Weight (lbs)"
           />
 
@@ -200,21 +272,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           <VictoryAxis
             dependentAxis
             orientation="right"
-            style={{
-              axis: { stroke: 'rgba(139, 92, 246, 0.3)' },
-              tickLabels: {
-                fill: '#8B5CF6',
-                fontSize: 11,
-                fontFamily: "'Fira Code', monospace",
-              },
-              grid: { stroke: 'none' },
-              axisLabel: {
-                fill: '#8B5CF6',
-                fontSize: 12,
-                fontFamily: "'Fira Code', monospace",
-                padding: 50,
-              },
-            }}
+            {...BODY_FAT_AXIS_PROPS}
             label="Body Fat %"
             tickFormat={(t: number) => {
               // Reverse-normalize from weight scale back to body fat
@@ -229,13 +287,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
           <VictoryArea
             data={chartData.map(d => ({ ...d, x: d.x, y: d.weight }))}
             interpolation="monotoneX"
-            style={{
-              data: {
-                fill: 'url(#victoryBodyWeightGradient)',
-                stroke: '#60C0F0',
-                strokeWidth: 2,
-              },
-            }}
+            {...WEIGHT_AREA_PROPS}
           />
 
           {/* Body Fat Line — normalized to weight scale */}
@@ -246,9 +298,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
               y: normalizeBodyFat(d.bodyFat),
             }))}
             interpolation="monotoneX"
-            style={{
-              data: { stroke: '#8B5CF6', strokeWidth: 2 },
-            }}
+            {...BODY_FAT_LINE_PROPS}
           />
 
           {/* Body Fat Dots */}
@@ -259,9 +309,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
               y: normalizeBodyFat(d.bodyFat),
             }))}
             size={4}
-            style={{
-              data: { fill: '#8B5CF6', stroke: '#7c3aed', strokeWidth: 2 },
-            }}
+            {...BODY_FAT_SCATTER_PROPS}
           />
 
           {/* Legend */}
@@ -270,13 +318,7 @@ const BodyCompositionChart: React.FC<BodyCompositionChartProps> = ({ data }) => 
             y={0}
             orientation="horizontal"
             gutter={20}
-            style={{
-              labels: {
-                fill: '#E0ECF4',
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 10,
-              },
-            }}
+            {...LEGEND_PROPS}
             data={[
               { name: 'Weight (lbs)', symbol: { fill: '#60C0F0' } },
               { name: 'Body Fat %', symbol: { fill: '#8B5CF6' } },

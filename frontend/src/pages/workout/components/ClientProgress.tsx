@@ -72,6 +72,20 @@ interface WorkoutStatistics {
   }>;
 }
 
+interface ApiErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const apiError = error as ApiErrorLike;
+  return apiError.response?.data?.message
+    ?? (error instanceof Error ? error.message : fallback);
+};
+
 // Styled Components
 const ProgressContainer = styled.div`
   padding: 20px;
@@ -303,26 +317,30 @@ const ClientProgress: React.FC = () => {
           let startDate = '';
           
           switch (timeRange) {
-            case '7days':
+            case '7days': {
               const sevenDaysAgo = new Date(now);
               sevenDaysAgo.setDate(now.getDate() - 7);
               startDate = sevenDaysAgo.toISOString().split('T')[0];
               break;
-            case '30days':
+            }
+            case '30days': {
               const thirtyDaysAgo = new Date(now);
               thirtyDaysAgo.setDate(now.getDate() - 30);
               startDate = thirtyDaysAgo.toISOString().split('T')[0];
               break;
-            case '90days':
+            }
+            case '90days': {
               const ninetyDaysAgo = new Date(now);
               ninetyDaysAgo.setDate(now.getDate() - 90);
               startDate = ninetyDaysAgo.toISOString().split('T')[0];
               break;
-            case 'year':
+            }
+            case 'year': {
               const oneYearAgo = new Date(now);
               oneYearAgo.setFullYear(now.getFullYear() - 1);
               startDate = oneYearAgo.toISOString().split('T')[0];
               break;
+            }
             case 'all':
             default:
               // No start date constraint for 'all'
@@ -351,9 +369,9 @@ const ClientProgress: React.FC = () => {
         
         setProgress(progressResponse.data.progress);
         setStatistics(statisticsResponse.data.statistics);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching progress data:', err);
-        setError(err.response?.data?.message || 'Failed to load progress data');
+        setError(getApiErrorMessage(err, 'Failed to load progress data'));
       } finally {
         setLoading(false);
       }
@@ -499,7 +517,7 @@ const ClientProgress: React.FC = () => {
         <DataTable>
           <TableTitle>Top Exercises</TableTitle>
           {getTopExercises().length > 0 ? (
-            getTopExercises().map((exercise, index) => (
+            getTopExercises().map((exercise) => (
               <TableRow key={exercise.id}>
                 <TableLabel>{exercise.name}</TableLabel>
                 <TableValue>{exercise.count} times</TableValue>

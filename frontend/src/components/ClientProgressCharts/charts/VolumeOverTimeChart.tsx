@@ -32,12 +32,12 @@ import { VolumeChartProps, VolumeDataPoint } from '../types/ClientProgressTypes'
 
 // ==================== STYLED COMPONENTS ====================
 
-const ChartContainer = styled(motion.div)`
+const ChartContainer = styled(motion.div)<{ $height: number }>`
   width: 100%;
-  height: 300px;
+  height: ${props => props.$height}px;
 
   @media (max-width: 768px) {
-    height: 250px;
+    height: min(${props => props.$height}px, 250px);
   }
 `;
 
@@ -49,6 +49,16 @@ const NoDataContainer = styled.div`
   height: 300px;
   color: #b8c9db;
   text-align: center;
+`;
+
+const NoDataTitle = styled.h4`
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #b8c9db);
+`;
+
+const NoDataCopy = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
 `;
 
 // ==================== CONSTANTS ====================
@@ -66,16 +76,60 @@ const AXIS_STYLE = {
   },
 };
 
+const TOOLTIP_PROPS = {
+  flyoutStyle: {
+    fill: '#141419',
+    stroke: 'rgba(139, 92, 246, 0.3)',
+    strokeWidth: 1,
+  },
+  style: {
+    fill: '#E0ECF4',
+    fontSize: 11,
+    fontFamily: "'Fira Code', monospace",
+  },
+};
+
+const Y_AXIS_PROPS = {
+  style: {
+    ...AXIS_STYLE,
+    axisLabel: {
+      fill: '#E0ECF4',
+      fontSize: 12,
+      fontFamily: "'Fira Code', monospace",
+      padding: 40,
+    },
+  },
+};
+
+const AREA_PROPS = {
+  style: {
+    data: {
+      fill: 'url(#victoryVolumeGradient)',
+      stroke: '#60C0F0',
+      strokeWidth: 2,
+    },
+  },
+};
+
+const TREND_LINE_PROPS = {
+  style: {
+    data: {
+      stroke: '#C6A84B',
+      strokeWidth: 2,
+      strokeDasharray: '5,5',
+      opacity: 0.6,
+    },
+  },
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   data,
   height = 300,
   showTooltip = true,
-  showLegend = false,
   animate = true,
   showTrendLine = false,
-  theme,
   className
 }) => {
   // ==================== COMPUTED VALUES ====================
@@ -97,11 +151,6 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
       }));
   }, [data]);
 
-  const maxValue = useMemo(() => {
-    if (!chartData.length) return 0;
-    return Math.max(...chartData.map(d => d.value));
-  }, [chartData]);
-
   const averageValue = useMemo(() => {
     if (!chartData.length) return 0;
     const sum = chartData.reduce((acc, d) => acc + d.value, 0);
@@ -112,17 +161,17 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
 
   if (!data || data.length === 0) {
     return (
-      <ChartContainer className={className}>
+      <ChartContainer className={className} $height={height}>
         <NoDataContainer>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Volume Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <NoDataTitle>No Volume Data</NoDataTitle>
+            <NoDataCopy>
               Complete some workouts to see your volume progress!
-            </p>
+            </NoDataCopy>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -136,7 +185,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
       animate={animate ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      <ChartContainer>
+      <ChartContainer $height={height}>
         <VictoryChart
           padding={{ top: 20, right: 30, left: 60, bottom: 50 }}
           domainPadding={{ y: [0, 10] }}
@@ -152,16 +201,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
                 }}
                 labelComponent={
                   <VictoryTooltip
-                    flyoutStyle={{
-                      fill: '#141419',
-                      stroke: 'rgba(139, 92, 246, 0.3)',
-                      strokeWidth: 1,
-                    }}
-                    style={{
-                      fill: '#E0ECF4',
-                      fontSize: 11,
-                      fontFamily: "'Fira Code', monospace",
-                    }}
+                    {...TOOLTIP_PROPS}
                     cornerRadius={8}
                     flyoutPadding={{ top: 8, bottom: 8, left: 12, right: 12 }}
                   />
@@ -181,7 +221,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
 
           {/* X Axis */}
           <VictoryAxis
-            style={AXIS_STYLE}
+            {...{ style: AXIS_STYLE }}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.displayDate)}
           />
@@ -189,15 +229,7 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
           {/* Y Axis */}
           <VictoryAxis
             dependentAxis
-            style={{
-              ...AXIS_STYLE,
-              axisLabel: {
-                fill: '#E0ECF4',
-                fontSize: 12,
-                fontFamily: "'Fira Code', monospace",
-                padding: 40,
-              },
-            }}
+            {...Y_AXIS_PROPS}
             label="Volume (lbs)"
           />
 
@@ -205,27 +237,14 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
           <VictoryArea
             data={chartData}
             interpolation="monotoneX"
-            style={{
-              data: {
-                fill: 'url(#victoryVolumeGradient)',
-                stroke: '#60C0F0',
-                strokeWidth: 2,
-              },
-            }}
+            {...AREA_PROPS}
           />
 
           {/* Trend Line (average) */}
           {showTrendLine && (
             <VictoryLine
               data={chartData.map(d => ({ x: d.x, y: averageValue }))}
-              style={{
-                data: {
-                  stroke: '#C6A84B',
-                  strokeWidth: 2,
-                  strokeDasharray: '5,5',
-                  opacity: 0.6,
-                },
-              }}
+              {...TREND_LINE_PROPS}
             />
           )}
         </VictoryChart>

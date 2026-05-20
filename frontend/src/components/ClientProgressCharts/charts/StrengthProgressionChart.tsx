@@ -54,6 +54,40 @@ const TOOLTIP_STYLE = {
   },
 };
 
+const Y_AXIS_PROPS = {
+  style: {
+    ...AXIS_STYLE,
+    axisLabel: {
+      fill: '#E0ECF4',
+      fontSize: 12,
+      fontFamily: "'Fira Code', monospace",
+      padding: 40,
+    },
+  },
+};
+
+const LEGEND_PROPS = {
+  style: {
+    labels: {
+      fill: '#E0ECF4',
+      fontFamily: "'Sora', sans-serif",
+      fontSize: 10,
+    },
+  },
+};
+
+const getLineProps = (color: string) => ({
+  style: {
+    data: { stroke: color, strokeWidth: 2 },
+  },
+});
+
+const getScatterProps = (color: string) => ({
+  style: {
+    data: { fill: color, stroke: color, strokeWidth: 2 },
+  },
+});
+
 // ==================== STYLED COMPONENTS ====================
 
 const ChartContainer = styled(motion.div)`
@@ -73,6 +107,16 @@ const NoDataContainer = styled.div`
   height: 300px;
   color: #b8c9db;
   text-align: center;
+`;
+
+const NoDataTitle = styled.h4`
+  margin: 0 0 0.5rem;
+  color: var(--text-secondary, #b8c9db);
+`;
+
+const NoDataCopy = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
 `;
 
 // ==================== MAIN COMPONENT ====================
@@ -109,10 +153,10 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#b8c9db' }}>No Strength Data</h4>
-            <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            <NoDataTitle>No Strength Data</NoDataTitle>
+            <NoDataCopy>
               Log strength workouts to track your estimated 1RM progression!
-            </p>
+            </NoDataCopy>
           </motion.div>
         </NoDataContainer>
       </ChartContainer>
@@ -153,7 +197,7 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
         >
           {/* X Axis */}
           <VictoryAxis
-            style={AXIS_STYLE}
+            {...{ style: AXIS_STYLE }}
             tickValues={chartData.map((_, i) => i)}
             tickFormat={chartData.map(d => d.xLabel)}
           />
@@ -161,15 +205,7 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
           {/* Y Axis — Est. 1RM (lbs) */}
           <VictoryAxis
             dependentAxis
-            style={{
-              ...AXIS_STYLE,
-              axisLabel: {
-                fill: '#E0ECF4',
-                fontSize: 12,
-                fontFamily: "'Fira Code', monospace",
-                padding: 40,
-              },
-            }}
+            {...Y_AXIS_PROPS}
             label="Est. 1RM (lbs)"
           />
 
@@ -185,16 +221,12 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
                 <VictoryLine
                   data={lineData}
                   interpolation="monotoneX"
-                  style={{
-                    data: { stroke: color, strokeWidth: 2 },
-                  }}
+                  {...getLineProps(color)}
                 />
                 <VictoryScatter
                   data={lineData}
                   size={4}
-                  style={{
-                    data: { fill: color, stroke: color, strokeWidth: 2 },
-                  }}
+                  {...getScatterProps(color)}
                 />
               </React.Fragment>
             );
@@ -206,13 +238,7 @@ const StrengthProgressionChart: React.FC<StrengthProgressionChartProps> = ({
             y={0}
             orientation="horizontal"
             gutter={16}
-            style={{
-              labels: {
-                fill: '#E0ECF4',
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 10,
-              },
-            }}
+            {...LEGEND_PROPS}
             data={exerciseNames.map((name, index) => ({
               name,
               symbol: { fill: LINE_COLORS[index % LINE_COLORS.length] },

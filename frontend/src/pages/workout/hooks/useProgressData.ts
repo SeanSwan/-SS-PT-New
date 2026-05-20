@@ -33,9 +33,25 @@ interface UseProgressDataReturn {
   weekdayData: WeekdayData[];
   exerciseTypeData: ExerciseTypeData[];
   intensityTrendData: IntensityTrendData[];
-  topExercises: any[];
+  topExercises: ExerciseBreakdownEntry[];
   muscleGroupData: MuscleGroupData[];
 }
+
+type ExerciseBreakdownEntry = NonNullable<WorkoutStatistics['exerciseBreakdown']>[number];
+
+interface ApiErrorLike {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const apiError = error as ApiErrorLike;
+  return apiError.response?.data?.message
+    ?? (error instanceof Error ? error.message : fallback);
+};
 
 /**
  * Default empty progress data
@@ -135,6 +151,7 @@ export const useProgressData = ({
   timeRange 
 }: UseProgressDataProps): UseProgressDataReturn => {
   const { user, authAxios } = useAuth();
+  const currentUserId = user?.id;
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ClientProgressData | null>(null);
   const [statistics, setStatistics] = useState<WorkoutStatistics | null>(null);
@@ -152,7 +169,7 @@ export const useProgressData = ({
         setError(null);
         
         // Determine which user to fetch data for
-        const targetUserId = userId || user?.id;
+        const targetUserId = userId || currentUserId;
         
         if (!targetUserId) {
           setError('No user specified');
@@ -161,7 +178,7 @@ export const useProgressData = ({
         }
         
         // Use mock data for development/testing
-        if (process.env.NODE_ENV === 'development' && (!user || user.id === 'temp-user-id' || targetUserId === 'temp-user-id')) {
+        if (process.env.NODE_ENV === 'development' && (!currentUserId || currentUserId === 'temp-user-id' || targetUserId === 'temp-user-id')) {
           logger.log('Using mock data for development');
           setProgress(mockProgress);
           setStatistics(mockStatistics);
@@ -176,26 +193,30 @@ export const useProgressData = ({
           let startDate = '';
           
           switch (timeRange) {
-            case '7days':
+            case '7days': {
               const sevenDaysAgo = new Date(now);
               sevenDaysAgo.setDate(now.getDate() - 7);
               startDate = sevenDaysAgo.toISOString().split('T')[0];
               break;
-            case '30days':
+            }
+            case '30days': {
               const thirtyDaysAgo = new Date(now);
               thirtyDaysAgo.setDate(now.getDate() - 30);
               startDate = thirtyDaysAgo.toISOString().split('T')[0];
               break;
-            case '90days':
+            }
+            case '90days': {
               const ninetyDaysAgo = new Date(now);
               ninetyDaysAgo.setDate(now.getDate() - 90);
               startDate = ninetyDaysAgo.toISOString().split('T')[0];
               break;
-            case 'year':
+            }
+            case 'year': {
               const oneYearAgo = new Date(now);
               oneYearAgo.setFullYear(now.getFullYear() - 1);
               startDate = oneYearAgo.toISOString().split('T')[0];
               break;
+            }
             case 'all':
             default:
               // No start date constraint for 'all'
@@ -206,16 +227,19 @@ export const useProgressData = ({
         };
         
         const { startDate, endDate } = getDateRange();
+        let loadedProgress = false;
+        let loadedStatistics = false;
         
         // Fetch client progress - Splitting calls for better error handling
         try {
           const progressResponse = await authAxios.get(`/api/client-progress/${targetUserId}`);
           if (progressResponse.data && progressResponse.data.progress) {
             setProgress(progressResponse.data.progress);
+            loadedProgress = true;
           } else {
             logger.warn('Unexpected progress data format:', progressResponse.data);
           }
-        } catch (progressErr: any) {
+        } catch (progressErr: unknown) {
           console.error('Error fetching progress data:', progressErr);
           // Continue with statistics fetch even if progress fails
         }
@@ -235,28 +259,29 @@ export const useProgressData = ({
           
           if (statisticsResponse.data && statisticsResponse.data.statistics) {
             setStatistics(statisticsResponse.data.statistics);
+            loadedStatistics = true;
           } else {
             logger.warn('Unexpected statistics data format:', statisticsResponse.data);
           }
-        } catch (statsErr: any) {
+        } catch (statsErr: unknown) {
           console.error('Error fetching statistics data:', statsErr);
           // Continue even if statistics fails
         }
         
         // If both APIs failed, show error
-        if (!progress && !statistics) {
+        if (!loadedProgress && !loadedStatistics) {
           setError('Failed to load progress and statistics data');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching progress data:', err);
-        setError(err.response?.data?.message || 'Failed to load progress data');
+        setError(getApiErrorMessage(err, 'Failed to load progress data'));
       } finally {
         setLoading(false);
       }
     };
     
     fetchData();
-  }, [userId, user?.id, authAxios, timeRange]);
+  }, [userId, currentUserId, authAxios, timeRange]);
   
   // Computed data for charts
   
