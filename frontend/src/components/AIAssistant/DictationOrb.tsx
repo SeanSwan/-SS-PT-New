@@ -1,11 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
 /**
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: DictationOrb — Voice-First Input (V3)            ║
@@ -103,7 +95,7 @@ const OrbWrapper = styled.div`
   align-items: center;
 `;
 
-const OrbButton = styled.button<{ $listening: boolean }>`
+const OrbButton = styled.button<{ $listening: boolean; $unavailable?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -123,6 +115,7 @@ const OrbButton = styled.button<{ $listening: boolean }>`
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  opacity: ${({ $unavailable }) => $unavailable ? 0.4 : 1};
 
   @media (prefers-reduced-motion: no-preference) {
     animation: ${({ $listening }) => $listening ? css`${crystallinePulse} 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite` : 'none'};
@@ -186,6 +179,14 @@ const InterimBubble = styled.div`
   pointer-events: none;
   backdrop-filter: blur(8px);
   z-index: 10;
+`;
+
+const LiveStatus = styled.div`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
 `;
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -454,6 +455,7 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
         onPointerUp={isHoldMode ? handlePointerUp : undefined}
         onPointerLeave={isHoldMode ? handlePointerUp : undefined}
         $listening={listening}
+        $unavailable={isUnavailable}
         disabled={disabled}
         aria-label={
           isUnavailable
@@ -469,7 +471,6 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
               ? 'Listening... ' + (isHoldMode ? 'release to send' : 'tap to stop')
               : (isHoldMode ? 'Hold to dictate' : 'Tap to dictate (Ctrl+Shift+K)')
         }
-        style={isUnavailable ? { opacity: 0.4 } : undefined}
       >
         {isUnavailable ? <MicOff size={20} /> : listening ? <MicOff size={20} /> : <Mic size={20} />}
       </OrbButton>
@@ -484,15 +485,14 @@ const DictationOrb: React.FC<DictationOrbProps> = ({
       )}
 
       {/* ARIA live region for screen reader announcements */}
-      <div
+      <LiveStatus
         id="dictation-orb-status"
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
       >
         {listening ? 'Listening for voice input...' : ''}
-      </div>
+      </LiveStatus>
     </OrbWrapper>
   );
 };

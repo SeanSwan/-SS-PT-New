@@ -36,14 +36,14 @@ import {
   ChevronLeft, Trash2,
 } from 'lucide-react';
 import { useAIChat, type AIContext, type ResponseStyle } from '../../hooks/useAIChat';
-import { CS } from '../../styles/crystallineSwanTheme';
 
 // Sub-components
 import DictationOrb from './DictationOrb';
 import ClientPicker, { type ClientInfo } from './ClientPicker';
 import QuickActions from './QuickActions';
 import ChatMessage from './ChatMessage';
-import AIContextSelector, { CONTEXTS, RESPONSE_STYLES } from './AIContextSelector';
+import AIContextSelector from './AIContextSelector';
+import { CONTEXTS, RESPONSE_STYLES } from './AIContextOptions';
 const VoiceUpload = React.lazy(() => import('./VoiceUpload'));
 
 // Styled components
@@ -55,6 +55,52 @@ import {
   InputArea, ChatInput, SendBtn, Spinner,
   EmptyState, EmptyIcon, WelcomeText, ErrorBanner,
 } from './AIDrawerStyles';
+
+const ChatTitleText = styled.span`
+  font-size: 0.9rem;
+`;
+
+const ErrorActions = styled.div`
+  display: flex;
+  gap: 4px;
+`;
+
+const ConversationIcon = styled(MessageSquare)`
+  color: var(--text-muted, rgba(224,236,244,0.5));
+  flex-shrink: 0;
+`;
+
+const ConversationSummary = styled.div`
+  flex: 1;
+  overflow: hidden;
+`;
+
+const LockedContextPill = styled(ContextPill)<{ $active?: boolean }>`
+  cursor: default;
+  color: ${({ $active }) => $active
+    ? 'var(--text-primary, #E0ECF4)'
+    : 'var(--accent-tertiary, #4070C0)'};
+`;
+
+const ResponseStyleValue = styled.strong`
+  color: var(--accent-primary, #60C0F0);
+`;
+
+const CompactEmptyState = styled(EmptyState)`
+  gap: 10px;
+`;
+
+const VisuallyHiddenText = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+`;
+
+const RelativeInputArea = styled(InputArea)`
+  position: relative;
+`;
 
 // ── Component ──────────────────────────────────────────────
 
@@ -177,7 +223,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
       if (!conv) { setInputValue(text); return; }
     }
 
-    const result = await sendMessage(text);
+    const result: Awaited<ReturnType<typeof sendMessage>> = await sendMessage(text);
     if (result?.failed) setInputValue(result.originalMessage || text);
   }, [inputValue, sending, activeConversation, selectedContext, selectedResponseStyle, createConversation, sendMessage, getTargetClientId]);
 
@@ -222,9 +268,9 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                 <IconBtn onClick={() => { newChat(); setView('list'); }} aria-label="Back to conversations">
                   <ChevronLeft size={20} />
                 </IconBtn>
-                <span style={{ fontSize: '0.9rem' }}>
+                <ChatTitleText>
                   {activeConversation.title || CONTEXTS[activeConversation.context as AIContext]?.label || 'Chat'}
-                </span>
+                </ChatTitleText>
               </>
             )}
           </HeaderTitle>
@@ -263,14 +309,14 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
         {error && (
           <ErrorBanner>
             <span>{error}</span>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <ErrorActions>
               <IconBtn onClick={() => { clearError(); handleSend(); }} aria-label="Retry" title="Retry">
                 <Send size={14} />
               </IconBtn>
               <IconBtn onClick={clearError} aria-label="Dismiss error">
                 <X size={14} />
               </IconBtn>
-            </div>
+            </ErrorActions>
           </ErrorBanner>
         )}
 
@@ -287,11 +333,11 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             ) : (
               conversations.map(conv => (
                 <ConvItem key={conv.id} onClick={() => { loadConversation(conv.id); setView('chat'); }}>
-                  <MessageSquare size={16} style={{ color: CS.textMuted, flexShrink: 0 }} />
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <ConversationIcon size={16} />
+                  <ConversationSummary>
                     <ConvTitle>{conv.title || 'Untitled'}</ConvTitle>
                     <ConvMeta>{conv.messageCount} messages</ConvMeta>
-                  </div>
+                  </ConversationSummary>
                   <IconBtn onClick={e => { e.stopPropagation(); deleteConversation(conv.id); }} aria-label="Delete conversation">
                     <Trash2 size={14} />
                   </IconBtn>
@@ -318,31 +364,30 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                   const Icon = cfg.icon;
                   const isActive = activeConversation.context === ctx;
                   return (
-                    <ContextPill key={ctx} $active={isActive} onClick={() => {}} aria-pressed={isActive}
-                      style={{ color: isActive ? 'var(--text-primary, #E0ECF4)' : 'var(--accent-tertiary, #4070C0)', cursor: 'default' }}>
+                    <LockedContextPill key={ctx} $active={isActive} onClick={() => {}} aria-pressed={isActive}>
                       <Icon size={14} />
                       {cfg.label}
-                    </ContextPill>
+                    </LockedContextPill>
                   );
                 })}
             </ContextBar>
 
             {/* Response style indicator */}
             <ResponseStyleIndicator>
-              Style: <strong style={{ color: CS.iceWing }}>
+              Style: <ResponseStyleValue>
                 {RESPONSE_STYLES.find(s => s.key === selectedResponseStyle)?.emoji}{' '}
                 {RESPONSE_STYLES.find(s => s.key === selectedResponseStyle)?.label || 'Both'}
-              </strong>
+              </ResponseStyleValue>
             </ResponseStyleIndicator>
 
             {/* Messages */}
             <MessagesArea>
               {messages.length === 0 && (
-                <EmptyState style={{ gap: 10 }}>
+                <CompactEmptyState>
                   <WelcomeText>
                     {CONTEXTS[activeConversation.context as AIContext]?.description || 'How can I help you today?'}
                   </WelcomeText>
-                </EmptyState>
+                </CompactEmptyState>
               )}
               {messages.map((msg, i) => (
                 <ChatMessage key={i} role={msg.role} content={msg.content} />
@@ -353,9 +398,9 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
                     <Dot $delay={0} />
                     <Dot $delay={0.15} />
                     <Dot $delay={0.3} />
-                    <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
+                    <VisuallyHiddenText>
                       Swan Coach is thinking...
-                    </span>
+                    </VisuallyHiddenText>
                   </TypingIndicator>
                 )}
               </div>
@@ -363,7 +408,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
             </MessagesArea>
 
             {/* Input */}
-            <InputArea style={{ position: 'relative' }}>
+            <RelativeInputArea>
               {/* DictationOrb uses transcript-capture mode: autoSend=false so
                   speech fills the text input and the user sends explicitly.
                   This prevents silent dispatch and avoids unconfirmable commands. */}
@@ -390,7 +435,7 @@ const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               <SendBtn $active={hasInput && !sending} onClick={handleSend} aria-label="Send message">
                 {sending ? <Spinner size={18} /> : <Send size={18} />}
               </SendBtn>
-            </InputArea>
+            </RelativeInputArea>
           </>
         )}
       </DrawerPanel>
