@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
   Dumbbell, Activity, Apple, Heart, Monitor, Users,
-  Target, Building2, Star, Sparkles, Clock, Award,
-  TrendingUp, Music, Palette, Gamepad2, Flame, MapPin,
+  Target, Building2, Star, Sparkles, Award,
+  TrendingUp, Gamepad2, Flame, MapPin,
   Shield, Brain, Zap, Crosshair, Mic2, Mic, Laugh, Paintbrush,
   Camera, UserCircle, FileSignature, PlayCircle, Globe,
 } from 'lucide-react';
@@ -223,19 +223,9 @@ const socialCategories = [
    ANIMATIONS
    ═══════════════════════════════════════════════════════ */
 
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
 const subtleFloat = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
-`;
-
-const pulseGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246,0.1); }
-  50% { box-shadow: 0 0 40px rgba(139, 92, 246,0.25); }
 `;
 
 /* ═══════════════════════════════════════════════════════
@@ -333,6 +323,11 @@ const Section = styled.section<{ $alt?: boolean }>`
 const SectionInner = styled.div`
   max-width: 1200px;
   margin: 0 auto;
+`;
+
+const CenteredAction = styled.div<{ $topMargin?: string }>`
+  margin-top: ${({ $topMargin }) => $topMargin || 0};
+  text-align: center;
 `;
 
 const SectionTitle = styled.h2`
@@ -1080,14 +1075,14 @@ const HomePageV3: React.FC = () => {
             ))}
           </ProgramsGrid>
 
-          <div style={{ textAlign: 'center' }}>
+          <CenteredAction>
             <GlowButton
               text="View All Packages"
               variant="accent"
               size="medium"
               onClick={() => navigate('/shop')}
             />
-          </div>
+          </CenteredAction>
         </SectionInner>
       </Section>
 
@@ -1136,7 +1131,7 @@ const HomePageV3: React.FC = () => {
                 <Crosshair size={40} />
                 <h3>Golf Performance Program</h3>
                 <p>
-                  Whether you're a weekend warrior or a competitive amateur, our golf-specific
+                  Whether you&apos;re a weekend warrior or a competitive amateur, our golf-specific
                   training addresses the physical demands of the game. Improve your drive distance,
                   reduce your handicap, and play pain-free.
                 </p>
@@ -1176,7 +1171,7 @@ const HomePageV3: React.FC = () => {
                   NASM Optimum Performance Training (OPT) model to every program he builds.
                 </p>
                 <p>
-                  His career spans elite fitness brands including LA Fitness, Gold's Gym,
+                  His career spans elite fitness brands including LA Fitness, Gold&apos;s Gym,
                   24 Hour Fitness, and Bodies in Motion. His time as a physical therapy aid
                   at Kerlan Jobe Health South deepened his expertise in injury prevention,
                   corrective exercise, and rehabilitation — principles he applies daily.
@@ -1184,7 +1179,7 @@ const HomePageV3: React.FC = () => {
                 <p>
                   At SwanStudios, we blend <strong>elite personal training with AI as a powerful tool</strong> —
                   not a replacement for the coach. Sean and his team conduct deep research on each
-                  client's goals, athletic background, and physical history to build truly optimized
+                  client&apos;s goals, athletic background, and physical history to build truly optimized
                   programs. AI helps analyze data, refine programming, and accelerate injury
                   rehabilitation — all while keeping your information private through our secure
                   programming protocol. The result: the fastest, safest progress possible with a
@@ -1209,7 +1204,7 @@ const HomePageV3: React.FC = () => {
               <ApproachCard>
                 <Brain size={28} />
                 <h4>Deep Client Research</h4>
-                <p>Your trainer studies your goals, movement history, and athletic background to build a program that's truly yours.</p>
+                <p>Your trainer studies your goals, movement history, and athletic background to build a program that&apos;s truly yours.</p>
               </ApproachCard>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
@@ -1228,14 +1223,14 @@ const HomePageV3: React.FC = () => {
             </ScrollReveal>
           </ApproachGrid>
 
-          <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <CenteredAction $topMargin="2rem">
             <GlowButton
               text="Learn More"
               variant="ghost"
               size="medium"
               onClick={() => navigate('/about')}
             />
-          </div>
+          </CenteredAction>
         </SectionInner>
       </Section>
 
@@ -1328,7 +1323,7 @@ const HomePageV3: React.FC = () => {
             <SectionTitle>Beyond the Gym</SectionTitle>
             <AccentLine />
             <SectionSubtitle>
-              SwanStudios isn't just a fitness platform — it's a creative social ecosystem.
+              SwanStudios isn&apos;t just a fitness platform — it&apos;s a creative social ecosystem.
               Imagine TikTok, Instagram, Twitch, YouTube, and Meetup combined into one community
               where fitness meets art, music, singing, gaming, comedy, and real human connection.
             </SectionSubtitle>
@@ -1347,14 +1342,14 @@ const HomePageV3: React.FC = () => {
           </SocialGrid>
 
           <ScrollReveal delay={0.6}>
-            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+            <CenteredAction $topMargin="2.5rem">
               <GlowButton
                 text="Join the Community"
                 variant="accent"
                 size="large"
                 onClick={() => navigate('/social')}
               />
-            </div>
+            </CenteredAction>
           </ScrollReveal>
         </BeyondContent>
       </BeyondSection>

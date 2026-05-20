@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ── Tokens ───────────────────────────────────────────────────────────────
 const MIDNIGHT   = '#002060';
 const ICE_WING   = '#60C0F0';
-const ARCTIC     = '#50A0F0';
 const GILDED     = '#C6A84B';
 const FROST      = '#E0ECF4';
 
@@ -92,11 +91,11 @@ const ImagePanel = styled.div`
   }
 `;
 
-const PhotoImage = styled.img`
+const PhotoImage = styled.img<{ $loaded: boolean }>`
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  display: block;
+  display: ${props => props.$loaded ? 'block' : 'none'};
 `;
 
 const PhotoSkeleton = styled.div`
@@ -161,7 +160,12 @@ const SectionLabel = styled.h3`
 `;
 
 // Option Card — the two-tier request buttons
-const OptionCard = styled.button<{ $accent: string; $glowColor: string }>`
+const OptionCard = styled.button<{
+  $accent: string;
+  $glowColor: string;
+  $animationDelay?: string;
+  $muted?: boolean;
+}>`
   position: relative;
   width: 100%;
   min-height: 120px;
@@ -177,6 +181,9 @@ const OptionCard = styled.button<{ $accent: string; $glowColor: string }>`
   color: ${FROST};
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   animation: ${popIn} 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: ${p => p.$animationDelay || '0s'};
+  opacity: ${p => p.$muted ? 0.45 : 1};
+  filter: ${p => p.$muted ? 'grayscale(0.5)' : 'none'};
 
   &:hover {
     border-color: ${p => p.$accent}66;
@@ -201,17 +208,17 @@ const OptionCard = styled.button<{ $accent: string; $glowColor: string }>`
   }
 `;
 
-const OptionIcon = styled.div<{ $bg?: string }>`
+const OptionIcon = styled.div<{ $bg: string }>`
   width: 48px;
   height: 48px;
   min-width: 48px;
   border-radius: 14px;
-  background: ${p => p.$bg || GILDED}1A;
-  border: 1px solid ${p => p.$bg || GILDED}33;
+  background: ${p => p.$bg}1A;
+  border: 1px solid ${p => p.$bg}33;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.$bg || GILDED};
+  color: ${p => p.$bg};
   font-size: 22px;
 `;
 
@@ -222,11 +229,11 @@ const OptionContent = styled.div`
   gap: 4px;
 `;
 
-const OptionTitle = styled.span`
+const OptionTitle = styled.span<{ $color?: string }>`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: ${FROST};
+  color: ${p => p.$color || FROST};
 `;
 
 const OptionBadge = styled.span<{ $color: string }>`
@@ -242,13 +249,6 @@ const OptionBadge = styled.span<{ $color: string }>`
   color: ${p => p.$color};
   border: 1px solid ${p => p.$color}33;
   width: fit-content;
-`;
-
-const OptionMeta = styled.span`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: rgba(224, 236, 244, 0.7);
 `;
 
 const OptionDesc = styled.span`
@@ -327,13 +327,27 @@ const VoteRow = styled.div`
   padding: 8px 0;
 `;
 
-const VoteStat = styled.div<{ $color: string }>`
+const VoteStat = styled.button<{ $color: string }>`
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   font-family: 'Fira Code', monospace;
   font-size: 0.85rem;
   color: ${p => p.$color};
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${ICE_WING};
+    outline-offset: 4px;
+  }
+`;
+
+const VoteIcon = styled.span`
+  font-size: 18px;
 `;
 
 const SuccessToast = styled(motion.div)`
@@ -347,6 +361,25 @@ const SuccessToast = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 8px;
+`;
+
+const PrintIconGlyph = styled.span`
+  font-size: 1.5rem;
+`;
+
+const DirectDownloadLink = styled.a`
+  color: rgba(224, 236, 244, 0.4);
+  font-size: 0.8rem;
+  text-decoration: none;
+  text-align: center;
+  padding: 8px;
+  display: block;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid ${ICE_WING};
+    outline-offset: 3px;
+  }
 `;
 
 // ── Props ────────────────────────────────────────────────────────────────
@@ -463,18 +496,19 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
-          onClick={onClose}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Photo detail: ${photo.displayName}`}
+          onPointerDown={onClose}
+          role="presentation"
         >
           <ModalContainer
             initial={{ scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.92, opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-            onClick={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
             ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Photo detail: ${photo.displayName}`}
           >
             <CloseButton onClick={onClose} aria-label="Close photo detail">
               &#x2715;
@@ -487,7 +521,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 src={photo.enhancedUrl || photo.mediumUrl || photo.url}
                 alt={photo.displayName}
                 onLoad={() => setImgLoaded(true)}
-                style={{ display: imgLoaded ? 'block' : 'none' }}
+                $loaded={imgLoaded}
               />
               {photoIndex > 0 && (
                 <NavButton $side="left" onClick={onPrev} aria-label="Previous photo">
@@ -512,20 +546,18 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   <VoteStat
                     $color={voteData.userVote === 1 ? ICE_WING : 'rgba(224,236,244,0.4)'}
                     onClick={() => onVote(photo.id, 1)}
-                    style={{ cursor: 'pointer' }}
-                    role="button"
                     aria-label={`Thumbs up (${voteData.thumbsUp})`}
+                    type="button"
                   >
-                    <span style={{ fontSize: 18 }}>&#x1F44D;</span> {voteData.thumbsUp}
+                    <VoteIcon>&#x1F44D;</VoteIcon> {voteData.thumbsUp}
                   </VoteStat>
                   <VoteStat
                     $color={voteData.userVote === -1 ? '#FF5E7E' : 'rgba(224,236,244,0.4)'}
                     onClick={() => onVote(photo.id, -1)}
-                    style={{ cursor: 'pointer' }}
-                    role="button"
                     aria-label={`Thumbs down (${voteData.thumbsDown})`}
+                    type="button"
                   >
-                    <span style={{ fontSize: 18 }}>&#x1F44E;</span> {voteData.thumbsDown}
+                    <VoteIcon>&#x1F44E;</VoteIcon> {voteData.thumbsDown}
                   </VoteStat>
                 </VoteRow>
               )}
@@ -538,7 +570,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 $accent={ICE_WING}
                 $glowColor={ICE_WING}
                 onClick={() => onDownloadOriginal(photo.id)}
-                style={{ animationDelay: '0.05s' }}
+                $animationDelay="0.05s"
                 aria-label="Download photo to your browser"
               >
                 <OptionIcon $bg={ICE_WING}>
@@ -563,7 +595,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 $glowColor={GILDED}
                 onClick={handleEnhanceClick}
                 disabled={enhancementRequested}
-                style={{ animationDelay: '0.15s' }}
+                $animationDelay="0.15s"
                 aria-label={enhancementRequested ? 'Enhancement already requested' : 'Request professional edit'}
               >
                 <OptionIcon $bg={GILDED}>
@@ -609,13 +641,14 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 $glowColor={GILDED}
                 disabled
                 aria-label="Order prints — coming soon"
-                style={{ animationDelay: '0.25s', opacity: 0.45, cursor: 'not-allowed', filter: 'grayscale(0.5)' }}
+                $animationDelay="0.25s"
+                $muted
               >
-                <OptionIcon style={{ background: `linear-gradient(135deg, rgba(198,168,75,0.2), rgba(198,168,75,0.05))`, borderColor: 'rgba(198,168,75,0.3)' }}>
-                  <span style={{ fontSize: '1.5rem' }}>🖼️</span>
+                <OptionIcon $bg={GILDED}>
+                  <PrintIconGlyph>&#x1F5BC;</PrintIconGlyph>
                 </OptionIcon>
                 <OptionContent>
-                  <OptionTitle style={{ color: GILDED }}>Order Print</OptionTitle>
+                  <OptionTitle $color={GILDED}>Order Print</OptionTitle>
                   <OptionBadge $color="rgba(224,236,244,0.4)">Coming Soon</OptionBadge>
                   <OptionDesc>
                     Premium fine art prints, canvas, and metal — delivered to your door.
@@ -626,7 +659,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
               <Divider />
 
               {/* Direct download link as fallback */}
-              <a
+              <DirectDownloadLink
                 href={downloadUrl}
                 onClick={async (e) => {
                   e.preventDefault();
@@ -645,18 +678,9 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                     window.open(downloadUrl, '_blank');
                   }
                 }}
-                style={{
-                  color: 'rgba(224, 236, 244, 0.4)',
-                  fontSize: '0.8rem',
-                  textDecoration: 'none',
-                  textAlign: 'center',
-                  padding: '8px',
-                  display: 'block',
-                  cursor: 'pointer',
-                }}
               >
                 Direct download link
-              </a>
+              </DirectDownloadLink>
             </ControlsPanel>
           </ModalContainer>
 

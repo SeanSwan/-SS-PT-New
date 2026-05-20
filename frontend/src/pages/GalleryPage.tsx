@@ -61,6 +61,23 @@ interface PhotoVoteData {
   userVote: 1 | -1 | null;
 }
 
+interface RootState {
+  auth?: {
+    user?: {
+      email?: string;
+      firstName?: string;
+      availableSessions?: number;
+    };
+  };
+}
+
+interface GalleryLocationState {
+  showVipModal?: boolean;
+}
+
+const isAbortError = (err: unknown): boolean =>
+  err instanceof DOMException && err.name === 'AbortError';
+
 // ── Hero Animations ──────────────────────────────────────────────────────
 const heroScaleDown = keyframes`
   from { transform: scale(1.15); }
@@ -336,7 +353,7 @@ const HeroSecondaryButton = styled(HeroBaseButton)`
   }
 `;
 
-const HeroScrollIndicator = styled.div`
+const HeroScrollIndicator = styled.button`
   position: absolute;
   bottom: 32px;
   left: 50%;
@@ -347,6 +364,8 @@ const HeroScrollIndicator = styled.div`
   align-items: center;
   gap: 8px;
   color: rgba(248, 250, 252, 0.4);
+  border: 0;
+  background: transparent;
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   letter-spacing: 0.1em;
@@ -476,12 +495,14 @@ const EventGrid = styled.div`
   @media (max-width: 480px) { grid-template-columns: 1fr; gap: 16px; }
 `;
 
-const EventCard = styled(motion.div)`
+const EventCard = styled(motion.button)`
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
+  padding: 0;
+  text-align: left;
   transition: border-color 0.3s;
   &:hover { border-color: rgba(139, 92, 246, 0.3); }
 `;
@@ -658,13 +679,16 @@ const PhotoCardWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
 `;
 
-const PhotoCard = styled.div<{ $selected?: boolean }>`
+const PhotoCard = styled.button<{ $selected?: boolean }>`
   position: relative;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
+  border: 0;
+  padding: 0;
   aspect-ratio: 4/3;
   ${p => p.$selected && css`
     &::after {
@@ -730,7 +754,7 @@ const PhotoFilename = styled.div`
 `;
 
 // ── Watermark Overlay (CSS-only, not on downloads) ────────────────────────
-const WatermarkOverlay = styled.div`
+const _WatermarkOverlay = styled.div`
   position: absolute;
   bottom: 3%;
   right: 3%;
@@ -744,13 +768,13 @@ const WatermarkOverlay = styled.div`
   z-index: 1;
 `;
 
-const WatermarkLogo = styled.img`
+const _WatermarkLogo = styled.img`
   width: 100%;
   height: auto;
   display: block;
 `;
 
-const WatermarkText = styled.span`
+const _WatermarkText = styled.span`
   font-size: 10px;
   color: #fff;
   font-weight: 600;
@@ -906,10 +930,13 @@ const PricingDesc = styled.div`
   color: rgba(255,255,255,0.6);
 `;
 
-const ReferralLink = styled.p`
+const ReferralLink = styled.button`
   text-align: center;
+  width: 100%;
   font-size: 13px;
   color: rgba(139, 92, 246, 0.7);
+  background: transparent;
+  border: 0;
   cursor: pointer;
   margin: 0;
   &:hover { color: #60C0F0; text-decoration: underline; }
@@ -934,7 +961,7 @@ const ModalCloseBtn = styled.button`
 `;
 
 // ── Floating Cart (Mobile) ────────────────────────────────────────────────
-const FloatingCart = styled(motion.div)`
+const FloatingCart = styled(motion.button)`
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -955,6 +982,36 @@ const FloatingCart = styled(motion.div)`
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+`;
+
+const SourceTypeBadge = styled.span<{ $raw?: boolean }>`
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  vertical-align: middle;
+  background: ${({ $raw }) => $raw ? 'rgba(139,92,246,0.2)' : 'rgba(96,192,240,0.2)'};
+  color: ${({ $raw }) => $raw ? '#8B5CF6' : '#60C0F0'};
+  border: 1px solid ${({ $raw }) => $raw ? 'rgba(139,92,246,0.3)' : 'rgba(96,192,240,0.3)'};
+`;
+
+const LoadMoreSentinel = styled.div`
+  height: 1px;
+  width: 100%;
+`;
+
+const FloatingCartAction = styled.span`
+  color: #60C0F0;
+`;
+
+const ModalCardPositioned = styled(ModalCard)`
+  position: relative;
+`;
+
+const RedirectingDesc = styled(PricingDesc)`
+  margin-top: 8px;
+  color: #60C0F0;
 `;
 
 // ── Thank You / Support Section ───────────────────────────────────────────
@@ -1014,6 +1071,12 @@ const BackButton = styled.button`
   &:hover { background: rgba(255,255,255,0.1); }
 `;
 
+const BackButtonFull = styled(BackButton)`
+  margin-top: 16px;
+  width: 100%;
+  text-align: center;
+`;
+
 const LoadingShimmer = styled.div`
   width: 100%;
   height: 200px;
@@ -1028,7 +1091,7 @@ const GalleryPage: React.FC = () => {
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const authUser = useSelector((state: any) => state.auth?.user);
+  const authUser = useSelector((state: RootState) => state.auth?.user);
 
   // State
   const [events, setEvents] = useState<GalleryEventSummary[]>([]);
@@ -1116,13 +1179,13 @@ const GalleryPage: React.FC = () => {
       setShowVipModal(true);
     }
     // If redirected back from signup, auto-open VIP modal for new client
-    const state = location.state as any;
+    const state = location.state as GalleryLocationState | null;
     if (state?.showVipModal) {
       setShowVipModal(true);
       // Clean up state so refresh doesn't re-trigger
       window.history.replaceState({}, document.title);
     }
-  }, []);
+  }, [location.state]);
 
   // If slug param, open the gate for that event
   useEffect(() => {
@@ -1132,6 +1195,9 @@ const GalleryPage: React.FC = () => {
     } else if (slug && galleryToken) {
       loadPhotos(slug);
     }
+  // loadPhotos is intentionally kept out of the dependency array because it is
+  // defined below this effect and captures the current gallery session state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, galleryToken]);
 
   // Fetch credits when gallery token is available
@@ -1198,8 +1264,8 @@ const GalleryPage: React.FC = () => {
       if (controller.signal.aborted) return;
       const data = await res.json();
       if (data.success) setEvents(data.events);
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
+    } catch (err: unknown) {
+      if (isAbortError(err)) return;
       setError('Failed to load events');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -1258,8 +1324,8 @@ const GalleryPage: React.FC = () => {
           return prev;
         });
       }
-    } catch (err: any) {
-      if (err?.name === 'AbortError') return;
+    } catch (err: unknown) {
+      if (isAbortError(err)) return;
       setError('Failed to load photos');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
@@ -1354,7 +1420,7 @@ const GalleryPage: React.FC = () => {
 
       setGalleryToken(data.token);
       // Persist token so back-button navigation doesn't require re-login
-      try { sessionStorage.setItem(`gallery-token-${gateSlug}`, data.token); } catch {}
+      try { sessionStorage.setItem(`gallery-token-${gateSlug}`, data.token); } catch { /* best-effort gallery token persistence */ }
       // Merge access gate event with events list data (which includes description)
       setSelectedEvent(prev => {
         if (prev) return prev;
@@ -1443,7 +1509,7 @@ const GalleryPage: React.FC = () => {
     }
   };
 
-  const toggleEnhanceSelection = (photoId: number) => {
+  const _toggleEnhanceSelection = (photoId: number) => {
     setEnhanceSelections(prev => {
       const next = new Set(prev);
       if (next.has(photoId)) next.delete(photoId);
@@ -1551,7 +1617,6 @@ const GalleryPage: React.FC = () => {
   // Credit pill text
   const getCreditPillText = () => {
     if (credits.isVip) return 'VIP - Unlimited Enhancements';
-    const total = credits.freeRemaining + credits.purchasedCredits;
     if (credits.freeRemaining > 0) return `${credits.freeRemaining} Free Enhancement Pass${credits.freeRemaining !== 1 ? 'es' : ''}`;
     if (credits.purchasedCredits > 0) return `${credits.purchasedCredits} Enhancement Credit${credits.purchasedCredits !== 1 ? 's' : ''}`;
     return '0 Enhancement Credits';
@@ -1572,7 +1637,7 @@ const GalleryPage: React.FC = () => {
                 <span className="drama">Immortalized.</span>
               </HeroHeadline>
               <HeroSubheadline>
-                Premium photography for life's defining moments — events, portraits,
+                Premium photography for life&apos;s defining moments — events, portraits,
                 fitness transformations, and everything in between.
                 Preserved securely in the SwanStudios Vault.
               </HeroSubheadline>
@@ -1610,6 +1675,7 @@ const GalleryPage: React.FC = () => {
         <ContentMax id="events-section">
           <PageTitle>Recent Events</PageTitle>
           <PageSubtitle>Browse photos from recent events. Enter your email and event password to access.</PageSubtitle>
+          {error && <ErrorText>{error}</ErrorText>}
 
           {loading ? (
             <EventGrid>
@@ -1625,6 +1691,7 @@ const GalleryPage: React.FC = () => {
               {events.map((event, i) => (
                 <EventCard
                   key={event.id}
+                  type="button"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1 }}
@@ -1662,16 +1729,16 @@ const GalleryPage: React.FC = () => {
 
                 <form onSubmit={handleGateSubmit}>
                   <InputGroup>
-                    <Label>Email *</Label>
-                    <Input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+                    <Label htmlFor="gallery-event-gate-email">Email *</Label>
+                    <Input id="gallery-event-gate-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                   </InputGroup>
                   <InputGroup>
-                    <Label>First Name</Label>
-                    <Input type="text" placeholder="Optional" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                    <Label htmlFor="gallery-event-gate-first-name">First Name</Label>
+                    <Input id="gallery-event-gate-first-name" type="text" placeholder="Optional" value={firstName} onChange={e => setFirstName(e.target.value)} />
                   </InputGroup>
                   <InputGroup>
-                    <Label>Event Password *</Label>
-                    <Input type="password" placeholder="Password from SwanStudios" value={password} onChange={e => setPassword(e.target.value)} required />
+                    <Label htmlFor="gallery-event-gate-password">Event Password *</Label>
+                    <Input id="gallery-event-gate-password" type="password" placeholder="Password from SwanStudios" value={password} onChange={e => setPassword(e.target.value)} required />
                   </InputGroup>
                   <CheckboxRow>
                     <input type="checkbox" checked={parentalConsent} onChange={e => setParentalConsent(e.target.checked)} />
@@ -1687,9 +1754,9 @@ const GalleryPage: React.FC = () => {
                   {gateError && <ErrorText>{gateError}</ErrorText>}
                 </form>
 
-                <BackButton style={{ marginTop: 16, width: '100%', textAlign: 'center' }} onClick={() => { setShowGate(false); navigate('/gallery', { replace: true }); }}>
+                <BackButtonFull onClick={() => { setShowGate(false); navigate('/gallery', { replace: true }); }}>
                   Back to Events
-                </BackButton>
+                </BackButtonFull>
               </GateCard>
             </GateOverlay>
           )}
@@ -1702,7 +1769,7 @@ const GalleryPage: React.FC = () => {
   return (
     <PageWrapper>
       <ContentMax>
-        <BackButton onClick={() => { setGalleryToken(null); try { sessionStorage.removeItem(`gallery-token-${slug || gateSlug}`); } catch {} setPhotos([]); setSelectedEvent(null); navigate('/gallery', { replace: true }); }}>
+        <BackButton onClick={() => { setGalleryToken(null); try { sessionStorage.removeItem(`gallery-token-${slug || gateSlug}`); } catch { /* best-effort gallery token cleanup */ } setPhotos([]); setSelectedEvent(null); navigate('/gallery', { replace: true }); }}>
           &larr; Back to Events
         </BackButton>
 
@@ -1758,6 +1825,7 @@ const GalleryPage: React.FC = () => {
                 <PhotoCardWrapper key={photo.id}>
                   <PhotoCard
                     $selected={enhanceSelections.has(photo.id)}
+                    type="button"
                     onClick={() => openPhotoModal(index)}
                     onMouseEnter={() => setHoveredPhotoId(photo.id)}
                     onMouseLeave={() => setHoveredPhotoId(null)}
@@ -1773,9 +1841,7 @@ const GalleryPage: React.FC = () => {
                       loading="lazy"
                       width={photo.width || undefined}
                       height={photo.height || undefined}
-                      style={photo.width && photo.height ? { aspectRatio: `${photo.width}/${photo.height}` } : undefined}
-                      onLoad={e => {
-                        (e.target as HTMLImageElement).style.animation = 'none';
+                      onLoad={() => {
                         // Clear from failed set if it was retried successfully
                         if (failedImageIds.has(photo.id)) {
                           setFailedImageIds(prev => { const next = new Set(prev); next.delete(photo.id); return next; });
@@ -1790,34 +1856,26 @@ const GalleryPage: React.FC = () => {
                         }
                         // Track this image as failed for tab-switch retry
                         setFailedImageIds(prev => new Set(prev).add(photo.id));
-                        // Set low opacity to indicate failed state
-                        img.style.opacity = '0.3';
                       }}
-                    />
-                    <PhotoFeedback
-                      photoId={photo.id}
-                      thumbsUp={voteData?.thumbsUp || 0}
-                      thumbsDown={voteData?.thumbsDown || 0}
-                      userVote={voteData?.userVote || null}
-                      onVote={handleVote}
-                      isHovered={hoveredPhotoId === photo.id}
                     />
                     <PhotoOverlay>
                       <PhotoLabel>{photo.displayName}</PhotoLabel>
                     </PhotoOverlay>
                   </PhotoCard>
+                  <PhotoFeedback
+                    photoId={photo.id}
+                    thumbsUp={voteData?.thumbsUp || 0}
+                    thumbsDown={voteData?.thumbsDown || 0}
+                    userVote={voteData?.userVote || null}
+                    onVote={handleVote}
+                    isHovered={hoveredPhotoId === photo.id}
+                  />
                   <PhotoFilename>
                     {photo.displayName}
                     {photo.sourceType && (
-                      <span style={{
-                        marginLeft: 6, fontSize: 9, fontWeight: 700, padding: '1px 5px',
-                        borderRadius: 4, verticalAlign: 'middle',
-                        background: photo.sourceType === 'raw' ? 'rgba(139,92,246,0.2)' : 'rgba(96,192,240,0.2)',
-                        color: photo.sourceType === 'raw' ? '#8B5CF6' : '#60C0F0',
-                        border: `1px solid ${photo.sourceType === 'raw' ? 'rgba(139,92,246,0.3)' : 'rgba(96,192,240,0.3)'}`,
-                      }}>
+                      <SourceTypeBadge $raw={photo.sourceType === 'raw'}>
                         {photo.sourceType === 'raw' ? 'RAW' : 'HQ JPEG'}
-                      </span>
+                      </SourceTypeBadge>
                     )}
                   </PhotoFilename>
                 </PhotoCardWrapper>
@@ -1826,7 +1884,7 @@ const GalleryPage: React.FC = () => {
           </GridWrapper>
           {/* Sentinel for loading more photos as user scrolls */}
           {visiblePhotoCount < photos.length && (
-            <div ref={loadMoreRef} style={{ height: 1, width: '100%' }} />
+            <LoadMoreSentinel ref={loadMoreRef} />
           )}
           </>
         )}
@@ -1851,13 +1909,14 @@ const GalleryPage: React.FC = () => {
         <AnimatePresence>
           {enhanceSelections.size > 0 && (
             <FloatingCart
+              type="button"
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
               onClick={submitEnhancementRequest}
             >
               <span>{enhanceSelections.size} photo{enhanceSelections.size !== 1 ? 's' : ''} selected for enhancement</span>
-              <span style={{ color: '#60C0F0' }}>Submit &rarr;</span>
+              <FloatingCartAction>Submit &rarr;</FloatingCartAction>
             </FloatingCart>
           )}
         </AnimatePresence>
@@ -1917,46 +1976,47 @@ const GalleryPage: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowUpgradeModal(false)}
+              role="presentation"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowUpgradeModal(false);
+              }}
             >
-              <ModalCard
+              <ModalCardPositioned
                 initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.85, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                onClick={e => e.stopPropagation()}
-                style={{ position: 'relative' }}
               >
                 <ModalCloseBtn onClick={() => setShowUpgradeModal(false)}>&#x2715;</ModalCloseBtn>
                 <ModalTitle>Enhance Your Photos</ModalTitle>
                 <ModalSubtitle>Professional AI enhancement makes your photos pop. Choose a package:</ModalSubtitle>
 
                 <PricingGrid>
-                  <PricingCard onClick={() => handlePurchaseCredits('single')}>
+                  <PricingCard type="button" onClick={() => handlePurchaseCredits('single')}>
                     <PricingLabel>Single</PricingLabel>
                     <PricingPrice>$15</PricingPrice>
                     <PricingDesc>1 Photo Enhancement</PricingDesc>
-                    {purchaseLoading === 'single' && <PricingDesc style={{ marginTop: 8, color: '#60C0F0' }}>Redirecting...</PricingDesc>}
+                    {purchaseLoading === 'single' && <RedirectingDesc>Redirecting...</RedirectingDesc>}
                   </PricingCard>
 
-                  <PricingCard $highlighted onClick={() => handlePurchaseCredits('bundle')}>
+                  <PricingCard type="button" $highlighted onClick={() => handlePurchaseCredits('bundle')}>
                     <PricingLabel>Bundle</PricingLabel>
                     <PricingPrice>$50</PricingPrice>
                     <PricingDesc>5 Photo Enhancements</PricingDesc>
-                    {purchaseLoading === 'bundle' && <PricingDesc style={{ marginTop: 8, color: '#60C0F0' }}>Redirecting...</PricingDesc>}
+                    {purchaseLoading === 'bundle' && <RedirectingDesc>Redirecting...</RedirectingDesc>}
                   </PricingCard>
 
-                  <PricingCard $vip onClick={() => { setShowUpgradeModal(false); setShowVipModal(true); }}>
+                  <PricingCard type="button" $vip onClick={() => { setShowUpgradeModal(false); setShowVipModal(true); }}>
                     <PricingLabel>VIP</PricingLabel>
                     <PricingPrice>$175</PricingPrice>
                     <PricingDesc>2 Sessions + 90-Day Plan + Unlimited Enhancements</PricingDesc>
                   </PricingCard>
                 </PricingGrid>
 
-                <ReferralLink onClick={() => { setShowUpgradeModal(false); }}>
+                <ReferralLink type="button" onClick={() => { setShowUpgradeModal(false); }}>
                   Want 5 free passes? Refer a teammate to SwanStudios.
                 </ReferralLink>
-              </ModalCard>
+              </ModalCardPositioned>
             </ModalBackdrop>
           )}
         </AnimatePresence>
@@ -2006,16 +2066,16 @@ const GalleryPage: React.FC = () => {
               <GateSubtitle>Enter your email and the event password shared by SwanStudios</GateSubtitle>
               <form onSubmit={handleGateSubmit}>
                 <InputGroup>
-                  <Label>Email *</Label>
-                  <Input type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
+                  <Label htmlFor="gallery-direct-gate-email">Email *</Label>
+                  <Input id="gallery-direct-gate-email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
                 </InputGroup>
                 <InputGroup>
-                  <Label>First Name</Label>
-                  <Input type="text" placeholder="Optional" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                  <Label htmlFor="gallery-direct-gate-first-name">First Name</Label>
+                  <Input id="gallery-direct-gate-first-name" type="text" placeholder="Optional" value={firstName} onChange={e => setFirstName(e.target.value)} />
                 </InputGroup>
                 <InputGroup>
-                  <Label>Event Password *</Label>
-                  <Input type="password" placeholder="Password from SwanStudios" value={password} onChange={e => setPassword(e.target.value)} required />
+                  <Label htmlFor="gallery-direct-gate-password">Event Password *</Label>
+                  <Input id="gallery-direct-gate-password" type="password" placeholder="Password from SwanStudios" value={password} onChange={e => setPassword(e.target.value)} required />
                 </InputGroup>
                 <CheckboxRow>
                   <input type="checkbox" checked={parentalConsent} onChange={e => setParentalConsent(e.target.checked)} />
