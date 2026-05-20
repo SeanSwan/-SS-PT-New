@@ -14,6 +14,7 @@ import { upgradeToClient } from '../services/roleService.mjs';
 import { sendNotification } from '../services/notificationService.mjs';
 import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
+import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
 
 const router = express.Router();
 
@@ -292,11 +293,14 @@ async function processCompletedOrder(cartId) {
         continue;
       }
       packageNames.push(storefrontItem.name);
-      if (storefrontItem.itemType === 'TRAINING_PACKAGE_FIXED') {
-        totalSessionsAdded += storefrontItem.sessions || 0;
-      } else if (storefrontItem.itemType === 'TRAINING_PACKAGE_SUBSCRIPTION') {
+      totalSessionsAdded += getStorefrontSessionCredits(storefrontItem) * (item.quantity || 1);
+      if (storefrontItem.packageType === 'monthly') {
         subscriptionItems.push(storefrontItem);
       }
+    }
+
+    if (cart.cartItems.length > 0 && totalSessionsAdded <= 0) {
+      throw new Error(`No session credits found for completed cart ${cartId}`);
     }
 
     // Batch: single atomic increment for all sessions
@@ -421,7 +425,7 @@ async function createSubscription(userId, storefrontItem) {
  */
 async function triggerPurchaseAchievements(userId, cartItem) {
   try {
-    const sessions = Number(cartItem.storefrontItem?.sessions || 0);
+    const sessions = getStorefrontSessionCredits(cartItem.storefrontItem);
     const points = Math.min(500, Math.max(25, sessions * 10 || Math.round(Number(cartItem.price || 0) / 10)));
     const itemName = cartItem.storefrontItem?.name || 'Training Package';
 
@@ -436,7 +440,7 @@ async function triggerPurchaseAchievements(userId, cartItem) {
         cartItemId: cartItem.id,
         itemId: cartItem.storefrontItemId,
         itemName,
-        itemType: cartItem.storefrontItem?.itemType || 'UNKNOWN',
+        itemType: cartItem.storefrontItem?.packageType || 'UNKNOWN',
         price: cartItem.price,
         sessions
       },

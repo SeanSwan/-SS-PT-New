@@ -6,7 +6,12 @@
  * - Cart management, checkout, idempotency verification
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { testUsers, testCarts, testPackages, createMockRequest, createMockResponse } from '../fixtures/testData.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Mock database models
 vi.mock('../../models/ShoppingCart.mjs', () => ({
@@ -103,6 +108,46 @@ describe('Payment Flow API', () => {
       const cart = { ...testCarts.active, status: 'pending_payment' };
 
       expect(cart.status).toBe('pending_payment');
+    });
+
+    it('creates Stripe Checkout Sessions with a deterministic idempotency key', () => {
+      const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
+
+      expect(source).toContain('buildCheckoutSessionIdempotencyKey');
+      expect(source).toMatch(/checkout\.sessions\.create\([\s\S]*\{\s*idempotencyKey:\s*checkoutIdempotencyKey\s*\}/);
+    });
+
+    it('keeps mounted alternate checkout creators behind Stripe idempotency keys', () => {
+      const cartSource = readFileSync(resolve(__dirname, '../../routes/cartRoutes.mjs'), 'utf8');
+      const packageSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
+      const subscriptionSource = readFileSync(resolve(__dirname, '../../routes/subscriptionRoutes.mjs'), 'utf8');
+      const gallerySource = readFileSync(resolve(__dirname, '../../routes/galleryRoutes.mjs'), 'utf8');
+      const achSource = readFileSync(resolve(__dirname, '../../routes/achPaymentRoutes.mjs'), 'utf8');
+      const offlineSource = readFileSync(resolve(__dirname, '../../routes/offlinePaymentRoutes.mjs'), 'utf8');
+
+      expect(cartSource).toContain('buildStripeIdempotencyKey');
+      expect(cartSource).toMatch(/checkout\.sessions\.create\(sessionOptions,\s*\{\s*idempotencyKey\s*\}\)/);
+      expect(packageSource).toContain('session-package-checkout');
+      expect(packageSource).toContain('session-package-webhook:${session.id}');
+      expect(packageSource).toContain('claimIdempotentRecord');
+      expect(packageSource).toMatch(/lookupWhere:\s*\{\s*idempotencyKey:\s*fulfillmentKey\s*\}/);
+      expect(packageSource).toMatch(/createValues:\s*\{[\s\S]*idempotencyKey:\s*fulfillmentKey/);
+      expect(packageSource).toMatch(/user\.increment\('availableSessions'[\s\S]*transaction/);
+      expect(packageSource).toMatch(/checkout\.sessions\.create\([\s\S]*\},\s*\{\s*idempotencyKey\s*\}\s*\)/);
+      expect(subscriptionSource).toContain('subscription-donation-checkout');
+      expect(subscriptionSource).toContain('subscription-checkout');
+      expect(gallerySource).toContain('gallery-credits');
+      expect(gallerySource).toContain('gallery-donation');
+      expect(gallerySource).toContain('gallery-vip');
+      expect(gallerySource).toContain('buildGalleryPrintAttemptKey');
+      expect(gallerySource).toMatch(/const\s+\{\s*record:\s*order,\s*created\s*\}\s*=\s*await\s+claimIdempotentRecord/);
+      expect(gallerySource).toMatch(/if\s*\(!created\s*\)[\s\S]*PAYMENT_ATTEMPT_INCOMPLETE/);
+      expect(achSource).toContain('Order.findOne({ where: { userId, idempotencyKey } })');
+      expect(achSource).toContain('idempotencyKey,');
+      expect(achSource).toMatch(/paymentIntents\.create\([\s\S]*\},\s*\{\s*idempotencyKey[\s\S]*\}\s*\)/);
+      expect(offlineSource).toContain('effectiveIdempotencyKey');
+      expect(offlineSource).toContain('offline-payment:${userId}:${paymentMethod}');
+      expect(offlineSource).toContain('Order.findOne({ where: { userId, idempotencyKey: effectiveIdempotencyKey } })');
     });
   });
 

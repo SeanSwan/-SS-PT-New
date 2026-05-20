@@ -21,6 +21,9 @@ import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  claimIdempotentRecord,
+} from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
 
@@ -61,6 +64,37 @@ router.post('/create-intent', protect, async (req, res) => {
     // Validate idempotency key (must be UUIDv4)
     if (!idempotencyKey || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
       return res.status(400).json({ success: false, message: 'Invalid or missing idempotency key' });
+    }
+
+    const existingOrder = await Order.findOne({ where: { userId, idempotencyKey } });
+    if (existingOrder) {
+      if (!existingOrder.paymentId) {
+        return res.status(409).json({
+          success: false,
+          code: 'PAYMENT_ATTEMPT_INCOMPLETE',
+          message: 'A matching payment attempt is still being prepared. Please retry shortly.',
+        });
+      }
+
+      const existingIntent = await stripe.paymentIntents.retrieve(existingOrder.paymentId);
+      const existingNotes = (() => {
+        try {
+          return existingOrder.notes ? JSON.parse(existingOrder.notes) : {};
+        } catch {
+          return {};
+        }
+      })();
+
+      logger.info(`[ACH] Idempotency hit: returning existing PaymentIntent ${existingOrder.paymentId} for order ${existingOrder.orderNumber}`);
+      return res.json({
+        success: true,
+        clientSecret: existingIntent.client_secret,
+        orderNumber: existingOrder.orderNumber,
+        orderId: existingOrder.id,
+        subtotal: existingNotes.subtotal ?? null,
+        fee: existingNotes.fee ?? null,
+        total: Number(existingOrder.totalAmount),
+      });
     }
 
     // Server-side price validation (same as offlinePaymentRoutes)
@@ -113,20 +147,35 @@ router.post('/create-intent', protect, async (req, res) => {
     // Wrap Order + Stripe call in transaction to prevent ghost orders
     const orderNumber = generateOrderNumber();
     const result = await sequelize.transaction(async (t) => {
-      const order = await Order.create({
-        userId,
-        orderNumber,
-        totalAmount: totalWithFee.toNumber(),
-        status: 'pending',
-        paymentMethod: 'ach',
-        notes: JSON.stringify({
-          items,
-          customerInfo,
-          subtotal: serverTotal.toNumber(),
-          fee: fee.toNumber(),
+      const { record: order, created } = await claimIdempotentRecord({
+        model: Order,
+        lookupWhere: { userId, idempotencyKey },
+        transaction: t,
+        createValues: {
+          userId,
+          orderNumber,
+          totalAmount: totalWithFee.toNumber(),
+          status: 'pending',
+          paymentMethod: 'ach',
           idempotencyKey,
-        }),
-      }, { transaction: t });
+          notes: JSON.stringify({
+            items,
+            customerInfo,
+            subtotal: serverTotal.toNumber(),
+            fee: fee.toNumber(),
+            idempotencyKey,
+          }),
+        },
+      });
+
+      if (!created) {
+        if (!order.paymentId) {
+          return { order, paymentIntent: null, incomplete: true };
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(order.paymentId);
+        return { order, paymentIntent, reused: true };
+      }
 
       // Create Stripe PaymentIntent with us_bank_account
       const paymentIntent = await stripe.paymentIntents.create({
@@ -154,12 +203,20 @@ router.post('/create-intent', protect, async (req, res) => {
       return { order, paymentIntent };
     });
 
-    logger.info(`[ACH] PaymentIntent ${result.paymentIntent.id} created for order ${orderNumber}`);
+    if (result.incomplete) {
+      return res.status(409).json({
+        success: false,
+        code: 'PAYMENT_ATTEMPT_INCOMPLETE',
+        message: 'A matching payment attempt is still being prepared. Please retry shortly.',
+      });
+    }
+
+    logger.info(`[ACH] PaymentIntent ${result.paymentIntent.id} ${result.reused ? 'reused' : 'created'} for order ${result.order.orderNumber}`);
 
     return res.json({
       success: true,
       clientSecret: result.paymentIntent.client_secret,
-      orderNumber,
+      orderNumber: result.order.orderNumber,
       orderId: result.order.id,
       subtotal: serverTotal.toNumber(),
       fee: fee.toNumber(),

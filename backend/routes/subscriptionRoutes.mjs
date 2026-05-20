@@ -26,6 +26,7 @@ import Subscription from '../models/Subscription.mjs';
 import sequelize from '../database.mjs';
 import { TIER_DEFINITIONS as CATALOG_TIERS } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
+import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 
 const router = express.Router();
 
@@ -244,6 +245,15 @@ router.post('/checkout', protect, async (req, res) => {
         await user.update({ stripeCustomerId: customerId });
       }
 
+      const idempotencyKey = buildWindowedStripeIdempotencyKey(
+        `subscription-donation-checkout:${userId}:pro`,
+        {
+          userId,
+          tier: 'pro',
+          amount: donationAmount
+        }
+      );
+
       const session = await s.checkout.sessions.create({
         customer: customerId,
         mode: 'payment',
@@ -269,6 +279,8 @@ router.post('/checkout', protect, async (req, res) => {
           amount: String(donationAmount),
           billingMode: 'payment',
         },
+      }, {
+        idempotencyKey,
       });
 
       return res.json({
@@ -305,6 +317,16 @@ router.post('/checkout', protect, async (req, res) => {
     const intervalLabel = isAnnual ? 'Annual' : 'Monthly';
     const savingsNote = isAnnual ? ' (save $50!)' : '';
 
+    const idempotencyKey = buildWindowedStripeIdempotencyKey(
+      `subscription-checkout:${userId}:elite`,
+      {
+        userId,
+        tier: 'elite',
+        billingInterval,
+        amount: checkoutAmount
+      }
+    );
+
     const session = await s.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -340,6 +362,8 @@ router.post('/checkout', protect, async (req, res) => {
         amount: String(checkoutAmount),
         billingMode: 'subscription',
       },
+    }, {
+      idempotencyKey,
     });
 
     res.json({

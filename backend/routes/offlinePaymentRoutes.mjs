@@ -16,8 +16,11 @@ import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
-import { randomUUID } from 'crypto';
 import logger from '../utils/logger.mjs';
+import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
+import {
+  claimIdempotentRecord,
+} from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
 
@@ -116,25 +119,6 @@ router.post('/offline', protect, async (req, res) => {
       }
     }
 
-    // ── Idempotency Check ──
-    if (idempotencyKey) {
-      const existingOrder = await Order.findOne({ where: { idempotencyKey } });
-      if (existingOrder) {
-        logger.info(`[OfflinePayment] Idempotency hit: returning existing order ${existingOrder.orderNumber}`);
-        return res.json({
-          success: true,
-          order: {
-            id: existingOrder.id,
-            orderNumber: existingOrder.orderNumber,
-            totalAmount: existingOrder.totalAmount,
-            status: existingOrder.status,
-            paymentMethod: existingOrder.paymentMethod,
-          },
-          message: `Order already placed. Your ${paymentMethod} payment is pending confirmation.`,
-        });
-      }
-    }
-
     // ── Server-Side Price Validation ──
     let calculatedSubtotal;
     try {
@@ -170,31 +154,62 @@ router.post('/offline', protect, async (req, res) => {
       });
     }
 
+    const effectiveIdempotencyKey = idempotencyKey || buildWindowedStripeIdempotencyKey(
+      `offline-payment:${userId}:${paymentMethod}`,
+      {
+        total: calculatedTotal.toNumber(),
+        items: items.map(i => ({
+          storefrontItemId: i.storefrontItemId,
+          quantity: parseInt(i.quantity, 10),
+        })),
+      }
+    );
+
+    const existingOrder = await Order.findOne({ where: { userId, idempotencyKey: effectiveIdempotencyKey } });
+    if (existingOrder) {
+      logger.info(`[OfflinePayment] Idempotency hit: returning existing order ${existingOrder.orderNumber}`);
+      return res.json({
+        success: true,
+        order: {
+          id: existingOrder.id,
+          orderNumber: existingOrder.orderNumber,
+          totalAmount: existingOrder.totalAmount,
+          status: existingOrder.status,
+          paymentMethod: existingOrder.paymentMethod,
+        },
+        message: `Order already placed. Your ${paymentMethod} payment is pending confirmation.`,
+      });
+    }
+
     // ── Create Order ──
     const orderNumber = generateOrderNumber();
 
-    const order = await Order.create({
-      userId,
-      cartId: null,
-      orderNumber,
-      totalAmount: calculatedTotal.toNumber(),
-      status: 'pending',
-      paymentMethod,
-      billingEmail: customerInfo?.email || req.user?.email || null,
-      billingName: customerInfo?.name || null,
-      notes: JSON.stringify({
-        type: 'offline_payment',
-        method: paymentMethod,
-        items: items.map(i => ({ storefrontItemId: i.storefrontItemId, quantity: i.quantity, name: i.name })),
-        subtotal: calculatedSubtotal.toNumber(),
-        processingFee: calculatedFee.toNumber(),
-        customerInfo,
-        createdVia: 'checkout_payment_selector',
-      }),
-      idempotencyKey: idempotencyKey || randomUUID(),
+    const { record: order, created } = await claimIdempotentRecord({
+      model: Order,
+      lookupWhere: { userId, idempotencyKey: effectiveIdempotencyKey },
+      createValues: {
+        userId,
+        cartId: null,
+        orderNumber,
+        totalAmount: calculatedTotal.toNumber(),
+        status: 'pending',
+        paymentMethod,
+        billingEmail: customerInfo?.email || req.user?.email || null,
+        billingName: customerInfo?.name || null,
+        notes: JSON.stringify({
+          type: 'offline_payment',
+          method: paymentMethod,
+          items: items.map(i => ({ storefrontItemId: i.storefrontItemId, quantity: i.quantity, name: i.name })),
+          subtotal: calculatedSubtotal.toNumber(),
+          processingFee: calculatedFee.toNumber(),
+          customerInfo,
+          createdVia: 'checkout_payment_selector',
+        }),
+        idempotencyKey: effectiveIdempotencyKey,
+      },
     });
 
-    logger.info(`[OfflinePayment] Order ${orderNumber} created: ${paymentMethod} for $${calculatedTotal.toNumber()} by user ${userId}`);
+    logger.info(`[OfflinePayment] Order ${order.orderNumber} ${created ? 'created' : 'reused'}: ${paymentMethod} for $${calculatedTotal.toNumber()} by user ${userId}`);
 
     return res.json({
       success: true,
@@ -205,7 +220,9 @@ router.post('/offline', protect, async (req, res) => {
         status: order.status,
         paymentMethod: order.paymentMethod,
       },
-      message: `Order placed successfully. Please complete your ${paymentMethod} payment.`,
+      message: created
+        ? `Order placed successfully. Please complete your ${paymentMethod} payment.`
+        : `Order already placed. Your ${paymentMethod} payment is pending confirmation.`,
     });
   } catch (err) {
     logger.error('[OfflinePayment] Error creating order:', err.message, err.stack);

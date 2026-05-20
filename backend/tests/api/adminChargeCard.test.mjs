@@ -159,6 +159,8 @@ async function executeChargeFlow({
         storefrontItemId: storefrontItemId.toString(),
         source: 'admin_charge_card',
       },
+    }, {
+      idempotencyKey: `admin-charge:${idempotencyToken}`,
     });
   } catch (stripeErr) {
     mockLogger.error('[AdminChargeCard] Stripe charge failed:', stripeErr.message);
@@ -204,7 +206,10 @@ async function executeChargeFlow({
     mockLogger.warn(`[AdminChargeCard] Grant failed after capture, refunding: ${serviceError.message}`);
 
     try {
-      await stripe.refunds.create({ payment_intent: paymentIntent.id });
+      await stripe.refunds.create(
+        { payment_intent: paymentIntent.id },
+        { idempotencyKey: `admin-charge-refund:${idempotencyToken}` },
+      );
       mockLogger.info(`[AdminChargeCard] Refund issued for PI ${paymentIntent.id}`);
     } catch (refundErr) {
       // ★ REFUND-FAILURE PROTOCOL ★
@@ -320,6 +325,33 @@ describe('Admin Charge Card — Capture-First + Refund-on-Failure', () => {
     expect(mockRefundsCreate).not.toHaveBeenCalled();
   });
 
+  it('uses the request idempotencyToken as the Stripe idempotency key', async () => {
+    mockPaymentIntentsCreate.mockResolvedValue({ id: 'pi_idempotent', status: 'succeeded' });
+    mockApplyPackagePayment.mockResolvedValue({
+      orderId: 51,
+      orderNumber: 'REC-TEST-5678',
+      sessionsAdded: 10,
+      previousBalance: 0,
+      newBalance: 10,
+      packageName: '10-Pack Sessions',
+      totalAmount: 1750,
+    });
+
+    await executeChargeFlow({
+      client: makeClient(),
+      pkg: makePackage(),
+      paymentMethodId: 'pm_test_visa123',
+      idempotencyToken: VALID_UUID,
+      stripe,
+      FinancialTransaction,
+    });
+
+    expect(mockPaymentIntentsCreate).toHaveBeenCalledWith(
+      expect.any(Object),
+      { idempotencyKey: `admin-charge:${VALID_UUID}` },
+    );
+  });
+
   // ═══════════════════════════════════════════════════════════════
   // 2. STRIPE CHARGE FAILS
   // ═══════════════════════════════════════════════════════════════
@@ -380,7 +412,10 @@ describe('Admin Charge Card — Capture-First + Refund-on-Failure', () => {
 
     expect(res._status).toBe(422);
     expect(res._body.code).toBe('PACKAGE_INACTIVE');
-    expect(mockRefundsCreate).toHaveBeenCalledWith({ payment_intent: 'pi_refundable' });
+    expect(mockRefundsCreate).toHaveBeenCalledWith(
+      { payment_intent: 'pi_refundable' },
+      { idempotencyKey: `admin-charge-refund:${VALID_UUID}` },
+    );
     expect(mockFinancialTransactionCreate).not.toHaveBeenCalled();
   });
 
@@ -689,6 +724,10 @@ describe('Admin Charge Card — Capture-First + Refund-on-Failure', () => {
     });
 
     expect(callOrder).toEqual(['stripe_capture', 'grant_sessions', 'stripe_refund']);
+    expect(mockRefundsCreate).toHaveBeenCalledWith(
+      { payment_intent: 'pi_order_test2' },
+      { idempotencyKey: `admin-charge-refund:${VALID_UUID}` },
+    );
   });
 });
 

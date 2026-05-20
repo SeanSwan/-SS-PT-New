@@ -24,6 +24,33 @@ import sequelize from '../database.mjs';
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
+export function getStorefrontSessionCredits(storefrontItem) {
+  const directSessions = Number(storefrontItem?.sessions || 0);
+  if (Number.isFinite(directSessions) && directSessions > 0) {
+    return directSessions;
+  }
+
+  const totalSessions = Number(storefrontItem?.totalSessions || 0);
+  if (Number.isFinite(totalSessions) && totalSessions > 0) {
+    return totalSessions;
+  }
+
+  return 0;
+}
+
+export function getCartItemSessionCredits(cartItem) {
+  const quantity = Number(cartItem?.quantity || 0);
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return 0;
+  }
+
+  return getStorefrontSessionCredits(cartItem?.storefrontItem) * quantity;
+}
+
+export function calculateCartSessionCredits(cartItems = []) {
+  return cartItems.reduce((sum, item) => sum + getCartItemSessionCredits(item), 0);
+}
+
 /**
  * Atomically grants sessions for a completed cart.
  * Uses DB transaction with row-level lock to prevent race conditions.
@@ -73,10 +100,7 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       return { granted: false, sessionsAdded: 0, alreadyProcessed: true };
     }
 
-    // Calculate sessions from cart items
-    const sessionsToAdd = cart.cartItems.reduce((sum, item) => {
-      return sum + ((item.storefrontItem?.sessions || 0) * (item.quantity || 0));
-    }, 0);
+    const sessionsToAdd = calculateCartSessionCredits(cart.cartItems);
 
     // Lock user row before incrementing to prevent lost updates
     const user = await User.findByPk(cart.userId, {

@@ -2,9 +2,15 @@
 import express from 'express';
 import Stripe from 'stripe';
 import User from '../models/User.mjs';
+import Order from '../models/Order.mjs';
+import sequelize from '../database.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
+import {
+  claimIdempotentRecord,
+} from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
 
@@ -144,6 +150,14 @@ router.post('/purchase', protect, async (req, res) => {
     
     // Determine the frontend URLs for success and cancel pages
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const idempotencyKey = buildWindowedStripeIdempotencyKey(
+      `session-package-checkout:${userId}:${packageId}`,
+      {
+        packageId,
+        sessions: selectedPackage.sessions,
+        price: selectedPackage.price
+      }
+    );
     
     // Create the Stripe checkout session
     const session = await stripeClient.checkout.sessions.create({
@@ -169,6 +183,8 @@ router.post('/purchase', protect, async (req, res) => {
         packageId,
         sessions: selectedPackage.sessions.toString()
       }
+    }, {
+      idempotencyKey
     });
 
     // Return the checkout URL to redirect the user to Stripe
@@ -224,22 +240,75 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     try {
       // Check if this is a session package purchase
       if (session.metadata && session.metadata.packageId && session.metadata.sessions) {
-        const userId = session.client_reference_id;
+        const userId = Number(session.client_reference_id);
         const sessionsToAdd = parseInt(session.metadata.sessions, 10);
-        
-        // Find the user and update their available sessions
-        const user = await User.findByPk(userId);
-        
-        if (user) {
-          // Add the purchased sessions to the user's account
-          const currentSessions = user.availableSessions || 0;
-          user.availableSessions = currentSessions + sessionsToAdd;
-          await user.save();
-          
-          logger.info(`Added ${sessionsToAdd} sessions to user ${userId}`);
-        } else {
-          logger.error(`User not found for session purchase: ${userId}`);
+
+        if (!Number.isInteger(userId) || userId <= 0 || !Number.isInteger(sessionsToAdd) || sessionsToAdd <= 0) {
+          logger.error(`Invalid session package webhook payload: user=${session.client_reference_id}, sessions=${session.metadata.sessions}`);
+          return res.send();
         }
+
+        const fulfillmentKey = `session-package-webhook:${session.id}`;
+        const paymentIntentId = session.payment_intent || session.id;
+
+        await sequelize.transaction(async (transaction) => {
+          const existingOrder = await Order.findOne({
+            where: { idempotencyKey: fulfillmentKey },
+            transaction,
+          });
+
+          if (existingOrder) {
+            logger.info(`Session package webhook already fulfilled for ${session.id}`);
+            return;
+          }
+
+          const user = await User.findByPk(userId, {
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          });
+
+          if (!user) {
+            logger.error(`User not found for session purchase: ${userId}`);
+            return;
+          }
+
+          const { created } = await claimIdempotentRecord({
+            model: Order,
+            lookupWhere: { idempotencyKey: fulfillmentKey },
+            transaction,
+            createValues: {
+              userId,
+              cartId: null,
+              orderNumber: `SS-SP-${session.id}`,
+              totalAmount: Number(session.amount_total || 0) / 100,
+              status: 'completed',
+              paymentMethod: 'stripe',
+              paymentId: paymentIntentId,
+              paymentReference: session.id,
+              idempotencyKey: fulfillmentKey,
+              paymentAppliedAt: new Date(),
+              notes: JSON.stringify({
+                type: 'session_package_purchase',
+                packageId: session.metadata.packageId,
+                sessionsToAdd,
+                stripeCheckoutSessionId: session.id,
+                stripePaymentIntentId: paymentIntentId,
+              }),
+            },
+          });
+
+          if (!created) {
+            logger.info(`Session package webhook already fulfilled for ${session.id}`);
+            return;
+          }
+
+          await user.increment('availableSessions', {
+            by: sessionsToAdd,
+            transaction,
+          });
+
+          logger.info(`Added ${sessionsToAdd} sessions to user ${userId}`);
+        });
       }
     } catch (error) {
       logger.error(`Error processing session purchase: ${error.message}`);

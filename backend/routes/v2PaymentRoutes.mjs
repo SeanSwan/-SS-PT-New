@@ -34,9 +34,28 @@ import { protect } from '../middleware/authMiddleware.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import {
+  calculateCartSessionCredits,
+  getStorefrontSessionCredits,
+  grantSessionsForCart
+} from '../services/SessionGrantService.mjs';
+import { buildStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 
 const router = express.Router();
+
+export function buildCheckoutSessionIdempotencyKey(userId, cart) {
+  const itemFingerprint = (cart?.cartItems || [])
+    .map((item) => [
+      item.storefrontItemId,
+      item.quantity || 0,
+      item.price || 0,
+      getStorefrontSessionCredits(item.storefrontItem)
+    ].join(':'))
+    .sort()
+    .join('|');
+
+  return buildStripeIdempotencyKey(`checkout:${userId}:${cart?.id}`, itemFingerprint);
+}
 
 // Initialize Stripe with error handling
 let stripe = null;
@@ -182,10 +201,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     const total = subtotal + tax;
     const totalCents = Math.round(total * 100); // Convert to cents for Stripe
 
-    // Calculate total sessions for admin dashboard
-    const totalSessions = cart.cartItems.reduce((sum, item) => {
-      return sum + ((item.storefrontItem?.sessions || 0) * (item.quantity || 0));
-    }, 0);
+    const totalSessions = calculateCartSessionCredits(cart.cartItems);
 
     if (totalCents < 50) { // Stripe minimum $0.50
       return res.status(400).json({
@@ -248,7 +264,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
             description: item.storefrontItem?.description || 'Premium training package',
             metadata: {
               storefrontItemId: item.storefrontItemId.toString(),
-              sessions: (item.storefrontItem?.sessions || 0).toString()
+              sessions: getStorefrontSessionCredits(item.storefrontItem).toString()
             }
           },
           unit_amount: itemPriceCents,
@@ -271,6 +287,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         quantity: 1,
       });
     }
+
+    const checkoutIdempotencyKey = buildCheckoutSessionIdempotencyKey(userId, cart);
 
     // Step 5: Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -297,6 +315,8 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       automatic_tax: {
         enabled: false // We're handling tax manually
       }
+    }, {
+      idempotencyKey: checkoutIdempotencyKey
     });
 
     // Step 6: Update cart with session information for admin dashboard tracking

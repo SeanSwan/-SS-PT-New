@@ -14,7 +14,6 @@
 
 import express from 'express';
 import Stripe from 'stripe';
-import { randomUUID } from 'node:crypto';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { applyPackagePayment } from '../services/sessionDeductionService.mjs';
 import { mapServiceError } from './sessionDeductionRoute.helpers.mjs';
@@ -183,7 +182,7 @@ router.post('/charge', protect, adminOnly, async (req, res) => {
           source: 'admin_charge_card'
         }
       }, {
-        idempotencyKey: randomUUID()
+        idempotencyKey: `admin-charge:${idempotencyToken}`
       });
     } catch (stripeErr) {
       logger.error('[AdminChargeCard] Stripe charge failed:', stripeErr.message);
@@ -231,7 +230,10 @@ router.post('/charge', protect, adminOnly, async (req, res) => {
       logger.warn(`[AdminChargeCard] Grant failed after capture, refunding: ${serviceError.message}`);
 
       try {
-        await stripe.refunds.create({ payment_intent: paymentIntent.id });
+        await stripe.refunds.create(
+          { payment_intent: paymentIntent.id },
+          { idempotencyKey: `admin-charge-refund:${idempotencyToken}` }
+        );
         logger.info(`[AdminChargeCard] Refund issued for PI ${paymentIntent.id}`);
       } catch (refundErr) {
         // REFUND-FAILURE PROTOCOL

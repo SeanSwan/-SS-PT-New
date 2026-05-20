@@ -20,6 +20,10 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
+  buildStripeIdempotencyKey,
+  getStripeRetryWindowStart
+} from '../utils/stripeIdempotency.mjs';
+import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
   safeLoadCartItemsWithStorefront
@@ -684,8 +688,22 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
         .catch(err => logger.error('Failed to update user with Stripe customer ID:', err));
     }
 
-    // Generate an idempotency key to prevent duplicate checkout sessions
-    const idempotencyKey = `cart_${req.authUserId}_${Date.now()}`;
+    const retryWindowStartMs = getStripeRetryWindowStart();
+    const checkoutExpiresAtMs = retryWindowStartMs + (31 * 60 * 1000);
+    const checkoutFingerprint = cart.cartItems.map((item) => ({
+      storefrontItemId: item.storefrontItemId,
+      quantity: item.quantity,
+      price: item.price,
+      sessionCredits: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0
+    }));
+    const idempotencyKey = buildStripeIdempotencyKey(
+      `cart-checkout:${req.authUserId}:${cart.id}`,
+      {
+        retryWindowStartMs,
+        total: cartTotal,
+        items: checkoutFingerprint
+      }
+    );
 
     // Create a Stripe checkout session
     const sessionOptions = {
@@ -701,10 +719,10 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
         userId: req.authUserId,
         totalAmount: cartTotal.toFixed(2),
         itemCount: cart.cartItems.length,
-        createdAt: new Date().toISOString()
+        createdAt: new Date(retryWindowStartMs).toISOString()
       },
-      // Set session expiration to 30 minutes from now
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60)
+      // Pin expiration to the retry window while keeping it safely above Stripe's 30-minute minimum.
+      expires_at: Math.floor(checkoutExpiresAtMs / 1000)
     };
 
     const session = await stripeClient.checkout.sessions.create(sessionOptions, { idempotencyKey });

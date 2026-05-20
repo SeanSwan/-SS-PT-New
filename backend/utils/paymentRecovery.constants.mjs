@@ -16,6 +16,7 @@ export const MAX_FORCE_REASON_LENGTH = 500;
 
 // ── Idempotency ─────────────────────────────────────────────────
 export const IDEMPOTENCY_INDEX_NAME = 'idx_orders_idempotency_key';
+export const PRINT_ORDER_IDEMPOTENCY_INDEX_NAME = 'idx_print_orders_idempotency_key';
 export const UUID_V4_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 // ── Error code → HTTP status map (canonical source of truth) ────
@@ -46,8 +47,8 @@ export const ERROR_CODE_MAP = {
 };
 
 // ── Control character regexes ───────────────────────────────────
-const CTRL_CHAR_ALL = /[\x00-\x1F\x7F]/g;           // strips everything including \n \r \t
-const CTRL_CHAR_KEEP_NEWLINES = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g; // keeps \n(\x0A) \r(\x0D) \t(\x09)
+const CTRL_CHAR_ALL = new RegExp(String.raw`[\x00-\x1F\x7F]`, 'g'); // strips everything including \n \r \t
+const CTRL_CHAR_KEEP_NEWLINES = new RegExp(String.raw`[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]`, 'g'); // keeps \n(\x0A) \r(\x0D) \t(\x09)
 
 /**
  * Sanitize a string value: trim, strip control chars, check length.
@@ -100,11 +101,12 @@ export function maskReference(ref) {
  * @param {Error} error
  * @returns {boolean}
  */
-export function isIdempotencyViolation(error) {
+export function isIdempotencyViolation(error, indexNames = [IDEMPOTENCY_INDEX_NAME]) {
   if (error.name !== 'SequelizeUniqueConstraintError') return false;
+  const allowedIndexes = new Set(indexNames);
   // Primary: check constraint name from Postgres driver
-  if (error.original?.constraint === IDEMPOTENCY_INDEX_NAME) return true;
-  if (error.parent?.constraint === IDEMPOTENCY_INDEX_NAME) return true;
+  if (allowedIndexes.has(error.original?.constraint)) return true;
+  if (allowedIndexes.has(error.parent?.constraint)) return true;
   // Secondary fallback: check field path
   if (error.errors?.some(e => e.path === 'idempotencyKey')) return true;
   return false;

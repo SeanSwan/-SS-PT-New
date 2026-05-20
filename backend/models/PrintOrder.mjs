@@ -70,6 +70,12 @@ const PrintOrder = sequelize.define('PrintOrder', {
     allowNull: true,
     field: 'stripe_session_id',
   },
+  idempotencyKey: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'idempotency_key',
+    comment: 'Stable gallery print payment-attempt key',
+  },
   printProviderOrderId: {
     type: DataTypes.STRING(255),
     allowNull: true,
@@ -105,6 +111,7 @@ const PrintOrder = sequelize.define('PrintOrder', {
     { fields: ['photo_id'] },
     { fields: ['event_id'] },
     { fields: ['status'] },
+    { fields: ['idempotency_key'] },
   ],
 });
 

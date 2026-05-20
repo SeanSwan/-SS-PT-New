@@ -28,10 +28,16 @@ import unifiedSessionService from "../services/sessions/session.service.mjs";
 import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
+import User from "../models/User.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 
 const router = express.Router();
+
+const parsePositiveInteger = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 // ==================== CORE SESSION CRUD OPERATIONS ====================
 
@@ -465,6 +471,166 @@ router.get("/history/:userId", protect, async (req, res) => {
       error: error.message
     });
   }
+});
+
+// ==================== SESSION ALLOCATION COMPATIBILITY ENDPOINTS ====================
+
+/**
+ * POST /api/sessions/allocate-from-order
+ * Compatibility alias for legacy admin allocation callers.
+ */
+router.post("/allocate-from-order", protect, adminOnly, async (req, res) => {
+  try {
+    const { orderId, userId } = req.body;
+
+    if (!orderId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order ID and User ID are required'
+      });
+    }
+
+    const result = await unifiedSessionService.allocateSessionsFromOrder(orderId, userId);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message || 'Sessions allocated from order',
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/allocate-from-order:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to allocate sessions from order'
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/add-to-user
+ * Compatibility endpoint used by the canonical admin allocation UI.
+ */
+router.post("/add-to-user", protect, adminOnly, async (req, res) => {
+  try {
+    const userId = parsePositiveInteger(req.body.userId);
+    const sessionCount = parsePositiveInteger(req.body.sessionCount);
+    const reason = typeof req.body.reason === 'string' && req.body.reason.trim()
+      ? req.body.reason.trim()
+      : 'Manually added by admin';
+
+    if (!userId || !sessionCount) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and positive session count are required'
+      });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'firstName', 'lastName', 'availableSessions']
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `User ${userId} not found`
+      });
+    }
+
+    await user.increment('availableSessions', { by: sessionCount });
+    if (typeof user.reload === 'function') {
+      await user.reload();
+    }
+
+    const availableSessions = Number(user.availableSessions || 0);
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully added ${sessionCount} sessions`,
+      data: {
+        userId,
+        added: sessionCount,
+        availableSessions,
+        totalSessionsRemaining: availableSessions,
+        reason,
+        allocatedBy: req.user.id
+      }
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/add-to-user:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to add sessions'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/user-summary/:userId
+ * Compatibility endpoint used by the canonical admin allocation UI.
+ */
+router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
+  try {
+    const userId = parsePositiveInteger(req.params.userId);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid user ID is required'
+      });
+    }
+
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'availableSessions']
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: `User ${userId} not found`
+      });
+    }
+
+    const [scheduled, completed, cancelled] = await Promise.all([
+      Session.count({ where: { userId, status: ['assigned', 'scheduled', 'confirmed'] } }),
+      Session.count({ where: { userId, status: 'completed' } }),
+      Session.count({ where: { userId, status: 'cancelled' } })
+    ]);
+
+    const available = Number(user.availableSessions || 0);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        userId,
+        available,
+        scheduled,
+        completed,
+        cancelled,
+        total: available + scheduled + completed + cancelled
+      }
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/user-summary/:userId:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get session summary'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/allocation-health
+ * Lightweight compatibility health check for legacy allocation callers.
+ */
+router.get("/allocation-health", protect, adminOnly, async (_req, res) => {
+  return res.status(200).json({
+    success: true,
+    data: {
+      status: 'healthy',
+      service: 'unified-sessions-allocation-compatibility',
+      timestamp: new Date().toISOString()
+    }
+  });
 });
 
 /**

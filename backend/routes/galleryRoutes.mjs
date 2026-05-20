@@ -43,6 +43,13 @@ import { getClientIp, lookupGeo } from '../services/geoIpService.mjs';
 import { Op, fn, col, literal } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  buildWindowedStripeIdempotencyKey,
+} from '../utils/stripeIdempotency.mjs';
+import {
+  buildGalleryPrintAttemptKey,
+  claimIdempotentRecord,
+} from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
 
@@ -606,6 +613,16 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
     const pricing = CREDIT_PRICING[pkg];
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
+    const idempotencyKey = buildWindowedStripeIdempotencyKey(
+      `gallery-credits:${visitorId}:${eventId}:${pkg}`,
+      {
+        visitorId,
+        eventId,
+        package: pkg,
+        credits: pricing.credits,
+        price: pricing.price
+      }
+    );
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -632,6 +649,8 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
         visitorId: String(visitorId),
         eventId: String(eventId),
       },
+    }, {
+      idempotencyKey,
     });
 
     // Credits are applied via the Stripe webhook handler (checkout.session.completed)
@@ -671,6 +690,15 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
 
       const { default: Stripe } = await import('stripe');
       const stripe = new Stripe(stripeKey);
+      const idempotencyKey = buildWindowedStripeIdempotencyKey(
+        `gallery-donation:${visitorId}:${eventId}:stripe`,
+        {
+          visitorId,
+          eventId,
+          method: 'stripe',
+          amount: donationAmount
+        }
+      );
 
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
@@ -693,6 +721,8 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
           visitorId: String(visitorId),
           eventId: String(eventId),
         },
+      }, {
+        idempotencyKey,
       });
 
       // Record donation
@@ -727,6 +757,15 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
 
       const { default: Stripe } = await import('stripe');
       const stripe = new Stripe(stripeKey);
+      const idempotencyKey = buildWindowedStripeIdempotencyKey(
+        `gallery-donation:${visitorId}:${eventId}:venmo`,
+        {
+          visitorId,
+          eventId,
+          method: 'venmo',
+          amount: donationAmount
+        }
+      );
 
       const paymentMethodTypes = ['card'];
       // Venmo is available in Stripe for US accounts
@@ -753,6 +792,8 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
           visitorId: String(visitorId),
           eventId: String(eventId),
         },
+      }, {
+        idempotencyKey,
       });
 
       await GalleryDonation.create({
@@ -1199,6 +1240,15 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
     const gallerySlug = req.galleryAccess.slug || '';
+    const idempotencyKey = buildWindowedStripeIdempotencyKey(
+      `gallery-vip:${userId}:${visitorId}:${eventId}`,
+      {
+        userId,
+        visitorId,
+        eventId,
+        amount: 175
+      }
+    );
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -1222,6 +1272,8 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
         eventId: String(eventId),
         type: 'vip_pt_session',
       },
+    }, {
+      idempotencyKey,
     });
 
     logger.info(`[Gallery VIP] Checkout session created for user ${userId}, visitor ${visitorId}`);
@@ -1433,20 +1485,6 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
     const totalPrice = (unitPrice * qty).toFixed(2);
     const commission = (totalPrice * product.commission).toFixed(2);
 
-    // Create order record
-    const order = await PrintOrder.create({
-      visitorId,
-      photoId,
-      eventId,
-      productType,
-      size,
-      quantity: qty,
-      cropData: cropData || null,
-      priceUsd: totalPrice,
-      commissionUsd: commission,
-      status: 'pending',
-    });
-
     // Create Stripe Checkout session
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
@@ -1457,6 +1495,59 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
     const stripe = new Stripe(stripeKey);
 
     const baseUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
+    const printAttemptKey = buildGalleryPrintAttemptKey({
+      visitorId,
+      eventId,
+      photoId,
+      productType,
+      size,
+      quantity: qty,
+      totalPrice,
+      cropData: cropData || null,
+    });
+
+    const { record: order, created } = await claimIdempotentRecord({
+      model: PrintOrder,
+      lookupWhere: { idempotencyKey: printAttemptKey },
+      createValues: {
+        visitorId,
+        photoId,
+        eventId,
+        productType,
+        size,
+        quantity: qty,
+        cropData: cropData || null,
+        priceUsd: totalPrice,
+        commissionUsd: commission,
+        status: 'pending',
+        idempotencyKey: printAttemptKey,
+      },
+    });
+
+    if (!created) {
+      if (order.stripeSessionId) {
+        try {
+          const existingSession = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+          if (existingSession?.url) {
+            return res.json({
+              success: true,
+              checkoutUrl: existingSession.url,
+              orderId: order.id,
+              sessionId: order.stripeSessionId,
+            });
+          }
+        } catch (sessionErr) {
+          logger.warn(`[Gallery] Could not reuse recent print checkout session: ${sessionErr.message}`);
+        }
+      }
+
+      return res.status(409).json({
+        success: false,
+        code: 'PAYMENT_ATTEMPT_INCOMPLETE',
+        error: 'A matching print checkout is still being prepared. Please retry shortly.',
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -1479,6 +1570,8 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
         visitorId: String(visitorId),
         photoId: String(photoId),
       },
+    }, {
+      idempotencyKey: printAttemptKey,
     });
 
     await order.update({ stripeSessionId: session.id });
