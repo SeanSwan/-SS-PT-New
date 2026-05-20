@@ -45,7 +45,21 @@ export interface SessionServiceResponse<T> {
   error?: string;
 }
 
+export interface SessionClientSummary {
+  id: string | number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  username?: string;
+  [key: string]: unknown;
+}
+
 class SessionService {
+  async getClients(): Promise<SessionClientSummary[]> {
+    const response = await authAxiosInstance.get('/api/sessions/users/clients');
+    return (response.data?.data ?? response.data ?? []) as SessionClientSummary[];
+  }
+
   /**
    * Get all available session packages
    */

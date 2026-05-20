@@ -122,7 +122,7 @@ export function useAnalytics<T = unknown>(
         inflightRef.current = null;
       }
     }
-  }, [userId, endpoint, enabled]);
+  }, [userId, endpoint, enabled, cacheKey]);
 
   useEffect(() => {
     fetchData();
@@ -149,6 +149,13 @@ export interface DashboardAnalytics {
   totalVolume: number;
   avgIntensity: number;
   currentStreak: number;
+  exerciseTotals?: {
+    totalSessions?: number;
+    totalVolume?: number;
+  };
+  frequency?: {
+    weeklyAverage?: number;
+  };
   weightEntries?: Array<{ date: string; weight: number }>;
   [key: string]: unknown;
 }

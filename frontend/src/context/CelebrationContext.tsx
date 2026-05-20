@@ -66,7 +66,7 @@ const COMBO_WINDOW_MS = 3000; // Actions within 3s count as combo
 function haptic(pattern: number[]) {
   try {
     navigator?.vibrate?.(pattern);
-  } catch {}
+  } catch { /* best-effort celebration sound */ }
 }
 
 // ── Provider ──────────────────────────────────────────────────

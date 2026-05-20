@@ -3,7 +3,7 @@
  * Keeps migration APIs compact: useSwanTheme, alpha, useMediaQuery, useClickAway.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'styled-components';
 import type { DefaultTheme } from 'styled-components';
 
@@ -188,7 +188,7 @@ export const useMediaQuery = (
     return stripMediaPrefix(raw ?? '');
   }, [queryInput, theme]);
 
-  const getMediaMatcher = () => {
+  const getMediaMatcher = useCallback(() => {
     if (customMatchMedia) {
       return customMatchMedia;
     }
@@ -198,7 +198,7 @@ export const useMediaQuery = (
     }
 
     return undefined;
-  };
+  }, [customMatchMedia]);
 
   const [matches, setMatches] = useState<boolean>(() => {
     const matcher = getMediaMatcher();
@@ -233,7 +233,7 @@ export const useMediaQuery = (
 
     mediaQueryList.addListener(listener);
     return () => mediaQueryList.removeListener(listener);
-  }, [customMatchMedia, query]);
+  }, [customMatchMedia, getMediaMatcher, query]);
 
   return matches;
 };
@@ -299,9 +299,15 @@ export const createBreakpointQuery = (
     ? `(min-width:${getBreakpointValue(breakpoint)}px)`
     : `(max-width:${Math.max(0, getBreakpointValue(breakpoint) - 0.05)}px)`;
 
+const useBreakpointUp = (breakpoint: Breakpoint | number): boolean =>
+  useMediaQuery(createBreakpointQuery(breakpoint, 'up'));
+
+const useBreakpointDown = (breakpoint: Breakpoint | number): boolean =>
+  useMediaQuery(createBreakpointQuery(breakpoint, 'down'));
+
 export const useBreakpoint = {
-  up: (breakpoint: Breakpoint | number): boolean => useMediaQuery(createBreakpointQuery(breakpoint, 'up')),
-  down: (breakpoint: Breakpoint | number): boolean => useMediaQuery(createBreakpointQuery(breakpoint, 'down')),
+  up: useBreakpointUp,
+  down: useBreakpointDown,
 };
 
 export const themeUtils = {

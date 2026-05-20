@@ -21,7 +21,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { ThemeProvider as StyledThemeProvider, type DefaultTheme } from 'styled-components';
 import { injectThemeVariables } from '../../utils/theme/themeUtils';
 import { swanStudiosTheme } from '../../core/theme';
 
@@ -746,11 +746,11 @@ const cyberpunkEdgerunners = {
     stardust: '#12122A',
     void: '#050510',
 
-    primary: '#00FFFF',
-    primaryBlue: '#00E5FF',
-    primaryDeep: '#00B8D4',
-    primaryLight: '#60EFFF',
-    primaryNeon: '#00FFFF',
+    primary: '#60C0F0',
+    primaryBlue: '#60C0F0',
+    primaryDeep: '#50A0F0',
+    primaryLight: '#8ED8F8',
+    primaryNeon: '#60C0F0',
 
     secondary: '#8B5CF6',
     secondaryLight: '#A78BFA',
@@ -772,33 +772,33 @@ const cyberpunkEdgerunners = {
     warning: '#FBBF24',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, #00FFFF, #8B5CF6)',
-    secondary: 'linear-gradient(135deg, #12122A, #00FFFF)',
-    cosmic: 'linear-gradient(135deg, #00FFFF, #8B5CF6)',
-    hero: 'radial-gradient(ellipse at 20% 30%, rgba(0,255,255,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #12122A 0%, #0A0A14 70%)',
+    primary: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
+    secondary: 'linear-gradient(135deg, #12122A, #60C0F0)',
+    cosmic: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
+    hero: 'radial-gradient(ellipse at 20% 30%, rgba(96,192,240,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #12122A 0%, #0A0A14 70%)',
     card: 'rgba(18, 18, 42, 0.7)',
-    accent: 'linear-gradient(135deg, #0A0A14, #00FFFF)',
-    stellar: 'linear-gradient(45deg, #00FFFF 0%, #8B5CF6 100%)',
-    swanCosmic: 'linear-gradient(135deg, #00FFFF, #8B5CF6)',
-    glass: 'linear-gradient(135deg, rgba(18, 18, 42, 0.7), rgba(0, 255, 255, 0.05))',
+    accent: 'linear-gradient(135deg, #0A0A14, #60C0F0)',
+    stellar: 'linear-gradient(45deg, #60C0F0 0%, #8B5CF6 100%)',
+    swanCosmic: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
+    glass: 'linear-gradient(135deg, rgba(18, 18, 42, 0.7), rgba(96, 192, 240, 0.05))',
   },
   shadows: {
-    primary: '0 0 30px rgba(0, 255, 255, 0.3)',
+    primary: '0 0 30px rgba(96, 192, 240, 0.3)',
     secondary: '0 0 25px rgba(139, 92, 246, 0.25)',
-    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 255, 255, 0.15)',
-    accent: '0 0 20px rgba(0, 255, 255, 0.4)',
+    cosmic: '0 8px 32px rgba(0, 0, 0, 0.7), 0 0 60px rgba(96, 192, 240, 0.15)',
+    accent: '0 0 20px rgba(96, 192, 240, 0.4)',
     elevation: '0 15px 35px rgba(0, 0, 0, 0.8)',
     glow: '0 0 25px currentColor',
     glass: '0 8px 32px rgba(10, 10, 20, 0.6)',
-    button: '0 4px 20px rgba(0, 255, 255, 0.3)',
+    button: '0 4px 20px rgba(96, 192, 240, 0.3)',
   },
   borders: {
-    subtle: 'rgba(0, 255, 255, 0.1)',
-    elegant: 'rgba(0, 255, 255, 0.25)',
-    prominent: 'rgba(0, 255, 255, 0.45)',
-    glass: '1px solid rgba(0, 255, 255, 0.2)',
-    card: '1px solid rgba(0, 255, 255, 0.15)',
-    focus: '2px solid #00FFFF',
+    subtle: 'rgba(96, 192, 240, 0.1)',
+    elegant: 'rgba(96, 192, 240, 0.25)',
+    prominent: 'rgba(96, 192, 240, 0.45)',
+    glass: '1px solid rgba(96, 192, 240, 0.2)',
+    card: '1px solid rgba(96, 192, 240, 0.15)',
+    focus: '2px solid #60C0F0',
     glow: '1px solid rgba(139, 92, 246, 0.25)',
   },
   background: {
@@ -815,7 +815,7 @@ const cyberpunkEdgerunners = {
     subheading: 'rgba(224, 247, 255, 0.9)',
     body: 'rgba(224, 247, 255, 0.85)',
     label: 'rgba(224, 247, 255, 0.65)',
-    accent: '#00FFFF',
+    accent: '#60C0F0',
   },
 };
 
@@ -1117,7 +1117,7 @@ const emberRealm = {
  * Background: #060618 (ultra-deep navy)
  * Primary accent: #00FFB2 (bioluminescent green / gaming)
  * Secondary: #0066FF (electric blue)
- * Tertiary: #00E5FF (bright cyan)
+ * Tertiary: #60C0F0 (bright cyan)
  */
 const twilightLagoon = {
   id: 'twilight-lagoon' as const,
@@ -1162,12 +1162,12 @@ const twilightLagoon = {
   gradients: {
     primary: 'linear-gradient(135deg, #00FFB2, #0066FF)',
     secondary: 'linear-gradient(135deg, #0A0A2E, #0066FF)',
-    cosmic: 'linear-gradient(135deg, #00FFB2, #00E5FF)',
+    cosmic: 'linear-gradient(135deg, #00FFB2, #60C0F0)',
     hero: 'radial-gradient(ellipse at 20% 30%, rgba(0,255,178,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 70%, rgba(0,102,255,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, #0A0A2E 0%, #060618 70%)',
     card: 'rgba(10, 10, 46, 0.7)',
-    accent: 'linear-gradient(135deg, #060618, #00E5FF)',
+    accent: 'linear-gradient(135deg, #060618, #60C0F0)',
     stellar: 'linear-gradient(45deg, #00FFB2 0%, #0066FF 100%)',
-    swanCosmic: 'linear-gradient(135deg, #00FFB2, #00E5FF)',
+    swanCosmic: 'linear-gradient(135deg, #00FFB2, #60C0F0)',
     glass: 'linear-gradient(135deg, rgba(10, 10, 46, 0.7), rgba(0, 255, 178, 0.05))',
   },
   shadows: {
@@ -1677,7 +1677,7 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
 
   return (
     <ThemeContext.Provider value={contextValue}>
-      <StyledThemeProvider theme={mergedTheme as any}>
+      <StyledThemeProvider theme={mergedTheme as unknown as DefaultTheme}>
         {children}
       </StyledThemeProvider>
     </ThemeContext.Provider>

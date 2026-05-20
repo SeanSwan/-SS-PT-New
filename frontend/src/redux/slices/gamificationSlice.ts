@@ -13,9 +13,8 @@
  * and synchronous reducers for optimistic updates.
  *
  * HOW IT FITS IN THE APP:
- * Redux Store -> gamificationSlice -> consumed by AdvancedGamificationHub,
- * client-gamification-view, trainer-gamification-view, admin-gamification-view,
- * and any component needing XP/level/tier data.
+ * Redux Store -> gamificationSlice -> consumed by trainer/admin/client
+ * gamification surfaces and any component needing XP/level/tier data.
  *
  * KEY DECISIONS:
  * - Single slice for all gamification data (cohesive domain boundary)

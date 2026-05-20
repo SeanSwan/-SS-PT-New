@@ -30,6 +30,10 @@ interface SoundManagerState {
   retroMode: boolean;
 }
 
+interface WebKitAudioWindow extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 const state: SoundManagerState = {
   ctx: null,
   muted: true, // Muted by default — user opts in
@@ -41,7 +45,9 @@ function getCtx(): AudioContext | null {
   if (state.muted) return null;
   if (!state.ctx) {
     try {
-      state.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextCtor = window.AudioContext || (window as WebKitAudioWindow).webkitAudioContext;
+      if (!AudioContextCtor) return null;
+      state.ctx = new AudioContextCtor();
     } catch {
       return null;
     }
@@ -215,7 +221,7 @@ export const soundManager = {
     state.muted = muted;
     try {
       localStorage.setItem('ss-sound-muted', String(muted));
-    } catch {}
+    } catch { /* best-effort audio context resume */ }
   },
 
   getMuted() {
@@ -230,7 +236,7 @@ export const soundManager = {
     state.retroMode = retro;
     try {
       localStorage.setItem('ss-retro-mode', String(retro));
-    } catch {}
+    } catch { /* best-effort audio playback */ }
   },
 
   getRetroMode() {
@@ -251,7 +257,7 @@ export const soundManager = {
       else state.muted = true;
       const retro = localStorage.getItem('ss-retro-mode');
       if (retro === 'true') state.retroMode = true;
-    } catch {}
+    } catch { /* best-effort audio cleanup */ }
   },
 };
 

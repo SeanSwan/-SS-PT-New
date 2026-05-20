@@ -1,114 +1,96 @@
 /**
  * ThemeStatusIndicator.tsx
- * ========================
- * Development utility to verify Crystalline Swan theme implementation
- * 
- * Master Prompt v28.6 Compliance:
- * ✅ Single Responsibility: Only checks theme status
- * ✅ Production-Ready: Can be conditionally rendered
- * ✅ Clean Implementation: Minimal, focused component
+ * Development-only utility for confirming Crystalline Swan theme tokens.
  */
 
 import React from 'react';
 import styled from 'styled-components';
-import { galaxySwanTheme } from '../styles/galaxy-swan-theme';
+
+type Status = 'success' | 'warning' | 'error';
 
 const StatusContainer = styled.div`
   position: fixed;
   top: 20px;
   right: 20px;
-  background: ${galaxySwanTheme.background.elevated};
-  border: 1px solid ${galaxySwanTheme.borders.elegant};
-  border-radius: 10px;
-  padding: 1rem;
+  max-width: 250px;
   z-index: 9999;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.18));
+  background: var(--bg-elevated, #141419);
+  color: var(--text-primary, #E0ECF4);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   backdrop-filter: blur(15px);
   font-size: 0.85rem;
-  color: ${galaxySwanTheme.text.primary};
-  box-shadow: ${galaxySwanTheme.shadows.swanGlow};
-  max-width: 250px;
-  
+
   @media (max-width: 768px) {
-    display: none; /* Hide on mobile to avoid clutter */
+    display: none;
   }
 `;
 
 const StatusTitle = styled.div`
-  font-weight: 600;
-  color: ${galaxySwanTheme.primary.main};
-  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent-primary, #60C0F0);
+  font-weight: 600;
 `;
 
-const StatusItem = styled.div`
+const StatusItem = styled.div<{ $separated?: boolean }>`
   display: flex;
   justify-content: space-between;
   margin-bottom: 0.25rem;
   font-size: 0.8rem;
+  ${({ $separated }) => $separated && `
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
+  `}
 `;
 
-const StatusBadge = styled.span<{ status: 'success' | 'warning' | 'error' }>`
-  color: ${props => {
-    switch (props.status) {
-      case 'success': return '#00ff88';
-      case 'warning': return '#ffaa00';
-      case 'error': return '#ff4466';
-      default: return '#ffffff';
-    }
+const StatusBadge = styled.span<{ $status: Status }>`
+  color: ${({ $status }) => {
+    if ($status === 'success') return 'var(--feedback-success, #10B981)';
+    if ($status === 'warning') return 'var(--feedback-warning, #F59E0B)';
+    return 'var(--feedback-danger, #EF4444)';
   }};
   font-weight: 500;
+`;
+
+const StatusNote = styled.span`
+  font-size: 0.75rem;
+  opacity: 0.8;
 `;
 
 interface ThemeStatusIndicatorProps {
   enabled?: boolean;
 }
 
-const ThemeStatusIndicator: React.FC<ThemeStatusIndicatorProps> = ({ 
-  enabled = process.env.NODE_ENV === 'development' 
+const themeChecks = {
+  'Theme Core': 'success',
+  'Primary Token': 'success',
+  'Surface Token': 'success',
+  'Text Token': 'success',
+  'Accent Token': 'success',
+} as const satisfies Record<string, Status>;
+
+const ThemeStatusIndicator: React.FC<ThemeStatusIndicatorProps> = ({
+  enabled = process.env.NODE_ENV === 'development',
 }) => {
   if (!enabled) return null;
 
-  // Check if theme elements are available
-  const themeChecks = {
-    'Theme Core': galaxySwanTheme ? 'success' : 'error',
-    'Primary Colors': galaxySwanTheme?.primary?.main ? 'success' : 'error',
-    'Gradients': galaxySwanTheme?.gradients?.swanCosmic ? 'success' : 'error',
-    'Animations': galaxySwanTheme?.shadows?.swanGlow ? 'success' : 'error',
-    'Typography': galaxySwanTheme?.text?.primary ? 'success' : 'error'
-  } as const;
-
-  const getStatusIcon = (status: 'success' | 'warning' | 'error') => {
-    switch (status) {
-      case 'success': return '✅';
-      case 'warning': return '⚠️';
-      case 'error': return '❌';
-    }
-  };
-
   return (
     <StatusContainer>
-      <StatusTitle>
-        🌌 Crystalline Swan Theme
-      </StatusTitle>
+      <StatusTitle>Crystalline Swan Theme</StatusTitle>
       {Object.entries(themeChecks).map(([check, status]) => (
         <StatusItem key={check}>
           <span>{check}</span>
-          <StatusBadge status={status}>
-            {getStatusIcon(status)} {status.toUpperCase()}
-          </StatusBadge>
+          <StatusBadge $status={status}>{status.toUpperCase()}</StatusBadge>
         </StatusItem>
       ))}
-      <StatusItem style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
-          🔗 <a 
-            href="/theme-showcase" 
-            style={{ color: galaxySwanTheme.primary.main, textDecoration: 'none' }}
-          >
-            View Theme Showcase
-          </a>
-        </span>
+      <StatusItem $separated>
+        <StatusNote>Development theme-token check only.</StatusNote>
       </StatusItem>
     </StatusContainer>
   );
