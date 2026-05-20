@@ -85,6 +85,34 @@ const CardValue = styled.span`
   word-break: break-all;
 `;
 
+const ErrorActionCard = styled(ActionCard)`
+  border-color: rgba(201, 42, 84, 0.3);
+`;
+
+const CriticalActionCard = styled(ActionCard)`
+  border-color: var(--error, #C92A54);
+`;
+
+const ErrorCardTitle = styled(CardTitle)`
+  color: var(--error, #C92A54);
+`;
+
+const SoftErrorCardTitle = styled(CardTitle)`
+  color: #ff8fa3;
+`;
+
+const SuccessCardValue = styled(CardValue)`
+  color: #10B981;
+`;
+
+const FailureCardValue = styled(CardValue)`
+  color: #C92A54;
+`;
+
+const PainFlagsWrap = styled.div`
+  margin-top: 8px;
+`;
+
 const ProgressBar = styled.div<{ $pct: number }>`
   flex: 1;
   height: 6px;
@@ -107,6 +135,10 @@ const ProgressBar = styled.div<{ $pct: number }>`
 // ─────────────────────────────────────────────────────────────
 const TranscriptCard = styled(ActionCard)`
   border-color: rgba(96, 192, 240, 0.25);
+`;
+
+const TranscriptErrorCard = styled(TranscriptCard)`
+  border-color: rgba(201, 42, 84, 0.3);
 `;
 
 const TranscriptDetails = styled.details`
@@ -309,6 +341,14 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+interface WorkoutImportResult {
+  date?: string;
+  success?: boolean;
+  exerciseCount?: number;
+  totalSets?: number;
+  totalWeight?: number;
+}
+
 interface CoachMessageProps {
   message: CoachMessageData;
   onReadAloud?: (text: string) => void;
@@ -422,10 +462,10 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       ))}
 
       {coachActionProposalError && (
-        <ActionCard style={{ borderColor: 'var(--error, #C92A54)' }}>
-          <CardTitle style={{ color: 'var(--error, #C92A54)' }}>Proposal Preparation Failed</CardTitle>
+        <CriticalActionCard>
+          <ErrorCardTitle>Proposal Preparation Failed</ErrorCardTitle>
           <CardRow><CardValue>{safeProposalPreparationFailure()}</CardValue></CardRow>
-        </ActionCard>
+        </CriticalActionCard>
       )}
 
       {/* Legacy client creation result. New replies use proposal cards above. */}
@@ -457,25 +497,25 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
       )}
 
       {clientCreate && !clientCreate.success && (
-        <ActionCard style={{ borderColor: 'rgba(201, 42, 84, 0.3)' }}>
-          <CardTitle style={{ color: '#C92A54' }}>Client Creation Failed</CardTitle>
+        <ErrorActionCard>
+          <ErrorCardTitle>Client Creation Failed</ErrorCardTitle>
           <CardRow><CardValue>{safeClientCreateFailure()}</CardValue></CardRow>
-        </ActionCard>
+        </ErrorActionCard>
       )}
 
       {/* Workout Import Results Card */}
       {(workoutImports?.length ?? 0) > 0 && (
         <ActionCard>
           <CardTitle><Dumbbell size={16} /> Workout Import Results</CardTitle>
-          {(workoutImports ?? []).map((w: any, i: number) => (
+          {(workoutImports ?? []).map((w: WorkoutImportResult, i: number) => (
             <CardRow key={i}>
               <CardLabel>{w.date || `Workout ${i + 1}`}</CardLabel>
               {w.success ? (
-                <CardValue style={{ color: '#10B981' }}>
-                  {w.exerciseCount} exercises · {w.totalSets} sets · {w.totalWeight > 0 ? `${w.totalWeight.toLocaleString()} lbs` : 'bodyweight'}
-                </CardValue>
+                <SuccessCardValue>
+                  {w.exerciseCount ?? 0} exercises · {w.totalSets ?? 0} sets · {(w.totalWeight ?? 0) > 0 ? `${(w.totalWeight ?? 0).toLocaleString()} lbs` : 'bodyweight'}
+                </SuccessCardValue>
               ) : (
-                <CardValue style={{ color: '#C92A54' }}>Failed: {safeWorkoutImportFailure()}</CardValue>
+                <FailureCardValue>Failed: {safeWorkoutImportFailure()}</FailureCardValue>
               )}
             </CardRow>
           ))}
@@ -568,14 +608,14 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
 
           {transcriptReview.parsedWorkout?.painFlags &&
             transcriptReview.parsedWorkout.painFlags.length > 0 && (
-              <div style={{ marginTop: 8 }}>
+              <PainFlagsWrap>
                 {transcriptReview.parsedWorkout.painFlags.map((flag, i) => (
                   <PainFlagBadge key={i}>
                     <AlertTriangle size={11} />
                     {flag.side ? `${flag.side} ` : ''}{flag.bodyRegion}
                   </PainFlagBadge>
                 ))}
-              </div>
+              </PainFlagsWrap>
             )}
 
           <TranscriptDetails>
@@ -637,16 +677,15 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           REAL parsed review still use transcriptReview.applyError so the
           user can retry without losing the parsed data. */}
       {transcriptError && (
-        <TranscriptCard
+        <TranscriptErrorCard
           data-testid="transcript-error-card"
-          style={{ borderColor: 'rgba(201, 42, 84, 0.3)' }}
         >
-          <CardTitle style={{ color: '#ff8fa3' }}>
+          <SoftErrorCardTitle>
             <AlertTriangle size={16} />
             {transcriptError.kind === 'no_client'
               ? 'Client required'
               : 'Upload failed'}
-          </CardTitle>
+          </SoftErrorCardTitle>
           <CardRow>
             <CardLabel>File</CardLabel>
             <CardValue>
@@ -670,7 +709,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
               <X size={14} /> Dismiss
             </TranscriptBtn>
           </TranscriptActions>
-        </TranscriptCard>
+        </TranscriptErrorCard>
       )}
 
       {audioIntakeReceipt && (
@@ -755,7 +794,7 @@ const CoachMessageComponent: React.FC<CoachMessageProps> = ({
           {typeof transcriptResult.xpAwarded === 'number' && (
             <CardRow>
               <CardLabel>XP awarded</CardLabel>
-              <CardValue style={{ color: '#10B981' }}>+{transcriptResult.xpAwarded} XP</CardValue>
+              <SuccessCardValue>+{transcriptResult.xpAwarded} XP</SuccessCardValue>
             </CardRow>
           )}
           {typeof transcriptResult.streakDays === 'number' && (

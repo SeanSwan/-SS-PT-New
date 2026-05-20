@@ -75,8 +75,10 @@ const PanelContainer = styled.div<{ $isOpen: boolean }>`
   }
 `;
 
-const PanelOverlay = styled.div<{ $visible: boolean }>`
+const PanelOverlay = styled.button<{ $visible: boolean }>`
+  border: 0;
   display: none;
+  padding: 0;
 
   @media (max-width: 1023px) {
     display: block;
@@ -226,6 +228,56 @@ const ExerciseName = styled.div`
   margin-bottom: 12px;
 `;
 
+const SkeletonSpacer = styled.div`
+  height: 16px;
+`;
+
+const DropdownStatus = styled.div`
+  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  padding: 16px;
+  text-align: center;
+`;
+
+const LoadingIcon = styled(Loader2)`
+  animation: spin 1s linear infinite;
+`;
+
+const TabLabel = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+`;
+
+const TeachErrorBox = styled.div`
+  background: color-mix(in srgb, #C92A54 6%, transparent);
+  border-left: 3px solid #C92A54;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  padding: 16px;
+`;
+
+const TeachErrorText = styled.p`
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.78rem;
+  margin: 0 0 8px;
+`;
+
+const RetryButton = styled.button`
+  background: transparent;
+  border: 1px solid var(--accent-primary, #60C0F0);
+  border-radius: 6px;
+  color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
+  min-height: 44px;
+  padding: 6px 14px;
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Loading Skeleton
 // ─────────────────────────────────────────────────────────────
@@ -235,7 +287,7 @@ const TeachModeSkeleton: React.FC = () => (
     <SkeletonLine />
     <SkeletonLine $width="80%" />
     <SkeletonLine $width="45%" />
-    <div style={{ height: 16 }} />
+    <SkeletonSpacer />
     <SkeletonLine $width="50%" />
     <SkeletonLine />
     <SkeletonLine $width="70%" />
@@ -263,7 +315,12 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
 
   return (
     <>
-      <PanelOverlay $visible={teachMode.isOpen} onClick={teachMode.close} />
+      <PanelOverlay
+        type="button"
+        $visible={teachMode.isOpen}
+        onClick={teachMode.close}
+        aria-label="Close Teach Mode panel"
+      />
       <PanelContainer $isOpen={teachMode.isOpen} role="complementary" aria-label="Teach Mode panel">
         {/* Header */}
         <PanelHeader>
@@ -291,9 +348,9 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
           {(teachMode.searchResults.length > 0 || teachMode.isSearching) && teachMode.searchQuery.length >= 2 && (
             <ResultsDropdown>
               {teachMode.isSearching ? (
-                <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted, rgba(224,236,244,0.4))' }}>
-                  <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                </div>
+                <DropdownStatus>
+                  <LoadingIcon size={16} />
+                </DropdownStatus>
               ) : (
                 teachMode.searchResults.map(ex => (
                   <ResultItem
@@ -309,15 +366,9 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
                 ))
               )}
               {!teachMode.isSearching && teachMode.searchResults.length === 0 && (
-                <div style={{
-                  padding: 16,
-                  textAlign: 'center',
-                  fontFamily: "'Sora', sans-serif",
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted, rgba(224,236,244,0.4))',
-                }}>
+                <DropdownStatus>
                   No exercises found
-                </div>
+                </DropdownStatus>
               )}
             </ResultsDropdown>
           )}
@@ -341,10 +392,10 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
                     aria-selected={activeTab === tab.id}
                     aria-controls={`coach-panel-${tab.id}`}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
+                    <TabLabel>
                       {tab.icon}
                       {tab.label}
-                    </span>
+                    </TabLabel>
                   </TabButton>
                 ))}
               </TabBar>
@@ -354,40 +405,17 @@ const CoachTeachModePanel: React.FC<CoachTeachModePanelProps> = ({ teachMode }) 
 
               {/* Error */}
               {error && (
-                <div style={{
-                  padding: 16,
-                  borderRadius: 8,
-                  borderLeft: '3px solid #C92A54',
-                  background: 'color-mix(in srgb, #C92A54 6%, transparent)',
-                  marginBottom: 12,
-                }} role="alert">
-                  <p style={{
-                    margin: 0,
-                    fontFamily: "'Sora', sans-serif",
-                    fontSize: '0.78rem',
-                    color: 'var(--text-primary, #E0ECF4)',
-                    marginBottom: 8,
-                  }}>
+                <TeachErrorBox role="alert">
+                  <TeachErrorText>
                     {error}
-                  </p>
-                  <button
+                  </TeachErrorText>
+                  <RetryButton
                     onClick={refetch}
                     type="button"
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 6,
-                      border: '1px solid var(--accent-primary, #60C0F0)',
-                      background: 'transparent',
-                      color: 'var(--accent-primary, #60C0F0)',
-                      fontFamily: "'Sora', sans-serif",
-                      fontSize: '0.72rem',
-                      cursor: 'pointer',
-                      minHeight: 44,
-                    }}
                   >
                     Try Again
-                  </button>
-                </div>
+                  </RetryButton>
+                </TeachErrorBox>
               )}
 
               {/* Tab Content */}
