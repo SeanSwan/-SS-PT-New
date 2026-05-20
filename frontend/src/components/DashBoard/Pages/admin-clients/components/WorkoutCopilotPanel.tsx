@@ -65,7 +65,7 @@
  *            CopilotDraftReview, CopilotSavedState, LongHorizonContent
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { X, Sparkles, Save, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
@@ -91,7 +91,7 @@ import type {
   PainEntry,
 } from './copilot-types';
 
-import { TabBar, TabButton } from './copilot-local-styles';
+import { GeneratingCopy, GeneratingTitle, TabBar, TabButton } from './copilot-local-styles';
 import {
   SWAN_CYAN,
   ModalOverlay,
@@ -116,6 +116,27 @@ import CopilotDraftReview from './CopilotDraftReview';
 import CopilotSavedState from './CopilotSavedState';
 import LongHorizonContent from './LongHorizonContent';
 
+interface ApiErrorPayload {
+  code?: string;
+  message?: string;
+  errors?: ValidationError[];
+}
+
+interface ApiErrorLike {
+  message?: string;
+  response?: {
+    data?: ApiErrorPayload;
+  };
+}
+
+const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } => {
+  const apiError = err as ApiErrorLike;
+  return {
+    data: apiError.response?.data || {},
+    message: apiError.message,
+  };
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // PURPOSE: State machine orchestrator — all state lives here,
@@ -134,8 +155,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const { authAxios, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
-  const service = createAiWorkoutService(authAxios);
-  const painService = createPainEntryService(authAxios);
+  const service = useMemo(() => createAiWorkoutService(authAxios), [authAxios]);
+  const painService = useMemo(() => createPainEntryService(authAxios), [authAxios]);
 
   // ── State Machine ───────────────────────────────────────────
   const [state, setState] = useState<CopilotState>('idle');
@@ -175,7 +196,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Pain safety check ──────────────────────────────────────
   const [activePainEntries, setActivePainEntries] = useState<PainEntry[]>([]);
-  const [painCheckLoading, setPainCheckLoading] = useState(false);
   const [painAcknowledged, setPainAcknowledged] = useState(false);
 
   // ── Double-submit guard ─────────────────────────────────────
@@ -206,7 +226,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setErrorCode('');
       setApproveErrors([]);
       setActivePainEntries([]);
-      setPainCheckLoading(false);
       setPainAcknowledged(false);
       setExpandedDays(new Set());
       setIsSubmitting(false);
@@ -219,10 +238,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         .catch(() => { /* silent -- templates are informational for coach awareness */ })
         .finally(() => setTemplatesLoading(false));
     }
-  }, [open]);
+  }, [open, service]);
 
   // ── Auto-generate on open (skip idle screen) ──────────────
   const autoGenerateTriggered = useRef(false);
+  const checkPainEntriesRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -232,7 +252,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     if (autoGenerate && !autoGenerateTriggered.current && state === 'idle' && !isSubmitting) {
       autoGenerateTriggered.current = true;
       const timer = setTimeout(() => {
-        checkPainEntries();
+        void checkPainEntriesRef.current?.();
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -266,12 +286,12 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         }
         setState('draft_review');
       }
-    } catch (err: any) {
-      const data = err?.response?.data;
-      if (data?.code === 'MISSING_OVERRIDE_REASON') {
+    } catch (err: unknown) {
+      const { data, message } = getApiError(err);
+      if (data.code === 'MISSING_OVERRIDE_REASON') {
         if (overrideReasonRequired) {
-          setErrorMessage(data?.message || 'Admin override requires a reason');
-          setErrorCode(data?.code || '');
+          setErrorMessage(data.message || 'Admin override requires a reason');
+          setErrorCode(data.code || '');
           setState('error');
           return;
         }
@@ -279,8 +299,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         setState('idle');
         return;
       }
-      setErrorMessage(data?.message || err.message || 'Failed to generate workout plan');
-      setErrorCode(data?.code || '');
+      setErrorMessage(data.message || message || 'Failed to generate workout plan');
+      setErrorCode(data.code || '');
       setState('error');
     } finally {
       setIsSubmitting(false);
@@ -292,7 +312,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const checkPainEntries = useCallback(async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    setPainCheckLoading(true);
 
     try {
       const resp = await painService.getActive(clientId);
@@ -313,8 +332,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     }
 
     setIsSubmitting(false);
-    setPainCheckLoading(false);
-  }, [clientId, isSubmitting, painAcknowledged, doGenerate]);
+  }, [clientId, isSubmitting, painAcknowledged, doGenerate, painService]);
+
+  useEffect(() => {
+    checkPainEntriesRef.current = checkPainEntries;
+  }, [checkPainEntries]);
 
   const handleGenerate = useCallback(async () => {
     if (isSubmitting) return;
@@ -355,12 +377,12 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       });
 
       onSuccess?.();
-    } catch (err: any) {
-      const data = err?.response?.data;
-      if (data?.code === 'MISSING_OVERRIDE_REASON') {
+    } catch (err: unknown) {
+      const { data } = getApiError(err);
+      if (data.code === 'MISSING_OVERRIDE_REASON') {
         if (overrideReasonRequired) {
-          setErrorMessage(data?.message || 'Admin override requires a reason');
-          setErrorCode(data?.code || '');
+          setErrorMessage(data.message || 'Admin override requires a reason');
+          setErrorCode(data.code || '');
           setState('approve_error');
           return;
         }
@@ -368,9 +390,9 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
         setState('idle');
         return;
       }
-      setErrorMessage(data?.message || 'Failed to approve plan');
-      setErrorCode(data?.code || '');
-      setApproveErrors(data?.errors || []);
+      setErrorMessage(data.message || 'Failed to approve plan');
+      setErrorCode(data.code || '');
+      setApproveErrors(data.errors || []);
       setState('approve_error');
     } finally {
       setIsSubmitting(false);
@@ -382,11 +404,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Plan editing helpers ────────────────────────────────────
 
-  const updatePlanField = (field: keyof WorkoutPlan, value: any) => {
+  const updatePlanField = <K extends keyof WorkoutPlan>(field: K, value: WorkoutPlan[K]) => {
     setEditedPlan(prev => prev ? { ...prev, [field]: value } : null);
   };
 
-  const updateDay = (dayIdx: number, field: keyof WorkoutDay, value: any) => {
+  const updateDay = <K extends keyof WorkoutDay>(dayIdx: number, field: K, value: WorkoutDay[K]) => {
     setEditedPlan(prev => {
       if (!prev) return null;
       const days = [...prev.days];
@@ -395,7 +417,12 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     });
   };
 
-  const updateExercise = (dayIdx: number, exIdx: number, field: keyof Exercise, value: any) => {
+  const updateExercise = <K extends keyof Exercise>(
+    dayIdx: number,
+    exIdx: number,
+    field: K,
+    value: Exercise[K],
+  ) => {
     setEditedPlan(prev => {
       if (!prev) return null;
       const days = [...prev.days];
@@ -420,7 +447,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setEditedPlan(prev => {
       if (!prev) return null;
       const days = [...prev.days];
-      const exercises = days[dayIdx].exercises.filter((_: any, i: number) => i !== exIdx);
+      const exercises = days[dayIdx].exercises.filter((_, i) => i !== exIdx);
       days[dayIdx] = { ...days[dayIdx], exercises };
       return { ...prev, days };
     });
@@ -510,11 +537,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
               {state === 'generating' && (
                 <CenterContent>
                   <Spinner size={48} color={SWAN_CYAN} />
-                  <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generating Workout Plan...</h3>
-                  <p style={{ color: '#94a3b8', margin: 0 }}>
+                  <GeneratingTitle>Generating Workout Plan...</GeneratingTitle>
+                  <GeneratingCopy>
                     Analyzing client profile, training history, and NASM constraints.
                     This may take 10-30 seconds.
-                  </p>
+                  </GeneratingCopy>
                 </CenterContent>
               )}
 

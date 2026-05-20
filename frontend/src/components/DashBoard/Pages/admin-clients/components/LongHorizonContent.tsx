@@ -46,11 +46,12 @@ import {
   isLongHorizonDraft,
   type DegradedResponse,
   type LongHorizonPlan,
+  type MesocycleBlock,
 } from '../../../../../services/aiWorkoutService';
+import type { Toast } from '../../../../../hooks/use-toast';
 import { exportLongHorizonPDF } from '../../../../../services/pdfExportService';
 import {
   Badge,
-  BadgeRow,
   CenterContent,
   Divider,
   FormGroup,
@@ -95,8 +96,8 @@ interface ClientGoals {
 interface LongHorizonContentProps {
   clientId: number;
   clientName: string;
-  authAxios: any;
-  toast: (opts: any) => void;
+  authAxios: Parameters<typeof createAiWorkoutService>[0];
+  toast: (opts: Omit<Toast, 'id'>) => void;
   onSuccess?: () => void;
   onClose: () => void;
   renderFooter: (content: React.ReactNode | null) => void;
@@ -223,39 +224,132 @@ const NasmBadge = styled(Badge)`
   font-size: 0.68rem;
 `;
 
-function parseMasterPromptJson(raw: unknown): any {
+const PanelTitle = styled.h3<{ $tone?: 'default' | 'warning' | 'error' | 'success' }>`
+  color: ${({ $tone }) => {
+    if ($tone === 'warning') return '#ffaa00';
+    if ($tone === 'error') return '#ff6b6b';
+    if ($tone === 'success') return '#00ff64';
+    return '#e2e8f0';
+  }};
+  margin: 0;
+`;
+
+const PanelCopy = styled.p<{ $maxWidth?: number }>`
+  color: #94a3b8;
+  margin: 0;
+  max-width: ${({ $maxWidth }) => ($maxWidth ? `${$maxWidth}px` : 'none')};
+`;
+
+const GoalLoadingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+`;
+
+const FlushInfoPanel = styled(InfoPanel)`
+  margin: 0;
+`;
+
+const ActionRow = styled.div<{ $justify?: 'flex-end' | 'flex-start' }>`
+  display: flex;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const TightActionRow = styled(ActionRow)`
+  gap: 8px;
+`;
+
+const IconSlot = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 2px;
+`;
+
+const ErrorList = styled.div`
+  width: 100%;
+  max-width: 560px;
+`;
+
+const BlockWeeks = styled.span`
+  color: #94a3b8;
+  font-size: 0.82rem;
+`;
+
+const SavedMetaStrong = styled.strong`
+  color: #e2e8f0;
+`;
+
+interface ApiErrorPayload {
+  code?: string;
+  message?: string;
+  errors?: ValidationError[];
+  warnings?: string[];
+}
+
+interface ApiErrorLike {
+  message?: string;
+  response?: {
+    data?: ApiErrorPayload;
+  };
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const toStringArray = (value: unknown): string[] => (
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+);
+
+const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } => {
+  const apiError = err as ApiErrorLike;
+  return {
+    data: apiError.response?.data || {},
+    message: apiError.message,
+  };
+};
+
+function parseMasterPromptJson(raw: unknown): Record<string, unknown> | null {
   if (!raw) return null;
   if (typeof raw === 'string') {
     try {
-      return JSON.parse(raw);
+      const parsed: unknown = JSON.parse(raw);
+      return isRecord(parsed) ? parsed : null;
     } catch {
       return null;
     }
   }
-  if (typeof raw === 'object') return raw;
+  if (isRecord(raw)) return raw;
   return null;
 }
 
-function normalizeGoals(rawGoals: any): ClientGoals {
-  const primaryGoal = String(rawGoals?.primary || rawGoals?.primaryGoal || 'general_fitness');
-  const secondaryGoalsRaw = rawGoals?.secondary || rawGoals?.secondaryGoals;
-  const constraintsRaw = rawGoals?.constraints;
+function normalizeGoals(rawGoals: Record<string, unknown>): ClientGoals {
+  const primaryRaw = rawGoals.primary || rawGoals.primaryGoal;
+  const secondaryGoalsRaw = rawGoals.secondary || rawGoals.secondaryGoals;
 
   return {
-    primaryGoal,
-    secondaryGoals: Array.isArray(secondaryGoalsRaw)
-      ? secondaryGoalsRaw.filter((v) => typeof v === 'string')
-      : [],
-    constraints: Array.isArray(constraintsRaw)
-      ? constraintsRaw.filter((v) => typeof v === 'string')
-      : [],
+    primaryGoal: typeof primaryRaw === 'string' && primaryRaw.trim()
+      ? primaryRaw
+      : 'general_fitness',
+    secondaryGoals: toStringArray(secondaryGoalsRaw),
+    constraints: toStringArray(rawGoals.constraints),
   };
 }
 
-function getClientGoalsFromDetails(detailsResp: any): ClientGoals | null {
-  const client = detailsResp?.data?.client || detailsResp?.client || null;
+function getClientGoalsFromDetails(detailsResp: unknown): ClientGoals | null {
+  const root = isRecord(detailsResp) ? detailsResp : {};
+  const data = isRecord(root.data) ? root.data : {};
+  const client = isRecord(data.client) ? data.client : isRecord(root.client) ? root.client : null;
   const masterPrompt = parseMasterPromptJson(client?.masterPromptJson);
-  const goals = masterPrompt?.client?.goals || masterPrompt?.goals;
+  const masterClient = isRecord(masterPrompt?.client) ? masterPrompt.client : null;
+  const goals = isRecord(masterClient?.goals)
+    ? masterClient.goals
+    : isRecord(masterPrompt?.goals)
+      ? masterPrompt.goals
+      : null;
   if (!goals) return null;
   return normalizeGoals(goals);
 }
@@ -356,9 +450,9 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       setState('error');
       setErrorCode('UNKNOWN_RESPONSE');
       setErrorMessage('Unexpected response received from long-horizon generation');
-    } catch (err: any) {
-      const data = err?.response?.data || {};
-      const nextCode = data?.code || '';
+    } catch (err: unknown) {
+      const { data, message } = getApiError(err);
+      const nextCode = data.code || '';
 
       if (nextCode === 'MISSING_OVERRIDE_REASON') {
         handleRetryWithOverride();
@@ -366,13 +460,14 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       }
 
       setErrorCode(nextCode);
-      setErrorMessage(data?.message || err?.message || 'Failed to generate long-horizon draft');
+      setErrorMessage(data.message || message || 'Failed to generate long-horizon draft');
       setState('error');
     } finally {
       setIsSubmitting(false);
     }
   }, [
     clientId,
+    equipmentProfileId,
     handleRetryWithOverride,
     horizonMonths,
     isSubmitting,
@@ -416,9 +511,9 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
         variant: 'default',
       });
       onSuccess?.();
-    } catch (err: any) {
-      const data = err?.response?.data || {};
-      const nextCode = data?.code || '';
+    } catch (err: unknown) {
+      const { data, message } = getApiError(err);
+      const nextCode = data.code || '';
 
       if (nextCode === 'MISSING_OVERRIDE_REASON') {
         handleRetryWithOverride();
@@ -426,9 +521,9 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       }
 
       setErrorCode(nextCode);
-      setErrorMessage(data?.message || err?.message || 'Failed to approve long-horizon plan');
-      setApproveErrors(Array.isArray(data?.errors) ? data.errors : []);
-      setValidationWarnings(Array.isArray(data?.warnings) ? data.warnings : []);
+      setErrorMessage(data.message || message || 'Failed to approve long-horizon plan');
+      setApproveErrors(Array.isArray(data.errors) ? data.errors : []);
+      setValidationWarnings(Array.isArray(data.warnings) ? data.warnings : []);
       setState('approve_error');
     } finally {
       setIsSubmitting(false);
@@ -464,12 +559,16 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     });
   };
 
-  const updatePlanField = (field: keyof LongHorizonPlan, value: any) => {
+  const updatePlanField = <K extends keyof LongHorizonPlan>(field: K, value: LongHorizonPlan[K]) => {
     if (!editedPlan) return;
     setEditedPlan({ ...editedPlan, [field]: value });
   };
 
-  const updateBlock = (blockIdx: number, field: string, value: any) => {
+  const updateBlock = <K extends keyof MesocycleBlock>(
+    blockIdx: number,
+    field: K,
+    value: MesocycleBlock[K],
+  ) => {
     if (!editedPlan) return;
     const blocks = [...editedPlan.blocks];
     blocks[blockIdx] = { ...blocks[blockIdx], [field]: value };
@@ -520,11 +619,11 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <Sparkles size={48} color={SWAN_CYAN} />
-        <h3 style={{ color: '#e2e8f0', margin: 0 }}>Long-Horizon Planning</h3>
-        <p style={{ color: '#94a3b8', margin: 0, maxWidth: 520 }}>
+        <PanelTitle>Long-Horizon Planning</PanelTitle>
+        <PanelCopy $maxWidth={520}>
           Generate a 3/6/12-month NASM-aligned mesocycle plan for {clientName}. Review and edit
           before final approval.
-        </p>
+        </PanelCopy>
         <PrimaryButton onClick={handleStartConfigure} disabled={isSubmitting}>
           Configure Plan
         </PrimaryButton>
@@ -558,16 +657,16 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
             </Label>
             <GoalSummaryPanel>
               {goalsLoading && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94a3b8' }}>
+                <GoalLoadingRow>
                   <GoalLoadingSpinner />
                   <span>Loading goals...</span>
-                </div>
+                </GoalLoadingRow>
               )}
               {!goalsLoading && goalsError && (
-                <InfoPanel $variant="info" style={{ margin: 0 }}>
-                  <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <FlushInfoPanel $variant="info">
+                  <IconSlot><Info size={16} /></IconSlot>
                   <InfoContent>{goalsError}</InfoContent>
-                </InfoPanel>
+                </FlushInfoPanel>
               )}
               {!goalsLoading && !goalsError && (
                 <>
@@ -643,13 +742,13 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
         <Divider />
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+        <ActionRow $justify="flex-end">
           <SecondaryButton onClick={onClose}>Close</SecondaryButton>
           <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
             {isSubmitting ? <Spinner size={16} /> : <Sparkles size={16} />}
             {isSubmitting ? 'Generating...' : 'Generate Draft'}
           </PrimaryButton>
-        </div>
+        </ActionRow>
       </>
     );
   }
@@ -658,10 +757,10 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <Spinner size={48} color={SWAN_CYAN} />
-        <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generating Long-Horizon Draft...</h3>
-        <p style={{ color: '#94a3b8', margin: 0 }}>
+        <PanelTitle>Generating Long-Horizon Draft...</PanelTitle>
+        <PanelCopy>
           Building a {horizonMonths}-month periodization plan using profile and training context.
-        </p>
+        </PanelCopy>
       </CenterContent>
     );
   }
@@ -670,23 +769,23 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <AlertTriangle size={48} color="#ffaa00" />
-        <h3 style={{ color: '#ffaa00', margin: 0 }}>Swan Coach Temporarily Unavailable</h3>
-        <p style={{ color: '#94a3b8', margin: 0, maxWidth: 540 }}>{degradedData.message}</p>
+        <PanelTitle $tone="warning">Swan Coach Temporarily Unavailable</PanelTitle>
+        <PanelCopy $maxWidth={540}>{degradedData.message}</PanelCopy>
         <InfoPanel $variant="warning">
-          <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+          <IconSlot><Info size={16} /></IconSlot>
           <InfoContent>
             {degradedData.fallback.reasons.map((reason, idx) => (
               <div key={idx}>{reason}</div>
             ))}
           </InfoContent>
         </InfoPanel>
-        <div style={{ display: 'flex', gap: 12 }}>
+        <ActionRow>
           <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
             <RefreshCw size={16} />
             Retry
           </PrimaryButton>
           <SecondaryButton onClick={() => setState('configure_plan')}>Back to Configure</SecondaryButton>
-        </div>
+        </ActionRow>
       </CenterContent>
     );
   }
@@ -695,27 +794,27 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <AlertTriangle size={48} color="#ff6b6b" />
-        <h3 style={{ color: '#ff6b6b', margin: 0 }}>
+        <PanelTitle $tone="error">
           {state === 'approve_error' ? 'Approval Failed' : 'Generation Failed'}
-        </h3>
-        <p style={{ color: '#94a3b8', margin: 0, maxWidth: 560 }}>{errorMessage}</p>
+        </PanelTitle>
+        <PanelCopy $maxWidth={560}>{errorMessage}</PanelCopy>
 
         {isApprovedDraftInvalid && approveErrors.length > 0 && (
-          <div style={{ width: '100%', maxWidth: 560 }}>
+          <ErrorList>
             {approveErrors.map((err, idx) => (
               <InfoPanel key={`${err.code}-${idx}`} $variant="error">
-                <FileWarning size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <IconSlot><FileWarning size={16} /></IconSlot>
                 <InfoContent>
                   <strong>{err.field || err.code}:</strong> {err.message}
                 </InfoContent>
               </InfoPanel>
             ))}
-          </div>
+          </ErrorList>
         )}
 
         {validationWarnings.length > 0 && (
           <InfoPanel $variant="warning">
-            <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><Info size={16} /></IconSlot>
             <InfoContent>
               {validationWarnings.map((warning, idx) => (
                 <div key={`${warning}-${idx}`}>{warning}</div>
@@ -726,7 +825,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
         {isConsentError && (
           <InfoPanel $variant="warning">
-            <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><Shield size={16} /></IconSlot>
             <InfoContent>
               {isWaiverError
                 ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver, or an admin override reason is required to proceed.'
@@ -737,14 +836,14 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
         {isAssignmentError && (
           <InfoPanel $variant="warning">
-            <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><Shield size={16} /></IconSlot>
             <InfoContent>
               You are not currently assigned to this client. Contact an administrator to continue.
             </InfoContent>
           </InfoPanel>
         )}
 
-        <div style={{ display: 'flex', gap: 12 }}>
+        <ActionRow>
           {isRetryable && (
             <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
               <RefreshCw size={16} />
@@ -758,7 +857,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           )}
           <SecondaryButton onClick={() => setState('configure_plan')}>Back to Configure</SecondaryButton>
           <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-        </div>
+        </ActionRow>
       </CenterContent>
     );
   }
@@ -768,7 +867,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       <>
         {warnings.length > 0 && (
           <InfoPanel $variant="warning">
-            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><AlertTriangle size={16} /></IconSlot>
             <InfoContent>
               {warnings.map((warning, idx) => (
                 <div key={`${warning}-${idx}`}>{warning}</div>
@@ -779,7 +878,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
         {auditLogId == null && (
           <InfoPanel $variant="warning">
-            <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><AlertTriangle size={16} /></IconSlot>
             <InfoContent>
               Generation incomplete — regenerate to create a valid audit link before approval.
             </InfoContent>
@@ -827,7 +926,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
                     {block.optPhase ? ` P${block.optPhase}` : ''}
                   </NasmBadge>
                   <BlockDurationBar $pct={durationPct} />
-                  <span style={{ color: '#94a3b8', fontSize: '0.82rem' }}>{block.durationWeeks}w</span>
+                  <BlockWeeks>{block.durationWeeks}w</BlockWeeks>
                 </BlockHeader>
 
                 {isExpanded && (
@@ -915,12 +1014,16 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           />
         </FormGroup>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+        <TightActionRow $justify="flex-end">
           {editedPlan && (
             <SecondaryButton
               onClick={() => {
                 exportLongHorizonPDF(editedPlan, clientName);
-                toast({ title: 'PDF exported', variant: 'success' });
+                toast({
+                  title: 'PDF exported',
+                  description: 'Long-horizon plan PDF is ready.',
+                  variant: 'success',
+                });
               }}
             >
               <Download size={16} /> Export PDF
@@ -934,7 +1037,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
               Regenerate
             </PrimaryButton>
           )}
-        </div>
+        </TightActionRow>
       </>
     );
   }
@@ -943,14 +1046,14 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return (
       <CenterContent>
         <CheckCircle2 size={48} color="#00ff64" />
-        <h3 style={{ color: '#00ff64', margin: 0 }}>Long-Horizon Plan Saved</h3>
-        <p style={{ color: '#94a3b8', margin: 0 }}>
-          Plan ID: <strong style={{ color: '#e2e8f0' }}>{savedPlanId}</strong> · Blocks:{' '}
-          <strong style={{ color: '#e2e8f0' }}>{savedBlockCount}</strong>
-        </p>
+        <PanelTitle $tone="success">Long-Horizon Plan Saved</PanelTitle>
+        <PanelCopy>
+          Plan ID: <SavedMetaStrong>{savedPlanId}</SavedMetaStrong> · Blocks:{' '}
+          <SavedMetaStrong>{savedBlockCount}</SavedMetaStrong>
+        </PanelCopy>
         {validationWarnings.length > 0 && (
           <InfoPanel $variant="warning">
-            <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><Info size={16} /></IconSlot>
             <InfoContent>
               {validationWarnings.map((warning, idx) => (
                 <div key={`${warning}-${idx}`}>{warning}</div>
@@ -960,7 +1063,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
         )}
         {eligibilityWarnings.length > 0 && (
           <InfoPanel $variant="info">
-            <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <IconSlot><Info size={16} /></IconSlot>
             <InfoContent>
               {eligibilityWarnings.map((warning, idx) => (
                 <div key={`${warning}-${idx}`}>{warning}</div>

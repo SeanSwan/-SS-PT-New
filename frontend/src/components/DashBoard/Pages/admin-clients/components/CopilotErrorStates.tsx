@@ -47,6 +47,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import {
   AlertTriangle, Shield, Info, FileWarning, RefreshCw,
 } from 'lucide-react';
@@ -62,6 +63,34 @@ import {
   TemplateItem,
   Badge,
 } from './copilot-shared-styles';
+
+const StateTitle = styled.h3<{ $tone: 'error' | 'warning' }>`
+  color: ${({ $tone }) => ($tone === 'error' ? 'var(--color-error, #ff6b6b)' : 'var(--color-warning, #ffaa00)')};
+  margin: 0;
+`;
+
+const StateCopy = styled.p`
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  max-width: 500px;
+`;
+
+const FieldErrorList = styled.div`
+  width: 100%;
+  max-width: 500px;
+`;
+
+const PanelIconSlot = styled.span`
+  flex-shrink: 0;
+  margin-top: 2px;
+`;
+
+const ActionRow = styled.div<{ $withTopMargin?: boolean }>`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: ${({ $withTopMargin }) => ($withTopMargin ? '8px' : 0)};
+`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -107,28 +136,32 @@ const ErrorView: React.FC<CopilotErrorStatesProps> = ({
 }) => (
   <CenterContent>
     <AlertTriangle size={48} color="#ff6b6b" />
-    <h3 style={{ color: '#ff6b6b', margin: 0 }}>
+    <StateTitle $tone="error">
       {state === 'approve_error' ? 'Approval Failed' : 'Generation Failed'}
-    </h3>
-    <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>{errorMessage}</p>
+    </StateTitle>
+    <StateCopy>{errorMessage}</StateCopy>
 
     {/* Field-level errors for 422 */}
     {approveErrors.length > 0 && (
-      <div style={{ width: '100%', maxWidth: 500 }}>
+      <FieldErrorList>
         {approveErrors.map((e, i) => (
           <InfoPanel key={i} $variant="error">
-            <FileWarning size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+            <PanelIconSlot>
+              <FileWarning size={16} />
+            </PanelIconSlot>
             <InfoContent>
               <strong>{e.field || e.code}:</strong> {e.message}
             </InfoContent>
           </InfoPanel>
         ))}
-      </div>
+      </FieldErrorList>
     )}
 
     {isConsentError && (
       <InfoPanel $variant="warning">
-        <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <PanelIconSlot>
+          <Shield size={16} />
+        </PanelIconSlot>
         <InfoContent>
           {isWaiverError
             ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver before Swan Coach features can be used.'
@@ -139,7 +172,9 @@ const ErrorView: React.FC<CopilotErrorStatesProps> = ({
 
     {isAssignmentError && (
       <InfoPanel $variant="warning">
-        <Shield size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <PanelIconSlot>
+          <Shield size={16} />
+        </PanelIconSlot>
         <InfoContent>
           You are not currently assigned to this client. Please contact an
           administrator to update your client assignments.
@@ -147,7 +182,7 @@ const ErrorView: React.FC<CopilotErrorStatesProps> = ({
       </InfoPanel>
     )}
 
-    <div style={{ display: 'flex', gap: 12 }}>
+    <ActionRow>
       {isRetryable && (
         <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
           <RefreshCw size={16} />
@@ -165,7 +200,7 @@ const ErrorView: React.FC<CopilotErrorStatesProps> = ({
         </SecondaryButton>
       )}
       <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-    </div>
+    </ActionRow>
   </CenterContent>
 );
 
@@ -181,14 +216,16 @@ const DegradedView: React.FC<{
 }> = ({ degradedData, handleGenerate, isSubmitting, onClose }) => (
   <CenterContent>
     <AlertTriangle size={48} color="#ffaa00" />
-    <h3 style={{ color: '#ffaa00', margin: 0 }}>Swan Coach Temporarily Unavailable</h3>
-    <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
+    <StateTitle $tone="warning">Swan Coach Temporarily Unavailable</StateTitle>
+    <StateCopy>
       {degradedData.message}
-    </p>
+    </StateCopy>
 
     {degradedData.fallback.reasons.length > 0 && (
       <InfoPanel $variant="warning">
-        <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <PanelIconSlot>
+          <Info size={16} />
+        </PanelIconSlot>
         <InfoContent>
           {degradedData.fallback.reasons.map((r, i) => (
             <div key={i}>{r}</div>
@@ -211,13 +248,13 @@ const DegradedView: React.FC<{
       </>
     )}
 
-    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+    <ActionRow $withTopMargin>
       <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
         <RefreshCw size={16} />
         Retry Swan Coach Generation
       </PrimaryButton>
       <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-    </div>
+    </ActionRow>
   </CenterContent>
 );
 

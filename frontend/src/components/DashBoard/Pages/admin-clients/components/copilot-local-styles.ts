@@ -50,6 +50,16 @@ export const TabButton = styled.button<{ $active?: boolean }>`
 // PURPOSE: Override reason entry for admin consent bypass
 // ─────────────────────────────────────────────────────────────
 
+export const GeneratingTitle = styled.h3`
+  color: var(--text-primary, #e2e8f0);
+  margin: 0;
+`;
+
+export const GeneratingCopy = styled.p`
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+`;
+
 export const OverrideSection = styled.div`
   border: 1px solid rgba(251, 191, 36, 0.4);
   border-radius: 10px;

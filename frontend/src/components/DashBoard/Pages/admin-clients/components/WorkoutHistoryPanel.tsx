@@ -364,6 +364,49 @@ const Td = styled.td`
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 `;
 
+const ExerciseNameCell = styled(Td)`
+  font-weight: 500;
+  vertical-align: top;
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  margin: 0.5rem 0 0;
+`;
+
+const ErrorPanel = styled.div`
+  padding: 1rem;
+  background: rgba(201, 42, 84, 0.1);
+  border: 1px solid rgba(201, 42, 84, 0.3);
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const RetryButton = styled.button`
+  background: transparent;
+  border: 1px solid rgba(201, 42, 84, 0.4);
+  color: var(--text-primary, #E0ECF4);
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 44px;
+`;
+
+const SessionHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ExerciseTableViewport = styled.div`
+  padding: 0 16px 16px;
+  overflow-x: auto;
+`;
+
 const WeightCell = styled.span`
   color: var(--accent-primary, #60C0F0);
   font-weight: 600;
@@ -423,12 +466,73 @@ const PRCard = styled.div`
   &:hover { border-color: rgba(198, 168, 75, 0.4); }
 `;
 
+const PRDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const PRExerciseName = styled.div`
+  font-weight: 600;
+  color: var(--text-primary, #E0ECF4);
+  margin-bottom: 4px;
+`;
+
+const PRDateText = styled.div`
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #94a3b8);
+`;
+
+const PRActionRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const PREstimate = styled.span`
+  font-size: 0.6875rem;
+  color: var(--accent-gold, #C6A84B);
+  font-family: 'Fira Code', monospace;
+`;
+
 const EmptyState = styled.div`
   text-align: center;
   padding: 48px 24px;
   color: var(--text-secondary, #94a3b8);
 
   svg { opacity: 0.4; margin-bottom: 12px; }
+`;
+
+const AddSetRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+`;
+
+const SessionTotals = styled.div`
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(96, 192, 240, 0.08);
+  font-size: 0.75rem;
+  font-family: 'Fira Code', monospace;
+`;
+
+const TotalLabel = styled.span`
+  color: var(--text-secondary, #8BA8C8);
+`;
+
+const TotalValue = styled.span`
+  color: var(--accent-primary, #60C0F0);
+`;
+
+const SessionNotes = styled.p`
+  color: var(--text-secondary, #8BA8C8);
+  font-size: 0.8125rem;
+  margin: 12px 0 0;
+  font-style: italic;
 `;
 
 const ShareIconBtn = styled.button`
@@ -558,17 +662,6 @@ const EditCellInput = styled.input`
     outline: 2px solid #60C0F0;
     outline-offset: 1px;
   }
-`;
-
-const EditNotesInput = styled.input`
-  width: 100%;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid rgba(96, 192, 240, 0.25);
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
 `;
 
 const EditErrorBar = styled.div`
@@ -705,7 +798,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   active = true,
 }) => {
   const { data, isLoading, error, refetch } = useWorkoutAnalytics(active ? clientId : null);
-  const { authAxios } = useAuth() as { authAxios: any };
+  const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'charts' | 'prs'>('history');
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [shareSession, setShareSession] = useState<WorkoutSession | null>(null);
@@ -1020,27 +1113,19 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         {isLoading && (
           <CenterContent>
             <Spinner />
-            <p style={{ color: 'var(--text-secondary, rgba(255,255,255,0.6))', marginTop: '0.5rem' }}>
+            <LoadingText>
               Loading workout data...
-            </p>
+            </LoadingText>
           </CenterContent>
         )}
 
         {error && (
-          <div style={{
-            padding: '1rem', background: 'rgba(201, 42, 84, 0.1)',
-            border: '1px solid rgba(201, 42, 84, 0.3)', borderRadius: 8,
-            color: '#E0ECF4', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
+          <ErrorPanel>
             <span>{error}</span>
-            <button onClick={refetch} style={{
-              background: 'transparent', border: '1px solid rgba(201,42,84,0.4)',
-              color: '#E0ECF4', padding: '0.4rem 0.75rem', borderRadius: 6,
-              cursor: 'pointer', minHeight: 36,
-            }}>
+            <RetryButton onClick={refetch}>
               Retry
-            </button>
-          </div>
+            </RetryButton>
+          </ErrorPanel>
         )}
 
         {/* HISTORY TAB */}
@@ -1073,13 +1158,13 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                           )}
                         </SessionMeta>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <SessionHeaderActions>
                         <ShareIconBtn onClick={(e) => { e.stopPropagation(); setShareSession(session); }}
                           aria-label={`Share ${session.title} to social feed`}>
                           <Share2 size={12} /> Share
                         </ShareIconBtn>
                         {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </div>
+                      </SessionHeaderActions>
                     </SessionHeader>
 
                     {isExpanded && (() => {
@@ -1104,7 +1189,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                         editGroups.get(l.exerciseName)!.push(l);
                       }
                       return (
-                        <div style={{ padding: '0 16px 16px', overflowX: 'auto' }}>
+                        <ExerciseTableViewport>
                           {isEditing && saveError && (
                             <EditErrorBar data-testid={`edit-error-${session.id}`}>
                               <AlertTriangle size={14} />
@@ -1135,9 +1220,9 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                                   return (
                                     <tr key={`${exerciseName}-${log.id ?? idx}-${log.setNumber}`}>
                                       {idx === 0 && (
-                                        <Td rowSpan={groupSets.length} style={{ fontWeight: 500, verticalAlign: 'top' }}>
+                                        <ExerciseNameCell rowSpan={groupSets.length}>
                                           {exerciseName}
-                                        </Td>
+                                        </ExerciseNameCell>
                                       )}
                                       <Td>{idx + 1}</Td>
                                       <Td>
@@ -1363,7 +1448,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                           })}
 
                           {isEditing && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                            <AddSetRow>
                               {Array.from(editGroups.keys()).map((exerciseName) => (
                                 <EditBtn
                                   key={`add-set-${exerciseName}`}
@@ -1374,27 +1459,23 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                                   <Plus size={12} /> Add set to {exerciseName}
                                 </EditBtn>
                               ))}
-                            </div>
+                            </AddSetRow>
                           )}
-                          <div style={{
-                            display: 'flex', gap: 16, marginTop: 12, paddingTop: 8,
-                            borderTop: '1px solid rgba(96, 192, 240, 0.08)',
-                            fontSize: '0.75rem', fontFamily: "'Fira Code', monospace",
-                          }}>
-                            <span style={{ color: '#8BA8C8' }}>
-                              Vol: <span style={{ color: '#60C0F0' }}>{Math.round(session.totalWeight).toLocaleString()} lbs</span>
-                            </span>
-                            <span style={{ color: '#8BA8C8' }}>
-                              Sets: <span style={{ color: '#60C0F0' }}>{session.totalSets}</span>
-                            </span>
-                            <span style={{ color: '#8BA8C8' }}>
-                              Reps: <span style={{ color: '#60C0F0' }}>{session.totalReps}</span>
-                            </span>
-                          </div>
+                          <SessionTotals>
+                            <TotalLabel>
+                              Vol: <TotalValue>{Math.round(session.totalWeight).toLocaleString()} lbs</TotalValue>
+                            </TotalLabel>
+                            <TotalLabel>
+                              Sets: <TotalValue>{session.totalSets}</TotalValue>
+                            </TotalLabel>
+                            <TotalLabel>
+                              Reps: <TotalValue>{session.totalReps}</TotalValue>
+                            </TotalLabel>
+                          </SessionTotals>
                           {session.notes && (
-                            <p style={{ color: 'var(--text-secondary, #8BA8C8)', fontSize: '0.8125rem', marginTop: 12, fontStyle: 'italic' }}>
+                            <SessionNotes>
                               {session.notes}
-                            </p>
+                            </SessionNotes>
                           )}
                           <EditActionBar>
                             {isEditing ? (
@@ -1427,7 +1508,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               </EditBtn>
                             )}
                           </EditActionBar>
-                        </div>
+                        </ExerciseTableViewport>
                       );
                     })()}
                   </SessionCard>
@@ -1442,7 +1523,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
             useAdminClientProgressCharts(clientId), so we don't gate on the
             local `data` shape from useWorkoutAnalytics. */}
         {activeTab === 'charts' && (
-          <Suspense fallback={<CenterContent><Spinner /><p style={{ color: 'var(--text-secondary)', marginTop: 8 }}>Loading charts...</p></CenterContent>}>
+          <Suspense fallback={<CenterContent><Spinner /><LoadingText>Loading charts...</LoadingText></CenterContent>}>
             <AdminProgressChartsGrid clientId={clientId} clientName={clientName} />
           </Suspense>
         )}
@@ -1460,23 +1541,23 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                 .sort((a, b) => b.weight - a.weight)
                 .map((pr, idx) => (
                   <PRCard key={`${pr.exercise}-${idx}`}>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary, #E0ECF4)', marginBottom: 4 }}>
+                    <PRDetails>
+                      <PRExerciseName>
                         {pr.exercise}
-                      </div>
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #94a3b8)' }}>
+                      </PRExerciseName>
+                      <PRDateText>
                         {pr.date ? new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      </PRDateText>
+                    </PRDetails>
+                    <PRActionRow>
                       <PRBadge>
                         <Trophy size={14} />
                         {pr.weight > 0 ? `${pr.weight} lbs` : 'BW'} × {pr.reps}
                       </PRBadge>
                       {pr.estimated1RM && pr.estimated1RM > 0 && (
-                        <span style={{ fontSize: '0.6875rem', color: '#C6A84B', fontFamily: "'Fira Code', monospace" }}>
+                        <PREstimate>
                           Est. 1RM: {pr.estimated1RM} lbs
-                        </span>
+                        </PREstimate>
                       )}
                       <ShareIconBtn
                         aria-label={`Share ${pr.exercise} personal record`}
@@ -1494,7 +1575,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                         } as WorkoutSession)}>
                         <Share2 size={12} /> Share
                       </ShareIconBtn>
-                    </div>
+                    </PRActionRow>
                   </PRCard>
                 ))
             )}

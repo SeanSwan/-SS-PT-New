@@ -36,6 +36,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import { AlertTriangle, Shield } from 'lucide-react';
 import type { PainEntry, CopilotState } from './copilot-types';
 import {
@@ -46,6 +47,72 @@ import {
   InfoContent,
   Badge,
 } from './copilot-shared-styles';
+
+const WarningTitle = styled.h3`
+  color: var(--color-warning, #ffaa00);
+  margin: 0;
+`;
+
+const IntroCopy = styled.p`
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+  max-width: 500px;
+`;
+
+const PainList = styled.div`
+  width: 100%;
+  max-width: 600px;
+  margin: 12px 0;
+`;
+
+const PainInfoPanel = styled(InfoPanel)<{ $severityColor: string }>`
+  border-left-color: ${({ $severityColor }) => $severityColor};
+  border-left-style: solid;
+  border-left-width: 3px;
+  margin-bottom: 8px;
+`;
+
+const PainInfoContent = styled(InfoContent)`
+  padding: 10px 14px;
+`;
+
+const PainHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const PainRegion = styled.span`
+  color: var(--text-primary, #e2e8f0);
+  font-weight: 600;
+`;
+
+const PainDescription = styled.div`
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.85rem;
+  margin-top: 4px;
+`;
+
+const AggravationText = styled.div`
+  color: var(--color-error-soft, #ff9999);
+  font-size: 0.8rem;
+  margin-top: 4px;
+`;
+
+const RestrictionNote = styled.p`
+  color: var(--text-muted, #64748b);
+  font-size: 0.8rem;
+  margin: 0;
+  max-width: 500px;
+`;
+
+const ActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
@@ -72,15 +139,15 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
 }) => (
   <CenterContent>
     <AlertTriangle size={48} color="#ffaa00" />
-    <h3 style={{ color: '#ffaa00', margin: 0 }}>
+    <WarningTitle>
       Active Pain Entries Detected
-    </h3>
-    <p style={{ color: '#94a3b8', margin: 0, maxWidth: 500 }}>
+    </WarningTitle>
+    <IntroCopy>
       {clientName} has {activePainEntries.length} active pain/injury{activePainEntries.length > 1 ? ' entries' : ' entry'}.
       Review before generating to ensure the AI applies appropriate restrictions.
-    </p>
+    </IntroCopy>
 
-    <div style={{ width: '100%', maxWidth: 600, margin: '12px 0' }}>
+    <PainList>
       {activePainEntries.map((entry) => {
         // Severity color mapping: Gilded Fern (severe), Arctic Cyan (moderate), Ice Wing (mild)
         const severityColor =
@@ -92,37 +159,37 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
         const regionLabel = entry.bodyRegion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
         return (
-          <InfoPanel key={entry.id} style={{ marginBottom: 8, borderLeftColor: severityColor, borderLeftWidth: 3, borderLeftStyle: 'solid' }}>
-            <InfoContent style={{ padding: '10px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+          <PainInfoPanel key={entry.id} $variant="warning" $severityColor={severityColor}>
+            <PainInfoContent>
+              <PainHeader>
+                <PainRegion>
                   {regionLabel} ({entry.side})
-                </span>
+                </PainRegion>
                 <Badge $color={severityColor}>
                   {severityLabel} — {entry.painLevel}/10
                 </Badge>
-              </div>
-              <div style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: 4 }}>
+              </PainHeader>
+              <PainDescription>
                 Type: {entry.painType}
                 {entry.description && <> — {entry.description}</>}
-              </div>
+              </PainDescription>
               {entry.aggravatingMovements && (
-                <div style={{ color: '#ff9999', fontSize: '0.8rem', marginTop: 4 }}>
+                <AggravationText>
                   Aggravates: {entry.aggravatingMovements}
-                </div>
+                </AggravationText>
               )}
-            </InfoContent>
-          </InfoPanel>
+            </PainInfoContent>
+          </PainInfoPanel>
         );
       })}
-    </div>
+    </PainList>
 
-    <p style={{ color: '#64748b', fontSize: '0.8rem', margin: 0, maxWidth: 500 }}>
+    <RestrictionNote>
       The AI will automatically apply NASM CES restrictions based on these entries.
       Severe entries (7-10) will hard-restrict exercises. Moderate entries (4-6) will modify loads.
-    </p>
+    </RestrictionNote>
 
-    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+    <ActionRow>
       <SecondaryButton onClick={() => setState('idle')}>
         Cancel
       </SecondaryButton>
@@ -130,7 +197,7 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
         <Shield size={16} />
         Acknowledge &amp; Generate
       </PrimaryButton>
-    </div>
+    </ActionRow>
   </CenterContent>
 );
 

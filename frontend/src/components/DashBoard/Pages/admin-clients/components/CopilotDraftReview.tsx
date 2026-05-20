@@ -51,6 +51,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import {
   ChevronDown, ChevronRight, Plus, Trash2, Brain, AlertTriangle, Info, Shield,
 } from 'lucide-react';
@@ -85,6 +86,62 @@ import {
   ExplainValue,
 } from './copilot-shared-styles';
 
+const PanelIcon = styled.span`
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 2px;
+`;
+
+const DayExerciseCount = styled.span`
+  margin-left: auto;
+  color: var(--text-muted, #64748b);
+  font-size: 0.85rem;
+`;
+
+const ExerciseLabel = styled(Label)`
+  color: ${SWAN_CYAN};
+  font-weight: 700;
+`;
+
+const FullWidthExplainCard = styled(ExplainCard)`
+  grid-column: 1 / -1;
+`;
+
+const RecommendationTableScroll = styled.div`
+  overflow-x: auto;
+`;
+
+const RecommendationTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+`;
+
+const RecommendationHeadRow = styled.tr`
+  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
+`;
+
+const RecommendationRow = styled.tr`
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+`;
+
+const RecommendationHeader = styled.th`
+  padding: 8px 12px;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+  text-align: left;
+`;
+
+const RecommendationCell = styled.td<{ $accent?: boolean; $primary?: boolean }>`
+  padding: 8px 12px;
+  color: ${({ $accent, $primary }) => {
+    if ($accent) return SWAN_CYAN;
+    if ($primary) return 'var(--text-primary, #e2e8f0)';
+    return 'var(--text-secondary, #94a3b8)';
+  }};
+  font-weight: ${({ $accent }) => ($accent ? 600 : 400)};
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
 // ─────────────────────────────────────────────────────────────
@@ -99,9 +156,14 @@ interface CopilotDraftReviewProps {
   generationMode: string;
   expandedDays: Set<number>;
   toggleDay: (dayIdx: number) => void;
-  updatePlanField: (field: keyof WorkoutPlan, value: any) => void;
-  updateDay: (dayIdx: number, field: keyof WorkoutDay, value: any) => void;
-  updateExercise: (dayIdx: number, exIdx: number, field: keyof Exercise, value: any) => void;
+  updatePlanField: <K extends keyof WorkoutPlan>(field: K, value: WorkoutPlan[K]) => void;
+  updateDay: <K extends keyof WorkoutDay>(dayIdx: number, field: K, value: WorkoutDay[K]) => void;
+  updateExercise: <K extends keyof Exercise>(
+    dayIdx: number,
+    exIdx: number,
+    field: K,
+    value: Exercise[K],
+  ) => void;
   addExercise: (dayIdx: number) => void;
   removeExercise: (dayIdx: number, exIdx: number) => void;
   trainerNotes: string;
@@ -152,7 +214,7 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
     {/* Warnings */}
     {warnings.length > 0 && (
       <InfoPanel $variant="warning">
-        <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <PanelIcon><AlertTriangle size={16} /></PanelIcon>
         <InfoContent>
           {warnings.map((w, i) => <div key={i}>{w}</div>)}
         </InfoContent>
@@ -162,7 +224,7 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
     {/* Missing inputs */}
     {missingInputs.length > 0 && (
       <InfoPanel $variant="info">
-        <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+        <PanelIcon><Info size={16} /></PanelIcon>
         <InfoContent>
           <strong>Missing data:</strong> {missingInputs.join(', ')}
         </InfoContent>
@@ -210,9 +272,9 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
         <DayHeader onClick={() => toggleDay(dayIdx)}>
           {expandedDays.has(dayIdx) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           <span>Day {day.dayNumber}: {day.name}</span>
-          <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: '0.85rem' }}>
+          <DayExerciseCount>
             {day.exercises.length} exercises
-          </span>
+          </DayExerciseCount>
         </DayHeader>
 
         {expandedDays.has(dayIdx) && (
@@ -241,9 +303,9 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
             {day.exercises.map((ex, exIdx) => (
               <ExerciseCard key={exIdx}>
                 <ExerciseHeader>
-                  <Label style={{ color: SWAN_CYAN, fontWeight: 700 }}>
+                  <ExerciseLabel>
                     Exercise {exIdx + 1}
-                  </Label>
+                  </ExerciseLabel>
                   <RemoveButton onClick={() => removeExercise(dayIdx, exIdx)}>
                     <Trash2 size={14} />
                   </RemoveButton>
@@ -337,10 +399,10 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
             <ExplainValue>{explainability.dataQuality}</ExplainValue>
           </ExplainCard>
           {explainability.phaseRationale && (
-            <ExplainCard style={{ gridColumn: '1 / -1' }}>
+            <FullWidthExplainCard>
               <ExplainLabel>Phase Rationale</ExplainLabel>
               <ExplainValue>{explainability.phaseRationale}</ExplainValue>
-            </ExplainCard>
+            </FullWidthExplainCard>
           )}
         </ExplainabilityGrid>
       </>
@@ -351,32 +413,32 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
       <>
         <Divider />
         <SectionTitle>1RM Recommendations</SectionTitle>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+        <RecommendationTableScroll>
+          <RecommendationTable>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <RecommendationHeadRow>
                 {['Exercise', 'Best', 'Est. 1RM', 'Load Range', 'Target'].map((h) => (
-                  <th key={h} style={{ padding: '8px 12px', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>{h}</th>
+                  <RecommendationHeader key={h}>{h}</RecommendationHeader>
                 ))}
-              </tr>
+              </RecommendationHeadRow>
             </thead>
             <tbody>
               {exerciseRecs.map((rec, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td style={{ padding: '8px 12px', color: '#e2e8f0' }}>{rec.exerciseName}</td>
-                  <td style={{ padding: '8px 12px', color: '#94a3b8' }}>{rec.bestWeight}lb x{rec.bestReps}</td>
-                  <td style={{ padding: '8px 12px', color: SWAN_CYAN, fontWeight: 600 }}>{Math.round(rec.estimated1RM)}lb</td>
-                  <td style={{ padding: '8px 12px', color: '#94a3b8' }}>
+                <RecommendationRow key={i}>
+                  <RecommendationCell $primary>{rec.exerciseName}</RecommendationCell>
+                  <RecommendationCell>{rec.bestWeight}lb x{rec.bestReps}</RecommendationCell>
+                  <RecommendationCell $accent>{Math.round(rec.estimated1RM)}lb</RecommendationCell>
+                  <RecommendationCell>
                     {rec.loadRecommendation ? `${Math.round(rec.loadRecommendation.minLoad)}-${Math.round(rec.loadRecommendation.maxLoad)}lb` : '--'}
-                  </td>
-                  <td style={{ padding: '8px 12px', color: '#94a3b8' }}>
+                  </RecommendationCell>
+                  <RecommendationCell>
                     {rec.loadRecommendation?.targetReps || '--'}
-                  </td>
-                </tr>
+                  </RecommendationCell>
+                </RecommendationRow>
               ))}
             </tbody>
-          </table>
-        </div>
+          </RecommendationTable>
+        </RecommendationTableScroll>
       </>
     )}
 
