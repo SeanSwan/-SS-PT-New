@@ -21,6 +21,8 @@ import { device } from '../../../../styles/breakpoints';
 import {
   type MovementAnalysisData, type CompensationLevel, type MobilityRating,
   type MovementRating, type SquatDepth, type ParqScreening,
+  type PosturalAssessment,
+  type SquatUniversityAssessment, type MovementQualityAssessments,
   DEFAULT_FORM_DATA, PARQ_QUESTIONS, POSTURAL_COMMON_FINDINGS,
   SQUAT_COMPENSATIONS, MOVEMENT_COMPENSATIONS,
 } from './movementAnalysis.types';
@@ -127,10 +129,25 @@ const FormGroup = styled.div`
   gap: 6px;
 `;
 
-const Label = styled.label`
+const Label = styled.span`
   font-size: 13px;
   color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.7)'};
   font-weight: 500;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 13px;
+  color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.7)'};
+  font-weight: 500;
+`;
+
+const FullWidthFormGroup = styled(FormGroup)`
+  grid-column: 1 / -1;
+`;
+
+const SpacedFormGroup = styled(FormGroup)<{ $top?: number; $bottom?: number }>`
+  margin-top: ${({ $top }) => $top ? `${$top}px` : 0};
+  margin-bottom: ${({ $bottom }) => $bottom ? `${$bottom}px` : 0};
 `;
 
 const Input = styled.input`
@@ -147,14 +164,14 @@ const Input = styled.input`
   }
 `;
 
-const TextArea = styled.textarea`
+const TextArea = styled.textarea<{ $minHeight?: number }>`
   padding: 12px 14px;
   border-radius: 10px;
   border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246,0.2)'};
   background: rgba(0,0,0,0.3);
   color: ${({ theme }) => theme.text?.primary || '#fff'};
   font-size: 15px;
-  min-height: 80px;
+  min-height: ${({ $minHeight }) => $minHeight ? `${$minHeight}px` : '80px'};
   resize: vertical;
   font-family: inherit;
   &:focus {
@@ -283,12 +300,13 @@ const NavButton = styled.button<{ $primary?: boolean }>`
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
-const ScoreDisplay = styled.div<{ $color: string }>`
+const ScoreDisplay = styled.div<{ $color: string; $top?: number }>`
   text-align: center;
   padding: 24px;
   border-radius: 16px;
   background: ${({ $color }) => `${$color}1A`};
   border: 2px solid ${({ $color }) => `${$color}44`};
+  margin-top: ${({ $top }) => $top ? `${$top}px` : 0};
   margin-bottom: 20px;
 `;
 
@@ -355,6 +373,30 @@ const StatusMessage = styled.div`
   margin-bottom: 16px;
 `;
 
+const OptPhaseTitle = styled.div`
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+`;
+
+const OptPhaseFocus = styled.div`
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 8px;
+`;
+
+const OptMetric = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const StrategyCompensations = styled.div`
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+`;
+
 // ── Steps Config ──────────────────────────────────────────────────
 
 const STEPS = [
@@ -378,11 +420,59 @@ interface WizardProps {
   propClientId?: string | number;
 }
 
-const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClientId }) => {
+interface ApiResponse<T> {
+  success?: boolean;
+  data?: T;
+}
+
+interface AuthAxiosLike {
+  get<T = unknown>(url: string): Promise<{ data: T }>;
+  post<T = unknown>(url: string, payload: unknown): Promise<{ data: T }>;
+  put<T = unknown>(url: string, payload: unknown): Promise<{ data: T }>;
+}
+
+interface ClientRecord {
+  id?: number;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;
+}
+
+type MovementAnalysisResponse = ApiResponse<MovementAnalysisData>;
+type MovementAnalysisCreateResponse = ApiResponse<{ id?: number }>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
+const pickClientRecord = (response: unknown): ClientRecord | null => {
+  if (!isRecord(response)) return null;
+
+  const data = response.data;
+  if (isRecord(data)) {
+    const client = data.client;
+    if (isRecord(client)) return client as ClientRecord;
+    return data as ClientRecord;
+  }
+
+  return response as ClientRecord;
+};
+
+const getNestedArray = (source: unknown, path: string): string[] => {
+  const value = path.split('.').reduce<unknown>((current, key) => {
+    if (!current || typeof current !== 'object') return undefined;
+    return (current as Record<string, unknown>)[key];
+  }, source);
+
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+};
+
+const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode: _mode = 'new', propClientId }) => {
   const { id, clientId: urlClientId } = useParams<{ id?: string; clientId?: string }>();
   const clientId = urlClientId || (propClientId != null ? String(propClientId) : undefined);
   const navigate = useNavigate();
-  const { authAxios } = useAuth() as any;
+  const { authAxios } = useAuth() as { authAxios?: AuthAxiosLike };
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<number | null>(id ? Number(id) : null);
@@ -391,19 +481,19 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
   // Load existing analysis or client data
   useEffect(() => {
     if (id && authAxios) {
-      authAxios.get(`/api/movement-analysis/${id}`).then((res: any) => {
-        if (res.data?.success) setData(res.data.data);
+      authAxios.get<MovementAnalysisResponse>(`/api/movement-analysis/${id}`).then((res) => {
+        if (res.data?.success && res.data.data) setData(res.data.data);
       }).catch(() => {});
     } else if (clientId && authAxios) {
-      authAxios.get(`/api/admin/clients/${clientId}`).then((res: any) => {
+      authAxios.get<unknown>(`/api/admin/clients/${clientId}`).then((res) => {
         // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps
         // the client one extra level deep: `{ data: { client, mcpStats } }`.
         // Pierce that first; preserve `data.client` / `data` legacy fallbacks.
-        const c = res.data?.data?.client || res.data?.data || res.data;
+        const c = pickClientRecord(res.data);
         if (c) {
           setData((d) => ({
             ...d,
-            userId: c.id,
+            userId: c.id ?? null,
             fullName: `${c.firstName || ''} ${c.lastName || ''}`.trim(),
             email: c.email || '',
             phone: c.phone || '',
@@ -462,7 +552,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
       if (savedId) {
         await authAxios.put(`/api/movement-analysis/${savedId}`, payload);
       } else {
-        const res = await authAxios.post('/api/movement-analysis', payload);
+        const res = await authAxios.post<MovementAnalysisCreateResponse>('/api/movement-analysis', payload);
         if (res.data?.data?.id) setSavedId(res.data.data.id);
       }
       // Clear localStorage draft after successful server save
@@ -518,25 +608,25 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
       <SectionTitle><User size={18} /> Client / Prospect Information</SectionTitle>
       <FormGrid>
         <FormGroup>
-          <Label>Full Name *</Label>
-          <Input value={data.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="John Smith" />
+          <FieldLabel htmlFor="movement-full-name">Full Name *</FieldLabel>
+          <Input id="movement-full-name" value={data.fullName} onChange={(e) => updateField('fullName', e.target.value)} placeholder="John Smith" />
         </FormGroup>
         <FormGroup>
-          <Label>Email</Label>
-          <Input type="email" value={data.email} onChange={(e) => updateField('email', e.target.value)} placeholder="john@example.com" />
+          <FieldLabel htmlFor="movement-email">Email</FieldLabel>
+          <Input id="movement-email" type="email" value={data.email} onChange={(e) => updateField('email', e.target.value)} placeholder="john@example.com" />
         </FormGroup>
         <FormGroup>
-          <Label>Phone</Label>
-          <Input type="tel" value={data.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="(555) 123-4567" />
+          <FieldLabel htmlFor="movement-phone">Phone</FieldLabel>
+          <Input id="movement-phone" type="tel" value={data.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="(555) 123-4567" />
         </FormGroup>
         <FormGroup>
-          <Label>Date of Birth</Label>
-          <Input type="date" value={data.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} />
+          <FieldLabel htmlFor="movement-date-of-birth">Date of Birth</FieldLabel>
+          <Input id="movement-date-of-birth" type="date" value={data.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} />
         </FormGroup>
-        <FormGroup style={{ gridColumn: '1 / -1' }}>
-          <Label>Address</Label>
-          <Input value={data.address} onChange={(e) => updateField('address', e.target.value)} placeholder="123 Main St, City, State" />
-        </FormGroup>
+        <FullWidthFormGroup>
+          <FieldLabel htmlFor="movement-address">Address</FieldLabel>
+          <Input id="movement-address" value={data.address} onChange={(e) => updateField('address', e.target.value)} placeholder="123 Main St, City, State" />
+        </FullWidthFormGroup>
       </FormGrid>
     </Card>
   );
@@ -573,12 +663,12 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
             </AlertBox>
             <FormGrid>
               <FormGroup>
-                <Label>Medical Clearance Date</Label>
-                <Input type="date" value={data.medicalClearanceDate} onChange={(e) => updateField('medicalClearanceDate', e.target.value)} />
+                <FieldLabel htmlFor="movement-medical-clearance-date">Medical Clearance Date</FieldLabel>
+                <Input id="movement-medical-clearance-date" type="date" value={data.medicalClearanceDate} onChange={(e) => updateField('medicalClearanceDate', e.target.value)} />
               </FormGroup>
               <FormGroup>
-                <Label>Physician Name</Label>
-                <Input value={data.medicalClearanceProvider} onChange={(e) => updateField('medicalClearanceProvider', e.target.value)} placeholder="Dr. Smith" />
+                <FieldLabel htmlFor="movement-medical-clearance-provider">Physician Name</FieldLabel>
+                <Input id="movement-medical-clearance-provider" value={data.medicalClearanceProvider} onChange={(e) => updateField('medicalClearanceProvider', e.target.value)} placeholder="Dr. Smith" />
               </FormGroup>
             </FormGrid>
           </>
@@ -589,7 +679,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
 
   const renderStep3 = () => {
     const pa = data.posturalAssessment || { anteriorView: '', lateralView: '', posteriorView: '', commonFindings: [] };
-    const updatePA = (field: string, value: any) => {
+    const updatePA = <K extends keyof PosturalAssessment>(field: K, value: PosturalAssessment[K]) => {
       updateField('posturalAssessment', { ...pa, [field]: value });
     };
     const toggleFinding = (f: string) => {
@@ -600,27 +690,27 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
     return (
       <Card>
         <SectionTitle><Eye size={18} /> Static Postural Assessment</SectionTitle>
-        <FormGroup style={{ marginBottom: 16 }}>
+        <SpacedFormGroup $bottom={16}>
           <Label>Common Findings (tap to select)</Label>
-          <ChipContainer>
+          <ChipContainer role="group" aria-label="Common postural findings">
             {POSTURAL_COMMON_FINDINGS.map((f) => (
               <Chip key={f} $selected={(pa.commonFindings || []).includes(f)} onClick={() => toggleFinding(f)}>{f}</Chip>
             ))}
           </ChipContainer>
-        </FormGroup>
+        </SpacedFormGroup>
         <FormGrid>
           <FormGroup>
-            <Label>Anterior View Observations</Label>
-            <TextArea value={pa.anteriorView} onChange={(e) => updatePA('anteriorView', e.target.value)} placeholder="Front view observations..." />
+            <FieldLabel htmlFor="movement-anterior-view">Anterior View Observations</FieldLabel>
+            <TextArea id="movement-anterior-view" value={pa.anteriorView} onChange={(e) => updatePA('anteriorView', e.target.value)} placeholder="Front view observations..." />
           </FormGroup>
           <FormGroup>
-            <Label>Lateral View Observations</Label>
-            <TextArea value={pa.lateralView} onChange={(e) => updatePA('lateralView', e.target.value)} placeholder="Side view observations..." />
+            <FieldLabel htmlFor="movement-lateral-view">Lateral View Observations</FieldLabel>
+            <TextArea id="movement-lateral-view" value={pa.lateralView} onChange={(e) => updatePA('lateralView', e.target.value)} placeholder="Side view observations..." />
           </FormGroup>
-          <FormGroup style={{ gridColumn: '1 / -1' }}>
-            <Label>Posterior View Observations</Label>
-            <TextArea value={pa.posteriorView} onChange={(e) => updatePA('posteriorView', e.target.value)} placeholder="Back view observations..." />
-          </FormGroup>
+          <FullWidthFormGroup>
+            <FieldLabel htmlFor="movement-posterior-view">Posterior View Observations</FieldLabel>
+            <TextArea id="movement-posterior-view" value={pa.posteriorView} onChange={(e) => updatePA('posteriorView', e.target.value)} placeholder="Back view observations..." />
+          </FullWidthFormGroup>
         </FormGrid>
       </Card>
     );
@@ -629,7 +719,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
   const renderSegmented = (label: string, value: CompensationLevel, onChange: (v: CompensationLevel) => void) => (
     <FormGroup>
       <Label>{label}</Label>
-      <SegmentedControl>
+      <SegmentedControl role="group" aria-label={label}>
         {(['none', 'minor', 'significant'] as CompensationLevel[]).map((v) => (
           <SegmentedButton key={v} $active={value === v} $variant={v} onClick={() => onChange(v)}>
             {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -645,13 +735,18 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
       lateralView: { excessiveForwardLean: 'none' as CompensationLevel, lowBackArch: 'none' as CompensationLevel, armsFallForward: 'none' as CompensationLevel, forwardHead: 'none' as CompensationLevel },
       asymmetricWeightShift: 'none' as CompensationLevel,
     };
-    const updateOHSA = (view: string, field: string, value: CompensationLevel) => {
+    const updateOHSA = (view: 'root' | 'anteriorView' | 'lateralView', field: string, value: CompensationLevel) => {
       if (view === 'root') {
         updateField('overheadSquatAssessment', { ...ohsa, [field]: value });
+      } else if (view === 'anteriorView') {
+        updateField('overheadSquatAssessment', {
+          ...ohsa,
+          anteriorView: { ...ohsa.anteriorView, [field]: value },
+        });
       } else {
         updateField('overheadSquatAssessment', {
           ...ohsa,
-          [view]: { ...(ohsa as any)[view], [field]: value },
+          lateralView: { ...ohsa.lateralView, [field]: value },
         });
       }
     };
@@ -679,7 +774,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         <Card>
           {renderSegmented('Asymmetric Weight Shift', ohsa.asymmetricWeightShift, (v) => updateOHSA('root', 'asymmetricWeightShift', v))}
           {nasmScore !== null && (
-            <ScoreDisplay $color={scoreColor} style={{ marginTop: 16 }}>
+            <ScoreDisplay $color={scoreColor} $top={16}>
               <ScoreNumber $color={scoreColor}>{nasmScore}</ScoreNumber>
               <ScoreLabel>NASM Assessment Score</ScoreLabel>
             </ScoreDisplay>
@@ -692,7 +787,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
   const renderMobilitySegmented = (label: string, value: MobilityRating, onChange: (v: MobilityRating) => void) => (
     <FormGroup>
       <Label>{label}</Label>
-      <SegmentedControl>
+      <SegmentedControl role="group" aria-label={label}>
         {(['adequate', 'limited', 'significant'] as MobilityRating[]).map((v) => (
           <SegmentedButton key={v} $active={value === v} $variant={v === 'significant' ? 'significant' : v === 'limited' ? 'minor' : undefined} onClick={() => onChange(v)}>
             {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -717,11 +812,15 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         right: { eyesOpen: 0, eyesClosed: 0 },
       },
     };
-    const updateSU = (path: string, value: any) => {
+    const updateSU = (path: string, value: boolean | number | MobilityRating | SquatDepth | string[]) => {
       const parts = path.split('.');
-      const updated = JSON.parse(JSON.stringify(su));
-      let ref = updated;
-      for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]];
+      const updated = JSON.parse(JSON.stringify(su)) as SquatUniversityAssessment;
+      let ref = updated as unknown as Record<string, unknown>;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const next = ref[parts[i]];
+        if (!isRecord(next)) return;
+        ref = next;
+      }
       ref[parts[parts.length - 1]] = value;
       updateField('squatUniversityAssessment', updated);
     };
@@ -733,19 +832,19 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
           <FormGrid>
             <FormGroup>
               <Label>Left Ankle</Label>
-              <SegmentedControl>
+              <SegmentedControl role="group" aria-label="Left ankle dorsiflexion pass or fail">
                 <SegmentedButton $active={su.ankleDorsiflexion.left.pass} $variant="pass" onClick={() => updateSU('ankleDorsiflexion.left.pass', true)}>Pass</SegmentedButton>
                 <SegmentedButton $active={!su.ankleDorsiflexion.left.pass} $variant="fail" onClick={() => updateSU('ankleDorsiflexion.left.pass', false)}>Fail</SegmentedButton>
               </SegmentedControl>
-              <Input type="number" placeholder="Degrees" value={su.ankleDorsiflexion.left.degrees || ''} onChange={(e) => updateSU('ankleDorsiflexion.left.degrees', Number(e.target.value))} />
+              <Input aria-label="Left ankle dorsiflexion degrees" type="number" placeholder="Degrees" value={su.ankleDorsiflexion.left.degrees || ''} onChange={(e) => updateSU('ankleDorsiflexion.left.degrees', Number(e.target.value))} />
             </FormGroup>
             <FormGroup>
               <Label>Right Ankle</Label>
-              <SegmentedControl>
+              <SegmentedControl role="group" aria-label="Right ankle dorsiflexion pass or fail">
                 <SegmentedButton $active={su.ankleDorsiflexion.right.pass} $variant="pass" onClick={() => updateSU('ankleDorsiflexion.right.pass', true)}>Pass</SegmentedButton>
                 <SegmentedButton $active={!su.ankleDorsiflexion.right.pass} $variant="fail" onClick={() => updateSU('ankleDorsiflexion.right.pass', false)}>Fail</SegmentedButton>
               </SegmentedControl>
-              <Input type="number" placeholder="Degrees" value={su.ankleDorsiflexion.right.degrees || ''} onChange={(e) => updateSU('ankleDorsiflexion.right.degrees', Number(e.target.value))} />
+              <Input aria-label="Right ankle dorsiflexion degrees" type="number" placeholder="Degrees" value={su.ankleDorsiflexion.right.degrees || ''} onChange={(e) => updateSU('ankleDorsiflexion.right.degrees', Number(e.target.value))} />
             </FormGroup>
           </FormGrid>
         </Card>
@@ -766,19 +865,19 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
             {renderMobilitySegmented('T-Spine Rotation (L)', su.thoracicSpineMobility.rotationLeft, (v) => updateSU('thoracicSpineMobility.rotationLeft', v))}
             {renderMobilitySegmented('T-Spine Rotation (R)', su.thoracicSpineMobility.rotationRight, (v) => updateSU('thoracicSpineMobility.rotationRight', v))}
           </FormGrid>
-          <FormGroup style={{ marginTop: 16 }}>
+          <SpacedFormGroup $top={16}>
             <Label>Deep Squat Depth</Label>
-            <SegmentedControl>
+            <SegmentedControl role="group" aria-label="Deep squat depth">
               {(['full', 'parallel', 'above_parallel', 'quarter'] as SquatDepth[]).map((v) => (
                 <SegmentedButton key={v} $active={su.deepSquat.depthAchieved === v} onClick={() => updateSU('deepSquat.depthAchieved', v)}>
                   {v.replace('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                 </SegmentedButton>
               ))}
             </SegmentedControl>
-          </FormGroup>
-          <FormGroup style={{ marginTop: 12 }}>
+          </SpacedFormGroup>
+          <SpacedFormGroup $top={12}>
             <Label>Squat Compensations</Label>
-            <ChipContainer>
+            <ChipContainer role="group" aria-label="Squat compensations">
               {SQUAT_COMPENSATIONS.map((c) => (
                 <Chip key={c} $selected={(su.deepSquat.compensations || []).includes(c)} onClick={() => {
                   const comps = su.deepSquat.compensations || [];
@@ -786,26 +885,26 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
                 }}>{c}</Chip>
               ))}
             </ChipContainer>
-          </FormGroup>
+          </SpacedFormGroup>
         </Card>
         <Card>
           <SectionTitle><Zap size={18} /> Single-Leg Balance (seconds)</SectionTitle>
           <FormGrid>
             <FormGroup>
-              <Label>Left — Eyes Open</Label>
-              <Input type="number" value={su.singleLegBalance.left.eyesOpen || ''} onChange={(e) => updateSU('singleLegBalance.left.eyesOpen', Number(e.target.value))} placeholder="seconds" />
+              <FieldLabel htmlFor="movement-left-eyes-open">Left — Eyes Open</FieldLabel>
+              <Input id="movement-left-eyes-open" type="number" value={su.singleLegBalance.left.eyesOpen || ''} onChange={(e) => updateSU('singleLegBalance.left.eyesOpen', Number(e.target.value))} placeholder="seconds" />
             </FormGroup>
             <FormGroup>
-              <Label>Right — Eyes Open</Label>
-              <Input type="number" value={su.singleLegBalance.right.eyesOpen || ''} onChange={(e) => updateSU('singleLegBalance.right.eyesOpen', Number(e.target.value))} placeholder="seconds" />
+              <FieldLabel htmlFor="movement-right-eyes-open">Right — Eyes Open</FieldLabel>
+              <Input id="movement-right-eyes-open" type="number" value={su.singleLegBalance.right.eyesOpen || ''} onChange={(e) => updateSU('singleLegBalance.right.eyesOpen', Number(e.target.value))} placeholder="seconds" />
             </FormGroup>
             <FormGroup>
-              <Label>Left — Eyes Closed</Label>
-              <Input type="number" value={su.singleLegBalance.left.eyesClosed || ''} onChange={(e) => updateSU('singleLegBalance.left.eyesClosed', Number(e.target.value))} placeholder="seconds" />
+              <FieldLabel htmlFor="movement-left-eyes-closed">Left — Eyes Closed</FieldLabel>
+              <Input id="movement-left-eyes-closed" type="number" value={su.singleLegBalance.left.eyesClosed || ''} onChange={(e) => updateSU('singleLegBalance.left.eyesClosed', Number(e.target.value))} placeholder="seconds" />
             </FormGroup>
             <FormGroup>
-              <Label>Right — Eyes Closed</Label>
-              <Input type="number" value={su.singleLegBalance.right.eyesClosed || ''} onChange={(e) => updateSU('singleLegBalance.right.eyesClosed', Number(e.target.value))} placeholder="seconds" />
+              <FieldLabel htmlFor="movement-right-eyes-closed">Right — Eyes Closed</FieldLabel>
+              <Input id="movement-right-eyes-closed" type="number" value={su.singleLegBalance.right.eyesClosed || ''} onChange={(e) => updateSU('singleLegBalance.right.eyesClosed', Number(e.target.value))} placeholder="seconds" />
             </FormGroup>
           </FormGrid>
         </Card>
@@ -816,7 +915,7 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
   const renderRatingSegmented = (label: string, value: MovementRating, onChange: (v: MovementRating) => void) => (
     <FormGroup>
       <Label>{label}</Label>
-      <SegmentedControl>
+      <SegmentedControl role="group" aria-label={label}>
         {(['excellent', 'good', 'fair', 'poor'] as MovementRating[]).map((v) => (
           <SegmentedButton key={v} $active={value === v} $variant={v === 'poor' ? 'significant' : v === 'fair' ? 'minor' : undefined} onClick={() => onChange(v)}>
             {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -836,18 +935,20 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
       pullAssessment: { rating: 'good' as MovementRating, compensations: [] as string[] },
       gaitAnalysis: { observations: '' },
     };
-    const updateMQ = (path: string, value: any) => {
+    const updateMQ = (path: string, value: MovementRating | string[] | string) => {
       const parts = path.split('.');
-      const updated = JSON.parse(JSON.stringify(mq));
-      let ref = updated;
-      for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]];
+      const updated = JSON.parse(JSON.stringify(mq)) as MovementQualityAssessments;
+      let ref = updated as unknown as Record<string, unknown>;
+      for (let i = 0; i < parts.length - 1; i++) {
+        const next = ref[parts[i]];
+        if (!isRecord(next)) return;
+        ref = next;
+      }
       ref[parts[parts.length - 1]] = value;
       updateField('movementQualityAssessments', updated);
     };
     const toggleComp = (path: string, comp: string) => {
-      const parts = path.split('.');
-      const ref = parts.reduce((o: any, k: string) => o[k], mq);
-      const comps = ref || [];
+      const comps = getNestedArray(mq, path);
       updateMQ(path, comps.includes(comp) ? comps.filter((c: string) => c !== comp) : [...comps, comp]);
     };
 
@@ -859,15 +960,15 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
             {renderRatingSegmented('Left Leg', mq.singleLegSquat.left.rating, (v) => updateMQ('singleLegSquat.left.rating', v))}
             {renderRatingSegmented('Right Leg', mq.singleLegSquat.right.rating, (v) => updateMQ('singleLegSquat.right.rating', v))}
           </FormGrid>
-          <FormGroup style={{ marginTop: 12 }}>
+          <SpacedFormGroup $top={12}>
             <Label>Compensations Observed</Label>
-            <ChipContainer>
+            <ChipContainer role="group" aria-label="Movement compensations observed">
               {MOVEMENT_COMPENSATIONS.map((c) => (
                 <Chip key={c} $selected={[...(mq.singleLegSquat.left.compensations || []), ...(mq.singleLegSquat.right.compensations || [])].includes(c)}
                   onClick={() => toggleComp('singleLegSquat.left.compensations', c)}>{c}</Chip>
               ))}
             </ChipContainer>
-          </FormGroup>
+          </SpacedFormGroup>
         </Card>
         <Card>
           <SectionTitle><Activity size={18} /> Push & Pull Assessment</SectionTitle>
@@ -879,8 +980,8 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         <Card>
           <SectionTitle><Activity size={18} /> Gait Analysis</SectionTitle>
           <FormGroup>
-            <Label>Observations</Label>
-            <TextArea value={mq.gaitAnalysis.observations} onChange={(e) => updateMQ('gaitAnalysis.observations', e.target.value)} placeholder="Walking/running gait observations..." />
+            <FieldLabel htmlFor="movement-gait-observations">Observations</FieldLabel>
+            <TextArea id="movement-gait-observations" value={mq.gaitAnalysis.observations} onChange={(e) => updateMQ('gaitAnalysis.observations', e.target.value)} placeholder="Walking/running gait observations..." />
           </FormGroup>
         </Card>
       </>
@@ -910,13 +1011,13 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         {opt && (
           <Card>
             <SectionTitle><CheckCircle size={18} /> OPT Phase Recommendation</SectionTitle>
-            <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Phase {opt.phase}: {opt.name}</div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>{opt.focus}</div>
+            <OptPhaseTitle>Phase {opt.phase}: {opt.name}</OptPhaseTitle>
+            <OptPhaseFocus>{opt.focus}</OptPhaseFocus>
             <FormGrid>
-              <div><Label>Duration</Label><div>{opt.duration}</div></div>
-              <div><Label>Rep Range</Label><div>{opt.repRange}</div></div>
-              <div><Label>Tempo</Label><div>{opt.tempo}</div></div>
-              <div><Label>Rest</Label><div>{opt.rest}</div></div>
+              <OptMetric><Label>Duration</Label><div>{opt.duration}</div></OptMetric>
+              <OptMetric><Label>Rep Range</Label><div>{opt.repRange}</div></OptMetric>
+              <OptMetric><Label>Tempo</Label><div>{opt.tempo}</div></OptMetric>
+              <OptMetric><Label>Rest</Label><div>{opt.rest}</div></OptMetric>
             </FormGrid>
           </Card>
         )}
@@ -924,9 +1025,9 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         {strategy && strategy.compensationsIdentified.length > 0 && (
           <Card>
             <SectionTitle>Corrective Exercise Strategy</SectionTitle>
-            <div style={{ marginBottom: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+            <StrategyCompensations>
               Compensations: {strategy.compensationsIdentified.join(', ')}
-            </div>
+            </StrategyCompensations>
             {strategy.inhibit.length > 0 && (
               <StrategyCard>
                 <StrategyTitle $color="#FF6B6B">1. Inhibit (Foam Roll)</StrategyTitle>
@@ -965,10 +1066,11 @@ const MovementAnalysisWizard: React.FC<WizardProps> = ({ mode = 'new', propClien
         <Card>
           <SectionTitle>Trainer Notes</SectionTitle>
           <TextArea
+            aria-label="Trainer notes"
             value={data.trainerNotes}
             onChange={(e) => updateField('trainerNotes', e.target.value)}
             placeholder="Additional notes, recommendations, follow-up plan..."
-            style={{ minHeight: 120 }}
+            $minHeight={120}
           />
         </Card>
       </>
