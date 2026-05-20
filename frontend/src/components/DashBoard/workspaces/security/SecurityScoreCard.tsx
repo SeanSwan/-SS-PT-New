@@ -11,11 +11,18 @@
 import React from 'react';
 import { VictoryArea, VictoryChart, VictoryAxis } from 'victory';
 import { Shield, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { SecurityScore, SecurityScoreCategory } from './security.types';
 import {
   SecurityCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  ScoreBadge, MetricRow, MetricBox, MetricValue, MetricLabel,
+  ScoreBadge, MetricBox, MetricValue, MetricLabel,
 } from './security.styles';
+import {
+  CardTitleCompact, CategoryContent, CategoryDetail, CategoryName,
+  CategoryRowShell, CategoryScoreText, CategoryScoreWrap, CategoryStatusIcon,
+  FlexibleMetricRow, GradeValue, OverallScoreRow, PointsText, ProgressFill,
+  ProgressTrack, ScoreCardStack, ScoreSummaryRow, TrendCategoryGrid,
+} from './securityScoreCard.styles';
 
 // --- Demo data -----------------------------------------------------------
 const DEMO_SCORE: SecurityScore = {
@@ -33,47 +40,57 @@ const DEMO_SCORE: SecurityScore = {
   ],
 };
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  pass: <CheckCircle size={16} style={{ color: '#10B981' }} />,
-  warn: <AlertTriangle size={16} style={{ color: '#F59E0B' }} />,
-  fail: <XCircle size={16} style={{ color: '#EF4444' }} />,
+const STATUS_ICON: Record<SecurityScoreCategory['status'], LucideIcon> = {
+  pass: CheckCircle,
+  warn: AlertTriangle,
+  fail: XCircle,
 };
 
-const GRADE_COLORS: Record<string, string> = {
-  'A+': '#10B981', A: '#10B981', B: '#60C0F0', C: '#F59E0B', D: '#EF4444', F: '#EF4444',
+const TREND_AXIS_STYLE = {
+  axis: { stroke: 'var(--border-subtle, rgba(96, 192, 240, 0.15))' },
+  tickLabels: {
+    fill: 'var(--text-secondary, rgba(224, 236, 244, 0.85))',
+    fontSize: 9,
+    fontFamily: 'Fira Code',
+  },
+};
+
+const TREND_DEPENDENT_AXIS_STYLE = {
+  ...TREND_AXIS_STYLE,
+  grid: { stroke: 'var(--border-subtle, rgba(96, 192, 240, 0.06))' },
+};
+
+const TREND_AREA_STYLE = {
+  data: {
+    fill: 'color-mix(in srgb, var(--feedback-success, #10B981) 15%, transparent)',
+    stroke: 'var(--feedback-success, #10B981)',
+    strokeWidth: 2,
+  },
 };
 
 // --- CategoryRow sub-component -------------------------------------------
 const CategoryRow: React.FC<{ cat: SecurityScoreCategory }> = ({ cat }) => {
   const pct = Math.round((cat.score / cat.maxScore) * 100);
+  const Icon = STATUS_ICON[cat.status];
+
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0',
-      borderBottom: '1px solid var(--border-subtle, rgba(96,192,240,0.08))',
-    }}>
-      <div style={{ flexShrink: 0 }}>{STATUS_ICON[cat.status]}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #E0ECF4)', marginBottom: 4 }}>
-          {cat.name}
-        </div>
-        <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'var(--text-secondary, rgba(224,236,244,0.85))' }}>
-          {cat.detail}
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-        <span style={{ fontFamily: 'Fira Code, monospace', fontSize: 14, fontWeight: 700, color: pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444' }}>
+    <CategoryRowShell>
+      <CategoryStatusIcon $status={cat.status}>
+        <Icon size={16} />
+      </CategoryStatusIcon>
+      <CategoryContent>
+        <CategoryName>{cat.name}</CategoryName>
+        <CategoryDetail>{cat.detail}</CategoryDetail>
+      </CategoryContent>
+      <CategoryScoreWrap>
+        <CategoryScoreText $percent={pct}>
           {cat.score}/{cat.maxScore}
-        </span>
-        {/* Progress bar */}
-        <div style={{ width: 80, height: 4, borderRadius: 2, background: 'rgba(96,192,240,0.08)', marginTop: 4 }}>
-          <div style={{
-            width: `${pct}%`, height: '100%', borderRadius: 2,
-            background: pct >= 80 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#EF4444',
-            transition: 'width 0.3s ease',
-          }} />
-        </div>
-      </div>
-    </div>
+        </CategoryScoreText>
+        <ProgressTrack>
+          <ProgressFill $percent={pct} />
+        </ProgressTrack>
+      </CategoryScoreWrap>
+    </CategoryRowShell>
   );
 };
 
@@ -85,9 +102,10 @@ const SecurityScoreCard: React.FC = () => {
   const passCount = score.categories.filter(c => c.status === 'pass').length;
   const warnCount = score.categories.filter(c => c.status === 'warn').length;
   const failCount = score.categories.filter(c => c.status === 'fail').length;
+  const trendData = score.trend.map((y, x) => ({ x, y }));
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <ScoreCardStack>
       {/* Overall score */}
       <SecurityCard>
         <CardHeader>
@@ -102,83 +120,69 @@ const SecurityScoreCard: React.FC = () => {
           </HeaderLeft>
         </CardHeader>
 
-        <div style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+        <OverallScoreRow>
           {/* Big score */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ScoreSummaryRow>
             <ScoreBadge $score={score.overall}>{score.overall}</ScoreBadge>
             <div>
-              <div style={{
-                fontFamily: 'Fira Code, monospace', fontSize: 32, fontWeight: 700, lineHeight: 1,
-                color: GRADE_COLORS[score.grade] || '#E0ECF4',
-              }}>
-                {score.grade}
-              </div>
-              <div style={{ fontFamily: 'Sora, sans-serif', fontSize: 12, color: 'rgba(224,236,244,0.85)' }}>
+              <GradeValue $grade={score.grade}>{score.grade}</GradeValue>
+              <PointsText>
                 {totalEarned}/{totalPossible} pts
-              </div>
+              </PointsText>
             </div>
-          </div>
+          </ScoreSummaryRow>
 
           {/* Mini metrics */}
-          <MetricRow style={{ flex: 1, marginBottom: 0 }}>
+          <FlexibleMetricRow>
             <MetricBox>
-              <MetricValue $color="#10B981">{passCount}</MetricValue>
+              <MetricValue $color="var(--feedback-success, #10B981)">{passCount}</MetricValue>
               <MetricLabel>Passing</MetricLabel>
             </MetricBox>
             <MetricBox>
-              <MetricValue $color="#F59E0B">{warnCount}</MetricValue>
+              <MetricValue $color="var(--feedback-warning, #F59E0B)">{warnCount}</MetricValue>
               <MetricLabel>Warnings</MetricLabel>
             </MetricBox>
             <MetricBox>
-              <MetricValue $color="#EF4444">{failCount}</MetricValue>
+              <MetricValue $color="var(--feedback-danger, #EF4444)">{failCount}</MetricValue>
               <MetricLabel>Failing</MetricLabel>
             </MetricBox>
-          </MetricRow>
-        </div>
+          </FlexibleMetricRow>
+        </OverallScoreRow>
       </SecurityCard>
 
       {/* Trend + Categories side by side */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <TrendCategoryGrid>
         {/* Trend chart */}
         <SecurityCard>
-          <CardTitle style={{ marginBottom: 12 }}>7-Day Score Trend</CardTitle>
+          <CardTitleCompact $bottom={12}>7-Day Score Trend</CardTitleCompact>
           <VictoryChart height={160} padding={{ top: 15, bottom: 30, left: 40, right: 20 }}>
-            <VictoryAxis
-              tickValues={score.trend.map((_, i) => i)}
-              tickFormat={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-              style={{
-                axis: { stroke: 'rgba(96,192,240,0.15)' },
-                tickLabels: { fill: 'rgba(224,236,244,0.85)', fontSize: 9, fontFamily: 'Fira Code' },
-              }}
-            />
-            <VictoryAxis
-              dependentAxis
-              domain={[0, 100]}
-              style={{
-                axis: { stroke: 'rgba(96,192,240,0.15)' },
-                tickLabels: { fill: 'rgba(224,236,244,0.85)', fontSize: 9, fontFamily: 'Fira Code' },
-                grid: { stroke: 'rgba(96,192,240,0.06)' },
-              }}
-            />
-            <VictoryArea
-              data={score.trend.map((y, x) => ({ x, y }))}
-              style={{
-                data: { fill: 'rgba(16,185,129,0.15)', stroke: '#10B981', strokeWidth: 2 },
-              }}
-              interpolation="monotoneX"
-            />
+            {React.createElement(VictoryAxis, {
+              tickValues: score.trend.map((_, i) => i),
+              tickFormat: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+              style: TREND_AXIS_STYLE,
+            })}
+            {React.createElement(VictoryAxis, {
+              dependentAxis: true,
+              domain: [0, 100],
+              style: TREND_DEPENDENT_AXIS_STYLE,
+            })}
+            {React.createElement(VictoryArea, {
+              data: trendData,
+              style: TREND_AREA_STYLE,
+              interpolation: 'monotoneX',
+            })}
           </VictoryChart>
         </SecurityCard>
 
         {/* Category breakdown */}
         <SecurityCard>
-          <CardTitle style={{ marginBottom: 8 }}>Category Breakdown</CardTitle>
+          <CardTitle>Category Breakdown</CardTitle>
           {score.categories.map(cat => (
             <CategoryRow key={cat.name} cat={cat} />
           ))}
         </SecurityCard>
-      </div>
-    </div>
+      </TrendCategoryGrid>
+    </ScoreCardStack>
   );
 };
 

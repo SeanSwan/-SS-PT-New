@@ -81,6 +81,10 @@ const Title = styled.h1`
   @media (max-width: 768px) { font-size: 22px; }
 `;
 
+const TitleIcon = styled(ShieldCheck)`
+  opacity: 0.7;
+`;
+
 const Subtitle = styled.p`
   font-size: 14px;
   color: var(--text-secondary, rgba(224, 236, 244, 0.85));
@@ -151,7 +155,7 @@ const SecurityWorkspace: React.FC = () => {
     <Wrapper>
       <Header>
         <Title>
-          <ShieldCheck size={28} style={{ opacity: 0.7 }} />
+          <TitleIcon size={28} />
           Security Intelligence
         </Title>
         <Subtitle>Vulnerability scanning, dependency health, alerts, and security posture</Subtitle>

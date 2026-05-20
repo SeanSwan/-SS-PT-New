@@ -2,172 +2,172 @@
  * +--- PANEL: Dependency Health Widget --------------------------------+
  * | PARENT: SecurityWorkspace                                          |
  * | PURPOSE: npm audit results, outdated dependency tracker, license   |
- * |          compliance overview. One-click fix suggestions.           |
+ * |          compliance overview, and one-click fix suggestions.        |
  * +--------------------------------------------------------------------+
  */
 
 import React, { useState } from 'react';
-import { Package, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Package, XCircle } from 'lucide-react';
 import type { DependencyEntry, NpmAuditSummary } from './security.types';
-import { SEVERITY_CONFIG } from './security.types';
 import {
-  SecurityCard, CardHeader, HeaderLeft, IconWrap, CardTitle, CardSubtitle,
-  MetricRow, MetricBox, MetricValue, MetricLabel,
-  DepStatusChip, ActionButton, DataTable, PillTabs, PillTab,
+  CardHeader, CardSubtitle, CardTitle, DataTable, DepStatusChip, EmptyState,
+  HeaderLeft, IconWrap, MetricBox, MetricLabel, MetricRow, MetricValue,
+  PillTab, PillTabs, SecurityCard,
 } from './security.styles';
-
-// --- Demo data -----------------------------------------------------------
-const DEMO_AUDIT: NpmAuditSummary = {
-  totalPackages: 1247,
-  vulnerabilities: { critical: 0, high: 2, medium: 3, low: 5 },
-  fixAvailable: 8,
-  lastAuditDate: '2026-04-05T08:30:00Z',
-};
-
-const DEMO_DEPS: DependencyEntry[] = [
-  { name: 'express', currentVersion: '4.19.2', latestVersion: '4.21.0', status: 'outdated', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-03-15', type: 'production' },
-  { name: 'sequelize', currentVersion: '6.37.3', latestVersion: '6.37.5', status: 'vulnerable', license: 'MIT', licenseRisk: 'none', vulnerabilities: 1, lastUpdated: '2026-02-28', type: 'production' },
-  { name: 'react', currentVersion: '18.3.1', latestVersion: '18.3.1', status: 'current', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-04-01', type: 'production' },
-  { name: 'react-dom', currentVersion: '18.3.1', latestVersion: '18.3.2', status: 'outdated', license: 'MIT', licenseRisk: 'none', vulnerabilities: 1, lastUpdated: '2026-04-01', type: 'production' },
-  { name: 'pg', currentVersion: '8.13.0', latestVersion: '8.13.1', status: 'vulnerable', license: 'MIT', licenseRisk: 'none', vulnerabilities: 1, lastUpdated: '2026-03-20', type: 'production' },
-  { name: 'jsonwebtoken', currentVersion: '9.0.2', latestVersion: '9.0.3', status: 'outdated', license: 'MIT', licenseRisk: 'none', vulnerabilities: 1, lastUpdated: '2026-01-15', type: 'production' },
-  { name: 'styled-components', currentVersion: '6.1.13', latestVersion: '6.1.13', status: 'current', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-03-10', type: 'production' },
-  { name: 'victory', currentVersion: '37.3.2', latestVersion: '37.3.2', status: 'current', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-03-25', type: 'production' },
-  { name: 'vite', currentVersion: '5.4.14', latestVersion: '5.5.0', status: 'outdated', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-03-01', type: 'dev' },
-  { name: 'vitest', currentVersion: '2.1.8', latestVersion: '2.1.8', status: 'current', license: 'MIT', licenseRisk: 'none', vulnerabilities: 0, lastUpdated: '2026-03-28', type: 'dev' },
-];
+import {
+  AutoFixBanner, AutoFixCode, InlineActionButton, LatestVersionCell,
+  PanelStack, SmallCell, StatusCount, StrongCell, TableScroll, TypeCell,
+} from './securityPanelExtras.styles';
 
 type FilterTab = 'all' | 'vulnerable' | 'outdated' | 'current';
 
-// --- Component -----------------------------------------------------------
+const EMPTY_AUDIT: NpmAuditSummary = {
+  totalPackages: 0,
+  vulnerabilities: { critical: 0, high: 0, medium: 0, low: 0 },
+  fixAvailable: 0,
+  lastAuditDate: '',
+};
+
+const DEPENDENCIES: DependencyEntry[] = [];
+
+const FILTER_TABS: FilterTab[] = ['all', 'vulnerable', 'outdated', 'current'];
+
 const DependencyHealthWidget: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
-  const audit = DEMO_AUDIT;
+  const audit = EMPTY_AUDIT;
 
   const filtered = activeFilter === 'all'
-    ? DEMO_DEPS
-    : DEMO_DEPS.filter(d => d.status === activeFilter);
-
-  const totalVulns = audit.vulnerabilities.critical + audit.vulnerabilities.high + audit.vulnerabilities.medium + audit.vulnerabilities.low;
+    ? DEPENDENCIES
+    : DEPENDENCIES.filter(d => d.status === activeFilter);
+  const totalVulns = audit.vulnerabilities.critical
+    + audit.vulnerabilities.high
+    + audit.vulnerabilities.medium
+    + audit.vulnerabilities.low;
+  const lastAuditLabel = audit.lastAuditDate
+    ? new Date(audit.lastAuditDate).toLocaleDateString()
+    : 'not connected';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Audit summary */}
+    <PanelStack>
       <SecurityCard>
         <CardHeader>
           <HeaderLeft>
-            <IconWrap $bg="rgba(139, 92, 246, 0.12)" $color="#8B5CF6">
+            <IconWrap
+              $bg="color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)"
+              $color="var(--accent-secondary, #8B5CF6)"
+            >
               <Package size={18} />
             </IconWrap>
             <div>
               <CardTitle>npm Audit Summary</CardTitle>
-              <CardSubtitle>{audit.totalPackages} packages scanned — {new Date(audit.lastAuditDate).toLocaleDateString()}</CardSubtitle>
+              <CardSubtitle>{audit.totalPackages} packages scanned - {lastAuditLabel}</CardSubtitle>
             </div>
           </HeaderLeft>
-          <ActionButton $variant="secondary">
-            <AlertTriangle size={14} style={{ marginRight: 6 }} />
+          <InlineActionButton $variant="secondary">
+            <AlertTriangle size={14} />
             Run npm audit
-          </ActionButton>
+          </InlineActionButton>
         </CardHeader>
 
         <MetricRow>
           <MetricBox>
-            <MetricValue $color={SEVERITY_CONFIG.critical.color}>{audit.vulnerabilities.critical}</MetricValue>
+            <MetricValue $color="var(--feedback-danger, #EF4444)">
+              {audit.vulnerabilities.critical}
+            </MetricValue>
             <MetricLabel>Critical</MetricLabel>
           </MetricBox>
           <MetricBox>
-            <MetricValue $color={SEVERITY_CONFIG.high.color}>{audit.vulnerabilities.high}</MetricValue>
+            <MetricValue $color="var(--feedback-warning, #F59E0B)">
+              {audit.vulnerabilities.high}
+            </MetricValue>
             <MetricLabel>High</MetricLabel>
           </MetricBox>
           <MetricBox>
-            <MetricValue $color={SEVERITY_CONFIG.medium.color}>{audit.vulnerabilities.medium}</MetricValue>
+            <MetricValue $color="var(--accent-primary, #60C0F0)">
+              {audit.vulnerabilities.medium}
+            </MetricValue>
             <MetricLabel>Medium</MetricLabel>
           </MetricBox>
           <MetricBox>
-            <MetricValue $color={SEVERITY_CONFIG.low.color}>{audit.vulnerabilities.low}</MetricValue>
+            <MetricValue $color="var(--feedback-success, #10B981)">
+              {audit.vulnerabilities.low}
+            </MetricValue>
             <MetricLabel>Low</MetricLabel>
           </MetricBox>
           <MetricBox>
-            <MetricValue $color="#10B981">{audit.fixAvailable}</MetricValue>
+            <MetricValue $color="var(--feedback-success, #10B981)">{audit.fixAvailable}</MetricValue>
             <MetricLabel>Fixable</MetricLabel>
           </MetricBox>
         </MetricRow>
 
         {totalVulns > 0 && audit.fixAvailable > 0 && (
-          <div style={{
-            padding: '12px 16px',
-            borderRadius: 10,
-            background: 'rgba(16, 185, 129, 0.08)',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            color: '#10B981',
-            fontFamily: 'Fira Code, monospace',
-            fontSize: 13,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}>
+          <AutoFixBanner>
             <CheckCircle size={16} />
-            {audit.fixAvailable} of {totalVulns} vulnerabilities can be auto-fixed with <code style={{ background: 'rgba(16,185,129,0.15)', padding: '2px 6px', borderRadius: 4 }}>npm audit fix</code>
-          </div>
+            {audit.fixAvailable} of {totalVulns} vulnerabilities can be auto-fixed with
+            <AutoFixCode>npm audit fix</AutoFixCode>
+          </AutoFixBanner>
         )}
       </SecurityCard>
 
-      {/* Dependency table */}
       <SecurityCard>
         <CardHeader>
           <CardTitle>Dependency Health ({filtered.length})</CardTitle>
         </CardHeader>
 
         <PillTabs>
-          {(['all', 'vulnerable', 'outdated', 'current'] as FilterTab[]).map(tab => (
+          {FILTER_TABS.map(tab => (
             <PillTab key={tab} $active={activeFilter === tab} onClick={() => setActiveFilter(tab)}>
-              {tab === 'all' ? 'All' : tab === 'vulnerable' ? `Vulnerable (${DEMO_DEPS.filter(d => d.status === 'vulnerable').length})` : tab === 'outdated' ? `Outdated (${DEMO_DEPS.filter(d => d.status === 'outdated').length})` : `Current (${DEMO_DEPS.filter(d => d.status === 'current').length})`}
+              {tab === 'all'
+                ? 'All'
+                : `${tab.charAt(0).toUpperCase() + tab.slice(1)} (${DEPENDENCIES.filter(d => d.status === tab).length})`}
             </PillTab>
           ))}
         </PillTabs>
 
-        <div style={{ overflowX: 'auto' }}>
-          <DataTable>
-            <thead>
-              <tr>
-                <th>Package</th>
-                <th>Current</th>
-                <th>Latest</th>
-                <th>Status</th>
-                <th>Vulns</th>
-                <th>License</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(dep => (
-                <tr key={dep.name}>
-                  <td style={{ fontWeight: 600 }}>{dep.name}</td>
-                  <td style={{ fontSize: 12 }}>{dep.currentVersion}</td>
-                  <td style={{ fontSize: 12, color: dep.currentVersion !== dep.latestVersion ? '#F59E0B' : 'inherit' }}>
-                    {dep.latestVersion}
-                  </td>
-                  <td><DepStatusChip $status={dep.status}>{dep.status}</DepStatusChip></td>
-                  <td>
-                    {dep.vulnerabilities > 0 ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#EF4444' }}>
-                        <XCircle size={14} /> {dep.vulnerabilities}
-                      </span>
-                    ) : (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#10B981' }}>
-                        <CheckCircle size={14} /> 0
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ fontSize: 12 }}>{dep.license}</td>
-                  <td style={{ fontSize: 11, textTransform: 'uppercase', color: 'rgba(224,236,244,0.85)' }}>{dep.type}</td>
+        {filtered.length === 0 ? (
+          <EmptyState>
+            <Package size={32} />
+            Dependency health has no connected audit data yet.
+          </EmptyState>
+        ) : (
+          <TableScroll>
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th>Current</th>
+                  <th>Latest</th>
+                  <th>Status</th>
+                  <th>Vulns</th>
+                  <th>License</th>
+                  <th>Type</th>
                 </tr>
-              ))}
-            </tbody>
-          </DataTable>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.map(dep => (
+                  <tr key={dep.name}>
+                    <StrongCell>{dep.name}</StrongCell>
+                    <SmallCell>{dep.currentVersion}</SmallCell>
+                    <LatestVersionCell $changed={dep.currentVersion !== dep.latestVersion}>
+                      {dep.latestVersion}
+                    </LatestVersionCell>
+                    <td><DepStatusChip $status={dep.status}>{dep.status}</DepStatusChip></td>
+                    <td>
+                      <StatusCount $danger={dep.vulnerabilities > 0}>
+                        {dep.vulnerabilities > 0 ? <XCircle size={14} /> : <CheckCircle size={14} />}
+                        {dep.vulnerabilities}
+                      </StatusCount>
+                    </td>
+                    <SmallCell>{dep.license}</SmallCell>
+                    <TypeCell>{dep.type}</TypeCell>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          </TableScroll>
+        )}
       </SecurityCard>
-    </div>
+    </PanelStack>
   );
 };
 
