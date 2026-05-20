@@ -12,7 +12,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
@@ -48,7 +48,7 @@ import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/use
 
 import {
   VictoryChart, VictoryBar, VictoryLine, VictoryArea, VictoryAxis,
-  VictoryTooltip, VictoryVoronoiContainer, VictoryPie, VictoryLegend,
+  VictoryTooltip, VictoryVoronoiContainer, VictoryPie,
   VictoryGroup,
 } from 'victory';
 import {
@@ -139,6 +139,84 @@ const LoadingStrip = styled.div`
   color: var(--text-muted, rgba(224,236,244,0.45)); font-family: 'Sora', sans-serif; font-size: 0.85rem;
 `;
 
+const ErrorLoadingStrip = styled(LoadingStrip)`
+  color: ${CHART_COLORS.crimsonFrost};
+`;
+
+const AttendanceSummary = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+`;
+
+const AttendancePercent = styled.div`
+  color: ${CHART_COLORS.iceWing};
+  font-family: 'Fira Code', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+`;
+
+const AttendanceMeta = styled.div`
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+`;
+
+const RecoveryIcon = styled(AlertTriangle)`
+  color: ${CHART_COLORS.crimsonFrost};
+  margin-right: 4px;
+  vertical-align: -2px;
+`;
+
+const workoutFrequencyBarStyle = { data: { fill: CHART_COLORS.iceWing } };
+const workoutFrequencyBarProps = { style: workoutFrequencyBarStyle };
+const weeklyVolumeAreaStyle = {
+  data: {
+    fill: hexAlpha(CHART_COLORS.wingPurple, 0.3),
+    stroke: CHART_COLORS.wingPurple,
+    strokeWidth: 2,
+  },
+};
+const weeklyVolumeAreaProps = { style: weeklyVolumeAreaStyle };
+const setsBarStyle = { data: { fill: CHART_COLORS.arcticCyan } };
+const setsBarProps = { style: setsBarStyle };
+const repsBarStyle = { data: { fill: CHART_COLORS.gildedFern } };
+const repsBarProps = { style: repsBarStyle };
+const durationLineStyle = { data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } };
+const durationLineProps = { style: durationLineStyle };
+const intensityLineStyle = { data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2 } };
+const intensityLineProps = { style: intensityLineStyle };
+const movementPatternLabelStyle = {
+  labels: {
+    fill: CHART_COLORS.textSecondary,
+    fontFamily: "'Fira Code', monospace",
+    fontSize: 9,
+  },
+};
+const movementPatternLabelProps = { style: movementPatternLabelStyle };
+
+const getAnchorLineStyle = (index: number) => ({
+  data: {
+    stroke: FULL_PALETTE[index % FULL_PALETTE.length],
+    strokeWidth: 2,
+  },
+});
+const getAnchorLineProps = (index: number) => ({ style: getAnchorLineStyle(index) });
+
+type ExerciseFrequencyPoint = {
+  x: string;
+  y: number;
+  sets?: number;
+};
+
+type RecoverySignalPoint = {
+  x: string;
+  painFlags?: number;
+  highRpeFlags?: number;
+  totalSets?: number;
+};
+
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
@@ -152,10 +230,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
   const { charts, isLoading, error, nonEmptyChartCount } = useAdminClientProgressCharts(clientId);
 
   if (isLoading && nonEmptyChartCount === 0) {
-    return <LoadingStrip>Loading {clientName}'s progress charts...</LoadingStrip>;
+    return <LoadingStrip>Loading {clientName}&apos;s progress charts...</LoadingStrip>;
   }
   if (error) {
-    return <LoadingStrip style={{ color: CHART_COLORS.crimsonFrost }}>{error}</LoadingStrip>;
+    return <ErrorLoadingStrip>{error}</ErrorLoadingStrip>;
   }
 
   // Helper for bar-list charts
@@ -175,10 +253,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-workoutFrequency">
           <CardHeader><Calendar size={14} color={CHART_COLORS.iceWing} /><CardTitle>Workout Frequency</CardTitle></CardHeader>
           <CardBody>{charts.workoutFrequency.length === 0 ? <Empty>No completed workouts yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:12,bottom:36,left:36,right:8}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:12,bottom:36,left:36,right:8}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
-              <VictoryBar data={charts.workoutFrequency} style={{data:{fill:CHART_COLORS.iceWing}}} cornerRadius={{top:3}}
+              <VictoryBar data={charts.workoutFrequency} {...workoutFrequencyBarProps} cornerRadius={{top:3}}
                 labels={({datum})=>`${datum.x}: ${datum.y}`} labelComponent={<VictoryTooltip renderInPortal={false} />} />
             </VictoryChart>
           )}</CardBody>
@@ -188,10 +266,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-attendance">
           <CardHeader><Users size={14} color={CHART_COLORS.gildedFern} /><CardTitle>Attendance Reliability</CardTitle></CardHeader>
           <CardBody>{charts.attendanceReliability.data.length === 0 ? <Empty>No attendance data yet</Empty> : (
-            <div style={{display:'flex',alignItems:'center',gap:'1rem',width:'100%'}}>
-              <div style={{fontFamily:"'Fira Code',monospace",fontSize:'2rem',fontWeight:700,color:CHART_COLORS.iceWing}}>{charts.attendanceReliability.reliabilityPercent}%</div>
-              <div style={{fontFamily:"'Sora',sans-serif",fontSize:'0.7rem',color:'var(--text-muted)'}}>show-rate<br/>{charts.attendanceReliability.totals.completed} completed / {charts.attendanceReliability.totals.resolved} resolved</div>
-            </div>
+            <AttendanceSummary>
+              <AttendancePercent>{charts.attendanceReliability.reliabilityPercent}%</AttendancePercent>
+              <AttendanceMeta>show-rate<br/>{charts.attendanceReliability.totals.completed} completed / {charts.attendanceReliability.totals.resolved} resolved</AttendanceMeta>
+            </AttendanceSummary>
           )}</CardBody>
         </Card>
 
@@ -199,10 +277,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-weeklyVolume">
           <CardHeader><BarChart3 size={14} color={CHART_COLORS.wingPurple} /><CardTitle>Weekly Volume</CardTitle></CardHeader>
           <CardBody>{charts.weeklyVolume.length === 0 ? <Empty>No logged lifts yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:12,bottom:36,left:48,right:8}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:12,bottom:36,left:48,right:8}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
-              <VictoryArea data={charts.weeklyVolume} style={{data:{fill:hexAlpha(CHART_COLORS.wingPurple,0.3),stroke:CHART_COLORS.wingPurple,strokeWidth:2}}}
+              <VictoryArea data={charts.weeklyVolume} {...weeklyVolumeAreaProps}
                 labels={({datum})=>`${datum.x}: ${Math.round(datum.y).toLocaleString()} lbs`} labelComponent={<VictoryTooltip renderInPortal={false} />} />
             </VictoryChart>
           )}</CardBody>
@@ -212,12 +290,12 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-setsReps">
           <CardHeader><Layers size={14} color={CHART_COLORS.arcticCyan} /><CardTitle>Sets & Reps Trend</CardTitle></CardHeader>
           <CardBody>{charts.setsRepsTrend.sets.length === 0 ? <Empty>No sets logged yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:20,bottom:36,left:44,right:8}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:20,bottom:36,left:44,right:8}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
               <VictoryGroup offset={8}>
-                <VictoryBar data={charts.setsRepsTrend.sets} style={{data:{fill:CHART_COLORS.arcticCyan}}} />
-                <VictoryBar data={charts.setsRepsTrend.reps} style={{data:{fill:CHART_COLORS.gildedFern}}} />
+                <VictoryBar data={charts.setsRepsTrend.sets} {...setsBarProps} />
+                <VictoryBar data={charts.setsRepsTrend.reps} {...repsBarProps} />
               </VictoryGroup>
             </VictoryChart>
           )}</CardBody>
@@ -227,10 +305,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-duration">
           <CardHeader><Activity size={14} color={CHART_COLORS.iceWing} /><CardTitle>Session Duration</CardTitle></CardHeader>
           <CardBody>{charts.durationTrend.length === 0 ? <Empty>No duration data yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:12,bottom:36,left:36,right:8}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:12,bottom:36,left:36,right:8}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
-              <VictoryLine data={charts.durationTrend} style={{data:{stroke:CHART_COLORS.iceWing,strokeWidth:2}}}
+              <VictoryLine data={charts.durationTrend} {...durationLineProps}
                 labels={({datum})=>`${datum.x}: ${datum.y}min`} labelComponent={<VictoryTooltip renderInPortal={false} />} />
             </VictoryChart>
           )}</CardBody>
@@ -240,10 +318,10 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-intensityRpe">
           <CardHeader><Flame size={14} color={CHART_COLORS.wingPurple} /><CardTitle>Effort Trend</CardTitle></CardHeader>
           <CardBody>{charts.intensityRpeTrend.length === 0 ? <Empty>No intensity data yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:12,bottom:36,left:36,right:8}} domain={{y:[0,10]}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:12,bottom:36,left:36,right:8}} domain={{y:[0,10]}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
-              <VictoryLine data={charts.intensityRpeTrend} style={{data:{stroke:CHART_COLORS.wingPurple,strokeWidth:2}}} />
+              <VictoryLine data={charts.intensityRpeTrend} {...intensityLineProps} />
             </VictoryChart>
           )}</CardBody>
         </Card>
@@ -264,12 +342,12 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-anchorLifts">
           <CardHeader><TrendIcon size={14} color={CHART_COLORS.iceWing} /><CardTitle>Anchor Lifts</CardTitle></CardHeader>
           <CardBody>{charts.anchorLifts.exercises.length === 0 ? <Empty>No anchor lifts yet</Empty> : (
-            <VictoryChart theme={victoryTheme as any} height={180} padding={{top:20,bottom:36,left:40,right:8}}
+            <VictoryChart theme={victoryTheme} height={180} padding={{top:20,bottom:36,left:40,right:8}}
               containerComponent={<VictoryVoronoiContainer voronoiDimension="x" />}>
               <VictoryAxis /><VictoryAxis dependentAxis />
               {charts.anchorLifts.exercises.map((name,i)=>{
                 const d = (charts.anchorLifts.data[name]||[]).map(p=>({x:p.x,y:p.y}));
-                return d.length>0 ? <VictoryLine key={name} data={d} style={{data:{stroke:FULL_PALETTE[i%FULL_PALETTE.length],strokeWidth:2}}} /> : null;
+                return d.length>0 ? <VictoryLine key={name} data={d} {...getAnchorLineProps(i)} /> : null;
               })}
             </VictoryChart>
           )}</CardBody>
@@ -280,7 +358,20 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
           <CardHeader><Dumbbell size={14} color={CHART_COLORS.arcticCyan} /><CardTitle>Exercise Frequency</CardTitle></CardHeader>
           <CardBody>{charts.exerciseFrequency.length === 0 ? <Empty>No exercises logged yet</Empty> : (() => {
             const pcts = barPcts(charts.exerciseFrequency);
-            return <BarList>{charts.exerciseFrequency.slice(0,8).map((r,i)=><BarRow key={r.x}><BarLabel>{r.x}</BarLabel><BarTrack><BarFill $pct={pcts[i]} $color={CHART_COLORS.arcticCyan} /></BarTrack><BarValue>{r.y}×{(r as any).sets}sets</BarValue></BarRow>)}</BarList>;
+            return (
+              <BarList>
+                {charts.exerciseFrequency.slice(0, 8).map((r, i) => {
+                  const row = r as ExerciseFrequencyPoint;
+                  return (
+                    <BarRow key={row.x}>
+                      <BarLabel>{row.x}</BarLabel>
+                      <BarTrack><BarFill $pct={pcts[i]} $color={CHART_COLORS.arcticCyan} /></BarTrack>
+                      <BarValue>{row.y}x{row.sets ?? 0}sets</BarValue>
+                    </BarRow>
+                  );
+                })}
+              </BarList>
+            );
           })()}</CardBody>
         </Card>
 
@@ -290,7 +381,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
           <CardBody>{charts.movementPatternBalance.length === 0 ? <Empty>No movement data yet</Empty> : (
             <VictoryPie data={charts.movementPatternBalance.map(r=>({x:r.x,y:r.y}))} colorScale={FULL_PALETTE}
               innerRadius={35} padAngle={2} height={180}
-              style={{labels:{fill:CHART_COLORS.textSecondary,fontFamily:"'Fira Code',monospace",fontSize:9}}}
+              {...movementPatternLabelProps}
               labels={({datum})=>datum.x} />
           )}</CardBody>
         </Card>
@@ -308,7 +399,20 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <Card data-testid="admin-chart-recovery">
           <CardHeader><HeartPulse size={14} color={CHART_COLORS.crimsonFrost} /><CardTitle>Recovery Signals</CardTitle></CardHeader>
           <CardBody>{charts.recoverySignal.length === 0 ? <Empty>No recovery flags</Empty> : (
-            <BarList>{charts.recoverySignal.slice(0,6).map(r=><BarRow key={r.x}><BarLabel><AlertTriangle size={11} style={{verticalAlign:'-2px',marginRight:4,color:CHART_COLORS.crimsonFrost}} />{r.x}</BarLabel><BarTrack><BarFill $pct={Math.min(((r as any).painFlags+(r as any).highRpeFlags)/Math.max((r as any).totalSets,1)*100,100)} $color={CHART_COLORS.crimsonFrost} /></BarTrack><BarValue>{(r as any).painFlags>0?`${(r as any).painFlags} pain`:''}{(r as any).painFlags>0&&(r as any).highRpeFlags>0?' · ':''}{(r as any).highRpeFlags>0?`${(r as any).highRpeFlags} redline`:''}</BarValue></BarRow>)}</BarList>
+            <BarList>{charts.recoverySignal.slice(0,6).map((r) => {
+              const row = r as RecoverySignalPoint;
+              const painFlags = row.painFlags ?? 0;
+              const highRpeFlags = row.highRpeFlags ?? 0;
+              const totalSets = Math.max(row.totalSets ?? 1, 1);
+              const riskPct = Math.min(((painFlags + highRpeFlags) / totalSets) * 100, 100);
+              return (
+                <BarRow key={row.x}>
+                  <BarLabel><RecoveryIcon size={11} />{row.x}</BarLabel>
+                  <BarTrack><BarFill $pct={riskPct} $color={CHART_COLORS.crimsonFrost} /></BarTrack>
+                  <BarValue>{painFlags > 0 ? `${painFlags} pain` : ''}{painFlags > 0 && highRpeFlags > 0 ? ' · ' : ''}{highRpeFlags > 0 ? `${highRpeFlags} redline` : ''}</BarValue>
+                </BarRow>
+              );
+            })}</BarList>
           )}</CardBody>
         </Card>
       </GridWrap>
