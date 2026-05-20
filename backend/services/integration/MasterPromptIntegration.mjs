@@ -353,7 +353,7 @@ export class MasterPromptIntegration {
           };
           break;
           
-        case 'gamification':
+        case 'gamification': {
           const gamificationHealth = await gamificationEngine.getSystemHealth();
           health.metrics = gamificationHealth;
           if (gamificationHealth.healthStatus !== 'healthy') {
@@ -361,8 +361,9 @@ export class MasterPromptIntegration {
             health.issues.push('Gamification system issues');
           }
           break;
+        }
           
-        case 'accessibility':
+        case 'accessibility': {
           // Check accessibility compliance
           const accessibilityReport = await accessibilityTesting.generateAccessibilityReport();
           health.metrics = accessibilityReport.summary;
@@ -371,8 +372,9 @@ export class MasterPromptIntegration {
             health.issues.push('Accessibility compliance issues');
           }
           break;
+        }
           
-        case 'privacyFirst':
+        case 'privacyFirst': {
           const privacyStatus = await privacyCompliance.generateComplianceReport();
           health.metrics = privacyStatus.metrics;
           if (privacyStatus.compliance.gdpr.score < 90) {
@@ -380,6 +382,7 @@ export class MasterPromptIntegration {
             health.issues.push('Privacy compliance below threshold');
           }
           break;
+        }
           
         case 'ethicalAI':
           // Check ethical AI status

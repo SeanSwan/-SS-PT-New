@@ -541,7 +541,7 @@ async function testInputValidation() {
       value: String(test.value).substring(0, 30),
       expected: test.expected,
       actual: res.status,
-      status: res.status == test.expected ? '✅ Rejected' : '❌ Accepted'
+      status: res.status === test.expected ? '✅ Rejected' : '❌ Accepted'
     });
   }
   

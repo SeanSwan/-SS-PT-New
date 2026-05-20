@@ -5,7 +5,7 @@
  * with automatic aggregation and trend analysis
  */
 
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const ProgressData = db.define('ProgressData', {

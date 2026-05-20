@@ -620,7 +620,7 @@ export class GamificationEngine {
               percentage: Math.min((await this.persistence.getCurrentStreak(userId) / 30) * 100, 100)
             };
             break;
-          case 'community_helper':
+          case 'community_helper': {
             const helpCount = await this.persistence.getCommunityHelpCount(userId);
             progress[achievementId] = {
               current: helpCount,
@@ -628,6 +628,7 @@ export class GamificationEngine {
               percentage: Math.min((helpCount / 10) * 100, 100)
             };
             break;
+          }
           default:
             progress[achievementId] = { current: 0, target: 1, percentage: 0 };
         }

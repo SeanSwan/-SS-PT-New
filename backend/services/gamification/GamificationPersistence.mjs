@@ -574,29 +574,16 @@ class GamificationPersistence {
    * @param {string} userId - User ID
    */
   async calculateStatsFromDatabase(userId) {
-    try {
-      // This would query the actual workout/progress tables
-      // For now, return default values
-      return {
-        totalWorkouts: 0,
-        currentStreak: 0,
-        perfectFormCount: 0,
-        sharedWorkouts: 0,
-        accessibilityUsage: 0
-      };
-    } catch (error) {
-      piiSafeLogger.error('Failed to calculate stats from database', {
-        error: error.message,
-        userId
-      });
-      return {
-        totalWorkouts: 0,
-        currentStreak: 0,
-        perfectFormCount: 0,
-        sharedWorkouts: 0,
-        accessibilityUsage: 0
-      };
-    }
+    // This would query the actual workout/progress tables.
+    // For now, return default values while keeping the signature for future DB work.
+    void userId;
+    return {
+      totalWorkouts: 0,
+      currentStreak: 0,
+      perfectFormCount: 0,
+      sharedWorkouts: 0,
+      accessibilityUsage: 0
+    };
   }
 
   /**
@@ -921,30 +908,16 @@ class GamificationPersistence {
    * Get achievement completion rate
    */
   async getAchievementCompletionRate() {
-    try {
-      // Mock implementation - would calculate from actual data
-      return 75; // 75% completion rate
-    } catch (error) {
-      piiSafeLogger.error('Failed to get achievement completion rate', {
-        error: error.message
-      });
-      return 0;
-    }
+    // Mock implementation - would calculate from actual data
+    return 75; // 75% completion rate
   }
 
   /**
    * Get average streak across users
    */
   async getAverageStreak() {
-    try {
-      // Mock implementation - would calculate from actual data
-      return 5.2; // Average streak of 5.2 days
-    } catch (error) {
-      piiSafeLogger.error('Failed to get average streak', {
-        error: error.message
-      });
-      return 0;
-    }
+    // Mock implementation - would calculate from actual data
+    return 5.2; // Average streak of 5.2 days
   }
 
   /**
@@ -1006,30 +979,16 @@ class GamificationPersistence {
    * Get average session length
    */
   async getAverageSessionLength() {
-    try {
-      // Mock implementation - would calculate from actual session data
-      return 38; // 38 minutes average
-    } catch (error) {
-      piiSafeLogger.error('Failed to get average session length', {
-        error: error.message
-      });
-      return 0;
-    }
+    // Mock implementation - would calculate from actual session data
+    return 38; // 38 minutes average
   }
 
   /**
    * Get engagement rate
    */
   async getEngagementRate() {
-    try {
-      // Mock implementation - would calculate from actual data
-      return 78.5; // 78.5% engagement rate
-    } catch (error) {
-      piiSafeLogger.error('Failed to get engagement rate', {
-        error: error.message
-      });
-      return 0;
-    }
+    // Mock implementation - would calculate from actual data
+    return 78.5; // 78.5% engagement rate
   }
 
   /**

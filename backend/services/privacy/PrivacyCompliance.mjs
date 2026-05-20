@@ -445,14 +445,14 @@ export class PrivacyCompliance {
    * Get privacy audit log for user or system
    */
   async getAuditLog(options = {}) {
+    const {
+      userId = null,
+      timeframe = '30d',
+      action = null,
+      requestingUserId
+    } = options;
+
     try {
-      const { 
-        userId = null, 
-        timeframe = '30d', 
-        action = null, 
-        requestingUserId 
-      } = options;
-      
       // Validate access permissions
       if (userId && userId !== requestingUserId) {
         const hasPermission = await this.checkAuditPermission(requestingUserId, userId);

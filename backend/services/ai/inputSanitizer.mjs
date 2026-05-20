@@ -74,8 +74,9 @@ export function sanitizeInput(input) {
   // Strip excessive whitespace that could hide injections
   sanitized = sanitized.replace(/\s{10,}/g, ' ');
 
-  // Strip null bytes and control characters (except newlines)
-  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  // Strip null bytes and control characters (except newlines).
+  const controlCharsExceptNewlines = new RegExp(String.raw`[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]`, 'g');
+  sanitized = sanitized.replace(controlCharsExceptNewlines, '');
 
   // Limit length (prevent prompt stuffing — 2000 chars for commands)
   if (sanitized.length > 2000) {

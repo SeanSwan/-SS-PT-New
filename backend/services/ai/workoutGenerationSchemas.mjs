@@ -15,7 +15,7 @@
  * Usage:
  *   import { GeneratedWorkoutSchema, validateGeneratedWorkout } from './workoutGenerationSchemas.mjs';
  *   const result = validateGeneratedWorkout(aiOutput);
- *   if (!result.success) { /* handle validation errors */ }
+ *   if (!result.success) { handle validation errors }
  */
 
 import { z } from 'zod';

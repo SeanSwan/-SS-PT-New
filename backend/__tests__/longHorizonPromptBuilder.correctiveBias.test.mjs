@@ -299,7 +299,7 @@ describe('V3c.5.1 prompt — injection hardening', () => {
     expect(prompt).not.toContain('Igno​re');
     expect(prompt).toContain('[REDACTED]');
     // No raw zero-width chars survive into the prompt at all.
-    expect(prompt).not.toMatch(/[​-‏‪-‮⁠-⁯﻿]/);
+    expect(prompt).not.toMatch(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/);
   });
 
   it('neutralizes markdown code-fence escapes in registry citations', () => {

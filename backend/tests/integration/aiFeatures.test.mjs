@@ -763,7 +763,8 @@ class AdvancedTestScenarios {
       journey.profileSetup = true;
       
       // Test workout generation
-      const workout = await mockWorkoutServer.generateWorkout(user.profile);
+      const scenarioWorkoutServer = new MockMCPServer('workout', 8000);
+      const workout = await scenarioWorkoutServer.generateWorkout(user.profile);
       journey.workoutGeneration = workout !== null;
       
       // Test gamification

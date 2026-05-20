@@ -461,7 +461,7 @@ export class EthicalGamification {
    */
   async performFeatureSpecificChecks(userId, feature, checks) {
     switch (feature) {
-      case 'leaderboard':
+      case 'leaderboard': {
         // Check for unhealthy competition patterns
         const competitiveScore = await this.getCompetitiveScore(userId);
         if (competitiveScore > 0.8) {
@@ -470,8 +470,9 @@ export class EthicalGamification {
           checks.recommendations.push('Consider focusing on personal goals over competition');
         }
         break;
+      }
         
-      case 'achievements':
+      case 'achievements': {
         // Check for achievement hunting addiction
         const achievementFocus = await this.getAchievementFocusScore(userId);
         if (achievementFocus > 0.9) {
@@ -480,8 +481,9 @@ export class EthicalGamification {
           checks.recommendations.push('Remember that progress is more important than badges');
         }
         break;
+      }
         
-      case 'points':
+      case 'points': {
         // Check for point accumulation obsession
         const pointFocus = await this.getPointFocusScore(userId);
         if (pointFocus > 0.85) {
@@ -490,6 +492,7 @@ export class EthicalGamification {
           checks.recommendations.push('Focus on the journey, not just the points');
         }
         break;
+      }
     }
   }
   

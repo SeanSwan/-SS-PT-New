@@ -1200,7 +1200,7 @@ router.post('/:postId/repost', async (req, res) => {
         originalPostId: sourceId,
         timestamp: new Date().toISOString(),
       });
-    } catch {}
+    } catch { /* best-effort websocket broadcast */ }
 
     res.status(201).json({ repost, originalPostId: sourceId });
   } catch (err) {

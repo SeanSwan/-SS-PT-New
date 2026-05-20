@@ -4,7 +4,7 @@
  * Complete challenge model supporting all challenge types with business logic
  */
 
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const Challenge = db.define('Challenge', {

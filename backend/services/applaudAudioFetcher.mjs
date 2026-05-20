@@ -234,7 +234,7 @@ export async function fetchAudioWithCaps(audioUrl, declaredSizeBytes, opts = {})
       };
     }
     const reader = response.body.getReader();
-    while (true) {
+    for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = Buffer.from(value);

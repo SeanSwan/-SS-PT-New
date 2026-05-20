@@ -182,7 +182,7 @@ export async function scanEquipmentImage(imageBuffer, mimeType) {
 
   const startMs = Date.now();
   try {
-    let primary = await tryGeminiEquipmentScan(model, {
+    const primary = await tryGeminiEquipmentScan(model, {
       base64Image,
       mimeType,
       prompt: buildEquipmentScanPrompt(),

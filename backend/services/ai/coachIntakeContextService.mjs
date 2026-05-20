@@ -46,8 +46,8 @@ const ITEM_NUMBER_KEYS = [
   'audioBundleCount',
   'audioAutoBundleCount',
 ];
-const SAFE_TEXT_RE = /[^\w\s:.\-]/g;
-const SAFE_CODE_RE = /[^A-Z0-9_:\-]/g;
+const SAFE_TEXT_RE = /[^\w\s:.-]/g;
+const SAFE_CODE_RE = /[^A-Z0-9_:-]/g;
 const SAFE_QUEUE_ID_RE = /^(coach|clip|merge):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HEALTH_ACTION_LABELS = new Map([
   ['auth_required', 'Sign in again'],
@@ -104,7 +104,7 @@ function cleanCode(value) {
 
 function cleanActionKey(value) {
   if (value === null || value === undefined) return null;
-  const text = String(value).trim().toLowerCase().replace(/[^a-z0-9_:\-]/g, '').slice(0, 64);
+  const text = String(value).trim().toLowerCase().replace(/[^a-z0-9_:-]/g, '').slice(0, 64);
   return text || null;
 }
 

@@ -5,7 +5,7 @@
  * and milestone-based rewards system
  */
 
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const Goal = db.define('Goal', {

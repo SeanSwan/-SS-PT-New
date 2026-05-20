@@ -5,7 +5,7 @@
  * and social challenges within the gamification system
  */
 
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import db from '../database.mjs';
 
 const UserFollow = db.define('UserFollow', {

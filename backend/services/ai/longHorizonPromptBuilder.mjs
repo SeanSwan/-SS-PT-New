@@ -266,7 +266,7 @@ function safePromptString(s, fallback = '') {
   //
   out = out.replace(/\p{Default_Ignorable_Code_Point}/gu, '');
   // Strip ASCII control characters (newlines, tabs, etc).
-  out = out.replace(/[\x00-\x1F\x7F]/g, ' ');
+  out = out.replace(new RegExp(String.raw`[\x00-\x1F\x7F]`, 'g'), ' ');
   // Kill markdown code fences that could break out of prompt blocks.
   out = out.replace(/```/g, '———');
   // Neuter common prompt-injection phrases (replace with bracketed marker).

@@ -294,6 +294,6 @@ async function processJob(job) {
         clipId, nextAttempts, backoffSec, err.message);
     }
   }
-};
+}
 
 export const _internal = { recoverStaleInFlight, recoverTerminalAccessDenied, claimBatch, processJob, BACKOFF_SECONDS, MAX_ATTEMPTS };
