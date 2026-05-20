@@ -5,14 +5,41 @@
  * COMPLETE EDITION with Button Components, Form Elements, Layout System & Component Showcase
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import styled, { css } from 'styled-components';
 import swanStudiosTheme from './theme';
 
 // ===== UTILITY FUNCTIONS =====
 
+type TypographyStyle = Partial<
+  Pick<React.CSSProperties, 'fontSize' | 'fontWeight' | 'lineHeight' | 'letterSpacing' | 'textTransform'>
+>;
+
+type StatusTone = 'online' | 'away' | 'offline';
+
+const statusPalette: Record<StatusTone, { color: string; bg: string; border: string; glow: string }> = {
+  online: {
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.1)',
+    border: '1px solid rgba(16, 185, 129, 0.3)',
+    glow: '0 0 8px rgba(16, 185, 129, 0.4)'
+  },
+  away: {
+    color: '#f59e0b',
+    bg: 'rgba(245, 158, 11, 0.1)',
+    border: '1px solid rgba(245, 158, 11, 0.3)',
+    glow: '0 0 8px rgba(245, 158, 11, 0.4)'
+  },
+  offline: {
+    color: '#ef4444',
+    bg: 'rgba(239, 68, 68, 0.1)',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    glow: '0 0 8px rgba(239, 68, 68, 0.4)'
+  }
+};
+
 // Helper function to convert typography objects to CSS
-const applyTypography = (typography: any) => {
+const applyTypography = (typography?: TypographyStyle) => {
   if (!typography) return '';
   
   return css`
@@ -103,21 +130,6 @@ const SectionTitle = styled.h2`
     background: ${swanStudiosTheme.gradients.primaryCosmic};
     border-radius: 2px;
   }
-`;
-
-const Grid = styled.div<{ columns?: number; gap?: string }>`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: ${props => props.gap || swanStudiosTheme.spacing.lg};
-  margin-bottom: ${swanStudiosTheme.spacing.xl};
-  
-  ${props => props.columns && `
-    grid-template-columns: repeat(${props.columns}, 1fr);
-    
-    ${swanStudiosTheme.breakpoints.down.tablet} {
-      grid-template-columns: 1fr;
-    }
-  `}
 `;
 
 const Card = styled.div`
@@ -231,6 +243,10 @@ const TypographyLabel = styled.div`
   ${applyTypography(swanStudiosTheme.typography.ui.label)};
   color: ${swanStudiosTheme.primary.main};
   margin-bottom: ${swanStudiosTheme.spacing.sm};
+`;
+
+const TypographySample = styled.div<{ $typography: TypographyStyle }>`
+  ${({ $typography }) => applyTypography($typography)};
 `;
 
 // ===== BUTTON COMPONENTS SHOWCASE =====
@@ -401,7 +417,9 @@ const CheckboxWrapper = styled.div`
   cursor: pointer;
 `;
 
-const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
+const StyledCheckbox = styled.input.attrs({
+  type: 'checkbox'
+})`
   width: 18px;
   height: 18px;
   accent-color: ${swanStudiosTheme.primary.main};
@@ -479,6 +497,45 @@ const FlexItem = styled.div`
   font-weight: 500;
 `;
 
+const LayoutBlock = styled.div`
+  margin-bottom: ${swanStudiosTheme.spacing.md};
+`;
+
+const LayoutSubheading = styled.h5`
+  color: ${swanStudiosTheme.text.secondary};
+  margin-bottom: ${swanStudiosTheme.spacing.sm};
+`;
+
+const SpacingStack = styled.div`
+  display: grid;
+  gap: ${swanStudiosTheme.spacing.md};
+`;
+
+const SpacingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${swanStudiosTheme.spacing.md};
+`;
+
+const SpacingKey = styled.span`
+  ${applyTypography(swanStudiosTheme.typography.ui.label)};
+  color: ${swanStudiosTheme.text.secondary};
+  min-width: 60px;
+`;
+
+const SpacingBar = styled.div<{ $width: string }>`
+  width: ${({ $width }) => $width};
+  height: 20px;
+  border-radius: 4px;
+  background: ${swanStudiosTheme.primary.main};
+`;
+
+const SpacingValue = styled.span`
+  ${applyTypography(swanStudiosTheme.typography.body.small)};
+  color: ${swanStudiosTheme.text.secondary};
+  font-family: 'Monaco', monospace;
+`;
+
 // ===== COMPONENT SHOWCASE =====
 
 const ComponentShowcase = styled.div`
@@ -541,6 +598,107 @@ const Tag = styled.span`
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
+`;
+
+const StatusList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${swanStudiosTheme.spacing.md};
+`;
+
+const StatusPill = styled.div<{ $tone: StatusTone }>`
+  display: flex;
+  align-items: center;
+  gap: ${swanStudiosTheme.spacing.sm};
+  padding: ${swanStudiosTheme.spacing.sm};
+  border-radius: 8px;
+  background: ${({ $tone }) => statusPalette[$tone].bg};
+  border: ${({ $tone }) => statusPalette[$tone].border};
+`;
+
+const StatusDot = styled.div<{ $tone: StatusTone }>`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: ${({ $tone }) => statusPalette[$tone].color};
+  box-shadow: ${({ $tone }) => statusPalette[$tone].glow};
+`;
+
+const StatusLabel = styled.span<{ $tone: StatusTone }>`
+  color: ${({ $tone }) => statusPalette[$tone].color};
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const ProgressStack = styled.div`
+  display: grid;
+  gap: ${swanStudiosTheme.spacing.md};
+`;
+
+const ProgressHeader = styled.div`
+  ${applyTypography(swanStudiosTheme.typography.body.small)};
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${swanStudiosTheme.spacing.xs};
+`;
+
+const ProgressLabel = styled.span`
+  color: ${swanStudiosTheme.text.primary};
+`;
+
+const ProgressValue = styled.span`
+  color: ${swanStudiosTheme.text.secondary};
+`;
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+`;
+
+const ProgressFill = styled.div<{ $percentage: number }>`
+  width: ${({ $percentage }) => `${$percentage}%`};
+  height: 100%;
+  border-radius: 4px;
+  background: ${swanStudiosTheme.gradients.primaryCosmic};
+  transition: width 0.3s ease;
+`;
+
+const CompletionTitle = styled.h3`
+  color: ${swanStudiosTheme.primary.main};
+  margin-bottom: ${swanStudiosTheme.spacing.md};
+`;
+
+const CompletionGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: ${swanStudiosTheme.spacing.md};
+`;
+
+const CompletionHeading = styled.h4`
+  color: ${swanStudiosTheme.secondary.main};
+  margin-bottom: ${swanStudiosTheme.spacing.sm};
+`;
+
+const CompletionList = styled.ul`
+  color: ${swanStudiosTheme.text.secondary};
+  line-height: 1.6;
+`;
+
+const CompletionNotice = styled.div`
+  margin-top: ${swanStudiosTheme.spacing.lg};
+  padding: ${swanStudiosTheme.spacing.md};
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+`;
+
+const CompletionNoticeText = styled.p`
+  color: ${swanStudiosTheme.primary.main};
+  font-weight: 500;
+  margin: 0;
 `;
 
 // ===== COMPONENT SECTIONS =====
@@ -641,43 +799,43 @@ const TypographySection: React.FC = () => (
       {/* Display Typography */}
       <TypographyExample>
         <TypographyLabel>Display Typography</TypographyLabel>
-        <div style={swanStudiosTheme.typography.display.h1}>
+        <TypographySample $typography={swanStudiosTheme.typography.display.h1}>
           Display H1 - Hero Headlines
-        </div>
-        <div style={swanStudiosTheme.typography.display.h2}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.display.h2}>
           Display H2 - Section Headers
-        </div>
-        <div style={swanStudiosTheme.typography.display.h3}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.display.h3}>
           Display H3 - Subsection Headers
-        </div>
+        </TypographySample>
       </TypographyExample>
 
       {/* Body Typography */}
       <TypographyExample>
         <TypographyLabel>Body Typography</TypographyLabel>
-        <div style={swanStudiosTheme.typography.body.large}>
+        <TypographySample $typography={swanStudiosTheme.typography.body.large}>
           Body Large - Important content, introductory text
-        </div>
-        <div style={swanStudiosTheme.typography.body.medium}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.body.medium}>
           Body Medium - Standard content, descriptions, articles
-        </div>
-        <div style={swanStudiosTheme.typography.body.small}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.body.small}>
           Body Small - Secondary content, captions, metadata
-        </div>
+        </TypographySample>
       </TypographyExample>
 
       {/* UI Typography */}
       <TypographyExample>
         <TypographyLabel>UI Typography</TypographyLabel>
-        <div style={swanStudiosTheme.typography.ui.button}>
+        <TypographySample $typography={swanStudiosTheme.typography.ui.button}>
           Button Text - Call to Action
-        </div>
-        <div style={swanStudiosTheme.typography.ui.label}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.ui.label}>
           Label Text - Form Labels
-        </div>
-        <div style={swanStudiosTheme.typography.ui.caption}>
+        </TypographySample>
+        <TypographySample $typography={swanStudiosTheme.typography.ui.caption}>
           Caption Text - Helper text, tooltips
-        </div>
+        </TypographySample>
       </TypographyExample>
     </TypographyGrid>
     
@@ -859,23 +1017,23 @@ const LayoutSystemSection: React.FC = () => (
       {/* Grid Layouts */}
       <LayoutExample>
         <LayoutTitle>Grid Layouts</LayoutTitle>
-        <div style={{ marginBottom: swanStudiosTheme.spacing.md }}>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>2-Column Grid</h5>
+        <LayoutBlock>
+          <LayoutSubheading>2-Column Grid</LayoutSubheading>
           <GridDemo columns={2}>
             <GridItem>Column 1</GridItem>
             <GridItem>Column 2</GridItem>
           </GridDemo>
-        </div>
-        <div style={{ marginBottom: swanStudiosTheme.spacing.md }}>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>3-Column Grid</h5>
+        </LayoutBlock>
+        <LayoutBlock>
+          <LayoutSubheading>3-Column Grid</LayoutSubheading>
           <GridDemo columns={3}>
             <GridItem>Column 1</GridItem>
             <GridItem>Column 2</GridItem>
             <GridItem>Column 3</GridItem>
           </GridDemo>
-        </div>
+        </LayoutBlock>
         <div>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>4-Column Grid</h5>
+          <LayoutSubheading>4-Column Grid</LayoutSubheading>
           <GridDemo columns={4}>
             <GridItem>Col 1</GridItem>
             <GridItem>Col 2</GridItem>
@@ -888,24 +1046,24 @@ const LayoutSystemSection: React.FC = () => (
       {/* Flexbox Layouts */}
       <LayoutExample>
         <LayoutTitle>Flexbox Layouts</LayoutTitle>
-        <div style={{ marginBottom: swanStudiosTheme.spacing.md }}>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>Flex Row (justify-start)</h5>
+        <LayoutBlock>
+          <LayoutSubheading>Flex Row (justify-start)</LayoutSubheading>
           <FlexDemo direction="row" justify="flex-start">
             <FlexItem>Item 1</FlexItem>
             <FlexItem>Item 2</FlexItem>
             <FlexItem>Item 3</FlexItem>
           </FlexDemo>
-        </div>
-        <div style={{ marginBottom: swanStudiosTheme.spacing.md }}>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>Flex Row (justify-center)</h5>
+        </LayoutBlock>
+        <LayoutBlock>
+          <LayoutSubheading>Flex Row (justify-center)</LayoutSubheading>
           <FlexDemo direction="row" justify="center">
             <FlexItem>Item 1</FlexItem>
             <FlexItem>Item 2</FlexItem>
             <FlexItem>Item 3</FlexItem>
           </FlexDemo>
-        </div>
+        </LayoutBlock>
         <div>
-          <h5 style={{ color: swanStudiosTheme.text.secondary, marginBottom: swanStudiosTheme.spacing.sm }}>Flex Row (justify-between)</h5>
+          <LayoutSubheading>Flex Row (justify-between)</LayoutSubheading>
           <FlexDemo direction="row" justify="space-between">
             <FlexItem>Item 1</FlexItem>
             <FlexItem>Item 2</FlexItem>
@@ -917,37 +1075,21 @@ const LayoutSystemSection: React.FC = () => (
       {/* Spacing System */}
       <LayoutExample>
         <LayoutTitle>Spacing System</LayoutTitle>
-        <div style={{ display: 'grid', gap: swanStudiosTheme.spacing.md }}>
-          {Object.entries(swanStudiosTheme.spacing)
-            .filter(([, value]) => typeof value === 'string')
-            .map(([key, value]) => {
-              const spacingValue = value as string;
-              return (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: swanStudiosTheme.spacing.md }}>
-                  <span style={{
-                    ...swanStudiosTheme.typography.ui.label,
-                    color: swanStudiosTheme.text.secondary,
-                    minWidth: '60px'
-                  }}>
-                    {key}:
-                  </span>
-                  <div style={{
-                    background: swanStudiosTheme.primary.main,
-                    width: spacingValue,
-                    height: '20px',
-                    borderRadius: '4px'
-                  }} />
-                  <span style={{
-                    ...swanStudiosTheme.typography.body.small,
-                    color: swanStudiosTheme.text.secondary,
-                    fontFamily: 'Monaco, monospace'
-                  }}>
-                    {spacingValue}
-                  </span>
-                </div>
-              );
-          })}
-        </div>
+        <SpacingStack>
+          {(Object.entries(swanStudiosTheme.spacing)
+            .filter(([, value]) => typeof value === 'string') as Array<[string, string]>)
+            .map(([key, value]) => (
+            <SpacingRow key={key}>
+              <SpacingKey>
+                {key}:
+              </SpacingKey>
+              <SpacingBar $width={value} />
+              <SpacingValue>
+                {value}
+              </SpacingValue>
+            </SpacingRow>
+          ))}
+        </SpacingStack>
       </LayoutExample>
     </LayoutShowcase>
     
@@ -1009,97 +1151,36 @@ const ComponentShowcaseSection: React.FC = () => (
       {/* Status Indicators */}
       <ComponentGroup>
         <ComponentTitle>Status Indicators</ComponentTitle>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: swanStudiosTheme.spacing.md }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: swanStudiosTheme.spacing.sm,
-            padding: swanStudiosTheme.spacing.sm,
-            background: 'rgba(16, 185, 129, 0.1)',
-            borderRadius: '8px',
-            border: '1px solid rgba(16, 185, 129, 0.3)'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#10b981',
-              boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)'
-            }} />
-            <span style={{ color: '#10b981', fontSize: '0.875rem', fontWeight: 500 }}>Online</span>
-          </div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: swanStudiosTheme.spacing.sm,
-            padding: swanStudiosTheme.spacing.sm,
-            background: 'rgba(245, 158, 11, 0.1)',
-            borderRadius: '8px',
-            border: '1px solid rgba(245, 158, 11, 0.3)'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#f59e0b',
-              boxShadow: '0 0 8px rgba(245, 158, 11, 0.4)'
-            }} />
-            <span style={{ color: '#f59e0b', fontSize: '0.875rem', fontWeight: 500 }}>Away</span>
-          </div>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: swanStudiosTheme.spacing.sm,
-            padding: swanStudiosTheme.spacing.sm,
-            background: 'rgba(239, 68, 68, 0.1)',
-            borderRadius: '8px',
-            border: '1px solid rgba(239, 68, 68, 0.3)'
-          }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              background: '#ef4444',
-              boxShadow: '0 0 8px rgba(239, 68, 68, 0.4)'
-            }} />
-            <span style={{ color: '#ef4444', fontSize: '0.875rem', fontWeight: 500 }}>Offline</span>
-          </div>
-        </div>
+        <StatusList>
+          {([
+            ['online', 'Online'],
+            ['away', 'Away'],
+            ['offline', 'Offline']
+          ] as Array<[StatusTone, string]>).map(([tone, label]) => (
+            <StatusPill key={tone} $tone={tone}>
+              <StatusDot $tone={tone} />
+              <StatusLabel $tone={tone}>{label}</StatusLabel>
+            </StatusPill>
+          ))}
+        </StatusList>
       </ComponentGroup>
 
       {/* Progress Indicators */}
       <ComponentGroup>
         <ComponentTitle>Progress Indicators</ComponentTitle>
-        <div style={{ display: 'grid', gap: swanStudiosTheme.spacing.md }}>
+        <ProgressStack>
           {[25, 50, 75, 90].map(percentage => (
             <div key={percentage}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                marginBottom: swanStudiosTheme.spacing.xs,
-                ...swanStudiosTheme.typography.body.small
-              }}>
-                <span style={{ color: swanStudiosTheme.text.primary }}>Progress {percentage}%</span>
-                <span style={{ color: swanStudiosTheme.text.secondary }}>{percentage}%</span>
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: `${percentage}%`,
-                  height: '100%',
-                  background: swanStudiosTheme.gradients.primaryCosmic,
-                  borderRadius: '4px',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
+              <ProgressHeader>
+                <ProgressLabel>Progress {percentage}%</ProgressLabel>
+                <ProgressValue>{percentage}%</ProgressValue>
+              </ProgressHeader>
+              <ProgressTrack>
+                <ProgressFill $percentage={percentage} />
+              </ProgressTrack>
             </div>
           ))}
-        </div>
+        </ProgressStack>
       </ComponentGroup>
     </ComponentShowcase>
     
@@ -1125,10 +1206,7 @@ const Card = styled.div\`
 
 // ===== MAIN COMPONENT =====
 
-const TheAestheticCodex: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<string>('all');
-
-  return (
+const TheAestheticCodex: React.FC = () => (
     <CodexContainer>
       <CodexHeader>
         <CodexTitle>The Aesthetic Codex</CodexTitle>
@@ -1149,53 +1227,46 @@ const TheAestheticCodex: React.FC = () => {
       <Section>
         <SectionTitle>Implementation Complete ✨</SectionTitle>
         <Card>
-          <h3 style={{color: swanStudiosTheme.primary.main, marginBottom: swanStudiosTheme.spacing.md}}>
+          <CompletionTitle>
             🎯 Full Style Guide Implementation
-          </h3>
-          <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: swanStudiosTheme.spacing.md}}>
+          </CompletionTitle>
+          <CompletionGrid>
             <div>
-              <h4 style={{color: swanStudiosTheme.secondary.main, marginBottom: swanStudiosTheme.spacing.sm}}>Foundation Systems</h4>
-              <ul style={{color: swanStudiosTheme.text.secondary, lineHeight: 1.6}}>
+              <CompletionHeading>Foundation Systems</CompletionHeading>
+              <CompletionList>
                 <li>✅ Color Palette System</li>
                 <li>✅ Typography Hierarchy</li>
                 <li>✅ Spacing & Layout Grid</li>
                 <li>✅ Theme Integration</li>
-              </ul>
+              </CompletionList>
             </div>
             <div>
-              <h4 style={{color: swanStudiosTheme.secondary.main, marginBottom: swanStudiosTheme.spacing.sm}}>UI Components</h4>
-              <ul style={{color: swanStudiosTheme.text.secondary, lineHeight: 1.6}}>
+              <CompletionHeading>UI Components</CompletionHeading>
+              <CompletionList>
                 <li>✅ Button Components</li>
                 <li>✅ Form Elements</li>
                 <li>✅ Card Components</li>
                 <li>✅ Status Indicators</li>
-              </ul>
+              </CompletionList>
             </div>
             <div>
-              <h4 style={{color: swanStudiosTheme.secondary.main, marginBottom: swanStudiosTheme.spacing.sm}}>System Features</h4>
-              <ul style={{color: swanStudiosTheme.text.secondary, lineHeight: 1.6}}>
+              <CompletionHeading>System Features</CompletionHeading>
+              <CompletionList>
                 <li>✅ Responsive Design</li>
                 <li>✅ Code Examples</li>
                 <li>✅ Live Previews</li>
                 <li>✅ Production Ready</li>
-              </ul>
+              </CompletionList>
             </div>
-          </div>
-          <div style={{
-            marginTop: swanStudiosTheme.spacing.lg,
-            padding: swanStudiosTheme.spacing.md,
-            background: 'rgba(139, 92, 246, 0.1)',
-            borderRadius: '8px',
-            border: '1px solid rgba(139, 92, 246, 0.3)'
-          }}>
-            <p style={{color: swanStudiosTheme.primary.main, fontWeight: 500, margin: 0}}>
+          </CompletionGrid>
+          <CompletionNotice>
+            <CompletionNoticeText>
               🎨 Your design system is now complete and ready for development team implementation!
-            </p>
-          </div>
+            </CompletionNoticeText>
+          </CompletionNotice>
         </Card>
       </Section>
     </CodexContainer>
-  );
-};
+);
 
 export default TheAestheticCodex;
