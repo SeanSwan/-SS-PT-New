@@ -339,7 +339,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
 
     const cleanupTemp = (...paths) => {
       for (const p of paths) {
-        try { if (p && existsSync(p)) unlinkSync(p); } catch {}
+        try { if (p && existsSync(p)) unlinkSync(p); } catch { /* best-effort temp cleanup */ }
       }
     };
 
@@ -967,8 +967,8 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
       try {
         await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
       } catch (dcrawErr) {
-        try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
-        try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+        try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
+        try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
         throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
       }
 
@@ -979,8 +979,8 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
         .toBuffer();
 
       // Clean up temp files
-      try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
-      try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+      try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
+      try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
     }
 
     const convertMs = Date.now() - step2Start;
@@ -1166,8 +1166,8 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
                   .jpeg({ quality: 95 })
                   .toBuffer();
 
-                try { (fs.default || fs).unlinkSync(tmpRaw); } catch {}
-                try { (fs.default || fs).unlinkSync(tmpTiff); } catch {}
+                try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
+                try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
               } else {
                 jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
                   .jpeg({ quality: 95 })
@@ -1891,7 +1891,7 @@ router.post('/repair-raw-photos', async (req, res) => {
         if (dcrawPath) {
           try {
             logger.info(`[RepairRAW] Trying dcraw: ${dcrawPath}`);
-            try { chmodSync(dcrawPath, 0o755); } catch {}
+            try { chmodSync(dcrawPath, 0o755); } catch { /* best-effort executable bit */ }
             execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRawPath], { timeout: 180000 });
             const tiffPath = tempRawPath.replace(/\.[^.]+$/, '.tiff');
             if (existsSync(tiffPath)) {
@@ -1899,13 +1899,13 @@ router.post('/repair-raw-photos', async (req, res) => {
                 .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
                 .jpeg({ quality: 92 })
                 .toBuffer();
-              try { unlinkSync(tiffPath); } catch {}
+              try { unlinkSync(tiffPath); } catch { /* best-effort temp cleanup */ }
               dcrawWorked = true;
             }
           } catch (dcErr) {
             logger.warn(`[RepairRAW] dcraw failed for photo ${id}: ${dcErr.message}, trying sharp...`);
             // Clean up any tiff
-            try { unlinkSync(tempRawPath.replace(/\.[^.]+$/, '.tiff')); } catch {}
+            try { unlinkSync(tempRawPath.replace(/\.[^.]+$/, '.tiff')); } catch { /* best-effort temp cleanup */ }
           }
         }
 
@@ -1918,13 +1918,13 @@ router.post('/repair-raw-photos', async (req, res) => {
               .jpeg({ quality: 92 })
               .toBuffer();
           } catch (sharpErr) {
-            try { unlinkSync(tempRawPath); } catch {}
+            try { unlinkSync(tempRawPath); } catch { /* best-effort temp cleanup */ }
             throw new Error(`Both dcraw and sharp failed. dcraw may not support this RAW format. sharp: ${sharpErr.message}`);
           }
         }
 
         // Clean up temp raw file
-        try { unlinkSync(tempRawPath); } catch {}
+        try { unlinkSync(tempRawPath); } catch { /* best-effort temp cleanup */ }
 
         // Re-upload converted JPEG
         await client.send(new PutObjectCommand({

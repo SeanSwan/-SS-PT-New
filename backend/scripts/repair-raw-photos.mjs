@@ -285,13 +285,13 @@ async function main() {
           if (MAX_DIMENSION) tiffPipeline = tiffPipeline.resize(MAX_DIMENSION, MAX_DIMENSION, { fit: 'inside', withoutEnlargement: true });
           jpegBuffer = await tiffPipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
           // Clean up temp files
-          try { unlinkSync(tempRaw); } catch {}
-          try { unlinkSync(dcrawOutput); } catch {}
-          try { unlinkSync(tempTiff); } catch {}
+          try { unlinkSync(tempRaw); } catch { /* best-effort temp cleanup */ }
+          try { unlinkSync(dcrawOutput); } catch { /* best-effort temp cleanup */ }
+          try { unlinkSync(tempTiff); } catch { /* best-effort temp cleanup */ }
         } catch (dcrawErr) {
           // Clean up on error too
-          try { unlinkSync(tempRaw); } catch {}
-          try { unlinkSync(tempRaw.replace(/\.[^.]+$/, '.tiff')); } catch {}
+          try { unlinkSync(tempRaw); } catch { /* best-effort temp cleanup */ }
+          try { unlinkSync(tempRaw.replace(/\.[^.]+$/, '.tiff')); } catch { /* best-effort temp cleanup */ }
           throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
         }
       }

@@ -1,5 +1,6 @@
 // backend/services/productRecommendationService.mjs
 import { Op } from 'sequelize';
+import sequelize from '../database.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import User from '../models/User.mjs';
 import Order from '../models/Order.mjs';

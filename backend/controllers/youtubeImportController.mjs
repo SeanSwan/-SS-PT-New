@@ -49,8 +49,8 @@ function slugify(text) {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/-{2,}/g, '-')
     .replace(/^-+/, '')
     .replace(/-+$/, '');
 }
@@ -65,7 +65,7 @@ async function uniqueSlug(VideoCatalog, baseSlug) {
   let candidate = baseSlug;
   let suffix = 2;
 
-  while (true) {
+  for (;;) {
     const existing = await VideoCatalog.findOne({
       where: { slug: candidate },
       paranoid: false, // Check even soft-deleted rows to avoid confusion

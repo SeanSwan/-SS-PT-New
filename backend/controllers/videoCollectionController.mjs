@@ -43,8 +43,8 @@ function slugify(text) {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/-{2,}/g, '-')
     .replace(/^-+/, '')
     .replace(/-+$/, '');
 }
@@ -59,7 +59,7 @@ async function uniqueSlug(VideoCollection, baseSlug) {
   let candidate = baseSlug;
   let suffix = 2;
 
-  while (true) {
+  for (;;) {
     const existing = await VideoCollection.findOne({
       where: { slug: candidate },
       paranoid: false,
