@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import styled from 'styled-components';
 import type { SprintClassSlot } from '../../hooks/useSprintAPI';
 import { useSprintAPI } from '../../hooks/useSprintAPI';
 import {
@@ -19,6 +20,91 @@ import {
   StatusBadge, PrimaryButton, SecondaryButton,
   GenerateButton, ActionBar, FormField,
 } from './SprintPlannerStyles';
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const TitleNoMargin = styled(ModalTitle)`
+  margin: 0;
+`;
+
+const SpacedCard = styled(Card)<{ $bottom?: number; $top?: number; $pad?: number; $center?: boolean; $success?: boolean }>`
+  margin-bottom: ${({ $bottom = 0 }) => $bottom}px;
+  margin-top: ${({ $top = 0 }) => $top}px;
+  padding: ${({ $pad }) => ($pad === undefined ? undefined : `${$pad}px`)};
+  text-align: ${({ $center }) => ($center ? 'center' : 'inherit')};
+  border-color: ${({ $success }) => ($success ? 'rgba(0,255,136,0.3)' : undefined)};
+`;
+
+const MetaRow = styled.div`
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+`;
+
+const Section = styled.div<{ $bottom?: number }>`
+  margin-bottom: ${({ $bottom = 16 }) => $bottom}px;
+`;
+
+const SectionTitle = styled.h3`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1rem;
+  margin: 0 0 8px;
+`;
+
+const StationLabel = styled.div`
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+`;
+
+const ExerciseRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(96,192,240,0.06);
+  font-size: 0.8rem;
+`;
+
+const MutedCode = styled.span`
+  color: rgba(255,255,255,0.4);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+`;
+
+const MutedNote = styled.div<{ $top?: number }>`
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  margin-top: ${({ $top = 0 }) => $top}px;
+`;
+
+const EmptyCopy = styled.p`
+  color: rgba(255,255,255,0.5);
+  margin: 0 0 16px;
+`;
+
+const ConfirmTitle = styled.h3`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.95rem;
+  margin: 0 0 12px;
+`;
+
+const ActionBarSpaced = styled(ActionBar)<{ $top?: number; $spread?: boolean }>`
+  margin-top: ${({ $top = 0 }) => $top}px;
+  justify-content: ${({ $spread }) => ($spread ? 'space-between' : undefined)};
+`;
+
+const SuccessText = styled.div`
+  color: #00ff88;
+  font-weight: 600;
+  font-size: 0.85rem;
+`;
 
 interface Props {
   slot: SprintClassSlot;
@@ -54,104 +140,106 @@ const SlotDetailPanel: React.FC<Props> = ({ slot, sprintId, onClose, onRefresh }
   return (
     <ModalOverlay onClick={onClose} role="dialog" aria-modal="true">
       <ModalContent onClick={e => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <ModalTitle style={{ margin: 0 }}>
+        <HeaderRow>
+          <TitleNoMargin>
             {DAY_NAMES[slot.dayOfWeek]} &mdash; {slot.scheduledDate}
-          </ModalTitle>
+          </TitleNoMargin>
           <StatusBadge $status={slot.status}>{slot.status}</StatusBadge>
-        </div>
+        </HeaderRow>
 
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.85rem' }}>
+        <SpacedCard $bottom={16}>
+          <MetaRow>
             <div><strong>Day Type:</strong> {DAY_TYPE_LABELS[slot.dayType] || slot.dayType}</div>
             <div><strong>Format:</strong> {slot.classFormat}</div>
             <div><strong>Style:</strong> {slot.classStyle}</div>
-          </div>
-        </Card>
+          </MetaRow>
+        </SpacedCard>
 
         {slot.status === 'generated' || slot.status === 'taught' ? (
           <>
             {stations.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1rem', marginBottom: 8 }}>
+              <Section>
+                <SectionTitle>
                   Stations ({stations.length})
-                </h3>
+                </SectionTitle>
                 {stations.map((station, idx) => (
-                  <Card key={idx} style={{ marginBottom: 8, padding: 12 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 4, fontSize: '0.85rem' }}>
+                  <SpacedCard key={idx} $bottom={8} $pad={12}>
+                    <StationLabel>
                       Station {idx + 1}: {(station as Record<string, unknown>).label as string || `Station ${idx + 1}`}
-                    </div>
-                  </Card>
+                    </StationLabel>
+                  </SpacedCard>
                 ))}
-              </div>
+              </Section>
             )}
 
             {exercises.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '1rem', marginBottom: 8 }}>
+              <Section>
+                <SectionTitle>
                   Exercises ({exercises.length})
-                </h3>
+                </SectionTitle>
                 {exercises.slice(0, 20).map((ex, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '6px 0', borderBottom: '1px solid rgba(96,192,240,0.06)', fontSize: '0.8rem',
-                  }}>
+                  <ExerciseRow key={idx}>
                     <span>{(ex as Record<string, unknown>).exerciseName as string}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Fira Code', monospace", fontSize: '0.7rem' }}>
+                    <MutedCode>
                       {(ex as Record<string, unknown>).durationSec as number}s
-                    </span>
-                  </div>
+                    </MutedCode>
+                  </ExerciseRow>
                 ))}
                 {exercises.length > 20 && (
-                  <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+                  <MutedNote $top={4}>
                     +{exercises.length - 20} more exercises
-                  </div>
+                  </MutedNote>
                 )}
-              </div>
+              </Section>
             )}
           </>
         ) : (
-          <Card style={{ textAlign: 'center', padding: 32 }}>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
+          <SpacedCard $center $pad={32}>
+            <EmptyCopy>
               This class has not been generated yet. Generate the full sprint to populate this slot.
-            </p>
-          </Card>
+            </EmptyCopy>
+          </SpacedCard>
         )}
 
         {/* Confirm section */}
         {slot.status === 'generated' && !slot.wasUsed && (
-          <Card style={{ marginTop: 16 }}>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.95rem', marginBottom: 12 }}>
+          <SpacedCard $top={16}>
+            <ConfirmTitle>
               Did you teach this class?
-            </h3>
+            </ConfirmTitle>
             <FormField>
-              <label>Date used</label>
-              <input type="date" value={usedDate} onChange={e => setUsedDate(e.target.value)} />
+              <label htmlFor={`slot-${slot.id}-used-date`}>Date used</label>
+              <input
+                id={`slot-${slot.id}-used-date`}
+                type="date"
+                value={usedDate}
+                onChange={e => setUsedDate(e.target.value)}
+              />
             </FormField>
-            <ActionBar style={{ marginTop: 12 }}>
+            <ActionBarSpaced $top={12}>
               <PrimaryButton onClick={handleConfirm} disabled={loading}>
                 {loading ? 'Confirming...' : 'Yes, I taught this class'}
               </PrimaryButton>
-            </ActionBar>
-          </Card>
+            </ActionBarSpaced>
+          </SpacedCard>
         )}
 
         {slot.wasUsed && (
-          <Card style={{ marginTop: 16, borderColor: 'rgba(0,255,136,0.3)' }}>
-            <div style={{ color: '#00ff88', fontWeight: 600, fontSize: '0.85rem' }}>
+          <SpacedCard $top={16} $success>
+            <SuccessText>
               Taught on {slot.usedDate || slot.scheduledDate}
-            </div>
-          </Card>
+            </SuccessText>
+          </SpacedCard>
         )}
 
-        <ActionBar style={{ marginTop: 20, justifyContent: 'space-between' }}>
+        <ActionBarSpaced $top={20} $spread>
           <SecondaryButton onClick={onClose}>Close</SecondaryButton>
           {(slot.status === 'generated' || slot.status === 'planned') && (
             <GenerateButton onClick={handleRegenerate} disabled={loading}>
               {loading ? 'Regenerating...' : 'Regenerate Class'}
             </GenerateButton>
           )}
-        </ActionBar>
+        </ActionBarSpaced>
       </ModalContent>
     </ModalOverlay>
   );

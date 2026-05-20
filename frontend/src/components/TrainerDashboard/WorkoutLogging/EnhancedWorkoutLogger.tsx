@@ -23,16 +23,15 @@
  * - Return navigation to My Clients view
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  User, Calendar, AlertTriangle, CheckCircle,
+import {
+  Calendar, AlertTriangle, CheckCircle,
   ArrowLeft, Save, Plus, Dumbbell, Clock, Target,
-  Star, BarChart3, MessageSquare, Edit, Trash2,
-  Search, Zap, Award, Timer, Weight, HelpCircle,
-  RefreshCw, Eye, Info, X, Minus
+  BarChart3, Edit, Trash2,
+  Zap, RefreshCw
 } from 'lucide-react';
 
 // Context and Services
@@ -47,11 +46,6 @@ import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 import { logger } from '@/utils/logger';
 
 // === ANIMATIONS ===
-const stellarPulse = keyframes`
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-`;
-
 const workoutFlow = keyframes`
   0% { transform: translateX(0); }
   100% { transform: translateX(8px); }
@@ -116,6 +110,10 @@ const HeaderTitle = styled.div`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .accent-icon {
+    color: var(--accent-secondary, #8B5CF6);
   }
   
   @media (max-width: 768px) {
@@ -255,6 +253,23 @@ const NavigationBar = styled.div`
   }
 `;
 
+const CenteredLoading = styled.div`
+  align-items: center;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60vh;
+`;
+
+const ActionRow = styled.div<{ $center?: boolean; $bottom?: string }>`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ $bottom }) => ($bottom ? '1rem' : '0.75rem')};
+  justify-content: ${({ $center }) => ($center ? 'center' : 'flex-start')};
+  margin-bottom: ${({ $bottom }) => $bottom ?? '0'};
+`;
+
 const WorkoutInterface = styled.div`
   background: rgba(30, 30, 60, 0.4);
   border: 1px solid rgba(139, 92, 246, 0.2);
@@ -340,6 +355,55 @@ const DemoExerciseCard = styled(motion.div)`
       }
     }
   }
+`;
+
+const WorkoutPlanContent = styled.div`
+  padding: 2rem;
+`;
+
+const WorkoutPlanTitle = styled.h3`
+  align-items: center;
+  color: var(--text-primary, #ffffff);
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+
+  svg {
+    color: var(--accent-secondary, #8B5CF6);
+  }
+`;
+
+const ExerciseActionRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const ExerciseActionButton = styled.button<{ $danger?: boolean }>`
+  align-items: center;
+  background: ${({ $danger }) => $danger ? 'rgba(239, 68, 68, 0.2)' : 'rgba(139, 92, 246, 0.2)'};
+  border: 1px solid ${({ $danger }) => $danger ? 'rgba(239, 68, 68, 0.4)' : 'rgba(139, 92, 246, 0.4)'};
+  border-radius: 6px;
+  color: ${({ $danger }) => $danger ? '#ef4444' : 'var(--accent-secondary, #8B5CF6)'};
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.75rem;
+  justify-content: center;
+  min-height: 44px;
+  min-width: ${({ $danger }) => $danger ? '44px' : '64px'};
+  padding: ${({ $danger }) => $danger ? '0.25rem' : '0.25rem 0.5rem'};
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+const FooterActionRow = styled(motion.div)`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 2rem;
 `;
 
 const ErrorContainer = styled(motion.div)`
@@ -518,7 +582,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
         throw new Error('Client not found or not accessible');
       }
 
-    } catch (err: any) {
+    } catch {
       logger.log('API not available, using demo mode');
       
       // Use demo client for demonstration
@@ -545,7 +609,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
     navigate(backToClientsPath);
   }, [navigate, backToClientsPath]);
 
-  const handleWorkoutComplete = useCallback((formData: any) => {
+  const handleWorkoutComplete = useCallback((_formData: unknown) => {
     toast({
       title: 'Workout Completed!',
       description: `Workout logged for ${client?.firstName}. Session deducted and progress updated.`,
@@ -575,16 +639,9 @@ const EnhancedWorkoutLogger: React.FC = () => {
   if (loading) {
     return (
       <WorkoutContainer>
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          minHeight: '60vh',
-          color: 'white'
-        }}>
+        <CenteredLoading>
           <LoadingSpinner message="Loading client workout interface..." />
-        </div>
+        </CenteredLoading>
       </WorkoutContainer>
     );
   }
@@ -601,7 +658,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
           <AlertTriangle size={64} className="error-icon" />
           <h3>Workout Logging Error</h3>
           <p>{error}</p>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <ActionRow $center>
             <GlowButton
               text={backToClientsLabel}
               theme="purple"
@@ -615,7 +672,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
               onClick={loadClientData}
               leftIcon={<RefreshCw size={18} />}
             />
-          </div>
+          </ActionRow>
         </ErrorContainer>
       </WorkoutContainer>
     );
@@ -660,7 +717,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
     >
       <HeaderSection>
         <HeaderTitle>
-          <Edit size={32} style={{ color: '#8b5cf6' }} />
+          <Edit size={32} className="accent-icon" />
           <h1>Workout Logger</h1>
         </HeaderTitle>
         
@@ -692,7 +749,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
               <MetricCard type="info">
                 <Clock size={24} className="metric-icon" />
                 <div className="metric-value">{new Date().toLocaleDateString()}</div>
-                <div className="metric-label">Today's Date</div>
+                <div className="metric-label">Today&apos;s Date</div>
               </MetricCard>
               <MetricCard type={client.availableSessions > 3 ? 'success' : 'warning'}>
                 <Target size={24} className="metric-icon" />
@@ -710,7 +767,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
             onClick={handleBackToClients}
             leftIcon={<ArrowLeft size={18} />}
           />
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <ActionRow>
             {showDemo && (
               <GlowButton
                 text="Try Full Logger"
@@ -727,7 +784,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
               onClick={() => navigate(clientProgressPath(client?.id))}
               leftIcon={<BarChart3 size={16} />}
             />
-          </div>
+          </ActionRow>
         </NavigationBar>
       </HeaderSection>
       
@@ -746,13 +803,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
               integration is ready to connect with your backend API.
             </p>
             
-            <div style={{ 
-              display: 'flex', 
-              gap: '1rem', 
-              flexWrap: 'wrap', 
-              justifyContent: 'center',
-              marginBottom: '2rem'
-            }}>
+            <ActionRow $center $bottom="2rem">
               <GlowButton
                 text="Try Full Logger"
                 theme="purple"
@@ -773,21 +824,15 @@ const EnhancedWorkoutLogger: React.FC = () => {
                 }}
                 leftIcon={<CheckCircle size={16} />}
               />
-            </div>
+            </ActionRow>
           </DemoModeCard>
           
           <WorkoutInterface>
-            <div style={{ padding: '2rem' }}>
-              <h3 style={{ 
-                color: 'white', 
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <Dumbbell size={24} style={{ color: '#8b5cf6' }} />
-                Today's Workout Plan
-              </h3>
+            <WorkoutPlanContent>
+              <WorkoutPlanTitle>
+                <Dumbbell size={24} />
+                Today&apos;s Workout Plan
+              </WorkoutPlanTitle>
               
               {demoExercises.map((exercise, index) => (
                 <DemoExerciseCard
@@ -799,32 +844,17 @@ const EnhancedWorkoutLogger: React.FC = () => {
                 >
                   <div className="exercise-header">
                     <div className="exercise-title">
-                      <Dumbbell size={20} style={{ color: '#8b5cf6' }} />
+                      <Dumbbell size={20} className="accent-icon" />
                       <h4>{exercise.name}</h4>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button style={{
-                        background: 'rgba(139, 92, 246, 0.2)',
-                        border: '1px solid rgba(139, 92, 246, 0.4)',
-                        borderRadius: '6px',
-                        color: '#8b5cf6',
-                        padding: '0.25rem 0.5rem',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem'
-                      }}>
+                    <ExerciseActionRow>
+                      <ExerciseActionButton type="button">
                         Edit
-                      </button>
-                      <button style={{
-                        background: 'rgba(239, 68, 68, 0.2)',
-                        border: '1px solid rgba(239, 68, 68, 0.4)',
-                        borderRadius: '6px',
-                        color: '#ef4444',
-                        padding: '0.25rem',
-                        cursor: 'pointer'
-                      }}>
+                      </ExerciseActionButton>
+                      <ExerciseActionButton type="button" $danger aria-label={`Remove ${exercise.name}`}>
                         <Trash2 size={14} />
-                      </button>
-                    </div>
+                      </ExerciseActionButton>
+                    </ExerciseActionRow>
                   </div>
                   
                   <div className="exercise-metrics">
@@ -848,15 +878,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
                 </DemoExerciseCard>
               ))}
               
-              <motion.div
-                style={{
-                  display: 'flex',
-                  gap: '1rem',
-                  marginTop: '2rem',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap'
-                }}
-              >
+              <FooterActionRow>
                 <GlowButton
                   text="Add Exercise"
                   theme="cosmic"
@@ -867,7 +889,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
                     variant: 'default' 
                   })}
                 />
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <ActionRow>
                   <GlowButton
                     text="Save Draft"
                     theme="purple"
@@ -892,9 +914,9 @@ const EnhancedWorkoutLogger: React.FC = () => {
                       handleWorkoutComplete({});
                     }}
                   />
-                </div>
-              </motion.div>
-            </div>
+                </ActionRow>
+              </FooterActionRow>
+            </WorkoutPlanContent>
           </WorkoutInterface>
         </motion.div>
       )}
