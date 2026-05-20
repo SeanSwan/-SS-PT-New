@@ -14,7 +14,8 @@ import { upgradeToClient } from '../services/roleService.mjs';
 import { sendNotification } from '../services/notificationService.mjs';
 import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
-import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
+import { getStorefrontSessionCredits, grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
 
@@ -91,49 +92,46 @@ const stripeWebhookHandler = async (req, res) => {
           break;
         }
 
-        // Get the cart and complete the order
-        const cart = await ShoppingCart.findByPk(cartId);
+        const cartIdNumber = Number.parseInt(cartId, 10);
+        if (!Number.isInteger(cartIdNumber) || cartIdNumber <= 0) {
+          logger.error(`[Webhook] Invalid cartId in checkout.session.completed metadata: ${cartId}`);
+          break;
+        }
+
+        // Get the cart owner, then delegate granting to the shared row-lock service.
+        const cart = await ShoppingCart.findByPk(cartIdNumber);
 
         if (!cart) {
           logger.error(`Cart with ID ${cartId} not found`);
           break;
         }
 
-        // IDEMPOTENCY CHECK: Skip if sessions already granted
-        if (cart.sessionsGranted === true) {
-          logger.info(`[Webhook] Idempotency: Cart ${cartId} already has sessions granted - skipping`);
-          console.log(`⚠️ [Webhook] Sessions already granted for cart ${cartId} - idempotent skip`);
+        if (!cart.userId) {
+          logger.error(`[Webhook] Cart ${cartIdNumber} has no userId; cannot grant sessions`);
           break;
         }
 
-        // Mark cart as completed — but do NOT set sessionsGranted until fulfillment succeeds
-        cart.status = 'completed';
-        cart.paymentStatus = 'paid';
-        cart.completedAt = new Date();
-        cart.checkoutSessionId = session.id;
+        let grantResult;
+        try {
+          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook');
+        } catch (grantError) {
+          logger.error('[Webhook] Session grant failed', {
+            cartId: cartIdNumber,
+            userId: cart.userId,
+            error: grantError.message,
+            stack: grantError.stack,
+          });
+          throw grantError; // Let Stripe retry; grant service is idempotent.
+        }
 
         try {
-          // Process fulfillment FIRST
-          await processCompletedOrder(cartId);
-
-          // ONLY mark as granted if fulfillment succeeded
-          cart.sessionsGranted = true;
-          cart.fulfillmentAttempts = (cart.fulfillmentAttempts || 0) + 1;
-          cart.fulfillmentStatus = 'success';
-          await cart.save();
-        } catch (fulfillError) {
-          cart.fulfillmentAttempts = (cart.fulfillmentAttempts || 0) + 1;
-          logger.error('Order fulfillment failed', {
-            cartId,
-            attempt: cart.fulfillmentAttempts,
-            error: fulfillError.message,
-            stack: fulfillError.stack,
+          await processCompletedOrder(cartIdNumber, { grantResult, stripeSessionId: session.id });
+        } catch (sideEffectError) {
+          logger.warn('[Webhook] Post-grant side effects failed after session grant', {
+            cartId: cartIdNumber,
+            userId: cart.userId,
+            error: sideEffectError.message,
           });
-          if (cart.fulfillmentAttempts >= 5) {
-            cart.fulfillmentStatus = 'failed';
-          }
-          await cart.save();
-          throw fulfillError; // Let Stripe retry
         }
 
         // Backfill stripeCustomerId (write-if-empty rule)
@@ -149,7 +147,10 @@ const stripeWebhookHandler = async (req, res) => {
           }
         }
 
-        logger.info(`Order completed for cart ID: ${cartId} (via webhook)`);
+        logger.info(`Order completed for cart ID: ${cartIdNumber} (via webhook)`, {
+          sessionsAdded: grantResult.sessionsAdded,
+          alreadyProcessed: grantResult.alreadyProcessed,
+        });
         break;
       }
       case 'checkout.session.expired': {
@@ -253,7 +254,7 @@ router.post('/', rawBodyMiddleware, stripeWebhookHandler);
 /**
  * Process actions needed after an order is completed
  */
-async function processCompletedOrder(cartId) {
+async function processCompletedOrder(cartId, { grantResult = null, stripeSessionId = null } = {}) {
   try {
     // Retrieve the completed cart with its items
     const cart = await ShoppingCart.findByPk(cartId, {
@@ -303,9 +304,22 @@ async function processCompletedOrder(cartId) {
       throw new Error(`No session credits found for completed cart ${cartId}`);
     }
 
-    // Batch: single atomic increment for all sessions
     if (totalSessionsAdded > 0) {
-      await addSessionsToUserAccount(userId, totalSessionsAdded);
+      await upgradeToClient(userId);
+
+      try {
+        const io = global.io;
+        if (io) {
+          io.to('admin').emit('user_purchased_sessions', {
+            userId,
+            userName: `${user.firstName} ${user.lastName}`,
+            sessions: totalSessionsAdded,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (socketError) {
+        logger.warn(`Failed to emit Socket.IO event: ${socketError.message}`);
+      }
     }
 
     // Process subscriptions sequentially (rare, usually 1)
@@ -313,11 +327,16 @@ async function processCompletedOrder(cartId) {
       await createSubscription(userId, subItem);
     }
 
-    // Create trainer commission record (non-critical, non-blocking)
+    // Create order record for history. The helper is idempotent by cart id.
+    const orderReceipt = await createOrderRecord(cart, { stripeSessionId });
+    const order = orderReceipt?.order || null;
+
+    // Create trainer commission record once per order (non-critical, non-blocking)
     if (totalSessionsAdded > 0) {
       const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      await createCommissionForPurchase({
+      if (orderReceipt?.created) await createCommissionForPurchase({
         userId,
+        orderId: order?.id,
         grossAmount: totalAmount,
         taxAmount: 0, // Tax calculated separately in checkout
         sessionsGranted: totalSessionsAdded,
@@ -332,82 +351,38 @@ async function processCompletedOrder(cartId) {
         .filter(item => item.storefrontItem)
         .map(item => triggerPurchaseAchievements(userId, item))
     );
-    
-    // Create order record for history
-    await createOrderRecord(cart);
-    
+
     logger.info('[Webhook] Purchase fulfillment completed through SwanStudios APIs', {
       userId,
       cartId,
       totalSessionsAdded,
-      packages: packageNames.length
+      packages: packageNames.length,
+      grantAlreadyProcessed: grantResult?.alreadyProcessed === true,
     });
     
-    // Send real-time notification to admins
-    try {
-      await sendNotification({
-        type: 'ADMIN_NOTIFICATION',
-        title: 'New Purchase',
-        message: `${user.firstName} ${user.lastName} purchased ${packageNames.join(', ')}${totalSessionsAdded ? ` (${totalSessionsAdded} sessions)` : ''}.`,
-        data: {
-          userId,
-          type: 'purchase',
-          sessions: totalSessionsAdded,
-          timestamp: new Date().toISOString()
-        },
-        recipients: ['admin'] // Target all admins
-      });
-    } catch (notifyError) {
-      logger.warn(`Failed to send admin notification: ${notifyError.message}`);
+    // Send real-time notification to admins once per order.
+    if (orderReceipt?.created) {
+      try {
+        await sendNotification({
+          type: 'ADMIN_NOTIFICATION',
+          title: 'New Purchase',
+          message: `${user.firstName} ${user.lastName} purchased ${packageNames.join(', ')}${totalSessionsAdded ? ` (${totalSessionsAdded} sessions)` : ''}.`,
+          data: {
+            userId,
+            type: 'purchase',
+            sessions: totalSessionsAdded,
+            orderId: order?.id,
+            timestamp: new Date().toISOString()
+          },
+          recipients: ['admin'] // Target all admins
+        });
+      } catch (notifyError) {
+        logger.warn(`Failed to send admin notification: ${notifyError.message}`);
+      }
     }
     
   } catch (error) {
     logger.error(`Error processing completed order: ${error.message}`);
-    throw error;
-  }
-}
-
-/**
- * Add sessions to user account
- */
-async function addSessionsToUserAccount(userId, sessions) {
-  try {
-    const user = await User.findByPk(userId);
-    if (!user) {
-      logger.error(`User not found with ID: ${userId}`);
-      return;
-    }
-    
-    // Atomic increment — prevents race conditions with concurrent purchases/bookings
-    await User.increment('availableSessions', { by: sessions, where: { id: userId } });
-
-    // Mark that the user has purchased before for analytics
-    await User.update({ hasPurchasedBefore: true }, { where: { id: userId } });
-
-    // Reload user to get updated values for socket emit
-    await user.reload();
-    
-    // Upgrade user to client role if they purchase training
-    await upgradeToClient(userId);
-    
-    // Send Socket.IO notification for real-time dashboard updates
-    try {
-      const io = global.io; // Access the Socket.IO instance from global scope
-      if (io) {
-        io.to('admin').emit('user_purchased_sessions', {
-          userId,
-          userName: `${user.firstName} ${user.lastName}`,
-          sessions,
-          timestamp: new Date().toISOString()
-        });
-      }
-    } catch (socketError) {
-      logger.warn(`Failed to emit Socket.IO event: ${socketError.message}`);
-    }
-    
-    logger.info(`Added ${sessions} sessions to user ${userId} and upgraded to client role if applicable`);
-  } catch (error) {
-    logger.error(`Error adding sessions to user account: ${error.message}`);
     throw error;
   }
 }
@@ -458,34 +433,50 @@ async function triggerPurchaseAchievements(userId, cartItem) {
 /**
  * Create order record for order history
  */
-async function createOrderRecord(cart) {
+async function createOrderRecord(cart, { stripeSessionId = null } = {}) {
   try {
     const { default: Order } = await import('../models/Order.mjs');
     const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const orderNumber = `SWAN-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+    const idempotencyKey = `stripe-webhook-cart:${cart.id}`;
+    const orderNumber = `SWAN-CART-${cart.id}`;
 
-    await Order.create({
-      userId: cart.userId,
-      orderNumber,
-      totalAmount,
-      status: 'completed',
-      paymentMethod: 'card',
-      paymentAppliedAt: new Date(),
-      notes: JSON.stringify({
+    const { record, created } = await claimIdempotentRecord({
+      model: Order,
+      lookupWhere: { idempotencyKey },
+      createValues: {
+        userId: cart.userId,
         cartId: cart.id,
-        items: cart.cartItems.map(item => ({
-          itemId: item.storefrontItemId,
-          quantity: item.quantity,
-          price: item.price,
-          name: item.storefrontItem?.name || 'Unknown Item',
-        })),
-      }),
+        orderNumber,
+        totalAmount,
+        status: 'completed',
+        paymentMethod: 'card',
+        paymentReference: stripeSessionId || cart.checkoutSessionId || null,
+        idempotencyKey,
+        paymentAppliedAt: new Date(),
+        notes: JSON.stringify({
+          cartId: cart.id,
+          checkoutSessionId: stripeSessionId || cart.checkoutSessionId || null,
+          items: cart.cartItems.map(item => ({
+            itemId: item.storefrontItemId,
+            quantity: item.quantity,
+            price: item.price,
+            name: item.storefrontItem?.name || 'Unknown Item',
+          })),
+        }),
+      },
     });
 
-    logger.info(`Created order record ${orderNumber} for cart ${cart.id}`);
+    if (created) {
+      logger.info(`Created order record ${orderNumber} for cart ${cart.id}`);
+    } else {
+      logger.info(`Order record already exists for cart ${cart.id}`);
+    }
+
+    return { order: record, created };
   } catch (error) {
     logger.error(`Error creating order record: ${error.message}`);
     // Log but don't throw to avoid blocking the purchase flow
+    return null;
   }
 }
 
