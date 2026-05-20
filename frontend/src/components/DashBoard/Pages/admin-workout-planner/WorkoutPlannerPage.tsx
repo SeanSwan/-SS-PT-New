@@ -40,11 +40,12 @@
  * Children:  TeachModeSidebar
  */
 
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import styled from 'styled-components';
 import { List } from 'react-window';
 import {
   Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
-  Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info, Eye,
+  Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
@@ -107,6 +108,7 @@ import {
 const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
   [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
 ];
+const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Body Part Filter Categories
@@ -131,6 +133,169 @@ const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
 
 // Joint impact derived from exerciseType + difficulty
 const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
+
+interface TrainerAssignmentResponse {
+  client?: PlannerClient;
+  Client?: PlannerClient;
+}
+
+const RowContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ResultsCount = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: rgba(224, 236, 244, 0.5);
+`;
+
+const FiltersPane = styled.div`
+  flex-shrink: 0;
+  padding: 12px 16px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+`;
+
+const ExerciseListPane = styled.div`
+  flex: 1;
+  min-height: 0;
+  padding: 0 16px 8px;
+`;
+
+const DegradedPanel = styled(Panel)<{ $degraded?: boolean }>`
+  border: ${({ $degraded }) => ($degraded ? '1px solid #C6A84B' : undefined)};
+`;
+
+const ActionWrap = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const SkeletonDelayRow = styled(GeneratingSkeletonRow)<{ $delayMs: number }>`
+  animation-delay: ${({ $delayMs }) => $delayMs}ms;
+`;
+
+const SkeletonTextStack = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const ClickableExerciseName = styled(ExerciseName)`
+  cursor: pointer;
+`;
+
+const BuilderParamGroup = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+`;
+
+const ParamField = styled.div`
+  text-align: center;
+`;
+
+const ParamLabel = styled.div`
+  font-size: 0.6rem;
+  color: rgba(224, 236, 244, 0.4);
+  margin-bottom: 2px;
+`;
+
+const RepsInput = styled(MiniInput)`
+  width: 64px;
+`;
+
+const TempoInput = styled(MiniInput)`
+  width: 56px;
+`;
+
+const BuilderActionRow = styled.div`
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+`;
+
+const ExplanationDetails = styled.div`
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  font-family: 'Fira Code', monospace;
+`;
+
+const PlanLabelBlock = styled(PlanModeLabel)<{ $top?: boolean }>`
+  display: block;
+  margin-top: ${({ $top }) => ($top ? '20px' : 0)};
+  margin-bottom: 8px;
+`;
+
+const ActiveScheduleDay = styled(ScheduleDay)<{ $active?: boolean }>`
+  cursor: pointer;
+  outline: ${({ $active }) => ($active ? '2px solid var(--accent-secondary, #8B5CF6)' : 'none')};
+  background: ${({ $active }) =>
+    $active
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, var(--bg-elevated, #1A1A24))'
+      : undefined};
+  transition: all 0.2s ease;
+`;
+
+const ActiveScheduleDayNumber = styled(ScheduleDayNumber)<{ $active?: boolean }>`
+  color: ${({ $active }) => ($active ? 'var(--accent-secondary, #8B5CF6)' : undefined)};
+`;
+
+const ActiveDayDetail = styled.div`
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, var(--bg-surface, #141419));
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
+  margin-bottom: 16px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+`;
+
+const ActiveDayTitle = styled.div`
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--accent-secondary, #8B5CF6);
+`;
+
+const ActiveDayMeta = styled.div`
+  color: var(--text-muted, rgba(224,236,244,0.5));
+  font-size: 0.7rem;
+`;
+
+const ClickableMesocycleCard = styled(MesocycleCard)<{ $selected?: boolean }>`
+  cursor: pointer;
+  text-align: left;
+  outline: ${({ $selected }) => ($selected ? '2px solid var(--accent-secondary, #8B5CF6)' : 'none')};
+  transition: all 0.2s ease;
+`;
+
+const RecommendationSource = styled.span`
+  margin-left: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  color: var(--text-muted, rgba(224,236,244,0.5));
+`;
+
+const SavedPlansCount = styled.span`
+  margin-left: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(224,236,244,0.5));
+`;
+
+const SavedPlansLoading = styled.div`
+  padding: 16px;
+`;
+
+const SavedPlansEmpty = styled(EmptyMessage)`
+  padding: 16px;
+`;
 
 function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
   const lowTypes = ['flexibility', 'stability', 'balance'];
@@ -319,8 +484,10 @@ const WorkoutPlannerPage: React.FC = () => {
   const ExerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const ex = filteredExercises[index];
     if (!ex) return null;
-    return (
-      <div style={style}>
+    return React.createElement(
+      'div',
+      { style },
+      (
         <ExerciseItem
           role="button"
           tabIndex={0}
@@ -329,7 +496,7 @@ const WorkoutPlannerPage: React.FC = () => {
           onDoubleClick={() => addExercise(ex)}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addExercise(ex); } }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <RowContent>
             <ExerciseName>{ex.name}</ExerciseName>
             <ExerciseMeta>
               <MetaTag>{ex.bodyPartCategory}</MetaTag>
@@ -337,7 +504,7 @@ const WorkoutPlannerPage: React.FC = () => {
               <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
               <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
             </ExerciseMeta>
-          </div>
+          </RowContent>
           <ExerciseAddBtn
             onClick={(e) => { e.stopPropagation(); addExercise(ex); }}
             aria-label={`Add ${ex.name}`}
@@ -345,7 +512,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <Plus size={18} />
           </ExerciseAddBtn>
         </ExerciseItem>
-      </div>
+      ),
     );
   }, [filteredExercises, selectedExercise, addExercise, setSelectedExercise]);
 
@@ -362,8 +529,8 @@ const WorkoutPlannerPage: React.FC = () => {
           const res = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
           const assignments = res.data?.assignments || res.data?.data?.assignments || [];
           const clients = (Array.isArray(assignments) ? assignments : [])
-            .map((a: any) => a.client || a.Client)
-            .filter(Boolean);
+            .map((a: TrainerAssignmentResponse) => a.client || a.Client)
+            .filter((client): client is PlannerClient => Boolean(client));
           setClients(clients);
           if (clients.length > 0) setSelectedClientId(clients[0].id);
         } else {
@@ -616,6 +783,30 @@ const WorkoutPlannerPage: React.FC = () => {
   // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as status='draft' so the new partial unique index never trips.
   // Trainer can promote to current later via Activate.
+  const fetchSavedPlans = useCallback(async (clientId: number | null) => {
+    if (!clientId) { setSavedPlans([]); return; }
+    setSavedPlansLoading(true);
+    try {
+      const res = await authAxios.get(`/api/workout/plans?clientId=${clientId}`);
+      const data = res.data;
+      if (data?.success && Array.isArray(data.plans)) {
+        setSavedPlans(data.plans.map((p: Record<string, unknown>) => ({
+          id: String(p.id || ''),
+          name: String(p.title || p.name || 'Untitled Plan'),
+          status: String(p.status || 'draft'),
+          createdAt: String(p.createdAt || ''),
+          goal: String((p.planData as Record<string, unknown>)?.goal || p.goal || ''),
+        })));
+      } else {
+        setSavedPlans([]);
+      }
+    } catch {
+      setSavedPlans([]);
+    } finally {
+      setSavedPlansLoading(false);
+    }
+  }, [authAxios]);
+
   const handleSaveDraft = useCallback(async () => {
     // AI Village CRITICAL-4 fix: a generated multi-month plan with no
     // manual planExercises is still saveable — the generatedPlan.weeks[]
@@ -648,7 +839,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
 
   // ── Save & Make Current ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as draft, then activates. Two requests; backend invariant on activate
@@ -684,7 +875,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
+  }, [authAxios, selectedClientId, planExercises.length, phase.name, category, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
 
   // ── Update Loaded Plan ── (Plan Library §5.1, loaded-plan path)
   // PUT /:id with the new planData. Does NOT change activation state.
@@ -705,7 +896,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
 
   // ── Update & Make Current ── (Plan Library §5.1, loaded-non-current path)
   // PUT /:id then PUT /:id/activate.
@@ -727,7 +918,7 @@ const WorkoutPlannerPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan]);
+  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
 
   // ── Plan Library card-action handlers (§5.2) ──
 
@@ -747,7 +938,7 @@ const WorkoutPlannerPage: React.FC = () => {
       logApiError('Activate plan failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to make plan current. Please try again.' });
     }
-  }, [authAxios, selectedClientId, loadedPlanId, currentExercisesSig]);
+  }, [authAxios, selectedClientId, loadedPlanId, currentExercisesSig, fetchSavedPlans]);
 
   // Rename — PUT /:id with title only; planData untouched.
   const handleCardRename = useCallback(async (planId: string, newName: string) => {
@@ -764,7 +955,7 @@ const WorkoutPlannerPage: React.FC = () => {
       logApiError('Rename plan failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to rename plan.' });
     }
-  }, [authAxios, selectedClientId, loadedPlanId]);
+  }, [authAxios, selectedClientId, loadedPlanId, fetchSavedPlans]);
 
   // Duplicate — server-side clone via POST /:id/duplicate. Always status='draft'.
   const handleCardDuplicate = useCallback(async (planId: string, planName: string) => {
@@ -777,7 +968,7 @@ const WorkoutPlannerPage: React.FC = () => {
       logApiError('Duplicate plan failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to duplicate plan.' });
     }
-  }, [authAxios, selectedClientId]);
+  }, [authAxios, selectedClientId, fetchSavedPlans]);
 
   // Archive — DELETE /:id (soft delete; sets status='completed').
   const handleCardArchive = useCallback(async (planId: string, planName: string) => {
@@ -801,7 +992,7 @@ const WorkoutPlannerPage: React.FC = () => {
       logApiError('Archive plan failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to archive plan.' });
     }
-  }, [authAxios, selectedClientId, loadedPlanId]);
+  }, [authAxios, selectedClientId, loadedPlanId, fetchSavedPlans]);
 
   // Compute archive-blocked state per card. Per §5.4: block archive of the
   // currently-active plan when it's the ONLY active plan, to avoid leaving
@@ -813,30 +1004,6 @@ const WorkoutPlannerPage: React.FC = () => {
   );
 
   // ── Fetch Saved Plans for Client ──
-  const fetchSavedPlans = useCallback(async (clientId: number | null) => {
-    if (!clientId) { setSavedPlans([]); return; }
-    setSavedPlansLoading(true);
-    try {
-      const res = await authAxios.get(`/api/workout/plans?clientId=${clientId}`);
-      const data = res.data;
-      if (data?.success && Array.isArray(data.plans)) {
-        setSavedPlans(data.plans.map((p: Record<string, unknown>) => ({
-          id: String(p.id || ''),
-          name: String(p.title || p.name || 'Untitled Plan'),
-          status: String(p.status || 'draft'),
-          createdAt: String(p.createdAt || ''),
-          goal: String((p.planData as Record<string, unknown>)?.goal || p.goal || ''),
-        })));
-      } else {
-        setSavedPlans([]);
-      }
-    } catch {
-      setSavedPlans([]);
-    } finally {
-      setSavedPlansLoading(false);
-    }
-  }, [authAxios]);
-
   // Fetch saved plans when client changes
   useEffect(() => {
     fetchSavedPlans(selectedClientId);
@@ -943,7 +1110,6 @@ const WorkoutPlannerPage: React.FC = () => {
         // Codex 2026-05-03 round-2 MED-2: snapshot baseline must use the
         // shared signature builder so dirty-comparison shapes match. Use
         // the generated branch since we just restored a long-horizon plan.
-        const categoryLabel = WORKOUT_CATEGORIES.find(c => c.value === (planData.category || category))?.label || 'Full Body';
         setSavedSnapshot(buildContentSignature({
           mode: 'generated',
           generatedPlan: restored,
@@ -1184,16 +1350,12 @@ const WorkoutPlannerPage: React.FC = () => {
         <Panel>
           <PanelHeader>
             <PanelTitle><Search size={16} /> Exercise Rolodex</PanelTitle>
-            <span style={{
-              fontFamily: "'Fira Code', monospace",
-              fontSize: '0.7rem',
-              color: 'rgba(224, 236, 244, 0.5)',
-            }}>
+            <ResultsCount>
               {filteredExercises.length} results
-            </span>
+            </ResultsCount>
           </PanelHeader>
           {/* Filters section — fixed height, does not scroll */}
-          <div style={{ flexShrink: 0, padding: '12px 16px 4px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <FiltersPane>
             <SearchWrapper>
               <Search size={14} />
               <SearchInput
@@ -1263,9 +1425,9 @@ const WorkoutPlannerPage: React.FC = () => {
                 </Chip>
               ))}
             </ChipRow>
-          </div>
+          </FiltersPane>
           {/* Exercise list — flex: 1, own scroll via FixedSizeList. No outer scroll conflict. */}
-          <div style={{ flex: 1, minHeight: 0, padding: '0 16px 8px' }}>
+          <ExerciseListPane>
             {exercisesLoading ? (
               Array.from({ length: 6 }, (_, i) => <SkeletonBlock key={i} />)
             ) : filteredExercises.length === 0 ? (
@@ -1276,14 +1438,14 @@ const WorkoutPlannerPage: React.FC = () => {
                 rowCount: filteredExercises.length,
                 rowHeight: 64,
                 rowProps: {},
-                style: { height: 420, overflowX: 'hidden' as const },
+                style: VIRTUAL_LIST_STYLE,
               })
             )}
-          </div>
+          </ExerciseListPane>
         </Panel>
 
         {/* Center: Workout Builder */}
-        <Panel style={degradedIntelligence ? { border: '1px solid #C6A84B' } : undefined}>
+        <DegradedPanel $degraded={degradedIntelligence}>
           <PanelHeader>
             <PanelTitle><Zap size={16} /> Workout Builder</PanelTitle>
             {/* Plan Library save matrix — 4 modes per REV 2 §5.1.
@@ -1295,7 +1457,7 @@ const WorkoutPlannerPage: React.FC = () => {
                   - No exercises:                  all save buttons disabled
                 isDirty + savedSnapshot from W1A drive enable/disable.
                 Loaded-plan current detection comes from savedPlans.find(...). */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <ActionWrap>
               {(() => {
                 // AI Village CRITICAL-4 fix: a generated multi-month plan
                 // is saveable even when manual planExercises is empty.
@@ -1360,7 +1522,7 @@ const WorkoutPlannerPage: React.FC = () => {
                   </>
                 );
               })()}
-            </div>
+            </ActionWrap>
           </PanelHeader>
           <PanelBody>
             {/* OPT Phase Indicator */}
@@ -1382,13 +1544,13 @@ const WorkoutPlannerPage: React.FC = () => {
                     NOT a hydration fix — this app is CSR-only (Vite, no
                     SSR). */}
                 {SKELETON_ROW_WIDTHS.map(([w1, w2], i) => (
-                  <GeneratingSkeletonRow key={i} style={{ animationDelay: `${i * 100}ms` }}>
+                  <SkeletonDelayRow key={i} $delayMs={i * 100}>
                     <SkeletonCircle />
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <SkeletonTextStack>
                       <SkeletonBar $width={`${w1}%`} />
                       <SkeletonBar $width={`${w2}%`} />
-                    </div>
-                  </GeneratingSkeletonRow>
+                    </SkeletonTextStack>
+                  </SkeletonDelayRow>
                 ))}
               </GeneratingSkeletonWrap>
             ) : planExercises.length === 0 ? (
@@ -1400,19 +1562,18 @@ const WorkoutPlannerPage: React.FC = () => {
                 <BuilderRow key={pe.id}>
                   <BuilderRowNumber>{idx + 1}</BuilderRowNumber>
                   <BuilderRowInfo>
-                    <ExerciseName
-                      style={{ cursor: 'pointer' }}
+                    <ClickableExerciseName
                       onClick={() => setSelectedExercise(pe.exerciseSlim)}
                     >
                       {pe.exerciseSlim.name}
-                    </ExerciseName>
+                    </ClickableExerciseName>
                     <ExerciseMeta>
                       {pe.exerciseSlim.primaryMuscles.slice(0, 2).join(', ') || pe.exerciseSlim.bodyPartCategory}
                     </ExerciseMeta>
                   </BuilderRowInfo>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'rgba(224,236,244,0.4)', marginBottom: 2 }}>Sets</div>
+                  <BuilderParamGroup>
+                    <ParamField>
+                      <ParamLabel>Sets</ParamLabel>
                       <MiniInput
                         type="number"
                         value={pe.sets}
@@ -1420,25 +1581,23 @@ const WorkoutPlannerPage: React.FC = () => {
                         min={1}
                         max={10}
                       />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'rgba(224,236,244,0.4)', marginBottom: 2 }}>Reps</div>
-                      <MiniInput
+                    </ParamField>
+                    <ParamField>
+                      <ParamLabel>Reps</ParamLabel>
+                      <RepsInput
                         value={pe.reps}
                         onChange={e => updateExercise(pe.id, 'reps', e.target.value)}
-                        style={{ width: 64 }}
                       />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'rgba(224,236,244,0.4)', marginBottom: 2 }}>Tempo</div>
-                      <MiniInput
+                    </ParamField>
+                    <ParamField>
+                      <ParamLabel>Tempo</ParamLabel>
+                      <TempoInput
                         value={pe.tempo}
                         onChange={e => updateExercise(pe.id, 'tempo', e.target.value)}
-                        style={{ width: 56 }}
                       />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.6rem', color: 'rgba(224,236,244,0.4)', marginBottom: 2 }}>Rest(s)</div>
+                    </ParamField>
+                    <ParamField>
+                      <ParamLabel>Rest(s)</ParamLabel>
                       <MiniInput
                         type="number"
                         value={pe.restSeconds}
@@ -1446,8 +1605,8 @@ const WorkoutPlannerPage: React.FC = () => {
                         min={0}
                         max={600}
                       />
-                    </div>
-                  </div>
+                    </ParamField>
+                  </BuilderParamGroup>
                   <RemoveBtn onClick={() => removeExercise(pe.id)} aria-label={`Remove ${pe.exerciseSlim.name}`}>
                     <X size={14} />
                   </RemoveBtn>
@@ -1456,7 +1615,7 @@ const WorkoutPlannerPage: React.FC = () => {
             )}
 
             {planExercises.length > 0 && (
-              <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+              <BuilderActionRow>
                 <ActionBtn
                   onClick={() => {
                     // Quick add prompt — clear search to browse
@@ -1467,7 +1626,7 @@ const WorkoutPlannerPage: React.FC = () => {
                   <Plus size={14} />
                   Add Exercise
                 </ActionBtn>
-              </div>
+              </BuilderActionRow>
             )}
 
             {/* AI Explanations Panel — shows reasoning, pain exclusions, safety warnings */}
@@ -1486,16 +1645,11 @@ const WorkoutPlannerPage: React.FC = () => {
                     <div>
                       <div>{exp.message}</div>
                       {exp.details && (
-                        <div style={{
-                          marginTop: 4,
-                          fontSize: '0.7rem',
-                          color: 'var(--text-muted, rgba(224, 236, 244, 0.5))',
-                          fontFamily: "'Fira Code', monospace",
-                        }}>
+                        <ExplanationDetails>
                           {Array.isArray(exp.details)
                             ? exp.details.join(' · ')
                             : exp.details}
-                        </div>
+                        </ExplanationDetails>
                       )}
                     </div>
                   </ExplanationItem>
@@ -1503,7 +1657,7 @@ const WorkoutPlannerPage: React.FC = () => {
               </ExplanationsPanel>
             )}
           </PanelBody>
-        </Panel>
+        </DegradedPanel>
 
         {/* Right: Teach Mode (conditional) */}
         {teachModeOpen && (
@@ -1549,34 +1703,21 @@ const WorkoutPlannerPage: React.FC = () => {
           </MesocycleSectionTitle>
 
           {/* Weekly Schedule — clickable day tabs */}
-          <PlanModeLabel style={{ marginBottom: 8, display: 'block' }}>Weekly Schedule</PlanModeLabel>
+          <PlanLabelBlock>Weekly Schedule</PlanLabelBlock>
           <ScheduleRow>
             {generatedPlan.weeklySchedule.map(day => (
-              <ScheduleDay
+              <ActiveScheduleDay
                 key={day.dayNumber}
                 as="button"
                 type="button"
                 onClick={() => setSelectedMesoDay(day.dayNumber)}
-                style={{
-                  cursor: 'pointer',
-                  outline: selectedMesoDay === day.dayNumber
-                    ? '2px solid var(--accent-secondary, #8B5CF6)'
-                    : 'none',
-                  background: selectedMesoDay === day.dayNumber
-                    ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, var(--bg-elevated, #1A1A24))'
-                    : undefined,
-                  transition: 'all 0.2s ease',
-                }}
+                $active={selectedMesoDay === day.dayNumber}
               >
-                <ScheduleDayNumber
-                  style={selectedMesoDay === day.dayNumber
-                    ? { color: 'var(--accent-secondary, #8B5CF6)' }
-                    : undefined}
-                >
+                <ActiveScheduleDayNumber $active={selectedMesoDay === day.dayNumber}>
                   Day {day.dayNumber}
-                </ScheduleDayNumber>
+                </ActiveScheduleDayNumber>
                 <ScheduleDayFocus>{day.focus}</ScheduleDayFocus>
-              </ScheduleDay>
+              </ActiveScheduleDay>
             ))}
           </ScheduleRow>
 
@@ -1585,43 +1726,28 @@ const WorkoutPlannerPage: React.FC = () => {
             const activeDay = generatedPlan.weeklySchedule.find(d => d.dayNumber === selectedMesoDay);
             if (!activeDay) return null;
             return (
-              <div style={{
-                padding: '12px 16px',
-                borderRadius: 8,
-                background: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, var(--bg-surface, #141419))',
-                border: '1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)',
-                marginBottom: 16,
-                fontFamily: "'Fira Code', monospace",
-                fontSize: '0.8rem',
-              }}>
-                <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--accent-secondary, #8B5CF6)' }}>
+              <ActiveDayDetail>
+                <ActiveDayTitle>
                   Day {activeDay.dayNumber}: {activeDay.focus}
-                </div>
-                <div style={{ color: 'var(--text-muted, rgba(224,236,244,0.5))', fontSize: '0.7rem' }}>
+                </ActiveDayTitle>
+                <ActiveDayMeta>
                   Category: {activeDay.category} — Click exercises in the Rolodex to populate this day
-                </div>
-              </div>
+                </ActiveDayMeta>
+              </ActiveDayDetail>
             );
           })()}
 
           {/* Mesocycle Cards — clickable to switch OPT phase */}
-          <PlanModeLabel style={{ marginBottom: 8, display: 'block' }}>Mesocycles (4-Week Blocks)</PlanModeLabel>
+          <PlanLabelBlock>Mesocycles (4-Week Blocks)</PlanLabelBlock>
           <MesocycleGrid>
             {generatedPlan.mesocycles.map(mc => (
-              <MesocycleCard
+              <ClickableMesocycleCard
                 key={mc.mesocycle}
                 $phase={mc.nasmPhase}
+                $selected={mc.nasmPhase === phaseNumber}
                 as="button"
                 type="button"
                 onClick={() => setPhaseNumber(mc.nasmPhase)}
-                style={{
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  outline: mc.nasmPhase === phaseNumber
-                    ? '2px solid var(--accent-secondary, #8B5CF6)'
-                    : 'none',
-                  transition: 'all 0.2s ease',
-                }}
                 title={`Click to switch to Phase ${mc.nasmPhase}: ${mc.phaseName}`}
               >
                 <MesocycleHeader>
@@ -1642,7 +1768,7 @@ const WorkoutPlannerPage: React.FC = () => {
                   {mc.overloadStrategy}
                   {mc.deloadWeek && <DeloadBadge>Deload Wk {mc.deloadWeek}</DeloadBadge>}
                 </MesocycleOverload>
-              </MesocycleCard>
+              </ClickableMesocycleCard>
             ))}
           </MesocycleGrid>
 
@@ -1658,9 +1784,9 @@ const WorkoutPlannerPage: React.FC = () => {
           {/* Recommendations */}
           {generatedPlan.recommendations.length > 0 && (
             <>
-              <PlanModeLabel style={{ marginTop: 20, marginBottom: 8, display: 'block' }}>
+              <PlanLabelBlock $top>
                 AI Recommendations
-              </PlanModeLabel>
+              </PlanLabelBlock>
               <RecommendationList>
                 {generatedPlan.recommendations.map((rec, i) => {
                   const detail = generatedPlan.recommendationDetails?.[i];
@@ -1668,17 +1794,11 @@ const WorkoutPlannerPage: React.FC = () => {
                     <RecommendationItem key={i}>
                       {rec}
                       {detail?.sourceCitation ? (
-                        <span
-                          style={{
-                            marginLeft: 8,
-                            fontFamily: "'Fira Code', monospace",
-                            fontSize: '0.65rem',
-                            color: 'var(--text-muted, rgba(224,236,244,0.5))',
-                          }}
+                        <RecommendationSource
                           title={`source: ${detail.sourceCitation}`}
                         >
                           ({detail.type})
-                        </span>
+                        </RecommendationSource>
                       ) : null}
                     </RecommendationItem>
                   );
@@ -1696,24 +1816,19 @@ const WorkoutPlannerPage: React.FC = () => {
             <ClipboardList size={18} />
             Saved Plans
             {savedPlans.length > 0 && (
-              <span style={{
-                marginLeft: 8,
-                fontFamily: "'Fira Code', monospace",
-                fontSize: '0.75rem',
-                color: 'var(--text-muted, rgba(224,236,244,0.5))',
-              }}>
+              <SavedPlansCount>
                 ({savedPlans.length} plan{savedPlans.length !== 1 ? 's' : ''})
-              </span>
+              </SavedPlansCount>
             )}
           </MesocycleSectionTitle>
           {savedPlansLoading ? (
-            <div style={{ padding: 16 }}>
+            <SavedPlansLoading>
               {Array.from({ length: 2 }, (_, i) => <SkeletonBlock key={i} />)}
-            </div>
+            </SavedPlansLoading>
           ) : savedPlans.length === 0 ? (
-            <EmptyMessage style={{ padding: 16 }}>
+            <SavedPlansEmpty>
               No saved plans for this client yet. Generate and save a workout plan above.
-            </EmptyMessage>
+            </SavedPlansEmpty>
           ) : (
             <MesocycleGrid>
               {savedPlans.map(plan => (
