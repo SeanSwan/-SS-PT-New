@@ -66,6 +66,11 @@ import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../../hooks/use-toast';
 import adminClientService from '../../../../services/adminClientService';
+import type {
+  ClientSource,
+  CreateClientRequest,
+  CreateExternalClientRequest,
+} from '../../../../services/adminClientService';
 import CreateClientModal from './CreateClientModal';
 import ClientDetailsModal from './components/ClientDetailsModal';
 import ClientAnalyticsPanel from './components/ClientAnalyticsPanel';
@@ -1124,7 +1129,7 @@ export interface EnhancedAdminClient {
   engagementLevel: 'low' | 'medium' | 'high';
   riskFactors: string[];
   aiInsights: AIInsight[];
-  customFields: Record<string, any>;
+  customFields: Record<string, unknown>;
   // Gamification
   level: number;
   xp: number;
@@ -1198,6 +1203,108 @@ interface ClientBadge {
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
 }
 
+interface AdminClientApiRecord {
+  id: number | string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  username?: string;
+  phone?: string;
+  profileImageUrl?: string;
+  photo?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  weight?: number;
+  height?: number;
+  fitnessGoal?: string;
+  trainingExperience?: string;
+  healthConcerns?: string;
+  emergencyContact?: string;
+  availableSessions?: number;
+  isActive?: boolean;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  clientSource?: ClientSource;
+  accountStatus?: 'stub' | 'invited' | 'active';
+  totalWorkouts?: number;
+  workoutStreak?: number;
+  lastWorkoutDate?: string;
+  nextSessionDate?: string;
+  totalOrders?: number;
+  achievements?: Achievement[];
+  currentProgram?: string;
+  trainerName?: string;
+  socialScore?: number;
+  engagementLevel?: 'low' | 'medium' | 'high';
+  riskFactors?: string[];
+  aiInsights?: AIInsight[];
+  customFields?: Record<string, unknown>;
+  level?: number;
+  xp?: number;
+  badges?: ClientBadge[];
+  rank?: string;
+  initialAssessment?: AssessmentScore;
+  latestAssessment?: AssessmentScore;
+  progressScore?: number;
+  bodyComposition?: BodyComposition;
+  lastContactDate?: string;
+  preferredContactMethod?: 'email' | 'phone' | 'app';
+  communicationNotes?: string;
+  injuryHistory?: Injury[];
+  medicationList?: string[];
+  allergies?: string[];
+  formAnalysisScore?: number;
+  lastFormCheck?: string;
+}
+
+interface ClientQuickStats {
+  totalClients: number;
+  activeClients: number;
+  newThisMonth: number;
+  avgProgress: number;
+  totalWorkouts: number;
+  totalRevenue: number;
+  retentionRate: number;
+  avgRating: number;
+}
+
+interface ClientFilters {
+  level?: string;
+  engagement?: string;
+}
+
+const emptyQuickStats: ClientQuickStats = {
+  totalClients: 0,
+  activeClients: 0,
+  newThisMonth: 0,
+  avgProgress: 0,
+  totalWorkouts: 0,
+  totalRevenue: 0,
+  retentionRate: 0,
+  avgRating: 0,
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error && error.message ? error.message : fallback;
+
+const toExternalClientRequest = (data: CreateClientRequest): CreateExternalClientRequest => ({
+  firstName: data.firstName,
+  lastName: data.lastName,
+  email: data.email,
+  phone: data.phone,
+  dateOfBirth: data.dateOfBirth,
+  gender: data.gender,
+  weight: data.weight,
+  height: data.height,
+  fitnessGoal: data.fitnessGoal,
+  trainingExperience: data.trainingExperience,
+  healthConcerns: data.healthConcerns,
+  emergencyContact: data.emergencyContact,
+  clientSource: data.clientSource,
+  password: data.password,
+});
+
 // ─── Main component ──────────────────────────────────────────────
 const EnhancedAdminClientManagementView: React.FC = () => {
   const navigate = useNavigate();
@@ -1209,7 +1316,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(25);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filters, setFilters] = useState<Record<string, any>>({});
+  const [filters, setFilters] = useState<ClientFilters>({});
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'swanstudios' | 'move_fitness' | 'external'>('all');
@@ -1235,13 +1342,13 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
 
   // Quick stats state
-  const [quickStats, setQuickStats] = useState<Record<string, any>>({});
+  const [quickStats, setQuickStats] = useState<ClientQuickStats>(emptyQuickStats);
   // mcpStatus removed — no real MCP servers in production
 
   // ─── Fetch real clients from API ─────────────────────────────
   // Maps API response to EnhancedAdminClient interface with sensible defaults
   // for fields the API doesn't yet return (gamification, assessments, etc.)
-  const mapApiClientToEnhanced = useCallback((apiClient: any): EnhancedAdminClient => ({
+  const mapApiClientToEnhanced = useCallback((apiClient: AdminClientApiRecord): EnhancedAdminClient => ({
     id: String(apiClient.id),
     firstName: apiClient.firstName || '',
     lastName: apiClient.lastName || '',
@@ -1316,16 +1423,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       } catch (err) {
         console.error('[ClientManagement] Failed to fetch clients:', err);
         setClients([]);
-        setQuickStats({
-          totalClients: 0,
-          activeClients: 0,
-          newThisMonth: 0,
-          avgProgress: 0,
-          totalWorkouts: 0,
-          totalRevenue: 0,
-          retentionRate: 0,
-          avgRating: 0
-        });
+        setQuickStats(emptyQuickStats);
       }
     };
 
@@ -1421,10 +1519,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         description: `Password reset for ${client.firstName} ${client.lastName}. They will receive an email with their temporary password.`,
         variant: "default"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: error.message || "Failed to reset password",
+        description: getErrorMessage(error, "Failed to reset password"),
         variant: "destructive"
       });
     }
@@ -2149,7 +2247,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         onSubmit={async (data) => {
           try {
             await (data.clientSource && data.clientSource !== 'swanstudios'
-              ? adminClientService.createExternalClient(data as any)
+              ? adminClientService.createExternalClient(toExternalClientRequest(data))
               : adminClientService.createClient(data));
             setShowCreateModal(false);
             toast({
@@ -2162,10 +2260,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             if (refreshed.clients?.length) {
               setClients(refreshed.clients.map(mapApiClientToEnhanced));
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             toast({
               title: "Error",
-              description: error.message || "Failed to create client",
+              description: getErrorMessage(error, "Failed to create client"),
               variant: "destructive"
             });
             throw error; // Re-throw so modal can show error state
