@@ -2,6 +2,7 @@
 // Fixes missing script referenced in backend package.json
 
 import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import axios from 'axios';
 

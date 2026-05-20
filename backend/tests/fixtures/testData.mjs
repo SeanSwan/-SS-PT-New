@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 /**
  * Test Data Fixtures
  * Phase 3: Operations-Ready Test Suite

@@ -83,7 +83,7 @@ async function fixPostgresAuth() {
       case '1':
         await resetUserPassword(dbUser, dbPassword);
         break;
-      case '2':
+      case '2': {
         const newPassword = await question('Enter new password: ');
         await resetUserPassword(dbUser, newPassword);
         
@@ -92,6 +92,7 @@ async function fixPostgresAuth() {
           await updateEnvPassword(newPassword);
         }
         break;
+      }
       case '3':
         console.log('\n💡 To sync with your dev tool:');
         console.log('1. Use your dev tool to connect successfully');

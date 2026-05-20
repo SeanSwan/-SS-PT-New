@@ -4,6 +4,7 @@
 import axios from 'axios';
 import chalk from 'chalk';
 import { randomBytes } from 'crypto';
+import { fileURLToPath } from 'url';
 
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? 'https://swanstudios-backend.onrender.com'
