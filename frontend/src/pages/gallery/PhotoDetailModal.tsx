@@ -35,7 +35,7 @@ const popIn = keyframes`
 const Backdrop = styled(motion.div)`
   position: fixed;
   inset: 0;
-  z-index: 400;
+  z-index: 12000;
   background: rgba(0, 20, 60, 0.92);
   backdrop-filter: blur(16px);
   display: flex;

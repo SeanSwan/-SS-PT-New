@@ -22,6 +22,7 @@ const StatusContainer = styled.div`
   box-shadow: 0 18px 48px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   backdrop-filter: blur(15px);
   font-size: 0.85rem;
+  pointer-events: none;
 
   @media (max-width: 768px) {
     display: none;
@@ -81,7 +82,7 @@ const ThemeStatusIndicator: React.FC<ThemeStatusIndicatorProps> = ({
   if (!enabled) return null;
 
   return (
-    <StatusContainer>
+    <StatusContainer aria-hidden="true">
       <StatusTitle>Crystalline Swan Theme</StatusTitle>
       {Object.entries(themeChecks).map(([check, status]) => (
         <StatusItem key={check}>
