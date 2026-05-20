@@ -80,10 +80,12 @@ const AccordionItem = styled.div`
   overflow: hidden;
 `;
 
-const AccordionHeader = styled.div`
+const AccordionHeader = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
+  border: 0;
   padding: 12px 16px;
   cursor: pointer;
   min-height: 48px;
@@ -91,6 +93,7 @@ const AccordionHeader = styled.div`
   color: var(--text-primary, #E0ECF4);
   font-size: 0.85rem;
   font-weight: 600;
+  text-align: left;
   transition: background 0.2s;
   &:hover { background: rgba(96, 192, 240, 0.05); }
   &:focus-visible { outline: 2px solid #60C0F0; outline-offset: -2px; }
@@ -232,12 +235,12 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
         icon: <BookOpen size={16} />,
         content: (
           <ClientScript>
-            "Stand with your feet shoulder-width apart, toes pointing straight ahead. Hold this bar
+            &quot;Stand with your feet shoulder-width apart, toes pointing straight ahead. Hold this bar
             overhead with your arms fully extended. Squat down as low as you comfortably can, as if
             sitting into a chair, then stand back up. Perform 5 repetitions at a comfortable pace.
-            Keep your feet flat and arms overhead the entire time."
+            Keep your feet flat and arms overhead the entire time.&quot;
             <ScriptNote>Do NOT coach or cue corrections. You are observing natural movement.
-            If the client asks "like this?" just say "however feels natural."</ScriptNote>
+            If the client asks &quot;like this?&quot; just say &quot;however feels natural.&quot;</ScriptNote>
           </ClientScript>
         ),
       },
@@ -333,7 +336,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
             <BulletList>
               <li>Clear area around client — they may lose balance</li>
               <li>If acute knee/back/shoulder pain, modify or skip</li>
-              <li>If client can't hold dowel overhead (frozen shoulder), use arms-crossed-on-chest modification</li>
+              <li>If client can&apos;t hold dowel overhead (frozen shoulder), use arms-crossed-on-chest modification</li>
               <li>No warm-up before assessment — observe natural movement patterns</li>
               <li>Barefoot on clean, non-slippery surface</li>
             </BulletList>
@@ -357,14 +360,14 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
               <li>Optional: posture grid chart, camera for documentation</li>
             </BulletList>
             <StepList>
-              <li>Client stands in natural, relaxed posture — do NOT say "stand up straight"</li>
+              <li>Client stands in natural, relaxed posture — do NOT say &quot;stand up straight&quot;</li>
               <li>Feet hip-width apart, arms hanging naturally</li>
               <li>Client looks straight ahead at fixed point (not at trainer)</li>
               <li>Allow 10-15 seconds to settle into natural stance before observing</li>
             </StepList>
             <ClientScript>
-              "Just stand how you normally would. Look straight ahead at the wall.
-              Try to relax — I'm just going to observe your posture."
+              &quot;Just stand how you normally would. Look straight ahead at the wall.
+              Try to relax — I&apos;m just going to observe your posture.&quot;
             </ClientScript>
           </>
         ),
@@ -498,7 +501,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
               <li>Lower until chin/chest touches floor OR upper arms parallel to floor (90° elbows)</li>
               <li>Push back to full extension = 1 rep</li>
               <li>Perform max reps without stopping — no resting at top or bottom</li>
-              <li>Test ends when: client stops, form breaks 2 consecutive reps, or can't complete full ROM</li>
+              <li>Test ends when: client stops, form breaks 2 consecutive reps, or can&apos;t complete full ROM</li>
             </StepList>
             <InfoBox>
               <strong>Norms (Males):</strong> 20-29yr: Avg 22-28 | Good 29-35 | Excellent 36+<br />
@@ -515,7 +518,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
             <StepList>
               <li>Place two tape strips on floor <strong>36 inches apart</strong></li>
               <li>Client assumes push-up position with one hand on each line</li>
-              <li>On "Go" — alternately reach across to touch opposite tape line, return, repeat</li>
+              <li>On &quot;Go&quot; — alternately reach across to touch opposite tape line, return, repeat</li>
               <li>Each hand crossing and touching = 1 touch</li>
               <li>Test lasts <strong>15 seconds</strong> — perform <strong>3 trials</strong> (30-60s rest between)</li>
               <li><strong>Score = average touches across 3 trials</strong></li>
@@ -536,7 +539,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
         content: (
           <>
             <InfoBox>
-              Create a plus-sign grid with 9 boxes (12" x 12" each). Number 1-8 clockwise from top. Center = start.
+              Create a plus-sign grid with 9 boxes (12&quot; x 12&quot; each). Number 1-8 clockwise from top. Center = start.
             </InfoBox>
             <StepList>
               <li>Client stands on one leg in center square, hands on hips</li>
@@ -589,7 +592,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
               <li>Practice cadence for 15-20 seconds</li>
               <li>Client steps for exactly <strong>3 minutes</strong> at 96 BPM metronome cadence</li>
               <li>Alternate leading leg every minute to avoid fatigue</li>
-              <li>At 3 minutes: "Stop" — client immediately sits down</li>
+              <li>At 3 minutes: &quot;Stop&quot; — client immediately sits down</li>
               <li>Within 5 seconds, begin counting pulse for <strong>60 seconds</strong></li>
               <li>Record the 60-second recovery HR — this is the test score</li>
             </StepList>
@@ -599,7 +602,7 @@ const TEACH_DATA: Record<string, { title: string; sections: AccordionSection[] }
             </InfoBox>
             <BulletList>
               <li>If resting HR {'>'} 100 BPM, investigate before proceeding</li>
-              <li>Stop immediately if: dizziness, chest pain, nausea, can't maintain cadence</li>
+              <li>Stop immediately if: dizziness, chest pain, nausea, can&apos;t maintain cadence</li>
               <li>Not valid for clients on beta-blockers (HR response is blunted)</li>
             </BulletList>
           </>
@@ -661,7 +664,7 @@ const NASMTeachMode: React.FC<NASMTeachModeProps> = ({ assessmentType }) => {
       </TeachHeader>
       {data.sections.map((section, idx) => (
         <AccordionItem key={idx}>
-          <AccordionHeader onClick={() => toggle(idx)} role="button" tabIndex={0} aria-expanded={!!openSections[idx]}>
+          <AccordionHeader type="button" onClick={() => toggle(idx)} aria-expanded={!!openSections[idx]}>
             <AccordionLeft>
               {section.icon}
               <span>{section.title}</span>
