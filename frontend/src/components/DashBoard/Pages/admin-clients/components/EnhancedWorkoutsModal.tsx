@@ -52,11 +52,31 @@ interface Props {
 }
 
 const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, onClose }) => {
+  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+    }
+  };
+
   if (!open) return null;
 
   return (
-    <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <WidePanel onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay
+      aria-label={`Workout history for ${clientName}`}
+      aria-modal="true"
+      onClick={handleOverlayClick}
+      onKeyDown={handleOverlayKeyDown}
+      role="dialog"
+      tabIndex={-1}
+    >
+      <WidePanel>
         <ModalHeader>
           <ModalTitle>
             <Dumbbell size={20} />

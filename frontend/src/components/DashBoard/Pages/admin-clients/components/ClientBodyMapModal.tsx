@@ -45,9 +45,29 @@ const ClientBodyMapModal: React.FC<ClientBodyMapModalProps> = ({
   clientName,
   onClose,
 }) => {
+  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+    }
+  };
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <WidePanel onClick={(e) => e.stopPropagation()}>
+    <ModalOverlay
+      aria-label={`Body map for ${clientName}`}
+      aria-modal="true"
+      onClick={handleOverlayClick}
+      onKeyDown={handleOverlayKeyDown}
+      role="dialog"
+      tabIndex={-1}
+    >
+      <WidePanel>
         <ModalHeader>
           <ModalTitle>
             <HeartPulse size={20} />
