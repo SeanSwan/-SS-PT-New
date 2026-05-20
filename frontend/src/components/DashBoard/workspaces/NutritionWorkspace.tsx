@@ -31,7 +31,7 @@
  */
 
 import React, { useState, lazy, Suspense } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin, Pill, Brain } from 'lucide-react';
 import CosmicSuspenseLoader from '../../Shared/CosmicSuspenseLoader';
@@ -40,9 +40,7 @@ import { useMacroSummary } from '../../../hooks/useMacroSummary';
 import { useSubscription } from '../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../Shared/CrystallineLockOverlay';
 
-// ─────────────────────────────────────────────────────────────
 // SECTION: Lazy imports
-// ─────────────────────────────────────────────────────────────
 const FoodIntakeForm = lazy(() => import('../../FoodTracker/FoodIntakeForm'));
 const FoodIntelligenceDashboard = lazy(() => import('../../FoodTracker/FoodIntelligenceDashboard'));
 const FoodSearchPanel = lazy(() => import('../../FoodTracker/FoodSearchPanel'));
@@ -56,9 +54,6 @@ const MealPlanTab = lazy(() => import('../../FoodTracker/MealPlanTab'));
 const MacroDonut = lazy(() => import('../../Charts/charts/pie/MacroDonut'));
 const NutritionBalanceRadar = lazy(() => import('../../Charts/charts/radar/NutritionBalanceRadar'));
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Tab config
-// ─────────────────────────────────────────────────────────────
 type Tab = 'log' | 'search' | 'restaurant' | 'hydration' | 'macros' | 'intelligence' | 'learn' | 'garden' | 'farms' | 'supplements' | 'meal-plan';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -75,9 +70,65 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'learn', label: 'Learn', icon: <BookOpen size={16} /> },
 ];
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
+const nutritionVars = css`
+  --nutrition-panel: color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent);
+  --nutrition-panel-deep: color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent);
+  --nutrition-border: color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  --nutrition-soft: color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent);
+`;
+
+const nutritionPanelCss = css`
+  ${nutritionVars}
+  border: 1px solid var(--nutrition-border);
+  border-radius: 22px;
+  background:
+    linear-gradient(160deg, var(--nutrition-panel), var(--nutrition-panel-deep)),
+    var(--bg-elevated, #141419);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--accent-primary, #60C0F0) 9%, transparent),
+    0 16px 34px color-mix(in srgb, var(--bg-base, #0A0A0F) 62%, transparent);
+  backdrop-filter: blur(18px);
+`;
+
+const nutritionCardCss = css`
+  ${nutritionVars}
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(150deg, color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent), color-mix(in srgb, var(--bg-base, #0A0A0F) 86%, transparent)),
+    var(--bg-elevated, #141419);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent);
+`;
+
+const nutritionControlCss = css`
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--nutrition-border);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 70%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font: 800 0.78rem/1 var(--font-ui, 'Sora', sans-serif);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-secondary, #8B5CF6);
+    transform: translateY(-1px);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
+`;
+
+const nutritionAccentButtonCss = css`
+  ${nutritionControlCss}
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
+  color: var(--text-inverse, #0F172A);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+`;
+
 const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('log');
   const { isPro, isElite, isTrial } = useSubscription();
@@ -172,10 +223,8 @@ const NutritionWorkspace: React.FC = () => {
 
 export default NutritionWorkspace;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
 const WorkspaceRoot = styled.div`
+  ${nutritionPanelCss}
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -228,10 +277,10 @@ const HeaderSubtitle = styled.p`
 `;
 
 const TabRow = styled.div`
+  ${nutritionCardCss}
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.08));
-  padding-bottom: 2px;
+  gap: 8px;
+  padding: 8px;
   overflow-x: auto;
   scrollbar-width: thin;
 
@@ -241,35 +290,21 @@ const TabRow = styled.div`
 `;
 
 const TabBtn = styled(motion.button)<{ $active: boolean }>`
+  ${({ $active }) => ($active ? nutritionAccentButtonCss : nutritionControlCss)}
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border: none;
-  border-bottom: 2px solid ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
-  background: ${(p) => (p.$active ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)' : 'transparent')};
-  color: ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-muted, rgba(224,236,244,0.85))')};
   font-size: 13px;
   font-weight: ${(p) => (p.$active ? 600 : 500)};
   cursor: pointer;
-  border-radius: 8px 8px 0 0;
-  min-height: 44px;
   white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
-
-  &:hover {
-    color: ${(p) => (p.$active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-primary, #E0ECF4)')};
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-secondary, #8B5CF6);
-    outline-offset: -2px;
-  }
 `;
 
 const ContentArea = styled.div`
+  ${nutritionCardCss}
   min-height: 400px;
+  padding: clamp(1rem, 1.5vw, 1.35rem);
 `;
 
 const MacroGrid = styled.div`

@@ -252,26 +252,26 @@ const MealPlanTab: React.FC = () => {
 
         <FormGrid>
           <FormGroup>
-            <Label>Daily Calories *</Label>
-            <Input type="number" value={calories} onChange={e => setCalories(e.target.value)} min="800" max="6000" placeholder="2000" />
+            <Label htmlFor="meal-plan-calories">Daily Calories *</Label>
+            <Input id="meal-plan-calories" type="number" value={calories} onChange={e => setCalories(e.target.value)} min="800" max="6000" placeholder="2000" />
           </FormGroup>
           <FormGroup>
-            <Label>Protein (g)</Label>
-            <Input type="number" value={protein} onChange={e => setProtein(e.target.value)} placeholder="Auto" />
+            <Label htmlFor="meal-plan-protein">Protein (g)</Label>
+            <Input id="meal-plan-protein" type="number" value={protein} onChange={e => setProtein(e.target.value)} placeholder="Auto" />
           </FormGroup>
           <FormGroup>
-            <Label>Carbs (g)</Label>
-            <Input type="number" value={carbs} onChange={e => setCarbs(e.target.value)} placeholder="Auto" />
+            <Label htmlFor="meal-plan-carbs">Carbs (g)</Label>
+            <Input id="meal-plan-carbs" type="number" value={carbs} onChange={e => setCarbs(e.target.value)} placeholder="Auto" />
           </FormGroup>
           <FormGroup>
-            <Label>Fat (g)</Label>
-            <Input type="number" value={fat} onChange={e => setFat(e.target.value)} placeholder="Auto" />
+            <Label htmlFor="meal-plan-fat">Fat (g)</Label>
+            <Input id="meal-plan-fat" type="number" value={fat} onChange={e => setFat(e.target.value)} placeholder="Auto" />
           </FormGroup>
         </FormGrid>
 
         <FormGroup>
-          <Label>Activity Type</Label>
-          <Select value={activityType} onChange={e => setActivityType(e.target.value)}>
+          <Label htmlFor="meal-plan-activity">Activity Type</Label>
+          <Select id="meal-plan-activity" value={activityType} onChange={e => setActivityType(e.target.value)}>
             <option value="general fitness">General Fitness</option>
             <option value="golf performance">Golf Performance</option>
             <option value="bodybuilding">Bodybuilding</option>
@@ -282,14 +282,14 @@ const MealPlanTab: React.FC = () => {
         </FormGroup>
 
         <FormGroup>
-          <Label>NASM OPT Phase</Label>
-          <Select value={optPhase} onChange={e => setOptPhase(e.target.value)}>
+          <Label htmlFor="meal-plan-opt-phase">NASM OPT Phase</Label>
+          <Select id="meal-plan-opt-phase" value={optPhase} onChange={e => setOptPhase(e.target.value)}>
             {OPT_PHASES.map(p => <option key={p} value={p}>{p}</option>)}
           </Select>
         </FormGroup>
 
         <FormGroup>
-          <Label>Dietary Restrictions</Label>
+          <GroupLabel>Dietary Restrictions</GroupLabel>
           <ChipRow>
             {RESTRICTIONS.map(r => (
               <FilterChip key={r} $active={selectedRestrictions.includes(r)} onClick={() => toggleRestriction(r)}>
@@ -300,7 +300,7 @@ const MealPlanTab: React.FC = () => {
         </FormGroup>
 
         <FormGroup>
-          <Label>Health Conditions</Label>
+          <GroupLabel>Health Conditions</GroupLabel>
           <ChipRow>
             {HEALTH_CONDITIONS.map(c => (
               <FilterChip key={c} $active={selectedConditions.includes(c)} onClick={() => toggleCondition(c)}>
@@ -332,7 +332,7 @@ const MealPlanTab: React.FC = () => {
 
               {plan.meals.map((meal, i) => (
                 <MealCard key={i}>
-                  <MealHeader onClick={() => setExpandedMeal(expandedMeal === i ? null : i)}>
+                  <MealHeader type="button" onClick={() => setExpandedMeal(expandedMeal === i ? null : i)}>
                     <MealInfo>
                       <MealType>{meal.mealType}</MealType>
                       <MealName>{meal.name}</MealName>
@@ -410,13 +410,13 @@ const MealPlanTab: React.FC = () => {
               </ClearBtn>
             </PreviewWrap>
           ) : (
-            <UploadZone onClick={() => fileInputRef.current?.click()}>
+            <UploadZone type="button" onClick={() => fileInputRef.current?.click()}>
               <Upload size={28} />
               <span>Tap to upload a meal photo</span>
               <small>JPEG, PNG, or WebP · Max 10MB</small>
             </UploadZone>
           )}
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} style={{ display: 'none' }} />
+          <HiddenFileInput ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePhotoSelect} />
         </PhotoArea>
 
         {photoFile && !photoResult && (
@@ -473,7 +473,7 @@ const MealPlanTab: React.FC = () => {
         <PresetGrid>
           {golfPresets.map(preset => (
             <PresetCard key={preset.id}>
-              <PresetHeader onClick={() => setExpandedPreset(expandedPreset === preset.id ? null : preset.id)}>
+              <PresetHeader type="button" onClick={() => setExpandedPreset(expandedPreset === preset.id ? null : preset.id)}>
                 <div>
                   <PresetName>{preset.name}</PresetName>
                   <PresetTiming>{preset.timing}</PresetTiming>
@@ -570,6 +570,12 @@ const FormGroup = styled.div`
 `;
 
 const Label = styled.label`
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+`;
+
+const GroupLabel = styled.div`
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary, rgba(224, 236, 244, 0.6));
@@ -715,13 +721,18 @@ const MealCard = styled.div`
   overflow: hidden;
 `;
 
-const MealHeader = styled.div`
+const MealHeader = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 14px;
   cursor: pointer;
   min-height: 44px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  width: 100%;
 
   &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent); }
 `;
@@ -866,7 +877,7 @@ const PhotoArea = styled.div`
   margin-bottom: 12px;
 `;
 
-const UploadZone = styled.div`
+const UploadZone = styled.button`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -876,8 +887,10 @@ const UploadZone = styled.div`
   border: 2px dashed var(--border-soft, rgba(96, 192, 240, 0.15));
   border-radius: 12px;
   cursor: pointer;
+  background: transparent;
   transition: all 0.15s;
   min-height: 120px;
+  width: 100%;
 
   svg { color: var(--accent-primary, #60C0F0); }
   span { font-size: 14px; color: var(--text-secondary, rgba(224, 236, 244, 0.6)); }
@@ -892,6 +905,10 @@ const UploadZone = styled.div`
 const PreviewWrap = styled.div`
   position: relative;
   display: inline-block;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 const PreviewImg = styled.img`
@@ -936,12 +953,17 @@ const PresetCard = styled.div`
   padding: 14px;
 `;
 
-const PresetHeader = styled.div`
+const PresetHeader = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  background: transparent;
+  border: 0;
+  color: inherit;
   min-height: 44px;
+  text-align: left;
+  width: 100%;
 `;
 
 const PresetName = styled.span`

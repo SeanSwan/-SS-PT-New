@@ -16,7 +16,7 @@ import React, { useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import {
   Apple, Search, Utensils, Leaf, Zap, Quote,
-  ChevronRight, Loader2, AlertTriangle, Info,
+  Loader2, AlertTriangle, Info,
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE
@@ -221,6 +221,90 @@ const Spinner = styled(Loader2)`
   @keyframes spin { to { transform: rotate(360deg); } }
 `;
 
+const InlineAlertIcon = styled(AlertTriangle)`
+  vertical-align: middle;
+`;
+
+const InlineInfoIcon = styled(Info)`
+  vertical-align: middle;
+  margin-right: 4px;
+`;
+
+const ServingText = styled(CardText)`
+  margin-top: 8px;
+`;
+
+const EmptyAppleIcon = styled(Apple)`
+  opacity: 0.3;
+`;
+
+const EmptyStatePrompt = styled.p`
+  margin-top: 8px;
+`;
+
+const PanelHeadingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const PanelTitle = styled(CardTitle)`
+  margin: 0;
+  font-size: 18px;
+`;
+
+const PanelIntro = styled(CardText)`
+  margin-bottom: 20px;
+`;
+
+const CardTopRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const TipText = styled(CardText)`
+  margin-top: 8px;
+`;
+
+const RestaurantText = styled(CardText)`
+  font-size: 12px;
+  opacity: 0.6;
+`;
+
+const VerdictText = styled(CardText)`
+  margin-top: 12px;
+`;
+
+const CenteredMotivation = styled.div`
+  text-align: center;
+  padding: 20px 0;
+`;
+
+const QuoteIcon = styled(Quote)`
+  opacity: 0.4;
+  margin-bottom: 16px;
+`;
+
+const QuoteText = styled(CardTitle)`
+  font-size: 22px;
+  line-height: 1.5;
+  max-width: 600px;
+  margin: 0 auto 12px;
+`;
+
+const QuoteAuthor = styled(CardText)`
+  font-size: 15px;
+  color: ${SWAN_CYAN};
+`;
+
+const InspiredButton = styled(SearchBtn)`
+  margin: 24px auto 0;
+  background: linear-gradient(135deg, ${COSMIC_PURPLE}, ${SWAN_CYAN});
+  color: #fff;
+`;
+
 // ── Helpers ──
 function getHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
@@ -266,12 +350,23 @@ const FAST_FOOD_ITEMS = [
   { name: 'Large Fries', restaurant: 'Most chains', cal: 490, protein: 7, carbs: 63, fat: 24, verdict: 'Pure carbs and fat with minimal protein. Occasional treat only.' },
 ];
 
+interface FoodResult {
+  name?: string;
+  description?: string;
+  calories?: number;
+  protein_g?: number;
+  carbohydrates_total_g?: number;
+  fat_total_g?: number;
+  fiber_g?: number;
+  serving_size_g?: number;
+}
+
 // ── Component ──
 const FoodIntelligenceDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('nutrition');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<FoodResult[]>([]);
   const [quote, setQuote] = useState<{ text: string; author: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -348,13 +443,13 @@ const FoodIntelligenceDashboard: React.FC = () => {
 
           {error && (
             <ResultCard $variant="alert">
-              <CardText><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> {error}</CardText>
+              <CardText><InlineAlertIcon size={14} /> {error}</CardText>
             </ResultCard>
           )}
 
           {results.length > 0 && (
             <ResultGrid>
-              {results.map((item: any, i: number) => (
+              {results.map((item, i) => (
                 <ResultCard key={i} $variant="cyan">
                   <CardTitle>{item.name || item.description || 'Food Item'}</CardTitle>
                   <MacroRow>
@@ -364,7 +459,7 @@ const FoodIntelligenceDashboard: React.FC = () => {
                     {item.fat_total_g != null && <MacroPill $color="#E0ECF4">{item.fat_total_g}g fat</MacroPill>}
                     {item.fiber_g != null && <MacroPill $color="#00E8B0">{item.fiber_g}g fiber</MacroPill>}
                   </MacroRow>
-                  {item.serving_size_g && <CardText style={{ marginTop: 8 }}>Serving: {item.serving_size_g}g</CardText>}
+                  {item.serving_size_g && <ServingText>Serving: {item.serving_size_g}g</ServingText>}
                 </ResultCard>
               ))}
             </ResultGrid>
@@ -372,10 +467,10 @@ const FoodIntelligenceDashboard: React.FC = () => {
 
           {!loading && results.length === 0 && !error && (
             <EmptyState>
-              <Apple size={32} style={{ opacity: 0.3 }} />
-              <p style={{ marginTop: 8 }}>
+              <EmptyAppleIcon size={32} />
+              <EmptyStatePrompt>
                 {activeTab === 'nutrition' ? 'Describe your meal in natural language to get instant macro breakdown' : 'Search the USDA food database for detailed nutrition data'}
-              </p>
+              </EmptyStatePrompt>
             </EmptyState>
           )}
         </GlassPanel>
@@ -384,24 +479,24 @@ const FoodIntelligenceDashboard: React.FC = () => {
       {/* Produce Safety Guide */}
       {activeTab === 'produce' && (
         <GlassPanel>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <PanelHeadingRow>
             <Leaf size={20} color={SWAN_CYAN} />
-            <CardTitle style={{ margin: 0, fontSize: 18 }}>Produce Safety Guide</CardTitle>
-          </div>
-          <CardText style={{ marginBottom: 20 }}>
-            Based on the Environmental Working Group's Dirty Dozen and Clean Fifteen lists.
+            <PanelTitle>Produce Safety Guide</PanelTitle>
+          </PanelHeadingRow>
+          <PanelIntro>
+            Based on the Environmental Working Group&apos;s Dirty Dozen and Clean Fifteen lists.
             Prioritize organic for high-risk items when budget allows.
-          </CardText>
+          </PanelIntro>
           <ResultGrid>
             {PRODUCE_DATA.map((item, i) => (
               <ResultCard key={i} $variant={item.risk === 'high' ? 'alert' : item.risk === 'low' ? 'cyan' : 'purple'}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <CardTopRow>
                   <CardTitle>{item.name}</CardTitle>
                   <MacroPill $color={item.risk === 'high' ? NEON_CORAL : item.risk === 'low' ? '#00E8B0' : '#FFB800'}>
                     {item.risk === 'high' ? 'High Risk' : item.risk === 'low' ? 'Low Risk' : 'Moderate'}
                   </MacroPill>
-                </div>
-                <CardText style={{ marginTop: 8 }}>{item.tip}</CardText>
+                </CardTopRow>
+                <TipText>{item.tip}</TipText>
               </ResultCard>
             ))}
           </ResultGrid>
@@ -411,29 +506,29 @@ const FoodIntelligenceDashboard: React.FC = () => {
       {/* Fast Food Analyzer */}
       {activeTab === 'fast-food' && (
         <GlassPanel>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <PanelHeadingRow>
             <Zap size={20} color={SWAN_CYAN} />
-            <CardTitle style={{ margin: 0, fontSize: 18 }}>Fast Food Smart Picks</CardTitle>
-          </div>
-          <CardText style={{ marginBottom: 20 }}>
+            <PanelTitle>Fast Food Smart Picks</PanelTitle>
+          </PanelHeadingRow>
+          <PanelIntro>
             Not all fast food is created equal. Here are common items ranked by their macro profiles
             to help you make smarter choices when eating out.
-          </CardText>
+          </PanelIntro>
           <ResultGrid>
             {FAST_FOOD_ITEMS.map((item, i) => (
               <ResultCard key={i} $variant={item.protein / item.cal > 0.08 ? 'cyan' : 'purple'}>
                 <CardTitle>{item.name}</CardTitle>
-                <CardText style={{ fontSize: 12, opacity: 0.6 }}>{item.restaurant}</CardText>
+                <RestaurantText>{item.restaurant}</RestaurantText>
                 <MacroRow>
                   <MacroPill $color="#FFB800">{item.cal} cal</MacroPill>
                   <MacroPill $color={SWAN_CYAN}>{item.protein}g protein</MacroPill>
                   <MacroPill $color={COSMIC_PURPLE}>{item.carbs}g carbs</MacroPill>
                   <MacroPill $color="#E0ECF4">{item.fat}g fat</MacroPill>
                 </MacroRow>
-                <CardText style={{ marginTop: 12 }}>
-                  <Info size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                <VerdictText>
+                  <InlineInfoIcon size={13} />
                   {item.verdict}
-                </CardText>
+                </VerdictText>
               </ResultCard>
             ))}
           </ResultGrid>
@@ -443,27 +538,26 @@ const FoodIntelligenceDashboard: React.FC = () => {
       {/* Motivation */}
       {activeTab === 'motivation' && (
         <GlassPanel>
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <Quote size={40} color={SWAN_CYAN} style={{ opacity: 0.4, marginBottom: 16 }} />
+          <CenteredMotivation>
+            <QuoteIcon size={40} color={SWAN_CYAN} />
             {quote ? (
               <>
-                <CardTitle style={{ fontSize: 22, lineHeight: 1.5, maxWidth: 600, margin: '0 auto 12px' }}>
-                  "{quote.text}"
-                </CardTitle>
-                <CardText style={{ fontSize: 15, color: SWAN_CYAN }}>— {quote.author}</CardText>
+                <QuoteText>
+                  &quot;{quote.text}&quot;
+                </QuoteText>
+                <QuoteAuthor>— {quote.author}</QuoteAuthor>
               </>
             ) : (
               <CardText>Click below for daily motivation</CardText>
             )}
-            <SearchBtn
+            <InspiredButton
               onClick={fetchQuote}
               disabled={loading}
-              style={{ margin: '24px auto 0', background: `linear-gradient(135deg, ${COSMIC_PURPLE}, ${SWAN_CYAN})`, color: '#fff' }}
             >
               {loading ? <Spinner size={16} /> : <Zap size={16} />}
               Get Inspired
-            </SearchBtn>
-          </div>
+            </InspiredButton>
+          </CenteredMotivation>
         </GlassPanel>
       )}
     </Dashboard>
