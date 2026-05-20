@@ -84,12 +84,19 @@ export const FormGrid = styled.div<{ $cols?: string }>`
   }
 `;
 
-export const FlexRow = styled.div<{ $justify?: string; $align?: string; $gap?: string; $wrap?: string }>`
+export const FlexRow = styled.div<{
+  $justify?: string;
+  $align?: string;
+  $gap?: string;
+  $wrap?: string;
+  $marginTop?: string;
+}>`
   display: flex;
   justify-content: ${({ $justify }) => $justify || 'flex-start'};
   align-items: ${({ $align }) => $align || 'center'};
   gap: ${({ $gap }) => $gap || '0'};
   flex-wrap: ${({ $wrap }) => $wrap || 'nowrap'};
+  margin-top: ${({ $marginTop }) => $marginTop || '0'};
 `;
 
 // ─────────────────────────────────────────────────────────────

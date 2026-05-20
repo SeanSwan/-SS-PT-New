@@ -10,8 +10,8 @@
  * plan builder (Plan Details -> Training Schedule -> Exercise Selection ->
  * Review & Save). Delegates rendering to step sub-components.
  *
- * HOW IT FITS IN THE APP: Used by AdminWorkoutManagement and
- * TrainerWorkoutManagement for creating/editing client workout plans.
+ * HOW IT FITS IN THE APP: Used by active dashboard workout workspaces for
+ * creating/editing client workout plans.
  *
  * KEY DECISIONS: Slim orchestrator pattern — all step rendering is delegated
  * to separate files to stay under the 300-line limit. State lives here so
@@ -168,7 +168,10 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     setActiveStep(prev => prev - 1);
   };
 
-  const handlePlanDetailChange = (field: keyof WorkoutPlan, value: any) => {
+  const handlePlanDetailChange = <Field extends keyof WorkoutPlan>(
+    field: Field,
+    value: WorkoutPlan[Field],
+  ) => {
     setPlan(prev => ({ ...prev, [field]: value }));
   };
 
@@ -359,7 +362,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
       <Surface>
         {renderStepContent(activeStep)}
 
-        <FlexRow $justify="space-between" style={{ marginTop: 28 }}>
+        <FlexRow $justify="space-between" $marginTop="28px">
           <GhostButton disabled={activeStep === 0} onClick={handleBack}>
             Back
           </GhostButton>

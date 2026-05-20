@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css, keyframes, type RuleSet } from 'styled-components';
 import { galaxySwanTheme, mediaQueries } from './galaxy-swan-theme';
 import GlowButton from '../components/ui/buttons/GlowButton';
 
@@ -90,7 +90,7 @@ export const responsiveAnimationCSS = (animationCSS: string) => css`
 `;
 
 // Hover effects with accessibility considerations using PRIMARY colors
-export const accessibleHover = (hoverStyles: any) => css`
+export const accessibleHover = (hoverStyles: RuleSet<object> | string) => css`
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
@@ -252,8 +252,7 @@ interface ThemedGlowButtonProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   className?: string;
-  style?: React.CSSProperties;
-  [key: string]: any; // For additional props
+  [key: string]: unknown; // For additional props
 }
 
 // === GLOW BUTTON WRAPPER ===
@@ -276,7 +275,6 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
   leftIcon,
   rightIcon,
   className = '',
-  style = {},
   ...props
 }) => {
   // Get the appropriate theme based on variant
@@ -312,7 +310,7 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
 
   return (
     <GlowButton
-      text={buttonContent}
+      text={typeof buttonContent === 'string' ? buttonContent : undefined}
       theme={glowButtonTheme}
       size={size}
       onClick={onClick}
@@ -321,9 +319,10 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
       leftIcon={leftIcon}
       rightIcon={rightIcon}
       className={className}
-      style={style}
       {...props}
-    />
+    >
+      {typeof buttonContent === 'string' ? undefined : buttonContent}
+    </GlowButton>
   );
 };
 

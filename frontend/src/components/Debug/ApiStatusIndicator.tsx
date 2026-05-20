@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 
 interface Position {
@@ -67,21 +67,6 @@ const StatusText = styled.div`
   flex: 1;
 `;
 
-const ToggleButton = styled.button`
-  background: none;
-  border: none;
-  color: white;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 10px;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-`;
-
 const DetailPanel = styled.div<{ $expanded: boolean }>`
   position: absolute;
   bottom: 100%;
@@ -130,6 +115,13 @@ const DetailItem = styled.div`
   }
 `;
 
+const DetailHint = styled(DetailItem)`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  margin-top: 15px;
+  text-align: center;
+`;
+
 interface ApiStatusIndicatorProps {
   hideInProduction?: boolean;
 }
@@ -156,12 +148,12 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
   
   // Don't show in production if configured that way
   const isProd = import.meta.env.PROD;
-  if (isProd && hideInProduction) {
-    return null;
-  }
+  const shouldHide = isProd && hideInProduction;
   
   // Get the API status on mount
   useEffect(() => {
+    if (shouldHide) return;
+
     try {
       // Get API endpoint from env
       const endpoint = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -181,12 +173,13 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
     } catch (error) {
       console.error('Error checking API status:', error);
     }
-  }, []);
+  }, [shouldHide]);
   
   // Save position to localStorage
   useEffect(() => {
+    if (shouldHide) return;
     localStorage.setItem('apiStatusIndicator_position', JSON.stringify(position));
-  }, [position]);
+  }, [position, shouldHide]);
   
   // Mouse event handlers for dragging
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -203,7 +196,7 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
     }
   };
   
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (dragState.isDragging) {
       const deltaX = e.clientX - dragState.startX;
       const deltaY = e.clientY - dragState.startY;
@@ -214,14 +207,16 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
       
       setPosition({ x: newX, y: newY });
     }
-  };
+  }, [dragState.isDragging, dragState.startPosX, dragState.startPosY, dragState.startX, dragState.startY]);
   
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setDragState(prev => ({ ...prev, isDragging: false }));
-  };
+  }, []);
   
   // Add global mouse events for dragging
   useEffect(() => {
+    if (shouldHide) return;
+
     if (dragState.isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
@@ -233,14 +228,25 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
         document.body.style.userSelect = '';
       };
     }
-  }, [dragState.isDragging, dragState.startX, dragState.startY, dragState.startPosX, dragState.startPosY]);
+  }, [dragState.isDragging, handleMouseMove, handleMouseUp, shouldHide]);
+
+  if (shouldHide) {
+    return null;
+  }
   
   /**
    * Toggle details expansion
    */
-  const toggleDetails = (e: React.MouseEvent) => {
+  const toggleDetails = () => {
     if (!dragState.isDragging) {
       setDetailsExpanded(!detailsExpanded);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      toggleDetails();
     }
   };
   
@@ -252,6 +258,9 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
       $position={position}
       onMouseDown={handleMouseDown}
       onClick={toggleDetails}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       title="Drag to move • Click to expand details"
     >
       <DragHandle className="drag-handle">
@@ -282,10 +291,10 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
           <span>Auth Token: {localStorage.getItem('token') ? '✅ Present' : '❌ Not found'}</span>
         </DetailItem>
         
-        <DetailItem style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: '15px' }}>
+        <DetailHint>
           Drag this panel to move it around.
-          <br /><br />💡 Drag this panel to move it around
-        </DetailItem>
+          <br /><br />Tip: drag this panel to move it around.
+        </DetailHint>
       </DetailPanel>
     </StatusContainer>
   );
