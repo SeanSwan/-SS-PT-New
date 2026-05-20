@@ -61,10 +61,9 @@
  * NOTE: 2,182 lines — CRITICAL monolith. TODO: decompose into <300-line files
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import adminClientService from '../../../../services/adminClientService';
 import CreateClientModal from './CreateClientModal';
@@ -88,65 +87,34 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2,
   MoreVertical,
-  RefreshCw,
   Download,
-  Upload,
   Eye,
   UserPlus,
   Key,
   Filter,
-  XCircle,
   CheckCircle2,
   X,
   TrendingUp,
   Activity,
   ClipboardList,
-  Settings,
-  Save,
-  Phone,
-  Mail,
   MessageSquare,
   Video,
   Brain,
   Users,
-  Share2,
-  Bell,
   BarChart3,
-  PieChart,
-  LineChart,
-  TrendingDown,
-  Gauge,
   Star,
   Flame,
-  Timer,
   Calendar,
   Clock,
-  FileText,
-  Camera,
-  Paperclip,
-  Send,
   ChevronRight,
   Home,
-  Sparkles,
-  Bot,
-  Lightbulb,
   Monitor,
-  ThumbsUp,
-  ThumbsDown,
-  Flag,
   AlertTriangle,
-  ShieldOff,
   HeartPulse,
-  Weight,
-  Ruler,
-  Cake,
-  UserCircle,
   Trophy,
   Dumbbell,
   ChevronLeft,
-  ChevronDown,
   LayoutDashboard,
 } from 'lucide-react';
 
@@ -156,23 +124,8 @@ import SwanStudiosLogo from '../../../../assets/Logo.png';
 import { logger } from '@/utils/logger';
 
 // ─── Animations ───────────────────────────────────────────────────
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
-const slideUp = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
@@ -246,18 +199,13 @@ const CardPanel = styled.div<{ $borderColor?: string; $hoverEffect?: boolean }>`
     `}
 `;
 
-const CardBody = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
 // ─── Typography ───────────────────────────────────────────────────
 
-const PageTitle = styled.h2`
+const PageTitle = styled.h2<{ $compact?: boolean }>`
   color: ${theme.cyan};
-  font-size: 2rem;
+  font-size: ${(p) => (p.$compact ? '1.4rem' : '2rem')};
   font-weight: 700;
-  margin: 0 0 4px 0;
+  margin: 0 0 ${(p) => (p.$compact ? 8 : 4)}px 0;
 `;
 
 const PageSubtitle = styled.h5`
@@ -265,16 +213,6 @@ const PageSubtitle = styled.h5`
   font-size: 1.1rem;
   font-weight: 400;
   margin: 0;
-`;
-
-const SectionTitle = styled.h4<{ $color?: string }>`
-  color: ${(p) => p.$color || theme.cyan};
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 `;
 
 const StatValue = styled.span<{ $color?: string }>`
@@ -304,9 +242,10 @@ const BodyText = styled.p<{ $color?: string; $bold?: boolean }>`
   margin: 0;
 `;
 
-const CaptionText = styled.span<{ $color?: string }>`
+const CaptionText = styled.span<{ $color?: string; $ml?: number }>`
   color: ${(p) => p.$color || theme.textSecondary};
   font-size: 0.75rem;
+  margin-left: ${(p) => (p.$ml != null ? `${p.$ml}px` : 0)};
 `;
 
 const ClientName = styled.span`
@@ -444,12 +383,21 @@ const FilterGroup = styled.div`
   align-items: center;
 `;
 
-const FlexRow = styled.div<{ $gap?: number; $align?: string; $justify?: string; $wrap?: boolean }>`
+const FlexRow = styled.div<{
+  $gap?: number;
+  $align?: string;
+  $justify?: string;
+  $wrap?: boolean;
+  $mt?: number;
+  $mb?: number;
+}>`
   display: flex;
   gap: ${(p) => p.$gap ?? 8}px;
   align-items: ${(p) => p.$align || 'center'};
   justify-content: ${(p) => p.$justify || 'flex-start'};
   ${(p) => p.$wrap && 'flex-wrap: wrap;'}
+  margin-top: ${(p) => (p.$mt != null ? `${p.$mt}px` : 0)};
+  margin-bottom: ${(p) => (p.$mb != null ? `${p.$mb}px` : 0)};
 `;
 
 const FlexCol = styled.div<{ $gap?: number; $align?: string }>`
@@ -748,11 +696,17 @@ const SmallBadgeAvatar = styled.div<{ $borderColor?: string }>`
 
 // ─── Alert ────────────────────────────────────────────────────────
 
-const AlertBox = styled.div<{ $severity?: 'success' | 'warning' | 'error' | 'info' }>`
+const AlertBox = styled.div<{
+  $severity?: 'success' | 'warning' | 'error' | 'info';
+  $compact?: boolean;
+  $center?: boolean;
+  $mb?: number;
+}>`
   display: flex;
-  align-items: flex-start;
+  align-items: ${(p) => (p.$center ? 'center' : 'flex-start')};
   gap: 12px;
-  padding: 10px 16px;
+  padding: ${(p) => (p.$compact ? '6px 10px' : '10px 16px')};
+  margin-bottom: ${(p) => (p.$mb != null ? `${p.$mb}px` : 0)};
   border-radius: 10px;
   font-size: 0.85rem;
 
@@ -984,10 +938,14 @@ const TabButton = styled.button<{ $active?: boolean }>`
 
 // ─── Context Menu / Dropdown ──────────────────────────────────────
 
-const DropdownOverlay = styled.div`
+const DropdownOverlay = styled.button`
   position: fixed;
   inset: 0;
   z-index: 999;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: default;
 `;
 
 const DropdownMenu = styled.div<{ $x: number; $y: number }>`
@@ -1102,18 +1060,30 @@ const SpeedDialActionBtn = styled.button`
 
 // ─── Skeleton / Shimmer ───────────────────────────────────────────
 
-const SkeletonBox = styled.div<{ $width?: string; $height?: string }>`
-  width: ${(p) => p.$width || '100%'};
-  height: ${(p) => p.$height || '20px'};
-  border-radius: 8px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s infinite;
-`;
-
 // ─── Metric Cell (for table cells with centered metric) ──────────
 
 const MetricCell = styled.div`
+  text-align: center;
+`;
+
+const ClientSourceLogo = styled.img<{ $round?: boolean }>`
+  height: 22px;
+  width: ${(p) => (p.$round ? '22px' : 'auto')};
+  border-radius: ${(p) => (p.$round ? '50%' : '3px')};
+  flex-shrink: 0;
+  object-fit: ${(p) => (p.$round ? 'cover' : 'contain')};
+`;
+
+const MetricsColumn = styled.div`
+  min-width: 200px;
+`;
+
+const HeaderBlock = styled.div`
+  margin-bottom: 32px;
+`;
+
+const EmptySelectionPanel = styled.div`
+  padding: 32px;
   text-align: center;
 `;
 
@@ -1230,21 +1200,16 @@ interface ClientBadge {
 
 // ─── Main component ──────────────────────────────────────────────
 const EnhancedAdminClientManagementView: React.FC = () => {
-  const { authAxios, services } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // State management
   const [clients, setClients] = useState<EnhancedAdminClient[]>([]);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [totalCount, setTotalCount] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(25);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filters, setFilters] = useState<Record<string, any>>({});
-  const [sortBy, setSortBy] = useState<string>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sourceFilter, setSourceFilter] = useState<'all' | 'swanstudios' | 'move_fitness' | 'external'>('all');
@@ -1334,12 +1299,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
         const result = await adminClientService.getClients({ page: 1, limit: 100 });
         const apiClients = (result.clients || []).map(mapApiClientToEnhanced);
 
         setClients(apiClients);
-        setTotalCount(apiClients.length);
         setQuickStats({
           totalClients: apiClients.length,
           activeClients: apiClients.filter(c => c.isActive).length,
@@ -1353,7 +1316,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
       } catch (err) {
         console.error('[ClientManagement] Failed to fetch clients:', err);
         setClients([]);
-        setTotalCount(0);
         setQuickStats({
           totalClients: 0,
           activeClients: 0,
@@ -1364,8 +1326,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           retentionRate: 0,
           avgRating: 0
         });
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -1501,8 +1461,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           <THead>
             <tr>
               <Th $checkbox>
-                <CheckboxLabel>
+                <CheckboxLabel htmlFor="admin-client-select-all">
                   <HiddenCheckbox
+                    id="admin-client-select-all"
                     checked={selectedClients.length === filteredClients.length && filteredClients.length > 0}
                     onChange={handleSelectAll}
                   />
@@ -1524,8 +1485,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             {paginatedClients.map((client) => (
               <Tr key={client.id}>
                 <Td $checkbox>
-                  <CheckboxLabel>
+                  <CheckboxLabel htmlFor={`admin-client-select-${client.id}`}>
                     <HiddenCheckbox
+                      id={`admin-client-select-${client.id}`}
                       checked={selectedClients.includes(client.id)}
                       onChange={() => handleClientSelect(client.id)}
                     />
@@ -1548,13 +1510,13 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                       <FlexRow $gap={8} $align="center">
                         <ClientName>{client.firstName} {client.lastName}</ClientName>
                         {client.clientSource === 'move_fitness' ? (
-                          <img src={MoveFitLogo3D} alt="Move Fitness" style={{ height: 22, width: 'auto', borderRadius: 3, flexShrink: 0 }} />
+                          <ClientSourceLogo src={MoveFitLogo3D} alt="Move Fitness" />
                         ) : (!client.clientSource || client.clientSource === 'swanstudios') ? (
-                          <img src={SwanStudiosLogo} alt="SwanStudios" style={{ height: 22, width: 22, borderRadius: '50%', flexShrink: 0, objectFit: 'cover' }} />
+                          <ClientSourceLogo src={SwanStudiosLogo} alt="SwanStudios" $round />
                         ) : null}
                       </FlexRow>
                       <Username>@{client.username}</Username>
-                      <FlexRow $gap={6} style={{ marginTop: 4 }}>
+                      <FlexRow $gap={6} $mt={4}>
                         <StatusChip $small $bgColor="rgba(139, 92, 246, 0.2)" $textColor="#8B5CF6">
                           Level {client.level}
                         </StatusChip>
@@ -1583,15 +1545,15 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
                 {/* Performance Metrics */}
                 <Td>
-                  <div style={{ minWidth: 200 }}>
-                    <FlexRow $justify="space-between" style={{ marginBottom: 6 }}>
+                  <MetricsColumn>
+                    <FlexRow $justify="space-between" $mb={6}>
                       <BodyText>Progress Score</BodyText>
                       <BodyText $color={theme.cyan} $bold>{client.progressScore}%</BodyText>
                     </FlexRow>
                     <ProgressBarTrack>
                       <ProgressBarFill $value={client.progressScore} />
                     </ProgressBarTrack>
-                    <FlexRow $gap={16} style={{ marginTop: 8 }}>
+                    <FlexRow $gap={16} $mt={8}>
                       <MetricCell>
                         <MetricValue $color={theme.success}>{client.totalWorkouts}</MetricValue>
                         <CaptionText>Workouts</CaptionText>
@@ -1605,7 +1567,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         <CaptionText>Sessions</CaptionText>
                       </MetricCell>
                     </FlexRow>
-                  </div>
+                  </MetricsColumn>
                 </Td>
 
                 {/* Engagement & Social */}
@@ -1620,14 +1582,14 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         {client.engagementLevel}
                       </StatusChip>
                     </div>
-                    <FlexRow $gap={4} style={{ marginTop: 4 }}>
+                    <FlexRow $gap={4} $mt={4}>
                       {client.badges.slice(0, 3).map(badge => (
                         <SmallBadgeAvatar key={badge.id} $borderColor={rarityColor(badge.rarity)} title={badge.description}>
                           <img src={badge.iconUrl} alt={badge.name} onError={(e) => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).alt = badge.name.charAt(0); }} />
                         </SmallBadgeAvatar>
                       ))}
                       {client.badges.length > 3 && (
-                        <CaptionText style={{ marginLeft: 4 }}>
+                        <CaptionText $ml={4}>
                           +{client.badges.length - 3} more
                         </CaptionText>
                       )}
@@ -1644,7 +1606,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                     <BodyText $color={theme.textSecondary}>
                       <strong>Program:</strong> {client.currentProgram}
                     </BodyText>
-                    <FlexRow $gap={16} style={{ marginTop: 6 }}>
+                    <FlexRow $gap={16} $mt={6}>
                       <MetricCell>
                         <CaptionText $color={theme.cyan}>Overall</CaptionText>
                         <MetricValue>{client.latestAssessment?.overall || 0}</MetricValue>
@@ -1665,12 +1627,12 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                 <Td>
                   <FlexCol $gap={6}>
                     {client.riskFactors.length > 0 ? (
-                      <AlertBox $severity="warning" style={{ padding: '6px 10px' }}>
+                      <AlertBox $severity="warning" $compact>
                         <AlertTriangle size={14} />
                         <CaptionText>{client.riskFactors[0]}</CaptionText>
                       </AlertBox>
                     ) : (
-                      <AlertBox $severity="success" style={{ padding: '6px 10px' }}>
+                      <AlertBox $severity="success" $compact>
                         <CheckCircle2 size={14} />
                         <CaptionText>No risk factors</CaptionText>
                       </AlertBox>
@@ -1763,7 +1725,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           defaultOpen={false}
         />
         {/* Enhanced Header with Breadcrumbs */}
-        <div style={{ marginBottom: 32 }}>
+        <HeaderBlock>
           <BreadcrumbNav aria-label="breadcrumb">
             <BreadcrumbLink href="/dashboard">
               <Home size={16} />
@@ -1775,7 +1737,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
           <PageTitle>Client Management Central</PageTitle>
           <PageSubtitle>Comprehensive client oversight, analytics, and engagement tools</PageSubtitle>
-        </div>
+        </HeaderBlock>
 
         {/* Enhanced Quick Stats Grid */}
         <StatsGrid>
@@ -1786,7 +1748,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   {quickStats.totalClients || 0}
                 </StatValue>
                 <Label>Total Clients</Label>
-                <FlexRow $gap={4} style={{ marginTop: 4 }}>
+                <FlexRow $gap={4} $mt={4}>
                   <TrendingUp size={16} color={theme.success} />
                   <CaptionText $color={theme.success}>+12% vs last month</CaptionText>
                 </FlexRow>
@@ -1802,7 +1764,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   {quickStats.activeClients || 0}
                 </StatValue>
                 <Label>Active This Week</Label>
-                <FlexRow $gap={4} style={{ marginTop: 4 }}>
+                <FlexRow $gap={4} $mt={4}>
                   <Flame size={16} color="#ff5722" />
                   <CaptionText $color="#ff5722">
                     {quickStats.totalClients ? ((quickStats.activeClients / quickStats.totalClients) * 100).toFixed(1) : 0}% engagement
@@ -1820,7 +1782,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   ${(quickStats.totalRevenue || 0).toLocaleString()}
                 </StatValue>
                 <Label>This Month</Label>
-                <FlexRow $gap={4} style={{ marginTop: 4 }}>
+                <FlexRow $gap={4} $mt={4}>
                   <TrendingUp size={16} color={theme.success} />
                   <CaptionText $color={theme.success}>+8.5% vs last month</CaptionText>
                 </FlexRow>
@@ -1836,7 +1798,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   {quickStats.avgProgress || 0}%
                 </StatValue>
                 <Label>Avg Progress Score</Label>
-                <FlexRow $gap={4} style={{ marginTop: 4 }}>
+                <FlexRow $gap={4} $mt={4}>
                   <Star size={16} color={theme.gold} />
                   <CaptionText $color={theme.gold}>
                     {quickStats.avgRating || 0}/5.0 satisfaction
@@ -1902,8 +1864,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               Advanced Filters
             </ActionButton>
 
-            <SwitchWrapper>
+            <SwitchWrapper htmlFor="admin-client-grid-view">
               <HiddenSwitch
+                id="admin-client-grid-view"
                 checked={viewMode === 'grid'}
                 onChange={(e) => setViewMode(e.target.checked ? 'grid' : 'table')}
               />
@@ -1917,7 +1880,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
 
         {/* Bulk Actions Bar */}
         {selectedClients.length > 0 && (
-          <AlertBox $severity="info" style={{ marginBottom: 24, alignItems: 'center' }}>
+          <AlertBox $severity="info" $mb={24} $center>
             <AlertContent>
               <AlertTitle>Bulk Actions</AlertTitle>
               {selectedClients.length} client{selectedClients.length > 1 ? 's' : ''} selected
@@ -1941,7 +1904,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         )}
 
         {/* Action Buttons Row */}
-        <FlexRow $gap={12} $wrap style={{ marginBottom: 24 }}>
+        <FlexRow $gap={12} $wrap $mb={24}>
           <ActionButton
             $variant="contained"
             onClick={() => setShowCreateModal(true)}
@@ -2051,10 +2014,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           )}
           {/* Show message if no client is selected for other tabs */}
           {currentTab > 0 && !selectedClient && (
-            <div style={{ padding: 32, textAlign: 'center' }}>
-              <PageTitle style={{ fontSize: '1.4rem', marginBottom: 8 }}>Select a Client</PageTitle>
+            <EmptySelectionPanel>
+              <PageTitle $compact>Select a Client</PageTitle>
               <Label>Please select a client from the table to view detailed information</Label>
-            </div>
+            </EmptySelectionPanel>
           )}
         </div>
       </PageContent>
@@ -2185,9 +2148,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={async (data) => {
           try {
-            const result = data.clientSource && data.clientSource !== 'swanstudios'
-              ? await adminClientService.createExternalClient(data as any)
-              : await adminClientService.createClient(data);
+            await (data.clientSource && data.clientSource !== 'swanstudios'
+              ? adminClientService.createExternalClient(data as any)
+              : adminClientService.createClient(data));
             setShowCreateModal(false);
             toast({
               title: "Success",
@@ -2198,7 +2161,6 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             const refreshed = await adminClientService.getClients({ page: currentPage + 1, limit: rowsPerPage });
             if (refreshed.clients?.length) {
               setClients(refreshed.clients.map(mapApiClientToEnhanced));
-              setTotalCount(refreshed.stats?.totalClients || refreshed.clients.length);
             }
           } catch (error: any) {
             toast({
