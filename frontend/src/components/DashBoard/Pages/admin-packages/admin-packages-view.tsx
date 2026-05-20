@@ -14,19 +14,16 @@ import {
   Edit,
   Package,
   DollarSign,
-  Calendar,
   Users,
   Plus,
   Download,
   Trash2,
   CheckCircle,
   RefreshCw,
-  Zap,
   Send,
   CheckSquare,
   ChevronLeft,
-  ChevronRight,
-  ChevronDown
+  ChevronRight
 } from 'lucide-react';
 
 // Reuse the styled components
@@ -99,17 +96,21 @@ const Heading6 = styled.span`
   color: var(--text-primary, #E0ECF4);
 `;
 
-const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string }>`
+const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string; $block?: boolean; $top?: string; $bottom?: string }>`
   font-weight: ${p => p.$weight || 400};
   font-size: ${p => p.$size || '0.875rem'};
   color: ${p => p.$color || 'var(--text-primary, #E0ECF4)'};
+  display: ${p => p.$block ? 'block' : 'inline'};
+  margin-top: ${p => p.$top || 0};
+  margin-bottom: ${p => p.$bottom || 0};
 `;
 
-const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean }>`
+const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean; $top?: string }>`
   font-size: 0.75rem;
   color: ${p => p.$color || 'rgba(255, 255, 255, 0.7)'};
   display: ${p => p.$block ? 'block' : 'inline'};
   max-width: ${p => p.$maxWidth || 'none'};
+  margin-top: ${p => p.$top || 0};
   ${p => p.$truncate ? `
     overflow: hidden;
     text-overflow: ellipsis;
@@ -187,7 +188,17 @@ const FormField = styled.div`
   gap: 0.25rem;
 `;
 
+const CenteredFormField = styled(FormField)`
+  justify-content: center;
+`;
+
 const FormLabel = styled.label`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+`;
+
+const FormGroupLabel = styled.span`
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.85rem;
   margin-bottom: 0.25rem;
@@ -476,6 +487,36 @@ const RowOpacityWrapper = styled(motion.tr)<{ $dimmed?: boolean }>`
   opacity: ${p => p.$dimmed ? 0.6 : 1};
 `;
 
+const PackagesTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const RightAlignedHeadCell = styled(StyledTableHeadCell)`
+  text-align: right;
+`;
+
+const RightAlignedCell = styled(StyledTableCell)`
+  text-align: right;
+`;
+
+const CapitalizedChip = styled(ChipContainer)`
+  text-transform: capitalize;
+`;
+
+const OfferHeaderRow = styled(FlexRow)`
+  margin-bottom: 0.5rem;
+`;
+
+const SelectedClientIcon = styled(CheckCircle)`
+  margin-left: auto;
+  color: var(--accent-primary, #60C0F0);
+`;
+
+const DiscountInput = styled(FormInput)`
+  padding-right: 2rem;
+`;
+
 // Interface for session package data
 interface SessionPackage {
   id: number;
@@ -506,6 +547,22 @@ interface Client {
   photo?: string;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
+const getErrorMessage = (err: unknown, fallback: string): string => {
+  if (err instanceof Error) return err.message || fallback;
+  if (isRecord(err)) {
+    const response = err.response;
+    if (isRecord(response)) {
+      const data = response.data;
+      if (isRecord(data) && typeof data.message === 'string') return data.message;
+    }
+    if (typeof err.message === 'string') return err.message;
+  }
+  return fallback;
+};
+
 /**
  * Admin Session Packages Management View
  *
@@ -524,7 +581,7 @@ const AdminPackagesView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [loadingClients, setLoadingClients] = useState(false);
+  const [, setLoadingClients] = useState(false);
 
   // State for UI controls
   const [page, setPage] = useState(0);
@@ -612,9 +669,9 @@ const AdminPackagesView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching packages:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Error connecting to the server';
+      const errorMsg = getErrorMessage(err, 'Error connecting to the server');
       setError(errorMsg);
       toast({
         title: "Error",
@@ -643,9 +700,9 @@ const AdminPackagesView: React.FC = () => {
           variant: "destructive",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error fetching clients:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Could not load clients';
+      const errorMsg = getErrorMessage(err, 'Could not load clients');
       toast({
         title: "Error",
         description: errorMsg,
@@ -689,20 +746,6 @@ const AdminPackagesView: React.FC = () => {
   const formatCurrency = (value: number | null | undefined): string => {
     if (value === null || value === undefined || isNaN(value)) return '$0';
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(value);
-  };
-
-  // Format date
-  const formatDate = (dateString: string | undefined): string => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch (e) {
-      return 'Invalid Date';
-    }
   };
 
   // Calculate total price
@@ -782,9 +825,9 @@ const AdminPackagesView: React.FC = () => {
         fetchPackages();
         setOpenEditDialog(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating package:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error updating package';
+      const errorMsg = getErrorMessage(err, 'Server error updating package');
       toast({
         title: "Error",
         description: errorMsg,
@@ -848,9 +891,9 @@ const AdminPackagesView: React.FC = () => {
         fetchPackages();
         setOpenNewDialog(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating package:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error creating package';
+      const errorMsg = getErrorMessage(err, 'Server error creating package');
       toast({
         title: "Error",
         description: errorMsg,
@@ -905,9 +948,9 @@ const AdminPackagesView: React.FC = () => {
           variant: "default",
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error sending special offer:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error sending offer';
+      const errorMsg = getErrorMessage(err, 'Server error sending offer');
       toast({
         title: "Error",
         description: errorMsg,
@@ -940,9 +983,9 @@ const AdminPackagesView: React.FC = () => {
         fetchPackages();
         setOpenDeleteDialog(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error deleting package:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error deleting package';
+      const errorMsg = getErrorMessage(err, 'Server error deleting package');
       toast({
         title: "Error",
         description: errorMsg,
@@ -1098,7 +1141,7 @@ const AdminPackagesView: React.FC = () => {
                  </EmptyStateContainer>
               ) : (
                 <StyledTableContainer>
-                  <table aria-label="session packages table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <PackagesTable aria-label="session packages table">
                     <thead>
                       <StyledTableHead>
                         <StyledTableHeadCell>Package Name</StyledTableHeadCell>
@@ -1107,7 +1150,7 @@ const AdminPackagesView: React.FC = () => {
                         <StyledTableHeadCell>Price Per Session</StyledTableHeadCell>
                         <StyledTableHeadCell>Total Price</StyledTableHeadCell>
                         <StyledTableHeadCell>Status</StyledTableHeadCell>
-                        <StyledTableHeadCell style={{ textAlign: 'right' }}>Actions</StyledTableHeadCell>
+                        <RightAlignedHeadCell>Actions</RightAlignedHeadCell>
                       </StyledTableHead>
                     </thead>
                     <tbody>
@@ -1139,7 +1182,7 @@ const AdminPackagesView: React.FC = () => {
                                     $block
                                     $maxWidth="200px"
                                     $truncate
-                                    style={{ marginTop: '0.25rem' }}
+                                    $top="0.25rem"
                                   >
                                     {pkg.description}
                                   </CaptionText>
@@ -1148,12 +1191,11 @@ const AdminPackagesView: React.FC = () => {
 
                               {/* Package Type */}
                               <StyledTableCell>
-                                <ChipContainer
+                                <CapitalizedChip
                                   chipstatus={pkg.packageType === 'fixed' ? 'available' : 'confirmed'}
-                                  style={{ textTransform: 'capitalize' }}
                                 >
                                   {pkg.packageType}
-                                </ChipContainer>
+                                </CapitalizedChip>
                               </StyledTableCell>
 
                               {/* Sessions/Duration */}
@@ -1196,7 +1238,7 @@ const AdminPackagesView: React.FC = () => {
                               </StyledTableCell>
 
                               {/* Actions */}
-                              <StyledTableCell style={{ textAlign: 'right' }}>
+                              <RightAlignedCell>
                                 <IconButtonContainer>
                                   <StyledIconButton
                                     btncolor="primary"
@@ -1232,7 +1274,7 @@ const AdminPackagesView: React.FC = () => {
                                     <Trash2 size={16} />
                                   </StyledIconButton>
                                 </IconButtonContainer>
-                              </StyledTableCell>
+                              </RightAlignedCell>
                             </RowOpacityWrapper>
                           ))
                       ) : (
@@ -1248,7 +1290,7 @@ const AdminPackagesView: React.FC = () => {
                         </StyledTableRow>
                       )}
                     </tbody>
-                  </table>
+                  </PackagesTable>
                 </StyledTableContainer>
               )}
 
@@ -1331,8 +1373,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Package Name */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Package Name *</FormLabel>
+                  <FormLabel htmlFor="edit-package-name">Package Name *</FormLabel>
                   <FormInput
+                    id="edit-package-name"
                     value={editPackageName}
                     onChange={(e) => setEditPackageName(e.target.value)}
                     required
@@ -1342,8 +1385,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Package Type */}
               <FormField>
-                <FormLabel>Package Type</FormLabel>
+                <FormLabel htmlFor="edit-package-type">Package Type</FormLabel>
                 <FormSelect
+                  id="edit-package-type"
                   value={editPackageType}
                   onChange={(e) => setEditPackageType(e.target.value as 'fixed' | 'monthly')}
                 >
@@ -1354,8 +1398,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Theme */}
               <FormField>
-                <FormLabel>Theme</FormLabel>
+                <FormLabel htmlFor="edit-package-theme">Theme</FormLabel>
                 <FormSelect
+                  id="edit-package-theme"
                   value={editTheme}
                   onChange={(e) => setEditTheme(e.target.value)}
                 >
@@ -1368,8 +1413,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Price Per Session */}
               <FormField>
-                <FormLabel>Price Per Session ($) *</FormLabel>
+                <FormLabel htmlFor="edit-price-per-session">Price Per Session ($) *</FormLabel>
                 <FormInput
+                  id="edit-price-per-session"
                   type="number"
                   value={editPricePerSession}
                   onChange={(e) => setEditPricePerSession(Number(e.target.value))}
@@ -1382,8 +1428,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Sessions (for fixed packages) */}
               {editPackageType === 'fixed' && (
                 <FormField>
-                  <FormLabel>Number of Sessions *</FormLabel>
+                  <FormLabel htmlFor="edit-number-of-sessions">Number of Sessions *</FormLabel>
                   <FormInput
+                    id="edit-number-of-sessions"
                     type="number"
                     value={editSessions}
                     onChange={(e) => setEditSessions(Number(e.target.value))}
@@ -1397,8 +1444,9 @@ const AdminPackagesView: React.FC = () => {
               {editPackageType === 'monthly' && (
                 <>
                   <FormField>
-                    <FormLabel>Number of Months *</FormLabel>
+                    <FormLabel htmlFor="edit-number-of-months">Number of Months *</FormLabel>
                     <FormInput
+                      id="edit-number-of-months"
                       type="number"
                       value={editMonths}
                       onChange={(e) => setEditMonths(Number(e.target.value))}
@@ -1407,8 +1455,9 @@ const AdminPackagesView: React.FC = () => {
                     />
                   </FormField>
                   <FormField>
-                    <FormLabel>Sessions Per Week *</FormLabel>
+                    <FormLabel htmlFor="edit-sessions-per-week">Sessions Per Week *</FormLabel>
                     <FormInput
+                      id="edit-sessions-per-week"
                       type="number"
                       value={editSessionsPerWeek}
                       onChange={(e) => setEditSessionsPerWeek(Number(e.target.value))}
@@ -1421,8 +1470,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Total Price Preview */}
               <FormField>
-                <FormLabel>Total Price</FormLabel>
+                <FormLabel htmlFor="edit-total-price">Total Price</FormLabel>
                 <FormInputAccent
+                  id="edit-total-price"
                   readOnly
                   value={formatCurrency(editPackageType === 'fixed'
                     ? editPricePerSession * editSessions
@@ -1431,9 +1481,10 @@ const AdminPackagesView: React.FC = () => {
               </FormField>
 
               {/* Active Status */}
-              <FormField style={{ justifyContent: 'center' }}>
-                <SwitchLabel>
+              <CenteredFormField>
+                <SwitchLabel htmlFor="edit-package-active">
                   <HiddenCheckbox
+                    id="edit-package-active"
                     type="checkbox"
                     checked={editIsActive ?? false}
                     onChange={(e) => setEditIsActive(e.target.checked)}
@@ -1443,13 +1494,14 @@ const AdminPackagesView: React.FC = () => {
                   </SwitchTrack>
                   Active and Visible
                 </SwitchLabel>
-              </FormField>
+              </CenteredFormField>
 
               {/* Description */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel htmlFor="edit-package-description">Description</FormLabel>
                   <FormTextarea
+                    id="edit-package-description"
                     value={editPackageDescription}
                     onChange={(e) => setEditPackageDescription(e.target.value)}
                     rows={3}
@@ -1493,8 +1545,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Package Name */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Package Name *</FormLabel>
+                  <FormLabel htmlFor="new-package-name">Package Name *</FormLabel>
                   <FormInput
+                    id="new-package-name"
                     value={newPackageName}
                     onChange={(e) => setNewPackageName(e.target.value)}
                     required
@@ -1505,8 +1558,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Package Type */}
               <FormField>
-                <FormLabel>Package Type</FormLabel>
+                <FormLabel htmlFor="new-package-type">Package Type</FormLabel>
                 <FormSelect
+                  id="new-package-type"
                   value={newPackageType}
                   onChange={(e) => setNewPackageType(e.target.value as 'fixed' | 'monthly')}
                 >
@@ -1517,8 +1571,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Theme */}
               <FormField>
-                <FormLabel>Theme</FormLabel>
+                <FormLabel htmlFor="new-package-theme">Theme</FormLabel>
                 <FormSelect
+                  id="new-package-theme"
                   value={newTheme}
                   onChange={(e) => setNewTheme(e.target.value)}
                 >
@@ -1531,8 +1586,9 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Price Per Session */}
               <FormField>
-                <FormLabel>Price Per Session ($) *</FormLabel>
+                <FormLabel htmlFor="new-price-per-session">Price Per Session ($) *</FormLabel>
                 <FormInput
+                  id="new-price-per-session"
                   type="number"
                   value={newPricePerSession}
                   onChange={(e) => setNewPricePerSession(Number(e.target.value))}
@@ -1545,8 +1601,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Sessions (for fixed packages) */}
               {newPackageType === 'fixed' && (
                 <FormField>
-                  <FormLabel>Number of Sessions *</FormLabel>
+                  <FormLabel htmlFor="new-number-of-sessions">Number of Sessions *</FormLabel>
                   <FormInput
+                    id="new-number-of-sessions"
                     type="number"
                     value={newSessions}
                     onChange={(e) => setNewSessions(Number(e.target.value))}
@@ -1560,8 +1617,9 @@ const AdminPackagesView: React.FC = () => {
               {newPackageType === 'monthly' && (
                 <>
                   <FormField>
-                    <FormLabel>Number of Months *</FormLabel>
+                    <FormLabel htmlFor="new-number-of-months">Number of Months *</FormLabel>
                     <FormInput
+                      id="new-number-of-months"
                       type="number"
                       value={newMonths}
                       onChange={(e) => setNewMonths(Number(e.target.value))}
@@ -1570,8 +1628,9 @@ const AdminPackagesView: React.FC = () => {
                     />
                   </FormField>
                   <FormField>
-                    <FormLabel>Sessions Per Week *</FormLabel>
+                    <FormLabel htmlFor="new-sessions-per-week">Sessions Per Week *</FormLabel>
                     <FormInput
+                      id="new-sessions-per-week"
                       type="number"
                       value={newSessionsPerWeek}
                       onChange={(e) => setNewSessionsPerWeek(Number(e.target.value))}
@@ -1585,8 +1644,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Total Price Preview */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Total Price (Preview)</FormLabel>
+                  <FormLabel htmlFor="new-total-price-preview">Total Price (Preview)</FormLabel>
                   <FormInputAccent
+                    id="new-total-price-preview"
                     readOnly
                     value={formatCurrency(newPackageType === 'fixed'
                       ? newPricePerSession * newSessions
@@ -1598,8 +1658,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Description */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel htmlFor="new-package-description">Description</FormLabel>
                   <FormTextarea
+                    id="new-package-description"
                     value={newPackageDescription}
                     onChange={(e) => setNewPackageDescription(e.target.value)}
                     rows={3}
@@ -1643,11 +1704,11 @@ const AdminPackagesView: React.FC = () => {
 
             {selectedPackage && (
               <InfoPanel>
-                <FlexRow $gap="0.5rem" style={{ marginBottom: '0.5rem' }}>
+                <OfferHeaderRow $gap="0.5rem">
                   <Package size={20} />
                   <SubtitleText>{selectedPackage.name}</SubtitleText>
-                </FlexRow>
-                <BodyText $color="rgba(255, 255, 255, 0.7)" style={{ display: 'block', marginBottom: '0.5rem' }}>
+                </OfferHeaderRow>
+                <BodyText $color="rgba(255, 255, 255, 0.7)" $block $bottom="0.5rem">
                   {selectedPackage.packageType === 'fixed'
                     ? `${selectedPackage.sessions} sessions at ${formatCurrency(selectedPackage.pricePerSession)} per session`
                     : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
@@ -1663,8 +1724,8 @@ const AdminPackagesView: React.FC = () => {
               {/* Client Selection */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Select Clients ({selectedClients.length} selected)</FormLabel>
-                  <ClientListContainer>
+                  <FormGroupLabel id="special-offer-client-list-label">Select Clients ({selectedClients.length} selected)</FormGroupLabel>
+                  <ClientListContainer role="group" aria-labelledby="special-offer-client-list-label">
                     {clients.map((client) => (
                       <ClientCheckItem
                         key={client.id}
@@ -1680,7 +1741,7 @@ const AdminPackagesView: React.FC = () => {
                         </AvatarCircle>
                         <span>{client.firstName} {client.lastName}</span>
                         {selectedClients.includes(client.id) && (
-                          <CheckCircle size={14} style={{ marginLeft: 'auto', color: 'var(--accent-primary, #60C0F0)' }} />
+                          <SelectedClientIcon size={14} />
                         )}
                       </ClientCheckItem>
                     ))}
@@ -1690,16 +1751,16 @@ const AdminPackagesView: React.FC = () => {
 
               {/* Discount Percentage */}
               <FormField>
-                <FormLabel>Discount (%) *</FormLabel>
+                <FormLabel htmlFor="special-offer-discount">Discount (%) *</FormLabel>
                 <DiscountInputWrapper>
-                  <FormInput
+                  <DiscountInput
+                    id="special-offer-discount"
                     type="number"
                     value={offerDiscount}
                     onChange={(e) => setOfferDiscount(Math.min(Math.max(0, Number(e.target.value)), 100))}
                     required
                     min={0}
                     max={100}
-                    style={{ paddingRight: '2rem' }}
                   />
                   <DiscountSuffix>%</DiscountSuffix>
                 </DiscountInputWrapper>
@@ -1709,8 +1770,9 @@ const AdminPackagesView: React.FC = () => {
               <FormField>
                 {selectedPackage && (
                   <>
-                    <FormLabel>Special Offer Price</FormLabel>
+                    <FormLabel htmlFor="special-offer-price">Special Offer Price</FormLabel>
                     <FormInputAccent
+                      id="special-offer-price"
                       readOnly
                       value={formatCurrency(
                         (selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage)) * (1 - offerDiscount / 100)
@@ -1723,8 +1785,9 @@ const AdminPackagesView: React.FC = () => {
               {/* Personal Message */}
               <FormGridFull>
                 <FormField>
-                  <FormLabel>Personal Message</FormLabel>
+                  <FormLabel htmlFor="special-offer-message">Personal Message</FormLabel>
                   <FormTextarea
+                    id="special-offer-message"
                     value={offerMessage}
                     onChange={(e) => setOfferMessage(e.target.value)}
                     rows={3}
@@ -1770,7 +1833,7 @@ const AdminPackagesView: React.FC = () => {
             {selectedPackage && (
               <InfoPanel $borderColor="rgba(255, 0, 0, 0.2)">
                 <SubtitleText>{selectedPackage.name}</SubtitleText>
-                <BodyText $color="rgba(255, 255, 255, 0.7)" style={{ display: 'block', marginTop: '0.25rem' }}>
+                <BodyText $color="rgba(255, 255, 255, 0.7)" $block $top="0.25rem">
                   {selectedPackage.packageType === 'fixed'
                     ? `${selectedPackage.sessions} sessions`
                     : `${selectedPackage.months} months subscription`
@@ -1779,7 +1842,7 @@ const AdminPackagesView: React.FC = () => {
               </InfoPanel>
             )}
 
-            <BodyText $color="#C92A54" $size="0.875rem" style={{ display: 'block' }}>
+            <BodyText $color="#C92A54" $size="0.875rem" $block>
               Note: If clients have already purchased this package, the deletion may affect their access.
               Instead of deleting, consider setting the package as inactive.
             </BodyText>
