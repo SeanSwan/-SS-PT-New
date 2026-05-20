@@ -80,7 +80,6 @@ describe('MCP retirement contract', () => {
       'components/ProgressAnalysis/ProgressAnalysis.tsx',
       'components/ExerciseAlternatives/ExerciseAlternatives.tsx',
       'components/NutritionPlanning/NutritionPlanning.tsx',
-      'components/DashBoard/Pages/client-dashboard/ClientWorkoutForgePage.tsx',
       'services/enhancedClientDashboardService.ts',
     ];
 

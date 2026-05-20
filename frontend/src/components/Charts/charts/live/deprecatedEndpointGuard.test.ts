@@ -16,13 +16,11 @@
  * referenced (lazy import, useAnalytics hook key, etc.).
  *
  * What the guard does NOT cover:
- *   - Legacy/dormant consumers under `components/ClientDashboard/*` —
- *     those are not mounted by the canonical route tree and may keep
- *     referencing the old strings until a Phase 16 cleanup removes the
- *     orphaned tree entirely (per ACTIVE-INDEX.md classification).
+ *   - Archived legacy consumers under `archive/pending-deletion/` -
+ *     those are no longer mounted by the canonical route tree.
  *   - The 5 standalone chart components themselves (MuscleGroupFocus
- *     Radar etc.) — they remain in place because the legacy tree still
- *     imports them. Deleting them is a Phase 16 task.
+ *     Radar etc.) - they remain in place until a separate chart-level
+ *     archive pass proves no active route imports them.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
