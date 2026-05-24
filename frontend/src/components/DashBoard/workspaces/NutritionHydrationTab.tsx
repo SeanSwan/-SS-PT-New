@@ -133,8 +133,8 @@ const HeroIcon = styled.div<{ $goalMet: boolean }>`
   border-radius: 14px;
   display: flex; align-items: center; justify-content: center;
   background: ${({ $goalMet }) => $goalMet
-    ? 'linear-gradient(135deg, rgba(198,168,75,0.2), rgba(198,168,75,0.1))'
-    : 'linear-gradient(135deg, rgba(96,192,240,0.15), rgba(139,92,246,0.1))'};
+    ? 'linear-gradient(135deg, color-mix(in srgb, var(--accent-gold, #C6A84B) 22%, transparent), color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent))'
+    : 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent), color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent))'};
   color: ${({ $goalMet }) => $goalMet ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)'};
   flex-shrink: 0;
 `;
@@ -184,7 +184,7 @@ const GlassBtn = styled.button<{ $filled: boolean; $goalMet: boolean }>`
     ? 'var(--accent-primary, #60C0F0)'
     : 'var(--border-soft, rgba(96,192,240,0.12))'};
   background: ${({ $filled }) => $filled
-    ? 'rgba(96,192,240,0.12)'
+    ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)'
     : 'var(--bg-surface, #1A1A24)'};
   color: ${({ $filled }) => $filled
     ? 'var(--accent-primary, #60C0F0)'

@@ -32,6 +32,10 @@ import {
   VictoryTooltip, VictoryArea,
 } from 'victory';
 import type { AnalyticsData } from '../../../../../hooks/analytics/useWorkoutAnalytics';
+import {
+  sanitizeNASMChartsData,
+  sanitizeWorkoutChartsData,
+} from './workoutChartsSanitizers';
 
 const NASMAnalyticsCharts = lazy(() => import('./NASMAnalyticsCharts'));
 
@@ -160,17 +164,20 @@ const Swatch = styled.div<{ $color: string; $glow?: boolean }>`
 interface Props { data: AnalyticsData; }
 
 const WorkoutChartsTab: React.FC<Props> = ({ data }) => {
-  const hasVolume = data.weeklyVolume.length > 0;
-  const hasFrequency = data.exerciseFrequency.length > 0;
-  const hasIntensity = data.intensityTrend.length > 1;
-  const hasCalendar = data.workoutCalendar.length > 0;
+  const chartData = React.useMemo(() => sanitizeWorkoutChartsData(data), [data]);
+  const nasmData = React.useMemo(() => sanitizeNASMChartsData(data), [data]);
+  const hasVolume = chartData.weeklyVolume.length > 0;
+  const hasFrequency = chartData.exerciseFrequency.length > 0;
+  const hasIntensity = chartData.intensityTrend.length > 1;
+  const hasCalendar = chartData.workoutCalendar.length > 0;
   const hasAny = hasVolume || hasFrequency || hasIntensity || hasCalendar
-    || data.oneRMProgression.length > 0 || data.muscleGroupVolume.length > 2;
+    || nasmData.oneRMProgression.length > 0 || nasmData.muscleGroupVolume.length > 2
+    || nasmData.rpeTrend.length > 1;
 
   const calendarCells = React.useMemo(() => {
     const cells: { date: string; count: number }[] = [];
     const today = new Date();
-    const calMap = new Map(data.workoutCalendar.map(c => [c.date, c.count]));
+    const calMap = new Map(chartData.workoutCalendar.map(c => [c.date, c.count]));
     for (let i = 89; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
@@ -178,7 +185,7 @@ const WorkoutChartsTab: React.FC<Props> = ({ data }) => {
       cells.push({ date: key, count: calMap.get(key) || 0 });
     }
     return cells;
-  }, [data.workoutCalendar]);
+  }, [chartData.workoutCalendar]);
 
   if (!hasAny) {
     return <EmptyChart>No workout data available for charts. Log some workouts first!</EmptyChart>;
@@ -200,7 +207,7 @@ const WorkoutChartsTab: React.FC<Props> = ({ data }) => {
               style={AXIS}
             />
             <VictoryBar
-              data={data.weeklyVolume.slice(-12)} x="week" y="volume"
+              data={chartData.weeklyVolume.slice(-12)} x="week" y="volume"
               style={{ data: { fill: C.cyan, fillOpacity: 0.85, width: 18 } }}
               labels={({ datum }: any) => `${Math.round(datum.volume).toLocaleString()} lbs`}
               labelComponent={<VictoryTooltip {...TIP} />}
@@ -214,13 +221,13 @@ const WorkoutChartsTab: React.FC<Props> = ({ data }) => {
         <ChartCard>
           <ChartTitle>🎯 Top Exercises</ChartTitle>
           <VictoryChart
-            horizontal height={Math.max(180, data.exerciseFrequency.slice(0, 8).length * 28)}
+            horizontal height={Math.max(180, chartData.exerciseFrequency.slice(0, 8).length * 28)}
             padding={{ top: 10, bottom: 30, left: 120, right: 30 }} domainPadding={{ y: 10 }}
           >
             <VictoryAxis style={{ ...AXIS, axis: { stroke: 'transparent' } }} />
             <VictoryAxis dependentAxis style={AXIS} />
             <VictoryBar
-              data={data.exerciseFrequency.slice(0, 8).reverse()} x="name" y="count"
+              data={chartData.exerciseFrequency.slice(0, 8).reverse()} x="name" y="count"
               style={{ data: { fill: C.purple, fillOpacity: 0.85 } }}
               barWidth={14}
               labels={({ datum }: any) => `${datum.count}x`}
@@ -241,7 +248,7 @@ const WorkoutChartsTab: React.FC<Props> = ({ data }) => {
             />
             <VictoryAxis dependentAxis domain={[0, 10]} style={AXIS} />
             <VictoryArea
-              data={data.intensityTrend} x="date" y="intensity"
+              data={chartData.intensityTrend} x="date" y="intensity"
               style={{ data: { fill: 'rgba(96, 192, 240, 0.15)', stroke: C.cyan, strokeWidth: 2 } }}
               interpolation="monotoneX"
             />

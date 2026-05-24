@@ -981,12 +981,25 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         setSubmittedFormId(response.data.id || response.data.formId || null);
         resolvedOnComplete(response.data);
       } else {
-        throw new Error(response.message || 'Failed to submit workout form');
+        if (response.data?.id || response.data?.formId) {
+          setSubmittedFormId(response.data.id || response.data.formId || null);
+        }
+        toast.error(response.message || 'Workout was not saved. Please review and try again.');
       }
     } catch (error: unknown) {
       console.error('Error submitting workout form:', error);
       if (error instanceof Error && error.name === 'AbortError') {
         toast.error('Workout submission timed out. Please try again.');
+      } else if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { status?: number } }).response?.status === 'number' &&
+        (error as { response?: { status?: number } }).response!.status! >= 400 &&
+        (error as { response?: { status?: number } }).response!.status! < 500
+      ) {
+        const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
+        toast.error(message || 'Workout was not saved. Please review and try again.');
       } else {
         // Phase 6: Queue locally if submit fails due to network
         offlineQueue.queueSubmission(formData);
@@ -1039,6 +1052,23 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [effectiveClientId, submittedFormId, exercises, sessionNotes, overallIntensity]);
 
   // ── Computed Values ──
+  const hasUnsavedWorkout = useMemo(() => (
+    exercises.length > 0 ||
+    selectedWarmup.length > 0 ||
+    selectedBalanceCore.length > 0 ||
+    selectedCooldown.length > 0 ||
+    sessionNotes.trim().length > 0 ||
+    overallIntensity !== null
+  ), [exercises.length, selectedWarmup.length, selectedBalanceCore.length, selectedCooldown.length, sessionNotes, overallIntensity]);
+
+  const handleCancel = useCallback(() => {
+    if (hasUnsavedWorkout && !submittedFormId) {
+      const confirmed = window.confirm('Discard this unsaved workout? Your exercise entries will be lost.');
+      if (!confirmed) return;
+    }
+    resolvedOnCancel();
+  }, [hasUnsavedWorkout, submittedFormId, resolvedOnCancel]);
+
   const totalSets = useMemo(() =>
     exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0), [exercises]);
 
@@ -1313,7 +1343,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
         {/* Footer Actions */}
         <WorkoutLoggerFooter
-          onCancel={resolvedOnCancel}
+          onCancel={handleCancel}
           onExportPDF={handleExportPDF}
           onSubmit={handleSubmit}
           onGenerateSummary={handleGenerateSummary}

@@ -101,6 +101,89 @@ export function applySupersetStyle(exercises, explanations) {
 
 // ── Warm-Up Stretch Generator ─────────────────────────────────────────
 
+const STYLE_CUES = {
+  mixed: {
+    title: 'Mixed',
+    cue: 'Mixed style: rotate the coaching focus each station so strength, conditioning, and control all show up in one class.',
+  },
+  ladder: {
+    title: 'Ladder',
+    cue: 'Ladder style: build reps each round, such as 2-4-6-8-10, while keeping form strict before increasing speed.',
+  },
+  descending: {
+    title: 'Descending',
+    cue: 'Descending style: start with the highest quality volume, then reduce reps as intensity and fatigue climb.',
+  },
+  chipper: {
+    title: 'Chipper',
+    cue: 'Chipper style: complete one focused block before moving on, using smooth pacing instead of rushing early reps.',
+  },
+  countdown: {
+    title: 'Countdown',
+    cue: 'Countdown style: shorten each work block from longer control sets into brief finishers with sharper intent.',
+  },
+  death_by: {
+    title: 'Death By',
+    cue: 'Death by style: add one rep each minute until the athlete can no longer finish the target inside the minute.',
+  },
+  ygig: {
+    title: 'You Go I Go',
+    cue: 'You go I go style: pair athletes so one works while one rests, then switch cleanly on the coach signal.',
+  },
+  contrast: {
+    title: 'Contrast',
+    cue: 'Contrast style: pair controlled strength with an explosive or faster bodyweight pattern for the same station focus.',
+  },
+  density: {
+    title: 'Density',
+    cue: 'Density style: maximize clean work inside a fixed block, tracking total rounds without letting movement quality drop.',
+  },
+};
+
+function appendStyleCue(exercise, cue) {
+  if (exercise.board !== 'main') return;
+
+  exercise.description = exercise.description
+    ? `${exercise.description} ${cue}`
+    : cue;
+}
+
+function addGenericStyleCue(classStyle, exercises, explanations) {
+  const config = STYLE_CUES[classStyle];
+  if (!config) return false;
+
+  for (const exercise of exercises) appendStyleCue(exercise, config.cue);
+
+  explanations.push({
+    type: 'style',
+    message: `${config.title} (${classStyle}) style: ${config.cue.replace(`${config.title} style: `, '')}`,
+  });
+
+  return true;
+}
+
+export function applyClassStyle(classStyle, exercises, explanations) {
+  if (!classStyle || classStyle === 'standard') return;
+
+  if (classStyle === 'pyramid') {
+    applyPyramidStyle(exercises, explanations);
+    for (const exercise of exercises) {
+      appendStyleCue(exercise, 'Pyramid style: start heavier, drop load each round, and finish with controlled failure mechanics.');
+    }
+    return;
+  }
+
+  if (classStyle === 'superset') {
+    applySupersetStyle(exercises, explanations);
+    for (const exercise of exercises) {
+      appendStyleCue(exercise, 'Superset style: move through the paired station sequence with minimal transition time.');
+    }
+    return;
+  }
+
+  addGenericStyleCue(classStyle, exercises, explanations);
+}
+
 const STRETCH_LIBRARY = {
   lower_body: [
     { exerciseName: 'Standing Quad Stretch', targetMuscles: 'quads', durationSec: 30 },

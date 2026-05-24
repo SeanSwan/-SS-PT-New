@@ -14,15 +14,15 @@ export const float = keyframes`
 `;
 
 export const pulseAnimation = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-secondary, #8B5CF6) 70%, transparent); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 0%, transparent); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-secondary, #8B5CF6) 0%, transparent); }
 `;
 
 export const glowAnimation = keyframes`
-  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), 0 0 30px rgba(139, 92, 246, 0.3); }
-  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.3); }
+  0% { box-shadow: 0 0 5px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
+  50% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent), 0 0 30px color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent); }
+  100% { box-shadow: 0 0 5px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
 `;
 
 export const textGlow = keyframes`
@@ -34,10 +34,10 @@ export const textGlow = keyframes`
 // Variable Bridge → Crystalline Swan (AI Village consensus 2026-03-22)
 const executiveTheme = {
   deepSpace: 'var(--bg-base, #0A0A0F)',
-  commandNavy: 'var(--brand-primary, #002060)',
-  stellarAuthority: 'var(--accent-purple, #8B5CF6)',
-  cyberIntelligence: 'var(--accent-cyan, #60C0F0)',
-  executiveAccent: 'var(--accent-cyan, #60C0F0)',
+  commandNavy: 'var(--bg-surface, #1A1A24)',
+  stellarAuthority: 'var(--accent-secondary, #8B5CF6)',
+  cyberIntelligence: 'var(--accent-primary, #60C0F0)',
+  executiveAccent: 'var(--accent-primary, #60C0F0)',
   warningAmber: 'var(--warning, #f59e0b)',
   successGreen: 'var(--success, #10b981)',
   criticalRed: 'var(--danger, #ef4444)',
@@ -50,8 +50,11 @@ const executiveTheme = {
 export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
-  background: radial-gradient(ellipse at top, ${executiveTheme.stellarAuthority} 0%, ${executiveTheme.commandNavy} 50%, ${executiveTheme.deepSpace} 100%);
-  color: white;
+  background:
+    radial-gradient(ellipse at top right, color-mix(in srgb, ${executiveTheme.stellarAuthority} 14%, transparent) 0%, transparent 42%),
+    radial-gradient(ellipse at bottom left, color-mix(in srgb, ${executiveTheme.cyberIntelligence} 10%, transparent) 0%, transparent 38%),
+    linear-gradient(180deg, ${executiveTheme.deepSpace} 0%, ${executiveTheme.commandNavy} 100%);
+  color: ${executiveTheme.stellarWhite};
   min-height: 100vh;
 `;
 
@@ -68,16 +71,16 @@ export const ContentContainer = styled.div`
 export const StyledCard = styled.div`
   border-radius: 15px;
   overflow: hidden;
-  background: rgba(30, 58, 138, 0.15);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 82%, transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   transition: all 0.3s ease;
-  box-shadow: 0 8px 32px rgba(30, 58, 138, 0.2);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 38%, transparent);
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(30, 58, 138, 0.3);
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    box-shadow: 0 20px 40px color-mix(in srgb, var(--bg-base, #0A0A0F) 44%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
   }
 `;
 
@@ -93,10 +96,10 @@ export const CardHeader = styled.div`
 
 export const CardTitle = styled.h2`
   margin: 0;
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   font-size: 1.8rem;
   font-weight: 300;
-  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 26%, transparent);
 `;
 
 export const CardContent = styled.div`
@@ -114,31 +117,31 @@ export const StatsCard = styled(motion.div)<{ $variant?: string }>`
   border-radius: 15px;
   padding: 1.5rem;
   background: ${props =>
-    props.$variant === 'primary' ? `linear-gradient(145deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.15))` :
-    props.$variant === 'success' ? `linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.15))` :
-    props.$variant === 'warning' ? `linear-gradient(145deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.15))` :
-    props.$variant === 'info' ? `linear-gradient(145deg, rgba(8, 145, 178, 0.1), rgba(8, 145, 178, 0.15))` :
-    `linear-gradient(145deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.15))`
+    props.$variant === 'primary' ? `linear-gradient(145deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent))` :
+    props.$variant === 'success' ? `linear-gradient(145deg, color-mix(in srgb, var(--success, #10b981) 10%, transparent), color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent))` :
+    props.$variant === 'warning' ? `linear-gradient(145deg, color-mix(in srgb, var(--warning, #f59e0b) 10%, transparent), color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent))` :
+    props.$variant === 'info' ? `linear-gradient(145deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), color-mix(in srgb, var(--bg-elevated, #141419) 80%, transparent))` :
+    `linear-gradient(145deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), color-mix(in srgb, var(--bg-elevated, #141419) 80%, transparent))`
   };
   border: 1px solid ${props =>
-    props.$variant === 'primary' ? 'rgba(59, 130, 246, 0.3)' :
-    props.$variant === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-    props.$variant === 'warning' ? 'rgba(245, 158, 11, 0.3)' :
-    props.$variant === 'info' ? 'rgba(8, 145, 178, 0.3)' :
-    'rgba(59, 130, 246, 0.3)'
+    props.$variant === 'primary' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)' :
+    props.$variant === 'success' ? 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)' :
+    props.$variant === 'warning' ? 'color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent)' :
+    props.$variant === 'info' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent)' :
+    'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'
   };
-  box-shadow: 0 4px 16px rgba(30, 58, 138, 0.15);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 28%, transparent);
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-7px);
-    box-shadow: 0 8px 24px rgba(30, 58, 138, 0.25);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-base, #0A0A0F) 36%, transparent);
     border: 1px solid ${props =>
-      props.$variant === 'primary' ? 'rgba(59, 130, 246, 0.5)' :
-      props.$variant === 'success' ? 'rgba(16, 185, 129, 0.5)' :
-      props.$variant === 'warning' ? 'rgba(245, 158, 11, 0.5)' :
-      props.$variant === 'info' ? 'rgba(8, 145, 178, 0.5)' :
-      'rgba(59, 130, 246, 0.5)'
+      props.$variant === 'primary' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 48%, transparent)' :
+      props.$variant === 'success' ? 'color-mix(in srgb, var(--success, #10b981) 48%, transparent)' :
+      props.$variant === 'warning' ? 'color-mix(in srgb, var(--warning, #f59e0b) 48%, transparent)' :
+      props.$variant === 'info' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent)' :
+      'color-mix(in srgb, var(--accent-primary, #60C0F0) 48%, transparent)'
     };
   }
 `;
@@ -152,18 +155,18 @@ export const StatsIconContainer = styled.div<{ $variant?: string }>`
   justify-content: center;
   margin-right: 1rem;
   background: ${props =>
-    props.$variant === 'primary' ? 'rgba(59, 130, 246, 0.15)' :
-    props.$variant === 'success' ? 'rgba(16, 185, 129, 0.15)' :
-    props.$variant === 'warning' ? 'rgba(245, 158, 11, 0.15)' :
-    props.$variant === 'info' ? 'rgba(8, 145, 178, 0.15)' :
-    'rgba(59, 130, 246, 0.15)'
+    props.$variant === 'primary' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)' :
+    props.$variant === 'success' ? 'color-mix(in srgb, var(--success, #10b981) 16%, transparent)' :
+    props.$variant === 'warning' ? 'color-mix(in srgb, var(--warning, #f59e0b) 16%, transparent)' :
+    props.$variant === 'info' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)' :
+    'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)'
   };
   color: ${props =>
-    props.$variant === 'primary' ? '#3b82f6' :
-    props.$variant === 'success' ? '#10b981' :
-    props.$variant === 'warning' ? '#f59e0b' :
-    props.$variant === 'info' ? '#0891b2' :
-    '#3b82f6'
+    props.$variant === 'primary' ? 'var(--accent-primary, #60C0F0)' :
+    props.$variant === 'success' ? 'var(--success, #10b981)' :
+    props.$variant === 'warning' ? 'var(--warning, #f59e0b)' :
+    props.$variant === 'info' ? 'var(--accent-primary, #60C0F0)' :
+    'var(--accent-primary, #60C0F0)'
   };
 `;
 
@@ -171,7 +174,7 @@ export const StatsValue = styled.h3`
   margin: 0;
   font-size: 2.2rem;
   font-weight: 700;
-  background: linear-gradient(to right, #60C0F0, #3b82f6, #0ea5e9, #0891b2, #60C0F0);
+  background: linear-gradient(to right, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6), var(--accent-gold, #C6A84B), var(--accent-primary, #60C0F0));
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -182,15 +185,15 @@ export const StatsValue = styled.h3`
 export const StatsLabel = styled.p`
   margin: 0.25rem 0 0;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
 `;
 
 export const FilterContainer = styled(motion.div)`
   padding: 1.2rem;
-  background: rgba(30, 58, 138, 0.2);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 74%, transparent);
   backdrop-filter: blur(10px);
   border-radius: 15px;
-  border: 1px solid rgba(59, 130, 246, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -201,23 +204,23 @@ export const FilterContainer = styled(motion.div)`
 
 export const SearchField = styled.input`
   border-radius: 10px;
-  background: rgba(20, 20, 40, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary, #E0ECF4);
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
   outline: none;
   min-width: 300px;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted, rgba(224, 236, 244, 0.55));
   }
 
   &:hover,
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
   }
 
   @media (max-width: 600px) {
@@ -239,41 +242,41 @@ export const FilterButton = styled.button<{ $isActive?: boolean; $buttonColor?: 
   min-width: 100px;
   min-height: 44px;
   letter-spacing: 0.5px;
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   cursor: pointer;
   font-size: 0.95rem;
   background: ${props =>
     props.$isActive
       ? (props.$buttonColor === 'primary'
-          ? 'linear-gradient(135deg, #3b82f6, #0ea5e9)' :
+          ? 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))' :
         props.$buttonColor === 'success'
           ? 'linear-gradient(135deg, #10b981, #34d399)' :
         props.$buttonColor === 'error'
           ? 'linear-gradient(135deg, #ef4444, #f87171)' :
-        'linear-gradient(135deg, #3b82f6, #0ea5e9)')
+        'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))')
       : 'transparent'
   };
 
   border: 1px solid ${props =>
-    props.$buttonColor === 'primary' ? 'rgba(59, 130, 246, 0.5)' :
-    props.$buttonColor === 'success' ? 'rgba(16, 185, 129, 0.5)' :
-    props.$buttonColor === 'error' ? 'rgba(239, 68, 68, 0.5)' :
-    'rgba(59, 130, 246, 0.5)'
+    props.$buttonColor === 'primary' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)' :
+    props.$buttonColor === 'success' ? 'color-mix(in srgb, var(--success, #10b981) 50%, transparent)' :
+    props.$buttonColor === 'error' ? 'color-mix(in srgb, var(--danger, #ef4444) 50%, transparent)' :
+    'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)'
   };
 
   transition: all 0.3s ease;
-  box-shadow: ${props => props.$isActive ? '0 4px 12px rgba(59, 130, 246, 0.2)' : 'none'};
+  box-shadow: ${props => props.$isActive ? '0 4px 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)' : 'none'};
 
   &:hover {
     background: ${props =>
       !props.$isActive
         ? (props.$buttonColor === 'primary'
-            ? 'rgba(59, 130, 246, 0.1)' :
+            ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)' :
           props.$buttonColor === 'success'
             ? 'rgba(16, 185, 129, 0.1)' :
           props.$buttonColor === 'error'
             ? 'rgba(239, 68, 68, 0.1)' :
-          'rgba(59, 130, 246, 0.1)')
+          'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)')
         : undefined
     };
     transform: translateY(-2px);
@@ -282,30 +285,30 @@ export const FilterButton = styled.button<{ $isActive?: boolean; $buttonColor?: 
 
 export const StyledTableContainer = styled.div`
   margin-top: 1.5rem;
-  background: rgba(20, 20, 40, 0.4);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 78%, transparent);
   border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
   backdrop-filter: blur(10px);
   overflow: hidden;
   overflow-x: auto;
 `;
 
 export const StyledTableHead = styled.tr`
-  background: linear-gradient(135deg, rgba(30, 58, 138, 0.4), rgba(59, 130, 246, 0.3));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent), color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
 `;
 
 export const StyledTableHeadCell = styled.td`
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   font-size: 0.95rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   padding: 1rem;
   letter-spacing: 0.5px;
 `;
 
 export const StyledTableCell = styled.td`
-  color: rgba(255, 255, 255, 0.8);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.75));
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 7%, transparent);
   padding: 1rem;
 `;
 
@@ -314,16 +317,16 @@ export const StyledTableRow = styled.tr`
   background: transparent;
 
   &:hover {
-    background: rgba(139, 92, 246, 0.05);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent);
     backdrop-filter: blur(10px);
   }
 
   &:nth-of-type(even) {
-    background: rgba(20, 20, 50, 0.2);
+    background: color-mix(in srgb, var(--bg-base, #0A0A0F) 28%, transparent);
   }
 
   &:nth-of-type(even):hover {
-    background: rgba(139, 92, 246, 0.08);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 9%, transparent);
   }
 `;
 

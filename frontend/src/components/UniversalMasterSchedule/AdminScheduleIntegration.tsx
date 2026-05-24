@@ -94,8 +94,8 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
           transition={{ duration: 0.3 }}
           style={{ textAlign: 'center' }}
         >
-          <AlertTriangle size={48} color="#ef4444" />
-          <PageTitle style={{ marginTop: '1rem', color: '#ef4444' }}>
+          <AlertTriangle size={48} color="var(--danger, #ef4444)" />
+          <PageTitle style={{ marginTop: '1rem', color: 'var(--danger, #ef4444)' }}>
             {error}
           </PageTitle>
           <PrimaryButton
@@ -178,11 +178,12 @@ const ScheduleContainer = styled(motion.div)<{ isFullscreen: boolean }>`
   height: ${props => props.isFullscreen ? '100vh' : '100%'};
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, 
-    rgba(10, 10, 15, 0.95) 0%, 
-    rgba(30, 58, 138, 0.1) 50%, 
-    rgba(14, 165, 233, 0.05) 100%
-  );
+  background:
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), transparent 38%),
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 96%, transparent) 0%,
+      color-mix(in srgb, var(--bg-surface, #1A1A24) 78%, transparent) 100%
+    );
   position: ${props => props.isFullscreen ? 'fixed' : 'relative'};
   top: ${props => props.isFullscreen ? '0' : 'auto'};
   left: ${props => props.isFullscreen ? '0' : 'auto'};
@@ -191,9 +192,9 @@ const ScheduleContainer = styled(motion.div)<{ isFullscreen: boolean }>`
 
 const ScheduleHeader = styled.div`
   padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 12%, transparent);
   z-index: 10;
   flex-shrink: 0;
   
@@ -220,7 +221,7 @@ const HeaderTitle = styled.div`
   gap: 1rem;
   
   svg {
-    color: #3b82f6;
+    color: var(--accent-primary, #60C0F0);
     flex-shrink: 0;
   }
   
@@ -248,5 +249,5 @@ const ErrorContainer = styled.div`
   height: 100%;
   min-height: 400px;
   padding: 2rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, var(--bg-base, #0A0A0F) 0%, var(--bg-surface, #1A1A24) 100%);
 `;

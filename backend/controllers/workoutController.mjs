@@ -459,10 +459,14 @@ export async function getWorkoutStatistics(req, res) {
  */
 export async function getExerciseRecommendations(req, res) {
   try {
-    const userId = req.params.userId || req.user.id;
+    const requestedUserId = req.params.userId || req.query.userId;
+    const libraryMode =
+      requestedUserId === 'admin-library' &&
+      (req.user.role === 'admin' || req.user.role === 'trainer');
+    const userId = libraryMode ? 'admin-library' : (req.params.userId || req.user.id);
     
     // Check if the user is authorized to get recommendations for this user
-    if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    if (!libraryMode && userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to get recommendations for this user');
     }
     
@@ -487,7 +491,8 @@ export async function getExerciseRecommendations(req, res) {
       excludeExercises: excludeExercises ? (Array.isArray(excludeExercises) ? excludeExercises : [excludeExercises]) : undefined,
       limit: limit ? parseInt(limit) : undefined,
       rehabFocus: rehabFocus === 'true',
-      optPhase
+      optPhase,
+      libraryMode
     };
     
     const exercises = await workoutService.getExerciseRecommendations(userId, processedParams);

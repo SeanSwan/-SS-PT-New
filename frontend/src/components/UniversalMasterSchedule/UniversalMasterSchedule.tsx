@@ -922,13 +922,13 @@ const ScheduleContainer = styled.div`
   display: flex;
   flex-direction: column;
 
-  /* Cosmic Depth Background — Gemini 3.1 Pro directive */
-  background-color: #002060;
+  /* Theme-synced depth background */
+  background-color: var(--bg-base, #0A0A0F);
   background-image:
-    radial-gradient(circle at 85% 15%, rgba(139, 92, 246, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 15% 85%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+    radial-gradient(circle at 85% 15%, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 16%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 15% 85%, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent) 0%, transparent 40%);
   background-attachment: fixed;
-  color: #E0ECF4; /* Frost White */
+  color: var(--text-primary, #E0ECF4);
 
   overflow-x: hidden;
   overflow-y: auto;
@@ -942,16 +942,16 @@ const ScheduleContainer = styled.div`
     height: 8px;
   }
   &::-webkit-scrollbar-track {
-    background: rgba(0, 32, 96, 0.8); /* Midnight Sapphire */
+    background: color-mix(in srgb, var(--bg-base, #0A0A0F) 86%, transparent);
     border-radius: 4px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 48, 128, 0.8); /* Royal Depth */
+    background: color-mix(in srgb, var(--bg-surface, #1A1A24) 88%, var(--accent-primary, #60C0F0) 12%);
     border-radius: 4px;
-    border: 1px solid rgba(224, 236, 244, 0.1); /* Frost White */
+    border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 12%, transparent);
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(96, 192, 240, 0.5); /* Ice Wing */
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
   }
 
   /* 10-Point Responsive Shell Chrome */

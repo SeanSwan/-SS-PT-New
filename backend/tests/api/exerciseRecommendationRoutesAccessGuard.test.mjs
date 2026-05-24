@@ -21,4 +21,15 @@ describe('exercise recommendation route access guard', () => {
   it('matches the canonical workout recommendation access contract', () => {
     expect(workoutRouteSource).toContain("router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations)");
   });
+
+  it('supports admin-library query mode without treating it as a real client id', () => {
+    const controllerSource = readFileSync(resolve(__dirname, '../../controllers/workoutController.mjs'), 'utf8');
+    const serviceSource = readFileSync(resolve(__dirname, '../../services/workoutService.mjs'), 'utf8');
+
+    expect(controllerSource).toContain('req.query.userId');
+    expect(controllerSource).toContain('admin-library');
+    expect(controllerSource).toContain('libraryMode');
+    expect(serviceSource).toContain('libraryMode = false');
+    expect(serviceSource).toMatch(/libraryMode\s*\?\s*null\s*:\s*await\s+ClientProgress\.findOne/);
+  });
 });

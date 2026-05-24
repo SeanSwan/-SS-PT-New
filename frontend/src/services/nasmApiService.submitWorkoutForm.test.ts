@@ -151,6 +151,35 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
     expect(result.message).toBe('Client has no available sessions remaining');
   });
 
+  it('normalizes Axios 409 duplicate-form responses into success=false instead of throwing', async () => {
+    postMock.mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          success: false,
+          message: 'A workout form already exists for this client on this date',
+          form: {
+            id: 'existing-form-1',
+            clientId: 91,
+            trainerId: 5,
+            date: '2026-04-17',
+          },
+        },
+      },
+    });
+
+    const result = await dailyWorkoutFormService.submitWorkoutForm(basePayload);
+
+    expect(result.success).toBe(false);
+    expect(result.data).toEqual({
+      id: 'existing-form-1',
+      clientId: 91,
+      trainerId: 5,
+      date: '2026-04-17',
+    });
+    expect(result.message).toBe('A workout form already exists for this client on this date');
+  });
+
   it('sends the full payload (clientId, date, exercises) to POST /api/workout-forms', async () => {
     // Sanity lock on the request side — the URL and body shape must
     // match what the backend route expects.

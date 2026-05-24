@@ -609,6 +609,26 @@ export class DailyWorkoutFormService {
       };
     } catch (error) {
       console.error('Error submitting workout form:', error);
+      const axiosError = error as {
+        response?: {
+          status?: number;
+          data?: {
+            success?: boolean;
+            form?: DailyWorkoutForm;
+            data?: DailyWorkoutForm;
+            message?: string;
+          };
+        };
+      };
+      const status = axiosError.response?.status;
+      const payload = axiosError.response?.data;
+      if (payload?.success === false && status && status >= 400 && status < 500) {
+        return {
+          success: false,
+          data: payload.form ?? payload.data,
+          message: payload.message
+        };
+      }
       throw error;
     }
   }

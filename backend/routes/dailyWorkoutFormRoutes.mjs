@@ -543,7 +543,14 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       await transaction.rollback();
       return res.status(409).json({
         success: false,
-        message: 'A workout form already exists for this client on this date'
+        message: 'A workout form already exists for this client on this date',
+        form: {
+          id: existingForm.id,
+          clientId: existingForm.clientId,
+          trainerId: existingForm.trainerId,
+          date: existingForm.date,
+          submittedAt: existingForm.submittedAt
+        }
       });
     }
 

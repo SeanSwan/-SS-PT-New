@@ -1,9 +1,9 @@
 /**
  * ┌─── SUB-COMPONENT: ClassPreviewPanel ────────────────────────┐
  * │ PARENT: BootcampBuilderPage                                  │
- * │ PURPOSE: Center panel — two-board station/exercise preview   │
+ * │ PURPOSE: Center panel — three-board station/exercise preview │
  * │ CLICK-OUTCOMES:                                              │
- * │ [Board Toggle] → Switches between Board 1 (main) / Board 2  │
+ * │ [Board Toggle] → Switches between Board 1 / Board 2 / Board 3│
  * │ [Exercise Row] → onSelectExercise → shows detail in right    │
  * │ [Save Button] → onSave → POST /api/bootcamp/save            │
  * └──────────────────────────────────────────────────────────────┘
@@ -17,6 +17,9 @@ import {
 } from './BootcampBuilderStyles';
 import { Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
+import { getLowImpactSwap } from './BootcampExerciseAlternatives';
+
+type BoardView = 'main' | 'jointFriendly' | 'lowImpact';
 
 // ── Board Toggle Styled Components ────────────────────────────────────
 
@@ -29,7 +32,7 @@ const BoardToggleBar = styled.div`
   border: 2px solid var(--border-soft, rgba(96, 192, 240, 0.2));
 `;
 
-const BoardTab = styled.button<{ $active: boolean; $board: 'main' | 'alternative' }>`
+const BoardTab = styled.button<{ $active: boolean; $board: BoardView }>`
   flex: 1;
   min-height: 44px;
   padding: 8px 16px;
@@ -46,10 +49,16 @@ const BoardTab = styled.button<{ $active: boolean; $board: 'main' | 'alternative
         color: #000;
       `;
     }
-    if ($active && $board === 'alternative') {
+    if ($active && $board === 'jointFriendly') {
       return css`
-        background: #FF6B35;
-        color: #000;
+        background: var(--accent-gold, #C6A84B);
+        color: var(--bg-base, #0A0A0F);
+      `;
+    }
+    if ($active && $board === 'lowImpact') {
+      return css`
+        background: var(--success, #10B981);
+        color: var(--bg-base, #0A0A0F);
       `;
     }
     return css`
@@ -60,17 +69,31 @@ const BoardTab = styled.button<{ $active: boolean; $board: 'main' | 'alternative
   }}
 `;
 
-const BoardLabel = styled.span<{ $board: 'main' | 'alternative' }>`
+const BoardLabel = styled.span<{ $board: BoardView }>`
   display: inline-block;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
   font-weight: 700;
   margin-left: 6px;
-  ${({ $board }) => $board === 'alternative'
-    ? css`background: rgba(255, 107, 53, 0.15); color: #FF6B35;`
-    : css`background: rgba(96, 192, 240, 0.15); color: var(--text-primary, #E0ECF4);`
-  }
+  ${({ $board }) => {
+    if ($board === 'jointFriendly') {
+      return css`
+        background: color-mix(in srgb, var(--accent-gold, #C6A84B) 16%, transparent);
+        color: var(--accent-gold, #C6A84B);
+      `;
+    }
+    if ($board === 'lowImpact') {
+      return css`
+        background: color-mix(in srgb, var(--success, #10B981) 16%, transparent);
+        color: var(--success, #10B981);
+      `;
+    }
+    return css`
+      background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+      color: var(--text-primary, #E0ECF4);
+    `;
+  }}
 `;
 
 const RegressionLine = styled.div`
@@ -262,6 +285,37 @@ const AlternativeHint = styled.div`
   padding: 8px 0 4px;
 `;
 
+const LowImpactSwapRow = styled.button`
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid color-mix(in srgb, var(--success, #10B981) 22%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--success, #10B981) 7%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  margin-bottom: 6px;
+  padding: 9px 12px;
+  text-align: left;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--success, #10B981) 40%, transparent);
+    background: color-mix(in srgb, var(--success, #10B981) 10%, transparent);
+  }
+`;
+
+const LowImpactName = styled.span`
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+const LowImpactValue = styled.span`
+  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  font-size: 12px;
+  line-height: 1.35;
+`;
+
 const StationMetaRow = styled.div`
   align-items: center;
   display: flex;
@@ -418,12 +472,12 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   bootcamp, loading, floorMode, saving, onSave, onSelectExercise,
   onDeleteExercise, onSelectStation, activeStation,
 }) => {
-  const [activeBoard, setActiveBoard] = useState<'main' | 'alternative'>('main');
+  const [activeBoard, setActiveBoard] = useState<BoardView>('main');
 
   const { board1Exercises, stationExercises } = useMemo(() => {
     if (!bootcamp) return { board1Exercises: [], stationExercises: {} };
 
-    const b1 = bootcamp.exercises.filter(ex => ex.board !== 'alternative');
+    const b1 = bootcamp.exercises.filter(ex => ex.board !== 'alternative' && ex.board !== 'lowImpact');
 
     // For Board 1 (main), group by station
     const grouped = b1.reduce<Record<number, BootcampExercise[]>>((acc, ex) => {
@@ -436,8 +490,8 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
     return { board1Exercises: b1, stationExercises: grouped };
   }, [bootcamp]);
 
-  // Board 2 is always available when there are exercises
-  const hasBoard2 = board1Exercises.length > 0;
+  // Boards 2 and 3 are available when Board 1 has exercises.
+  const hasBoards = board1Exercises.length > 0;
 
   const stretches = bootcamp?.stretches ?? [];
   const flowData: NonNullable<GeneratedBootcamp['flowData']> = bootcamp?.flowData ?? [];
@@ -481,7 +535,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
             )}
 
             {/* Board Toggle */}
-            {hasBoard2 && (
+            {hasBoards && (
               <BoardToggleBar>
                 <BoardTab
                   $active={activeBoard === 'main'}
@@ -492,12 +546,20 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                   Board 1 — Main Intensity
                 </BoardTab>
                 <BoardTab
-                  $active={activeBoard === 'alternative'}
-                  $board="alternative"
-                  onClick={() => setActiveBoard('alternative')}
+                  $active={activeBoard === 'jointFriendly'}
+                  $board="jointFriendly"
+                  onClick={() => setActiveBoard('jointFriendly')}
                   type="button"
                 >
                   Board 2 — Joint-Friendly Alternatives
+                </BoardTab>
+                <BoardTab
+                  $active={activeBoard === 'lowImpact'}
+                  $board="lowImpact"
+                  onClick={() => setActiveBoard('lowImpact')}
+                  type="button"
+                >
+                  Board 3 — Low-Impact Swaps
                 </BoardTab>
               </BoardToggleBar>
             )}
@@ -518,7 +580,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
             )}
 
             {/* ── Board 2: Joint-Friendly Alternatives (Modification Accordions) ── */}
-            {activeBoard === 'alternative' && (
+            {activeBoard === 'jointFriendly' && (
               <>
                 <AlternativeHint>
                   Tap any exercise to see joint-friendly alternatives. Same exercises as Board 1 with modification options.
@@ -553,12 +615,60 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
               </>
             )}
 
+            {/* ── Board 3: Low-Impact Swaps ── */}
+            {activeBoard === 'lowImpact' && (
+              <>
+                <AlternativeHint>
+                  Low-impact swaps prioritize no-jump patterns, shorter ranges, and supported positions while keeping the same training intent.
+                </AlternativeHint>
+                {bootcamp.stations.length > 0 ? (
+                  bootcamp.stations.map((station, si) => {
+                    const exercises = stationExercises[si] ?? [];
+                    if (exercises.length === 0) return null;
+                    return (
+                      <StationCard key={`b3-${si}`}>
+                        <StationHeader>
+                          <StationName>{station.stationName}</StationName>
+                          <TimingBadge>{exercises.length} swaps</TimingBadge>
+                        </StationHeader>
+                        {exercises.map((ex, exIdx) => (
+                          <LowImpactSwapRow
+                            key={`b3-${si}-${exIdx}`}
+                            type="button"
+                            onClick={() => onSelectExercise(ex)}
+                          >
+                            <LowImpactName>{exIdx + 1}. {ex.exerciseName}</LowImpactName>
+                            <LowImpactValue>{getLowImpactSwap(ex)}</LowImpactValue>
+                          </LowImpactSwapRow>
+                        ))}
+                      </StationCard>
+                    );
+                  })
+                ) : board1Exercises.length > 0 ? (
+                  <StationCard>
+                    <StationHeader>
+                      <StationName>All Low-Impact Swaps</StationName>
+                      <TimingBadge>{board1Exercises.length} swaps</TimingBadge>
+                    </StationHeader>
+                    {board1Exercises.map((ex, exIdx) => (
+                      <LowImpactSwapRow
+                        key={`b3-flat-${exIdx}`}
+                        type="button"
+                        onClick={() => onSelectExercise(ex)}
+                      >
+                        <LowImpactName>{exIdx + 1}. {ex.exerciseName}</LowImpactName>
+                        <LowImpactValue>{getLowImpactSwap(ex)}</LowImpactValue>
+                      </LowImpactSwapRow>
+                    ))}
+                  </StationCard>
+                ) : null}
+              </>
+            )}
+
             {/* ── Board 1: Main Intensity (Normal Exercise Rows) ── */}
             {activeBoard === 'main' && bootcamp.stations.length > 0 ? (
               bootcamp.stations.map((station, si) => {
                 const exercises = stationExercises[si] ?? [];
-                if (exercises.length === 0 && (activeBoard as 'main' | 'alternative') === 'alternative') return null;
-
                 return (
                   <ClickableStationCard
                     key={station.stationNumber}
@@ -570,9 +680,6 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
                         {station.stationName}
                         {activeStation === si && (
                           <BoardLabel $board="main">ADDING HERE</BoardLabel>
-                        )}
-                        {(activeBoard as 'main' | 'alternative') === 'alternative' && (
-                          <BoardLabel $board="alternative">MODIFIED</BoardLabel>
                         )}
                       </StationName>
                       <StationMetaRow>

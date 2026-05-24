@@ -917,11 +917,12 @@ async function getExerciseRecommendations(userId, options = {}) {
     excludeExercises = [],
     limit = 10,
     rehabFocus = false,
-    optPhase = null
+    optPhase = null,
+    libraryMode = false
   } = options;
   
   // Get user's progress to tailor recommendations
-  const clientProgress = await ClientProgress.findOne({
+  const clientProgress = libraryMode ? null : await ClientProgress.findOne({
     where: { userId }
   });
   

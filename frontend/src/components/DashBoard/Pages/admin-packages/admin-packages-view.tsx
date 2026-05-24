@@ -107,7 +107,7 @@ const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string
 
 const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean; $top?: string }>`
   font-size: 0.75rem;
-  color: ${p => p.$color || 'rgba(255, 255, 255, 0.7)'};
+  color: ${p => p.$color || 'var(--text-secondary, rgba(224, 236, 244, 0.68))'};
   display: ${p => p.$block ? 'block' : 'inline'};
   max-width: ${p => p.$maxWidth || 'none'};
   margin-top: ${p => p.$top || 0};
@@ -140,16 +140,16 @@ const SearchIconSpan = styled.span`
   left: 0.75rem;
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
   pointer-events: none;
 `;
 
 const SearchInput = styled.input`
   border-radius: 10px;
-  background: rgba(20, 20, 40, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-primary, #E0ECF4);
   padding: 0.5rem 0.75rem 0.5rem 2.5rem;
   font-size: 0.95rem;
   outline: none;
@@ -158,13 +158,13 @@ const SearchInput = styled.input`
   box-sizing: border-box;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted, rgba(224, 236, 244, 0.55));
   }
 
   &:hover,
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
   }
 `;
 
@@ -193,21 +193,21 @@ const CenteredFormField = styled(FormField)`
 `;
 
 const FormLabel = styled.label`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-size: 0.85rem;
   margin-bottom: 0.25rem;
 `;
 
 const FormGroupLabel = styled.span`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-size: 0.85rem;
   margin-bottom: 0.25rem;
 `;
 
 const FormInput = styled.input`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -217,12 +217,12 @@ const FormInput = styled.input`
   min-height: 44px;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted, rgba(224, 236, 244, 0.55));
   }
 
   &[readonly] {
@@ -232,14 +232,14 @@ const FormInput = styled.input`
 `;
 
 const FormInputAccent = styled(FormInput)`
-  color: #60C0F0;
+  color: var(--accent-primary, #60C0F0);
   font-weight: bold;
 `;
 
 const FormTextarea = styled.textarea`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -251,19 +251,19 @@ const FormTextarea = styled.textarea`
   font-family: inherit;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted, rgba(224, 236, 244, 0.55));
   }
 `;
 
 const FormSelect = styled.select`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary, #E0ECF4);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -279,8 +279,8 @@ const FormSelect = styled.select`
   padding-right: 2rem;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
   }
 
   option {
@@ -304,7 +304,7 @@ const SwitchTrack = styled.span<{ $checked?: boolean }>`
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: ${p => p.$checked ? '#10b981' : 'rgba(255, 255, 255, 0.2)'};
+  background: ${p => p.$checked ? 'var(--success, #10b981)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 18%, transparent)'};
   transition: background 0.2s ease;
   flex-shrink: 0;
 `;
@@ -316,7 +316,7 @@ const SwitchThumb = styled.span<{ $checked?: boolean }>`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: white;
+  background: var(--text-primary, #E0ECF4);
   transition: left 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 `;
@@ -331,13 +331,13 @@ const HiddenCheckbox = styled.input`
 const InfoPanel = styled.div<{ $borderColor?: string }>`
   padding: 1rem;
   margin-bottom: 1.25rem;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid ${p => p.$borderColor || 'rgba(255, 255, 255, 0.1)'};
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 46%, transparent);
+  border: 1px solid ${p => p.$borderColor || 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)'};
   border-radius: 8px;
 `;
 
 const DialogHintText = styled.p`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-size: 0.9rem;
   margin: 0 0 1rem 0;
 `;
@@ -350,14 +350,14 @@ const AvatarCircle = styled.span<{ $src?: string }>`
     const safe = $src ? sanitizeImageUrl($src) : null;
     return safe
       ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #8B5CF6, #60C0F0)';
+      : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))';
   }};
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.6rem;
   font-weight: 600;
-  color: white;
+  color: var(--text-inverse, #0A0A0F);
   flex-shrink: 0;
 `;
 
@@ -369,11 +369,11 @@ const ClientCheckItem = styled.label<{ $selected?: boolean }>`
   min-height: 44px;
   cursor: pointer;
   border-radius: 6px;
-  background: ${p => p.$selected ? 'rgba(14, 165, 233, 0.15)' : 'transparent'};
+  background: ${p => p.$selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)' : 'transparent'};
   transition: background 0.15s ease;
 
   &:hover {
-    background: rgba(14, 165, 233, 0.1);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   }
 `;
 
@@ -467,16 +467,16 @@ const ThemeDot = styled.div<{ $theme?: string }>`
   height: 24px;
   border-radius: 50%;
   background: ${p =>
-    p.$theme === 'cosmic' ? 'linear-gradient(135deg, #8B5CF6, #60C0F0)' :
-    p.$theme === 'purple' ? 'linear-gradient(135deg, #8B5CF6, #4070C0)' :
-    p.$theme === 'ruby' ? 'linear-gradient(135deg, #C92A54, #8B5CF6)' :
-    p.$theme === 'emerald' ? 'linear-gradient(135deg, #60C0F0, #4070C0)' :
-    'linear-gradient(135deg, #8B5CF6, #60C0F0)'
+    p.$theme === 'cosmic' ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))' :
+    p.$theme === 'purple' ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))' :
+    p.$theme === 'ruby' ? 'linear-gradient(135deg, var(--danger, #ef4444), var(--accent-secondary, #8B5CF6))' :
+    p.$theme === 'emerald' ? 'linear-gradient(135deg, var(--success, #10b981), var(--accent-primary, #60C0F0))' :
+    'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'
   };
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverse, #0A0A0F);
   font-size: 0.75rem;
   font-weight: bold;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
@@ -1223,7 +1223,7 @@ const AdminPackagesView: React.FC = () => {
 
                               {/* Total Price */}
                               <StyledTableCell>
-                                <BodyText $weight={500} $color="#60C0F0">
+                                <BodyText $weight={500} $color="var(--accent-primary, #60C0F0)">
                                   {formatCurrency(pkg.totalCost || pkg.price || calculateTotalPrice(pkg))}
                                 </BodyText>
                               </StyledTableCell>
@@ -1708,13 +1708,13 @@ const AdminPackagesView: React.FC = () => {
                   <Package size={20} />
                   <SubtitleText>{selectedPackage.name}</SubtitleText>
                 </OfferHeaderRow>
-                <BodyText $color="rgba(255, 255, 255, 0.7)" $block $bottom="0.5rem">
+                <BodyText $color="var(--text-secondary, rgba(224, 236, 244, 0.68))" $block $bottom="0.5rem">
                   {selectedPackage.packageType === 'fixed'
                     ? `${selectedPackage.sessions} sessions at ${formatCurrency(selectedPackage.pricePerSession)} per session`
                     : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
                   }
                 </BodyText>
-                <BodyText $weight={500} $color="#60C0F0">
+                <BodyText $weight={500} $color="var(--accent-primary, #60C0F0)">
                   Regular Price: {formatCurrency(selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage))}
                 </BodyText>
               </InfoPanel>
@@ -1831,9 +1831,9 @@ const AdminPackagesView: React.FC = () => {
             </DialogHintText>
 
             {selectedPackage && (
-              <InfoPanel $borderColor="rgba(255, 0, 0, 0.2)">
+              <InfoPanel $borderColor="color-mix(in srgb, var(--danger, #ef4444) 26%, transparent)">
                 <SubtitleText>{selectedPackage.name}</SubtitleText>
-                <BodyText $color="rgba(255, 255, 255, 0.7)" $block $top="0.25rem">
+                <BodyText $color="var(--text-secondary, rgba(224, 236, 244, 0.68))" $block $top="0.25rem">
                   {selectedPackage.packageType === 'fixed'
                     ? `${selectedPackage.sessions} sessions`
                     : `${selectedPackage.months} months subscription`
@@ -1842,7 +1842,7 @@ const AdminPackagesView: React.FC = () => {
               </InfoPanel>
             )}
 
-            <BodyText $color="#C92A54" $size="0.875rem" $block>
+            <BodyText $color="var(--danger, #ef4444)" $size="0.875rem" $block>
               Note: If clients have already purchased this package, the deletion may affect their access.
               Instead of deleting, consider setting the package as inactive.
             </BodyText>

@@ -51,7 +51,20 @@ router.post('/generate', async (req, res) => {
       name, includeStretch, stretchDurationMin,
     } = req.body;
 
-    const VALID_STYLES = ['standard', 'pyramid', 'superset', 'mixed'];
+    const VALID_STYLES = [
+      'standard',
+      'pyramid',
+      'superset',
+      'mixed',
+      'ladder',
+      'descending',
+      'chipper',
+      'countdown',
+      'death_by',
+      'ygig',
+      'contrast',
+      'density',
+    ];
     const VALID_INTENSITIES = ['high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'];
 
     const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : 'stations_4x';

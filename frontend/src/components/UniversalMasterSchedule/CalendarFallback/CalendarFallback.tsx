@@ -272,8 +272,8 @@ const getFilteredEventsByRole = (
 };
 
 const CalendarFallbackContainer = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
   border-radius: 12px;
   height: 100%;
   overflow: hidden;
@@ -287,8 +287,8 @@ const EnhancedHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 74%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -319,8 +319,8 @@ const QuickStatsBar = styled.div<{ $show: boolean }>`
   display: ${props => props.$show ? 'flex' : 'none'};
   gap: 1rem;
   padding: 1rem 1.5rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 64%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   overflow-x: auto;
 
   &::-webkit-scrollbar {
@@ -328,12 +328,12 @@ const QuickStatsBar = styled.div<{ $show: boolean }>`
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
     border-radius: 2px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
     border-radius: 2px;
   }
 `;
@@ -344,13 +344,13 @@ const StatItem = styled.div`
   gap: 0.75rem;
   min-width: 100px;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   border-radius: 8px;
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--bg-elevated, #141419) 62%, var(--accent-primary, #60C0F0) 10%);
     transform: translateY(-1px);
   }
 `;
@@ -359,11 +359,11 @@ const StatIcon = styled.div`
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverse, #0A0A0F);
   flex-shrink: 0;
 `;
 
@@ -376,13 +376,13 @@ const StatContent = styled.div`
 const StatValue = styled.div`
   font-size: 1rem;
   font-weight: 700;
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   line-height: 1;
 `;
 
 const StatLabel = styled.div`
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-weight: 500;
   line-height: 1;
 `;
@@ -392,8 +392,8 @@ const FilterControlsBar = styled.div<{ $show: boolean }>`
   display: ${props => props.$show ? 'flex' : 'none'};
   gap: 1rem;
   padding: 1rem 1.5rem;
-  background: rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -419,32 +419,32 @@ const SearchIcon = styled.span`
   display: flex;
   align-items: center;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
 `;
 
 const SearchInput = styled.input`
   width: 100%;
   min-height: 44px;
   padding: 0.5rem 0.75rem 0.5rem 2.5rem;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   border-radius: 6px;
-  color: #e2e8f0;
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.2s ease;
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted, rgba(224, 236, 244, 0.48));
   }
 
   &:hover {
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: color-mix(in srgb, var(--text-primary, #E0ECF4) 34%, transparent);
   }
 
   &:focus {
-    border-color: #0ea5e9;
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   }
 `;
 
@@ -465,12 +465,12 @@ const FilterChip = styled.button<{ $active: boolean }>`
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.$active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
-  background: ${props => props.$active ? '#3b82f6' : 'transparent'};
-  border: 1px solid ${props => props.$active ? '#3b82f6' : 'rgba(255, 255, 255, 0.3)'};
+  color: ${props => props.$active ? 'var(--text-inverse, #0A0A0F)' : 'var(--text-secondary, rgba(224, 236, 244, 0.68))'};
+  background: ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
+  border: 1px solid ${props => props.$active ? 'var(--accent-primary, #60C0F0)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 24%, transparent)'};
 
   &:hover {
-    background: ${props => props.$active ? '#2563eb' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.$active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 84%, var(--accent-secondary, #8B5CF6) 16%)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)'};
   }
 `;
 
@@ -487,7 +487,7 @@ const DateHeader = styled.div`
   align-items: center;
   margin: 1.5rem 0 1rem 0;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
 
   &:first-child {
     margin-top: 0;
@@ -495,7 +495,7 @@ const DateHeader = styled.div`
 `;
 
 const DateHeaderTitle = styled.h6`
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   margin: 0;
   font-weight: 500;
   font-size: 1.125rem;
@@ -503,11 +503,11 @@ const DateHeaderTitle = styled.h6`
 
 const DateStats = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
 `;
 
 const DateStatsText = styled.span`
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
   font-size: 0.875rem;
 `;
 
@@ -532,8 +532,8 @@ const EventsGrid = styled.div<{ $viewMode: ViewMode }>`
 `;
 
 const EventCard = styled(motion.div)<{ $status: string; $userRole?: string }>`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   border-radius: 8px;
   padding: 1rem;
   cursor: pointer;
@@ -550,28 +550,28 @@ const EventCard = styled(motion.div)<{ $status: string; $userRole?: string }>`
     height: 100%;
     background: ${props => {
       switch (props.$status) {
-        case 'available': return '#22c55e';
+        case 'available': return 'var(--success, #10b981)';
         case 'scheduled':
-        case 'confirmed': return '#3b82f6';
-        case 'completed': return '#9ca3af';
-        case 'cancelled': return '#ef4444';
-        default: return '#3b82f6';
+        case 'confirmed': return 'var(--accent-primary, #60C0F0)';
+        case 'completed': return 'var(--text-muted, rgba(224, 236, 244, 0.55))';
+        case 'cancelled': return 'var(--danger, #ef4444)';
+        default: return 'var(--accent-primary, #60C0F0)';
       }
     }};
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: color-mix(in srgb, var(--bg-elevated, #141419) 58%, var(--accent-primary, #60C0F0) 8%);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 36%, transparent);
   }
 
   /* Different hover effects for different roles */
   ${props => props.$userRole === 'user' && props.$status === 'available' ? `
     &:hover {
-      border-color: #22c55e;
-      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+      border-color: var(--success, #10b981);
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--success, #10b981) 30%, transparent);
     }
   ` : ''}
 `;
@@ -581,7 +581,7 @@ const ViewModeToggleGroup = styled.div`
   display: flex;
   border-radius: 6px;
   overflow: hidden;
-  border: 1px solid rgba(14, 165, 233, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
 `;
 
 const ViewModeButton = styled.button<{ $selected: boolean }>`
@@ -594,28 +594,28 @@ const ViewModeButton = styled.button<{ $selected: boolean }>`
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: ${props => props.$selected ? 'white' : 'rgba(255, 255, 255, 0.7)'};
-  background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.3)' : 'transparent'};
+  color: ${props => props.$selected ? 'var(--text-inverse, #0A0A0F)' : 'var(--text-secondary, rgba(224, 236, 244, 0.68))'};
+  background: ${props => props.$selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent)' : 'transparent'};
 
   &:not(:last-child) {
-    border-right: 1px solid rgba(14, 165, 233, 0.2);
+    border-right: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   }
 
   &:hover {
-    background: ${props => props.$selected ? 'rgba(14, 165, 233, 0.4)' : 'rgba(255, 255, 255, 0.1)'};
+    background: ${props => props.$selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)'};
   }
 `;
 
 // Header text styled components
 const HeaderTitleText = styled.h6`
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
 `;
 
 const HeaderSubtitleText = styled.p`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   margin: 0;
   font-size: 0.875rem;
 `;
@@ -641,19 +641,19 @@ const FloatingActionButton = styled.button<{ $variant: 'book' | 'create' }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-inverse, #0A0A0F);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
   background: ${props => props.$variant === 'book'
-    ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-    : 'linear-gradient(135deg, #3b82f6, #1d4ed8)'};
+    ? 'linear-gradient(135deg, var(--success, #10b981), color-mix(in srgb, var(--success, #10b981) 72%, var(--bg-base, #0A0A0F) 28%))'
+    : 'linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))'};
 
   &:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
     background: ${props => props.$variant === 'book'
-      ? 'linear-gradient(135deg, #16a34a, #15803d)'
-      : 'linear-gradient(135deg, #2563eb, #1e40af)'};
+      ? 'linear-gradient(135deg, color-mix(in srgb, var(--success, #10b981) 72%, var(--bg-base, #0A0A0F) 28%), var(--success, #10b981))'
+      : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'};
   }
 `;
 
@@ -664,7 +664,7 @@ const EmptyState = styled.div`
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
   text-align: center;
   padding: 2rem;
 
@@ -692,12 +692,12 @@ const EventTime = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-size: 0.875rem;
 `;
 
 const EventTitle = styled.div`
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   margin-bottom: 0.5rem;
   font-size: 1rem;
@@ -714,40 +714,40 @@ const EventDetail = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
   font-size: 0.75rem;
 `;
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'available': return '#22c55e';
+    case 'available': return 'var(--success, #10b981)';
     case 'scheduled':
-    case 'confirmed': return '#3b82f6';
-    case 'completed': return '#9ca3af';
-    case 'cancelled': return '#ef4444';
-    default: return '#3b82f6';
+    case 'confirmed': return 'var(--accent-primary, #60C0F0)';
+    case 'completed': return 'var(--text-muted, rgba(224, 236, 244, 0.55))';
+    case 'cancelled': return 'var(--danger, #ef4444)';
+    default: return 'var(--accent-primary, #60C0F0)';
   }
 };
 
 const getStatusBgColor = (status: string) => {
   switch (status) {
-    case 'available': return 'rgba(34, 197, 94, 0.2)';
+    case 'available': return 'color-mix(in srgb, var(--success, #10b981) 20%, transparent)';
     case 'scheduled':
-    case 'confirmed': return 'rgba(59, 130, 246, 0.2)';
-    case 'completed': return 'rgba(156, 163, 175, 0.2)';
-    case 'cancelled': return 'rgba(239, 68, 68, 0.2)';
-    default: return 'rgba(59, 130, 246, 0.2)';
+    case 'confirmed': return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)';
+    case 'completed': return 'color-mix(in srgb, var(--text-muted, rgba(224, 236, 244, 0.55)) 20%, transparent)';
+    case 'cancelled': return 'color-mix(in srgb, var(--danger, #ef4444) 20%, transparent)';
+    default: return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)';
   }
 };
 
 const getStatusBorderColor = (status: string) => {
   switch (status) {
-    case 'available': return 'rgba(34, 197, 94, 0.3)';
+    case 'available': return 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)';
     case 'scheduled':
-    case 'confirmed': return 'rgba(59, 130, 246, 0.3)';
-    case 'completed': return 'rgba(156, 163, 175, 0.3)';
-    case 'cancelled': return 'rgba(239, 68, 68, 0.3)';
-    default: return 'rgba(59, 130, 246, 0.3)';
+    case 'confirmed': return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)';
+    case 'completed': return 'color-mix(in srgb, var(--text-muted, rgba(224, 236, 244, 0.55)) 30%, transparent)';
+    case 'cancelled': return 'color-mix(in srgb, var(--danger, #ef4444) 30%, transparent)';
+    default: return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)';
   }
 };
 
@@ -776,22 +776,22 @@ const EventActionButtons = styled.div`
 const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'success' }>`
   background: ${props => {
     switch (props.$variant) {
-      case 'success': return 'rgba(34, 197, 94, 0.2)';
-      case 'primary': return 'rgba(59, 130, 246, 0.2)';
+      case 'success': return 'color-mix(in srgb, var(--success, #10b981) 20%, transparent)';
+      case 'primary': return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)';
       default: return 'rgba(255, 255, 255, 0.1)';
     }
   }};
   border: 1px solid ${props => {
     switch (props.$variant) {
-      case 'success': return 'rgba(34, 197, 94, 0.3)';
-      case 'primary': return 'rgba(59, 130, 246, 0.3)';
+      case 'success': return 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)';
+      case 'primary': return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)';
       default: return 'rgba(255, 255, 255, 0.2)';
     }
   }};
   color: ${props => {
     switch (props.$variant) {
-      case 'success': return '#22c55e';
-      case 'primary': return '#3b82f6';
+      case 'success': return 'var(--success, #10b981)';
+      case 'primary': return 'var(--accent-primary, #60C0F0)';
       default: return 'rgba(255, 255, 255, 0.8)';
     }
   }};
@@ -808,8 +808,8 @@ const ActionButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'succe
   &:hover {
     background: ${props => {
       switch (props.$variant) {
-        case 'success': return 'rgba(34, 197, 94, 0.3)';
-        case 'primary': return 'rgba(59, 130, 246, 0.3)';
+        case 'success': return 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)';
+        case 'primary': return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)';
         default: return 'rgba(255, 255, 255, 0.2)';
       }
     }};

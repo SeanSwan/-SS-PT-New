@@ -41,6 +41,7 @@ const EXERCISE_TYPES = ['All Types', 'Compound', 'Isolation', 'Calisthenics', 'S
 const EQUIPMENT_FILTERS = ['All Equipment', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine', 'Cable', 'Resistance Band', 'Kettlebell', 'Sliders', 'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX'];
 const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
 const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
+const ROLODEX_ROW_HEIGHT = 76;
 
 function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
   const lowTypes = ['flexibility', 'stability', 'balance'];
@@ -193,7 +194,8 @@ const ExerciseCard = styled.div<{ $selected: boolean }>`
     $selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'var(--bg-base, #0A0A0F)'};
   cursor: pointer;
   transition: all 0.15s ease;
-  min-height: 44px;
+  min-height: 64px;
+  overflow: hidden;
 
   &:hover {
     border-color: var(--accent-primary, #60C0F0);
@@ -206,6 +208,7 @@ const CardTop = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 4px;
+  min-width: 0;
 `;
 
 const ExName = styled.div`
@@ -224,8 +227,8 @@ const ExName = styled.div`
 `;
 
 const AddBtn = styled.button`
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  height: 44px;
   border-radius: 4px;
   border: 1px solid var(--accent-secondary, #8B5CF6);
   background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
@@ -247,6 +250,8 @@ const CardMeta = styled.div`
   gap: 3px;
   flex-wrap: wrap;
   margin-top: 3px;
+  max-height: 26px;
+  overflow: hidden;
 `;
 
 const MetaTag = styled.span<{ $impact?: string }>`
@@ -255,6 +260,10 @@ const MetaTag = styled.span<{ $impact?: string }>`
   font-family: 'Fira Code', monospace;
   font-size: 8px;
   font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: rgba(96, 192, 240, 0.08);
   color: rgba(224, 236, 244, 0.45);
   ${({ $impact }) => {
@@ -380,7 +389,7 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
     const pair = exercisePairs[index];
     if (!pair) return null;
     return (
-      <div style={{ ...style, display: 'flex', gap: 4, padding: '2px 0' }}>
+      <div style={{ ...style, display: 'flex', gap: 6, padding: '3px 0' }}>
         {pair.map(ex => {
           const impact = getJointImpact(ex);
           const eqArr = parseEquipment((ex as any).equipment || (ex as any).equipmentNeeded);
@@ -510,9 +519,9 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
           <List
             rowComponent={PairedRowRenderer as any}
             rowCount={exercisePairs.length}
-            rowHeight={60}
+            rowHeight={ROLODEX_ROW_HEIGHT}
             rowProps={{} as any}
-            style={{ height: Math.min(exercisePairs.length, 7) * 60, overflowX: 'hidden' }}
+            style={{ height: Math.min(exercisePairs.length, 7) * ROLODEX_ROW_HEIGHT, overflowX: 'hidden' }}
           />
         )}
       </ExerciseGrid>

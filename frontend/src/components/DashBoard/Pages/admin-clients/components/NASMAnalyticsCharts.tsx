@@ -23,6 +23,7 @@ import {
   VictoryLabel,
 } from 'victory';
 import type { AnalyticsData } from '../../../../../hooks/analytics/useWorkoutAnalytics';
+import { sanitizeNASMChartsData } from './workoutChartsSanitizers';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Shared Chart Config
@@ -91,30 +92,31 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({ title, span, icon, children
 interface Props { data: AnalyticsData; }
 
 const NASMAnalyticsCharts: React.FC<Props> = ({ data }) => {
-  const has1RM = data.oneRMProgression.length > 0;
-  const hasMuscle = data.muscleGroupVolume.length > 2;
-  const hasRPE = data.rpeTrend.length > 1;
+  const chartData = useMemo(() => sanitizeNASMChartsData(data), [data]);
+  const has1RM = chartData.oneRMProgression.length > 0;
+  const hasMuscle = chartData.muscleGroupVolume.length > 2;
+  const hasRPE = chartData.rpeTrend.length > 1;
 
   // Top 5 exercises by volume for 1RM line chart
   const top1RMExercises = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const p of data.oneRMProgression) {
+    for (const p of chartData.oneRMProgression) {
       totals.set(p.exercise, (totals.get(p.exercise) || 0) + p.estimated1RM);
     }
     return Array.from(totals.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([name]) => name);
-  }, [data.oneRMProgression]);
+  }, [chartData.oneRMProgression]);
 
   // Normalize muscle group volume for radar (0-100 scale)
   const radarData = useMemo(() => {
-    const maxVol = Math.max(...data.muscleGroupVolume.map(m => m.volume), 1);
-    return data.muscleGroupVolume
+    const maxVol = Math.max(...chartData.muscleGroupVolume.map(m => m.volume), 1);
+    return chartData.muscleGroupVolume
       .filter(m => m.group !== 'Other')
       .slice(0, 6)
       .map(m => ({ x: m.group, y: Math.round((m.volume / maxVol) * 100) }));
-  }, [data.muscleGroupVolume]);
+  }, [chartData.muscleGroupVolume]);
 
   if (!has1RM && !hasMuscle && !hasRPE) return null;
 
@@ -136,7 +138,7 @@ const NASMAnalyticsCharts: React.FC<Props> = ({ data }) => {
               style={AXIS_STYLE}
             />
             {top1RMExercises.map((exercise, i) => {
-              const exerciseData = data.oneRMProgression
+              const exerciseData = chartData.oneRMProgression
                 .filter(p => p.exercise === exercise)
                 .map(p => ({ x: p.date, y: p.estimated1RM }));
               if (exerciseData.length < 1) return null;
@@ -242,7 +244,7 @@ const NASMAnalyticsCharts: React.FC<Props> = ({ data }) => {
               style={AXIS_STYLE}
             />
             <VictoryArea
-              data={data.rpeTrend}
+              data={chartData.rpeTrend}
               x="date" y="avgRPE"
               style={{
                 data: { fill: 'rgba(139, 92, 246, 0.15)', stroke: COLORS.purple, strokeWidth: 2 },
@@ -250,7 +252,7 @@ const NASMAnalyticsCharts: React.FC<Props> = ({ data }) => {
               interpolation="monotoneX"
             />
             <VictoryScatter
-              data={data.rpeTrend}
+              data={chartData.rpeTrend}
               x="date" y="avgRPE"
               size={4}
               style={{ data: { fill: COLORS.purple } }}

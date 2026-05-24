@@ -44,6 +44,7 @@ import ExerciseDetailPanel from './ExerciseDetailPanel';
 import ExerciseRolodexPanel from './ExerciseRolodexPanel';
 import type { RolodexExercise } from './ExerciseRolodexPanel';
 import TeachMeToggle from '../Shared/TeachMeToggle';
+import { buildBootcampExerciseFromRolodex } from './BootcampExerciseAlternatives';
 
 type BuildMode = 'ai' | 'manual' | 'hybrid';
 
@@ -115,32 +116,18 @@ const BootcampBuilderPage: React.FC = () => {
         overflowPlan: null,
       } as any);
     }
-  }, [buildMode, classFormat, bootcamp]);
+  }, [buildMode, classFormat, bootcamp, targetDuration, className, dayType, expectedParticipants]);
 
   // View exercise detail from Rolodex (click on card body)
   const handleSelectFromRolodex = useCallback((exercise: RolodexExercise) => {
     setSelectedRolodexId(exercise.id);
-    // Map to BootcampExercise shape for the detail panel
-    setSelectedExercise({
-      exerciseName: exercise.name,
+    setSelectedExercise(buildBootcampExerciseFromRolodex(exercise, {
       durationSec: 35,
       restSec: 15,
       sortOrder: 0,
-      muscleTargets: (exercise.primaryMuscles || []).join(','),
-      easyVariation: exercise.easyVariation || null,
-      hardVariation: exercise.hardVariation || null,
-      kneeMod: (exercise as any).kneeMod || null,
-      shoulderMod: (exercise as any).shoulderMod || null,
-      ankleMod: (exercise as any).ankleMod || null,
-      wristMod: (exercise as any).wristMod || null,
-      backMod: (exercise as any).backMod || null,
-      board: 'main',
       stationIndex: 0,
-      isCardioFinisher: false,
-      equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
       setupTimeSec: 5,
-      description: (exercise as any).description || null,
-    } as any);
+    }));
   }, []);
 
   // Delete exercise from bootcamp
@@ -161,61 +148,46 @@ const BootcampBuilderPage: React.FC = () => {
     const { workSec } = calcWorkInterval(classFormat, targetDur);
     const maxPerStation = getExercisesPerStation(classFormat);
     const numStations = isStationBased ? getStationCount(classFormat) : 0;
+    const existingForPlacement = bootcamp?.exercises || [];
+    const stationCounts = new Map<number, number>();
+    for (const ex of existingForPlacement) {
+      const station = ex.stationIndex ?? 0;
+      stationCounts.set(station, (stationCounts.get(station) || 0) + 1);
+    }
+
+    let placedStationIdx = activeStation ?? 0;
+    if (isStationBased && numStations > 0 && activeStation === null) {
+      placedStationIdx = -1;
+      for (let i = 0; i < numStations; i++) {
+        if ((stationCounts.get(i) || 0) < maxPerStation) {
+          placedStationIdx = i;
+          break;
+        }
+      }
+    }
 
     // Enforce limits: check if target station is full
-    if (isStationBased && bootcamp) {
-      const existingExercises = bootcamp.exercises || [];
-      const stationCounts = new Map<number, number>();
-      for (const ex of existingExercises) stationCounts.set(ex.stationIndex ?? 0, (stationCounts.get(ex.stationIndex ?? 0) || 0) + 1);
-
-      const targetIdx = activeStation ?? (() => {
-        for (let i = 0; i < numStations; i++) if ((stationCounts.get(i) || 0) < maxPerStation) return i;
-        return -1;
-      })();
-
-      if (targetIdx === -1) {
+    if (isStationBased) {
+      if (placedStationIdx === -1) {
         toast.error(`All ${numStations} stations are full (${maxPerStation} exercises each). Delete an exercise first.`);
         return;
       }
-      if ((stationCounts.get(targetIdx) || 0) >= maxPerStation) {
-        toast.error(`Station ${targetIdx + 1} is full (${maxPerStation} exercises). Click another station or delete an exercise.`);
+      if ((stationCounts.get(placedStationIdx) || 0) >= maxPerStation) {
+        toast.error(`Station ${placedStationIdx + 1} is full (${maxPerStation} exercises). Click another station or delete an exercise.`);
         return;
       }
     }
 
     setBootcamp(prev => {
       const existingExercises = prev?.exercises || [];
-      let targetStationIdx = activeStation ?? 0;
-
-      if (isStationBased && numStations > 0 && activeStation === null) {
-        // Auto-find first station with room
-        const stationCounts = new Map<number, number>();
-        for (const ex of existingExercises) stationCounts.set(ex.stationIndex ?? 0, (stationCounts.get(ex.stationIndex ?? 0) || 0) + 1);
-        for (let i = 0; i < numStations; i++) {
-          if ((stationCounts.get(i) || 0) < maxPerStation) { targetStationIdx = i; break; }
-        }
-      }
-
-      const stationExCount = existingExercises.filter(e => e.stationIndex === targetStationIdx).length;
-      const newEx = {
-        exerciseName: exercise.name,
+      const stationExCount = existingExercises.filter(e => e.stationIndex === placedStationIdx).length;
+      const newEx = buildBootcampExerciseFromRolodex(exercise, {
         durationSec: workSec,
         restSec: 15,
         sortOrder: stationExCount + 1,
-        muscleTargets: (exercise.primaryMuscles || []).join(','),
-        easyVariation: exercise.easyVariation || null,
-        hardVariation: exercise.hardVariation || null,
-        kneeMod: (exercise as any).kneeMod || null,
-        shoulderMod: (exercise as any).shoulderMod || null,
-        ankleMod: (exercise as any).ankleMod || null,
-        wristMod: (exercise as any).wristMod || null,
-        backMod: (exercise as any).backMod || null,
-        board: 'main',
-        stationIndex: targetStationIdx,
-        isCardioFinisher: false,
-        equipmentRequired: (exercise.equipmentNeeded || []).join(', '),
+        stationIndex: placedStationIdx,
         setupTimeSec: 5,
-      } as any;
+      });
 
       if (prev) {
         const updatedExercises = [...existingExercises, newEx];
@@ -237,7 +209,7 @@ const BootcampBuilderPage: React.FC = () => {
       } as any;
     });
 
-    toast.success(`Added: ${exercise.name}${isStationBased ? ` → Station ${(activeStation ?? 0) + 1}` : ''}`);
+    toast.success(`Added: ${exercise.name}${isStationBased ? ` → Station ${placedStationIdx + 1}` : ''}`);
   }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation]);
 
   const handleGenerate = useCallback(async () => {
@@ -248,12 +220,15 @@ const BootcampBuilderPage: React.FC = () => {
     try {
       const result = await api.generateClass({
         classFormat,
+        classStyle,
         dayType,
+        intensityCategory,
         targetDuration: parseInt(targetDuration, 10) || 45,
         expectedParticipants: parseInt(expectedParticipants, 10) || 12,
         name: className || undefined,
         equipmentProfileId: equipmentProfileId || undefined,
         optPhase,
+        includeStretch,
       });
       setBootcamp(result);
     } catch (err) {
@@ -261,7 +236,7 @@ const BootcampBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, classFormat, dayType, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase]);
+  }, [api, classFormat, classStyle, dayType, intensityCategory, targetDuration, expectedParticipants, className, equipmentProfileId, optPhase, includeStretch]);
 
   const handleSave = useCallback(async () => {
     if (!bootcamp || saving) return;

@@ -9,30 +9,19 @@
  * Pipeline: Component data → formatter → pdfCore → download/blob
  */
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable, { type UserOptions } from 'jspdf-autotable';
 import { format } from 'date-fns';
 
-// ── jsPDF autoTable type augmentation ────────────────────────────────
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: AutoTableOptions) => jsPDF;
-    lastAutoTable: { finalY: number };
-  }
+// ── jsPDF autoTable interop ───────────────────────────────────────────
+type AutoTableOptions = UserOptions;
+type AutoTableDoc = jsPDF & { lastAutoTable?: { finalY?: number } };
+
+function addAutoTable(doc: jsPDF, options: AutoTableOptions) {
+  autoTable(doc, options);
 }
 
-interface AutoTableOptions {
-  startY?: number;
-  head?: string[][];
-  body?: (string | number)[][];
-  theme?: 'striped' | 'grid' | 'plain';
-  headStyles?: Record<string, unknown>;
-  bodyStyles?: Record<string, unknown>;
-  alternateRowStyles?: Record<string, unknown>;
-  columnStyles?: Record<string, Record<string, unknown>>;
-  styles?: Record<string, unknown>;
-  margin?: { left?: number; right?: number; top?: number; bottom?: number };
-  tableWidth?: number | 'auto' | 'wrap';
-  didDrawPage?: (data: { pageNumber: number }) => void;
+function getLastAutoTableY(doc: jsPDF, fallbackY: number): number {
+  return (doc as AutoTableDoc).lastAutoTable?.finalY ?? fallbackY;
 }
 
 // ── Brand Colors (print-friendly Crystalline Swan) ───────────────────
@@ -329,7 +318,7 @@ export function exportWorkoutLoggerPDF(data: WorkoutLoggerPDFData): void {
       y += 4;
     }
 
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['Set', 'Weight (lbs)', 'Reps', 'RPE', 'Form', 'Tempo', 'Rest (s)', 'Notes']],
       body: ex.sets.map(s => [
@@ -356,7 +345,7 @@ export function exportWorkoutLoggerPDF(data: WorkoutLoggerPDFData): void {
       margin: { left: 16, right: 16 },
     });
 
-    y = doc.lastAutoTable.finalY + 6;
+    y = getLastAutoTableY(doc, y) + 6;
   });
 
   // Session notes
@@ -396,7 +385,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
   // Station layout
   if (data.stations.length > 0) {
     y = addSectionTitle(doc, y, 'Station Layout');
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['#', 'Station Name', 'Equipment Needed']],
       body: data.stations.map(s => [s.stationNumber, s.stationName, s.equipmentNeeded || 'None']),
@@ -407,7 +396,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
       styles: { cellPadding: 2.5, lineColor: BRAND.borderGray, lineWidth: 0.2 },
       margin: { left: 16, right: 16 },
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = getLastAutoTableY(doc, y) + 6;
   }
 
   // Exercises by station
@@ -423,7 +412,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
     const stationName = data.stations.find(s => s.stationNumber === stationIdx + 1)?.stationName || `Station ${stationIdx + 1}`;
     y = addSectionTitle(doc, y, stationName);
 
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['Exercise', 'Duration', 'Rest', 'Muscles', 'Equipment', 'Easy Var.', 'Hard Var.']],
       body: exList.map(ex => [
@@ -443,7 +432,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
       margin: { left: 16, right: 16 },
       columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } },
     });
-    y = doc.lastAutoTable.finalY + 5;
+    y = getLastAutoTableY(doc, y) + 5;
   });
 
   // Cardio finishers
@@ -451,7 +440,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
   if (finishers.length > 0) {
     y = checkPageBreak(doc, y, 20);
     y = addSectionTitle(doc, y, 'Cardio Finishers');
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['Exercise', 'Duration', 'Rest', 'Muscles']],
       body: finishers.map(ex => [ex.exerciseName, `${ex.durationSec}s`, `${ex.restSec}s`, ex.muscleTargets || '-']),
@@ -461,7 +450,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
       styles: { cellPadding: 2.5, lineColor: BRAND.borderGray, lineWidth: 0.2 },
       margin: { left: 16, right: 16 },
     });
-    y = doc.lastAutoTable.finalY + 5;
+    y = getLastAutoTableY(doc, y) + 5;
   }
 
   // Overflow plan
@@ -473,7 +462,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
     y = addKeyValue(doc, y, 'Lap Duration', `${data.overflowPlan.lapDurationMin} min`);
     if (data.overflowPlan.lapExercises.length > 0) {
       y += 2;
-      doc.autoTable({
+      addAutoTable(doc, {
         startY: y,
         head: [['Lap Exercise', 'Duration (min)']],
         body: data.overflowPlan.lapExercises.map(le => [le.name, le.durationMin]),
@@ -491,7 +480,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
   if (moddedExercises.length > 0) {
     y = checkPageBreak(doc, y, 25);
     y = addSectionTitle(doc, y, 'Injury Modifications Reference');
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['Exercise', 'Knee', 'Shoulder', 'Ankle', 'Wrist', 'Back']],
       body: moddedExercises.map(ex => [
@@ -573,7 +562,7 @@ export function exportLongHorizonPDF(data: PDFLongHorizonPlan, clientName?: stri
 
   // Mesocycle detail table
   y = addSectionTitle(doc, y, 'Mesocycle Breakdown');
-  doc.autoTable({
+  addAutoTable(doc, {
     startY: y,
     head: [['#', 'Phase', 'Framework', 'Focus', 'Weeks', 'Sessions/Wk', 'Entry Criteria']],
     body: data.blocks.map(b => [
@@ -593,7 +582,7 @@ export function exportLongHorizonPDF(data: PDFLongHorizonPlan, clientName?: stri
     margin: { left: 16, right: 16 },
     columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { fontStyle: 'bold' } },
   });
-  y = doc.lastAutoTable.finalY + 6;
+  y = getLastAutoTableY(doc, y) + 6;
 
   // Detailed phase cards
   data.blocks.forEach((block, i) => {
@@ -654,7 +643,7 @@ export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string
 
   // Weekly overview table
   y = addSectionTitle(doc, y, 'Weekly Schedule');
-  doc.autoTable({
+  addAutoTable(doc, {
     startY: y,
     head: [['Day', 'Name', 'Focus', 'Duration', 'Exercises']],
     body: data.days.map(d => [
@@ -672,7 +661,7 @@ export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string
     margin: { left: 16, right: 16 },
     columnStyles: { 0: { cellWidth: 16, halign: 'center' }, 1: { fontStyle: 'bold' } },
   });
-  y = doc.lastAutoTable.finalY + 6;
+  y = getLastAutoTableY(doc, y) + 6;
 
   // Detailed day-by-day
   data.days.forEach(day => {
@@ -687,7 +676,7 @@ export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string
       y += 4;
     }
 
-    doc.autoTable({
+    addAutoTable(doc, {
       startY: y,
       head: [['#', 'Exercise', 'Sets', 'Reps', 'Rest', 'Tempo', 'Intensity', 'Notes']],
       body: day.exercises.map((ex, i) => [
@@ -712,7 +701,7 @@ export function exportAIWorkoutPlanPDF(data: PDFWorkoutPlan, clientName?: string
         7: { cellWidth: 35 },
       },
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = getLastAutoTableY(doc, y) + 6;
   });
 
   const fname = clientName ? clientName.replace(/[^a-zA-Z0-9]/g, '-') : 'AI-Plan';
@@ -856,7 +845,7 @@ export function exportPopulatedPlanPDF(
 
   // ── Mesocycle Breakdown table ──────────────────────────────────────
   y = addSectionTitle(doc, y, 'Mesocycles');
-  doc.autoTable({
+  addAutoTable(doc, {
     startY: y,
     head: [['#', 'Phase', 'Weeks', 'Focus', 'Sets', 'Reps', 'Intensity', 'Rest']],
     body: plan.mesocycles.map((m) => [
@@ -877,7 +866,7 @@ export function exportPopulatedPlanPDF(
     margin: { left: 16, right: 16 },
     columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 1: { fontStyle: 'bold' } },
   });
-  y = doc.lastAutoTable.finalY + 6;
+  y = getLastAutoTableY(doc, y) + 6;
 
   // ── Recommendations ────────────────────────────────────────────────
   if (plan.recommendations.length > 0) {
@@ -948,7 +937,7 @@ export function exportPopulatedPlanPDF(
         y += 4;
 
         if (Array.isArray(day.exercises) && day.exercises.length > 0) {
-          doc.autoTable({
+          addAutoTable(doc, {
             startY: y,
             head: [['Exercise', 'Sets', 'Reps', 'Rest', 'Notes']],
             body: day.exercises.map((ex) => {
@@ -984,7 +973,7 @@ export function exportPopulatedPlanPDF(
               3: { cellWidth: 14, halign: 'center' },
             },
           });
-          y = doc.lastAutoTable.finalY + 4;
+          y = getLastAutoTableY(doc, y) + 4;
         } else {
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(7);

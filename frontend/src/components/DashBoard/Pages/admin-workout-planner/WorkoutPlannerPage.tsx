@@ -108,6 +108,7 @@ import {
 const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
   [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
 ];
+const WORKOUT_PLANNER_ROW_HEIGHT = 76;
 const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 
 // ─────────────────────────────────────────────────────────────
@@ -1436,7 +1437,7 @@ const WorkoutPlannerPage: React.FC = () => {
               React.createElement(List, {
                 rowComponent: ExerciseRowRenderer,
                 rowCount: filteredExercises.length,
-                rowHeight: 64,
+                rowHeight: WORKOUT_PLANNER_ROW_HEIGHT,
                 rowProps: {},
                 style: VIRTUAL_LIST_STYLE,
               })

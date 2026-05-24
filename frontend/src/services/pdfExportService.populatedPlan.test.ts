@@ -47,21 +47,23 @@ vi.mock('jspdf', () => {
     addPage() {}
     setPage() {}
     getNumberOfPages() { return 1; }
-    autoTable(opts: { head?: string[][]; body?: unknown[][] }) {
-      autoTableCalls.push({
-        head: opts.head ?? [],
-        bodyRows: Array.isArray(opts.body) ? opts.body.length : 0,
-      });
-      this.lastAutoTable.finalY += 10;
-    }
     save(filename: string) { savedFilenames.push(filename); }
   }
   return { jsPDF: MockJsPDF };
 });
 
-vi.mock('jspdf-autotable', () => ({}));
+vi.mock('jspdf-autotable', () => ({
+  default: (doc: { lastAutoTable?: { finalY: number } }, opts: { head?: string[][]; body?: unknown[][] }) => {
+    autoTableCalls.push({
+      head: opts.head ?? [],
+      bodyRows: Array.isArray(opts.body) ? opts.body.length : 0,
+    });
+    if (doc.lastAutoTable) doc.lastAutoTable.finalY += 10;
+    else doc.lastAutoTable = { finalY: 100 };
+  },
+}));
 
-import { exportPopulatedPlanPDF, type PDFPopulatedPlan } from './pdfExportService';
+import { exportPopulatedPlanPDF, exportWorkoutLoggerPDF, type PDFPopulatedPlan } from './pdfExportService';
 
 const buildPlan = (overrides: Partial<PDFPopulatedPlan> = {}): PDFPopulatedPlan => ({
   planSummary: {
@@ -186,5 +188,38 @@ describe('exportPopulatedPlanPDF — recommendations', () => {
     exportPopulatedPlanPDF(buildPlan({ recommendations: [] }), 'Test');
     // The "AI Recommendations" section title should NOT be emitted.
     expect(textCalls.some(t => t.includes('AI Recommendations'))).toBe(false);
+  });
+});
+
+describe('exportWorkoutLoggerPDF autoTable integration', () => {
+  it('uses the jspdf-autotable function export instead of requiring doc.autoTable mutation', () => {
+    exportWorkoutLoggerPDF({
+      clientName: 'Test Client',
+      trainerName: 'Coach Swan',
+      date: '2026-05-24',
+      sessionNotes: 'Solid control.',
+      overallIntensity: 7,
+      exercises: [
+        {
+          exerciseId: 'push-up',
+          exerciseName: 'Push-Up',
+          formRating: 4,
+          painLevel: 0,
+          sets: [
+            {
+              setNumber: 1,
+              weight: 0,
+              reps: 12,
+              rpe: 7,
+              restTime: 60,
+              formQuality: 4,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(autoTableCalls.length).toBeGreaterThan(0);
+    expect(savedFilenames[0]).toBe('SwanStudios-Workout-Test-Client-2026-05-24.pdf');
   });
 });

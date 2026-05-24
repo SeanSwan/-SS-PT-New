@@ -407,9 +407,9 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   width: 100%;
   text-align: left;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border: 1px solid ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)' : 'var(--border-soft, rgba(96, 192, 240, 0.06))'};
   border-radius: 10px;
   background: ${({ $selected }) => $selected ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)' : 'rgba(255, 255, 255, 0.015)'};
@@ -418,7 +418,7 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   cursor: pointer;
   margin-bottom: 6px;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  min-height: 44px;
+  min-height: 64px;
   overflow: hidden;
   border-left: 3px solid ${({ $selected }) => $selected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
 
@@ -444,12 +444,16 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
 export const ExerciseName = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.25;
   color: var(--text-primary, #E0ECF4);
-  margin-bottom: 4px;
-  white-space: nowrap;
+  margin-bottom: 3px;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 
   @media (max-width: 430px) {
     white-space: normal;
@@ -464,15 +468,17 @@ export const ExerciseMeta = styled.div`
   font-size: 0.65rem;
   color: var(--text-secondary, rgba(224, 236, 244, 0.5));
   display: flex;
-  gap: 0;
+  gap: 3px;
   align-items: center;
   flex-wrap: wrap;
+  max-height: 30px;
   overflow: hidden;
 
   /* Pipe separators and tag spans */
   & > span {
     white-space: nowrap;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
   }
 `;
 
@@ -485,6 +491,9 @@ export const MetaTag = styled.span<{ $impact?: string }>`
   font-weight: 600;
   letter-spacing: 0.02em;
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: ${({ $impact }) => {
     if ($impact === 'Low Impact') return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
     if ($impact === 'Medium Impact') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent)';

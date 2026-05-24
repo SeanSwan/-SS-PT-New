@@ -30,7 +30,7 @@ export interface BootcampExercise {
   description: string | null;
   equipmentRequired: string | null;
   stationIndex?: number;
-  board?: 'main' | 'alternative';
+  board?: 'main' | 'alternative' | 'lowImpact';
   setupTimeSec?: number;
   pyramidStartWeight?: string | null;
   pyramidDrops?: number | null;
@@ -70,7 +70,19 @@ export interface BootcampExplanation {
   message: string;
 }
 
-export type ClassStyle = 'standard' | 'pyramid' | 'superset' | 'mixed';
+export type ClassStyle =
+  | 'standard'
+  | 'pyramid'
+  | 'superset'
+  | 'mixed'
+  | 'ladder'
+  | 'descending'
+  | 'chipper'
+  | 'countdown'
+  | 'death_by'
+  | 'ygig'
+  | 'contrast'
+  | 'density';
 export type IntensityCategory = 'high_impact' | 'medium_impact' | 'calisthenics' | 'stability' | 'flexibility' | 'cardio';
 
 export interface BootcampStretch {

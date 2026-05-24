@@ -26,10 +26,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Track offline-queue calls + submit service mock. vi.hoisted() makes
 // these safe to reference inside vi.mock factories (which are hoisted to
 // the top of the file before plain `const` declarations).
-const { mockQueueSubmission, mockFlush, submitWorkoutFormMock } = vi.hoisted(() => ({
+const { mockQueueSubmission, mockFlush, submitWorkoutFormMock, toastErrorMock, toastSuccessMock, apiPostMock } = vi.hoisted(() => ({
   mockQueueSubmission: vi.fn(),
   mockFlush: vi.fn(),
   submitWorkoutFormMock: vi.fn(),
+  toastErrorMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
+  apiPostMock: vi.fn(),
 }));
 
 vi.mock('./useOfflineQueue', () => ({
@@ -95,7 +98,7 @@ vi.mock('../../services/api.service', async () => {
         },
       },
     });
-    post = vi.fn().mockResolvedValue({ data: { success: true } });
+    post = apiPostMock;
     put = vi.fn().mockResolvedValue({ data: { success: true } });
     delete = vi.fn().mockResolvedValue({ data: { success: true } });
   }
@@ -129,7 +132,7 @@ vi.mock('../../services/pdfExportService', () => ({
 }));
 
 vi.mock('react-toastify', () => ({
-  toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+  toast: { info: vi.fn(), success: toastSuccessMock, warning: vi.fn(), error: toastErrorMock },
   ToastContainer: () => null,
 }));
 
@@ -167,9 +170,17 @@ vi.mock('./NASMExerciseRolodex', () => ({
 vi.mock('./WorkoutLoggerFooter', () => ({
   default: (props: any) => (
     <div>
+      <button data-testid="mock-footer-cancel" onClick={props.onCancel}>
+        Cancel
+      </button>
       <button data-testid="mock-footer-submit" onClick={props.onSubmit}>
         Complete & Save Workout
       </button>
+      {props.showGenerateSummary && (
+        <button data-testid="mock-footer-summary" onClick={props.onGenerateSummary}>
+          Generate & Send Summary
+        </button>
+      )}
     </div>
   ),
 }));
@@ -194,6 +205,10 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     mockQueueSubmission.mockClear();
     mockFlush.mockClear();
     submitWorkoutFormMock.mockClear();
+    toastErrorMock.mockClear();
+    toastSuccessMock.mockClear();
+    apiPostMock.mockClear();
+    apiPostMock.mockResolvedValue({ data: { success: true } });
     navigateMock.mockClear();
     localStorage.setItem('token', 'test-token');
   });
@@ -246,6 +261,49 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     });
   });
 
+  it('409 duplicate-form response unlocks Generate Summary with the existing form id', async () => {
+    submitWorkoutFormMock.mockResolvedValue({
+      success: false,
+      data: {
+        id: 'existing-form-409',
+        clientId: 91,
+        trainerId: 5,
+        date: '2026-05-24',
+      },
+      message: 'A workout form already exists for this client on this date',
+    });
+    apiPostMock.mockResolvedValueOnce({ data: { success: true, emailSent: true } });
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith('A workout form already exists for this client on this date');
+    });
+    expect(mockQueueSubmission).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByTestId('mock-footer-summary'));
+
+    await waitFor(() => {
+      expect(apiPostMock).toHaveBeenCalledWith(
+        '/api/workout-summaries',
+        expect.objectContaining({
+          clientId: 91,
+          formId: 'existing-form-409',
+          sendEmail: true,
+        }),
+      );
+    });
+    expect(toastSuccessMock).toHaveBeenCalledWith('Summary generated and sent to client!');
+  });
+
   it('rejected save DOES call queueSubmission (preserve offline-first behavior)', async () => {
     // Inverse lock: the queueSubmission path for genuine failures
     // must NOT be broken. A network rejection should still land in
@@ -270,12 +328,10 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     });
   });
 
-  it('service returning { success: false } (4xx-with-body) throws in caller and queues', async () => {
-    // Anti-regression for the pre-round-13 shape where success/data
-    // were both undefined. Now that the fix is in, a genuine
-    // `{ success: false }` response must NOT be silently treated as
-    // success — it must trigger the error branch which queues locally
-    // so the user can retry once the issue is resolved.
+  it('service returning { success: false } (4xx-with-body) shows the server message and does NOT queue', async () => {
+    // Business-rule failures with a server message are terminal for
+    // this submission attempt. They should tell the user what to fix
+    // instead of queueing an invalid form for offline retry.
     submitWorkoutFormMock.mockResolvedValue({
       success: false,
       data: undefined,
@@ -293,7 +349,27 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     fireEvent.click(await screen.findByTestId('mock-footer-submit'));
 
     await waitFor(() => {
-      expect(mockQueueSubmission).toHaveBeenCalledTimes(1);
+      expect(toastErrorMock).toHaveBeenCalledWith('Client has no available sessions remaining');
     });
+    expect(mockQueueSubmission).not.toHaveBeenCalled();
+  });
+
+  it('requires confirmation before canceling an unsaved workout', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    fireEvent.click(await screen.findByTestId('mock-footer-cancel'));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Discard this unsaved workout'));
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
   });
 });

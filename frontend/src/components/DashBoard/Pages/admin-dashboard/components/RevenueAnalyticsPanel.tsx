@@ -47,9 +47,9 @@ import apiService from '../../../../../services/api.service';
 // =====================================================
 
 const cosmicPulse = keyframes`
-  0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
-  100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  0% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
+  50% { box-shadow: 0 0 40px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 56%, transparent); }
+  100% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
 `;
 
 const dataFlow = keyframes`
@@ -58,14 +58,15 @@ const dataFlow = keyframes`
 `;
 
 const AnalyticsContainer = styled(motion.div)`
-  background: linear-gradient(135deg, 
-    rgba(0, 32, 96, 0.95) 0%, 
-    rgba(30, 58, 138, 0.1) 50%,
-    rgba(14, 165, 233, 0.05) 100%
-  );
+  background:
+    radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), transparent 36%),
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 94%, transparent) 0%,
+      color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent) 100%
+    );
   border-radius: 24px;
   padding: 2.5rem;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
   backdrop-filter: blur(25px);
   position: relative;
   overflow: hidden;
@@ -77,7 +78,7 @@ const AnalyticsContainer = styled(motion.div)`
     left: -100%;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #60C0F0, transparent);
+    background: linear-gradient(90deg, transparent, var(--accent-primary, #60C0F0), transparent);
     animation: ${dataFlow} 3s linear infinite;
   }
 `;
@@ -94,7 +95,7 @@ const PanelHeader = styled.div`
 const PanelTitle = styled.h1`
   font-size: 2.25rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #60C0F0 0%, #3b82f6 50%, #1e3a8a 100%);
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0) 0%, var(--accent-secondary, #8B5CF6) 58%, var(--accent-gold, #C6A84B) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -102,7 +103,7 @@ const PanelTitle = styled.h1`
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+  text-shadow: 0 0 30px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent);
 `;
 
 const StatusIndicator = styled(motion.div)<{ status: 'live' | 'updating' | 'error' }>`
@@ -115,21 +116,21 @@ const StatusIndicator = styled(motion.div)<{ status: 'live' | 'updating' | 'erro
   font-weight: 500;
   
   ${props => props.status === 'live' && `
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #10b981;
+    background: color-mix(in srgb, var(--success, #10b981) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--success, #10b981) 30%, transparent);
+    color: var(--success, #10b981);
   `}
   
   ${props => props.status === 'updating' && `
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    color: #f59e0b;
+    background: color-mix(in srgb, var(--warning, #f59e0b) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent);
+    color: var(--warning, #f59e0b);
   `}
   
   ${props => props.status === 'error' && `
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
+    background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
+    color: var(--danger, #ef4444);
   `}
 `;
 
@@ -151,10 +152,10 @@ const ControlsContainer = styled.div`
 `;
 
 const ActionButton = styled(motion.button)<{ $autoRefresh?: boolean }>`
-  background: ${({ $autoRefresh }) => ($autoRefresh ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)')};
-  border: 1px solid ${({ $autoRefresh }) => ($autoRefresh ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)')};
+  background: ${({ $autoRefresh }) => ($autoRefresh ? 'color-mix(in srgb, var(--success, #10b981) 12%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)')};
+  border: 1px solid ${({ $autoRefresh }) => ($autoRefresh ? 'color-mix(in srgb, var(--success, #10b981) 30%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent)')};
   border-radius: 12px;
-  color: ${({ $autoRefresh }) => ($autoRefresh ? '#10b981' : '#3b82f6')};
+  color: ${({ $autoRefresh }) => ($autoRefresh ? 'var(--success, #10b981)' : 'var(--accent-primary, #60C0F0)')};
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -165,9 +166,9 @@ const ActionButton = styled(motion.button)<{ $autoRefresh?: boolean }>`
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 48%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
   }
   
   &:disabled {
@@ -177,23 +178,23 @@ const ActionButton = styled(motion.button)<{ $autoRefresh?: boolean }>`
 `;
 
 const TimeRangeSelector = styled.select`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
   border-radius: 12px;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   cursor: pointer;
   
   &:focus {
     outline: none;
-    border-color: #60C0F0;
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent);
   }
   
   option {
-    background: #1e3a8a;
-    color: white;
+    background: var(--bg-base, #0A0A0F);
+    color: var(--text-primary, #E0ECF4);
   }
 `;
 
@@ -206,8 +207,8 @@ const KPIGrid = styled.div`
 `;
 
 const KPICard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(30, 58, 138, 0.1) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent) 0%, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   border-radius: 16px;
   padding: 1.5rem;
   position: relative;
@@ -220,7 +221,7 @@ const KPICard = styled(motion.div)`
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #60C0F0, #3b82f6);
+    background: linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6));
   }
 `;
 
@@ -235,8 +236,8 @@ const KPIIcon = styled.div<{ color: string }>`
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: ${props => props.color}15;
-  border: 1px solid ${props => props.color}30;
+  background: ${props => `color-mix(in srgb, ${props.color} 16%, transparent)`};
+  border: 1px solid ${props => `color-mix(in srgb, ${props.color} 30%, transparent)`};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,14 +247,14 @@ const KPIIcon = styled.div<{ color: string }>`
 const KPIValue = styled.div`
   font-size: 2.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   line-height: 1;
   margin-bottom: 0.5rem;
 `;
 
 const KPILabel = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -267,7 +268,7 @@ const KPIChange = styled.div.withConfig({
   gap: 0.25rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: ${props => props.isPositive ? '#10b981' : '#ef4444'};
+  color: ${props => props.isPositive ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)'};
 `;
 
 // Charts Container
@@ -283,8 +284,8 @@ const ChartsContainer = styled.div`
 `;
 
 const ChartCard = styled(motion.div)`
-  background: rgba(30, 58, 138, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   border-radius: 16px;
   padding: 1.5rem;
   backdrop-filter: blur(10px);
@@ -293,7 +294,7 @@ const ChartCard = styled(motion.div)`
 const ChartTitle = styled.h3`
   font-size: 1.25rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
@@ -302,8 +303,8 @@ const ChartTitle = styled.h3`
 
 // Transactions Section
 const TransactionsContainer = styled(motion.div)`
-  background: rgba(30, 58, 138, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 76%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   border-radius: 16px;
   padding: 1.5rem;
 `;
@@ -314,14 +315,14 @@ const TransactionItem = styled.div`
   align-items: center;
   padding: 1rem;
   margin-bottom: 0.5rem;
-  background: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 66%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   border-radius: 12px;
   transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.2);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
   
   &:last-child {
@@ -330,31 +331,31 @@ const TransactionItem = styled.div`
 `;
 
 const LoadingTitle = styled.div`
-  color: #3b82f6;
+  color: var(--accent-primary, #60C0F0);
   font-size: 1.125rem;
   font-weight: 500;
 `;
 
 const LoadingSubtitle = styled.div`
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
   font-size: 0.875rem;
 `;
 
 const ErrorTitle = styled.div`
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   font-size: 1.25rem;
   font-weight: 600;
 `;
 
 const ErrorMessage = styled.div`
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
   margin-bottom: 1.5rem;
 `;
 
 const LastUpdatedText = styled.div`
   margin-left: auto;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
   font-weight: 400;
 `;
 
@@ -365,18 +366,18 @@ const TransactionDetails = styled.div`
 const TransactionCustomer = styled.div`
   font-weight: 600;
   margin-bottom: 0.25rem;
-  color: #ffffff;
+  color: var(--text-primary, #E0ECF4);
 `;
 
 const TransactionPackage = styled.div`
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted, rgba(224, 236, 244, 0.6));
   margin-bottom: 0.25rem;
 `;
 
 const TransactionDate = styled.div`
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted, rgba(224, 236, 244, 0.55));
 `;
 
 const TransactionAmountBlock = styled.div`
@@ -384,7 +385,7 @@ const TransactionAmountBlock = styled.div`
 `;
 
 const TransactionAmount = styled.div`
-  color: #10b981;
+  color: var(--success, #10b981);
   font-weight: 700;
   font-size: 1.125rem;
   margin-bottom: 0.25rem;
@@ -392,7 +393,7 @@ const TransactionAmount = styled.div`
 
 const TransactionStatus = styled.div<{ $completed: boolean }>`
   font-size: 0.875rem;
-  color: ${({ $completed }) => ($completed ? '#10b981' : '#f59e0b')};
+  color: ${({ $completed }) => ($completed ? 'var(--success, #10b981)' : 'var(--warning, #f59e0b)')};
   font-weight: 500;
 `;
 
@@ -408,8 +409,8 @@ const LoadingContainer = styled.div`
 const LoadingSpinner = styled(motion.div)`
   width: 60px;
   height: 60px;
-  border: 4px solid rgba(59, 130, 246, 0.2);
-  border-left: 4px solid #3b82f6;
+  border: 4px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  border-left: 4px solid var(--accent-primary, #60C0F0);
   border-radius: 50%;
 `;
 
@@ -628,7 +629,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
         transition={{ duration: 0.6 }}
       >
         <ErrorContainer>
-          <AlertTriangle size={48} color="#ef4444" />
+          <AlertTriangle size={48} color="var(--danger, #ef4444)" />
           <ErrorTitle>
             Failed to Load Revenue Analytics
           </ErrorTitle>
@@ -716,7 +717,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
           >
             <KPIHeader>
-              <KPIIcon color="#60C0F0">
+              <KPIIcon color="var(--accent-primary, #60C0F0)">
                 <DollarSign size={24} />
               </KPIIcon>
               <KPIChange isPositive={revenueData.changes.revenue > 0}>
@@ -736,7 +737,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
           >
             <KPIHeader>
-              <KPIIcon color="#3b82f6">
+              <KPIIcon color="var(--accent-secondary, #8B5CF6)">
                 <TrendingUp size={24} />
               </KPIIcon>
               <KPIChange isPositive={revenueData.changes.customers > 0}>
@@ -756,7 +757,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
           >
             <KPIHeader>
-              <KPIIcon color="#10b981">
+              <KPIIcon color="var(--success, #10b981)">
                 <CreditCard size={24} />
               </KPIIcon>
               <KPIChange isPositive={revenueData.changes.transactions > 0}>
@@ -776,7 +777,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
             whileHover={{ scale: 1.02 }}
           >
             <KPIHeader>
-              <KPIIcon color="#f59e0b">
+              <KPIIcon color="var(--warning, #f59e0b)">
                 <Users size={24} />
               </KPIIcon>
               <KPIChange isPositive={revenueData.changes.conversion > 0}>

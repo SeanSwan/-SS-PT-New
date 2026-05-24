@@ -63,6 +63,7 @@ const skipWebServer = prod || Boolean(baseUrlArg) || Boolean(process.env.BASE_UR
 
 const smokeSpecs = [
   'admin-compliance-truth-smoke.spec.ts',
+  'admin-workout-surfaces-protected-smoke.spec.ts',
   'client-dashboard-oracle-smoke.spec.ts',
   'gamification-hub-smoke.spec.ts',
   'marketing-native-publishing-smoke.spec.ts',
