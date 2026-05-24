@@ -72,9 +72,8 @@ export function useActivityTicker() {
     const token = ProductionTokenManager.getToken();
     if (!token) return;
 
-    // Vite dev server proxies /api but NOT /socket.io, so window.location.origin
-    // cannot reach the backend socket locally. In production the backend serves
-    // the frontend on the same origin, so window.location.origin is correct.
+    // Vite dev and the production static site proxy /api but not /socket.io.
+    // Prefer the explicit backend socket origin when Render provides it.
     const socketUrl =
       import.meta.env.VITE_SOCKET_URL
       || import.meta.env.VITE_BACKEND_URL

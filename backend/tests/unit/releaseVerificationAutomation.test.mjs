@@ -44,6 +44,14 @@ describe('release verification automation guards', () => {
     }
   });
 
+  it('pins frontend Socket.IO clients to the backend socket origin', () => {
+    const renderYaml = readRepo('render.yaml');
+    const frontend = serviceBlock(renderYaml, 'swanstudios-frontend');
+
+    expect(frontend).toContain('key: VITE_SOCKET_URL');
+    expect(frontend).toContain('value: https://ss-pt-new.onrender.com');
+  });
+
   it('rolls back both payment idempotency indexes in the migration down path', () => {
     const migration = readRepo('backend/migrations/20260520000001-add-payment-idempotency-unique-indexes.mjs');
 

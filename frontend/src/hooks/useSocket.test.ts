@@ -12,4 +12,9 @@ describe('useSocket messaging namespace contract', () => {
   it('normalizes trailing slashes before appending the namespace', () => {
     expect(SOURCE).toContain("replace(/\\/$/, '')");
   });
+
+  it('prefers the explicit socket origin before API base fallbacks', () => {
+    expect(SOURCE).toContain('import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL');
+    expect(SOURCE.indexOf('VITE_SOCKET_URL')).toBeLessThan(SOURCE.indexOf('VITE_API_BASE_URL'));
+  });
 });

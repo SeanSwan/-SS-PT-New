@@ -13,6 +13,10 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
 });
 
+const getSocketBaseUrl = () =>
+  (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000')
+    .replace(/\/$/, '');
+
 interface SocketProviderProps {
   children: ReactNode;
 }
@@ -29,7 +33,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    const socketInstance = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000', {
+    const socketInstance = io(getSocketBaseUrl(), {
       auth: { token },
       transports: ['websocket', 'polling'],
       upgrade: true,

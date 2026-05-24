@@ -30,6 +30,7 @@ describe('header notification socket auth pipeline', () => {
   it('authenticates the root Socket.IO connection before notification rooms are usable', () => {
     expect(socketContextSource).toContain("import { useAuth } from './AuthContext'");
     expect(socketContextSource).toContain('const { isAuthenticated, token } = useAuth()');
+    expect(socketContextSource).toContain('import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL');
     expect(socketContextSource).toContain("socketInstance.emit('authenticate', { token })");
     expect(socketContextSource).toContain("socketInstance.on('authenticated'");
     expect(socketContextSource).toContain("socketInstance.on('auth_error'");

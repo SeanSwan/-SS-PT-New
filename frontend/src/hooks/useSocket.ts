@@ -34,10 +34,15 @@ let refCount = 0;
 let currentToken: string | null = null;
 
 function getSocketUrl(): string {
+  const explicitSocketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
+  if (explicitSocketUrl) {
+    return explicitSocketUrl.replace(/\/$/, '');
+  }
+
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
   }
-  return (import.meta.env.VITE_SOCKET_URL || 'http://localhost:10000').replace(/\/$/, '');
+  return 'http://localhost:10000';
 }
 
 async function createSocket(token: string): Promise<Socket> {
