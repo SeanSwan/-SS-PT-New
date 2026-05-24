@@ -12,6 +12,7 @@ const headerSource = read('src/components/Header/header.tsx');
 const actionIconsSource = read('src/components/Header/components/ActionIcons.tsx');
 const notificationSource = stripComments(read('src/components/Header/EnhancedNotificationSection.tsx'));
 const socketContextSource = stripComments(read('src/context/SocketContext.tsx'));
+const realtimeSocketUrlSource = read('src/utils/realtimeSocketUrl.ts');
 const socketManagerSource = read('../backend/socket/socketManager.mjs');
 const notificationControllerSource = read('../backend/controllers/notificationController.mjs');
 
@@ -29,8 +30,10 @@ describe('header notification socket auth pipeline', () => {
 
   it('authenticates the root Socket.IO connection before notification rooms are usable', () => {
     expect(socketContextSource).toContain("import { useAuth } from './AuthContext'");
+    expect(socketContextSource).toContain("import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl'");
     expect(socketContextSource).toContain('const { isAuthenticated, token } = useAuth()');
-    expect(socketContextSource).toContain('import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL');
+    expect(socketContextSource).toContain('resolveRealtimeSocketUrl()');
+    expect(realtimeSocketUrlSource).toContain('https://ss-pt-new.onrender.com');
     expect(socketContextSource).toContain("socketInstance.emit('authenticate', { token })");
     expect(socketContextSource).toContain("socketInstance.on('authenticated'");
     expect(socketContextSource).toContain("socketInstance.on('auth_error'");

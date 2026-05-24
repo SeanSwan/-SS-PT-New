@@ -67,19 +67,19 @@ describe('useActivityTicker', () => {
     );
   });
 
-  it('uses window.location.origin when DEV is false (production build)', () => {
+  it('uses the backend Render origin when production is served from the custom domain', () => {
     localStorage.setItem('token', 'test-token');
     const socket = createSocketMock();
     ioMock.mockReturnValue(socket);
     vi.stubEnv('DEV', '');
     vi.stubEnv('VITE_SOCKET_URL', '');
-    vi.stubEnv('VITE_BACKEND_URL', '');
+    vi.stubEnv('VITE_BACKEND_URL', 'https://sswanstudios.com');
 
     try {
       renderHook(() => useActivityTicker());
 
       expect(ioMock).toHaveBeenCalledWith(
-        window.location.origin,
+        'https://ss-pt-new.onrender.com',
         expect.objectContaining({ auth: { token: 'test-token' } }),
       );
     } finally {

@@ -22,6 +22,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { io, Socket } from 'socket.io-client';
 import { logger } from '@/utils/logger';
+import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
 
 // === TYPE DEFINITIONS ===
 interface SessionEvent {
@@ -111,10 +112,13 @@ const API_BASE_URL = isProduction
   ? PRODUCTION_URL
   : (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || DEVELOPMENT_URL);
 
-// WebSocket configuration (integrated into main backend in production)
-const WEBSOCKET_URL = isProduction
-  ? PRODUCTION_URL // WebSocket integrated into main backend
-  : (import.meta.env.VITE_WEBSOCKET_URL || DEVELOPMENT_URL);
+const WEBSOCKET_URL = resolveRealtimeSocketUrl({
+  socketUrl: import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.VITE_SOCKET_URL,
+  backendUrl: import.meta.env.VITE_BACKEND_URL,
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+  isDev: !isProduction,
+  windowOrigin: typeof window !== 'undefined' ? window.location.origin : '',
+});
 
 // Debug logging for configuration verification
 logger.log('🔧 EnhancedClientDashboardService Configuration:', {

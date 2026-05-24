@@ -20,6 +20,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Socket } from 'socket.io-client';
+import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -34,15 +35,7 @@ let refCount = 0;
 let currentToken: string | null = null;
 
 function getSocketUrl(): string {
-  const explicitSocketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL;
-  if (explicitSocketUrl) {
-    return explicitSocketUrl.replace(/\/$/, '');
-  }
-
-  if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
-  }
-  return 'http://localhost:10000';
+  return resolveRealtimeSocketUrl();
 }
 
 async function createSocket(token: string): Promise<Socket> {

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { logger } from '@/utils/logger';
+import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
 import { useAuth } from './AuthContext';
 
 interface SocketContextType {
@@ -13,9 +14,7 @@ const SocketContext = createContext<SocketContextType>({
   isConnected: false,
 });
 
-const getSocketBaseUrl = () =>
-  (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000')
-    .replace(/\/$/, '');
+const getSocketBaseUrl = () => resolveRealtimeSocketUrl();
 
 interface SocketProviderProps {
   children: ReactNode;

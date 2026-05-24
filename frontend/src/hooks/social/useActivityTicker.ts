@@ -23,6 +23,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
 import { ProductionTokenManager } from '../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
@@ -72,14 +73,8 @@ export function useActivityTicker() {
     const token = ProductionTokenManager.getToken();
     if (!token) return;
 
-    // Vite dev and the production static site proxy /api but not /socket.io.
-    // Prefer the explicit backend socket origin when Render provides it.
-    const socketUrl =
-      import.meta.env.VITE_SOCKET_URL
-      || import.meta.env.VITE_BACKEND_URL
-      || (import.meta.env.DEV
-        ? 'http://localhost:10000'
-        : (typeof window !== 'undefined' ? window.location.origin : ''));
+    // The custom domain proxies /api, but Socket.IO needs a backend origin.
+    const socketUrl = resolveRealtimeSocketUrl();
     const socket = io(socketUrl, {
       auth: { token },
       transports: ['polling', 'websocket'],
