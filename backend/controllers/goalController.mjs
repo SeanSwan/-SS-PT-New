@@ -12,6 +12,21 @@ import logger from '../utils/logger.mjs';
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
 
+const parsePositiveInteger = (value, fallback = null) => {
+  const stringValue = String(value ?? '').trim();
+  if (!/^[1-9]\d*$/.test(stringValue)) return fallback;
+
+  return Number(stringValue);
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) =>
+  Math.min(parsePositiveInteger(value, fallback), max);
+
+const toNonNegativeNumber = (value) => {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : 0;
+};
+
 /**
  * Verify the requesting user has access to a goal.
  * Owner, admin, or trainer assigned to the goal's client may proceed.
@@ -71,7 +86,9 @@ const goalController = {
         sortOrder = 'desc'
       } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
       
       // Validate user
       const user = await User.findByPk(userId);
@@ -97,7 +114,7 @@ const goalController = {
       const goals = await Goal.findAndCountAll({
         where: whereClause,
         order: [[sortField, order]],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset
       });
 
@@ -136,9 +153,9 @@ const goalController = {
         goals: goals.rows,
         pagination: {
           total: goals.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(goals.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(goals.count / normalizedLimit)
         },
         summary
       });
@@ -283,7 +300,12 @@ const goalController = {
         milestones = []
       } = req.body;
 
-      const userId = req.user.id;
+      const goalOwnerId = parsePositiveInteger(req.params.userId ?? req.user?.id);
+
+      if (!goalOwnerId) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Invalid goal owner' });
+      }
 
       // Input validation
       if (!title || typeof title !== 'string' || title.trim().length === 0) {
@@ -335,7 +357,7 @@ const goalController = {
       const safePriority = validPriorities.includes(priority) ? priority : 'medium';
 
       const goal = await Goal.create({
-        userId,
+        userId: goalOwnerId,
         title: title.trim().substring(0, 200),
         description: typeof description === 'string' ? description.trim().substring(0, 2000) : '',
         targetValue: numTarget,
@@ -790,13 +812,19 @@ const goalController = {
         raw: true
       });
 
-      const categories = categoryStats.map(stat => ({
-        category: stat.category,
-        total: parseInt(stat.total),
-        completed: parseInt(stat.completed || 0),
-        avgProgress: parseFloat(stat.avgProgress || 0),
-        completionRate: stat.total > 0 ? (parseInt(stat.completed || 0) / parseInt(stat.total)) * 100 : 0
-      }));
+      const categories = categoryStats.map((stat) => {
+        const total = toNonNegativeNumber(stat.total);
+        const completed = toNonNegativeNumber(stat.completed);
+        const avgProgress = toNonNegativeNumber(stat.avgProgress);
+
+        return {
+          category: stat.category,
+          total,
+          completed,
+          avgProgress,
+          completionRate: total > 0 ? (completed / total) * 100 : 0
+        };
+      });
 
       return res.status(200).json({
         success: true,

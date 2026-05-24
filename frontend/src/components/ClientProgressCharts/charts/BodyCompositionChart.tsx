@@ -6,7 +6,7 @@
  * Left Y-axis: Weight (lbs) with Ice Wing gradient area
  * Right Y-axis: Body Fat % with Wing Purple line
  *
- * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
+ * Uses Victory (v37.3.6) for cross-platform compatibility.
  * THEME: Enchanted Apex — Crystalline Swan
  */
 

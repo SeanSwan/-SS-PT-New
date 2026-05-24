@@ -12,6 +12,14 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: INTERNAL_ERROR
+});
+
 /**
  * GET /api/nutrition/:userId/current
  * Get the client's current nutrition plan
@@ -76,11 +84,7 @@ router.get('/:userId/current', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching nutrition plan:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching nutrition plan',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error fetching nutrition plan');
   }
 });
 
@@ -149,11 +153,7 @@ router.post('/:userId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating nutrition plan:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error creating nutrition plan',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error creating nutrition plan');
   }
 });
 

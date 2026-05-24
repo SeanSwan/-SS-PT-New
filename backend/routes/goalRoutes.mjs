@@ -47,6 +47,11 @@ import redis from '../services/cache/redisWrapper.mjs';
 const router = express.Router();
 const METRICS_CACHE_TTL_SECONDS = 300;
 
+const parsePositiveTrainerId = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 // All goal routes require auth
 router.use(protect);
 
@@ -128,8 +133,8 @@ router.get('/categories/stats', async (req, res) => {
  */
 router.get('/trainer/:trainerId/achieved', trainerOrAdminOnly, async (req, res) => {
   try {
-    const trainerId = Number(req.params.trainerId);
-    if (!Number.isFinite(trainerId)) {
+    const trainerId = parsePositiveTrainerId(req.params.trainerId);
+    if (!trainerId) {
       return res.status(400).json({ success: false, message: 'Invalid trainerId' });
     }
 

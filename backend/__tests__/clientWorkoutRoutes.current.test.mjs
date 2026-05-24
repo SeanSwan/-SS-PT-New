@@ -4,6 +4,7 @@ import express from 'express';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutSessionFindAll = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -42,6 +43,7 @@ beforeEach(() => {
     clientId: 42,
     models: {
       WorkoutPlan: { findOne: mockWorkoutPlanFindOne },
+      WorkoutSession: { findAll: mockWorkoutSessionFindAll },
       // These existing models are intentionally present. The current route
       // must not eager-load them because production has no declared association.
       WorkoutPlanDay: {},
@@ -49,6 +51,7 @@ beforeEach(() => {
       Exercise: {},
     },
   });
+  mockWorkoutSessionFindAll.mockResolvedValue([]);
 });
 
 describe('clientWorkoutRoutes GET /:userId/current', () => {
@@ -113,6 +116,56 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data).toBeNull();
     expect(res.body.plan).toBeNull();
+  });
+
+  it('does not disclose internal errors from the current workout lookup', async () => {
+    mockWorkoutPlanFindOne.mockRejectedValue(new Error('database password leaked in stack'));
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      success: false,
+      message: 'Server error fetching workout plan',
+      code: 'INTERNAL_ERROR',
+    });
+    expect(JSON.stringify(res.body)).not.toContain('database password leaked in stack');
+  });
+});
+
+describe('clientWorkoutRoutes GET /:userId/history', () => {
+  it('rejects malformed history limits before querying workout history', async () => {
+    const res = await request(buildApp())
+      .get('/api/workouts/42/history?limit=7junk')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      success: false,
+      message: 'Invalid limit',
+    });
+    expect(mockWorkoutSessionFindAll).not.toHaveBeenCalled();
+  });
+
+  it('does not disclose internal errors from the workout history lookup', async () => {
+    mockWorkoutSessionFindAll.mockRejectedValue(new Error('sql detail: private table name'));
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/history')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      success: false,
+      message: 'Server error fetching workout history',
+      code: 'INTERNAL_ERROR',
+    });
+    expect(JSON.stringify(res.body)).not.toContain('sql detail: private table name');
   });
 });
 

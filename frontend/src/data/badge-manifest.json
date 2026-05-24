@@ -1597,7 +1597,7 @@
       }
     },
     "log_nutrition_30": {
-      "title": "Month of Mindful Eating",
+      "title": "Month of Intentional Eating",
       "description": "Log your nutrition for 30 days",
       "emoji": "🍎",
       "skillTree": "free_spirit",
@@ -1741,8 +1741,8 @@
       }
     },
     "mind_body_connection": {
-      "title": "Mind-Body Connection",
-      "description": "Complete a combined mindfulness and workout session",
+      "title": "Recovery-Training Connection",
+      "description": "Complete a combined recovery and workout session",
       "emoji": "🕊️",
       "skillTree": "free_spirit",
       "category": "special",
@@ -2677,8 +2677,8 @@
       }
     },
     "mindful_eating_14": {
-      "title": "Mindful Eater",
-      "description": "Practice mindful eating for 14 consecutive days",
+      "title": "Intentional Eater",
+      "description": "Practice intentional eating for 14 consecutive days",
       "emoji": "🍽️",
       "skillTree": "free_spirit",
       "category": "hidden",

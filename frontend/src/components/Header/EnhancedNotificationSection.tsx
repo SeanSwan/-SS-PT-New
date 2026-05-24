@@ -568,8 +568,8 @@ const EnhancedNotificationSection: React.FC = () => {
       dispatch(addNotification(data));
     };
 
-    const handleNotificationCount = (data: { count: number }) => {
-      dispatch(setUnreadCount(data.count));
+    const handleNotificationCount = (data: { count?: number; unreadCount?: number }) => {
+      dispatch(setUnreadCount(data.unreadCount ?? data.count ?? 0));
     };
 
     socket.on('notification:new', handleNewNotification);

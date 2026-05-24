@@ -13,6 +13,28 @@ import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 
 const router = express.Router();
 
+const parsePositiveUserId = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const requireAuthenticatedUserId = (req, res) => {
+  const userId = parsePositiveUserId(req.user?.id);
+  if (userId) return userId;
+
+  res.status(401).json({
+    success: false,
+    message: 'Authentication required',
+    error: 'invalid_user_id'
+  });
+  return null;
+};
+
+const responseErrorCode = (error) => {
+  if (error?.statusCode === 501) return 'not_implemented';
+  return 'internal_error';
+};
+
 /**
  * @route   GET /api/master-prompt/privacy/status
  * @desc    Get privacy and PII protection status
@@ -20,7 +42,9 @@ const router = express.Router();
  */
 router.get('/status', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const status = await privacyCompliance.getPrivacyStatus(userId);
     
     // Log privacy status check (PII-safe)
@@ -42,7 +66,7 @@ router.get('/status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve privacy status',
-      error: error.message
+      error: responseErrorCode(error)
     });
   }
 });
@@ -89,7 +113,7 @@ router.post('/scan-pii',
       res.status(500).json({
         success: false,
         message: 'PII scan failed',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -139,7 +163,7 @@ router.post('/sanitize',
       res.status(500).json({
         success: false,
         message: 'Content sanitization failed',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -154,8 +178,17 @@ router.get('/user-data/:userId',
   requirePermissionWithAccessibility('personal_data_access'),
   async (req, res) => {
     try {
-      const { userId } = req.params;
-      const requestingUserId = req.user.id;
+      const userId = parsePositiveUserId(req.params.userId);
+      const requestingUserId = requireAuthenticatedUserId(req, res);
+      if (!requestingUserId) return;
+
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user ID is required',
+          error: 'invalid_user_id'
+        });
+      }
       
       // Check if user can access this data
       const canAccess = userId === requestingUserId || req.user.role === 'admin';
@@ -188,7 +221,7 @@ router.get('/user-data/:userId',
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve user data inventory',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -201,7 +234,9 @@ router.get('/user-data/:userId',
  */
 router.post('/export-data', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const { format = 'json', includeMetadata = true } = req.body;
     
     const exportResult = await privacyCompliance.exportUserData(userId, {
@@ -227,11 +262,12 @@ router.post('/export-data', async (req, res) => {
       error: error.message,
       userId: req.user?.id
     });
-    
-    res.status(500).json({
+
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
       message: 'Data export failed',
-      error: error.message
+      error: responseErrorCode(error)
     });
   }
 });
@@ -246,11 +282,32 @@ router.delete('/delete-user-data',
   async (req, res) => {
     try {
       const { userId, confirmToken, retentionOverride = false } = req.body;
-      const requestingUserId = req.user.id;
+      const requestingUserId = requireAuthenticatedUserId(req, res);
+      if (!requestingUserId) return;
+
+      const targetUserId = userId === undefined || userId === null || userId === ''
+        ? requestingUserId
+        : parsePositiveUserId(userId);
+
+      if (!targetUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user ID is required',
+          error: 'invalid_user_id'
+        });
+      }
+
+      if (req.user.role !== 'admin' && targetUserId !== requestingUserId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied: You can only delete your own data',
+          error: 'access_denied'
+        });
+      }
       
       // Validate deletion request
       const validation = await privacyCompliance.validateDeletionRequest(
-        userId || requestingUserId,
+        targetUserId,
         requestingUserId,
         confirmToken
       );
@@ -264,7 +321,7 @@ router.delete('/delete-user-data',
       }
       
       const deletionResult = await privacyCompliance.deleteUserData(
-        userId || requestingUserId,
+        targetUserId,
         {
           requestingUserId,
           retentionOverride,
@@ -274,7 +331,7 @@ router.delete('/delete-user-data',
       
       // Track deletion (minimal logging)
       piiSafeLogger.trackPrivacyOperation('data_deleted', requestingUserId, {
-        selfDeletion: !userId || userId === requestingUserId,
+        selfDeletion: targetUserId === requestingUserId,
         retentionOverride,
         itemsDeleted: deletionResult.itemsDeleted
       });
@@ -289,11 +346,12 @@ router.delete('/delete-user-data',
         error: error.message,
         requestingUserId: req.user?.id
       });
-      
-      res.status(500).json({
+
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
         success: false,
         message: 'Data deletion failed',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -306,7 +364,9 @@ router.delete('/delete-user-data',
  */
 router.get('/consent-status', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const consentStatus = await privacyCompliance.getConsentStatus(userId);
     
     res.json({
@@ -323,7 +383,7 @@ router.get('/consent-status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve consent status',
-      error: error.message
+      error: responseErrorCode(error)
     });
   }
 });
@@ -335,7 +395,9 @@ router.get('/consent-status', async (req, res) => {
  */
 router.post('/update-consent', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const { consents } = req.body;
     
     if (!consents || typeof consents !== 'object') {
@@ -367,7 +429,7 @@ router.post('/update-consent', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Consent update failed',
-      error: error.message
+      error: responseErrorCode(error)
     });
   }
 });
@@ -382,10 +444,23 @@ router.get('/audit-log',
   async (req, res) => {
     try {
       const { timeframe = '30d', userId, action } = req.query;
-      const requestingUserId = req.user.id;
-      
-      // Users can only see their own audit logs unless they're admin
-      const targetUserId = req.user.role === 'admin' ? userId : requestingUserId;
+      const requestingUserId = requireAuthenticatedUserId(req, res);
+      if (!requestingUserId) return;
+
+      // Users can only see their own audit logs unless they're admin.
+      // Admins may omit userId to request the system-level audit log.
+      let targetUserId = requestingUserId;
+      if (req.user.role === 'admin') {
+        targetUserId = userId ? parsePositiveUserId(userId) : null;
+      }
+
+      if (userId && targetUserId === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user ID is required',
+          error: 'invalid_user_id'
+        });
+      }
       
       const auditLog = await privacyCompliance.getAuditLog({
         userId: targetUserId,
@@ -408,7 +483,7 @@ router.get('/audit-log',
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve audit log',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -449,7 +524,7 @@ router.get('/compliance-report',
       res.status(500).json({
         success: false,
         message: 'Failed to generate compliance report',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }
@@ -465,14 +540,16 @@ router.post('/data-minimization',
   async (req, res) => {
     try {
       const { dryRun = false, categories } = req.body;
+      const requestingUserId = requireAuthenticatedUserId(req, res);
+      if (!requestingUserId) return;
       
       const result = await dataMinimization.runMinimization({
         dryRun,
         categories,
-        requestingUserId: req.user.id
+        requestingUserId
       });
       
-      piiSafeLogger.trackPrivacyOperation('data_minimization', req.user.id, {
+      piiSafeLogger.trackPrivacyOperation('data_minimization', requestingUserId, {
         dryRun,
         categories: categories || 'all',
         itemsProcessed: result.itemsProcessed,
@@ -489,11 +566,12 @@ router.post('/data-minimization',
         error: error.message,
         userId: req.user?.id
       });
-      
-      res.status(500).json({
+
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
         success: false,
         message: 'Data minimization failed',
-        error: error.message
+        error: responseErrorCode(error)
       });
     }
   }

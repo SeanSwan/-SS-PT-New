@@ -10,7 +10,7 @@ import {
   VictoryChart, VictoryArea, VictoryAxis, VictoryTooltip,
   VictoryVoronoiContainer, VictoryLine, VictoryLegend,
 } from 'victory';
-import { DollarSign, RefreshCw } from 'lucide-react';
+import { AlertTriangle, DollarSign, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   CHART_COLORS, victoryTheme, hexAlpha,
@@ -32,20 +32,12 @@ interface RevenueChartData {
   revenueHistory: RevenueDataPoint[];
 }
 
-const DEMO_DATA: RevenueChartData = {
+const EMPTY_REVENUE_DATA: RevenueChartData = {
   overview: {
-    totalRevenue: 26250, monthlyRecurring: 8750,
-    averageTransaction: 186, totalCustomers: 47,
+    totalRevenue: 0, monthlyRecurring: 0,
+    averageTransaction: 0, totalCustomers: 0,
   },
-  revenueHistory: [
-    { date: 'Jan', revenue: 5200, transactions: 28 },
-    { date: 'Feb', revenue: 6100, transactions: 33 },
-    { date: 'Mar', revenue: 5800, transactions: 31 },
-    { date: 'Apr', revenue: 7200, transactions: 38 },
-    { date: 'May', revenue: 7600, transactions: 41 },
-    { date: 'Jun', revenue: 8100, transactions: 44 },
-    { date: 'Jul', revenue: 8750, transactions: 47 },
-  ],
+  revenueHistory: [],
 };
 
 const toFiniteNumber = (value: unknown, fallback = 0): number => {
@@ -54,7 +46,7 @@ const toFiniteNumber = (value: unknown, fallback = 0): number => {
 };
 
 const normalizeRevenueHistory = (value: unknown): RevenueDataPoint[] => {
-  if (!Array.isArray(value)) return DEMO_DATA.revenueHistory;
+  if (!Array.isArray(value)) return [];
 
   const normalized = value.map((entry, index) => {
     const point = (entry && typeof entry === 'object' ? entry : {}) as Partial<RevenueDataPoint>;
@@ -65,7 +57,7 @@ const normalizeRevenueHistory = (value: unknown): RevenueDataPoint[] => {
     };
   });
 
-  return normalized.length ? normalized : DEMO_DATA.revenueHistory;
+  return normalized;
 };
 
 const normalizeRevenueData = (value: unknown): RevenueChartData => {
@@ -76,10 +68,10 @@ const normalizeRevenueData = (value: unknown): RevenueChartData => {
 
   return {
     overview: {
-      totalRevenue: toFiniteNumber(overview.totalRevenue, DEMO_DATA.overview.totalRevenue),
-      monthlyRecurring: toFiniteNumber(overview.monthlyRecurring, DEMO_DATA.overview.monthlyRecurring),
-      averageTransaction: toFiniteNumber(overview.averageTransaction, DEMO_DATA.overview.averageTransaction),
-      totalCustomers: toFiniteNumber(overview.totalCustomers, DEMO_DATA.overview.totalCustomers),
+      totalRevenue: toFiniteNumber(overview.totalRevenue),
+      monthlyRecurring: toFiniteNumber(overview.monthlyRecurring),
+      averageTransaction: toFiniteNumber(overview.averageTransaction),
+      totalCustomers: toFiniteNumber(overview.totalCustomers),
     },
     revenueHistory: normalizeRevenueHistory(payload.revenueHistory),
   };
@@ -87,9 +79,10 @@ const normalizeRevenueData = (value: unknown): RevenueChartData => {
 
 const RevenueChart: React.FC = () => {
   const { authAxios } = useAuth();
-  const [data, setData] = useState<RevenueChartData>(DEMO_DATA);
+  const [data, setData] = useState<RevenueChartData>(EMPTY_REVENUE_DATA);
   const [timeRange, setTimeRange] = useState<'30d' | '90d' | '1y'>('90d');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchRevenue = useCallback(async () => {
     try {
@@ -97,9 +90,11 @@ const RevenueChart: React.FC = () => {
       const res = await authAxios.get('/api/admin/analytics/revenue', {
         params: { timeRange },
       });
-      if (res.data?.data) setData(normalizeRevenueData(res.data.data));
+      setData(normalizeRevenueData(res.data?.data));
+      setError(null);
     } catch {
-      setData(DEMO_DATA);
+      setData(EMPTY_REVENUE_DATA);
+      setError('Revenue data could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -137,55 +132,68 @@ const RevenueChart: React.FC = () => {
       </Header>
 
       <ChartWrap>
-        <VictoryChart
-          theme={victoryTheme}
-          animate={{ onLoad: { duration: 600 } }}
-          height={220}
-          padding={{ top: 30, bottom: 40, left: 60, right: 20 }}
-          containerComponent={
-            <VictoryVoronoiContainer
-              labels={({ datum }: any) => `$${datum.y.toLocaleString()}`}
-              labelComponent={<VictoryTooltip constrainToVisibleArea />}
+        {error ? (
+          <ErrorState role="alert" aria-live="polite">
+            <AlertTriangle size={18} />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={fetchRevenue}>
+              <RefreshCw size={14} />
+              Retry
+            </RetryInline>
+          </ErrorState>
+        ) : chartData.length === 0 ? (
+          <EmptyState>No revenue trend data for this period.</EmptyState>
+        ) : (
+          <VictoryChart
+            theme={victoryTheme}
+            animate={{ onLoad: { duration: 600 } }}
+            height={220}
+            padding={{ top: 30, bottom: 40, left: 60, right: 20 }}
+            containerComponent={
+              <VictoryVoronoiContainer
+                labels={({ datum }: any) => `$${datum.y.toLocaleString()}`}
+                labelComponent={<VictoryTooltip constrainToVisibleArea />}
+              />
+            }
+          >
+            <VictoryLegend
+              x={60} y={2}
+              orientation="horizontal"
+              gutter={16}
+              style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } }}
+              data={[
+                { name: 'Revenue', symbol: { fill: CHART_COLORS.gildedFern } },
+              ]}
             />
-          }
-        >
-          <VictoryLegend
-            x={60} y={2}
-            orientation="horizontal"
-            gutter={16}
-            style={{ labels: { fill: CHART_COLORS.textSecondary, fontSize: 10, fontFamily: "'Fira Code'" } }}
-            data={[
-              { name: 'Revenue', symbol: { fill: CHART_COLORS.gildedFern } },
-            ]}
-          />
-          <VictoryAxis
-            tickFormat={(t: string) => t}
-            style={{ tickLabels: { fontSize: 10 } }}
-          />
-          <VictoryAxis
-            dependentAxis
-            tickFormat={(t: number) => `$${(t / 1000).toFixed(0)}k`}
-            style={{ tickLabels: { fontSize: 10 } }}
-          />
-          <VictoryArea
-            data={chartData}
-            interpolation="linear"
-            style={{
-              data: {
-                fill: hexAlpha(CHART_COLORS.gildedFern, 0.15),
-                stroke: CHART_COLORS.gildedFern,
-                strokeWidth: 2.5,
-              },
-            }}
-          />
-          <VictoryLine
-            data={chartData}
-            interpolation="linear"
-            style={{
-              data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 },
-            }}
-          />
-        </VictoryChart>
+            <VictoryAxis
+              tickFormat={(t: string) => t}
+              style={{ tickLabels: { fontSize: 10 } }}
+            />
+            <VictoryAxis
+              dependentAxis
+              tickFormat={(t: number) => `$${(t / 1000).toFixed(0)}k`}
+              style={{ tickLabels: { fontSize: 10 } }}
+            />
+            <VictoryArea
+              data={chartData}
+              interpolation="linear"
+              style={{
+                data: {
+                  fill: hexAlpha(CHART_COLORS.gildedFern, 0.15),
+                  stroke: CHART_COLORS.gildedFern,
+                  strokeWidth: 2.5,
+                },
+              }}
+            />
+            <VictoryLine
+              data={chartData}
+              interpolation="linear"
+              style={{
+                data: { stroke: CHART_COLORS.gildedFern, strokeWidth: 2.5 },
+              }}
+            />
+          </VictoryChart>
+        )}
       </ChartWrap>
     </Wrapper>
   );
@@ -260,8 +268,33 @@ const RefreshBtn = styled.button`
 
 const ChartWrap = styled.div`
   width: 100%; min-height: 220px;
-
   @media (prefers-reduced-motion: reduce) {
     svg * { animation: none !important; transition: none !important; }
   }
+`;
+
+const ErrorState = styled.div`
+  min-height: 220px; display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-wrap: wrap; padding: 18px; text-align: center;
+  color: var(--warning, #C6A84B);
+  background: var(--surface-muted, rgba(198, 168, 75, 0.08));
+  border: 1px solid var(--border-warning, rgba(198, 168, 75, 0.2));
+  border-radius: 12px;
+  font-size: 13px; font-weight: 600;
+`;
+
+const RetryInline = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border-warning, rgba(198, 168, 75, 0.28));
+  border-radius: 10px; padding: 8px 14px; color: var(--warning, #C6A84B);
+  background: var(--surface-muted, rgba(198, 168, 75, 0.12));
+  cursor: pointer; font-size: 12px; font-weight: 700;
+`;
+
+const EmptyState = styled.div`
+  min-height: 220px; display: flex; align-items: center; justify-content: center;
+  padding: 18px; text-align: center;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  border: 1px dashed var(--border-subtle, rgba(96, 192, 240, 0.16));
+  border-radius: 12px; font-size: 13px;
 `;

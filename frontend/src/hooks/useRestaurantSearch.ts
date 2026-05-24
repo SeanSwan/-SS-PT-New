@@ -6,9 +6,7 @@
  * ============================================================================
  */
 import { useState, useCallback, useRef } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+import apiService from '../services/api.service';
 
 export interface FoodResult {
   id: string;
@@ -74,11 +72,6 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const getHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }, []);
-
   const search = useCallback(async (query: string, pageNum = 0) => {
     if (!query || query.length < 2) return;
 
@@ -97,20 +90,10 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
         limit: '20',
       });
 
-      const res = await fetch(`${API_BASE}/api/restaurant/search?${params}`, {
-        headers: getHeaders() as HeadersInit,
+      const response = await apiService.get(`/api/restaurant/search?${params}`, {
         signal: controller.signal,
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.configured === false) {
-          setConfigured(false);
-        }
-        throw new Error(data.error || `Search failed (${res.status})`);
-      }
-
-      const data = await res.json();
+      const data = response.data;
       if (data.success) {
         setResults(data.foods || []);
         setTotalResults(data.totalResults || 0);
@@ -119,30 +102,29 @@ export function useRestaurantSearch(): UseRestaurantSearchResult {
       } else {
         throw new Error(data.error || 'Search failed');
       }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : 'Search failed');
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return;
+      if (err?.response?.data?.configured === false) {
+        setConfigured(false);
+      }
+      setError(err?.response?.data?.error || err?.message || 'Search failed');
     } finally {
       setLoading(false);
     }
-  }, [getHeaders]);
+  }, []);
 
   const getDetails = useCallback(async (foodId: string): Promise<FoodDetail | null> => {
     setDetailLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/restaurant/food/${foodId}`, {
-        headers: getHeaders() as HeadersInit,
-      });
-
-      if (!res.ok) return null;
-      const data = await res.json();
+      const response = await apiService.get(`/api/restaurant/food/${foodId}`);
+      const data = response.data;
       return data.success ? data.food : null;
     } catch {
       return null;
     } finally {
       setDetailLoading(false);
     }
-  }, [getHeaders]);
+  }, []);
 
   return { results, totalResults, loading, error, search, getDetails, detailLoading, configured, page };
 }

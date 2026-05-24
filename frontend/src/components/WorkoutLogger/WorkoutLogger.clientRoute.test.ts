@@ -282,13 +282,13 @@ describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts
     // must be numbers — previously `parseInt(clientId) !== req.user.id`
     // compared number !== string, which was always true and silently
     // 403'd every client save. The fix derives `userNumericId` at the
-    // top of the handler and compares it against parseInt(clientId, 10).
+    // top of the handler and compares it against a strict parsed client id.
     const ROUTES = readFileSync(
       resolve(__dirname, '../../../../backend/routes/dailyWorkoutFormRoutes.mjs'),
       'utf8',
     );
     expect(ROUTES).toMatch(
-      /userRole\s*===\s*['"]client['"][\s\S]{0,200}parseInt\(\s*clientId\s*,\s*10\s*\)\s*!==\s*userNumericId/,
+      /const\s+parsedClientId\s*=\s*parseStrictPositiveInteger\(\s*clientId\s*\)[\s\S]{0,300}userRole\s*===\s*['"]client['"][\s\S]{0,200}parsedClientId\s*!==\s*userNumericId/,
     );
     expect(ROUTES).toMatch(/Clients can only log their own workouts/);
     // Negative lock: the broken pre-fix shape must not come back.
@@ -321,10 +321,10 @@ describe('Phase 16.2 (Codex round 4) — useGhostPreFill skip option on client s
     expect(fnIdx).toBeGreaterThan(-1);
     const body = HOOK.slice(fnIdx, fnIdx + 1500);
     const skipGuardIdx = body.indexOf('if (skip)');
-    const fetchIdx = body.indexOf('fetch(');
+    const requestIdx = body.indexOf('apiService.get');
     expect(skipGuardIdx).toBeGreaterThan(-1);
-    expect(fetchIdx).toBeGreaterThan(-1);
-    expect(skipGuardIdx).toBeLessThan(fetchIdx);
+    expect(requestIdx).toBeGreaterThan(-1);
+    expect(skipGuardIdx).toBeLessThan(requestIdx);
   });
 
   it('WorkoutLogger passes skip: isClientSelfMode to useGhostPreFill', () => {
@@ -395,5 +395,19 @@ describe('Phase 16.2 — Phase 16 + 16.1-UX contracts preserved', () => {
     expect(SOURCE).not.toMatch(/\brpe\s*:\s*5\b/);
     expect(SOURCE).not.toMatch(/\bformQuality\s*:\s*3\b/);
     expect(SOURCE).not.toMatch(/\bformRating\s*:\s*3\b/);
+  });
+});
+
+describe('WorkoutLogger voice/file import surface', () => {
+  it('mounts VoiceMemoUpload for trainer/admin client-context logging only', () => {
+    expect(SOURCE).toMatch(/import\s+VoiceMemoUpload/);
+    expect(SOURCE).toMatch(/!\s*isClientSelfMode\s*&&\s*typeof\s+effectiveClientId\s*===\s*['"]number['"]/);
+    expect(SOURCE).toMatch(/<VoiceMemoUpload[\s\S]*?clientId=\{effectiveClientId\}/);
+    expect(SOURCE).toMatch(/onParsed=\{handleVoiceMemoParsed\}/);
+  });
+
+  it('applies parsed uploads through parsedWorkoutToExerciseEntries', () => {
+    expect(SOURCE).toMatch(/parsedWorkoutToExerciseEntries\s*\(\s*workout\s*\)/);
+    expect(SOURCE).toMatch(/setExercises\s*\(\s*prev\s*=>\s*\[\s*\.\.\.prev\s*,\s*\.\.\.parsedExercises\s*\]\s*\)/);
   });
 });

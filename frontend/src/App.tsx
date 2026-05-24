@@ -15,6 +15,7 @@ import { StyleSheetManager, type ShouldForwardProp } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import { ToastProvider } from './hooks/use-toast'; // FIXED: Use correct ToastProvider with toast() function
 import { SwanToastProvider } from './components/ui/Toast/ToastContainer';
 import { CartProvider } from './context/CartContext';
@@ -51,9 +52,6 @@ import { setInitialized } from './store/slices/appSlice';
 import { setupNotifications } from './utils/notificationInitializer';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
-import './utils/initTokenCleanup'; // Initialize token cleanup handlers
-import './utils/clearCache'; // Emergency cache clearing utility
-import { monitorRouting } from './utils/routeDebugger'; // Route debugging
 
 // Error Boundary (CTO/CEO consensus: top-level crash protection)
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -154,8 +152,10 @@ const AppContent = () => {
     
     logger.log('Running one-time App initialization...');
 
-    // Enable route debugging
-    monitorRouting();
+    if (import.meta.env.DEV) {
+      import('./utils/routeDebugger');
+      import('./utils/clearCache');
+    }
 
     // Mark app as initialized in Redux store
     dispatch(setInitialized(true));
@@ -246,7 +246,9 @@ const App = () => {
                             <TouchGestureProvider>
                               <CelebrationProvider>
                                 <DevToolsProvider>
-                                  <AppContent />
+                                  <SocketProvider>
+                                    <AppContent />
+                                  </SocketProvider>
                                 </DevToolsProvider>
                               </CelebrationProvider>
                             </TouchGestureProvider>

@@ -46,15 +46,19 @@ const ClientComplianceDashboard: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchCompliance = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       else setRefreshing(true);
       const res = await authAxios.get('/api/admin/compliance/at-risk');
-      setClients(res.data?.clients ?? buildDemoData());
+      const nextClients = Array.isArray(res.data?.clients) ? res.data.clients : [];
+      setClients(nextClients);
+      setError(null);
     } catch {
-      setClients(buildDemoData());
+      setClients([]);
+      setError('Compliance data could not be loaded.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -117,6 +121,14 @@ const ClientComplianceDashboard: React.FC = () => {
       <ClientList>
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
+        ) : error ? (
+          <ErrorState>
+            <AlertTriangle size={32} color="#f59e0b" />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={() => fetchCompliance(true)}>
+              Retry
+            </RetryInline>
+          </ErrorState>
         ) : filtered.length === 0 ? (
           <EmptyState>
             <CheckCircle2 size={32} color="#10b981" />
@@ -176,19 +188,6 @@ const ClientComplianceDashboard: React.FC = () => {
     </CommandCard>
   );
 };
-
-/* ─── Demo Data ─────────────────────────────────────── */
-
-function buildDemoData(): AtRiskClient[] {
-  return [
-    { id: 1, firstName: 'Marcus', lastName: 'Johnson', riskLevel: 'critical', reason: 'No workouts in 14 days, program expires in 3 days', daysSinceLastWorkout: 14, complianceRate7d: 0, complianceRate30d: 22, sessionsRemaining: 1, programExpiresIn: 3 },
-    { id: 2, firstName: 'Alicia', lastName: 'Chen', riskLevel: 'critical', reason: 'Missed 5 consecutive scheduled sessions', daysSinceLastWorkout: 10, complianceRate7d: 0, complianceRate30d: 35, sessionsRemaining: 8 },
-    { id: 3, firstName: 'Devon', lastName: 'Williams', riskLevel: 'warning', reason: 'Compliance dropped from 85% to 40% this month', daysSinceLastWorkout: 5, complianceRate7d: 33, complianceRate30d: 40, sessionsRemaining: 12 },
-    { id: 4, firstName: 'Sarah', lastName: 'Kim', riskLevel: 'warning', reason: 'Only completing 2/5 assigned exercises per session', daysSinceLastWorkout: 2, complianceRate7d: 40, complianceRate30d: 55, sessionsRemaining: 6 },
-    { id: 5, firstName: 'James', lastName: 'Rivera', riskLevel: 'watch', reason: 'Logged 3 workouts this week but skipping cardio components', daysSinceLastWorkout: 1, complianceRate7d: 60, complianceRate30d: 72, sessionsRemaining: 15 },
-    { id: 6, firstName: 'Priya', lastName: 'Patel', riskLevel: 'watch', reason: 'New client — no baseline assessment completed yet', daysSinceLastWorkout: 3, complianceRate7d: 50, complianceRate30d: 50, sessionsRemaining: 20 },
-  ];
-}
 
 export default ClientComplianceDashboard;
 
@@ -309,4 +308,13 @@ const SkeletonRow = styled.div`
 const EmptyState = styled.div`
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   padding: 40px 20px; color: rgba(255,255,255,0.6); font-size: 14px;
+`;
+const ErrorState = styled(EmptyState)`
+  color: #f59e0b;
+`;
+const RetryInline = styled.button`
+  min-height: 44px; min-width: 88px; border-radius: 8px;
+  border: 1px solid rgba(245,158,11,0.35); background: rgba(245,158,11,0.12);
+  color: #f8d28b; font-weight: 700; cursor: pointer;
+  &:hover { background: rgba(245,158,11,0.2); }
 `;

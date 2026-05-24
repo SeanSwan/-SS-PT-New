@@ -10,6 +10,23 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
+const BUSINESS_KPI_PERIOD_DAYS = Object.freeze({
+  '30d': 30,
+  '90d': 90,
+  '12m': 365,
+});
+
+function validateBusinessKpiPeriod(req, res, next) {
+  const period = req.query.period || '30d';
+  if (!Object.prototype.hasOwnProperty.call(BUSINESS_KPI_PERIOD_DAYS, period)) {
+    return res.status(400).json({
+      success: false,
+      error: 'invalid_period',
+      message: 'Invalid business KPI period',
+    });
+  }
+  next();
+}
 
 // All routes require admin/trainer auth
 router.use(protect, authorize(['admin', 'trainer']));
@@ -30,14 +47,14 @@ router.get('/compliance/at-risk', async (req, res) => {
           u."lastName",
           u.photo,
           u."availableSessions",
-          MAX(dwf."createdAt") AS "lastWorkoutDate",
-          COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
-          COUNT(CASE WHEN dwf."createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
+          MAX(dwf.created_at) AS "lastWorkoutDate",
+          COUNT(CASE WHEN dwf.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
+          COUNT(CASE WHEN dwf.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
         FROM "Users" u
-        LEFT JOIN daily_workout_forms dwf ON dwf."clientId" = u.id
+        LEFT JOIN daily_workout_forms dwf ON dwf.client_id = u.id
         WHERE u.role = 'client' AND u."isActive" != false
         GROUP BY u.id
-        ORDER BY MAX(dwf."createdAt") ASC NULLS FIRST
+        ORDER BY MAX(dwf.created_at) ASC NULLS FIRST
         LIMIT 50
       `);
       clients = rows || [];
@@ -101,15 +118,15 @@ router.get('/compliance/at-risk', async (req, res) => {
  * GET /api/admin/analytics/business-kpis
  * Returns business KPIs: MRR, client counts, churn, utilization, LTV.
  */
-router.get('/analytics/business-kpis', async (req, res) => {
+router.get('/analytics/business-kpis', validateBusinessKpiPeriod, authorize(['admin']), async (req, res) => {
   try {
     const period = req.query.period || '30d';
-    const days = period === '12m' ? 365 : period === '90d' ? 90 : 30;
+    const days = BUSINESS_KPI_PERIOD_DAYS[period];
 
     // Each query wrapped individually — if a table doesn't exist or query fails, we fallback to zero
     let revData = { totalRevenue: 0, mrr: 0 };
     let clientData = { activeClients: 0, newClients: 0, churnedClients: 0 };
-    let sessionData = { sessionsThisMonth: 0, sessionsLastMonth: 0 };
+    let sessionData = { sessionsThisMonth: 0, sessionsLastMonth: 0, bookedSessionsThisMonth: 0 };
 
     try {
       const [revRows] = await sequelize.query(`
@@ -139,9 +156,22 @@ router.get('/analytics/business-kpis', async (req, res) => {
     try {
       const [sessionRows] = await sequelize.query(`
         SELECT
-          COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsThisMonth",
-          COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '60 days' AND "createdAt" < NOW() - INTERVAL '30 days' THEN 1 END) AS "sessionsLastMonth"
-        FROM daily_workout_forms
+          COUNT(CASE
+            WHEN "sessionDate" >= DATE_TRUNC('month', NOW())
+             AND "sessionDate" < DATE_TRUNC('month', NOW()) + INTERVAL '1 month'
+             AND status = 'completed'
+            THEN 1 END) AS "sessionsThisMonth",
+          COUNT(CASE
+            WHEN "sessionDate" >= DATE_TRUNC('month', NOW()) - INTERVAL '1 month'
+             AND "sessionDate" < DATE_TRUNC('month', NOW())
+             AND status = 'completed'
+            THEN 1 END) AS "sessionsLastMonth",
+          COUNT(CASE
+            WHEN "sessionDate" >= DATE_TRUNC('month', NOW())
+             AND "sessionDate" < DATE_TRUNC('month', NOW()) + INTERVAL '1 month'
+             AND status IN ('scheduled', 'confirmed', 'completed', 'cancelled')
+            THEN 1 END) AS "bookedSessionsThisMonth"
+        FROM sessions
       `);
       if (sessionRows?.[0]) sessionData = sessionRows[0];
     } catch (e) {
@@ -153,6 +183,11 @@ router.get('/analytics/business-kpis', async (req, res) => {
     const churned = Number(clientData?.churnedClients || 0);
     const mrr = Number(revData?.mrr || 0);
     const totalRev = Number(revData?.totalRevenue || 0);
+    const sessionsThisMonth = Number(sessionData?.sessionsThisMonth || 0);
+    const bookedSessionsThisMonth = Number(sessionData?.bookedSessionsThisMonth || 0);
+    const sessionUtilization = bookedSessionsThisMonth > 0
+      ? Math.round((sessionsThisMonth / bookedSessionsThisMonth) * 100)
+      : 0;
 
     res.json({
       data: {
@@ -164,10 +199,10 @@ router.get('/analytics/business-kpis', async (req, res) => {
         newClients: newC,
         churnedClients: churned,
         churnRate: active > 0 ? Number(((churned / active) * 100).toFixed(1)) : 0,
-        sessionUtilization: 78, // placeholder until session scheduling is wired
+        sessionUtilization,
         avgLTV: active > 0 ? Math.round(totalRev / active) : 0,
         avgRevenuePerClient: active > 0 ? Math.round(mrr / active) : 0,
-        sessionsThisMonth: Number(sessionData?.sessionsThisMonth || 0),
+        sessionsThisMonth,
         sessionsLastMonth: Number(sessionData?.sessionsLastMonth || 0),
         revenueSparkline: [],
         clientSparkline: [],

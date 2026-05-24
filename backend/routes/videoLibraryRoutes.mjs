@@ -30,6 +30,8 @@ import { Router } from 'express';
 import { body, param } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
+import { mkdirSync } from 'fs';
+import { randomBytes } from 'node:crypto';
 import {
   createExerciseVideo,
   listExerciseVideos,
@@ -53,12 +55,12 @@ const videoStorage = multer.diskStorage({
   destination: function(req, file, cb) {
     const dir = path.join(process.cwd(), 'uploads', 'videos');
     // Ensure directory exists
-    require('fs').mkdirSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
   filename: function(req, file, cb) {
     // Generate unique filename with timestamp
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = `${Date.now()}-${randomBytes(8).toString('hex')}`;
     const extension = path.extname(file.originalname);
     cb(null, `video-${uniqueSuffix}${extension}`);
   }

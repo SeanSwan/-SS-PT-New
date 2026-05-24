@@ -18,7 +18,7 @@
  *
  * Data Flow:
  * - Fetches packages from /api/storefront (same as OptimizedGalaxyStoreFront)
- * - Falls back to local hardcoded data on API error
+ * - Shows an honest retry state on API error; never sells local fallback packages
  * - Uses useAuth() and useCart() for authentication and cart state
  *
  * Theme:
@@ -656,121 +656,8 @@ const StoreV3: React.FC = () => {
 
       setPackages(fetchedPackages);
     } catch (error: any) {
-      console.error('Failed to fetch packages from API, using fallback data:', error);
-
-      // ── Current packages: $175/session (1-hour), no volume discounts ──
-      const fallbackPackages: StoreItem[] = [
-        {
-          id: 6232,
-          name: 'Single Session',
-          description: 'One premium 1-hour personal training session.',
-          packageType: 'fixed',
-          sessions: 1,
-          pricePerSession: 175,
-          price: 175,
-          displayPrice: 175,
-          totalSessions: 1,
-          imageUrl: '/assets/images/single-session.jpg',
-          theme: 'ruby',
-          isActive: true,
-          displayOrder: 1,
-        },
-        {
-          id: 6233,
-          name: '10-Session Pack',
-          description: 'Ten 1-hour personal training sessions.',
-          packageType: 'fixed',
-          sessions: 10,
-          pricePerSession: 175,
-          price: 1750,
-          displayPrice: 1750,
-          totalSessions: 10,
-          imageUrl: '/assets/images/silver-package.jpg',
-          theme: 'emerald',
-          isActive: true,
-          displayOrder: 2,
-        },
-        {
-          id: 6234,
-          name: '24-Session Pack',
-          description: 'Twenty-four 1-hour personal training sessions.',
-          packageType: 'fixed',
-          sessions: 24,
-          pricePerSession: 175,
-          price: 4200,
-          displayPrice: 4200,
-          totalSessions: 24,
-          imageUrl: '/assets/images/gold-package.jpg',
-          theme: 'cosmic',
-          isActive: true,
-          displayOrder: 3,
-        },
-        {
-          id: 6235,
-          name: '3-Month Program',
-          description: 'Consistent training over 3 months at $175 per session.',
-          packageType: 'monthly',
-          months: 3,
-          sessionsPerWeek: 4,
-          totalSessions: 48,
-          pricePerSession: 175,
-          price: 8400,
-          displayPrice: 8400,
-          imageUrl: '/assets/images/3-month-package.jpg',
-          theme: 'purple',
-          isActive: true,
-          displayOrder: 4,
-        },
-        {
-          id: 6236,
-          name: '6-Month Program',
-          description: 'Build lasting habits with 6 months of dedicated training.',
-          packageType: 'monthly',
-          months: 6,
-          sessionsPerWeek: 4,
-          totalSessions: 96,
-          pricePerSession: 175,
-          price: 16800,
-          displayPrice: 16800,
-          imageUrl: '/assets/images/6-month-package.jpg',
-          theme: 'emerald',
-          isActive: true,
-          displayOrder: 5,
-        },
-        {
-          id: 6237,
-          name: '12-Month Program',
-          description: 'Full year commitment for maximum transformation.',
-          packageType: 'monthly',
-          months: 12,
-          sessionsPerWeek: 4,
-          totalSessions: 192,
-          pricePerSession: 175,
-          price: 33600,
-          displayPrice: 33600,
-          imageUrl: '/assets/images/12-month-package.jpg',
-          theme: 'cosmic',
-          isActive: true,
-          displayOrder: 6,
-        },
-        {
-          id: 6238,
-          name: '30-Minute Sessions (10-Pack)',
-          description: 'Ten focused 30-minute personal training sessions.',
-          packageType: 'fixed',
-          sessions: 10,
-          pricePerSession: 110,
-          price: 1100,
-          displayPrice: 1100,
-          totalSessions: 10,
-          imageUrl: '/assets/images/platinum-package.jpg',
-          theme: 'ruby',
-          isActive: true,
-          displayOrder: 7,
-        },
-      ];
-
-      setPackages(fallbackPackages);
+      logger.warn('Failed to fetch live storefront packages:', error);
+      setPackages([]);
       setPackagesError(error.message || 'Failed to load packages');
     } finally {
       setIsLoadingPackages(false);

@@ -72,6 +72,90 @@ import adminContentModerationController from '../controllers/adminContentModerat
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const BULK_ACTIONS = new Set(['approve', 'reject', 'flag', 'hide', 'delete']);
+const BULK_CONTENT_TYPES = new Set(['post', 'comment']);
+const MAX_BULK_CONTENT_IDS = 50;
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR
+  });
+}
+
+function isValidContentId(contentId) {
+  const value = String(contentId || '').trim();
+  return value.length > 0 && value.length <= 80;
+}
+
+function createResponseCapture() {
+  const capture = {
+    statusCode: 200,
+    payload: null
+  };
+
+  return {
+    capture,
+    status(code) {
+      capture.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      capture.payload = payload;
+      return payload;
+    }
+  };
+}
+
+async function moderateBulkItem(req, { contentId, contentType, action, reason }) {
+  const itemReq = Object.create(req);
+  itemReq.body = {
+    contentType,
+    contentId,
+    action,
+    reason,
+    notifyUser: false,
+    applyToUser: false
+  };
+
+  const responseCapture = createResponseCapture();
+  await adminContentModerationController.moderateContent(itemReq, responseCapture);
+
+  const payload = responseCapture.capture.payload || {
+    success: false,
+    message: 'Moderation handler returned no response'
+  };
+
+  return {
+    contentId,
+    contentType,
+    action,
+    success: Boolean(payload.success),
+    statusCode: responseCapture.capture.statusCode,
+    message: payload.message || null,
+    data: payload.data || null
+  };
+}
+
+async function getModerationQueueSegment(req, handler, query) {
+  const queueReq = Object.create(req);
+  queueReq.query = {
+    ...req.query,
+    ...query
+  };
+
+  const responseCapture = createResponseCapture();
+  await handler.call(adminContentModerationController, queueReq, responseCapture);
+
+  const payload = responseCapture.capture.payload;
+  if (!payload?.success) {
+    throw new Error(payload?.message || 'Moderation queue segment failed');
+  }
+
+  return payload.data || {};
+}
 
 // =====================================================
 // SECURITY & RATE LIMITING
@@ -181,31 +265,33 @@ router.get('/queue', async (req, res) => {
   try {
     logger.info(`📋 Admin ${req.user.email} fetching moderation queue`);
     
-    // Combine posts and comments for unified moderation queue
-    // This is a simplified implementation - in real app would be more sophisticated
-    
-    const postsResponse = await adminContentModerationController.getPosts(
-      { ...req, query: { ...req.query, status: 'pending', limit: 10 } }, 
-      { json: (data) => data }
+    const postsData = await getModerationQueueSegment(
+      req,
+      adminContentModerationController.getPosts,
+      { status: 'pending', limit: 10 }
     );
-    
-    const commentsResponse = await adminContentModerationController.getComments(
-      { ...req, query: { ...req.query, status: 'pending', limit: 10 } },
-      { json: (data) => data }
+
+    const commentsData = await getModerationQueueSegment(
+      req,
+      adminContentModerationController.getComments,
+      { status: 'pending', limit: 10 }
     );
+
+    const posts = postsData.posts || [];
+    const comments = commentsData.comments || [];
     
     const queue = [
-      ...(postsResponse.data?.posts || []).map(post => ({
+      ...posts.map(post => ({
         ...post,
         type: 'post',
         contentType: 'post'
       })),
-      ...(commentsResponse.data?.comments || []).map(comment => ({
+      ...comments.map(comment => ({
         ...comment,
         type: 'comment',
         contentType: 'comment'
       }))
-    ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    ].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     
     res.json({
       success: true,
@@ -213,8 +299,8 @@ router.get('/queue', async (req, res) => {
         queue,
         summary: {
           totalPending: queue.length,
-          posts: (postsResponse.data?.posts || []).length,
-          comments: (commentsResponse.data?.comments || []).length
+          posts: posts.length,
+          comments: comments.length
         }
       },
       timestamp: new Date().toISOString()
@@ -222,12 +308,8 @@ router.get('/queue', async (req, res) => {
     
   } catch (error) {
     logger.error(`❌ Failed to fetch moderation queue for ${req.user.email}:`, error);
-    
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve moderation queue',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+
+    return sendInternalError(res, 'Failed to retrieve moderation queue');
   }
 });
 
@@ -245,27 +327,36 @@ router.post('/bulk-action', async (req, res) => {
         message: 'Missing required fields: action, contentIds (array), contentType'
       });
     }
+
+    if (
+      !BULK_ACTIONS.has(action)
+      || !BULK_CONTENT_TYPES.has(contentType)
+      || contentIds.length === 0
+      || contentIds.length > MAX_BULK_CONTENT_IDS
+      || !contentIds.every(isValidContentId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid bulk moderation payload'
+      });
+    }
     
     logger.info(`🔄 Admin ${req.user.email} performing bulk ${action} on ${contentIds.length} ${contentType}s`);
     
-    // Mock bulk action - in real implementation would process each item
-    const results = contentIds.map(id => ({
-      contentId: id,
-      contentType,
-      action,
-      success: true,
-      timestamp: new Date().toISOString()
-    }));
+    const results = [];
+    for (const contentId of contentIds) {
+      results.push(await moderateBulkItem(req, { contentId, contentType, action, reason }));
+    }
     
     res.json({
-      success: true,
-      message: `Bulk ${action} completed successfully`,
+      success: results.every(result => result.success),
+      message: `Bulk ${action} processed ${results.length} ${contentType} item(s)`,
       data: {
         action,
         contentType,
         processed: results.length,
-        successful: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length,
+        successful: results.filter(result => result.success).length,
+        failed: results.filter(result => !result.success).length,
         results
       },
       timestamp: new Date().toISOString()
@@ -273,12 +364,8 @@ router.post('/bulk-action', async (req, res) => {
     
   } catch (error) {
     logger.error(`❌ Failed to perform bulk action for ${req.user.email}:`, error);
-    
-    res.status(500).json({
-      success: false,
-      message: 'Failed to perform bulk action',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+
+    return sendInternalError(res, 'Failed to perform bulk action');
   }
 });
 

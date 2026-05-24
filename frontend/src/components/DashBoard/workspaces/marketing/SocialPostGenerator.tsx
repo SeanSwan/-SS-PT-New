@@ -41,13 +41,7 @@ import type { ComplianceResult, ConnectedAccount } from './SocialPostGenerator.t
 import SocialPostAccounts from './SocialPostAccounts';
 import SocialPostComplianceResult from './SocialPostComplianceResult';
 import SocialPostPreview from './SocialPostPreview';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-};
+import apiService from '../../../../services/api.service';
 
 const getMinimumScheduleDateTime = () => {
   const date = new Date();
@@ -80,18 +74,16 @@ const SocialPostGenerator: React.FC = () => {
     let active = true;
 
     const loadSocialPublishingStatus = async () => {
-      const headers = getAuthHeaders();
-
       try {
-        const healthResponse = await fetch('/api/admin/social-publishing/health', { headers });
-        const healthData = await healthResponse.json();
+        const healthResponse = await apiService.get('/api/admin/social-publishing/health');
+        const healthData = healthResponse.data;
         const configured = healthData.data?.configured === true && healthData.data?.mode === 'native';
         if (!active) return;
         setNativeConfigured(configured);
         if (!configured) return;
 
-        const accountsResponse = await fetch('/api/admin/social-publishing/accounts', { headers });
-        const accountsData = await accountsResponse.json();
+        const accountsResponse = await apiService.get('/api/admin/social-publishing/accounts');
+        const accountsData = accountsResponse.data;
         if (active && accountsData.success && Array.isArray(accountsData.data)) {
           setConnectedAccounts(accountsData.data);
         }
@@ -121,15 +113,11 @@ const SocialPostGenerator: React.FC = () => {
     if (!caption.trim()) return;
 
     try {
-      const response = await fetch('/api/admin/social-publishing/compliance-check', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          content: `${caption}\n\n${selectedTags.join(' ')}`,
-          isAIGenerated: false,
-        }),
+      const response = await apiService.post('/api/admin/social-publishing/compliance-check', {
+        content: `${caption}\n\n${selectedTags.join(' ')}`,
+        isAIGenerated: false,
       });
-      const data = await response.json();
+      const data = response.data;
       if (data.success) setComplianceResult(data.data);
     } catch {
       // Compliance check is optional and must not block manual review.
@@ -143,17 +131,13 @@ const SocialPostGenerator: React.FC = () => {
     setPublishStatus(null);
     try {
       const fullContent = caption + (selectedTags.length ? `\n\n${selectedTags.join(' ')}` : '');
-      const response = await fetch('/api/admin/social-publishing/publish', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          content: fullContent,
-          platformIds: selectedAccountIds,
-          isAIGenerated: false,
-          ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
-        }),
+      const response = await apiService.post('/api/admin/social-publishing/publish', {
+        content: fullContent,
+        platformIds: selectedAccountIds,
+        isAIGenerated: false,
+        ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
       });
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         setPublishStatus(
           scheduleMode && scheduleDate

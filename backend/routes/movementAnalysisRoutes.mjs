@@ -7,6 +7,7 @@
  */
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   createMovementAnalysis,
   updateMovementAnalysis,
@@ -24,8 +25,8 @@ const router = express.Router();
 router.post('/', protect, authorize(['admin', 'trainer']), createMovementAnalysis);
 router.put('/:id', protect, authorize(['admin', 'trainer']), updateMovementAnalysis);
 router.get('/', protect, authorize(['admin', 'trainer']), listMovementAnalyses);
+router.get('/client/:userId', protect, authorize(['admin', 'trainer']), verifyClientAccessByUserId({ paramName: 'userId' }), getClientMovementHistory);
 router.get('/:id', protect, authorize(['admin', 'trainer']), getMovementAnalysisDetail);
-router.get('/client/:userId', protect, authorize(['admin', 'trainer']), getClientMovementHistory);
 
 // Admin-only: match management
 router.post('/matches/:matchId/approve', protect, authorize(['admin']), approveMatch);

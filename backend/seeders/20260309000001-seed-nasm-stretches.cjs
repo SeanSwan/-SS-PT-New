@@ -104,8 +104,8 @@ module.exports = {
         canBePerformedAtHome: true,
       },
       {
-        name: 'Child\'s Pose (Latissimus Stretch)',
-        description: 'Yoga-inspired stretch targeting the lats and thoracolumbar fascia.',
+        name: 'Child\'s Rest Latissimus Stretch',
+        description: 'Floor-based stretch targeting the lats and thoracolumbar fascia.',
         exerciseType: 'flexibility',
         primaryMuscles: ['Lats', 'Back'],
         secondaryMuscles: ['Shoulders', 'Hips'],

@@ -60,10 +60,6 @@ export const setupErrorHandling = (app) => {
         : err.message || 'An unexpected error occurred',
     };
 
-    if (!isProduction) {
-      errorResponse.error = err.stack;
-    }
-
     res.status(err.status || 500).json(errorResponse);
   });
 

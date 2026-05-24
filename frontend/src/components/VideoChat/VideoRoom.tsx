@@ -19,6 +19,7 @@ import AssessmentNotesPanel from './AssessmentNotesPanel';
 import MicroWinOverlay, { type MicroWinType } from './MicroWinOverlay';
 import ROMTrackingPanel from './ROMTrackingPanel';
 import WearableDataPanel from './WearableDataPanel';
+import apiService from '../../services/api.service';
 
 const RoomWrapper = styled.div<{ $fullscreen: boolean }>`
   ${({ $fullscreen }) => $fullscreen ? `
@@ -266,31 +267,19 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
   }, []);
 
   const handleSaveNotes = useCallback(async () => {
-    const tkn = localStorage.getItem('token');
     try {
-      await fetch(`/api/video-sessions/${videoSessionId}/notes`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(tkn && { Authorization: `Bearer ${tkn}` }),
-        },
-        body: JSON.stringify({ trainerNotes }),
+      await apiService.patch(`/api/video-sessions/${videoSessionId}/notes`, {
+        trainerNotes,
       });
     } catch { /* best-effort */ }
   }, [videoSessionId, trainerNotes]);
 
   const handleTriggerMicroWin = useCallback(async (type: MicroWinType) => {
-    const tkn = localStorage.getItem('token');
     try {
-      const res = await fetch(`/api/video-sessions/${videoSessionId}/micro-win`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(tkn && { Authorization: `Bearer ${tkn}` }),
-        },
-        body: JSON.stringify({ type }),
+      const res = await apiService.post<{ success: boolean }>(`/api/video-sessions/${videoSessionId}/micro-win`, {
+        type,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         setActiveMicroWin(type); // Only show celebration after confirmed XP award
       }
@@ -299,15 +288,7 @@ const VideoRoom: React.FC<VideoRoomProps> = ({
 
   const handleEnd = useCallback(async () => {
     try {
-      const tkn = localStorage.getItem('token');
-      await fetch(`/api/video-sessions/${videoSessionId}/end`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(tkn && { Authorization: `Bearer ${tkn}` }),
-        },
-        body: JSON.stringify({}),
-      });
+      await apiService.patch(`/api/video-sessions/${videoSessionId}/end`, {});
     } catch { /* best-effort */ }
     onEnd();
   }, [videoSessionId, onEnd]);

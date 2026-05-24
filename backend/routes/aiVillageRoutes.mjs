@@ -32,6 +32,7 @@ import {
 } from '../services/ai/aiVillageService.mjs';
 
 const router = express.Router();
+const AI_VILLAGE_HTTP_RUN_FLAG = 'SWAN_ENABLE_AI_VILLAGE_HTTP_RUN';
 
 // All routes require admin access
 router.use(protect, adminOnly);
@@ -40,6 +41,13 @@ router.use(protect, adminOnly);
 
 router.post('/run', async (req, res) => {
   try {
+    if (process.env[AI_VILLAGE_HTTP_RUN_FLAG] !== 'true') {
+      return res.status(403).json({
+        success: false,
+        error: 'AI Village HTTP runs are disabled until explicitly enabled by Sean.'
+      });
+    }
+
     const { files, since, staged } = req.body;
 
     // Validate inputs

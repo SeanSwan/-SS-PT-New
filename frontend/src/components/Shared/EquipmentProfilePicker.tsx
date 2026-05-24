@@ -11,6 +11,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { MapPin, Home, TreePine, Dumbbell, User, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import apiService from '../../services/api.service';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -72,11 +73,8 @@ const EquipmentProfilePicker: React.FC<EquipmentProfilePickerProps> = ({
 
   const loadProfiles = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/equipment-profiles', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await res.json();
+      const response = await apiService.get('/api/equipment-profiles');
+      const data = response.data;
       if (data.success) {
         setProfiles(data.profiles || []);
       }

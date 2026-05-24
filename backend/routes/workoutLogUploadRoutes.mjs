@@ -14,6 +14,8 @@ import { parseWorkoutTranscript } from '../services/workoutLogParserService.mjs'
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const UNSUPPORTED_UPLOAD_MESSAGE = 'Unsupported file type. Upload an audio, text, CSV, or PDF file.';
+const UPLOAD_TOO_LARGE_MESSAGE = 'File is too large. Max upload size is 20MB.';
 
 // Rate limiter: 10 uploads per 15 min per user
 const uploadCounts = new Map();
@@ -74,10 +76,27 @@ const upload = multer({
     if (allowedMimes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported file type: ${file.mimetype}. Allowed: audio/*, text/plain, text/csv, application/pdf`));
+      cb(new Error('UNSUPPORTED_WORKOUT_LOG_UPLOAD_TYPE'));
     }
   },
 });
+
+function uploadFile(req, res, next) {
+  upload.single('file')(req, res, (err) => {
+    if (!err) return next();
+
+    logger.warn('[WorkoutLogUpload] Rejected upload', {
+      code: err.code || err.message,
+      userId: req.user?.id,
+    });
+
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: UPLOAD_TOO_LARGE_MESSAGE });
+    }
+
+    return res.status(400).json({ error: UNSUPPORTED_UPLOAD_MESSAGE });
+  });
+}
 
 // All routes require authentication + admin/trainer role
 router.use(protect);
@@ -85,7 +104,7 @@ router.use(protect);
 /**
  * POST /upload -- Upload voice memo or text file, get parsed workout
  */
-router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, upload.single('file'), async (req, res) => {
+router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
@@ -143,13 +162,6 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, upload.sing
     });
   } catch (err) {
     logger.error('[WorkoutLogUpload] Upload failed', { error: err.message, stack: err.stack });
-
-    if (err.message?.includes('file type')) {
-      return res.status(400).json({ error: err.message });
-    }
-    if (err.message?.includes('rate limit')) {
-      return res.status(429).json({ error: err.message });
-    }
 
     res.status(500).json({ error: 'Failed to process upload. Please try again.' });
   }

@@ -271,6 +271,7 @@ router.post('/study', async (req, res) => {
     }
 
     const validCategories = [
+      'ielts', 'french', 'ai_cert', 'other',
       'ielts_reading', 'ielts_writing', 'ielts_listening', 'ielts_speaking',
       'tef_reading', 'tef_writing', 'tef_listening', 'tef_speaking',
       'french_vocab', 'cert_ibm', 'cert_aws_ai', 'cert_azure', 'cert_aws_ml', 'cert_google'

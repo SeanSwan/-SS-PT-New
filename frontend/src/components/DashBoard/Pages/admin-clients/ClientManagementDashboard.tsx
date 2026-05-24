@@ -127,7 +127,7 @@ const ClientManagementDashboard: React.FC = () => {
           text="Client Table & Details"
           variant="primary"
           size="large"
-          onClick={() => navigate('/dashboard/admin/client-details')}
+          onClick={() => navigate('/dashboard/admin/client-management')}
         />
         <GlowButton
           text="Trainer Assignments"

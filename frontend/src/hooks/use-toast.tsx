@@ -13,7 +13,7 @@
  * - Stellar theme integration
  */
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
@@ -38,6 +38,25 @@ interface ToastContextType {
   dismiss: (id: string) => void;
   dismissAll: () => void;
 }
+
+let fallbackToastIdCounter = 0;
+
+const generateToastId = () => {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.randomUUID) {
+    return cryptoApi.randomUUID();
+  }
+
+  if (cryptoApi?.getRandomValues) {
+    const values = new Uint32Array(2);
+    cryptoApi.getRandomValues(values);
+    return `toast-${values[0].toString(36)}-${values[1].toString(36)}`;
+  }
+
+  fallbackToastIdCounter += 1;
+  return `toast-${Date.now().toString(36)}-${fallbackToastIdCounter.toString(36)}`;
+};
 
 // Context
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -243,10 +262,10 @@ const CloseButton = styled.button`
 `;
 
 // Toast Component
-const ToastComponent: React.FC<{
+const ToastComponent = forwardRef<HTMLDivElement, {
   toast: Toast;
   onDismiss: (id: string) => void;
-}> = ({ toast, onDismiss }) => {
+}>(({ toast, onDismiss }, ref) => {
   const getIcon = () => {
     switch (toast.variant) {
       case 'success':
@@ -265,6 +284,7 @@ const ToastComponent: React.FC<{
 
   return (
     <ToastWrapper
+      ref={ref}
       variant={toast.variant}
       initial={{ opacity: 0, x: 100, scale: 0.95 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -300,7 +320,9 @@ const ToastComponent: React.FC<{
       </CloseButton>
     </ToastWrapper>
   );
-};
+});
+
+ToastComponent.displayName = 'ToastComponent';
 
 // Provider Component
 interface ToastProviderProps {
@@ -311,7 +333,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
-  const generateId = () => Math.random().toString(36).substr(2, 9);
+  const generateId = generateToastId;
 
   const toast = useCallback((toastOptions: Omit<Toast, 'id'>) => {
     const id = generateId();

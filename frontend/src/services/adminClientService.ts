@@ -545,28 +545,57 @@ class AdminClientService {
   }
 
   // ==================== UTILITY FUNCTIONS ====================
+
+  private secureRandomIndex(maxExclusive: number) {
+    if (!globalThis.crypto?.getRandomValues) {
+      throw new Error('Secure random generation is unavailable');
+    }
+
+    const values = new Uint32Array(1);
+    const range = 0x100000000;
+    const maxUnbiased = Math.floor(range / maxExclusive) * maxExclusive;
+    let value = range;
+
+    while (value >= maxUnbiased) {
+      globalThis.crypto.getRandomValues(values);
+      value = values[0];
+    }
+
+    return value % maxExclusive;
+  }
+
+  private pickSecureCharacter(charset: string) {
+    return charset[this.secureRandomIndex(charset.length)];
+  }
   
   /**
    * Generate temporary password for new clients
    */
   generateTempPassword() {
     const length = 12;
-    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*';
+    const charset = `${lowercase}${uppercase}${numbers}${symbols}`;
+    const password = [
+      this.pickSecureCharacter(uppercase),
+      this.pickSecureCharacter(lowercase),
+      this.pickSecureCharacter(numbers),
+      this.pickSecureCharacter(symbols)
+    ];
     
-    // Ensure at least one of each type
-    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
-    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
-    password += '0123456789'[Math.floor(Math.random() * 10)];
-    password += '!@#$%^&*'[Math.floor(Math.random() * 8)];
-    
-    // Fill remaining length
-    for (let i = 4; i < length; i++) {
-      password += charset[Math.floor(Math.random() * charset.length)];
+    while (password.length < length) {
+      password.push(this.pickSecureCharacter(charset));
     }
     
-    // Shuffle the password
-    return password.split('').sort(() => Math.random() - 0.5).join('');
+    // Fisher-Yates shuffle using Web Crypto so character positions are not predictable.
+    for (let i = password.length - 1; i > 0; i--) {
+      const j = this.secureRandomIndex(i + 1);
+      [password[i], password[j]] = [password[j], password[i]];
+    }
+
+    return password.join('');
   }
   
   /**

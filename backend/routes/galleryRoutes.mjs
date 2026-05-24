@@ -1,8 +1,9 @@
 /**
- * Gallery Routes (Public)
+ * Gallery Routes (Public + Admin Maintenance)
  * =======================
  * Public-facing endpoints for the photo gallery & lead generation system.
- * No user auth required — gallery access uses its own short-lived JWT.
+ * Gallery access uses its own short-lived JWT; admin maintenance routes still
+ * require the normal SwanStudios JWT + admin role.
  *
  * Endpoints:
  *   GET    /api/gallery/events              — List published events
@@ -16,7 +17,8 @@
  *   POST   /api/gallery/donation            — Create optional Stripe donation session
  *   POST   /api/gallery/donation/zelle-confirm — Mark Zelle sent (admin verifies later)
  *   POST   /api/gallery/referral            — Submit optional referral (awards 5 credits)
- *   POST   /api/gallery/vip-signup          — Create/login user account for VIP conversion
+ *   POST   /api/gallery/vip-signup          — Create user account for VIP conversion
+ *   POST   /api/gallery/vip-login           — Login existing user for VIP conversion
  *   POST   /api/gallery/vip-checkout        — Create Stripe Checkout for $175 VIP PT session
  *   POST   /api/gallery/vip-activate        — Activate VIP status after successful payment
  */
@@ -50,14 +52,25 @@ import {
   buildGalleryPrintAttemptKey,
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
+import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
+import {
+  classifyStripeCheckoutSessionError,
+  validateCheckoutSessionId,
+} from '../utils/stripeCheckoutSessionErrors.mjs';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
 
-const GALLERY_JWT_SECRET = process.env.JWT_SECRET;
-if (!GALLERY_JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET environment variable is required for gallery routes');
-}
 const GALLERY_TOKEN_TTL = '24h';
+
+function signSwanAccessToken(userId, role) {
+  return jwt.sign(
+    { id: userId, role, tokenType: 'access', tokenId: uuidv4() },
+    getJwtSecret(),
+    { expiresIn: process.env.JWT_EXPIRES_IN || '3h' }
+  );
+}
 
 // Rate limiter for access endpoint (prevent brute-force password guessing)
 const accessLimiter = rateLimit({
@@ -87,13 +100,18 @@ function requireGalleryAccess(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, GALLERY_JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     if (decoded.type !== 'gallery_access') {
       return res.status(403).json({ success: false, error: 'Invalid gallery token' });
     }
     req.galleryAccess = decoded; // { type, visitorId, eventId, email, slug }
     next();
-  } catch {
+  } catch (error) {
+    if (isJwtSecretConfigurationError(error)) {
+      logger.error('[Gallery] JWT secret is not configured for gallery access');
+      return res.status(500).json({ success: false, error: 'Gallery access is not configured' });
+    }
+
     return res.status(401).json({ success: false, error: 'Gallery access expired. Please re-enter your email and event password.' });
   }
 }
@@ -289,7 +307,7 @@ router.post('/events/:slug/access', accessLimiter, async (req, res) => {
         email: cleanEmail,
         slug: event.slug,
       },
-      GALLERY_JWT_SECRET,
+      getJwtSecret(),
       { expiresIn: GALLERY_TOKEN_TTL }
     );
 
@@ -613,6 +631,9 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
     const pricing = CREDIT_PRICING[pkg];
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://sswanstudios.com').replace(/\/$/, '');
+    const gallerySlug = req.galleryAccess.slug || '';
+    const galleryPath = gallerySlug ? `/gallery/${encodeURIComponent(gallerySlug)}` : '/gallery';
     const idempotencyKey = buildWindowedStripeIdempotencyKey(
       `gallery-credits:${visitorId}:${eventId}:${pkg}`,
       {
@@ -640,8 +661,8 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
         },
         quantity: 1,
       }],
-      success_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?credits=success&package=${pkg}`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?credits=cancelled`,
+      success_url: `${frontendUrl}${galleryPath}?credits=success&package=${pkg}`,
+      cancel_url: `${frontendUrl}${galleryPath}?credits=cancelled`,
       metadata: {
         type: 'gallery_credits',
         package: pkg,
@@ -674,11 +695,14 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
     const { amount, method = 'stripe' } = req.body;
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://sswanstudios.com').replace(/\/$/, '');
+    const gallerySlug = req.galleryAccess.slug || '';
+    const galleryPath = gallerySlug ? `/gallery/${encodeURIComponent(gallerySlug)}` : '/gallery';
 
     const donationAmount = parseFloat(amount) || 0;
 
-    if (method === 'stripe' && donationAmount < 0.50) {
-      return res.status(400).json({ success: false, error: 'Stripe minimum is $0.50' });
+    if ((method === 'stripe' || method === 'venmo') && donationAmount < 0.50) {
+      return res.status(400).json({ success: false, error: 'Stripe checkout minimum is $0.50' });
     }
 
     if (method === 'stripe') {
@@ -714,36 +738,18 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
           },
           quantity: 1,
         }],
-        success_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?donation=success`,
-        cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?donation=cancelled`,
+        success_url: `${frontendUrl}${galleryPath}?donation=success`,
+        cancel_url: `${frontendUrl}${galleryPath}?donation=cancelled`,
         metadata: {
           type: 'gallery_donation',
           visitorId: String(visitorId),
           eventId: String(eventId),
+          method: 'stripe',
+          amount: String(donationAmount),
         },
       }, {
         idempotencyKey,
       });
-
-      // Record donation
-      await GalleryDonation.create({
-        visitorId,
-        eventId,
-        amount: donationAmount,
-        method: 'stripe',
-        stripePaymentId: session.id,
-      });
-
-      // Notification trigger: Gallery donation received
-      try {
-        await createAdminNotification({
-          title: 'Gallery Donation Received',
-          message: `Visitor #${visitorId} donated $${donationAmount.toFixed(2)} via Stripe`,
-          type: 'admin'
-        });
-      } catch (notifErr) {
-        logger.warn(`Gallery donation notification failed: ${notifErr.message}`);
-      }
 
       return res.json({ success: true, checkoutUrl: session.url });
     }
@@ -785,35 +791,18 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
           },
           quantity: 1,
         }],
-        success_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?donation=success`,
-        cancel_url: `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/gallery?donation=cancelled`,
+        success_url: `${frontendUrl}${galleryPath}?donation=success`,
+        cancel_url: `${frontendUrl}${galleryPath}?donation=cancelled`,
         metadata: {
           type: 'gallery_donation',
           visitorId: String(visitorId),
           eventId: String(eventId),
+          method: 'venmo',
+          amount: String(donationAmount),
         },
       }, {
         idempotencyKey,
       });
-
-      await GalleryDonation.create({
-        visitorId,
-        eventId,
-        amount: donationAmount,
-        method: 'venmo',
-        stripePaymentId: session.id,
-      });
-
-      // Notification trigger: Gallery donation received (Venmo)
-      try {
-        await createAdminNotification({
-          title: 'Gallery Donation Received',
-          message: `Visitor #${visitorId} donated $${donationAmount.toFixed(2)} via Venmo`,
-          type: 'admin'
-        });
-      } catch (notifErr) {
-        logger.warn(`Gallery donation notification failed: ${notifErr.message}`);
-      }
 
       return res.json({ success: true, checkoutUrl: session.url });
     }
@@ -868,11 +857,20 @@ router.post('/donation/zelle-confirm', requireGalleryAccess, async (req, res) =>
 
 // ── Referrals (Optional) ─────────────────────────────────────────────────
 
+const referralLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  keyGenerator: (req) => req.galleryAccess?.visitorId || req.ip,
+  message: { success: false, error: 'Referral limit reached. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 /**
  * POST /api/gallery/referral
  * Submit an optional PT referral
  */
-router.post('/referral', requireGalleryAccess, async (req, res) => {
+router.post('/referral', requireGalleryAccess, referralLimiter, async (req, res) => {
   try {
     const { referralName, referralPhone, referralEmail } = req.body;
 
@@ -882,19 +880,39 @@ router.post('/referral', requireGalleryAccess, async (req, res) => {
 
     const visitorId = req.galleryAccess.visitorId;
     const eventId = req.galleryAccess.eventId;
+    const cleanReferralName = referralName.trim();
+    const cleanReferralPhone = referralPhone.trim();
+    const cleanReferralEmail = referralEmail?.trim() || null;
+
+    const existingReferral = await GalleryReferral.findOne({
+      where: { visitorId, eventId, referralPhone: cleanReferralPhone },
+    });
+    if (existingReferral) {
+      return res.status(409).json({ success: false, error: 'This referral has already been submitted for this event.' });
+    }
 
     const referral = await GalleryReferral.create({
       visitorId,
       eventId,
-      referralName: referralName.trim(),
-      referralPhone: referralPhone.trim(),
-      referralEmail: referralEmail?.trim() || null,
+      referralName: cleanReferralName,
+      referralPhone: cleanReferralPhone,
+      referralEmail: cleanReferralEmail,
     });
 
     // Award 5 enhancement credits for the referral
+    await GalleryVisitor.increment('enhancementCredits', {
+      by: 5,
+      where: { id: visitorId },
+    });
     const visitor = await GalleryVisitor.findByPk(visitorId);
-    if (visitor) {
-      await visitor.update({ enhancementCredits: visitor.enhancementCredits + 5 });
+    try {
+      await createAdminNotification({
+        title: 'Gallery Referral Received',
+        message: `Visitor #${visitorId} submitted referral #${referral.id} (${cleanReferralName}) for event #${eventId}.`,
+        type: 'admin',
+      });
+    } catch (notifErr) {
+      logger.warn(`Gallery referral notification failed: ${notifErr.message}`);
     }
 
     // ── Bump lead score on referral (high-trust signal) ──
@@ -908,7 +926,7 @@ router.post('/referral', requireGalleryAccess, async (req, res) => {
           type: 'score_changed',
           performedByAI: true,
           title: 'Lead score +15 (referral submitted)',
-          description: `Referred "${referralName.trim()}" from event "${req.galleryAccess.slug}"`,
+          description: `Referred "${cleanReferralName}" from event "${req.galleryAccess.slug}"`,
           metadata: { previousScore: lead.score, newScore, reason: 'referral' },
         });
       }
@@ -1079,6 +1097,73 @@ const vipSignupLimiter = rateLimit({
  * The email is taken from the gallery access token (already verified).
  * Body: { password, phone, firstName, lastName }
  */
+router.post('/vip-login', vipSignupLimiter, requireGalleryAccess, async (req, res) => {
+  try {
+    const { email: requestedEmail, password } = req.body;
+    const email = req.galleryAccess.email;
+
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Password is required',
+      });
+    }
+
+    if (requestedEmail && requestedEmail.trim().toLowerCase() !== email) {
+      return res.status(403).json({
+        success: false,
+        error: 'Gallery access email does not match this login attempt',
+      });
+    }
+
+    const User = getUser();
+    const existingUser = await User.findOne({ where: { email } });
+    if (!existingUser) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+      });
+    }
+
+    const passwordValid = await existingUser.checkPassword(password);
+    if (!passwordValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+      });
+    }
+
+    const userId = existingUser.id.toString();
+    const accessToken = signSwanAccessToken(userId, existingUser.role);
+
+    await existingUser.update({ lastLogin: new Date(), lastActive: new Date() });
+
+    const visitor = await GalleryVisitor.findByPk(req.galleryAccess.visitorId);
+    if (visitor && !visitor.userId) {
+      await visitor.update({ userId: existingUser.id });
+    }
+
+    logger.info(`[Gallery VIP] Existing user logged in: ${email} (id=${existingUser.id})`);
+
+    return res.json({
+      success: true,
+      token: accessToken,
+      userId: existingUser.id,
+      isNewUser: false,
+      user: {
+        id: existingUser.id,
+        firstName: existingUser.firstName,
+        lastName: existingUser.lastName,
+        email: existingUser.email,
+        role: existingUser.role,
+      },
+    });
+  } catch (err) {
+    logger.error('[Gallery VIP] Login error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to process VIP login' });
+  }
+});
+
 router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, res) => {
   try {
     const { password, phone, firstName, lastName } = req.body;
@@ -1114,11 +1199,7 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
 
       // Generate auth tokens
       const userId = existingUser.id.toString();
-      const accessToken = jwt.sign(
-        { id: userId, role: existingUser.role, tokenType: 'access', tokenId: uuidv4() },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '3h' }
-      );
+      const accessToken = signSwanAccessToken(userId, existingUser.role);
 
       // Update last login
       await existingUser.update({ lastLogin: new Date(), lastActive: new Date() });
@@ -1172,11 +1253,7 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
     });
 
     const userId = newUser.id.toString();
-    const accessToken = jwt.sign(
-      { id: userId, role: newUser.role, tokenType: 'access', tokenId: uuidv4() },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '3h' }
-    );
+    const accessToken = signSwanAccessToken(userId, newUser.role);
 
     // Link gallery visitor to new user account
     const visitor = await GalleryVisitor.findByPk(req.galleryAccess.visitorId);
@@ -1219,9 +1296,14 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
     // Extract userId from userToken if not provided directly
     if (!userId && userToken) {
       try {
-        const decoded = jwt.verify(userToken, process.env.JWT_SECRET);
+        const decoded = jwt.verify(userToken, getJwtSecret());
         userId = decoded.id;
       } catch (tokenErr) {
+        if (isJwtSecretConfigurationError(tokenErr)) {
+          logger.error('[Gallery VIP] JWT secret is not configured for checkout token verification');
+          return res.status(500).json({ success: false, error: 'Authentication is not configured' });
+        }
+
         logger.warn('[Gallery VIP] Invalid userToken in checkout:', tokenErr.message);
       }
     }
@@ -1264,7 +1346,7 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
         },
         quantity: 1,
       }],
-      success_url: `${frontendUrl}/gallery/${gallerySlug}?vip=success&userId=${userId}`,
+      success_url: `${frontendUrl}/gallery/${gallerySlug}?vip=success&userId=${userId}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/gallery/${gallerySlug}?vip=cancelled`,
       metadata: {
         userId: String(userId),
@@ -1287,9 +1369,9 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
 
 /**
  * POST /api/gallery/vip-activate
- * Called after successful Stripe payment to activate VIP status.
- * Sets isVip on visitor, links user, and best-effort creates a session credit.
- * Body: { userId }
+ * Called after Stripe redirects back from a successful VIP checkout.
+ * Verifies the Checkout Session before syncing VIP/session fulfillment.
+ * Body: { sessionId, userId? }
  */
 /**
  * GET /api/gallery/vip-spots
@@ -1311,67 +1393,79 @@ router.get('/vip-spots', async (req, res) => {
 
 router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { sessionId, userId } = req.body;
     const visitorId = req.galleryAccess.visitorId;
+    const validation = validateCheckoutSessionId(sessionId);
 
-    if (!userId) {
-      return res.status(400).json({ success: false, error: 'userId is required' });
+    if (!validation.ok) {
+      return res.status(validation.statusCode).json({
+        success: false,
+        code: validation.code,
+        error: validation.message,
+      });
     }
 
-    // Set VIP status on gallery visitor
-    const visitor = await GalleryVisitor.findByPk(visitorId);
-    if (!visitor) {
-      return res.status(404).json({ success: false, error: 'Gallery visitor not found' });
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
     }
 
-    await visitor.update({ isVip: true, userId: parseInt(userId, 10) });
+    const { default: Stripe } = await import('stripe');
+    const stripe = new Stripe(stripeKey);
+    const session = await stripe.checkout.sessions.retrieve(validation.sessionId);
 
-    // Best-effort: add 1 available session credit to the user account
-    // The orientation is COMPLIMENTARY (0 credits required in session_types)
-    // The PT Training Session uses 1 credit
-    // So after orientation: 1 session left. After PT: 0 sessions left.
-    try {
-      const User = getUser();
-      const user = await User.findByPk(userId);
-      if (user) {
-        const currentSessions = user.availableSessions || 0;
-        await user.update({ availableSessions: currentSessions + 1 });
-        logger.info(`[Gallery VIP] Added 1 session credit to user ${userId} (now ${currentSessions + 1}). Orientation is complimentary (0 credits).`);
-      }
-    } catch (sessionErr) {
-      logger.warn(`[Gallery VIP] Could not add session credit for user ${userId}: ${sessionErr.message}`);
+    if (session.payment_status !== 'paid') {
+      return res.status(409).json({
+        success: false,
+        code: 'VIP_PAYMENT_NOT_CONFIRMED',
+        error: `Payment status is ${session.payment_status || 'unknown'}`,
+      });
     }
 
-    // Best-effort: try to create a SessionPackage record for tracking
-    try {
-      const { default: SessionPackage } = await import('../models/SessionPackage.mjs');
-      if (SessionPackage) {
-        await SessionPackage.findOrCreate({
-          where: { name: 'VIP Gallery Package — PT Session + Complimentary Orientation' },
-          defaults: {
-            name: 'VIP Gallery Package — PT Session + Complimentary Orientation',
-            description: '1 PT Training Session credit + 1 Complimentary NASM Orientation (free, 0 credits). After orientation: 1 session remaining for PT.',
-            sessionCount: 1,
-            price: 175.00,
-            duration: 60,
-            packageType: 'individual',
-            isActive: true,
-          },
-        });
-        logger.info(`[Gallery VIP] SessionPackage record ensured for VIP PT Session`);
-      }
-    } catch (pkgErr) {
-      logger.warn(`[Gallery VIP] Could not create SessionPackage record: ${pkgErr.message}`);
+    const meta = session.metadata || {};
+    const metadataVisitorId = Number.parseInt(meta.galleryVisitorId, 10);
+    const metadataEventId = Number.parseInt(meta.eventId, 10);
+    const metadataUserId = Number.parseInt(meta.userId, 10);
+
+    if (
+      meta.type !== 'vip_pt_session' ||
+      metadataVisitorId !== visitorId ||
+      metadataEventId !== req.galleryAccess.eventId ||
+      (userId && Number.parseInt(userId, 10) !== metadataUserId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: 'VIP_SESSION_MISMATCH',
+        error: 'Checkout session does not match this gallery visitor',
+      });
     }
 
-    logger.info(`[Gallery VIP] Activated VIP for visitor ${visitorId}, linked to user ${userId}`);
+    const result = await fulfillGalleryVipSession({
+      sessionId: session.id,
+      visitorId: metadataVisitorId,
+      userId: metadataUserId,
+      eventId: metadataEventId,
+      amount: 175,
+    });
 
     return res.json({
       success: true,
       isVip: true,
+      alreadyProcessed: result.alreadyProcessed,
+      sessionCreditGranted: result.sessionCreditGranted,
       message: 'VIP status activated! 1 PT session credit added + 1 complimentary orientation session (free). Schedule your orientation first!',
     });
   } catch (err) {
+    const stripeError = classifyStripeCheckoutSessionError(err);
+    if (stripeError.code !== 'SESSION_VERIFICATION_FAILED') {
+      return res.status(stripeError.statusCode).json({
+        success: false,
+        code: stripeError.code,
+        error: stripeError.message,
+        details: stripeError.details,
+      });
+    }
+
     logger.error('[Gallery VIP] Activation error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to activate VIP status' });
   }
@@ -1420,6 +1514,15 @@ router.post('/message', requireGalleryAccess, messageLimiter, async (req, res) =
     });
 
     logger.info(`[Gallery] Message created id=${galleryMessage.id} from visitor=${visitorId} event=${eventId}`);
+    try {
+      await createAdminNotification({
+        title: 'Gallery Message Received',
+        message: `Visitor #${visitorId} sent gallery message #${galleryMessage.id} for event #${eventId}.`,
+        type: 'admin',
+      });
+    } catch (notifErr) {
+      logger.warn(`Gallery message notification failed: ${notifErr.message}`);
+    }
 
     return res.json({
       success: true,
@@ -1685,7 +1788,7 @@ router.post('/analyze-form', requireGalleryAccess, formAnalysisLimiter, async (r
  *   +2   Per photo vote
  * Max score: 100
  */
-router.post('/recalculate-lead-scores', async (req, res) => {
+router.post('/recalculate-lead-scores', protect, adminOnly, async (req, res) => {
   try {
     const leads = await Lead.findAll({ where: { source: 'gallery', galleryVisitorId: { [Op.ne]: null } } });
     let updated = 0;

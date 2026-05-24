@@ -3,22 +3,46 @@
  * Phase 8: Communicates with /api/variation endpoints.
  */
 import { useCallback } from 'react';
+import apiService from '../services/api.service';
 
 const API_BASE = '/api/variation';
 
-function getHeaders(): HeadersInit {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+function parseRequestBody(body: BodyInit | null | undefined): unknown {
+  if (typeof body !== 'string') return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
 }
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...options, headers: { ...getHeaders(), ...options?.headers } });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
+  const method = (options?.method || 'GET').toUpperCase();
+
+  try {
+    if (method === 'POST') {
+      const response = await apiService.post<T>(url, parseRequestBody(options?.body));
+      return response.data;
+    }
+    if (method === 'PUT') {
+      const response = await apiService.put<T>(url, parseRequestBody(options?.body));
+      return response.data;
+    }
+    if (method === 'DELETE') {
+      const response = await apiService.delete<T>(url);
+      return response.data;
+    }
+
+    const response = await apiService.get<T>(url);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      error.message ||
+      'Request failed'
+    );
+  }
 }
 
 export interface SwapSuggestion {

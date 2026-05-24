@@ -71,7 +71,18 @@ vi.mock('../../services/nasmApiService', async () => {
 vi.mock('../../services/api.service', async () => {
   const actual = await vi.importActual<any>('../../services/api.service');
   class MockApiService {
-    get = vi.fn().mockResolvedValue({ data: { success: true, client: null } });
+    get = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        client: {
+          id: 42,
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'client@example.com',
+          availableSessions: 10,
+        },
+      },
+    });
     post = vi.fn().mockResolvedValue({ data: { success: true } });
     put = vi.fn().mockResolvedValue({ data: { success: true } });
     delete = vi.fn().mockResolvedValue({ data: { success: true } });
@@ -123,7 +134,7 @@ vi.mock('../Shared/EquipmentProfilePicker', () => ({ default: () => null }));
 // `import` (not require) keeps vitest's mock-hoisting semantics intact.
 // ─────────────────────────────────────────────────────────────
 
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import WorkoutLogger from './WorkoutLogger';
 
@@ -137,7 +148,7 @@ describe('Phase 16.2 (Codex round 3) — WorkoutLogger client-mount TDZ regressi
     vi.clearAllMocks();
   });
 
-  it('mounts without throwing ReferenceError for executeLoadClientData', () => {
+  it('mounts without throwing ReferenceError for executeLoadClientData', async () => {
     // Before the 2026-04-18 fix, this mount threw at render time:
     //   ReferenceError: Cannot access 'executeLoadClientData' before initialization
     // The crash was caused by `loadClientData` (declared at line 378)
@@ -154,9 +165,10 @@ describe('Phase 16.2 (Codex round 3) — WorkoutLogger client-mount TDZ regressi
         </MemoryRouter>,
       );
     }).not.toThrow();
+    expect(await screen.findByText(/Add Your First Exercise/i)).toBeInTheDocument();
   });
 
-  it('mounts with an explicit numeric clientId prop (admin/trainer path)', () => {
+  it('mounts with an explicit numeric clientId prop (admin/trainer path)', async () => {
     // The same TDZ would fire regardless of props, because useCallback
     // deps evaluate before props are even consumed. This case confirms
     // the non-self mount path (EnhancedWorkoutLogger → WorkoutLogger
@@ -168,6 +180,7 @@ describe('Phase 16.2 (Codex round 3) — WorkoutLogger client-mount TDZ regressi
         </MemoryRouter>,
       );
     }).not.toThrow();
+    expect(await screen.findByText(/Add Your First Exercise/i)).toBeInTheDocument();
   });
 
   it('does not re-introduce an `executeLoadClientData` dep on an earlier-declared callback', () => {

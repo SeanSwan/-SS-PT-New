@@ -370,7 +370,7 @@ const fullBody = [
 // ─────────────────────────────────────────────────────────────
 // SECTION: STRETCHING / FLEXIBILITY EXERCISES (30)
 // PURPOSE: Static and dynamic stretches for recovery and mobility
-// NOTE: No yoga or meditation per user feedback (American-based app)
+// NOTE: Forbidden wellness terms are excluded per user feedback.
 // ─────────────────────────────────────────────────────────────
 const stretching = [
   exV2({ name: 'Standing Hamstring Stretch', description: 'Standing forward fold reaching toward toes for hamstring flexibility.', instructions: '1. Stand with feet hip-width. 2. Hinge at hips reaching toward toes. 3. Keep legs mostly straight. 4. Hold 30 seconds.', exerciseType: 'flexibility', primaryMuscles: ['Hamstrings'], difficulty: 100, equipmentNeeded: [], canBePerformedAtHome: true, defaultTempo: '2/2/2', defaultRestSeconds: 10, optPhases: [1], source: 'free-exercise-db' }),

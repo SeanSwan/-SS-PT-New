@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Watch, Heart, Footprints, Moon, Activity, RefreshCw, X } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 interface WearableData {
   heartRate: number | null;
@@ -190,14 +191,10 @@ const WearableDataPanel: React.FC<Props> = ({ open, onClose, videoSessionId }) =
   const [data, setData] = useState<WearableData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`/api/video-sessions/${videoSessionId}/wearable`, { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: { wearableData: WearableData | null } }>(`/api/video-sessions/${videoSessionId}/wearable`);
+      const d = res.data;
       if (d.success && d.data.wearableData) setData(d.data.wearableData);
     } catch { /* best-effort */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -217,12 +214,8 @@ const WearableDataPanel: React.FC<Props> = ({ open, onClose, videoSessionId }) =
         source,
       };
 
-      const res = await fetch(`/api/video-sessions/${videoSessionId}/wearable`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(simulated),
-      });
-      const d = await res.json();
+      const res = await apiService.post<{ success: boolean; data: { wearableData: WearableData } }>(`/api/video-sessions/${videoSessionId}/wearable`, simulated);
+      const d = res.data;
       if (d.success) setData(d.data.wearableData);
     } catch { /* best-effort */ }
     setLoading(false);

@@ -7,18 +7,38 @@ import { useAuth } from '../../../../../context/AuthContext';
 import { CommandCard } from '../admin-dashboard-view';
 
 interface SocialPost {
-  id: number;
-  userId: number;
+  id: number | string;
+  userId: number | string;
   content: string;
   moderationStatus?: string;
+  status?: string;
   likesCount?: number;
   commentsCount?: number;
   createdAt: string;
+  userName?: string;
+  engagement?: {
+    likes?: number;
+    comments?: number;
+  };
   user?: {
     firstName?: string;
     lastName?: string;
   };
 }
+
+const normalizeSocialPost = (post: any): SocialPost => ({
+  id: post.id,
+  userId: post.userId,
+  content: post.content || '',
+  moderationStatus: post.moderationStatus || post.status || 'unknown',
+  status: post.status,
+  likesCount: post.likesCount ?? post.engagement?.likes ?? 0,
+  commentsCount: post.commentsCount ?? post.engagement?.comments ?? 0,
+  createdAt: post.createdAt || new Date().toISOString(),
+  userName: post.userName,
+  engagement: post.engagement,
+  user: post.user,
+});
 
 const T = {
   royalDepth: '#003080',
@@ -57,7 +77,7 @@ const HeaderActions = styled.div`
 `;
 
 const ActionButton = styled.button`
-  min-height: 36px;
+  min-height: 44px;
   padding: 0.4rem 0.8rem;
   border-radius: 10px;
   border: 1px solid ${T.glassBorder};
@@ -71,6 +91,11 @@ const ActionButton = styled.button`
 
   &:hover {
     border-color: ${T.iceWing};
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${T.iceWing};
+    outline-offset: 2px;
   }
 `;
 
@@ -188,13 +213,13 @@ const AlertText = styled.div`
   gap: 0.4rem;
 `;
 
-const statusFor = (post: SocialPost) => (post.moderationStatus || 'unknown').toLowerCase();
+const statusFor = (post: SocialPost) => (post.moderationStatus || post.status || 'unknown').toLowerCase();
 
 const toName = (post: SocialPost) => {
   const firstName = post.user?.firstName || '';
   const lastName = post.user?.lastName || '';
   const fullName = `${firstName} ${lastName}`.trim();
-  return fullName || `User #${post.userId}`;
+  return post.userName || fullName || `User #${post.userId}`;
 };
 
 const relativeTime = (iso: string) => {
@@ -220,12 +245,14 @@ const SocialOverviewWidget: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authAxios.get('/api/social/posts/feed?limit=40&offset=0');
-      const rows = Array.isArray(response.data?.posts) ? response.data.posts : [];
-      setPosts(rows);
+      const response = await authAxios.get('/api/admin/content/posts', {
+        params: { status: 'all', limit: 40, page: 1, sortBy: 'createdAt', sortOrder: 'DESC' },
+      });
+      const rows = Array.isArray(response.data?.data?.posts) ? response.data.data.posts : [];
+      setPosts(rows.map(normalizeSocialPost));
     } catch (err) {
-      console.error('Failed to load social overview feed', err);
-      setError('Could not load social feed metrics');
+      console.error('Failed to load admin social overview metrics', err);
+      setError('Could not load admin social metrics');
       setPosts([]);
     } finally {
       setLoading(false);
@@ -274,7 +301,7 @@ const SocialOverviewWidget: React.FC = () => {
             <RefreshCw size={14} />
             Refresh
           </ActionButton>
-          <ActionButton onClick={() => navigate('/dashboard/admin/client-management')}>
+          <ActionButton onClick={() => navigate('/dashboard/admin/content')}>
             <MessageSquare size={14} />
             Open Command
           </ActionButton>

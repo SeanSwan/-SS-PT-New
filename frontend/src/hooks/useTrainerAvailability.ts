@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import apiService from '../services/api.service';
 
 // Simple in-memory cache to deduplicate requests
 const slotsCache = new Map<string, { data: any; timestamp: number; error?: boolean }>();
@@ -39,14 +40,6 @@ const formatDateOnlyLocal = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
-
 export const useTrainerAvailability = (trainerId: number | string | null) => {
   const [data, setData] = useState<AvailabilityData>({ recurring: [], overrides: [] });
   const [isLoading, setIsLoading] = useState(false);
@@ -64,18 +57,11 @@ export const useTrainerAvailability = (trainerId: number | string | null) => {
     setError(null);
 
     try {
-      const response = await fetch(`/api/availability/${trainerId}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch availability');
-      }
-
-      const result = await response.json();
+      const response = await apiService.get(`/api/availability/${trainerId}`);
+      const result = response.data;
       setData(result.data || { recurring: [], overrides: [] });
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+    } catch (err: any) {
+      setError(new Error(err?.response?.data?.message || err.message || 'Unknown error'));
     } finally {
       setIsLoading(false);
     }
@@ -93,17 +79,8 @@ export const useTrainerAvailability = (trainerId: number | string | null) => {
     setIsUpdating(true);
 
     try {
-      const response = await fetch(`/api/availability/${trainerId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ schedule })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update availability');
-      }
-
-      const result = await response.json();
+      const response = await apiService.put(`/api/availability/${trainerId}`, { schedule });
+      const result = response.data;
       await fetchAvailability();
       return result;
     } finally {
@@ -126,17 +103,8 @@ export const useTrainerAvailability = (trainerId: number | string | null) => {
     setIsAddingOverride(true);
 
     try {
-      const response = await fetch(`/api/availability/${trainerId}/override`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(override)
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create override');
-      }
-
-      const result = await response.json();
+      const response = await apiService.post(`/api/availability/${trainerId}/override`, override);
+      const result = response.data;
       await fetchAvailability();
       return result;
     } finally {
@@ -211,25 +179,17 @@ export const useAvailableSlots = (
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/availability/${trainerId}/slots?date=${dateStr}&duration=${duration}`,
-        { headers: getAuthHeaders() }
-      );
-
-      if (!response.ok) {
-        // Cache the error to prevent repeated failed requests
-        slotsCache.set(cacheKey, { data: [], timestamp: now, error: true });
-        throw new Error('Failed to fetch slots');
-      }
-
-      const result = await response.json();
+      const response = await apiService.get(`/api/availability/${trainerId}/slots?date=${dateStr}&duration=${duration}`);
+      const result = response.data;
       const slotsData = result.data || [];
 
       // Cache successful response
       slotsCache.set(cacheKey, { data: slotsData, timestamp: now });
       setSlots(slotsData);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+    } catch (err: any) {
+      // Cache the error to prevent repeated failed requests
+      slotsCache.set(cacheKey, { data: [], timestamp: now, error: true });
+      setError(new Error(err?.response?.data?.message || err.message || 'Unknown error'));
       setSlots([]);
     } finally {
       setIsLoading(false);

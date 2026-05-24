@@ -28,6 +28,30 @@ import { Op } from 'sequelize';
 
 const router = express.Router();
 
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseBoundedPositiveInteger = (value, max) => {
+  const parsed = parseStrictPositiveInteger(value);
+  return parsed ? Math.min(parsed, max) : null;
+};
+
+const parseOptionalFutureDate = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return { valid: true, date: null };
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime()) || date <= new Date()) {
+    return { valid: false, date: null };
+  }
+
+  return { valid: true, date };
+};
+
 /**
  * @route   GET /api/trainer-permissions
  * @desc    Get all trainer permissions with filtering
@@ -49,7 +73,14 @@ router.get('/', protect, adminOnly, async (req, res) => {
     const whereConditions = {};
     
     if (trainerId) {
-      whereConditions.trainerId = parseInt(trainerId);
+      const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+      if (!parsedTrainerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'trainerId must be a positive integer'
+        });
+      }
+      whereConditions.trainerId = parsedTrainerId;
     }
     
     if (permissionType) {
@@ -68,8 +99,24 @@ router.get('/', protect, adminOnly, async (req, res) => {
       ];
     }
 
+    const parsedPage = parseStrictPositiveInteger(page);
+    if (!parsedPage) {
+      return res.status(400).json({
+        success: false,
+        message: 'page must be a positive integer'
+      });
+    }
+
+    const parsedLimit = parseBoundedPositiveInteger(limit, 100);
+    if (!parsedLimit) {
+      return res.status(400).json({
+        success: false,
+        message: 'limit must be a positive integer'
+      });
+    }
+
     // Calculate pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
 
     const TrainerPermissions = getTrainerPermissions();
     const User = getUser();
@@ -89,27 +136,27 @@ router.get('/', protect, adminOnly, async (req, res) => {
         }
       ],
       order: [['grantedAt', 'DESC']],
-      limit: parseInt(limit),
+      limit: parsedLimit,
       offset: offset
     });
 
-    const totalPages = Math.ceil(count / parseInt(limit));
+    const totalPages = Math.ceil(count / parsedLimit);
 
     logger.info(`Retrieved ${permissions.length} permissions for admin`, {
       userId: req.user.id,
       filters: { trainerId, permissionType, isActive },
-      pagination: { page, limit, totalPages }
+      pagination: { page: parsedPage, limit: parsedLimit, totalPages }
     });
 
     res.json({
       success: true,
       permissions,
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: parsedPage,
         totalPages,
         totalCount: count,
-        hasNextPage: parseInt(page) < totalPages,
-        hasPrevPage: parseInt(page) > 1
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1
       }
     });
 
@@ -118,7 +165,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch trainer permissions',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -133,10 +180,18 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     const { trainerId } = req.params;
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
+    const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+
+    if (!parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID must be a positive integer'
+      });
+    }
 
     // Trainers can only view their own permissions, admins can view any.
     // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
-    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
+    if (requestingUserRole === 'trainer' && String(parsedTrainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only view their own permissions'
@@ -148,7 +203,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     const permissions = await TrainerPermissions.findAll({
       where: {
-        trainerId: parseInt(trainerId),
+        trainerId: parsedTrainerId,
         isActive: true,
         [Op.or]: [
           { expiresAt: null },
@@ -181,7 +236,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     logger.info(`Trainer ${trainerId} retrieved permissions`, {
       requestingUserId,
-      trainerId,
+      trainerId: parsedTrainerId,
       activePermissions: permissions.length
     });
 
@@ -198,7 +253,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
     res.status(500).json({
       success: false,
       message: 'Failed to fetch trainer permissions',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -222,6 +277,14 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
       });
     }
 
+    const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+    if (!parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID must be a positive integer'
+      });
+    }
+
     // Validate permission type
     const validPermissionTypes = Object.values(PERMISSION_TYPES);
     if (!validPermissionTypes.includes(permissionType)) {
@@ -232,10 +295,11 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
     }
 
     // Validate expiration date if provided
-    if (expiresAt && new Date(expiresAt) <= new Date()) {
+    const parsedExpiration = parseOptionalFutureDate(expiresAt);
+    if (!parsedExpiration.valid) {
       return res.status(400).json({
         success: false,
-        message: 'Expiration date must be in the future'
+        message: 'Expiration date must be a valid future date'
       });
     }
 
@@ -245,7 +309,7 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
     // Verify trainer exists and has correct role
     const trainer = await User.findOne({ 
       where: { 
-        id: parseInt(trainerId), 
+        id: parsedTrainerId,
         role: 'trainer' 
       } 
     });
@@ -260,7 +324,7 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
     // Check if permission already exists and is active
     const existingPermission = await TrainerPermissions.findOne({
       where: {
-        trainerId: parseInt(trainerId),
+        trainerId: parsedTrainerId,
         permissionType,
         isActive: true,
         [Op.or]: [
@@ -279,10 +343,10 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
 
     // Create new permission
     const permission = await TrainerPermissions.create({
-      trainerId: parseInt(trainerId),
+      trainerId: parsedTrainerId,
       permissionType,
       grantedBy,
-      expiresAt: expiresAt || null,
+      expiresAt: parsedExpiration.date,
       notes: notes || null,
       isActive: true
     });
@@ -320,7 +384,7 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to grant permission',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -336,10 +400,18 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { notes } = req.body;
     const revokedBy = req.user.id;
+    const parsedPermissionId = parseStrictPositiveInteger(id);
+
+    if (!parsedPermissionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permission ID must be a positive integer'
+      });
+    }
 
     const TrainerPermissions = getTrainerPermissions();
 
-    const permission = await TrainerPermissions.findByPk(id);
+    const permission = await TrainerPermissions.findByPk(parsedPermissionId);
     if (!permission) {
       return res.status(404).json({
         success: false,
@@ -363,7 +435,7 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
 
     // Fetch updated permission with related data
     const User = getUser();
-    const updatedPermission = await TrainerPermissions.findByPk(id, {
+    const updatedPermission = await TrainerPermissions.findByPk(parsedPermissionId, {
       include: [
         { 
           model: User, 
@@ -378,8 +450,8 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
       ]
     });
 
-    logger.info(`Admin ${revokedBy} revoked permission ${id}`, {
-      permissionId: id,
+    logger.info(`Admin ${revokedBy} revoked permission ${parsedPermissionId}`, {
+      permissionId: parsedPermissionId,
       permissionType: permission.permissionType,
       trainerId: permission.trainerId
     });
@@ -395,7 +467,7 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to revoke permission',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -411,6 +483,14 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
     const { id } = req.params;
     const { expiresAt, notes } = req.body;
     const extendedBy = req.user.id;
+    const parsedPermissionId = parseStrictPositiveInteger(id);
+
+    if (!parsedPermissionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Permission ID must be a positive integer'
+      });
+    }
 
     if (!expiresAt) {
       return res.status(400).json({
@@ -419,16 +499,17 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
       });
     }
 
-    if (new Date(expiresAt) <= new Date()) {
+    const parsedExpiration = parseOptionalFutureDate(expiresAt);
+    if (!parsedExpiration.valid) {
       return res.status(400).json({
         success: false,
-        message: 'Expiration date must be in the future'
+        message: 'Expiration date must be a valid future date'
       });
     }
 
     const TrainerPermissions = getTrainerPermissions();
 
-    const permission = await TrainerPermissions.findByPk(id);
+    const permission = await TrainerPermissions.findByPk(parsedPermissionId);
     if (!permission) {
       return res.status(404).json({
         success: false,
@@ -445,13 +526,13 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
 
     // Update expiration date
     await permission.update({
-      expiresAt: new Date(expiresAt),
+      expiresAt: parsedExpiration.date,
       notes: notes || permission.notes
     });
 
     // Fetch updated permission with related data
     const User = getUser();
-    const updatedPermission = await TrainerPermissions.findByPk(id, {
+    const updatedPermission = await TrainerPermissions.findByPk(parsedPermissionId, {
       include: [
         { 
           model: User, 
@@ -466,8 +547,8 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
       ]
     });
 
-    logger.info(`Admin ${extendedBy} extended permission ${id} until ${expiresAt}`, {
-      permissionId: id,
+    logger.info(`Admin ${extendedBy} extended permission ${parsedPermissionId} until ${expiresAt}`, {
+      permissionId: parsedPermissionId,
       permissionType: permission.permissionType,
       trainerId: permission.trainerId,
       newExpiration: expiresAt
@@ -484,7 +565,7 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to extend permission',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -508,9 +589,17 @@ router.post('/check', protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
+    const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+    if (!parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID must be a positive integer'
+      });
+    }
+
     // Trainers can only check their own permissions, admins can check any.
     // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
-    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
+    if (requestingUserRole === 'trainer' && String(parsedTrainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only check their own permissions'
@@ -521,7 +610,7 @@ router.post('/check', protect, trainerOrAdminOnly, async (req, res) => {
 
     const permission = await TrainerPermissions.findOne({
       where: {
-        trainerId: parseInt(trainerId),
+        trainerId: parsedTrainerId,
         permissionType,
         isActive: true,
         [Op.or]: [
@@ -554,7 +643,7 @@ router.post('/check', protect, trainerOrAdminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to check permission',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -616,7 +705,7 @@ router.get('/types', protect, trainerOrAdminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch permission types',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });
@@ -702,7 +791,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch permission statistics',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'internal_error'
     });
   }
 });

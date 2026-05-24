@@ -73,9 +73,9 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
     expect(SOURCE).toMatch(/setUseOriginalLogger\(\s*true\s*\)/);
   });
 
-  it('Phase 17.1: useOriginalLogger branch back button is role-aware for real clients, "Back to Demo" only for demo fallback', () => {
-    // Locks the ternary: isDemoFallback ? "Back to Demo" : backToClientsLabel
-    expect(SOURCE).toMatch(/isDemoFallback\s*\?\s*['"]Back to Demo['"]\s*:\s*backToClientsLabel/);
+  it('API failure does not seed demo clients or enter demo mode', () => {
+    expect(SOURCE).not.toMatch(/setClient\(\s*demoClient\s*\)/);
+    expect(SOURCE).not.toMatch(/setShowDemo\(\s*true\s*\)/);
   });
 
   it('Phase 17.1: the stale "Workout Logger Ready / Start Demo Workout" placeholder block is gone', () => {

@@ -6,6 +6,7 @@ import {
   createClientSelfOnboarding
 } from '../controllers/onboardingController.mjs';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ const router = express.Router();
  *
  * Authorization:
  * - POST: Admin or Trainer only (protect + authorize)
- * - GET: Admin, Trainer, or the client themselves
+ * - GET: Admin, assigned trainer, or the client themselves
  */
 
 // POST /api/onboarding/self - Client self-service onboarding
@@ -37,43 +38,10 @@ router.post('/',
 );
 
 // GET /api/onboarding/:userId - Get client master prompt
-// Requires: Authenticated user (admin, trainer, or the client themselves)
+// Requires: Authenticated user with client ownership or assignment access
 router.get('/:userId',
   protect,
-  // Authorization: Allow if admin, trainer, or the user's own data
-  async (req, res, next) => {
-    const requestingUser = req.user;
-
-    // Strict numeric validation
-    if (!/^\d+$/.test(req.params.userId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid user ID'
-      });
-    }
-    const targetUserId = parseInt(req.params.userId, 10);
-    if (targetUserId <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid user ID'
-      });
-    }
-
-    // Admin and trainers can access any client's data
-    if (requestingUser.role === 'admin' || requestingUser.role === 'trainer') {
-      return next();
-    }
-
-    // Clients can only access their own data (type-safe comparison)
-    if (Number(requestingUser.id) === targetUserId) {
-      return next();
-    }
-
-    return res.status(403).json({
-      success: false,
-      error: 'Forbidden: You do not have permission to access this resource'
-    });
-  },
+  verifyClientAccessByUserId({ paramName: 'userId' }),
   getClientMasterPrompt
 );
 

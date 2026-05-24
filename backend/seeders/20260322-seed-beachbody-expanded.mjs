@@ -15,7 +15,7 @@
  * Safe to re-run without duplicates. 27 existing exercises will be skipped.
  *
  * KEY DECISIONS: Source tags match specific programs for filtering/attribution.
- * No yoga/meditation per project rules. All exercises are bodyweight/home-friendly.
+ * Forbidden wellness terms are excluded per project rules. All exercises are bodyweight/home-friendly.
  */
 
 import Exercise from '../models/Exercise.mjs';
@@ -1350,7 +1350,7 @@ const t25 = [
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hip Hop Abs — Standing Core & Dance-Based Cardio
 // PURPOSE: 10 exercises from Shaun T's Hip Hop Abs program
-// WHY: No yoga/meditation — all are active standing core and dance moves
+// WHY: Forbidden wellness terms excluded; all are active standing core and dance moves.
 // ─────────────────────────────────────────────────────────────
 const hipHopAbs = [
   exV2({
@@ -1537,7 +1537,7 @@ const hipHopAbs = [
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: P90X / P90X3 — Plyometrics, Kenpo, Strength
-// PURPOSE: 14 exercises from Tony Horton's P90X system (yoga excluded per rules)
+// PURPOSE: 14 exercises from Tony Horton's P90X system (flexibility-only block excluded per rules)
 // ─────────────────────────────────────────────────────────────
 const p90x = [
   exV2({

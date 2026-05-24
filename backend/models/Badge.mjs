@@ -1,5 +1,5 @@
 import { DataTypes, Model } from 'sequelize';
-import { sequelize } from './index.mjs';
+import sequelize from '../database.mjs';
 
 class Badge extends Model {}
 
@@ -20,77 +20,64 @@ Badge.init({
   },
   imageUrl: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     comment: 'URL to the custom badge image/GIF from cloud storage.',
   },
-  xpReward: {
-    type: DataTypes.INTEGER,
-    defaultValue: 50,
-  },
   category: {
-    type: DataTypes.STRING,
-    defaultValue: 'achievement',
-    comment: 'Badge category: achievement, custom, milestone, etc.',
+    type: DataTypes.ENUM('strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general'),
+    allowNull: false,
+    defaultValue: 'general',
   },
-  rarity: {
-    type: DataTypes.STRING,
-    defaultValue: 'common',
-    comment: 'Rarity tier: common, rare, epic, legendary',
+  difficulty: {
+    type: DataTypes.ENUM('beginner', 'intermediate', 'advanced', 'expert'),
+    allowNull: false,
+    defaultValue: 'beginner',
   },
-  // Phase 2: Assignment targets
-  assignedTo: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Assignment type: achievement, tab, milestone, or null (unassigned)',
+  criteriaType: {
+    type: DataTypes.ENUM(
+      'exercise_completion',
+      'streak_achievement',
+      'challenge_completion',
+      'social_engagement',
+      'milestone_reached',
+      'custom_criteria'
+    ),
+    allowNull: false,
   },
-  assignedTarget: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Target identifier: achievement name, tab key (e.g. "workout", "nutrition"), milestone ID',
+  criteria: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: {},
   },
-  prompt: {
-    type: DataTypes.TEXT,
-    allowNull: true,
-    comment: 'AI generation prompt (for reference)',
+  rewards: {
+    type: DataTypes.JSON,
+    allowNull: false,
+    defaultValue: { points: 100 },
   },
-  style: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Art style ID used for generation',
-  },
-  // Phase 3: Batch, marketplace, animation
-  isAnimated: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    comment: 'Legendary animated badge (CSS shimmer + glow)',
-  },
-  isShared: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-    comment: 'Shared to badge marketplace for other users to claim',
-  },
-  sharedBy: {
+  collectionId: {
     type: DataTypes.UUID,
     allowNull: true,
-    comment: 'Admin who shared this badge to marketplace',
   },
-  batchGroupId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Groups batch-generated badge variations together',
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
   },
-  secondaryStyle: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Secondary style ID for style-mixed badges',
+  createdBy: {
+    type: DataTypes.UUID,
+    allowNull: false,
   },
 }, {
   sequelize,
   modelName: 'Badge',
-  tableName: 'badges',
+  tableName: 'Badges',
   timestamps: true,
   indexes: [
     { fields: ['name'] },
+    { fields: ['collectionId'] },
+    { fields: ['isActive'] },
+    { fields: ['createdAt'] },
+    { fields: ['criteriaType'] },
   ],
 });
 

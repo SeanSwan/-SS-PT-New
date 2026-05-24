@@ -28,6 +28,7 @@ import {
   CustomSelect
 } from '../UniversalMasterSchedule/ui';
 import { useSMSLogs, SmsLog } from '../../hooks/useSMSLogs';
+import apiService from '../../services/api.service';
 
 const Table = styled.table`
   width: 100%;
@@ -150,7 +151,6 @@ const SMSLogsPanel: React.FC = () => {
     setActionMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
       const endpoint = log.templateName ? '/api/sms/send-template' : '/api/sms/send';
       const payload = log.templateName
         ? {
@@ -163,27 +163,19 @@ const SMSLogsPanel: React.FC = () => {
           body: log.message || ''
         };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post(endpoint, payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setActionError(result?.message || 'Failed to resend SMS.');
         return;
       }
 
       setActionMessage('SMS resent successfully.');
       await refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error resending SMS:', err);
-      setActionError('Network error resending SMS.');
+      setActionError(err?.response?.data?.message || 'Network error resending SMS.');
     } finally {
       setIsSubmitting(false);
     }

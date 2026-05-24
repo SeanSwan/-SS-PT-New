@@ -27,6 +27,7 @@ import {
   BadgeRow, ProductBadge, ExpandedDetail, NasmBox, NasmLabel, NasmText,
   ShopLink, ComingSoon,
 } from './SupplementsTab.catalog.styles';
+import apiService from '../../services/api.service';
 
 // ── Types ──────────────────────────────────────────────────────
 interface Supplement {
@@ -55,13 +56,6 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   moon: <Moon size={18} />,
 };
 
-const API = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 const severityColor = (s: string) => {
   if (s === 'high') return 'var(--accent-error, #C92A54)';
   if (s === 'moderate') return 'var(--accent-gold, #C6A84B)';
@@ -82,10 +76,12 @@ const SupplementsTab: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/supplements/categories`).then(r => r.json()),
-      fetch(`${API}/api/supplements/products`).then(r => r.json()),
+      apiService.get('/api/supplements/categories'),
+      apiService.get('/api/supplements/products'),
     ])
-      .then(([catData, prodData]) => {
+      .then(([catResponse, prodResponse]) => {
+        const catData = catResponse.data;
+        const prodData = prodResponse.data;
         if (catData.success) { setCategories(catData.categories); setFtcDisclosure(catData.ftcDisclosure || ''); }
         if (prodData.success) setProducts(prodData.products);
       })
@@ -99,12 +95,10 @@ const SupplementsTab: React.FC = () => {
     setGapLoading(true);
     setGapError('');
     try {
-      const res = await fetch(`${API}/api/supplements/gaps?days=7`, { headers: authHeaders() });
-      if (!res.ok) throw new Error(res.status === 401 ? 'Log in to analyze your nutrition' : 'Analysis failed');
-      const data = await res.json();
-      setGapAnalysis(data);
-    } catch (err: unknown) {
-      setGapError(err instanceof Error ? err.message : 'Failed to analyze gaps');
+      const response = await apiService.get('/api/supplements/gaps?days=7');
+      setGapAnalysis(response.data);
+    } catch (err: any) {
+      setGapError(err?.response?.data?.message || (err?.response?.status === 401 ? 'Log in to analyze your nutrition' : err?.message || 'Failed to analyze gaps'));
     } finally {
       setGapLoading(false);
     }

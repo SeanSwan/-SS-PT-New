@@ -44,11 +44,6 @@ div[class*="CardActions"] {
   z-index: 30 !important;
 }
 
-/* Fix for any MUI overlays that might be interfering */
-.MuiBackdrop-root {
-  z-index: 1300 !important;
-}
-
 /* Ensure the packages are visible in the DOM tree */
 [data-testid*="package"],
 [class*="package-card"],
@@ -72,8 +67,6 @@ div[class*="CardActions"] {
 }
 
 /* Additional backdrop override */
-.MuiModal-backdrop,
-.MuiDialog-backdrop,
 div[class*="backdrop"] {
   z-index: 1300 !important;
 }

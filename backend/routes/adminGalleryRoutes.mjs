@@ -9,6 +9,7 @@
 import express from 'express';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { Op, fn, literal, col } from 'sequelize';
 import sequelize from '../database.mjs';
 import { PutObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
@@ -29,7 +30,7 @@ import logger from '../utils/logger.mjs';
 import { tmpdir } from 'os';
 import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, unlinkSync, readFileSync, chmodSync, statSync } from 'fs';
+import { existsSync, unlinkSync, readFileSync, writeFileSync, chmodSync, statSync, mkdtempSync, rmSync } from 'fs';
 import { execFileSync } from 'child_process';
 
 const router = express.Router();
@@ -253,6 +254,19 @@ router.delete('/events/:id', async (req, res) => {
 
 const __adminGalleryDir = dirname(fileURLToPath(import.meta.url));
 
+function createRawConversionTempPaths(prefix) {
+  const safePrefix = String(prefix).replace(/[^a-z0-9-]/gi, '-').slice(0, 64) || 'raw';
+  const tempDir = mkdtempSync(join(tmpdir(), `${safePrefix}-${randomBytes(8).toString('hex')}-`));
+  return {
+    tempDir,
+    rawPath: join(tempDir, 'input.arw'),
+    tiffPath: join(tempDir, 'input.tiff'),
+    cleanup: () => {
+      try { rmSync(tempDir, { recursive: true, force: true }); } catch { /* best-effort temp cleanup */ }
+    },
+  };
+}
+
 // Pre-resolve dcraw binary path at module load time
 let _dcrawBin = null;
 function getDcrawBin() {
@@ -276,7 +290,7 @@ function getDcrawBin() {
 const uploadSingle = multer({
   storage: multer.diskStorage({
     destination: tmpdir(),
-    filename: (req, file, cb) => cb(null, `upload-${Date.now()}-${Math.random().toString(36).slice(2)}${extname(file.originalname)}`),
+    filename: (req, file, cb) => cb(null, `upload-${Date.now()}-${randomBytes(8).toString('hex')}${extname(file.originalname)}`),
   }),
   limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   fileFilter: (req, file, cb) => {
@@ -947,40 +961,33 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
     } catch (sharpErr) {
       // Sharp failed — likely a camera RAW file, try dcraw
       logger.info('[Reprocess] Sharp failed (%s), trying dcraw...', sharpErr.message);
-      const fs = await import('fs');
-      const os = await import('os');
       const { execFile } = await import('child_process');
       const { promisify } = await import('util');
       const execFileAsync = promisify(execFile);
       const dcraw = (await import('dcrawr')).default || (await import('dcrawr'));
       const dcrawPath = typeof dcraw === 'string' ? dcraw : dcraw.path || dcraw;
 
-      const tmpDir = os.default?.tmpdir?.() || os.tmpdir();
-      const tmpRaw = `${tmpDir}/reprocess_${photo.id}.arw`;
-      const tmpTiff = `${tmpDir}/reprocess_${photo.id}.tiff`;
-
-      // Write RAW to temp file
-      (fs.default || fs).writeFileSync(tmpRaw, rawBuf);
-      rawBuf = null;
-
-      // dcraw -T (TIFF output) -w (camera white balance) -o 1 (sRGB)
+      const tempPaths = createRawConversionTempPaths(`reprocess-${photo.id}`);
       try {
-        await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
-      } catch (dcrawErr) {
-        try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
-        try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
-        throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
+        // Write RAW to a private temp directory for this conversion.
+        writeFileSync(tempPaths.rawPath, rawBuf);
+        rawBuf = null;
+
+        // dcraw -T (TIFF output) -w (camera white balance) -o 1 (sRGB)
+        try {
+          await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tempPaths.rawPath], { timeout: 120000 });
+        } catch (dcrawErr) {
+          throw new Error(`dcraw conversion failed: ${dcrawErr.message}`);
+        }
+
+        // Read TIFF output and pipe through sharp
+        const tiffBuf = readFileSync(tempPaths.tiffPath);
+        jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
+          .jpeg({ quality: 95 })
+          .toBuffer();
+      } finally {
+        tempPaths.cleanup();
       }
-
-      // Read TIFF output and pipe through sharp
-      const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
-      jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
-        .jpeg({ quality: 95 })
-        .toBuffer();
-
-      // Clean up temp files
-      try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
-      try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
     }
 
     const convertMs = Date.now() - step2Start;
@@ -1017,7 +1024,7 @@ router.post('/reprocess-photo/:photoId', async (req, res) => {
     });
   } catch (err) {
     logger.error('[AdminGallery] Reprocess failed:', err.message, err.stack?.split('\n').slice(0, 3).join('\n'));
-    return res.status(500).json({ success: false, error: err.message, stack: err.stack?.split('\n').slice(0, 3) });
+    return res.status(500).json({ success: false, error: 'Failed to reprocess photo' });
   }
 });
 
@@ -1144,30 +1151,26 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
               let jpegBuf;
 
               if (isCameraRaw) {
-                const fs = await import('fs');
-                const os = await import('os');
                 const { execFile } = await import('child_process');
                 const { promisify } = await import('util');
                 const execFileAsync = promisify(execFile);
                 const dcraw = (await import('dcrawr')).default || (await import('dcrawr'));
                 const dcrawPath = typeof dcraw === 'string' ? dcraw : dcraw.path || dcraw;
 
-                const tmpDir = os.default?.tmpdir?.() || os.tmpdir();
-                const tmpRaw = `${tmpDir}/bg_${bgPhotoId}.arw`;
-                const tmpTiff = `${tmpDir}/bg_${bgPhotoId}.tiff`;
+                const tempPaths = createRawConversionTempPaths(`bg-${bgPhotoId}`);
+                try {
+                  writeFileSync(tempPaths.rawPath, rawBuf);
+                  rawBuf = null;
 
-                (fs.default || fs).writeFileSync(tmpRaw, rawBuf);
-                rawBuf = null;
+                  await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tempPaths.rawPath], { timeout: 120000 });
 
-                await execFileAsync(dcrawPath, ['-T', '-w', '-o', '1', tmpRaw], { timeout: 120000 });
-
-                const tiffBuf = (fs.default || fs).readFileSync(tmpTiff);
-                jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
-                  .jpeg({ quality: 95 })
-                  .toBuffer();
-
-                try { (fs.default || fs).unlinkSync(tmpRaw); } catch { /* best-effort temp cleanup */ }
-                try { (fs.default || fs).unlinkSync(tmpTiff); } catch { /* best-effort temp cleanup */ }
+                  const tiffBuf = readFileSync(tempPaths.tiffPath);
+                  jpegBuf = await sharp(tiffBuf, { limitInputPixels: false })
+                    .jpeg({ quality: 95 })
+                    .toBuffer();
+                } finally {
+                  tempPaths.cleanup();
+                }
               } else {
                 jpegBuf = await sharp(rawBuf, { limitInputPixels: false })
                   .jpeg({ quality: 95 })
@@ -1844,6 +1847,7 @@ router.post('/repair-raw-photos', async (req, res) => {
 
     for (const photo of photos) {
       const { id, storage_key, display_name } = photo;
+      let repairTempPaths = null;
       try {
         // Check actual R2 object size via HEAD
         let r2Size = null;
@@ -1871,7 +1875,8 @@ router.post('/repair-raw-photos', async (req, res) => {
 
         // Download to temp file (streaming to disk to avoid OOM on 120MB+ RAW files)
         // Use .arw extension so dcraw can identify Sony RAW format
-        const tempRawPath = join(tmpdir(), `repair-${id}.arw`);
+        repairTempPaths = createRawConversionTempPaths(`repair-${id}`);
+        const tempRawPath = repairTempPaths.rawPath;
         logger.info(`[RepairRAW] Streaming ${storage_key} (${(r2Size / 1024 / 1024).toFixed(1)}MB) to disk...`);
         const getResp = await client.send(new GetObjectCommand({ Bucket: bucketName, Key: storage_key }));
         const { createWriteStream } = await import('fs');
@@ -1893,19 +1898,18 @@ router.post('/repair-raw-photos', async (req, res) => {
             logger.info(`[RepairRAW] Trying dcraw: ${dcrawPath}`);
             try { chmodSync(dcrawPath, 0o755); } catch { /* best-effort executable bit */ }
             execFileSync(dcrawPath, ['-T', '-w', '-q', '3', '-o', '1', tempRawPath], { timeout: 180000 });
-            const tiffPath = tempRawPath.replace(/\.[^.]+$/, '.tiff');
+            const tiffPath = repairTempPaths.tiffPath;
             if (existsSync(tiffPath)) {
               jpegBuffer = await sharp(tiffPath, { limitInputPixels: false })
                 .resize(4000, 4000, { fit: 'inside', withoutEnlargement: true })
                 .jpeg({ quality: 92 })
                 .toBuffer();
-              try { unlinkSync(tiffPath); } catch { /* best-effort temp cleanup */ }
               dcrawWorked = true;
             }
           } catch (dcErr) {
             logger.warn(`[RepairRAW] dcraw failed for photo ${id}: ${dcErr.message}, trying sharp...`);
             // Clean up any tiff
-            try { unlinkSync(tempRawPath.replace(/\.[^.]+$/, '.tiff')); } catch { /* best-effort temp cleanup */ }
+            try { unlinkSync(repairTempPaths.tiffPath); } catch { /* best-effort temp cleanup */ }
           }
         }
 
@@ -1918,13 +1922,13 @@ router.post('/repair-raw-photos', async (req, res) => {
               .jpeg({ quality: 92 })
               .toBuffer();
           } catch (sharpErr) {
-            try { unlinkSync(tempRawPath); } catch { /* best-effort temp cleanup */ }
+            repairTempPaths.cleanup();
             throw new Error(`Both dcraw and sharp failed. dcraw may not support this RAW format. sharp: ${sharpErr.message}`);
           }
         }
 
         // Clean up temp raw file
-        try { unlinkSync(tempRawPath); } catch { /* best-effort temp cleanup */ }
+        repairTempPaths.cleanup();
 
         // Re-upload converted JPEG
         await client.send(new PutObjectCommand({
@@ -1963,6 +1967,7 @@ router.post('/repair-raw-photos', async (req, res) => {
         results.push({ id, display_name, storage_key, status: 'repaired', originalSize: r2Size, newSize: jpegBuffer.length });
 
       } catch (err) {
+        repairTempPaths?.cleanup();
         logger.error(`[RepairRAW] Error on photo ${id}: ${err.message}`);
         results.push({ id, display_name, storage_key, status: 'error', error: err.message });
       }

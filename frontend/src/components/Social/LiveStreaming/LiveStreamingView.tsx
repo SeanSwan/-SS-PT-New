@@ -10,7 +10,7 @@
  * │           🎥 Live Streaming                                │
  * │                                                            │
  * │   ┌──────────┐  ┌──────────┐  ┌──────────┐               │
- * │   │ 🏋️ HIIT   │  │ 🧘 Yoga   │  │ 💪 Strength│               │
+ * │   │ 🏋️ HIIT   │  │ Mobility │  │ 💪 Strength│               │
  * │   │ Live Now  │  │ Scheduled │  │ Scheduled │               │
  * │   └──────────┘  └──────────┘  └──────────┘               │
  * │                                                            │

@@ -17,21 +17,13 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import logger from '../utils/logger.mjs';
+import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
 
 const router = express.Router();
-
-// Generate human-readable order number
-function generateOrderNumber() {
-  const date = new Date();
-  const prefix = 'SS';
-  const datePart = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${datePart}-${randomPart}`;
-}
 
 const VALID_METHODS = ['check', 'zelle', 'venmo'];
 
@@ -182,7 +174,7 @@ router.post('/offline', protect, async (req, res) => {
     }
 
     // ── Create Order ──
-    const orderNumber = generateOrderNumber();
+    const orderNumber = generateSwanOrderNumber();
 
     const { record: order, created } = await claimIdempotentRecord({
       model: Order,

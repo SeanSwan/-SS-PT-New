@@ -70,9 +70,6 @@ async function fillFormAndSign() {
   const liabilityCheckbox = screen.getByRole('checkbox', { name: /I accept the liability waiver/ });
   fireEvent.click(liabilityCheckbox);
 
-  const aiCheckbox = screen.getByRole('checkbox', { name: /I consent to AI-powered features/ });
-  fireEvent.click(aiCheckbox);
-
   // Simulate signing via the captured endStroke callback (wrapped in act for state update)
   await act(async () => {
     if (endStrokeCallback) endStrokeCallback();

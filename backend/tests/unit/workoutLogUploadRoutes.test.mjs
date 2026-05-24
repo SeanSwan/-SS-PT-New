@@ -126,11 +126,11 @@ describe('workoutLogUploadRoutes — mime type whitelist', () => {
     expect(routeSource).toMatch(/allowedMimes\.includes\(\s*file\.mimetype\s*\)/);
   });
 
-  it('rejects unsupported file types with a descriptive error', () => {
-    // Anti-regression on the user-facing error. The frontend error
-    // surface depends on the `Unsupported file type:` prefix to give
-    // a clean message; changing it would silently break that flow.
-    expect(routeSource).toMatch(/Unsupported file type:/);
+  it('rejects unsupported file types with a sanitized error', () => {
+    // Anti-regression on the user-facing error. Keep the message stable
+    // without echoing the submitted MIME type or parser internals.
+    expect(routeSource).toMatch(/Unsupported file type\. Upload an audio, text, CSV, or PDF file\./);
+    expect(routeSource).not.toMatch(/Unsupported file type: \$\{file\.mimetype\}/);
   });
 });
 
@@ -220,12 +220,16 @@ describe('workoutLogUploadRoutes — route mount + middleware chain', () => {
     );
   });
 
-  it('POST /upload uses upload.single("file") to accept one file per request', () => {
+  it('POST /upload uses a route-local uploadFile wrapper around upload.single("file")', () => {
     // The frontend useTranscriptIntake.uploadTranscript() hook sends
     // exactly one file per FormData — locking the multer shape prevents
     // an accidental switch to `upload.array(...)` that would reshape
     // req.file → req.files and silently break everything downstream.
+    expect(routeSource).toMatch(/function\s+uploadFile/);
     expect(routeSource).toMatch(/upload\.single\(\s*['"]file['"]\s*\)/);
+    expect(routeSource).toMatch(
+      /router\.post\(\s*['"]\/upload['"][\s\S]{0,500}rateLimiter[\s\S]{0,200}uploadFile/,
+    );
   });
 
   it('does not expose any other HTTP methods on the router', () => {

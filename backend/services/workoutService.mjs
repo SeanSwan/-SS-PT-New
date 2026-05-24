@@ -909,7 +909,7 @@ async function checkAchievements(userId, gamification, metrics, session, transac
  */
 async function getExerciseRecommendations(userId, options = {}) {
   const { ClientProgress, MuscleGroup, Equipment, Exercise } = getAllModels();
-  const { 
+  const {
     goal = 'general',
     difficulty = 'all',
     equipment = [],
@@ -1000,7 +1000,7 @@ async function getExerciseRecommendations(userId, options = {}) {
   
   // Sort exercises based on user's goals and progress
   if (clientProgress) {
-    return sortExercisesByUserGoals(exercises, clientProgress, goal);
+    return sortExercisesByUserGoals(exercises, clientProgress, goal, userId);
   }
   
   return exercises;
@@ -1013,7 +1013,18 @@ async function getExerciseRecommendations(userId, options = {}) {
  * @param {string} goal - Training goal
  * @returns {Array} Sorted exercises
  */
-function sortExercisesByUserGoals(exercises, clientProgress, goal) {
+function deterministicExerciseTieBreaker(userId, exerciseId) {
+  const seed = `${userId || ''}:${exerciseId || ''}`;
+  let hash = 0;
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) >>> 0;
+  }
+
+  return (hash % 200) / 100;
+}
+
+function sortExercisesByUserGoals(exercises, clientProgress, goal, userId) {
   // Create a scoring function based on the goal
   const scoreExercise = (exercise) => {
     let score = 0;
@@ -1083,8 +1094,8 @@ function sortExercisesByUserGoals(exercises, clientProgress, goal) {
       score += 3;
     }
     
-    // Add variety by slightly randomizing the score
-    score += Math.random() * 2;
+    // Stable tie-breaker keeps repeated recommendations deterministic.
+    score += deterministicExerciseTieBreaker(userId, exercise.id);
     
     return score;
   };
@@ -1546,7 +1557,7 @@ async function getClientProgress(userId) {
  */
 async function getWorkoutStatistics(userId, options = {}) {
   const { WorkoutSession, WorkoutExercise, Exercise, MuscleGroup, Set } = getAllModels();
-  const { 
+  const {
     startDate, 
     endDate,
     includeExerciseBreakdown = true,

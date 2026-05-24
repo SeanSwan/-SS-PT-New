@@ -6,12 +6,14 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import apiService from '../services/api.service';
+import { logger } from '@/utils/logger';
 import { useToast } from './use-toast';
 
 // Types
 export interface Notification {
   id: string;
-  type: 'session_created' | 'session_updated' | 'session_cancelled' | 'assignment_created' | 'assignment_updated' | 'info' | 'success' | 'warning' | 'error';
+  type: string;
   title: string;
   message: string;
   userId?: string;
@@ -28,33 +30,46 @@ export interface NotificationOptions {
   position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 }
 
-// Mock notification storage (in a real app, this would come from a backend)
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    type: 'session_created',
-    title: 'Session Created',
-    message: 'New training session has been created for tomorrow at 2:00 PM',
-    read: false,
-    createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-  },
-  {
-    id: '2',
-    type: 'assignment_created',
-    title: 'Client Assigned',
-    message: 'New client has been assigned to trainer Sarah Johnson',
-    read: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-  },
-  {
-    id: '3',
-    type: 'session_updated',
-    title: 'Session Rescheduled',
-    message: 'Training session with John Doe has been moved to 4:00 PM',
-    read: true,
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-  },
-];
+interface NotificationsPayload {
+  success?: boolean;
+  message?: string;
+  data?: {
+    notifications?: Partial<Notification>[];
+    unreadCount?: number;
+  };
+  notifications?: Partial<Notification>[];
+  unreadCount?: number;
+}
+
+const EMPTY_NOTIFICATIONS: Notification[] = [];
+
+function isActiveNotification(notification: Notification) {
+  return !notification.expiresAt || new Date(notification.expiresAt) > new Date();
+}
+
+function normalizeNotification(notification: Partial<Notification>): Notification {
+  return {
+    ...notification,
+    id: String(notification.id ?? globalThis.crypto?.randomUUID?.() ?? Date.now()),
+    type: notification.type || 'info',
+    title: notification.title || 'Notification',
+    message: notification.message || '',
+    read: Boolean(notification.read),
+    createdAt: notification.createdAt || new Date().toISOString(),
+  };
+}
+
+function normalizePayload(payload: NotificationsPayload) {
+  const body = payload.data ?? payload;
+  const notifications = Array.isArray(body.notifications)
+    ? body.notifications.map(normalizeNotification).filter(isActiveNotification)
+    : EMPTY_NOTIFICATIONS;
+  const unreadCount = Number.isFinite(body.unreadCount)
+    ? Number(body.unreadCount)
+    : notifications.filter((notification) => !notification.read).length;
+
+  return { notifications, unreadCount };
+}
 
 /**
  * useNotifications Hook
@@ -66,14 +81,36 @@ const mockNotifications: Notification[] = [
  * - Filtering notifications by type
  */
 export const useNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  const [isLoading, setIsLoading] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(EMPTY_NOTIFICATIONS);
+  const [serverUnreadCount, setServerUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  const fetchNotifications = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+
+    try {
+      const response = await apiService.get<NotificationsPayload>('/api/notifications');
+      if (response.data?.success === false) {
+        throw new Error(response.data.message || 'Notification API returned an error');
+      }
+
+      const next = normalizePayload(response.data);
+      setNotifications(next.notifications);
+      setServerUnreadCount(next.unreadCount);
+    } catch (error: any) {
+      logger.warn('[useNotifications] Unable to load notifications:', error.message);
+      setNotifications(EMPTY_NOTIFICATIONS);
+      setServerUnreadCount(0);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Get unread notifications count
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => !n.read).length;
-  }, [notifications]);
+    return serverUnreadCount || notifications.filter(n => !n.read).length;
+  }, [notifications, serverUnreadCount]);
 
   // Get notifications by type
   const getNotificationsByType = useCallback((type: Notification['type']) => {
@@ -84,11 +121,14 @@ export const useNotifications = () => {
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt'>) => {
     const newNotification: Notification = {
       ...notification,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      id: globalThis.crypto?.randomUUID?.() ?? Date.now().toString(),
       createdAt: new Date().toISOString(),
     };
 
     setNotifications(prev => [newNotification, ...prev]);
+    if (!newNotification.read) {
+      setServerUnreadCount((count) => count + 1);
+    }
     return newNotification;
   }, []);
 
@@ -118,83 +158,78 @@ export const useNotifications = () => {
   }, [toast]);
 
   // Mark notification as read
-  const markAsRead = useCallback((notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
+    const previousNotifications = notifications;
+    const previousUnreadCount = unreadCount;
+
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === notificationId 
           ? { ...notification, read: true }
-          : notification
+        : notification
       )
     );
-  }, []);
+    setServerUnreadCount((count) => Math.max(0, count - 1));
+
+    try {
+      await apiService.patch(`/api/notifications/${notificationId}/read`);
+    } catch (error: any) {
+      logger.warn('[useNotifications] Unable to mark notification read:', error.message);
+      setNotifications(previousNotifications);
+      setServerUnreadCount(previousUnreadCount);
+    }
+  }, [notifications, unreadCount]);
 
   // Mark all notifications as read
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
+    const previousNotifications = notifications;
+    const previousUnreadCount = unreadCount;
+
     setNotifications(prev => 
       prev.map(notification => ({ ...notification, read: true }))
     );
-  }, []);
+    setServerUnreadCount(0);
+
+    try {
+      await apiService.patch('/api/notifications/read-all');
+    } catch (error: any) {
+      logger.warn('[useNotifications] Unable to mark all notifications read:', error.message);
+      setNotifications(previousNotifications);
+      setServerUnreadCount(previousUnreadCount);
+    }
+  }, [notifications, unreadCount]);
 
   // Remove notification
-  const removeNotification = useCallback((notificationId: string) => {
+  const removeNotification = useCallback(async (notificationId: string) => {
+    const previousNotifications = notifications;
+    const previousUnreadCount = unreadCount;
+    const removedNotification = notifications.find((notification) => notification.id === notificationId);
+
     setNotifications(prev => 
       prev.filter(notification => notification.id !== notificationId)
     );
-  }, []);
+    if (removedNotification && !removedNotification.read) {
+      setServerUnreadCount((count) => Math.max(0, count - 1));
+    }
+
+    try {
+      await apiService.delete(`/api/notifications/${notificationId}`);
+    } catch (error: any) {
+      logger.warn('[useNotifications] Unable to remove notification:', error.message);
+      setNotifications(previousNotifications);
+      setServerUnreadCount(previousUnreadCount);
+    }
+  }, [notifications, unreadCount]);
 
   // Clear all notifications
   const clearAll = useCallback(() => {
     setNotifications([]);
+    setServerUnreadCount(0);
   }, []);
 
-  // Simulate real-time notifications (in a real app, this would be WebSocket or polling)
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Randomly add a notification every 30 seconds (for demo purposes)
-      if (Math.random() < 0.1) { // 10% chance
-        const randomNotifications = [
-          {
-            type: 'session_created' as const,
-            title: 'New Session Available',
-            message: 'A new training session slot has become available',
-            read: false,
-          },
-          {
-            type: 'session_updated' as const,
-            title: 'Session Updated',
-            message: 'A training session has been updated',
-            read: false,
-          },
-          {
-            type: 'assignment_created' as const,
-            title: 'New Assignment',
-            message: 'A new client-trainer assignment has been created',
-            read: false,
-          },
-        ];
-
-        const randomNotification = randomNotifications[Math.floor(Math.random() * randomNotifications.length)];
-        addNotification(randomNotification);
-      }
-    }, 30000); // Check every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [addNotification]);
-
-  // Clean up expired notifications
-  useEffect(() => {
-    const cleanupInterval = setInterval(() => {
-      const now = new Date();
-      setNotifications(prev => 
-        prev.filter(notification => {
-          if (!notification.expiresAt) return true;
-          return new Date(notification.expiresAt) > now;
-        })
-      );
-    }, 60000); // Check every minute
-
-    return () => clearInterval(cleanupInterval);
-  }, []);
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   // Notification management methods
   const notificationMethods = {
@@ -228,13 +263,7 @@ export const useNotifications = () => {
     showToast,
     
     // Utility methods
-    refresh: () => {
-      setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
-    },
+    refresh: () => fetchNotifications(false),
   };
 };
 

@@ -13,6 +13,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
+import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,14 +32,49 @@ const reporterArg = ownArgs.find(arg => arg.startsWith('--reporter='));
 const projectArgs = ownArgs.filter(arg => arg.startsWith('--project='));
 const baseUrlArg = ownArgs.find(arg => arg.startsWith('--base-url='));
 
+function canListenOnPort(port) {
+  return new Promise(resolve => {
+    const server = net.createServer();
+
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+async function chooseFrontendPort(startPort) {
+  for (let port = startPort; port < startPort + 20; port += 1) {
+    if (await canListenOnPort(port)) return port;
+  }
+
+  throw new Error(`No open frontend port found from ${startPort} to ${startPort + 19}`);
+}
+
+const localFrontendPort = !prod && !baseUrlArg && !process.env.BASE_URL
+  ? await chooseFrontendPort(Number(process.env.SWAN_PLAYWRIGHT_FRONTEND_PORT || '5173'))
+  : null;
+
 const baseURL = baseUrlArg
   ? baseUrlArg.slice('--base-url='.length)
-  : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || 'http://localhost:5173';
-const skipWebServer = prod || Boolean(baseUrlArg) || process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
+  : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || `http://localhost:${localFrontendPort}`;
+const skipWebServer = prod || Boolean(baseUrlArg) || Boolean(process.env.BASE_URL) || process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
 
 const smokeSpecs = [
+  'admin-compliance-truth-smoke.spec.ts',
   'client-dashboard-oracle-smoke.spec.ts',
+  'gamification-hub-smoke.spec.ts',
   'marketing-native-publishing-smoke.spec.ts',
+  'nutrition-workspace-smoke.spec.ts',
+  'plaud-playback-smoke.spec.ts',
+  'session-allocation-live-smoke.spec.ts',
+  'social-challenges-truth-smoke.spec.ts',
+  'social-notifications-smoke.spec.ts',
+  'storefront-truth-smoke.spec.ts',
+  'trainer-my-clients-truth-smoke.spec.ts',
+  'trainer-permissions-truth-smoke.spec.ts',
+  'workout-logger-error-truth-smoke.spec.ts',
 ];
 
 const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
@@ -55,6 +91,9 @@ const playwrightArgs = [
 
 process.stdout.write(`SwanStudios canonical smoke\n`);
 process.stdout.write(`Base URL: ${baseURL}\n`);
+if (localFrontendPort) {
+  process.stdout.write(`Frontend port: ${localFrontendPort}\n`);
+}
 process.stdout.write(`Web server: ${skipWebServer ? 'skipped' : 'managed by Playwright config'}\n`);
 process.stdout.write(`Specs: ${smokeSpecs.join(', ')}\n\n`);
 
@@ -68,6 +107,7 @@ const spawnOptions = {
   env: {
     ...process.env,
     BASE_URL: baseURL,
+    ...(localFrontendPort ? { SWAN_PLAYWRIGHT_FRONTEND_PORT: String(localFrontendPort) } : {}),
     SWAN_SMOKE_TARGET: prod ? 'production' : baseUrlArg ? 'external' : 'local',
     ...(skipWebServer ? { SWAN_PLAYWRIGHT_SKIP_WEBSERVER: '1' } : {}),
   },

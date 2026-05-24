@@ -67,13 +67,14 @@ describe('MyClientsView — Phase 18.A admin-view-as source-text lock', () => {
     expect(SOURCE).toMatch(/recentTrend:\s*['"]stable['"]/);
   });
 
-  it('admin adapter does NOT introduce new Math.random() progress values', () => {
-    // Pre-existing Math.random() stubs in the trainer branch are intentionally
-    // left untouched (narrow scope), but the admin adapter must not add more.
-    // We lock the overall count at exactly 2 — the two pre-existing stubs at
-    // progress.overallProgress and progress.recentTrend in the trainer block.
+  it('does not invent randomized progress values for real clients', () => {
     const randomMatches = SOURCE.match(/Math\.random\(\)/g) ?? [];
-    expect(randomMatches.length).toBeLessThanOrEqual(2);
+    expect(randomMatches).toEqual([]);
+  });
+
+  it('does not seed fake trainer goals while waiting for a real goals API', () => {
+    expect(SOURCE).not.toMatch(/current:\s*3/);
+    expect(SOURCE).not.toMatch(/completed:\s*8/);
   });
 
   it('trainer endpoint call is still present for real trainer accounts', () => {

@@ -17,6 +17,7 @@ import ScrollReveal from '../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../components/ui-kit/cinematic/ParallaxHero';
 import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
+import apiService from '../services/api.service';
 
 /* ================================================================
  * VideoLibraryV3 — Cinematic Upgrade of VideoLibraryV2
@@ -66,10 +67,6 @@ interface CollectionItem {
   videoCount: number;
   sortOrder: number;
 }
-
-// --------------- API ---------------
-
-const API_URL = import.meta.env.VITE_API_URL || '';
 
 // --------------- Animations ---------------
 
@@ -655,8 +652,8 @@ const VideoLibraryV3: React.FC = () => {
         if (contentType) params.set('contentType', contentType);
         if (activeSearch) params.set('search', activeSearch);
 
-        const res = await fetch(`${API_URL}/api/v2/videos?${params}`);
-        const data = await res.json();
+        const res = await apiService.get(`/api/v2/videos?${params}`);
+        const data = res.data;
         if (data.success) {
           setVideos(data.data.videos);
           setPagination(data.data.pagination);
@@ -679,8 +676,8 @@ const VideoLibraryV3: React.FC = () => {
     const fetchCollections = async () => {
       setCollectionsLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/v2/videos/collections?limit=6`);
-        const data = await res.json();
+        const res = await apiService.get('/api/v2/videos/collections?limit=6');
+        const data = res.data;
         if (data.success && data.data?.collections) {
           setCollections(data.data.collections);
         }

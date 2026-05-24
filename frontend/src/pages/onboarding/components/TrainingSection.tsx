@@ -54,7 +54,7 @@ const TrainingSection: React.FC<{
           name="workoutTypes"
           value={formData.workoutTypes || ""}
           onChange={handleChange}
-          placeholder="e.g. Strength training, Cardio, Yoga, None"
+          placeholder="e.g. Strength training, Cardio, Mobility, None"
         />
       </FieldGroup>
 

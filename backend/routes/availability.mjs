@@ -13,7 +13,7 @@ const router = express.Router();
 
 const parseTrainerId = (value) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
 const parseDateOnlyLocal = (value) => {

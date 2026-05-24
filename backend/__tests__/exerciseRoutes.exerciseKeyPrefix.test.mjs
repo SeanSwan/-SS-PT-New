@@ -23,6 +23,7 @@ import { Op } from 'sequelize';
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = { id: 99, role: 'admin' }; next(); },
   authorize: () => (_req, _res, next) => next(),
+  authorizeResourceAccess: () => (_req, _res, next) => next(),
   trainerOrAdminOnly: (_req, _res, next) => next(),
 }));
 

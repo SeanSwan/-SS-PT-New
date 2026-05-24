@@ -9,6 +9,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ── Mock dependencies before importing routes ───────────────────────────────
 
@@ -229,6 +235,16 @@ describe('POST /api/ai-monitoring/alerts/:id/acknowledge', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
+
+  it('rejects malformed alert ids before model lookup', async () => {
+    const app = createApp();
+    const res = await request(app)
+      .post('/api/ai-monitoring/alerts/1junk/acknowledge')
+      .set('Authorization', 'Bearer valid');
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ success: false, message: 'Invalid alert id' });
+    expect(mockAlertModel.findByPk).not.toHaveBeenCalled();
+  });
 });
 
 // ── POST /alerts/:id/resolve ────────────────────────────────────────────────
@@ -242,6 +258,18 @@ describe('POST /api/ai-monitoring/alerts/:id/resolve', () => {
       .set('Authorization', 'Bearer valid');
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+});
+
+describe('ai monitoring response hardening', () => {
+  it('does not expose raw error.message values in route responses', () => {
+    const source = readFileSync(resolve(__dirname, '../../routes/aiMonitoringRoutes.mjs'), 'utf8');
+
+    expect(source).toContain("const INTERNAL_ERROR = 'INTERNAL_ERROR';");
+    expect(source).toContain('code: INTERNAL_ERROR');
+    expect(source).not.toMatch(/error:\s*error\.message/);
+    expect(source).not.toMatch(/message:\s*error\.message/);
+    expect(source).not.toMatch(/parseInt\(req\.params\.id/);
   });
 });
 

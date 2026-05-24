@@ -114,7 +114,23 @@ describe('Payment Flow API', () => {
       const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
 
       expect(source).toContain('buildCheckoutSessionIdempotencyKey');
+      expect(source).toContain('buildCartItemsStripeFingerprint');
       expect(source).toMatch(/checkout\.sessions\.create\([\s\S]*\{\s*idempotencyKey:\s*checkoutIdempotencyKey\s*\}/);
+    });
+
+    it('loads stripeCustomerId before deciding whether to create a new Stripe customer', () => {
+      const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
+
+      expect(source).toMatch(/attributes:\s*\[[\s\S]*'stripeCustomerId'[\s\S]*\]/);
+      expect(source).toContain('if (user.stripeCustomerId)');
+    });
+
+    it('scopes checkout session creation to the submitted cartId', () => {
+      const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
+
+      expect(source).toContain('const normalizedCartId = Number(cartId)');
+      expect(source).toContain("code: 'INVALID_CART_ID'");
+      expect(source).toMatch(/where:\s*\{\s*id:\s*normalizedCartId,[\s\S]*userId,[\s\S]*status:\s*'active'/);
     });
 
     it('keeps mounted alternate checkout creators behind Stripe idempotency keys', () => {

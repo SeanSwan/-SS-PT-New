@@ -325,28 +325,6 @@ h5 { font-size: clamp(1rem, calc(0.875rem + 0.5vw), 1.5rem); }
   gap: 24px;
 }
 
-/* MUI integration enhancements */
-/* Help MUI components behave better in responsive layouts */
-.MuiDialog-paper {
-  width: calc(100% - 32px) !important;
-  max-width: 600px !important;
-  max-height: calc(100% - 64px) !important;
-  margin: 16px !important;
-}
-
-@media screen and (max-width: 599px) {
-  .MuiDialog-paper {
-    margin: 8px !important;
-    width: calc(100% - 16px) !important;
-  }
-}
-
-.MuiDataGrid-root .MuiDataGrid-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Fix for responsive tables */
 .responsive-table-container {
   width: 100%;

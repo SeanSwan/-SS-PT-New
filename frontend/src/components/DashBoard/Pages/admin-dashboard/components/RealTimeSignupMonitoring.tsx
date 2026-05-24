@@ -224,10 +224,16 @@ const RefreshButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+  min-height: 44px;
   
   &:hover {
     background: linear-gradient(135deg, #00e6ff, #00b3ff);
     transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 3px;
   }
   
   &:disabled {
@@ -286,6 +292,17 @@ const EmptySignupsState = styled.div`
   text-align: center;
 `;
 
+const SignupListError = styled.div`
+  align-items: center;
+  background: rgba(245, 158, 11, 0.1);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  color: var(--accent-warning, #f59e0b);
+  display: flex;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.875rem 1rem;
+`;
+
 const LoadMoreRow = styled.div`
   padding: 0.75rem;
   text-align: center;
@@ -304,6 +321,11 @@ const LoadMoreButton = styled.button`
   &:disabled {
     cursor: not-allowed;
     opacity: 0.65;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60c0f0);
+    outline-offset: 3px;
   }
 `;
 
@@ -407,6 +429,8 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [signupsOffset, setSignupsOffset] = useState(0);
   const [signupsHasMore, setSignupsHasMore] = useState(true);
+  const [signupsError, setSignupsError] = useState<string | null>(null);
+  const [loadingMoreSignups, setLoadingMoreSignups] = useState(false);
 
   // Upsert helper: merges fresh signups into accumulated state, dedupes by id
   const upsertSignups = useCallback((existing: RecentSignup[], fresh: RecentSignup[]): RecentSignup[] => {
@@ -437,7 +461,7 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   }, [authAxios]);
 
   // Fetch signups list (lightweight, paginated)
-  const fetchSignupsList = useCallback(async (offset: number, includeTotal: boolean) => {
+  const fetchSignupsList = useCallback(async (offset: number, includeTotal: boolean): Promise<boolean> => {
     try {
       const params = new URLSearchParams({
         limit: String(SIGNUPS_PAGE_SIZE),
@@ -448,11 +472,17 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
       if (response.data.success) {
         const freshSignups = response.data.data.signups || [];
         setSignupsHasMore(response.data.data.pagination?.hasMore ?? false);
+        setSignupsError(null);
         // Upsert into accumulated state
         setRecentSignups(prev => upsertSignups(prev, freshSignups));
+        return true;
       }
+      setSignupsError('Recent signups unavailable.');
+      return false;
     } catch (err: unknown) {
       console.error('Error fetching signups list:', err);
+      setSignupsError('Recent signups unavailable.');
+      return false;
     }
   }, [authAxios, upsertSignups]);
 
@@ -486,11 +516,14 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
     setError(null);
 
     try {
-      await Promise.all([
+      const [, signupsLoaded] = await Promise.all([
         fetchDashboardStats(),
         fetchSignupsList(0, false),
         fetchDatabaseHealth()
       ]);
+      if (signupsLoaded) {
+        setSignupsOffset(0);
+      }
       setLastRefresh(new Date());
     } catch (err) {
       console.error('Refresh failed:', err);
@@ -502,8 +535,15 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
   // Load More signups
   const handleLoadMoreSignups = useCallback(async () => {
     const nextOffset = signupsOffset + SIGNUPS_PAGE_SIZE;
-    setSignupsOffset(nextOffset);
-    await fetchSignupsList(nextOffset, false);
+    setLoadingMoreSignups(true);
+    try {
+      const signupsLoaded = await fetchSignupsList(nextOffset, false);
+      if (signupsLoaded) {
+        setSignupsOffset(nextOffset);
+      }
+    } finally {
+      setLoadingMoreSignups(false);
+    }
   }, [signupsOffset, fetchSignupsList]);
 
   // Initial load: dashboard-stats (summary) + signups-list (pagination bootstrap) + database-health
@@ -512,11 +552,14 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
       setLoading(true);
       setError(null);
       try {
-        await Promise.all([
+        const [, signupsLoaded] = await Promise.all([
           fetchDashboardStats(),
           fetchSignupsList(0, true),
           fetchDatabaseHealth()
         ]);
+        if (signupsLoaded) {
+          setSignupsOffset(0);
+        }
         setLastRefresh(new Date());
       } catch (err) {
         console.error('Initial load failed:', err);
@@ -616,7 +659,7 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
       </HeaderSection>
 
       {error && (
-        <ErrorBanner>
+        <ErrorBanner role="alert">
           <AlertTriangle size={16} />
           {error}
         </ErrorBanner>
@@ -710,6 +753,13 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
             Last updated: {lastRefresh.toLocaleTimeString()}
           </LastUpdatedText>
         </div>
+
+        {signupsError && (
+          <SignupListError role="alert">
+            <AlertTriangle size={16} />
+            {signupsError}
+          </SignupListError>
+        )}
         
         <AnimatePresence>
           {recentSignups.length > 0 ? (
@@ -741,20 +791,20 @@ const RealTimeSignupMonitoring: React.FC<Props> = ({
                 </div>
               </motion.div>
             ))
-          ) : (
+          ) : !signupsError ? (
             <EmptySignupsState>
               No recent signups to display
             </EmptySignupsState>
-          )}
+          ) : null}
         </AnimatePresence>
 
         {signupsHasMore && (
           <LoadMoreRow>
             <LoadMoreButton
               onClick={handleLoadMoreSignups}
-              disabled={isRefreshing}
+              disabled={isRefreshing || loadingMoreSignups}
             >
-              {isRefreshing ? 'Loading...' : 'Load More Signups'}
+              {isRefreshing || loadingMoreSignups ? 'Loading...' : 'Load More Signups'}
             </LoadMoreButton>
           </LoadMoreRow>
         )}

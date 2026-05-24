@@ -7,22 +7,9 @@ import {
   Video, X, RotateCcw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiService from '../services/api.service';
 
 /* ---------- helpers ---------- */
-
-const fetchApi = async (path: string, options?: RequestInit) => {
-  const token = localStorage.getItem('token');
-  return fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
-};
 
 const formatDuration = (s: number) => {
   const m = Math.floor(s / 60);
@@ -85,9 +72,11 @@ const MembersVault: React.FC = () => {
         if (contentType) params.set('contentType', contentType);
         if (selectedTag) params.set('tag', selectedTag);
 
-        const res = await fetchApi(`/api/v2/videos/members?${params}`);
-        if (!res.ok) throw new Error('Failed to load');
-        const json = await res.json();
+        const res = await apiService.get(`/api/v2/videos/members?${params}`, {
+          validateStatus: status => status < 500,
+        });
+        if (res.status < 200 || res.status >= 300) throw new Error('Failed to load');
+        const json = res.data;
         const data = json?.data ?? json;
 
         setVideos(data.videos ?? []);

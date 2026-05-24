@@ -92,8 +92,14 @@ export const checkApiKeys = () => {
     console.log('--- API Key Check Complete ---');
 };
 
-// Export status checkers for conditional logic elsewhere
-export const isStripeEnabled = () => keyStatus.stripe || isStripeReady();
+// Export status checkers for conditional logic elsewhere.
+// Backend Stripe clients only need the secret key. Full checkout readiness
+// is still reported by isStripeReady(), which also checks publishable/webhook
+// keys for frontend Stripe.js and webhook fulfillment.
+export const isStripeEnabled = () => {
+    const secretKey = process.env.STRIPE_SECRET_KEY || '';
+    return secretKey.startsWith('sk_') || secretKey.startsWith('rk_');
+};
 export const isSendGridEnabled = () => keyStatus.sendgrid;
 export const isTwilioEnabled = () => keyStatus.twilio;
 
@@ -101,11 +107,11 @@ export const isTwilioEnabled = () => keyStatus.twilio;
 export const getDummyApiKey = (service) => {
     switch (service) {
         case 'stripe':
-            return 'sk_test_dummy_key_for_development_only';
+            return 'dummy_stripe_key_for_development_only';
         case 'sendgrid':
-            return 'SG.dummy_key_for_development_only';
+            return 'dummy_sendgrid_key_for_development_only';
         case 'twilio_sid':
-            return 'ACdummy_sid_for_development_only';
+            return 'dummy_twilio_sid_for_development_only';
         case 'twilio_token':
             return 'dummy_token_for_development_only';
         default:

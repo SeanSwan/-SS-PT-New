@@ -3,41 +3,36 @@
  * Phase 7: Communicates with /api/equipment-profiles endpoints.
  */
 import { useCallback, useMemo } from 'react';
+import apiService from '../services/api.service';
 
 const API_BASE = '/api/equipment-profiles';
 const ACCEPTED_EQUIPMENT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_EQUIPMENT_IMAGE_BYTES = 10 * 1024 * 1024;
 
-function getHeaders(): HeadersInit {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-function getAuthHeader(): HeadersInit {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...options, headers: { ...getHeaders(), ...options?.headers } });
-  const data = await readEquipmentApiResponse(res);
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data as T;
-}
-
-async function readEquipmentApiResponse(res: Response): Promise<Record<string, any>> {
-  const text = await res.text();
-  if (!text) return {};
-
   try {
-    return JSON.parse(text);
-  } catch {
-    return {
-      error: text.slice(0, 240) || `Request failed (${res.status})`,
-    };
+    const method = (options?.method || 'GET').toUpperCase();
+    const payload = typeof options?.body === 'string'
+      ? JSON.parse(options.body)
+      : options?.body;
+
+    if (method === 'POST') {
+      const response = await apiService.post<T>(url, payload);
+      return response.data;
+    }
+    if (method === 'PUT') {
+      const response = await apiService.put<T>(url, payload);
+      return response.data;
+    }
+    if (method === 'DELETE') {
+      const response = await apiService.delete<T>(url);
+      return response.data;
+    }
+
+    const response = await apiService.get<T>(url);
+    return response.data;
+  } catch (err) {
+    throw new Error(getEquipmentApiErrorMessage(err, 'Request failed'));
   }
 }
 
@@ -218,14 +213,14 @@ export function useEquipmentAPI() {
 
     const formData = new FormData();
     formData.append('photo', photo);
-    const res = await fetch(`${API_BASE}/${profileId}/scan`, {
-      method: 'POST',
-      headers: getAuthHeader(),
-      body: formData,
-    });
-    const data = await readEquipmentApiResponse(res);
-    if (!res.ok) throw new Error(data.error || `Scan failed (${res.status})`);
-    return data as { success: boolean; item: EquipmentItem; scanResult: ScanResult };
+    try {
+      const response = await apiService.post(`${API_BASE}/${profileId}/scan`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data as { success: boolean; item: EquipmentItem; scanResult: ScanResult };
+    } catch (err) {
+      throw new Error(getEquipmentApiErrorMessage(err, 'Scan failed'));
+    }
   }, []);
 
   const approveItem = useCallback(async (profileId: number, itemId: number, overrides?: {

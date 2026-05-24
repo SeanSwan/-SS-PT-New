@@ -35,6 +35,7 @@ import React, { useState, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
 import { User as UserIcon, Target, Bell, Palette, Save } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import apiService from '../../../../services/api.service';
 import EditProfileChartToggles, {
   DEFAULT_CHART_VISIBILITY,
   type ProfileChartVisibility,
@@ -231,16 +232,10 @@ const ClientProfilePage: React.FC = () => {
     setSaving(true);
     setSaveStatus(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ chartVisibility }),
+      const res = await apiService.put('/api/profile', { chartVisibility }, {
+        validateStatus: status => status < 500,
       });
-      if (res.ok) {
+      if (res.status >= 200 && res.status < 300) {
         setSaveStatus('Saved');
         setTimeout(() => setSaveStatus(null), 3000);
       } else {

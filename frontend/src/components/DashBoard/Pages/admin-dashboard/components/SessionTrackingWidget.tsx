@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Dumbbell, Crown, Clock, Activity } from 'lucide-react';
+import { AlertTriangle, Dumbbell, Crown, Clock, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
 
@@ -20,38 +20,62 @@ interface SessionData {
   topClients: TopClient[];
 }
 
-const DEMO: SessionData = {
-  today: 4, thisWeek: 18, thisMonth: 62,
-  trainerUtilization: 78, avgDuration: 52,
-  topClients: [
-    { name: 'Client A', sessions: 14 },
-    { name: 'Client B', sessions: 12 },
-    { name: 'Client C', sessions: 11 },
-    { name: 'Client D', sessions: 9 },
-    { name: 'Client E', sessions: 8 },
-  ],
+const EMPTY_SESSION_DATA: SessionData = {
+  today: 0,
+  thisWeek: 0,
+  thisMonth: 0,
+  trainerUtilization: 0,
+  avgDuration: 0,
+  topClients: [],
+};
+
+const toFiniteNumber = (value: unknown): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeTopClients = (value: unknown): TopClient[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const row = item as Record<string, unknown>;
+      const name = typeof row.name === 'string' ? row.name.trim() : '';
+      const sessions = Math.max(0, Math.round(toFiniteNumber(row.sessions)));
+      return name && sessions > 0 ? { name, sessions } : null;
+    })
+    .filter((client): client is TopClient => Boolean(client));
+};
+
+const normalizeSessionData = (value: unknown): SessionData => {
+  if (!value || typeof value !== 'object') return EMPTY_SESSION_DATA;
+
+  const row = value as Record<string, unknown>;
+
+  return {
+    today: Math.round(toFiniteNumber(row.sessionsToday)),
+    thisWeek: Math.round(toFiniteNumber(row.sessionsThisWeek)),
+    thisMonth: Math.round(toFiniteNumber(row.sessionsThisMonth)),
+    trainerUtilization: Number(toFiniteNumber(row.trainerUtilization).toFixed(1)),
+    avgDuration: Number(toFiniteNumber(row.avgDuration).toFixed(1)),
+    topClients: normalizeTopClients(row.topClients),
+  };
 };
 
 const SessionTrackingWidget: React.FC = () => {
   const { authAxios } = useAuth();
-  const [data, setData] = useState<SessionData>(DEMO);
+  const [data, setData] = useState<SessionData>(EMPTY_SESSION_DATA);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const res = await authAxios.get('/api/admin/analytics/statistics/workouts');
-      const d = res.data?.data;
-      if (d) {
-        setData({
-          today: d.sessionsToday ?? DEMO.today,
-          thisWeek: d.sessionsThisWeek ?? DEMO.thisWeek,
-          thisMonth: d.sessionsThisMonth ?? DEMO.thisMonth,
-          trainerUtilization: d.trainerUtilization ?? DEMO.trainerUtilization,
-          avgDuration: d.avgDuration ?? DEMO.avgDuration,
-          topClients: d.topClients?.length ? d.topClients : DEMO.topClients,
-        });
-      }
+      setData(normalizeSessionData(res.data?.data));
+      setError(null);
     } catch {
-      setData(DEMO);
+      setData(EMPTY_SESSION_DATA);
+      setError('Session tracking data could not be loaded.');
     }
   }, [authAxios]);
 
@@ -98,16 +122,29 @@ const SessionTrackingWidget: React.FC = () => {
         Top Clients by Activity
       </SectionLabel>
       <ClientList>
-        {data.topClients.map((c, i) => (
-          <ClientRow key={i}>
-            <Rank $isTop={i === 0}>{i + 1}</Rank>
-            <ClientName>{c.name}</ClientName>
-            <BarWrapper>
-              <Bar style={{ width: `${(c.sessions / maxSessions) * 100}%` }} $index={i} />
-            </BarWrapper>
-            <SessionCount>{c.sessions}</SessionCount>
-          </ClientRow>
-        ))}
+        {error ? (
+          <ErrorState role="alert">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={fetchData}>
+              <RefreshCw size={14} />
+              Retry
+            </RetryInline>
+          </ErrorState>
+        ) : data.topClients.length === 0 ? (
+          <EmptyState>No completed client session activity for this period.</EmptyState>
+        ) : (
+          data.topClients.map((c, i) => (
+            <ClientRow key={`${c.name}-${i}`}>
+              <Rank $isTop={i === 0}>{i + 1}</Rank>
+              <ClientName>{c.name}</ClientName>
+              <BarWrapper>
+                <Bar style={{ width: `${(c.sessions / maxSessions) * 100}%` }} $index={i} />
+              </BarWrapper>
+              <SessionCount>{c.sessions}</SessionCount>
+            </ClientRow>
+          ))
+        )}
       </ClientList>
     </Wrapper>
   );
@@ -181,6 +218,33 @@ const SectionLabel = styled.div`
 
 const ClientList = styled.div`
   display: flex; flex-direction: column; gap: 6px;
+`;
+
+const ErrorState = styled.div`
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  min-height: 44px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(198, 168, 75, 0.12);
+  border: 1px solid rgba(198, 168, 75, 0.24);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 12px;
+  @media (max-width: 430px) { grid-template-columns: auto 1fr; }
+`;
+
+const RetryInline = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
+  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
+`;
+
+const EmptyState = styled.div`
+  min-height: 44px; display: flex; align-items: center;
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(0, 32, 96, 0.2);
+  border: 1px dashed rgba(96, 192, 240, 0.18);
+  color: var(--text-secondary, rgba(224,236,244,0.7));
+  font-size: 12px;
 `;
 
 const ClientRow = styled.div`

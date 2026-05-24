@@ -329,7 +329,7 @@ const CommunityDashboard = () => {
                   </AvatarCircle>
                   <GroupTitle>Wellness Journey</GroupTitle>
                 </GroupHeader>
-                <BodyText>Holistic wellness combining fitness, nutrition, and mindfulness</BodyText>
+                <BodyText>Holistic wellness combining fitness, nutrition, and recovery habits</BodyText>
                 <GroupFooter>
                   <ChipTag><Users size={14} /> 204 members</ChipTag>
                   <GlowBtnSmall>Join</GlowBtnSmall>

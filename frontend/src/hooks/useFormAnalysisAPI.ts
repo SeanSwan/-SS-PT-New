@@ -6,6 +6,7 @@
  */
 import { useState, useCallback } from 'react';
 import { usePaywall } from '../context/PaywallContext';
+import apiService from '../services/api.service';
 
 interface FormAnalysisRecord {
   id: number;
@@ -44,11 +45,6 @@ interface UploadResult {
   message: string;
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('token');
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
 export function useFormAnalysisAPI() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -70,26 +66,22 @@ export function useFormAnalysisAPI() {
       if (options?.sessionId) formData.append('sessionId', options.sessionId);
       if (options?.trainerId) formData.append('trainerId', String(options.trainerId));
 
-      const response = await fetch('/api/form-analysis/upload', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: formData,
+      const response = await apiService.post('/api/form-analysis/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       // 402 Payment Required — trigger paywall for tier-gated upload
-      if (response.status === 402) {
-        const data = await response.json().catch(() => ({}));
+      setUploadProgress(100);
+      return response.data;
+    } catch (err: any) {
+      if (err?.response?.status === 402) {
+        const data = err.response.data || {};
         showPaywall(data.featureName || 'Video Form Check', data);
         throw new Error('This feature requires a Crystalline Swan membership.');
       }
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Upload failed' }));
-        throw new Error(err.error || `Upload failed (${response.status})`);
-      }
-
-      setUploadProgress(100);
-      return await response.json();
+      const data = err?.response?.data || {};
+      throw new Error(data.error || data.message || `Upload failed (${err?.response?.status || 'network'})`);
     } finally {
       setIsUploading(false);
     }
@@ -104,39 +96,29 @@ export function useFormAnalysisAPI() {
     if (options?.exerciseName) params.set('exerciseName', options.exerciseName);
     if (options?.status) params.set('status', options.status);
 
-    const response = await fetch(`/api/form-analysis/history?${params}`, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch history');
-    return await response.json();
+    const response = await apiService.get(`/api/form-analysis/history?${params}`);
+    return response.data;
   }, []);
 
   const fetchAnalysis = useCallback(async (id: number): Promise<FormAnalysisRecord> => {
-    const response = await fetch(`/api/form-analysis/${id}`, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Analysis not found');
-    return await response.json();
+    const response = await apiService.get(`/api/form-analysis/${id}`);
+    return response.data;
   }, []);
 
   const reprocessAnalysis = useCallback(async (id: number): Promise<{ id: number; status: string }> => {
-    const response = await fetch(`/api/form-analysis/${id}/reprocess`, {
-      method: 'POST',
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Failed to reprocess');
-    return await response.json();
+    const response = await apiService.post(`/api/form-analysis/${id}/reprocess`);
+    return response.data;
   }, []);
 
   const fetchProfile = useCallback(async (userId?: number): Promise<MovementProfile | null> => {
     const url = userId ? `/api/form-analysis/profile/${userId}` : '/api/form-analysis/profile';
-    const response = await fetch(url, {
-      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.message ? null : data;
+    try {
+      const response = await apiService.get(url);
+      const data = response.data;
+      return data.message ? null : data;
+    } catch {
+      return null;
+    }
   }, []);
 
   const pollAnalysis = useCallback(async (

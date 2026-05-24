@@ -63,18 +63,20 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             <ValueRow style={{ color: metric.color }}>
               {formatValue(metric)}
             </ValueRow>
-            <ChangeRow>
-              {metric.changeType === 'increase' ? (
-                <TrendingUp size={14} color="#60C0F0" />
-              ) : metric.changeType === 'decrease' ? (
-                <TrendingDown size={14} color="#C92A54" />
-              ) : (
-                <Activity size={14} color="rgba(224, 236, 244, 0.4)" />
-              )}
-              <ChangeText $type={metric.changeType}>
-                {metric.change > 0 ? '+' : ''}{metric.change}%
-              </ChangeText>
-            </ChangeRow>
+            {metric.format !== 'text' && (
+              <ChangeRow>
+                {metric.changeType === 'increase' ? (
+                  <TrendingUp size={14} color="#60C0F0" />
+                ) : metric.changeType === 'decrease' ? (
+                  <TrendingDown size={14} color="#C92A54" />
+                ) : (
+                  <Activity size={14} color="rgba(224, 236, 244, 0.4)" />
+                )}
+                <ChangeText $type={metric.changeType}>
+                  {metric.change > 0 ? '+' : ''}{metric.change}%
+                </ChangeText>
+              </ChangeRow>
+            )}
           </div>
           <IconCol>
             <IconBubble style={{ background: `${metric.color}20`, color: metric.color }}>

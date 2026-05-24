@@ -35,14 +35,14 @@ let currentToken: string | null = null;
 
 function getSocketUrl(): string {
   if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+    return import.meta.env.VITE_API_BASE_URL.replace('/api', '').replace(/\/$/, '');
   }
-  return import.meta.env.VITE_SOCKET_URL || 'http://localhost:10000';
+  return (import.meta.env.VITE_SOCKET_URL || 'http://localhost:10000').replace(/\/$/, '');
 }
 
 async function createSocket(token: string): Promise<Socket> {
   const { io } = await import('socket.io-client');
-  return io(getSocketUrl(), {
+  return io(`${getSocketUrl()}/messaging`, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,

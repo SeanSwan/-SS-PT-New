@@ -21,6 +21,7 @@ import {
   BodyText,
   PrimaryHeading
 } from './ui';
+import apiService from '../../services/api.service';
 
 interface Session {
   id: number;
@@ -60,6 +61,9 @@ const weeksAheadOptions = [
   { value: 8, label: '8 weeks' },
   { value: 12, label: '12 weeks' }
 ];
+
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || error?.message || fallback;
 
 const ClientRecurringBookingModal: React.FC<ClientRecurringBookingModalProps> = ({
   open,
@@ -188,32 +192,20 @@ const ClientRecurringBookingModal: React.FC<ClientRecurringBookingModalProps> = 
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch('/api/sessions/book-recurring', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          sessionIds: Array.from(selectedSessionIds)
-        })
+      const response = await apiService.post('/api/sessions/book-recurring', {
+        sessionIds: Array.from(selectedSessionIds)
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (!response.ok) {
+      if (data?.success === false) {
         throw new Error(data.message || 'Failed to book recurring sessions');
       }
 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to book sessions');
+      setError(getApiErrorMessage(err, 'Failed to book sessions'));
     } finally {
       setLoading(false);
     }

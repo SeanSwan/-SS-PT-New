@@ -20,15 +20,16 @@
  * DATA FLOW:
  * Props In:  { clientId, clientName }
  * State:     { activeChannel, messages[], draft }
- * API Calls: GET/POST /api/communications/:clientId
+ * API Calls: GET/POST /api/messaging/conversations
  *
  * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,445 lines — CRITICAL monolith. TODO: extract channel components
  */
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { sanitizeImageUrl, cssUrlValue } from '../../../../../utils/imageUrl';
+import { useAuth } from '../../../../../context/AuthContext';
 import {
   Send,
   Phone,
@@ -693,6 +694,11 @@ const SpeedDialActionBtn = styled.button`
   &:hover {
     background: rgba(14,165,233,0.15);
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 `;
 
 const RelativeWrapper = styled.div`
@@ -722,6 +728,23 @@ const EmptyState = styled.div`
   flex-direction: column;
   gap: 16px;
   color: #666;
+`;
+
+const InlineStatus = styled.div`
+  padding: 16px;
+  color: ${theme.textSecondary};
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ErrorBanner = styled.div`
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,152,0,0.35);
+  border-radius: ${theme.radiusSm};
+  background: rgba(255,152,0,0.1);
+  color: ${theme.text};
 `;
 
 const FlexRow = styled.div<{
@@ -870,6 +893,121 @@ interface CommunicationCenterProps {
   onTemplateCreate?: (template: NotificationTemplate) => void;
 }
 
+type ApiRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): ApiRecord => (
+  value && typeof value === 'object' ? value as ApiRecord : {}
+);
+
+const asArray = (value: unknown): unknown[] => (
+  Array.isArray(value) ? value : []
+);
+
+const asString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' && value.length > 0 ? value : fallback
+);
+
+const asNumber = (value: unknown, fallback = 0): number => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+};
+
+const participantToPayloadId = (clientId?: string): string | number | null => {
+  if (!clientId) return null;
+  const numericId = Number(clientId);
+  return Number.isFinite(numericId) ? numericId : clientId;
+};
+
+const normalizeParticipant = (participant: unknown): Participant => {
+  const raw = asRecord(participant);
+  const id = String(raw.id ?? '');
+  const firstName = asString(raw.firstName);
+  const lastName = asString(raw.lastName);
+  const displayName = asString(
+    raw.name,
+    [firstName, lastName].filter(Boolean).join(' ') || 'Client',
+  );
+  const role = asString(raw.role, 'client');
+
+  return {
+    id,
+    name: displayName,
+    avatar: asString(raw.avatar, asString(raw.photo)),
+    email: asString(raw.email),
+    phone: asString(raw.phone),
+    role: role === 'user' ? 'client' : role as Participant['role'],
+    isOnline: Boolean(raw.isOnline),
+    lastSeen: asString(raw.lastSeen, new Date().toISOString()),
+    preferredChannel: 'app',
+    timezone: asString(raw.timezone, Intl.DateTimeFormat().resolvedOptions().timeZone),
+  };
+};
+
+const mapConversation = (conversation: unknown): Conversation | null => {
+  const raw = asRecord(conversation);
+  if (raw.id == null) return null;
+
+  const id = String(raw.id);
+  const participants = asArray(raw.participants).map(normalizeParticipant);
+  const visibleParticipants = participants.length > 0
+    ? participants
+    : [normalizeParticipant({ id: 'unknown', name: asString(raw.name, 'Conversation') })];
+  const lastMessage = asRecord(raw.lastMessage);
+  const timestamp = asString(
+    lastMessage.timestamp,
+    asString(raw.updatedAt, asString(raw.updated_at, new Date(0).toISOString())),
+  );
+  const type = asString(raw.type, 'direct') as Conversation['type'];
+
+  return {
+    id,
+    participantIds: visibleParticipants.map(participant => participant.id),
+    participants: visibleParticipants,
+    lastMessage: {
+      id: `last-${id}`,
+      senderId: asString(lastMessage.senderId),
+      senderName: asString(lastMessage.senderName),
+      senderAvatar: asString(lastMessage.senderAvatar),
+      receiverId: '',
+      content: asString(lastMessage.content, 'No messages yet'),
+      type: 'text',
+      timestamp,
+      status: 'read',
+      channel: 'app',
+    },
+    unreadCount: asNumber(raw.unreadCount),
+    isGroup: type === 'group',
+    groupName: asString(raw.name),
+    groupAvatar: '',
+    type,
+    status: 'active',
+    createdAt: asString(raw.createdAt, asString(raw.created_at, timestamp)),
+    updatedAt: asString(raw.updatedAt, asString(raw.updated_at, timestamp)),
+  };
+};
+
+const mapMessage = (message: unknown, currentUserId?: string): MessageData | null => {
+  const raw = asRecord(message);
+  if (raw.id == null || raw.content == null) return null;
+
+  const sender = asRecord(raw.sender);
+  const senderId = String(raw.sender_id ?? sender.id ?? '');
+  const sentAt = asString(raw.created_at, asString(raw.timestamp, new Date().toISOString()));
+
+  return {
+    id: String(raw.id),
+    senderId,
+    senderName: asString(sender.name, senderId === currentUserId ? 'You' : 'Client'),
+    senderAvatar: asString(sender.photo, asString(sender.avatar)),
+    receiverId: '',
+    content: asString(raw.content),
+    type: 'text',
+    timestamp: sentAt,
+    status: 'read',
+    channel: 'app',
+  };
+};
+
 const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   clientId: _clientId,
   onMessageSend,
@@ -883,246 +1021,131 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<'app' | 'sms' | 'email'>('app');
-  const [, setShowTemplates] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [, setShowComposer] = useState(false);
   const [isTyping] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [communicationError, setCommunicationError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const { authAxios, user } = useAuth();
+  const clientId = _clientId ? String(_clientId) : undefined;
+  const currentUserId = user?.id != null ? String(user.id) : undefined;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Mock data
-  const mockParticipants = useMemo<Participant[]>(() => [
-    {
-      id: '1',
-      name: 'John Doe',
-      avatar: '/api/placeholder/40/40',
-      email: 'john.doe@example.com',
-      phone: '+1 555-123-4567',
-      role: 'client',
-      isOnline: true,
-      lastSeen: new Date().toISOString(),
-      preferredChannel: 'app',
-      timezone: 'America/New_York'
-    },
-    {
-      id: '2',
-      name: 'Jane Smith',
-      avatar: '/api/placeholder/40/40',
-      email: 'jane.smith@example.com',
-      phone: '+1 555-234-5678',
-      role: 'client',
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 3600000).toISOString(),
-      preferredChannel: 'email',
-      timezone: 'America/Los_Angeles'
-    },
-    {
-      id: '3',
-      name: 'Fitness Group',
-      avatar: '/api/placeholder/40/40',
-      email: 'group@example.com',
-      role: 'client',
-      isOnline: true,
-      lastSeen: new Date().toISOString(),
-      preferredChannel: 'app',
-      timezone: 'America/Chicago'
-    }
-  ], []);
+  const notificationTemplates = useMemo<NotificationTemplate[]>(() => [], []);
 
-  const mockConversations = useMemo<Conversation[]>(() => [
-    {
-      id: 'conv1',
-      participantIds: ['1'],
-      participants: [mockParticipants[0]],
-      lastMessage: {
-        id: 'msg1',
-        senderId: '1',
-        senderName: 'John Doe',
-        senderAvatar: '/api/placeholder/40/40',
-        receiverId: 'admin',
-        content: 'Thanks for the workout plan! Looking forward to tomorrow\'s session.',
-        type: 'text',
-        timestamp: new Date(Date.now() - 300000).toISOString(),
-        status: 'read',
-        channel: 'app'
+  const communicationAnalytics = useMemo<CommunicationAnalytics>(() => {
+    const clearedThreadCount = conversations.filter(conversation => conversation.unreadCount === 0).length;
+    const unreadThreadCount = conversations.length - clearedThreadCount;
+    const clearedThreadRate = conversations.length > 0
+      ? Math.round((clearedThreadCount / conversations.length) * 100)
+      : 0;
+
+    return {
+      totalMessages: messages.length,
+      responseRate: clearedThreadRate,
+      avgResponseTime: unreadThreadCount,
+      channelBreakdown: {
+        app: messages.length,
+        email: 0,
+        sms: 0,
       },
-      unreadCount: 0,
-      isGroup: false,
-      type: 'direct',
-      status: 'active',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 300000).toISOString(),
-      isOnline: true,
-      isPinned: true,
-      preferences: {
-        notifications: true,
-        emailNotifications: true,
-        smsNotifications: false
-      }
-    },
-    {
-      id: 'conv2',
-      participantIds: ['2'],
-      participants: [mockParticipants[1]],
-      lastMessage: {
-        id: 'msg2',
-        senderId: 'admin',
-        senderName: 'Trainer',
-        senderAvatar: '/api/placeholder/40/40',
-        receiverId: '2',
-        content: 'Don\'t forget about your nutrition consultation tomorrow at 3 PM',
-        type: 'text',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        status: 'delivered',
-        channel: 'app'
+      sentimentAnalysis: {
+        positive: 0,
+        neutral: messages.length,
+        negative: 0,
       },
-      unreadCount: 2,
-      isGroup: false,
-      type: 'direct',
-      status: 'active',
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      updatedAt: new Date(Date.now() - 3600000).toISOString(),
-      isOnline: false,
-      lastSeen: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-      id: 'conv3',
-      participantIds: ['1', '2', '3'],
-      participants: mockParticipants,
-      lastMessage: {
-        id: 'msg3',
-        senderId: '3',
-        senderName: 'Fitness Group',
-        senderAvatar: '/api/placeholder/40/40',
-        receiverId: 'group',
-        content: 'Who\'s joining the 7 AM group workout tomorrow?',
-        type: 'text',
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        status: 'read',
-        channel: 'app'
+      engagementMetrics: {
+        openRate: clearedThreadRate,
+        clickRate: 0,
+        replyRate: clearedThreadRate,
       },
-      unreadCount: 5,
-      isGroup: true,
-      groupName: 'Morning Workout Group',
-      groupAvatar: '/api/placeholder/40/40',
-      type: 'group',
-      status: 'active',
-      createdAt: new Date(Date.now() - 604800000).toISOString(),
-      updatedAt: new Date(Date.now() - 7200000).toISOString(),
-      isOnline: true
-    }
-  ], [mockParticipants]);
+    };
+  }, [conversations, messages.length]);
 
-  const mockNotificationTemplates = useMemo<NotificationTemplate[]>(() => [
-    {
-      id: 'tpl1',
-      name: 'Appointment Reminder',
-      subject: 'Your training session is tomorrow',
-      content: 'Hi {{name}}, this is a reminder that you have a training session scheduled for {{date}} at {{time}}. See you there!',
-      type: 'appointment',
-      channels: ['app', 'email', 'sms'],
-      triggers: ['24h_before_appointment'],
-      isActive: true,
-      personalization: true,
-      schedule: {
-        time: '24h_before',
-        frequency: 'once'
-      }
-    },
-    {
-      id: 'tpl2',
-      name: 'Workout Follow-up',
-      subject: 'How was your workout?',
-      content: 'Hi {{name}}, hope you enjoyed your workout today! Don\'t forget to log your results and hydrate well. Any feedback?',
-      type: 'follow-up',
-      channels: ['app'],
-      triggers: ['1h_after_workout'],
-      isActive: true,
-      personalization: true,
-      schedule: {
-        time: '1h_after',
-        frequency: 'once'
-      }
-    }
-  ], []);
+  const loadConversations = useCallback(async () => {
+    setIsLoadingConversations(true);
+    setCommunicationError(null);
 
-  const mockAnalytics: CommunicationAnalytics = {
-    totalMessages: 1247,
-    responseRate: 94.5,
-    avgResponseTime: 8.5,
-    channelBreakdown: {
-      app: 65,
-      email: 25,
-      sms: 10
-    },
-    sentimentAnalysis: {
-      positive: 78,
-      neutral: 18,
-      negative: 4
-    },
-    engagementMetrics: {
-      openRate: 96.8,
-      clickRate: 45.2,
-      replyRate: 67.3
-    }
-  };
+    try {
+      const response = await authAxios.get('/api/messaging/conversations');
+      const rawConversations = Array.isArray(response.data)
+        ? response.data
+        : asArray(asRecord(response.data).conversations);
+      const mappedConversations = rawConversations
+        .map(mapConversation)
+        .filter((conversation): conversation is Conversation => Boolean(conversation));
+      const scopedConversations = clientId
+        ? mappedConversations.filter(conversation => conversation.participantIds.includes(clientId))
+        : mappedConversations;
 
-  // Initialize data
+      setConversations(scopedConversations);
+      setSelectedConversation(previous => {
+        if (!scopedConversations.length) return null;
+        if (!previous) return scopedConversations[0];
+        return scopedConversations.find(conversation => conversation.id === previous.id) ?? scopedConversations[0];
+      });
+    } catch {
+      setConversations([]);
+      setSelectedConversation(null);
+      setMessages([]);
+      setCommunicationError('Messaging could not be loaded.');
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, [authAxios, clientId]);
+
   useEffect(() => {
-    setConversations(mockConversations);
-    if (mockConversations.length > 0) {
-      setSelectedConversation(mockConversations[0]);
-    }
-  }, [mockConversations]);
+    void loadConversations();
+  }, [loadConversations]);
 
-  // Load messages for selected conversation
   useEffect(() => {
-    if (selectedConversation) {
-      const conversationMessages: MessageData[] = [
-        {
-          id: 'msg1',
-          senderId: selectedConversation.participants[0].id,
-          senderName: selectedConversation.participants[0].name,
-          senderAvatar: selectedConversation.participants[0].avatar,
-          receiverId: 'admin',
-          content: 'Hey! I just finished my workout. Feeling great!',
-          type: 'text',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          status: 'read',
-          channel: 'app'
-        },
-        {
-          id: 'msg2',
-          senderId: 'admin',
-          senderName: 'Trainer',
-          senderAvatar: '/api/placeholder/40/40',
-          receiverId: selectedConversation.participants[0].id,
-          content: 'That\'s awesome! How did the new routine feel? Any muscle soreness?',
-          type: 'text',
-          timestamp: new Date(Date.now() - 3500000).toISOString(),
-          status: 'read',
-          channel: 'app'
-        },
-        {
-          id: 'msg3',
-          senderId: selectedConversation.participants[0].id,
-          senderName: selectedConversation.participants[0].name,
-          senderAvatar: selectedConversation.participants[0].avatar,
-          receiverId: 'admin',
-          content: 'It was challenging but in a good way. My legs are definitely feeling it!',
-          type: 'text',
-          timestamp: new Date(Date.now() - 3400000).toISOString(),
-          status: 'read',
-          channel: 'app'
-        },
-        selectedConversation.lastMessage
-      ];
-      setMessages(conversationMessages);
+    if (!selectedConversation) {
+      setMessages([]);
+      return;
     }
-  }, [selectedConversation]);
+
+    let cancelled = false;
+    const loadMessages = async () => {
+      setIsLoadingMessages(true);
+      setCommunicationError(null);
+
+      try {
+        const messagePath = `/api/messaging/conversations/${selectedConversation.id}/messages`;
+        const response = await authAxios.get(messagePath, { params: { limit: 50 } });
+        const rawMessages = Array.isArray(response.data)
+          ? response.data
+          : asArray(asRecord(response.data).messages);
+        const mappedMessages = rawMessages
+          .map(message => mapMessage(message, currentUserId))
+          .filter((message): message is MessageData => Boolean(message));
+
+        if (!cancelled) {
+          setMessages(mappedMessages);
+        }
+      } catch {
+        if (!cancelled) {
+          setMessages([]);
+          setCommunicationError('Message history could not be loaded.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingMessages(false);
+        }
+      }
+    };
+
+    void loadMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authAxios, currentUserId, selectedConversation]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -1140,39 +1163,54 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
     );
   }, [conversations, searchQuery]);
 
-  // Handle sending message
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+  const handleStartConversation = async () => {
+    const participantId = participantToPayloadId(clientId);
+    if (!participantId || isLoadingConversations) return;
 
-    const message: MessageData = {
-      id: `msg_${Date.now()}`,
-      senderId: 'admin',
-      senderName: 'Trainer',
-      senderAvatar: '/api/placeholder/40/40',
-      receiverId: selectedConversation.participants[0].id,
-      content: newMessage,
-      type: 'text',
-      timestamp: new Date().toISOString(),
-      status: 'sent',
-      channel: selectedChannel
-    };
+    setIsLoadingConversations(true);
+    setCommunicationError(null);
 
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-    onMessageSend?.(message);
+    try {
+      await authAxios.post('/api/messaging/conversations', {
+        type: 'direct',
+        participantIds: [participantId],
+      });
+      await loadConversations();
+    } catch {
+      setCommunicationError('Conversation could not be started.');
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
 
-    // Simulate message status updates
-    setTimeout(() => {
-      setMessages(prev => prev.map(msg =>
-        msg.id === message.id ? { ...msg, status: 'delivered' } : msg
-      ));
-    }, 1000);
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation || isSending) return;
 
-    setTimeout(() => {
-      setMessages(prev => prev.map(msg =>
-        msg.id === message.id ? { ...msg, status: 'read' } : msg
-      ));
-    }, 3000);
+    const content = newMessage.trim();
+    const messagePath = `/api/messaging/conversations/${selectedConversation.id}/messages`;
+    setIsSending(true);
+    setSendError(null);
+
+    try {
+      const response = await authAxios.post(messagePath, { content });
+      const sentMessage = mapMessage(response.data, currentUserId);
+      if (!sentMessage) {
+        throw new Error('Invalid message response');
+      }
+
+      setMessages(prev => [...prev, sentMessage]);
+      setConversations(prev => prev.map(conversation => (
+        conversation.id === selectedConversation.id
+          ? { ...conversation, lastMessage: sentMessage, updatedAt: sentMessage.timestamp }
+          : conversation
+      )));
+      setNewMessage('');
+      onMessageSend?.(sentMessage);
+    } catch {
+      setSendError('Message could not be sent.');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Handle file attachment
@@ -1242,7 +1280,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
   // Render message bubble
   const renderMessage = (message: MessageData) => {
-    const isOwn = message.senderId === 'admin';
+    const isOwn = currentUserId ? message.senderId === currentUserId : message.senderId === 'admin';
     return (
       <MessageRow
         key={message.id}
@@ -1273,24 +1311,24 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
       <GridContainer>
         <CardPanel>
           <MetricValue $tone="accent">
-            {mockAnalytics.totalMessages}
+            {communicationAnalytics.totalMessages}
           </MetricValue>
-          <SmallText>Total Messages</SmallText>
-          <ProgressBar $value={85} $color={theme.accent} />
+          <SmallText>Loaded Messages</SmallText>
+          <ProgressBar $value={Math.min(communicationAnalytics.totalMessages * 10, 100)} $color={theme.accent} />
         </CardPanel>
         <CardPanel>
           <MetricValue $tone="green">
-            {mockAnalytics.responseRate}%
+            {communicationAnalytics.responseRate}%
           </MetricValue>
-          <SmallText>Response Rate</SmallText>
-          <ProgressBar $value={mockAnalytics.responseRate} $color={theme.green} />
+          <SmallText>Cleared Threads</SmallText>
+          <ProgressBar $value={communicationAnalytics.responseRate} $color={theme.green} />
         </CardPanel>
         <CardPanel>
           <MetricValue $tone="orange">
-            {mockAnalytics.avgResponseTime}min
+            {communicationAnalytics.avgResponseTime}
           </MetricValue>
-          <SmallText>Avg Response Time</SmallText>
-          <ProgressBar $value={75} $color={theme.orange} />
+          <SmallText>Unread Threads</SmallText>
+          <ProgressBar $value={Math.min(communicationAnalytics.avgResponseTime * 20, 100)} $color={theme.orange} />
         </CardPanel>
       </GridContainer>
     </SectionBlock>
@@ -1303,34 +1341,48 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
         <SectionSubTitle>
           Notification Templates
         </SectionSubTitle>
-        <ActionButton $variant="contained">
+        <ActionButton
+          $variant="contained"
+          $disabled
+          disabled
+          title="Template backend not connected"
+        >
           <Plus size={18} />
           Create Template
         </ActionButton>
       </FlexRow>
       <GridTwoCol>
-        {mockNotificationTemplates.map((template) => (
-          <CardPanel key={template.id}>
-            <FlexRow $between $alignStart $gap={12}>
-              <SubHeading>{template.name}</SubHeading>
-              <ToggleSwitch aria-label={`Toggle ${template.name}`}>
-                <input type="checkbox" defaultChecked={template.isActive} aria-label={`Toggle ${template.name}`} />
-                <span />
-              </ToggleSwitch>
-            </FlexRow>
+        {notificationTemplates.length > 0 ? (
+          notificationTemplates.map((template) => (
+            <CardPanel key={template.id}>
+              <FlexRow $between $alignStart $gap={12}>
+                <SubHeading>{template.name}</SubHeading>
+                <ToggleSwitch aria-label={`Toggle ${template.name}`}>
+                  <input type="checkbox" defaultChecked={template.isActive} aria-label={`Toggle ${template.name}`} />
+                  <span />
+                </ToggleSwitch>
+              </FlexRow>
+              <SmallText $block $bottom>
+                {template.content.substring(0, 100)}...
+              </SmallText>
+              <TemplateTagRow>
+                {template.channels.map((channel) => (
+                  <TagChip key={channel}>{channel}</TagChip>
+                ))}
+              </TemplateTagRow>
+              <CaptionText>
+                Trigger: {template.triggers[0]}
+              </CaptionText>
+            </CardPanel>
+          ))
+        ) : (
+          <CardPanel>
+            <SubHeading>No templates connected</SubHeading>
             <SmallText $block $bottom>
-              {template.content.substring(0, 100)}...
+              Notification templates will appear here after a backend template source is connected.
             </SmallText>
-            <TemplateTagRow>
-              {template.channels.map((channel) => (
-                <TagChip key={channel}>{channel}</TagChip>
-              ))}
-            </TemplateTagRow>
-            <CaptionText>
-              Trigger: {template.triggers[0]}
-            </CaptionText>
           </CardPanel>
-        ))}
+        )}
       </GridTwoCol>
     </SectionBlock>
   );
@@ -1364,6 +1416,12 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
         </TabButton>
       </TabBar>
 
+      {communicationError && (
+        <ErrorBanner role="alert">
+          {communicationError}
+        </ErrorBanner>
+      )}
+
       {/* Messages Tab */}
       {activeTab === 0 && (
         <ChatContainer>
@@ -1380,7 +1438,18 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
               </SearchInputWrapper>
             </ConversationListHeader>
             <ConversationListBody>
-              {filteredConversations.map(renderConversationItem)}
+              {isLoadingConversations ? (
+                <InlineStatus>
+                  <Spinner />
+                  Loading conversations
+                </InlineStatus>
+              ) : filteredConversations.length > 0 ? (
+                filteredConversations.map(renderConversationItem)
+              ) : (
+                <InlineStatus>
+                  No conversations found
+                </InlineStatus>
+              )}
             </ConversationListBody>
           </ConversationListPanel>
 
@@ -1435,7 +1504,18 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
                 {/* Messages */}
                 <MessagesPane>
-                  {messages.map(renderMessage)}
+                  {isLoadingMessages ? (
+                    <InlineStatus>
+                      <Spinner />
+                      Loading messages
+                    </InlineStatus>
+                  ) : messages.length > 0 ? (
+                    messages.map(renderMessage)
+                  ) : (
+                    <InlineStatus>
+                      No messages yet
+                    </InlineStatus>
+                  )}
                   {isTyping && (
                     <FlexRow $gap={8}>
                       <Avatar $size={24} $src={selectedConversation.participants[0].avatar} />
@@ -1450,6 +1530,11 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
 
                 {/* Message Input */}
                 <ComposerPanel>
+                  {sendError && (
+                    <ErrorBanner role="alert">
+                      {sendError}
+                    </ErrorBanner>
+                  )}
                   {attachments.length > 0 && (
                     <AttachmentRow>
                       {attachments.map((file, index) => (
@@ -1470,7 +1555,7 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          handleSendMessage();
+                          void handleSendMessage();
                         }
                       }}
                       rows={1}
@@ -1489,7 +1574,8 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                     </RoundButton>
                     <ActionButton
                       $variant="contained"
-                      $disabled={!newMessage.trim()}
+                      $disabled={!newMessage.trim() || isSending}
+                      disabled={!newMessage.trim() || isSending}
                       onClick={handleSendMessage}
                     >
                       <Send size={18} />
@@ -1521,8 +1607,19 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
               <EmptyState>
                 <MessageSquare size={64} />
                 <EmptyStateHeading>
-                  Select a conversation to start messaging
+                  No conversation selected
                 </EmptyStateHeading>
+                {clientId && (
+                  <ActionButton
+                    $variant="contained"
+                    $disabled={isLoadingConversations}
+                    disabled={isLoadingConversations}
+                    onClick={handleStartConversation}
+                  >
+                    <MessageCircle size={18} />
+                    Start Conversation
+                  </ActionButton>
+                )}
               </EmptyState>
             )}
           </ChatArea>
@@ -1544,15 +1641,15 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
           {speedDialOpen ? <X size={24} /> : <Plus size={24} />}
         </SpeedDialFab>
         <SpeedDialActions $open={speedDialOpen}>
-          <SpeedDialActionBtn onClick={() => { setShowComposer(true); setSpeedDialOpen(false); }}>
+          <SpeedDialActionBtn disabled title="Composer is available from a selected conversation">
             <UserPlus size={18} />
             New Conversation
           </SpeedDialActionBtn>
-          <SpeedDialActionBtn onClick={() => { setShowComposer(true); setSpeedDialOpen(false); }}>
+          <SpeedDialActionBtn disabled title="Broadcast messaging backend not connected">
             <Megaphone size={18} />
             Broadcast Message
           </SpeedDialActionBtn>
-          <SpeedDialActionBtn onClick={() => { setShowTemplates(true); setSpeedDialOpen(false); }}>
+          <SpeedDialActionBtn disabled title="Template backend not connected">
             <Mail size={18} />
             Create Template
           </SpeedDialActionBtn>

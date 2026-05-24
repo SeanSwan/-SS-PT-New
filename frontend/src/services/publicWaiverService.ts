@@ -7,6 +7,7 @@
  * Contract: WAIVER-CONSENT-QR-FLOW-CONTRACT.md §5, §10.1
  */
 import axios from 'axios';
+import { ProductionTokenManager } from './api.service';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
@@ -18,7 +19,7 @@ const publicWaiverApi = axios.create({
 
 // Optionally attach auth token if present (enables optionalAuth linking for logged-in users)
 publicWaiverApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = ProductionTokenManager.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

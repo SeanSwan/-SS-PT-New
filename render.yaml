@@ -40,8 +40,12 @@ services:
         length: 32
       - key: STRIPE_SECRET_KEY
         sync: false  # Set manually in Render dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false  # Set manually in Render dashboard; required for Stripe webhook fulfillment
       - key: VITE_STRIPE_PUBLISHABLE_KEY
         sync: false  # Set manually in Render dashboard; canonical Vite/Stripe publishable key
+      - key: ENCRYPTION_MASTER_KEY
+        sync: false  # Set manually in Render dashboard; 64-character hex key for at-rest encryption
       - key: REDIS_URL
         fromService:
           type: redis

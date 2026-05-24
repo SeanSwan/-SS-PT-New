@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { logger } from '@/utils/logger';
+import apiService from '../services/api.service';
 
 // Define types for TypeScript
 interface CartItem {
@@ -81,7 +82,7 @@ interface CartProviderProps {
 }
 
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
-  const { user, token, authAxios, isAuthenticated } = useAuth();
+  const { user, token, isAuthenticated } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,9 +114,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       
       logger.log('Fetching cart for authenticated user:', user.username);
       
-      const response = await authAxios.get('/api/cart', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiService.get('/api/cart');
       
       logger.log('Cart response:', response.status, response.statusText);
       
@@ -144,7 +143,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [isAuthenticated, token, authAxios, user?.username]); // CRITICAL: Only depend on user.username, not entire user object
+  }, [isAuthenticated, token, user?.username]); // CRITICAL: Only depend on user.username, not entire user object
 
   // Fetch cart on authentication - CRITICAL FIX: Removed fetchCart dependency to break infinite loop
   useEffect(() => {
@@ -228,10 +227,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await authAxios.post('/api/cart/add', 
-        { storefrontItemId, quantity }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiService.post('/api/cart/add', { storefrontItemId, quantity });
       
       logger.log('Add to cart response:', response.status, response.statusText);
       
@@ -266,7 +262,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authAxios, user, showCartNotification]);
+  }, [isAuthenticated, token, user, showCartNotification]);
 
   // Update item quantity
   const updateQuantity = useCallback(async (itemId: number, quantity: number): Promise<void> => {
@@ -276,10 +272,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await authAxios.put(`/api/cart/update/${itemId}`, 
-        { quantity }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiService.put(`/api/cart/update/${itemId}`, { quantity });
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
          setCart(prevCart => {
@@ -301,7 +294,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authAxios, user]);
+  }, [isAuthenticated, token, user]);
 
   // Remove item from cart
   const removeItem = useCallback(async (itemId: number): Promise<void> => {
@@ -311,9 +304,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await authAxios.delete(`/api/cart/remove/${itemId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await apiService.delete(`/api/cart/remove/${itemId}`);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
           setCart(prevCart => {
@@ -335,7 +326,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authAxios, user]);
+  }, [isAuthenticated, token, user]);
 
   // Clear entire cart
   const clearCart = useCallback(async (): Promise<void> => {
@@ -351,9 +342,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      await authAxios.delete('/api/cart/clear', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await apiService.delete('/api/cart/clear');
       
       setCart(prevCart => {
         if (!prevCart) return null;
@@ -367,7 +356,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authAxios, user, cart]);
+  }, [isAuthenticated, token, user, cart]);
 
   // Toggle cart visibility
   const toggleCart = useCallback((): void => setShowCart(prev => !prev), []);

@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 // Mock react-router-dom's useNavigate so the page doesn't blow up
@@ -51,6 +51,11 @@ vi.mock('../../hooks/usePlaudPendingReviews', () => ({
   }),
 }));
 
+vi.mock('../../services/plaudClipGroupService', () => ({
+  listPlaudClipGroups: vi.fn().mockResolvedValue({ groups: [], limit: 8, maxGapMinutes: 90 }),
+}));
+
+import { listPlaudClipGroups } from '../../services/plaudClipGroupService';
 import { PlaudMergePage } from './PlaudMergePage';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -58,6 +63,7 @@ const __dirname = dirname(__filename);
 
 const PAGE_SRC = readFileSync(resolve(__dirname, 'PlaudMergePage.tsx'), 'utf8');
 const WORKSPACE_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.tsx'), 'utf8');
+const REVIEW_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeReview.tsx'), 'utf8');
 const APPROVAL_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.apply.ts'), 'utf8');
 const WORKSPACE_STYLES_SRC = readFileSync(resolve(__dirname, '../../components/PlaudClipMerge/PlaudMergeWorkspace.styles.ts'), 'utf8');
 const ROUTES_SRC = readFileSync(resolve(__dirname, '../../routes/main-routes.tsx'), 'utf8');
@@ -90,8 +96,8 @@ describe('Slice 3.13 — PlaudMergePage source contract', () => {
   });
 
   it('boundary banner shown when warning=true with re-select handler', () => {
-    expect(WORKSPACE_SRC).toMatch(/PlaudMergeBoundaryBanner/);
-    expect(WORKSPACE_SRC).toMatch(/onReSelect=\{handleResetReview\}/);
+    expect(REVIEW_SRC).toMatch(/PlaudMergeBoundaryBanner/);
+    expect(REVIEW_SRC).toMatch(/onReSelect=\{onBack\}/);
   });
 
   it('confirm screen offers "Process another merge" reset action', () => {
@@ -108,12 +114,14 @@ describe('Slice 3.13 — PlaudMergePage source contract', () => {
     expect(WORKSPACE_STYLES_SRC).toMatch(/@media\s*\(\s*min-width:\s*1024px\s*\)/);
   });
 
-  it('bearer token sourced from localStorage for apply request', () => {
-    expect(APPROVAL_SRC).toMatch(/localStorage\.getItem\(['"]token['"]\)/);
+  it('apply request uses central apiService auth transport', () => {
+    expect(APPROVAL_SRC).toMatch(/import\s+apiService\s+from\s+['"]\.\.\/\.\.\/services\/api\.service['"]/);
+    expect(APPROVAL_SRC).toMatch(/apiService\.post\(`\/api\/admin\/clients\/\$\{args\.clientId\}\/workouts`/);
+    expect(APPROVAL_SRC).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
   });
 
   it('parsed exercises empty -> shows red error banner', () => {
-    expect(WORKSPACE_SRC).toMatch(/No exercises parsed/);
+    expect(REVIEW_SRC).toMatch(/No exercises parsed/);
   });
 
   it('route shell passes optional clientId query into reusable workspace', () => {
@@ -147,8 +155,9 @@ describe('Slice 3.13 — PlaudMergePage render', () => {
     vi.clearAllMocks();
   });
 
-  it('renders queue state with merge panel + pending reviews list', () => {
+  it('renders queue state with merge panel + pending reviews list', async () => {
     render(<MemoryRouter><PlaudMergePage /></MemoryRouter>);
+    await waitFor(() => expect(listPlaudClipGroups).toHaveBeenCalled());
     // Page test-id present
     expect(screen.getByTestId('plaud-merge-page')).toBeTruthy();
     // The merge panel test-id (left column) is rendered
@@ -157,8 +166,9 @@ describe('Slice 3.13 — PlaudMergePage render', () => {
     expect(screen.getByTestId('plaud-pending-reviews')).toBeTruthy();
   });
 
-  it('Back to dashboard link present in queue state', () => {
+  it('Back to dashboard link present in queue state', async () => {
     render(<MemoryRouter><PlaudMergePage /></MemoryRouter>);
+    await waitFor(() => expect(listPlaudClipGroups).toHaveBeenCalled());
     expect(screen.getByText(/Dashboard/i)).toBeTruthy();
   });
 });

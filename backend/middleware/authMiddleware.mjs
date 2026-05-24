@@ -29,7 +29,7 @@
  * │  │ ↓                                                                    │ │
  * │  │ Verify JWT_SECRET is configured (production safety check)           │ │
  * │  │ ↓                                                                    │ │
- * │  │ jwt.verify(token, JWT_SECRET) → decoded payload                     │ │
+ * │  │ jwt.verify(token, getJwtSecret()) → decoded payload                 │ │
  * │  │ ↓                                                                    │ │
  * │  │ Check tokenType === 'access' (not refresh token)                    │ │
  * │  │ ↓                                                                    │ │
@@ -261,6 +261,7 @@ import jwt from 'jsonwebtoken';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -287,22 +288,9 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    // PRODUCTION FIX: Validate JWT_SECRET exists and is not placeholder
-    const JWT_SECRET = process.env.JWT_SECRET;
-    if (!JWT_SECRET || JWT_SECRET === 'your-production-jwt-secret-key-here-change-this') {
-      logger.error('CRITICAL: JWT_SECRET not properly configured for production!', {
-        hasSecret: !!JWT_SECRET,
-        isPlaceholder: JWT_SECRET === 'your-production-jwt-secret-key-here-change-this'
-      });
-      return res.status(500).json({
-        success: false,
-        message: 'Server configuration error'
-      });
-    }
-    
     try {
       // Verify token
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, getJwtSecret());
       
       // PRODUCTION FIX: Enhanced token validation with logging
       logger.info('Token decoded successfully', {
@@ -380,6 +368,13 @@ export const protect = async (req, res, next) => {
         path: req.path, 
         method: req.method
       });
+
+      if (isJwtSecretConfigurationError(tokenError)) {
+        return res.status(500).json({
+          success: false,
+          message: 'Server configuration error'
+        });
+      }
       
       const tokenErrors = {
         TokenExpiredError: { message: 'Token expired', code: 'TOKEN_EXPIRED' },
@@ -725,8 +720,8 @@ export const authorizeResourceAccess = (paramName = 'userId') => {
         return res.status(400).json({ success: false, message: 'Invalid or missing user ID' });
       }
 
-      // Own data — always allowed
-      if (req.user.id === targetId) {
+      // Own data - always allowed; protect stores req.user.id as a string.
+      if (Number(req.user.id) === targetId) {
         return next();
       }
 

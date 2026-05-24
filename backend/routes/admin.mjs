@@ -1,6 +1,6 @@
 // backend/routes/admin.mjs
 import express from 'express';
-import { adminOnly as isAdmin } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly as isAdmin } from '../middleware/authMiddleware.mjs';
 import User from '../models/User.mjs';
 import Session from '../models/Session.mjs';
 import Notification from '../models/Notification.mjs';
@@ -15,6 +15,7 @@ const router = express.Router();
  * Admin routes for system maintenance and debugging
  * All these routes require admin privileges
  */
+router.use(protect);
 
 // Synchronize data across dashboards
 router.post('/sync-data', isAdmin, async (req, res) => {

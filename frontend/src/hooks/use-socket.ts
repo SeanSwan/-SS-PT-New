@@ -4,75 +4,21 @@ import { useToast } from './use-toast';
 import { logger } from '@/utils/logger';
 
 // Flag to track the WebSocket server status
-// Always set to false in development mode to prevent connection attempts
-let webSocketServerAvailable: boolean | null = process.env.NODE_ENV === 'development' ? false : null;
+let webSocketServerAvailable: boolean | null = null;
 // Flag to prevent multiple server checks
 let webSocketServerCheckInProgress = false;
 
-// Helper to create a mock WebSocket instance
 type SocketNotification = Record<string, any>;
 type SocketMessage = any;
-type ManagedSocket = WebSocket & { isClosing?: boolean };
+type ManagedSocket = WebSocket;
 
 interface UseSocketOptions {
   maxReconnectAttempts?: number;
   reconnectIntervalMs?: number;
 }
 
-function createMockWebSocket(verbose = false): ManagedSocket {
-  // Create an object that mimics the WebSocket interface
-  const mockSocket: any = {
-    readyState: 1, // WebSocket.OPEN (ALWAYS OPEN)
-    isClosing: false, // Custom flag to track intentional close
-    send: (data) => {
-      if (verbose) logger.log('Mock WebSocket: Message sent:', data);
-      // For ping messages, simulate a pong response
-      if (data === 'ping') {
-        setTimeout(() => {
-          if (mockSocket.onmessage && !mockSocket.isClosing) {
-            mockSocket.onmessage({ data: 'pong' } as MessageEvent);
-          }
-        }, 100);
-      }
-      return true;
-    },
-    close: () => {
-      if (verbose) logger.log('Mock WebSocket: Close requested but staying open in mock mode');
-      // In mock mode, we don't actually close - we just mark as closing
-      // This prevents the reconnection loops
-      mockSocket.isClosing = true;
-      
-      // We don't trigger onclose in mock mode to prevent reconnection loops
-      // if (mockSocket.onclose) {
-      //   mockSocket.onclose({ code: 1000, reason: 'Normal closure' });
-      // }
-    },
-    // These will be set by the consumer
-    onopen: null,
-    onmessage: null,
-    onerror: null,
-    onclose: null
-  };
-  
-  // Simulate connection established
-  setTimeout(() => {
-    if (mockSocket.onopen) {
-      mockSocket.onopen({ target: mockSocket } as Event);
-    }
-  }, 100);
-  
-  return mockSocket as ManagedSocket;
-}
-
 // Check if WebSocket server is available (do this once at module load time)
 function checkWebSocketServerAvailability() {
-  // In development mode, always assume WebSocket server is unavailable
-  if (process.env.NODE_ENV === 'development') {
-    webSocketServerAvailable = false;
-    logger.log('Development mode: Skipping WebSocket server availability check - WebSocket server set to unavailable');
-    return Promise.resolve(false);
-  }
-  
   // Return cached result if we already checked
   if (webSocketServerAvailable !== null) {
     return Promise.resolve(webSocketServerAvailable);
@@ -135,7 +81,7 @@ function checkWebSocketServerAvailability() {
         clearTimeout(timeoutId);
         webSocketServerAvailable = false;
         webSocketServerCheckInProgress = false;
-        logger.log('WebSocket server is not available - using mock WebSocket');
+        logger.log('WebSocket server is not available');
         resolve(false);
       };
     } catch (error) {
@@ -145,21 +91,6 @@ function checkWebSocketServerAvailability() {
       resolve(false);
     }
   });
-}
-
-// Initialize flags for WebSocket server status - immediately in development mode
-// This ensures no real WebSocket connections are attempted during development
-if (process.env.NODE_ENV === 'development') {
-  logger.log('WebSocket Module Initialization: DEVELOPMENT MODE DETECTED - ALL WEBSOCKET CONNECTIONS DISABLED');
-  // These settings will prevent any actual WebSocket connection attempts
-  webSocketServerAvailable = false;
-  
-  // Set global flags if window is available (client-side)
-  if (typeof window !== 'undefined') {
-    window.REACT_APP_FORCE_MOCK_WEBSOCKET = 'true';
-    window.REACT_APP_MOCK_WEBSOCKET = 'true';
-    logger.log('WebSocket Module: Global mock WebSocket flags set');
-  }
 }
 
 // Start the check immediately but only once, and skip in development mode
@@ -189,7 +120,7 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [useMockSocket, setUseMockSocket] = useState(false);
   const connectionCheckCompletedRef = useRef(false);
-  const forceMockForLegacyWs = endpoint.startsWith('/ws/');
+  const isLegacyWsEndpoint = endpoint.startsWith('/ws/');
 
   // Custom message handler - keeps track of notifications
   const handleNotification = useCallback((notification: SocketNotification) => {
@@ -237,18 +168,10 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
 
   // Improved initialization to prevent reconnection loops
   useEffect(() => {
-    if (!connectionCheckCompletedRef.current && forceMockForLegacyWs) {
+    if (!connectionCheckCompletedRef.current && isLegacyWsEndpoint) {
       connectionCheckCompletedRef.current = true;
-      setUseMockSocket(true);
-      return;
-    }
-
-    // Initialize mock socket immediately if manually set
-    if ((!connectionCheckCompletedRef.current) && 
-        (typeof window !== 'undefined' && window.REACT_APP_FORCE_MOCK_WEBSOCKET === 'true')) {
-      connectionCheckCompletedRef.current = true;
-      setUseMockSocket(true);
-      // Skip server check - we're forcing mock mode
+      setUseMockSocket(false);
+      setError('Legacy WebSocket endpoint is not implemented on the backend.');
       return;
     }
     
@@ -258,38 +181,25 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
       connectionCheckCompletedRef.current = true;
       
       checkWebSocketServerAvailability().then(available => {
-        setUseMockSocket(!available);
+        setUseMockSocket(false);
+        if (!available) {
+          setError('WebSocket server is unavailable.');
+        }
       }).catch(() => {
-        // Fallback in case of error
-        setUseMockSocket(true);
+        setUseMockSocket(false);
+        setError('WebSocket server availability check failed.');
       });
     }
-  }, [forceMockForLegacyWs]);
+  }, [isLegacyWsEndpoint]);
 
   // Connect to WebSocket
   const connect = useCallback(() => {
-    if (forceMockForLegacyWs) {
-      if (socket && socket.readyState === 1) {
-        return socket;
-      }
-      const mockSocket = createMockWebSocket(false);
-      setSocket(mockSocket);
-      setUseMockSocket(true);
-      setIsConnected(true);
-      setError(null);
-      return mockSocket;
-    }
-
-    // Skip connecting to real server in development mode
-    // Always use mock socket instead for stability
-    if (process.env.NODE_ENV === 'development') {
-      logger.log('Development mode: Using mock WebSocket exclusively');
-      const mockSocket = createMockWebSocket(false);
-      setSocket(mockSocket);
-      setUseMockSocket(true);
-      setIsConnected(true);
-      setError(null); // Clear any previous errors
-      return mockSocket;
+    if (isLegacyWsEndpoint) {
+      setSocket(null);
+      setUseMockSocket(false);
+      setIsConnected(false);
+      setError('Legacy WebSocket endpoint is not implemented on the backend.');
+      return null;
     }
     
     // For non-development environments, implement normal connection logic
@@ -304,20 +214,12 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
       return null;
     }
 
-    // If we already know the server is unavailable, or if it's manually set to mock mode
-    if (useMockSocket || webSocketServerAvailable === false || 
-        (typeof window !== 'undefined' && window.REACT_APP_FORCE_MOCK_WEBSOCKET === 'true')) {
-      // Don't create a new mock socket if we already have one
-      if (socket && socket.readyState === 1) { // OPEN
-        // Already have an open socket (real or mock)
-        return socket;
-      }
-      logger.log('Using mock WebSocket for endpoint:', endpoint);
-      // Only create verbose mock sockets in development
-      const mockSocket = createMockWebSocket(process.env.NODE_ENV === 'development' && reconnectAttempts === 0);
-      setSocket(mockSocket);
-      setIsConnected(true); // Ensure we mark mock sockets as connected
-      return mockSocket;
+    if (webSocketServerAvailable === false) {
+      setSocket(null);
+      setUseMockSocket(false);
+      setIsConnected(false);
+      setError('WebSocket server is unavailable.');
+      return null;
     }
 
     // Otherwise, try real connection
@@ -347,67 +249,36 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
       newSocket.onerror = (event) => {
         console.error('WebSocket error:', event);
         setError('WebSocket connection error');
-        
-        // If this is our first attempt and it fails, switch to mock mode for future attempts
-        if (reconnectAttempts === 0) {
-          setUseMockSocket(true);
-        }
       };
 
       newSocket.onclose = (event) => {
-        // Only attempt reconnection if this is a real WebSocket, not a mock
-        if (!useMockSocket) {
-          setIsConnected(false);
-          logger.log(`WebSocket closed: ${event.code} ${event.reason}`);
+        setIsConnected(false);
+        logger.log(`WebSocket closed: ${event.code} ${event.reason}`);
 
-          // If this is our first attempt and it fails cleanly, switch to mock mode for future attempts
-          if (reconnectAttempts === 0) {
-            setUseMockSocket(true);
-            // Create a mock socket immediately to prevent reconnection attempts
-            const mockSocket = createMockWebSocket(false); // Silent mock
-            setSocket(mockSocket);
-            setIsConnected(true);
-            return; // Skip reconnection logic
+        // Attempt to reconnect if not closed cleanly and we haven't exceeded max attempts
+        if (reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
+          setIsReconnecting(true);
+          setReconnectAttempts(prev => prev + 1);
+
+          // Clear any existing timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
           }
 
-          // Attempt to reconnect if not closed cleanly and we haven't exceeded max attempts
-          if (reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
-            setIsReconnecting(true);
-            setReconnectAttempts(prev => prev + 1);
-            
-            // Clear any existing timeout
-            if (reconnectTimeoutRef.current) {
-              clearTimeout(reconnectTimeoutRef.current);
-            }
-            
-            // Set reconnect timeout
-            reconnectTimeoutRef.current = setTimeout(() => {
-              logger.log(`Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
-              connect();
-            }, reconnectIntervalMs);
-          } else if (reconnectAttempts >= maxReconnectAttempts) {
-            setError('Maximum reconnection attempts reached');
-            setIsReconnecting(false);
-            
-            // Only show toast for real connection failures, not mock sockets
-            if (!useMockSocket) {
-              toast({
-                title: "Connection Error",
-                description: "Could not maintain connection to server. Using mock data.",
-                variant: "destructive",
-              });
-            }
-            
-            // Switch to mock mode after max retries
-            setUseMockSocket(true);
-            // Create a mock socket immediately to prevent reconnection attempts
-            const mockSocket = createMockWebSocket(false); // Silent mock
-            setSocket(mockSocket);
-            setIsConnected(true);
-          }
-        } else {
-          // For mock sockets, we ignore real close events to prevent reconnection loops
-          logger.log('Mock socket close event ignored to prevent reconnection loops');
+          // Set reconnect timeout
+          reconnectTimeoutRef.current = setTimeout(() => {
+            logger.log(`Attempting to reconnect (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
+            connect();
+          }, reconnectIntervalMs);
+        } else if (reconnectAttempts >= maxReconnectAttempts) {
+          setError('Maximum reconnection attempts reached');
+          setIsReconnecting(false);
+
+          toast({
+            title: "Connection Error",
+            description: "Real-time updates are unavailable. The page will continue using standard API refresh.",
+            variant: "destructive",
+          });
         }
       };
 
@@ -416,10 +287,10 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
     } catch (err: any) {
       console.error('Error creating WebSocket:', err);
       setError(`Error creating WebSocket: ${err.message}`);
-      setUseMockSocket(true);
+      setUseMockSocket(false);
       return null;
     }
-  }, [forceMockForLegacyWs, isAuthenticated, token, endpoint, reconnectAttempts, maxReconnectAttempts, reconnectIntervalMs, handleWebSocketMessage, toast, useMockSocket, socket, isConnected]);
+  }, [isLegacyWsEndpoint, isAuthenticated, token, endpoint, reconnectAttempts, maxReconnectAttempts, reconnectIntervalMs, handleWebSocketMessage, toast, socket, isConnected]);
 
   // Disconnect WebSocket
   const disconnect = useCallback(() => {
@@ -438,13 +309,13 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
 
   // Connect on mount, disconnect on unmount, reconnect when auth changes
   useEffect(() => {
-    // Skip connection if already connected or using mock socket
-    if ((socket && isConnected) || (useMockSocket && socket)) {
+    // Skip connection if already connected
+    if (socket && isConnected) {
       return () => {};
     }
     
-    // Only try to connect if we have authentication AND a token (or we're using mock)
-    if (isAuthenticated && endpoint && (token || useMockSocket)) {
+    // Only try to connect if we have authentication and a token
+    if (isAuthenticated && endpoint && token) {
       logger.log(`Attempting WebSocket connection to ${endpoint}`);
       const newSocket = connect();
       
@@ -466,7 +337,7 @@ export function useSocket(endpoint = '', options: UseSocketOptions = {}) {
     
     // Return empty cleanup if we didn't connect
     return () => {};
-  }, [isAuthenticated, endpoint, token, connect, disconnect, useMockSocket, socket, isConnected]);
+  }, [isAuthenticated, endpoint, token, connect, disconnect, socket, isConnected]);
 
   return {
     socket,

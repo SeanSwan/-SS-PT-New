@@ -5,26 +5,47 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AxiosResponse } from 'axios';
+import apiService from '../services/api.service';
 
 const API_BASE = '/api/v2';
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token
-    ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-    : { 'Content-Type': 'application/json' };
+function parseBody(body: BodyInit | null | undefined) {
+  if (typeof body !== 'string') return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
 }
 
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, headers: { ...authHeaders(), ...init?.headers } });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+  const method = (init?.method || 'GET').toUpperCase();
+  const data = parseBody(init?.body);
+  const config = { validateStatus: () => true };
+
+  let res: AxiosResponse<any>;
+  if (method === 'POST') {
+    res = await apiService.post(url, data, config);
+  } else if (method === 'PUT') {
+    res = await apiService.put(url, data, config);
+  } else if (method === 'PATCH') {
+    res = await apiService.patch(url, data, config);
+  } else if (method === 'DELETE') {
+    res = await apiService.delete(url, config);
+  } else {
+    res = await apiService.get(url, config);
+  }
+
+  if (res.status < 200 || res.status >= 300) {
+    const body = res.data || {};
     throw Object.assign(new Error(body.error || body.message || `HTTP ${res.status}`), {
       status: res.status,
       body,
     });
   }
-  const json = await res.json();
+
+  const json = res.data;
   // Backend wraps responses in { success, data } envelope — unwrap transparently
   if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
     return json.data as T;

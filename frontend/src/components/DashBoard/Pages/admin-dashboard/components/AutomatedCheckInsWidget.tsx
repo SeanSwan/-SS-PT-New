@@ -13,9 +13,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, CalendarCheck, Repeat, Zap, Send, Plus,
+  MessageSquare, CalendarCheck, Repeat, Zap,
   Droplets, Footprints, ChevronDown, ChevronUp,
-  CheckCircle2, Clock, Bell,
+  CheckCircle2, Clock, Bell, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CommandCard } from '../admin-dashboard-view';
@@ -75,11 +75,11 @@ const AutomatedCheckInsWidget: React.FC = () => {
         setHabits(res.data.habits ?? []);
         setTriggers(res.data.triggers ?? []);
       }
-    } catch (err) {
+    } catch {
       setCheckIns([]);
       setHabits([]);
       setTriggers([]);
-      setError(err instanceof Error ? err.message : 'Unable to load check-in automation data.');
+      setError('Check-in automation data unavailable.');
     } finally {
       setLoading(false);
     }
@@ -147,9 +147,18 @@ const AutomatedCheckInsWidget: React.FC = () => {
 
       {/* Content */}
       <Content>
-        {error && <EmptyMsg>Check-in automation data unavailable. {error}</EmptyMsg>}
+        {error && (
+          <ErrorMsg role="alert">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={fetchData}>
+              <RefreshCw size={14} />
+              Retry
+            </RetryInline>
+          </ErrorMsg>
+        )}
         <AnimatePresence mode="wait">
-          {tab === 'check-ins' && (
+          {!error && tab === 'check-ins' && (
             <motion.div key="ci" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {loading ? <LoadingRows /> : checkIns.length === 0 ? (
                 <EmptyMsg>No check-ins scheduled. Set up recurring check-ins for your clients.</EmptyMsg>
@@ -166,16 +175,13 @@ const AutomatedCheckInsWidget: React.FC = () => {
                         <Repeat size={10} /> {ci.type} &bull; Due {formatDate(ci.nextDue)}
                       </CIMeta>
                     </CIInfo>
-                    <SendBtn whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} title="Send now">
-                      <Send size={14} />
-                    </SendBtn>
                   </CheckInRow>
                 ))
               )}
             </motion.div>
           )}
 
-          {tab === 'habits' && (
+          {!error && tab === 'habits' && (
             <motion.div key="hb" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {loading ? <LoadingRows /> : habits.length === 0 ? (
                 <EmptyMsg>No tracked habits returned yet.</EmptyMsg>
@@ -200,7 +206,7 @@ const AutomatedCheckInsWidget: React.FC = () => {
             </motion.div>
           )}
 
-          {tab === 'triggers' && (
+          {!error && tab === 'triggers' && (
             <motion.div key="tr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               {loading ? <LoadingRows /> : triggers.length === 0 ? (
                 <EmptyMsg>No automation triggers returned yet.</EmptyMsg>
@@ -222,9 +228,6 @@ const AutomatedCheckInsWidget: React.FC = () => {
                   )}
                 </TriggerRow>
               ))}
-              <AddTriggerBtn whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                <Plus size={16} /> Create New Trigger
-              </AddTriggerBtn>
             </motion.div>
           )}
         </AnimatePresence>
@@ -326,13 +329,6 @@ const CIMeta = styled.div`
   display: flex; align-items: center; gap: 4px; font-size: 10px;
   color: rgba(255,255,255,0.35); margin-top: 2px;
 `;
-const SendBtn = styled(motion.button)`
-  background: rgba(96,192,240,0.1); border: 1px solid rgba(96,192,240,0.2); border-radius: 8px;
-  color: #60C0F0; padding: 8px; cursor: pointer; min-height: 44px; min-width: 44px;
-  display: flex; align-items: center; justify-content: center;
-  &:hover { background: rgba(96,192,240,0.2); border-color: #60C0F0; }
-`;
-
 /* Habits */
 const HabitRow = styled.div`
   display: flex; align-items: center; gap: 12px; padding: 12px 0;
@@ -380,17 +376,24 @@ const TriggerDetail = styled.div`
   strong { color: rgba(255,255,255,0.7); }
 `;
 const TriggerLine = styled.div`margin-bottom: 4px;`;
-const AddTriggerBtn = styled(motion.button)`
-  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
-  padding: 12px; margin-top: 12px; border: 1px dashed rgba(96,192,240,0.3);
-  border-radius: 10px; background: transparent; color: #60C0F0; font-size: 13px;
-  font-weight: 600; cursor: pointer; min-height: 44px;
-  &:hover { background: rgba(96,192,240,0.05); border-color: #60C0F0; }
-`;
-
 const SkeletonRow = styled.div`
   height: 56px; background: rgba(255,255,255,0.03); border-radius: 8px;
   margin-bottom: 8px; animation: ${pulse} 1.5s infinite;
+`;
+const ErrorMsg = styled.div`
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px;
+  min-height: 56px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(198,168,75,0.1); border: 1px solid rgba(198,168,75,0.24);
+  color: var(--text-primary, #E0ECF4); font-size: 13px;
+  @media (max-width: 430px) { grid-template-columns: auto 1fr; }
+`;
+const RetryInline = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid rgba(96,192,240,0.35); border-radius: 8px; padding: 0 12px;
+  background: rgba(0,32,96,0.45); color: var(--text-primary, #E0ECF4);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
+  @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
 `;
 const EmptyMsg = styled.div`
   text-align: center; padding: 32px; color: rgba(255,255,255,0.5); font-size: 13px;

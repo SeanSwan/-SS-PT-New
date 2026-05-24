@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import apiService, { ProductionTokenManager } from '../services/api.service';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -99,114 +100,98 @@ export function useSprintAPI() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAuthHeaders = useCallback(() => {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-  }, []);
+  const getErrorMessage = (err: any, fallback = 'Unknown error') =>
+    err?.response?.data?.error || err?.response?.data?.message || err?.message || fallback;
 
   const createSprint = useCallback(async (params: CreateSprintParams): Promise<BootcampSprint | null> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/bootcamp/sprints', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(params),
-      });
-      const data = await res.json();
+      const response = await apiService.post('/api/bootcamp/sprints', params);
+      const data = response.data;
       if (!data.success) throw new Error(data.error || 'Failed to create sprint');
       return data.sprint;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const listSprints = useCallback(async (): Promise<BootcampSprint[]> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/bootcamp/sprints', { headers: getAuthHeaders() });
-      const data = await res.json();
+      const response = await apiService.get('/api/bootcamp/sprints');
+      const data = response.data;
       if (!data.success) throw new Error(data.error);
       return data.sprints || [];
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return [];
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const getSprint = useCallback(async (id: number): Promise<BootcampSprint | null> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bootcamp/sprints/${id}`, { headers: getAuthHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/bootcamp/sprints/${id}`);
+      const data = response.data;
       if (!data.success) throw new Error(data.error);
       return data.sprint;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const updateSprint = useCallback(async (id: number, updates: Partial<BootcampSprint>): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bootcamp/sprints/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(updates),
-      });
-      const data = await res.json();
+      const response = await apiService.put(`/api/bootcamp/sprints/${id}`, updates);
+      const data = response.data;
       if (!data.success) throw new Error(data.error);
       return true;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const archiveSprint = useCallback(async (id: number): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bootcamp/sprints/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
+      const response = await apiService.delete(`/api/bootcamp/sprints/${id}`);
+      const data = response.data;
       return !!data.success;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const generateSprint = useCallback((
     sprintId: number,
     onProgress: (evt: GenerationProgress) => void,
   ): (() => void) => {
-    const token = localStorage.getItem('token');
+    const token = ProductionTokenManager.getToken();
     const controller = new AbortController();
     let lastEventId = 0;
     let cancelled = false;
@@ -295,21 +280,17 @@ export function useSprintAPI() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ usedDate }),
-      });
-      const data = await res.json();
+      const response = await apiService.put(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`, { usedDate });
+      const data = response.data;
       return !!data.success;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   const regenerateSlot = useCallback(async (
     sprintId: number, slotId: number,
@@ -317,20 +298,17 @@ export function useSprintAPI() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
+      const response = await apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`);
+      const data = response.data;
       return !!data.success;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
+    } catch (err: any) {
+      const msg = getErrorMessage(err);
       setError(msg);
       return false;
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, []);
 
   return {
     loading, error,

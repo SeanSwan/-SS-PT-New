@@ -62,7 +62,7 @@ module.exports = {
       { name: 'Resistance Bands Set', category: 'resistance_band', resistanceType: 'band', description: 'Loop and tube resistance bands (light to heavy)' },
       { name: 'Flat/Incline Bench', category: 'bench', resistanceType: 'bodyweight', description: 'Adjustable bench for presses, rows, and step-ups' },
       { name: 'Pull-Up Bar (Doorway)', category: 'pull_up_bar', resistanceType: 'bodyweight', description: 'Doorway-mounted pull-up bar' },
-      { name: 'Yoga Mat', category: 'other', resistanceType: 'bodyweight', description: 'Exercise mat for floor work, stretching, and core exercises' },
+      { name: 'Exercise Mat', category: 'other', resistanceType: 'bodyweight', description: 'Exercise mat for floor work, stretching, and core exercises' },
       { name: 'Foam Roller', category: 'foam_roller', resistanceType: 'bodyweight', description: 'Standard density foam roller for myofascial release' },
       { name: 'Stability Ball', category: 'stability_ball', resistanceType: 'bodyweight', description: '65cm stability ball for core work and stretching' },
     ];

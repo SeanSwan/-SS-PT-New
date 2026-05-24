@@ -33,6 +33,7 @@ import { validationResult, body, query, param } from 'express-validator';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
 
 // Input validation middleware
 const validateSettingsUpdate = [
@@ -89,7 +90,7 @@ router.get('/system', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve system settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -121,7 +122,7 @@ router.put('/system', protect, adminOnly, validateSettingsUpdate, async (req, re
     res.status(500).json({
       success: false,
       message: 'Failed to update system settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -149,7 +150,7 @@ router.get('/notifications', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve notification settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -181,7 +182,7 @@ router.put('/notifications', protect, adminOnly, validateSettingsUpdate, async (
     res.status(500).json({
       success: false,
       message: 'Failed to update notification settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -209,10 +210,54 @@ router.get('/api-keys', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve API key information',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
+
+const API_CONNECTIVITY_CHECKS = {
+  stripe: {
+    label: 'Stripe',
+    isConfigured: () => Boolean(process.env.STRIPE_SECRET_KEY),
+    missingMessage: 'Stripe API key not configured'
+  },
+  sendgrid: {
+    label: 'SendGrid',
+    isConfigured: () => Boolean(process.env.SENDGRID_API_KEY),
+    missingMessage: 'SendGrid API key not configured'
+  },
+  twilio: {
+    label: 'Twilio',
+    isConfigured: () => Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
+    missingMessage: 'Twilio credentials not configured'
+  }
+};
+
+function buildApiConnectivityResult(service) {
+  const normalizedService = String(service || '').trim().toLowerCase();
+  const check = API_CONNECTIVITY_CHECKS[normalizedService];
+
+  if (!check) {
+    return {
+      success: false,
+      configurationStatus: 'unsupported',
+      connectivityVerified: false,
+      message: `Unsupported service: ${service}`
+    };
+  }
+
+  const configured = check.isConfigured();
+  return {
+    success: false,
+    configured,
+    configurationStatus: configured ? 'configured_not_verified' : 'not_configured',
+    connectivityVerified: false,
+    message: configured
+      ? `${check.label} credentials are present. Live connectivity verification is not wired for this endpoint.`
+      : check.missingMessage,
+    lastChecked: new Date().toISOString()
+  };
+}
 
 /**
  * @route   POST /api/admin/settings/api-keys/test
@@ -232,73 +277,7 @@ router.post('/api-keys/test', protect, adminOnly, async (req, res) => {
     
     logger.info(`Admin ${req.user.email} testing ${service} API connectivity`);
     
-    // Test API connectivity based on service
-    let testResult = { success: false, message: 'Service not supported' };
-    
-    switch (service.toLowerCase()) {
-      case 'stripe':
-        // Test Stripe connectivity
-        if (process.env.STRIPE_SECRET_KEY) {
-          try {
-            // This would be a simple API call to verify the key works
-            testResult = { 
-              success: true, 
-              message: 'Stripe API key is valid and responsive',
-              lastTested: new Date().toISOString()
-            };
-          } catch (error) {
-            testResult = { 
-              success: false, 
-              message: 'Stripe API key test failed',
-              error: error.message
-            };
-          }
-        } else {
-          testResult = { 
-            success: false, 
-            message: 'Stripe API key not configured'
-          };
-        }
-        break;
-        
-      case 'sendgrid':
-        // Test SendGrid connectivity
-        if (process.env.SENDGRID_API_KEY) {
-          testResult = { 
-            success: true, 
-            message: 'SendGrid API key is configured',
-            lastTested: new Date().toISOString()
-          };
-        } else {
-          testResult = { 
-            success: false, 
-            message: 'SendGrid API key not configured'
-          };
-        }
-        break;
-        
-      case 'twilio':
-        // Test Twilio connectivity
-        if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-          testResult = { 
-            success: true, 
-            message: 'Twilio credentials are configured',
-            lastTested: new Date().toISOString()
-          };
-        } else {
-          testResult = { 
-            success: false, 
-            message: 'Twilio credentials not configured'
-          };
-        }
-        break;
-        
-      default:
-        testResult = { 
-          success: false, 
-          message: `Unsupported service: ${service}`
-        };
-    }
+    const testResult = buildApiConnectivityResult(service);
     
     res.json({
       success: true,
@@ -315,7 +294,7 @@ router.post('/api-keys/test', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to test API connectivity',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -343,7 +322,7 @@ router.get('/security', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve security settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -375,7 +354,7 @@ router.put('/security', protect, adminOnly, validateSettingsUpdate, async (req, 
     res.status(500).json({
       success: false,
       message: 'Failed to update security settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -413,7 +392,7 @@ router.get('/audit-logs', protect, adminOnly, validatePagination, async (req, re
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve audit logs',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -450,7 +429,7 @@ router.post('/reset', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to reset settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -495,7 +474,7 @@ router.get('/export', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to export settings',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -511,29 +490,35 @@ router.get('/health', protect, adminOnly, async (req, res) => {
     
     const serviceHealth = {
       database: {
-        status: 'healthy',
+        status: 'not_checked',
+        healthVerified: false,
         lastChecked: new Date().toISOString(),
-        responseTime: '< 50ms'
+        responseTime: null,
+        message: 'Database health is not verified by this route.'
       },
       stripe: {
-        status: process.env.STRIPE_SECRET_KEY ? 'configured' : 'not_configured',
+        status: process.env.STRIPE_SECRET_KEY ? 'configured_not_verified' : 'not_configured',
+        healthVerified: false,
         lastChecked: new Date().toISOString()
       },
       sendgrid: {
-        status: process.env.SENDGRID_API_KEY ? 'configured' : 'not_configured',
+        status: process.env.SENDGRID_API_KEY ? 'configured_not_verified' : 'not_configured',
+        healthVerified: false,
         lastChecked: new Date().toISOString()
       },
       twilio: {
-        status: (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) ? 'configured' : 'not_configured',
+        status: (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) ? 'configured_not_verified' : 'not_configured',
+        healthVerified: false,
         lastChecked: new Date().toISOString()
       }
     };
     
     res.json({
       success: true,
-      message: 'Service health check completed',
+      message: 'Service configuration report generated',
       data: {
-        overall: 'healthy',
+        overall: 'not_verified',
+        healthVerified: false,
         services: serviceHealth,
         timestamp: new Date().toISOString()
       }
@@ -544,7 +529,7 @@ router.get('/health', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to check service health',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: INTERNAL_ERROR
     });
   }
 });

@@ -35,7 +35,7 @@
  * │  │    - statusCode: err.statusCode || 500                              │ │
  * │  │    - errorName: err.name (ValidationError, DatabaseError, etc.)     │ │
  * │  │    - message: err.message                                           │ │
- * │  │    - stack: err.stack (only if development)                         │ │
+ * │  │    - stack: err.stack (server logs only)                            │ │
  * │  └────────────────────────────────────────────────────────────────────┘ │
  * │  ┌────────────────────────────────────────────────────────────────────┐ │
  * │  │ 2. Log Error with Appropriate Severity                             │ │
@@ -49,7 +49,6 @@
  * │  │    responseData = {                                                 │ │
  * │  │      success: false,                                                │ │
  * │  │      message: err.message,                                          │ │
- * │  │      stack: NODE_ENV === 'production' ? undefined : err.stack       │ │
  * │  │    }                                                                │ │
  * │  │                                                                      │ │
  * │  │    Add error-specific fields:                                       │ │
@@ -370,8 +369,7 @@ export const errorHandler = (err, req, res, next) => {
     userId: req.user?.id,
     ip: req.ip,
     userAgent: req.headers['user-agent'],
-    // Only include stack in non-production environments
-    stack: process.env.NODE_ENV === 'production' ? undefined : stack
+    stack
   };
   
   // Log error with appropriate severity
@@ -384,9 +382,7 @@ export const errorHandler = (err, req, res, next) => {
   // Specific error handling based on error type
   const responseData = {
     success: false,
-    message,
-    // Only include original error stack in development
-    stack: process.env.NODE_ENV === 'production' ? undefined : stack
+    message
   };
   
   // Include additional error data for specific error types

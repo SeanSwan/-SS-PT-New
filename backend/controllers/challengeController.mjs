@@ -12,6 +12,34 @@ import db from '../database.mjs';
 import getModels from '../models/associations.mjs';
 import { calculateLevel, getTier } from '../utils/levelingAlgorithm.mjs';
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendChallengeError = (res, status, message, error = INTERNAL_ERROR) =>
+  res.status(status).json({
+    success: false,
+    message,
+    error
+  });
+
+const parsePositiveInteger = (value, fallback = null) => {
+  const stringValue = String(value ?? '').trim();
+  if (!/^[1-9]\d*$/.test(stringValue)) return fallback;
+
+  return Number(stringValue);
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) =>
+  Math.min(parsePositiveInteger(value, fallback), max);
+
+const parseOptionalBoundedPositiveInteger = (value, min, max) => {
+  if (value === undefined || value === null || value === '' || value === 'all') return null;
+
+  const parsed = parsePositiveInteger(value);
+  if (parsed === null || parsed < min || parsed > max) return null;
+
+  return parsed;
+};
+
 const challengeController = {
   /**
    * 🎮 GET ALL CHALLENGES - WITH FILTERS & PAGINATION
@@ -36,14 +64,17 @@ const challengeController = {
         sortOrder = 'desc'
       } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+      const normalizedDifficulty = parseOptionalBoundedPositiveInteger(difficulty, 1, 5);
+      const offset = (normalizedPage - 1) * normalizedLimit;
       
       // Build filter conditions
       const whereClause = {};
       
       if (type && type !== 'all') whereClause.challengeType = type;
       if (category && category !== 'all') whereClause.category = category;
-      if (difficulty) whereClause.difficulty = parseInt(difficulty);
+      if (normalizedDifficulty !== null) whereClause.difficulty = normalizedDifficulty;
       if (status && status !== 'all') whereClause.status = status;
       if (featured === 'true') whereClause.isFeatured = true;
       
@@ -82,7 +113,7 @@ const challengeController = {
           }
         ],
         order: [[sortField, order]],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset,
         distinct: true
       });
@@ -92,9 +123,9 @@ const challengeController = {
         challenges: challenges.rows,
         pagination: {
           total: challenges.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(challenges.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(challenges.count / normalizedLimit)
         },
         filters: {
           types: ['daily', 'weekly', 'monthly', 'community', 'custom'],
@@ -104,11 +135,7 @@ const challengeController = {
       });
     } catch (error) {
       console.error('❌ Error fetching challenges:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch challenges',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to fetch challenges');
     }
   },
 
@@ -176,11 +203,7 @@ const challengeController = {
       });
     } catch (error) {
       console.error('❌ Error fetching challenge:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch challenge',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to fetch challenge');
     }
   },
 
@@ -285,11 +308,7 @@ const challengeController = {
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Error creating challenge:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create challenge',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to create challenge');
     }
   },
 
@@ -395,11 +414,7 @@ const challengeController = {
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Error joining challenge:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to join challenge',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to join challenge');
     }
   },
 
@@ -532,11 +547,7 @@ const challengeController = {
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Error updating challenge progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update challenge progress',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to update challenge progress');
     }
   },
 
@@ -552,6 +563,7 @@ const challengeController = {
       
       const { id } = req.params;
       const { limit = 20 } = req.query;
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
 
       const challenge = await Challenge.findByPk(id);
       
@@ -592,7 +604,7 @@ const challengeController = {
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'level', 'points']
         }],
         order: orderBy,
-        limit: parseInt(limit)
+        limit: normalizedLimit
       });
 
       return res.status(200).json({
@@ -609,11 +621,7 @@ const challengeController = {
       });
     } catch (error) {
       console.error('❌ Error fetching challenge leaderboard:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch challenge leaderboard',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to fetch challenge leaderboard');
     }
   },
 
@@ -674,11 +682,7 @@ const challengeController = {
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Error leaving challenge:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to leave challenge',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to leave challenge');
     }
   },
 
@@ -695,7 +699,9 @@ const challengeController = {
       const { userId } = req.params;
       const { status = 'active', page = 1, limit = 20 } = req.query;
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
       
       const whereClause = { userId };
       
@@ -717,7 +723,7 @@ const challengeController = {
           }]
         }],
         order: [['joinedAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset,
         distinct: true
       });
@@ -727,18 +733,14 @@ const challengeController = {
         challenges: userChallenges.rows,
         pagination: {
           total: userChallenges.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(userChallenges.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(userChallenges.count / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('❌ Error fetching user challenges:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch user challenges',
-        error: error.message
-      });
+      return sendChallengeError(res, 500, 'Failed to fetch user challenges');
     }
   }
 };

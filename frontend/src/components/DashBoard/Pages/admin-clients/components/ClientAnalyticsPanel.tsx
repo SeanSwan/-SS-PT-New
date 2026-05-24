@@ -19,12 +19,12 @@
  * DATA FLOW:
  * Props In:  { clientId, analyticsData }
  * State:     { dateRange, chartFilter, aiInsights }
- * Charts:    Currently Recharts (TODO: migrate to Victory per CLAUDE.md)
+ * Charts:    Victory-based analytics visualizations
  *
  * NOTE: 881 lines — exceeds 300-line rule. TODO: extract chart components
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import styled, { css } from 'styled-components';
 import {
   TrendingUp,
@@ -52,6 +52,8 @@ import {
   VictoryLegend,
   VictoryPolarAxis,
 } from 'victory';
+import { useAuth } from '../../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Define interfaces
 interface AnalyticsMetric {
@@ -86,8 +88,252 @@ interface AnalyticsInsight {
 interface WorkoutAnalysisDatum {
   month?: string;
   workouts?: number;
+  duration?: number;
   intensity?: number;
 }
+
+interface BodyCompositionDatum {
+  metric: string;
+  current: number;
+  target: number;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const responseData = (value: unknown): unknown => {
+  if (isRecord(value) && 'data' in value) return value.data;
+  return value;
+};
+
+const recordArray = (value: unknown): UnknownRecord[] =>
+  Array.isArray(value) ? value.filter(isRecord) : [];
+
+const recordsFrom = (value: unknown, keys: string[] = []): UnknownRecord[] => {
+  const root = responseData(value);
+  const direct = recordArray(root);
+  if (direct.length > 0) return direct;
+  if (!isRecord(root)) return [];
+
+  for (const key of keys) {
+    const keyed = root[key];
+    const keyedArray = recordArray(keyed);
+    if (keyedArray.length > 0) return keyedArray;
+  }
+
+  return [];
+};
+
+const recordFrom = (value: unknown, key?: string): UnknownRecord | null => {
+  const root = responseData(value);
+  if (key && isRecord(root) && isRecord(root[key])) return root[key] as UnknownRecord;
+  return isRecord(root) ? root : null;
+};
+
+const numberFrom = (record: UnknownRecord | null, keys: string[]): number | null => {
+  if (!record) return null;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+  return null;
+};
+
+const stringFrom = (record: UnknownRecord | null, keys: string[]): string | null => {
+  if (!record) return null;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim() !== '') return value;
+  }
+  return null;
+};
+
+const average = (values: number[]): number =>
+  values.length === 0 ? 0 : values.reduce((sum, value) => sum + value, 0) / values.length;
+
+const clampPercent = (value: number): number =>
+  Math.max(0, Math.min(100, Math.round(value)));
+
+const timeframeParam = (period: '7d' | '30d' | '90d' | '1y'): string =>
+  period === '1y' ? '365d' : period;
+
+const periodLabel = (dateValue: string | null, fallbackIndex: number): string => {
+  if (!dateValue) return `Record ${fallbackIndex + 1}`;
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return `Record ${fallbackIndex + 1}`;
+  return parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+};
+
+const buildWorkoutSeries = (workouts: UnknownRecord[]): WorkoutAnalysisDatum[] =>
+  workouts
+    .slice()
+    .reverse()
+    .slice(-12)
+    .map((workout, index) => ({
+      month: periodLabel(stringFrom(workout, ['date', 'completedAt', 'createdAt']), index),
+      workouts: 1,
+      duration: Math.round(numberFrom(workout, ['duration', 'minutes']) ?? 0),
+      intensity: clampPercent(numberFrom(workout, ['intensity', 'rpe']) ?? 0),
+    }));
+
+const buildBodyCompositionData = (measurements: UnknownRecord[], progressRecord: UnknownRecord | null): BodyCompositionDatum[] => {
+  const latest = measurements[0] || null;
+  const bodyFat = numberFrom(latest, ['bodyFat', 'bodyFatPercentage', 'body_fat']);
+  const muscleMass = numberFrom(latest, ['muscleMass', 'leanMass', 'muscle_mass']);
+  const waist = numberFrom(latest, ['waist', 'waistCircumference']);
+  const overallLevel = numberFrom(progressRecord, ['overallLevel']);
+  const coreLevel = numberFrom(progressRecord, ['coreLevel']);
+  const balanceLevel = numberFrom(progressRecord, ['balanceLevel']);
+
+  return [
+    { metric: 'Overall', current: clampPercent((overallLevel ?? 0) / 10), target: 100 },
+    { metric: 'Core', current: clampPercent((coreLevel ?? 0) / 10), target: 100 },
+    { metric: 'Balance', current: clampPercent((balanceLevel ?? 0) / 10), target: 100 },
+    { metric: 'Body Fat', current: bodyFat === null ? 0 : clampPercent(100 - bodyFat), target: bodyFat === null ? 0 : clampPercent(100 - bodyFat) },
+    { metric: 'Muscle', current: clampPercent(muscleMass ?? 0), target: clampPercent(muscleMass ?? 0) },
+    { metric: 'Waist', current: clampPercent(waist ?? 0), target: clampPercent(waist ?? 0) },
+  ];
+};
+
+const buildAnalyticsMetrics = (
+  workouts: UnknownRecord[],
+  measurements: UnknownRecord[],
+  progressRecord: UnknownRecord | null,
+  painEntries: UnknownRecord[],
+): AnalyticsMetric[] => {
+  const totalWorkouts = workouts.length;
+  const avgIntensity = Math.round(average(workouts.map(workout => numberFrom(workout, ['intensity', 'rpe']) ?? 0)));
+  const avgDuration = Math.round(average(workouts.map(workout => numberFrom(workout, ['duration', 'minutes']) ?? 0)));
+  const overallLevel = numberFrom(progressRecord, ['overallLevel']) ?? 0;
+
+  return [
+    {
+      id: 'workouts',
+      title: 'Completed Workouts',
+      value: totalWorkouts,
+      unit: 'sessions',
+      change: 0,
+      changeType: 'neutral',
+      trend: buildWorkoutSeries(workouts).map((item, index) => ({ period: item.month || `Record ${index + 1}`, value: item.workouts ?? 0 })),
+      target: totalWorkouts > 0 ? Math.max(totalWorkouts, 12) : undefined,
+      status: totalWorkouts > 8 ? 'excellent' : totalWorkouts > 0 ? 'good' : 'warning',
+    },
+    {
+      id: 'overallLevel',
+      title: 'Progress Level',
+      value: overallLevel,
+      unit: '/1000',
+      change: 0,
+      changeType: 'neutral',
+      trend: [{ period: 'Current', value: overallLevel }],
+      target: 1000,
+      status: overallLevel >= 750 ? 'excellent' : overallLevel >= 300 ? 'good' : 'warning',
+    },
+    {
+      id: 'averageIntensity',
+      title: 'Avg Intensity',
+      value: avgIntensity,
+      unit: '%',
+      change: 0,
+      changeType: 'neutral',
+      trend: buildWorkoutSeries(workouts).map((item, index) => ({ period: item.month || `Record ${index + 1}`, value: item.intensity ?? 0 })),
+      target: avgIntensity > 0 ? 100 : undefined,
+      status: avgIntensity >= 75 ? 'excellent' : avgIntensity >= 50 ? 'good' : 'warning',
+    },
+    {
+      id: 'measurementRecords',
+      title: 'Measurements',
+      value: measurements.length,
+      unit: 'records',
+      change: 0,
+      changeType: 'neutral',
+      trend: measurements.slice(0, 7).reverse().map((measurement, index) => ({
+        period: periodLabel(stringFrom(measurement, ['measurementDate', 'createdAt']), index),
+        value: index + 1,
+      })),
+      target: measurements.length > 0 ? Math.max(measurements.length, 4) : undefined,
+      status: measurements.length > 0 ? 'good' : 'warning',
+    },
+    {
+      id: 'activePain',
+      title: 'Active Pain',
+      value: painEntries.length,
+      unit: 'entries',
+      change: 0,
+      changeType: 'neutral',
+      trend: [{ period: 'Current', value: painEntries.length }],
+      status: painEntries.length === 0 ? 'excellent' : painEntries.length <= 2 ? 'warning' : 'critical',
+    },
+    {
+      id: 'averageDuration',
+      title: 'Avg Duration',
+      value: avgDuration,
+      unit: 'min',
+      change: 0,
+      changeType: 'neutral',
+      trend: buildWorkoutSeries(workouts).map((item, index) => ({ period: item.month || `Record ${index + 1}`, value: item.duration ?? 0 })),
+      status: avgDuration > 0 ? 'good' : 'warning',
+    },
+  ];
+};
+
+const buildAnalyticsInsights = (
+  workouts: UnknownRecord[],
+  measurements: UnknownRecord[],
+  painEntries: UnknownRecord[],
+): AnalyticsInsight[] => {
+  const now = new Date().toLocaleString();
+  const insights: AnalyticsInsight[] = [];
+
+  if (workouts.length > 0) {
+    insights.push({
+      type: 'achievement',
+      title: 'Workout history loaded',
+      description: `${workouts.length} completed workout records are available for analytics.`,
+      confidence: 86,
+      actionable: false,
+      timestamp: now,
+    });
+  } else {
+    insights.push({
+      type: 'recommendation',
+      title: 'Workout baseline needed',
+      description: 'No completed workouts were returned for this client, so analytics should stay in baseline mode.',
+      confidence: 88,
+      actionable: true,
+      timestamp: now,
+    });
+  }
+
+  if (measurements.length > 0) {
+    insights.push({
+      type: 'achievement',
+      title: 'Measurement trend available',
+      description: `${measurements.length} measurement records can support body-composition review.`,
+      confidence: 82,
+      actionable: false,
+      timestamp: now,
+    });
+  }
+
+  if (painEntries.length > 0) {
+    insights.push({
+      type: 'warning',
+      title: 'Active pain affects analytics',
+      description: `${painEntries.length} active pain entries should be reviewed before interpreting performance changes.`,
+      confidence: 90,
+      actionable: true,
+      timestamp: now,
+    });
+  }
+
+  return insights;
+};
 
 /* ────── Styled Components ────── */
 
@@ -254,6 +500,10 @@ const GlassCard = styled.div`
   padding: 24px;
 `;
 
+const EmptyCard = styled(GlassCard)`
+  grid-column: 1 / -1;
+`;
+
 const CardTitleRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -328,6 +578,12 @@ const ViewButton = styled.button<{ $active?: boolean }>`
     color: #60C0F0;
     &:hover { background: rgba(139, 92, 246,0.1); border-color: #60C0F0; }
   `}
+  &:disabled {
+    cursor: not-allowed;
+    color: rgba(224, 236, 244, 0.42);
+    border-color: rgba(224, 236, 244, 0.18);
+    background: rgba(224, 236, 244, 0.04);
+  }
 `;
 
 const ActionRow = styled.div`
@@ -351,6 +607,10 @@ const OutlineButton = styled.button`
   gap: 8px;
   transition: all 0.2s;
   &:hover { border-color: #60C0F0; background: rgba(139, 92, 246,0.1); }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 const InsightCard = styled.div`
@@ -460,17 +720,6 @@ const CircularValue = styled.span<{ $color: string }>`
   font-weight: 700;
 `;
 
-const ComparisonWrap = styled.div`
-  text-align: center;
-  padding: 64px 0;
-`;
-
-const ComparisonTitle = styled.h3`
-  color: #60C0F0;
-  font-size: 1.25rem;
-  margin: 0 0 8px 0;
-`;
-
 const RotatedSvg = styled.svg`
   transform: rotate(-90deg);
 `;
@@ -536,130 +785,81 @@ interface ClientAnalyticsPanelProps {
 }
 
 const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
-  clientId: _clientId,
+  clientId,
   timePeriod = '30d',
   onMetricChange: _onMetricChange
 }) => {
+  const { authAxios } = useAuth();
   // State management
-  const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'comparison'>('overview');
+  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d' | '1y'>(timePeriod);
+  const [viewMode, setViewMode] = useState<'overview' | 'detailed'>('overview');
+  const [metrics, setMetrics] = useState<AnalyticsMetric[]>([]);
   const [insights, setInsights] = useState<AnalyticsInsight[]>([]);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
-
-  // Mock data for demonstration
-  const mockMetrics: AnalyticsMetric[] = [
-    {
-      id: 'workouts',
-      title: 'Total Workouts',
-      value: 127,
-      unit: 'sessions',
-      change: 12.5,
-      changeType: 'increase',
-      trend: Array.from({ length: 30 }, (_, i) => ({
-        period: `Day ${i + 1}`,
-        value: Math.floor(Math.random() * 10) + i * 0.5
-      })),
-      target: 150,
-      status: 'good'
-    },
-    {
-      id: 'progressScore',
-      title: 'Progress Score',
-      value: 94,
-      unit: '%',
-      change: 8.2,
-      changeType: 'increase',
-      trend: Array.from({ length: 30 }, (_, i) => ({
-        period: `Week ${i + 1}`,
-        value: 60 + Math.random() * 35
-      })),
-      target: 95,
-      status: 'excellent'
-    },
-    {
-      id: 'engagement',
-      title: 'Engagement Level',
-      value: 85,
-      unit: 'score',
-      change: -2.1,
-      changeType: 'decrease',
-      trend: Array.from({ length: 30 }, (_, i) => ({
-        period: `Day ${i + 1}`,
-        value: 70 + Math.random() * 20
-      })),
-      target: 90,
-      status: 'warning'
-    },
-    {
-      id: 'streak',
-      title: 'Workout Streak',
-      value: 15,
-      unit: 'days',
-      change: 5.0,
-      changeType: 'increase',
-      trend: Array.from({ length: 30 }, (_, i) => ({
-        period: `Day ${i + 1}`,
-        value: Math.max(0, Math.floor(Math.random() * 20))
-      })),
-      target: 30,
-      status: 'good'
-    }
-  ];
-
-  const mockInsights = useMemo<AnalyticsInsight[]>(() => [
-    {
-      type: 'achievement',
-      title: 'Personal Record Alert',
-      description: 'Client achieved new PR in bench press (+10 lbs)',
-      confidence: 100,
-      actionable: false,
-      timestamp: '2 hours ago'
-    },
-    {
-      type: 'recommendation',
-      title: 'Volume Increase Opportunity',
-      description: 'Client can handle 12% more volume based on recovery metrics',
-      confidence: 87,
-      actionable: true,
-      timestamp: '1 day ago'
-    },
-    {
-      type: 'warning',
-      title: 'Recovery Pattern Change',
-      description: 'Sleep quality decreased by 15% over last week',
-      confidence: 92,
-      actionable: true,
-      timestamp: '2 days ago'
-    }
-  ], []);
-
-  const mockPredictions = useMemo<PredictionData[]>(() => [
-    {
-      type: 'retention',
-      probability: 94,
-      confidence: 89,
-      period: 'Next 30 days',
-      factors: ['High engagement', 'Consistent attendance', 'Progress satisfaction']
-    },
-    {
-      type: 'progress',
-      probability: 87,
-      confidence: 82,
-      period: 'Next milestone',
-      factors: ['Current trajectory', 'Program adherence', 'Recovery patterns']
-    },
-    {
-      type: 'churn',
-      probability: 6,
-      confidence: 88,
-      period: 'Next 90 days',
-      factors: ['Low risk profile', 'High satisfaction scores']
-    }
-  ], []);
+  const [workoutAnalysisData, setWorkoutAnalysisData] = useState<WorkoutAnalysisDatum[]>([]);
+  const [bodyCompositionData, setBodyCompositionData] = useState<BodyCompositionDatum[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    setInsights(mockInsights);
-    setPredictions(mockPredictions);
-  }, [mockInsights, mockPredictions]);
+    setSelectedPeriod(timePeriod);
+  }, [timePeriod]);
+
+  const loadAnalytics = useCallback(async () => {
+    if (!clientId) {
+      setLoadError('Select a client to load analytics.');
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadError(null);
+
+    try {
+      const [progressResult, historyResult, measurementsResult, summaryResult] = await Promise.allSettled([
+        authAxios.get(`/api/client-progress/${clientId}`),
+        authAxios.get(`/api/client-progress/${clientId}/workout-history`, {
+          params: { timeframe: timeframeParam(selectedPeriod) },
+        }),
+        authAxios.get(`/api/measurements/user/${clientId}`, {
+          params: { limit: 20 },
+        }),
+        authAxios.get(`/api/admin/ai-bff/client-summary/${clientId}`),
+      ]);
+
+      const progressData = progressResult.status === 'fulfilled' ? progressResult.value.data : null;
+      const historyData = historyResult.status === 'fulfilled' ? historyResult.value.data : null;
+      const measurementsData = measurementsResult.status === 'fulfilled' ? measurementsResult.value.data : null;
+      const summaryData = summaryResult.status === 'fulfilled' ? summaryResult.value.data : null;
+
+      const progressRecord = recordFrom(progressData, 'progress');
+      const workouts = recordsFrom(historyData, ['recentWorkouts', 'workouts', 'sessions']);
+      const measurements = recordsFrom(measurementsData, ['measurements']);
+      const painEntries = recordsFrom(isRecord(summaryData) ? summaryData.activePain : null);
+
+      setWorkoutAnalysisData(buildWorkoutSeries(workouts));
+      setBodyCompositionData(buildBodyCompositionData(measurements, progressRecord));
+      setMetrics(buildAnalyticsMetrics(workouts, measurements, progressRecord, painEntries));
+      setInsights(buildAnalyticsInsights(workouts, measurements, painEntries));
+      setPredictions([]);
+    } catch (error) {
+      logger.error('[ClientAnalyticsPanel] Failed to load analytics', {
+        clientId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      setMetrics([]);
+      setInsights([]);
+      setPredictions([]);
+      setWorkoutAnalysisData([]);
+      setBodyCompositionData([]);
+      setLoadError('Client analytics are unavailable.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authAxios, clientId, selectedPeriod]);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
 
   // Chart configurations
   const chartColors = {
@@ -796,18 +996,20 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
     </MetricCard>
   );
 
-  // Workout analysis chart data (memoized to avoid re-generating on each render)
-  const workoutAnalysisData = React.useMemo(() => Array.from({ length: 12 }, (_, i) => ({
-    month: `Month ${i + 1}`,
-    workouts: Math.floor(Math.random() * 30) + 10,
-    duration: Math.floor(Math.random() * 60) + 30,
-    intensity: Math.floor(Math.random() * 40) + 60
-  })), []);
-
   // Render workout analysis chart
-  const renderWorkoutAnalysisChart = () => (
-    <GlassCard>
-      <SpacedCardTitle>Workout Analysis</SpacedCardTitle>
+  const renderWorkoutAnalysisChart = () => {
+    if (workoutAnalysisData.length === 0) {
+      return (
+        <GlassCard>
+          <SpacedCardTitle>Workout Analysis</SpacedCardTitle>
+          <Subtitle>No completed workout history was returned for this period.</Subtitle>
+        </GlassCard>
+      );
+    }
+
+    return (
+      <GlassCard>
+        <SpacedCardTitle>Workout Analysis</SpacedCardTitle>
       <ChartContainer>
         <VictoryChart
           height={400}
@@ -858,23 +1060,25 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
           />
         </VictoryChart>
       </ChartContainer>
-    </GlassCard>
-  );
-
-  // Body composition radar data
-  const bodyCompositionData = React.useMemo(() => [
-    { metric: 'Muscle Mass', current: 85, target: 90 },
-    { metric: 'Body Fat %', current: 88, target: 92 },
-    { metric: 'Hydration', current: 92, target: 95 },
-    { metric: 'Bone Density', current: 78, target: 85 },
-    { metric: 'Metabolic Rate', current: 89, target: 95 },
-    { metric: 'Recovery', current: 83, target: 90 },
-  ], []);
+      </GlassCard>
+    );
+  };
 
   // Render body composition radar chart
-  const renderBodyCompositionChart = () => (
-    <GlassCard>
-      <SpacedCardTitle>Body Composition Analysis</SpacedCardTitle>
+  const renderBodyCompositionChart = () => {
+    const hasBodyData = bodyCompositionData.some(item => item.current > 0);
+    if (!hasBodyData) {
+      return (
+        <GlassCard>
+          <SpacedCardTitle>Body Composition Analysis</SpacedCardTitle>
+          <Subtitle>No progress or measurement values were returned for this chart.</Subtitle>
+        </GlassCard>
+      );
+    }
+
+    return (
+      <GlassCard>
+        <SpacedCardTitle>Body Composition Analysis</SpacedCardTitle>
       <ChartContainer>
         <VictoryChart
           polar
@@ -911,19 +1115,27 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
           />
         </VictoryChart>
       </ChartContainer>
-    </GlassCard>
-  );
+      </GlassCard>
+    );
+  };
 
   // Render AI insights panel
   const renderAIInsights = () => (
     <GlassCard>
       <CardTitleRow>
         <CardTitleWithIcon><Brain size={20} /> Swan Coach Insights</CardTitleWithIcon>
-        <OutlineButton><RefreshCw size={16} /> Refresh</OutlineButton>
+        <OutlineButton onClick={() => void loadAnalytics()} disabled={isLoading}>
+          <RefreshCw size={16} />
+          {isLoading ? 'Refreshing' : 'Refresh'}
+        </OutlineButton>
       </CardTitleRow>
 
       <InsightsStack>
-        {insights.map((insight, index) => (
+        {insights.length === 0 ? (
+          <InsightCard>
+            <Subtitle>No analytics insights are available from the current source data.</Subtitle>
+          </InsightCard>
+        ) : insights.map((insight, index) => (
           <InsightCard key={index}>
             <InsightRow>
               <IconBox $bg={
@@ -944,7 +1156,7 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
                 </InsightFooter>
               </InsightBody>
               {insight.actionable && (
-                <ActionOutlineButton>Take Action</ActionOutlineButton>
+                <ActionOutlineButton disabled>Review Source</ActionOutlineButton>
               )}
             </InsightRow>
           </InsightCard>
@@ -959,7 +1171,11 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       <SpacedCardTitleWithIcon><Sparkles size={20} /> Predictive Analytics</SpacedCardTitleWithIcon>
 
       <PredictionsGrid>
-        {predictions.map((prediction, index) => {
+        {predictions.length === 0 ? (
+          <EmptyCard>
+            <Subtitle>Predictive analytics are not available until a backend prediction service is connected.</Subtitle>
+          </EmptyCard>
+        ) : predictions.map((prediction, index) => {
           const color =
             prediction.type === 'retention' ? chartColors.success :
             prediction.type === 'progress' ? chartColors.primary :
@@ -997,17 +1213,20 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
       {/* Analytics Header */}
       <SectionHeader>
         <Title>Advanced Analytics Dashboard</Title>
-        <Subtitle>Swan Coach insights and comprehensive performance analytics</Subtitle>
+        <Subtitle>Verified client analytics from progress, workouts, measurements, and summary data.</Subtitle>
       </SectionHeader>
 
-      {/* Demo data notice */}
+      {/* Source status */}
       <PreviewNotice>
-        Preview Mode — Charts display sample data. Real analytics will populate as client sessions are logged.
+        Analytics reflect returned client records for the selected period.
       </PreviewNotice>
 
       {/* Control Panel */}
       <ControlPanel>
-        <NativeSelect defaultValue={timePeriod}>
+        <NativeSelect
+          value={selectedPeriod}
+          onChange={(event) => setSelectedPeriod(event.target.value as '7d' | '30d' | '90d' | '1y')}
+        >
           <option value="7d">Last 7 Days</option>
           <option value="30d">Last 30 Days</option>
           <option value="90d">Last 90 Days</option>
@@ -1017,21 +1236,40 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
         <ButtonGroup>
           <ViewButton $active={viewMode === 'overview'} onClick={() => setViewMode('overview')}>Overview</ViewButton>
           <ViewButton $active={viewMode === 'detailed'} onClick={() => setViewMode('detailed')}>Detailed</ViewButton>
-          <ViewButton $active={viewMode === 'comparison'} onClick={() => setViewMode('comparison')}>Compare</ViewButton>
+          <ViewButton
+            disabled
+            title="Cohort comparison is unavailable until a real benchmark endpoint exists."
+          >
+            Compare
+          </ViewButton>
         </ButtonGroup>
 
         <ActionRow>
-          <OutlineButton><Filter size={16} /> Filters</OutlineButton>
-          <OutlineButton><Download size={16} /> Export</OutlineButton>
-          <OutlineButton><Share2 size={16} /> Share</OutlineButton>
+          <OutlineButton onClick={() => void loadAnalytics()} disabled={isLoading}>
+            <RefreshCw size={16} />
+            {isLoading ? 'Refreshing' : 'Refresh'}
+          </OutlineButton>
+          <OutlineButton disabled><Filter size={16} /> Filters</OutlineButton>
+          <OutlineButton disabled><Download size={16} /> Export</OutlineButton>
+          <OutlineButton disabled><Share2 size={16} /> Share</OutlineButton>
         </ActionRow>
       </ControlPanel>
+
+      {loadError && (
+        <EmptyCard>
+          <Subtitle>{loadError}</Subtitle>
+        </EmptyCard>
+      )}
 
       {/* Overview Mode */}
       {viewMode === 'overview' && (
         <>
           <MetricsGrid>
-            {mockMetrics.map(renderMetricCard)}
+            {metrics.length === 0 ? (
+              <EmptyCard>
+                <Subtitle>No analytics metrics were returned for this client.</Subtitle>
+              </EmptyCard>
+            ) : metrics.map(renderMetricCard)}
           </MetricsGrid>
           <ChartsGrid>
             {renderWorkoutAnalysisChart()}
@@ -1048,14 +1286,6 @@ const ClientAnalyticsPanel: React.FC<ClientAnalyticsPanelProps> = ({
         </DetailedGrid>
       )}
 
-      {/* Comparison Mode */}
-      {viewMode === 'comparison' && (
-        <ComparisonWrap>
-          <ComparisonTitle>Comparison Mode</ComparisonTitle>
-          <Subtitle>Compare client performance against cohorts and benchmarks</Subtitle>
-          {/* TODO: Implement comparison charts */}
-        </ComparisonWrap>
-      )}
     </PageWrapper>
   );
 };

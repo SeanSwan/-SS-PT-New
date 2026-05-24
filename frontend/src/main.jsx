@@ -26,8 +26,10 @@ import { imageErrorHandler } from './utils/imageErrorHandler';
 // Import token cleanup initialization
 import './utils/initTokenCleanup';
 
-// Import token debug tool (adds window.debugTokens() for debugging)
-import './utils/tokenDebugTool';
+// Token debug helpers are development-only and expose token metadata on window.
+if (import.meta.env.DEV) {
+  import('./utils/tokenDebugTool');
+}
 
 // Import store initialization safeguard (must run before any components render)
 import './utils/storeInitSafeguard';

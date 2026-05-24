@@ -16,9 +16,21 @@ const toNumber = (value) => {
   return Number.isFinite(num) ? num : null;
 };
 
+const parsePositiveInt = (value) => {
+  const normalized = String(value ?? '').trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const num = Number.parseInt(normalized, 10);
+  return Number.isSafeInteger(num) && num > 0 ? num : null;
+};
+
+const parseOptionalPositiveInt = (value, fallback) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  return parsePositiveInt(value);
+};
+
 const getRequesterId = (req) => {
   const id = Number(req.user?.id);
-  return Number.isFinite(id) ? id : null;
+  return Number.isInteger(id) && id > 0 ? id : null;
 };
 
 const isUserAssignedToTrainer = async ({ ClientTrainerAssignment }, clientId, trainerId) => {
@@ -67,8 +79,8 @@ const ensureProgressAccess = async (req, clientId, models) => {
 
 export const getClientProgress = async (req, res) => {
   try {
-    const clientId = Number(req.params.userId);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parsePositiveInt(req.params.userId);
+    if (!clientId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
@@ -176,8 +188,8 @@ export const getClientProgress = async (req, res) => {
 
 export const getMeasurementHistory = async (req, res) => {
   try {
-    const clientId = Number(req.params.userId);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parsePositiveInt(req.params.userId);
+    if (!clientId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
@@ -211,7 +223,11 @@ export const getMeasurementHistory = async (req, res) => {
       });
     }
 
-    const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 365);
+    const requestedLimit = parseOptionalPositiveInt(req.query.limit, 30);
+    if (!requestedLimit) {
+      return res.status(400).json({ success: false, message: 'Invalid limit' });
+    }
+    const limit = Math.min(requestedLimit, 365);
     const measurements = await BodyMeasurement.findAll({
       where: {
         userId: clientId,
@@ -240,8 +256,8 @@ export const getMeasurementHistory = async (req, res) => {
 
 export const createMeasurement = async (req, res) => {
   try {
-    const clientId = Number(req.params.userId);
-    if (!Number.isFinite(clientId)) {
+    const clientId = parsePositiveInt(req.params.userId);
+    if (!clientId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 

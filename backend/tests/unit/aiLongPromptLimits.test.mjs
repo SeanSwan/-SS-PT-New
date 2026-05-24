@@ -22,4 +22,11 @@ describe('AI long prompt route limits', () => {
     expect(chatRouteSource).toContain('MESSAGE_TOO_LONG');
     expect(chatRouteSource).toContain('maxChars: AI_CHAT_MESSAGE_MAX_CHARS');
   });
+
+  it('keeps transcription provider/config errors out of client responses', () => {
+    expect(chatRouteSource).toContain('buildTranscriptionErrorResponse');
+    expect(chatRouteSource).toContain('TRANSCRIPTION_NOT_CONFIGURED');
+    expect(chatRouteSource).toContain('TRANSCRIPTION_FAILED');
+    expect(chatRouteSource).not.toContain("error: err.message || 'Transcription failed'");
+  });
 });

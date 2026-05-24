@@ -28,6 +28,14 @@ Route assertions that are only valid for a current local product branch should
 be opt-in with `SWAN_SMOKE_LOCAL_BUNDLE_ROUTES=1` so the default smoke command
 does not depend on unstaged or not-yet-deployed product work.
 
+## API Specs
+
+Specs under `e2e/api/` are not part of the credential-free canonical smoke
+launcher. Authenticated API specs require env-only credentials:
+`E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`, `E2E_CLIENT_EMAIL`, and
+`E2E_CLIENT_PASSWORD`. Do not add hardcoded production, personal, or local seed
+credentials to active E2E tests.
+
 ## Non-Canonical Specs
 
 Legacy root-level specs and one-off audit helpers were moved out of this folder

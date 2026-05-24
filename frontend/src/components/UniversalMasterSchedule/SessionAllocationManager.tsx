@@ -71,11 +71,20 @@ interface SessionAllocation {
   usedSessions: number;
   remainingSessions: number;
   purchaseDate: string;
-  expiryDate: string;
+  expiryDate?: string | null;
   status: 'active' | 'expired' | 'pending' | 'paused';
   packagePrice: number;
   sessionValue: number;
   client?: Client;
+}
+
+interface SessionSummary {
+  userId: number | string;
+  available?: number;
+  scheduled?: number;
+  completed?: number;
+  cancelled?: number;
+  total?: number;
 }
 
 interface AllocationStats {
@@ -94,6 +103,51 @@ interface SessionAllocationManagerProps {
   showControls?: boolean;
   compactView?: boolean;
 }
+
+const toNumber = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const buildLiveAllocation = (client: Client, summary?: SessionSummary | null): SessionAllocation => {
+  const remainingSessions = toNumber(summary?.available, toNumber(client.availableSessions));
+  const completedSessions = toNumber(summary?.completed);
+  const scheduledSessions = toNumber(summary?.scheduled);
+  const totalSessions = Math.max(remainingSessions + completedSessions + scheduledSessions, remainingSessions);
+
+  return {
+    id: `client-${client.id}`,
+    clientId: String(client.id),
+    packageName: remainingSessions > 0 ? 'Live Session Balance' : 'Needs Session Allocation',
+    totalSessions,
+    usedSessions: completedSessions,
+    remainingSessions,
+    purchaseDate: client.createdAt || new Date().toISOString(),
+    expiryDate: null,
+    status: remainingSessions > 0 ? 'active' : 'pending',
+    packagePrice: 0,
+    sessionValue: 0,
+    client
+  };
+};
+
+const calculateStats = (allocations: SessionAllocation[]): AllocationStats => {
+  const totalSessions = allocations.reduce((sum, allocation) => sum + allocation.totalSessions, 0);
+  const usedSessions = allocations.reduce((sum, allocation) => sum + allocation.usedSessions, 0);
+
+  return {
+    totalActiveClients: allocations.filter((allocation) => allocation.status === 'active').length,
+    totalAllocatedSessions: totalSessions,
+    totalUsedSessions: usedSessions,
+    totalRevenue: allocations.reduce((sum, allocation) => sum + allocation.packagePrice, 0),
+    averagePackageSize: allocations.length > 0 ? totalSessions / allocations.length : 0,
+    utilizationRate: totalSessions > 0 ? Math.round((usedSessions / totalSessions) * 100) : 0,
+    expiringPackages: allocations.filter((allocation) =>
+      allocation.expiryDate && new Date(allocation.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    ).length,
+    newPurchasesToday: 0
+  };
+};
 
 // ==================== MAIN COMPONENT ====================
 
@@ -171,100 +225,22 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
     try {
       setLoading(true);
 
-      // Simulate API calls - replace with actual service calls
-      const mockAllocations: SessionAllocation[] = [
-        {
-          id: '1',
-          clientId: 'client1',
-          packageName: 'Premium Training Package',
-          totalSessions: 20,
-          usedSessions: 12,
-          remainingSessions: 8,
-          purchaseDate: '2024-01-15',
-          expiryDate: '2024-07-15',
-          status: 'active',
-          packagePrice: 2500,
-          sessionValue: 125,
-          client: {
-            id: 'client1',
-            firstName: 'Sarah',
-            lastName: 'Johnson',
-            email: 'sarah.johnson@email.com',
-            phone: '(555) 123-4567',
-            photo: '/avatars/sarah.jpg',
-            availableSessions: 8,
-            role: 'client',
-            createdAt: '2024-01-15',
-            updatedAt: '2024-01-20'
+      await sessionService.checkAllocationHealth();
+      const clients = await sessionService.getClients();
+      const liveAllocations = await Promise.all(
+        clients.map(async (client: Client) => {
+          try {
+            const summary = await sessionService.getUserSessionSummary(client.id);
+            return buildLiveAllocation(client, summary);
+          } catch (summaryError) {
+            console.warn('Unable to load session summary for client:', client.id, summaryError);
+            return buildLiveAllocation(client, null);
           }
-        },
-        {
-          id: '2',
-          clientId: 'client2',
-          packageName: 'Elite Performance Package',
-          totalSessions: 30,
-          usedSessions: 25,
-          remainingSessions: 5,
-          purchaseDate: '2024-02-01',
-          expiryDate: '2024-08-01',
-          status: 'active',
-          packagePrice: 3750,
-          sessionValue: 125,
-          client: {
-            id: 'client2',
-            firstName: 'Michael',
-            lastName: 'Chen',
-            email: 'michael.chen@email.com',
-            phone: '(555) 234-5678',
-            photo: '/avatars/michael.jpg',
-            availableSessions: 5,
-            role: 'client',
-            createdAt: '2024-02-01',
-            updatedAt: '2024-02-05'
-          }
-        },
-        {
-          id: '3',
-          clientId: 'client3',
-          packageName: 'Starter Fitness Package',
-          totalSessions: 10,
-          usedSessions: 2,
-          remainingSessions: 8,
-          purchaseDate: '2024-07-01',
-          expiryDate: '2025-01-01',
-          status: 'active',
-          packagePrice: 1250,
-          sessionValue: 125,
-          client: {
-            id: 'client3',
-            firstName: 'Emma',
-            lastName: 'Rodriguez',
-            email: 'emma.rodriguez@email.com',
-            phone: '(555) 345-6789',
-            photo: '/avatars/emma.jpg',
-            availableSessions: 8,
-            role: 'client',
-            createdAt: '2024-07-01',
-            updatedAt: '2024-07-03'
-          }
-        }
-      ];
+        })
+      );
 
-      setAllocations(mockAllocations);
-
-      // Calculate stats
-      const calculatedStats: AllocationStats = {
-        totalActiveClients: mockAllocations.filter(a => a.status === 'active').length,
-        totalAllocatedSessions: mockAllocations.reduce((sum, a) => sum + a.totalSessions, 0),
-        totalUsedSessions: mockAllocations.reduce((sum, a) => sum + a.usedSessions, 0),
-        totalRevenue: mockAllocations.reduce((sum, a) => sum + a.packagePrice, 0),
-        averagePackageSize: mockAllocations.reduce((sum, a) => sum + a.totalSessions, 0) / mockAllocations.length,
-        utilizationRate: Math.round((mockAllocations.reduce((sum, a) => sum + a.usedSessions, 0) / mockAllocations.reduce((sum, a) => sum + a.totalSessions, 0)) * 100),
-        expiringPackages: mockAllocations.filter(a => new Date(a.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length,
-        newPurchasesToday: 1
-      };
-
-      setStats(calculatedStats);
+      setAllocations(liveAllocations);
+      setStats(calculateStats(liveAllocations));
 
     } catch (error) {
       console.error('Error loading allocation data:', error);
@@ -294,22 +270,27 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
 
   const handleCreateAllocation = useCallback(async () => {
     try {
-      // In production, this would call the actual API
-      const newAllocation: SessionAllocation = {
-        id: `allocation_${Date.now()}`,
-        clientId: manualAllocation.clientId,
-        packageName: manualAllocation.packageName,
-        totalSessions: manualAllocation.totalSessions,
-        usedSessions: 0,
-        remainingSessions: manualAllocation.totalSessions,
-        purchaseDate: new Date().toISOString(),
-        expiryDate: new Date(Date.now() + manualAllocation.expiryMonths * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'active',
-        packagePrice: manualAllocation.packagePrice,
-        sessionValue: manualAllocation.packagePrice / manualAllocation.totalSessions
-      };
+      if (!manualAllocation.clientId || manualAllocation.totalSessions <= 0) {
+        toast({
+          title: 'Allocation incomplete',
+          description: 'Select a client and enter a positive session count.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
-      setAllocations(prev => [...prev, newAllocation]);
+      const reason = manualAllocation.packageName.trim() || 'Manual session allocation';
+      const result = await sessionService.addSessionsToClient(
+        manualAllocation.clientId,
+        manualAllocation.totalSessions,
+        reason
+      );
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Session allocation failed');
+      }
+
+      await loadAllocationData();
       setAllocationDialogOpen(false);
 
       // Reset form
@@ -328,7 +309,16 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
       });
 
       if (onAllocationUpdate) {
-        onAllocationUpdate(newAllocation);
+        const availableSessions = toNumber(result?.data?.availableSessions, manualAllocation.totalSessions);
+        const updatedAllocation = allocations.find(allocation => allocation.clientId === manualAllocation.clientId);
+        if (updatedAllocation) {
+          onAllocationUpdate({
+            ...updatedAllocation,
+            remainingSessions: availableSessions,
+            totalSessions: Math.max(updatedAllocation.totalSessions + manualAllocation.totalSessions, availableSessions),
+            status: 'active'
+          });
+        }
       }
 
     } catch (error) {
@@ -339,19 +329,25 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
         variant: 'destructive'
       });
     }
-  }, [manualAllocation, onAllocationUpdate, toast]);
+  }, [allocations, loadAllocationData, manualAllocation, onAllocationUpdate, toast]);
 
   const handleAdjustSessions = useCallback(async (allocationId: string, adjustment: number) => {
     try {
-      setAllocations(prev => prev.map(allocation =>
-        allocation.id === allocationId
-          ? {
-              ...allocation,
-              remainingSessions: Math.max(0, allocation.remainingSessions + adjustment),
-              totalSessions: allocation.totalSessions + adjustment
-            }
-          : allocation
-      ));
+      if (adjustment <= 0) return;
+      const allocation = allocations.find(item => item.id === allocationId);
+      if (!allocation) return;
+
+      const result = await sessionService.addSessionsToClient(
+        allocation.clientId,
+        adjustment,
+        'Quick session balance adjustment'
+      );
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Session adjustment failed');
+      }
+
+      await loadAllocationData();
 
       toast({
         title: 'Sessions Adjusted',
@@ -367,7 +363,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
         variant: 'destructive'
       });
     }
-  }, [toast]);
+  }, [allocations, loadAllocationData, toast]);
 
   // ==================== RENDER FUNCTIONS ====================
 
@@ -422,8 +418,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
   );
 
   const renderAllocationCard = (allocation: SessionAllocation) => {
-    const usagePercentage = (allocation.usedSessions / allocation.totalSessions) * 100;
-    const isExpiringSoon = new Date(allocation.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const usagePercentage = allocation.totalSessions > 0 ? (allocation.usedSessions / allocation.totalSessions) * 100 : 0;
+    const expiryDate = allocation.expiryDate ? new Date(allocation.expiryDate) : null;
+    const isExpiringSoon = Boolean(expiryDate && expiryDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     const isLowSessions = allocation.remainingSessions <= 2;
 
     return (
@@ -475,7 +472,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
               {allocation.remainingSessions} / {allocation.totalSessions} sessions remaining
             </ProgressText>
             <ProgressSubText>
-              ${allocation.sessionValue}/session &bull; Expires {new Date(allocation.expiryDate).toLocaleDateString()}
+              {allocation.sessionValue > 0 ? `$${allocation.sessionValue}/session ` : ''}
+              {allocation.sessionValue > 0 && <>&bull; </>}
+              {expiryDate ? `Expires ${expiryDate.toLocaleDateString()}` : 'No package expiry on file'}
             </ProgressSubText>
           </ProgressInfo>
 
@@ -495,7 +494,8 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({
           <SessionActions>
             <AdjustButton
               onClick={() => handleAdjustSessions(allocation.id, -1)}
-              disabled={allocation.remainingSessions <= 0}
+              disabled
+              title="Session removal uses the cancellation or deduction workflow"
             >
               -1
             </AdjustButton>

@@ -30,24 +30,44 @@ import { getTaxRate, calculateForwardTax, calculateTax } from '../utils/taxCalcu
 import { getAllModels } from '../models/index.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
 
-// DEPLOYMENT TEST: Simple endpoint to verify financial routes are loaded
-router.get('/test', (req, res) => {
-  console.log('💡 Financial routes test endpoint hit - deployment confirmed!');
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
+
+function parsePositiveInteger(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : null;
+}
+
+function parseNonNegativeInteger(value) {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
+}
+
+function parsePositiveAmount(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+// Authenticated availability check for financial routes.
+router.get('/test', protect, (_req, res) => {
   res.json({
     success: true,
-    message: 'Financial routes are working!',
-    endpoint: '/api/financial/test',
-    timestamp: new Date().toISOString(),
-    deploymentStatus: 'NEW_CODE_DEPLOYED'
+    message: 'Financial routes are available',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Apply authentication to all financial routes EXCEPT test endpoint
+// Apply authentication to all financial routes.
 router.use(protect);
 
-// DEPLOYMENT DEBUG: Log that financial routes are loaded
-console.log('🔧 FINANCIAL ROUTES LOADED - track-checkout-start endpoint available');
+// Log route registration without emitting deployment marker strings.
 logger.info('Financial routes module loaded with track-checkout-start endpoint');
 
 /**
@@ -56,8 +76,6 @@ logger.info('Financial routes module loaded with track-checkout-start endpoint')
  * Called when user begins checkout process for real-time monitoring
  */
 router.post('/track-checkout-start', async (req, res) => {
-  // DEPLOYMENT DEBUG: Log that endpoint is being hit
-  console.log('🚨 track-checkout-start endpoint HIT - new code is deployed!');
   logger.info('track-checkout-start endpoint accessed', {
     userId: req.user?.id,
     path: req.path,
@@ -65,16 +83,10 @@ router.post('/track-checkout-start', async (req, res) => {
     timestamp: new Date().toISOString()
   });
   
-  // DEBUG: Log the exact request body to see what's missing
-  console.log('🔍 [DEBUG] Request body received:', JSON.stringify(req.body, null, 2));
   logger.info('track-checkout-start request data', {
-    body: req.body,
     hasSessionId: !!req.body.sessionId,
     hasCartId: !!req.body.cartId,
-    hasAmount: !!req.body.amount,
-    sessionIdValue: req.body.sessionId,
-    cartIdValue: req.body.cartId,
-    amountValue: req.body.amount
+    hasAmount: !!req.body.amount
   });
   
   try {
@@ -94,34 +106,40 @@ router.post('/track-checkout-start', async (req, res) => {
     if (!amount) missingFields.push('amount');
     
     if (missingFields.length > 0) {
-      console.log('⚠️ [VALIDATION ERROR] Missing required fields:', missingFields);
-      console.log('🔍 [VALIDATION DEBUG] Received values:', {
-        sessionId: sessionId || 'MISSING',
-        cartId: cartId || 'MISSING',
-        amount: amount || 'MISSING'
-      });
-      
       return res.status(400).json({
         success: false,
         message: `Missing required fields: ${missingFields.join(', ')}`,
         details: {
           required: ['sessionId', 'cartId', 'amount'],
-          missing: missingFields,
-          received: {
-            sessionId: sessionId || null,
-            cartId: cartId || null,
-            amount: amount || null
-          }
+          missing: missingFields
         }
+      });
+    }
+
+    const normalizedCartId = parsePositiveInteger(cartId);
+    if (!normalizedCartId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid cart id',
+        error: { code: 'INVALID_CART_ID' }
+      });
+    }
+
+    const normalizedAmount = parsePositiveAmount(amount);
+    if (!normalizedAmount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid amount',
+        error: { code: 'INVALID_AMOUNT' }
       });
     }
 
     // Create checkout tracking entry for admin analytics
     const trackingData = {
       userId,
-      cartId: parseInt(cartId),
+      cartId: normalizedCartId,
       stripePaymentIntentId: sessionId, // Use session ID as tracking reference
-      amount: parseFloat(amount),
+      amount: normalizedAmount,
       currency: 'USD',
       status: 'checkout_started',
       description: `Checkout initiated - ${sessionCount || 0} sessions`,
@@ -163,11 +181,7 @@ router.post('/track-checkout-start', async (req, res) => {
 
   } catch (error) {
     logger.error('Error tracking checkout start:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to track checkout start',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to track checkout start');
   }
 });
 
@@ -281,11 +295,7 @@ router.post('/log-transaction', async (req, res) => {
 
   } catch (error) {
     logger.error('Error logging transaction:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to log transaction',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to log transaction');
   }
 });
 
@@ -330,11 +340,7 @@ router.post('/update-metrics', async (req, res) => {
 
   } catch (error) {
     logger.error('Error updating business metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update business metrics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to update business metrics');
   }
 });
 
@@ -353,12 +359,15 @@ router.get('/transactions', async (req, res) => {
       offset = 0,
       adminView = false 
     } = req.query;
+    const limitNumber = Math.min(parsePositiveInteger(limit) || 50, 100);
+    const offsetNumber = parseNonNegativeInteger(offset) ?? 0;
+    const wantsAdminView = adminView === true || adminView === 'true';
 
     // Build where clause
     const whereClause = {};
     
     // Non-admin users can only see their own transactions
-    if (!adminView || req.user.role !== 'admin') {
+    if (!wantsAdminView || req.user.role !== 'admin') {
       whereClause.userId = userId;
     }
 
@@ -375,9 +384,9 @@ router.get('/transactions', async (req, res) => {
     const transactions = await FinancialTransaction.findAndCountAll({
       where: whereClause,
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      include: adminView ? ['User'] : [] // Include user data for admin view
+      limit: limitNumber,
+      offset: offsetNumber,
+      include: wantsAdminView ? ['User'] : [] // Include user data for admin view
     });
 
     res.json({
@@ -396,7 +405,7 @@ router.get('/transactions', async (req, res) => {
           formattedAmount: transaction.getFormattedAmount(),
           statusDisplay: transaction.getStatusDisplay(),
           paymentMethodDisplay: transaction.getPaymentMethodDisplay(),
-          ...(adminView && transaction.User ? {
+          ...(wantsAdminView && transaction.User ? {
             user: {
               id: transaction.User.id,
               name: `${transaction.User.firstName} ${transaction.User.lastName}`,
@@ -406,20 +415,16 @@ router.get('/transactions', async (req, res) => {
         })),
         pagination: {
           total: transactions.count,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: transactions.count > (parseInt(offset) + parseInt(limit))
+          limit: limitNumber,
+          offset: offsetNumber,
+          hasMore: transactions.count > (offsetNumber + limitNumber)
         }
       }
     });
 
   } catch (error) {
     logger.error('Error fetching transactions:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch transactions',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch transactions');
   }
 });
 
@@ -495,11 +500,7 @@ router.get('/metrics', async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching business metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch business metrics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch business metrics');
   }
 });
 
@@ -513,6 +514,7 @@ router.get('/analytics', async (req, res) => {
       period = 'daily',
       days = 30 
     } = req.query;
+    const dayCount = Math.min(parsePositiveInteger(days) || 30, 365);
 
     // Check admin access
     if (req.user.role !== 'admin') {
@@ -524,7 +526,7 @@ router.get('/analytics', async (req, res) => {
 
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(endDate.getDate() - parseInt(days));
+    startDate.setDate(endDate.getDate() - dayCount);
 
     // Get revenue analytics
     const revenueData = await FinancialTransaction.getRevenueForPeriod(startDate, endDate);
@@ -545,7 +547,7 @@ router.get('/analytics', async (req, res) => {
           totalRevenue: parseFloat(revenueData.totalRevenue) || 0,
           transactionCount: parseInt(revenueData.transactionCount) || 0,
           averageOrderValue: parseFloat(revenueData.averageAmount) || 0,
-          period: `${days} days`
+          period: `${dayCount} days`
         },
         paymentMethods: paymentMethodData.map(method => ({
           method: method.paymentMethod || 'unknown',
@@ -571,11 +573,7 @@ router.get('/analytics', async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching analytics data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch analytics data',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch analytics data');
   }
 });
 
@@ -622,11 +620,7 @@ router.post('/calculate-metrics', async (req, res) => {
 
   } catch (error) {
     logger.error('Error calculating metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to calculate metrics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to calculate metrics');
   }
 });
 

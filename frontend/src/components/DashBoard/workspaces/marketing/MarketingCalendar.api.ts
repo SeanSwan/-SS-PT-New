@@ -3,6 +3,7 @@
  */
 
 import type { CalendarChannel, SocialPlatform } from './marketing.types';
+import apiService from '../../../../services/api.service';
 
 export type MarketingCalendarStatus = 'draft' | 'scheduled' | 'published' | 'failed' | 'cancelled';
 
@@ -45,29 +46,18 @@ export interface MarketingCalendarPayload {
 
 const API_PATH = '/api/admin/marketing-calendar';
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-};
-
 export async function fetchMarketingCalendar(start: string, end: string) {
   const params = new URLSearchParams({ start, end });
-  const response = await fetch(`${API_PATH}?${params.toString()}`, { headers: getAuthHeaders() });
-  const data = await response.json();
-  if (!response.ok || !data.success) throw new Error(data.message || 'Failed to load marketing calendar');
+  const response = await apiService.get(`${API_PATH}?${params.toString()}`);
+  const data = response.data;
+  if (!data.success) throw new Error(data.message || 'Failed to load marketing calendar');
   return data.data as MarketingCalendarItem[];
 }
 
 export async function createMarketingCalendarItem(payload: MarketingCalendarPayload) {
-  const response = await fetch(API_PATH, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  if (!response.ok || !data.success) throw new Error(data.message || 'Failed to schedule marketing item');
+  const response = await apiService.post(API_PATH, payload);
+  const data = response.data;
+  if (!data.success) throw new Error(data.message || 'Failed to schedule marketing item');
   return {
     item: data.data as MarketingCalendarItem,
     advisories: (data.advisories || []) as MarketingCalendarAdvisory[],
@@ -75,13 +65,9 @@ export async function createMarketingCalendarItem(payload: MarketingCalendarPayl
 }
 
 export async function updateMarketingCalendarItem(id: string, payload: MarketingCalendarPayload) {
-  const response = await fetch(`${API_PATH}/${id}`, {
-    method: 'PUT',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json();
-  if (!response.ok || !data.success) throw new Error(data.message || 'Failed to update marketing item');
+  const response = await apiService.put(`${API_PATH}/${id}`, payload);
+  const data = response.data;
+  if (!data.success) throw new Error(data.message || 'Failed to update marketing item');
   return {
     item: data.data as MarketingCalendarItem,
     advisories: (data.advisories || []) as MarketingCalendarAdvisory[],

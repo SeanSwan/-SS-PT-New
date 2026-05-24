@@ -87,18 +87,33 @@ export interface AITerminalPanelProps {
 
 // ── Component ─────────────────────────────────────────────────────────
 
+const DEEP_RESEARCH_LABEL = 'Deep Research';
+
 const CONTEXT_LABELS: Record<string, string> = {
-  general: 'AI Assistant',
-  macro_logging: 'Nutrition Assistant',
-  form_tips: 'Form Coach',
-  workout_suggestions: 'Workout Assistant',
-  workout_generation: 'Workout Builder',
-  client_review: "Coach's Assistant",
-  data_management: 'Data Assistant',
-  scheduling: 'Schedule Assistant',
-  progress_analysis: 'Progress Analyst',
-  exercise_library: 'Exercise Expert',
-  gamification: 'Gamification Coach',
+  general: DEEP_RESEARCH_LABEL,
+  macro_logging: 'Deep Research — Nutrition Intelligence',
+  form_tips: 'Deep Research — Movement Intelligence',
+  workout_suggestions: 'Deep Research — Workout Intelligence',
+  workout_generation: 'Deep Research — Workout Intelligence',
+  client_review: 'Deep Research — Client Intelligence',
+  data_management: 'Deep Research — Platform Intelligence',
+  scheduling: 'Deep Research — Schedule Intelligence',
+  progress_analysis: 'Deep Research — Progress Intelligence',
+  exercise_library: 'Deep Research — Exercise Intelligence',
+  gamification: 'Deep Research — Motivation Intelligence',
+};
+
+const toDeepResearchLabel = (value?: string): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^Deep Research\b/i.test(trimmed)) return trimmed;
+
+  const domain = trimmed
+    .replace(/\b(AI|Assistant|Coach|Builder|Expert|Analyst)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return domain ? `Deep Research — ${domain} Intelligence` : DEEP_RESEARCH_LABEL;
 };
 
 const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
@@ -121,7 +136,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     clearError,
   } = useAIChat();
 
-  const displayLabel = label || CONTEXT_LABELS[context] || 'AI Assistant';
+  const displayLabel = toDeepResearchLabel(label) || CONTEXT_LABELS[context] || DEEP_RESEARCH_LABEL;
   const displayPlaceholder = placeholder || `Ask ${displayLabel} anything...`;
   const displayHint = emptyHint || `I'm your ${displayLabel}. Ask me anything about ${context === 'general' ? 'this workspace' : context.replace(/_/g, ' ')}.`;
 

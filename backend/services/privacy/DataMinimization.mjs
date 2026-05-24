@@ -6,6 +6,12 @@
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import { privacyCompliance } from './PrivacyCompliance.mjs';
 
+function createDataMinimizationNotImplementedError(message) {
+  const error = new Error(message);
+  error.statusCode = 501;
+  return error;
+}
+
 export class DataMinimization {
   constructor() {
     // Data minimization rules
@@ -108,6 +114,10 @@ export class DataMinimization {
    */
   async runMinimization(options = {}) {
     try {
+      throw createDataMinimizationNotImplementedError(
+        'Data minimization is not connected to real data stores yet.'
+      );
+
       const {
         dryRun = false,
         categories = null,
@@ -263,43 +273,7 @@ export class DataMinimization {
    * Get items for a specific category
    */
   async getCategoryItems(category) {
-    // Mock implementation - in reality, this would query databases
-    switch (category) {
-      case 'logs':
-        return this.generateMockItems('log', 1000);
-      case 'analytics':
-        return this.generateMockItems('analytics', 5000);
-      case 'temporary_data':
-        return this.generateMockItems('temp', 200);
-      case 'inactive_accounts':
-        return this.generateMockItems('account', 150);
-      case 'session_data':
-        return this.generateMockItems('session', 800);
-      case 'test_data':
-        return this.generateMockItems('test', 100);
-      default:
-        return [];
-    }
-  }
-  
-  /**
-   * Generate mock items for testing
-   */
-  generateMockItems(type, count) {
-    const items = [];
-    for (let i = 0; i < count; i++) {
-      items.push({
-        id: `${type}_${i}`,
-        type,
-        createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000),
-        size: Math.floor(Math.random() * 1024 * 1024), // Random size up to 1MB
-        metadata: {
-          source: `${type}_source`,
-          category: type
-        }
-      });
-    }
-    return items;
+    return [];
   }
   
   /**
@@ -580,7 +554,6 @@ export class DataMinimization {
    * Check if item has retention exception
    */
   hasException(item, exceptionType) {
-    // Mock exception checking
     switch (exceptionType) {
       case 'security_incidents':
         return item.metadata && item.metadata.securityIncident;
@@ -711,6 +684,8 @@ export class DataMinimization {
       const analysis = {
         timestamp: new Date().toISOString(),
         timeframe,
+        dataSource: 'not_connected',
+        verificationStatus: 'not_connected',
         categories: {},
         recommendations: [],
         summary: {
@@ -748,20 +723,17 @@ export class DataMinimization {
    * Analyze usage for a specific category
    */
   async analyzeCategoryUsage(category, timeframe) {
-    // Mock analysis - in reality would query access logs and usage patterns
-    const totalItems = Math.floor(Math.random() * 1000) + 500;
-    const accessedItems = Math.floor(totalItems * (0.3 + Math.random() * 0.4)); // 30-70% accessed
-    const unusedItems = totalItems - accessedItems;
-    
     return {
       category,
-      totalItems,
-      accessedItems,
-      unusedItems,
-      unusedPercent: (unusedItems / totalItems) * 100,
-      avgAccessFrequency: Math.random() * 10,
-      potentialSavings: unusedItems * 1024 * Math.random(), // Mock size calculations
-      recommendations: this.generateCategoryUsageRecommendations(category, unusedItems / totalItems)
+      dataSource: 'not_connected',
+      verificationStatus: 'not_connected',
+      totalItems: 0,
+      accessedItems: 0,
+      unusedItems: 0,
+      unusedPercent: 0,
+      avgAccessFrequency: null,
+      potentialSavings: 0,
+      recommendations: []
     };
   }
   
@@ -826,31 +798,24 @@ export class DataMinimization {
     return recommendations;
   }
   
-  // Mock implementation methods for data operations
-  
   async deleteItem(item) {
-    // Mock deletion - in reality would delete from database/storage
-    return true;
+    throw createDataMinimizationNotImplementedError('Delete operation is not connected to a data store yet.');
   }
   
   async aggregateItem(item) {
-    // Mock aggregation - in reality would combine data points
-    return true;
+    throw createDataMinimizationNotImplementedError('Aggregate operation is not connected to a data store yet.');
   }
   
   async anonymizeAccount(item) {
-    // Mock anonymization - in reality would remove PII
-    return true;
+    throw createDataMinimizationNotImplementedError('Account anonymization is not connected to a data store yet.');
   }
   
   async anonymizeSession(item) {
-    // Mock session anonymization
-    return true;
+    throw createDataMinimizationNotImplementedError('Session anonymization is not connected to a data store yet.');
   }
   
   async archiveItem(item) {
-    // Mock archiving - in reality would move to cold storage
-    return true;
+    throw createDataMinimizationNotImplementedError('Archive operation is not connected to a data store yet.');
   }
 }
 

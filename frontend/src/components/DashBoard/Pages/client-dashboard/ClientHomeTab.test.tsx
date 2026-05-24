@@ -20,15 +20,17 @@
  *   3. Book Session CTA is present and navigates to /dashboard/client/schedule
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── Mock react-router-dom ────────────────────────────────────────────────
 const mockNavigate = vi.fn();
 const mockCreatePostMutate = vi.hoisted(() => vi.fn());
+const mockApiGet = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useParams: () => ({}),
 }));
 
 // ── Mock auth context ────────────────────────────────────────────────────
@@ -36,6 +38,12 @@ vi.mock('../../../../context/AuthContext', () => ({
   useAuth: () => ({
     user: { id: 42, firstName: 'Test', lastName: 'Client', username: 'testclient' },
   }),
+}));
+
+vi.mock('../../../../services/api.service', () => ({
+  default: {
+    get: mockApiGet,
+  },
 }));
 
 // ── Mock useGamificationData — return a plausible profile ───────────────
@@ -90,15 +98,35 @@ vi.mock('../../../../hooks/useDashboardQueries', () => ({
 
 import ClientHomeTab from './ClientHomeTab';
 
+async function renderClientHomeSettled() {
+  const result = render(<ClientHomeTab />);
+  await waitFor(() => {
+    const card = screen.getByTestId('current-workout-card');
+    expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
+    expect(card.textContent).toMatch(/plan pending/i);
+    expect(card.textContent).not.toMatch(/loading plan/i);
+  });
+  return result;
+}
+
 describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
   beforeEach(() => {
     mockNavigate.mockReset();
     mockCreatePostMutate.mockReset();
     mockCreatePostMutate.mockResolvedValue({ success: true });
+    mockApiGet.mockReset();
+    mockApiGet.mockResolvedValue({
+      data: {
+        success: true,
+        data: null,
+        plan: null,
+        message: 'No workout plan assigned yet. Your trainer will create one after your assessment.',
+      },
+    });
   });
 
-  it('renders the NextSessionCard with an explicit "Not booked yet" subtext (not a fake live schedule)', () => {
-    render(<ClientHomeTab />);
+  it('renders the NextSessionCard with an explicit "Not booked yet" subtext (not a fake live schedule)', async () => {
+    await renderClientHomeSettled();
 
     const card = screen.getByTestId('next-session-card');
     expect(card).toBeInTheDocument();
@@ -108,8 +136,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(card.textContent).toMatch(/not booked yet/i);
   });
 
-  it('does NOT render any fake upcoming-session time string on the canonical /overview surface', () => {
-    render(<ClientHomeTab />);
+  it('does NOT render any fake upcoming-session time string on the canonical /overview surface', async () => {
+    await renderClientHomeSettled();
 
     const card = screen.getByTestId('next-session-card');
     // Negative assertions — none of these pseudo-live-data patterns may appear
@@ -125,7 +153,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
   it('Book Session CTA is present inside the NextSessionCard and navigates to /dashboard/client/schedule', async () => {
     const user = userEvent.setup();
-    render(<ClientHomeTab />);
+    await renderClientHomeSettled();
 
     const card = screen.getByTestId('next-session-card');
     const bookBtn = card.querySelector('button[aria-label="Book a session"]');
@@ -136,11 +164,50 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/schedule');
   });
 
-  it('does NOT mount any weight or body-measurement widget on canonical /overview', () => {
+  it('renders the active current workout with a one-tap log action from the canonical workout endpoint', async () => {
+    const user = userEvent.setup();
+    mockApiGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          title: 'Phase 1 Stabilization',
+          currentWeek: 2,
+          currentDay: 3,
+          currentSession: {
+            weekNumber: 2,
+            dayNumber: 3,
+            dayLabel: 'Lower Strength',
+            exercises: [
+              { name: 'Goblet Squat' },
+              { name: 'Split Squat' },
+              { name: 'Row' },
+              { name: 'Carry' },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<ClientHomeTab />);
+
+    const card = await screen.findByTestId('current-workout-card');
+    expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
+    expect(card.textContent).toMatch(/current workout/i);
+    expect(card.textContent).toMatch(/phase 1 stabilization/i);
+    expect(card.textContent).toMatch(/week 2/i);
+    expect(card.textContent).toMatch(/day 3/i);
+    expect(card.textContent).toMatch(/4 exercises/i);
+
+    await user.click(screen.getByRole('button', { name: /start current workout/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+  });
+
+  it('does NOT mount any weight or body-measurement widget on canonical /overview', async () => {
     // Negative assertion — /overview has zero weight/measurement widgets by design.
     // This test locks the absence so a future regression can't silently add a
     // half-wired weight card that claims data it doesn't have.
-    const { container } = render(<ClientHomeTab />);
+    const { container } = await renderClientHomeSettled();
 
     const text = container.textContent || '';
     // None of these weight/measurement KPI patterns may appear on /overview

@@ -2,8 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import LazyYouTubeEmbed from './LazyYouTubeEmbed';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiService from '../../services/api.service';
 
 interface VideoPlayerProps {
   source: 'upload' | 'youtube';
@@ -42,27 +41,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   /* ---------- signed-URL refresh ---------- */
   const refreshUrl = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_BASE}/api/v2/videos/${videoId}/refresh-url`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+      const res = await apiService.post<{
+        success?: boolean;
+        data?: { signedUrl?: string };
+        signedUrl?: string;
+      }>(`/api/v2/videos/${videoId}/refresh-url`, undefined, {
+        validateStatus: status => status < 500,
       });
-      if (!res.ok) {
+      if (res.status < 200 || res.status >= 300) {
         if (res.status === 403) {
           setError('Access expired. Please reload.');
           return;
         }
         throw new Error('URL refresh failed');
       }
-      const data = await res.json();
-      if (data.signedUrl) {
+      const data = res.data;
+      const refreshedUrl = data.data?.signedUrl ?? data.signedUrl;
+      if (refreshedUrl) {
         const el = videoRef.current;
         const time = el?.currentTime ?? 0;
         const wasPlaying = el ? !el.paused : false;
-        setCurrentSrc(data.signedUrl);
+        setCurrentSrc(refreshedUrl);
         // restore playback position after src swap
         if (el) {
           el.addEventListener(

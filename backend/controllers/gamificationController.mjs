@@ -439,6 +439,297 @@ const safeError = (req, error) => {
   return 'An error occurred. Please try again.';
 };
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendGamificationError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: INTERNAL_ERROR
+});
+
+const parsePositiveInteger = (value, fallback = null) => {
+  if (value === undefined || value === null || value === '') return fallback;
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) => {
+  const parsed = parsePositiveInteger(value, fallback);
+  return Math.min(parsed, max);
+};
+
+const parseNonNegativeInteger = (value, fallback = null) => {
+  if (value === undefined || value === null || value === '') return fallback;
+
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const parseBoundedNumber = (value, min, max) => {
+  if (value === undefined || value === null || value === '') return null;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < min || parsed > max) return null;
+
+  return parsed;
+};
+
+const normalizeBoundedString = (value, maxLength) => {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+};
+
+const VALID_GAMIFICATION_TIERS = new Set(['bronze', 'silver', 'gold', 'platinum']);
+const VALID_REWARD_TYPES = new Set(['session', 'product', 'discount', 'service', 'other']);
+const VALID_PET_INTERACTIONS = new Set(['pet', 'feed', 'play']);
+
+const DEFAULT_GAMIFICATION_TIER_THRESHOLDS = Object.freeze({
+  bronze: 0,
+  silver: 1000,
+  gold: 5000,
+  platinum: 20000
+});
+
+const DEFAULT_GAMIFICATION_SETTINGS = Object.freeze({
+  isEnabled: true,
+  pointsPerWorkout: 50,
+  pointsPerExercise: 10,
+  pointsPerStreak: 20,
+  pointsPerLevel: 100,
+  pointsPerReview: 15,
+  pointsPerReferral: 200,
+  tierThresholds: DEFAULT_GAMIFICATION_TIER_THRESHOLDS,
+  levelRequirements: null,
+  pointsMultiplier: 1.0,
+  enableLeaderboards: true,
+  enableNotifications: true,
+  autoAwardAchievements: true
+});
+
+const SETTINGS_POINT_VALUE_DEFINITIONS = Object.freeze([
+  { id: 'workout_complete', name: 'Workout Complete', description: 'Complete a workout', field: 'pointsPerWorkout' },
+  { id: 'exercise_complete', name: 'Exercise Complete', description: 'Log an exercise', field: 'pointsPerExercise' },
+  { id: 'streak_day', name: 'Streak Day', description: 'Maintain a training streak', field: 'pointsPerStreak' },
+  { id: 'review_complete', name: 'Review Complete', description: 'Complete a review prompt', field: 'pointsPerReview' },
+  { id: 'friend_referral', name: 'Friend Referral', description: 'Refer a new member', field: 'pointsPerReferral' }
+]);
+
+const normalizeSettingsRecord = (settings) => (
+  typeof settings?.get === 'function' ? settings.get({ plain: true }) : settings
+) || {};
+
+const buildGamificationSettingsPayload = (settings) => {
+  const raw = normalizeSettingsRecord(settings);
+  const tierThresholds = raw.tierThresholds && typeof raw.tierThresholds === 'object'
+    ? raw.tierThresholds
+    : DEFAULT_GAMIFICATION_TIER_THRESHOLDS;
+  const levelRequirements = raw.levelRequirements && typeof raw.levelRequirements === 'object'
+    ? raw.levelRequirements
+    : {};
+  const notificationsEnabled = raw.enableNotifications !== false;
+
+  return {
+    ...raw,
+    pointValues: SETTINGS_POINT_VALUE_DEFINITIONS.map(({ field, ...definition }) => ({
+      ...definition,
+      pointValue: parseNonNegativeInteger(raw[field], 0)
+    })),
+    tierThresholds: Object.entries(tierThresholds).map(([tier, pointsRequired]) => ({
+      tier,
+      pointsRequired: parseNonNegativeInteger(pointsRequired, 0)
+    })),
+    levelSettings: {
+      pointsPerLevel: parsePositiveInteger(raw.pointsPerLevel, 100),
+      levelCap: parsePositiveInteger(levelRequirements.levelCap, 100),
+      enableLevelCap: Boolean(levelRequirements.enableLevelCap)
+    },
+    systemSettings: {
+      enableGamification: raw.isEnabled !== false,
+      enableAchievements: raw.autoAwardAchievements !== false,
+      enableRewards: true,
+      enableLeaderboard: raw.enableLeaderboards !== false,
+      enableLevels: true,
+      enableTiers: true,
+      enableStreaks: true,
+      notifyOnAchievement: notificationsEnabled,
+      notifyOnLevelUp: notificationsEnabled,
+      notifyOnReward: notificationsEnabled,
+      streakExpirationDays: parsePositiveInteger(levelRequirements.streakExpirationDays, 3),
+      pointsExpiration: {
+        enabled: Boolean(levelRequirements.pointsExpiration?.enabled),
+        expirationDays: parsePositiveInteger(levelRequirements.pointsExpiration?.expirationDays, 365)
+      }
+    }
+  };
+};
+
+const setNonNegativeIntegerField = (target, field, value) => {
+  if (value === undefined) return null;
+  const parsed = parseNonNegativeInteger(value);
+  if (parsed === null) return `${field} must be a non-negative integer`;
+  target[field] = parsed;
+  return null;
+};
+
+const setBooleanField = (target, field, value) => {
+  if (value === undefined) return null;
+  if (typeof value !== 'boolean') return `${field} must be a boolean`;
+  target[field] = value;
+  return null;
+};
+
+const applyPointValueDraftFields = (target, pointValues) => {
+  if (pointValues === undefined) return null;
+  if (!Array.isArray(pointValues)) return 'pointValues must be an array';
+
+  for (const pointValue of pointValues) {
+    const definition = SETTINGS_POINT_VALUE_DEFINITIONS.find((item) => item.id === pointValue?.id);
+    if (!definition) continue;
+
+    const error = setNonNegativeIntegerField(target, definition.field, pointValue.pointValue);
+    if (error) return error;
+  }
+
+  return null;
+};
+
+const applyTierThresholdDraftFields = (target, tierThresholds) => {
+  if (tierThresholds === undefined) return null;
+  const nextThresholds = {};
+
+  if (Array.isArray(tierThresholds)) {
+    for (const item of tierThresholds) {
+      if (!item?.tier) continue;
+      const pointsRequired = parseNonNegativeInteger(item.pointsRequired);
+      if (pointsRequired === null) return `${item.tier} threshold must be a non-negative integer`;
+      nextThresholds[item.tier] = pointsRequired;
+    }
+  } else if (typeof tierThresholds === 'object' && tierThresholds !== null) {
+    for (const [tier, pointsRequired] of Object.entries(tierThresholds)) {
+      const parsed = parseNonNegativeInteger(pointsRequired);
+      if (parsed === null) return `${tier} threshold must be a non-negative integer`;
+      nextThresholds[tier] = parsed;
+    }
+  } else {
+    return 'tierThresholds must be an array or object';
+  }
+
+  target.tierThresholds = Object.keys(nextThresholds).length > 0 ? nextThresholds : DEFAULT_GAMIFICATION_TIER_THRESHOLDS;
+  return null;
+};
+
+const applyLevelSettingsDraftFields = (target, levelSettings) => {
+  if (levelSettings === undefined) return null;
+  if (typeof levelSettings !== 'object' || levelSettings === null) return 'levelSettings must be an object';
+
+  const pointsError = setNonNegativeIntegerField(target, 'pointsPerLevel', levelSettings.pointsPerLevel);
+  if (pointsError) return pointsError;
+
+  const nextRequirements = {};
+  if (levelSettings.levelCap !== undefined) {
+    const levelCap = parsePositiveInteger(levelSettings.levelCap);
+    if (levelCap === null) return 'levelCap must be a positive integer';
+    nextRequirements.levelCap = levelCap;
+  }
+
+  if (levelSettings.enableLevelCap !== undefined) {
+    if (typeof levelSettings.enableLevelCap !== 'boolean') return 'enableLevelCap must be a boolean';
+    nextRequirements.enableLevelCap = levelSettings.enableLevelCap;
+  }
+
+  if (Object.keys(nextRequirements).length > 0) {
+    target.levelRequirements = {
+      ...(target.levelRequirements && typeof target.levelRequirements === 'object' ? target.levelRequirements : {}),
+      ...nextRequirements
+    };
+  }
+
+  return null;
+};
+
+const applySystemSettingsDraftFields = (target, systemSettings) => {
+  if (systemSettings === undefined) return null;
+  if (typeof systemSettings !== 'object' || systemSettings === null) return 'systemSettings must be an object';
+
+  const fieldErrors = [
+    setBooleanField(target, 'isEnabled', systemSettings.enableGamification),
+    setBooleanField(target, 'autoAwardAchievements', systemSettings.enableAchievements),
+    setBooleanField(target, 'enableLeaderboards', systemSettings.enableLeaderboard)
+  ].filter(Boolean);
+  if (fieldErrors.length > 0) return fieldErrors[0];
+
+  const notificationFlags = [
+    systemSettings.notifyOnAchievement,
+    systemSettings.notifyOnLevelUp,
+    systemSettings.notifyOnReward
+  ].filter((value) => value !== undefined);
+  if (notificationFlags.some((value) => typeof value !== 'boolean')) {
+    return 'notification settings must be booleans';
+  }
+  if (notificationFlags.length > 0) {
+    target.enableNotifications = notificationFlags.some(Boolean);
+  }
+
+  const nextRequirements = {};
+  if (systemSettings.streakExpirationDays !== undefined) {
+    const streakExpirationDays = parsePositiveInteger(systemSettings.streakExpirationDays);
+    if (streakExpirationDays === null) return 'streakExpirationDays must be a positive integer';
+    nextRequirements.streakExpirationDays = streakExpirationDays;
+  }
+
+  if (systemSettings.pointsExpiration !== undefined) {
+    if (typeof systemSettings.pointsExpiration !== 'object' || systemSettings.pointsExpiration === null) {
+      return 'pointsExpiration must be an object';
+    }
+    const expirationDays = parsePositiveInteger(systemSettings.pointsExpiration.expirationDays, 365);
+    nextRequirements.pointsExpiration = {
+      enabled: Boolean(systemSettings.pointsExpiration.enabled),
+      expirationDays
+    };
+  }
+
+  if (Object.keys(nextRequirements).length > 0) {
+    target.levelRequirements = {
+      ...(target.levelRequirements && typeof target.levelRequirements === 'object' ? target.levelRequirements : {}),
+      ...nextRequirements
+    };
+  }
+
+  return null;
+};
+
+const applyFlatGamificationSettingsFields = (target, body) => {
+  const errors = [
+    setBooleanField(target, 'isEnabled', body.isEnabled),
+    setNonNegativeIntegerField(target, 'pointsPerWorkout', body.pointsPerWorkout),
+    setNonNegativeIntegerField(target, 'pointsPerExercise', body.pointsPerExercise),
+    setNonNegativeIntegerField(target, 'pointsPerStreak', body.pointsPerStreak),
+    setNonNegativeIntegerField(target, 'pointsPerLevel', body.pointsPerLevel),
+    setNonNegativeIntegerField(target, 'pointsPerReview', body.pointsPerReview),
+    setNonNegativeIntegerField(target, 'pointsPerReferral', body.pointsPerReferral),
+    setBooleanField(target, 'enableLeaderboards', body.enableLeaderboards),
+    setBooleanField(target, 'enableNotifications', body.enableNotifications),
+    setBooleanField(target, 'autoAwardAchievements', body.autoAwardAchievements)
+  ].filter(Boolean);
+
+  if (errors.length > 0) return errors[0];
+
+  if (body.levelRequirements !== undefined) target.levelRequirements = body.levelRequirements;
+  return null;
+};
+
+const applyGamificationSettingsDraft = (target, body) => {
+  const errors = [
+    applyPointValueDraftFields(target, body.pointValues),
+    applyTierThresholdDraftFields(target, body.tierThresholds),
+    applyLevelSettingsDraftFields(target, body.levelSettings),
+    applySystemSettingsDraftFields(target, body.systemSettings)
+  ].filter(Boolean);
+
+  return errors[0] || null;
+};
+
 const mapPointTransactionFeedType = (source) => {
   switch (source) {
     case 'friend_referral':
@@ -488,32 +779,16 @@ const gamificationController = {
       let settings = await GamificationSettings.findOne();
       
       if (!settings) {
-        // Create default settings if none exist
-        settings = await GamificationSettings.create({
-          isEnabled: true,
-          pointsPerWorkout: 50,
-          pointsPerExercise: 10,
-          pointsPerStreak: 20,
-          pointsPerLevel: 100,
-          pointsPerReview: 15,
-          pointsPerReferral: 200,
-          tierThresholds: {
-            bronze: 0,
-            silver: 1000,
-            gold: 5000,
-            platinum: 20000
-          }
-        });
+        settings = await GamificationSettings.create(DEFAULT_GAMIFICATION_SETTINGS);
       }
       
-      return res.status(200).json({ success: true, settings });
+      return res.status(200).json({
+        success: true,
+        settings: buildGamificationSettingsPayload(settings)
+      });
     } catch (error) {
       console.error('Error getting gamification settings:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get gamification settings',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get gamification settings');
     }
   },
 
@@ -537,62 +812,56 @@ const gamificationController = {
         enableNotifications,
         autoAwardAchievements
       } = req.body;
+      const normalizedPointsMultiplier = pointsMultiplier === undefined ? undefined : parseBoundedNumber(pointsMultiplier, 0, 5);
+      if (pointsMultiplier !== undefined && normalizedPointsMultiplier === null) {
+        return res.status(400).json({ success: false, message: 'pointsMultiplier must be a number from 0 to 5' });
+      }
+
+      const updatedFields = {};
+      const validationError = applyGamificationSettingsDraft(updatedFields, req.body);
+      if (validationError) {
+        return res.status(400).json({ success: false, message: validationError });
+      }
+
+      const flatValidationError = applyFlatGamificationSettingsFields(updatedFields, {
+        isEnabled,
+        pointsPerWorkout,
+        pointsPerExercise,
+        pointsPerStreak,
+        pointsPerLevel,
+        pointsPerReview,
+        pointsPerReferral,
+        levelRequirements,
+        enableLeaderboards,
+        enableNotifications,
+        autoAwardAchievements
+      });
+      if (flatValidationError) {
+        return res.status(400).json({ success: false, message: flatValidationError });
+      }
+
+      if (pointsMultiplier !== undefined) updatedFields.pointsMultiplier = normalizedPointsMultiplier;
       
       let settings = await GamificationSettings.findOne();
       
       if (!settings) {
         settings = await GamificationSettings.create({
-          isEnabled: isEnabled ?? true,
-          pointsPerWorkout: pointsPerWorkout ?? 50,
-          pointsPerExercise: pointsPerExercise ?? 10,
-          pointsPerStreak: pointsPerStreak ?? 20,
-          pointsPerLevel: pointsPerLevel ?? 100,
-          pointsPerReview: pointsPerReview ?? 15,
-          pointsPerReferral: pointsPerReferral ?? 200,
-          tierThresholds: tierThresholds ?? {
-            bronze: 0,
-            silver: 1000,
-            gold: 5000,
-            platinum: 20000
-          },
-          levelRequirements: levelRequirements ?? null,
-          pointsMultiplier: Math.min(parseFloat(pointsMultiplier) || 1.0, 5.0),
-          enableLeaderboards: enableLeaderboards ?? true,
-          enableNotifications: enableNotifications ?? true,
-          autoAwardAchievements: autoAwardAchievements ?? true
+          ...DEFAULT_GAMIFICATION_SETTINGS,
+          ...updatedFields,
+          pointsMultiplier: pointsMultiplier === undefined ? 1.0 : normalizedPointsMultiplier,
         });
       } else {
-        const updatedFields = {};
-        
-        if (isEnabled !== undefined) updatedFields.isEnabled = isEnabled;
-        if (pointsPerWorkout !== undefined) updatedFields.pointsPerWorkout = pointsPerWorkout;
-        if (pointsPerExercise !== undefined) updatedFields.pointsPerExercise = pointsPerExercise;
-        if (pointsPerStreak !== undefined) updatedFields.pointsPerStreak = pointsPerStreak;
-        if (pointsPerLevel !== undefined) updatedFields.pointsPerLevel = pointsPerLevel;
-        if (pointsPerReview !== undefined) updatedFields.pointsPerReview = pointsPerReview;
-        if (pointsPerReferral !== undefined) updatedFields.pointsPerReferral = pointsPerReferral;
-        if (tierThresholds !== undefined) updatedFields.tierThresholds = tierThresholds;
-        if (levelRequirements !== undefined) updatedFields.levelRequirements = levelRequirements;
-        if (pointsMultiplier !== undefined) updatedFields.pointsMultiplier = Math.min(parseFloat(pointsMultiplier) || 1.0, 5.0);
-        if (enableLeaderboards !== undefined) updatedFields.enableLeaderboards = enableLeaderboards;
-        if (enableNotifications !== undefined) updatedFields.enableNotifications = enableNotifications;
-        if (autoAwardAchievements !== undefined) updatedFields.autoAwardAchievements = autoAwardAchievements;
-        
         await settings.update(updatedFields);
       }
       
       return res.status(200).json({
         success: true,
         message: 'Gamification settings updated successfully',
-        settings
+        settings: buildGamificationSettingsPayload(settings)
       });
     } catch (error) {
       console.error('Error updating gamification settings:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update gamification settings',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to update gamification settings');
     }
   },
 
@@ -602,9 +871,17 @@ const gamificationController = {
   getUserProfile: async (req, res) => {
     try {
       const { userId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
+
+      if (!normalizedUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user id is required'
+        });
+      }
       
       // Get user with achievements, rewards, and milestones
-      const user = await User.findByPk(userId, {
+      const user = await User.findByPk(normalizedUserId, {
         attributes: [
           'id', 'firstName', 'lastName', 'username', 'photo',
           'points', 'level', 'tier', 'streakDays', 'totalWorkouts',
@@ -657,7 +934,7 @@ const gamificationController = {
       
       // Get recent point transactions
       const recentTransactions = await PointTransaction.findAll({
-        where: { userId },
+        where: { userId: normalizedUserId },
         limit: 10,
         order: [['createdAt', 'DESC']]
       });
@@ -717,11 +994,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error getting user gamification profile:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get user gamification profile',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get user gamification profile');
     }
   },
 
@@ -731,12 +1004,12 @@ const gamificationController = {
   getLeaderboard: async (req, res) => {
     try {
       const { limit: rawLimit = 10, page = 1, tier } = req.query;
-      // SECURITY FIX #9: Cap pagination to prevent DoS via huge limit values
-      const limit = Math.min(parseInt(rawLimit) || 10, 100);
-      const offset = (page - 1) * limit;
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 10, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
       
       const whereClause = {};
-      if (tier) {
+      if (tier && VALID_GAMIFICATION_TIERS.has(tier)) {
         whereClause.tier = tier;
       }
       
@@ -747,8 +1020,8 @@ const gamificationController = {
         ],
         where: whereClause,
         order: [['points', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: normalizedLimit,
+        offset
       });
       
       const total = await User.count({ where: whereClause });
@@ -758,18 +1031,14 @@ const gamificationController = {
         leaderboard,
         pagination: {
           total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / limit)
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(total / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error getting leaderboard:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get leaderboard',
-        error: safeError(req, error)
-      });
+      return sendGamificationError(res, 'Failed to get leaderboard');
     }
   },
 
@@ -781,6 +1050,7 @@ const gamificationController = {
 
     try {
       const { userId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
       const {
         points,
         transactionType = 'earn',
@@ -789,6 +1059,14 @@ const gamificationController = {
         description,
         metadata
       } = req.body;
+
+      if (!normalizedUserId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user id is required'
+        });
+      }
 
       if (!points || !source || !description) {
         await transaction.rollback();
@@ -812,10 +1090,10 @@ const gamificationController = {
       // ── SECURITY FIX #2: Idempotency Check (CRITICAL) ──
       // Prevents replay attacks — same user+source+sourceId on same day = reject
       const idempotencyKey = req.body.idempotencyKey ||
-        ['manual-award', userId, source, sourceId || 'no-source-id', new Date().toISOString().slice(0, 10)].join(':');
+        ['manual-award', normalizedUserId, source, sourceId || 'no-source-id', new Date().toISOString().slice(0, 10)].join(':');
 
       const ledgerResult = await GamificationPointsService.recordLedgerEntry({
-        userId,
+        userId: normalizedUserId,
         points,
         transactionType,
         source,
@@ -850,7 +1128,7 @@ const gamificationController = {
         if (tierMilestone) {
           const existingMilestone = await UserMilestone.findOne({
             where: {
-              userId,
+              userId: normalizedUserId,
               milestoneId: tierMilestone.id
             },
             transaction
@@ -858,7 +1136,7 @@ const gamificationController = {
 
           if (!existingMilestone) {
             await UserMilestone.create({
-              userId,
+              userId: normalizedUserId,
               milestoneId: tierMilestone.id,
               reachedAt: new Date(),
               bonusPointsAwarded: tierMilestone.bonusPoints
@@ -866,7 +1144,7 @@ const gamificationController = {
 
             if (tierMilestone.bonusPoints > 0) {
               const bonusResult = await GamificationPointsService.recordLedgerEntry({
-                userId,
+                userId: normalizedUserId,
                 points: tierMilestone.bonusPoints,
                 transactionType: 'bonus',
                 source: 'milestone_reached',
@@ -874,7 +1152,7 @@ const gamificationController = {
                 description: `Milestone Bonus: ${tierMilestone.name}`,
                 metadata: { milestoneId: tierMilestone.id },
                 awardedBy: req.user?.id,
-                idempotencyKey: `milestone:tier:${userId}:${tierMilestone.id}`
+                idempotencyKey: `milestone:tier:${normalizedUserId}:${tierMilestone.id}`
               }, transaction);
               finalBalance = bonusResult.newBalance || finalBalance;
             }
@@ -894,11 +1172,11 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error awarding points:', error);
-      return res.status(error.statusCode || 500).json({
-        success: false,
-        message: error.statusCode ? error.message : 'Failed to award points',
-        error: safeError(req, error)
-      });
+      if (error.statusCode && error.statusCode < 500) {
+        const clientMessage = error.statusCode === 404 ? 'User not found' : 'Invalid point award request';
+        return res.status(error.statusCode).json({ success: false, message: clientMessage });
+      }
+      return sendGamificationError(res, 'Failed to award points');
     }
   },
 
@@ -948,11 +1226,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, achievements });
     } catch (error) {
       console.error('Error getting achievements:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get achievements',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get achievements');
     }
   },
 
@@ -975,11 +1249,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, achievement });
     } catch (error) {
       console.error('Error getting achievement:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get achievement',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get achievement');
     }
   },
 
@@ -1050,11 +1320,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error creating achievement:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create achievement',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to create achievement');
     }
   },
 
@@ -1101,11 +1367,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error updating achievement:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update achievement',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to update achievement');
     }
   },
 
@@ -1141,11 +1403,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error deleting achievement:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to delete achievement',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to delete achievement');
     }
   },
 
@@ -1157,9 +1415,18 @@ const gamificationController = {
     
     try {
       const { userId, achievementId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
+
+      if (!normalizedUserId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user id is required'
+        });
+      }
       
       // Check if user exists
-      const user = await User.findByPk(userId, { transaction });
+      const user = await User.findByPk(normalizedUserId, { transaction });
       
       if (!user) {
         await transaction.rollback();
@@ -1184,7 +1451,7 @@ const gamificationController = {
       let userAchievement = await UserAchievement.findOne({
         attributes: SAFE_USER_ACHIEVEMENT_ATTRS,
         where: {
-          userId,
+          userId: normalizedUserId,
           achievementId
         },
         transaction
@@ -1209,7 +1476,7 @@ const gamificationController = {
       } else {
         // Create new user achievement record
         userAchievement = await UserAchievement.create({
-          userId,
+          userId: normalizedUserId,
           achievementId,
           isCompleted: true,
           progress: 100,
@@ -1225,7 +1492,7 @@ const gamificationController = {
       const newTier = getTier(newLevel);
       
       await PointTransaction.create({
-        userId,
+        userId: normalizedUserId,
         points: achievementPoints,
         balance: newBalance,
         transactionType: 'earn',
@@ -1251,11 +1518,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error awarding achievement:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to award achievement',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to award achievement');
     }
   },
 
@@ -1266,11 +1529,20 @@ const gamificationController = {
     try {
       const { userId, achievementId } = req.params;
       const { progress } = req.body;
+      const normalizedUserId = parsePositiveInteger(userId);
+      const normalizedProgress = parseBoundedNumber(progress, 0, 100);
       
-      if (progress === undefined) {
+      if (!normalizedUserId) {
         return res.status(400).json({
           success: false,
-          message: 'Progress is required'
+          message: 'Valid user id is required'
+        });
+      }
+
+      if (normalizedProgress === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Progress must be a number from 0 to 100'
         });
       }
       
@@ -1278,7 +1550,7 @@ const gamificationController = {
       let userAchievement = await UserAchievement.findOne({
         attributes: SAFE_USER_ACHIEVEMENT_ATTRS,
         where: {
-          userId,
+          userId: normalizedUserId,
           achievementId
         },
         include: [{
@@ -1299,16 +1571,16 @@ const gamificationController = {
         }
         
         userAchievement = await UserAchievement.create({
-          userId,
+          userId: normalizedUserId,
           achievementId,
-          progress: Math.min(100, Math.max(0, progress)),
-          isCompleted: progress >= 100
+          progress: normalizedProgress,
+          isCompleted: normalizedProgress >= 100
         });
         
         // If completed, award points
-        if (progress >= 100) {
+        if (normalizedProgress >= 100) {
           // Get user
-          const user = await User.findByPk(userId);
+          const user = await User.findByPk(normalizedUserId);
           
           if (user) {
             const achievementPoints = getAchievementPointValue(achievement);
@@ -1318,7 +1590,7 @@ const gamificationController = {
             
             // Create point transaction
             await PointTransaction.create({
-              userId,
+              userId: normalizedUserId,
               points: achievementPoints,
               balance: newBalance,
               transactionType: 'earn',
@@ -1338,7 +1610,7 @@ const gamificationController = {
       } else {
         // Only update if not already completed
         if (!userAchievement.isCompleted) {
-          const newProgress = Math.min(100, Math.max(0, progress));
+          const newProgress = normalizedProgress;
           const wasCompleted = userAchievement.progress < 100 && newProgress >= 100;
           
           await userAchievement.update({
@@ -1350,7 +1622,7 @@ const gamificationController = {
           // If newly completed, award points
           if (wasCompleted) {
             // Get user
-            const user = await User.findByPk(userId);
+            const user = await User.findByPk(normalizedUserId);
             
             if (user && userAchievement.achievement) {
               const achievementPoints = getAchievementPointValue(userAchievement.achievement);
@@ -1360,7 +1632,7 @@ const gamificationController = {
               
               // Create point transaction
               await PointTransaction.create({
-                userId,
+                userId: normalizedUserId,
                 points: achievementPoints,
                 balance: newBalance,
                 transactionType: 'earn',
@@ -1387,11 +1659,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error updating achievement progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update achievement progress',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to update achievement progress');
     }
   },
 
@@ -1424,11 +1692,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, rewards });
     } catch (error) {
       console.error('Error getting rewards:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get rewards',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get rewards');
     }
   },
 
@@ -1438,8 +1702,16 @@ const gamificationController = {
   getReward: async (req, res) => {
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
+
+      if (!normalizedId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reward ID'
+        });
+      }
       
-      const reward = await Reward.findByPk(id);
+      const reward = await Reward.findByPk(normalizedId);
       
       if (!reward) {
         return res.status(404).json({
@@ -1451,11 +1723,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, reward });
     } catch (error) {
       console.error('Error getting reward:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get reward',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get reward');
     }
   },
 
@@ -1483,17 +1751,42 @@ const gamificationController = {
           message: 'Name, description, and tier are required'
         });
       }
+
+      const normalizedPointCost = pointCost === undefined ? 500 : parseNonNegativeInteger(pointCost);
+      const normalizedStock = stock === undefined ? 10 : parseNonNegativeInteger(stock);
+      const normalizedRewardType = rewardType === undefined ? 'other' : rewardType;
+
+      if (normalizedPointCost === null || normalizedStock === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Point cost and stock must be non-negative integers'
+        });
+      }
+
+      if (!VALID_GAMIFICATION_TIERS.has(tier)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reward tier'
+        });
+      }
+
+      if (!VALID_REWARD_TYPES.has(normalizedRewardType)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reward type'
+        });
+      }
       
       const reward = await Reward.create({
         name,
         description,
         icon: icon || 'Gift',
-        pointCost: pointCost || 500,
+        pointCost: normalizedPointCost,
         tier,
-        stock: stock || 10,
+        stock: normalizedStock,
         isActive: isActive !== undefined ? isActive : true,
         imageUrl,
-        rewardType: rewardType || 'other',
+        rewardType: normalizedRewardType,
         expiresAt: expiresAt || null
       });
       
@@ -1504,11 +1797,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error creating reward:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create reward',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to create reward');
     }
   },
 
@@ -1518,6 +1807,7 @@ const gamificationController = {
   updateReward: async (req, res) => {
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
       const {
         name,
         description,
@@ -1530,8 +1820,15 @@ const gamificationController = {
         rewardType,
         expiresAt
       } = req.body;
+
+      if (!normalizedId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reward ID'
+        });
+      }
       
-      const reward = await Reward.findByPk(id);
+      const reward = await Reward.findByPk(normalizedId);
       
       if (!reward) {
         return res.status(404).json({
@@ -1545,12 +1842,46 @@ const gamificationController = {
       if (name !== undefined) updatedFields.name = name;
       if (description !== undefined) updatedFields.description = description;
       if (icon !== undefined) updatedFields.icon = icon;
-      if (pointCost !== undefined) updatedFields.pointCost = pointCost;
-      if (tier !== undefined) updatedFields.tier = tier;
-      if (stock !== undefined) updatedFields.stock = stock;
+      if (pointCost !== undefined) {
+        const normalizedPointCost = parseNonNegativeInteger(pointCost);
+        if (normalizedPointCost === null) {
+          return res.status(400).json({
+            success: false,
+            message: 'Point cost must be a non-negative integer'
+          });
+        }
+        updatedFields.pointCost = normalizedPointCost;
+      }
+      if (tier !== undefined) {
+        if (!VALID_GAMIFICATION_TIERS.has(tier)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid reward tier'
+          });
+        }
+        updatedFields.tier = tier;
+      }
+      if (stock !== undefined) {
+        const normalizedStock = parseNonNegativeInteger(stock);
+        if (normalizedStock === null) {
+          return res.status(400).json({
+            success: false,
+            message: 'Stock must be a non-negative integer'
+          });
+        }
+        updatedFields.stock = normalizedStock;
+      }
       if (isActive !== undefined) updatedFields.isActive = isActive;
       if (imageUrl !== undefined) updatedFields.imageUrl = imageUrl;
-      if (rewardType !== undefined) updatedFields.rewardType = rewardType;
+      if (rewardType !== undefined) {
+        if (!VALID_REWARD_TYPES.has(rewardType)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid reward type'
+          });
+        }
+        updatedFields.rewardType = rewardType;
+      }
       if (expiresAt !== undefined) updatedFields.expiresAt = expiresAt;
       
       await reward.update(updatedFields);
@@ -1562,11 +1893,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error updating reward:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update reward',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to update reward');
     }
   },
 
@@ -1578,8 +1905,17 @@ const gamificationController = {
     
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
+
+      if (!normalizedId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reward ID'
+        });
+      }
       
-      const reward = await Reward.findByPk(id, { transaction });
+      const reward = await Reward.findByPk(normalizedId, { transaction });
       
       if (!reward) {
         await transaction.rollback();
@@ -1591,7 +1927,7 @@ const gamificationController = {
       
       // Check if reward has been redeemed
       const redemptionCount = await UserReward.count({
-        where: { rewardId: id },
+        where: { rewardId: normalizedId },
         transaction
       });
       
@@ -1620,11 +1956,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error deleting reward:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to delete reward',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to delete reward');
     }
   },
 
@@ -1636,9 +1968,19 @@ const gamificationController = {
     
     try {
       const { userId, rewardId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
+      const normalizedRewardId = parsePositiveInteger(rewardId);
+
+      if (!normalizedUserId || !normalizedRewardId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid user or reward ID'
+        });
+      }
       
       // Check if user exists
-      const user = await User.findByPk(userId, { transaction });
+      const user = await User.findByPk(normalizedUserId, { transaction });
       
       if (!user) {
         await transaction.rollback();
@@ -1651,7 +1993,7 @@ const gamificationController = {
       // Check if reward exists and is active
       const reward = await Reward.findOne({
         where: {
-          id: rewardId,
+          id: normalizedRewardId,
           isActive: true
         },
         transaction
@@ -1694,8 +2036,8 @@ const gamificationController = {
       
       // Create user reward record
       const userReward = await UserReward.create({
-        userId,
-        rewardId,
+        userId: normalizedUserId,
+        rewardId: normalizedRewardId,
         redeemedAt: new Date(),
         status: 'pending',
         pointsCost: reward.pointCost,
@@ -1706,7 +2048,7 @@ const gamificationController = {
       const newBalance = user.points - reward.pointCost;
       
       await PointTransaction.create({
-        userId,
+        userId: normalizedUserId,
         points: reward.pointCost,
         balance: newBalance,
         transactionType: 'spend',
@@ -1736,11 +2078,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error redeeming reward:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to redeem reward',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to redeem reward');
     }
   },
 
@@ -1773,11 +2111,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, milestones });
     } catch (error) {
       console.error('Error getting milestones:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get milestones',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get milestones');
     }
   },
 
@@ -1787,8 +2121,16 @@ const gamificationController = {
   getMilestone: async (req, res) => {
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
+
+      if (!normalizedId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid milestone ID'
+        });
+      }
       
-      const milestone = await Milestone.findByPk(id);
+      const milestone = await Milestone.findByPk(normalizedId);
       
       if (!milestone) {
         return res.status(404).json({
@@ -1800,11 +2142,7 @@ const gamificationController = {
       return res.status(200).json({ success: true, milestone });
     } catch (error) {
       console.error('Error getting milestone:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get milestone',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to get milestone');
     }
   },
 
@@ -1825,19 +2163,36 @@ const gamificationController = {
         requiredForPromotion
       } = req.body;
       
-      if (!name || !description || !targetPoints || !tier) {
+      if (!name || !description || targetPoints === undefined || !tier) {
         return res.status(400).json({
           success: false,
           message: 'Name, description, targetPoints, and tier are required'
+        });
+      }
+
+      const normalizedTargetPoints = parseNonNegativeInteger(targetPoints);
+      const normalizedBonusPoints = bonusPoints === undefined ? 200 : parseNonNegativeInteger(bonusPoints);
+
+      if (normalizedTargetPoints === null || normalizedBonusPoints === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'Target points and bonus points must be non-negative integers'
+        });
+      }
+
+      if (!VALID_GAMIFICATION_TIERS.has(tier)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid milestone tier'
         });
       }
       
       const milestone = await Milestone.create({
         name,
         description,
-        targetPoints,
+        targetPoints: normalizedTargetPoints,
         tier,
-        bonusPoints: bonusPoints || 200,
+        bonusPoints: normalizedBonusPoints,
         icon: icon || 'Star',
         isActive: isActive !== undefined ? isActive : true,
         imageUrl,
@@ -1851,11 +2206,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error creating milestone:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create milestone',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to create milestone');
     }
   },
 
@@ -1865,6 +2216,7 @@ const gamificationController = {
   updateMilestone: async (req, res) => {
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
       const {
         name,
         description,
@@ -1876,8 +2228,15 @@ const gamificationController = {
         imageUrl,
         requiredForPromotion
       } = req.body;
+
+      if (!normalizedId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid milestone ID'
+        });
+      }
       
-      const milestone = await Milestone.findByPk(id);
+      const milestone = await Milestone.findByPk(normalizedId);
       
       if (!milestone) {
         return res.status(404).json({
@@ -1890,9 +2249,35 @@ const gamificationController = {
       
       if (name !== undefined) updatedFields.name = name;
       if (description !== undefined) updatedFields.description = description;
-      if (targetPoints !== undefined) updatedFields.targetPoints = targetPoints;
-      if (tier !== undefined) updatedFields.tier = tier;
-      if (bonusPoints !== undefined) updatedFields.bonusPoints = bonusPoints;
+      if (targetPoints !== undefined) {
+        const normalizedTargetPoints = parseNonNegativeInteger(targetPoints);
+        if (normalizedTargetPoints === null) {
+          return res.status(400).json({
+            success: false,
+            message: 'Target points must be a non-negative integer'
+          });
+        }
+        updatedFields.targetPoints = normalizedTargetPoints;
+      }
+      if (tier !== undefined) {
+        if (!VALID_GAMIFICATION_TIERS.has(tier)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid milestone tier'
+          });
+        }
+        updatedFields.tier = tier;
+      }
+      if (bonusPoints !== undefined) {
+        const normalizedBonusPoints = parseNonNegativeInteger(bonusPoints);
+        if (normalizedBonusPoints === null) {
+          return res.status(400).json({
+            success: false,
+            message: 'Bonus points must be a non-negative integer'
+          });
+        }
+        updatedFields.bonusPoints = normalizedBonusPoints;
+      }
       if (icon !== undefined) updatedFields.icon = icon;
       if (isActive !== undefined) updatedFields.isActive = isActive;
       if (imageUrl !== undefined) updatedFields.imageUrl = imageUrl;
@@ -1907,11 +2292,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error updating milestone:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update milestone',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to update milestone');
     }
   },
 
@@ -1923,8 +2304,17 @@ const gamificationController = {
     
     try {
       const { id } = req.params;
+      const normalizedId = parsePositiveInteger(id);
+
+      if (!normalizedId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid milestone ID'
+        });
+      }
       
-      const milestone = await Milestone.findByPk(id, { transaction });
+      const milestone = await Milestone.findByPk(normalizedId, { transaction });
       
       if (!milestone) {
         await transaction.rollback();
@@ -1947,11 +2337,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error deleting milestone:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to delete milestone',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to delete milestone');
     }
   },
 
@@ -1964,9 +2350,18 @@ const gamificationController = {
     
     try {
       const { userId } = req.params;
+      const normalizedUserId = parsePositiveInteger(userId);
+
+      if (!normalizedUserId) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid user ID'
+        });
+      }
       
       // Check if user exists
-      const user = await User.findByPk(userId, { transaction });
+      const user = await User.findByPk(normalizedUserId, { transaction });
       
       if (!user) {
         await transaction.rollback();
@@ -1985,7 +2380,7 @@ const gamificationController = {
         include: [{
           model: UserMilestone,
           as: 'userMilestones',
-          where: { userId },
+          where: { userId: normalizedUserId },
           required: false
         }],
         transaction
@@ -2013,7 +2408,7 @@ const gamificationController = {
       for (const milestone of newMilestones) {
         // Create user milestone record
         const userMilestone = await UserMilestone.create({
-          userId,
+          userId: normalizedUserId,
           milestoneId: milestone.id,
           reachedAt: new Date(),
           bonusPointsAwarded: milestone.bonusPoints
@@ -2031,7 +2426,7 @@ const gamificationController = {
         
         // Create point transaction for bonuses
         await PointTransaction.create({
-          userId,
+          userId: normalizedUserId,
           points: totalBonusPoints,
           balance: finalBalance,
           transactionType: 'bonus',
@@ -2057,11 +2452,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error awarding milestones:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to award milestones',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to award milestones');
     }
   },
 
@@ -2072,10 +2463,18 @@ const gamificationController = {
     try {
       const { userId } = req.params;
       const { page = 1, limit: rawLimit = 20, type, source } = req.query;
-      // SECURITY: Cap pagination to prevent DoS
-      const limit = Math.min(parseInt(rawLimit) || 20, 100);
+      const normalizedUserId = parsePositiveInteger(userId);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);
+
+      if (!normalizedUserId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid user id is required'
+        });
+      }
       
-      const whereClause = { userId };
+      const whereClause = { userId: normalizedUserId };
       
       if (type) {
         whereClause.transactionType = type;
@@ -2085,12 +2484,12 @@ const gamificationController = {
         whereClause.source = source;
       }
       
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const offset = (normalizedPage - 1) * normalizedLimit;
       
       const transactions = await PointTransaction.findAll({
         where: whereClause,
         order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset
       });
       
@@ -2101,18 +2500,14 @@ const gamificationController = {
         transactions,
         pagination: {
           total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(total / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(total / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error getting user transactions:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to get user transactions',
-        error: safeError(req, error)
-      });
+      return sendGamificationError(res, 'Failed to get user transactions');
     }
   },
 
@@ -2134,8 +2529,13 @@ const gamificationController = {
       
       // Use userId from request body or fallback to authenticated user
       const targetUserId = userId || req.user?.id;
+      const normalizedUserId = parsePositiveInteger(targetUserId);
+      const normalizedDuration = duration === undefined ? 0 : parseBoundedNumber(duration, 0, 1440);
+      const normalizedExercisesCompleted = exercisesCompleted === undefined ? 0 : parseNonNegativeInteger(exercisesCompleted);
+      const normalizedCaloriesBurned = caloriesBurned === undefined ? undefined : parseNonNegativeInteger(caloriesBurned);
+      const normalizedNotes = normalizeBoundedString(notes, 500);
 
-      if (!targetUserId) {
+      if (!normalizedUserId) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -2143,19 +2543,20 @@ const gamificationController = {
         });
       }
 
-      // OWNERSHIP CHECK: non-admin/trainer can only record for themselves
-      if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
-        if (Number(targetUserId) !== Number(req.user.id)) {
-          await transaction.rollback();
-          return res.status(403).json({
-            success: false,
-            message: 'Forbidden: You can only record workouts for yourself'
-          });
-        }
+      if (
+        normalizedDuration === null ||
+        normalizedExercisesCompleted === null ||
+        normalizedCaloriesBurned === null
+      ) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Workout duration, exercise count, and calories must be valid non-negative numbers'
+        });
       }
 
       // Verify user exists (with row-level lock for concurrency safety)
-      const user = await User.findByPk(targetUserId, {
+      const user = await User.findByPk(normalizedUserId, {
         transaction,
         lock: transaction.LOCK.UPDATE
       });
@@ -2175,13 +2576,13 @@ const gamificationController = {
       let pointsToAward = settings?.pointsPerWorkout || 50;
       
       // Bonus points for exercises completed
-      if (exercisesCompleted && settings?.pointsPerExercise) {
-        pointsToAward += exercisesCompleted * settings.pointsPerExercise;
+      if (normalizedExercisesCompleted > 0 && settings?.pointsPerExercise) {
+        pointsToAward += normalizedExercisesCompleted * settings.pointsPerExercise;
       }
       
       // Bonus points for duration (1 point per minute over 30 minutes)
-      if (duration && duration > 30) {
-        pointsToAward += Math.floor((duration - 30) / 5); // 1 point per 5 extra minutes
+      if (normalizedDuration > 30) {
+        pointsToAward += Math.floor((normalizedDuration - 30) / 5); // 1 point per 5 extra minutes
       }
       
       // Apply multiplier if enabled
@@ -2206,7 +2607,7 @@ const gamificationController = {
       // Update user stats
       const updatedStats = {
         totalWorkouts: (user.totalWorkouts || 0) + 1,
-        totalExercises: (user.totalExercises || 0) + (exercisesCompleted || 0),
+        totalExercises: (user.totalExercises || 0) + normalizedExercisesCompleted,
         points: user.points + pointsToAward
       };
 
@@ -2229,7 +2630,7 @@ const gamificationController = {
         const GRACE_PREFIX = '[STREAK_GRACE]';
         const graceUsedRecently = await PointTransaction.count({
           where: {
-            userId: targetUserId,
+            userId: normalizedUserId,
             transactionType: 'adjustment',
             source: 'admin_adjustment',
             description: { [Op.startsWith]: GRACE_PREFIX },
@@ -2242,7 +2643,7 @@ const gamificationController = {
           // Grace available — extend streak and record grace usage
           updatedStats.streakDays = (user.streakDays || 0) + 1;
           await PointTransaction.create({
-            userId: targetUserId,
+            userId: normalizedUserId,
             points: 0,
             balance: user.points,
             transactionType: 'adjustment',
@@ -2269,7 +2670,7 @@ const gamificationController = {
         
         // Create separate transaction for streak bonus
         await PointTransaction.create({
-          userId: targetUserId,
+          userId: normalizedUserId,
           points: streakBonus,
           balance: updatedStats.points,
           transactionType: 'bonus',
@@ -2286,19 +2687,19 @@ const gamificationController = {
       
       // Create main workout completion transaction
       const pointTransaction = await PointTransaction.create({
-        userId: targetUserId,
+        userId: normalizedUserId,
         points: pointsToAward - (updatedStats.streakDays % 7 === 0 ? settings?.pointsPerStreak || 0 : 0),
         balance: user.points + pointsToAward - (updatedStats.streakDays % 7 === 0 ? settings?.pointsPerStreak || 0 : 0),
         transactionType: 'earn',
         source: 'workout_completion',
         sourceId: workoutId,
-        description: `Workout completed: ${duration || 'Unknown'} minutes, ${exercisesCompleted || 0} exercises`,
+        description: `Workout completed: ${normalizedDuration || 'Unknown'} minutes, ${normalizedExercisesCompleted} exercises`,
         metadata: {
           workoutId,
-          duration,
-          exercisesCompleted,
-          caloriesBurned,
-          notes
+          duration: normalizedDuration,
+          exercisesCompleted: normalizedExercisesCompleted,
+          caloriesBurned: normalizedCaloriesBurned,
+          notes: normalizedNotes
         },
         awardedBy: req.user?.id
       }, { transaction });
@@ -2315,7 +2716,7 @@ const gamificationController = {
         include: [{
           model: UserMilestone,
           as: 'userMilestones',
-          where: { userId: targetUserId },
+          where: { userId: normalizedUserId },
           required: false
         }],
         transaction
@@ -2332,7 +2733,7 @@ const gamificationController = {
       // Award new milestones
       for (const milestone of unAwardedMilestones) {
         const userMilestone = await UserMilestone.create({
-          userId: targetUserId,
+          userId: normalizedUserId,
           milestoneId: milestone.id,
           reachedAt: new Date(),
           bonusPointsAwarded: milestone.bonusPoints
@@ -2349,7 +2750,7 @@ const gamificationController = {
         const finalTier = getTier(finalLevel);
 
         await PointTransaction.create({
-          userId: targetUserId,
+          userId: normalizedUserId,
           points: totalMilestoneBonus,
           balance: finalBalance,
           transactionType: 'bonus',
@@ -2393,10 +2794,10 @@ const gamificationController = {
         }
 
         // Duration-based milestone (first 60+ minute session)
-        if (!milestoneType && duration && duration >= 60) {
+        if (!milestoneType && normalizedDuration >= 60) {
           const priorLongSession = await WorkoutSession.count({
             where: {
-              userId: targetUserId,
+              userId: normalizedUserId,
               duration: { [Op.gte]: 60 },
               id: { [Op.ne]: workoutId }
             },
@@ -2435,11 +2836,7 @@ const gamificationController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error recording workout completion:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to record workout completion',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to record workout completion');
     }
   },
 
@@ -2467,11 +2864,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to mark notification as read',
-        error: error.message
-      });
+      return sendGamificationError(res, 'Failed to mark notification as read');
     }
   },
 
@@ -2508,7 +2901,8 @@ const gamificationController = {
           steps.push('tier column already exists');
         }
       } catch (colErr) {
-        steps.push(`tier column check/add: ${colErr.message}`);
+        console.error('Error ensuring achievement tier column:', colErr);
+        steps.push('tier column check/add failed; see server logs');
       }
 
       // Step 3: Run the Swan-themed reseed seeder (wipes + reseeds)
@@ -2520,7 +2914,7 @@ const gamificationController = {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = pathMod.default.dirname(__filename);
         const seederPath = pathMod.default.resolve(__dirname, '..', 'seeders', '20260310000001-reseed-swan-achievements.cjs');
-        steps.push(`Seeder path: ${seederPath}`);
+        steps.push('Swan-themed seeder located');
 
         const require = createRequire(import.meta.url);
         const seeder = require(seederPath);
@@ -2533,18 +2927,19 @@ const gamificationController = {
         steps.push(`Swan reseed complete: ${finalCount} achievements (was ${currentCount})`);
         return res.json({ success: true, count: finalCount, steps });
       } catch (seederErr) {
-        steps.push(`Seeder FAILED: ${seederErr.message}`);
-        steps.push(seederErr.stack?.split('\n').slice(1, 4).join('\n'));
-        return res.json({ success: false, steps, error: seederErr.message });
+        console.error('Error running achievement seeder:', seederErr);
+        steps.push('Seeder failed; see server logs');
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to seed achievements',
+          steps,
+          error: INTERNAL_ERROR
+        });
       }
 
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        steps,
-        error: error.message,
-        stack: error.stack?.split('\n').slice(0, 5).join('\n')
-      });
+      console.error('Error preparing achievement seeder:', error);
+      return sendGamificationError(res, 'Failed to seed achievements');
     }
   },
   // ─────────────────────────────────────────────────────────────
@@ -2558,7 +2953,7 @@ const gamificationController = {
    */
   getStreakFreezeStatus: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId || req.user?.id);
+      const userId = parsePositiveInteger(req.params.userId ?? req.user?.id);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
@@ -2584,7 +2979,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('getStreakFreezeStatus error:', error.message);
-      return res.status(500).json({ success: false, error: error.message });
+      return sendGamificationError(res, 'Failed to get streak freeze status');
     }
   },
 
@@ -2594,7 +2989,7 @@ const gamificationController = {
    */
   useStreakFreeze: async (req, res) => {
     try {
-      const userId = parseInt(req.body.userId || req.user?.id);
+      const userId = parsePositiveInteger(req.user?.id);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
@@ -2630,7 +3025,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('useStreakFreeze error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to use streak freeze');
     }
   },
 
@@ -2646,7 +3041,7 @@ const gamificationController = {
    */
   getWeeklyRecap: async (req, res) => {
     try {
-      const userId = Number.parseInt(req.params.userId, 10);
+      const userId = parsePositiveInteger(req.params.userId);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
@@ -2725,7 +3120,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('getWeeklyRecap error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get weekly recap');
     }
   },
 
@@ -2741,7 +3136,7 @@ const gamificationController = {
   getActivityFeed: async (req, res) => {
     try {
       const { since, limit: rawLimit = 20 } = req.query;
-      const limit = Math.min(parseInt(rawLimit) || 20, 50);
+      const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 50);
 
       const whereClause = {};
       if (since) {
@@ -2754,7 +3149,7 @@ const gamificationController = {
       const feed = await PointTransaction.findAll({
         where: whereClause,
         order: [['createdAt', 'DESC']],
-        limit,
+        limit: normalizedLimit,
         include: [{
           model: User,
           as: 'user',
@@ -2786,7 +3181,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('getActivityFeed error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get activity feed');
     }
   },
 
@@ -2802,7 +3197,7 @@ const gamificationController = {
    */
   getComebackChallenge: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId || req.user?.id);
+      const userId = parsePositiveInteger(req.params.userId ?? req.user?.id);
       if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID required' });
       }
@@ -2819,7 +3214,7 @@ const gamificationController = {
       return res.json({ success: true, data: challenge || null });
     } catch (error) {
       console.error('getComebackChallenge error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get comeback challenge');
     }
   },
 
@@ -2829,8 +3224,8 @@ const gamificationController = {
    */
   acceptComebackChallenge: async (req, res) => {
     try {
-      const userId = parseInt(req.body.userId || req.user?.id);
-      const challengeId = parseInt(req.body.challengeId);
+      const userId = parsePositiveInteger(req.user?.id);
+      const challengeId = parsePositiveInteger(req.body.challengeId);
 
       if (!userId || !challengeId) {
         return res.status(400).json({ success: false, error: 'User ID and Challenge ID required' });
@@ -2853,7 +3248,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('acceptComebackChallenge error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to accept comeback challenge');
     }
   },
 
@@ -2868,7 +3263,7 @@ const gamificationController = {
    */
   getAegisHud: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
 
       const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
@@ -2885,7 +3280,7 @@ const gamificationController = {
       return res.json({ success: true, data: hudData });
     } catch (error) {
       console.error('getAegisHud error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get Aegis HUD');
     }
   },
 
@@ -2896,7 +3291,7 @@ const gamificationController = {
    */
   replenishAegisHud: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       const { actionType } = req.body;
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -2910,13 +3305,13 @@ const gamificationController = {
 
       const hudData = await AegisHudService.replenishFromAction(record, actionType);
       if (!hudData) {
-        return res.status(400).json({ success: false, error: `Unknown action type: ${actionType}` });
+        return res.status(400).json({ success: false, error: 'Unknown action type' });
       }
 
       return res.json({ success: true, data: hudData });
     } catch (error) {
       console.error('replenishAegisHud error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to replenish Aegis HUD');
     }
   },
 
@@ -2927,12 +3322,13 @@ const gamificationController = {
    */
   setAegisHudNeed: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       const { needKey } = req.params;
       const { value } = req.body;
+      const normalizedValue = parseBoundedNumber(value, 0, 100);
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
-      if (value === undefined || value === null) return res.status(400).json({ success: false, error: 'value required (0-100)' });
+      if (normalizedValue === null) return res.status(400).json({ success: false, error: 'value must be a number from 0 to 100' });
 
       const { default: AegisHudService } = await import('../services/gamification/AegisHudService.mjs');
       const { default: Gamification } = await import('../models/Gamification.mjs');
@@ -2940,11 +3336,11 @@ const gamificationController = {
       let record = await Gamification.findOne({ where: { userId } });
       if (!record) record = await Gamification.create({ userId });
 
-      const hudData = await AegisHudService.setNeed(record, needKey, parseFloat(value));
+      const hudData = await AegisHudService.setNeed(record, needKey, normalizedValue);
       return res.json({ success: true, data: hudData });
     } catch (error) {
       console.error('setAegisHudNeed error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to set Aegis HUD need');
     }
   },
 
@@ -2965,19 +3361,41 @@ const gamificationController = {
    */
   rollVaultDrop: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
-      const { actionType } = req.body;
+      const userId = parsePositiveInteger(req.params.userId);
+      const { actionType } = req.body ?? {};
+      const requestedActionType = normalizeBoundedString(actionType, 80);
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
-      if (!actionType) return res.status(400).json({ success: false, error: 'actionType required' });
+      if (!requestedActionType) return res.status(400).json({ success: false, error: 'actionType required' });
 
-      const { default: VaultDecryptionService } = await import('../services/gamification/VaultDecryptionService.mjs');
+      const { default: VaultDecryptionService, DROP_TRIGGERS } = await import('../services/gamification/VaultDecryptionService.mjs');
       const { default: Gamification } = await import('../models/Gamification.mjs');
+
+      if (!DROP_TRIGGERS[requestedActionType]) {
+        return res.status(400).json({ success: false, error: 'Unknown action type' });
+      }
 
       let record = await Gamification.findOne({ where: { userId } });
       if (!record) record = await Gamification.create({ userId });
 
-      const drop = VaultDecryptionService.rollForDrop(actionType, userId);
+      const idempotencyKey = `vault_${userId}_${requestedActionType}_${new Date().toISOString().slice(0, 13)}`;
+      const activityLog = Array.isArray(record.activityLog) ? record.activityLog : [];
+      const existingDrop = activityLog.find((entry) =>
+        entry?.type === 'vault_drop' && entry?.drop?.idempotencyKey === idempotencyKey
+      );
+
+      if (existingDrop) {
+        return res.json({
+          success: true,
+          data: {
+            dropped: false,
+            duplicate: true,
+            message: 'Vault roll already processed for this action window'
+          }
+        });
+      }
+
+      const drop = VaultDecryptionService.rollForDrop(requestedActionType, userId);
       if (!drop) {
         return res.json({ success: true, data: { dropped: false, message: 'No drop this time' } });
       }
@@ -3000,7 +3418,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('rollVaultDrop error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to roll vault drop');
     }
   },
 
@@ -3010,7 +3428,7 @@ const gamificationController = {
    */
   getVaultInventory: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
 
       const { default: VaultDecryptionService } = await import('../services/gamification/VaultDecryptionService.mjs');
@@ -3023,7 +3441,7 @@ const gamificationController = {
       return res.json({ success: true, data: { inventory } });
     } catch (error) {
       console.error('getVaultInventory error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get vault inventory');
     }
   },
 
@@ -3053,7 +3471,7 @@ const gamificationController = {
    */
   getGhost: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       const { category } = req.query;
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -3064,7 +3482,7 @@ const gamificationController = {
       return res.json({ success: true, data: result });
     } catch (error) {
       console.error('getGhost error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get ghost mode data');
     }
   },
 
@@ -3075,7 +3493,7 @@ const gamificationController = {
    */
   compareGhost: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       const { ghostData, currentWorkoutData } = req.body;
 
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
@@ -3095,7 +3513,7 @@ const gamificationController = {
       return res.json({ success: true, data: comparison });
     } catch (error) {
       console.error('compareGhost error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to compare ghost mode data');
     }
   },
 
@@ -3124,7 +3542,7 @@ const gamificationController = {
    */
   setJobClass: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       const { jobClass } = req.body;
       const validClasses = ['paladin', 'monk', 'ranger', 'white_mage', 'dark_knight'];
 
@@ -3146,7 +3564,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('setJobClass error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to set job class');
     }
   },
 
@@ -3156,7 +3574,7 @@ const gamificationController = {
    */
   getJobClass: async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = parsePositiveInteger(req.params.userId);
       if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
 
       const { default: Gamification } = await import('../models/Gamification.mjs');
@@ -3168,7 +3586,7 @@ const gamificationController = {
       });
     } catch (error) {
       console.error('getJobClass error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get job class');
     }
   },
 
@@ -3193,72 +3611,115 @@ const gamificationController = {
 
   getPet: async (req, res) => {
     try {
+      const userId = parsePositiveInteger(req.params.userId);
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
       const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
-      const data = await CompanionPetService.getPetData(parseInt(req.params.userId));
+      const data = await CompanionPetService.getPetData(userId);
       return res.json({ success: true, data });
     } catch (error) {
       console.error('getPet error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to get companion pet');
     }
   },
 
   adoptPet: async (req, res) => {
     try {
-      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const userId = parsePositiveInteger(req.params.userId);
       const { species, petName } = req.body;
-      const data = await CompanionPetService.adoptPet(parseInt(req.params.userId), species, petName);
+      const sanitizedPetName = normalizeBoundedString(petName, 50);
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!sanitizedPetName) return res.status(400).json({ success: false, error: 'Pet name required' });
+
+      const { CompanionPetService, PET_SPECIES } = await import('../services/gamification/CompanionPetService.mjs');
+      if (!PET_SPECIES[species]) {
+        return res.status(400).json({ success: false, error: 'Invalid pet species' });
+      }
+
+      const data = await CompanionPetService.adoptPet(userId, species, sanitizedPetName);
       return res.status(201).json({ success: true, data });
     } catch (error) {
       console.error('adoptPet error:', error.message);
-      return res.status(error.message.includes('already') ? 409 : 500).json({
-        success: false, error: error.message,
-      });
+      if (error.message.includes('already')) {
+        return res.status(409).json({ success: false, error: 'Pet already exists' });
+      }
+      return sendGamificationError(res, 'Failed to adopt companion pet');
     }
   },
 
   interactWithPet: async (req, res) => {
     try {
-      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const userId = parsePositiveInteger(req.params.userId);
       const { interactionType } = req.body;
-      const data = await CompanionPetService.interact(parseInt(req.params.userId), interactionType || 'pet');
+      const requestedInteraction = typeof interactionType === 'string' ? interactionType : 'pet';
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!VALID_PET_INTERACTIONS.has(requestedInteraction)) {
+        return res.status(400).json({ success: false, error: 'Invalid interaction type' });
+      }
+
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const data = await CompanionPetService.interact(userId, requestedInteraction);
       return res.json({ success: true, data });
     } catch (error) {
       console.error('interactWithPet error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to interact with companion pet');
     }
   },
 
   recordPetActivity: async (req, res) => {
     try {
-      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const userId = parsePositiveInteger(req.params.userId);
       const { activityType, amount } = req.body;
-      const data = await CompanionPetService.recordActivity(parseInt(req.params.userId), activityType, amount || 1);
+      const normalizedAmount = parseBoundedPositiveInteger(amount, 1, 100);
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (typeof activityType !== 'string' || activityType.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'activityType required' });
+      }
+
+      const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
+      const data = await CompanionPetService.recordActivity(userId, activityType.trim(), normalizedAmount);
       return res.json({ success: true, data });
     } catch (error) {
       console.error('recordPetActivity error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to record companion pet activity');
     }
   },
 
   renamePet: async (req, res) => {
     try {
+      const userId = parsePositiveInteger(req.params.userId);
+      const { name } = req.body;
+      const sanitizedName = normalizeBoundedString(name, 50);
+
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+      if (!sanitizedName) return res.status(400).json({ success: false, error: 'Pet name required' });
+
       const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
-      const data = await CompanionPetService.renamePet(parseInt(req.params.userId), req.body.name);
+      const data = await CompanionPetService.renamePet(userId, sanitizedName);
       return res.json({ success: true, data });
     } catch (error) {
       console.error('renamePet error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      return sendGamificationError(res, 'Failed to rename companion pet');
     }
   },
 
   releasePet: async (req, res) => {
     try {
+      const userId = parsePositiveInteger(req.params.userId);
+      if (!userId) return res.status(400).json({ success: false, error: 'User ID required' });
+
       const { CompanionPetService } = await import('../services/gamification/CompanionPetService.mjs');
-      const data = await CompanionPetService.releasePet(parseInt(req.params.userId));
+      const data = await CompanionPetService.releasePet(userId);
       return res.json({ success: true, data });
     } catch (error) {
       console.error('releasePet error:', error.message);
-      return res.status(500).json({ success: false, error: safeError(req, error) });
+      if (error.message === 'No pet found') {
+        return res.status(404).json({ success: false, error: 'Pet not found' });
+      }
+      return sendGamificationError(res, 'Failed to release companion pet');
     }
   },
 

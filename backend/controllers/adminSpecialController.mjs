@@ -18,7 +18,13 @@
 import logger from '../utils/logger.mjs';
 import { getModel } from '../models/index.mjs';
 
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
 const getAdminSpecialModel = () => getModel('AdminSpecial');
+const sendInternalError = (res, error) => res.status(500).json({
+  success: false,
+  error,
+  code: INTERNAL_ERROR,
+});
 
 // List all specials (admin view)
 export const listSpecials = async (req, res) => {
@@ -111,9 +117,7 @@ export const createSpecial = async (req, res) => {
     return res.status(201).json({ success: true, data: special });
   } catch (error) {
     logger.error('[AdminSpecialController] Error creating special:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: error.message || 'Failed to create special' });
+    return sendInternalError(res, 'Failed to create special');
   }
 };
 
@@ -142,9 +146,7 @@ export const updateSpecial = async (req, res) => {
     return res.json({ success: true, data: special });
   } catch (error) {
     logger.error('[AdminSpecialController] Error updating special:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: error.message || 'Failed to update special' });
+    return sendInternalError(res, 'Failed to update special');
   }
 };
 

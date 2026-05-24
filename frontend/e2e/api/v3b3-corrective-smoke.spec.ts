@@ -1,5 +1,5 @@
 /**
- * V3b.3 NASM Corrective Starter — Production Smoke Spec
+ * V3b.3 NASM Corrective Starter - Production Smoke Spec
  * =====================================================
  *
  * Verifies the 32 NASM CES rows shipped in
@@ -10,25 +10,22 @@
  *
  * Why an API smoke (not a UI smoke):
  *   - The Rolodex's filter logic is deterministic from the API payload.
- *   - Hitting the data layer + replaying the section filter in-process
- *     gives us a fast (~5s) regression check that doesn't depend on
- *     mounting the virtualized rolodex or fighting an admin login flow.
+ *   - Hitting the data layer + replaying the section filter in-process gives
+ *     us a fast regression check that does not depend on mounting the
+ *     virtualized rolodex or fighting an admin login flow.
  *   - The UI smoke is still valuable but is a follow-up.
  *
  * Auth strategy:
- *   /api/exercises requires admin/trainer auth. We try (in order):
- *     1. E2E_ADMIN_EMAIL + E2E_ADMIN_PASSWORD env pair
- *     2. ogpswan@yahoo.com + TEST_PASSWORD
- *     3. admin@swanstudios.com + admin123 (test seed default — won't
- *        work in prod but lets the spec run against a localhost backend).
- *   All credential plumbing is env-driven; no secrets baked in.
+ *   /api/exercises requires admin/trainer auth. Credentials are env-only:
+ *   E2E_ADMIN_EMAIL + E2E_ADMIN_PASSWORD.
  *
  * Target:
  *   BASE_URL env var (default https://sswanstudios.com).
  *
  * Run:
  *   cd frontend
- *   BASE_URL=https://sswanstudios.com TEST_PASSWORD=<sean-prod-pw> \
+ *   BASE_URL=https://sswanstudios.com \
+ *     E2E_ADMIN_EMAIL=<admin-email> E2E_ADMIN_PASSWORD=<admin-password> \
  *     npx playwright test e2e/api/v3b3-corrective-smoke.spec.ts \
  *     --project="API Tests"
  *
@@ -36,9 +33,8 @@
  *   - Exactly 32 rows with exercise_key starting `ces-` are returned.
  *   - Every CES row matches at least one of warmup / balance_core / cooldown
  *     under SECTION_PATTERNS.
- *   - No CES row matches ONLY `main` (which would mean it's
- *     misclassified and won't show up in any protocol section of the
- *     Rolodex).
+ *   - No CES row matches ONLY `main`, which would mean it is misclassified
+ *     and will not show up in any protocol section of the Rolodex.
  *   - Per-section breakdown is reported in test output.
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
@@ -62,33 +58,36 @@ type ApiExerciseRow = {
   description: string;
 };
 
-const ADMIN_CANDIDATES = [
-  { email: process.env.E2E_ADMIN_EMAIL || '', password: process.env.E2E_ADMIN_PASSWORD || '' },
-  { email: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD || '' },
-  { email: 'admin@swanstudios.com', password: 'admin123' },
-].filter(c => c.email.trim() && c.password.trim());
+function readAdminCredentials() {
+  const email = process.env.E2E_ADMIN_EMAIL?.trim() || '';
+  const password = process.env.E2E_ADMIN_PASSWORD?.trim() || '';
+
+  if (!email || !password) {
+    throw new Error(
+      'V3b.3 smoke requires E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD. ' +
+      'Do not use hardcoded production or local seed credentials.',
+    );
+  }
+
+  return { email, password };
+}
 
 async function login(): Promise<string> {
+  const admin = readAdminCredentials();
   const ctx = await playwrightRequest.newContext({ baseURL: BASE_URL });
-  for (const cand of ADMIN_CANDIDATES) {
-    try {
-      const res = await ctx.post('/api/auth/login', {
-        data: { username: cand.email, password: cand.password },
-      });
-      if (res.ok()) {
-        const body = await res.json();
-        if (body?.token) {
-          await ctx.dispose();
-          return body.token;
-        }
-      }
-    } catch {
-      // try next candidate
+  const res = await ctx.post('/api/auth/login', {
+    data: { username: admin.email, password: admin.password },
+  });
+  if (res.ok()) {
+    const body = await res.json();
+    if (body?.token) {
+      await ctx.dispose();
+      return body.token;
     }
   }
   await ctx.dispose();
   throw new Error(
-    `V3b.3 smoke: unable to authenticate against ${BASE_URL}. Set E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD or TEST_PASSWORD env vars.`,
+    `V3b.3 smoke: unable to authenticate against ${BASE_URL}. Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD.`,
   );
 }
 
@@ -143,7 +142,6 @@ test.describe(`V3b.3 NASM Corrective Starter Smoke (${PROD_HOST}: ${BASE_URL})`,
 
     const cesRows = all.filter(ex => (ex.exerciseKey || '').toLowerCase().startsWith('ces-'));
 
-    // Per-section breakdown — useful for diagnostics regardless of pass/fail
     const breakdown: Record<SectionContext, ApiExerciseRow[]> = {
       warmup: [],
       balance_core: [],
@@ -178,13 +176,10 @@ test.describe(`V3b.3 NASM Corrective Starter Smoke (${PROD_HOST}: ${BASE_URL})`,
     }
     /* eslint-enable no-console */
 
-    // Pass criteria
     expect(cesRows.length, 'should have exactly 32 CES corrective rows seeded').toBe(32);
-    expect(orphans.length, 'every CES row must route to at least one of warmup/balance_core/cooldown — a row that only matches main means a misclassification (wrong exerciseType or wrong bodyPartCategory).').toBe(0);
+    expect(orphans.length, 'every CES row must route to at least one of warmup/balance_core/cooldown').toBe(0);
 
-    // Sanity: warmup + cooldown should each gain meaningful rows (at
-    // least 8 each — UCS inhibit/lengthen/activate work goes warmup,
-    // LCS inhibit/lengthen goes warmup or cooldown). This guards
+    // Sanity: warmup + cooldown should each gain meaningful rows. This guards
     // against a regression where everything piles into balance_core.
     expect(breakdown.warmup.length, 'warmup section should pick up at least 8 CES rows').toBeGreaterThanOrEqual(8);
     expect(breakdown.cooldown.length, 'cooldown section should pick up at least 4 CES rows').toBeGreaterThanOrEqual(4);

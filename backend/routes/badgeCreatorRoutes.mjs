@@ -9,6 +9,7 @@
  */
 
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import recraft from '../services/recraftService.mjs';
 import logger from '../utils/logger.mjs';
@@ -17,10 +18,109 @@ const router = express.Router();
 router.use(protect, adminOnly);
 
 const MAX_GENERATIONS_PER_MONTH = 50;
+const DB_BADGE_CATEGORIES = new Set(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']);
 
 function getMonthKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function asObject(value) {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  }
+  return typeof value === 'object' ? value : {};
+}
+
+function toRewardPoints(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : 50;
+}
+
+function getCriteria(badge) {
+  return asObject(badge?.criteria);
+}
+
+function normalizeBadge(badge) {
+  const raw = typeof badge?.toJSON === 'function' ? badge.toJSON() : badge;
+  const criteria = asObject(raw?.criteria);
+  const rewards = asObject(raw?.rewards);
+  const metadata = asObject(criteria.metadata);
+  const assignment = asObject(criteria.assignment);
+  const marketplace = asObject(criteria.marketplace);
+
+  return {
+    ...raw,
+    criteria,
+    rewards,
+    prompt: metadata.prompt || null,
+    style: metadata.style || null,
+    rarity: metadata.rarity || 'common',
+    isAnimated: Boolean(metadata.isAnimated),
+    batchGroupId: metadata.batchGroupId || null,
+    secondaryStyle: metadata.secondaryStyle || null,
+    assignedTo: assignment.assignedTo || null,
+    assignedTarget: assignment.assignedTarget || null,
+    isShared: Boolean(marketplace.isShared),
+    sharedBy: marketplace.sharedBy || null,
+    xpReward: rewards.points || 0,
+    abilityPoints: rewards.points || 0,
+  };
+}
+
+function buildGeneratedBadgePayload(req, badgeData, metadataOverrides = {}) {
+  const {
+    name,
+    description,
+    imageUrl,
+    prompt,
+    style,
+    rarity,
+    abilityPoints,
+    isAnimated,
+    batchGroupId,
+    secondaryStyle,
+  } = badgeData;
+
+  return {
+    name,
+    description: description || `AI-generated badge: ${prompt || name}`,
+    imageUrl,
+    category: 'general',
+    difficulty: 'beginner',
+    criteriaType: 'custom_criteria',
+    criteria: {
+      source: 'badge_creator',
+      metadata: {
+        prompt: prompt || null,
+        style: style || null,
+        rarity: rarity || 'common',
+        isAnimated: Boolean(isAnimated),
+        batchGroupId: batchGroupId || null,
+        secondaryStyle: secondaryStyle || null,
+        ...metadataOverrides,
+      },
+    },
+    rewards: {
+      points: toRewardPoints(abilityPoints),
+    },
+    collectionId: null,
+    isActive: true,
+    createdBy: req.user.id,
+  };
+}
+
+function mergeCriteriaSection(badge, sectionName, sectionValue) {
+  const criteria = getCriteria(badge);
+  return {
+    ...criteria,
+    [sectionName]: sectionValue,
+  };
 }
 
 /**
@@ -35,7 +135,7 @@ async function getRemainingGenerations() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const used = await Badge.count({
       where: {
-        category: 'custom',
+        criteriaType: 'custom_criteria',
         createdAt: { [Op.gte]: monthStart },
       },
     });
@@ -122,26 +222,24 @@ router.post('/save', async (req, res) => {
   }
 
   try {
-    // Use existing Badge model
     const { default: Badge } = await import('../models/Badge.mjs');
 
-    const badge = await Badge.create({
+    const badge = await Badge.create(buildGeneratedBadgePayload(req, {
       name,
-      description: description || `AI-generated badge: ${prompt}`,
+      description,
       imageUrl,
-      category: 'custom',
-      rarity: rarity || 'common',
-      xpReward: abilityPoints || 50,
-      prompt: prompt || null,
-      style: style || null,
-      isAnimated: isAnimated || false,
-      batchGroupId: batchGroupId || null,
-      secondaryStyle: secondaryStyle || null,
-    });
+      prompt,
+      style,
+      rarity,
+      abilityPoints,
+      isAnimated,
+      batchGroupId,
+      secondaryStyle,
+    }));
 
     logger.info(`[AUDIT] Admin ${req.user.id} saved badge "${name}" (${badge.id})`);
 
-    res.status(201).json({ success: true, data: badge });
+    res.status(201).json({ success: true, data: normalizeBadge(badge) });
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({ success: false, message: `Badge "${name}" already exists` });
@@ -158,16 +256,24 @@ router.get('/gallery', async (req, res) => {
     const { default: Badge } = await import('../models/Badge.mjs');
     const { rarity, category, assignedTo } = req.query;
     const where = {};
-    if (rarity) where.rarity = rarity;
-    if (category) where.category = category;
-    if (assignedTo) where.assignedTo = assignedTo;
+    if (category === 'custom') {
+      where.criteriaType = 'custom_criteria';
+    } else if (DB_BADGE_CATEGORIES.has(category)) {
+      where.category = category;
+    }
 
     const badges = await Badge.findAll({
       where,
       order: [['createdAt', 'DESC']],
       limit: 200,
     });
-    res.json({ success: true, data: badges });
+
+    const data = badges
+      .map(normalizeBadge)
+      .filter((badge) => !rarity || badge.rarity === rarity)
+      .filter((badge) => !assignedTo || badge.assignedTo === assignedTo);
+
+    res.json({ success: true, data });
   } catch (err) {
     logger.error('Badge gallery error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to load gallery' });
@@ -193,9 +299,11 @@ router.patch('/:badgeId/assign', async (req, res) => {
     const badge = await Badge.findByPk(badgeId);
     if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
 
-    await badge.update({ assignedTo, assignedTarget });
+    await badge.update({
+      criteria: mergeCriteriaSection(badge, 'assignment', { assignedTo, assignedTarget }),
+    });
     logger.info(`[AUDIT] Admin ${req.user.id} assigned badge "${badge.name}" → ${assignedTo}:${assignedTarget}`);
-    res.json({ success: true, data: badge });
+    res.json({ success: true, data: normalizeBadge(badge) });
   } catch (err) {
     logger.error('Badge assign error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to assign badge' });
@@ -210,9 +318,11 @@ router.patch('/:badgeId/unassign', async (req, res) => {
     const badge = await Badge.findByPk(req.params.badgeId);
     if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
 
-    await badge.update({ assignedTo: null, assignedTarget: null });
+    await badge.update({
+      criteria: mergeCriteriaSection(badge, 'assignment', { assignedTo: null, assignedTarget: null }),
+    });
     logger.info(`[AUDIT] Admin ${req.user.id} unassigned badge "${badge.name}"`);
-    res.json({ success: true, data: badge });
+    res.json({ success: true, data: normalizeBadge(badge) });
   } catch (err) {
     logger.error('Badge unassign error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to unassign badge' });
@@ -239,7 +349,7 @@ router.post('/generate-batch', async (req, res) => {
     });
   }
 
-  const batchGroupId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const batchGroupId = `batch-${Date.now()}-${randomBytes(4).toString('hex')}`;
   const variations = [
     '', // Original prompt as-is
     'Alternate angle, different perspective.',
@@ -347,11 +457,12 @@ router.post('/generate-pet-avatar', async (req, res) => {
 router.get('/marketplace', async (_req, res) => {
   try {
     const { default: Badge } = await import('../models/Badge.mjs');
-    const shared = await Badge.findAll({
-      where: { isShared: true },
+    const badges = await Badge.findAll({
+      where: { criteriaType: 'custom_criteria' },
       order: [['createdAt', 'DESC']],
       limit: 100,
     });
+    const shared = badges.map(normalizeBadge).filter((badge) => badge.isShared);
     res.json({ success: true, data: shared });
   } catch (err) {
     logger.error('Marketplace load error:', err.message);
@@ -371,9 +482,11 @@ router.post('/marketplace/share', async (req, res) => {
     const badge = await Badge.findByPk(badgeId);
     if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
 
-    await badge.update({ isShared: true, sharedBy: req.user.id });
+    await badge.update({
+      criteria: mergeCriteriaSection(badge, 'marketplace', { isShared: true, sharedBy: req.user.id }),
+    });
     logger.info(`[AUDIT] Admin ${req.user.id} shared badge "${badge.name}" to marketplace`);
-    res.json({ success: true, data: badge });
+    res.json({ success: true, data: normalizeBadge(badge) });
   } catch (err) {
     logger.error('Marketplace share error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to share badge' });
@@ -392,9 +505,11 @@ router.post('/marketplace/unshare', async (req, res) => {
     const badge = await Badge.findByPk(badgeId);
     if (!badge) return res.status(404).json({ success: false, message: 'Badge not found' });
 
-    await badge.update({ isShared: false, sharedBy: null });
+    await badge.update({
+      criteria: mergeCriteriaSection(badge, 'marketplace', { isShared: false, sharedBy: null }),
+    });
     logger.info(`[AUDIT] Admin ${req.user.id} unshared badge "${badge.name}" from marketplace`);
-    res.json({ success: true, data: badge });
+    res.json({ success: true, data: normalizeBadge(badge) });
   } catch (err) {
     logger.error('Marketplace unshare error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to unshare badge' });
@@ -407,7 +522,8 @@ router.post('/marketplace/claim/:badgeId', async (req, res) => {
     const { default: Badge } = await import('../models/Badge.mjs');
     const original = await Badge.findByPk(req.params.badgeId);
     if (!original) return res.status(404).json({ success: false, message: 'Badge not found' });
-    if (!original.isShared) return res.status(400).json({ success: false, message: 'Badge is not shared' });
+    const originalData = normalizeBadge(original);
+    if (!originalData.isShared) return res.status(400).json({ success: false, message: 'Badge is not shared' });
 
     // Clone badge for the claiming admin (per-admin uniqueness)
     const adminId = req.user.id;
@@ -417,20 +533,24 @@ router.post('/marketplace/claim/:badgeId', async (req, res) => {
       return res.status(409).json({ success: false, message: 'You already claimed this badge' });
     }
 
-    const clone = await Badge.create({
+    const clone = await Badge.create(buildGeneratedBadgePayload(req, {
       name: cloneName,
       description: original.description,
       imageUrl: original.imageUrl,
-      category: 'custom',
-      rarity: original.rarity,
-      xpReward: original.xpReward,
-      prompt: original.prompt,
-      style: original.style,
-      isAnimated: original.isAnimated,
-    });
+      rarity: originalData.rarity,
+      abilityPoints: originalData.abilityPoints,
+      prompt: originalData.prompt,
+      style: originalData.style,
+      isAnimated: originalData.isAnimated,
+      batchGroupId: originalData.batchGroupId,
+      secondaryStyle: originalData.secondaryStyle,
+    }, {
+      claimedFromBadgeId: original.id,
+      claimedFromAdminId: originalData.sharedBy,
+    }));
 
     logger.info(`[AUDIT] Admin ${req.user.id} claimed badge "${original.name}" from marketplace`);
-    res.status(201).json({ success: true, data: clone });
+    res.status(201).json({ success: true, data: normalizeBadge(clone) });
   } catch (err) {
     logger.error('Marketplace claim error:', err.message);
     res.status(500).json({ success: false, message: 'Failed to claim badge' });

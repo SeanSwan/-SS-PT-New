@@ -10,7 +10,7 @@
  * ✅ Client pre-selection and information display
  * ✅ Streamlined NASM-compliant workout logging
  * ✅ Smart navigation flow (back to My Clients)
- * ✅ Graceful fallback when APIs aren't ready
+ * ✅ Honest retry state when APIs are unavailable
  * ✅ Mobile-optimized for gym tablet use
  * ✅ Real-time session deduction tracking
  * ✅ Professional stellar purple theme
@@ -582,17 +582,17 @@ const EnhancedWorkoutLogger: React.FC = () => {
         throw new Error('Client not found or not accessible');
       }
 
-    } catch {
-      logger.log('API not available, using demo mode');
-      
-      // Use demo client for demonstration
-      setClient(demoClient);
-      setShowDemo(true);
-      
-      toast({ 
-        title: 'Demo Mode', 
-        description: 'Using demo client data. Real API integration ready when backend is available.', 
-        variant: 'default' 
+    } catch (loadError) {
+      logger.warn('Workout logger client info unavailable', loadError);
+      setClient(null);
+      setShowDemo(false);
+      setUseOriginalLogger(false);
+      setError('Client workout data could not be loaded. Retry or return to clients.');
+
+      toast({
+        title: 'Workout logger unavailable',
+        description: 'Client workout data could not be loaded.',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);

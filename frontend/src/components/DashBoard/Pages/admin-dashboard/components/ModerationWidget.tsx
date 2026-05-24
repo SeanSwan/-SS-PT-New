@@ -5,29 +5,44 @@ import { MessageSquare, CheckCircle, XCircle, AlertTriangle, Trash2, ExternalLin
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 
+type ModerationStats = {
+  pending: number;
+  approved: number;
+  flagged: number;
+  rejected: number;
+};
+
+const EMPTY_MODERATION_STATS: ModerationStats = { pending: 0, approved: 0, flagged: 0, rejected: 0 };
+
 const ModerationWidget: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, flagged: 0, rejected: 0 });
+  const [stats, setStats] = useState<ModerationStats>(EMPTY_MODERATION_STATS);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchModeration = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setLoadError(null);
       const [postsRes, statsRes] = await Promise.all([
-        authAxios.get('/api/admin/content/posts', { params: { status: 'pending', limit: 5 } }).catch(() => ({ data: { posts: [] } })),
-        authAxios.get('/api/admin/content/stats').catch(() => ({ data: { stats: { pending: 0, approved: 0, flagged: 0, rejected: 0 } } }))
+        authAxios.get('/api/admin/content/posts', { params: { status: 'pending', limit: 5 } }),
+        authAxios.get('/api/admin/content/stats')
       ]);
       setPosts(postsRes.data?.posts || postsRes.data?.data?.posts || []);
       const s = statsRes.data?.stats || statsRes.data?.data || {};
       setStats({ pending: s.pending || 0, approved: s.approved || 0, flagged: s.flagged || 0, rejected: s.rejected || 0 });
-    } catch { /* silently fail */ } finally { setIsLoading(false); }
+    } catch (err) {
+      console.error('Moderation data fetch failed:', err);
+      setPosts([]);
+      setStats(EMPTY_MODERATION_STATS);
+      setLoadError('Moderation data unavailable');
+    } finally { setIsLoading(false); }
   }, [authAxios]);
 
   useEffect(() => {
-    let isMounted = true;
     fetchModeration();
-    return () => { isMounted = false; };
   }, [fetchModeration]);
 
   const handleAction = useCallback(async (postId: string, action: 'approve' | 'reject' | 'delete') => {
@@ -60,14 +75,22 @@ const ModerationWidget: React.FC = () => {
         </ModViewAll>
       </ModHeader>
 
-      <ModStats>
-        <ModStat><ModStatIcon $color="#f59e0b"><AlertTriangle size={14} /></ModStatIcon> {stats.pending} Pending</ModStat>
-        <ModStat><ModStatIcon $color="#10b981"><CheckCircle size={14} /></ModStatIcon> {stats.approved} Approved</ModStat>
-        <ModStat><ModStatIcon $color="#ef4444"><XCircle size={14} /></ModStatIcon> {stats.flagged + stats.rejected} Flagged</ModStat>
-      </ModStats>
+      {loadError ? (
+        <ModError role="alert">
+          Moderation data unavailable. Open Content to review manually.
+        </ModError>
+      ) : (
+        <ModStats>
+          <ModStat><ModStatIcon $color="#f59e0b"><AlertTriangle size={14} /></ModStatIcon> {stats.pending} Pending</ModStat>
+          <ModStat><ModStatIcon $color="#10b981"><CheckCircle size={14} /></ModStatIcon> {stats.approved} Approved</ModStat>
+          <ModStat><ModStatIcon $color="#ef4444"><XCircle size={14} /></ModStatIcon> {stats.flagged + stats.rejected} Flagged</ModStat>
+        </ModStats>
+      )}
 
       {isLoading ? (
         <ModEmpty>Loading moderation queue...</ModEmpty>
+      ) : loadError ? (
+        null
       ) : posts.length === 0 ? (
         <ModEmpty>No content pending review</ModEmpty>
       ) : (
@@ -199,6 +222,16 @@ const ModEmpty = styled.div`
   text-align: center;
   padding: 24px;
   color: rgba(255,255,255,0.4);
+  font-size: 0.875rem;
+`;
+
+const ModError = styled.div`
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--error-border, rgba(248, 113, 113, 0.28));
+  border-radius: 10px;
+  background: var(--error-bg, rgba(127, 29, 29, 0.18));
+  color: var(--error-text, #FECACA);
   font-size: 0.875rem;
 `;
 

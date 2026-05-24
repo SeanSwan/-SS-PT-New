@@ -152,6 +152,23 @@ const SessionContext = createContext<SessionContextType>({
   resetTimer: () => {}
 });
 
+let sessionTabIdFallbackCounter = 0;
+
+const createSessionTabId = (): string => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `tab_${globalThis.crypto.randomUUID()}`;
+  }
+
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const values = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(values);
+    return `tab_${values[0].toString(36)}_${values[1].toString(36)}`;
+  }
+
+  sessionTabIdFallbackCounter += 1;
+  return `tab_${Date.now()}_${sessionTabIdFallbackCounter}`;
+};
+
 // Provider Component
 export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
@@ -164,7 +181,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
   
   // ENHANCED: Tab synchronization state to prevent localStorage race conditions
-  const [tabId] = useState(() => `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [tabId] = useState(createSessionTabId);
   const [isActiveTab, setIsActiveTab] = useState(true);
 
   // Helper function to detect client-generated session IDs

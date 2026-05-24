@@ -5,7 +5,7 @@
  * Multi-line chart for tracking estimated 1RM across exercises over time
  * Each line represents a different exercise, color-cycled through the theme palette
  *
- * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
+ * Uses Victory (v37.3.6) for cross-platform compatibility.
  * THEME: Enchanted Apex — Crystalline Swan
  */
 

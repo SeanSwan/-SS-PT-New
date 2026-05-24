@@ -459,7 +459,7 @@ export const TEACH_ME_CONTENT: Record<string, { title: string; content: string }
       <strong>Flexibility</strong><br/>
       <em>What:</em> Stretching, mobility, foam rolling. Low RPE. Recovery-focused.<br/>
       <em>Best for:</em> Active recovery days, cool-down classes, injury prevention<br/>
-      <em>Note:</em> We use "flexibility" not "yoga" — this is NASM corrective exercise methodology.
+      <em>Note:</em> We use "flexibility" and "stretching" terminology — this is NASM corrective exercise methodology.
       <br/><br/>
 
       <strong>Cardio</strong><br/>

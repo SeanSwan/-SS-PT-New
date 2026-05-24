@@ -447,7 +447,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
               <ProgramName>Restorative Wellness</ProgramName>
               <ProgramDesc>
                 Recovery is not passive — it is an art form. Our integrated approach combines
-                mobility work, nutrition science, and mindfulness practices to ensure your body
+                mobility work, nutrition science, and recovery practices to ensure your body
                 performs at its absolute finest.
               </ProgramDesc>
             </ProgramContent>

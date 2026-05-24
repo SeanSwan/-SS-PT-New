@@ -2,7 +2,7 @@ import { getAllModels } from '../models/index.mjs';
 
 const parseId = (value) => {
   const id = Number(value);
-  return Number.isFinite(id) ? id : null;
+  return Number.isInteger(id) && id > 0 ? id : null;
 };
 
 const isTrainerAssigned = async (models, clientId, trainerId) => {

@@ -12,6 +12,7 @@ import jwt from 'jsonwebtoken';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
 export const optionalAuth = async (req, res, next) => {
   req.user = null;
@@ -28,13 +29,8 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const JWT_SECRET = process.env.JWT_SECRET;
-    if (!JWT_SECRET) {
-      return next();
-    }
-
     // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
 
     // Fetch user from DB (lazy loading pattern)
     const User = getUser();
@@ -54,6 +50,13 @@ export const optionalAuth = async (req, res, next) => {
 
     return next();
   } catch (err) {
+    if (isJwtSecretConfigurationError(err)) {
+      logger.warn('optionalAuth: JWT secret is not configured, proceeding as anonymous', {
+        path: req.path,
+      });
+      return next();
+    }
+
     // Swallow JWT-specific errors silently — anonymous is fine
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
       return next();

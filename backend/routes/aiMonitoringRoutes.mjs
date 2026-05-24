@@ -48,6 +48,20 @@ import logger from '../utils/logger.mjs';
 export { updateMetrics } from '../services/monitoring/monitoringService.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  code: INTERNAL_ERROR,
+});
+
+const parsePositiveInteger = (value) => {
+  const normalized = String(value ?? '').trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 // ── Existing endpoints (backward-compatible) ────────────────────────────────
 
@@ -56,7 +70,7 @@ router.get('/metrics', authMiddleware, (req, res) => {
     res.json(getMetricsSnapshot());
   } catch (error) {
     logger.error('Error getting AI metrics:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve AI metrics', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve AI metrics');
   }
 });
 
@@ -73,7 +87,7 @@ router.get('/trends/:feature', authMiddleware, async (req, res) => {
     res.json(trends);
   } catch (error) {
     logger.error('Error getting feature trends:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve feature trends', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve feature trends');
   }
 });
 
@@ -85,7 +99,7 @@ router.get('/health', authMiddleware, (req, res) => {
     res.status(statusCode).json(health);
   } catch (error) {
     logger.error('Error checking AI health:', error);
-    res.status(500).json({ success: false, message: 'Failed to check AI system health', error: error.message });
+    return sendInternalError(res, 'Failed to check AI system health');
   }
 });
 
@@ -96,7 +110,7 @@ router.post('/reset', authMiddleware, adminOnly, (req, res) => {
     res.json({ success: true, message: 'AI metrics reset successfully', timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error resetting AI metrics:', error);
-    res.status(500).json({ success: false, message: 'Failed to reset AI metrics', error: error.message });
+    return sendInternalError(res, 'Failed to reset AI metrics');
   }
 });
 
@@ -108,29 +122,43 @@ router.get('/alerts', authMiddleware, adminOnly, async (req, res) => {
     res.json({ alerts, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error getting alerts:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve alerts', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve alerts');
   }
 });
 
 router.post('/alerts/:id/acknowledge', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await acknowledgeAlert(parseInt(req.params.id, 10));
+    const alertId = parsePositiveInteger(req.params.id);
+    if (!alertId) {
+      return res.status(400).json({ success: false, message: 'Invalid alert id' });
+    }
+
+    await acknowledgeAlert(alertId);
     res.json({ success: true, message: 'Alert acknowledged' });
   } catch (error) {
     logger.error('Error acknowledging alert:', error);
-    const status = error.message.includes('not found') ? 404 : 500;
-    res.status(status).json({ success: false, message: error.message });
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ success: false, message: 'Alert not found' });
+    }
+    return sendInternalError(res, 'Failed to acknowledge alert');
   }
 });
 
 router.post('/alerts/:id/resolve', authMiddleware, adminOnly, async (req, res) => {
   try {
-    await resolveAlert(parseInt(req.params.id, 10));
+    const alertId = parsePositiveInteger(req.params.id);
+    if (!alertId) {
+      return res.status(400).json({ success: false, message: 'Invalid alert id' });
+    }
+
+    await resolveAlert(alertId);
     res.json({ success: true, message: 'Alert resolved' });
   } catch (error) {
     logger.error('Error resolving alert:', error);
-    const status = error.message.includes('not found') ? 404 : 500;
-    res.status(status).json({ success: false, message: error.message });
+    if (error.message.includes('not found')) {
+      return res.status(404).json({ success: false, message: 'Alert not found' });
+    }
+    return sendInternalError(res, 'Failed to resolve alert');
   }
 });
 
@@ -140,7 +168,7 @@ router.get('/eval-status', authMiddleware, adminOnly, (req, res) => {
     res.json({ evalStatus: evalData, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error getting eval status:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve eval status', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve eval status');
   }
 });
 
@@ -150,7 +178,7 @@ router.get('/drift-status', authMiddleware, adminOnly, (req, res) => {
     res.json({ driftStatus: driftData, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error getting drift status:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve drift status', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve drift status');
   }
 });
 
@@ -160,7 +188,7 @@ router.get('/ab-status', authMiddleware, adminOnly, (req, res) => {
     res.json({ abStatus: abData, timestamp: new Date().toISOString() });
   } catch (error) {
     logger.error('Error getting A/B status:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve A/B status', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve A/B status');
   }
 });
 
@@ -170,7 +198,7 @@ router.get('/providers', authMiddleware, adminOnly, async (req, res) => {
     res.json(providerData);
   } catch (error) {
     logger.error('Error getting provider metrics:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve provider metrics', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve provider metrics');
   }
 });
 
@@ -180,7 +208,7 @@ router.get('/digest', authMiddleware, adminOnly, async (req, res) => {
     res.json(digest);
   } catch (error) {
     logger.error('Error getting daily digest:', error);
-    res.status(500).json({ success: false, message: 'Failed to retrieve daily digest', error: error.message });
+    return sendInternalError(res, 'Failed to retrieve daily digest');
   }
 });
 

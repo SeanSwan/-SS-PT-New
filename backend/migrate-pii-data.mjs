@@ -72,7 +72,7 @@ const clients = [
     status: 'active',
     start_date: '2024-09-24',
     current_program: 'Body Mastery & Dynamic Balance',
-    special_notes: 'Age 65+, does yoga but poor dynamic balance, complements heavy lifting elsewhere',
+    special_notes: 'Age 65+, does floor stretching but poor dynamic balance, complements heavy lifting elsewhere',
     master_prompt_path: 'docs/ai-workflow/personal-training/clients/PT-10006-wise-owl.json',
     privacy_level: 'standard'
   },

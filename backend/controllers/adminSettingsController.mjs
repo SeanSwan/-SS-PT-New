@@ -17,8 +17,12 @@
  * Uses existing AdminSettings model for data persistence
  */
 
+import { randomUUID } from 'node:crypto';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+
+const AUDIT_LOG_CATEGORY = 'audit_logs';
+const MAX_SETTINGS_AUDIT_LOGS = 500;
 
 /**
  * Helper: Find admin settings row by category using raw SQL.
@@ -84,6 +88,46 @@ async function upsertSettingsByCategory(category, settingsJson) {
     logger.error(`[AdminSettings] upsertSettingsByCategory error: ${e.message}`);
     throw e;
   }
+}
+
+function normalizeSettingsAuditLogs(settings) {
+  if (Array.isArray(settings)) {
+    return settings;
+  }
+
+  if (settings && Array.isArray(settings.logs)) {
+    return settings.logs;
+  }
+
+  return [];
+}
+
+function mapSettingsAuditAction(action) {
+  return action === 'reset' ? 'settings_reset' : 'settings_updated';
+}
+
+async function appendSettingsAuditLog(category, changedSettings, adminUserId, action = 'update') {
+  const existing = await findSettingsByCategory(AUDIT_LOG_CATEGORY);
+  const existingLogs = normalizeSettingsAuditLogs(existing?.settings);
+  const timestamp = new Date().toISOString();
+  const entry = {
+    id: randomUUID(),
+    category,
+    action: mapSettingsAuditAction(action),
+    adminId: adminUserId ? String(adminUserId) : null,
+    adminEmail: null,
+    changes: Object.keys(changedSettings || {}),
+    timestamp,
+    ipAddress: null,
+    source: 'admin_settings'
+  };
+
+  await upsertSettingsByCategory(AUDIT_LOG_CATEGORY, {
+    logs: [entry, ...existingLogs].slice(0, MAX_SETTINGS_AUDIT_LOGS),
+    updatedAt: timestamp
+  });
+
+  return entry;
 }
 
 // Default settings configurations
@@ -472,47 +516,15 @@ export const updateSecuritySettings = async (newSettings, adminUserId) => {
 export const getAuditLogs = async (options = {}) => {
   try {
     const { page = 1, limit = 25, category, startDate, endDate } = options;
-    
-    // For now, return mock audit logs since we'd need a separate audit table
-    // In a full implementation, this would query an audit_logs table
-    const mockAuditLogs = [
-      {
-        id: 1,
-        category: 'system',
-        action: 'settings_updated',
-        adminId: 'admin-123',
-        adminEmail: 'admin@swanstudios.com',
-        changes: ['maintenance.enabled', 'features.userRegistration'],
-        timestamp: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 2,
-        category: 'notifications',
-        action: 'settings_updated',
-        adminId: 'admin-123',
-        adminEmail: 'admin@swanstudios.com',
-        changes: ['email.enabled', 'sms.provider'],
-        timestamp: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 3,
-        category: 'security',
-        action: 'settings_reset',
-        adminId: 'admin-456',
-        adminEmail: 'admin2@swanstudios.com',
-        changes: ['authentication', 'rateLimiting'],
-        timestamp: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-        ipAddress: '192.168.1.101'
-      }
-    ];
-    
+
+    const auditResult = await findSettingsByCategory(AUDIT_LOG_CATEGORY);
+    const auditLogs = normalizeSettingsAuditLogs(auditResult?.settings);
+
     // Filter by category if provided
-    let filteredLogs = category ? 
-      mockAuditLogs.filter(log => log.category === category) : 
-      mockAuditLogs;
-    
+    let filteredLogs = category ?
+      auditLogs.filter(log => log.category === category) :
+      auditLogs;
+
     // Filter by date range if provided
     if (startDate && endDate) {
       const start = new Date(startDate);
@@ -530,6 +542,7 @@ export const getAuditLogs = async (options = {}) => {
     
     return {
       logs: paginatedLogs,
+      source: 'admin_settings',
       pagination: {
         page,
         limit,
@@ -842,18 +855,15 @@ function validateSecuritySettings(settings) {
  */
 async function logSettingsChange(category, changedSettings, adminUserId, action = 'update') {
   try {
-    // In a full implementation, this would write to an audit_logs table
-    // For now, just log to the application logger
+    const auditEntry = await appendSettingsAuditLog(category, changedSettings, adminUserId, action);
+
     logger.info(`Settings ${action}`, {
       category,
-      changedFields: Object.keys(changedSettings),
+      changedFields: auditEntry.changes,
       adminUserId,
-      timestamp: new Date().toISOString(),
+      timestamp: auditEntry.timestamp,
       action
     });
-    
-    // TODO: Implement actual audit log storage when audit table is created
-    
   } catch (error) {
     logger.error('Failed to log settings change:', error);
     // Don't throw error here as it shouldn't block the settings update

@@ -46,56 +46,59 @@ import { scheduleDashboardRouteScrollReset } from './DashboardRouteScroll';
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import TrainerStellarSidebar from './Pages/trainer-dashboard/TrainerStellarSidebar';
 import ClientStellarSidebar from './Pages/client-dashboard/ClientStellarSidebar';
-
-// Import role-specific page components
-import { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
-import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
-import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
-import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
-import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
-import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
-import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
-import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
-import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
-
-// 🔥 BUSINESS-CRITICAL: Import Client Management System Components
-import ClientManagementDashboard from './Pages/admin-clients/ClientManagementDashboard';
-import EnhancedAdminClientManagementView from './Pages/admin-clients/EnhancedAdminClientManagementView';
-import ClientOnboardingWizard from './Pages/admin-clients/components/ClientOnboardingWizard';
-import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
-import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
-import NotesManager from '../Admin/NotesManager';
-import PhotoManager from '../Admin/PhotoManager';
-import AutomationManager from '../Admin/AutomationManager';
-import SMSLogsPanel from '../Admin/SMSLogsPanel';
-
-// 🏢 COMPREHENSIVE DATA MANAGEMENT: Import Enhanced User & Trainer Management
-import EnhancedUserDataManagement from './Pages/admin-users/EnhancedUserDataManagement';
-import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
-
-// 🚀 UNIFIED DATA COLLECTION: Import Comprehensive Onboarding System
-import UnifiedOnboardingWizard from './Pages/admin-onboarding/UnifiedOnboardingWizard';
-
-// Import Universal Master Schedule Integration
 import UniversalSchedule from '../Schedule/UniversalSchedule';
 
+// Import role-specific page components
+
+// 🔥 BUSINESS-CRITICAL: Import Client Management System Components
+
+// 🏢 COMPREHENSIVE DATA MANAGEMENT: Import Enhanced User & Trainer Management
+
+// 🚀 UNIFIED DATA COLLECTION: Import Comprehensive Onboarding System
+
+// Import Universal Master Schedule Integration
+
 // Import NASM Workout Tracking System Components
-import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
-import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
-import SessionAllocationManager from '../Admin/SessionAllocationManager';
-import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
-import { ClientProgressCharts as NASMProgressCharts } from '../ClientProgressCharts';
 
 // 🎨 THE AESTHETIC CODEX: Import the definitive style guide
-import TheAestheticCodex from '../../core/TheAestheticCodex';
 
 // Import Trainer Dashboard Components
-import MyClientsView from '../TrainerDashboard/ClientManagement';
-import EnhancedWorkoutLogger from '../TrainerDashboard/WorkoutLogging';
-import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
 
 // Lazy load components
-const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSchedule'));
+const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'));
+const EnhancedAdminSessionsView = React.lazy(() => import('./Pages/admin-sessions/enhanced-admin-sessions-view'));
+const ModernUserManagementSystem = React.lazy(() => import('./Pages/user-management/modern-user-management'));
+const AdminClientProgressView = React.lazy(() => import('./Pages/admin-client-progress/admin-client-progress-view.V2'));
+const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'));
+const TrainersManagementSection = React.lazy(() => import('./Pages/admin-dashboard/TrainersManagementSection'));
+const AdminGamificationView = React.lazy(() => import('./Pages/admin-gamification/admin-gamification-view'));
+const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
+const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'));
+const ClientOnboardingWizard = React.lazy(() => import('./Pages/admin-clients/components/ClientOnboardingWizard'));
+const ClientSelfOnboardingWizard = React.lazy(() => import('../../pages/onboarding/ClientOnboardingWizard'));
+const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'));
+const WorkoutPlanBuilder = React.lazy(() => import('../Admin/WorkoutPlanBuilder'));
+const NotesManager = React.lazy(() => import('../Admin/NotesManager'));
+const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'));
+const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'));
+const SMSLogsPanel = React.lazy(() => import('../Admin/SMSLogsPanel'));
+const EnhancedUserDataManagement = React.lazy(() => import('./Pages/admin-users/EnhancedUserDataManagement'));
+const EnhancedTrainerDataManagement = React.lazy(() => import('./Pages/admin-trainers/EnhancedTrainerDataManagement'));
+const UnifiedOnboardingWizard = React.lazy(() => import('./Pages/admin-onboarding/UnifiedOnboardingWizard'));
+const BodyMapPage = React.lazy(() => import('../BodyMap'));
+const ClientTrainerAssignments = React.lazy(() => import('../Admin/ClientTrainerAssignments'));
+const TrainerPermissionsManager = React.lazy(() => import('../Admin/TrainerPermissionsManager'));
+const SessionAllocationManager = React.lazy(() => import('../Admin/SessionAllocationManager'));
+const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLogger'));
+const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
+const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
+const MyClientsView = React.lazy(() => import('../TrainerDashboard/ClientManagement'));
+const EnhancedWorkoutLogger = React.lazy(() => import('../TrainerDashboard/WorkoutLogging'));
+const EnhancedClientProgressView = React.lazy(() =>
+  import('../TrainerDashboard/ClientProgress').then((module) => ({
+    default: module.EnhancedClientProgressView,
+  }))
+);
 const AiConsentScreen = React.lazy(() => import('./Pages/client-dashboard/AiConsentScreen'));
 const MessagingPageLazy = React.lazy(() => import('../../pages/MessagingPage'));
 const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'));
@@ -122,7 +125,6 @@ const ClientHomeTab = React.lazy(() => import('./Pages/client-dashboard/ClientHo
 const ClientProfilePage = React.lazy(() => import('./Pages/client-dashboard/ClientProfilePage'));
 const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'));
 const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashboard/ClientCommunityPage'));
-const BodyMapPage = React.lazy(() => import('../BodyMap'));
 
 // Trainer dashboard pages
 const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
@@ -486,6 +488,23 @@ const AdminPlaudCommandCenterRedirect: React.FC = () => {
   return <Navigate to={`/dashboard/admin/coach-assistant?${params.toString()}`} replace />;
 };
 
+const ClientSelfOnboardingPage: React.FC = () => {
+  const navigate = useNavigate();
+  const goToOverview = () => navigate('/dashboard/client/overview');
+  return (
+    <ClientSelfOnboardingWizard
+      selfSubmit
+      onComplete={goToOverview}
+      onCancel={goToOverview}
+    />
+  );
+};
+
+const AdminClientDetailsRedirect: React.FC = () => {
+  const location = useLocation();
+  return <Navigate to={`/dashboard/admin/client-management${location.search}`} replace />;
+};
+
 // === ROLE CONFIGURATION ===
 interface RoleConfig {
   routes: Array<{
@@ -516,7 +535,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT
       { path: '/client-management', component: React.lazy(() => import('./workspaces/ClientsWorkspace')), title: 'Client Hub', description: 'Unified client management with selector, cards, and detail tabs' },
       { path: '/client-management/view-as/:userId', component: AdminViewAsWrapper, title: 'View As Client', description: 'Read-only admin impersonation view of a single client profile, workouts, sessions, and gamification' },
-      { path: '/client-details', component: EnhancedAdminClientManagementView, title: 'Advanced Client Management', description: 'Detailed client management interface' },
+      { path: '/client-details', component: AdminClientDetailsRedirect, title: 'Client Hub', description: 'Redirects legacy client details to the canonical Client Hub' },
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
       { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Create and update client nutrition plans' },
@@ -602,7 +621,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/plaud', component: PlaudIntelligenceWorkspacePage, title: 'PLAUD Intelligence Workspace', description: 'PLAUD intake, merge review, and Swan Coach handoff' },
       { path: '/workout-planner', component: WorkoutPlannerPage, title: 'Swan Studios Workout Planner', description: 'Build periodized training programs with 840+ exercises' },
       { path: '/meal-planner', component: NutritionWorkspaceLazy, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
-      { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
+      { path: '/schedule', component: UniversalSchedule, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: MessagingPageLazy, title: 'Client Messages', description: 'Communication hub' },
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Stream live workouts to clients' },
       { path: '/creators', component: CreatorEconomyPage, title: 'Creators', description: 'Creator program and content monetization' },
@@ -621,13 +640,14 @@ const roleConfigurations: Record<string, RoleConfig> = {
     routes: [
       { path: '/overview', component: ClientHomeTab, title: 'Home', description: 'Your fitness journey hub' },
       { path: '/overview/:tab', component: ClientHomeTab, title: 'Home', description: 'Your fitness journey hub' },
+      { path: '/onboarding', component: ClientSelfOnboardingPage, title: 'Client Onboarding', description: 'Complete your SwanStudios onboarding' },
       { path: '/workouts', component: ClientMyWorkoutsPage, title: 'My Workouts', description: 'Workout history with per-set detail' },
       { path: '/log-workout', component: WorkoutLogger, title: 'Log Workout', description: 'Log your workout session' },
       { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },
       { path: '/progress/detailed', component: ClientProgressWrapper, title: 'Detailed Analytics', description: 'NASM 14-chart analytics dashboard' },
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'Swan Coach Privacy & Consent', description: 'Manage Swan Coach data consent' },
       { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
-      { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
+      { path: '/schedule', component: UniversalSchedule, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
       { path: '/live', component: LiveStreamingPage, title: 'Live Streams', description: 'Watch and join live workout streams' },
@@ -808,14 +828,25 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
       case 'trainer':
         return <TrainerStellarSidebar {...sidebarProps} />;
       case 'client':
-        return <ClientStellarSidebar {...sidebarProps} />;
+        return <ClientStellarSidebar {...sidebarProps} clientSource={user?.clientSource} />;
       default:
-        return <ClientStellarSidebar {...sidebarProps} />; // Default fallback
+        return <ClientStellarSidebar {...sidebarProps} clientSource={user?.clientSource} />; // Default fallback
     }
   };
 
   // Get role configuration
   const roleConfig = roleConfigurations[activeRole] || roleConfigurations.client;
+  const canBookSwanStudiosSessions =
+    userRole !== 'client' ||
+    activeRole !== 'client' ||
+    (user?.clientSource !== 'move_fitness' && user?.clientSource !== 'external');
+  const visibleRoleRoutes = canBookSwanStudiosSessions
+    ? roleConfig.routes
+    : roleConfig.routes.filter(({ path }) => path !== '/schedule');
+  const dashboardDefaultPath =
+    !canBookSwanStudiosSessions && roleConfig.defaultPath === '/schedule'
+      ? '/overview'
+      : roleConfig.defaultPath;
 
   if (isLoading) {
     return (
@@ -880,12 +911,12 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
               <Suspense fallback={<LoadingState />}>
                 <Routes>
                   {/* Default redirect */}
-                  <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+                  <Route path="/" element={<Navigate to={`/dashboard/${activeRole}${dashboardDefaultPath}`} replace />} />
 
                   {/* Role-specific routes — render routes for the active URL role */}
                   <Route path={`/${activeRole}/*`} element={
                     <Routes>
-                      {roleConfig.routes.map(({ path, component: Component }) => (
+                      {visibleRoleRoutes.map(({ path, component: Component }) => (
                         <Route
                           key={path}
                           path={path.replace(/^\//, '')}
@@ -901,12 +932,12 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
                         />
                       ))}
                       {/* Default redirect for role */}
-                      <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+                      <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${dashboardDefaultPath}`} replace />} />
                     </Routes>
                   } />
 
                   {/* Fallback Route */}
-                  <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${roleConfig.defaultPath}`} replace />} />
+                  <Route path="*" element={<Navigate to={`/dashboard/${activeRole}${dashboardDefaultPath}`} replace />} />
                 </Routes>
               </Suspense>
             </AnimatePresence>

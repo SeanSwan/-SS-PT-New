@@ -15,6 +15,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { CS } from './WorkoutLoggerCS';
+import apiService from '../../services/api.service';
 
 interface GhostSet {
   setNumber: number;
@@ -42,8 +43,6 @@ interface GhostDataRowProps {
    */
   skip?: boolean;
 }
-
-const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 // Cache to avoid refetching same exercise history
 const ghostCache = new Map<string, GhostSet[] | null>();
@@ -73,13 +72,11 @@ const GhostDataRow: React.FC<GhostDataRowProps> = React.memo(({
     }
 
     // Fetch last workout for this exercise
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    fetch(`${API_BASE}/api/admin/clients/${clientId}/workouts?limit=10`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.ok ? res.json() : null)
+    apiService.get<{ success?: boolean; workouts?: any[] }>(
+      `/api/admin/clients/${clientId}/workouts?limit=10`,
+      { validateStatus: (status) => status < 500 },
+    )
+      .then(response => response.status < 400 ? response.data : null)
       .then(data => {
         if (!data?.success || !data.workouts) {
           ghostCache.set(cacheKey, null);

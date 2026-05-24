@@ -1,7 +1,8 @@
 // backend/routes/orientationRoutes.mjs
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   orientationSignup,
   orientationSubmit,
@@ -74,7 +75,7 @@ router.post(
  * Protected route: Only accessible to logged-in users (must be admin or the user themselves).
  * Retrieves orientation data for a specific user.
  */
-router.get('/user/:userId', protect, getOrientationData);
+router.get('/user/:userId', protect, verifyClientAccessByUserId({ paramName: 'userId' }), getOrientationData);
 
 /**
  * GET /api/orientation/all
@@ -82,7 +83,7 @@ router.get('/user/:userId', protect, getOrientationData);
  * Protected route: Only accessible to admin users.
  * Retrieves all orientation submissions.
  */
-router.get('/all', protect, getAllOrientations);
+router.get('/all', protect, authorize(['admin']), getAllOrientations);
 
 /**
  * POST /api/orientation/:id/link-user
@@ -93,6 +94,7 @@ router.get('/all', protect, getAllOrientations);
 router.post(
   '/:id/link-user',
   protect,
+  authorize(['admin']),
   [
     body('userId')
       .optional()
@@ -118,6 +120,7 @@ router.post(
 router.put(
   '/:id',
   protect,
+  authorize(['admin', 'trainer']),
   [
     body('status').optional().isIn(['pending', 'scheduled', 'completed', 'cancelled']).withMessage('Invalid status'),
     body('assignedTrainer').optional().isString().withMessage('Assigned trainer must be a string'),

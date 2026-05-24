@@ -189,6 +189,7 @@ function makeUser(overrides = {}) {
 describe('canonical Stripe webhook session grants', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete global.io;
     mocks.currentEvent = {
       type: 'checkout.session.completed',
       data: { object: makeSession() },
@@ -234,5 +235,43 @@ describe('canonical Stripe webhook session grants', () => {
     expect(response.status).toBe(500);
     expect(response.text).toContain('Webhook processing error');
     expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook');
+  });
+
+  it('returns 500 when the order idempotency record cannot be claimed', async () => {
+    mocks.mockOrderFindOrCreate.mockRejectedValueOnce(new Error('order claim timeout'));
+
+    const response = await request(buildApp())
+      .post('/api/webhook/stripe')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(Buffer.from('{}'));
+
+    expect(response.status).toBe(500);
+    expect(response.text).toContain('Webhook processing error');
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook');
+  });
+
+  it('does not replay one-time side effects when the order already exists', async () => {
+    const emit = vi.fn();
+    global.io = { to: vi.fn(() => ({ emit })) };
+    mocks.mockGrantSessionsForCart.mockResolvedValueOnce({
+      granted: false,
+      sessionsAdded: 0,
+      alreadyProcessed: true,
+    });
+    mocks.mockOrderFindOrCreate.mockResolvedValueOnce([{ id: 99 }, false]);
+
+    const response = await request(buildApp())
+      .post('/api/webhook/stripe')
+      .set('stripe-signature', 'sig_test')
+      .set('Content-Type', 'application/json')
+      .send(Buffer.from('{}'));
+
+    expect(response.status).toBe(200);
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook');
+    expect(mocks.mockSendNotification).not.toHaveBeenCalled();
+    expect(mocks.mockCreateCommissionForPurchase).not.toHaveBeenCalled();
+    expect(mocks.mockRecordLedgerEntry).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
   });
 });

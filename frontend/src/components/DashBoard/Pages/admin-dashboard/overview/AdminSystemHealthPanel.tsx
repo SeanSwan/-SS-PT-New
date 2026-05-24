@@ -19,31 +19,35 @@ const AdminSystemHealthPanel: React.FC<AdminSystemHealthPanelProps> = ({ systemH
             Live infrastructure status and response metrics
           </PanelDescription>
         </HeaderCopy>
-        <CommandButton onClick={onRefresh || (() => {})}>Refresh</CommandButton>
+        <CommandButton type="button" onClick={onRefresh || (() => {})}>Refresh</CommandButton>
       </PanelHeader>
 
       <CommandGrid>
-        {systemHealth.map((service) => (
-          <ServiceCard key={service.service}>
-            <ServiceHeader>
-              <ServiceNameGroup>
-                <StatusIndicator status={service.status} />
-                <ServiceName>{service.service}</ServiceName>
-              </ServiceNameGroup>
-              <UptimeText>
-                {service.uptime.toFixed(2)}% uptime
-              </UptimeText>
-            </ServiceHeader>
-            <DetailsText>
-              {service.details}
-            </DetailsText>
-            <MetricsRow>
-              <span>Resp: {service.responseTime}ms</span>
-              <span>Err: {service.errorRate}%</span>
-              <span>Thr: {service.throughput}</span>
-            </MetricsRow>
-          </ServiceCard>
-        ))}
+        {systemHealth.length === 0 ? (
+          <EmptyState>No service health checks returned yet.</EmptyState>
+        ) : (
+          systemHealth.map((service) => (
+            <ServiceCard key={service.service}>
+              <ServiceHeader>
+                <ServiceNameGroup>
+                  <StatusIndicator status={service.status} />
+                  <ServiceName>{service.service}</ServiceName>
+                </ServiceNameGroup>
+                <UptimeText>
+                  {service.uptime.toFixed(2)}% uptime
+                </UptimeText>
+              </ServiceHeader>
+              <DetailsText>
+                {service.details}
+              </DetailsText>
+              <MetricsRow>
+                <span>Resp: {service.responseTime}ms</span>
+                <span>Err: {service.errorRate}%</span>
+                <span>Thr: {service.throughput}</span>
+              </MetricsRow>
+            </ServiceCard>
+          ))
+        )}
       </CommandGrid>
     </PanelCard>
   );
@@ -83,6 +87,12 @@ const PanelDescription = styled.p`
 
 const ServiceCard = styled(CommandCard)`
   padding: 1.5rem;
+`;
+
+const EmptyState = styled.div`
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+  font-size: 0.875rem;
+  padding: 1rem 0;
 `;
 
 const ServiceHeader = styled.div`

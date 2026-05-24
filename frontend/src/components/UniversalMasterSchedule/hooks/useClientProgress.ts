@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import apiService from '../../../services/api.service';
 
 export interface ProgressGoal {
   name: string;
@@ -25,20 +26,9 @@ export interface ClientProgressSummary {
 }
 
 const fetchClientProgress = async (userId: number): Promise<ClientProgressSummary> => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    throw new Error('Missing auth token');
-  }
-
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  const response = await fetch(`${baseUrl}/api/client/${userId}/progress`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
-
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || result?.success === false) {
+  const response = await apiService.get(`/api/client/${userId}/progress`);
+  const result = response.data;
+  if (result?.success === false) {
     throw new Error(result?.message || 'Failed to fetch client progress');
   }
 

@@ -20,7 +20,7 @@ const CHALLENGE_TEMPLATES = [
   { title: 'Creative Expression Week', description: 'Share a piece of fitness-inspired art, photography, or creative work.', category: 'art', difficulty: 2, xpReward: 200 },
   { title: 'Gamer + Athlete', description: '30 min gaming + 30 min exercise every day this week.', category: 'gaming', difficulty: 3, xpReward: 300 },
   { title: 'Community Connection', description: 'Comment on 5 different posts and make a new friend this week.', category: 'social', difficulty: 1, xpReward: 150 },
-  { title: 'Mindful Movement', description: 'Complete 3 stretching or yoga sessions this week.', category: 'mindfulness', difficulty: 2, xpReward: 150 },
+  { title: 'Flexibility Reset', description: 'Complete 3 stretching or mobility sessions this week.', category: 'mindfulness', difficulty: 2, xpReward: 150 },
   { title: 'Nutrition Check-In', description: 'Log your meals for 5 days this week and share a healthy recipe.', category: 'nutrition', difficulty: 2, xpReward: 200 },
   { title: 'Community Meetup Prep', description: 'Organize or join a virtual workout with at least one other member.', category: 'community_meetup', difficulty: 2, xpReward: 250 },
   { title: 'Consistency King', description: 'Log activity (any type) every single day this week.', category: 'streak', difficulty: 3, xpReward: 300 },

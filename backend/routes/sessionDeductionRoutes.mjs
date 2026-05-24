@@ -8,6 +8,7 @@
 
 import express from 'express';
 import { authenticateToken, adminOnly, trainerOrAdminOnly } from '../middleware/auth.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   processSessionDeductions,
   getClientsNeedingPayment,
@@ -81,7 +82,7 @@ router.post('/process', authenticateToken, adminOnly, async (req, res) => {
  */
 router.get('/clients-needing-payment', authenticateToken, trainerOrAdminOnly, async (req, res) => {
   try {
-    const clients = await getClientsNeedingPayment();
+    const clients = await getClientsNeedingPayment({ id: req.user.id, role: req.user.role });
 
     return res.status(200).json({
       success: true,
@@ -131,7 +132,7 @@ router.post('/apply-payment', authenticateToken, adminOnly, async (req, res) => 
  * Used for auto-preselecting the package in payment recovery.
  * Admin or Trainer
  */
-router.get('/client-last-package/:clientId', authenticateToken, trainerOrAdminOnly, async (req, res) => {
+router.get('/client-last-package/:clientId', authenticateToken, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'clientId' }), async (req, res) => {
   try {
     const clientId = Number(req.params.clientId);
     if (!Number.isInteger(clientId) || clientId <= 0) {

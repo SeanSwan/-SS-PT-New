@@ -32,7 +32,28 @@ const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelp
 
 const router = express.Router();
 const STOREFRONT_CART_ATTRIBUTES = ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions'];
+const INTERNAL_ERROR = 'Internal server error';
 let cachedSafeStorefrontAttributes = null;
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: INTERNAL_ERROR
+});
+
+const parsePositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 const ensureNumericCartUser = (req, res, next) => {
   try {
@@ -188,11 +209,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
   } catch (error) {
     console.error('🚨 ENHANCED ERROR in cart GET:', error);
     logger.error('Error fetching cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch shopping cart', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-    });
+    return sendInternalError(res, 'Failed to fetch shopping cart');
   }
 });
 
@@ -214,17 +231,27 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     
     console.log('Cart add request body:', req.body);
     console.log('User:', req.user?.username, 'Role:', req.user?.role);
-    
-    if (!storefrontItemId) {
+
+    const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);
+    const normalizedQuantity = parsePositiveInteger(quantity);
+
+    if (!normalizedStorefrontItemId) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Storefront item ID is required' 
+        message: 'Valid storefront item ID is required'
+      });
+    }
+
+    if (!normalizedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity must be a positive whole number'
       });
     }
 
     // 🚀 ENHANCED: Using coordinated model imports
     // Get the storefront item to check price
-    const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
+    const storeFrontItem = await StorefrontItem.findByPk(normalizedStorefrontItemId);
     if (!storeFrontItem) {
       return res.status(404).json({ 
         success: false, 
@@ -241,20 +268,20 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     let cartItem = await CartItem.findOne({
       where: {
         cartId: cart.id,
-        storefrontItemId
+        storefrontItemId: normalizedStorefrontItemId
       }
     });
 
     if (cartItem) {
       // Update quantity if item exists
-      cartItem.quantity += quantity;
+      cartItem.quantity += normalizedQuantity;
       await cartItem.save();
     } else {
       // Create new cart item
       cartItem = await CartItem.create({
         cartId: cart.id,
-        storefrontItemId,
-        quantity,
+        storefrontItemId: normalizedStorefrontItemId,
+        quantity: normalizedQuantity,
         price: storeFrontItem.totalCost || storeFrontItem.price || 0 // Use totalCost field if available, fallback to price
       });
     }
@@ -324,11 +351,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     });
   } catch (error) {
     logger.error('Error adding item to cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to add item to cart', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-    });
+    return sendInternalError(res, 'Failed to add item to cart');
   }
 });
 
@@ -346,17 +369,27 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     
     const { itemId } = req.params;
     const { quantity } = req.body;
-    
-    if (quantity < 1) {
+
+    const normalizedItemId = parsePositiveInteger(itemId);
+    const normalizedQuantity = parsePositiveInteger(quantity);
+
+    if (!normalizedItemId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid cart item ID is required'
+      });
+    }
+
+    if (!normalizedQuantity) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Quantity must be at least 1' 
+        message: 'Quantity must be a positive whole number'
       });
     }
 
     // Get the cart item
     const cartItem = await CartItem.findOne({
-      where: { id: itemId },
+      where: { id: normalizedItemId },
       include: [{
         model: ShoppingCart,
         as: 'cart',
@@ -375,7 +408,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     }
 
     // Update quantity
-    cartItem.quantity = quantity;
+    cartItem.quantity = normalizedQuantity;
     await cartItem.save();
 
     // Update cart totals in database
@@ -415,11 +448,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     });
   } catch (error) {
     logger.error('Error updating cart item:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update cart item', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-    });
+    return sendInternalError(res, 'Failed to update cart item');
   }
 });
 
@@ -436,10 +465,18 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     const StorefrontItem = getStorefrontItem();
     
     const { itemId } = req.params;
+    const normalizedItemId = parsePositiveInteger(itemId);
+
+    if (!normalizedItemId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid cart item ID is required'
+      });
+    }
 
     // Get the cart item
     const cartItem = await CartItem.findOne({
-      where: { id: itemId },
+      where: { id: normalizedItemId },
       include: [{
         model: ShoppingCart,
         as: 'cart',
@@ -499,11 +536,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     });
   } catch (error) {
     logger.error('Error removing item from cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to remove item from cart', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-    });
+    return sendInternalError(res, 'Failed to remove item from cart');
   }
 });
 
@@ -558,11 +591,7 @@ router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, as
     });
   } catch (error) {
     logger.error('Error clearing cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to clear cart', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
-    });
+    return sendInternalError(res, 'Failed to clear cart');
   }
 });
 
@@ -767,16 +796,13 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
           logger.error('Stripe authentication failed - check API keys');
           break;
         default:
-          if (error.message) {
-            errorMessage = `Payment error: ${error.message.split('.')[0]}`;
-          }
+          errorMessage = 'Payment service temporarily unavailable';
       }
     }
     
     res.status(statusCode).json({ 
       success: false,
-      message: errorMessage,
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: errorMessage
     });
   }
 });
@@ -811,7 +837,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     );
   } catch (err) {
     logger.error(`Webhook signature verification failed: ${err.message}`);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).send('Webhook Error: Signature verification failed');
   }
   
   // Handle the event
@@ -821,14 +847,20 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
         const session = event.data.object;
 
         if (session.payment_status === 'paid') {
-          const { cartId, userId } = session.metadata;
+          const { cartId, userId } = session.metadata || {};
 
           if (cartId && userId) {
+            const normalizedCartId = parsePositiveInteger(cartId);
+            const normalizedUserId = parsePositiveInteger(userId);
+
+            if (!normalizedCartId || !normalizedUserId) {
+              logger.warn('[Webhook] Ignoring completed checkout with invalid cart metadata');
+              break;
+            }
+
             // Grant sessions via shared service (transaction + row lock + atomic increment)
             // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
-            const result = await grantSessionsForCart(
-              parseInt(cartId), parseInt(userId), 'webhook'
-            );
+            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook');
 
             if (result.granted) {
               logger.info(`[Webhook] Sessions granted for cart ${cartId} (User: ${userId}), added ${result.sessionsAdded}`);
@@ -842,15 +874,18 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
       case 'checkout.session.expired': {
         const session = event.data.object;
-        const { cartId } = session.metadata;
+        const { cartId } = session.metadata || {};
+        const normalizedCartId = parsePositiveInteger(cartId);
 
-        if (cartId) {
+        if (normalizedCartId) {
           const ShoppingCart = getShoppingCart();
           await ShoppingCart.update(
             { checkoutSessionExpired: true },
-            { where: { id: cartId } }
+            { where: { id: normalizedCartId } }
           );
           logger.info(`[Webhook] Checkout session expired for cart ${cartId}`);
+        } else if (cartId) {
+          logger.warn('[Webhook] Ignoring expired checkout with invalid cart metadata');
         }
         break;
       }
@@ -860,7 +895,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   } catch (err) {
     // Return 5xx so Stripe retries the webhook (prevents lost credits)
     logger.error(`[Webhook] Processing error: ${err.message}`);
-    res.status(500).send(`Webhook processing error: ${err.message}`);
+    res.status(500).send('Webhook processing error');
   }
 });
 

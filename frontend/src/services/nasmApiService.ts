@@ -75,6 +75,14 @@ export interface TrainerPermission {
   };
 }
 
+export interface TrainerDirectoryUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role?: 'trainer' | 'admin';
+}
+
 export interface ExerciseSet {
   setNumber: number;
   weight: number;
@@ -357,6 +365,31 @@ export class TrainerPermissionService {
 
   constructor() {
     this.api = apiService;
+  }
+
+  /**
+   * Get live trainers from the authenticated user directory
+   */
+  async getTrainers(options: {
+    includeAdmin?: boolean;
+    limit?: number;
+    page?: number;
+  } = {}): Promise<ApiResponse<TrainerDirectoryUser[]>> {
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.append('includeAdmin', String(options.includeAdmin ?? true));
+      queryParams.append('limit', String(options.limit ?? 100));
+      if (options.page) queryParams.append('page', options.page.toString());
+
+      const response = (await this.api.get(`/api/auth/users/trainers?${queryParams.toString()}`)).data;
+      return {
+        success: response.success,
+        data: response.trainers || []
+      };
+    } catch (error) {
+      console.error('Error fetching trainers:', error);
+      throw error;
+    }
   }
 
   /**

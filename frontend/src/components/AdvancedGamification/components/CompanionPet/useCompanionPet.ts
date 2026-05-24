@@ -5,24 +5,39 @@
  * ============================================================================
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import apiService from '../../../../services/api.service';
 import type { PetData, PetSpeciesId, InteractionType } from './CompanionPetTypes';
 
 const API_BASE = '/api/gamification';
 
-async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...opts,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `API error ${res.status}`);
+const parseBody = (body: BodyInit | null | undefined) => {
+  if (typeof body !== 'string') return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
   }
-  return res.json();
+};
+
+async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const method = (opts?.method || 'GET').toUpperCase();
+  const data = parseBody(opts?.body);
+  const config = { validateStatus: () => true };
+  const url = `${API_BASE}${path}`;
+  const res = method === 'POST'
+    ? await apiService.post(url, data, config)
+    : method === 'PUT'
+      ? await apiService.put(url, data, config)
+      : method === 'DELETE'
+        ? await apiService.delete(url, config)
+        : await apiService.get(url, config);
+
+  if (res.status < 200 || res.status >= 300) {
+    const err = res.data as { error?: string; message?: string } | undefined;
+    throw new Error(err?.error || err?.message || `API error ${res.status}`);
+  }
+
+  return res.data as T;
 }
 
 export function useCompanionPet(userId: number | null) {

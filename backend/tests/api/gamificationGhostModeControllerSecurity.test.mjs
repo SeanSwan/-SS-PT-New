@@ -1,0 +1,55 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const readBackend = (path) => readFileSync(resolve(__dirname, path), 'utf8');
+const readFrontend = (path) => readFileSync(resolve(process.cwd(), '../frontend', path), 'utf8');
+
+const controllerSource = readBackend('../../controllers/gamificationController.mjs');
+const routeSource = readBackend('../../routes/gamificationV1Routes.mjs');
+const coreRoutesSource = readBackend('../../core/routes.mjs');
+
+const functionSource = (name, nextName) => {
+  const startMarker = `  ${name}: async`;
+  const endMarker = `\n  ${nextName}: async`;
+  const start = controllerSource.indexOf(startMarker);
+  const end = controllerSource.indexOf(endMarker, start + startMarker.length);
+
+  expect(start, `${name} start marker`).toBeGreaterThan(-1);
+  expect(end, `${nextName} end marker`).toBeGreaterThan(start);
+
+  return controllerSource.slice(start, end);
+};
+
+const getGhostSource = functionSource('getGhost', 'compareGhost');
+const compareGhostSource = functionSource('compareGhost', 'getGhostConfig');
+
+describe('gamification ghost mode controller security hardening', () => {
+  it('locks the active ghost mode route wiring and frontend consumer', () => {
+    const authPipelineTest = readFrontend('src/components/AdvancedGamification/AdvancedGamificationAuthPipeline.truth.test.ts');
+    const ghostHookSource = readFrontend('src/components/AdvancedGamification/components/GhostMode/useGhostMode.ts');
+
+    expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
+    expect(routeSource).toContain("router.get('/ghost/config', authenticate, requireUser, gamificationController.getGhostConfig)");
+    expect(routeSource).toContain("router.get('/users/:userId/ghost', authenticate, authorizeResourceAccess('userId'), gamificationController.getGhost)");
+    expect(routeSource).toContain("router.post('/users/:userId/ghost/compare', authenticate, authorizeResourceAccess('userId'), gamificationController.compareGhost)");
+    expect(ghostHookSource).toContain('authAxios.get(`${API_BASE}/ghost/config`)');
+    expect(ghostHookSource).toContain('authAxios.get(url)');
+    expect(ghostHookSource).toContain('authAxios.post(`${API_BASE}/users/${userId}/ghost/compare`');
+    expect(authPipelineTest).toContain('mounts V1 backend routes for active ghost mode endpoints');
+  });
+
+  it('strictly normalizes ghost mode route ids and keeps failures stable', () => {
+    [getGhostSource, compareGhostSource].forEach((source) => {
+      expect(source).toContain('const userId = parsePositiveInteger(req.params.userId);');
+      expect(source).toContain('return sendGamificationError(res,');
+      expect(source).not.toContain('parseInt(');
+      expect(source).not.toContain('safeError(req, error)');
+      expect(source).not.toContain('error: error.message');
+    });
+  });
+});

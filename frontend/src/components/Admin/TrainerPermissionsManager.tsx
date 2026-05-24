@@ -18,7 +18,7 @@
  * Designed for SwanStudios Platform - Production Ready
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import {
@@ -33,6 +33,7 @@ import type { LucideIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { 
   trainerPermissionService, 
+  TrainerDirectoryUser,
   TrainerPermission 
 } from '../../services/nasmApiService';
 
@@ -75,6 +76,7 @@ interface TrainerWithPermissions {
   permissions: TrainerPermission[];
   permissionsByType: Record<string, PermissionData>;
   totalActivePermissions: number;
+  permissionLoadFailed?: boolean;
 }
 
 interface PermissionData {
@@ -226,6 +228,7 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'succe
   gap: ${permissionTheme.spacing.sm};
   transition: all 0.3s ease;
   min-width: 120px;
+  min-height: 44px;
   justify-content: center;
 
   background: ${props => 
@@ -368,15 +371,15 @@ const PermissionsGrid = styled.div`
   gap: ${permissionTheme.spacing.md};
 `;
 
-const PermissionCard = styled(motion.div)<{ critical?: boolean; hasPermission?: boolean; expiring?: boolean }>`
-  background: ${props => 
-    props.hasPermission ? 
-      (props.expiring ? `${permissionTheme.colors.warning}20` : `${permissionTheme.colors.success}20`) :
+const PermissionCard = styled(motion.div)<{ $critical?: boolean; $hasPermission?: boolean; $expiring?: boolean }>`
+  background: ${props =>
+    props.$hasPermission ?
+      (props.$expiring ? `${permissionTheme.colors.warning}20` : `${permissionTheme.colors.success}20`) :
       `${permissionTheme.colors.cardBg}`
   };
-  border: 1px solid ${props => 
-    props.hasPermission ? 
-      (props.expiring ? permissionTheme.colors.warning : permissionTheme.colors.success) :
+  border: 1px solid ${props =>
+    props.$hasPermission ?
+      (props.$expiring ? permissionTheme.colors.warning : permissionTheme.colors.success) :
       permissionTheme.colors.border
   };
   border-radius: ${permissionTheme.borderRadius.md};
@@ -384,7 +387,7 @@ const PermissionCard = styled(motion.div)<{ critical?: boolean; hasPermission?: 
   position: relative;
   transition: all 0.3s ease;
 
-  ${props => props.critical && `
+  ${props => props.$critical && `
     &::before {
       content: '';
       position: absolute;
@@ -396,15 +399,15 @@ const PermissionCard = styled(motion.div)<{ critical?: boolean; hasPermission?: 
     }
   `}
 
-  ${props => props.expiring && `
+  ${props => props.$expiring && `
     animation: ${warningPulse} 3s ease-in-out infinite;
   `}
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${props => 
-      props.hasPermission ? 
-        (props.expiring ? `${permissionTheme.colors.warning}40` : `${permissionTheme.colors.success}40`) :
+    box-shadow: 0 4px 12px ${props =>
+      props.$hasPermission ?
+        (props.$expiring ? `${permissionTheme.colors.warning}40` : `${permissionTheme.colors.success}40`) :
         `${permissionTheme.colors.cardBg}40`
     };
   }
@@ -450,9 +453,9 @@ const PermissionToggle = styled.div`
 `;
 
 const ToggleSwitch = styled.button<{ checked: boolean }>`
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
+  width: 52px;
+  height: 44px;
+  border-radius: 22px;
   border: none;
   cursor: pointer;
   position: relative;
@@ -463,10 +466,10 @@ const ToggleSwitch = styled.button<{ checked: boolean }>`
   &::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: ${props => props.checked ? '22px' : '2px'};
-    width: 20px;
-    height: 20px;
+    top: 10px;
+    left: ${props => props.checked ? '24px' : '4px'};
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: white;
     transition: all 0.3s ease;
@@ -476,12 +479,18 @@ const ToggleSwitch = styled.button<{ checked: boolean }>`
   &:hover {
     transform: scale(1.05);
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+  }
 `;
 
-const ToggleLabel = styled.span<{ active: boolean }>`
+const ToggleLabel = styled.span<{ $active: boolean }>`
   font-size: 0.8rem;
   font-weight: 600;
-  color: ${props => props.active ? permissionTheme.colors.success : permissionTheme.colors.textSecondary};
+  color: ${props => props.$active ? permissionTheme.colors.success : permissionTheme.colors.textSecondary};
 `;
 
 const PermissionDescription = styled.div`
@@ -491,7 +500,7 @@ const PermissionDescription = styled.div`
   margin-bottom: ${permissionTheme.spacing.sm};
 `;
 
-const PermissionStatus = styled.div<{ type: 'active' | 'expiring' | 'expired' | 'inactive' }>`
+const PermissionStatus = styled.div<{ type: 'active' | 'expiring' | 'expired' | 'inactive' | 'unknown' }>`
   display: flex;
   align-items: center;
   gap: ${permissionTheme.spacing.xs};
@@ -502,6 +511,7 @@ const PermissionStatus = styled.div<{ type: 'active' | 'expiring' | 'expired' | 
     props.type === 'active' ? permissionTheme.colors.success :
     props.type === 'expiring' ? permissionTheme.colors.warning :
     props.type === 'expired' ? permissionTheme.colors.error :
+    props.type === 'unknown' ? permissionTheme.colors.warning :
     permissionTheme.colors.textSecondary
   };
 `;
@@ -673,6 +683,26 @@ const RequestsPanelTitle = styled.h3`
   gap: ${permissionTheme.spacing.sm};
 `;
 
+const PermissionLoadWarning = styled.div`
+  background: ${permissionTheme.colors.warning}20;
+  border: 1px solid ${permissionTheme.colors.warning};
+  border-radius: ${permissionTheme.borderRadius.md};
+  color: ${permissionTheme.colors.text};
+  display: flex;
+  align-items: center;
+  gap: ${permissionTheme.spacing.sm};
+  margin-bottom: ${permissionTheme.spacing.xl};
+  padding: ${permissionTheme.spacing.md} ${permissionTheme.spacing.lg};
+
+  strong {
+    color: ${permissionTheme.colors.warning};
+  }
+
+  span {
+    color: ${permissionTheme.colors.textSecondary};
+  }
+`;
+
 const WarningTitleIcon = styled(AlertTriangle)`
   color: ${permissionTheme.colors.warning};
 `;
@@ -842,6 +872,31 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const buildTrainer = (
+  trainer: TrainerDirectoryUser,
+  permissionsData?: {
+    permissions?: TrainerPermission[];
+    permissionsByType?: Record<string, PermissionData>;
+    totalActivePermissions?: number;
+  },
+  permissionLoadFailed = false
+): TrainerWithPermissions => ({
+  id: Number(trainer.id),
+  firstName: trainer.firstName || 'Trainer',
+  lastName: trainer.lastName || `#${trainer.id}`,
+  email: trainer.email || 'Email unavailable',
+  permissions: permissionsData?.permissions || [],
+  permissionsByType: permissionsData?.permissionsByType || {},
+  totalActivePermissions: permissionsData?.totalActivePermissions || 0,
+  permissionLoadFailed
+});
+
+const escapeCsvCell = (value: string | number | null | undefined): string => {
+  const raw = String(value ?? '');
+  if (/[",\n\r]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`;
+  return raw;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({ 
@@ -860,61 +915,71 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>([]);
   const [showRequests, setShowRequests] = useState(false);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [permissionLoadErrorCount, setPermissionLoadErrorCount] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const loadSingleTrainer = useCallback(async (id: number) => {
     try {
-      const response = await trainerPermissionService.getTrainerPermissions(id);
-      if (response.success && response.data) {
-        // Mock trainer data - in production, this would come from user service
-        const mockTrainer: TrainerWithPermissions = {
-          id,
-          firstName: 'John',
-          lastName: 'Trainer',
-          email: 'john.trainer@example.com',
-          permissions: response.data.permissions,
-          permissionsByType: response.data.permissionsByType,
-          totalActivePermissions: response.data.totalActivePermissions
-        };
-        setTrainers([mockTrainer]);
+      const trainersResponse = await trainerPermissionService.getTrainers({ includeAdmin: true, limit: 100 });
+      const trainer = trainersResponse.data?.find((item) => Number(item.id) === id) || {
+        id,
+        firstName: 'Trainer',
+        lastName: `#${id}`,
+        email: 'Email unavailable',
+        role: 'trainer' as const
+      };
+
+      try {
+        const permissionsResponse = await trainerPermissionService.getTrainerPermissions(id);
+        if (!permissionsResponse.success || !permissionsResponse.data) {
+          setTrainers([buildTrainer(trainer, undefined, true)]);
+          setPermissionLoadErrorCount(1);
+          return;
+        }
+        setTrainers([buildTrainer(trainer, permissionsResponse.data)]);
+        setPermissionLoadErrorCount(0);
+      } catch (error) {
+        console.error('Failed to load trainer permissions:', error);
+        setTrainers([buildTrainer(trainer, undefined, true)]);
+        setPermissionLoadErrorCount(1);
       }
     } catch (error) {
       console.error('Failed to load trainer permissions:', error);
+      setPermissionLoadErrorCount(0);
     }
   }, []);
 
   const loadAllTrainers = useCallback(async () => {
     try {
-      // Mock trainers data - in production, this would come from user service
-      const mockTrainers = [
-        { id: 1, firstName: 'John', lastName: 'Smith', email: 'john.smith@example.com' },
-        { id: 2, firstName: 'Sarah', lastName: 'Johnson', email: 'sarah.johnson@example.com' },
-        { id: 3, firstName: 'Mike', lastName: 'Wilson', email: 'mike.wilson@example.com' }
-      ];
+      const trainersResponse = await trainerPermissionService.getTrainers({ includeAdmin: true, limit: 100 });
+      const liveTrainers = trainersResponse.data || [];
 
       const trainersWithPermissions = await Promise.all(
-        mockTrainers.map(async (trainer) => {
+        liveTrainers.map(async (trainer) => {
           try {
             const response = await trainerPermissionService.getTrainerPermissions(trainer.id);
-            return {
-              ...trainer,
-              permissions: response.data?.permissions || [],
-              permissionsByType: response.data?.permissionsByType || {},
-              totalActivePermissions: response.data?.totalActivePermissions || 0
-            };
+            if (!response.success || !response.data) {
+              return buildTrainer(trainer, undefined, true);
+            }
+            return buildTrainer(trainer, response.data);
           } catch (error) {
-            return {
-              ...trainer,
-              permissions: [],
-              permissionsByType: {},
-              totalActivePermissions: 0
-            };
+            console.error('Failed to load trainer permissions:', error);
+            return buildTrainer(trainer, undefined, true);
           }
         })
       );
 
       setTrainers(trainersWithPermissions);
+      setPermissionLoadErrorCount(trainersWithPermissions.filter((trainer) => trainer.permissionLoadFailed).length);
+      setSelectedTrainers(prev => new Set(
+        Array.from(prev).filter((selectedTrainerId) => {
+          const trainer = trainersWithPermissions.find((item) => item.id === selectedTrainerId);
+          return trainer && !trainer.permissionLoadFailed;
+        })
+      ));
     } catch (error) {
       console.error('Failed to load trainers:', error);
+      setPermissionLoadErrorCount(0);
     }
   }, []);
 
@@ -950,15 +1015,19 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
 
   const togglePermission = async (trainerId: number, permissionType: string, currentlyHas: boolean) => {
     const permissionKey = `${trainerId}-${permissionType}`;
+    const trainer = trainers.find(t => t.id === trainerId);
     
     if (processingPermissions.has(permissionKey)) return;
+    if (trainer?.permissionLoadFailed) {
+      toast.error('Permission data unavailable. Refresh before changing permissions.');
+      return;
+    }
 
     setProcessingPermissions(prev => new Set(prev).add(permissionKey));
 
     try {
       if (currentlyHas) {
         // Find and revoke permission
-        const trainer = trainers.find(t => t.id === trainerId);
         const permission = trainer?.permissions.find(p => 
           p.permissionType === permissionType && p.isActive
         );
@@ -1005,41 +1074,54 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
 
     const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
     if (!template) return;
+    const actionableTrainerIds = trainerIds.filter((id) => {
+      const trainer = trainers.find((item) => item.id === id);
+      return trainer && !trainer.permissionLoadFailed;
+    });
+
+    if (actionableTrainerIds.length === 0) {
+      toast.error('Permission data unavailable. Refresh before applying templates.');
+      return;
+    }
 
     setBulkProcessing(true);
     try {
-      const operations: Array<Promise<unknown>> = [];
+      const grantOperations: Array<Promise<unknown>> = [];
+      const revokeOperations: Array<Promise<unknown>> = [];
       
-      for (const trainerId of trainerIds) {
-        // First revoke all permissions for clean slate
+      for (const trainerId of actionableTrainerIds) {
         const trainer = trainers.find(t => t.id === trainerId);
-        if (trainer) {
-          for (const existingPermission of trainer.permissions) {
-            if (existingPermission.isActive) {
-              operations.push(
-                trainerPermissionService.revokePermission(existingPermission.id, `Template: ${template.name} applied`)
-              );
-            }
+        const activePermissions = trainer?.permissions.filter((permission) => permission.isActive) || [];
+        const templatePermissionTypes = new Set(template.permissions);
+
+        for (const permissionType of template.permissions) {
+          const alreadyGranted = activePermissions.some((permission) => permission.permissionType === permissionType);
+          if (!alreadyGranted) {
+            grantOperations.push(
+              trainerPermissionService.grantPermission({
+                trainerId,
+                permissionType,
+                notes: `Applied template: ${template.name}`
+              })
+            );
           }
         }
-        
-        // Then grant template permissions
-        for (const permissionType of template.permissions) {
-          operations.push(
-            trainerPermissionService.grantPermission({
-              trainerId,
-              permissionType,
-              notes: `Applied template: ${template.name}`
-            })
-          );
+
+        for (const existingPermission of activePermissions) {
+          if (!templatePermissionTypes.has(existingPermission.permissionType)) {
+            revokeOperations.push(
+              trainerPermissionService.revokePermission(existingPermission.id, `Template: ${template.name} applied`)
+            );
+          }
         }
       }
 
-      await Promise.all(operations);
+      await Promise.all(grantOperations);
+      await Promise.all(revokeOperations);
       await loadData();
       onPermissionChange?.();
       
-      toast.success(`Template "${template.name}" applied to ${trainerIds.length} trainer(s)`);
+      toast.success(`Template "${template.name}" applied to ${actionableTrainerIds.length} trainer(s)`);
       setSelectedTemplate('');
       setSelectedTrainers(new Set());
       
@@ -1054,12 +1136,21 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   // Bulk Operations
   const performBulkOperation = async (operation: BulkPermissionOperation) => {
     if (operation.trainerIds.length === 0) return;
+    const actionableTrainerIds = operation.trainerIds.filter((id) => {
+      const trainer = trainers.find((item) => item.id === id);
+      return trainer && !trainer.permissionLoadFailed;
+    });
+
+    if (actionableTrainerIds.length === 0) {
+      toast.error('Permission data unavailable. Refresh before changing permissions.');
+      return;
+    }
 
     setBulkProcessing(true);
     try {
       const operations: Array<Promise<unknown>> = [];
       
-      for (const trainerId of operation.trainerIds) {
+      for (const trainerId of actionableTrainerIds) {
         if (operation.action === 'grant') {
           operations.push(
             trainerPermissionService.grantPermission({
@@ -1086,7 +1177,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
       await loadData();
       onPermissionChange?.();
       
-      toast.success(`Bulk ${operation.action} completed for ${operation.trainerIds.length} trainer(s)`);
+      toast.success(`Bulk ${operation.action} completed for ${actionableTrainerIds.length} trainer(s)`);
       setSelectedTrainers(new Set());
       
     } catch (error: unknown) {
@@ -1097,32 +1188,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
     }
   };
 
-  // Permission Requests (Mock implementation - would need backend)
-  const loadPermissionRequests = async () => {
-    // Mock data - in production this would come from backend
-    const mockRequests: PermissionRequest[] = [
-      {
-        id: '1',
-        trainerId: 2,
-        trainerName: 'Sarah Johnson',
-        permissionType: 'access_nutrition',
-        reason: 'I am completing my nutrition certification and need access to client nutrition data to provide comprehensive guidance.',
-        requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'pending'
-      },
-      {
-        id: '2',
-        trainerId: 3,
-        trainerName: 'Mike Wilson',
-        permissionType: 'modify_schedules',
-        reason: 'I would like to help with scheduling coordination for our gym location.',
-        requestedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'pending'
-      }
-    ];
-    
-    setPermissionRequests(mockRequests.filter(r => r.status === 'pending'));
-  };
+  const loadPermissionRequests = useCallback(async () => {
+    setPermissionRequests([]);
+  }, []);
 
   const handlePermissionRequest = async (requestId: string, action: 'approve' | 'deny') => {
     const request = permissionRequests.find(r => r.id === requestId);
@@ -1156,6 +1224,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
 
   // Selection handlers
   const toggleTrainerSelection = (trainerId: number) => {
+    const trainer = trainers.find((item) => item.id === trainerId);
+    if (trainer?.permissionLoadFailed) return;
+
     setSelectedTrainers(prev => {
       const newSet = new Set(prev);
       if (newSet.has(trainerId)) {
@@ -1168,7 +1239,9 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   };
 
   const selectAllTrainers = () => {
-    const allTrainerIds = filteredTrainers.map(t => t.id);
+    const allTrainerIds = filteredTrainers
+      .filter((trainer) => !trainer.permissionLoadFailed)
+      .map(t => t.id);
     setSelectedTrainers(new Set(allTrainerIds));
   };
 
@@ -1179,7 +1252,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   // Load permission requests on mount
   useEffect(() => {
     loadPermissionRequests();
-  }, []);
+  }, [loadPermissionRequests]);
 
   const filteredTrainers = useMemo(() => {
     return trainers.filter(trainer => {
@@ -1203,9 +1276,50 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
       case 'active': return <CheckCircle size={12} />;
       case 'expiring': return <AlertTriangle size={12} />;
       case 'expired': return <XCircle size={12} />;
+      case 'unknown': return <AlertTriangle size={12} />;
       default: return <Shield size={12} />;
     }
   };
+
+  const handleFilterButton = () => {
+    if (searchQuery) {
+      setSearchQuery('');
+      return;
+    }
+    searchInputRef.current?.focus();
+  };
+
+  const handleExportReport = () => {
+    if (filteredTrainers.length === 0) {
+      toast.info('No trainers to export');
+      return;
+    }
+
+    const rows = [
+      ['Trainer', 'Email', 'Active Permissions', ...PERMISSION_TYPES.map((permission) => permission.label)],
+      ...filteredTrainers.map((trainer) => [
+        `${trainer.firstName} ${trainer.lastName}`,
+        trainer.email,
+        `${trainer.totalActivePermissions}/${PERMISSION_TYPES.length}`,
+        ...PERMISSION_TYPES.map((permission) => (
+          trainer.permissionsByType[permission.key]?.hasPermission ? 'Granted' : 'Not granted'
+        ))
+      ])
+    ];
+
+    const csv = rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `trainer-permissions-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const permissionLoadWarningText = `${permissionLoadErrorCount} trainer permission set${permissionLoadErrorCount === 1 ? '' : 's'} could not be loaded.`;
 
   if (loading) {
     return (
@@ -1266,6 +1380,8 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                   variant={permissionRequests.length > 0 ? "warning" : "secondary"} 
                   onClick={() => setShowRequests(!showRequests)}
                   title={`${permissionRequests.length} pending permission requests`}
+                  disabled={permissionRequests.length === 0}
+                  aria-label={`${permissionRequests.length} pending permission requests`}
                 >
                   <MessageSquare size={16} />
                   Requests
@@ -1275,12 +1391,16 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 )}
               </RequestsButtonWrap>
               
-              <Button variant="secondary" onClick={loadData}>
+              <Button variant="secondary" onClick={loadData} aria-label="Refresh trainer permissions">
                 <RefreshCw size={16} />
                 Refresh
               </Button>
               
-              <Button variant="primary">
+              <Button
+                variant="primary"
+                onClick={handleExportReport}
+                aria-label="Export filtered trainer permissions report"
+              >
                 <Download size={16} />
                 Export Report
               </Button>
@@ -1320,6 +1440,14 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
             </StatsGrid>
           )}
         </Header>
+
+        {permissionLoadErrorCount > 0 && (
+          <PermissionLoadWarning role="status" aria-live="polite">
+            <AlertTriangle size={18} />
+            <strong>{permissionLoadWarningText}</strong>
+            <span>Locked trainers require a refresh before permission changes.</span>
+          </PermissionLoadWarning>
+        )}
 
         {/* Permission Requests Panel */}
         <AnimatePresence>
@@ -1385,6 +1513,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
         {!trainerId && (
           <SearchBar>
             <SearchInput
+              ref={searchInputRef}
               type="text"
               placeholder="Search trainers by name or email..."
               value={searchQuery}
@@ -1423,9 +1552,13 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                 </Button>
               )}
               
-              <Button variant="secondary">
+              <Button
+                variant="secondary"
+                onClick={handleFilterButton}
+                aria-label={searchQuery ? 'Clear trainer permission filter' : 'Focus trainer permission filter'}
+              >
                 <Filter size={16} />
-                Filter
+                {searchQuery ? 'Clear' : 'Filter'}
               </Button>
             </SearchActions>
           </SearchBar>
@@ -1443,8 +1576,18 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               <TrainerCheckbox
                 type="checkbox"
                 checked={selectedTrainers.has(trainer.id)}
+                disabled={trainer.permissionLoadFailed}
                 onChange={() => toggleTrainerSelection(trainer.id)}
-                title={`Select ${trainer.firstName} ${trainer.lastName} for bulk operations`}
+                aria-label={
+                  trainer.permissionLoadFailed
+                    ? `Permission data unavailable for ${trainer.firstName} ${trainer.lastName}`
+                    : `Select ${trainer.firstName} ${trainer.lastName} for bulk operations`
+                }
+                title={
+                  trainer.permissionLoadFailed
+                    ? 'Refresh before selecting this trainer'
+                    : `Select ${trainer.firstName} ${trainer.lastName} for bulk operations`
+                }
               />
               <TrainerHeader>
                 <h3>
@@ -1463,16 +1606,16 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                     daysUntilExpiration: null
                   };
                   
-                  const status = getPermissionStatus(permissionData);
+                  const status = trainer.permissionLoadFailed ? 'unknown' : getPermissionStatus(permissionData);
                   const isProcessing = processingPermissions.has(`${trainer.id}-${permType.key}`);
                   const IconComponent = permType.icon;
 
                   return (
                     <PermissionCard
                       key={permType.key}
-                      critical={permType.critical}
-                      hasPermission={permissionData.hasPermission}
-                      expiring={permissionData.isExpiringSoon}
+                      $critical={permType.critical}
+                      $hasPermission={permissionData.hasPermission}
+                      $expiring={permissionData.isExpiringSoon}
                       whileHover={{ scale: 1.02 }}
                     >
                       <PermissionHeader>
@@ -1489,7 +1632,13 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                         <PermissionToggle>
                           <ToggleSwitch
                             checked={permissionData.hasPermission}
-                            disabled={isProcessing}
+                            disabled={isProcessing || trainer.permissionLoadFailed}
+                            aria-pressed={permissionData.hasPermission}
+                            aria-label={
+                              trainer.permissionLoadFailed
+                                ? `Permission data unavailable for ${permType.label} on ${trainer.firstName} ${trainer.lastName}`
+                                : `${permissionData.hasPermission ? 'Revoke' : 'Grant'} ${permType.label} for ${trainer.firstName} ${trainer.lastName}`
+                            }
                             onClick={() => togglePermission(
                               trainer.id,
                               permType.key,
@@ -1500,8 +1649,8 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                               <ToggleLoadingSpinner />
                             )}
                           </ToggleSwitch>
-                          <ToggleLabel active={permissionData.hasPermission}>
-                            {permissionData.hasPermission ? 'ON' : 'OFF'}
+                          <ToggleLabel $active={permissionData.hasPermission}>
+                            {trainer.permissionLoadFailed ? 'LOCKED' : permissionData.hasPermission ? 'ON' : 'OFF'}
                           </ToggleLabel>
                         </PermissionToggle>
                       </PermissionHeader>
@@ -1516,6 +1665,7 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
                         {status === 'expiring' && `Expires in ${permissionData.daysUntilExpiration} days`}
                         {status === 'expired' && 'Expired'}
                         {status === 'inactive' && 'Not granted'}
+                        {status === 'unknown' && 'Permission data unavailable'}
                       </PermissionStatus>
                     </PermissionCard>
                   );

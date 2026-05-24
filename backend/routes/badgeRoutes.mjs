@@ -30,6 +30,7 @@
 import express from 'express';
 import badgeController from '../controllers/badgeController.mjs';
 import { authenticateToken } from '../middleware/auth.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import { apiLimiter } from '../middleware/rateLimiter.mjs';
 import { body, param, query, validationResult } from 'express-validator';
 import multer from 'multer';
@@ -230,8 +231,9 @@ router.post('/check-earning',
 // Get user's earned badges
 router.get('/user/:userId',
   authenticateToken,
+  verifyClientAccessByUserId({ paramName: 'userId' }),
   apiLimiter,
-  param('userId').isUUID().withMessage('Invalid user ID'),
+  param('userId').isInt({ min: 1 }).withMessage('Invalid user ID'),
   query('category').optional().isIn(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']),
   query('recent').optional().isBoolean().withMessage('Recent must be a boolean'),
   handleValidationErrors,

@@ -21,6 +21,7 @@ import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
@@ -34,14 +35,6 @@ try {
   }
 } catch (err) {
   logger.error('[ACH] Stripe init failed:', err.message);
-}
-
-// Generate human-readable order number
-function generateOrderNumber() {
-  const date = new Date();
-  const datePart = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
-  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `SS-${datePart}-${randomPart}`;
 }
 
 /**
@@ -145,7 +138,7 @@ router.post('/create-intent', protect, async (req, res) => {
     }
 
     // Wrap Order + Stripe call in transaction to prevent ghost orders
-    const orderNumber = generateOrderNumber();
+    const orderNumber = generateSwanOrderNumber();
     const result = await sequelize.transaction(async (t) => {
       const { record: order, created } = await claimIdempotentRecord({
         model: Order,

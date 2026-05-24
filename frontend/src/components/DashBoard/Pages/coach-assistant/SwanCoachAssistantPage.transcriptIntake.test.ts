@@ -157,7 +157,7 @@ describe('SwanCoachAssistantPage transcript intake — page wiring locks', () =>
 
   it('handleConfirmTranscript preserves review state with applyError on failure', () => {
     // Review card must NOT be removed on failure — the user can retry.
-    expect(PAGE_SOURCE).toMatch(/applyError:\s*apply\.failure\.error/);
+    expect(PAGE_SOURCE).toMatch(/applyError:\s*(?:apply\.failure|failure)\.error/);
   });
 
   it('handleCancelTranscript calls coach.removeTranscriptMessages', () => {
@@ -767,7 +767,7 @@ describe('Phase 13 — 409 duplicate-date classification', () => {
 
   it('page propagates apply.failure.kind into applyErrorKind metadata', () => {
     expect(PAGE_SOURCE).toMatch(/applyErrorKind:/);
-    expect(PAGE_SOURCE).toMatch(/apply\.failure\.kind\s*===\s*['"]duplicate_date['"]/);
+    expect(PAGE_SOURCE).toMatch(/(?:apply\.failure|failure)\.kind\s*===\s*['"]duplicate_date['"]/);
   });
 
   it('CoachMessage renders a kind-aware error badge', () => {

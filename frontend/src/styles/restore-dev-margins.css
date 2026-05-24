@@ -32,7 +32,7 @@ body::after {
 }
 
 /* Adjust the header to be positioned below the bars */
-header, .header, .MuiAppBar-root, nav {
+header, .header, nav {
   top: 30px !important; /* Position header below both bars */
   position: fixed !important;
 }

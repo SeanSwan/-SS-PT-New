@@ -18,9 +18,7 @@ import {
   Apple, Search, Utensils, Leaf, Zap, Quote,
   Loader2, AlertTriangle, Info,
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+import apiService from '../../services/api.service';
 
 // ── Theme ──
 const SWAN_CYAN = '#60C0F0';
@@ -306,14 +304,6 @@ const InspiredButton = styled(SearchBtn)`
 `;
 
 // ── Helpers ──
-function getHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 type TabId = 'nutrition' | 'food-search' | 'produce' | 'fast-food' | 'motivation';
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
@@ -374,11 +364,11 @@ const FoodIntelligenceDashboard: React.FC = () => {
     if (!query.trim()) return;
     setLoading(true); setError(null); setResults([]);
     try {
-      const res = await fetch(`${API_BASE}/api/free/nutrition?q=${encodeURIComponent(query)}`, { headers: getHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/free/nutrition?q=${encodeURIComponent(query)}`);
+      const data = response.data;
       if (data.ok) setResults(data.data?.items || []);
       else setError(data.error || 'Search failed');
-    } catch { setError('Network error'); }
+    } catch (err: any) { setError(err?.response?.data?.error || err?.response?.data?.message || 'Network error'); }
     finally { setLoading(false); }
   }, [query]);
 
@@ -386,22 +376,22 @@ const FoodIntelligenceDashboard: React.FC = () => {
     if (!query.trim()) return;
     setLoading(true); setError(null); setResults([]);
     try {
-      const res = await fetch(`${API_BASE}/api/free/food-search?q=${encodeURIComponent(query)}`, { headers: getHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/free/food-search?q=${encodeURIComponent(query)}`);
+      const data = response.data;
       if (data.ok) setResults(data.data?.foods || []);
       else setError(data.error || 'Search failed');
-    } catch { setError('Network error'); }
+    } catch (err: any) { setError(err?.response?.data?.error || err?.response?.data?.message || 'Network error'); }
     finally { setLoading(false); }
   }, [query]);
 
   const fetchQuote = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/free/quote`);
-      const data = await res.json();
+      const response = await apiService.get('/api/free/quote');
+      const data = response.data;
       if (data.ok) setQuote({ text: data.data.quote, author: data.data.author });
       else setError(data.error || 'Failed to fetch quote');
-    } catch { setError('Network error'); }
+    } catch (err: any) { setError(err?.response?.data?.error || err?.response?.data?.message || 'Network error'); }
     finally { setLoading(false); }
   }, []);
 

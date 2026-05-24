@@ -6,9 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-
-// API Base URL for production/development compatibility
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+import apiService from '../services/api.service';
 
 interface Exercise {
   id: string | number;
@@ -70,17 +68,10 @@ export function useCurrentWorkout(userId?: number, isClient?: boolean): UseCurre
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE_URL}/api/workouts/${userId}/current`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get(`/api/workouts/${userId}/current`);
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         // If no plan exists, that's okay - not an error
         if (response.status === 200 && result.data === null) {
           setData(null);

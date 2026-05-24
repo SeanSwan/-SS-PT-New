@@ -35,6 +35,7 @@ import ClientHeaderCard from './clients-team/ClientHeaderCard';
 import { ClientDetailView } from './clients-team';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import type { MiniCardClient } from './clients-team/ClientMiniCard';
+import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 
 // Lazy-load tab content to keep initial bundle lean.
 //
@@ -467,6 +468,14 @@ const ClientsWorkspace: React.FC = () => {
           </ActionBtn>
         </TopBarActions>
       </TopBar>
+
+      {!selectedClient && authAxios && (
+        <ClientActivationQueuePanel
+          authAxios={authAxios}
+          onSelectClient={handleSelectClient}
+          onNavigate={navigate}
+        />
+      )}
 
       {/* Client Header Card (shown when client selected) */}
       {selectedClient && (

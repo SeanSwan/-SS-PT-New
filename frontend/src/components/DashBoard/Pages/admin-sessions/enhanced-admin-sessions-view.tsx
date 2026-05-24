@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { useToast } from "../../../../hooks/use-toast";
-import { useSocket } from "../../../../hooks/use-socket";
+import { useSocket } from "../../../../context/SocketContext";
 import GlowButton from '../../../ui/buttons/GlowButton'; // Ensure path is correct
 import SessionTestControls from './session-test-controls';
 import services from '../../../../services/index';
@@ -769,8 +769,8 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [loadingClients, setLoadingClients] = useState(false);
   const [loadingTrainers, setLoadingTrainers] = useState(false);
 
-  // Connect to WebSocket for real-time updates
-  const { lastMessage } = useSocket('/ws/admin-dashboard');
+  // Connect to the authenticated Socket.IO provider for real-time updates.
+  const { socket } = useSocket();
 
   // State for UI controls
   const [page, setPage] = useState(0);
@@ -968,23 +968,58 @@ const EnhancedAdminSessionsView: React.FC = () => {
     fetchTrainers();
   }, [fetchClients, fetchSessions, fetchTrainers]);
 
-  // Handle WebSocket messages for real-time updates
+  // Handle Socket.IO messages for real-time updates
   useEffect(() => {
-    if (lastMessage) {
-      logger.log('Received message in sessions view:', lastMessage);
-      // If it's a purchase notification, refresh sessions data
-      if (lastMessage.type === 'purchase' ||
-          (lastMessage.type === 'dashboard:update' && lastMessage.data?.type === 'purchase')) {
-        toast({
-          title: "New Sessions",
-          description: `${lastMessage.data.userName} purchased ${lastMessage.data.sessionsPurchased || ''} sessions`,
-        });
-        // Refresh data to show updated sessions
-        fetchClients();
-        fetchSessions();
-      }
-    }
-  }, [lastMessage, toast, fetchClients, fetchSessions]);
+    if (!socket) return;
+
+    const refreshSessionsSurface = () => {
+      fetchClients();
+      fetchSessions();
+    };
+
+    type PurchaseSocketPayload = {
+      type?: string;
+      userName?: string;
+      sessions?: number | string;
+      sessionsPurchased?: number | string;
+    };
+
+    const handleUserPurchasedSessions = (payload: PurchaseSocketPayload) => {
+      logger.log('Received purchase socket event in sessions view:', payload);
+      toast({
+        title: "New Sessions",
+        description: `${payload.userName || 'A client'} purchased ${payload.sessionsPurchased ?? payload.sessions ?? ''} sessions`,
+      });
+      refreshSessionsSurface();
+    };
+
+    const handleDashboardUpdate = (payload: PurchaseSocketPayload & { data?: PurchaseSocketPayload }) => {
+      if (payload?.type !== 'purchase' && payload?.data?.type !== 'purchase') return;
+      const purchasePayload = payload.data ?? payload;
+      handleUserPurchasedSessions({
+        userName: purchasePayload.userName,
+        sessions: purchasePayload.sessions,
+        sessionsPurchased: purchasePayload.sessionsPurchased,
+      });
+    };
+
+    const handleScheduleUpdate = () => {
+      logger.log('Received schedule socket event in sessions view');
+      refreshSessionsSurface();
+    };
+
+    socket.on('user_purchased_sessions', handleUserPurchasedSessions);
+    socket.on('dashboard:update', handleDashboardUpdate);
+    socket.on('schedule:update', handleScheduleUpdate);
+    socket.on('schedule:sync_required', handleScheduleUpdate);
+
+    return () => {
+      socket.off('user_purchased_sessions', handleUserPurchasedSessions);
+      socket.off('dashboard:update', handleDashboardUpdate);
+      socket.off('schedule:update', handleScheduleUpdate);
+      socket.off('schedule:sync_required', handleScheduleUpdate);
+    };
+  }, [socket, toast, fetchClients, fetchSessions]);
 
   // Handle pagination change
   const handleChangePage = (_event: unknown, newPage: number) => {

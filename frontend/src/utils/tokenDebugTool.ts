@@ -11,11 +11,12 @@ import apiService from '../services/api.service';
 
 type StorageKind = 'localStorage' | 'sessionStorage';
 type TokenMap = Record<string, string>;
+const isDevBuild = import.meta.env.DEV;
 
 class TokenDebugTool {
   constructor() {
-    // Make it available globally for debugging
-    if (typeof window !== 'undefined') {
+    // Make it available globally for local debugging only.
+    if (isDevBuild && typeof window !== 'undefined') {
       window.debugTokens = this.debugAllTokens.bind(this);
       window.cleanupTokens = this.cleanupTokens.bind(this);
       window.showTokenInfo = this.showTokenInfo.bind(this);
@@ -183,26 +184,6 @@ class TokenDebugTool {
     return isValid;
   }
 
-  /**
-   * Generate a mock JWT for testing
-   */
-  generateMockJWT() {
-    const header = btoa(JSON.stringify({
-      alg: 'HS256',
-      typ: 'JWT'
-    }));
-    
-    const payload = btoa(JSON.stringify({
-      sub: 'test-user-id',
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
-      role: 'client'
-    }));
-    
-    const signature = 'mock-signature';
-    
-    return `${header}.${payload}.${signature}`;
-  }
 }
 
 // Initialize the debug tool

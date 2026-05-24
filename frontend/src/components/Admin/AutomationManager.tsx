@@ -28,6 +28,7 @@ import {
   CustomSelect
 } from '../UniversalMasterSchedule/ui';
 import { useAutomationSequences, AutomationStep } from '../../hooks/useAutomationSequences';
+import apiService from '../../services/api.service';
 
 type TemplateOption = { value: string; label: string };
 
@@ -95,12 +96,9 @@ const AutomationManager: React.FC = () => {
   useEffect(() => {
     const loadTemplates = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('/api/sms/templates', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const result = await response.json().catch(() => ({}));
-        if (response.ok && result?.success) {
+        const response = await apiService.get('/api/sms/templates');
+        const result = response.data;
+        if (result?.success) {
           const templateOptions = (result.data || []).map((item: { name: string }) => ({
             value: item.name,
             label: item.name
@@ -185,12 +183,6 @@ const AutomationManager: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to manage automation.');
-        return;
-      }
-
       setIsSubmitting(true);
 
       const payload = {
@@ -207,20 +199,12 @@ const AutomationManager: React.FC = () => {
       const url = selectedSequenceId
         ? `/api/automation/sequences/${selectedSequenceId}`
         : '/api/automation/sequences';
-      const method = selectedSequenceId ? 'PUT' : 'POST';
+      const response = selectedSequenceId
+        ? await apiService.put(url, payload)
+        : await apiService.post(url, payload);
+      const result = response.data;
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to save sequence.');
         return;
       }
@@ -230,9 +214,9 @@ const AutomationManager: React.FC = () => {
       if (!selectedSequenceId) {
         resetForm();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving automation sequence:', err);
-      setFormError('Network error saving sequence.');
+      setFormError(err?.response?.data?.message || 'Network error saving sequence.');
     } finally {
       setIsSubmitting(false);
     }
@@ -243,23 +227,14 @@ const AutomationManager: React.FC = () => {
     if (!window.confirm('Delete this automation sequence?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to delete sequences.');
-        return;
-      }
-
       setIsSubmitting(true);
       setFormError(null);
       setSuccessMessage(null);
 
-      const response = await fetch(`/api/automation/sequences/${selectedSequenceId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiService.delete(`/api/automation/sequences/${selectedSequenceId}`);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to delete sequence.');
         return;
       }
@@ -267,9 +242,9 @@ const AutomationManager: React.FC = () => {
       setSuccessMessage('Sequence deleted.');
       await refetch();
       resetForm();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting sequence:', err);
-      setFormError('Network error deleting sequence.');
+      setFormError(err?.response?.data?.message || 'Network error deleting sequence.');
     } finally {
       setIsSubmitting(false);
     }
@@ -286,38 +261,25 @@ const AutomationManager: React.FC = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to trigger sequences.');
-        return;
-      }
-
       setIsSubmitting(true);
 
-      const response = await fetch('/api/automation/trigger', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          eventName: testEvent,
-          userId: numericUserId,
-          data: testMessage ? { message: testMessage } : {}
-        })
+      const response = await apiService.post('/api/automation/trigger', {
+        eventName: testEvent,
+        userId: numericUserId,
+        data: testMessage ? { message: testMessage } : {}
       });
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to trigger sequence.');
         return;
       }
 
       setSuccessMessage(`Triggered ${result?.created || 0} automation steps.`);
       setTestMessage('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error triggering automation sequence:', err);
-      setFormError('Network error triggering sequence.');
+      setFormError(err?.response?.data?.message || 'Network error triggering sequence.');
     } finally {
       setIsSubmitting(false);
     }

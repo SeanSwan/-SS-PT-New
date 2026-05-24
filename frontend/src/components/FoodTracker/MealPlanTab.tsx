@@ -28,8 +28,7 @@ import {
   Clock, ShoppingCart, Lightbulb, AlertTriangle,
   Upload, X, Loader2,
 } from 'lucide-react';
-
-const API = import.meta.env.VITE_API_BASE || '';
+import apiService from '../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -149,9 +148,8 @@ const MealPlanTab: React.FC = () => {
   const [expandedPreset, setExpandedPreset] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/api/meal-plans/golf-presets`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setGolfPresets(d.presets); })
+    apiService.get('/api/meal-plans/golf-presets')
+      .then(response => { if (response.data.success) setGolfPresets(response.data.presets); })
       .catch(() => {});
   }, []);
 
@@ -172,14 +170,7 @@ const MealPlanTab: React.FC = () => {
     setPlanError('');
     setPlan(null);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API}/api/meal-plans/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const response = await apiService.post('/api/meal-plans/generate', {
           calories: parseInt(calories),
           protein: protein ? parseInt(protein) : undefined,
           carbs: carbs ? parseInt(carbs) : undefined,
@@ -188,16 +179,10 @@ const MealPlanTab: React.FC = () => {
           healthConditions: selectedConditions,
           activityType,
           optPhase,
-        }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || (res.status === 401 ? 'Log in to generate meal plans' : 'Generation failed'));
-      }
-      const data = await res.json();
-      setPlan(data.plan);
-    } catch (err: unknown) {
-      setPlanError(err instanceof Error ? err.message : 'Failed to generate plan');
+      setPlan(response.data.plan);
+    } catch (err: any) {
+      setPlanError(err?.response?.data?.message || (err?.response?.status === 401 ? 'Log in to generate meal plans' : err?.message || 'Failed to generate plan'));
     } finally {
       setPlanLoading(false);
     }
@@ -219,22 +204,14 @@ const MealPlanTab: React.FC = () => {
     setPhotoLoading(true);
     setPhotoError('');
     try {
-      const token = localStorage.getItem('token');
       const form = new FormData();
       form.append('photo', photoFile);
-      const res = await fetch(`${API}/api/meal-plans/analyze-photo`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
+      const response = await apiService.post('/api/meal-plans/analyze-photo', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || 'Photo analysis failed');
-      }
-      const data = await res.json();
-      setPhotoResult(data.analysis);
-    } catch (err: unknown) {
-      setPhotoError(err instanceof Error ? err.message : 'Analysis failed');
+      setPhotoResult(response.data.analysis);
+    } catch (err: any) {
+      setPhotoError(err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Analysis failed');
     } finally {
       setPhotoLoading(false);
     }

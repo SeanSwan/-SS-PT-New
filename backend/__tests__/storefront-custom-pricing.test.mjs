@@ -350,13 +350,24 @@ describe('Custom Package Pricing Endpoint - /api/storefront/calculate-price', ()
       expect(response.body.pricing.subtotal).toBe(4000); // 20 * 200
     });
 
-    it('should handle decimal sessions (should round)', async () => {
+    it('should reject decimal sessions instead of truncating them', async () => {
       const response = await request(app)
         .get('/api/storefront/calculate-price')
         .query({ sessions: 15.7 });
 
-      expect(response.status).toBe(200);
-      expect(response.body.pricing.sessions).toBe(15); // parseInt rounds down
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('whole number');
+    });
+
+    it('should reject malformed custom base prices instead of partially parsing them', async () => {
+      const response = await request(app)
+        .get('/api/storefront/calculate-price')
+        .query({ sessions: 20, pricePerSession: '200abc' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toContain('valid currency amount');
     });
 
     it('should calculate correct discount percentage', async () => {

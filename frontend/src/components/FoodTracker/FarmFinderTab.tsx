@@ -15,6 +15,7 @@ import {
   MarketCardWrapper, MarketCardTrigger, MarketHeader, MarketName, DistBadge,
   LoadingRow, MarketDetails, DetailItem, DirectionsLink, Attribution,
 } from './FarmFinderTab.styles';
+import apiService from '../../services/api.service';
 
 // ── Types ──────────────────────────────────────────────────────
 interface MarketSummary {
@@ -30,14 +31,6 @@ interface MarketDetail {
   googleLink: string;
   lat: number | null;
   lng: number | null;
-}
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 // ── Lazy-load Leaflet (heavy library, not needed on initial render) ──
@@ -88,8 +81,8 @@ const FarmFinderTab: React.FC = () => {
     setDetails({});
     setSelectedMarket(null);
     try {
-      const res = await fetch(`${API_BASE}/api/farms/search?zip=${zipCode}`, { headers: authHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/farms/search?zip=${zipCode}`);
+      const data = response.data;
       if (!data.success) {
         if (data.apiDown) {
           setError('Farmers market data is temporarily unavailable. Please try again later.');
@@ -100,8 +93,8 @@ const FarmFinderTab: React.FC = () => {
       }
       setMarkets(data.markets);
       if (data.markets.length === 0) setError('No farmers markets found near this zip code');
-    } catch {
-      setError('Failed to search. Check your connection.');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to search. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -116,15 +109,15 @@ const FarmFinderTab: React.FC = () => {
     setDetailLoading(marketId);
     setSelectedMarket(marketId);
     try {
-      const res = await fetch(`${API_BASE}/api/farms/detail/${marketId}`, { headers: authHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/farms/detail/${marketId}`);
+      const data = response.data;
       if (data.success && data.market) {
         setDetails(prev => ({ ...prev, [marketId]: data.market }));
       } else {
         setDetailError('Could not load market details. Try again.');
       }
-    } catch {
-      setDetailError('Could not load market details. Check your connection.');
+    } catch (err: any) {
+      setDetailError(err?.response?.data?.error || err?.response?.data?.message || 'Could not load market details. Check your connection.');
     } finally {
       setDetailLoading(null);
     }

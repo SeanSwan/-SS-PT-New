@@ -53,9 +53,9 @@ const SocialEvent = db.define('SocialEvent', {
   // ====================
   category: {
     type: DataTypes.ENUM(
-      'workout_class', 'group_training', 'running_club', 'yoga_session',
+      'workout_class', 'group_training', 'running_club', 'flexibility_session',
       'dance_class', 'cycling_group', 'hiking', 'swimming', 'martial_arts',
-      'nutrition_workshop', 'wellness_seminar', 'mental_health', 'meditation',
+      'nutrition_workshop', 'wellness_seminar', 'mental_health', 'recovery_session',
       'competition', 'challenge', 'social_meetup', 'virtual_event',
       'outdoor_activity', 'fitness_bootcamp', 'sports_game', 'other'
     ),

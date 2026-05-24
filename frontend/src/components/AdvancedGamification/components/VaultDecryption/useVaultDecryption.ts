@@ -7,22 +7,51 @@
  */
 
 import { useState, useCallback } from 'react';
+import apiService from '../../../../services/api.service';
 import type { VaultDrop, VaultDropResult } from './VaultDecryptionTypes';
 
 const API_BASE = '/api/gamification';
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  if (!res.ok) throw new Error(`Vault API error: ${res.status}`);
-  return res.json();
+interface VaultApiResponse {
+  success: boolean;
+  data: VaultDropResult;
+}
+
+interface VaultInventoryResponse {
+  success: boolean;
+  data: {
+    inventory: VaultDrop[];
+  };
+}
+
+const parseBody = (body: BodyInit | null | undefined) => {
+  if (typeof body !== 'string') return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+};
+
+async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const method = (opts?.method || 'GET').toUpperCase();
+  const data = parseBody(opts?.body);
+  const config = { validateStatus: () => true };
+  const url = `${API_BASE}${path}`;
+  const res = method === 'POST'
+    ? await apiService.post(url, data, config)
+    : method === 'PUT'
+      ? await apiService.put(url, data, config)
+      : method === 'DELETE'
+        ? await apiService.delete(url, config)
+        : await apiService.get(url, config);
+
+  if (res.status < 200 || res.status >= 300) {
+    const err = res.data as { error?: string; message?: string } | undefined;
+    throw new Error(err?.error || err?.message || `API error ${res.status}`);
+  }
+
+  return res.data as T;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -43,7 +72,7 @@ export function useVaultDecryption(userId: number | null | undefined) {
     if (!userId) return null;
 
     try {
-      const result = await fetchWithAuth(`${API_BASE}/users/${userId}/vault/roll`, {
+      const result = await apiFetch<VaultApiResponse>(`/users/${userId}/vault/roll`, {
         method: 'POST',
         body: JSON.stringify({ actionType }),
       });
@@ -86,7 +115,7 @@ export function useVaultDecryption(userId: number | null | undefined) {
     if (!userId) return;
     setLoading(true);
     try {
-      const result = await fetchWithAuth(`${API_BASE}/users/${userId}/vault/inventory`);
+      const result = await apiFetch<VaultInventoryResponse>(`/users/${userId}/vault/inventory`);
       if (result.success) {
         setInventory(result.data.inventory || []);
       }

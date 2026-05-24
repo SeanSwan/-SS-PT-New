@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import apiService from '../services/api.service';
 
 interface Macros {
   protein: number;
@@ -69,17 +70,10 @@ export function useNutritionPlan(userId?: number, isClient?: boolean): UseNutrit
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/nutrition/${userId}/current`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get(`/api/nutrition/${userId}/current`);
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         if (response.status === 200 && result.data === null) {
           setData(null);
         } else {

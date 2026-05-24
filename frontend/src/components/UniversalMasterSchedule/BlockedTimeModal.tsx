@@ -23,6 +23,7 @@ import {
   getMinTimeForToday,
   getTimezoneAbbr,
 } from './ui';
+import apiService from '../../services/api.service';
 
 interface BlockedTimeModalProps {
   open: boolean;
@@ -34,6 +35,9 @@ interface TrainerOption {
   value: string;
   label: string;
 }
+
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || fallback;
 
 const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
   open,
@@ -106,24 +110,8 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
 
     const loadTrainers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setTrainers([]);
-          return;
-        }
-
-        const response = await fetch('/api/sessions/users/trainers', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          setTrainers([]);
-          return;
-        }
-
-        const payload = await response.json();
+        const response = await apiService.get('/api/sessions/users/trainers');
+        const payload = response.data;
         const raw = Array.isArray(payload)
           ? payload
           : payload?.data || payload?.trainers || [];
@@ -171,11 +159,6 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to block time');
-        return;
-      }
 
       // Convert naive local datetime to UTC ISO string so the backend
       // (which runs in UTC on Render) stores the correct moment in time.
@@ -191,18 +174,10 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
         notifyClient
       };
 
-      const response = await fetch('/api/sessions/block', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post('/api/sessions/block', payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to block time');
         return;
       }
@@ -211,7 +186,7 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error blocking time:', error);
-      setFormError('Could not block time. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Could not block time. Please try again.'));
     } finally {
       setLoading(false);
     }

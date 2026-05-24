@@ -1,0 +1,86 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const routeSource = readFileSync(resolve(__dirname, '../../routes/dailyWorkoutFormRoutes.mjs'), 'utf8');
+
+describe('dailyWorkoutFormRoutes public response hardening', () => {
+  it('is mounted at the canonical workout form API path used by workout logging clients', () => {
+    const coreRoutes = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+    const nasmApiService = readFileSync(resolve(__dirname, '../../../frontend/src/services/nasmApiService.ts'), 'utf8');
+    const workoutLoggerPayload = readFileSync(resolve(__dirname, '../../../frontend/src/components/WorkoutLogger/workoutLoggerSubmitPayload.ts'), 'utf8');
+
+    expect(coreRoutes).toContain("app.use('/api/workout-forms', dailyWorkoutFormRoutes)");
+    expect(nasmApiService).toContain("'/api/workout-forms'");
+    expect(workoutLoggerPayload).toContain('/api/workout-forms');
+  });
+
+  it('does not expose development-only error.message fields in 500 JSON responses', () => {
+    expect(routeSource).not.toContain("error: process.env.NODE_ENV === 'development' ? error.message : undefined");
+  });
+
+  it('uses the stable internal-error response contract for workout-form 500s', () => {
+    expect(routeSource).toContain("const INTERNAL_ERROR = 'INTERNAL_ERROR';");
+    expect(routeSource).toContain('const sendInternalError = (res, message) => res.status(500).json({');
+    expect(routeSource).toContain('code: INTERNAL_ERROR');
+  });
+
+  it('strictly validates workout-form list filters before querying', () => {
+    const listRoute = routeSource.slice(
+      routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly"),
+      routeSource.indexOf("router.get('/:id'", routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly"))
+    );
+
+    expect(listRoute).toContain("return res.status(400).json({ success: false, message: 'Invalid page' });");
+    expect(listRoute).toContain("return res.status(400).json({ success: false, message: 'Invalid limit' });");
+    expect(listRoute).toContain("return res.status(400).json({ success: false, message: 'Invalid clientId' });");
+    expect(listRoute).toContain("return res.status(400).json({ success: false, message: 'Invalid trainerId' });");
+    expect(listRoute).toContain("return res.status(400).json({ success: false, message: 'Invalid mcpProcessed' });");
+    expect(listRoute).toContain("requestingUserRole === 'trainer' && !sameId(parsedTrainerId, requestingUserId)");
+    expect(listRoute).not.toMatch(/parseInt\(page|parseInt\(limit|parseInt\(clientId|parseInt\(trainerId/);
+    expect(listRoute).not.toContain("mcpProcessed === 'true'");
+  });
+
+  it('strictly validates the client workout info route ID before model reads', () => {
+    const infoRoute = routeSource.slice(
+      routeSource.indexOf("router.get('/client/:clientId/info'"),
+      routeSource.indexOf('const checkTrainerPermission', routeSource.indexOf("router.get('/client/:clientId/info'"))
+    );
+
+    expect(infoRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(infoRoute).toContain('if (!parsedClientId)');
+    expect(infoRoute).toContain('id: parsedClientId');
+    expect(infoRoute).toContain('clientId: parsedClientId');
+    expect(infoRoute).not.toMatch(/isNaN\(parseInt\(clientId\)|parseInt\(clientId\)/);
+  });
+
+  it('strictly validates the fallback client progress route ID before access checks', () => {
+    const progressRoute = routeSource.slice(
+      routeSource.indexOf("router.get('/client/:clientId/progress'"),
+      routeSource.indexOf("router.get('/client/:clientId/progress-detailed'")
+    );
+
+    expect(progressRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(progressRoute).toContain('if (!parsedClientId)');
+    expect(progressRoute).not.toMatch(/parseInt\(clientId/);
+    expect(progressRoute).not.toContain('isNaN(parsedClientId)');
+  });
+
+  it('uses one strict parsed client id through the workout-form submit path', () => {
+    const submitRoute = routeSource.slice(
+      routeSource.indexOf("router.post('/', protect, checkTrainerClientRelationship"),
+      routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly")
+    );
+
+    expect(submitRoute).toContain('const userNumericId = parseStrictPositiveInteger(req.user.id);');
+    expect(submitRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(submitRoute).toContain("message: 'Valid client ID is required'");
+    expect(submitRoute).toContain("userRole === 'client' && parsedClientId !== userNumericId");
+    expect(submitRoute).toContain('clientId: parsedClientId');
+    expect(submitRoute).toContain('userId: parsedClientId');
+    expect(submitRoute).not.toMatch(/parseInt\(clientId/);
+  });
+});

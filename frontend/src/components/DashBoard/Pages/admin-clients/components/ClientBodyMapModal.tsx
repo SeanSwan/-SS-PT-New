@@ -4,7 +4,7 @@
  * Admin/trainer modal wrapper for the Pain & Injury Body Map.
  * Opens from the kebab menu on client cards for quick access.
  */
-import React from 'react';
+import React, { Suspense } from 'react';
 import { HeartPulse, X } from 'lucide-react';
 import styled from 'styled-components';
 import {
@@ -14,7 +14,8 @@ import {
   CloseButton,
   ModalBody,
 } from './copilot-shared-styles';
-import BodyMap from '../../../../BodyMap';
+
+const BodyMap = React.lazy(() => import('../../../../BodyMap'));
 
 const WidePanel = styled.div`
   background: var(--bg-elevated, rgba(10, 10, 15, 0.98));
@@ -78,7 +79,9 @@ const ClientBodyMapModal: React.FC<ClientBodyMapModalProps> = ({
           </CloseButton>
         </ModalHeader>
         <ModalBody>
-          <BodyMap userId={clientId} mode="trainer" />
+          <Suspense fallback={<div style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.65))' }}>Loading body map...</div>}>
+            <BodyMap userId={clientId} mode="trainer" />
+          </Suspense>
         </ModalBody>
       </WidePanel>
     </ModalOverlay>

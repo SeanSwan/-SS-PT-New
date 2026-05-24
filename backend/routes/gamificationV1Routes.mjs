@@ -27,6 +27,9 @@ import { getEffectiveReadUserId } from '../utils/viewAs/getEffectiveReadUserId.m
 import { getDashboardData, getFeaturedData, searchGamification } from '../services/gamificationDashboardService.mjs';
 
 const router = express.Router();
+const routeErrorMeta = (error) => ({
+  errorName: error instanceof Error ? error.name : typeof error
+});
 
 // Middleware shortcuts
 const authenticate = protect;
@@ -205,14 +208,14 @@ router.post('/admin/seed-achievements', authenticate, requireAdmin, gamification
  * @desc    Award achievement to user
  * @access  Trainer/Admin
  */
-router.post('/users/:userId/achievements/:achievementId', authenticate, requireTrainer, gamificationController.awardAchievement);
+router.post('/users/:userId/achievements/:achievementId', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.awardAchievement);
 
 /**
  * @route   PUT /api/v1/gamification/users/:userId/achievements/:achievementId/progress
  * @desc    Update user achievement progress
  * @access  Trainer/Admin
  */
-router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, gamificationController.updateAchievementProgress);
+router.put('/users/:userId/achievements/:achievementId/progress', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.updateAchievementProgress);
 
 // ============================================================================
 // 💰 POINTS & REWARDS SYSTEM
@@ -223,7 +226,7 @@ router.put('/users/:userId/achievements/:achievementId/progress', authenticate, 
  * @desc    Award points to user
  * @access  Trainer/Admin
  */
-router.post('/users/:userId/points', authenticate, requireTrainer, gamificationController.awardPoints);
+router.post('/users/:userId/points', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.awardPoints);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/transactions
@@ -318,7 +321,7 @@ router.delete('/milestones/:id', authenticate, requireAdmin, gamificationControl
  * @desc    Check and award milestones for user
  * @access  Trainer/Admin
  */
-router.post('/users/:userId/check-milestones', authenticate, requireTrainer, gamificationController.checkAndAwardMilestones);
+router.post('/users/:userId/check-milestones', authenticate, requireTrainer, authorizeResourceAccess('userId'), gamificationController.checkAndAwardMilestones);
 
 // ============================================================================
 // 🎯 GOAL MANAGEMENT SYSTEM
@@ -330,6 +333,13 @@ router.post('/users/:userId/check-milestones', authenticate, requireTrainer, gam
  * @access  Authenticated users
  */
 router.get('/users/:userId/goals', authenticate, authorizeResourceAccess('userId'), goalController.getUserGoals);
+
+/**
+ * @route   POST /api/v1/gamification/users/:userId/goals
+ * @desc    Create new goal for the authorized user-scoped frontend path
+ * @access  Authenticated users
+ */
+router.post('/users/:userId/goals', authenticate, authorizeResourceAccess('userId'), goalController.createGoal);
 
 /**
  * @route   GET /api/v1/gamification/goals/:id
@@ -467,7 +477,21 @@ router.put('/settings', authenticate, requireAdmin, gamificationController.updat
  * @desc    Record workout completion and award points
  * @access  Authenticated users
  */
-router.post('/record-workout', authenticate, requireUser, pointActionLimiter, gamificationController.recordWorkoutCompletion);
+router.post(
+  '/record-workout',
+  authenticate,
+  requireUser,
+  (req, res, next) => {
+    req.body = req.body || {};
+    if (req.body.userId === undefined && req.user?.id !== undefined) {
+      req.body.userId = req.user.id;
+    }
+    return next();
+  },
+  authorizeResourceAccess('userId'),
+  pointActionLimiter,
+  gamificationController.recordWorkoutCompletion
+);
 
 // ============================================================================
 // 🔔 NOTIFICATIONS
@@ -515,7 +539,7 @@ router.get('/dashboard', authenticate, requireUser, viewAsGuard, async (req, res
     const dashboard = await getDashboardData(getEffectiveReadUserId(req));
     return res.status(200).json({ success: true, dashboard });
   } catch (error) {
-    logger.error('[Gamification] Dashboard error:', { error: error.message });
+    logger.error('[Gamification] Dashboard error:', routeErrorMeta(error));
     return res.status(500).json({ success: false, message: 'Failed to fetch dashboard data' });
   }
 });
@@ -530,7 +554,7 @@ router.get('/featured', async (req, res) => {
     const featured = await getFeaturedData();
     return res.status(200).json({ success: true, featured });
   } catch (error) {
-    logger.error('[Gamification] Featured error:', { error: error.message });
+    logger.error('[Gamification] Featured error:', routeErrorMeta(error));
     return res.status(500).json({ success: false, message: 'Failed to fetch featured content' });
   }
 });
@@ -561,7 +585,7 @@ router.get('/search', async (req, res) => {
       total: (results.challenges?.length || 0) + (results.achievements?.length || 0) + (results.rewards?.length || 0)
     });
   } catch (error) {
-    logger.error('[Gamification] Search error:', { error: error.message });
+    logger.error('[Gamification] Search error:', routeErrorMeta(error));
     return res.status(500).json({ success: false, message: 'Search failed' });
   }
 });
@@ -619,6 +643,24 @@ router.get('/activity-feed', authenticate, requireUser, gamificationController.g
  * @access  Authenticated users (own data or staff)
  */
 router.get('/users/:userId/weekly-recap', authenticate, authorizeResourceAccess('userId'), gamificationController.getWeeklyRecap);
+
+// ===================== GHOST MODE ENDPOINTS =====================
+router.get('/ghost/config', authenticate, requireUser, gamificationController.getGhostConfig);
+router.get('/users/:userId/ghost', authenticate, authorizeResourceAccess('userId'), gamificationController.getGhost);
+router.post('/users/:userId/ghost/compare', authenticate, authorizeResourceAccess('userId'), gamificationController.compareGhost);
+
+// ===================== VAULT DECRYPTION ENDPOINTS =====================
+router.get('/vault/config', authenticate, requireUser, gamificationController.getVaultConfig);
+router.post('/users/:userId/vault/roll', authenticate, authorizeResourceAccess('userId'), pointActionLimiter, gamificationController.rollVaultDrop);
+router.get('/users/:userId/vault/inventory', authenticate, authorizeResourceAccess('userId'), gamificationController.getVaultInventory);
+
+// ===================== AEGIS HUD + JOB CLASS ENDPOINTS =====================
+router.get('/users/:userId/aegis-hud', authenticate, authorizeResourceAccess('userId'), gamificationController.getAegisHud);
+router.post('/users/:userId/aegis-hud/replenish', authenticate, authorizeResourceAccess('userId'), gamificationController.replenishAegisHud);
+router.put('/users/:userId/aegis-hud/:needKey', authenticate, requireAdmin, gamificationController.setAegisHudNeed);
+router.get('/aegis-hud/config', authenticate, requireUser, gamificationController.getAegisHudConfig);
+router.get('/users/:userId/job-class', authenticate, authorizeResourceAccess('userId'), gamificationController.getJobClass);
+router.put('/users/:userId/job-class', authenticate, authorizeResourceAccess('userId'), gamificationController.setJobClass);
 
 // ===================== COMPANION PET ENDPOINTS =====================
 router.get('/pet/config', authenticate, requireUser, gamificationController.getPetConfig);

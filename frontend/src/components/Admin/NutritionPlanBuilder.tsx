@@ -29,6 +29,7 @@ import {
   FlexBox
 } from '../UniversalMasterSchedule/ui';
 import { useNutritionPlan } from '../../hooks/useNutritionPlan';
+import apiService from '../../services/api.service';
 
 type MealDraft = {
   name: string;
@@ -152,12 +153,6 @@ const NutritionPlanBuilder: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to save nutrition plans.');
-        return;
-      }
-
       const payload = {
         planName: planName.trim(),
         dailyCalories: Number(dailyCalories),
@@ -171,18 +166,10 @@ const NutritionPlanBuilder: React.FC = () => {
         endDate: endDate || null
       };
 
-      const response = await fetch(`/api/nutrition/${numericClientId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post(`/api/nutrition/${numericClientId}`, payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to save nutrition plan.');
         return;
       }

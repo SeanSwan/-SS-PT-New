@@ -33,7 +33,15 @@ import rateLimit from 'express-rate-limit';
 import sequelize from '../../database.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../../models/index.mjs';
-import { PAGE_VIEW_CACHE, PAGE_VIEW_TTL, bufferPageView } from '../../services/pageViewCache.mjs';
+import {
+  PAGE_VIEW_CACHE,
+  PAGE_VIEW_TTL,
+  anonymizeVisitorIp,
+  bufferPageView,
+  sanitizePagePath,
+  sanitizeReferrer,
+  summarizeUserAgent,
+} from '../../services/pageViewCache.mjs';
 
 const router = express.Router();
 
@@ -265,8 +273,7 @@ router.get('/stats', protect, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard statistics',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -443,50 +450,56 @@ const pageviewLimiter = rateLimit({
 router.post('/track-pageview', pageviewLimiter, async (req, res) => {
   try {
     const { getClientIp, lookupGeo } = await import('../../services/geoIpService.mjs');
-    const ip = getClientIp(req);
+    const rawIp = getClientIp(req);
+    const visitorKey = anonymizeVisitorIp(rawIp);
     const { page, referrer } = req.body || {};
-    const userAgent = req.headers['user-agent'] || 'unknown';
+    const pagePath = sanitizePagePath(page);
+    const sanitizedReferrer = sanitizeReferrer(referrer);
+    const rawUserAgent = req.headers['user-agent'] || 'unknown';
+    const userAgent = summarizeUserAgent(rawUserAgent);
 
     // Skip bots and automated testing tools (Playwright, Puppeteer, etc.)
-    if (/bot|crawler|spider|curl|wget|python|scrapy|playwright|puppeteer|headless|cypress/i.test(userAgent)) {
+    if (/bot|crawler|spider|curl|wget|python|scrapy|playwright|puppeteer|headless|cypress/i.test(rawUserAgent)) {
       return res.json({ success: true, tracked: false });
     }
 
     // Skip admin dashboard and auth pages — these inflate visitor counts
-    if (page && (/^\/dashboard/i.test(page) || /^\/(login|register|auth)/i.test(page))) {
+    if (!pagePath || /^\/dashboard/i.test(pagePath) || /^\/(login|register|auth)/i.test(pagePath)) {
       return res.json({ success: true, tracked: false });
     }
 
-    const existing = PAGE_VIEW_CACHE.get(ip);
+    const existing = PAGE_VIEW_CACHE.get(visitorKey);
     const now = Date.now();
 
     if (existing) {
       existing.lastSeen = now;
       existing.pageCount = (existing.pageCount || 1) + 1;
-      if (page && !existing.pages.includes(page)) {
-        existing.pages.push(page);
+      if (!existing.pages.includes(pagePath)) {
+        existing.pages.push(pagePath);
       }
+      existing.referrer = sanitizedReferrer || existing.referrer;
     } else {
       const entry = {
-        ip,
+        ip: visitorKey,
+        visitorKey,
         firstSeen: now,
         lastSeen: now,
-        pages: page ? [page] : [],
+        pages: [pagePath],
         pageCount: 1,
-        userAgent: userAgent.slice(0, 200),
+        userAgent,
         geo: null,
-        referrer: referrer?.slice(0, 200) || null,
+        referrer: sanitizedReferrer,
       };
-      PAGE_VIEW_CACHE.set(ip, entry);
+      PAGE_VIEW_CACHE.set(visitorKey, entry);
 
       // Geo lookup in background (don't block response)
-      lookupGeo(ip).then(geo => {
+      lookupGeo(rawIp).then(geo => {
         if (geo) entry.geo = geo;
       }).catch(() => {});
     }
 
     // Buffer for persistent DB storage
-    const cachedEntry = PAGE_VIEW_CACHE.get(ip);
+    const cachedEntry = PAGE_VIEW_CACHE.get(visitorKey);
     if (cachedEntry) {
       bufferPageView(cachedEntry);
     }

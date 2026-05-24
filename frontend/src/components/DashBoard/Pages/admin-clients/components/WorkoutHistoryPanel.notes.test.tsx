@@ -20,7 +20,7 @@
  * render correctly — backward compatibility is a real requirement.
  */
 import React from 'react';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 
@@ -353,12 +353,12 @@ describe('WorkoutHistoryPanel — Phase 15.0 delete-set-1 preserves exercise not
     fireEvent.click(screen.getByTestId('edit-remove-0'));
 
     // Save.
-    fireEvent.click(screen.getByTestId('edit-save-session-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('edit-save-session-1'));
+    });
 
     // Wait for the async save to complete — we only need one tick.
-    await Promise.resolve();
-
-    expect(mockPatch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockPatch).toHaveBeenCalledTimes(1));
     const [url, body] = mockPatch.mock.calls[0];
     expect(url).toBe('/api/admin/clients/42/workouts/session-1');
     // The PATCH payload must carry exerciseNote at the exercise level
@@ -412,11 +412,11 @@ describe('WorkoutHistoryPanel — Phase 15.0 delete-set-1 preserves exercise not
     fireEvent.click(screen.getByText('Lower Body'));
     fireEvent.click(screen.getByTestId('edit-start-session-1'));
     fireEvent.click(screen.getByTestId('edit-remove-0'));
-    fireEvent.click(screen.getByTestId('edit-save-session-1'));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('edit-save-session-1'));
+    });
 
-    await Promise.resolve();
-
-    expect(mockPatch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockPatch).toHaveBeenCalledTimes(1));
     const [, body] = mockPatch.mock.calls[0];
     expect(body.exercises).toHaveLength(1);
     expect(body.exercises[0].exerciseNote).toBe('hip flexors tight');

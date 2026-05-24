@@ -345,13 +345,13 @@ function freeSpiritTemplates() {
     // Nutrition logging
     { ...base, ...t('log_nutrition_1',     'First Fuel Log',        'Log your nutrition for the first time',      '\u{1F34E}', 1),   skillTreeOrder: order++ },
     { ...base, ...t('log_nutrition_7',     'Week of Fuel',          'Log your nutrition for 7 days',              '\u{1F34E}', 7),   skillTreeOrder: order++ },
-    { ...base, ...t('log_nutrition_30',    'Month of Mindful Eating', 'Log your nutrition for 30 days',           '\u{1F34E}', 30),  skillTreeOrder: order++, xpReward: 75 },
+    { ...base, ...t('log_nutrition_30',    'Month of Intentional Eating', 'Log your nutrition for 30 days',       '\u{1F34E}', 30),  skillTreeOrder: order++, xpReward: 75 },
     { ...base, ...t('log_nutrition_90',    'Quarterly Nutrition',   'Log your nutrition for 90 days',             '\u{1F34E}', 90),  skillTreeOrder: order++, xpReward: 150 },
-    // Meditation logging
-    { ...base, ...t('log_meditation_1',    'First Calm',            'Log your first meditation session',          '\u{1F9D8}', 1),   skillTreeOrder: order++ },
-    { ...base, ...t('log_meditation_7',    'Inner Peace Week',      'Meditate for 7 days',                        '\u{1F9D8}', 7),   skillTreeOrder: order++ },
-    { ...base, ...t('log_meditation_30',   'Zen Master',            'Meditate for 30 days',                       '\u{1F9D8}', 30),  skillTreeOrder: order++, xpReward: 100 },
-    { ...base, ...t('log_meditation_90',   'Enlightened',           'Meditate for 90 days',                       '\u{1F9D8}', 90),  skillTreeOrder: order++, xpReward: 200 },
+    // Recovery breathing logging
+    { ...base, ...t('log_recovery_breath_1',  'First Reset',        'Log your first recovery breathing session',  '\u{1F32C}', 1),   skillTreeOrder: order++ },
+    { ...base, ...t('log_recovery_breath_7',  'Recovery Reset Week','Complete 7 recovery breathing sessions',     '\u{1F32C}', 7),   skillTreeOrder: order++ },
+    { ...base, ...t('log_recovery_breath_30', 'Reset Master',       'Complete 30 recovery breathing sessions',    '\u{1F32C}', 30),  skillTreeOrder: order++, xpReward: 100 },
+    { ...base, ...t('log_recovery_breath_90', 'Recovery Expert',    'Complete 90 recovery breathing sessions',    '\u{1F32C}', 90),  skillTreeOrder: order++, xpReward: 200 },
     // Sleep logging
     { ...base, ...t('log_sleep_1',         'Sleep Tracker',         'Log your sleep for the first time',          '\u{1F634}', 1),   skillTreeOrder: order++ },
     { ...base, ...t('log_sleep_7',         'Sleep Conscious',       'Log your sleep for 7 days',                  '\u{1F634}', 7),   skillTreeOrder: order++ },
@@ -366,16 +366,16 @@ function freeSpiritTemplates() {
     { ...base, ...t('hydration_streak_30', 'Hydration Hero',        'Track hydration for 30 consecutive days',    '\u{1F4A7}', 30),  skillTreeOrder: order++, xpReward: 75 },
     // Balanced week
     { ...base, ...t('balanced_week',       'Balanced Week',         'Complete workout, nutrition, and recovery in one week', '\u{2696}\uFE0F', 1, { progressUnit: 'completion', requirements: [{ type: 'composite', workout: true, nutrition: true, recovery: true }] }), skillTreeOrder: order++, xpReward: 75 },
-    // Mind-body
-    { ...base, ...t('mind_body_connection','Mind-Body Connection',  'Complete a combined mindfulness and workout session', '\u{1F54A}\uFE0F', 1, { progressUnit: 'completion' }),  skillTreeOrder: order++, xpReward: 50 },
+    // Recovery-workout connection
+    { ...base, ...t('recovery_workout_connection','Recovery-Training Connection',  'Complete a combined recovery and workout session', '\u{1F54A}\uFE0F', 1, { progressUnit: 'completion' }),  skillTreeOrder: order++, xpReward: 50 },
     // Outdoor workouts
     { ...base, ...t('outdoor_workout_1',   'Fresh Air',             'Complete your first outdoor workout',         '\u{1F332}', 1, { progressUnit: 'workouts' }),  skillTreeOrder: order++ },
     { ...base, ...t('outdoor_workout_10',  'Nature Athlete',        'Complete 10 outdoor workouts',                '\u{1F332}', 10, { progressUnit: 'workouts' }), skillTreeOrder: order++ },
     { ...base, ...t('outdoor_workout_25',  'Outdoor Champion',      'Complete 25 outdoor workouts',                '\u{1F332}', 25, { progressUnit: 'workouts' }), skillTreeOrder: order++, xpReward: 75 },
-    // Yoga
-    { ...base, ...t('yoga_session_1',      'First Flow',            'Complete your first yoga session',            '\u{1F9D8}\u200D\u2640\uFE0F', 1, { progressUnit: 'sessions' }),  skillTreeOrder: order++ },
-    { ...base, ...t('yoga_session_10',     'Yoga Practitioner',     'Complete 10 yoga sessions',                   '\u{1F9D8}\u200D\u2640\uFE0F', 10, { progressUnit: 'sessions' }), skillTreeOrder: order++ },
-    { ...base, ...t('yoga_session_30',     'Yoga Devotee',          'Complete 30 yoga sessions',                   '\u{1F9D8}\u200D\u2640\uFE0F', 30, { progressUnit: 'sessions' }), skillTreeOrder: order++, xpReward: 100 },
+    // Mobility sessions
+    { ...base, ...t('mobility_session_1',  'First Mobility Flow',   'Complete your first mobility session',        '\u{1F938}\u200D\u2640\uFE0F', 1, { progressUnit: 'sessions' }),  skillTreeOrder: order++ },
+    { ...base, ...t('mobility_session_10', 'Mobility Practitioner', 'Complete 10 mobility sessions',               '\u{1F938}\u200D\u2640\uFE0F', 10, { progressUnit: 'sessions' }), skillTreeOrder: order++ },
+    { ...base, ...t('mobility_session_30', 'Mobility Devotee',      'Complete 30 mobility sessions',               '\u{1F938}\u200D\u2640\uFE0F', 30, { progressUnit: 'sessions' }), skillTreeOrder: order++, xpReward: 100 },
     // Stretching
     { ...base, ...t('stretching_routine_10','Stretch Starter',      'Complete 10 stretching routines',             '\u{1F938}\u200D\u2640\uFE0F', 10, { progressUnit: 'sessions' }), skillTreeOrder: order++ },
     { ...base, ...t('stretching_routine_30','Flexibility Fanatic',  'Complete 30 stretching routines',             '\u{1F938}\u200D\u2640\uFE0F', 30, { progressUnit: 'sessions' }), skillTreeOrder: order++, xpReward: 75 },
@@ -492,11 +492,11 @@ function hiddenAchievements() {
     { name: 'every_group',          title: 'Everywhere At Once',     description: 'Join every available group',                            iconEmoji: '\u{1F30D}', category: 'social',     xpReward: 150, maxProgress: 1, progressUnit: 'completion', skillTree: 'tribe_social', skillTreeOrder: 99 },
     { name: 'first_to_comment',     title: 'First!',                 description: 'Be the first to comment on 10 different posts',         iconEmoji: '\u{261D}\uFE0F', category: 'social', xpReward: 50, maxProgress: 10, progressUnit: 'completion', skillTree: 'tribe_social', skillTreeOrder: 99 },
     // Wellness easter eggs
-    { name: 'zen_streak_21',        title: 'Zen Master',             description: 'Meditate for 21 consecutive days',                      iconEmoji: '\u{1F54E}', category: 'special',    xpReward: 200, maxProgress: 21, progressUnit: 'days', skillTree: 'free_spirit', skillTreeOrder: 99 },
+    { name: 'recovery_streak_21',   title: 'Recovery Master',        description: 'Complete recovery breathing for 21 consecutive days',    iconEmoji: '\u{1F54E}', category: 'special',    xpReward: 200, maxProgress: 21, progressUnit: 'days', skillTree: 'free_spirit', skillTreeOrder: 99 },
     { name: 'sleep_8_hours_7',      title: 'Well Rested',            description: 'Log 8+ hours of sleep for 7 consecutive days',          iconEmoji: '\u{1F6CC}', category: 'special',    xpReward: 100, maxProgress: 7, progressUnit: 'days', requirements: [{ type: 'sleep_hours', min: 8 }], skillTree: 'free_spirit', skillTreeOrder: 99 },
     { name: 'no_sugar_7',           title: 'Sugar Free',             description: 'Log zero added sugar for 7 consecutive days',            iconEmoji: '\u{1F36C}', category: 'special',    xpReward: 100, maxProgress: 7, progressUnit: 'days', skillTree: 'free_spirit', skillTreeOrder: 99 },
     { name: 'gallon_a_day',         title: 'Gallon Gang',            description: 'Drink a gallon of water in a single day',               iconEmoji: '\u{1F4A7}', category: 'special',    xpReward: 75, maxProgress: 1, progressUnit: 'completion', skillTree: 'free_spirit', skillTreeOrder: 99 },
-    { name: 'mindful_eating_14',    title: 'Mindful Eater',          description: 'Practice mindful eating for 14 consecutive days',        iconEmoji: '\u{1F9D8}', category: 'special',    xpReward: 150, maxProgress: 14, progressUnit: 'days', skillTree: 'free_spirit', skillTreeOrder: 99 },
+    { name: 'intentional_eating_14',title: 'Intentional Eater',      description: 'Practice intentional eating for 14 consecutive days',    iconEmoji: '\u{1F957}', category: 'special',    xpReward: 150, maxProgress: 14, progressUnit: 'days', skillTree: 'free_spirit', skillTreeOrder: 99 },
     // Streak easter eggs
     { name: 'unbreakable_180',      title: 'Unbreakable',            description: 'Maintain a 180-day workout streak',                     iconEmoji: '\u{1F48E}', category: 'streak',     xpReward: 2000, maxProgress: 180, progressUnit: 'days', skillTree: 'unbroken_streaks', skillTreeOrder: 99 },
     { name: 'never_skip_leg_day',   title: 'Never Skip Leg Day',     description: 'Include legs in every workout for 30 days',             iconEmoji: '\u{1F9B5}', category: 'fitness',    xpReward: 200, maxProgress: 30, progressUnit: 'days', requirements: [{ type: 'muscle_group', group: 'legs' }], skillTree: 'iron_gravity', skillTreeOrder: 99 },
@@ -580,9 +580,9 @@ const ONE_TIME_NAMES = new Set([
   'group_join_1', 'help_newbie', 'popular_post', 'viral_post',
   'first_group_post',
   // Free Spirit one-timers
-  'log_nutrition_1', 'log_meditation_1', 'log_sleep_1', 'recovery_day_1',
-  'balanced_week', 'mind_body_connection', 'outdoor_workout_1',
-  'yoga_session_1', 'rest_day_honored',
+  'log_nutrition_1', 'log_recovery_breath_1', 'log_sleep_1', 'recovery_day_1',
+  'balanced_week', 'recovery_workout_connection', 'outdoor_workout_1',
+  'mobility_session_1', 'rest_day_honored',
   // Unbroken one-timers
   'phoenix', 'comeback_kid',
 ]);

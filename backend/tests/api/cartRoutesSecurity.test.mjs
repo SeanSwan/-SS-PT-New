@@ -1,0 +1,78 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const readSource = (path) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const cartRouteSource = readSource('routes/cartRoutes.mjs');
+
+const sliceBetween = (source, start, end) => {
+  const startIndex = source.indexOf(start);
+  const endIndex = source.indexOf(end, startIndex + start.length);
+
+  expect(startIndex).toBeGreaterThanOrEqual(0);
+  expect(endIndex).toBeGreaterThan(startIndex);
+
+  return source.slice(startIndex, endIndex);
+};
+
+describe('cart routes security hardening', () => {
+  it('locks the live cart API mount and frontend consumer surface', () => {
+    const coreRoutesSource = readSource('core/routes.mjs');
+    const cartContextSource = readSource('../frontend/src/context/CartContext.tsx');
+
+    expect(coreRoutesSource).toContain("app.use('/api/cart', cartRoutes)");
+    expect(cartContextSource).toContain("apiService.get('/api/cart')");
+    expect(cartContextSource).toContain("apiService.post('/api/cart/add'");
+    expect(cartContextSource).toContain('apiService.put(`/api/cart/update/${itemId}`');
+    expect(cartContextSource).toContain('apiService.delete(`/api/cart/remove/${itemId}`)');
+    expect(cartContextSource).toContain("apiService.delete('/api/cart/clear')");
+  });
+
+  it('does not echo raw exception details from client-facing cart responses', () => {
+    expect(cartRouteSource).toContain('const INTERNAL_ERROR =');
+    expect(cartRouteSource).toContain('const sendInternalError =');
+    expect(cartRouteSource).not.toContain("error: process.env.NODE_ENV === 'development' ? error.message : undefined");
+    expect(cartRouteSource).not.toContain('Payment error: ${error.message.split');
+    expect(cartRouteSource).not.toContain('Webhook processing error: ${err.message}');
+  });
+
+  it('strictly parses cart mutation IDs and quantities before model calls', () => {
+    const addRoute = sliceBetween(
+      cartRouteSource,
+      "router.post('/add'",
+      "router.put('/update/:itemId'"
+    );
+    const updateRoute = sliceBetween(
+      cartRouteSource,
+      "router.put('/update/:itemId'",
+      "router.delete('/remove/:itemId'"
+    );
+    const removeRoute = sliceBetween(
+      cartRouteSource,
+      "router.delete('/remove/:itemId'",
+      "router.delete('/clear'"
+    );
+
+    expect(addRoute).toContain('const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);');
+    expect(addRoute).toContain('const normalizedQuantity = parsePositiveInteger(quantity);');
+    expect(addRoute).toContain('StorefrontItem.findByPk(normalizedStorefrontItemId)');
+    expect(addRoute).toContain('storefrontItemId: normalizedStorefrontItemId');
+    expect(addRoute).toContain('quantity: normalizedQuantity');
+    expect(updateRoute).toContain('const normalizedItemId = parsePositiveInteger(itemId);');
+    expect(updateRoute).toContain('const normalizedQuantity = parsePositiveInteger(quantity);');
+    expect(updateRoute).toContain('where: { id: normalizedItemId }');
+    expect(updateRoute).toContain('cartItem.quantity = normalizedQuantity;');
+    expect(removeRoute).toContain('const normalizedItemId = parsePositiveInteger(itemId);');
+    expect(removeRoute).toContain('where: { id: normalizedItemId }');
+  });
+
+  it('strictly parses Stripe webhook cart metadata before granting sessions', () => {
+    const webhookRoute = cartRouteSource.slice(cartRouteSource.indexOf("router.post('/webhook'"));
+
+    expect(webhookRoute).toContain('const normalizedCartId = parsePositiveInteger(cartId);');
+    expect(webhookRoute).toContain('const normalizedUserId = parsePositiveInteger(userId);');
+    expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook')");
+    expect(webhookRoute).not.toContain('parseInt(cartId)');
+    expect(webhookRoute).not.toContain('parseInt(userId)');
+  });
+});

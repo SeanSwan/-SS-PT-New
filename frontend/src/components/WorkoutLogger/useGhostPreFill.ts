@@ -12,8 +12,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_BASE || '';
+import apiService from '../../services/api.service';
 
 export interface PreFillData {
   weight: number;
@@ -77,22 +76,20 @@ export function useGhostPreFill(
     }
 
     fetchedExercises.current.add(cacheKey);
-    const token = localStorage.getItem('token');
-    if (!token) return;
 
     try {
       setIsLoading(true);
-      const res = await fetch(
-        `${API_BASE}/api/admin/clients/${clientId}/workouts?limit=10`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiService.get<{ success?: boolean; workouts?: any[] }>(
+        `/api/admin/clients/${clientId}/workouts?limit=10`,
+        { validateStatus: (status) => status < 500 },
       );
 
-      if (!res.ok) {
+      if (response.status >= 400) {
         preFillCache.set(cacheKey, null);
         return;
       }
 
-      const data = await res.json();
+      const data = response.data;
       if (!data?.success || !data.workouts) {
         preFillCache.set(cacheKey, null);
         return;

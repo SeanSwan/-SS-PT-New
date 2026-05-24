@@ -13,6 +13,7 @@ import {
   ShoppingBag, Diamond, Check, Shirt, Home, Dog,
   Loader, AlertTriangle,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 interface CatalogItem {
   id: string;
@@ -202,18 +203,14 @@ const CrystallineMarketplace: React.FC = () => {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchData = useCallback(async () => {
     try {
       const [catalogRes, crystalRes] = await Promise.all([
-        fetch('/api/avatar-home/marketplace', { headers }),
-        fetch('/api/avatar-home/crystals', { headers }),
+        apiService.get<{ success: boolean; data: CatalogItem[] }>('/api/avatar-home/marketplace'),
+        apiService.get<{ success: boolean; data: { balance: number; ownedItems: OwnedItem[] } }>('/api/avatar-home/crystals'),
       ]);
-      const catalogD = await catalogRes.json();
-      const crystalD = await crystalRes.json();
+      const catalogD = catalogRes.data;
+      const crystalD = crystalRes.data;
       if (catalogD.success) setCatalog(catalogD.data);
       if (crystalD.success) {
         setBalance(crystalD.data.balance);
@@ -230,16 +227,21 @@ const CrystallineMarketplace: React.FC = () => {
     setPurchasing(itemId);
     setStatus(null);
     try {
-      const res = await fetch('/api/avatar-home/marketplace/purchase', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ itemId }),
+      const res = await apiService.post<{
+        success: boolean;
+        data?: { item: OwnedItem; crystalBalance: number };
+        message?: string;
+      }>('/api/avatar-home/marketplace/purchase', {
+        itemId,
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
-      if (d.success) {
+      const d = res.data;
+      if (d.success && d.data) {
+        const purchasedItem = d.data.item;
         setBalance(d.data.crystalBalance);
-        setOwned(prev => [...prev, d.data.item]);
-        setStatus({ type: 'success', text: `Purchased ${d.data.item.name}!` });
+        setOwned(prev => [...prev, purchasedItem]);
+        setStatus({ type: 'success', text: `Purchased ${purchasedItem.name}!` });
       } else {
         setStatus({ type: 'error', text: d.message || 'Purchase failed' });
       }

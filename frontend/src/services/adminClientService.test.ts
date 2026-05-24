@@ -1,5 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it, vi } from 'vitest';
 import { createAdminClientService } from './adminClientService';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('adminClientService createClient', () => {
   it('preserves an admin-entered initial password', async () => {
@@ -34,5 +41,15 @@ describe('adminClientService createClient', () => {
       }),
       undefined,
     );
+  });
+
+  it('generates temporary passwords with Web Crypto instead of Math.random', () => {
+    const source = readFileSync(resolve(__dirname, './adminClientService.ts'), 'utf8');
+    const utilityStart = source.indexOf('private secureRandomIndex');
+    const utilitySource = source.slice(utilityStart, source.indexOf('formatClientData', utilityStart));
+
+    expect(utilitySource).not.toMatch(/Math\.random/);
+    expect(utilitySource).toMatch(/getRandomValues/);
+    expect(utilitySource).toMatch(/Fisher-Yates/);
   });
 });

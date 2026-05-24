@@ -1,8 +1,16 @@
 // backend/controllers/onboardingController.mjs
+import { randomBytes } from 'node:crypto';
 import User from '../models/User.mjs';
+import ClientOnboardingQuestionnaire from '../models/ClientOnboardingQuestionnaire.mjs';
 import sequelize from '../database.mjs';
 import { triggerSequence } from '../services/automationService.mjs';
 import { generateChallengesFromGoals } from '../services/gamification/goalChallengeService.mjs';
+import { computeDerivedFields } from '../utils/onboardingHelpers.mjs';
+
+const parsePositiveUserId = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 /**
  * Onboarding Controller
@@ -307,7 +315,7 @@ export const createClientOnboarding = async (req, res) => {
     } else {
       // Create new user
       // Generate a temporary password (client will reset on first login)
-      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
+      const tempPassword = `Temp${randomBytes(12).toString('base64url')}!A1`;
 
       user = await User.create({
         firstName: formData.fullName.split(' ')[0],
@@ -376,7 +384,7 @@ export const createClientOnboarding = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to process onboarding',
-      details: error.message
+      code: 'internal_error'
     });
   }
 };
@@ -387,7 +395,13 @@ export const createClientOnboarding = async (req, res) => {
  */
 export const getClientMasterPrompt = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = parsePositiveUserId(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Valid userId is required'
+      });
+    }
 
     const user = await User.findByPk(userId, {
       attributes: ['id', 'firstName', 'lastName', 'email', 'spiritName', 'masterPromptJson', 'role']
@@ -421,7 +435,7 @@ export const getClientMasterPrompt = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch master prompt',
-      details: error.message
+      code: 'internal_error'
     });
   }
 };
@@ -433,7 +447,13 @@ export const getClientMasterPrompt = async (req, res) => {
 export const createClientSelfOnboarding = async (req, res) => {
   try {
     const formData = req.body;
-    const userId = req.user.id;
+    const userId = parsePositiveUserId(req.user?.id);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
+    }
 
     if (!formData.primaryGoal) {
       return res.status(400).json({
@@ -458,9 +478,19 @@ export const createClientSelfOnboarding = async (req, res) => {
 
     const anonymousAlias = generateSpiritName(formData, userId);
     const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, userId);
+    const questionnaireRecord = {
+      userId,
+      createdBy: userId,
+      questionnaireVersion: '3.0',
+      status: 'completed',
+      responsesJson: formData,
+      ...computeDerivedFields(formData),
+      completedAt: new Date()
+    };
 
     await user.update({
       masterPromptJson,
+      isOnboardingComplete: true,
       spiritName: anonymousAlias,
       phone: formData.phone || user.phone,
       dateOfBirth: formData.dateOfBirth || user.dateOfBirth,
@@ -471,6 +501,17 @@ export const createClientSelfOnboarding = async (req, res) => {
         : user.height,
       fitnessGoal: formData.primaryGoal
     });
+
+    const existingQuestionnaire = await ClientOnboardingQuestionnaire.findOne({
+      where: { userId },
+      order: [['createdAt', 'DESC']]
+    });
+
+    if (existingQuestionnaire) {
+      await existingQuestionnaire.update(questionnaireRecord);
+    } else {
+      await ClientOnboardingQuestionnaire.create(questionnaireRecord);
+    }
 
     // Upsert PII record
     const clientId = `PT-${String(userId).padStart(5, '0')}`;
@@ -508,7 +549,7 @@ export const createClientSelfOnboarding = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to save onboarding data',
-      details: error.message
+      code: 'internal_error'
     });
   }
 };

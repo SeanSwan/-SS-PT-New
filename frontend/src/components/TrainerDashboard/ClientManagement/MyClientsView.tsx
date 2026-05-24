@@ -696,11 +696,7 @@ const MyClientsView: React.FC = () => {
           nextSessionDate: undefined,
           status: 'active',
           goals: { current: 0, completed: 0 },
-          // Phase 18.A: deterministic progress fallback per Codex ROUND 1.
-          // The Math.random() stubs in the trainer branch below are
-          // pre-existing TODOs and intentionally left untouched to keep
-          // this scope narrow — admin-view-as path explicitly must not
-          // fake randomized progress for real clients.
+          // Deterministic placeholder until the real progress API is wired.
           progress: {
             overallProgress: 0,
             recentTrend: 'stable',
@@ -743,20 +739,22 @@ const MyClientsView: React.FC = () => {
               authAxios.get(`/api/sessions/upcoming/${assignment.client.id}?limit=3`)
             ]);
 
+            const sessionRows = Array.isArray(sessions.data) ? sessions.data : [];
+            const upcomingRows = Array.isArray(upcomingSessions.data) ? upcomingSessions.data : [];
             const client: Client = {
               ...assignment.client,
               status: assignmentStatus as Client['status'],
-              totalSessionsCompleted: sessions.data.filter((s: any) => s.status === 'completed').length,
-              lastSessionDate: sessions.data[0]?.sessionDate,
-              nextSessionDate: upcomingSessions.data[0]?.sessionDate,
+              totalSessionsCompleted: sessionRows.filter((s: any) => s.status === 'completed').length,
+              lastSessionDate: sessionRows[0]?.sessionDate,
+              nextSessionDate: upcomingRows[0]?.sessionDate,
               goals: {
-                current: 3, // TODO: Get from goals API
-                completed: 8 // TODO: Get from goals API
+                current: 0,
+                completed: 0
               },
               progress: {
-                overallProgress: Math.random() * 100, // TODO: Get from progress API
-                recentTrend: ['improving', 'stable', 'declining'][Math.floor(Math.random() * 3)] as any,
-                lastAssessment: sessions.data[0]?.sessionDate
+                overallProgress: 0,
+                recentTrend: 'stable',
+                lastAssessment: sessionRows[0]?.sessionDate
               },
               membershipLevel: assignment.client.membershipLevel || 'basic'
             };
@@ -774,6 +772,14 @@ const MyClientsView: React.FC = () => {
               client: {
                 ...assignment.client,
                 status: assignmentStatus as Client['status'],
+                totalSessionsCompleted: 0,
+                goals: { current: 0, completed: 0 },
+                progress: {
+                  overallProgress: 0,
+                  recentTrend: 'stable',
+                  lastAssessment: undefined,
+                },
+                membershipLevel: assignment.client.membershipLevel || 'basic',
               },
             };
           }

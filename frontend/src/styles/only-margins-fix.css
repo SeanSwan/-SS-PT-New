@@ -29,7 +29,6 @@ body::after {
 
 /* Push the header below the bars */
 header, 
-.MuiAppBar-root,
 .HeaderContainer,
 nav.navbar {
   top: 30px !important;

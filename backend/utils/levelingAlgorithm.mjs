@@ -179,7 +179,7 @@ export const POINTS_CONFIG = {
   // Holistic wellness
   logNutrition:        15,
   logRecovery:         15,
-  logMeditation:       20,
+  logRecoveryBreath:   20,
   logSleep:            10,
 };
 

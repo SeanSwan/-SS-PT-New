@@ -850,7 +850,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
     const colors = {
       'strength': '#ef4444',
       'cardio': '#10b981',
-      'yoga': '#8b5cf6',
+      'flexibility': '#8b5cf6',
       'crossfit': '#f59e0b',
       'pilates': '#06b6d4',
       'nutrition': '#84cc16',
@@ -983,7 +983,7 @@ const EnhancedTrainerDataManagement: React.FC = () => {
               <option value="all">All Specialties</option>
               <option value="strength">Strength Training</option>
               <option value="cardio">Cardio/Endurance</option>
-              <option value="yoga">Yoga</option>
+              <option value="flexibility">Flexibility</option>
               <option value="crossfit">CrossFit</option>
               <option value="pilates">Pilates</option>
               <option value="nutrition">Nutrition</option>

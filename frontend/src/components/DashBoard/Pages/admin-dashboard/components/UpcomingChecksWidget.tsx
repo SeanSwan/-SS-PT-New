@@ -119,10 +119,33 @@ interface UpcomingCheck {
   daysRemaining: number;
 }
 
+type CheckStatusPayload = {
+  status?: UpcomingCheck['status'];
+  daysRemaining?: number;
+};
+
+type NormalizedCheckStatus = {
+  status: UpcomingCheck['status'];
+  daysRemaining: number;
+};
+
 const STATUS_COLORS: Record<string, string> = {
   red: '#ef4444',
   yellow: '#eab308',
   green: '#22c55e',
+};
+
+const normalizeCheckStatus = (value: unknown): NormalizedCheckStatus | null => {
+  if (!value || typeof value !== 'object') return null;
+
+  const payload = value as CheckStatusPayload;
+  if (!payload.status || !(payload.status in STATUS_COLORS)) return null;
+  const rawDaysRemaining = payload.daysRemaining;
+
+  return {
+    status: payload.status,
+    daysRemaining: typeof rawDaysRemaining === 'number' && Number.isFinite(rawDaysRemaining) ? rawDaysRemaining : 0,
+  };
 };
 
 /* ─── Component ──────────────────────────────────────────── */
@@ -145,24 +168,26 @@ const UpcomingChecksWidget: React.FC = () => {
       // Flatten: each client may have measurement + weighIn entries
       const flattened: UpcomingCheck[] = [];
       for (const c of (Array.isArray(clientsData) ? clientsData : [])) {
-        if (c.measurementStatus) {
+        const measurementStatus = normalizeCheckStatus(c.measurementStatus);
+        if (measurementStatus) {
           flattened.push({
             userId: c.id || c.userId,
             firstName: c.firstName,
             lastName: c.lastName,
             checkType: 'measurement',
-            status: c.measurementStatus,
-            daysRemaining: c.measurementDaysRemaining ?? 0,
+            status: measurementStatus.status,
+            daysRemaining: measurementStatus.daysRemaining ?? 0,
           });
         }
-        if (c.weighInStatus) {
+        const weighInStatus = normalizeCheckStatus(c.weighInStatus);
+        if (weighInStatus) {
           flattened.push({
             userId: c.id || c.userId,
             firstName: c.firstName,
             lastName: c.lastName,
             checkType: 'weighIn',
-            status: c.weighInStatus,
-            daysRemaining: c.weighInDaysRemaining ?? 0,
+            status: weighInStatus.status,
+            daysRemaining: weighInStatus.daysRemaining ?? 0,
           });
         }
       }

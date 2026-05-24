@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import apiService from '../../../../services/api.service';
 import type { AegisHudData } from './AegisHudTypes';
 
 // ─────────────────────────────────────────────────────────────
@@ -15,18 +16,35 @@ import type { AegisHudData } from './AegisHudTypes';
 
 const API_BASE = '/api/gamification';
 
-async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
-  if (!res.ok) throw new Error(`Aegis HUD API error: ${res.status}`);
-  return res.json();
+const parseBody = (body: BodyInit | null | undefined) => {
+  if (typeof body !== 'string') return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+};
+
+async function fetchWithAuth<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const method = (options.method || 'GET').toUpperCase();
+  const data = parseBody(options.body);
+  const config = { validateStatus: () => true };
+  const res = method === 'POST'
+    ? await apiService.post(url, data, config)
+    : method === 'PUT'
+      ? await apiService.put(url, data, config)
+      : method === 'DELETE'
+        ? await apiService.delete(url, config)
+        : await apiService.get(url, config);
+
+  if (res.status < 200 || res.status >= 300) {
+    const message = (res.data as { message?: string; error?: string } | undefined)?.message
+      || (res.data as { message?: string; error?: string } | undefined)?.error
+      || `Aegis HUD API error: ${res.status}`;
+    throw new Error(message);
+  }
+
+  return res.data as T;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -38,6 +56,11 @@ interface UseAegisHudOptions {
   refreshInterval?: number;
   /** Skip fetching (for SSR or conditional rendering) */
   skip?: boolean;
+}
+
+interface AegisHudResponse {
+  success: boolean;
+  data: AegisHudData;
 }
 
 export function useAegisHud(userId: number | null | undefined, options: UseAegisHudOptions = {}) {
@@ -53,7 +76,7 @@ export function useAegisHud(userId: number | null | undefined, options: UseAegis
 
     try {
       setError(null);
-      const result = await fetchWithAuth(`${API_BASE}/users/${userId}/aegis-hud`);
+      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}/users/${userId}/aegis-hud`);
       if (result.success) {
         setData(result.data);
       }
@@ -83,7 +106,7 @@ export function useAegisHud(userId: number | null | undefined, options: UseAegis
   const replenish = useCallback(async (actionType: string) => {
     if (!userId) return;
     try {
-      const result = await fetchWithAuth(`${API_BASE}/users/${userId}/aegis-hud/replenish`, {
+      const result = await fetchWithAuth<AegisHudResponse>(`${API_BASE}/users/${userId}/aegis-hud/replenish`, {
         method: 'POST',
         body: JSON.stringify({ actionType }),
       });

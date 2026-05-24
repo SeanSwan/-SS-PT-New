@@ -189,7 +189,8 @@ describe('MarketingWorkspace command-center contract', () => {
   it('wires the active calendar to persisted Marketing API data with PT advisories', () => {
     const calendarRuntimeSource = `${calendarSource}\n${calendarApiSource}`;
     expect(calendarRuntimeSource).toContain('/api/admin/marketing-calendar');
-    expect(calendarRuntimeSource).toContain("method: 'POST'");
+    expect(calendarRuntimeSource).toContain('apiService.post(API_PATH, payload)');
+    expect(calendarRuntimeSource).toContain('apiService.put(`${API_PATH}/${id}`, payload)');
     expect(calendarSource).toContain('advisories');
     expect(calendarSource).toContain('personal_training');
     expect(calendarSource).toContain('Keep as-is');
@@ -218,16 +219,16 @@ describe('MarketingWorkspace command-center contract', () => {
 
   it('checks native social-publishing health before reading account data', () => {
     const analyticsHealthIndex = socialAnalyticsSource.indexOf(
-      "fetch('/api/admin/social-publishing/health'",
+      "apiService.get('/api/admin/social-publishing/health'",
     );
     const analyticsAccountsIndex = socialAnalyticsSource.indexOf(
-      "fetch('/api/admin/social-publishing/accounts'",
+      "apiService.get('/api/admin/social-publishing/accounts'",
     );
     const generatorHealthIndex = socialPostGeneratorSource.indexOf(
-      "fetch('/api/admin/social-publishing/health'",
+      "apiService.get('/api/admin/social-publishing/health'",
     );
     const generatorAccountsIndex = socialPostGeneratorSource.indexOf(
-      "fetch('/api/admin/social-publishing/accounts'",
+      "apiService.get('/api/admin/social-publishing/accounts'",
     );
 
     expect(analyticsHealthIndex).toBeGreaterThanOrEqual(0);
@@ -249,7 +250,8 @@ describe('MarketingWorkspace command-center contract', () => {
   it('supports native Bluesky connection and provider-gated Nextdoor readiness', () => {
     expect(socialPostGeneratorConfigSource).toContain('nextdoor');
     expect(socialPostGeneratorConfigSource).toContain("name: 'Nextdoor'");
-    expect(nativePublishingSource).toContain("fetch('/api/admin/social-publishing/connect/bluesky'");
+    expect(nativePublishingSource).toContain("apiService.post('/api/admin/social-publishing/connect/bluesky'");
+    expect(nativePublishingSource).toContain('apiService.post(`/api/admin/social-publishing/connect/${platform}`)');
     expect(nativePublishingSource).toContain('appPassword');
     expect(nativePublishingSource).toContain('nextdoor');
     expect(adminSocialPublishingRoutesSource).toContain('PROVIDER_CAPABILITIES');

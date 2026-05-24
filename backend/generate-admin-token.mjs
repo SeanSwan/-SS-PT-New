@@ -18,7 +18,12 @@ import jwt from 'jsonwebtoken';
     console.log('✅ Found admin user:', admin.username, `(${admin.id})`);
 
     // Generate token with REAL admin ID
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET || JWT_SECRET === 'your-secret-key' || JWT_SECRET === 'your-production-jwt-secret-key-here-change-this') {
+      console.error('JWT_SECRET is required to generate an admin token');
+      process.exit(1);
+    }
+
     const token = jwt.sign(
       {
         id: admin.id,

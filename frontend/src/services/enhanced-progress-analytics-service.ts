@@ -173,6 +173,12 @@ export interface EnhancedProgressAnalyticsService extends ClientProgressServiceI
   generateProgressPredictions: (clientId: string) => Promise<any>;
 }
 
+function throwServiceError(context: string, error: unknown): never {
+  const message = error instanceof Error ? error.message : String(error);
+  logger.warn(`[EnhancedProgressAnalytics] ${context} failed:`, message);
+  throw error instanceof Error ? error : new Error(message);
+}
+
 export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): EnhancedProgressAnalyticsService => {
   // Get base client progress service
   const baseService = createClientProgressService(axios);
@@ -188,9 +194,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         });
         return response.data;
       } catch (error) {
-        console.error('Error fetching comparison analytics:', error);
-        // Return enhanced mock comparison data
-        return getMockComparisonData(comparisonType);
+        return throwServiceError('comparison analytics', error);
       }
     },
 
@@ -200,9 +204,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.get(`/api/client-progress/${clientId}/risk-assessment`);
         return response.data;
       } catch (error) {
-        console.error('Error fetching injury risk assessment:', error);
-        // Return enhanced mock risk assessment data
-        return getMockInjuryRiskData();
+        return throwServiceError('injury risk assessment', error);
       }
     },
 
@@ -212,9 +214,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.get(`/api/client-progress/${clientId}/goals`);
         return response.data;
       } catch (error) {
-        console.error('Error fetching goal tracking data:', error);
-        // Return enhanced mock goal tracking data
-        return getMockGoalTrackingData();
+        return throwServiceError('goal tracking data', error);
       }
     },
 
@@ -224,12 +224,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.put(`/api/client-progress/${clientId}/goals/${goalId}`, updates);
         return response.data;
       } catch (error) {
-        console.error('Error updating goal:', error);
-        // Simulate successful update
-        return {
-          success: true,
-          goal: { id: goalId, ...updates } as GoalData
-        };
+        return throwServiceError('goal update', error);
       }
     },
 
@@ -239,12 +234,7 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.post(`/api/client-progress/${clientId}/goals`, goalData);
         return response.data;
       } catch (error) {
-        console.error('Error creating goal:', error);
-        // Simulate successful creation
-        return {
-          success: true,
-          goal: { id: `goal-${Date.now()}`, ...goalData } as GoalData
-        };
+        return throwServiceError('goal creation', error);
       }
     },
 
@@ -270,179 +260,8 @@ export const createEnhancedProgressAnalyticsService = (axios: AxiosInstance): En
         const response = await axios.get(`/api/client-progress/${clientId}/predictions`);
         return response.data;
       } catch (error) {
-        console.error('Error generating progress predictions:', error);
-        // Return mock predictions
-        return {
-          goalCompletionPredictions: {},
-          injuryRiskTrends: {},
-          performanceProjections: {}
-        };
+        return throwServiceError('progress predictions', error);
       }
     }
   };
 };
-
-// Mock data generators for fallback scenarios
-function getMockComparisonData(comparisonType: string): ComparisonData {
-  const baseMetrics = [
-    {
-      name: 'Overall Strength',
-      client: 75,
-      comparison: 65,
-      percentile: 78,
-      trend: 'above' as const,
-      improvement: '+15%'
-    },
-    {
-      name: 'Cardiovascular Endurance',
-      client: 68,
-      comparison: 70,
-      percentile: 62,
-      trend: 'below' as const,
-      improvement: '-3%'
-    },
-    {
-      name: 'Flexibility',
-      client: 60,
-      comparison: 58,
-      percentile: 55,
-      trend: 'above' as const,
-      improvement: '+3%'
-    }
-  ];
-
-  return {
-    comparisonType: comparisonType as any,
-    metrics: baseMetrics,
-    insights: [
-      {
-        type: 'success',
-        title: 'Strong Performance',
-        description: 'Client demonstrates above-average strength metrics.',
-        recommendation: 'Continue current strength training protocol.'
-      }
-    ],
-    timeframe: '3months'
-  };
-}
-
-function getMockInjuryRiskData(): InjuryRiskData {
-  return {
-    overallRisk: 'medium',
-    riskScore: 65,
-    lastAssessment: new Date().toISOString(),
-    categories: [
-      {
-        id: 'movement',
-        name: 'Movement Patterns',
-        risk: 'low',
-        score: 25,
-        icon: 'activity',
-        findings: [
-          {
-            pattern: 'Squat Pattern',
-            status: 'good',
-            notes: 'Proper knee tracking, adequate depth',
-            recommendation: 'Continue current form'
-          }
-        ]
-      }
-    ],
-    criticalAlerts: [
-      {
-        severity: 'medium',
-        title: 'Recovery Attention',
-        description: 'Monitor recovery patterns closely',
-        action: 'Implement recovery protocols',
-        timeframe: 'This week'
-      }
-    ],
-    recommendations: [
-      {
-        category: 'Immediate',
-        items: ['Reduce intensity by 10%', 'Focus on sleep quality']
-      }
-    ],
-    correctiveProtocol: {
-      inhibit: [
-        { muscle: 'Hip Flexors', exercise: 'Static Stretching', duration: '30 seconds x 2', frequency: 'Daily' }
-      ],
-      lengthen: [
-        { muscle: 'Hip Flexors', exercise: 'Couch Stretch', duration: '60 seconds x 2', frequency: 'Daily' }
-      ],
-      activate: [
-        { muscle: 'Glute Medius', exercise: 'Clamshells', reps: '15 x 2', frequency: 'Pre-workout' }
-      ],
-      integrate: [
-        { muscle: 'Glutes', exercise: 'Single Leg Deadlifts', reps: '8-12 x 2', frequency: '2x/week' }
-      ]
-    }
-  };
-}
-
-function getMockGoalTrackingData(): GoalTrackingData {
-  return {
-    summary: {
-      totalGoals: 5,
-      activeGoals: 3,
-      completedGoals: 1,
-      overdueGoals: 1,
-      averageProgress: 67,
-      onTrackGoals: 3
-    },
-    goals: [
-      {
-        id: 'goal-1',
-        title: 'Lose 15 lbs',
-        category: 'Weight Loss',
-        type: 'measurable',
-        status: 'active',
-        priority: 'high',
-        progress: 78,
-        startDate: '2024-01-15',
-        targetDate: '2024-08-15',
-        currentValue: 11.7,
-        targetValue: 15,
-        unit: 'lbs',
-        milestones: [
-          { id: 'm1', title: 'Lose 5 lbs', target: 5, current: 5, completed: true, date: '2024-03-15' },
-          { id: 'm2', title: 'Lose 10 lbs', target: 10, current: 10, completed: true, date: '2024-05-20' },
-          { id: 'm3', title: 'Lose 15 lbs', target: 15, current: 11.7, completed: false, estimatedDate: '2024-08-01' }
-        ],
-        progressHistory: [
-          { date: '2024-01-15', value: 0 },
-          { date: '2024-03-15', value: 5 },
-          { date: '2024-05-15', value: 9.8 },
-          { date: '2024-07-15', value: 11.7 }
-        ],
-        insights: {
-          trend: 'positive',
-          predictedCompletion: '2024-07-28',
-          likelihood: 92,
-          weeklyRate: 0.8,
-          recommendation: 'Excellent progress! Current rate puts you ahead of schedule.'
-        }
-      }
-    ],
-    achievements: [
-      {
-        id: 'ach-1',
-        title: 'First Milestone Master',
-        description: 'Complete first milestone in 3 different goals',
-        earned: true,
-        date: '2024-03-20',
-        icon: 'flag'
-      }
-    ]
-  };
-}
-
-function getMockWorkoutHistory(): WorkoutHistoryEntry[] {
-  return [
-    { date: '2024-07-15', type: 'Strength', duration: 60, intensity: 7 },
-    { date: '2024-07-13', type: 'Cardio', duration: 45, intensity: 6 },
-    { date: '2024-07-11', type: 'Flexibility', duration: 30, intensity: 5 },
-    { date: '2024-07-09', type: 'Strength', duration: 65, intensity: 8 },
-    { date: '2024-07-07', type: 'HIIT', duration: 35, intensity: 9 }
-  ];
-}

@@ -177,12 +177,12 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
     // re-enable the "clients forge peer logs" class of regression.
     //
     // Phase 16.2 round 5 update: the client-self check now compares numbers
-    // on both sides (parseInt(clientId, 10) vs userNumericId). Previously
-    // `parseInt(clientId) !== req.user.id` compared number !== string and
+    // on both sides (parsedClientId vs userNumericId). Previously
+    // loose parsing compared number !== string and
     // was always true — every client save was silently 403'd by the inline
     // check even when the middleware allowed the request through.
     expect(source).toMatch(
-      /userRole === 'client' && parseInt\(clientId,\s*10\) !== userNumericId[\s\S]{0,300}Clients can only log their own workouts/
+      /userRole === 'client' && parsedClientId !== userNumericId[\s\S]{0,300}Clients can only log their own workouts/
     );
     expect(source).toMatch(
       /userRole === 'trainer'[\s\S]{0,400}checkTrainerPermission\s*\(\s*trainerId\s*,\s*PERMISSION_TYPES\.EDIT_WORKOUTS\s*\)/
@@ -191,12 +191,15 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
 
   it('POST / handler coerces req.user.id to a number once at handler entry (Phase 16.2 round 5)', () => {
     // Anti-regression lock for the string/number drift that blocked the
-    // canonical client self-log. `protect` stores req.user.id as a string
-    // (authMiddleware.mjs:359), and downstream code compares it against
-    // parseInt results. The handler MUST derive `userNumericId` once at
-    // the top so every comparison/Sequelize lookup uses the numeric form.
+    // canonical client self-log. `protect` may store req.user.id as a string,
+    // and downstream code compares it against the parsed target client id.
+    // The handler MUST derive `userNumericId` once at the top so every
+    // comparison/Sequelize lookup uses the numeric form.
     expect(source).toMatch(
-      /const\s+userNumericId\s*=\s*parseInt\(\s*req\.user\.id\s*,\s*10\s*\)\s*;/
+      /const\s+userNumericId\s*=\s*parseStrictPositiveInteger\(\s*req\.user\.id\s*\)\s*;/
+    );
+    expect(source).toMatch(
+      /const\s+parsedClientId\s*=\s*parseStrictPositiveInteger\(\s*clientId\s*\)\s*;/
     );
     // trainerId used for permission checks and Sequelize lookups must be
     // the numeric form too.
@@ -427,5 +430,31 @@ describe('dailyWorkoutFormRoutes — fallback handler per-role access (BLOCKER-1
 
   it('fallback handler keeps the assigned-trainer ClientTrainerAssignment lookup', () => {
     expect(source).toMatch(/ClientTrainerAssignment[\s\S]{0,400}You are not assigned to this client/);
+  });
+});
+
+describe('dailyWorkoutFormRoutes - progress-detailed access guard (Slice 232)', () => {
+  const progressDetailedSlice = source.slice(
+    source.indexOf("router.get('/client/:clientId/progress-detailed'"),
+    source.indexOf("router.post('/:id/reprocess'")
+  );
+
+  it('coerces req.user.id before client self-access comparison', () => {
+    expect(source).toContain('const parseStrictPositiveInteger = (value) => {');
+    expect(progressDetailedSlice).toContain('const requestingUserId = parseStrictPositiveInteger(req.user.id);');
+    expect(progressDetailedSlice).toContain('requestingUserId !== parsedClientId');
+    expect(progressDetailedSlice).not.toContain('const requestingUserId = req.user.id;');
+    expect(progressDetailedSlice).not.toContain('const requestingUserId = Number.parseInt(req.user.id, 10);');
+  });
+
+  it('rejects unsupported authenticated roles instead of falling through as admin', () => {
+    expect(progressDetailedSlice).toMatch(/else if \(requestingUserRole !== 'admin'\)[\s\S]{0,120}Access denied/);
+  });
+
+  it('rejects malformed requester and client IDs before model reads', () => {
+    expect(progressDetailedSlice).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(progressDetailedSlice).toContain('if (!Number.isInteger(parsedClientId) || parsedClientId <= 0)');
+    expect(progressDetailedSlice).toContain('if (!Number.isInteger(requestingUserId) || requestingUserId <= 0)');
+    expect(source).toContain("if (typeof value !== 'string' || !/^\\d+$/.test(value.trim())) {");
   });
 });

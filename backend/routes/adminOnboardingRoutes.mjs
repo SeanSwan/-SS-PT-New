@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   getAdminOnboardingList,
   createBaselineMeasurements,
@@ -28,13 +29,13 @@ router.get('/onboarding', getAdminOnboardingList);
  * POST /api/admin/baseline-measurements
  * Create new baseline measurements record
  */
-router.post('/baseline-measurements', createBaselineMeasurements);
+router.post('/baseline-measurements', verifyClientAccessByUserId({ bodyField: 'userId' }), createBaselineMeasurements);
 
 /**
  * GET /api/admin/baseline-measurements/:userId
  * Get baseline measurements history for a specific user
  */
-router.get('/baseline-measurements/:userId', getBaselineMeasurementsHistory);
+router.get('/baseline-measurements/:userId', verifyClientAccessByUserId({ paramName: 'userId' }), getBaselineMeasurementsHistory);
 
 // --- Phase 1B: Per-client onboarding management ---
 

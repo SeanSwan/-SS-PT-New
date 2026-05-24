@@ -148,8 +148,8 @@ const GOAL_CHALLENGE_MAP = {
       progressUnit: 'days'
     },
     {
-      title: 'Yoga Count',
-      description: 'Complete 12 yoga sessions within 30 days.',
+      title: 'Flexibility Count',
+      description: 'Complete 12 flexibility sessions within 30 days.',
       challengeType: 'monthly',
       category: 'mindfulness',
       difficulty: 2,
@@ -184,7 +184,7 @@ function normalizeGoal(goalStr) {
   if (lower.includes('muscle') || lower.includes('bulk') || lower.includes('mass')) return 'muscle_gain';
   if (lower.includes('strength') || lower.includes('strong')) return 'muscle_gain';
   if (lower.includes('endurance') || lower.includes('cardio') || lower.includes('run')) return 'endurance';
-  if (lower.includes('flex') || lower.includes('mobil') || lower.includes('yoga')) return 'flexibility';
+  if (lower.includes('flex') || lower.includes('mobil') || lower.includes('stretch')) return 'flexibility';
   return 'general_fitness';
 }
 

@@ -1,8 +1,7 @@
 /**
  * ClientProgress Component - PRODUCTION SIMPLIFIED
  * ===============================================
- * Displays a client's progress and workout statistics without external chart dependencies
- * Recharts temporarily removed for production stability
+ * Displays a client's progress and workout statistics without extra chart dependencies.
  */
 
 import React, { useState, useEffect } from 'react';

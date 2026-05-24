@@ -84,7 +84,10 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
           as: 'user'
         }
       ],
-      lock: transaction.LOCK.UPDATE,
+      lock: {
+        level: transaction.LOCK.UPDATE,
+        of: ShoppingCart,
+      },
       transaction
     });
 
@@ -120,11 +123,17 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
       });
     }
 
-    // Update user purchase flags
-    await user.update({
+    // Update user purchase flags and unlock client-only surfaces for first-time purchasers.
+    const userPurchaseUpdate = {
       hasPurchasedBefore: true,
       lastPurchaseDate: new Date()
-    }, { transaction });
+    };
+
+    if (sessionsToAdd > 0 && user.role === 'user') {
+      userPurchaseUpdate.role = 'client';
+    }
+
+    await user.update(userPurchaseUpdate, { transaction });
 
     // Update cart with idempotency flag + completion
     await cart.update({

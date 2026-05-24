@@ -182,7 +182,8 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
 
   const redeemRewardMutation = useMutation({
     mutationFn: async (rewardId: string) => {
-      const { data } = await authAxios.post(`/api/v1/gamification/rewards/${rewardId}/redeem`);
+      if (!targetUserId) throw new Error('Cannot redeem reward without an authenticated user');
+      const { data } = await authAxios.post(`/api/v1/gamification/users/${targetUserId}/rewards/${rewardId}/redeem`);
       return data;
     },
     onSuccess: (data, rewardId) => {

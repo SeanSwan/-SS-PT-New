@@ -45,6 +45,7 @@ interface AuthContextType {
   logout: () => void;
   register: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
   updateUser: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
+  refreshUser: () => Promise<{success: boolean, user: User | null, error?: string}>;
   refreshToken: () => Promise<boolean>;
   forgotPassword: (email: string) => Promise<{success: boolean}>;
   checkPermission: (permission: string) => boolean;
@@ -68,6 +69,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   register: async () => ({ success: false, user: null }),
   updateUser: async () => ({ success: false, user: null }),
+  refreshUser: async () => ({ success: false, user: null }),
   refreshToken: async () => false,
   forgotPassword: async () => ({ success: false }),
   checkPermission: () => false,
@@ -225,10 +227,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             id: userData.id,
             email: userData.email,
             username: userData.username || userData.email?.split('@')[0],
+            phone: userData.phone,
             firstName: userData.firstName || '',
             lastName: userData.lastName || '',
             role: userData.role || 'user',
+            clientSource: userData.clientSource,
             profileImageUrl: userData.profileImageUrl || userData.photo,
+            photo: userData.photo,
             isActive: userData.isActive !== false,
             createdAt: userData.createdAt,
             updatedAt: userData.updatedAt,
@@ -296,10 +301,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           id: userData.id,
           email: userData.email,
           username: userData.username || username,
+          phone: userData.phone,
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           role: userData.role || 'user',
+          clientSource: userData.clientSource,
           profileImageUrl: userData.profileImageUrl || userData.photo,
+          photo: userData.photo,
           isActive: userData.isActive !== false,
           createdAt: userData.createdAt,
           updatedAt: userData.updatedAt,
@@ -386,10 +394,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           id: userData.id,
           email: userData.email,
           username: userData.username || data.username,
+          phone: userData.phone,
           firstName: userData.firstName || data.firstName || '',
           lastName: userData.lastName || data.lastName || '',
           role: userData.role || 'user',
+          clientSource: userData.clientSource,
           profileImageUrl: userData.profileImageUrl || userData.photo,
+          photo: userData.photo,
           isActive: userData.isActive !== false,
           createdAt: userData.createdAt,
           updatedAt: userData.updatedAt
@@ -475,6 +486,52 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   }, [user, dispatch]);
 
+  const refreshUser = useCallback(async (): Promise<{success: boolean, user: User | null, error?: string}> => {
+    try {
+      const response = await apiService.get('/api/auth/me');
+
+      if (!response.data?.user) {
+        throw new Error('Invalid user data from server');
+      }
+
+      const userData = response.data.user;
+      clearEmergencyAdminBypass();
+
+      const refreshedUser: User = {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username || userData.email?.split('@')[0],
+        phone: userData.phone,
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+        role: userData.role || 'user',
+        clientSource: userData.clientSource,
+        profileImageUrl: userData.profileImageUrl || userData.photo,
+        photo: userData.photo,
+        isActive: userData.isActive !== false,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+        trainerInfo: userData.trainerInfo,
+        clientInfo: userData.clientInfo
+      };
+
+      setUser(refreshedUser);
+      localStorage.setItem('user', JSON.stringify(refreshedUser));
+
+      if (dispatch) {
+        dispatch(setReduxUser(refreshedUser));
+      }
+
+      logger.log('User refreshed successfully:', refreshedUser.username, refreshedUser.role);
+      return { success: true, user: refreshedUser };
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'User refresh failed';
+      setError(errorMessage);
+      logger.warn('User refresh failed:', errorMessage);
+      return { success: false, user: null, error: errorMessage };
+    }
+  }, [dispatch]);
+
   // Context value — memoized to prevent unnecessary re-renders of all consumers
   const contextValue: AuthContextType = useMemo(() => ({
     user,
@@ -486,12 +543,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     logout,
     register,
     updateUser,
+    refreshUser,
     refreshToken,
     forgotPassword,
     checkPermission,
     services,
     authAxios: authApiClient
-  }), [user, loading, error, token, login, logout, register, updateUser, refreshToken, forgotPassword, checkPermission, services]);
+  }), [user, loading, error, token, login, logout, register, updateUser, refreshUser, refreshToken, forgotPassword, checkPermission, services]);
   
   return (
     <AuthContext.Provider value={contextValue}>

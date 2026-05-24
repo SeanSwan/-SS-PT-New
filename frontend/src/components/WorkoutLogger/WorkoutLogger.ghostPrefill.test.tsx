@@ -25,8 +25,8 @@
  *
  * This test is the behavioral regression guard Sean asked for: mount the
  * component in client self-mode, fire `onSelectExercise` through a mocked
- * rolodex, assert `fetch` was NOT called with the admin URL pattern.
- * It also covers the inverse case (trainer/admin path DOES fire the fetch)
+ * rolodex, assert the shared API client is NOT called with the admin URL
+ * pattern. It also covers the inverse case (trainer/admin path DOES fire)
  * so we don't silently break the intended feature for that role.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -40,6 +40,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // below. The rolodex mock dispatches onSelectExercise via a test button.
 let currentAuthRole: 'client' | 'admin' = 'client';
 let currentAuthUserId: string = '91';
+const apiGetMock = vi.hoisted(() => vi.fn());
+const apiPostMock = vi.hoisted(() => vi.fn());
+const apiPutMock = vi.hoisted(() => vi.fn());
+const apiDeleteMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
@@ -79,10 +83,10 @@ vi.mock('../../services/nasmApiService', async () => {
 vi.mock('../../services/api.service', async () => {
   const actual = await vi.importActual<any>('../../services/api.service');
   class MockApiService {
-    get = vi.fn().mockResolvedValue({ data: { success: true, client: null } });
-    post = vi.fn().mockResolvedValue({ data: { success: true } });
-    put = vi.fn().mockResolvedValue({ data: { success: true } });
-    delete = vi.fn().mockResolvedValue({ data: { success: true } });
+    get = apiGetMock;
+    post = apiPostMock;
+    put = apiPutMock;
+    delete = apiDeleteMock;
   }
   return { ...actual, ApiService: MockApiService, default: new MockApiService() };
 });
@@ -146,6 +150,34 @@ describe('Phase 16.2 round 12 — ghost-prefill admin fetch is blocked on client
     vi.clearAllMocks();
     currentAuthRole = 'client';
     currentAuthUserId = '91';
+    apiGetMock.mockResolvedValue({
+      status: 200,
+      data: {
+        success: true,
+        client: {
+          id: 91,
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'test@example.com',
+          availableSessions: 10,
+        },
+        workouts: [
+          {
+            logs: [
+              {
+                exerciseName: 'Push-ups',
+                setNumber: 1,
+                weight: 0,
+                reps: 10,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    apiPostMock.mockResolvedValue({ status: 200, data: { success: true } });
+    apiPutMock.mockResolvedValue({ status: 200, data: { success: true } });
+    apiDeleteMock.mockResolvedValue({ status: 200, data: { success: true } });
 
     // Reset the module-level preFillCache across tests. The cache lives
     // inside useGhostPreFill module scope, so it persists across
@@ -174,10 +206,8 @@ describe('Phase 16.2 round 12 — ghost-prefill admin fetch is blocked on client
       return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
     });
 
-    // Token must be present for fetchExerciseHistoryReal's path to reach
-    // the fetch call in the trainer/admin case. On the client-mode test
-    // it is present too but the guard short-circuits before the token
-    // check runs.
+    // Keep a token present to mirror production auth state; the ghost
+    // transport itself should come through apiService now.
     localStorage.setItem('token', 'test-token');
   });
 
@@ -210,15 +240,17 @@ describe('Phase 16.2 round 12 — ghost-prefill admin fetch is blocked on client
     // Give async microtasks a tick to settle.
     await waitFor(() => {
       // Check every call the spy observed — none may match the admin pattern.
-      const adminCalls = fetchSpy.mock.calls.filter(([url]) => {
+      const adminFetchCalls = fetchSpy.mock.calls.filter(([url]) => {
         const s = typeof url === 'string' ? url : (url as any)?.url ?? String(url);
         return ADMIN_FETCH_PATTERN.test(s);
       });
-      expect(adminCalls).toHaveLength(0);
+      const adminApiCalls = apiGetMock.mock.calls.filter(([url]) => ADMIN_FETCH_PATTERN.test(String(url)));
+      expect(adminFetchCalls).toHaveLength(0);
+      expect(adminApiCalls).toHaveLength(0);
     });
   });
 
-  it('trainer/admin mode: selecting an exercise DOES fire /api/admin/clients/:id/workouts (ghost pre-fill preserved)', async () => {
+  it('trainer/admin mode: selecting an exercise DOES request /api/admin/clients/:id/workouts (ghost pre-fill preserved)', async () => {
     // Admin mount with explicit clientId prop — simulates the admin/trainer
     // EnhancedWorkoutLogger path. Ghost pre-fill should work normally here:
     // the skip flag is false, and the call-site guard is only active in
@@ -239,10 +271,7 @@ describe('Phase 16.2 round 12 — ghost-prefill admin fetch is blocked on client
     fireEvent.click(selectBtn);
 
     await waitFor(() => {
-      const adminCalls = fetchSpy.mock.calls.filter(([url]) => {
-        const s = typeof url === 'string' ? url : (url as any)?.url ?? String(url);
-        return ADMIN_FETCH_PATTERN.test(s);
-      });
+      const adminCalls = apiGetMock.mock.calls.filter(([url]) => ADMIN_FETCH_PATTERN.test(String(url)));
       // Non-zero: admin role legitimately triggers ghost pre-fill.
       expect(adminCalls.length).toBeGreaterThan(0);
       // And the targeted clientId must be the prop-passed 55, not the

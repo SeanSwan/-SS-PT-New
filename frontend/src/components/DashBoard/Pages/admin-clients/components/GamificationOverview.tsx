@@ -26,13 +26,13 @@
  * DATA FLOW:
  * Props In:  { clientId, gamificationData }
  * State:     { activeTab, achievements[], badges[], challenges[] }
- * API Calls: GET /api/gamification/user/:id
+ * API Calls: GET /api/v1/gamification/profile?viewAs=:clientId, GET /api/v1/gamification/leaderboard, GET /api/v1/gamification/challenges
  *
  * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,641 lines — CRITICAL monolith. TODO: extract each tab section
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import {
   Trophy,
@@ -51,6 +51,7 @@ import {
   X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../../../../context/AuthContext';
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
 
@@ -135,6 +136,242 @@ interface LeaderboardEntry {
   change: 'up' | 'down' | 'same';
   position_change: number;
 }
+
+type GamificationProfile = {
+  id?: string | number;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  photo?: string;
+  points?: number | string | null;
+  level?: number | string | null;
+  tier?: string | null;
+  streakDays?: number | string | null;
+  nextLevelPoints?: number | string | null;
+  nextLevelProgress?: number | string | null;
+  leaderboardPosition?: number | string | null;
+  userAchievements?: unknown[];
+  rewards?: unknown[];
+};
+
+const ACHIEVEMENT_CATEGORIES: Achievement['category'][] = [
+  'strength',
+  'endurance',
+  'consistency',
+  'social',
+  'nutrition',
+  'recovery',
+];
+
+const ACHIEVEMENT_DIFFICULTIES: Achievement['difficulty'][] = [
+  'bronze',
+  'silver',
+  'gold',
+  'platinum',
+  'diamond',
+];
+
+const RARITIES: Achievement['rarity'][] = ['common', 'rare', 'epic', 'legendary'];
+
+const toRecord = (value: unknown): Record<string, any> =>
+  value && typeof value === 'object' ? value as Record<string, any> : {};
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numericValue) ? numericValue : fallback;
+};
+
+const toText = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+
+const normalizeCategory = (value: unknown): Achievement['category'] => {
+  const category = String(value || '').toLowerCase();
+  return ACHIEVEMENT_CATEGORIES.includes(category as Achievement['category'])
+    ? category as Achievement['category']
+    : 'strength';
+};
+
+const normalizeDifficulty = (value: unknown): Achievement['difficulty'] => {
+  const difficulty = String(value || '').toLowerCase();
+  return ACHIEVEMENT_DIFFICULTIES.includes(difficulty as Achievement['difficulty'])
+    ? difficulty as Achievement['difficulty']
+    : 'bronze';
+};
+
+const normalizeRarity = (value: unknown): Achievement['rarity'] => {
+  const rarity = String(value || '').toLowerCase();
+  return RARITIES.includes(rarity as Achievement['rarity'])
+    ? rarity as Achievement['rarity']
+    : 'common';
+};
+
+const formatTierName = (value: unknown): string => {
+  const tier = toText(value, 'Level Profile').replace(/_/g, ' ');
+  return tier.replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const avatarUrl = (name: string, photo?: string): string => {
+  if (photo) return photo;
+  const encodedName = encodeURIComponent(name || 'Swan Athlete');
+  return `https://ui-avatars.com/api/?name=${encodedName}&background=002060&color=60C0F0&size=40`;
+};
+
+const mapUserAchievements = (rows: unknown[] = []): Achievement[] =>
+  rows.map((row, index) => {
+    const userAchievement = toRecord(row);
+    const achievement = toRecord(userAchievement.achievement);
+    const progress = toNumber(userAchievement.progress, userAchievement.isCompleted ? 1 : 0);
+    const maxProgress = Math.max(1, toNumber(achievement.maxProgress ?? achievement.targetValue, 1));
+
+    return {
+      id: String(userAchievement.id ?? achievement.id ?? index),
+      title: toText(achievement.title ?? achievement.name, 'Achievement'),
+      description: toText(achievement.description, ''),
+      category: normalizeCategory(achievement.category),
+      difficulty: normalizeDifficulty(achievement.difficulty),
+      points: toNumber(userAchievement.pointsAwarded ?? achievement.xpReward ?? achievement.points),
+      icon: toText(achievement.iconUrl ?? achievement.iconEmoji, ''),
+      unlockCondition: Array.isArray(achievement.requirements)
+        ? achievement.requirements.join(', ')
+        : toText(achievement.unlockCondition ?? achievement.criteria, ''),
+      progress,
+      maxProgress,
+      isUnlocked: Boolean(userAchievement.isCompleted ?? userAchievement.earnedAt),
+      unlockedDate: toText(userAchievement.earnedAt, '') || undefined,
+      rarity: normalizeRarity(achievement.rarity),
+      secretAchievement: Boolean(achievement.isSecret ?? achievement.isHidden),
+    };
+  });
+
+const mapUserRewards = (rows: unknown[] = []): Badge[] =>
+  rows.map((row, index) => {
+    const userReward = toRecord(row);
+    const reward = toRecord(userReward.reward);
+
+    return {
+      id: String(userReward.id ?? reward.id ?? index),
+      name: toText(reward.name ?? reward.title, 'Reward'),
+      description: toText(reward.description, ''),
+      iconUrl: toText(reward.iconUrl ?? reward.imageUrl, ''),
+      rarity: normalizeRarity(reward.rarity),
+      category: toText(reward.category, 'Rewards'),
+      earnedDate: toText(userReward.earnedAt ?? userReward.redeemedAt, ''),
+      count: userReward.count ? toNumber(userReward.count) : undefined,
+      criteria: toText(reward.criteria ?? reward.unlockCondition, ''),
+    };
+  });
+
+const mapLeaderboard = (rows: unknown[] = [], clientId: string): LeaderboardEntry[] =>
+  rows.map((row, index) => {
+    const entry = toRecord(row);
+    const displayName = toText(
+      entry.username,
+      `${toText(entry.firstName)} ${toText(entry.lastName)}`.trim() || `User ${entry.id ?? index + 1}`
+    );
+
+    return {
+      rank: toNumber(entry.rank, index + 1),
+      userId: String(entry.id ?? entry.userId ?? index),
+      username: String(entry.id ?? entry.userId) === clientId ? `${displayName} (selected)` : displayName,
+      avatar: avatarUrl(displayName, toText(entry.photo, '')),
+      points: toNumber(entry.points),
+      level: toNumber(entry.level, 1),
+      badges: toNumber(entry.badges ?? entry.badgeCount),
+      streak: toNumber(entry.streakDays ?? entry.streak),
+      change: 'same',
+      position_change: 0,
+    };
+  });
+
+const normalizeChallengeType = (value: unknown): Challenge['type'] => {
+  const type = String(value || '').toLowerCase();
+  if (type === 'community') return 'community';
+  if (type === 'competitive') return 'competitive';
+  return 'individual';
+};
+
+const normalizeChallengeDifficulty = (value: unknown): Challenge['difficulty'] => {
+  const numericDifficulty = toNumber(value, 0);
+  if (numericDifficulty >= 5) return 'extreme';
+  if (numericDifficulty >= 4) return 'hard';
+  if (numericDifficulty >= 3) return 'medium';
+  const difficulty = String(value || '').toLowerCase();
+  return ['easy', 'medium', 'hard', 'extreme'].includes(difficulty)
+    ? difficulty as Challenge['difficulty']
+    : 'easy';
+};
+
+const deriveChallengeStatus = (value: unknown, startDate: unknown, endDate: unknown): Challenge['status'] => {
+  const status = String(value || '').toLowerCase();
+  if (status === 'completed' || status === 'archived' || status === 'cancelled') return 'completed';
+
+  const startMs = Date.parse(String(startDate || ''));
+  const endMs = Date.parse(String(endDate || ''));
+  const now = Date.now();
+  if (Number.isFinite(startMs) && startMs > now) return 'upcoming';
+  if (Number.isFinite(endMs) && endMs < now) return 'completed';
+  return 'active';
+};
+
+const formatChallengeDuration = (startDate: unknown, endDate: unknown): string => {
+  const startMs = Date.parse(String(startDate || ''));
+  const endMs = Date.parse(String(endDate || ''));
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return 'Open';
+  const days = Math.max(1, Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24)));
+  return days === 1 ? '1 day' : `${days} days`;
+};
+
+const mapChallenges = (rows: unknown[] = [], userRows: unknown[] = []): Challenge[] => {
+  const participationByChallengeId = new Map<string, Record<string, any>>();
+
+  userRows.forEach((row) => {
+    const participation = toRecord(row);
+    const challenge = toRecord(participation.challenge);
+    const challengeId = String(participation.challengeId ?? challenge.id ?? '');
+    if (challengeId) {
+      participationByChallengeId.set(challengeId, participation);
+    }
+  });
+
+  return rows
+    .map((row) => {
+      const challenge = toRecord(row);
+      const id = String(challenge.id ?? '');
+      if (!id) return null;
+
+      const participation = participationByChallengeId.get(id);
+      const currentProgress = toNumber(participation?.currentProgress ?? participation?.progress);
+      const targetProgress = Math.max(1, toNumber(challenge.maxProgress, 1));
+      const xpReward = toNumber(challenge.xpReward);
+      const bonusReward = toNumber(challenge.bonusXpReward);
+
+      return {
+        id,
+        title: toText(challenge.title, 'Challenge'),
+        description: toText(challenge.description, ''),
+        type: normalizeChallengeType(challenge.challengeType),
+        category: toText(challenge.category, 'fitness').replace(/_/g, ' '),
+        difficulty: normalizeChallengeDifficulty(challenge.difficulty),
+        duration: formatChallengeDuration(challenge.startDate, challenge.endDate),
+        startDate: toText(challenge.startDate, ''),
+        endDate: toText(challenge.endDate, ''),
+        participants: toNumber(challenge.currentParticipants),
+        rewards: [{
+          position: 1,
+          points: xpReward + bonusReward,
+          extras: bonusReward > 0 ? `${bonusReward} bonus XP` : undefined,
+        }],
+        progress: {
+          current: currentProgress,
+          target: targetProgress,
+          unit: toText(challenge.progressUnit, 'completion'),
+        },
+        status: deriveChallengeStatus(challenge.status, challenge.startDate, challenge.endDate),
+        joined: Boolean(participation),
+      } satisfies Challenge;
+    })
+    .filter((challenge): challenge is Challenge => Boolean(challenge));
+};
 
 // ─── Theme tokens ─────────────────────────────────────────────────────────────
 
@@ -228,6 +465,25 @@ const HeaderSubtitle = styled.p`
   color: ${T.textMuted};
   margin: 0;
   font-size: 1rem;
+`;
+
+const StatusBanner = styled.div<{ $tone?: 'loading' | 'error' }>`
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid ${({ $tone }) => $tone === 'error' ? 'rgba(244,67,54,0.35)' : T.border};
+  background: ${({ $tone }) => $tone === 'error' ? 'rgba(244,67,54,0.1)' : 'rgba(14,165,233,0.08)'};
+  color: ${({ $tone }) => $tone === 'error' ? '#fecaca' : T.text};
+  font-size: 0.875rem;
+`;
+
+const EmptyPanel = styled.div`
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px dashed ${T.glassBorder};
+  color: ${T.textMuted};
+  background: ${T.glass};
+  text-align: center;
 `;
 
 /* Glass Panel base for cards */
@@ -1015,243 +1271,100 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   onChallengeJoin,
   onChallengeCreate
 }) => {
+  const { authAxios } = useAuth();
+
   // State management
   const [selectedTab, setSelectedTab] = useState<string>('overview');
   const [showCelebration, setShowCelebration] = useState<string | null>(null);
   const [filteredCategory, setFilteredCategory] = useState<string>('all');
   const [achievementFilter, setAchievementFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [clientProfile, setClientProfile] = useState<GamificationProfile | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-  // Mock data
-  const clientLevel: Level = {
-    level: 15,
-    name: "Fitness Warrior",
-    description: "Master of strength and dedication",
-    minXP: 12000,
-    maxXP: 15000,
-    rewards: [
-      { type: 'badge', value: 'Golden Warrior', description: 'Exclusive level 15 badge' },
-      { type: 'unlock', value: 'Advanced Programs', description: 'Access to elite workout plans' },
-      { type: 'bonus', value: '500 XP', description: 'XP boost for next level' }
-    ],
-    features: ['Premium analytics', 'Personal trainer access', 'Custom meal plans']
-  };
+  useEffect(() => {
+    let cancelled = false;
 
-  const currentXP = 14250;
-  const nextLevelXP = 3000;
-  const streakDays = 35;
-  const totalPoints = 15680;
+    const loadGamification = async () => {
+      setLoading(true);
+      setError(null);
 
-  const mockAchievements = useMemo<Achievement[]>(() => [
-    {
-      id: '1',
-      title: 'First Steps',
-      description: 'Complete your first workout',
-      category: 'strength',
-      difficulty: 'bronze',
-      points: 100,
-      icon: '/icons/first-workout.png',
-      unlockCondition: 'Complete 1 workout',
-      progress: 1,
-      maxProgress: 1,
-      isUnlocked: true,
-      unlockedDate: '2024-01-15',
-      rarity: 'common'
-    },
-    {
-      id: '2',
-      title: 'Consistency King',
-      description: 'Maintain a 30-day workout streak',
-      category: 'consistency',
-      difficulty: 'gold',
-      points: 500,
-      icon: '/icons/streak.png',
-      unlockCondition: 'Workout for 30 consecutive days',
-      progress: 35,
-      maxProgress: 30,
-      isUnlocked: true,
-      unlockedDate: '2024-11-15',
-      rarity: 'rare'
-    },
-    {
-      id: '3',
-      title: 'Iron Will',
-      description: 'Lift 10,000 kg total in deadlifts',
-      category: 'strength',
-      difficulty: 'platinum',
-      points: 1000,
-      icon: '/icons/iron-will.png',
-      unlockCondition: 'Reach 10,000 kg total deadlift volume',
-      progress: 8500,
-      maxProgress: 10000,
-      isUnlocked: false,
-      rarity: 'epic'
-    },
-    {
-      id: '4',
-      title: 'Social Butterfly',
-      description: 'Get 100 likes on workout posts',
-      category: 'social',
-      difficulty: 'silver',
-      points: 300,
-      icon: '/icons/social.png',
-      unlockCondition: 'Receive 100 total likes',
-      progress: 127,
-      maxProgress: 100,
-      isUnlocked: true,
-      unlockedDate: '2024-10-20',
-      rarity: 'rare'
-    },
-    {
-      id: '5',
-      title: 'The Chosen One',
-      description: 'A legendary achievement for the elite',
-      category: 'strength',
-      difficulty: 'diamond',
-      points: 5000,
-      icon: '/icons/legendary.png',
-      unlockCondition: '???',
-      progress: 0,
-      maxProgress: 1,
-      isUnlocked: false,
-      rarity: 'legendary',
-      secretAchievement: true
-    }
-  ], []);
+      try {
+        const [profileRes, leaderboardRes, challengeRes] = await Promise.all([
+          authAxios.get('/api/v1/gamification/profile', { params: { viewAs: clientId } }),
+          authAxios.get('/api/v1/gamification/leaderboard', { params: { limit: 10 } }),
+          authAxios.get('/api/v1/gamification/challenges', { params: { status: 'all', limit: 10 } }),
+        ]);
 
-  const mockBadges: Badge[] = [
-    {
-      id: 'b1',
-      name: 'Workout Warrior',
-      description: 'Completed 100 workouts',
-      iconUrl: '/badges/achievements/century_club_metallic.png',
-      rarity: 'rare',
-      category: 'Achievements',
-      earnedDate: '2024-11-01',
-      count: 127,
-      criteria: 'Complete 100 workouts'
-    },
-    {
-      id: 'b2',
-      name: 'Consistency Champion',
-      description: '30-day streak achiever',
-      iconUrl: '/badges/achievements/early_bird_streak_30_glass.png',
-      rarity: 'epic',
-      category: 'Streaks',
-      earnedDate: '2024-11-15',
-      criteria: 'Maintain 30-day workout streak'
-    },
-    {
-      id: 'b3',
-      name: 'Social Star',
-      description: 'Most liked posts this month',
-      iconUrl: '/badges/achievements/social_butterfly_30_claymation.png',
-      rarity: 'rare',
-      category: 'Social',
-      earnedDate: '2024-12-01',
-      criteria: 'Highest engagement rate'
-    }
-  ];
+        if (cancelled) return;
 
-  const mockChallenges: Challenge[] = [
-    {
-      id: 'c1',
-      title: 'December Deadlift Challenge',
-      description: 'Complete 1000 total deadlifts this month',
-      type: 'community',
-      category: 'Strength',
-      difficulty: 'hard',
-      duration: '30 days',
-      startDate: '2024-12-01',
-      endDate: '2024-12-31',
-      participants: 243,
-      rewards: [
-        { position: 1, points: 2000, badges: ['Deadlift King'], extras: 'Free protein powder' },
-        { position: 3, points: 1000, badges: ['Top Lifter'] },
-        { position: 10, points: 500 }
-      ],
-      progress: {
-        current: 450,
-        target: 1000,
-        unit: 'deadlifts'
-      },
-      status: 'active',
-      joined: true
-    },
-    {
-      id: 'c2',
-      title: 'New Year Transformation',
-      description: '12-week body transformation challenge',
-      type: 'competitive',
-      category: 'Overall',
-      difficulty: 'extreme',
-      duration: '84 days',
-      startDate: '2025-01-01',
-      endDate: '2025-03-25',
-      participants: 0,
-      rewards: [
-        { position: 1, points: 10000, badges: ['Transformation Champion'], extras: 'Free personal training package' },
-        { position: 5, points: 5000, badges: ['Transform Pro'] },
-        { position: 20, points: 2000 }
-      ],
-      status: 'upcoming',
-      joined: false
-    }
-  ];
+        const nextProfile = (profileRes.data?.profile ?? profileRes.data?.data?.profile ?? null) as GamificationProfile | null;
+        const nextLeaderboard = leaderboardRes.data?.leaderboard ?? leaderboardRes.data?.data?.leaderboard ?? [];
+        const nextChallenges = challengeRes.data?.challenges ?? challengeRes.data?.data?.challenges ?? [];
+        let selectedClientChallenges: unknown[] = [];
 
-  const mockLeaderboard: LeaderboardEntry[] = [
-    {
-      rank: 1,
-      userId: 'u1',
-      username: 'FitnessKing01',
-      avatar: `https://ui-avatars.com/api/?name=Fitness+King&background=002060&color=60C0F0&size=40`,
-      points: 25680,
-      level: 22,
-      badges: 45,
-      streak: 85,
-      change: 'same',
-      position_change: 0
-    },
-    {
-      rank: 2,
-      userId: 'u2',
-      username: 'IronMaven',
-      avatar: `https://ui-avatars.com/api/?name=Iron+Maven&background=002060&color=60C0F0&size=40`,
-      points: 24120,
-      level: 21,
-      badges: 38,
-      streak: 67,
-      change: 'up',
-      position_change: 2
-    },
-    {
-      rank: 3,
-      userId: 'u3',
-      username: 'GymQueen',
-      avatar: `https://ui-avatars.com/api/?name=Gym+Queen&background=002060&color=60C0F0&size=40`,
-      points: 22890,
-      level: 20,
-      badges: 41,
-      streak: 45,
-      change: 'down',
-      position_change: -1
-    },
-    {
-      rank: 15,
-      userId: clientId,
-      username: 'YourUsername',
-      avatar: `https://ui-avatars.com/api/?name=You&background=003080&color=60C0F0&size=40`,
-      points: 15680,
-      level: 15,
-      badges: 18,
-      streak: 35,
-      change: 'up',
-      position_change: 3
-    }
-  ];
+        try {
+          const userChallengeRes = await authAxios.get(
+            `/api/v1/gamification/users/${clientId}/challenges`,
+            { params: { status: 'all', limit: 100 } }
+          );
+          selectedClientChallenges = userChallengeRes.data?.challenges ?? userChallengeRes.data?.data?.challenges ?? [];
+        } catch {
+          selectedClientChallenges = [];
+        }
+
+        if (cancelled) return;
+
+        setClientProfile(nextProfile);
+        setAchievements(mapUserAchievements(nextProfile?.userAchievements ?? []));
+        setBadges(mapUserRewards(nextProfile?.rewards ?? []));
+        setChallenges(mapChallenges(nextChallenges, selectedClientChallenges));
+        setLeaderboard(mapLeaderboard(nextLeaderboard, clientId));
+      } catch (loadError) {
+        if (cancelled) return;
+        console.error('Failed to load gamification profile:', loadError);
+        setClientProfile(null);
+        setAchievements([]);
+        setBadges([]);
+        setChallenges([]);
+        setLeaderboard([]);
+        setError('Gamification data could not be loaded.');
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadGamification();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authAxios, clientId]);
+
+  const totalPoints = toNumber(clientProfile?.points);
+  const currentXP = totalPoints;
+  const nextLevelXP = Math.max(1, toNumber(clientProfile?.nextLevelPoints, totalPoints || 1));
+  const streakDays = toNumber(clientProfile?.streakDays);
+
+  const clientLevel = useMemo<Level>(() => ({
+    level: Math.max(1, toNumber(clientProfile?.level, 1)),
+    name: formatTierName(clientProfile?.tier),
+    description: 'Current gamification profile',
+    minXP: 0,
+    maxXP: nextLevelXP,
+    rewards: [],
+    features: [],
+  }), [clientProfile?.level, clientProfile?.tier, nextLevelXP]);
 
   // Filter achievements based on category and status
   const filteredAchievements = useMemo(() => {
-    return mockAchievements.filter(achievement => {
+    return achievements.filter(achievement => {
       if (filteredCategory !== 'all' && achievement.category !== filteredCategory) {
         return false;
       }
@@ -1263,7 +1376,12 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       }
       return true;
     });
-  }, [mockAchievements, filteredCategory, achievementFilter]);
+  }, [achievements, filteredCategory, achievementFilter]);
+
+  const activeCelebrationAchievement = useMemo(
+    () => achievements.find(a => a.id === showCelebration),
+    [achievements, showCelebration]
+  );
 
   // ─── Render Overview ──────────────────────────────────────────────────────
 
@@ -1315,13 +1433,13 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
               <StatPanel>
                 <Trophy size={40} color={T.orange} />
                 <StatValue $color={T.orange}>
-                  {mockAchievements.filter(a => a.isUnlocked).length}
+                  {achievements.filter(a => a.isUnlocked).length}
                 </StatValue>
                 <StatLabel>Achievements</StatLabel>
               </StatPanel>
               <StatPanel>
                 <Crown size={40} color={T.purple} />
-                <StatValue $color={T.purple}>{mockBadges.length}</StatValue>
+                <StatValue $color={T.purple}>{badges.length}</StatValue>
                 <StatLabel>Badges Earned</StatLabel>
               </StatPanel>
             </StatsGrid>
@@ -1335,8 +1453,9 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
           <SectionTitle $color={T.gold} $mb={20}>
             Recent Achievements
           </SectionTitle>
-          <TimelineWrapper>
-            {mockAchievements
+          {achievements.some(a => a.isUnlocked) ? (
+            <TimelineWrapper>
+              {achievements
               .filter(a => a.isUnlocked)
               .slice(0, 3)
               .map((achievement, index, arr) => (
@@ -1362,7 +1481,10 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                   </TimelineBody>
                 </TimelineRow>
               ))}
-          </TimelineWrapper>
+            </TimelineWrapper>
+          ) : (
+            <EmptyPanel>No achievement records returned yet.</EmptyPanel>
+          )}
         </CardBody>
       </GlassPanel>
     </div>
@@ -1411,79 +1533,83 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
         </ControlsRight>
       </ControlsBar>
 
-      <AchievementsGrid>
-        {filteredAchievements.map((achievement) => (
-          <AchievementCardPanel
-            key={achievement.id}
-            $unlocked={achievement.isUnlocked}
-            $rarity={achievement.rarity}
-          >
-            <CardBody>
-              <AchievementHeaderRow>
-                <FlexRow $gap={12}>
-                  <AvatarCircle
-                    $size={48}
-                    $borderColor={achievement.isUnlocked ? T.gold : '#666'}
-                    $opacity={achievement.isUnlocked ? 1 : 0.5}
-                  >
-                    {achievement.isUnlocked
-                      ? <Trophy size={22} color={T.gold} />
-                      : <Lock size={22} color="#666" />}
-                  </AvatarCircle>
-                  <div>
-                    <AchievementTitleText>
-                      {achievement.secretAchievement && !achievement.isUnlocked
-                        ? '???'
-                        : achievement.title}
-                    </AchievementTitleText>
-                    <TextMuted>
-                      {achievement.secretAchievement && !achievement.isUnlocked
-                        ? 'Secret Achievement'
-                        : achievement.description}
-                    </TextMuted>
-                  </div>
+      {filteredAchievements.length > 0 ? (
+        <AchievementsGrid>
+          {filteredAchievements.map((achievement) => (
+            <AchievementCardPanel
+              key={achievement.id}
+              $unlocked={achievement.isUnlocked}
+              $rarity={achievement.rarity}
+            >
+              <CardBody>
+                <AchievementHeaderRow>
+                  <FlexRow $gap={12}>
+                    <AvatarCircle
+                      $size={48}
+                      $borderColor={achievement.isUnlocked ? T.gold : '#666'}
+                      $opacity={achievement.isUnlocked ? 1 : 0.5}
+                    >
+                      {achievement.isUnlocked
+                        ? <Trophy size={22} color={T.gold} />
+                        : <Lock size={22} color="#666" />}
+                    </AvatarCircle>
+                    <div>
+                      <AchievementTitleText>
+                        {achievement.secretAchievement && !achievement.isUnlocked
+                          ? '???'
+                          : achievement.title}
+                      </AchievementTitleText>
+                      <TextMuted>
+                        {achievement.secretAchievement && !achievement.isUnlocked
+                          ? 'Secret Achievement'
+                          : achievement.description}
+                      </TextMuted>
+                    </div>
+                  </FlexRow>
+                  {achievement.isUnlocked && (
+                    <RoundButton
+                      title="Celebrate Achievement"
+                      onClick={() => setShowCelebration(achievement.id)}
+                    >
+                      <PartyPopper size={18} />
+                    </RoundButton>
+                  )}
+                </AchievementHeaderRow>
+
+                <FlexRow $gap={8} $mb={12}>
+                  <ChipTag $rarity={achievement.rarity}>{achievement.rarity}</ChipTag>
+                  <ChipTag $outline>{achievement.category}</ChipTag>
+                  <ChipTag $color={T.gold} $outline>{achievement.points} pts</ChipTag>
                 </FlexRow>
-                {achievement.isUnlocked && (
-                  <RoundButton
-                    title="Celebrate Achievement"
-                    onClick={() => setShowCelebration(achievement.id)}
-                  >
-                    <PartyPopper size={18} />
-                  </RoundButton>
+
+                {!achievement.isUnlocked && !achievement.secretAchievement && (
+                  <ProgressBlock $mt={12}>
+                    <FlexSpaceBetween $mb={6}>
+                      <TextMuted>Progress</TextMuted>
+                      <InlineMetric $size="0.75rem">
+                        {achievement.progress}/{achievement.maxProgress}
+                      </InlineMetric>
+                    </FlexSpaceBetween>
+                    <ProgressTrack $height={8}>
+                      <ProgressFill
+                        $pct={(achievement.progress / achievement.maxProgress) * 100}
+                      />
+                    </ProgressTrack>
+                  </ProgressBlock>
                 )}
-              </AchievementHeaderRow>
 
-              <FlexRow $gap={8} $mb={12}>
-                <ChipTag $rarity={achievement.rarity}>{achievement.rarity}</ChipTag>
-                <ChipTag $outline>{achievement.category}</ChipTag>
-                <ChipTag $color={T.gold} $outline>{achievement.points} pts</ChipTag>
-              </FlexRow>
-
-              {!achievement.isUnlocked && !achievement.secretAchievement && (
-                <ProgressBlock $mt={12}>
-                  <FlexSpaceBetween $mb={6}>
-                    <TextMuted>Progress</TextMuted>
-                    <InlineMetric $size="0.75rem">
-                      {achievement.progress}/{achievement.maxProgress}
-                    </InlineMetric>
-                  </FlexSpaceBetween>
-                  <ProgressTrack $height={8}>
-                    <ProgressFill
-                      $pct={(achievement.progress / achievement.maxProgress) * 100}
-                    />
-                  </ProgressTrack>
-                </ProgressBlock>
-              )}
-
-              {achievement.isUnlocked && achievement.unlockedDate && (
-                <SuccessText>
-                  Unlocked on {new Date(achievement.unlockedDate).toLocaleDateString()}
-                </SuccessText>
-              )}
-            </CardBody>
-          </AchievementCardPanel>
-        ))}
-      </AchievementsGrid>
+                {achievement.isUnlocked && achievement.unlockedDate && (
+                  <SuccessText>
+                    Unlocked on {new Date(achievement.unlockedDate).toLocaleDateString()}
+                  </SuccessText>
+                )}
+              </CardBody>
+            </AchievementCardPanel>
+          ))}
+        </AchievementsGrid>
+      ) : (
+        <EmptyPanel>No achievements match the current filters.</EmptyPanel>
+      )}
     </div>
   );
 
@@ -1492,36 +1618,40 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
   const renderBadges = () => (
     <div>
       <SectionTitle $color={T.gold} $mb={20}>
-        Badge Collection ({mockBadges.length})
+        Badge Collection ({badges.length})
       </SectionTitle>
-      <BadgesGrid>
-        {mockBadges.map((badge) => (
-          <BadgePanel key={badge.id}>
-            <AvatarCircle
-              $size={64}
-              $borderColor={rarityColor(badge.rarity)}
-              $center
-            >
-              {badge.iconUrl ? (
-                <BadgeImage
-                  src={badge.iconUrl}
-                  alt={badge.name}
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              ) : null}
-              {!badge.iconUrl && <BadgeCheck size={28} color={rarityColor(badge.rarity)} />}
-            </AvatarCircle>
-            <BadgeName>{badge.name}</BadgeName>
-            <BadgeDescription>{badge.description}</BadgeDescription>
-            <ChipTag $rarity={badge.rarity}>{badge.rarity}</ChipTag>
-            {badge.count && (
-              <BadgeCount>
-                Count: {badge.count}
-              </BadgeCount>
-            )}
-          </BadgePanel>
-        ))}
-      </BadgesGrid>
+      {badges.length > 0 ? (
+        <BadgesGrid>
+          {badges.map((badge) => (
+            <BadgePanel key={badge.id}>
+              <AvatarCircle
+                $size={64}
+                $borderColor={rarityColor(badge.rarity)}
+                $center
+              >
+                {badge.iconUrl ? (
+                  <BadgeImage
+                    src={badge.iconUrl}
+                    alt={badge.name}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : null}
+                {!badge.iconUrl && <BadgeCheck size={28} color={rarityColor(badge.rarity)} />}
+              </AvatarCircle>
+              <BadgeName>{badge.name}</BadgeName>
+              <BadgeDescription>{badge.description}</BadgeDescription>
+              <ChipTag $rarity={badge.rarity}>{badge.rarity}</ChipTag>
+              {badge.count && (
+                <BadgeCount>
+                  Count: {badge.count}
+                </BadgeCount>
+              )}
+            </BadgePanel>
+          ))}
+        </BadgesGrid>
+      ) : (
+        <EmptyPanel>No reward records returned yet.</EmptyPanel>
+      )}
     </div>
   );
 
@@ -1538,64 +1668,70 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
         </ActionButton>
       </ControlsBar>
 
-      <ChallengesGrid>
-        {mockChallenges.map((challenge) => (
-          <ChallengePanel key={challenge.id}>
-            <FlexSpaceBetween $mb={12}>
-              <ChallengeTitle>
-                {challenge.title}
-              </ChallengeTitle>
-              <StatusChip $status={challenge.status}>{challenge.status}</StatusChip>
-            </FlexSpaceBetween>
+      {challenges.length > 0 ? (
+        <ChallengesGrid>
+          {challenges.map((challenge) => (
+            <ChallengePanel key={challenge.id}>
+              <FlexSpaceBetween $mb={12}>
+                <ChallengeTitle>
+                  {challenge.title}
+                </ChallengeTitle>
+                <StatusChip $status={challenge.status}>{challenge.status}</StatusChip>
+              </FlexSpaceBetween>
 
-            <TextMuted $block $mb={12}>
-              {challenge.description}
-            </TextMuted>
+              <TextMuted $block $mb={12}>
+                {challenge.description}
+              </TextMuted>
 
-            <FlexRow $gap={8} $mb={12}>
-              <ChipTag $outline>{challenge.type}</ChipTag>
-              <DifficultyChip $difficulty={challenge.difficulty}>{challenge.difficulty}</DifficultyChip>
-              <ChipTag $outline>{challenge.participants} participants</ChipTag>
-            </FlexRow>
+              <FlexRow $gap={8} $mb={12}>
+                <ChipTag $outline>{challenge.type}</ChipTag>
+                <DifficultyChip $difficulty={challenge.difficulty}>{challenge.difficulty}</DifficultyChip>
+                <ChipTag $outline>{challenge.participants} participants</ChipTag>
+              </FlexRow>
 
-            {challenge.progress && challenge.status === 'active' && (
-              <ProgressBlock $mb={16}>
-                <FlexSpaceBetween $mb={6}>
-                  <TextMuted>Your Progress</TextMuted>
-                  <InlineMetric $weight={600}>
-                    {challenge.progress.current}/{challenge.progress.target} {challenge.progress.unit}
-                  </InlineMetric>
-                </FlexSpaceBetween>
-                <ProgressTrack $height={8}>
-                  <ProgressFill
-                    $pct={(challenge.progress.current / challenge.progress.target) * 100}
-                    $color={T.green}
-                  />
-                </ProgressTrack>
-              </ProgressBlock>
-            )}
+              {challenge.progress && challenge.status === 'active' && (
+                <ProgressBlock $mb={16}>
+                  <FlexSpaceBetween $mb={6}>
+                    <TextMuted>Your Progress</TextMuted>
+                    <InlineMetric $weight={600}>
+                      {challenge.progress.current}/{challenge.progress.target} {challenge.progress.unit}
+                    </InlineMetric>
+                  </FlexSpaceBetween>
+                  <ProgressTrack $height={8}>
+                    <ProgressFill
+                      $pct={(challenge.progress.current / Math.max(1, challenge.progress.target)) * 100}
+                      $color={T.green}
+                    />
+                  </ProgressTrack>
+                </ProgressBlock>
+              )}
 
-            <ProgressBlock $mb={16}>
-              <TextMuted>Top Rewards:</TextMuted>
-              <GoldText $block $mt={4}>
-                1st: {challenge.rewards[0].points} points
-                {challenge.rewards[0].extras && ` + ${challenge.rewards[0].extras}`}
-              </GoldText>
-            </ProgressBlock>
+              {challenge.rewards[0] && (
+                <ProgressBlock $mb={16}>
+                  <TextMuted>Top Rewards:</TextMuted>
+                  <GoldText $block $mt={4}>
+                    1st: {challenge.rewards[0].points} points
+                    {challenge.rewards[0].extras && ` + ${challenge.rewards[0].extras}`}
+                  </GoldText>
+                </ProgressBlock>
+              )}
 
-            <ActionButton
-              $variant={challenge.joined ? 'outline' : 'filled'}
-              $fullWidth
-              disabled={challenge.status === 'completed'}
-              onClick={() => onChallengeJoin?.(challenge.id)}
-            >
-              {challenge.joined ? 'Joined' :
-               challenge.status === 'upcoming' ? 'Join Challenge' :
-               challenge.status === 'active' ? 'Join Now' : 'Completed'}
-            </ActionButton>
-          </ChallengePanel>
-        ))}
-      </ChallengesGrid>
+              <ActionButton
+                $variant={challenge.joined ? 'outline' : 'filled'}
+                $fullWidth
+                disabled={challenge.status === 'completed'}
+                onClick={() => onChallengeJoin?.(challenge.id)}
+              >
+                {challenge.joined ? 'Joined' :
+                 challenge.status === 'upcoming' ? 'Join Challenge' :
+                 challenge.status === 'active' ? 'Join Now' : 'Completed'}
+              </ActionButton>
+            </ChallengePanel>
+          ))}
+        </ChallengesGrid>
+      ) : (
+        <EmptyPanel>No challenge records are connected to this view yet.</EmptyPanel>
+      )}
     </div>
   );
 
@@ -1606,41 +1742,45 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
       <SectionTitle $color={T.gold} $mb={20}>
         Monthly Leaderboard
       </SectionTitle>
-      <LeaderList>
-        {mockLeaderboard.map((entry) => (
-          <LeaderItem key={entry.userId} $highlight={entry.userId === clientId}>
-            <RankCell>
-              <RankNumber>#{entry.rank}</RankNumber>
-              {entry.rank === 1 && <Crown size={20} color={T.gold} />}
-              {entry.rank === 2 && <Medal size={20} color="#c0c0c0" />}
-              {entry.rank === 3 && <Medal size={20} color="#cd7f32" />}
-            </RankCell>
-            <AvatarCircle $size={40}>
-              <img src={entry.avatar} alt={entry.username} />
-            </AvatarCircle>
-            <LeaderInfo>
-              <LeaderName $bold={entry.userId === clientId}>
-                {entry.username}
-              </LeaderName>
-              <LeaderMeta>
-                Level {entry.level} &bull; {entry.badges} badges &bull; {entry.streak} day streak
-              </LeaderMeta>
-            </LeaderInfo>
-            <LeaderPoints>
-              <PointsValue>{entry.points.toLocaleString()}</PointsValue>
-              <ChangeIndicator>
-                {entry.change === 'up' && <TrendingUp size={16} color={T.green} />}
-                {entry.change === 'down' && <TrendingDown size={16} color={T.red} />}
-                <ChangeText>
-                  {entry.change === 'same' ? 'No change' :
-                   entry.change === 'up' ? `+${entry.position_change}` :
-                   entry.position_change}
-                </ChangeText>
-              </ChangeIndicator>
-            </LeaderPoints>
-          </LeaderItem>
-        ))}
-      </LeaderList>
+      {leaderboard.length > 0 ? (
+        <LeaderList>
+          {leaderboard.map((entry) => (
+            <LeaderItem key={entry.userId} $highlight={entry.userId === clientId}>
+              <RankCell>
+                <RankNumber>#{entry.rank}</RankNumber>
+                {entry.rank === 1 && <Crown size={20} color={T.gold} />}
+                {entry.rank === 2 && <Medal size={20} color="#c0c0c0" />}
+                {entry.rank === 3 && <Medal size={20} color="#cd7f32" />}
+              </RankCell>
+              <AvatarCircle $size={40}>
+                <img src={entry.avatar} alt={entry.username} />
+              </AvatarCircle>
+              <LeaderInfo>
+                <LeaderName $bold={entry.userId === clientId}>
+                  {entry.username}
+                </LeaderName>
+                <LeaderMeta>
+                  Level {entry.level} &bull; {entry.badges} badges &bull; {entry.streak} day streak
+                </LeaderMeta>
+              </LeaderInfo>
+              <LeaderPoints>
+                <PointsValue>{entry.points.toLocaleString()}</PointsValue>
+                <ChangeIndicator>
+                  {entry.change === 'up' && <TrendingUp size={16} color={T.green} />}
+                  {entry.change === 'down' && <TrendingDown size={16} color={T.red} />}
+                  <ChangeText>
+                    {entry.change === 'same' ? 'No change' :
+                     entry.change === 'up' ? `+${entry.position_change}` :
+                     entry.position_change}
+                  </ChangeText>
+                </ChangeIndicator>
+              </LeaderPoints>
+            </LeaderItem>
+          ))}
+        </LeaderList>
+      ) : (
+        <EmptyPanel>No leaderboard records returned yet.</EmptyPanel>
+      )}
     </div>
   );
 
@@ -1658,6 +1798,9 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
           Track achievements, compete with friends, and unlock rewards
         </HeaderSubtitle>
       </HeaderSection>
+
+      {loading && <StatusBanner $tone="loading">Loading gamification data...</StatusBanner>}
+      {error && <StatusBanner $tone="error" role="alert">{error}</StatusBanner>}
 
       {/* Tab Navigation */}
       <TabBar>
@@ -1729,13 +1872,13 @@ const GamificationOverview: React.FC<GamificationOverviewProps> = ({
                   Achievement Unlocked!
                 </ModalTitle>
                 <ModalAchievementName>
-                  {mockAchievements.find(a => a.id === showCelebration)?.title}
+                  {activeCelebrationAchievement?.title}
                 </ModalAchievementName>
                 <TextMuted $block $mb={20}>
-                  {mockAchievements.find(a => a.id === showCelebration)?.description}
+                  {activeCelebrationAchievement?.description}
                 </TextMuted>
                 <CelebrationPointsChip>
-                  +{mockAchievements.find(a => a.id === showCelebration)?.points} Points
+                  +{activeCelebrationAchievement?.points ?? 0} Points
                 </CelebrationPointsChip>
                 <ModalActions>
                   <ActionButton onClick={() => setShowCelebration(null)}>

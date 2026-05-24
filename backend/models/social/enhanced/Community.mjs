@@ -57,7 +57,7 @@ const Community = db.define('Community', {
   category: {
     type: DataTypes.ENUM(
       'fitness', 'nutrition', 'weight_loss', 'muscle_building', 'cardio',
-      'yoga', 'crossfit', 'running', 'cycling', 'swimming', 'dancing',
+      'flexibility', 'crossfit', 'running', 'cycling', 'swimming', 'dancing',
       'mental_health', 'motivation', 'challenges', 'competitions',
       'professionals', 'beginners', 'advanced', 'local', 'virtual'
     ),

@@ -106,7 +106,7 @@ router.get('/ai-usage', protect, adminOnly, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // GET /api/admin/health — Server health check for admin dashboard
 // ─────────────────────────────────────────────────────────────
-router.get('/health', async (req, res) => {
+router.get('/health', protect, adminOnly, async (req, res) => {
   const start = Date.now();
 
   try {
@@ -131,14 +131,14 @@ router.get('/health', async (req, res) => {
       database: { connected: true, latencyMs: dbLatency },
       memory: { usedMB: memUsedMB, totalMB: memTotalMB, percentage: memPct },
       uptime: uptimeSeconds,
-      nodeVersion: process.version,
     });
   } catch (error) {
+    logger.error('[AdminAiUsage] Admin health check failed:', error);
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       responseTimeMs: Date.now() - start,
-      database: { connected: false, error: error.message },
+      database: { connected: false },
       memory: { usedMB: 0, totalMB: 0, percentage: 0 },
     });
   }

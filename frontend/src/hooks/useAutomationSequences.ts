@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import apiService from '../services/api.service';
 
 export type AutomationStep = {
   dayOffset: number;
@@ -39,25 +40,18 @@ export const useAutomationSequences = (): UseAutomationSequencesResult => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/automation/sequences', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get('/api/automation/sequences');
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to fetch automation sequences');
         return;
       }
 
       setData(Array.isArray(result.data) ? result.data : []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching automation sequences:', err);
-      setError('Network error fetching automation sequences');
+      setError(err?.response?.data?.message || 'Network error fetching automation sequences');
     } finally {
       setIsLoading(false);
     }

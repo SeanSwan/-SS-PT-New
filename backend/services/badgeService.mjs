@@ -29,6 +29,22 @@ import { piiSafeLogger } from '../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 
+function queryRows(result) {
+  if (Array.isArray(result)) {
+    return Array.isArray(result[0]) ? result[0] : result;
+  }
+
+  if (Array.isArray(result?.rows)) {
+    return result.rows;
+  }
+
+  return [];
+}
+
+function firstQueryRow(result) {
+  return queryRows(result)[0] || null;
+}
+
 class BadgeService {
   constructor() {
     this.logger = piiSafeLogger;
@@ -103,7 +119,7 @@ class BadgeService {
         badgeName: badge.name
       });
 
-      return result.rows[0];
+      return firstQueryRow(result);
 
     } catch (error) {
       this.logger.error('Failed to create badge', {
@@ -160,7 +176,7 @@ class BadgeService {
       // Get total count
       const countQuery = `SELECT COUNT(*) as total FROM "Badges" ${whereClause}`;
       const countResult = await sequelize.query(countQuery, { type: QueryTypes.SELECT, bind: values });
-      const total = parseInt(countResult.rows[0].total);
+      const total = parseInt(firstQueryRow(countResult)?.total || 0);
 
       // Get badges with pagination
       const badgesQuery = `
@@ -182,7 +198,7 @@ class BadgeService {
       const badgesResult = await sequelize.query(badgesQuery, { type: QueryTypes.SELECT, bind: values });
 
       // Parse JSON fields
-      const badges = badgesResult.rows.map(badge => ({
+      const badges = queryRows(badgesResult).map(badge => ({
         ...badge,
         criteria: typeof badge.criteria === 'string' ? JSON.parse(badge.criteria) : badge.criteria,
         rewards: typeof badge.rewards === 'string' ? JSON.parse(badge.rewards) : badge.rewards
@@ -425,7 +441,8 @@ class BadgeService {
 
       const result = await sequelize.query(updateQuery, { type: QueryTypes.UPDATE, bind: values });
 
-      if (result.rows.length === 0) {
+      const rows = queryRows(result);
+      if (rows.length === 0) {
         throw new Error('Badge not found');
       }
 
@@ -436,7 +453,7 @@ class BadgeService {
 
       this.logger.info('Badge updated successfully', { badgeId, changes: Object.keys(badgeData) });
 
-      return result.rows[0];
+      return rows[0];
 
     } catch (error) {
       this.logger.error('Failed to update badge', {
@@ -545,11 +562,12 @@ class BadgeService {
 
     const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: [badgeId] });
 
-    if (result.rows.length === 0) {
+    const rows = queryRows(result);
+    if (rows.length === 0) {
       return null;
     }
 
-    const badge = result.rows[0];
+    const badge = rows[0];
     return {
       ...badge,
       criteria: typeof badge.criteria === 'string' ? JSON.parse(badge.criteria) : badge.criteria,
@@ -567,7 +585,7 @@ class BadgeService {
       `SELECT COUNT(*) as count FROM "UserBadges" WHERE "badgeId" = $1`,
       { type: QueryTypes.SELECT, bind: [badgeId] }
     );
-    return parseInt(result.rows[0].count);
+    return parseInt(firstQueryRow(result)?.count || 0);
   }
 
   /**
@@ -597,7 +615,7 @@ class BadgeService {
 
       const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: [userId] });
 
-      return result.rows.map(row => ({
+      return queryRows(result).map(row => ({
         ...row,
         rewards: typeof row.rewards === 'string' ? JSON.parse(row.rewards) : row.rewards,
         earningContext: typeof row.earningContext === 'string' ? JSON.parse(row.earningContext) : row.earningContext
@@ -649,16 +667,20 @@ class BadgeService {
   }
 
   /**
-   * Upload badge image to CDN
+   * Upload badge image once object storage is configured.
    * @param {string|Buffer} image - Image data
-   * @param {string} badgeName - Badge name for filename
-   * @returns {Promise<string>} CDN URL
+   * @param {string} badgeName - Badge name for logging
+   * @returns {Promise<string>} Public image URL
    */
   async uploadBadgeImage(image, badgeName) {
-    // Placeholder implementation - would integrate with CDN service
-    // For now, return a mock URL
-    const filename = `${badgeName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-    return `https://cdn.example.com/badges/${filename}`;
+    this.logger.warn('Badge image upload storage is not configured', {
+      badgeName,
+      imageBytes: Buffer.isBuffer(image) ? image.length : undefined
+    });
+
+    const error = new Error('Badge image storage is not configured');
+    error.code = 'BADGE_IMAGE_STORAGE_NOT_CONFIGURED';
+    throw error;
   }
 
   /**
@@ -684,7 +706,7 @@ class BadgeService {
     `;
 
     const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: [criteriaType] });
-    return result.rows.map(row => ({
+    return queryRows(result).map(row => ({
       ...row,
       criteria: typeof row.criteria === 'string' ? JSON.parse(row.criteria) : row.criteria,
       rewards: typeof row.rewards === 'string' ? JSON.parse(row.rewards) : row.rewards
@@ -704,7 +726,7 @@ class BadgeService {
     `;
 
     const result = await sequelize.query(queryText, { type: QueryTypes.SELECT, bind: [userId, badgeId] });
-    return parseInt(result.rows[0].count) > 0;
+    return parseInt(firstQueryRow(result)?.count || 0) > 0;
   }
 
   /**
@@ -715,9 +737,52 @@ class BadgeService {
    * @returns {Promise<boolean>} Whether criteria are met
    */
   async evaluateBadgeCriteria(userId, badge, activity) {
-    // Placeholder implementation - would evaluate specific criteria
-    // For now, return true for demonstration
-    return Math.random() > 0.7; // 30% chance for demo
+    const criteria = badge.criteria && typeof badge.criteria === 'object' ? badge.criteria : {};
+    const criteriaKeys = Object.keys(criteria);
+    if (criteriaKeys.length === 0) {
+      this.logger.warn('Badge criteria missing; refusing automatic award', {
+        userId,
+        badgeId: badge.id,
+        criteriaType: badge.criteriaType,
+        activityType: activity?.type
+      });
+      return false;
+    }
+
+    switch (badge.criteriaType) {
+      case 'exercise_completion': {
+        if (criteria.exerciseId) {
+          return String(activity.exerciseId || activity.exercise?.id || '') === String(criteria.exerciseId);
+        }
+        if (criteria.exerciseName) {
+          const activityName = String(activity.exerciseName || activity.exercise?.name || '').toLowerCase();
+          return activityName === String(criteria.exerciseName).toLowerCase();
+        }
+        const requiredCount = Number(criteria.count || criteria.minCount || 0);
+        if (requiredCount > 0) {
+          const activityCount = Number(activity.count || activity.exerciseCount || activity.completedExercises || 0);
+          return activityCount >= requiredCount;
+        }
+        return false;
+      }
+
+      case 'streak_achievement': {
+        const requiredDays = Number(criteria.days || criteria.minDays || criteria.count || 0);
+        const currentStreak = Number(activity.streakDays || activity.currentStreak || activity.streak || 0);
+        return requiredDays > 0 && currentStreak >= requiredDays;
+      }
+
+      case 'challenge_completion': {
+        if (criteria.challengeId) {
+          return String(activity.challengeId || activity.challenge?.id || '') === String(criteria.challengeId)
+            && (activity.completed === true || activity.status === 'completed');
+        }
+        return false;
+      }
+
+      default:
+        return false;
+    }
   }
 
   /**
@@ -786,4 +851,4 @@ class BadgeService {
 }
 
 export const badgeService = new BadgeService();
-export default BadgeService;
+export default badgeService;

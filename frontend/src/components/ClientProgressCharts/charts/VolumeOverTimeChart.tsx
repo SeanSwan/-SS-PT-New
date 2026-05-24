@@ -13,7 +13,7 @@
  * - Mobile-optimized touch interactions
  * - WCAG AA accessibility compliance
  *
- * MIGRATED: Recharts → Victory (v37.3.6) for cross-platform compatibility
+ * Uses Victory (v37.3.6) for cross-platform compatibility.
  * THEME: Enchanted Apex — Crystalline Swan
  */
 

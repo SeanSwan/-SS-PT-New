@@ -66,7 +66,7 @@ router.get("/", protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch contacts',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -74,7 +74,6 @@ router.get("/", protect, adminOnly, async (req, res) => {
 // Enhanced Contact Route - Database First + Smart External Services
 router.post("/", async (req, res) => {
   console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
-  console.log('📦 Request body:', req.body);
   
   try {
     const { name, email, message, consultationType, priority } = req.body;
@@ -165,15 +164,13 @@ router.post("/", async (req, res) => {
   } catch (error) {
     console.error('💥 CRITICAL ERROR in contact route:', error);
     console.error('💥 Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
+      name: error.name
     });
     
     res.status(500).json({ 
       success: false,
       message: "Failed to process contact submission. Please try again.",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -369,7 +366,7 @@ ${formData.priority === 'urgent' ? 'RESPOND NOW!' : formData.priority === 'high'
 }
 
 // Test endpoint to verify contact route is working
-router.get("/test", (req, res) => {
+router.get("/test", protect, adminOnly, (req, res) => {
   console.log('🧪 Contact route test endpoint called');
   res.json({
     success: true,
@@ -381,13 +378,12 @@ router.get("/test", (req, res) => {
       "Comprehensive error handling",
       "Detailed logging and diagnostics"
     ],
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    timestamp: new Date().toISOString()
   });
 });
 
 // Health check for contact system
-router.get("/health", async (req, res) => {
+router.get("/health", protect, adminOnly, async (req, res) => {
   try {
     console.log('🏥 Contact health check called');
     
@@ -419,7 +415,7 @@ router.get("/health", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Contact system health check failed",
-      error: error.message
+      error: "Internal server error"
     });
   }
 });

@@ -76,6 +76,14 @@ const safeQuery = async (sequelize, sql, replacements, context = '') => {
   }
 };
 
+const INTERNAL_ERROR = 'internal_error';
+
+const sendChartError = (res) => res.status(500).json({
+  success: false,
+  message: 'Unable to load chart data',
+  error: INTERNAL_ERROR,
+});
+
 // Validate userId is a positive integer — returns parsed int or null
 const parseUserId = (raw) => {
   const id = parseInt(raw, 10);
@@ -137,7 +145,7 @@ export async function getWorkoutFrequencyChart(req, res) {
     res.json({ success: true, data: rows.map(r => ({ x: r.week, y: r.count })) });
   } catch (error) {
     console.error('Error getting workout frequency chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -186,7 +194,7 @@ export async function getAttendanceReliabilityChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting attendance reliability chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -223,7 +231,7 @@ export async function getWeeklyVolumeChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting weekly volume chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -264,7 +272,7 @@ export async function getSetsRepsTrendChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting sets/reps trend chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -301,7 +309,7 @@ export async function getDurationTrendChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting duration trend chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -352,7 +360,7 @@ export async function getIntensityRPETrendChart(req, res) {
     res.json({ success: true, data });
   } catch (error) {
     console.error('Error getting intensity/RPE trend chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -397,7 +405,7 @@ export async function getPRTimelineChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting PR timeline chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -461,7 +469,7 @@ export async function getAnchorLiftsChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting anchor lifts chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -499,7 +507,7 @@ export async function getExerciseFrequencyChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting exercise frequency chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -588,7 +596,7 @@ export async function getMovementPatternBalanceChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting movement pattern balance chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -699,7 +707,7 @@ export async function getMuscleGroupBalanceChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting muscle group balance chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -780,7 +788,7 @@ export async function getRecoverySignalChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting recovery signal chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -812,7 +820,7 @@ export async function getWeightProgressionChart(req, res) {
     res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.weight })) });
   } catch (error) {
     console.error('Error getting weight progression chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -835,7 +843,7 @@ export async function getBodyFatTrendChart(req, res) {
     res.json({ success: true, data: rows.map(r => ({ x: r.date, y: r.bf })) });
   } catch (error) {
     console.error('Error getting body fat trend chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 
@@ -869,7 +877,7 @@ export async function getMacroSplitChart(req, res) {
     });
   } catch (error) {
     console.error('Error getting macro split chart:', error);
-    res.status(500).json({ success: false, message: error.message });
+    return sendChartError(res);
   }
 }
 

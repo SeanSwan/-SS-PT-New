@@ -76,7 +76,7 @@ vi.mock('../../socket/socketManager.mjs', () => ({
 
 // Now import the preflight function. The static import pulls the mocked
 // modules above.
-import { criticalDatabasePreflight } from '../../core/startup.mjs';
+import { criticalDatabasePreflight, shouldRunProductionDatabaseSync } from '../../core/startup.mjs';
 import { runStartupMigrations } from '../../utils/startupMigrations.mjs';
 
 // ─────────────────────────────────────────────────────────────
@@ -253,5 +253,33 @@ describe('startup.mjs — Phase 15.2 initializeServer execution order', () => {
     // A try/catch that swallowed the guard error would break the
     // fail-fast contract.
     expect(between).not.toMatch(/\bcatch\b/);
+  });
+});
+
+describe('startup.mjs - startup database repair gate', () => {
+  it('runs the repair sync by default in production', () => {
+    expect(shouldRunProductionDatabaseSync({ nodeEnv: 'production' })).toBe(true);
+  });
+
+  it('skips the repair sync by default in development', () => {
+    expect(shouldRunProductionDatabaseSync({ nodeEnv: 'development' })).toBe(false);
+  });
+
+  it('allows an explicit local opt-in', () => {
+    expect(
+      shouldRunProductionDatabaseSync({
+        nodeEnv: 'development',
+        startupDatabaseRepair: 'true',
+      }),
+    ).toBe(true);
+  });
+
+  it('allows production to disable repair sync explicitly', () => {
+    expect(
+      shouldRunProductionDatabaseSync({
+        nodeEnv: 'production',
+        startupDatabaseRepair: 'false',
+      }),
+    ).toBe(false);
   });
 });

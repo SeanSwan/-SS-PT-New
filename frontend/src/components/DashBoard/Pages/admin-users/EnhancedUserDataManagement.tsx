@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
+import apiService from '../../../../services/api.service';
 
 // Lucide icons
 import {
@@ -645,14 +646,12 @@ const EnhancedUserDataManagement: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        }
+      const response = await apiService.get('/api/admin/users', {
+        validateStatus: status => status < 500,
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status >= 200 && response.status < 300) {
+        const data = response.data;
         setUsers(data.users || []);
 
         // Calculate stats
@@ -710,16 +709,11 @@ const EnhancedUserDataManagement: React.FC = () => {
   // Handle user role conversion
   const handleRoleConversion = async (userId: number, newRole: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-        },
-        body: JSON.stringify({ role: newRole })
+      const response = await apiService.put(`/api/admin/users/${userId}`, { role: newRole }, {
+        validateStatus: status => status < 500,
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         await fetchUsers();
         toast({
           title: "Success",

@@ -14,6 +14,7 @@ import {
   getUpcomingChecks
 } from '../controllers/bodyMeasurementController.mjs';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 
 const router = express.Router();
@@ -41,7 +42,7 @@ router.use(protect);
  * @desc    Get measurement schedule status for a user
  * @access  Admin, Trainer
  */
-router.get('/schedule/status/:userId', authorize(['admin', 'trainer']), getScheduleStatus);
+router.get('/schedule/status/:userId', authorize(['admin', 'trainer']), verifyClientAccessByUserId({ paramName: 'userId' }), getScheduleStatus);
 
 /**
  * @route   GET /api/measurements/schedule/upcoming
@@ -89,7 +90,7 @@ router.post('/upload-photos', authorize(['admin', 'trainer']), (req, res, next) 
     const photoUrls = results.map(r => r.url);
     res.json({ success: true, photoUrls });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Photo upload failed: ' + err.message });
+    res.status(500).json({ success: false, message: 'Photo upload failed' });
   }
 });
 
@@ -105,21 +106,21 @@ router.post('/', createMeasurement);
  * @desc    Get all measurements for a user
  * @access  Trainer, Admin, Client (own data)
  */
-router.get('/user/:userId', getUserMeasurements);
+router.get('/user/:userId', verifyClientAccessByUserId({ paramName: 'userId' }), getUserMeasurements);
 
 /**
  * @route   GET /api/measurements/user/:userId/latest
  * @desc    Get latest measurement for a user
  * @access  Trainer, Admin, Client (own data)
  */
-router.get('/user/:userId/latest', getLatestMeasurement);
+router.get('/user/:userId/latest', verifyClientAccessByUserId({ paramName: 'userId' }), getLatestMeasurement);
 
 /**
  * @route   GET /api/measurements/user/:userId/stats
  * @desc    Get measurement statistics for a user
  * @access  Trainer, Admin, Client (own data)
  */
-router.get('/user/:userId/stats', getMeasurementStats);
+router.get('/user/:userId/stats', verifyClientAccessByUserId({ paramName: 'userId' }), getMeasurementStats);
 
 /**
  * @route   GET /api/measurements/:id

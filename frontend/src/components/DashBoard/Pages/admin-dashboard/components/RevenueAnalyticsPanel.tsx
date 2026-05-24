@@ -40,6 +40,7 @@ import {
   VictoryVoronoiContainer,
   VictoryLegend,
 } from 'victory';
+import apiService from '../../../../../services/api.service';
 
 // =====================================================
 // STYLED COMPONENTS - EXECUTIVE GRADE DESIGN
@@ -507,19 +508,8 @@ const RevenueAnalyticsPanel: React.FC = () => {
       setError(null);
 
       // Call real backend analytics API
-      const response = await fetch(`/api/admin/analytics/revenue?timeRange=${timeRange}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const response = await apiService.get(`/api/admin/analytics/revenue?timeRange=${timeRange}`);
+      const data = response.data;
       
       if (data.success) {
         setRevenueData(data.data);
@@ -577,24 +567,19 @@ const RevenueAnalyticsPanel: React.FC = () => {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`/api/admin/finance/export?format=csv&timeRange=${timeRange}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+      const response = await apiService.get(`/api/admin/finance/export?format=csv&timeRange=${timeRange}`, {
+        responseType: 'blob'
       });
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `revenue-analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      const blob = response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `revenue-analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       console.error('Export failed:', error);
     }

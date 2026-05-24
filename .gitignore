@@ -58,6 +58,7 @@ playwright-report/
 test-results/
 tests/screenshots/
 qa-audit/
+/responsive-*.md
 *.tsbuildinfo
 
 # Generated design handoff bundles
@@ -454,6 +455,12 @@ SOUL.archive/**
 .claude/projects/
 .claude/memory/
 .claude/todos/
+
+# Understand-Anything generated graph
+# Keep .understand-anything/knowledge-graph.json trackable; ignore local scratch.
+**/.understand-anything/intermediate/
+**/.understand-anything/tmp/
+**/.understand-anything/diff-overlay.json
 
 # Allowlist for SOUL.md files (the working idea archive is TRACKED per project)
 !SOUL.md

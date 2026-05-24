@@ -1,11 +1,11 @@
 /**
- * Auth Fixture — Playwright API Tests
- * =====================================
+ * Auth Fixture - Playwright API Tests
+ * ===================================
  * Provides authenticated API request contexts for admin, client, and unauthenticated users.
- * Credentials match backend/scripts/seed-test-accounts.mjs.
  *
- * Override via env vars: E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD,
- *                        E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
+ * Credentials are env-only:
+ *   E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD,
+ *   E2E_CLIENT_EMAIL, E2E_CLIENT_PASSWORD
  *
  * Uses scope: 'worker' so login happens once per worker process (avoids rate limiter).
  */
@@ -13,17 +13,19 @@ import { test as base, expect, APIRequestContext } from '@playwright/test';
 
 const BACKEND_URL = 'http://localhost:10000';
 
-// TODO: Replace hardcoded credentials with env-only auth before production/CI.
-// Order: env vars, local seed, production.
-const ADMIN_CANDIDATES = [
-  { email: process.env.E2E_ADMIN_EMAIL || '', password: process.env.E2E_ADMIN_PASSWORD || '' },
-  { email: 'admin@swanstudios.com', password: 'admin123' },
-  { email: 'ogpswan@yahoo.com', password: process.env.TEST_PASSWORD },
-  { email: 'admin@swanstudios.com', password: process.env.TEST_PASSWORD },
-].filter(c => c.email.trim() && c.password.trim());
+function readCredentialPair(label: string, emailEnv: string, passwordEnv: string) {
+  const email = process.env[emailEnv]?.trim() || '';
+  const password = process.env[passwordEnv]?.trim() || '';
 
-const CLIENT_EMAIL = process.env.E2E_CLIENT_EMAIL || 'client@test.com';
-const CLIENT_PASSWORD = process.env.E2E_CLIENT_PASSWORD || 'client123';
+  if (!email || !password) {
+    throw new Error(
+      `${label} API E2E credentials require ${emailEnv} and ${passwordEnv}. ` +
+      'Do not use hardcoded production or local seed credentials.',
+    );
+  }
+
+  return { email, password };
+}
 
 type AuthFixtures = {
   adminApi: APIRequestContext;
@@ -55,23 +57,17 @@ async function loginAndCreateContext(
   return { ctx, loginCtx };
 }
 
-async function loginAdminWithCandidates(
+async function loginAdmin(
   playwright: typeof import('@playwright/test')['default']['prototype']['playwright'],
 ): Promise<{ ctx: APIRequestContext; loginCtx: APIRequestContext }> {
-  for (const cand of ADMIN_CANDIDATES) {
-    try {
-      return await loginAndCreateContext(playwright, cand.email, cand.password);
-    } catch {
-      continue;
-    }
-  }
-  throw new Error('Unable to login as admin — all credential candidates failed');
+  const admin = readCredentialPair('Admin', 'E2E_ADMIN_EMAIL', 'E2E_ADMIN_PASSWORD');
+  return loginAndCreateContext(playwright, admin.email, admin.password);
 }
 
 export const test = base.extend<AuthFixtures>({
   adminApi: [
     async ({ playwright }, use) => {
-      const { ctx, loginCtx } = await loginAdminWithCandidates(playwright);
+      const { ctx, loginCtx } = await loginAdmin(playwright);
       await use(ctx);
       await ctx.dispose();
       await loginCtx.dispose();
@@ -81,10 +77,11 @@ export const test = base.extend<AuthFixtures>({
 
   clientApi: [
     async ({ playwright }, use) => {
+      const client = readCredentialPair('Client', 'E2E_CLIENT_EMAIL', 'E2E_CLIENT_PASSWORD');
       const { ctx, loginCtx } = await loginAndCreateContext(
         playwright,
-        CLIENT_EMAIL,
-        CLIENT_PASSWORD,
+        client.email,
+        client.password,
       );
       await use(ctx);
       await ctx.dispose();

@@ -10,6 +10,56 @@ import { validationMiddleware } from '../middleware/validationMiddleware.mjs';
 import { z } from 'zod';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
+
+const SORT_FIELDS = new Set([
+  'date',
+  'createdAt',
+  'updatedAt',
+  'title',
+  'duration',
+  'intensity',
+  'totalWeight',
+  'totalReps',
+  'totalSets',
+  'status',
+]);
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  code: INTERNAL_ERROR,
+});
+
+const isPrivileged = (role) => ['admin', 'trainer'].includes(role);
+const sameId = (a, b) => String(a) === String(b);
+
+const parsePositiveInteger = (value, label, maxValue = Number.MAX_SAFE_INTEGER) => {
+  if (value === undefined || value === null || value === '') {
+    return { ok: false, message: `Invalid ${label}` };
+  }
+
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) {
+    return { ok: false, message: `Invalid ${label}` };
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    return { ok: false, message: `Invalid ${label}` };
+  }
+
+  return { ok: true, value: Math.min(parsed, maxValue) };
+};
+
+const parseDateQuery = (value, label) => {
+  if (!value) return { ok: true, value: null };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { ok: false, message: `Invalid ${label}` };
+  }
+  return { ok: true, value: date };
+};
 
 // Import models
 import WorkoutSession from '../models/WorkoutSession.mjs';
@@ -26,7 +76,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const { 
       userId, 
-      page = 1, 
+      page = 1,
       limit = 10,
       sortBy = 'date',
       sortDirection = 'desc',
@@ -34,19 +84,53 @@ router.get('/', protect, async (req, res) => {
       endDate,
       searchTerm = ''
     } = req.query;
+
+    const parsedPage = parsePositiveInteger(page, 'page');
+    if (!parsedPage.ok) {
+      return res.status(400).json({ success: false, message: parsedPage.message });
+    }
+
+    const parsedLimit = parsePositiveInteger(limit, 'limit', 100);
+    if (!parsedLimit.ok) {
+      return res.status(400).json({ success: false, message: parsedLimit.message });
+    }
+
+    if (!SORT_FIELDS.has(String(sortBy))) {
+      return res.status(400).json({ success: false, message: 'Invalid sortBy' });
+    }
+
+    const direction = String(sortDirection).toLowerCase();
+    if (!['asc', 'desc'].includes(direction)) {
+      return res.status(400).json({ success: false, message: 'Invalid sortDirection' });
+    }
+
+    const parsedStartDate = parseDateQuery(startDate, 'startDate');
+    if (!parsedStartDate.ok) {
+      return res.status(400).json({ success: false, message: parsedStartDate.message });
+    }
+
+    const parsedEndDate = parseDateQuery(endDate, 'endDate');
+    if (!parsedEndDate.ok) {
+      return res.status(400).json({ success: false, message: parsedEndDate.message });
+    }
     
     // Build where clause
     const where = {};
     
     // Add userId filter if provided, otherwise use current user
     if (userId) {
+      const parsedUserId = parsePositiveInteger(userId, 'userId');
+      if (!parsedUserId.ok) {
+        return res.status(400).json({ success: false, message: parsedUserId.message });
+      }
+
       // Allow trainers and admins to view other users' sessions
-      if (userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+      if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
         return res.status(403).json({ 
           message: 'You are not authorized to view this user\'s workout sessions' 
         });
       }
-      where.userId = userId;
+      where.userId = parsedUserId.value;
     } else {
       where.userId = req.user.id;
     }
@@ -54,11 +138,11 @@ router.get('/', protect, async (req, res) => {
     // Add date range filters if provided
     if (startDate || endDate) {
       where.date = {};
-      if (startDate) {
-        where.date[Op.gte] = new Date(startDate);
+      if (parsedStartDate.value) {
+        where.date[Op.gte] = parsedStartDate.value;
       }
-      if (endDate) {
-        where.date[Op.lte] = new Date(endDate);
+      if (parsedEndDate.value) {
+        where.date[Op.lte] = parsedEndDate.value;
       }
     }
     
@@ -71,17 +155,17 @@ router.get('/', protect, async (req, res) => {
     }
     
     // Calculate pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parsedPage.value - 1) * parsedLimit.value;
     
     // Determine sort order
-    const order = [[sortBy, sortDirection.toUpperCase()]];
+    const order = [[String(sortBy), direction.toUpperCase()]];
     
     // Execute query with pagination
     const { rows: workouts, count: totalCount } = await WorkoutSession.findAndCountAll({
       where,
       order,
       offset,
-      limit: parseInt(limit),
+      limit: parsedLimit.value,
       include: [
         {
           model: User,
@@ -101,14 +185,14 @@ router.get('/', protect, async (req, res) => {
       data: {
         workouts,
         total: totalCount,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: parsedPage.value,
+        limit: parsedLimit.value,
         hasMore: offset + workouts.length < totalCount
       }
     });
   } catch (error) {
     console.error('Error fetching workout sessions:', error);
-    res.status(500).json({ success: false, message: 'Failed to get workout sessions', error: error.message });
+    return sendInternalError(res, 'Failed to get workout sessions');
   }
 });
 
@@ -133,7 +217,7 @@ router.get('/:id', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to view this workout session'
@@ -143,7 +227,7 @@ router.get('/:id', protect, async (req, res) => {
     res.json({ success: true, session });
   } catch (error) {
     console.error('Error fetching workout session:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return sendInternalError(res, 'Server error');
   }
 });
 
@@ -188,11 +272,11 @@ router.post('/',
       const sessionData = req.body;
       
       // Override userId with authenticated user if not admin/trainer
-      if (!['admin', 'trainer'].includes(req.user.role)) {
+      if (!isPrivileged(req.user.role)) {
         sessionData.userId = req.user.id;
       } else {
         // Verify the target user exists if admin/trainer is creating for someone else
-        if (sessionData.userId !== req.user.id) {
+        if (!sameId(sessionData.userId, req.user.id)) {
           // FIXED: Use Sequelize findByPk instead of Mongoose findById
           const userExists = await User.findByPk(sessionData.userId);
           if (!userExists) {
@@ -235,7 +319,7 @@ router.put('/:id',
       }
 
       // Check authorization - compare as integers
-      if (existingSession.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+      if (!sameId(existingSession.userId, req.user.id) && !isPrivileged(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: 'You are not authorized to update this workout session'
@@ -251,7 +335,7 @@ router.put('/:id',
       res.json({ success: true, session: existingSession });
     } catch (error) {
       console.error('Error updating workout session:', error);
-      res.status(500).json({ success: false, message: 'Server error', error: error.message });
+      return sendInternalError(res, 'Server error');
     }
   }
 );
@@ -271,7 +355,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this workout session'
@@ -284,7 +368,7 @@ router.delete('/:id', protect, async (req, res) => {
     res.json({ success: true, message: 'Workout session deleted' });
   } catch (error) {
     console.error('Error deleting workout session:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    return sendInternalError(res, 'Server error');
   }
 });
 
@@ -313,7 +397,7 @@ router.post('/start', protect, async (req, res) => {
     };
     
     // Override userId with authenticated user if not admin/trainer
-    if (!['admin', 'trainer'].includes(req.user.role)) {
+    if (!isPrivileged(req.user.role)) {
       sessionData.userId = req.user.id;
     }
     
@@ -344,7 +428,7 @@ router.post('/:id/end', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this workout session'
@@ -414,16 +498,21 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       includeWeekdayBreakdown = false,
       includeIntensityTrends = false
     } = req.query;
+
+    const parsedUserId = parsePositiveInteger(userId, 'userId');
+    if (!parsedUserId.ok) {
+      return res.status(400).json({ success: false, message: parsedUserId.message });
+    }
     
     // Check authorization
-    if (userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+    if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
       return res.status(403).json({ 
         message: 'You are not authorized to view this user\'s statistics' 
       });
     }
     
     // FIXED: Build Sequelize where clause instead of Mongoose query
-    const where = { userId };
+    const where = { userId: parsedUserId.value };
 
     // Add date range filters if provided
     if (startDate || endDate) {
@@ -597,7 +686,7 @@ router.get('/statistics/:userId', protect, async (req, res) => {
     res.json({ statistics });
   } catch (error) {
     console.error('Error fetching workout statistics:', error);
-    res.status(500).json({ message: 'Server error' });
+    return sendInternalError(res, 'Server error');
   }
 });
 

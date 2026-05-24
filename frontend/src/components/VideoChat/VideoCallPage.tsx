@@ -13,6 +13,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import PreCallCheck from './PreCallCheck';
 import VideoRoom from './VideoRoom';
 import AccessibleVideoPlayer from './AccessibleVideoPlayer';
+import apiService from '../../services/api.service';
 
 const PageWrapper = styled.div`
   min-height: 100vh;
@@ -133,24 +134,22 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   // If joining an existing session, fetch its data
   useEffect(() => {
     if (!sessionIdToJoin) return;
-    fetch(`/api/video-sessions/${sessionIdToJoin}/join`, { headers })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
+    apiService.get<{ success: boolean; data?: SessionData; message?: string }>(`/api/video-sessions/${sessionIdToJoin}/join`, {
+      validateStatus: status => status < 500,
+    })
+      .then(res => {
+        const d = res.data;
+        if (d.success && d.data?.videoSessionId && d.data.roomName && d.data.livekitUrl && d.data.token) {
           setSessionData({
             videoSessionId: d.data.videoSessionId,
             roomName: d.data.roomName,
             livekitUrl: d.data.livekitUrl,
             token: d.data.token,
-            isTrainer: d.data.isTrainer,
-            assessmentType: d.data.assessmentType,
+            isTrainer: Boolean(d.data?.isTrainer),
+            assessmentType: d.data?.assessmentType || 'general',
           });
         } else {
           setError(d.message || 'Failed to join session');
@@ -165,20 +164,25 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
     setCreating(true);
     setError(null);
     try {
-      const res = await fetch('/api/video-sessions', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ clientId, assessmentType }),
+      const res = await apiService.post<{
+        success: boolean;
+        data?: SessionData & { trainerToken?: string };
+        message?: string;
+      }>('/api/video-sessions', {
+        clientId,
+        assessmentType,
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
-      if (d.success) {
+      const d = res.data;
+      if (d.success && d.data?.videoSessionId && d.data.roomName && d.data.livekitUrl && (d.data.trainerToken || d.data.token)) {
         setSessionData({
           videoSessionId: d.data.videoSessionId,
           roomName: d.data.roomName,
           livekitUrl: d.data.livekitUrl,
-          token: d.data.trainerToken,
+          token: d.data.trainerToken || d.data.token,
           isTrainer: true,
-          assessmentType: d.data.assessmentType,
+          assessmentType: d.data?.assessmentType || assessmentType,
         });
         setPhase('precall');
       } else {
@@ -199,11 +203,15 @@ const VideoCallPage: React.FC<VideoCallPageProps> = (props) => {
     if (sessionData?.videoSessionId) {
       try {
         const [sessionRes, transcriptRes] = await Promise.all([
-          fetch(`/api/video-sessions/${sessionData.videoSessionId}`, { headers }),
-          fetch(`/api/video-sessions/${sessionData.videoSessionId}/transcription`, { headers }),
+          apiService.get(`/api/video-sessions/${sessionData.videoSessionId}`, {
+            validateStatus: status => status < 500,
+          }),
+          apiService.get(`/api/video-sessions/${sessionData.videoSessionId}/transcription`, {
+            validateStatus: status => status < 500,
+          }),
         ]);
-        const sessionD = await sessionRes.json();
-        const transcriptD = await transcriptRes.json();
+        const sessionD = sessionRes.data;
+        const transcriptD = transcriptRes.data;
         if (sessionD.success || transcriptD.success) {
           setSessionData(prev => prev ? {
             ...prev,

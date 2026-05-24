@@ -148,8 +148,7 @@ export const getScheduleEvents = async (req, res) => {
     console.error('Error fetching schedule events:', error.message, error.stack);
     res.status(500).json({
       error: 'Failed to fetch schedule events.',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

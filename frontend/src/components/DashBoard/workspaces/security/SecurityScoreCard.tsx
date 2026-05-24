@@ -24,19 +24,21 @@ import {
   ProgressTrack, ScoreCardStack, ScoreSummaryRow, TrendCategoryGrid,
 } from './securityScoreCard.styles';
 
-// --- Demo data -----------------------------------------------------------
-const DEMO_SCORE: SecurityScore = {
-  overall: 82,
-  grade: 'B',
-  lastAssessmentDate: '2026-04-05',
-  trend: [76, 78, 75, 80, 79, 82, 82],
+// --- Disconnected data state --------------------------------------------
+const UNCONNECTED_DETAIL = 'No connected security assessment data yet.';
+
+const UNCONNECTED_SCORE: SecurityScore = {
+  overall: 0,
+  grade: 'F',
+  lastAssessmentDate: 'not connected',
+  trend: [],
   categories: [
-    { name: 'HTTPS Enforcement', score: 10, maxScore: 10, status: 'pass', detail: 'All traffic redirected to HTTPS. HSTS enabled.' },
-    { name: 'Security Headers', score: 14, maxScore: 20, status: 'warn', detail: 'Missing Content-Security-Policy and Permissions-Policy headers.' },
-    { name: 'Dependency Freshness', score: 12, maxScore: 20, status: 'warn', detail: '4 packages outdated. 2 have security patches available.' },
-    { name: 'Known Vulnerabilities', score: 14, maxScore: 20, status: 'warn', detail: '2 high-severity CVEs in dependencies (sequelize, pg).' },
-    { name: 'Auth Configuration', score: 18, maxScore: 20, status: 'pass', detail: 'JWT with RS256, httpOnly cookies, rate-limited login endpoint.' },
-    { name: 'Config Hygiene', score: 14, maxScore: 10, status: 'pass', detail: 'No secrets in codebase. Env vars properly scoped. .env in .gitignore.' },
+    { name: 'HTTPS Enforcement', score: 0, maxScore: 10, status: 'warn', detail: UNCONNECTED_DETAIL },
+    { name: 'Security Headers', score: 0, maxScore: 20, status: 'warn', detail: UNCONNECTED_DETAIL },
+    { name: 'Dependency Freshness', score: 0, maxScore: 20, status: 'warn', detail: UNCONNECTED_DETAIL },
+    { name: 'Known Vulnerabilities', score: 0, maxScore: 20, status: 'warn', detail: UNCONNECTED_DETAIL },
+    { name: 'Auth Configuration', score: 0, maxScore: 20, status: 'warn', detail: UNCONNECTED_DETAIL },
+    { name: 'Config Hygiene', score: 0, maxScore: 10, status: 'warn', detail: UNCONNECTED_DETAIL },
   ],
 };
 
@@ -96,7 +98,7 @@ const CategoryRow: React.FC<{ cat: SecurityScoreCategory }> = ({ cat }) => {
 
 // --- Component -----------------------------------------------------------
 const SecurityScoreCard: React.FC = () => {
-  const score = DEMO_SCORE;
+  const score = UNCONNECTED_SCORE;
   const totalEarned = score.categories.reduce((s, c) => s + c.score, 0);
   const totalPossible = score.categories.reduce((s, c) => s + c.maxScore, 0);
   const passCount = score.categories.filter(c => c.status === 'pass').length;

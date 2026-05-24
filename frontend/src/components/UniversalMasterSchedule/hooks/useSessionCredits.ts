@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import apiService from '../../../services/api.service';
 
 export interface SessionCredits {
   sessionsRemaining: number;
@@ -7,20 +8,10 @@ export interface SessionCredits {
 }
 
 const fetchSessionCredits = async (): Promise<SessionCredits> => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    throw new Error('Missing auth token');
-  }
+  const response = await apiService.get('/api/user/credits');
+  const result = response.data;
 
-  const response = await fetch('/api/user/credits', {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok || result?.success === false) {
+  if (result?.success === false) {
     throw new Error(result?.message || 'Failed to fetch session credits');
   }
 

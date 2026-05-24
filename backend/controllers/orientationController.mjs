@@ -7,6 +7,11 @@ import { sendAdminNotification, sendNotification } from '../services/notificatio
 import { createAdminNotification } from './notificationController.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 
+const parsePositiveInt = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 /**
  * orientationSignup Controller
  *
@@ -285,11 +290,14 @@ const sendOrientationNotifications = async (orientation, formData) => {
  */
 export const getOrientationData = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return errorResponse(res, 'Invalid user ID', 400);
+    }
     
     // Check if the requesting user is either an admin or the user themselves
     const isAdmin = req.user.role === 'admin';
-    const isSameUser = req.user.id === userId;
+    const isSameUser = Number(req.user.id) === userId;
     
     if (!isAdmin && !isSameUser) {
       return errorResponse(res, 'Not authorized to access this orientation data', 403);
@@ -393,8 +401,15 @@ export const linkOrientationToUser = async (req, res) => {
       return errorResponse(res, 'Not authorized to link orientation data', 403);
     }
 
-    const { id } = req.params;
-    const requestedUserId = req.body?.userId !== undefined ? Number(req.body.userId) : null;
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      return errorResponse(res, 'Invalid orientation ID', 400);
+    }
+
+    const requestedUserId = req.body?.userId !== undefined ? parsePositiveInt(req.body.userId) : null;
+    if (req.body?.userId !== undefined && !requestedUserId) {
+      return errorResponse(res, 'Invalid user ID', 400);
+    }
 
     const orientation = await Orientation.findByPk(id);
     if (!orientation) {
@@ -448,7 +463,11 @@ export const linkOrientationToUser = async (req, res) => {
  */
 export const updateOrientation = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      return errorResponse(res, 'Invalid orientation ID', 400);
+    }
+
     const { status, assignedTrainer, scheduledDate, completedDate } = req.body;
     
     // Only admins and trainers can update orientations
@@ -499,10 +518,10 @@ export const updateOrientation = async (req, res) => {
       
       // Find trainer user to get their contact info
       const trainer = await User.findOne({
-        where: { 
-          $or: [
-            { firstName: { $iLike: `%${assignedTrainer.split(' ')[0]}%` } },
-            { email: { $iLike: `%${assignedTrainer}%` } }
+        where: {
+          [Op.or]: [
+            { firstName: { [Op.iLike]: `%${assignedTrainer.split(' ')[0]}%` } },
+            { email: { [Op.iLike]: `%${assignedTrainer}%` } }
           ]
         }
       });

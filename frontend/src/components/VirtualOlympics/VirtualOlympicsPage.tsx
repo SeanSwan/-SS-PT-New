@@ -15,6 +15,7 @@ import {
   Play, ArrowUp, Users, Star, TrendingUp, Loader,
   Heart,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 // ── Animations ──
 const shine = keyframes`
@@ -416,14 +417,10 @@ const VirtualOlympicsPage: React.FC = () => {
   const [duration, setDuration] = useState('');
   const [recoveryDone, setRecoveryDone] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchEvents = useCallback(async () => {
     try {
-      const res = await fetch('/api/olympics/events', { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: EventInfo[] }>('/api/olympics/events');
+      const d = res.data;
       if (d.success) {
         setEvents(d.data);
         if (!activeEvent && d.data.length > 0) setActiveEvent(d.data[0].eventType);
@@ -435,8 +432,11 @@ const VirtualOlympicsPage: React.FC = () => {
 
   const fetchLeaderboard = useCallback(async (eventType: string) => {
     try {
-      const res = await fetch(`/api/olympics/leaderboard/${eventType}?limit=20`, { headers });
-      const d = await res.json();
+      const res = await apiService.get<{
+        success: boolean;
+        data: { leaderboard: LeaderboardEntry[]; userRank: number | null };
+      }>(`/api/olympics/leaderboard/${eventType}?limit=20`);
+      const d = res.data;
       if (d.success) {
         setLeaderboard(d.data.leaderboard);
         setUserRank(d.data.userRank);
@@ -450,17 +450,17 @@ const VirtualOlympicsPage: React.FC = () => {
 
   const handleSubmit = async () => {
     const s = parseFloat(score);
-    const d = parseInt(duration);
+    const d = parseInt(duration, 10);
     if (!s || s <= 0 || !d || d <= 0 || !activeEvent) return;
     setSubmitting(true);
     setSubmitResult(null);
     try {
-      const res = await fetch('/api/olympics/submit', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ eventType: activeEvent, score: s, duration: d }),
+      const res = await apiService.post<{ success: boolean; data: SubmitResult }>('/api/olympics/submit', {
+        eventType: activeEvent,
+        score: s,
+        duration: d,
       });
-      const data = await res.json();
+      const data = res.data;
       if (data.success) {
         setSubmitResult(data.data);
         setScore('');
@@ -475,8 +475,8 @@ const VirtualOlympicsPage: React.FC = () => {
   // Check if recovery day was already logged today
   const checkRecoveryStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/olympics/recovery-status', { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data?: { doneToday?: boolean } }>('/api/olympics/recovery-status');
+      const d = res.data;
       if (d.success && d.data?.doneToday) setRecoveryDone(true);
     } catch { /* best-effort */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -488,8 +488,10 @@ const VirtualOlympicsPage: React.FC = () => {
     // Already checked on mount; button should be disabled if done
     if (recoveryDone) return;
     try {
-      const res = await fetch('/api/olympics/recovery-day', { method: 'POST', headers });
-      const d = await res.json();
+      const res = await apiService.post<{ success: boolean }>('/api/olympics/recovery-day', undefined, {
+        validateStatus: status => status < 500,
+      });
+      const d = res.data;
       if (d.success || res.status === 409) setRecoveryDone(true);
     } catch { /* best-effort */ }
   };

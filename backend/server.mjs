@@ -114,8 +114,8 @@ let appInstance = null;
 
     // Initialize and start server
     logger.info('Initializing server components...');
-    const httpServer = await initializeServer(app);
-    initializeSocket(httpServer);
+    const serverObjects = await initializeServer(app);
+    initializeSocket();
 
     // Phase 3 PLAUD: start in-process workers + cron jobs.
     // No-ops unless PLAUD_WORKER_ENABLED / PLAUD_TTL_CRON_ENABLED env

@@ -5,7 +5,7 @@
  * Polar radar chart for muscle group volume distribution
  * Current period in Ice Wing, previous period overlay in Wing Purple
  *
- * MIGRATED: Recharts RadarChart → Victory polar chart for cross-platform compatibility
+ * Uses Victory polar charts for cross-platform compatibility.
  * THEME: Enchanted Apex — Crystalline Swan
  */
 

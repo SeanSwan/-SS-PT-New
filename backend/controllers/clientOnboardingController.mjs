@@ -71,8 +71,8 @@ import {
 const SELF_ROLES = new Set(['client', 'user']);
 
 const parseUserId = (value) => {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
 const normalizeJsonObject = (value) => {
@@ -427,6 +427,8 @@ export const getClientDataOverview = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    const includeTrainerNoteSummary = req.user?.role !== 'client';
+
     const [
       questionnaire,
       baselineMeasurement,
@@ -453,11 +455,15 @@ export const getClientDataOverview = async (req, res) => {
         where: { userId: targetUserId, isDeleted: false },
         order: [['uploadedAt', 'DESC']],
       }),
-      ClientNote.count({ where: { userId: targetUserId } }),
-      ClientNote.findOne({
-        where: { userId: targetUserId },
-        order: [['createdAt', 'DESC']],
-      }),
+      includeTrainerNoteSummary
+        ? ClientNote.count({ where: { userId: targetUserId } })
+        : Promise.resolve(0),
+      includeTrainerNoteSummary
+        ? ClientNote.findOne({
+            where: { userId: targetUserId },
+            order: [['createdAt', 'DESC']],
+          })
+        : Promise.resolve(null),
     ]);
 
     const responses = normalizeJsonObject(questionnaire?.responsesJson) ?? {};
@@ -670,16 +676,22 @@ export const getAdminOnboardingList = async (req, res) => {
  */
 export const createBaselineMeasurements = async (req, res) => {
   try {
-    const { ClientBaselineMeasurements } = await getAllModels();
+    const { ClientBaselineMeasurements, ClientTrainerAssignment } = await getAllModels();
     const { userId, ...measurementData } = req.body;
+    const targetUserId = parseUserId(userId);
 
-    if (!userId) {
+    if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'userId is required' });
+    }
+
+    const accessResult = await ensureTrainerAccess(req.user, targetUserId, ClientTrainerAssignment);
+    if (!accessResult.ok) {
+      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
     }
 
     // Create baseline measurement record
     const baseline = await ClientBaselineMeasurements.create({
-      userId,
+      userId: targetUserId,
       recordedBy: req.user.id,
       takenAt: measurementData.takenAt || new Date(),
       restingHeartRate: measurementData.restingHeartRate || null,
@@ -700,7 +712,7 @@ export const createBaselineMeasurements = async (req, res) => {
       painLevel: measurementData.painLevel || 0,
     });
 
-    logger.info(`Baseline measurements created for user ${userId} by ${req.user.id}`);
+    logger.info(`Baseline measurements created for user ${targetUserId} by ${req.user.id}`);
 
     return res.status(201).json({
       success: true,
@@ -719,19 +731,16 @@ export const createBaselineMeasurements = async (req, res) => {
  */
 export const getBaselineMeasurementsHistory = async (req, res) => {
   try {
-    const { ClientBaselineMeasurements } = await getAllModels();
+    const { ClientBaselineMeasurements, ClientTrainerAssignment } = await getAllModels();
     const targetUserId = parseUserId(req.params.userId);
 
     if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'Invalid userId' });
     }
 
-    // RBAC check
-    const isSelf = req.user.id === targetUserId;
-    const isAdminOrTrainer = req.user.role === 'admin' || req.user.role === 'trainer';
-
-    if (!isSelf && !isAdminOrTrainer) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);
+    if (!accessResult.ok) {
+      return res.status(accessResult.status).json({ success: false, message: accessResult.message });
     }
 
     const measurements = await ClientBaselineMeasurements.findAll({

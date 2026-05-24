@@ -15,4 +15,9 @@ describe('useGamificationData structure', () => {
     expect(hookSource()).not.toContain('export interface Achievement');
     expect(hookSource()).not.toContain('export interface GamificationProfile');
   });
+
+  it('posts reward redemptions to the mounted user-scoped backend route', () => {
+    expect(hookSource()).toContain('authAxios.post(`/api/v1/gamification/users/${targetUserId}/rewards/${rewardId}/redeem`)');
+    expect(hookSource()).not.toContain('authAxios.post(`/api/v1/gamification/rewards/${rewardId}/redeem`)');
+  });
 });

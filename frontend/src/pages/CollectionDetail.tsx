@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Play, Clock, Eye, Youtube, Upload, FolderOpen, Lock } from 'lucide-react';
+import apiService from '../services/api.service';
 
 interface CollectionVideoItem {
   id: string;
@@ -42,8 +43,6 @@ interface CollectionData {
   videos: CollectionVideoItem[];
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-
 const CollectionDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -57,8 +56,10 @@ const CollectionDetail: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_URL}/api/v2/videos/collections/${slug}`);
-        const data = await res.json();
+        const res = await apiService.get(`/api/v2/videos/collections/${slug}`, {
+          validateStatus: status => status < 500,
+        });
+        const data = res.data;
         if (data.success && data.data?.collection) {
           setCollection(data.data.collection);
         } else {

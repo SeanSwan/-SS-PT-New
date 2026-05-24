@@ -3,10 +3,45 @@ import sequelize from '../database.mjs';
 import { calculateComparisons } from '../services/measurementComparisonService.mjs';
 import { detectMilestones } from '../services/measurementMilestoneService.mjs';
 import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { Op } from 'sequelize';
 
-const isProduction = process.env.NODE_ENV === 'production';
-const safeError = (error) => isProduction ? undefined : error.message;
+const INTERNAL_ERROR = 'Internal server error';
+const safeError = () => INTERNAL_ERROR;
+
+const parsePositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) => {
+  const parsed = parsePositiveInteger(value);
+  if (!parsed) return fallback;
+  return Math.min(parsed, max);
+};
+
+const parseNonNegativeInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+  }
+
+  if (typeof value !== 'string') return 0;
+
+  const trimmed = value.trim();
+  if (!/^(0|[1-9]\d*)$/.test(trimmed)) return 0;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : 0;
+};
 
 /**
  * Body Measurement Controller
@@ -56,6 +91,11 @@ export async function createMeasurement(req, res) {
     // RBAC: clients can only create measurements for themselves
     const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
     const targetUserId = (userId && isPrivileged) ? userId : req.user.id;
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, targetUserId);
+    if (!allowed) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Client not found' });
+    }
 
     // Create measurement
     const BodyMeasurement = getBodyMeasurement();
@@ -176,6 +216,8 @@ export async function getUserMeasurements(req, res) {
     }
 
     const { limit = 20, offset = 0, startDate, endDate } = req.query;
+    const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+    const normalizedOffset = parseNonNegativeInteger(offset);
 
     const whereClause = { userId };
 
@@ -191,8 +233,8 @@ export async function getUserMeasurements(req, res) {
     const measurements = await BodyMeasurement.findAll({
       where: whereClause,
       order: [['measurementDate', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: normalizedLimit,
+      offset: normalizedOffset,
       include: [{
         model: User,
         as: 'recorder',
@@ -208,9 +250,9 @@ export async function getUserMeasurements(req, res) {
         measurements,
         pagination: {
           total,
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          hasMore: offset + measurements.length < total
+          limit: normalizedLimit,
+          offset: normalizedOffset,
+          hasMore: normalizedOffset + measurements.length < total
         }
       }
     });
@@ -259,10 +301,9 @@ export async function getMeasurementById(req, res) {
       });
     }
 
-    // RBAC: clients can only view their own measurements
-    const isPrivileged = req.user.role === 'admin' || req.user.role === 'trainer';
-    if (!isPrivileged && String(req.user.id) !== String(measurement.userId)) {
-      return res.status(403).json({ success: false, message: 'Access denied' });
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, measurement.userId);
+    if (!allowed) {
+      return res.status(404).json({ success: false, message: 'Measurement not found' });
     }
 
     res.json({
@@ -298,6 +339,12 @@ export async function updateMeasurement(req, res) {
         success: false,
         message: 'Measurement not found'
       });
+    }
+
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, measurement.userId);
+    if (!allowed) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Measurement not found' });
     }
 
     // Whitelist allowed fields to prevent mass assignment
@@ -365,6 +412,11 @@ export async function deleteMeasurement(req, res) {
         success: false,
         message: 'Measurement not found'
       });
+    }
+
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, measurement.userId);
+    if (!allowed) {
+      return res.status(404).json({ success: false, message: 'Measurement not found' });
     }
 
     await measurement.destroy();
@@ -459,6 +511,11 @@ export async function uploadProgressPhotos(req, res) {
         success: false,
         message: 'Measurement not found'
       });
+    }
+
+    const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, measurement.userId);
+    if (!allowed) {
+      return res.status(404).json({ success: false, message: 'Measurement not found' });
     }
 
     // Merge new photos with existing
@@ -598,7 +655,7 @@ export async function getScheduleStatus(req, res) {
     res.json({ success: true, data: { userId: user.id, ...status } });
   } catch (error) {
     console.error('Error getting schedule status:', error);
-    res.status(500).json({ success: false, message: 'Failed to get schedule status', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get schedule status', error: safeError(error) });
   }
 }
 
@@ -610,12 +667,13 @@ export async function getUpcomingChecks(req, res) {
   try {
     const { limit = 20 } = req.query;
     const { getClientsWithUpcomingChecks } = await import('../services/measurementScheduleService.mjs');
+    const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
 
-    const clients = await getClientsWithUpcomingChecks(getUser(), parseInt(limit));
+    const clients = await getClientsWithUpcomingChecks(getUser(), normalizedLimit);
 
     res.json({ success: true, data: { clients } });
   } catch (error) {
     console.error('Error getting upcoming checks:', error);
-    res.status(500).json({ success: false, message: 'Failed to get upcoming checks', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get upcoming checks', error: safeError(error) });
   }
 }

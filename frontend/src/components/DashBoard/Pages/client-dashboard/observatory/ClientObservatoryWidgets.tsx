@@ -13,6 +13,8 @@ import {
   compactNumber,
   iconLabel,
 } from './ClientObservatoryData';
+import ClientCurrentWorkoutCard from './ClientCurrentWorkoutCard';
+import type { CurrentClientWorkout } from './useCurrentClientWorkout';
 import {
   CardInner,
   GhostButton,
@@ -50,6 +52,9 @@ interface AchievementPreview {
 interface ClientObservatoryWidgetsProps {
   achievements: AchievementPreview[];
   challenge?: ChallengePreview;
+  currentWorkout?: CurrentClientWorkout | null;
+  currentWorkoutError?: boolean;
+  currentWorkoutLoading?: boolean;
   leaderboard: LeaderboardPreview[];
   progress: number;
   streakDays: number;
@@ -76,6 +81,9 @@ function leaderName(entry: LeaderboardPreview): string {
 const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
   achievements,
   challenge,
+  currentWorkout,
+  currentWorkoutError,
+  currentWorkoutLoading,
   leaderboard,
   progress,
   streakDays,
@@ -87,6 +95,13 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
 
   return (
     <>
+      <ClientCurrentWorkoutCard
+        currentWorkout={currentWorkout}
+        currentWorkoutError={currentWorkoutError}
+        currentWorkoutLoading={currentWorkoutLoading}
+        onNavigate={onNavigate}
+      />
+
       <WidgetCard data-testid="next-session-card">
         <CardInner>
           <WidgetHeader>

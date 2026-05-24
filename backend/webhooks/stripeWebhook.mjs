@@ -6,6 +6,7 @@ import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import GalleryVisitor from '../models/GalleryVisitor.mjs';
+import GalleryDonation from '../models/GalleryDonation.mjs';
 import Lead from '../models/Lead.mjs';
 import LeadActivity from '../models/LeadActivity.mjs';
 import logger from '../utils/logger.mjs';
@@ -16,6 +17,8 @@ import { createCommissionForPurchase } from '../services/CommissionService.mjs';
 import GamificationPointsService from '../services/gamification/GamificationPointsService.mjs';
 import { getStorefrontSessionCredits, grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
+import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
+import sequelize from '../database.mjs';
 
 const router = express.Router();
 
@@ -83,8 +86,23 @@ const stripeWebhookHandler = async (req, res) => {
           await fulfillGalleryCredits(session);
           break;
         }
+        if (session.metadata?.type === 'gallery_donation') {
+          await fulfillGalleryDonation(session);
+          break;
+        }
 
         // ── Cart / Store Fulfillment ──────────────────────────────────
+        if (session.metadata?.type === 'vip_pt_session') {
+          await fulfillGalleryVipSession({
+            sessionId: session.id,
+            visitorId: session.metadata.galleryVisitorId,
+            userId: session.metadata.userId,
+            eventId: session.metadata.eventId,
+            amount: 175,
+          });
+          break;
+        }
+
         const cartId = session.metadata?.cartId;
 
         if (!cartId) {
@@ -126,12 +144,13 @@ const stripeWebhookHandler = async (req, res) => {
 
         try {
           await processCompletedOrder(cartIdNumber, { grantResult, stripeSessionId: session.id });
-        } catch (sideEffectError) {
-          logger.warn('[Webhook] Post-grant side effects failed after session grant', {
+        } catch (followupError) {
+          logger.error('[Webhook] Purchase follow-up failed after session grant', {
             cartId: cartIdNumber,
             userId: cart.userId,
-            error: sideEffectError.message,
+            error: followupError.message,
           });
+          throw followupError; // Let Stripe retry; the session grant itself is already idempotent.
         }
 
         // Backfill stripeCustomerId (write-if-empty rule)
@@ -304,53 +323,59 @@ async function processCompletedOrder(cartId, { grantResult = null, stripeSession
       throw new Error(`No session credits found for completed cart ${cartId}`);
     }
 
-    if (totalSessionsAdded > 0) {
-      await upgradeToClient(userId);
-
-      try {
-        const io = global.io;
-        if (io) {
-          io.to('admin').emit('user_purchased_sessions', {
-            userId,
-            userName: `${user.firstName} ${user.lastName}`,
-            sessions: totalSessionsAdded,
-            timestamp: new Date().toISOString()
-          });
-        }
-      } catch (socketError) {
-        logger.warn(`Failed to emit Socket.IO event: ${socketError.message}`);
-      }
-    }
-
-    // Process subscriptions sequentially (rare, usually 1)
-    for (const subItem of subscriptionItems) {
-      await createSubscription(userId, subItem);
-    }
-
     // Create order record for history. The helper is idempotent by cart id.
     const orderReceipt = await createOrderRecord(cart, { stripeSessionId });
     const order = orderReceipt?.order || null;
 
+    if (totalSessionsAdded > 0) {
+      await upgradeToClient(userId);
+
+      if (orderReceipt?.created) {
+        try {
+          const io = global.io;
+          if (io) {
+            io.to('admin').emit('user_purchased_sessions', {
+              userId,
+              userName: `${user.firstName} ${user.lastName}`,
+              sessions: totalSessionsAdded,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (socketError) {
+          logger.warn(`Failed to emit Socket.IO event: ${socketError.message}`);
+        }
+      }
+    }
+
+    if (orderReceipt?.created) {
+      // Process subscriptions sequentially (rare, usually 1)
+      for (const subItem of subscriptionItems) {
+        await createSubscription(userId, subItem);
+      }
+
+      // Fire gamification rewards in parallel (non-critical, external calls)
+      await Promise.allSettled(
+        cart.cartItems
+          .filter(item => item.storefrontItem)
+          .map(item => triggerPurchaseAchievements(userId, item))
+      );
+    }
+
     // Create trainer commission record once per order (non-critical, non-blocking)
     if (totalSessionsAdded > 0) {
       const totalAmount = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      if (orderReceipt?.created) await createCommissionForPurchase({
-        userId,
-        orderId: order?.id,
-        grossAmount: totalAmount,
-        taxAmount: 0, // Tax calculated separately in checkout
-        sessionsGranted: totalSessionsAdded,
-        storefrontItemId: cart.cartItems[0]?.storefrontItemId,
-        leadSource: 'platform', // Default for Stripe checkout; admin grants can specify
-      }).catch(err => logger.warn(`[Webhook] Commission creation failed (non-fatal): ${err.message}`));
+      if (orderReceipt?.created) {
+        await createCommissionForPurchase({
+          userId,
+          orderId: order?.id,
+          grossAmount: totalAmount,
+          taxAmount: 0, // Tax calculated separately in checkout
+          sessionsGranted: totalSessionsAdded,
+          storefrontItemId: cart.cartItems[0]?.storefrontItemId,
+          leadSource: 'platform', // Default for Stripe checkout; admin grants can specify
+        }).catch(err => logger.warn(`[Webhook] Commission creation failed (non-fatal): ${err.message}`));
+      }
     }
-
-    // Fire gamification rewards in parallel (non-critical, external calls)
-    await Promise.allSettled(
-      cart.cartItems
-        .filter(item => item.storefrontItem)
-        .map(item => triggerPurchaseAchievements(userId, item))
-    );
 
     logger.info('[Webhook] Purchase fulfillment completed through SwanStudios APIs', {
       userId,
@@ -475,8 +500,7 @@ async function createOrderRecord(cart, { stripeSessionId = null } = {}) {
     return { order: record, created };
   } catch (error) {
     logger.error(`Error creating order record: ${error.message}`);
-    // Log but don't throw to avoid blocking the purchase flow
-    return null;
+    throw error;
   }
 }
 
@@ -498,6 +522,29 @@ async function fulfillGalleryCredits(session) {
   const visitor = await GalleryVisitor.findByPk(visitorId);
   if (!visitor) {
     logger.error(`[Gallery Webhook] Visitor ${visitorId} not found for session ${session.id}`);
+    return;
+  }
+
+  const amount = typeof session.amount_total === 'number'
+    ? Math.round(session.amount_total) / 100
+    : null;
+  const [processed] = await sequelize.query(
+    `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
+     VALUES (:sessionId, :userId, 'gallery-credit', :amount)
+     ON CONFLICT ("sessionId") DO NOTHING
+     RETURNING id`,
+    {
+      replacements: {
+        sessionId: session.id,
+        userId: visitor.userId || null,
+        amount,
+      },
+      type: sequelize.QueryTypes.SELECT,
+    }
+  );
+
+  if (!processed) {
+    logger.info(`[Gallery Webhook] Duplicate gallery credit session ${session.id} skipped`);
     return;
   }
 
@@ -530,6 +577,80 @@ async function fulfillGalleryCredits(session) {
     }
   } catch (scoreErr) {
     logger.warn(`[Gallery Webhook] Lead score bump failed: ${scoreErr.message}`);
+  }
+}
+
+async function fulfillGalleryDonation(session) {
+  const meta = session.metadata || {};
+  const visitorId = Number.parseInt(meta.visitorId, 10);
+  const eventId = Number.parseInt(meta.eventId, 10);
+  const method = meta.method === 'venmo' ? 'venmo' : 'stripe';
+  const amount = typeof session.amount_total === 'number'
+    ? Math.round(session.amount_total) / 100
+    : Number.parseFloat(meta.amount) || 0;
+
+  if (!visitorId || !eventId) {
+    logger.error(`[Gallery Donation Webhook] Missing visitor/event metadata in session ${session.id}`);
+    return;
+  }
+
+  if (session.payment_status && session.payment_status !== 'paid') {
+    logger.warn(`[Gallery Donation Webhook] Session ${session.id} completed with payment_status=${session.payment_status}; skipping donation record`);
+    return;
+  }
+
+  const visitor = await GalleryVisitor.findOne({ where: { id: visitorId, eventId } });
+  if (!visitor) {
+    logger.error(`[Gallery Donation Webhook] Visitor ${visitorId} not found for event ${eventId} in session ${session.id}`);
+    return;
+  }
+
+  const [processed] = await sequelize.query(
+    `INSERT INTO processed_stripe_sessions ("sessionId", "userId", tier, amount)
+     VALUES (:sessionId, :userId, 'gallery-donation', :amount)
+     ON CONFLICT ("sessionId") DO NOTHING
+     RETURNING id`,
+    {
+      replacements: {
+        sessionId: session.id,
+        userId: visitor.userId || null,
+        amount,
+      },
+      type: sequelize.QueryTypes.SELECT,
+    }
+  );
+
+  if (!processed) {
+    logger.info(`[Gallery Donation Webhook] Duplicate donation session ${session.id} skipped`);
+    return;
+  }
+
+  await GalleryDonation.create({
+    visitorId,
+    eventId,
+    amount,
+    method,
+    stripePaymentId: session.id,
+  });
+
+  try {
+    await sendNotification({
+      type: 'ADMIN_NOTIFICATION',
+      title: 'Gallery Donation Received',
+      message: `Visitor #${visitorId} donated $${amount.toFixed(2)} via ${method === 'venmo' ? 'Venmo' : 'Stripe'}.`,
+      data: {
+        type: 'gallery_donation',
+        visitorId,
+        eventId,
+        amount,
+        method,
+        stripeSessionId: session.id,
+        timestamp: new Date().toISOString(),
+      },
+      recipients: ['admin'],
+    });
+  } catch (notifyErr) {
+    logger.warn(`[Gallery Donation Webhook] Admin notification failed: ${notifyErr.message}`);
   }
 }
 

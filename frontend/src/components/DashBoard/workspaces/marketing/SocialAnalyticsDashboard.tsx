@@ -16,6 +16,7 @@ import {
 import { PLATFORMS } from './SocialPostGenerator.config';
 import type { ConnectedAccount } from './SocialPostGenerator.types';
 import SocialConnectPanel from './SocialConnectPanel';
+import apiService from '../../../../services/api.service';
 
 // ─── Styled Components ─────────────────────────────────────────
 const PlatformDot = styled.div<{ $color: string }>`
@@ -79,25 +80,23 @@ const SocialAnalyticsDashboard: React.FC = () => {
   const [postHistory, setPostHistory] = useState<any[]>([]);
   const [tab, setTab] = useState<'accounts' | 'history'>('accounts');
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   useEffect(() => {
     let active = true;
 
     const loadSocialPublishingData = async () => {
       try {
-        const healthResponse = await fetch('/api/admin/social-publishing/health', { headers });
-        const healthData = await healthResponse.json();
+        const healthResponse = await apiService.get('/api/admin/social-publishing/health');
+        const healthData = healthResponse.data;
         const configured = healthData.data?.configured === true && healthData.data?.mode === 'native';
         if (!active) return;
         if (!configured) return;
 
-        const [acctData, histData] = await Promise.all([
-          fetch('/api/admin/social-publishing/accounts', { headers }).then(r => r.json()),
-          fetch('/api/admin/social-publishing/history', { headers }).then(r => r.json()),
+        const [acctResponse, histResponse] = await Promise.all([
+          apiService.get('/api/admin/social-publishing/accounts'),
+          apiService.get('/api/admin/social-publishing/history'),
         ]);
+        const acctData = acctResponse.data;
+        const histData = histResponse.data;
         if (!active) return;
         if (acctData.success && Array.isArray(acctData.data)) setAccounts(acctData.data);
         if (histData.success && Array.isArray(histData.data)) setPostHistory(histData.data);
@@ -114,11 +113,8 @@ const SocialAnalyticsDashboard: React.FC = () => {
 
   const handleDisconnect = useCallback(async (integrationId: string) => {
     try {
-      const res = await fetch(`/api/admin/social-publishing/accounts/${integrationId}`, {
-        method: 'DELETE',
-        headers,
-      });
-      const d = await res.json();
+      const response = await apiService.delete(`/api/admin/social-publishing/accounts/${integrationId}`);
+      const d = response.data;
       if (d.success) {
         setAccounts(prev => prev.filter(account => account.id !== integrationId));
       }

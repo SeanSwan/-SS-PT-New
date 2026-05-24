@@ -39,37 +39,63 @@ import {
   getStorefrontSessionCredits,
   grantSessionsForCart
 } from '../services/SessionGrantService.mjs';
-import { buildStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
+import {
+  buildCartItemsStripeFingerprint,
+  buildStripeIdempotencyKey,
+} from '../utils/stripeIdempotency.mjs';
+import {
+  classifyStripeCheckoutSessionError,
+  validateCheckoutSessionId,
+} from '../utils/stripeCheckoutSessionErrors.mjs';
+import {
+  getLiveStripeLocalBlockDetails,
+  getStripeSecretKeyMode,
+  shouldBlockLiveStripeInLocal,
+} from '../utils/stripeEnvironmentSafety.mjs';
+import {
+  PaymentActivationStatusError,
+  resolvePaidClientActivationStatus,
+} from '../services/paymentActivationStatusService.mjs';
 
 const router = express.Router();
 
 export function buildCheckoutSessionIdempotencyKey(userId, cart) {
-  const itemFingerprint = (cart?.cartItems || [])
-    .map((item) => [
-      item.storefrontItemId,
-      item.quantity || 0,
-      item.price || 0,
-      getStorefrontSessionCredits(item.storefrontItem)
-    ].join(':'))
-    .sort()
-    .join('|');
+  const itemFingerprint = buildCartItemsStripeFingerprint(
+    cart?.cartItems,
+    (item) => getStorefrontSessionCredits(item?.storefrontItem),
+  );
 
   return buildStripeIdempotencyKey(`checkout:${userId}:${cart?.id}`, itemFingerprint);
 }
 
 // Initialize Stripe with error handling
 let stripe = null;
+let stripeUnavailableReason = null;
 try {
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeSecretKey) {
+    stripeUnavailableReason = {
+      code: 'STRIPE_SECRET_KEY_MISSING',
+      details: 'Stripe secret key is not configured',
+    };
     logger.error('[v2 Payment] STRIPE_SECRET_KEY not found in environment variables');
+  } else if (shouldBlockLiveStripeInLocal({ secretKey: stripeSecretKey })) {
+    stripeUnavailableReason = {
+      code: 'LIVE_STRIPE_LOCAL_BLOCKED',
+      details: getLiveStripeLocalBlockDetails(),
+    };
+    logger.error('[v2 Payment] Live Stripe key blocked in local development');
   } else {
     stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16'
     });
-    logger.info('[v2 Payment] Stripe client initialized successfully');
+    logger.info(`[v2 Payment] Stripe client initialized successfully (${getStripeSecretKeyMode(stripeSecretKey)} mode)`);
   }
 } catch (error) {
+  stripeUnavailableReason = {
+    code: 'STRIPE_INITIALIZATION_FAILED',
+    details: 'Stripe service could not be initialized',
+  };
   logger.error('[v2 Payment] Stripe initialization failed:', error.message);
 }
 
@@ -82,8 +108,8 @@ const checkStripeAvailability = (req, res, next) => {
       success: false,
       message: 'Payment processing temporarily unavailable',
       error: {
-        code: 'STRIPE_UNAVAILABLE',
-        details: 'Stripe service not initialized'
+        code: stripeUnavailableReason?.code || 'STRIPE_UNAVAILABLE',
+        details: stripeUnavailableReason?.details || 'Stripe service not initialized'
       }
     });
   }
@@ -111,6 +137,18 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
   try {
     const userId = req.user.id;
     const { cartId, customerInfo, metadata } = req.body;
+    const normalizedCartId = Number(cartId);
+
+    if (!Number.isInteger(normalizedCartId) || normalizedCartId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid cart id',
+        error: {
+          code: 'INVALID_CART_ID',
+          details: 'A valid cart id is required before checkout'
+        }
+      });
+    }
 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
     console.log('🚀 [v2 Payment] Genesis Checkout Session Creation Starting...');
@@ -139,6 +177,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     try {
       cart = await ShoppingCart.findOne({
         where: { 
+          id: normalizedCartId,
           userId, 
           status: 'active'
         },
@@ -154,8 +193,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
           {
             model: User,
             as: 'user',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
-            // Note: stripeCustomerId will be added after migration is run
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'stripeCustomerId']
           }
         ]
       });
@@ -385,12 +423,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       message: 'Failed to create checkout session',
       error: {
         code: error.code || 'CHECKOUT_CREATION_FAILED',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-        debugInfo: process.env.NODE_ENV === 'development' ? {
-          name: error.name,
-          sql: error.sql || 'No SQL',
-          originalMessage: error.message
-        } : undefined
+        details: 'Internal server error',
       }
     });
   }
@@ -409,7 +442,19 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
  */
 router.post('/verify-session', protect, checkStripeAvailability, async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const sessionValidation = validateCheckoutSessionId(req.body?.sessionId);
+    if (!sessionValidation.ok) {
+      return res.status(sessionValidation.statusCode).json({
+        success: false,
+        message: sessionValidation.message,
+        error: {
+          code: sessionValidation.code,
+          details: sessionValidation.message,
+        },
+      });
+    }
+
+    const { sessionId } = sessionValidation;
     const userId = req.user.id;
 
     logger.info(`[v2 Payment] Verifying session ${sessionId} for user ${userId}`);
@@ -479,16 +524,54 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     logger.info(`[v2 Payment] Session verified successfully: ${sessionId}, added ${result.sessionsAdded} sessions`);
 
   } catch (error) {
+    const classified = classifyStripeCheckoutSessionError(error);
     logger.error('[v2 Payment] Error verifying session:', error);
     console.error('💥 [v2 Payment] Session verification failed:', error.message);
     
-    res.status(500).json({
+    res.status(classified.statusCode).json({
       success: false,
-      message: 'Failed to verify session',
+      message: classified.message,
       error: {
-        code: 'SESSION_VERIFICATION_FAILED',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        code: classified.code,
+        details: classified.details,
       }
+    });
+  }
+});
+
+/**
+ * GET /api/v2/payments/activation-status
+ *
+ * Database-backed resolver for the post-purchase activation funnel.
+ * This endpoint intentionally does not depend on live Stripe availability:
+ * checkout/payment truth is read from the local cart/order/session state.
+ */
+router.get('/activation-status', protect, async (req, res) => {
+  try {
+    const sessionId = req.query.sessionId || req.query.session_id;
+    const status = await resolvePaidClientActivationStatus({
+      userId: req.user.id,
+      sessionId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: status,
+    });
+  } catch (error) {
+    const isActivationError = error instanceof PaymentActivationStatusError;
+    const statusCode = isActivationError ? error.statusCode : 500;
+    const code = isActivationError ? error.code : 'ACTIVATION_STATUS_FAILED';
+
+    logger.error('[v2 Payment] Error resolving activation status:', error);
+
+    return res.status(statusCode).json({
+      success: false,
+      message: 'Failed to resolve payment activation status',
+      error: {
+        code,
+        details: 'Internal server error',
+      },
     });
   }
 });
@@ -498,14 +581,13 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
  * 
  * Health check endpoint for the payment system
  */
-router.get('/health', (req, res) => {
+router.get('/health', protect, (req, res) => {
   const health = {
     status: stripe ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     version: 'v2.0.0',
     stripe: {
       available: !!stripe,
-      configured: !!process.env.STRIPE_SECRET_KEY
     }
   };
 

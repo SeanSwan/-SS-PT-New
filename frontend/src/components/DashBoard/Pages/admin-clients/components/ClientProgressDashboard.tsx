@@ -16,14 +16,15 @@
  * DATA FLOW:
  * Props In:  { clientId, progressData }
  * State:     { chartView, dateRange, milestones[] }
- * Charts:    Currently Recharts (TODO: migrate to Victory per CLAUDE.md)
+ * API Calls: GET /api/client-progress/:clientId, workout-history, measurements
  *
  * Theme: Crystalline Swan (NOT Crystalline Swan — RETIRED)
  * NOTE: 1,256 lines — exceeds 300-line rule. TODO: extract chart sections
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { css } from 'styled-components';
+import { useAuth } from '../../../../../context/AuthContext';
 import {
   TrendingUp,
   TrendingDown,
@@ -46,7 +47,7 @@ import {
   Activity
 } from 'lucide-react';
 import ClientProgressCharts from '../../../../ClientProgressCharts/ClientProgressCharts';
-// Victory chart components (migrated from Recharts)
+// Victory chart components.
 import {
   VictoryChart, VictoryLine,
   VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryLegend,
@@ -140,6 +141,245 @@ interface VictoryTooltipDatum {
 
 const isTimeframe = (value: string): value is Timeframe =>
   value === '7d' || value === '30d' || value === '90d' || value === '1y';
+
+type ApiRecord = Record<string, unknown>;
+
+const asRecord = (value: unknown): ApiRecord => (
+  value && typeof value === 'object' ? value as ApiRecord : {}
+);
+
+const asArray = (value: unknown): unknown[] => (
+  Array.isArray(value) ? value : []
+);
+
+const asString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' && value.length > 0 ? value : fallback
+);
+
+const asNumber = (value: unknown, fallback = 0): number => {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+};
+
+const clampPercent = (value: number): number => Math.min(100, Math.max(0, value));
+
+const toScore = (level: unknown): number => {
+  const value = asNumber(level);
+  return Math.round(Math.min(10, Math.max(0, value / 100)) * 10) / 10;
+};
+
+const toHistoryTimeframe = (timeframe: Timeframe): string => {
+  if (timeframe === '90d') return '3months';
+  if (timeframe === '1y') return '1year';
+  return '1month';
+};
+
+const formatMeasurementDate = (value: unknown): string => {
+  const date = new Date(asString(value, new Date().toISOString()));
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+};
+
+const getProgressPayload = (responseData: unknown): ApiRecord => {
+  const data = asRecord(responseData);
+  return asRecord(data.progress);
+};
+
+const getMeasurementRows = (responseData: unknown): ApiRecord[] => {
+  const data = asRecord(responseData);
+  const nested = asRecord(data.data);
+  return asArray(nested.measurements).map(asRecord);
+};
+
+const getAchievements = (progress: ApiRecord): string[] => {
+  const raw = progress.achievements;
+  if (Array.isArray(raw)) {
+    return raw.map(item => String(item)).filter(Boolean);
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(item => String(item)).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const mapWorkouts = (rows: unknown[]): WorkoutSummary[] => (
+  rows.map((row, index) => {
+    const workout = asRecord(row);
+    const intensity = asNumber(workout.intensity);
+    return {
+      id: String(workout.id ?? `${workout.date ?? 'workout'}-${index}`),
+      date: asString(workout.date, new Date().toISOString()),
+      type: asString(workout.type, asString(workout.title, 'Workout')),
+      duration: asNumber(workout.duration),
+      caloriesBurned: 0,
+      exerciseCount: asNumber(workout.exerciseCount, asArray(workout.logs).length),
+      ratingOfPerceivedExertion: intensity,
+      notes: asString(workout.notes),
+      completedExercises: asNumber(workout.completedExercises, asArray(workout.logs).length),
+      totalExercises: asNumber(workout.totalExercises, asArray(workout.logs).length),
+    };
+  })
+);
+
+const buildAssessmentMetrics = (progress: ApiRecord, workouts: WorkoutSummary[]): AssessmentMetric[] => {
+  const strengthLevel = (
+    asNumber(progress.chestLevel) +
+    asNumber(progress.bicepsLevel) +
+    asNumber(progress.tricepsLevel) +
+    asNumber(progress.squatsLevel)
+  ) / 4;
+  const enduranceScore = Math.min(10, workouts.length);
+  const now = new Date().toISOString();
+  const metrics = [
+    {
+      id: 'overall',
+      name: 'Overall Fitness',
+      value: toScore(progress.overallLevel),
+      category: 'endurance' as const,
+    },
+    {
+      id: 'strength',
+      name: 'Strength',
+      value: toScore(strengthLevel),
+      category: 'strength' as const,
+    },
+    {
+      id: 'flexibility',
+      name: 'Flexibility',
+      value: toScore(progress.flexibilityLevel),
+      category: 'flexibility' as const,
+    },
+    {
+      id: 'balance',
+      name: 'Balance',
+      value: toScore(progress.balanceLevel),
+      category: 'balance' as const,
+    },
+    {
+      id: 'recent-workouts',
+      name: 'Recent Workouts',
+      value: enduranceScore,
+      category: 'endurance' as const,
+    },
+  ];
+
+  return metrics.map(metric => ({
+    ...metric,
+    previousValue: metric.value,
+    maxValue: 10,
+    unit: 'score',
+    lastMeasured: now,
+    improvement: 0,
+    percentile: Math.round(metric.value * 10),
+  }));
+};
+
+const buildMilestones = (progress: ApiRecord): MilestoneItem[] => (
+  getAchievements(progress).map((achievement, index) => ({
+    id: `achievement-${index}`,
+    title: achievement,
+    description: 'Achievement recorded in client progress',
+    targetValue: 1,
+    currentValue: 1,
+    unit: 'earned',
+    status: 'completed',
+    completedDate: new Date().toISOString(),
+    difficulty: 'medium',
+    category: 'strength',
+    reward: {
+      type: 'badge',
+      value: achievement,
+      icon: '',
+    },
+  }))
+);
+
+const buildMeasurementCards = (rows: ApiRecord[]): BodyMeasurement[] => {
+  if (!rows.length) return [];
+  const sorted = [...rows].sort((a, b) => (
+    new Date(formatMeasurementDate(a.measurementDate)).getTime() -
+    new Date(formatMeasurementDate(b.measurementDate)).getTime()
+  ));
+  const latest = sorted[sorted.length - 1];
+  const previous = sorted[sorted.length - 2] || latest;
+  const date = formatMeasurementDate(latest.measurementDate);
+
+  const toTrend = (current: number, prior: number): BodyMeasurement['trend'] => {
+    if (current > prior) return 'up';
+    if (current < prior) return 'down';
+    return 'stable';
+  };
+  const percentChange = (current: number, prior: number): number => {
+    if (!prior) return 0;
+    return Math.round(((current - prior) / prior) * 1000) / 10;
+  };
+
+  const measurements: BodyMeasurement[] = [];
+  const weight = asNumber(latest.weight, NaN);
+  const previousWeight = asNumber(previous.weight, weight);
+  if (Number.isFinite(weight)) {
+    measurements.push({
+      id: `${latest.id ?? 'latest'}-weight`,
+      type: 'weight',
+      value: weight,
+      unit: 'lb',
+      date,
+      trend: toTrend(weight, previousWeight),
+      percentChange: percentChange(weight, previousWeight),
+    });
+  }
+
+  const bodyFat = asNumber(latest.bodyFatPercentage, NaN);
+  const previousBodyFat = asNumber(previous.bodyFatPercentage, bodyFat);
+  if (Number.isFinite(bodyFat)) {
+    measurements.push({
+      id: `${latest.id ?? 'latest'}-body-fat`,
+      type: 'body_fat',
+      value: bodyFat,
+      unit: '%',
+      date,
+      trend: toTrend(bodyFat, previousBodyFat),
+      percentChange: percentChange(bodyFat, previousBodyFat),
+    });
+  }
+
+  const muscleMass = asNumber(latest.muscleMassPercentage, NaN);
+  const previousMuscleMass = asNumber(previous.muscleMassPercentage, muscleMass);
+  if (Number.isFinite(muscleMass)) {
+    measurements.push({
+      id: `${latest.id ?? 'latest'}-muscle-mass`,
+      type: 'muscle_mass',
+      value: muscleMass,
+      unit: '%',
+      date,
+      trend: toTrend(muscleMass, previousMuscleMass),
+      percentChange: percentChange(muscleMass, previousMuscleMass),
+    });
+  }
+
+  return measurements;
+};
+
+const buildMeasurementChartData = (rows: ApiRecord[]) => (
+  [...rows]
+    .sort((a, b) => (
+      new Date(formatMeasurementDate(a.measurementDate)).getTime() -
+      new Date(formatMeasurementDate(b.measurementDate)).getTime()
+    ))
+    .slice(-12)
+    .map((measurement, index) => ({
+      week: asString(measurement.measurementDate)
+        ? new Date(formatMeasurementDate(measurement.measurementDate)).toLocaleDateString()
+        : `Entry ${index + 1}`,
+      weight: asNumber(measurement.weight),
+      bodyFat: asNumber(measurement.bodyFatPercentage),
+      muscleMass: asNumber(measurement.muscleMassPercentage),
+    }))
+);
 
 // ─── Styled Components ──────────────────────────────────────────
 const DashboardWrapper = styled.div`
@@ -597,7 +837,7 @@ const ChartSection = styled.div`
   margin-bottom: 32px;
 `;
 
-const PreviewNotice = styled.div`
+const StatusNotice = styled.div`
   background: rgba(198, 168, 75, 0.1);
   border: 1px solid rgba(198, 168, 75, 0.3);
   border-radius: 8px;
@@ -659,197 +899,80 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
   // State management
   const [selectedTimeframe, setSelectedTimeframe] = useState<Timeframe>('30d');
   const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'measurements'>('overview');
+  const [progress, setProgress] = useState<ApiRecord>({});
+  const [workouts, setWorkouts] = useState<WorkoutSummary[]>([]);
+  const [measurementRows, setMeasurementRows] = useState<ApiRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { authAxios } = useAuth();
 
-  // Mock data for demonstration
-  const mockMilestones = useMemo<MilestoneItem[]>(() => [
-    {
-      id: '1',
-      title: 'First 5K Run',
-      description: 'Complete a 5K run without stopping',
-      targetValue: 5,
-      currentValue: 3.2,
-      unit: 'km',
-      status: 'in-progress',
-      estimatedCompletion: '2024-12-20',
-      difficulty: 'medium',
-      category: 'endurance',
-      reward: {
-        type: 'badge',
-        value: 'Running Rookie',
-        icon: '/badges/running.png'
-      }
-    },
-    {
-      id: '2',
-      title: 'Bench Press Body Weight',
-      description: 'Bench press your own body weight',
-      targetValue: 80,
-      currentValue: 80,
-      unit: 'kg',
-      status: 'completed',
-      completedDate: '2024-12-05',
-      difficulty: 'hard',
-      category: 'strength',
-      reward: {
-        type: 'points',
-        value: '500',
-        icon: '/icons/strength.png'
-      }
-    },
-    {
-      id: '3',
-      title: 'Lost 5kg',
-      description: 'Reach target weight reduction',
-      targetValue: 5,
-      currentValue: 3.5,
-      unit: 'kg',
-      status: 'in-progress',
-      estimatedCompletion: '2024-12-30',
-      difficulty: 'medium',
-      category: 'weight',
-      reward: {
-        type: 'unlock',
-        value: 'Advanced Nutrition Plan',
-        icon: '/icons/nutrition.png'
-      }
-    }
-  ], []);
+  const loadProgressData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
 
-  const mockAssessments = useMemo<AssessmentMetric[]>(() => [
-    {
-      id: '1',
-      name: 'Overall Fitness',
-      value: 8.7,
-      previousValue: 7.2,
-      maxValue: 10,
-      unit: 'score',
-      category: 'endurance',
-      lastMeasured: '2024-12-01',
-      improvement: 20.8,
-      percentile: 92
-    },
-    {
-      id: '2',
-      name: 'Upper Body Strength',
-      value: 9.1,
-      previousValue: 8.5,
-      maxValue: 10,
-      unit: 'score',
-      category: 'strength',
-      lastMeasured: '2024-12-01',
-      improvement: 7.1,
-      percentile: 95
-    },
-    {
-      id: '3',
-      name: 'Flexibility',
-      value: 7.8,
-      previousValue: 7.1,
-      maxValue: 10,
-      unit: 'score',
-      category: 'flexibility',
-      lastMeasured: '2024-12-01',
-      improvement: 9.9,
-      percentile: 78
-    },
-    {
-      id: '4',
-      name: 'Balance',
-      value: 8.3,
-      previousValue: 7.9,
-      maxValue: 10,
-      unit: 'score',
-      category: 'balance',
-      lastMeasured: '2024-12-01',
-      improvement: 5.1,
-      percentile: 85
-    }
-  ], []);
+    try {
+      const [progressResponse, workoutHistoryResponse, measurementResponse] = await Promise.all([
+        authAxios.get(`/api/client-progress/${clientId}`),
+        authAxios.get(`/api/client-progress/${clientId}/workout-history`, {
+          params: { timeframe: toHistoryTimeframe(selectedTimeframe) },
+        }),
+        authAxios.get(`/api/measurements/user/${clientId}`, {
+          params: { limit: 20 },
+        }),
+      ]);
 
-  const mockWorkouts: WorkoutSummary[] = [
-    {
-      id: '1',
-      date: '2024-12-10',
-      type: 'Strength Training',
-      duration: 65,
-      caloriesBurned: 380,
-      exerciseCount: 8,
-      avgHeartRate: 135,
-      maxHeartRate: 165,
-      ratingOfPerceivedExertion: 7,
-      completedExercises: 8,
-      totalExercises: 8
-    },
-    {
-      id: '2',
-      date: '2024-12-08',
-      type: 'Cardio',
-      duration: 45,
-      caloriesBurned: 520,
-      exerciseCount: 3,
-      avgHeartRate: 145,
-      maxHeartRate: 175,
-      ratingOfPerceivedExertion: 8,
-      completedExercises: 3,
-      totalExercises: 3
-    },
-    {
-      id: '3',
-      date: '2024-12-06',
-      type: 'Yoga/Flexibility',
-      duration: 50,
-      caloriesBurned: 180,
-      exerciseCount: 12,
-      ratingOfPerceivedExertion: 5,
-      completedExercises: 12,
-      totalExercises: 12
+      setProgress(getProgressPayload(progressResponse.data));
+      setWorkouts(mapWorkouts(asArray(workoutHistoryResponse.data)));
+      setMeasurementRows(getMeasurementRows(measurementResponse.data));
+    } catch {
+      setProgress({});
+      setWorkouts([]);
+      setMeasurementRows([]);
+      setLoadError('Progress data could not be loaded.');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }, [authAxios, clientId, selectedTimeframe]);
 
-  const mockMeasurements: BodyMeasurement[] = [
-    {
-      id: '1',
-      type: 'weight',
-      value: 77.5,
-      unit: 'kg',
-      date: '2024-12-10',
-      trend: 'down',
-      percentChange: -2.1
-    },
-    {
-      id: '2',
-      type: 'body_fat',
-      value: 12.5,
-      unit: '%',
-      date: '2024-12-10',
-      trend: 'down',
-      percentChange: -8.5
-    },
-    {
-      id: '3',
-      type: 'muscle_mass',
-      value: 72.3,
-      unit: 'kg',
-      date: '2024-12-10',
-      trend: 'up',
-      percentChange: 3.2
-    }
-  ];
+  useEffect(() => {
+    void loadProgressData();
+  }, [loadProgressData]);
+
+  const milestones = useMemo(() => buildMilestones(progress), [progress]);
+  const assessments = useMemo(() => buildAssessmentMetrics(progress, workouts), [progress, workouts]);
+  const measurements = useMemo(() => buildMeasurementCards(measurementRows), [measurementRows]);
+  const measurementChartData = useMemo(() => buildMeasurementChartData(measurementRows), [measurementRows]);
+  const assessmentChartData = useMemo(() => [{
+    month: 'Current',
+    overall: assessments.find(assessment => assessment.id === 'overall')?.value ?? 0,
+    strength: assessments.find(assessment => assessment.id === 'strength')?.value ?? 0,
+    endurance: assessments.find(assessment => assessment.id === 'recent-workouts')?.value ?? 0,
+    flexibility: assessments.find(assessment => assessment.id === 'flexibility')?.value ?? 0,
+  }], [assessments]);
 
   // Calculate overall progress
   const overallProgress = useMemo(() => {
-    const completedMilestones = mockMilestones.filter(m => m.status === 'completed').length;
-    const totalMilestones = mockMilestones.length;
-    const avgAssessmentScore = mockAssessments.reduce((sum, a) => sum + a.value, 0) / mockAssessments.length;
-    const avgImprovement = mockAssessments.reduce((sum, a) => sum + a.improvement, 0) / mockAssessments.length;
+    const completedMilestones = milestones.filter(m => m.status === 'completed').length;
+    const totalMilestones = milestones.length;
+    const avgAssessmentScore = assessments.length > 0
+      ? assessments.reduce((sum, a) => sum + a.value, 0) / assessments.length
+      : 0;
+    const avgImprovement = assessments.length > 0
+      ? assessments.reduce((sum, a) => sum + a.improvement, 0) / assessments.length
+      : 0;
+    const avgWorkoutIntensity = workouts.length > 0
+      ? workouts.reduce((sum, workout) => sum + workout.ratingOfPerceivedExertion, 0) / workouts.length
+      : 0;
+    const milestoneCompletion = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
 
     return {
-      milestoneCompletion: (completedMilestones / totalMilestones) * 100,
+      milestoneCompletion,
       avgAssessmentScore: (avgAssessmentScore / 10) * 100,
       avgImprovement,
-      overallScore: ((completedMilestones / totalMilestones) * 40 + (avgAssessmentScore / 10) * 60)
+      avgWorkoutIntensity,
+      overallScore: clampPercent(Math.max(toScore(progress.overallLevel) * 10, (milestoneCompletion * 0.4) + ((avgAssessmentScore / 10) * 60)))
     };
-  }, [mockMilestones, mockAssessments]);
+  }, [assessments, milestones, progress, workouts]);
 
   // Helper: category icon
   const getCategoryIcon = (category: string) => {
@@ -908,14 +1031,19 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
     <div>
       <SectionRow>
         <SectionTitle>Current Milestones</SectionTitle>
-        <ActionButton $variant="outlined">
+        <ActionButton
+          $variant="outlined"
+          $disabled
+          disabled
+          title="Milestone writes are not connected here"
+        >
           <Plus size={16} />
           Add Milestone
         </ActionButton>
       </SectionRow>
 
       <Grid3Col>
-        {mockMilestones.map((milestone) => (
+        {milestones.length > 0 ? milestones.map((milestone) => (
           <CardPanel $completed={milestone.status === 'completed'} key={milestone.id}>
             <FlexRow $justify="space-between" $align="flex-start" $mb={16}>
               <MilestoneContent>
@@ -980,7 +1108,12 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
               </ActionButton>
             </FlexRow>
           </CardPanel>
-        ))}
+        )) : (
+          <CardPanel>
+            <Heading6>No milestones recorded</Heading6>
+            <LabelBody>Client achievements will appear here as they are earned.</LabelBody>
+          </CardPanel>
+        )}
       </Grid3Col>
     </div>
   );
@@ -1005,17 +1138,17 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
             >
               <VictoryAxis {...chartAxisStyleProps} />
               <VictoryAxis dependentAxis {...chartAxisStyleProps} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="overall" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="strength" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="endurance" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
-              <VictoryLine data={Array.from({ length: 6 }, (_, i) => ({ month: `Month ${i + 1}`, overall: 6 + (i * 0.4) + Math.random() * 0.5, strength: 6.5 + (i * 0.3) + Math.random() * 0.4, endurance: 5.8 + (i * 0.5) + Math.random() * 0.3, flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4 }))} x="month" y="flexibility" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...flexibilityLineStyleProps} />
+              <VictoryLine data={assessmentChartData} x="month" y="overall" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
+              <VictoryLine data={assessmentChartData} x="month" y="strength" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
+              <VictoryLine data={assessmentChartData} x="month" y="endurance" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
+              <VictoryLine data={assessmentChartData} x="month" y="flexibility" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...flexibilityLineStyleProps} />
               <VictoryLegend x={60} y={5} orientation="horizontal" {...chartLegendStyleProps} data={[{ name: 'Overall', symbol: { fill: '#60C0F0' } }, { name: 'Strength', symbol: { fill: '#ff6b6b' } }, { name: 'Endurance', symbol: { fill: '#4ECDC4' } }, { name: 'Flexibility', symbol: { fill: '#C6A84B' } }]} />
             </VictoryChart>
           </ChartBox>
         </DarkCard>
 
         <FlexCol $gap={16}>
-          {mockAssessments.map((assessment) => (
+          {assessments.map((assessment) => (
             <MetricBox key={assessment.id}>
               <FlexRow $gap={8} $justify="center" $mb={8}>
                 <ValueLarge $color={theme.cyan}>
@@ -1053,7 +1186,12 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
     <div>
       <SectionRow>
         <SectionTitle>Body Measurements &amp; Composition</SectionTitle>
-        <ActionButton $variant="outlined">
+        <ActionButton
+          $variant="outlined"
+          $disabled
+          disabled
+          title="Measurement writes are handled by the measurement entry flow"
+        >
           <Camera size={16} />
           Add Measurement
         </ActionButton>
@@ -1068,16 +1206,16 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
             >
               <VictoryAxis {...measurementAxisStyleProps} />
               <VictoryAxis dependentAxis {...chartAxisStyleProps} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="weight" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="bodyFat" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
-              <VictoryLine data={Array.from({ length: 12 }, (_, i) => ({ week: `Wk ${i + 1}`, weight: 82 - (i * 0.3) + Math.random() * 0.5, bodyFat: 16 - (i * 0.2) + Math.random() * 0.3, muscleMass: 68 + (i * 0.3) + Math.random() * 0.2 }))} x="week" y="muscleMass" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
+              <VictoryLine data={measurementChartData} x="week" y="weight" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...overallLineStyleProps} />
+              <VictoryLine data={measurementChartData} x="week" y="bodyFat" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...strengthLineStyleProps} />
+              <VictoryLine data={measurementChartData} x="week" y="muscleMass" interpolation="monotoneX" animate={{ duration: 800, easing: 'cubicInOut' }} {...enduranceLineStyleProps} />
               <VictoryLegend x={60} y={5} orientation="horizontal" {...chartLegendStyleProps} data={[{ name: 'Weight (kg)', symbol: { fill: '#60C0F0' } }, { name: 'Body Fat (%)', symbol: { fill: '#ff6b6b' } }, { name: 'Muscle Mass (kg)', symbol: { fill: '#4ECDC4' } }]} />
             </VictoryChart>
           </ChartBox>
         </DarkCard>
 
         <FlexCol $gap={16}>
-          {mockMeasurements.map((measurement) => {
+          {measurements.length > 0 ? measurements.map((measurement) => {
             const isPositiveTrend =
               (measurement.trend === 'down' && (measurement.type === 'weight' || measurement.type === 'body_fat')) ||
               (measurement.trend === 'up' && measurement.type === 'muscle_mass');
@@ -1116,7 +1254,12 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                 </LabelSmall>
               </DarkCard>
             );
-          })}
+          }) : (
+            <DarkCard>
+              <Heading6>No measurements recorded</Heading6>
+              <LabelBody>Measurements will appear after the next body composition entry.</LabelBody>
+            </DarkCard>
+          )}
         </FlexCol>
       </GridRow2Col>
     </div>
@@ -1132,7 +1275,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
             Overall Progress
           </Heading6>
           <CircularProgress value={overallProgress.overallScore} size={100} />
-          <LabelBody>Excellent progress! Keep up the great work.</LabelBody>
+          <LabelBody>Based on recorded progress, workouts, and measurements.</LabelBody>
         </GlassPanel>
 
         {/* Quick Stats */}
@@ -1143,13 +1286,13 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
           <Grid4Col>
             <MetricBox>
               <ValueLarge $color={theme.green}>
-                {mockMilestones.filter(m => m.status === 'completed').length}
+                {milestones.filter(m => m.status === 'completed').length}
               </ValueLarge>
               <LabelSmall>Milestones Completed</LabelSmall>
             </MetricBox>
             <MetricBox>
               <ValueLarge $color={theme.orange}>
-                {mockWorkouts.length}
+                {workouts.length}
               </ValueLarge>
               <LabelSmall>Workouts This Month</LabelSmall>
             </MetricBox>
@@ -1165,9 +1308,11 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
             <MetricBox>
               <FlexRow $gap={8} $justify="center">
                 <Star size={28} color={theme.gold} fill={theme.gold} />
-                <ValueLarge $color={theme.gold}>4.8</ValueLarge>
+                <ValueLarge $color={theme.gold}>
+                  {overallProgress.avgWorkoutIntensity.toFixed(1)}
+                </ValueLarge>
               </FlexRow>
-              <LabelSmall>Average Rating</LabelSmall>
+              <LabelSmall>Avg Intensity</LabelSmall>
             </MetricBox>
           </Grid4Col>
         </GlassPanel>
@@ -1181,7 +1326,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
           Recent Achievements
         </Heading6>
         <Grid3Col>
-          {mockMilestones
+          {milestones
             .filter(m => m.status === 'completed')
             .map((achievement) => (
               <AchievementPanel key={achievement.id}>
@@ -1198,6 +1343,13 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
                 </LabelSmall>
               </AchievementPanel>
             ))}
+          {milestones.filter(m => m.status === 'completed').length === 0 && (
+            <AchievementPanel>
+              <AchievementIcon size={40} color={theme.gold} />
+              <Heading6>No achievements recorded</Heading6>
+              <LabelBody>Completed achievements will appear here.</LabelBody>
+            </AchievementPanel>
+          )}
         </Grid3Col>
       </GlassPanel>
     </div>
@@ -1213,10 +1365,16 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         </PageSubtitle>
       </SectionHeader>
 
-      {/* Demo data notice */}
-      <PreviewNotice>
-        Preview Mode — Charts display sample data. Real progress will populate as sessions are completed.
-      </PreviewNotice>
+      {loadError && (
+        <StatusNotice role="alert">
+          {loadError}
+        </StatusNotice>
+      )}
+      {isLoading && (
+        <StatusNotice>
+          Loading progress data...
+        </StatusNotice>
+      )}
 
       {/* Controls */}
       <ControlsRow>
@@ -1261,11 +1419,16 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
         </ButtonGroup>
 
         <ControlsRight>
-          <ActionButton $variant="outlined">
+          <ActionButton $variant="outlined" onClick={() => void loadProgressData()}>
             <RefreshCw size={16} />
             Refresh
           </ActionButton>
-          <ActionButton $variant="outlined">
+          <ActionButton
+            $variant="outlined"
+            $disabled
+            disabled
+            title="Progress export is not connected here"
+          >
             <Download size={16} />
             Export
           </ActionButton>

@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { apiLimiter } from '../middleware/rateLimiter.mjs';
-import { protect, authorize, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { protect, authorize, authorizeResourceAccess, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import workoutController from '../controllers/workoutController.mjs';
 import { getExercise } from '../models/index.mjs';
 import { Op } from '../database.mjs';
@@ -15,6 +15,34 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: INTERNAL_ERROR
+});
+
+const parsePositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) => {
+  const parsed = parsePositiveInteger(value);
+  if (!parsed) return fallback;
+  return Math.min(parsed, max);
+};
 
 /**
  * @route GET /api/exercises/search
@@ -24,6 +52,7 @@ const router = express.Router();
 router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const { q, limit = 20, type, difficulty, muscleGroup } = req.query;
+    const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
     
     if (!q || q.trim().length < 2) {
       return res.status(400).json({
@@ -59,9 +88,15 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
     }
 
     if (difficulty) {
-      const difficultyRange = parseInt(difficulty);
+      const normalizedDifficulty = parseBoundedPositiveInteger(difficulty, null, 1000);
+      if (!normalizedDifficulty) {
+        return res.status(400).json({
+          success: false,
+          message: 'Difficulty must be a positive whole number'
+        });
+      }
       whereClause.difficulty = {
-        [Op.between]: [difficultyRange - 100, difficultyRange + 100]
+        [Op.between]: [normalizedDifficulty - 100, normalizedDifficulty + 100]
       };
     }
 
@@ -92,7 +127,7 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
         [sequelize.literal(`CASE WHEN LOWER(name) LIKE LOWER(${sequelize.escape('%' + searchQuery.replace(/[%_\\]/g, '\\$&') + '%')}) THEN 1 ELSE 2 END`), 'ASC'],
         ['name', 'ASC']
       ],
-      limit: parseInt(limit)
+      limit: normalizedLimit
     });
 
     // Format exercises for frontend
@@ -122,11 +157,7 @@ router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Exercise search error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to search exercises',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to search exercises');
   }
 });
 
@@ -177,11 +208,7 @@ router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Exercise categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch exercise categories',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch exercise categories');
   }
 });
 
@@ -195,6 +222,7 @@ router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {
 router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const { search, limit = 50, type, muscleGroup, exerciseKeyPrefix } = req.query;
+    const normalizedLimit = parseBoundedPositiveInteger(limit, 50, 500);
     const Exercise = getExercise();
     if (!Exercise) {
       return res.status(503).json({ success: false, message: 'Exercise model not available' });
@@ -270,7 +298,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
           'description',
         ],
         order: [['name', 'ASC']],
-        limit: Math.min(parseInt(limit) || 50, 500),
+        limit: normalizedLimit,
         raw: true,
       });
     } catch {
@@ -280,7 +308,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
         where: whereClause,
         attributes: ['id', 'name', 'exerciseType', 'primaryMuscles', 'difficulty', 'description'],
         order: [['name', 'ASC']],
-        limit: Math.min(parseInt(limit) || 50, 500),
+        limit: normalizedLimit,
         raw: true,
       });
     }
@@ -488,13 +516,27 @@ router.get('/library', protect, apiLimiter, async (req, res) => {
 });
 
 /**
+ * @route GET /api/exercises/recommended
+ * @desc Get exercise recommendations for the current user
+ * @access Private
+ */
+router.get('/recommended', protect, workoutController.getExerciseRecommendations);
+
+/**
+ * @route GET /api/exercises/recommended/:userId
+ * @desc Get exercise recommendations for a specific user
+ * @access Private (Admin/Trainer only)
+ */
+router.get('/recommended/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);
+
+/**
  * @route GET /api/exercises/:id/teach-mode
  * @desc Deep exercise data for Teach Mode (instructions, cues, safety, biomechanics, progression)
  *       Separate from /:id to avoid bloating the standard exercise response.
  *       Cached for 10 minutes — exercise content doesn't change often.
- * @access Private (Trainer/Admin only)
+ * @access Private (authenticated dashboard users)
  */
-router.get('/:id/teach-mode', protect, trainerOrAdminOnly, async (req, res) => {
+router.get('/:id/teach-mode', protect, apiLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const Exercise = getExercise();
@@ -565,11 +607,7 @@ router.get('/:id/teach-mode', protect, trainerOrAdminOnly, async (req, res) => {
     });
   } catch (error) {
     logger.error('Exercise teach-mode fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch exercise teach data',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
+    return sendInternalError(res, 'Failed to fetch exercise teach data');
   }
 });
 
@@ -610,26 +648,8 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Exercise fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch exercise details',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch exercise details');
   }
 });
-
-/**
- * @route GET /api/exercises/recommended
- * @desc Get exercise recommendations for the current user
- * @access Private
- */
-router.get('/recommended', workoutController.getExerciseRecommendations);
-
-/**
- * @route GET /api/exercises/recommended/:userId
- * @desc Get exercise recommendations for a specific user
- * @access Private (Admin/Trainer only)
- */
-router.get('/recommended/:userId', protect, authorize(['admin', 'trainer']), workoutController.getExerciseRecommendations);
 
 export default router;

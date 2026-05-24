@@ -19,11 +19,93 @@
 
 import express from 'express';
 import { protect, authorize } from '../../middleware/authMiddleware.mjs';
+import { query, validationResult } from 'express-validator';
 import { Op, literal, fn, col } from 'sequelize';
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const TIME_RANGE_MS = Object.freeze({
+  '24h': 24 * 60 * 60 * 1000,
+  '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+  '1y': 365 * 24 * 60 * 60 * 1000
+});
+const TIME_RANGES = Object.keys(TIME_RANGE_MS);
+const TRANSACTION_STATUSES = ['all', 'pending_manual_payment', 'paid', 'unpaid', 'failed', 'cancelled', 'refunded', 'no_payment_required'];
+const TRANSACTION_SORT_FIELDS = ['lastCheckoutAttempt', 'completedAt', 'createdAt', 'updatedAt', 'total', 'paymentStatus', 'status'];
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR
+  });
+}
+
+function getTimeRangeStart(timeRange = '30d', now = new Date()) {
+  return new Date(now.getTime() - TIME_RANGE_MS[timeRange]);
+}
+
+function readInteger(value, fallback) {
+  return Number.parseInt(String(value ?? fallback), 10);
+}
+
+function splitCsvList(value) {
+  return value
+    ? String(value).split(',').map(item => item.trim()).filter(Boolean)
+    : [];
+}
+
+function validateRequest(message) {
+  return (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message,
+        errors: errors.array()
+      });
+    }
+    next();
+  };
+}
+
+const validateTimeRangeQuery = [
+  query('timeRange').optional().isIn(TIME_RANGES).withMessage('Invalid time range'),
+  validateRequest('Invalid finance query parameters')
+];
+
+const validateTransactionsQuery = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('status').optional().isIn(TRANSACTION_STATUSES).withMessage('Invalid transaction status'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be ISO-8601'),
+  query('endDate').optional().isISO8601().withMessage('End date must be ISO-8601'),
+  query('customerId').optional().isInt({ min: 1 }).withMessage('Customer ID must be a positive integer'),
+  query('minAmount').optional().isFloat({ min: 0 }).withMessage('Minimum amount must be zero or greater'),
+  query('maxAmount').optional().isFloat({ min: 0 }).withMessage('Maximum amount must be zero or greater'),
+  query('sortBy').optional().isIn(TRANSACTION_SORT_FIELDS).withMessage('Invalid transaction sort field'),
+  query('sortOrder').optional().isIn(['ASC', 'DESC', 'asc', 'desc']).withMessage('Sort order must be ASC or DESC'),
+  validateRequest('Invalid transaction query parameters')
+];
+
+const validateNotificationsQuery = [
+  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('offset').optional().isInt({ min: 0, max: 10000 }).withMessage('Offset must be between 0 and 10000'),
+  validateRequest('Invalid notification query parameters')
+];
+
+const validateExportQuery = [
+  query('format').optional().isIn(['json', 'csv']).withMessage('Export format must be json or csv'),
+  query('type').optional().isIn(['transactions']).withMessage('Invalid export type'),
+  query('timeRange').optional().isIn(TIME_RANGES).withMessage('Invalid time range'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be ISO-8601'),
+  query('endDate').optional().isISO8601().withMessage('End date must be ISO-8601'),
+  validateRequest('Invalid export query parameters')
+];
 
 // Apply authentication and admin role requirement to all routes
 router.use(protect);
@@ -33,7 +115,7 @@ router.use(authorize(['admin']));
  * GET /api/admin/finance/overview
  * Comprehensive financial overview with key metrics
  */
-router.get('/overview', async (req, res) => {
+router.get('/overview', validateTimeRangeQuery, async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -43,17 +125,8 @@ router.get('/overview', async (req, res) => {
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
     
-    // Calculate time boundaries
     const now = new Date();
-    const timeRanges = {
-      '24h': new Date(now.getTime() - 24 * 60 * 60 * 1000),
-      '7d': new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-      '30d': new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      '90d': new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-      '1y': new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)
-    };
-    
-    const startDate = timeRanges[timeRange] || timeRanges['30d'];
+    const startDate = getTimeRangeStart(timeRange, now);
     
     // Current period revenue
     const currentRevenue = await ShoppingCart.sum('total', {
@@ -183,11 +256,13 @@ router.get('/overview', async (req, res) => {
       limit: 10
     });
     
-    // Payment method breakdown (mock data for now - would come from Stripe analytics)
+    // shopping_carts does not store payment method type; avoid synthetic analytics.
     const paymentMethods = {
-      card: Math.round(transactionCount * 0.85),
-      digital_wallet: Math.round(transactionCount * 0.12),
-      bank_transfer: Math.round(transactionCount * 0.03)
+      source: 'not_tracked',
+      tracked: false,
+      card: 0,
+      digital_wallet: 0,
+      bank_transfer: 0
     };
     
     res.json({
@@ -228,11 +303,7 @@ router.get('/overview', async (req, res) => {
     
   } catch (error) {
     logger.error('Error fetching financial overview:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch financial overview',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch financial overview');
   }
 });
 
@@ -241,7 +312,7 @@ router.get('/overview', async (req, res) => {
  * ENHANCED: Detailed transaction history with comprehensive pending payment support
  * Now includes all checkout attempts and pending manual payments
  */
-router.get('/transactions', async (req, res) => {
+router.get('/transactions', validateTransactionsQuery, async (req, res) => {
   try {
     const {
       page = 1,
@@ -262,7 +333,9 @@ router.get('/transactions', async (req, res) => {
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
     
-    const offset = (page - 1) * limit;
+    const pageNumber = readInteger(page, 1);
+    const limitNumber = readInteger(limit, 20);
+    const offset = (pageNumber - 1) * limitNumber;
     
     // Build where conditions - ENHANCED to include all cart statuses
     const whereConditions = {};
@@ -285,13 +358,13 @@ router.get('/transactions', async (req, res) => {
     }
     
     if (customerId) {
-      whereConditions.userId = customerId;
+      whereConditions.userId = readInteger(customerId, 0);
     }
     
     if (minAmount || maxAmount) {
       whereConditions.total = {};
-      if (minAmount) whereConditions.total[Op.gte] = parseFloat(minAmount);
-      if (maxAmount) whereConditions.total[Op.lte] = parseFloat(maxAmount);
+      if (minAmount) whereConditions.total[Op.gte] = Number(minAmount);
+      if (maxAmount) whereConditions.total[Op.lte] = Number(maxAmount);
     }
     
     // Only include carts that have checkout attempts (have checkoutSessionId)
@@ -319,7 +392,7 @@ router.get('/transactions', async (req, res) => {
         }
       ],
       order: [[sortBy, sortOrder.toUpperCase()]],
-      limit: parseInt(limit),
+      limit: limitNumber,
       offset: offset
     });
     
@@ -374,10 +447,10 @@ router.get('/transactions', async (req, res) => {
           };
         }),
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page: pageNumber,
+          limit: limitNumber,
           total: count,
-          pages: Math.ceil(count / limit)
+          pages: Math.ceil(count / limitNumber)
         },
         summary: {
           totalTransactions: count,
@@ -393,11 +466,7 @@ router.get('/transactions', async (req, res) => {
   } catch (error) {
     logger.error('Error fetching transactions:', error);
     console.error(`💥 [Admin Finance] Transaction fetch failed: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch transactions',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch transactions');
   }
 });
 
@@ -405,7 +474,7 @@ router.get('/transactions', async (req, res) => {
  * GET /api/admin/finance/metrics
  * Advanced business metrics and KPIs
  */
-router.get('/metrics', async (req, res) => {
+router.get('/metrics', validateTimeRangeQuery, async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -415,16 +484,8 @@ router.get('/metrics', async (req, res) => {
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
     
-    // Time calculations
     const now = new Date();
-    const timeRanges = {
-      '24h': 24 * 60 * 60 * 1000,
-      '7d': 7 * 24 * 60 * 60 * 1000,
-      '30d': 30 * 24 * 60 * 60 * 1000,
-      '90d': 90 * 24 * 60 * 60 * 1000
-    };
-    
-    const periodMs = timeRanges[timeRange] || timeRanges['30d'];
+    const periodMs = TIME_RANGE_MS[timeRange];
     const startDate = new Date(now.getTime() - periodMs);
     
     // Customer Lifetime Value (simplified calculation)
@@ -543,11 +604,7 @@ router.get('/metrics', async (req, res) => {
     
   } catch (error) {
     logger.error('Error fetching business metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch business metrics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch business metrics');
   }
 });
 
@@ -555,7 +612,7 @@ router.get('/metrics', async (req, res) => {
  * GET /api/admin/finance/notifications
  * Financial alerts and notifications
  */
-router.get('/notifications', async (req, res) => {
+router.get('/notifications', validateNotificationsQuery, async (req, res) => {
   try {
     // Get models
     const ShoppingCart = getShoppingCart();
@@ -628,11 +685,8 @@ router.get('/notifications', async (req, res) => {
       return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
     });
 
-    // Paginate with validated input bounds
-    const rawLimit = parseInt(req.query.limit, 10);
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
-    const rawOffset = parseInt(req.query.offset, 10);
-    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+    const limit = readInteger(req.query.limit, 20);
+    const offset = readInteger(req.query.offset, 0);
     const paginatedNotifications = notifications.slice(offset, offset + limit);
 
     res.json({
@@ -647,11 +701,7 @@ router.get('/notifications', async (req, res) => {
     
   } catch (error) {
     logger.error('Error fetching financial notifications:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch financial notifications',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch financial notifications');
   }
 });
 
@@ -659,9 +709,9 @@ router.get('/notifications', async (req, res) => {
  * GET /api/admin/finance/export
  * Export financial data for reporting
  */
-router.get('/export', async (req, res) => {
+router.get('/export', validateExportQuery, async (req, res) => {
   try {
-    const { format = 'json', startDate, endDate, type = 'transactions' } = req.query;
+    const { format = 'json', startDate, endDate, type = 'transactions', timeRange } = req.query;
     
     // Get models
     const ShoppingCart = getShoppingCart();
@@ -678,6 +728,10 @@ router.get('/export', async (req, res) => {
       whereConditions.completedAt = {};
       if (startDate) whereConditions.completedAt[Op.gte] = new Date(startDate);
       if (endDate) whereConditions.completedAt[Op.lte] = new Date(endDate);
+    } else if (timeRange) {
+      whereConditions.completedAt = {
+        [Op.gte]: getTimeRangeStart(timeRange)
+      };
     }
     
     const transactions = await ShoppingCart.findAll({
@@ -729,18 +783,14 @@ router.get('/export', async (req, res) => {
           totalRecords: exportData.length,
           exportedAt: new Date().toISOString(),
           type,
-          dateRange: { startDate, endDate }
+          dateRange: { startDate, endDate, timeRange }
         }
       });
     }
     
   } catch (error) {
     logger.error('Error exporting financial data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to export financial data',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to export financial data');
   }
 });
 
@@ -764,37 +814,46 @@ router.get('/trainers', async (req, res) => {
       },
       attributes: [
         'id', 'firstName', 'lastName', 'email', 'phone', 'photo', 
-        'specialties', 'createdAt', 'updatedAt', 'lastLoginAt'
+        'specialties', 'certifications', 'bio', 'isActive', 'hourlyRate',
+        'trainerType', 'createdAt', 'updatedAt', 'lastLoginAt'
       ],
       order: [['createdAt', 'DESC']]
     });
-    
+
     // Format trainers data for admin dashboard
-    const formattedTrainers = trainers.map(trainer => ({
-      id: trainer.id,
-      firstName: trainer.firstName,
-      lastName: trainer.lastName,
-      name: `${trainer.firstName} ${trainer.lastName}`,
-      email: trainer.email,
-      phone: trainer.phone,
-      photo: trainer.photo,
-      isActive: true,
-      specialty: trainer.specialties ? trainer.specialties.split(',').map(s => s.trim()) : [],
-      certifications: ['NASM-CPT'], // Mock for now - can be enhanced later
-      verified: true, // Mock for now - can be enhanced later
-      status: 'active', // Mock for now - can be enhanced later
-      joinedAt: trainer.createdAt,
-      lastActive: trainer.lastLoginAt || trainer.updatedAt,
-      stats: {
-        activeClients: 0, // Will be calculated from actual data
-        totalSessions: 0,
-        monthlyRevenue: 0,
-        rating: 4.5, // Mock for now
-        completedCertifications: 1
-      },
-      location: 'Studio', // Mock for now
-      bio: 'Professional trainer'
-    }));
+    const formattedTrainers = trainers.map(trainer => {
+      const certifications = splitCsvList(trainer.certifications);
+
+      return {
+        id: trainer.id,
+        firstName: trainer.firstName,
+        lastName: trainer.lastName,
+        name: `${trainer.firstName} ${trainer.lastName}`,
+        email: trainer.email,
+        phone: trainer.phone,
+        photo: trainer.photo,
+        isActive: Boolean(trainer.isActive),
+        specialty: splitCsvList(trainer.specialties),
+        certifications,
+        verified: false,
+        verificationSource: 'not_tracked',
+        status: trainer.isActive ? 'active' : 'inactive',
+        joinedAt: trainer.createdAt,
+        lastActive: trainer.lastLoginAt || trainer.updatedAt,
+        hourlyRate: trainer.hourlyRate,
+        trainerType: trainer.trainerType,
+        stats: {
+          activeClients: null,
+          totalSessions: null,
+          monthlyRevenue: null,
+          rating: null,
+          completedCertifications: certifications.length,
+          source: 'not_tracked'
+        },
+        location: null,
+        bio: trainer.bio || ''
+      };
+    });
     
     res.json({
       success: true,
@@ -803,11 +862,7 @@ router.get('/trainers', async (req, res) => {
     
   } catch (error) {
     logger.error('Error fetching trainers for admin:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch trainers',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to fetch trainers');
   }
 });
 

@@ -13,7 +13,7 @@ import { listTemplates, getTemplate } from '../controllers/aiTemplateController.
 import { generateLongHorizonPlan, approveLongHorizonPlan } from '../controllers/longHorizonController.mjs';
 
 // --- Register provider adapters at import time (Phase 3A+3B) ---
-import { registerAdapter, getRegisteredAdapterNames } from '../services/ai/providerRouter.mjs';
+import { registerAdapter } from '../services/ai/providerRouter.mjs';
 import openaiAdapter from '../services/ai/adapters/openaiAdapter.mjs';
 import anthropicAdapter from '../services/ai/adapters/anthropicAdapter.mjs';
 import geminiAdapter from '../services/ai/adapters/geminiAdapter.mjs';
@@ -40,16 +40,8 @@ const router = express.Router();
 router.get('/health', (req, res) => {
   res.json({
     success: true,
+    status: 'ok',
     message: 'AI routes loaded',
-    adapters: getRegisteredAdapterNames(),
-    routes: [
-      'POST /api/ai/workout-generation',
-      'POST /api/ai/workout-generation/approve',
-      'POST /api/ai/long-horizon/generate',
-      'POST /api/ai/long-horizon/approve',
-      'GET  /api/ai/templates',
-    ],
-    killSwitch: process.env.AI_WORKOUT_GENERATION_ENABLED !== 'false' ? 'enabled' : 'disabled',
     timestamp: new Date().toISOString(),
   });
 });

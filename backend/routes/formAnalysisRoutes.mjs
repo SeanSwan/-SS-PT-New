@@ -16,6 +16,10 @@ import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import {
+  assertAssignmentOrAdmin,
+  verifyClientAccessByUserId,
+} from '../middleware/verifyClientAccess.mjs';
 import { requireTier } from '../middleware/requireTier.mjs';
 import {
   createFormAnalysis,
@@ -28,6 +32,23 @@ import {
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+const resolveAnalysisHistoryUserId = async (req) => {
+  const ownUserId = Number(req.user.id);
+  if (!req.query.userId) return { userId: ownUserId };
+
+  const targetUserId = parseInt(req.query.userId, 10);
+  if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
+    return { status: 400, error: 'Invalid userId' };
+  }
+
+  const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, targetUserId);
+  if (!allowed) {
+    return { status: 404, error: 'Analysis history not found' };
+  }
+
+  return { userId: targetUserId };
+};
 
 // Multer for video/image upload (memory storage, 100MB limit)
 const upload = multer({
@@ -118,9 +139,11 @@ router.post('/upload', requireTier('elite', 'video.formcheck'), upload.single('m
 router.get('/history', async (req, res) => {
   try {
     const { page = 1, limit = 20, exerciseName, status } = req.query;
-    const userId = req.query.userId && (req.user.role === 'admin' || req.user.role === 'trainer')
-      ? parseInt(req.query.userId, 10)
-      : req.user.id;
+    const target = await resolveAnalysisHistoryUserId(req);
+    if (target.error) {
+      return res.status(target.status).json({ error: target.error });
+    }
+    const userId = target.userId;
 
     const result = await getAnalysisHistory(userId, {
       page: parseInt(page, 10),
@@ -166,7 +189,7 @@ router.get('/exercises', async (req, res) => {
 /**
  * GET /stats — Admin dashboard stats
  */
-router.get('/stats', authorize(['admin', 'trainer']), async (req, res) => {
+router.get('/stats', authorize(['admin']), async (req, res) => {
   try {
     const stats = await getFormAnalysisStats();
     res.json(stats);
@@ -192,7 +215,7 @@ router.get('/profile', async (req, res) => {
 /**
  * GET /profile/:userId — Any user's movement profile (admin/trainer only)
  */
-router.get('/profile/:userId', authorize(['admin', 'trainer']), async (req, res) => {
+router.get('/profile/:userId', authorize(['admin', 'trainer']), verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
     const profile = await getMovementProfileForUser(parseInt(req.params.userId, 10));
     res.json(profile || { message: 'No movement profile found for this user.' });

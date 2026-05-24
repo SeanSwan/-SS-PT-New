@@ -580,7 +580,7 @@ const AdminSessionManager: React.FC = () => {
         userId: 'user3',
         userName: 'David Brown',
         userRole: 'client',
-        title: 'Yoga Flow',
+        title: 'Mobility Flow',
         status: 'paused',
         startTime: new Date(Date.now() - 900000).toISOString(), // 15 min ago
         duration: 900,

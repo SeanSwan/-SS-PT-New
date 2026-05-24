@@ -3,6 +3,13 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { getPackage } from '../models/index.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  code: INTERNAL_ERROR,
+});
 
 /**
  * @route   POST /api/packages
@@ -39,11 +46,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating package:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error creating package',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error creating package');
   }
 });
 

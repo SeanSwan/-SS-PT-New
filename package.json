@@ -8,6 +8,10 @@
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:full": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "qa:release": "powershell -ExecutionPolicy Bypass -File scripts/qa/release-verification.ps1",
+    "qa:release:fast": "powershell -ExecutionPolicy Bypass -File scripts/qa/release-verification.ps1 -Fast",
+    "qa:render-payment-preflight": "node scripts/qa/render-payment-preflight.mjs",
+    "qa:stripe-testmode-replay": "node scripts/qa/stripe-testmode-replay.mjs",
     "qa:smoke": "node scripts/qa/playwright-smoke.mjs",
     "qa:smoke:prod": "node scripts/qa/playwright-smoke.mjs --prod",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"

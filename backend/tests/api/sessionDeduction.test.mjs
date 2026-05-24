@@ -15,6 +15,7 @@ const {
   mockTransaction,
   mockUserModel,
   mockSessionModel,
+  mockAssignmentModel,
   mockSequelize,
 } = vi.hoisted(() => {
   const mockTransaction = {
@@ -32,13 +33,17 @@ const {
     findAll: vi.fn(),
   };
 
+  const mockAssignmentModel = {
+    findAll: vi.fn(),
+  };
+
   const mockSequelize = {
     transaction: vi.fn().mockResolvedValue(mockTransaction),
     query: vi.fn().mockResolvedValue([]),  // advisory lock
     models: {},
   };
 
-  return { mockTransaction, mockUserModel, mockSessionModel, mockSequelize };
+  return { mockTransaction, mockUserModel, mockSessionModel, mockAssignmentModel, mockSequelize };
 });
 
 vi.mock('../../database.mjs', () => ({
@@ -46,6 +51,7 @@ vi.mock('../../database.mjs', () => ({
 }));
 
 vi.mock('../../models/index.mjs', () => ({
+  getClientTrainerAssignment: () => mockAssignmentModel,
   getSession: () => mockSessionModel,
   getUser: () => mockUserModel,
   Op: {
@@ -155,6 +161,34 @@ describe('SessionDeductionService', () => {
 
       const result = await getClientsNeedingPayment();
       expect(result).toEqual([]);
+    });
+
+    it('scopes trainer reads to assigned clients only', async () => {
+      mockAssignmentModel.findAll.mockResolvedValue([{ clientId: 4 }, { clientId: 8 }]);
+      mockUserModel.findAll.mockResolvedValue([]);
+
+      const result = await getClientsNeedingPayment({ id: '12', role: 'trainer' });
+
+      expect(result).toEqual([]);
+      expect(mockAssignmentModel.findAll).toHaveBeenCalledWith({
+        where: { trainerId: 12, status: 'active' },
+        attributes: ['clientId']
+      });
+
+      const callArgs = mockUserModel.findAll.mock.calls[0][0];
+      const idFilter = callArgs.where.id;
+      const symbolKeys = Object.getOwnPropertySymbols(idFilter);
+      expect(symbolKeys).toHaveLength(1);
+      expect(idFilter[symbolKeys[0]]).toEqual([4, 8]);
+    });
+
+    it('returns no clients for trainers with no active assignments', async () => {
+      mockAssignmentModel.findAll.mockResolvedValue([]);
+
+      const result = await getClientsNeedingPayment({ id: '12', role: 'trainer' });
+
+      expect(result).toEqual([]);
+      expect(mockUserModel.findAll).not.toHaveBeenCalled();
     });
 
     it('includes both client and user roles in query', async () => {

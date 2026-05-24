@@ -2,8 +2,8 @@
  * useChallenges Hook
  * ==================
  * Fetches challenges from /api/v1/gamification/challenges and merges
- * with user participation data. Falls back to empty state if API
- * unavailable (e.g., migration not yet run).
+ * with user participation data. Falls back to an empty state if the API is
+ * unavailable; it never manufactures challenges.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -179,8 +179,8 @@ export function useChallenges(): UseChallengesReturn {
     } catch (err: any) {
       logger.warn('[useChallenges] API unavailable, falling back to empty state:', err.message);
       setChallenges([]);
-      setIsDemoData(true);
-      setError(null); // Don't show error — just flag as demo
+      setIsDemoData(false);
+      setError(null);
     } finally {
       setLoading(false);
     }

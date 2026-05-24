@@ -16,6 +16,7 @@ import StyleBrowser, { type ArtStyle } from './StyleBrowser';
 import BadgeGalleryPanel from './BadgeGalleryPanel';
 import BatchGenerationPanel from './BatchGenerationPanel';
 import BadgeMarketplacePanel from './BadgeMarketplacePanel';
+import apiService from '../../services/api.service';
 
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
@@ -304,20 +305,20 @@ const BadgeCreatorPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   // Fetch styles + credits on mount
   useEffect(() => {
-    fetch('/api/admin/badge-creator/styles', { headers })
-      .then(r => r.json())
-      .then(d => { if (d.success) setStyles(d.data); })
+    apiService.get<{ success: boolean; data: ArtStyle[] }>('/api/admin/badge-creator/styles')
+      .then(res => {
+        const d = res.data;
+        if (d.success) setStyles(d.data);
+      })
       .catch(() => {});
 
-    fetch('/api/admin/badge-creator/credits', { headers })
-      .then(r => r.json())
-      .then(d => { if (d.success) setCredits(d.data); })
+    apiService.get<{ success: boolean; data: { remaining: number; max: number } }>('/api/admin/badge-creator/credits')
+      .then(res => {
+        const d = res.data;
+        if (d.success) setCredits(d.data);
+      })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -328,15 +329,20 @@ const BadgeCreatorPage: React.FC = () => {
     setGeneratedUrl(null);
     setStatusMsg(null);
     try {
-      const res = await fetch('/api/admin/badge-creator/generate', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ prompt, style: selectedStyle.promptModifier }),
+      const res = await apiService.post<{
+        success: boolean;
+        data?: { imageUrl: string; creditsRemaining: number };
+        message?: string;
+      }>('/api/admin/badge-creator/generate', {
+        prompt,
+        style: selectedStyle.promptModifier,
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
-        setGeneratedUrl(d.data.imageUrl);
-        if (credits) setCredits({ ...credits, remaining: d.data.creditsRemaining });
+        setGeneratedUrl(d.data?.imageUrl || null);
+        if (credits && d.data) setCredits({ ...credits, remaining: d.data.creditsRemaining });
       } else {
         setStatusMsg({ type: 'error', text: d.message || 'Generation failed' });
       }
@@ -353,18 +359,16 @@ const BadgeCreatorPage: React.FC = () => {
     setSaving(true);
     setStatusMsg(null);
     try {
-      const res = await fetch('/api/admin/badge-creator/save', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: saveName,
-          imageUrl: generatedUrl,
-          prompt,
-          style: selectedStyle?.id,
-          rarity: saveRarity,
-        }),
+      const res = await apiService.post<{ success: boolean; message?: string }>('/api/admin/badge-creator/save', {
+        name: saveName,
+        imageUrl: generatedUrl,
+        prompt,
+        style: selectedStyle?.id,
+        rarity: saveRarity,
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         setStatusMsg({ type: 'success', text: `Badge "${saveName}" saved!` });
         setSaveName('');

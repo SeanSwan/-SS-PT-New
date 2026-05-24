@@ -15,6 +15,7 @@ import {
   Shuffle, AlertTriangle,
 } from 'lucide-react';
 import StyleBrowser, { type ArtStyle } from './StyleBrowser';
+import apiService from '../../services/api.service';
 
 // ── Types ──
 interface BatchImage {
@@ -251,10 +252,6 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
   const [saveRarity, setSaveRarity] = useState('common');
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const handleBatchGenerate = useCallback(async () => {
     if (!prompt.trim() || !primaryStyle) return;
     setGenerating(true);
@@ -271,14 +268,16 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
         body.secondaryStyle = secondaryStyle.promptModifier;
       }
 
-      const res = await fetch('/api/admin/badge-creator/generate-batch', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
+      const res = await apiService.post<{
+        success: boolean;
+        data?: BatchResult;
+        message?: string;
+      }>('/api/admin/badge-creator/generate-batch', body, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
-      if (d.success) {
-        const data = d.data as BatchResult;
+      const d = res.data;
+      if (d.success && d.data) {
+        const data = d.data;
         setResults(data.images);
         setBatchGroupId(data.batchGroupId);
         onCreditsUpdate(data.creditsRemaining);
@@ -292,7 +291,7 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
     } finally {
       setGenerating(false);
     }
-  }, [prompt, primaryStyle, secondaryStyle, mixEnabled, headers, onCreditsUpdate, onStatusMsg]);
+  }, [prompt, primaryStyle, secondaryStyle, mixEnabled, onCreditsUpdate, onStatusMsg]);
 
   const handlePetGenerate = useCallback(async () => {
     if (!primaryStyle) return;
@@ -301,17 +300,19 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
     setSelectedIdx(null);
 
     try {
-      const res = await fetch('/api/admin/badge-creator/generate-pet-avatar', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          species: petSpecies,
-          personality: prompt.trim() || undefined,
-          style: primaryStyle.promptModifier,
-        }),
+      const res = await apiService.post<{
+        success: boolean;
+        data?: { imageUrl: string; creditsRemaining: number };
+        message?: string;
+      }>('/api/admin/badge-creator/generate-pet-avatar', {
+        species: petSpecies,
+        personality: prompt.trim() || undefined,
+        style: primaryStyle.promptModifier,
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
-      if (d.success) {
+      const d = res.data;
+      if (d.success && d.data) {
         setResults([{ index: 0, variation: 'Pet Avatar', success: true, imageUrl: d.data.imageUrl }]);
         onCreditsUpdate(d.data.creditsRemaining);
         onStatusMsg({ type: 'success', text: `${petSpecies} avatar generated!` });
@@ -323,7 +324,7 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
     } finally {
       setGenerating(false);
     }
-  }, [petSpecies, prompt, primaryStyle, headers, onCreditsUpdate, onStatusMsg]);
+  }, [petSpecies, prompt, primaryStyle, onCreditsUpdate, onStatusMsg]);
 
   const handleSaveSelected = useCallback(async () => {
     if (selectedIdx === null || !saveName.trim()) return;
@@ -332,19 +333,17 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
 
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/badge-creator/save', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          name: saveName,
-          imageUrl: img.imageUrl,
-          prompt,
-          style: primaryStyle?.id,
-          rarity: saveRarity,
-          isAnimated: saveRarity === 'legendary',
-        }),
+      const res = await apiService.post<{ success: boolean; message?: string }>('/api/admin/badge-creator/save', {
+        name: saveName,
+        imageUrl: img.imageUrl,
+        prompt,
+        style: primaryStyle?.id,
+        rarity: saveRarity,
+        isAnimated: saveRarity === 'legendary',
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         onStatusMsg({ type: 'success', text: `Badge "${saveName}" saved!` });
         setSaveName('');
@@ -357,7 +356,7 @@ const BatchGenerationPanel: React.FC<Props> = ({ styles, credits, onCreditsUpdat
     } finally {
       setSaving(false);
     }
-  }, [selectedIdx, saveName, saveRarity, results, prompt, primaryStyle, headers, onStatusMsg]);
+  }, [selectedIdx, saveName, saveRarity, results, prompt, primaryStyle, onStatusMsg]);
 
   return (
     <Panel>

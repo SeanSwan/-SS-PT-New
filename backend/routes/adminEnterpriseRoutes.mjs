@@ -13,10 +13,32 @@ import logger from '../utils/logger.mjs';
 import { getClient, query } from '../utils/database.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const NOT_IMPLEMENTED = 'not_implemented';
+
+const parseBoundedInteger = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
+};
+
+const sendFailure = (res, statusCode, message, error = INTERNAL_ERROR) => res.status(statusCode).json({
+  success: false,
+  message,
+  error
+});
 
 // Apply authentication and admin middleware to all routes
 router.use(authMiddleware);
 router.use(requireAdmin);
+
+const ADMIN_ENTERPRISE_FEATURE_FLAGS = Object.freeze({
+  mcpServers: false,
+  businessIntelligence: true,
+  socialMediaManagement: false,
+  realTimeMonitoring: false,
+  advancedAnalytics: false
+});
 
 // =====================================================
 // BUSINESS INTELLIGENCE & ANALYTICS
@@ -78,11 +100,7 @@ router.get('/business-intelligence/metrics', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to fetch business intelligence metrics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch business intelligence data',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch business intelligence data');
   }
 });
 
@@ -102,11 +120,7 @@ router.get('/analytics/dashboard', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to fetch admin analytics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch admin analytics data',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch admin analytics data');
   }
 });
 
@@ -123,26 +137,33 @@ router.get('/analytics/dashboard', async (req, res) => {
 router.get('/social-media/posts', async (req, res) => {
   try {
     const { platform, status, limit = 50, offset = 0 } = req.query;
+    const parsedLimit = parseBoundedInteger(limit, 50, { min: 1, max: 100 });
+    const parsedOffset = parseBoundedInteger(offset, 0, { min: 0, max: 10000 });
+
+    if (parsedLimit === null || parsedOffset === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Limit and offset must be bounded integers'
+      });
+    }
     
-    const posts = await fetchSocialMediaPosts({ platform, status, limit, offset });
+    const posts = await fetchSocialMediaPosts({ platform, status, limit: parsedLimit, offset: parsedOffset });
     const total = await getSocialMediaPostsCount({ platform, status });
 
     res.json({
       success: true,
       posts,
       total,
+      providerConnected: false,
+      source: 'not_connected',
       filters: { platform, status },
-      pagination: { limit: parseInt(limit), offset: parseInt(offset) },
+      pagination: { limit: parsedLimit, offset: parsedOffset },
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     logger.error('Failed to fetch social media posts:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch social media posts',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch social media posts');
   }
 });
 
@@ -159,21 +180,18 @@ router.post('/social-media/posts/:postId/moderate', async (req, res) => {
     
     const result = await moderateSocialMediaPost(postId, action, reason, req.user.id);
 
-    res.json({
-      success: true,
-      message: `Post ${action}ed successfully`,
-      postId,
-      action,
-      timestamp: new Date().toISOString()
-    });
+    res.status(result.statusCode || 200).json(result);
 
   } catch (error) {
     logger.error(`Failed to moderate post ${req.params.postId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to moderate post ${req.params.postId}`,
-      error: error.message
-    });
+    const statusCode = error.statusCode || 500;
+    const isNotImplemented = statusCode === 501;
+    sendFailure(
+      res,
+      statusCode,
+      isNotImplemented ? error.message : `Failed to moderate post ${req.params.postId}`,
+      isNotImplemented ? NOT_IMPLEMENTED : INTERNAL_ERROR
+    );
   }
 });
 
@@ -188,16 +206,14 @@ router.get('/social-media/analytics', async (req, res) => {
     res.json({
       success: true,
       analytics,
+      providerConnected: false,
+      source: 'not_connected',
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     logger.error('Failed to fetch social media analytics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch social media analytics',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch social media analytics');
   }
 });
 
@@ -221,11 +237,7 @@ router.get('/system/health', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to fetch system health:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch system health status',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch system health status');
   }
 });
 
@@ -240,16 +252,14 @@ router.get('/alerts/active', async (req, res) => {
     res.json({
       success: true,
       alerts,
+      alertStoreConnected: false,
+      source: 'not_connected',
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     logger.error('Failed to fetch active alerts:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch active alerts',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch active alerts');
   }
 });
 
@@ -265,21 +275,18 @@ router.post('/alerts/:alertId/acknowledge', async (req, res) => {
     
     const result = await acknowledgeAlert(alertId, req.user.id);
 
-    res.json({
-      success: true,
-      message: `Alert ${alertId} acknowledged`,
-      alertId,
-      acknowledgedBy: req.user.id,
-      timestamp: new Date().toISOString()
-    });
+    res.status(result.statusCode || 200).json(result);
 
   } catch (error) {
     logger.error(`Failed to acknowledge alert ${req.params.alertId}:`, error);
-    res.status(500).json({
-      success: false,
-      message: `Failed to acknowledge alert ${req.params.alertId}`,
-      error: error.message
-    });
+    const statusCode = error.statusCode || 500;
+    const isNotImplemented = statusCode === 501;
+    sendFailure(
+      res,
+      statusCode,
+      isNotImplemented ? error.message : `Failed to acknowledge alert ${req.params.alertId}`,
+      isNotImplemented ? NOT_IMPLEMENTED : INTERNAL_ERROR
+    );
   }
 });
 
@@ -290,12 +297,15 @@ router.post('/alerts/:alertId/acknowledge', async (req, res) => {
 router.get('/dashboard/config', async (req, res) => {
   try {
     const config = {
-      features: {
-        mcpServers: false,
-        businessIntelligence: true,
-        socialMediaManagement: true,
-        realTimeMonitoring: true,
-        advancedAnalytics: true
+      features: ADMIN_ENTERPRISE_FEATURE_FLAGS,
+      featureDetails: {
+        verificationStatus: 'partially_verified',
+        notes: {
+          businessIntelligence: 'Backed by database queries in this route.',
+          socialMediaManagement: 'Read/moderation provider is not connected.',
+          realTimeMonitoring: 'APM and alert store are not connected.',
+          advancedAnalytics: 'Advanced analytics instrumentation is not connected.'
+        }
       },
       settings: {
         refreshInterval: 30000,
@@ -319,11 +329,7 @@ router.get('/dashboard/config', async (req, res) => {
 
   } catch (error) {
     logger.error('Failed to fetch dashboard config:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch admin dashboard configuration',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to fetch admin dashboard configuration');
   }
 });
 
@@ -339,16 +345,14 @@ router.get('/features/availability', async (req, res) => {
       success: true,
       available: availability.allAvailable,
       features: availability.features,
+      verificationStatus: availability.verificationStatus,
+      details: availability.details,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     logger.error('Failed to check features availability:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check admin features availability',
-      error: error.message
-    });
+    sendFailure(res, 500, 'Failed to check admin features availability');
   }
 });
 
@@ -369,6 +373,12 @@ router.all('/mcp-servers/*', (_req, res) => retiredMcpManagementResponse(res));
 // =====================================================
 // UTILITY FUNCTIONS
 // =====================================================
+
+function createNotImplementedError(message) {
+  const error = new Error(message);
+  error.statusCode = 501;
+  return error;
+}
 
 async function fetchUserMetrics() {
   try {
@@ -689,23 +699,23 @@ async function fetchAdminAnalytics() {
 }
 
 async function fetchSocialMediaPosts(filters) {
-  // TODO: Implement real social media posts fetching
+  // Provider integration is not connected yet; return an explicitly labeled empty set.
   return [];
 }
 
 async function getSocialMediaPostsCount(filters) {
-  // TODO: Implement real count
+  // Provider integration is not connected yet; return an explicitly labeled empty count.
   return 0;
 }
 
 async function moderateSocialMediaPost(postId, action, reason, adminId) {
-  // TODO: Implement real post moderation
-  return { success: true };
+  throw createNotImplementedError('Social media moderation is not connected to a provider yet.');
 }
 
 async function fetchSocialMediaAnalytics() {
-  // TODO: Implement real social media analytics
   return {
+    providerConnected: false,
+    source: 'not_connected',
     totalPosts: 0,
     totalEngagement: 0,
     activeUsers: 0,
@@ -721,17 +731,21 @@ async function checkSystemHealth() {
     const dbResponseTime = Date.now() - dbStart;
 
     return {
-      overall: 'healthy',
+      overall: dbResponseTime < 100 ? 'partially_verified' : 'degraded',
+      healthVerified: false,
       components: {
         database: {
           status: dbResponseTime < 100 ? 'healthy' : 'degraded',
+          healthVerified: true,
           responseTime: dbResponseTime,
           message: `Database responding in ${dbResponseTime}ms`
         },
         redis: {
-          status: 'healthy', // TODO: Test Redis connection
-          responseTime: 5,
-          message: 'Redis cache operational'
+          status: 'not_checked',
+          verificationStatus: 'not_checked',
+          healthVerified: false,
+          responseTime: null,
+          message: 'Redis health is not verified by this route.'
         },
         mcpServers: {
           status: 'decommissioned',
@@ -739,14 +753,18 @@ async function checkSystemHealth() {
           totalCount: 0
         },
         api: {
-          status: 'healthy',
-          responseTime: 50,
-          errorRate: 0.01
+          status: 'not_instrumented',
+          verificationStatus: 'not_checked',
+          healthVerified: false,
+          responseTime: null,
+          errorRate: null
         },
         storage: {
-          status: 'healthy',
-          usage: 45,
-          available: 55
+          status: 'not_checked',
+          verificationStatus: 'not_checked',
+          healthVerified: false,
+          usage: null,
+          available: null
         }
       },
       alerts: [],
@@ -757,7 +775,8 @@ async function checkSystemHealth() {
         const mins = Math.floor((secs % 3600) / 60);
         return {
           current: `${days}d ${hours}h ${mins}m`,
-          percentage: 99.9, // No outage tracking yet — assumes healthy if responding
+          percentage: null,
+          verificationStatus: 'not_checked',
           since: new Date(Date.now() - secs * 1000).toISOString()
         };
       })()
@@ -783,13 +802,12 @@ async function checkSystemHealth() {
 }
 
 async function getActiveSystemAlerts() {
-  // TODO: Implement real alert system
+  // Alert store integration is not connected yet; return an explicitly labeled empty set.
   return [];
 }
 
 async function acknowledgeAlert(alertId, adminId) {
-  // TODO: Implement alert acknowledgment
-  return { success: true };
+  throw createNotImplementedError('Alert acknowledgment is not connected to an alert store yet.');
 }
 
 function getSuperAdminEmails() {
@@ -819,13 +837,15 @@ function getAdminPermissions(user) {
 
 async function checkAdminFeaturesAvailability() {
   return {
-    allAvailable: true,
-    features: {
-      mcpServers: false,
-      businessIntelligence: true,
-      socialMediaManagement: true,
-      realTimeMonitoring: true,
-      advancedAnalytics: true
+    allAvailable: false,
+    features: ADMIN_ENTERPRISE_FEATURE_FLAGS,
+    verificationStatus: 'partially_verified',
+    details: {
+      businessIntelligence: 'available',
+      mcpServers: 'retired',
+      socialMediaManagement: 'not_connected',
+      realTimeMonitoring: 'not_instrumented',
+      advancedAnalytics: 'not_instrumented'
     }
   };
 }

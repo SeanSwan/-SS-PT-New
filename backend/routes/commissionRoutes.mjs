@@ -33,6 +33,26 @@ const getCommissionModels = () => ({
   Order: getModel('Order'),
 });
 
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseDateParam = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year
+    || date.getMonth() !== month - 1
+    || date.getDate() !== day
+  ) {
+    return null;
+  }
+  return date;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Admin Commission Dashboard
 // PURPOSE: Overview stats, trainer earnings, payout management
@@ -48,8 +68,19 @@ router.get('/summary', protect, adminOnly, async (req, res) => {
     const { startDate, endDate } = req.query;
 
     const dateFilter = {};
-    if (startDate) dateFilter[Op.gte] = new Date(startDate);
-    if (endDate) dateFilter[Op.lte] = new Date(endDate);
+    const parsedStartDate = parseDateParam(startDate);
+    const parsedEndDate = parseDateParam(endDate);
+    if (startDate && !parsedStartDate) {
+      return res.status(400).json({ success: false, message: 'Invalid startDate' });
+    }
+    if (endDate && !parsedEndDate) {
+      return res.status(400).json({ success: false, message: 'Invalid endDate' });
+    }
+    if (parsedStartDate && parsedEndDate && parsedStartDate > parsedEndDate) {
+      return res.status(400).json({ success: false, message: 'startDate must be before endDate' });
+    }
+    if (parsedStartDate) dateFilter[Op.gte] = parsedStartDate;
+    if (parsedEndDate) dateFilter[Op.lte] = parsedEndDate;
 
     const whereClause = {};
     if (startDate || endDate) whereClause.created_at = dateFilter;
@@ -140,15 +171,20 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
   try {
     const { TrainerCommission, User, Order } = getCommissionModels();
     const { trainerId } = req.params;
+    const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+
+    if (!parsedTrainerId) {
+      return res.status(400).json({ success: false, message: 'Invalid trainerId' });
+    }
 
     // Trainers can only see their own commissions. String()-coerce:
     // req.user.id is a string (authMiddleware.mjs:631).
-    if (req.user.role === 'trainer' && String(req.user.id) !== String(trainerId)) {
+    if (req.user.role === 'trainer' && String(req.user.id) !== String(parsedTrainerId)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
     const commissions = await TrainerCommission.findAll({
-      where: { trainerId: parseInt(trainerId) },
+      where: { trainerId: parsedTrainerId },
       order: [['created_at', 'DESC']],
       limit: 100,
     });
@@ -190,7 +226,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     res.json({
       success: true,
-      trainerId: parseInt(trainerId),
+      trainerId: parsedTrainerId,
       totalEarned: parseFloat(totalEarned.toFixed(2)),
       unpaid: parseFloat(unpaid.toFixed(2)),
       commissions: enriched,
@@ -215,6 +251,11 @@ router.post('/mark-paid', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'commissionIds array required' });
     }
 
+    const parsedCommissionIds = commissionIds.map(parseStrictPositiveInteger);
+    if (parsedCommissionIds.some((id) => !id)) {
+      return res.status(400).json({ success: false, message: 'commissionIds must be positive integers' });
+    }
+
     if (!payoutMethod) {
       return res.status(400).json({ success: false, message: 'payoutMethod required (zelle, venmo, check, direct_deposit, stripe_connect)' });
     }
@@ -227,7 +268,7 @@ router.post('/mark-paid', protect, adminOnly, async (req, res) => {
       },
       {
         where: {
-          id: commissionIds,
+          id: parsedCommissionIds,
           paidToTrainerAt: null, // Only update unpaid ones
         },
       }
@@ -264,13 +305,28 @@ router.get('/payout-report', protect, adminOnly, async (req, res) => {
       return res.status(400).json({ success: false, message: 'startDate and endDate required' });
     }
 
+    const parsedStartDate = parseDateParam(startDate);
+    const parsedEndDate = parseDateParam(endDate);
+    if (!parsedStartDate || !parsedEndDate) {
+      return res.status(400).json({ success: false, message: 'startDate and endDate must be valid dates' });
+    }
+    if (parsedStartDate > parsedEndDate) {
+      return res.status(400).json({ success: false, message: 'startDate must be before endDate' });
+    }
+
     const whereClause = {
       created_at: {
-        [Op.gte]: new Date(startDate),
-        [Op.lte]: new Date(endDate),
+        [Op.gte]: parsedStartDate,
+        [Op.lte]: parsedEndDate,
       },
     };
-    if (trainerId) whereClause.trainerId = parseInt(trainerId);
+    if (trainerId) {
+      const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+      if (!parsedTrainerId) {
+        return res.status(400).json({ success: false, message: 'Invalid trainerId' });
+      }
+      whereClause.trainerId = parsedTrainerId;
+    }
 
     const commissions = await TrainerCommission.findAll({
       where: whereClause,

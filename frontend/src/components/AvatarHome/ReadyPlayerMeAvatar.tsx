@@ -13,6 +13,7 @@ import {
   User, Camera, Link, Check, ExternalLink, RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 interface Props {
   currentUrl: string | null;
@@ -172,23 +173,23 @@ const ReadyPlayerMeAvatar: React.FC<Props> = ({ currentUrl, onAvatarUpdate }) =>
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const handleSaveUrl = useCallback(async () => {
     if (!urlInput.trim()) return;
     setSaving(true);
     setStatus(null);
     try {
-      const res = await fetch('/api/avatar-home/ready-player-me', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ avatarUrl: urlInput.trim() }),
+      const res = await apiService.patch<{
+        success: boolean;
+        data?: { readyPlayerMeUrl: string };
+        message?: string;
+      }>('/api/avatar-home/ready-player-me', {
+        avatarUrl: urlInput.trim(),
+      }, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
-        onAvatarUpdate(d.data.readyPlayerMeUrl);
+        onAvatarUpdate(d.data?.readyPlayerMeUrl || urlInput.trim());
         setUrlInput('');
         setStatus({ type: 'success', text: 'Avatar linked!' });
       } else {

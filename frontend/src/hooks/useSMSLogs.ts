@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import apiService from '../services/api.service';
 
 export type SmsLog = {
   id: number;
@@ -64,25 +65,18 @@ export const useSMSLogs = (filters: SmsLogFilters = {}): UseSMSLogsResult => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/sms/logs${queryString}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get(`/api/sms/logs${queryString}`);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to fetch SMS logs');
         return;
       }
 
       setData(Array.isArray(result.data) ? result.data : []);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching SMS logs:', err);
-      setError('Network error fetching SMS logs');
+      setError(err?.response?.data?.message || 'Network error fetching SMS logs');
     } finally {
       setIsLoading(false);
     }

@@ -71,6 +71,8 @@ const VisitorWorldMap: React.FC = () => {
   const [mapData, setMapData] = useState<MapData | null>(null);
   const [allTimeTotal, setAllTimeTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [hoveredCity, setHoveredCity] = useState<CityPoint | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -82,12 +84,17 @@ const VisitorWorldMap: React.FC = () => {
   const fetchMapData = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
+      setHistoryError(null);
       const [geoRes, historyRes] = await Promise.allSettled([
         authAxios.get('/api/admin/dashboard/visitor-geo'),
         authAxios.get('/api/admin/dashboard/visitor-history', { params: { page: 1, limit: 1 } }),
       ]);
 
-      if (geoRes.status === 'fulfilled' && geoRes.value.data?.success) {
+      const geoOk = geoRes.status === 'fulfilled' && geoRes.value.data?.success;
+      const historyOk = historyRes.status === 'fulfilled' && historyRes.value.data?.success;
+
+      if (geoOk) {
         const d = geoRes.value.data;
         setMapData({
           totalVisitors: d.totalVisitors ?? 0,
@@ -95,13 +102,23 @@ const VisitorWorldMap: React.FC = () => {
           uniqueCities: d.uniqueCities ?? 0,
           byCity: (d.byCity ?? []).filter((c: any) => c.lat != null && c.lon != null),
         });
+      } else {
+        console.error('Failed to fetch map visitor geo:', geoRes);
+        setMapData(null);
+        setLoadError('Map data unavailable');
       }
 
-      if (historyRes.status === 'fulfilled' && historyRes.value.data?.success) {
+      if (historyOk) {
         setAllTimeTotal(historyRes.value.data.total ?? 0);
+      } else {
+        console.warn('Failed to fetch all-time visitor count:', historyRes);
+        setHistoryError('All-time visitor count unavailable');
       }
-    } catch {
-      /* silent — widget is non-critical */
+    } catch (err) {
+      console.error('Failed to fetch map visitor data:', err);
+      setMapData(null);
+      setLoadError('Map data unavailable');
+      setHistoryError('All-time visitor count unavailable');
     } finally {
       setLoading(false);
     }
@@ -164,6 +181,9 @@ const VisitorWorldMap: React.FC = () => {
           <StatLabel>Cities</StatLabel>
         </StatPill>
       </StatsBar>
+      {historyError && (
+        <InlineNotice role="status">{historyError}</InlineNotice>
+      )}
 
       {/* Map */}
       <MapContainer>
@@ -288,8 +308,15 @@ const VisitorWorldMap: React.FC = () => {
           </ZoomBtn>
         </ZoomControls>
 
+        {loadError && (
+          <ErrorOverlay role="alert">
+            <Globe size={32} />
+            <span>Map data unavailable. Refresh before treating geo traffic as empty.</span>
+          </ErrorOverlay>
+        )}
+
         {/* Empty state */}
-        {!loading && (!mapData?.byCity.length) && (
+        {!loadError && !loading && (!mapData?.byCity.length) && (
           <EmptyOverlay>
             <Globe size={32} />
             <span>No geo data yet — visitors will appear as they connect</span>
@@ -374,8 +401,8 @@ const HeaderRight = styled.div`
 `;
 
 const RefreshBtn = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   min-height: 44px;
   min-width: 44px;
   border-radius: 10px;
@@ -392,6 +419,11 @@ const RefreshBtn = styled.button`
     color: var(--accent-primary, #60C0F0);
     border-color: var(--accent-primary, #60C0F0);
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
   }
 
   .spinning {
@@ -415,6 +447,13 @@ const StatsBar = styled.div`
   @media (max-width: 768px) {
     padding: 10px 16px;
   }
+`;
+
+const InlineNotice = styled.div`
+  padding: 8px 20px;
+  color: var(--warning, #E5C76B);
+  font-size: 0.78rem;
+  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.06));
 `;
 
 const StatPill = styled.div`
@@ -509,8 +548,8 @@ const ZoomControls = styled.div`
 `;
 
 const ZoomBtn = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   min-height: 44px;
   min-width: 44px;
   border-radius: 10px;
@@ -528,6 +567,11 @@ const ZoomBtn = styled.button`
     color: var(--accent-primary, #60C0F0);
     border-color: var(--accent-primary, #60C0F0);
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
   }
 
   &:disabled {
@@ -549,5 +593,13 @@ const EmptyOverlay = styled.div`
 
   svg {
     opacity: 0.4;
+  }
+`;
+
+const ErrorOverlay = styled(EmptyOverlay)`
+  color: var(--warning, #E5C76B);
+
+  svg {
+    opacity: 0.75;
   }
 `;

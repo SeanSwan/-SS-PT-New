@@ -6,6 +6,7 @@
  */
 import express from 'express';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import {
   getClientProgress,
   getMeasurementHistory,
@@ -14,8 +15,8 @@ import {
 
 const router = express.Router();
 
-router.get('/:userId/progress', protect, getClientProgress);
-router.get('/:userId/measurements', protect, getMeasurementHistory);
-router.post('/:userId/measurements', protect, trainerOrAdminOnly, createMeasurement);
+router.get('/:userId/progress', protect, verifyClientAccessByUserId({ paramName: 'userId' }), getClientProgress);
+router.get('/:userId/measurements', protect, verifyClientAccessByUserId({ paramName: 'userId' }), getMeasurementHistory);
+router.post('/:userId/measurements', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId' }), createMeasurement);
 
 export default router;

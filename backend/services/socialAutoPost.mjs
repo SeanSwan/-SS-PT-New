@@ -52,7 +52,7 @@ export async function createWorkoutAutoPost(userId, workoutData) {
     try {
       const io = getIO();
       if (io) {
-        io.emit('social:activity', {
+        io.to(['user', 'trainer']).emit('social:activity', {
           type: 'workout_completed',
           userId,
           preview: content,
@@ -91,7 +91,7 @@ export async function createStreakAutoPost(userId, streakDays) {
     try {
       const io = getIO();
       if (io) {
-        io.emit('social:activity', {
+        io.to(['user', 'trainer']).emit('social:activity', {
           type: 'streak_milestone',
           userId,
           preview: content,
@@ -128,7 +128,7 @@ export async function createAchievementAutoPost(userId, achievement) {
     try {
       const io = getIO();
       if (io) {
-        io.emit('social:activity', {
+        io.to(['user', 'trainer']).emit('social:activity', {
           type: 'achievement_unlocked',
           userId,
           preview: content,

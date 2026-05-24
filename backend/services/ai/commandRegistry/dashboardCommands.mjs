@@ -31,7 +31,7 @@ const commands = [
     type: 'view_business_kpis',
     description: 'Show business KPIs and metrics',
     naturalLanguagePatterns: ['show me business KPIs', 'business metrics', 'key performance indicators'],
-    method: 'GET', endpoint: '/api/admin/compliance/analytics/business-kpis',
+    method: 'GET', endpoint: '/api/admin/analytics/business-kpis',
     inputSchema: z.object({}).optional(),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],

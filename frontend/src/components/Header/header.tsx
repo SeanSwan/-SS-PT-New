@@ -3,7 +3,7 @@
  * Clean orchestrator using extracted child components and centralized logic
  * Apple Phone-level architecture with "Crystalline Swan" aesthetic preservation
  */
-import React, { memo } from "react";
+import React, { memo, Suspense } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion } from "framer-motion";
 
@@ -18,8 +18,13 @@ import MobileMenu from "./components/MobileMenu";
 
 // Import remaining dependencies
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
-import Debug from '../Debug/Debug';
-import { UserSwitcher } from '../UserSwitcher';
+
+const Debug = import.meta.env.DEV
+  ? React.lazy(() => import('../Debug/Debug'))
+  : null;
+const UserSwitcher = import.meta.env.DEV
+  ? React.lazy(() => import('../UserSwitcher').then((module) => ({ default: module.UserSwitcher })))
+  : null;
 
 // ===================== Galaxy Animation Keyframes =====================
 const nebulaPulse = keyframes`
@@ -212,8 +217,12 @@ const ReforgedGalaxyHeader: React.FC = memo(() => {
       )}
       
       {/* Development Tools */}
-      <Debug />
-      <UserSwitcher />
+      {Debug && UserSwitcher && (
+        <Suspense fallback={null}>
+          <Debug />
+          <UserSwitcher />
+        </Suspense>
+      )}
     </>
   );
 });

@@ -38,7 +38,7 @@ const UserPreferences = db.define('UserPreferences', {
   fitnessInterests: {
     type: DataTypes.JSON, // Specific fitness interests
     defaultValue: []
-    // Format: ["yoga", "weightlifting", "cardio", "dance"]
+    // Format: ["flexibility", "weightlifting", "cardio", "dance"]
   },
   skillLevel: {
     type: DataTypes.ENUM('beginner', 'intermediate', 'advanced', 'expert'),

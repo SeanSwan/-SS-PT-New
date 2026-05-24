@@ -154,7 +154,7 @@ describe('payment idempotency race guards', () => {
     expect(sql).toContain('ON "print_orders" ("idempotency_key")');
   });
 
-  it('does not drop the older orders idempotency index when rolling back print idempotency', async () => {
+  it('drops both payment idempotency indexes on rollback', async () => {
     const queryInterface = {
       describeTable: vi.fn().mockResolvedValue({ id: {}, idempotency_key: {} }),
       removeColumn: vi.fn(),
@@ -167,6 +167,6 @@ describe('payment idempotency race guards', () => {
 
     const sql = queryInterface.sequelize.query.mock.calls.map(([statement]) => statement).join('\n');
     expect(sql).toContain('DROP INDEX IF EXISTS "idx_print_orders_idempotency_key"');
-    expect(sql).not.toContain('DROP INDEX IF EXISTS "idx_orders_idempotency_key"');
+    expect(sql).toContain('DROP INDEX IF EXISTS "idx_orders_idempotency_key"');
   });
 });

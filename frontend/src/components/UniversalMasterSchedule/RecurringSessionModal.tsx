@@ -19,6 +19,7 @@ import {
   SmallText,
   TimeWheelPicker,
 } from './ui';
+import apiService from '../../services/api.service';
 
 interface RecurringSessionModalProps {
   open: boolean;
@@ -50,6 +51,9 @@ const durationPresets = [
   { value: 'ongoing', label: 'Ongoing (12 months max)' },
   { value: 'custom', label: 'Custom Date Range' },
 ];
+
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || fallback;
 
 /** Given a start date string (YYYY-MM-DD) and a preset key, return YYYY-MM-DD end date */
 function computeEndDate(start: string, preset: string): string {
@@ -120,24 +124,8 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
 
     const loadTrainers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setTrainers([]);
-          return;
-        }
-
-        const response = await fetch('/api/sessions/users/trainers', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          setTrainers([]);
-          return;
-        }
-
-        const payload = await response.json();
+        const response = await apiService.get('/api/sessions/users/trainers');
+        const payload = response.data;
         const raw = Array.isArray(payload)
           ? payload
           : payload?.data || payload?.trainers || [];
@@ -227,11 +215,6 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to create recurring sessions');
-        return;
-      }
 
       const payload = {
         startDate,
@@ -247,18 +230,10 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
         timezoneOffsetMinutes: new Date().getTimezoneOffset()
       };
 
-      const response = await fetch('/api/sessions/recurring', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post('/api/sessions/recurring', payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to create recurring sessions');
         return;
       }
@@ -267,7 +242,7 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error creating recurring sessions:', error);
-      setFormError('Could not create recurring sessions. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Could not create recurring sessions. Please try again.'));
     } finally {
       setLoading(false);
     }

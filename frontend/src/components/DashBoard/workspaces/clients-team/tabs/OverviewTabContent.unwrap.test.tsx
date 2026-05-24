@@ -16,6 +16,14 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+const apiGetMock = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../../../services/api.service', () => ({
+  default: {
+    get: apiGetMock,
+  },
+}));
+
 import OverviewTabContent from './OverviewTabContent';
 
 const synthStats = {
@@ -40,26 +48,18 @@ const synthStats = {
 };
 
 describe('OverviewTabContent — Phase 18 P1-O sibling-sweep unwrap', () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-  let originalFetch: typeof globalThis.fetch;
-
   beforeEach(() => {
-    originalFetch = globalThis.fetch;
-    fetchMock = vi.fn();
-    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-    vi.spyOn(window.localStorage.__proto__, 'getItem').mockReturnValue('synthetic-token');
+    apiGetMock.mockReset();
   });
 
   afterEach(() => {
-    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
     cleanup();
   });
 
   it('renders consumer fields from the canonical { data: { client } } shape', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true, data: { client: synthStats, mcpStats: {} } }),
+    apiGetMock.mockResolvedValue({
+      data: { success: true, data: { client: synthStats, mcpStats: {} } },
     });
 
     render(<OverviewTabContent clientId={424242} clientName="Fixture Client" />);
@@ -72,12 +72,12 @@ describe('OverviewTabContent — Phase 18 P1-O sibling-sweep unwrap', () => {
     expect(screen.getByText('1,234 XP')).toBeInTheDocument();
     expect(screen.getByText('5-day streak')).toBeInTheDocument();
     expect(screen.getByText('Phase 2')).toBeInTheDocument();
+    expect(apiGetMock).toHaveBeenCalledWith('/api/admin/clients/424242');
   });
 
   it('still renders consumer fields from the legacy { client } shape (regression)', async () => {
-    fetchMock.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ client: synthStats }),
+    apiGetMock.mockResolvedValue({
+      data: { client: synthStats },
     });
 
     render(<OverviewTabContent clientId={424242} clientName="Fixture Client" />);

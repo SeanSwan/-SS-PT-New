@@ -20,6 +20,7 @@ import {
   Brain, Gauge, Flame, BarChart3,
   Award, DollarSign, Calendar, TrendingUp,
 } from 'lucide-react';
+import apiService from '../../../../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -171,13 +172,12 @@ function useClientOverview(clientId: number | string) {
   useEffect(() => {
     if (!clientId) return;
     setLoading(true);
-    const token = localStorage.getItem('token');
+    let cancelled = false;
 
-    fetch(`/api/admin/clients/${clientId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : Promise.reject(r))
-      .then(json => {
+    apiService.get(`/api/admin/clients/${clientId}`)
+      .then(response => {
+        if (cancelled) return;
+        const json = response.data;
         // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps
         // the client one extra level deep: `{ data: { client, mcpStats } }`.
         // Pierce that first; preserve legacy `client` / `data` fallbacks.
@@ -196,8 +196,16 @@ function useClientOverview(clientId: number | string) {
           optPhase: c.currentPhase || c.optPhase || 1,
         });
       })
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [clientId]);
 
   return { data, loading };

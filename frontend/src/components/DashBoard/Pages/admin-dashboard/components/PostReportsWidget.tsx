@@ -26,7 +26,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Flag, ChevronRight, Check, XCircle, AlertTriangle } from 'lucide-react';
+import { Flag, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 
@@ -35,15 +35,36 @@ import { useAuth } from '../../../../../context/AuthContext';
 // ─────────────────────────────────────────────────────────────
 
 interface PostReport {
-  id: number;
+  id: string;
   reason: string;
   description: string | null;
   status: string;
   priority: string;
   createdAt: string;
   reporter?: { firstName: string; lastName: string };
-  contentSnippet?: string;
+  reporterName?: string;
+  contentPreview?: string;
 }
+
+const normalizeReport = (report: any): PostReport => {
+  const reporterName = report.reporterName
+    ?? (report.reporter ? `${report.reporter.firstName ?? ''} ${report.reporter.lastName ?? ''}`.trim() : '');
+
+  return {
+    id: String(report.id),
+    reason: report.reason || 'other',
+    description: report.description || null,
+    status: report.status || 'pending',
+    priority: report.priority || 'low',
+    createdAt: report.createdAt || new Date().toISOString(),
+    reporter: reporterName ? {
+      firstName: reporterName.split(' ')[0] || reporterName,
+      lastName: reporterName.split(' ').slice(1).join(' ') || ' ',
+    } : undefined,
+    reporterName,
+    contentPreview: report.contentPreview || report.contentSnippet || '',
+  };
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -170,31 +191,6 @@ const Snippet = styled.p`
   white-space: nowrap;
 `;
 
-const ActionRow = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const ActionBtn = styled.button<{ $variant?: 'resolve' | 'dismiss' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 36px;
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  border: 1px solid ${props => props.$variant === 'resolve' ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.1)'};
-  background: ${props => props.$variant === 'resolve' ? 'rgba(16,185,129,0.1)' : 'transparent'};
-  color: ${props => props.$variant === 'resolve' ? '#10b981' : 'rgba(255,255,255,0.6)'};
-  &:hover {
-    background: ${props => props.$variant === 'resolve' ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)'};
-  }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 2px; }
-`;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -204,39 +200,35 @@ const PostReportsWidget: React.FC = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState<PostReport[]>([]);
   const [totalPending, setTotalPending] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchReports = useCallback(async () => {
     try {
+      setLoadError(null);
       const res = await authAxios.get('/api/admin/content/reports', {
         params: { status: 'pending', limit: 5 },
       });
-      const data = res.data?.reports || res.data?.data || [];
-      setReports(Array.isArray(data) ? data.slice(0, 5) : []);
-      setTotalPending(res.data?.total || res.data?.count || data.length || 0);
-    } catch {
-      // Admin endpoint may not exist yet — fail silently
+      const data = res.data?.data?.reports || res.data?.reports || [];
+      const pendingReports = Array.isArray(data) ? data : [];
+      setReports(pendingReports.slice(0, 5).map(normalizeReport));
+      setTotalPending(
+        res.data?.data?.pagination?.total
+          ?? res.data?.data?.summary?.pending
+          ?? res.data?.total
+          ?? res.data?.count
+          ?? pendingReports.length
+      );
+    } catch (error) {
+      console.error('Failed to load post reports:', error);
       setReports([]);
       setTotalPending(0);
+      setLoadError('Reports data unavailable');
     }
   }, [authAxios]);
 
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
-
-  const handleAction = useCallback(async (reportId: number, action: 'resolved' | 'dismissed') => {
-    try {
-      await authAxios.post('/api/admin/content/moderate', {
-        reportId,
-        action: action === 'resolved' ? 'resolve' : 'dismiss',
-      });
-      setReports(prev => prev.filter(r => r.id !== reportId));
-      setTotalPending(prev => Math.max(0, prev - 1));
-    } catch {
-      // Fallback: remove from UI anyway
-      setReports(prev => prev.filter(r => r.id !== reportId));
-    }
-  }, [authAxios]);
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -259,7 +251,12 @@ const PostReportsWidget: React.FC = () => {
         </ViewAllBtn>
       </Header>
 
-      {reports.length === 0 ? (
+      {loadError ? (
+        <EmptyState role="alert">
+          <AlertTriangle size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
+          <div>Reports data unavailable</div>
+        </EmptyState>
+      ) : reports.length === 0 ? (
         <EmptyState>
           <AlertTriangle size={24} style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>No pending reports</div>
@@ -271,8 +268,8 @@ const PostReportsWidget: React.FC = () => {
               <div>
                 <ReasonLabel>{report.reason.replace(/-/g, ' ')}</ReasonLabel>
                 <ReporterInfo>
-                  {report.reporter
-                    ? ` — by ${report.reporter.firstName} ${report.reporter.lastName[0]}.`
+                  {report.reporterName
+                    ? ` — by ${report.reporterName}`
                     : ''}
                   {' '}· {formatTimeAgo(report.createdAt)}
                 </ReporterInfo>
@@ -286,20 +283,9 @@ const PostReportsWidget: React.FC = () => {
               <Snippet>"{report.description}"</Snippet>
             )}
 
-            <ActionRow>
-              <ActionBtn
-                $variant="resolve"
-                onClick={() => handleAction(report.id, 'resolved')}
-              >
-                <Check size={14} /> Resolve
-              </ActionBtn>
-              <ActionBtn
-                $variant="dismiss"
-                onClick={() => handleAction(report.id, 'dismissed')}
-              >
-                <XCircle size={14} /> Dismiss
-              </ActionBtn>
-            </ActionRow>
+            {report.contentPreview && (
+              <Snippet>{report.contentPreview}</Snippet>
+            )}
           </ReportItem>
         ))
       )}

@@ -14,6 +14,7 @@ import {
   Heart, Zap, Smile, Frown, Star, Sparkles,
   Drumstick, Hand, Gamepad2, PawPrint, Egg,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 // ── Animations ──
 const bounce = keyframes`
@@ -246,14 +247,10 @@ const CompanionPetPanel: React.FC<CompanionPetPanelProps> = ({ userId, onAdoptCl
   const [petData, setPetData] = useState<PetData | null>(null);
   const [interacting, setInteracting] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchPet = useCallback(async () => {
     try {
-      const res = await fetch(`/api/gamification/users/${userId}/pet`, { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: PetData }>(`/api/gamification/users/${userId}/pet`);
+      const d = res.data;
       if (d.success) setPetData(d.data);
     } catch { /* best-effort */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,11 +261,7 @@ const CompanionPetPanel: React.FC<CompanionPetPanelProps> = ({ userId, onAdoptCl
   const handleInteract = async (type: 'pet' | 'feed' | 'play') => {
     setInteracting(true);
     try {
-      await fetch(`/api/gamification/users/${userId}/pet/interact`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ interactionType: type }),
-      });
+      await apiService.post(`/api/gamification/users/${userId}/pet/interact`, { interactionType: type });
       await fetchPet();
     } catch { /* best-effort */ }
     setInteracting(false);

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { logger } from '@/utils/logger';
+import { useAuth } from './AuthContext';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -16,18 +18,36 @@ interface SocketProviderProps {
 }
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
+  const { isAuthenticated, token } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Initialize socket connection
+    if (!isAuthenticated || !token) {
+      setSocket(null);
+      setIsConnected(false);
+      return;
+    }
+
     const socketInstance = io(import.meta.env.VITE_BACKEND_URL || 'http://localhost:10000', {
+      auth: { token },
       transports: ['websocket', 'polling'],
       upgrade: true,
+      withCredentials: true,
     });
 
     socketInstance.on('connect', () => {
-      setIsConnected(true);
+      socketInstance.emit('authenticate', { token });
+    });
+
+    socketInstance.on('authenticated', () => {
+      setIsConnected(Boolean(true));
+    });
+
+    socketInstance.on('auth_error', (error) => {
+      logger.warn('[Socket] Authentication failed:', error);
+      setIsConnected(false);
+      socketInstance.disconnect();
     });
 
     socketInstance.on('disconnect', () => {
@@ -39,7 +59,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [isAuthenticated, token]);
 
   return (
     <SocketContext.Provider value={{ socket, isConnected }}>

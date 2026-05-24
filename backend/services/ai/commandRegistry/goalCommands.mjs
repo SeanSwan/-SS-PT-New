@@ -57,11 +57,11 @@ const commands = [
   {
     type: 'award_badge',
     description: 'Award a badge to a client',
-    naturalLanguagePatterns: ['award {badge} to {client}', 'give {client} the {badge} badge'],
-    method: 'POST', endpoint: '/api/gamification/badges',
+    naturalLanguagePatterns: ['award achievement {achievementId} to {client}', 'give {client} achievement {achievementId}'],
+    method: 'POST', endpoint: '/api/gamification/users/:userId/achievements/:achievementId',
     inputSchema: z.object({
       userId: z.number().int().positive(),
-      badgeType: z.string().min(1),
+      achievementId: z.number().int().positive(),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['admin', 'trainer'],
@@ -71,7 +71,7 @@ const commands = [
     type: 'view_xp_streaks',
     description: 'Show a client\'s XP and streaks',
     naturalLanguagePatterns: ['show {client}\'s XP', '{client}\'s streaks', 'how many points does {client} have'],
-    method: 'GET', endpoint: '/api/gamification',
+    method: 'GET', endpoint: '/api/gamification/profile',
     inputSchema: z.object({ userId: z.number().int().positive() }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer', 'client'],

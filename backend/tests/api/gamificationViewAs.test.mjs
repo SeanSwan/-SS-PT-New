@@ -42,51 +42,18 @@ vi.mock('../../utils/logger.mjs', () => ({
 // Controllers + service layer are not under test here — stub them so we
 // can assert the userId they receive.
 vi.mock('../../controllers/gamificationController.mjs', () => ({
-  default: {
+  default: new Proxy({
     getUserProfile: (req, res) => {
       getUserProfileMock(req.params.userId);
       return res.status(200).json({ success: true, userId: req.params.userId });
     },
-    getAllAchievements: vi.fn(),
-    getAchievement: vi.fn(),
-    createAchievement: vi.fn(),
-    updateAchievement: vi.fn(),
-    deleteAchievement: vi.fn(),
-    awardAchievement: vi.fn(),
-    updateAchievementProgress: vi.fn(),
-    awardPoints: vi.fn(),
-    getUserTransactions: vi.fn(),
-    getAllRewards: vi.fn(),
-    getReward: vi.fn(),
-    createReward: vi.fn(),
-    updateReward: vi.fn(),
-    deleteReward: vi.fn(),
-    redeemReward: vi.fn(),
-    getAllMilestones: vi.fn(),
-    getMilestone: vi.fn(),
-    createMilestone: vi.fn(),
-    updateMilestone: vi.fn(),
-    deleteMilestone: vi.fn(),
-    checkAndAwardMilestones: vi.fn(),
-    getSettings: vi.fn(),
-    updateSettings: vi.fn(),
-    recordWorkoutCompletion: vi.fn(),
-    markNotificationAsRead: vi.fn(),
-    debugSeedAchievements: vi.fn(),
-    getStreakFreezeStatus: vi.fn(),
-    useStreakFreeze: vi.fn(),
-    getComebackChallenge: vi.fn(),
-    acceptComebackChallenge: vi.fn(),
-    getActivityFeed: vi.fn(),
-    getWeeklyRecap: vi.fn(),
-    getPetConfig: vi.fn(),
-    getPet: vi.fn(),
-    adoptPet: vi.fn(),
-    interactWithPet: vi.fn(),
-    recordPetActivity: vi.fn(),
-    renamePet: vi.fn(),
-    releasePet: vi.fn(),
-  },
+  }, {
+    get: (target, prop) => {
+      if (prop in target) return target[prop];
+      if (typeof prop === 'symbol') return target[prop];
+      return (_req, res) => res.status(200).json({ success: true });
+    },
+  }),
 }));
 
 // Non-test controllers — any method returns a noop 200 handler so route

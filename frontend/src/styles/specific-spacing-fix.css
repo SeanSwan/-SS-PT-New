@@ -5,8 +5,7 @@
 /* SwanStudios logo spacing fix */
 .logo-container,
 .header-logo,
-header > div:first-child,
-.MuiToolbar-root > div:first-child {
+header > div:first-child {
   margin-left: 20px !important;
   padding-left: 10px !important;
 }
@@ -56,22 +55,19 @@ nav div a.active {
 
 /* Apply consistent margins to header container */
 header,
-.header,
-.MuiAppBar-root {
+.header {
   padding: 0 !important;
 }
 
 /* Apply consistent height to header */
 header,
-.header,
-.MuiAppBar-root {
+.header {
   height: 80px !important;
 }
 
 /* Add subtle dropshadow to header */
 header,
-.header,
-.MuiAppBar-root {
+.header {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
 }
 

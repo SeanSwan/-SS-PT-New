@@ -18,6 +18,7 @@ import PetAdoptionModal from './PetAdoptionModal';
 import CrystallineMarketplace from './CrystallineMarketplace';
 import FactionHooksPanel from './FactionHooksPanel';
 import ReadyPlayerMeAvatar from './ReadyPlayerMeAvatar';
+import apiService from '../../services/api.service';
 
 const PageWrapper = styled.div`
   min-height: 100%;
@@ -122,17 +123,13 @@ const AvatarHomePage: React.FC = () => {
   const [showAdoptModal, setShowAdoptModal] = useState(false);
   const [petKey, setPetKey] = useState(0);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   useEffect(() => {
     // Fetch avatar home data
-    fetch('/api/avatar-home', { headers })
-      .then(r => r.json())
-      .then(d => {
+    apiService.get<{ success: boolean; data?: HomeData; message?: string }>('/api/avatar-home')
+      .then(res => {
+        const d = res.data;
         if (d.success) {
-          setHomeData(d.data);
+          setHomeData(d.data || null);
         } else {
           setError(d.message || 'Failed to load avatar home');
         }
@@ -142,9 +139,9 @@ const AvatarHomePage: React.FC = () => {
 
     // Fetch user level + userId from gamification
     // Response shape: { success, profile: { id, level, ... } }
-    fetch('/api/gamification/profile', { headers })
-      .then(r => r.json())
-      .then(d => {
+    apiService.get('/api/gamification/profile')
+      .then(res => {
+        const d = res.data;
         const profile = d.profile || d.data || d;
         if (profile?.level) setUserLevel(profile.level);
         if (profile?.id) setUserId(profile.id);
@@ -156,11 +153,8 @@ const AvatarHomePage: React.FC = () => {
 
   const toggleMinimalistMode = useCallback(async () => {
     try {
-      const res = await fetch('/api/avatar-home/minimalist-mode', {
-        method: 'PATCH',
-        headers,
-      });
-      const d = await res.json();
+      const res = await apiService.patch<{ success: boolean; data: { minimalistMode: boolean } }>('/api/avatar-home/minimalist-mode');
+      const d = res.data;
       if (d.success && homeData) {
         setHomeData({ ...homeData, minimalistMode: d.data.minimalistMode });
       }
@@ -170,12 +164,8 @@ const AvatarHomePage: React.FC = () => {
 
   const handleRoomChange = useCallback(async (room: string) => {
     try {
-      const res = await fetch('/api/avatar-home/room', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ room }),
-      });
-      const d = await res.json();
+      const res = await apiService.patch<{ success: boolean; data: { activeRoom: string } }>('/api/avatar-home/room', { room });
+      const d = res.data;
       if (d.success && homeData) {
         setHomeData({ ...homeData, activeRoom: room });
       }

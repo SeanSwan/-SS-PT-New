@@ -13,20 +13,24 @@ const {
   userUpdate,
   findCart,
   findUser,
+  shoppingCartModel,
 } = vi.hoisted(() => {
+  const findCart = vi.fn();
   const transaction = {
     LOCK: { UPDATE: 'UPDATE' },
     commit: vi.fn(),
     rollback: vi.fn(),
   };
+  const shoppingCartModel = { name: 'ShoppingCart', findOne: findCart };
 
   return {
     transaction,
     cartUpdate: vi.fn(),
     userIncrement: vi.fn(),
     userUpdate: vi.fn(),
-    findCart: vi.fn(),
+    findCart,
     findUser: vi.fn(),
+    shoppingCartModel,
   };
 });
 
@@ -37,7 +41,7 @@ vi.mock('../database.mjs', () => ({
 }));
 
 vi.mock('../models/index.mjs', () => ({
-  getShoppingCart: () => ({ findOne: findCart }),
+  getShoppingCart: () => shoppingCartModel,
   getCartItem: () => ({ name: 'CartItem' }),
   getStorefrontItem: () => ({ name: 'StorefrontItem' }),
   getUser: () => ({ findByPk: findUser }),
@@ -112,5 +116,26 @@ describe('grantSessionsForCart monthly package credits', () => {
       sessionsAdded: 34,
       alreadyProcessed: false,
     });
+  });
+
+  it('scopes the cart lock to ShoppingCart so Postgres does not lock nullable joined rows', async () => {
+    findCart.mockResolvedValue({
+      id: 100,
+      userId: 42,
+      status: 'pending_payment',
+      sessionsGranted: true,
+      cartItems: [],
+      update: cartUpdate,
+    });
+
+    await grantSessionsForCart(100, 42, 'verify-session');
+
+    expect(findCart).toHaveBeenCalledWith(expect.objectContaining({
+      lock: {
+        level: transaction.LOCK.UPDATE,
+        of: shoppingCartModel,
+      },
+      transaction,
+    }));
   });
 });

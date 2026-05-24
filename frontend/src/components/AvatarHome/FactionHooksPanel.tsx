@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Shield, Users, LogIn, LogOut, Loader } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 const Panel = styled.div`
   padding: 20px;
@@ -127,14 +128,10 @@ const FactionHooksPanel: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchFaction = useCallback(async () => {
     try {
-      const res = await fetch('/api/avatar-home/faction', { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: { factionId: string | null } }>('/api/avatar-home/faction');
+      const d = res.data;
       if (d.success) setFactionId(d.data.factionId);
     } catch { /* best-effort */ }
     setLoading(false);
@@ -147,12 +144,10 @@ const FactionHooksPanel: React.FC = () => {
     if (!inputFaction.trim()) return;
     setUpdating(true);
     try {
-      const res = await fetch('/api/avatar-home/faction', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ factionId: inputFaction.trim() }),
+      const res = await apiService.patch<{ success: boolean; data: { factionId: string | null } }>('/api/avatar-home/faction', {
+        factionId: inputFaction.trim(),
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         setFactionId(d.data.factionId);
         setInputFaction('');
@@ -164,12 +159,8 @@ const FactionHooksPanel: React.FC = () => {
   const handleLeave = async () => {
     setUpdating(true);
     try {
-      const res = await fetch('/api/avatar-home/faction', {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ factionId: null }),
-      });
-      const d = await res.json();
+      const res = await apiService.patch<{ success: boolean }>('/api/avatar-home/faction', { factionId: null });
+      const d = res.data;
       if (d.success) setFactionId(null);
     } catch { /* best-effort */ }
     setUpdating(false);

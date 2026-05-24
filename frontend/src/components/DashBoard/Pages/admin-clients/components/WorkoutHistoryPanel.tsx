@@ -33,7 +33,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import {
   Dumbbell, Clock, Target, Trophy, BarChart3,
@@ -301,7 +301,7 @@ const SessionCard = styled.div`
   &:hover { border-color: rgba(96, 192, 240, 0.2); }
 `;
 
-const SessionHeader = styled.button`
+const SessionHeader = styled.div`
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -310,6 +310,19 @@ const SessionHeader = styled.button`
   background: transparent;
   border: none;
   color: var(--text-primary, #E0ECF4);
+  gap: 12px;
+`;
+
+const SessionToggleButton = styled.button`
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
   cursor: pointer;
   min-height: 44px;
   text-align: left;
@@ -540,7 +553,7 @@ const ShareIconBtn = styled.button`
   align-items: center;
   gap: 4px;
   padding: 4px 10px;
-  min-height: 36px;
+  min-height: 44px;
   border-radius: 6px;
   border: 1px solid rgba(139, 92, 246, 0.4);
   background: rgba(139, 92, 246, 0.12);
@@ -811,6 +824,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   const [editLogs, setEditLogs] = useState<WorkoutLogEntry[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const nextTemporarySetIdRef = useRef(-1);
 
   const toggleSession = (id: string) => {
     // Collapsing a session mid-edit discards the edit — matches the old
@@ -953,13 +967,15 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     setEditLogs((prev) => {
       const existingSets = prev.filter((l) => l.exerciseName === exerciseName);
       const nextSetNumber = existingSets.length + 1;
+      const temporaryId = nextTemporarySetIdRef.current;
+      nextTemporarySetIdRef.current -= 1;
       // Negative id marks this as a new row not yet persisted. The backend
       // rebuilds set rows on PATCH so the id only needs to be unique
       // client-side for React keys.
       return [
         ...prev,
         {
-          id: -Date.now() - Math.floor(Math.random() * 1000),
+          id: temporaryId,
           exerciseName,
           setNumber: nextSetNumber,
           reps: 0,
@@ -1139,31 +1155,37 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
             ) : (
               data.sessions.map((session) => {
                 const isExpanded = expandedSessions.has(session.id);
-                const exerciseGroups = groupLogs(session);
-                return (
-                  <SessionCard key={session.id}>
-                    <SessionHeader onClick={() => toggleSession(session.id)}>
-                      <div>
-                        <SessionTitle>{session.title}</SessionTitle>
-                        <SessionMeta>
-                          <MetaChip>
-                            {new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </MetaChip>
-                          {session.duration > 0 && (
-                            <MetaChip><Clock size={12} /> {session.duration}min</MetaChip>
-                          )}
-                          <MetaChip><Dumbbell size={12} /> {exerciseGroups.length} exercises</MetaChip>
-                          {session.intensity > 0 && (
-                            <MetaChip><Target size={12} /> {session.intensity}/10</MetaChip>
-                          )}
-                        </SessionMeta>
-                      </div>
+                  const exerciseGroups = groupLogs(session);
+                  return (
+                    <SessionCard key={session.id}>
+                    <SessionHeader>
+                      <SessionToggleButton
+                        type="button"
+                        onClick={() => toggleSession(session.id)}
+                        aria-expanded={isExpanded}
+                      >
+                        <div>
+                          <SessionTitle>{session.title}</SessionTitle>
+                          <SessionMeta>
+                            <MetaChip>
+                              {new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </MetaChip>
+                            {session.duration > 0 && (
+                              <MetaChip><Clock size={12} /> {session.duration}min</MetaChip>
+                            )}
+                            <MetaChip><Dumbbell size={12} /> {exerciseGroups.length} exercises</MetaChip>
+                            {session.intensity > 0 && (
+                              <MetaChip><Target size={12} /> {session.intensity}/10</MetaChip>
+                            )}
+                          </SessionMeta>
+                        </div>
+                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                      </SessionToggleButton>
                       <SessionHeaderActions>
-                        <ShareIconBtn onClick={(e) => { e.stopPropagation(); setShareSession(session); }}
+                        <ShareIconBtn onClick={() => setShareSession(session)}
                           aria-label={`Share ${session.title} to social feed`}>
                           <Share2 size={12} /> Share
                         </ShareIconBtn>
-                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </SessionHeaderActions>
                     </SessionHeader>
 

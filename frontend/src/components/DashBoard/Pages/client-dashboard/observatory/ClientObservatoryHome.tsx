@@ -22,6 +22,7 @@ import {
 import ClientObservatoryFeed from './ClientObservatoryFeed';
 import ClientObservatoryHero from './ClientObservatoryHero';
 import ClientObservatoryWidgets from './ClientObservatoryWidgets';
+import { useCurrentClientWorkout } from './useCurrentClientWorkout';
 import {
   ChallengePreview,
   FeedPostPreview,
@@ -63,6 +64,7 @@ const ClientObservatoryHome: React.FC = () => {
   const challengeQuery = useSocialChallenges();
   const leaderboardQuery = useLeaderboard({ limit: 5 });
   const createPost = useCreatePost();
+  const currentWorkout = useCurrentClientWorkout(user?.id);
 
   const [activeLens, setActiveLens] = useState<LensId>(() => lensFromRoute(tab));
   const [postText, setPostText] = useState('');
@@ -229,6 +231,9 @@ const ClientObservatoryHome: React.FC = () => {
           <ClientObservatoryWidgets
             achievements={achievements}
             challenge={challenges[0]}
+            currentWorkout={currentWorkout.workout}
+            currentWorkoutError={currentWorkout.error}
+            currentWorkoutLoading={currentWorkout.loading}
             leaderboard={leaderboard}
             progress={progress}
             streakDays={streakDays}

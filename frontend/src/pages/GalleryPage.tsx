@@ -18,6 +18,7 @@ import PhotoDetailModal from './gallery/PhotoDetailModal';
 import GalleryInfoCard from './gallery/GalleryInfoCard';
 import MessageModal from './gallery/MessageModal';
 import DonationModal from './gallery/DonationModal';
+import ReferralModal from './gallery/ReferralModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -1122,10 +1123,12 @@ const GalleryPage: React.FC = () => {
   const [showVipModal, setShowVipModal] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [showReferralModal, setShowReferralModal] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState<string | null>(null);
 
   // Welcome toast state
   const [showWelcomeToast, setShowWelcomeToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('Sean gifted you 3 Enhancement Passes!');
   const [toastExiting, setToastExiting] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1223,7 +1226,9 @@ const GalleryPage: React.FC = () => {
   }, [galleryToken, fetchCredits]);
 
   // Welcome toast auto-dismiss
-  const showToast = useCallback(() => {
+  const showToast = useCallback((message = 'Sean gifted you 3 Enhancement Passes!') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage(message);
     setShowWelcomeToast(true);
     setToastExiting(false);
     toastTimerRef.current = setTimeout(() => {
@@ -1231,6 +1236,32 @@ const GalleryPage: React.FC = () => {
       setTimeout(() => setShowWelcomeToast(false), 400);
     }, 4000);
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const creditStatus = params.get('credits');
+    const donationStatus = params.get('donation');
+    if (!creditStatus && !donationStatus) return;
+
+    if (creditStatus === 'success') {
+      showToast('Enhancement credits are ready. Select your photos when you are ready.');
+      if (galleryToken) void fetchCredits();
+    } else if (creditStatus === 'cancelled') {
+      showToast('Credit checkout cancelled. Your gallery is still open.');
+    }
+
+    if (donationStatus === 'success') {
+      showToast('Thank you for supporting SwanStudios.');
+    } else if (donationStatus === 'cancelled') {
+      showToast('Donation checkout cancelled. Your gallery is still open.');
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('credits');
+    url.searchParams.delete('donation');
+    url.searchParams.delete('package');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+  }, [fetchCredits, galleryToken, showToast]);
 
   useEffect(() => {
     return () => {
@@ -1550,7 +1581,7 @@ const GalleryPage: React.FC = () => {
     } catch { /* best effort */ }
   };
 
-  const handlePurchaseCredits = async (packageType: 'single' | 'bundle' | 'vip') => {
+  const handlePurchaseCredits = async (packageType: 'single' | 'bundle5' | 'vip') => {
     if (!galleryToken) return;
     setPurchaseLoading(packageType);
     try {
@@ -1560,7 +1591,7 @@ const GalleryPage: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${galleryToken}`,
         },
-        body: JSON.stringify({ packageType }),
+        body: JSON.stringify({ package: packageType }),
       });
       const data = await res.json();
       if (data.success && data.checkoutUrl) {
@@ -1796,15 +1827,9 @@ const GalleryPage: React.FC = () => {
             onOpenMessage={() => setShowMessageModal(true)}
             onOpenDonation={() => setShowDonationModal(true)}
             onOpenVip={() => {
-              const token = localStorage.getItem('token');
-              if (!token) {
-                // Not logged in → signup, then redirect back here with VIP modal
-                navigate('/signup', { state: { returnTo: `/gallery/${slug}`, showVipModal: true } });
-              } else if (authUser?.availableSessions && authUser.availableSessions > 0) {
-                // Existing client with sessions → straight to store
+              if (authUser?.availableSessions && authUser.availableSessions > 0) {
                 navigate('/store');
               } else {
-                // New client (signed up but no sessions yet) → VIP modal funnel
                 setShowVipModal(true);
               }
             }}
@@ -1924,7 +1949,7 @@ const GalleryPage: React.FC = () => {
         {/* Welcome Toast */}
         {showWelcomeToast && (
           <ToastWrapper $exiting={toastExiting}>
-            Sean gifted you 3 Enhancement Passes!
+            {toastMessage}
           </ToastWrapper>
         )}
 
@@ -1935,10 +1960,10 @@ const GalleryPage: React.FC = () => {
               <SupportTitle>Enhancement Request Submitted!</SupportTitle>
               <SupportText>Your enhanced photos will be delivered to your email. Love what we do? Here are ways to support SwanStudios:</SupportText>
               <SupportButtons>
-                <SupportBtn $variant="primary" onClick={() => { /* TODO: referral modal */ }}>
+                <SupportBtn $variant="primary" onClick={() => { setShowSupport(false); setShowReferralModal(true); }}>
                   Refer a Friend for Training
                 </SupportBtn>
-                <SupportBtn $variant="secondary" onClick={() => { /* TODO: donation modal */ }}>
+                <SupportBtn $variant="secondary" onClick={() => { setShowSupport(false); setShowDonationModal(true); }}>
                   Leave a Tip
                 </SupportBtn>
                 <SupportBtn $variant="ghost" onClick={() => setShowSupport(false)}>
@@ -1999,11 +2024,11 @@ const GalleryPage: React.FC = () => {
                     {purchaseLoading === 'single' && <RedirectingDesc>Redirecting...</RedirectingDesc>}
                   </PricingCard>
 
-                  <PricingCard type="button" $highlighted onClick={() => handlePurchaseCredits('bundle')}>
+                  <PricingCard type="button" $highlighted onClick={() => handlePurchaseCredits('bundle5')}>
                     <PricingLabel>Bundle</PricingLabel>
                     <PricingPrice>$50</PricingPrice>
                     <PricingDesc>5 Photo Enhancements</PricingDesc>
-                    {purchaseLoading === 'bundle' && <RedirectingDesc>Redirecting...</RedirectingDesc>}
+                    {purchaseLoading === 'bundle5' && <RedirectingDesc>Redirecting...</RedirectingDesc>}
                   </PricingCard>
 
                   <PricingCard type="button" $vip onClick={() => { setShowUpgradeModal(false); setShowVipModal(true); }}>
@@ -2013,7 +2038,7 @@ const GalleryPage: React.FC = () => {
                   </PricingCard>
                 </PricingGrid>
 
-                <ReferralLink type="button" onClick={() => { setShowUpgradeModal(false); }}>
+                <ReferralLink type="button" onClick={() => { setShowUpgradeModal(false); setShowReferralModal(true); }}>
                   Want 5 free passes? Refer a teammate to SwanStudios.
                 </ReferralLink>
               </ModalCardPositioned>
@@ -2049,6 +2074,15 @@ const GalleryPage: React.FC = () => {
           email={email}
           galleryToken={galleryToken || ''}
           eventSlug={selectedEvent?.slug || slug || gateSlug || ''}
+        />
+
+        <ReferralModal
+          isOpen={showReferralModal}
+          onClose={() => setShowReferralModal(false)}
+          email={email}
+          galleryToken={galleryToken || ''}
+          eventSlug={selectedEvent?.slug || slug || gateSlug || ''}
+          onReferralSubmitted={fetchCredits}
         />
       </ContentMax>
 

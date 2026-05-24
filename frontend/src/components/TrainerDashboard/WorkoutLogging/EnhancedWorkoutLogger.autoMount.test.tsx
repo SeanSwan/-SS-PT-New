@@ -145,7 +145,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/clients');
   });
 
-  it('API failure: keeps demo fallback path, does NOT auto-mount real WorkoutLogger', async () => {
+  it('API failure: shows an honest retry state and does NOT auto-mount real WorkoutLogger', async () => {
     mockRole = 'trainer';
     mockGet.mockRejectedValueOnce(Object.assign(new Error('Request failed'), {
       response: { status: 403, data: { message: 'forbidden' } },
@@ -156,13 +156,17 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     // Demo toast fires on failure (preserves pre-existing fallback UX).
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: expect.stringMatching(/demo/i) }),
+        expect.objectContaining({ title: expect.stringMatching(/unavailable/i) }),
       );
     });
 
     // The real WorkoutLogger must NOT auto-mount on failure — demo UI
     // still requires the user to click "Try Full Logger" by hand.
     expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+    expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
+    expect(screen.getByText(/client workout data could not be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /try full logger/i })).toBeNull();
+    expect(screen.queryByText(/demo mode/i)).toBeNull();
 
     // Role-aware copy stays consistent: failure UX is demo mode (not
     // "Back to Client Hub" / "Back to My Clients"), but the Phase 17.1

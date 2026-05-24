@@ -18,6 +18,7 @@ import {
   HelperText,
   CheckboxWrapper
 } from './ui';
+import apiService from '../../services/api.service';
 
 interface SessionSummary {
   sessionDate: string;
@@ -52,6 +53,9 @@ const formatTimeValue = (dateString?: string) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
 };
+
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || fallback;
 
 const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
   groupId,
@@ -105,24 +109,8 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
 
     const loadTrainers = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setTrainers([]);
-          return;
-        }
-
-        const response = await fetch('/api/sessions/users/trainers', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          setTrainers([]);
-          return;
-        }
-
-        const payload = await response.json();
+        const response = await apiService.get('/api/sessions/users/trainers');
+        const payload = response.data;
         const raw = Array.isArray(payload)
           ? payload
           : payload?.data || payload?.trainers || [];
@@ -181,23 +169,9 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to update recurring series.');
-        return;
-      }
-
-      const response = await fetch(`/api/sessions/recurring/${groupId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.put(`/api/sessions/recurring/${groupId}`, payload);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to update recurring series.');
         return;
       }
@@ -206,7 +180,7 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error updating recurring series:', error);
-      setFormError('Failed to update series. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to update series. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -230,22 +204,10 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to delete recurring series.');
-        return;
-      }
-
       const query = deleteAll ? '?deleteAll=true' : '';
-      const response = await fetch(`/api/sessions/recurring/${groupId}${query}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.delete(`/api/sessions/recurring/${groupId}${query}`);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to delete recurring series.');
         return;
       }
@@ -254,7 +216,7 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error deleting recurring series:', error);
-      setFormError('Failed to delete series. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to delete series. Please try again.'));
     } finally {
       setLoading(false);
     }

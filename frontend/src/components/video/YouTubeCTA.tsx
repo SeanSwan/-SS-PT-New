@@ -1,8 +1,7 @@
 import React, { useCallback } from 'react';
 import styled from 'styled-components';
 import { Youtube, Bell, ListVideo, ExternalLink } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiService from '../../services/api.service';
 
 interface YouTubeCTAProps {
   videoId: string;
@@ -22,16 +21,13 @@ const YouTubeCTA: React.FC<YouTubeCTAProps> = ({
   youtubePlaylistUrl,
 }) => {
   const trackClick = useCallback(
-    async (destination: string) => {
+    async (clickType: 'watch_on_youtube' | 'subscribe' | 'playlist') => {
       try {
-        const token = localStorage.getItem('token');
-        await fetch(`${API_BASE}/api/v2/videos/${videoId}/outbound-click`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ destination }),
+        if (!apiService.isAuthenticated()) return;
+        await apiService.post(`/api/v2/videos/${videoId}/outbound-click`, {
+          clickType,
+        }, {
+          validateStatus: status => status < 500,
         });
       } catch {
         // fire-and-forget analytics
@@ -49,7 +45,7 @@ const YouTubeCTA: React.FC<YouTubeCTAProps> = ({
           href={`https://www.youtube.com/watch?v=${youtubeVideoId}`}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackClick('youtube_watch')}
+          onClick={() => trackClick('watch_on_youtube')}
         >
           <Youtube size={18} />
           Watch on YouTube
@@ -62,7 +58,7 @@ const YouTubeCTA: React.FC<YouTubeCTAProps> = ({
           href={`https://www.youtube.com/channel/${youtubeVideoId}?sub_confirmation=1`}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackClick('youtube_subscribe')}
+          onClick={() => trackClick('subscribe')}
           $variant="subscribe"
         >
           <Bell size={18} />
@@ -75,7 +71,7 @@ const YouTubeCTA: React.FC<YouTubeCTAProps> = ({
           href={youtubePlaylistUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackClick('youtube_playlist')}
+          onClick={() => trackClick('playlist')}
           $variant="playlist"
         >
           <ListVideo size={18} />

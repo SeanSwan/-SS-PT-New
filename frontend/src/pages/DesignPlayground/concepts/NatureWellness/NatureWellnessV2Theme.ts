@@ -32,7 +32,7 @@ export const natureWellnessV2Theme: ConceptTheme = {
   memorableMoment:
     'A koi pond ripple effect follows the cursor across the hero. Stones appear to stack as the user scrolls, building a cairn. An ink wash stroke reveals section titles.',
   rationale:
-    'Dark green/charcoal inverts the original light Nature Wellness while keeping the organic soul. Japanese design principles (ma, wabi-sabi) bring meditative calm. Stone textures and ink wash aesthetic feel premium and intentional.',
+    'Dark green/charcoal inverts the original light Nature Wellness while keeping the organic soul. Japanese design principles (ma, wabi-sabi) bring quiet calm. Stone textures and ink wash aesthetic feel premium and intentional.',
   interactionLanguage:
     'Ink brush stroke reveals. Elements fade in like mist clearing. Buttons have subtle stone-press tactile feedback. Scroll triggers gentle water ripple transitions between sections.',
 };

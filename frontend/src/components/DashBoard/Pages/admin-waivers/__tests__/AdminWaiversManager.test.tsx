@@ -4,7 +4,7 @@
  * Verifies list rendering, filter behaviour, detail modal, and actions.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 
@@ -200,9 +200,15 @@ describe('AdminWaiversManager', () => {
     expect(allChip).toHaveAttribute('aria-pressed', 'true');
 
     // Clicking "Pending Match" activates it
-    fireEvent.click(screen.getByText('Pending Match'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Pending Match'));
+    });
     const pendingChip = screen.getByText('Pending Match').closest('button');
     expect(pendingChip).toHaveAttribute('aria-pressed', 'true');
+    await waitFor(() => {
+      const calls = mockGet.mock.calls.filter((c: any[]) => c[0].includes('status=pending_match'));
+      expect(calls.length).toBeGreaterThan(0);
+    });
   });
 
   it('W9 — manual-link modal passes limit and search params to server', async () => {

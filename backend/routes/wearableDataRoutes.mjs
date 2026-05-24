@@ -8,13 +8,24 @@
  */
 
 import { Router } from 'express';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { protect } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import WearableData from '../models/WearableData.mjs';
-import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 
 const router = Router();
+
+const clampInt = (value, { defaultValue, min, max }) => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) return defaultValue;
+  return Math.min(Math.max(parsed, min), max);
+};
+
+const parsePositiveInt = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 // ---- Device data parsers ----
 // Each parser normalizes device-specific data into our WearableData schema.
@@ -314,8 +325,8 @@ router.post('/sync', protect, async (req, res) => {
 router.get('/', protect, async (req, res) => {
   try {
     const { days = 30, deviceType, startDate, endDate, limit: qLimit, offset: qOffset } = req.query;
-    const limit = Math.min(parseInt(qLimit, 10) || 200, 1000);
-    const offset = parseInt(qOffset, 10) || 0;
+    const limit = clampInt(qLimit, { defaultValue: 200, min: 1, max: 1000 });
+    const offset = clampInt(qOffset, { defaultValue: 0, min: 0, max: 5000 });
 
     const where = { userId: req.user.id };
 
@@ -324,8 +335,9 @@ router.get('/', protect, async (req, res) => {
     if (startDate && endDate) {
       where.recordDate = { [Op.between]: [startDate, endDate] };
     } else {
+      const dayWindow = clampInt(days, { defaultValue: 30, min: 1, max: 3650 });
       const start = new Date();
-      start.setDate(start.getDate() - parseInt(days, 10));
+      start.setDate(start.getDate() - dayWindow);
       where.recordDate = { [Op.gte]: start.toISOString().split('T')[0] };
     }
 
@@ -351,7 +363,7 @@ router.get('/', protect, async (req, res) => {
  */
 router.get('/summary', protect, async (req, res) => {
   try {
-    const weeks = parseInt(req.query.weeks, 10) || 12;
+    const weeks = clampInt(req.query.weeks, { defaultValue: 12, min: 1, max: 260 });
     const weeklyAverages = await WearableData.getWeeklyAverages(req.user.id, weeks);
 
     // Also get most recent day's data
@@ -384,23 +396,22 @@ router.get('/summary', protect, async (req, res) => {
  * GET /api/wearable-data/user/:userId
  * Admin/Trainer: View client's wearable data
  */
-router.get('/user/:userId', protect, async (req, res) => {
+router.get('/user/:userId', protect, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { days = 30, deviceType, limit: qLimit, offset: qOffset } = req.query;
-    const limit = Math.min(parseInt(qLimit, 10) || 200, 1000);
-    const offset = parseInt(qOffset, 10) || 0;
-
-    // Authorization: admin, trainer, or self. String()-coerce: req.user.id
-    // is a string (authMiddleware.mjs:631).
-    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && String(req.user.id) !== String(userId)) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
-    const where = { userId: parseInt(userId, 10) };
+    const { days = 30, deviceType, limit: qLimit, offset: qOffset } = req.query;
+    const limit = clampInt(qLimit, { defaultValue: 200, min: 1, max: 1000 });
+    const offset = clampInt(qOffset, { defaultValue: 0, min: 0, max: 5000 });
+
+    const where = { userId };
     if (deviceType) where.deviceType = deviceType;
+    const dayWindow = clampInt(days, { defaultValue: 30, min: 1, max: 3650 });
     const start = new Date();
-    start.setDate(start.getDate() - parseInt(days, 10));
+    start.setDate(start.getDate() - dayWindow);
     where.recordDate = { [Op.gte]: start.toISOString().split('T')[0] };
 
     const { rows: data, count: total } = await WearableData.findAndCountAll({
@@ -422,26 +433,25 @@ router.get('/user/:userId', protect, async (req, res) => {
  * GET /api/wearable-data/user/:userId/summary
  * Admin/Trainer: Client wearable summary for dashboard
  */
-router.get('/user/:userId/summary', protect, async (req, res) => {
+router.get('/user/:userId/summary', protect, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
-    const { userId } = req.params;
-    const weeks = parseInt(req.query.weeks, 10) || 12;
-
-    // String()-coerce: req.user.id is a string (authMiddleware.mjs:631).
-    if (req.user.role !== 'admin' && req.user.role !== 'trainer' && String(req.user.id) !== String(userId)) {
-      return res.status(403).json({ success: false, message: 'Not authorized' });
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
-    const weeklyAverages = await WearableData.getWeeklyAverages(parseInt(userId, 10), weeks);
+    const weeks = clampInt(req.query.weeks, { defaultValue: 12, min: 1, max: 260 });
+
+    const weeklyAverages = await WearableData.getWeeklyAverages(userId, weeks);
 
     const latest = await WearableData.findOne({
-      where: { userId: parseInt(userId, 10) },
+      where: { userId },
       order: [['recordDate', 'DESC']],
       attributes: { exclude: ['rawPayload'] },
     });
 
     const devices = await WearableData.findAll({
-      where: { userId: parseInt(userId, 10) },
+      where: { userId },
       attributes: ['deviceType'],
       group: ['deviceType'],
     });
@@ -464,10 +474,15 @@ router.get('/user/:userId/summary', protect, async (req, res) => {
  */
 router.delete('/:id', protect, async (req, res) => {
   try {
-    const record = await WearableData.findByPk(req.params.id);
+    const recordId = parsePositiveInt(req.params.id);
+    if (!recordId) {
+      return res.status(400).json({ success: false, message: 'Invalid record ID' });
+    }
+
+    const record = await WearableData.findByPk(recordId);
     if (!record) return res.status(404).json({ success: false, message: 'Record not found' });
 
-    if (record.userId !== req.user.id && req.user.role !== 'admin') {
+    if (Number(record.userId) !== Number(req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 

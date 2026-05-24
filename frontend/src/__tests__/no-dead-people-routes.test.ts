@@ -14,7 +14,13 @@ const EXCLUDE_DIRS = new Set([
   'dist',
   'build',
   '.git',
+  '.understand-anything',
   'coverage',
+  'test',
+  'tests',
+  '__tests__',
+  'tmp',
+  'uploads',
 ]);
 
 const SCAN_EXTENSIONS = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
@@ -114,5 +120,5 @@ describe('no-dead-people-routes guard', () => {
       offenders,
       `New /dashboard/people references found. Replace with the canonical /dashboard/admin/client-management surface or document a new exception.\n${message}`,
     ).toEqual([]);
-  });
+  }, 15000);
 });

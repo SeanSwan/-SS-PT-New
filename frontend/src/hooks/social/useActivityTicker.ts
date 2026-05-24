@@ -23,6 +23,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { ProductionTokenManager } from '../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -31,9 +32,9 @@ import { io, Socket } from 'socket.io-client';
 
 export interface ActivityEvent {
   id: string;
-  type: 'post_created' | 'reaction_added' | 'comment_added' | 'workout_completed';
+  type: 'post_created' | 'reaction_added' | 'comment_added' | 'workout_completed' | 'streak_milestone' | 'achievement_unlocked';
   userId: number;
-  userName: string;
+  userName?: string;
   userPhoto?: string;
   postType?: string;
   postId?: number;
@@ -68,7 +69,7 @@ export function useActivityTicker() {
 
   useEffect(() => {
     // Auth token required for socket connection
-    const token = localStorage.getItem('token');
+    const token = ProductionTokenManager.getToken();
     if (!token) return;
 
     // Vite dev server proxies /api but NOT /socket.io, so window.location.origin
@@ -90,7 +91,14 @@ export function useActivityTicker() {
 
     socketRef.current = socket;
 
-    socket.on('connect', () => setIsConnected(true));
+    socket.on('connect', () => {
+      socket.emit('authenticate', { token });
+    });
+    socket.on('authenticated', () => setIsConnected(true));
+    socket.on('auth_error', () => {
+      setIsConnected(false);
+      socket.disconnect();
+    });
     socket.on('disconnect', () => setIsConnected(false));
     socket.on('connect_error', () => setIsConnected(false));
 

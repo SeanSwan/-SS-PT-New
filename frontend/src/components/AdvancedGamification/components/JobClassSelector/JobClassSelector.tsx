@@ -33,6 +33,7 @@
 import React, { useState, useCallback } from 'react';
 import { Swords, Shield, Flame, Target, Sparkles, Moon } from 'lucide-react';
 import styled, { keyframes, css } from 'styled-components';
+import apiService from '../../../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -270,13 +271,12 @@ const JobClassSelector: React.FC<JobClassSelectorProps> = ({
     if (!selectedId || isCurrentSelection || !userId) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/api/gamification/users/${userId}/job-class`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ jobClass: selectedId }),
+      const res = await apiService.put(`/api/gamification/users/${userId}/job-class`, {
+        jobClass: selectedId,
+      }, {
+        validateStatus: status => status < 500,
       });
-      if (res.ok) {
+      if (res.status >= 200 && res.status < 300) {
         onClassChange?.(selectedId);
       }
     } catch (err) {

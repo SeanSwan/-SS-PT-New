@@ -30,6 +30,7 @@ import {
   CustomSelect
 } from '../UniversalMasterSchedule/ui';
 import { useClientNotes } from '../../hooks/useClientNotes';
+import apiService from '../../services/api.service';
 
 const noteTypeOptions = [
   { value: 'general', label: 'General' },
@@ -91,30 +92,16 @@ const NotesManager: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to add notes.');
-        return;
-      }
-
       const payload = {
         content: content.trim(),
         noteType,
         visibility: isPrivate ? 'private' : 'trainer_only'
       };
 
-      const response = await fetch(`/api/notes/${numericClientId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post(`/api/notes/${numericClientId}`, payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to create note.');
         return;
       }
@@ -151,30 +138,16 @@ const NotesManager: React.FC = () => {
     setSuccessMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to update notes.');
-        return;
-      }
-
       const payload = {
         content: editContent.trim(),
         noteType: editType,
         visibility: editPrivate ? 'private' : 'trainer_only'
       };
 
-      const response = await fetch(`/api/notes/${numericClientId}/${editingNoteId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.put(`/api/notes/${numericClientId}/${editingNoteId}`, payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to update note.');
         return;
       }
@@ -199,22 +172,10 @@ const NotesManager: React.FC = () => {
     setSuccessMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to delete notes.');
-        return;
-      }
+      const response = await apiService.delete(`/api/notes/${numericClientId}/${noteId}`);
+      const result = response.data;
 
-      const response = await fetch(`/api/notes/${numericClientId}/${noteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to delete note.');
         return;
       }

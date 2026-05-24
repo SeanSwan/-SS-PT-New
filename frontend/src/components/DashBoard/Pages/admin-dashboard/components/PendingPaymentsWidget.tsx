@@ -25,10 +25,13 @@ const PendingPaymentsWidget: React.FC = () => {
   const [orders, setOrders] = useState<PendingOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const fetchPending = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       // Admin endpoint returns all orders; filter to pending offline methods
       const res = await authAxios.get('/api/orders', {
         params: { status: 'pending', limit: 50 },
@@ -40,7 +43,8 @@ const PendingPaymentsWidget: React.FC = () => {
         setOrders(offline);
       }
     } catch {
-      // silent
+      setOrders([]);
+      setLoadError('Pending payments unavailable.');
     } finally {
       setLoading(false);
     }
@@ -51,6 +55,7 @@ const PendingPaymentsWidget: React.FC = () => {
   const handleConfirm = async (orderId: number) => {
     const order = orders.find(o => o.id === orderId);
     setConfirming(orderId);
+    setConfirmError(null);
     try {
       // Use apply-payment endpoint: idempotent, sets paymentAppliedBy, triggers session allocation
       await authAxios.post(`/api/orders/${orderId}/apply-payment`, {
@@ -58,13 +63,13 @@ const PendingPaymentsWidget: React.FC = () => {
       });
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } catch {
-      // silent
+      setConfirmError('Payment confirmation failed.');
     } finally {
       setConfirming(null);
     }
   };
 
-  if (orders.length === 0 && !loading) return null;
+  if (orders.length === 0 && !loading && !loadError) return null;
 
   return (
     <WidgetCard>
@@ -74,13 +79,34 @@ const PendingPaymentsWidget: React.FC = () => {
           <Title>Pending Payments</Title>
           {orders.length > 0 && <Badge>{orders.length}</Badge>}
         </HeaderLeft>
-        <RefreshBtn onClick={fetchPending} disabled={loading}>
+        <RefreshBtn
+          onClick={fetchPending}
+          disabled={loading}
+          aria-label="Refresh pending payments"
+          title="Refresh pending payments"
+        >
           <RefreshCw size={14} className={loading ? 'spinning' : ''} />
         </RefreshBtn>
       </Header>
 
-      {loading && orders.length === 0 && (
+      {loadError ? (
+        <ErrorState role="alert">
+          <AlertCircle size={16} />
+          <span>{loadError}</span>
+          <RetryBtn type="button" onClick={fetchPending} aria-label="Retry pending payments">
+            <RefreshCw size={14} />
+            Retry
+          </RetryBtn>
+        </ErrorState>
+      ) : loading && orders.length === 0 && (
         <EmptyState>Loading pending payments...</EmptyState>
+      )}
+
+      {confirmError && (
+        <InlineError role="alert">
+          <AlertCircle size={14} />
+          <span>{confirmError}</span>
+        </InlineError>
       )}
 
       <OrderList>
@@ -163,7 +189,9 @@ const Badge = styled.span`
 `;
 
 const RefreshBtn = styled.button`
-  width: 32px; height: 32px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -182,6 +210,56 @@ const EmptyState = styled.div`
   padding: 24px;
   color: rgba(224, 236, 244, 0.4);
   font-size: 0.85rem;
+`;
+
+const ErrorState = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin: 16px;
+  min-height: 56px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(198, 168, 75, 0.1);
+  border: 1px solid rgba(198, 168, 75, 0.24);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.85rem;
+`;
+
+const RetryBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: rgba(0, 32, 96, 0.45);
+  border: 1px solid rgba(96, 192, 240, 0.35);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+const InlineError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 16px 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(198, 168, 75, 0.08);
+  border: 1px solid rgba(198, 168, 75, 0.2);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.8rem;
 `;
 
 const OrderList = styled.div`
@@ -262,7 +340,7 @@ const ConfirmBtn = styled.button`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 8px 14px;
   border-radius: 8px;
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.2);
@@ -271,7 +349,7 @@ const ConfirmBtn = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 36px;
+  min-height: 44px;
   flex-shrink: 0;
 
   &:hover { background: rgba(34, 197, 94, 0.2); border-color: #22C55E; }

@@ -22,6 +22,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   Bell, UserPlus, AlertTriangle,
@@ -105,6 +106,8 @@ const ControlButton = styled(motion.button)`
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
   transition: all 0.3s ease;
   
   &:hover {
@@ -417,6 +420,25 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
   return response?.data?.message || fallback;
 };
 
+const sanitizeNotificationIdPart = (value: unknown): string =>
+  String(value ?? 'missing')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'missing';
+
+const stableFinanceNotificationId = (notif: FinanceNotificationPayload, index: number): string => {
+  if (notif.id) return notif.id;
+  return [
+    'fin',
+    sanitizeNotificationIdPart(notif.type || 'system_alert'),
+    sanitizeNotificationIdPart(notif.timestamp || notif.createdAt || 'no-time'),
+    sanitizeNotificationIdPart(notif.title || 'business-notification'),
+    sanitizeNotificationIdPart(notif.amount ?? 'no-amount'),
+    sanitizeNotificationIdPart(notif.userId ?? notif.userName ?? index)
+  ].join('_');
+};
+
 // Upsert helper: merges fresh data into accumulated state, dedupes by id, sorts deterministically
 const upsertNotifications = (existing: Notification[], ...newBatches: Notification[][]): Notification[] => {
   const merged = new Map<string, Notification>();
@@ -430,12 +452,26 @@ const upsertNotifications = (existing: Notification[], ...newBatches: Notificati
   });
 };
 
+const NOTIFICATION_ROUTE_DESTINATIONS: Record<Notification['type'], string> = {
+  contact: '/dashboard/admin/messages',
+  purchase: '/dashboard/admin/revenue',
+  high_value_purchase: '/dashboard/admin/revenue',
+  new_user: '/dashboard/admin/client-management',
+  payment_failed: '/dashboard/admin/pending-orders',
+  system_alert: '/dashboard/admin/overview',
+  security_alert: '/dashboard/admin/security',
+  refund_request: '/dashboard/admin/pending-orders',
+  performance_alert: '/dashboard/admin/overview',
+  revenue_milestone: '/dashboard/admin/revenue'
+};
+
 const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   autoRefresh = true,
   initialPageSize = PAGE_SIZE,
   showActions = true
 }) => {
   const { authAxios } = useAuth();
+  const navigate = useNavigate();
   const pageSize = initialPageSize;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -452,8 +488,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   // Map raw API data to Notification interface
   const mapFinanceNotifications = (data: FinanceNotificationPayload[]): Notification[] =>
-    data.map((notif) => ({
-      id: notif.id || `fin_${Math.random().toString(36).slice(2)}`,
+    data.map((notif, index) => ({
+      id: stableFinanceNotificationId(notif, index),
       type: notif.type || 'system_alert',
       title: notif.title || 'Business notification',
       message: notif.message || 'A business event needs review.',
@@ -548,20 +584,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   // Handle notification click — complete type→destination mapping
   const handleNotificationClick = (notification: Notification) => {
-    const destinationMap: Record<string, string> = {
-      contact: '/dashboard/home/notifications',
-      purchase: '/dashboard/analytics/revenue',
-      high_value_purchase: '/dashboard/analytics/revenue',
-      new_user: '/dashboard/admin/client-management',
-      payment_failed: '/dashboard/store',
-      system_alert: '/dashboard/system/health',
-      security_alert: '/dashboard/system/security',
-      refund_request: '/dashboard/store',
-      performance_alert: '/dashboard/system/health',
-      revenue_milestone: '/dashboard/analytics/revenue'
-    };
-    const dest = destinationMap[notification.type];
-    if (dest) window.open(dest, '_blank');
+    navigate(NOTIFICATION_ROUTE_DESTINATIONS[notification.type]);
   };
 
   const handleNotificationKeyDown = (

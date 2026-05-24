@@ -38,13 +38,40 @@ const ALLOWED_BODY_REGIONS = new Set([
   'left_rotator_cuff', 'right_rotator_cuff',
 ]);
 
+const parsePositiveInt = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parsePainLevel = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : null;
+};
+
+const sanitizePainEntryForRequester = (entry, requester) => {
+  const data = entry?.toJSON ? entry.toJSON() : { ...entry };
+  if (requester?.role !== 'client') {
+    return data;
+  }
+
+  delete data.trainerNotes;
+  delete data.aiNotes;
+  delete data.posturalSyndrome;
+  delete data.assessmentFindings;
+  return data;
+};
+
 /**
  * GET /api/pain-entries/:userId
  * Fetches all pain entries (active + resolved) for a client.
  */
 export const getClientPainEntries = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry, User } = models;
@@ -54,12 +81,12 @@ export const getClientPainEntries = async (req, res) => {
     }
 
     // RBAC check
-    if (requester.role === 'client' && requester.id !== Number(userId)) {
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
       return res.status(403).json({ success: false, message: 'Clients can only view their own pain entries' });
     }
 
     const entries = await ClientPainEntry.findAll({
-      where: { userId: Number(userId) },
+      where: { userId },
       order: [['isActive', 'DESC'], ['painLevel', 'DESC'], ['createdAt', 'DESC']],
       include: [
         { model: User, as: 'createdBy', attributes: ['id', 'firstName', 'lastName'] },
@@ -68,7 +95,7 @@ export const getClientPainEntries = async (req, res) => {
 
     return res.json({
       success: true,
-      data: entries,
+      data: entries.map((entry) => sanitizePainEntryForRequester(entry, requester)),
       count: entries.length,
     });
   } catch (error) {
@@ -83,7 +110,11 @@ export const getClientPainEntries = async (req, res) => {
  */
 export const getActivePainEntries = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
@@ -92,18 +123,18 @@ export const getActivePainEntries = async (req, res) => {
       return res.status(503).json({ success: false, message: 'Pain tracking not yet initialized' });
     }
 
-    if (requester.role === 'client' && requester.id !== Number(userId)) {
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
       return res.status(403).json({ success: false, message: 'Clients can only view their own pain entries' });
     }
 
     const entries = await ClientPainEntry.findAll({
-      where: { userId: Number(userId), isActive: true },
+      where: { userId, isActive: true },
       order: [['painLevel', 'DESC'], ['createdAt', 'DESC']],
     });
 
     return res.json({
       success: true,
-      data: entries,
+      data: entries.map((entry) => sanitizePainEntryForRequester(entry, requester)),
       count: entries.length,
     });
   } catch (error) {
@@ -118,7 +149,11 @@ export const getActivePainEntries = async (req, res) => {
  */
 export const createPainEntry = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
@@ -128,7 +163,7 @@ export const createPainEntry = async (req, res) => {
     }
 
     // Clients can only create entries for themselves
-    if (requester.role === 'client' && requester.id !== Number(userId)) {
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
       return res.status(403).json({ success: false, message: 'Clients can only create pain entries for themselves' });
     }
 
@@ -148,7 +183,8 @@ export const createPainEntry = async (req, res) => {
         message: `Invalid bodyRegion: "${bodyRegion}". Use one of the allowed regions.`,
       });
     }
-    if (!painLevel || painLevel < 1 || painLevel > 10) {
+    const parsedPainLevel = parsePainLevel(painLevel);
+    if (!parsedPainLevel) {
       return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
     }
 
@@ -156,11 +192,11 @@ export const createPainEntry = async (req, res) => {
     const isClient = requester.role === 'client';
 
     const entry = await ClientPainEntry.create({
-      userId: Number(userId),
+      userId,
       createdById: requester.id,
       bodyRegion,
       side: side || 'center',
-      painLevel: Number(painLevel),
+      painLevel: parsedPainLevel,
       painType: painType || null,
       description: description || null,
       onsetDate: onsetDate || null,
@@ -177,7 +213,7 @@ export const createPainEntry = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      data: entry,
+      data: sanitizePainEntryForRequester(entry, requester),
     });
   } catch (error) {
     logger.error('[PainEntry] Error creating entry:', error);
@@ -191,7 +227,12 @@ export const createPainEntry = async (req, res) => {
  */
 export const updatePainEntry = async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    const entryId = parsePositiveInt(req.params.entryId);
+    if (!userId || !entryId) {
+      return res.status(400).json({ success: false, message: 'Invalid pain entry identifier' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
@@ -201,12 +242,12 @@ export const updatePainEntry = async (req, res) => {
     }
 
     // Clients can only update their own entries
-    if (requester.role === 'client' && requester.id !== Number(userId)) {
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
       return res.status(403).json({ success: false, message: 'Clients can only update their own pain entries' });
     }
 
     const entry = await ClientPainEntry.findOne({
-      where: { id: Number(entryId), userId: Number(userId) },
+      where: { id: entryId, userId },
     });
 
     if (!entry) {
@@ -226,8 +267,12 @@ export const updatePainEntry = async (req, res) => {
       }
     }
 
-    if (updates.painLevel && (updates.painLevel < 1 || updates.painLevel > 10)) {
-      return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
+    if (updates.painLevel !== undefined) {
+      const parsedPainLevel = parsePainLevel(updates.painLevel);
+      if (!parsedPainLevel) {
+        return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
+      }
+      updates.painLevel = parsedPainLevel;
     }
 
     await entry.update(updates);
@@ -236,7 +281,7 @@ export const updatePainEntry = async (req, res) => {
 
     return res.json({
       success: true,
-      data: entry,
+      data: sanitizePainEntryForRequester(entry, requester),
     });
   } catch (error) {
     logger.error('[PainEntry] Error updating entry:', error);
@@ -250,7 +295,12 @@ export const updatePainEntry = async (req, res) => {
  */
 export const resolvePainEntry = async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    const entryId = parsePositiveInt(req.params.entryId);
+    if (!userId || !entryId) {
+      return res.status(400).json({ success: false, message: 'Invalid pain entry identifier' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
@@ -260,12 +310,12 @@ export const resolvePainEntry = async (req, res) => {
     }
 
     // Clients can only resolve their own entries
-    if (requester.role === 'client' && requester.id !== Number(userId)) {
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
       return res.status(403).json({ success: false, message: 'Clients can only resolve their own pain entries' });
     }
 
     const entry = await ClientPainEntry.findOne({
-      where: { id: Number(entryId), userId: Number(userId) },
+      where: { id: entryId, userId },
     });
 
     if (!entry) {
@@ -281,7 +331,7 @@ export const resolvePainEntry = async (req, res) => {
 
     return res.json({
       success: true,
-      data: entry,
+      data: sanitizePainEntryForRequester(entry, requester),
       message: 'Pain entry marked as resolved',
     });
   } catch (error) {
@@ -296,7 +346,12 @@ export const resolvePainEntry = async (req, res) => {
  */
 export const deletePainEntry = async (req, res) => {
   try {
-    const { userId, entryId } = req.params;
+    const userId = parsePositiveInt(req.params.userId);
+    const entryId = parsePositiveInt(req.params.entryId);
+    if (!userId || !entryId) {
+      return res.status(400).json({ success: false, message: 'Invalid pain entry identifier' });
+    }
+
     const requester = req.user;
     const models = getAllModels();
     const { ClientPainEntry } = models;
@@ -311,7 +366,7 @@ export const deletePainEntry = async (req, res) => {
     }
 
     const entry = await ClientPainEntry.findOne({
-      where: { id: Number(entryId), userId: Number(userId) },
+      where: { id: entryId, userId },
     });
 
     if (!entry) {

@@ -185,9 +185,12 @@ import { render, cleanup, fireEvent, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import WorkoutLogger from './WorkoutLogger';
 
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
 describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.queueSubmission', () => {
   beforeEach(() => {
     cleanup();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockQueueSubmission.mockClear();
     mockFlush.mockClear();
     submitWorkoutFormMock.mockClear();
@@ -196,6 +199,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
   });
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore();
     localStorage.removeItem('token');
   });
 

@@ -6,7 +6,7 @@
  * Preserves all existing functionality (feed, friends, challenges, gamification).
  */
 
-import React, { useRef, lazy, Suspense, useState, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, lazy, Suspense, useState, useLayoutEffect, useEffect, useCallback } from 'react';
 import {
   Home,
   Users,
@@ -27,10 +27,11 @@ import { useGamificationData } from '../../hooks/gamification/useGamificationDat
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import ChallengesView from '../../components/Social/Challenges/ChallengesView';
+import SocialNotificationsPanel from '../../components/Social/Notifications/SocialNotificationsPanel';
 import GlowButton from '../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
-import { logger } from '@/utils/logger';
+import { useSocialNotifications, type SocialNotification } from '../../hooks/useSocialNotifications';
 const VerticalReels = lazy(() => import('../../components/Social/Reels/VerticalReels'));
 
 // ─── SSR-safe useMediaQuery hook (Issue #2: DOM Bloat) ───────────────
@@ -430,6 +431,23 @@ const NotifDot = styled.span`
   margin-left: auto;
 `;
 
+const MobileNotifDot = styled.span`
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent-luxury, #C6A84B);
+  color: var(--surface-primary, #002060);
+  font-size: 0.58rem;
+  font-weight: 800;
+  font-family: 'Fira Code', monospace;
+`;
+
 const Divider = styled.hr`
   border: none;
   border-top: 1px solid rgba(139, 92, 246, 0.08);
@@ -491,6 +509,7 @@ const MobileTabBar = styled.div`
 `;
 
 const MobileTab = styled.button<{ $active?: boolean }>`
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -556,7 +575,7 @@ const FeedContainer = styled.div`
 
 // ─── Component ───────────────────────────────────────────────────────
 
-const VALID_TABS = ['feed', 'reels', 'friends', 'challenges'] as const;
+const VALID_TABS = ['feed', 'reels', 'friends', 'challenges', 'notifications'] as const;
 type SocialTab = (typeof VALID_TABS)[number];
 
 const SocialPageV3: React.FC = () => {
@@ -579,11 +598,21 @@ const SocialPageV3: React.FC = () => {
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
   const isDesktop = useMediaQuery('(min-width: 900px)');
-  const notificationCount = 0; // TODO: wire to real notification API
+  const socialNotifications = useSocialNotifications();
+  const notificationCount = socialNotifications.unreadCount;
 
   const handleTabChange = (newTab: SocialTab) => {
     navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
   };
+
+  const handleNotificationSelect = useCallback(
+    async (notification: SocialNotification) => {
+      await socialNotifications.markAsRead(notification.id);
+      const link = typeof notification.link === 'string' ? notification.link.trim() : '';
+      if (link.startsWith('/')) navigate(link);
+    },
+    [navigate, socialNotifications],
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -599,6 +628,18 @@ const SocialPageV3: React.FC = () => {
         return <FriendsList />;
       case 'challenges':
         return <ChallengesView />;
+      case 'notifications':
+        return (
+          <SocialNotificationsPanel
+            notifications={socialNotifications.notifications}
+            unreadCount={socialNotifications.unreadCount}
+            loading={socialNotifications.loading}
+            error={socialNotifications.error}
+            onRefresh={socialNotifications.refresh}
+            onMarkAllRead={socialNotifications.markAllAsRead}
+            onOpenNotification={handleNotificationSelect}
+          />
+        );
       default:
         return <SocialFeed />;
     }
@@ -687,6 +728,14 @@ const SocialPageV3: React.FC = () => {
             <Trophy size={20} />
             Challenges
           </MobileTab>
+          <MobileTab
+            $active={activeTab === 'notifications'}
+            onClick={() => handleTabChange('notifications')}
+          >
+            <Bell size={20} />
+            Alerts
+            {notificationCount > 0 && <MobileNotifDot>{notificationCount > 9 ? '9+' : notificationCount}</MobileNotifDot>}
+          </MobileTab>
         </MobileTabBar>}
 
         {/* Desktop grid: sidebar + feed */}
@@ -758,10 +807,14 @@ const SocialPageV3: React.FC = () => {
                     <Trophy size={18} />
                     Challenges
                   </NavButton>
-                  <NavButton onClick={() => logger.warn('TODO: implement notifications page')} style={{ opacity: 0.6 }}>
+                  <NavButton
+                    $active={activeTab === 'notifications'}
+                    onClick={() => handleTabChange('notifications')}
+                    aria-label={`Notifications${notificationCount > 0 ? `, ${notificationCount} unread` : ''}`}
+                  >
                     <Bell size={18} />
                     Notifications
-                    {notificationCount > 0 && <NotifDot>{notificationCount}</NotifDot>}
+                    {notificationCount > 0 && <NotifDot>{notificationCount > 99 ? '99+' : notificationCount}</NotifDot>}
                   </NavButton>
                 </NavSection>
 

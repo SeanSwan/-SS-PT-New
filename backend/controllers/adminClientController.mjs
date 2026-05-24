@@ -270,6 +270,7 @@ import bcrypt from 'bcryptjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
 import { getMeasurementStatus } from '../services/measurementScheduleService.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
+import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -291,6 +292,16 @@ const ensureModels = () => {
   DailyWorkoutForm = models.DailyWorkoutForm;
   if (!User) throw new Error('User model not available — model cache may not be initialized');
 };
+
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
 
 /**
  * AdminClientController class
@@ -496,11 +507,27 @@ class AdminClientController {
     } catch (error) {
       logger.error('Error fetching clients:', error.message);
       logger.error('Stack:', error.stack);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching clients',
-        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
+      return sendInternalError(res, 'Error fetching clients');
+    }
+  }
+
+  /**
+   * Get paid clients who still need waiver, onboarding, allocation, or first scheduling.
+   */
+  async getClientActivationQueue(req, res) {
+    try {
+      const data = await listPaidClientActivationQueue({
+        limit: req.query.limit,
+        nextStep: req.query.nextStep,
       });
+
+      return res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      logger.error('Error fetching client activation queue:', error.message);
+      return sendInternalError(res, 'Error fetching client activation queue');
     }
   }
 
@@ -573,11 +600,7 @@ class AdminClientController {
       });
     } catch (error) {
       logger.error('Error fetching client details:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching client details',
-        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
-      });
+      return sendInternalError(res, 'Error fetching client details');
     }
   }
 
@@ -747,11 +770,7 @@ class AdminClientController {
         return res.status(409).json({ success: false, message: 'Email or username already exists' });
       }
       logger.error('Error creating client:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error creating client',
-        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
-      });
+      return sendInternalError(res, 'Error creating client');
     }
   }
 
@@ -820,11 +839,7 @@ class AdminClientController {
     } catch (error) {
       await transaction.rollback();
       logger.error('Error updating client:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error updating client',
-        error: error.message
-      });
+      return sendInternalError(res, 'Error updating client');
     }
   }
 
@@ -888,11 +903,7 @@ class AdminClientController {
     } catch (error) {
       await transaction.rollback();
       logger.error('Error deleting client:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error deleting client',
-        error: error.message
-      });
+      return sendInternalError(res, 'Error deleting client');
     }
   }
 
@@ -932,11 +943,7 @@ class AdminClientController {
       });
     } catch (error) {
       logger.error('Error resetting password:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error resetting password',
-        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
-      });
+      return sendInternalError(res, 'Error resetting password');
     }
   }
 
@@ -1021,11 +1028,7 @@ class AdminClientController {
     } catch (error) {
       await transaction.rollback();
       logger.error('Error assigning trainer:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error assigning trainer',
-        error: error.message
-      });
+      return sendInternalError(res, 'Error assigning trainer');
     }
   }
 
@@ -1082,11 +1085,7 @@ class AdminClientController {
       });
     } catch (error) {
       logger.error('Error fetching workout stats:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching workout statistics',
-        error: error.message
-      });
+      return sendInternalError(res, 'Error fetching workout statistics');
     }
   }
 
@@ -1155,11 +1154,7 @@ class AdminClientController {
       }
     } catch (error) {
       console.error('Error generating workout plan:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error generating workout plan',
-        error: error.message,
-      });
+      return sendInternalError(res, 'Error generating workout plan');
     }
   }
 
@@ -1294,11 +1289,7 @@ class AdminClientController {
       });
     } catch (error) {
       logger.error('Error fetching billing overview:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching billing overview',
-        error: error.message
-      });
+      return sendInternalError(res, 'Error fetching billing overview');
     }
   }
 
@@ -1475,11 +1466,7 @@ class AdminClientController {
     } catch (error) {
       await transaction.rollback();
       logger.error('Error creating external client:', error.message);
-      return res.status(500).json({
-        success: false,
-        message: 'Error creating external client',
-        error: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message
-      });
+      return sendInternalError(res, 'Error creating external client');
     }
   }
 }

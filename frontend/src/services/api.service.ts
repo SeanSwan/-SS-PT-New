@@ -227,7 +227,7 @@ export default productionApiService;
 export { ProductionApiService, ProductionTokenManager };
 export { ProductionApiService as ApiService };
 
-if (typeof window !== 'undefined') {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as any).debugAuth = () => {
     logger.log('[DEBUG] Auth Status:', {
       hasToken: !!ProductionTokenManager.getToken(),

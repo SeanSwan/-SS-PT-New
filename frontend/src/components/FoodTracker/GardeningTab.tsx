@@ -18,6 +18,7 @@ import {
   PlantDetails, DetailRow, NutritionNote, YieldNote, CompanionNote,
   EmptyState,
 } from './GardeningTab.styles';
+import apiService from '../../services/api.service';
 
 // ── Types ──────────────────────────────────────────────────────
 interface PlantData {
@@ -41,14 +42,6 @@ interface PlantData {
 interface ZoneData {
   zone: string;
   temperatureRange: string | null;
-}
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 const difficultyColor = (d: string) => {
@@ -77,8 +70,8 @@ const GardeningTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/gardening/zone/${zipCode}`, { headers: authHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/gardening/zone/${zipCode}`);
+      const data = response.data;
       if (!data.success) {
         setError(data.error || 'Zone not found');
         setLoading(false);
@@ -89,11 +82,11 @@ const GardeningTab: React.FC = () => {
       if (category) params.set('category', category);
       if (spaceType) params.set('spaceType', spaceType);
       if (difficulty) params.set('difficulty', difficulty);
-      const plantRes = await fetch(`${API_BASE}/api/gardening/plants?${params}`, { headers: authHeaders() });
-      const plantData = await plantRes.json();
+      const plantResponse = await apiService.get(`/api/gardening/plants?${params}`);
+      const plantData = plantResponse.data;
       if (plantData.success) setPlants(plantData.plants);
-    } catch {
-      setError('Failed to look up zone. Check your connection.');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to look up zone. Check your connection.');
     } finally {
       setLoading(false);
     }
@@ -108,15 +101,15 @@ const GardeningTab: React.FC = () => {
     if (space) params.set('spaceType', space);
     if (diff) params.set('difficulty', diff);
     try {
-      const res = await fetch(`${API_BASE}/api/gardening/plants?${params}`, { headers: authHeaders() });
-      const data = await res.json();
+      const response = await apiService.get(`/api/gardening/plants?${params}`);
+      const data = response.data;
       if (data.success) {
         setPlants(data.plants);
       } else {
         setError(data.error || 'Failed to filter plants');
       }
-    } catch {
-      setError('Failed to filter plants. Check your connection.');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.response?.data?.message || 'Failed to filter plants. Check your connection.');
     }
   }, [zoneData]);
 

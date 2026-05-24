@@ -38,6 +38,14 @@ import { useToast } from '../../hooks/use-toast';
 import GlowButton from '../ui/buttons/GlowButton';
 import api from '../../services/api.service';
 import {
+  buildOrderDataFromActivationStatus,
+  fetchCheckoutActivationStatus,
+  getActivationCta,
+  type CheckoutActivationStatus,
+  type CheckoutSuccessOrderData,
+} from './checkoutActivation';
+import { downloadCheckoutReceipt } from './checkoutReceipt';
+import {
   CheckCircle, Star, Sparkles, Trophy, Calendar,
   DollarSign, Package, Users, ArrowRight, Home,
   Download, Share, Mail, AlertTriangle, Loader
@@ -288,29 +296,26 @@ const ErrorCard = styled(motion.div)`
   text-align: center;
 `;
 
-// Component State Interface
-interface OrderData {
-  sessionId: string;
-  amount: number;
-  sessionsAdded: number;
-  customerName: string;
-  customerEmail: string;
-  orderDate: string;
-  items: any[];
-}
-
 const SuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { clearCart } = useCart();
   const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [orderData, setOrderData] = useState<CheckoutSuccessOrderData | null>(null);
+  const [activationStatus, setActivationStatus] = useState<CheckoutActivationStatus | null>(null);
 
   const sessionId = searchParams.get('session_id');
+
+  const refreshCheckoutUser = async () => {
+    const result = await refreshUser();
+    if (!result.success) {
+      logger.warn('[Success Page] User refresh after checkout failed:', result.error);
+    }
+  };
 
   useEffect(() => {
     if (!sessionId) {
@@ -344,29 +349,30 @@ const SuccessPage: React.FC = () => {
 
         logger.log('✅ [Success Page] Order verified:', orderData);
 
-        // ADMIN DASHBOARD INTEGRATION: Record successful transaction
-        try {
-          await api.post('/api/financial/record-transaction', {
-            sessionId,
-            userId: user?.id,
-            amount: orderData.amount,
-            type: 'payment_success',
-            sessionsAdded: orderData.sessionsAdded,
-            timestamp: new Date().toISOString()
-          });
-          logger.log('📊 [Admin Dashboard] Transaction recorded for analytics');
-        } catch (analyticsError) {
-          logger.warn('⚠️ [Admin Dashboard] Analytics recording failed:', analyticsError);
-          // Don't fail the success page for analytics errors
-        }
-
         // Clear the cart after successful purchase
         clearCart();
+        await refreshCheckoutUser();
+
+        try {
+          const status = await fetchCheckoutActivationStatus(api, sessionId || '');
+          setActivationStatus(status);
+          logger.log('[Success Page] Activation status resolved:', {
+            nextStep: status.activation.nextStep,
+            nextRoute: status.activation.nextRoute,
+          });
+        } catch (activationError) {
+          logger.warn('[Success Page] Activation status unavailable:', activationError);
+          setActivationStatus(null);
+        }
 
         // Show success toast
+        const toastDescription = typeof orderData.sessionsAdded === 'number' && orderData.sessionsAdded > 0
+          ? `${orderData.sessionsAdded} training sessions added to your account.`
+          : 'Your payment is confirmed. Continue to your next setup step.';
+
         toast({
           title: "Payment Successful!",
-          description: `${orderData.sessionsAdded} training sessions added to your account.`,
+          description: toastDescription,
           duration: 5000,
         });
 
@@ -376,7 +382,27 @@ const SuccessPage: React.FC = () => {
 
     } catch (error: any) {
       console.error('💥 [Success Page] Verification failed:', error.message);
-      setError(error.response?.data?.message || error.message || 'Order verification failed');
+
+      try {
+        const status = await fetchCheckoutActivationStatus(api, sessionId || '');
+        if (status.activation.paid) {
+          setActivationStatus(status);
+          setOrderData(buildOrderDataFromActivationStatus(status, user?.email));
+          clearCart();
+          await refreshCheckoutUser();
+          toast({
+            title: "Payment Confirmed",
+            description: status.activation.nextAction || 'Continue to your next setup step.',
+            duration: 5000,
+          });
+          return;
+        }
+      } catch (activationError) {
+        logger.warn('[Success Page] Activation status recovery failed:', activationError);
+      }
+
+      const serverDetails = error.response?.data?.error?.details;
+      setError(serverDetails || error.response?.data?.message || error.message || 'Order verification failed');
     } finally {
       setIsLoading(false);
     }
@@ -385,8 +411,8 @@ const SuccessPage: React.FC = () => {
   /**
    * Navigate to dashboard
    */
-  const handleGoToDashboard = () => {
-    navigate('/dashboard');
+  const handlePrimaryActivationAction = () => {
+    navigate(getActivationCta(activationStatus).route);
   };
 
   /**
@@ -396,13 +422,26 @@ const SuccessPage: React.FC = () => {
     navigate('/');
   };
 
-  /**
-   * Download receipt (future feature)
-   */
   const handleDownloadReceipt = () => {
+    if (!orderData) {
+      toast({
+        title: "Receipt Unavailable",
+        description: "Payment details are still loading. Please refresh and try again.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    downloadCheckoutReceipt({
+      ...orderData,
+      customerName: customerDisplayName,
+      customerEmail: customerEmailDisplay,
+      orderDate: orderData.orderDate || new Date().toISOString(),
+    });
+
     toast({
       title: "Receipt Download",
-      description: "Receipt download will be available soon. Check your email for confirmation.",
+      description: "Your receipt file has been generated.",
       duration: 3000,
     });
   };
@@ -462,6 +501,15 @@ const SuccessPage: React.FC = () => {
   }
 
   // Success State
+  const primaryCta = getActivationCta(activationStatus);
+  const customerDisplayName = orderData?.customerName
+    || [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+    || 'Account holder';
+  const customerEmailDisplay = orderData?.customerEmail || user?.email || 'Email on account';
+  const orderDateDisplay = orderData?.orderDate
+    ? new Date(orderData.orderDate).toLocaleDateString()
+    : 'Today';
+
   return (
     <SuccessContainer
       initial={{ opacity: 0, y: 20 }}
@@ -485,7 +533,7 @@ const SuccessPage: React.FC = () => {
 
       <SuccessContent>
         {/* Sessions Highlight */}
-        {orderData && orderData.sessionsAdded > 0 && (
+        {orderData && typeof orderData.sessionsAdded === 'number' && orderData.sessionsAdded > 0 && (
           <SessionsHighlight
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -528,7 +576,7 @@ const SuccessPage: React.FC = () => {
                   <Users size={20} />
                 </DetailIcon>
                 <DetailLabel>Customer</DetailLabel>
-                <DetailValue>{orderData.customerName}</DetailValue>
+                <DetailValue>{customerDisplayName}</DetailValue>
               </DetailItem>
               
               <DetailItem>
@@ -536,7 +584,7 @@ const SuccessPage: React.FC = () => {
                   <Mail size={20} />
                 </DetailIcon>
                 <DetailLabel>Email</DetailLabel>
-                <DetailValue>{orderData.customerEmail}</DetailValue>
+                <DetailValue>{customerEmailDisplay}</DetailValue>
               </DetailItem>
               
               <DetailItem>
@@ -544,7 +592,7 @@ const SuccessPage: React.FC = () => {
                   <Calendar size={20} />
                 </DetailIcon>
                 <DetailLabel>Date</DetailLabel>
-                <DetailValue>{new Date(orderData.orderDate).toLocaleDateString()}</DetailValue>
+                <DetailValue>{orderDateDisplay}</DetailValue>
               </DetailItem>
             </DetailGrid>
           </OrderDetailsCard>
@@ -556,11 +604,11 @@ const SuccessPage: React.FC = () => {
             variant="primary"
             size="large"
             fullWidth
-            onClick={handleGoToDashboard}
+            onClick={handlePrimaryActivationAction}
             rightIcon={<ArrowRight size={20} />}
           >
             <Trophy size={20} />
-            Go to Dashboard
+            {primaryCta.label}
           </GlowButton>
           
           <GlowButton

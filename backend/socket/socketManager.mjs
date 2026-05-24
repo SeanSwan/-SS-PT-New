@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.mjs';
 import { getUser } from '../models/index.mjs';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
 // Global socket.io instance
 let io = null;
@@ -92,10 +93,12 @@ export function initSocketIO(httpServer) {
             return;
           }
 
+          const role = String(user.role || '').toUpperCase();
+
           // Store enhanced user data on socket
           socket.data.user = {
             id: user.id,
-            role: user.role,
+            role,
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
@@ -106,20 +109,20 @@ export function initSocketIO(httpServer) {
           await joinUserRoom(socket, user.id);
 
           // Join role-based rooms with enhanced room management
-          await joinRoleBasedRooms(socket, user.role, user.id);
+          await joinRoleBasedRooms(socket, role, user.id);
           
           // Join dashboard-specific rooms
-          await joinDashboardRooms(socket, user.role);
+          await joinDashboardRooms(socket, role);
 
           // Update connection metrics
-          updateConnectionMetrics(user.role, 'connect');
+          updateConnectionMetrics(role, 'connect');
 
           // Send authentication success with user context
           socket.emit('authenticated', { 
             success: true,
             user: {
               id: user.id,
-              role: user.role,
+              role,
               firstName: user.firstName,
               lastName: user.lastName
             },
@@ -128,14 +131,14 @@ export function initSocketIO(httpServer) {
           });
 
           // Send initial schedule sync if user is in scheduling roles
-          if (['ADMIN', 'TRAINER', 'CLIENT'].includes(user.role)) {
+          if (['ADMIN', 'TRAINER', 'CLIENT'].includes(role)) {
             socket.emit('schedule:sync_required', {
               message: 'Please sync your schedule data',
               priority: 'normal'
             });
           }
 
-          logger.info(`Socket ${socket.id} authenticated as ${user.firstName} ${user.lastName} (${user.role}) - Rooms: ${Array.from(socket.rooms).join(', ')}`);
+          logger.info(`Socket ${socket.id} authenticated as ${user.firstName} ${user.lastName} (${role}) - Rooms: ${Array.from(socket.rooms).join(', ')}`);
         } catch (error) {
           logger.error(`Socket authentication error: ${error.message}`);
           socket.emit('auth_error', { 
@@ -257,28 +260,22 @@ export function closeSocketIO() {
  */
 async function authenticateSocketUser(token) {
   try {
-    // Verify JWT token using the same secret as the main auth system
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      logger.error('JWT_SECRET not configured for socket authentication');
-      return null;
-    }
-
     // Decode and verify the token
-    const decoded = jwt.verify(token, jwtSecret);
-    if (!decoded || !decoded.userId) {
-      logger.warn('Invalid token structure - missing userId');
+    const decoded = jwt.verify(token, getJwtSecret());
+    const userId = decoded.userId ?? decoded.id;
+    if (!decoded || !userId) {
+      logger.warn('Invalid token structure - missing user id');
       return null;
     }
 
     // Fetch user from database to ensure current data
     const User = getUser();
-    const user = await User.findByPk(decoded.userId, {
+    const user = await User.findByPk(userId, {
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'isActive']
     });
 
     if (!user) {
-      logger.warn(`User not found for token userId: ${decoded.userId}`);
+      logger.warn(`User not found for token userId: ${userId}`);
       return null;
     }
 
@@ -296,7 +293,9 @@ async function authenticateSocketUser(token) {
     };
 
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
+    if (isJwtSecretConfigurationError(error)) {
+      logger.error('JWT_SECRET not configured for socket authentication');
+    } else if (error.name === 'JsonWebTokenError') {
       logger.warn('Invalid JWT token for socket authentication');
     } else if (error.name === 'TokenExpiredError') {
       logger.warn('Expired JWT token for socket authentication');
@@ -330,7 +329,7 @@ async function joinRoleBasedRooms(socket, userRole, userId) {
   const rooms = [];
   
   // Role-based rooms
-  switch (userRole) {
+  switch (String(userRole || '').toUpperCase()) {
     case 'ADMIN':
       rooms.push('admin', 'trainer', 'client', 'user'); // Admins see everything
       break;
@@ -365,7 +364,7 @@ async function joinRoleBasedRooms(socket, userRole, userId) {
 async function joinDashboardRooms(socket, userRole) {
   const dashboardRooms = [];
   
-  switch (userRole) {
+  switch (String(userRole || '').toUpperCase()) {
     case 'ADMIN':
       dashboardRooms.push('dashboard:admin', 'dashboard:trainer', 'dashboard:client');
       break;

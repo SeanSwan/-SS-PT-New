@@ -14,7 +14,7 @@
  * - Mobile-optimized responsive design
  * - WCAG AA accessibility compliance
  *
- * MIGRATED: Recharts RadarChart → Victory polar chart for cross-platform compatibility
+ * Uses Victory polar charts for cross-platform compatibility.
  * THEME: Enchanted Apex — Crystalline Swan
  */
 

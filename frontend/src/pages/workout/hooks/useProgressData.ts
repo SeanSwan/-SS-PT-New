@@ -68,7 +68,7 @@ const defaultProgress: ClientProgressData = {
   totalReps: 0,
   totalWeight: 0,
   totalExercises: 0,
-  lastWorkoutDate: new Date().toISOString(),
+  lastWorkoutDate: '',
   currentStreak: 0
 };
 
@@ -87,60 +87,6 @@ const defaultStats: WorkoutStatistics = {
   exerciseBreakdown: [],
   muscleGroupBreakdown: [],
   intensityTrends: []
-};
-
-/**
- * Mock data for development/testing
- */
-const mockProgress: ClientProgressData = {
-  userId: 'mock-user-id',
-  strengthLevel: 5,
-  cardioLevel: 3,
-  flexibilityLevel: 4,
-  balanceLevel: 2,
-  coreLevel: 6,
-  totalWorkouts: 25,
-  totalSets: 450,
-  totalReps: 3600,
-  totalWeight: 12000,
-  totalExercises: 300,
-  lastWorkoutDate: new Date().toISOString(),
-  currentStreak: 3
-};
-
-/**
- * Mock statistics for development/testing
- */
-const mockStatistics: WorkoutStatistics = {
-  totalWorkouts: 25,
-  totalDuration: 1500, // 25 hours in minutes
-  totalExercises: 300,
-  totalSets: 450,
-  totalReps: 3600,
-  totalWeight: 12000,
-  averageIntensity: 7.5,
-  weekdayBreakdown: [2, 5, 4, 5, 3, 4, 2],
-  exerciseBreakdown: [
-    { id: '1', name: 'Squats', count: 20, sets: 60, reps: 480, totalWeight: 3000, category: 'strength' },
-    { id: '2', name: 'Bench Press', count: 18, sets: 54, reps: 432, totalWeight: 2800, category: 'strength' },
-    { id: '3', name: 'Deadlift', count: 15, sets: 45, reps: 360, totalWeight: 3500, category: 'strength' },
-    { id: '4', name: 'Pull Ups', count: 12, sets: 36, reps: 288, totalWeight: 900, category: 'strength' },
-    { id: '5', name: 'Running', count: 10, sets: 10, reps: 10, totalWeight: 0, category: 'cardio' }
-  ],
-  muscleGroupBreakdown: [
-    { id: '1', name: 'Quadriceps', shortName: 'Quads', count: 30, bodyRegion: 'lower_body' },
-    { id: '2', name: 'Chest', shortName: 'Chest', count: 25, bodyRegion: 'upper_body' },
-    { id: '3', name: 'Back', shortName: 'Back', count: 22, bodyRegion: 'upper_body' },
-    { id: '4', name: 'Hamstrings', shortName: 'Hams', count: 18, bodyRegion: 'lower_body' },
-    { id: '5', name: 'Shoulders', shortName: 'Delts', count: 15, bodyRegion: 'upper_body' },
-    { id: '6', name: 'Core', shortName: 'Core', count: 12, bodyRegion: 'core' }
-  ],
-  intensityTrends: [
-    { week: 'W1', averageIntensity: 5.5 },
-    { week: 'W2', averageIntensity: 6.2 },
-    { week: 'W3', averageIntensity: 6.8 },
-    { week: 'W4', averageIntensity: 7.5 }
-  ]
 };
 
 /**
@@ -173,15 +119,6 @@ export const useProgressData = ({
         
         if (!targetUserId) {
           setError('No user specified');
-          setLoading(false);
-          return;
-        }
-        
-        // Use mock data for development/testing
-        if (process.env.NODE_ENV === 'development' && (!currentUserId || currentUserId === 'temp-user-id' || targetUserId === 'temp-user-id')) {
-          logger.log('Using mock data for development');
-          setProgress(mockProgress);
-          setStatistics(mockStatistics);
           setLoading(false);
           return;
         }

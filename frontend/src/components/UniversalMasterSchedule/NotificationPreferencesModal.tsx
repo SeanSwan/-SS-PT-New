@@ -17,6 +17,7 @@ import {
   HelperText,
   SmallText
 } from './ui';
+import apiService from '../../services/api.service';
 
 interface NotificationPreferencesModalProps {
   open: boolean;
@@ -59,6 +60,9 @@ const normalizePreferences = (prefs: any): NotificationPreferences => {
   };
 };
 
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || fallback;
+
 const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> = ({
   open,
   onClose,
@@ -83,25 +87,8 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       setSuccessMessage(null);
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setFormError('Please log in to update notification settings');
-          setPreferences({ ...defaultPreferences });
-          return;
-        }
-
-        const response = await fetch('/api/profile', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          setPreferences({ ...defaultPreferences });
-          return;
-        }
-
-        const payload = await response.json();
+        const response = await apiService.get('/api/profile');
+        const payload = response.data;
         const user = payload?.user || payload?.data || payload;
         const prefs = user?.notificationPreferences;
 
@@ -140,25 +127,12 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
 
     try {
       setSaving(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to update notification settings');
-        return;
-      }
-
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          notificationPreferences: preferences
-        })
+      const response = await apiService.put('/api/profile', {
+        notificationPreferences: preferences
       });
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to update notification preferences');
         return;
       }
@@ -169,7 +143,7 @@ const NotificationPreferencesModal: React.FC<NotificationPreferencesModalProps> 
       }
     } catch (error) {
       console.error('Error saving notification preferences:', error);
-      setFormError('Could not save notification preferences. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Could not save notification preferences. Please try again.'));
     } finally {
       setSaving(false);
     }

@@ -2,26 +2,13 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import useClientDashboardMcp from '../../hooks/useClientDashboardMcp';
-import { AuthProvider } from '../../context/AuthContext';
-import workoutMcpApi from '../../services/mcp/workoutMcpService';
-import gamificationMcpApi from '../../services/mcp/gamificationMcpService';
+import apiService from '../../services/api.service';
 
-// Mock the MCP service APIs
-vi.mock('../../services/mcp/workoutMcpService', () => ({
+vi.mock('../../services/api.service', () => ({
   __esModule: true,
   default: {
-    getClientProgress: vi.fn(),
-    getClientTrainingProgram: vi.fn()
-  }
-}));
-
-vi.mock('../../services/mcp/gamificationMcpService', () => ({
-  __esModule: true,
-  default: {
-    getGamificationProfile: vi.fn(),
-    getAchievements: vi.fn(),
-    getChallenges: vi.fn()
-  }
+    get: vi.fn(),
+  },
 }));
 
 // Mock the AuthContext
@@ -73,26 +60,24 @@ describe('useClientDashboardMcp', () => {
       completedWorkouts: []
     };
     
-    // Set up successful mock responses
-    workoutMcpApi.getClientProgress.mockImplementation(() => 
-      Promise.resolve({ data: { progress: mockProgress } })
-    );
-    
-    workoutMcpApi.getClientTrainingProgram.mockImplementation(() => 
-      Promise.resolve({ data: { program: mockTrainingProgram } })
-    );
-    
-    gamificationMcpApi.getGamificationProfile.mockImplementation(() => 
-      Promise.resolve({ data: { profile: mockGamificationProfile } })
-    );
-    
-    gamificationMcpApi.getAchievements.mockImplementation(() => 
-      Promise.resolve({ data: { achievements: mockAchievements } })
-    );
-    
-    gamificationMcpApi.getChallenges.mockImplementation(() => 
-      Promise.resolve({ data: { challenges: mockChallenges } })
-    );
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === '/api/workout/progress/test-user-id') {
+        return Promise.resolve({ data: { progress: mockProgress } });
+      }
+      if (url === '/api/workout-plans/client/test-user-id') {
+        return Promise.resolve({ data: { program: mockTrainingProgram } });
+      }
+      if (url === '/api/v1/gamification/profile') {
+        return Promise.resolve({ data: { profile: mockGamificationProfile } });
+      }
+      if (url === '/api/v1/gamification/achievements') {
+        return Promise.resolve({ data: { achievements: mockAchievements } });
+      }
+      if (url === '/api/v1/gamification/challenges?limit=3') {
+        return Promise.resolve({ data: { challenges: mockChallenges } });
+      }
+      return Promise.reject(new Error(`Unexpected API path: ${url}`));
+    });
   });
   
   test('should initialize with loading state and fetch data on mount', async () => {
@@ -119,18 +104,33 @@ describe('useClientDashboardMcp', () => {
     expect(result.current.lastSyncTime).not.toBe(null);
     
     // Verify all APIs were called
-    expect(workoutMcpApi.getClientProgress).toHaveBeenCalledTimes(1);
-    expect(workoutMcpApi.getClientTrainingProgram).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getGamificationProfile).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getAchievements).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getChallenges).toHaveBeenCalledTimes(1);
+    expect(apiService.get).toHaveBeenCalledWith('/api/workout/progress/test-user-id');
+    expect(apiService.get).toHaveBeenCalledWith('/api/workout-plans/client/test-user-id');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/profile');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/achievements');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/challenges?limit=3');
   });
   
   test('should tolerate API errors during refreshAll without crashing', async () => {
     // Mock one API to fail
-    workoutMcpApi.getClientProgress.mockImplementation(() => 
-      Promise.reject(new Error('API error'))
-    );
+    vi.mocked(apiService.get).mockImplementation((url: string) => {
+      if (url === '/api/workout/progress/test-user-id') {
+        return Promise.reject(new Error('API error'));
+      }
+      if (url === '/api/workout-plans/client/test-user-id') {
+        return Promise.resolve({ data: { program: null } });
+      }
+      if (url === '/api/v1/gamification/profile') {
+        return Promise.resolve({ data: { profile: null } });
+      }
+      if (url === '/api/v1/gamification/achievements') {
+        return Promise.resolve({ data: { achievements: [] } });
+      }
+      if (url === '/api/v1/gamification/challenges?limit=3') {
+        return Promise.resolve({ data: { challenges: [] } });
+      }
+      return Promise.reject(new Error(`Unexpected API path: ${url}`));
+    });
     
     const { result } = renderHook(() => useClientDashboardMcp());
     
@@ -157,24 +157,17 @@ describe('useClientDashboardMcp', () => {
     vi.clearAllMocks();
     
     // Call refreshAll
-    act(() => {
-      result.current.refreshAll();
-    });
-    
-    // Should be loading again
-    expect(result.current.loading).toBe(true);
-    
-    // Wait for refresh to complete
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
+    await act(async () => {
+      await result.current.refreshAll();
     });
     
     // Verify all APIs were called again
-    expect(workoutMcpApi.getClientProgress).toHaveBeenCalledTimes(1);
-    expect(workoutMcpApi.getClientTrainingProgram).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getGamificationProfile).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getAchievements).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getChallenges).toHaveBeenCalledTimes(1);
+    expect(apiService.get).toHaveBeenCalledTimes(5);
+    expect(apiService.get).toHaveBeenCalledWith('/api/workout/progress/test-user-id');
+    expect(apiService.get).toHaveBeenCalledWith('/api/workout-plans/client/test-user-id');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/profile');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/achievements');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/challenges?limit=3');
     
     // lastSyncTime should be updated
     expect(result.current.lastSyncTime).not.toBe(null);
@@ -197,9 +190,8 @@ describe('useClientDashboardMcp', () => {
     });
     
     // Only workout API should be called
-    expect(workoutMcpApi.getClientProgress).toHaveBeenCalledTimes(1);
-    expect(workoutMcpApi.getClientTrainingProgram).toHaveBeenCalledTimes(0);
-    expect(gamificationMcpApi.getGamificationProfile).toHaveBeenCalledTimes(0);
+    expect(apiService.get).toHaveBeenCalledTimes(1);
+    expect(apiService.get).toHaveBeenCalledWith('/api/workout/progress/test-user-id');
     
     // Reset mock call counts
     vi.clearAllMocks();
@@ -210,9 +202,9 @@ describe('useClientDashboardMcp', () => {
     });
     
     // Only gamification APIs should be called
-    expect(workoutMcpApi.getClientProgress).toHaveBeenCalledTimes(0);
-    expect(gamificationMcpApi.getGamificationProfile).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getAchievements).toHaveBeenCalledTimes(1);
-    expect(gamificationMcpApi.getChallenges).toHaveBeenCalledTimes(1);
+    expect(apiService.get).toHaveBeenCalledTimes(3);
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/profile');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/achievements');
+    expect(apiService.get).toHaveBeenCalledWith('/api/v1/gamification/challenges?limit=3');
   });
 });

@@ -1,5 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkoutCopilotPanel from './WorkoutCopilotPanel';
 import type {
@@ -17,7 +18,9 @@ const mockApproveDraft = vi.fn();
 const mockGenerateLongHorizonDraft = vi.fn();
 const mockApproveLongHorizonDraft = vi.fn();
 const mockGetClientDetails = vi.fn();
+const mockApiGet = vi.fn();
 let mockRole: 'admin' | 'trainer' | 'client' = 'admin';
+const mockAuthAxios = {};
 
 vi.mock('../../../../../services/aiWorkoutService', async () => {
   const actual = await vi.importActual<typeof import('../../../../../services/aiWorkoutService')>(
@@ -42,10 +45,17 @@ vi.mock('../../../../../services/adminClientService', () => ({
   },
 }));
 
+vi.mock('../../../../../services/api.service', () => ({
+  __esModule: true,
+  default: {
+    get: (...args: any[]) => mockApiGet(...args),
+  },
+}));
+
 const mockToast = vi.fn();
 
 vi.mock('../../../../../context/AuthContext', () => ({
-  useAuth: () => ({ authAxios: {}, user: { role: mockRole } }),
+  useAuth: () => ({ authAxios: mockAuthAxios, user: { role: mockRole } }),
 }));
 
 vi.mock('../../../../../hooks/use-toast', () => ({
@@ -202,7 +212,11 @@ const defaultProps = {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function renderPanel(props = {}) {
-  return render(<WorkoutCopilotPanel {...defaultProps} {...props} />);
+  return render(
+    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <WorkoutCopilotPanel {...defaultProps} {...props} />
+    </MemoryRouter>
+  );
 }
 
 // ── Tests ──────────────────────────────────────────────────────────────────
@@ -234,6 +248,12 @@ describe('WorkoutCopilotPanel', () => {
         },
       },
     });
+    mockApiGet.mockResolvedValue({
+      data: {
+        success: true,
+        profiles: [],
+      },
+    });
   });
 
   // ── 1. IDLE renders template catalog ──────────────────────────────────
@@ -247,7 +267,7 @@ describe('WorkoutCopilotPanel', () => {
         expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/AI Workout Copilot/)).toBeInTheDocument();
+      expect(screen.getByText(/Workout Intelligence/)).toBeInTheDocument();
       expect(screen.getByText('Generate Draft')).toBeInTheDocument();
     });
 
@@ -331,7 +351,7 @@ describe('WorkoutCopilotPanel', () => {
       await user.click(screen.getByText('Generate Draft'));
 
       await waitFor(() => {
-        expect(screen.getByText('AI Temporarily Unavailable')).toBeInTheDocument();
+        expect(screen.getByText('Swan Coach Temporarily Unavailable')).toBeInTheDocument();
       });
 
       // Message
@@ -347,7 +367,7 @@ describe('WorkoutCopilotPanel', () => {
       expect(screen.getByText('Stabilization Endurance')).toBeInTheDocument();
 
       // Retry button
-      expect(screen.getByText('Retry AI Generation')).toBeInTheDocument();
+      expect(screen.getByText('Retry Swan Coach Generation')).toBeInTheDocument();
     });
   });
 
@@ -375,7 +395,7 @@ describe('WorkoutCopilotPanel', () => {
 
       // Consent-specific wording
       expect(
-        screen.getByText(/client must enable AI features from their own account settings/)
+        screen.getByText(/client must enable Swan Coach features from their own account settings/)
       ).toBeInTheDocument();
 
       // No retry button for consent errors (not in the retryable set)
@@ -438,7 +458,7 @@ describe('WorkoutCopilotPanel', () => {
         screen.getByText(/waiver consent is missing or outdated/)
       ).toBeInTheDocument();
       expect(
-        screen.queryByText(/client must enable AI features/)
+        screen.queryByText(/client must enable Swan Coach features/)
       ).not.toBeInTheDocument();
     });
   });
@@ -673,7 +693,7 @@ describe('WorkoutCopilotPanel', () => {
 
       // Consent wording NOT present
       expect(
-        screen.queryByText(/client must enable AI features/)
+        screen.queryByText(/client must enable Swan Coach features/)
       ).not.toBeInTheDocument();
     });
   });
@@ -895,7 +915,7 @@ describe('WorkoutCopilotPanel', () => {
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
       await waitFor(() => {
-        expect(screen.getByText('AI Temporarily Unavailable')).toBeInTheDocument();
+        expect(screen.getByText('Swan Coach Temporarily Unavailable')).toBeInTheDocument();
       });
     });
 
@@ -972,4 +992,3 @@ describe('WorkoutCopilotPanel', () => {
     });
   });
 });
-

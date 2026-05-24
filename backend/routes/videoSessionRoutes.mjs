@@ -11,6 +11,7 @@
 
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import livekit from '../services/livekitService.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -18,6 +19,18 @@ const router = express.Router();
 
 // All routes require auth
 router.use(protect);
+
+function sameUserId(left, right) {
+  return String(left) === String(right);
+}
+
+function isSessionTrainer(session, userId, userRole) {
+  return userRole === 'admin' || sameUserId(userId, session.trainerId);
+}
+
+function isSessionParticipant(session, userId, userRole) {
+  return isSessionTrainer(session, userId, userRole) || sameUserId(userId, session.clientId);
+}
 
 // ── Health Check (any authenticated user) ────────────────────
 // GET /api/video-sessions/health
@@ -33,7 +46,7 @@ router.get('/health', async (_req, res) => {
 
 // ── Create Video Session (admin/trainer only) ────────────────
 // POST /api/video-sessions
-router.post('/', authorize(['admin', 'trainer']), async (req, res) => {
+router.post('/', authorize(['admin', 'trainer']), verifyClientAccessByUserId({ bodyField: 'clientId' }), async (req, res) => {
   const { clientId, sessionId, assessmentType } = req.body;
 
   if (!clientId) {
@@ -107,8 +120,8 @@ router.get('/:id/join', async (req, res) => {
 
     // Verify user is participant
     const userId = req.user.id;
-    const isTrainer = userId === session.trainerId || req.user.role === 'admin';
-    const isClient = userId === session.clientId;
+    const isTrainer = isSessionTrainer(session, userId, req.user.role);
+    const isClient = sameUserId(userId, session.clientId);
 
     if (!isTrainer && !isClient) {
       return res.status(403).json({ success: false, message: 'Not a participant in this session' });
@@ -151,12 +164,8 @@ router.get('/:id/join', async (req, res) => {
 // PATCH /api/video-sessions/:id/end
 router.patch('/:id/end', authorize(['admin', 'trainer']), async (req, res) => {
   try {
-    const { default: VideoSession } = await import('../models/VideoSession.mjs');
-    const session = await VideoSession.findByPk(req.params.id);
-
-    if (!session) {
-      return res.status(404).json({ success: false, message: 'Video session not found' });
-    }
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
 
     const endedAt = new Date();
     const durationMinutes = session.startedAt
@@ -189,12 +198,8 @@ router.patch('/:id/notes', authorize(['admin', 'trainer']), async (req, res) => 
   // Empty string is allowed — trainer can clear notes
 
   try {
-    const { default: VideoSession } = await import('../models/VideoSession.mjs');
-    const session = await VideoSession.findByPk(req.params.id);
-
-    if (!session) {
-      return res.status(404).json({ success: false, message: 'Video session not found' });
-    }
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    if (!session) return res.status(status).json({ success: false, message: error });
 
     await session.update({ trainerNotes });
     logger.info(`[AUDIT] Trainer ${req.user.id} saved notes for video session ${session.id}`);
@@ -219,10 +224,11 @@ router.post('/:id/micro-win', authorize(['admin', 'trainer']), async (req, res) 
   const XP_MAP = { perfect_form: 25, great_rep: 10, full_rom: 15, consistency: 10, improvement: 50 };
 
   try {
-    const { default: VideoSession } = await import('../models/VideoSession.mjs');
-    const session = await VideoSession.findByPk(req.params.id);
+    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
 
-    if (!session || session.status !== 'active') {
+    if (!session) return res.status(status).json({ success: false, message: error });
+
+    if (session.status !== 'active') {
       return res.status(400).json({ success: false, message: 'Session not active' });
     }
 
@@ -253,7 +259,9 @@ router.get('/', authorize(['admin', 'trainer']), async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 20, 100);
   try {
     const { default: VideoSession } = await import('../models/VideoSession.mjs');
+    const where = req.user.role === 'admin' ? undefined : { trainerId: req.user.id };
     const sessions = await VideoSession.findAll({
+      where,
       order: [['createdAt', 'DESC']],
       limit,
     });
@@ -276,8 +284,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Only participants can view
-    const userId = req.user.id;
-    if (userId !== session.trainerId && userId !== session.clientId && req.user.role !== 'admin') {
+    if (!isSessionParticipant(session, req.user.id, req.user.role)) {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
@@ -293,7 +300,7 @@ async function getSessionIfParticipant(sessionId, userId, userRole) {
   const { default: VideoSession } = await import('../models/VideoSession.mjs');
   const session = await VideoSession.findByPk(sessionId);
   if (!session) return { session: null, error: 'Session not found', status: 404 };
-  if (userId !== session.trainerId && userId !== session.clientId && userRole !== 'admin') {
+  if (!isSessionParticipant(session, userId, userRole)) {
     return { session: null, error: 'Not authorized — you are not a participant of this session', status: 403 };
   }
   return { session, error: null, status: 200 };

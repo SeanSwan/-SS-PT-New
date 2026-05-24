@@ -288,23 +288,6 @@ export const componentThemes = {
     }
   },
   
-  // RPE Slider Theme
-  rpeSlider: {
-    '& .MuiSlider-thumb': {
-      background: workoutLoggerTheme.gradients.commandCenter,
-      boxShadow: workoutLoggerTheme.shadows.energyPulse,
-      '&:hover': {
-        boxShadow: workoutLoggerTheme.shadows.commandGlow
-      }
-    },
-    '& .MuiSlider-track': {
-      background: workoutLoggerTheme.gradients.dataVisualization
-    },
-    '& .MuiSlider-rail': {
-      background: workoutLoggerTheme.colors.tacticalBorder
-    }
-  },
-  
   // Form Rating Stars Theme
   formStars: {
     '& .star-active': {

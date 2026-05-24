@@ -372,7 +372,7 @@ declare global {
   }
 }
 
-if (typeof window !== 'undefined') {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   window.SwanPaymentDiagnostics = {
     run: () => paymentDiagnostics.runDiagnostics(),
     runAndReport: async () => {

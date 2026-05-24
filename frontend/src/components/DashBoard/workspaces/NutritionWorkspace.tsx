@@ -30,7 +30,7 @@
  * [Tab: Learn] → NutritionLearnTab → NASM education accordion
  */
 
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useCallback, useState, lazy, Suspense } from 'react';
 import styled, { css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Utensils, Search, Apple, ScanBarcode, Droplets, BookOpen, PieChart, Building2, Sprout, MapPin, Pill, Brain } from 'lucide-react';
@@ -133,7 +133,12 @@ const NutritionWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('log');
   const { isPro, isElite, isTrial } = useSubscription();
   const hasAINutrition = isPro || isElite || isTrial;
-  const { summary, loading: macroLoading } = useMacroSummary();
+  const { summary, loading: macroLoading, refetch: refetchMacroSummary } = useMacroSummary();
+  const handleMealLogResult = useCallback((success: boolean) => {
+    if (success) {
+      refetchMacroSummary();
+    }
+  }, [refetchMacroSummary]);
 
   return (
     <WorkspaceRoot>
@@ -166,7 +171,7 @@ const NutritionWorkspace: React.FC = () => {
       <ContentArea role="tabpanel" id={`nutrition-tab-${activeTab}`}>
         <ErrorBoundary>
           <Suspense fallback={<CosmicSuspenseLoader />}>
-            {activeTab === 'log' && <FoodIntakeForm />}
+            {activeTab === 'log' && <FoodIntakeForm onDataSent={handleMealLogResult} />}
             {activeTab === 'search' && <FoodSearchPanel />}
             {activeTab === 'restaurant' && <RestaurantTab />}
             {activeTab === 'hydration' && <NutritionHydrationTab />}

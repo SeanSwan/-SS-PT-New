@@ -12,6 +12,7 @@
  * HOW IT FITS IN THE APP: NutritionWorkspace → MacroDonut / NutritionBalanceRadar
  */
 import { useState, useEffect, useCallback } from 'react';
+import apiService from '../services/api.service';
 
 export interface MacroSummary {
   date: string;
@@ -33,9 +34,6 @@ interface UseMacroSummaryResult {
   refetch: () => void;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
 export function useMacroSummary(date?: string): UseMacroSummaryResult {
   const [summary, setSummary] = useState<MacroSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,30 +43,16 @@ export function useMacroSummary(date?: string): UseMacroSummaryResult {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Not authenticated');
-        setLoading(false);
-        return;
-      }
-
       const dateParam = date || new Date().toISOString().split('T')[0];
-      const res = await fetch(`${API_BASE}/api/macros/summary?date=${dateParam}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const json = await res.json();
+      const response = await apiService.get(`/api/macros/summary?date=${dateParam}`);
+      const json = response.data;
       if (json.success && json.summary) {
         setSummary(json.summary);
       } else {
         setError(json.error || 'Failed to load macro data');
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Network error');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Network error');
     } finally {
       setLoading(false);
     }

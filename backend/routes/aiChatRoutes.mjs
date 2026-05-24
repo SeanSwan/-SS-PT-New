@@ -88,6 +88,18 @@ const audioUpload = multer({
 const router = express.Router();
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
 
+const buildTranscriptionErrorResponse = (err) => {
+  const isConfigError = err?.message?.includes('not configured');
+  return {
+    status: isConfigError ? 503 : 500,
+    body: {
+      success: false,
+      error: isConfigError ? 'Transcription service unavailable' : 'Transcription failed',
+      code: isConfigError ? 'TRANSCRIPTION_NOT_CONFIGURED' : 'TRANSCRIPTION_FAILED',
+    },
+  };
+};
+
 // All routes require authentication
 router.use(protect);
 
@@ -623,8 +635,8 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
     });
   } catch (err) {
     logger.error('[AI Chat] Transcription failed', { error: err.message, userId: req.user?.id });
-    const status = err.message?.includes('not configured') ? 503 : 500;
-    return res.status(status).json({ success: false, error: err.message || 'Transcription failed' });
+    const response = buildTranscriptionErrorResponse(err);
+    return res.status(response.status).json(response.body);
   }
 });
 

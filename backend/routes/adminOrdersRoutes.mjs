@@ -47,8 +47,20 @@ import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
+import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const ORDER_TIME_RANGES = ['24h', '7d', '30d', '90d'];
+const ORDER_STATUSES = ['pending_payment', 'active', 'completed', 'cancelled', 'refunded'];
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR
+  });
+}
 
 // Initialize Stripe client
 let stripeClient = null;
@@ -117,12 +129,67 @@ const validatePagination = [
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('sortBy').optional().isIn(['createdAt', 'completedAt', 'total', 'totalAmount', 'status']).withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('search').optional().trim().isLength({ max: 120 }).withMessage('Search must be 120 characters or less'),
+  query('minAmount').optional().isFloat({ min: 0 }).withMessage('Minimum amount must be zero or greater'),
+  query('maxAmount').optional().isFloat({ min: 0 }).withMessage('Maximum amount must be zero or greater'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be ISO-8601'),
+  query('endDate').optional().isISO8601().withMessage('End date must be ISO-8601'),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
         message: 'Invalid query parameters',
+        errors: errors.array()
+      });
+    }
+    next();
+  }
+];
+
+const validateAnalyticsQuery = [
+  query('timeRange').optional().isIn(ORDER_TIME_RANGES).withMessage('Invalid analytics time range'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid query parameters',
+        errors: errors.array()
+      });
+    }
+    next();
+  }
+];
+
+const validateExportQuery = [
+  query('format').optional().isIn(['csv', 'json']).withMessage('Export format must be csv or json'),
+  query('status').optional().isIn(ORDER_STATUSES).withMessage('Invalid order status'),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Export limit must be between 1 and 1000'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be ISO-8601'),
+  query('endDate').optional().isISO8601().withMessage('End date must be ISO-8601'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid export parameters',
+        errors: errors.array()
+      });
+    }
+    next();
+  }
+];
+
+const validateManualCompletion = [
+  body('adminNotes').optional().trim().isLength({ max: 500 }).withMessage('Admin notes must be 500 characters or less'),
+  body('verifiedBy').optional().trim().isLength({ max: 100 }).withMessage('Verified by must be 100 characters or less'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid completion payload',
         errors: errors.array()
       });
     }
@@ -153,10 +220,10 @@ function buildOrderQuery(filters = {}) {
   if (filters.minAmount || filters.maxAmount) {
     whereClause.total = {};
     if (filters.minAmount) {
-      whereClause.total[Op.gte] = filters.minAmount;
+      whereClause.total[Op.gte] = Number(filters.minAmount);
     }
     if (filters.maxAmount) {
-      whereClause.total[Op.lte] = filters.maxAmount;
+      whereClause.total[Op.lte] = Number(filters.maxAmount);
     }
   }
   
@@ -251,7 +318,7 @@ async function calculateOrderAnalytics(timeRange = '30d') {
     
     // Calculate totals
     const totals = orderStats.reduce((acc, stat) => {
-      acc.orders += parseInt(stat.count);
+      acc.orders += Number.parseInt(stat.count, 10);
       acc.revenue += parseFloat(stat.totalAmount || 0);
       return acc;
     }, { orders: 0, revenue: 0 });
@@ -313,17 +380,17 @@ async function calculateOrderAnalytics(timeRange = '30d') {
       },
       statusBreakdown: orderStats.map(stat => ({
         status: stat.status,
-        count: parseInt(stat.count),
+        count: Number.parseInt(stat.count, 10),
         revenue: Math.round(parseFloat(stat.totalAmount || 0) * 100) / 100
       })),
       dailyTrend: dailyTrend.map(day => ({
         date: day.date,
-        orders: parseInt(day.orders),
+        orders: Number.parseInt(day.orders, 10),
         revenue: Math.round(parseFloat(day.revenue || 0) * 100) / 100
       })),
       topPackages: topPackages.map(pkg => ({
         name: pkg.name,
-        totalSold: parseInt(pkg.totalSold),
+        totalSold: Number.parseInt(pkg.totalSold, 10),
         totalRevenue: Math.round(parseFloat(pkg.totalRevenue || 0) * 100) / 100
       }))
     };
@@ -414,8 +481,8 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
         }
       ],
       order: [[sortField, sortOrder.toUpperCase()]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: Number.parseInt(limit, 10),
+      offset: Number.parseInt(offset, 10)
     });
     
     // Enrich with Stripe data
@@ -428,8 +495,8 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
       message: 'Pending orders retrieved successfully',
       orders: enrichedOrders,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number.parseInt(page, 10),
+        limit: Number.parseInt(limit, 10),
         total: totalCount,
         pages: Math.ceil(totalCount / limit)
       },
@@ -449,11 +516,7 @@ router.get('/orders/pending', validatePagination, async (req, res) => {
       });
     }
 
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve pending orders',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to retrieve pending orders');
   }
 });
 
@@ -510,8 +573,8 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
         }
       ],
       order: [[sortField, sortOrder.toUpperCase()]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: Number.parseInt(limit, 10),
+      offset: Number.parseInt(offset, 10)
     });
     
     // Enrich with Stripe data
@@ -524,8 +587,8 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
       message: 'Completed orders retrieved successfully',
       orders: enrichedOrders,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number.parseInt(page, 10),
+        limit: Number.parseInt(limit, 10),
         total: totalCount,
         pages: Math.ceil(totalCount / limit)
       },
@@ -535,11 +598,62 @@ router.get('/orders/completed', validatePagination, async (req, res) => {
   } catch (error) {
     logger.error(`❌ Failed to fetch completed orders for ${req.user.email}:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve completed orders',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    return sendInternalError(res, 'Failed to retrieve completed orders');
+  }
+});
+
+/**
+ * POST /api/admin/orders/:id/complete
+ * Manually mark a cart order as paid and grant session credits.
+ */
+router.post('/orders/:id(\\d+)/complete', [heavyOrdersRateLimit, validateOrderId, validateManualCompletion], async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+    logger.info(`💳 Admin ${req.user.email} manually completing order ${orderId}`);
+
+    const order = await ShoppingCart.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    if (order.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cancelled orders cannot be marked paid'
+      });
+    }
+
+    const grantResult = await grantSessionsForCart(orderId, order.userId, 'admin-manual');
+
+    logger.info('Admin order completion processed', {
+      orderId,
+      userId: order.userId,
+      adminId: req.user.id,
+      adminEmail: req.user.email,
+      hasAdminNotes: Boolean(req.body?.adminNotes),
+      sessionsAdded: grantResult.sessionsAdded,
+      alreadyProcessed: grantResult.alreadyProcessed
     });
+
+    return res.json({
+      success: true,
+      message: grantResult.alreadyProcessed
+        ? 'Order already completed'
+        : 'Order marked paid and sessions granted',
+      data: {
+        orderId,
+        userId: order.userId,
+        sessionsAdded: grantResult.sessionsAdded,
+        alreadyProcessed: grantResult.alreadyProcessed
+      }
+    });
+  } catch (error) {
+    logger.error(`❌ Failed to manually complete order ${req.params.id}:`, error);
+
+    return sendInternalError(res, 'Failed to mark order paid');
   }
 });
 
@@ -592,11 +706,7 @@ router.get('/orders/:id(\\d+)', validateOrderId, async (req, res) => {
   } catch (error) {
     logger.error(`❌ Failed to fetch order details for ${req.params.id}:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve order details',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to retrieve order details');
   }
 });
 
@@ -604,7 +714,7 @@ router.get('/orders/:id(\\d+)', validateOrderId, async (req, res) => {
  * GET /api/admin/orders/analytics
  * Order analytics and metrics
  */
-router.get('/orders/analytics', async (req, res) => {
+router.get('/orders/analytics', validateAnalyticsQuery, async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
@@ -623,11 +733,7 @@ router.get('/orders/analytics', async (req, res) => {
   } catch (error) {
     logger.error(`❌ Failed to fetch order analytics for ${req.user.email}:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve order analytics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to retrieve order analytics');
   }
 });
 
@@ -635,7 +741,7 @@ router.get('/orders/analytics', async (req, res) => {
  * GET /api/admin/orders/export
  * Export order data in CSV or JSON format
  */
-router.get('/orders/export', [heavyOrdersRateLimit, validatePagination], async (req, res) => {
+router.get('/orders/export', [heavyOrdersRateLimit, validateExportQuery], async (req, res) => {
   try {
     const {
       format = 'csv',
@@ -662,7 +768,7 @@ router.get('/orders/export', [heavyOrdersRateLimit, validatePagination], async (
           attributes: ['firstName', 'lastName', 'email']
         }
       ],
-      limit: parseInt(limit),
+      limit: Number.parseInt(limit, 10),
       order: [['createdAt', 'DESC']]
     });
     
@@ -697,11 +803,7 @@ router.get('/orders/export', [heavyOrdersRateLimit, validatePagination], async (
   } catch (error) {
     logger.error(`❌ Failed to export order data for ${req.user.email}:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to export order data',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    return sendInternalError(res, 'Failed to export order data');
   }
 });
 

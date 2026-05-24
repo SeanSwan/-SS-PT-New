@@ -445,61 +445,6 @@
     background: rgba(59, 130, 246, 0.2);
   }
 }
-
-/* ==========================================================================
-   MOBILE ADMIN DIALOGS & MODALS
-   ========================================================================== */
-
-/* Mobile Dialog Optimization */
-@media (max-width: 768px) {
-  .MuiDialog-paper {
-    margin: var(--space-md) !important;
-    max-height: calc(100vh - 32px) !important;
-    width: calc(100vw - 32px) !important;
-    max-width: none !important;
-    border-radius: var(--mobile-border-radius-lg) !important;
-  }
-  
-  .MuiDialogTitle-root {
-    padding: var(--space-lg) var(--space-lg) var(--space-md) !important;
-    font-size: var(--font-size-lg) !important;
-  }
-  
-  .MuiDialogContent-root {
-    padding: 0 var(--space-lg) var(--space-md) !important;
-  }
-  
-  .MuiDialogActions-root {
-    padding: var(--space-md) var(--space-lg) var(--space-lg) !important;
-    gap: var(--space-sm);
-  }
-  
-  .MuiDialogActions-root .MuiButton-root {
-    min-height: var(--admin-touch-min);
-    flex: 1;
-    border-radius: var(--mobile-border-radius);
-    font-weight: 600;
-  }
-}
-
-/* Mobile Bottom Sheet Style Dialog - P1-15: Safe area support */
-@media (max-width: 768px) {
-  .mobile-bottom-sheet .MuiDialog-paper {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    transform: none !important;
-    margin: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    border-radius: var(--mobile-border-radius-lg) var(--mobile-border-radius-lg) 0 0 !important;
-    max-height: calc(85vh - env(safe-area-inset-bottom, 0px)) !important;
-    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-  }
-}
-
 /* ==========================================================================
    MOBILE ADMIN COMPONENTS
    ========================================================================== */

@@ -18,6 +18,31 @@ import logger from '../utils/logger.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  code: INTERNAL_ERROR,
+});
+
+const parseBoundedPositiveInteger = (value, { defaultValue, maxValue }) => {
+  if (value === undefined || value === null || value === '') {
+    return { ok: true, value: defaultValue };
+  }
+
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) {
+    return { ok: false };
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    return { ok: false };
+  }
+
+  return { ok: true, value: Math.min(parsed, maxValue) };
+};
 
 // ─────────────────────────────────────────────────────────────
 // Workout-history row mapper (exported for unit tests)
@@ -181,11 +206,7 @@ router.get('/:userId/current', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching workout plan',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error fetching workout plan');
   }
 });
 
@@ -202,15 +223,19 @@ router.get('/:userId/history', protect, async (req, res) => {
 
     const { clientId, models } = access;
     const { WorkoutSession, Session, DailyWorkoutForm } = models;
-    // Slice 1.2 Codex R1 MEDIUM 2: clamp limit. `parseInt(...) || 10`
-    // previously accepted huge values, and the new dailyForms JOIN
-    // (which reads JSONB formData per session) made the unbounded
-    // cost worse. Cap at 100 — comfortable headroom for dashboard
-    // history without enabling abuse.
-    const rawLimit = Number.parseInt(req.query.limit, 10);
-    const limit = Number.isFinite(rawLimit)
-      ? Math.min(Math.max(rawLimit, 1), 100)
-      : 10;
+    // Cap history reads at 100 so the DailyWorkoutForm JSONB join cannot
+    // become an unbounded dashboard query.
+    const parsedLimit = parseBoundedPositiveInteger(req.query.limit, {
+      defaultValue: 10,
+      maxValue: 100,
+    });
+    if (!parsedLimit.ok) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid limit',
+      });
+    }
+    const { value: limit } = parsedLimit;
 
     let history = [];
 
@@ -284,11 +309,7 @@ router.get('/:userId/history', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching workout history:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching workout history',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error fetching workout history');
   }
 });
 

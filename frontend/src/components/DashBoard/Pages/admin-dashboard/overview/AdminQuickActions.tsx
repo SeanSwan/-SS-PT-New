@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useTheme } from 'styled-components';
+import { motion } from 'framer-motion';
 import { CommandCard } from '../AdminDashboardCards';
 import { AdminQuickAction } from './AdminOverview.types';
 
@@ -43,48 +44,74 @@ const QuickActionsGrid = styled.div`
 `;
 
 const QuickActionCard = styled(CommandCard)`
+  appearance: none;
+  width: 100%;
   padding: 1.5rem;
   min-height: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  color: var(--text-primary, #E0ECF4);
+  font: inherit;
+  cursor: pointer;
 
   @media (max-width: 768px) {
     padding: 0.75rem;
     min-height: 90px;
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
+`;
+
+const QuickActionIcon = styled.div<{ $accent: string }>`
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, ${p => p.$accent} 14%, transparent);
+  color: ${p => p.$accent};
+  margin-bottom: 0.5rem;
+  line-height: 0;
+`;
+
+const ActionTitle = styled.h4`
+  margin: 0 0 0.25rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+`;
+
+const ActionDescription = styled.p`
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+  text-align: center;
 `;
 
 const AdminQuickActions: React.FC<AdminQuickActionsProps> = ({ actions }) => {
   const theme = useTheme() as any;
-  const accent = theme?.colors?.accent || '#60C0F0';
+  const accent = theme?.colors?.accent || 'var(--accent-primary, #60C0F0)';
   return (
     <QuickActionsWrapper>
       <QuickActionsTitle>Quick Actions</QuickActionsTitle>
       <QuickActionsGrid>
         {actions.map((action) => (
           <QuickActionCard
+            as={motion.button}
+            type="button"
             key={action.id}
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={action.action}
+            aria-label={`${action.title}: ${action.description}`}
           >
-            <div
-              style={{
-                padding: '0.75rem',
-                borderRadius: '10px',
-                background: `${accent}1a`,
-                color: accent,
-                marginBottom: '0.5rem',
-              }}
-            >
+            <QuickActionIcon $accent={accent} aria-hidden="true">
               {action.icon}
-            </div>
-            <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.8rem', fontWeight: 600, textAlign: 'center' }}>{action.title}</h4>
-            <p style={{ margin: 0, fontSize: '0.7rem', color: theme?.text?.muted || 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>
-              {action.description}
-            </p>
+            </QuickActionIcon>
+            <ActionTitle>{action.title}</ActionTitle>
+            <ActionDescription>{action.description}</ActionDescription>
           </QuickActionCard>
         ))}
       </QuickActionsGrid>

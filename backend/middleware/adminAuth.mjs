@@ -47,7 +47,7 @@
  *     else Invalid format (not "Bearer <token>")
  *         M-->>C: 401 Invalid format
  *     else Has valid format
- *         M->>J: jwt.verify(token, JWT_SECRET)
+ *         M->>J: jwt.verify(token, getJwtSecret())
  *
  *         alt Token expired
  *             J-->>M: TokenExpiredError
@@ -181,7 +181,7 @@
  *
  * Environment Variables:
  * - JWT_SECRET: Secret key for JWT signing/verification (REQUIRED)
- * - Default: 'your-secret-key-change-in-production' (INSECURE - change in production!)
+ * - No fallback secret is allowed; missing/placeholder config fails closed.
  *
  * Testing:
  * - Unit tests: backend/tests/adminAuth.test.mjs
@@ -201,7 +201,21 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.mjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const INSECURE_JWT_PLACEHOLDERS = new Set([
+  'your-secret-key',
+  'your-secret-key-change-in-production',
+  'your-production-jwt-secret-key-here-change-this',
+]);
+
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret || INSECURE_JWT_PLACEHOLDERS.has(secret)) {
+    const error = new Error('JWT secret is not configured');
+    error.name = 'JwtSecretConfigurationError';
+    throw error;
+  }
+  return secret;
+};
 
 /**
  * Middleware to require admin role for route access
@@ -243,7 +257,7 @@ export async function requireAdmin(req, res, next) {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
         return res.status(401).json({
@@ -344,7 +358,7 @@ export async function requireTrainerOrAdmin(req, res, next) {
     // Verify JWT token
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, getJwtSecret());
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {
         return res.status(401).json({
@@ -419,7 +433,7 @@ export async function optionalAuth(req, res, next) {
 
     // Try to verify token
     try {
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, getJwtSecret());
       const user = await User.findByPk(decoded.id);
 
       if (user && user.status !== 'suspended' && user.status !== 'deleted') {

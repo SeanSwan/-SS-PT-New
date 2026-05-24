@@ -11,6 +11,25 @@ import db from '../database.mjs';
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendSocialError = (res, status, message, error = INTERNAL_ERROR) =>
+  res.status(status).json({
+    success: false,
+    message,
+    error
+  });
+
+const parsePositiveInteger = (value, fallback = null) => {
+  const stringValue = String(value ?? '').trim();
+  if (!/^[1-9]\d*$/.test(stringValue)) return fallback;
+
+  return Number(stringValue);
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) =>
+  Math.min(parsePositiveInteger(value, fallback), max);
+
 const socialController = {
   /**
    * FOLLOW USER
@@ -24,8 +43,13 @@ const socialController = {
       const models = await getModels();
       const { UserFollow, User, Notification } = models;
       
-      const { userId: targetUserId } = req.params;
-      const followerId = req.user.id;
+      const targetUserId = parsePositiveInteger(req.params.userId);
+      const followerId = parsePositiveInteger(req.user?.id);
+
+      if (!targetUserId || !followerId) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Invalid user id' });
+      }
 
       // Validation
       if (targetUserId === followerId) {
@@ -96,11 +120,7 @@ const socialController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error following user:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to follow user',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to follow user');
     }
   },
 
@@ -116,8 +136,13 @@ const socialController = {
       const models = await getModels();
       const { UserFollow } = models;
       
-      const { userId: targetUserId } = req.params;
-      const followerId = req.user.id;
+      const targetUserId = parsePositiveInteger(req.params.userId);
+      const followerId = parsePositiveInteger(req.user?.id);
+
+      if (!targetUserId || !followerId) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Invalid user id' });
+      }
 
       // Find and remove follow relationship
       const follow = await UserFollow.findOne({
@@ -147,11 +172,7 @@ const socialController = {
     } catch (error) {
       await transaction.rollback();
       console.error('Error unfollowing user:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to unfollow user',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to unfollow user');
     }
   },
 
@@ -165,10 +186,14 @@ const socialController = {
       const models = await getModels();
       const { UserFollow, User } = models;
       
-      const { userId } = req.params;
+      const userId = parsePositiveInteger(req.params.userId);
       const { page = 1, limit = 20 } = req.query;
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      if (!userId) return res.status(400).json({ success: false, message: 'Invalid user id' });
+
+      const offset = (normalizedPage - 1) * normalizedLimit;
 
       const followers = await UserFollow.findAndCountAll({
         where: {
@@ -185,7 +210,7 @@ const socialController = {
           include: []
         }],
         order: [['followedAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset,
         distinct: true
       });
@@ -195,18 +220,14 @@ const socialController = {
         followers: followers.rows,
         pagination: {
           total: followers.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(followers.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(followers.count / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error fetching followers:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch followers',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to fetch followers');
     }
   },
 
@@ -220,10 +241,14 @@ const socialController = {
       const models = await getModels();
       const { UserFollow, User, Achievement } = models;
       
-      const { userId } = req.params;
+      const userId = parsePositiveInteger(req.params.userId);
       const { page = 1, limit = 20 } = req.query;
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
 
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      if (!userId) return res.status(400).json({ success: false, message: 'Invalid user id' });
+
+      const offset = (normalizedPage - 1) * normalizedLimit;
 
       const following = await UserFollow.findAndCountAll({
         where: {
@@ -240,7 +265,7 @@ const socialController = {
           include: []
         }],
         order: [['followedAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset,
         distinct: true
       });
@@ -250,18 +275,14 @@ const socialController = {
         following: following.rows,
         pagination: {
           total: following.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(following.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(following.count / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error fetching following:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch following',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to fetch following');
     }
   },
 
@@ -275,8 +296,12 @@ const socialController = {
       const models = await getModels();
       const { UserFollow } = models;
       
-      const { userId: targetUserId } = req.params;
-      const currentUserId = req.user.id;
+      const targetUserId = parsePositiveInteger(req.params.userId);
+      const currentUserId = parsePositiveInteger(req.user?.id);
+
+      if (!targetUserId || !currentUserId) {
+        return res.status(400).json({ success: false, message: 'Invalid user id' });
+      }
 
       if (targetUserId === currentUserId) {
         return res.status(200).json({
@@ -318,11 +343,7 @@ const socialController = {
       });
     } catch (error) {
       console.error('Error checking follow status:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to check follow status',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to check follow status');
     }
   },
 
@@ -336,7 +357,9 @@ const socialController = {
       const models = await getModels();
       const { UserFollow, ChallengeParticipant, Challenge } = models;
       
-      const { userId } = req.params;
+      const userId = parsePositiveInteger(req.params.userId);
+
+      if (!userId) return res.status(400).json({ success: false, message: 'Invalid user id' });
 
       // Get follower count
       const followersCount = await UserFollow.count({
@@ -410,11 +433,7 @@ const socialController = {
       });
     } catch (error) {
       console.error('Error fetching social stats:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch social statistics',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to fetch social statistics');
     }
   },
 
@@ -437,8 +456,12 @@ const socialController = {
         mutualFollows = false
       } = req.query;
 
-      const currentUserId = req.user.id;
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const currentUserId = parsePositiveInteger(req.user?.id);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
+
+      if (!currentUserId) return res.status(400).json({ success: false, message: 'Invalid user id' });
 
       // Build where clause for filtering
       const whereClause = {
@@ -487,8 +510,8 @@ const socialController = {
             users: [],
             pagination: {
               total: 0,
-              page: parseInt(page),
-              limit: parseInt(limit),
+              page: normalizedPage,
+              limit: normalizedLimit,
               pages: 0
             },
             recommendations: []
@@ -509,7 +532,7 @@ const socialController = {
           ['level', 'DESC'],
           ['createdAt', 'DESC']
         ],
-        limit: parseInt(limit),
+        limit: normalizedLimit,
         offset,
         distinct: true
       });
@@ -535,18 +558,14 @@ const socialController = {
         users: usersWithRecommendations,
         pagination: {
           total: users.count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(users.count / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(users.count / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error discovering users:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to discover users',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to discover users');
     }
   },
 
@@ -561,8 +580,12 @@ const socialController = {
       const { UserFollow, User, ChallengeParticipant, Challenge, Achievement, UserAchievement } = models;
       
       const { page = 1, limit = 20, type = 'all' } = req.query;
-      const currentUserId = req.user.id;
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const currentUserId = parsePositiveInteger(req.user?.id);
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
+
+      if (!currentUserId) return res.status(400).json({ success: false, message: 'Invalid user id' });
 
       // Get users that current user follows
       const following = await UserFollow.findAll({
@@ -579,8 +602,8 @@ const socialController = {
           feed: [],
           pagination: {
             total: 0,
-            page: parseInt(page),
-            limit: parseInt(limit),
+            page: normalizedPage,
+            limit: normalizedLimit,
             pages: 0
           }
         });
@@ -610,7 +633,7 @@ const socialController = {
             }
           ],
           order: [['completedAt', 'DESC']],
-          limit: parseInt(limit)
+          limit: normalizedLimit
         });
 
         activities = activities.concat(
@@ -648,7 +671,7 @@ const socialController = {
             }
           ],
           order: [['earnedAt', 'DESC']],
-          limit: parseInt(limit)
+          limit: normalizedLimit
         });
 
         activities = activities.concat(
@@ -687,7 +710,7 @@ const socialController = {
             }
           ],
           order: [['followedAt', 'DESC']],
-          limit: parseInt(limit)
+          limit: normalizedLimit
         });
 
         activities = activities.concat(
@@ -713,25 +736,21 @@ const socialController = {
       });
 
       // Paginate results
-      const paginatedActivities = activities.slice(offset, offset + parseInt(limit));
+      const paginatedActivities = activities.slice(offset, offset + normalizedLimit);
 
       return res.status(200).json({
         success: true,
         feed: paginatedActivities,
         pagination: {
           total: activities.length,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          pages: Math.ceil(activities.length / parseInt(limit))
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(activities.length / normalizedLimit)
         }
       });
     } catch (error) {
       console.error('Error fetching social feed:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch social feed',
-        error: error.message
-      });
+      return sendSocialError(res, 500, 'Failed to fetch social feed');
     }
   },
 

@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import apiService from '../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -69,16 +70,6 @@ export interface UsageStatus {
 // SECTION: API Helpers
 // ─────────────────────────────────────────────────────────────
 
-const API_BASE = import.meta.env.VITE_API_BASE || '';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-};
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hook
 // ─────────────────────────────────────────────────────────────
@@ -94,17 +85,14 @@ export function useSubscription() {
   /** Fetch current subscription status + usage */
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/subscriptions/status`, {
-        headers: getHeaders(),
-      });
-      if (!res.ok) throw new Error('Failed to fetch subscription status');
-      const data = await res.json();
+      const response = await apiService.get('/api/subscriptions/status');
+      const data = response.data;
       if (data.success) {
         setSubscription(data.subscription);
         setUsage(data.usage);
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err?.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -113,9 +101,8 @@ export function useSubscription() {
   /** Fetch available tiers */
   const fetchTiers = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/subscriptions/tiers`);
-      if (!res.ok) return;
-      const data = await res.json();
+      const response = await apiService.get('/api/subscriptions/tiers');
+      const data = response.data;
       if (data.success) setTiers(data.tiers);
     } catch {
       // Non-critical — tiers can be shown from cache
@@ -124,43 +111,44 @@ export function useSubscription() {
 
   /** Start free trial */
   const startTrial = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/subscriptions/start-trial`, {
-      method: 'POST',
-      headers: getHeaders(),
-    });
-    const data = await res.json();
-    if (data.success) {
-      await fetchStatus();
+    try {
+      const response = await apiService.post('/api/subscriptions/start-trial');
+      const data = response.data;
+      if (data.success) {
+        await fetchStatus();
+      }
+      return data;
+    } catch (err: any) {
+      return err?.response?.data || { success: false, message: err.message || 'Failed to start trial' };
     }
-    return data;
   }, [fetchStatus]);
 
   /** Create Stripe checkout session for subscription */
   const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number, billingInterval: 'month' | 'year' = 'month') => {
-    const res = await fetch(`${API_BASE}/api/subscriptions/checkout`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ tier, amount, billingInterval }),
-    });
-    const data = await res.json();
-    if (data.success && data.checkoutUrl) {
-      window.location.href = data.checkoutUrl;
+    try {
+      const response = await apiService.post('/api/subscriptions/checkout', { tier, amount, billingInterval });
+      const data = response.data;
+      if (data.success && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+      return data;
+    } catch (err: any) {
+      return err?.response?.data || { success: false, message: err.message || 'Failed to start checkout' };
     }
-    return data;
   }, []);
 
   /** Cancel subscription */
   const cancel = useCallback(async (reason?: string) => {
-    const res = await fetch(`${API_BASE}/api/subscriptions/cancel`, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ reason }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      await fetchStatus();
+    try {
+      const response = await apiService.post('/api/subscriptions/cancel', { reason });
+      const data = response.data;
+      if (data.success) {
+        await fetchStatus();
+      }
+      return data;
+    } catch (err: any) {
+      return err?.response?.data || { success: false, message: err.message || 'Failed to cancel subscription' };
     }
-    return data;
   }, [fetchStatus]);
 
   // ─────────────────────────────────────────────────────────────

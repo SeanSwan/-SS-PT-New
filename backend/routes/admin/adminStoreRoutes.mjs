@@ -10,6 +10,7 @@ import { getStorefrontItem } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
 
 // Apply authentication and admin role to all routes
 router.use(protect);
@@ -66,7 +67,7 @@ router.get('/status', async (req, res) => {
     logger.error('Error checking store status:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -214,7 +215,7 @@ router.post('/seed', async (req, res) => {
     logger.error('Error seeding luxury store:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -284,7 +285,7 @@ router.post('/fix-pricing', async (req, res) => {
     logger.error('Error fixing luxury store pricing:', error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: INTERNAL_ERROR
     });
   }
 });

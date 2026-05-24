@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { PanelErrorBoundary } from './PanelErrorBoundary';
 import React from 'react';
@@ -18,13 +18,29 @@ const Boom: React.FC<{ trigger?: boolean }> = ({ trigger = true }) => {
   return <div data-testid="ok-panel">OK</div>;
 };
 
+const expectedBoundaryErrors = new Set(['panel-internal-failure', 'first-time-fails']);
+const preventExpectedBoundaryError = (event: ErrorEvent) => {
+  if (event.error instanceof Error && expectedBoundaryErrors.has(event.error.message)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+};
+
 describe('PanelErrorBoundary', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     cleanup();
     // React's default error-boundary behavior writes errors to console.
     // Silence to keep test output clean. Real logApiError still runs
     // but its console.error is also spied here to keep output silent.
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    window.addEventListener('error', preventExpectedBoundaryError);
+  });
+
+  afterEach(() => {
+    window.removeEventListener('error', preventExpectedBoundaryError);
+    consoleErrorSpy.mockRestore();
   });
 
   it('renders children normally when no error', () => {

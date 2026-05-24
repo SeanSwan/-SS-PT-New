@@ -24,6 +24,7 @@ function createSocketMock() {
       handlers.get(event)?.delete(handler);
       return socket;
     }),
+    emit: vi.fn(),
     disconnect: vi.fn(),
     emitEvent: (event: string, payload?: unknown) => {
       handlers.get(event)?.forEach((handler) => handler(payload));
@@ -113,6 +114,13 @@ describe('useActivityTicker', () => {
 
     act(() => {
       socket.emitEvent('connect');
+    });
+
+    expect(socket.emit).toHaveBeenCalledWith('authenticate', { token: 'test-token' });
+    expect(result.current.isConnected).toBe(false);
+
+    act(() => {
+      socket.emitEvent('authenticated');
     });
 
     expect(result.current.isConnected).toBe(true);

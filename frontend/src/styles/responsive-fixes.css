@@ -62,9 +62,7 @@ img, video, iframe, object, embed {
 @media (hover: none) and (pointer: coarse) {
   button, 
   .button, 
-  .MuiButton-root, 
   a.button, 
-  .MuiIconButton-root,
   [role="button"],
   input[type="button"],
   input[type="reset"],
@@ -77,10 +75,7 @@ img, video, iframe, object, embed {
   /* Increase tap target size for interactive elements */
   a, 
   input[type="checkbox"], 
-  input[type="radio"],
-  .MuiCheckbox-root,
-  .MuiSwitch-root,
-  .MuiRadio-root {
+  input[type="radio"] {
     padding: 8px;
     margin: -8px;
   }
@@ -126,30 +121,15 @@ img, video, iframe, object, embed {
   }
 }
 
-/* Fix MUI dialog responsiveness */
-.MuiDialog-paper {
-  margin: 16px !important;
-  max-width: calc(100% - 32px) !important;
-}
-
 /* Fix for form inputs and buttons on mobile */
 @media screen and (max-width: 767px) {
   /* Make form controls full width on mobile */
-  .MuiFormControl-root,
-  .MuiTextField-root,
-  .MuiButton-root,
   form input,
   form select,
   form textarea,
   form button {
     width: 100% !important;
     max-width: 100% !important;
-  }
-  
-  /* Apply appropriate spacing for form fields */
-  form .MuiFormControl-root + .MuiFormControl-root,
-  form .MuiTextField-root + .MuiTextField-root {
-    margin-top: 16px !important;
   }
   
   /* Form button container */
@@ -161,9 +141,7 @@ img, video, iframe, object, embed {
   }
 }
 
-/* Fix for charts and data visualization on mobile
-   NOTE: .recharts-wrapper/.recharts-surface removed -- Recharts' ResponsiveContainer
-   handles responsive sizing; overriding width/height breaks its internal measurement. */
+/* Fix for charts and data visualization on mobile. */
 @media screen and (max-width: 767px) {
   .chart-container,
   .apexcharts-canvas {
@@ -269,7 +247,7 @@ img, video, iframe, object, embed {
 
 /* Fix modal content scrolling on mobile */
 @media screen and (max-height: 700px) {
-  .MuiDialog-paper {
+  .modal-content {
     max-height: calc(100% - 32px) !important;
     overflow-y: auto !important;
   }
@@ -342,7 +320,6 @@ html {
 
   /* Reduce modal height and add scroll */
   .modal-content,
-  .MuiDialog-paper,
   .bottom-sheet-content {
     max-height: 80vh !important;
     overflow-y: auto !important;

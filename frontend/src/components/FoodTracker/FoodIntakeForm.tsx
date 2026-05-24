@@ -11,6 +11,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import useMcpIntegration from '../../hooks/useMcpIntegration';
+import apiService from '../../services/api.service';
 import { theme } from '../../theme/tokens';
 
 // Icons (lucide-react replacements for MUI icons)
@@ -641,16 +642,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       const description = foodItems.map(i => `${i.name} (${i.portion})`).join(', ');
 
       // Persist to backend database via /api/macros
-      const API_BASE = import.meta.env.VITE_API_BASE
-        || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-      const token = localStorage.getItem('token');
-      const apiRes = await fetch(`${API_BASE}/api/macros`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
+      await apiService.post('/api/macros', {
           date: new Date().toISOString().split('T')[0],
           mealType: mealType,
           description,
@@ -660,12 +652,7 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
           fat: totals.fat,
           items: foodItems,
           source: 'manual',
-        }),
       });
-      if (!apiRes.ok) {
-        const errBody = await apiRes.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errBody.message || `Failed to save nutrition data (${apiRes.status})`);
-      }
 
       // Keep the legacy integration hook non-blocking. The nutrition API above is
       // the source of truth; this lets older gamification hooks observe the event.
@@ -685,9 +672,9 @@ const FoodIntakeForm: React.FC<FoodIntakeFormProps> = ({ onDataSent }) => {
       if (onDataSent) {
         onDataSent(true);
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error submitting food intake:', error);
-      setError(error instanceof Error ? error.message : 'Error submitting food intake');
+      setError(error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Error submitting food intake');
 
       // Callback to parent
       if (onDataSent) {

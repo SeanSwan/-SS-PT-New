@@ -11,6 +11,24 @@ import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
+
+function parseOptionalInteger(value, fallback, { min, max }) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < min) return null;
+  return Math.min(parsed, max);
+}
 
 /**
  * GET /api/notes/:userId
@@ -35,6 +53,11 @@ router.get('/:userId', protect, async (req, res) => {
     }
 
     const { limit = 20, offset = 0, type } = req.query;
+    const safeLimit = parseOptionalInteger(limit, 20, { min: 1, max: 100 });
+    const safeOffset = parseOptionalInteger(offset, 0, { min: 0, max: 5000 });
+    if (safeLimit === null || safeOffset === null) {
+      return res.status(400).json({ success: false, message: 'Invalid pagination parameters' });
+    }
 
     // Build where clause
     const where = { userId: clientId };
@@ -44,20 +67,17 @@ router.get('/:userId', protect, async (req, res) => {
       where.noteType = type;
     }
 
-    // For clients, only show notes visible to them (not private or admin_only)
+    // ClientNote visibility values are internal-only. Clients do not receive
+    // trainer/admin notes through this endpoint.
     if (req.user?.role === 'client') {
-      // Clients can only see notes that are not private/admin_only
-      // Actually per model, visibility options are 'private', 'trainer_only', 'admin_only'
-      // Clients should probably not see any of these - they see notes through a different mechanism
-      // For now, show general notes only
-      where.visibility = 'trainer_only'; // This means trainers can see, implicitly clients too in context
+      return res.status(200).json({ success: true, data: [] });
     }
 
     const notes = await ClientNote.findAll({
       where,
       order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
+      limit: safeLimit,
+      offset: safeOffset,
       include: User ? [{
         model: User,
         as: 'trainer',
@@ -88,11 +108,7 @@ router.get('/:userId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching client notes:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching notes',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error fetching notes');
   }
 });
 
@@ -157,11 +173,7 @@ router.post('/:userId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating note:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error creating note',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error creating note');
   }
 });
 
@@ -218,11 +230,7 @@ router.put('/:userId/:noteId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error updating note:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error updating note',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error updating note');
   }
 });
 
@@ -265,11 +273,7 @@ router.delete('/:userId/:noteId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error deleting note:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error deleting note',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error deleting note');
   }
 });
 

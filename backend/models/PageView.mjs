@@ -1,7 +1,7 @@
 /**
  * PageView Model
  * ==============
- * Persists anonymous page view data to PostgreSQL.
+ * Persists anonymized page view data to PostgreSQL.
  * Complements the in-memory PAGE_VIEW_CACHE (which provides real-time "Live Now" data)
  * by storing permanent visitor history that survives deploys.
  *
@@ -15,7 +15,11 @@ class PageView extends Model {}
 PageView.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    ip: { type: DataTypes.STRING(45), allowNull: false },
+    ip: {
+      type: DataTypes.STRING(45),
+      allowNull: false,
+      comment: 'Legacy column name. Stores anonymized visitor key, never raw IP.',
+    },
     page: { type: DataTypes.STRING(500), allowNull: true },
     referrer: { type: DataTypes.STRING(500), allowNull: true },
     userAgent: { type: DataTypes.STRING(500), allowNull: true, field: 'user_agent' },

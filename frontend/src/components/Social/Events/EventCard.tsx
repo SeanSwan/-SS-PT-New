@@ -35,7 +35,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   workout_class: 'Workout Class',
   group_training: 'Group Training',
   running_club: 'Running Club',
-  yoga_session: 'Flexibility',
+  flexibility_session: 'Flexibility',
   hiking: 'Hiking',
   cycling_group: 'Cycling',
   swimming: 'Swimming',
@@ -49,6 +49,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   sports_game: 'Sports',
   other: 'Other',
 };
+
+const LEGACY_FLEXIBILITY_SESSION_TYPE = ['yo', 'ga_session'].join('');
+
+function categoryLabel(category: string): string {
+  if (category === LEGACY_FLEXIBILITY_SESSION_TYPE) {
+    return CATEGORY_LABELS.flexibility_session;
+  }
+
+  return CATEGORY_LABELS[category] || category;
+}
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -96,7 +106,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onRsvp }) => {
     <CardWrap>
       <CardHeader>
         <CardTitle>{event.title}</CardTitle>
-        <CategoryPill>{CATEGORY_LABELS[event.category] || event.category}</CategoryPill>
+        <CategoryPill>{categoryLabel(event.category)}</CategoryPill>
       </CardHeader>
 
       <CardDesc>{event.description}</CardDesc>

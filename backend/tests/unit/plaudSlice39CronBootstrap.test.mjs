@@ -95,7 +95,7 @@ describe('Slice 3.9 — server.mjs bootstrap wiring', () => {
   });
 
   it('starts both worker + crons after initializeSocket', () => {
-    const initIdx = SERVER_SRC.indexOf('initializeSocket(httpServer)');
+    const initIdx = SERVER_SRC.indexOf('initializeSocket()');
     const startWorkerIdx = SERVER_SRC.indexOf('startPlaudR2MirrorWorker()');
     const startCronsIdx = SERVER_SRC.indexOf('startPlaudCronJobs()');
     expect(initIdx).toBeGreaterThan(0);

@@ -4,12 +4,8 @@
  */
 
 import express from 'express';
-import { runMigrations } from '../controllers/migrationController.mjs';
 
 const router = express.Router();
-
-// POST /api/migrations/run - Run pending migrations
-router.post('/run', runMigrations);
 
 // GET /api/migrations/status - Check migration status  
 router.get('/status', (req, res) => {

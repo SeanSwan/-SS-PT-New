@@ -36,6 +36,7 @@ const router = express.Router();
 
 const MAX_RECURRING_OCCURRENCES = 52;
 const MAX_RECURRING_MONTHS = 12;
+const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
 
 const parseNotificationPreferences = (user) => {
   if (!user) return {};
@@ -2514,8 +2515,7 @@ router.get("/analytics", protect, async (req, res) => {
     console.error("Error fetching session analytics:", error.message, error.stack);
     res.status(500).json({
       message: "Server error fetching analytics.",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -4259,11 +4259,11 @@ router.post("/book", protect, async (req, res) => {
       });
     }
 
-    // Move Fitness clients cannot book trainer sessions
-    if (client.clientSource === 'move_fitness') {
+    // External/free-tier clients track workouts without SwanStudios booking.
+    if (NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
       return res.status(403).json({
         success: false,
-        message: "Move Fitness clients do not have session booking access. Use the Workout Logger to track your training."
+        message: "This client account does not have session booking access. Use the Workout Logger to track training."
       });
     }
 
@@ -5229,12 +5229,12 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       });
     }
 
-    // Move Fitness clients cannot have sessions booked
-    if (client.clientSource === 'move_fitness') {
+    // External/free-tier clients track workouts without SwanStudios booking.
+    if (NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
-        message: "Move Fitness clients do not have session booking. They track training via the Workout Logger."
+        message: "This client account does not have session booking. They track training via the Workout Logger."
       });
     }
 

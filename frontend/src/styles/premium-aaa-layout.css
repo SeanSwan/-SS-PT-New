@@ -22,7 +22,7 @@ html, body, #root {
 }
 
 /* Enhanced header styling for AAA appearance */
-header, .header, .MuiAppBar-root {
+header, .header {
   height: 80px !important;
   padding: 0 40px !important; /* Increased horizontal padding */
   background: rgba(10, 10, 30, 0.85) !important;
@@ -38,7 +38,7 @@ header, .header, .MuiAppBar-root {
 }
 
 /* Premium header content layout */
-.header-content, .MuiToolbar-root {
+.header-content {
   width: 100% !important;
   max-width: 1800px !important;
   margin: 0 auto !important;
@@ -464,7 +464,7 @@ nav a.active::after, .nav-link.active::after, .StyledNavLink.active::after {
     gap: 40px !important;
   }
   
-  header, .header, .MuiAppBar-root {
+  header, .header {
     padding: 0 30px !important;
   }
   
@@ -483,7 +483,7 @@ nav a.active::after, .nav-link.active::after, .StyledNavLink.active::after {
     gap: 30px !important;
   }
   
-  header, .header, .MuiAppBar-root {
+  header, .header {
     padding: 0 20px !important;
   }
   

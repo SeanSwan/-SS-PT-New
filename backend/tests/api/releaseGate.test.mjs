@@ -230,7 +230,10 @@ describe('Release Gate', () => {
     // Cart query must use the transaction with lock
     expect(mockShoppingCart.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        lock: 'UPDATE',
+        lock: {
+          level: mockTransaction.LOCK.UPDATE,
+          of: mockShoppingCart,
+        },
         transaction: mockTransaction,
       })
     );

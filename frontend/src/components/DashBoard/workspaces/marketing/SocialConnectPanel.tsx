@@ -12,6 +12,7 @@ import { PLATFORMS } from './SocialPostGenerator.config';
 import type { ConnectedAccount } from './SocialPostGenerator.types';
 import type { SocialPlatform } from './marketing.types';
 import { StatusBanner } from './SocialPostGenerator.styles';
+import apiService from '../../../../services/api.service';
 
 const PROVIDER_READINESS_ORDER: SocialPlatform[] = [
   'instagram',
@@ -100,13 +101,6 @@ const Input = styled.input`
   font: 13px 'Sora', sans-serif;
 `;
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-};
-
 interface SocialConnectPanelProps {
   accounts: ConnectedAccount[];
   onConnected: (account: ConnectedAccount) => void;
@@ -123,13 +117,12 @@ const SocialConnectPanel: React.FC<SocialConnectPanelProps> = ({ accounts, onCon
   const connectBluesky = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!identifier.trim() || !appPassword.trim()) return;
-    const response = await fetch('/api/admin/social-publishing/connect/bluesky', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ identifier: identifier.trim(), appPassword }),
+    const response = await apiService.post('/api/admin/social-publishing/connect/bluesky', {
+      identifier: identifier.trim(),
+      appPassword,
     });
-    const data = await response.json();
-    if (!response.ok || !data.success) {
+    const data = response.data;
+    if (!data.success) {
       setStatus(data.message || 'Bluesky connection failed.');
       return;
     }
@@ -139,11 +132,8 @@ const SocialConnectPanel: React.FC<SocialConnectPanelProps> = ({ accounts, onCon
   };
 
   const showReadiness = async (platform: string) => {
-    const response = await fetch(`/api/admin/social-publishing/connect/${platform}`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
-    const data = await response.json();
+    const response = await apiService.post(`/api/admin/social-publishing/connect/${platform}`);
+    const data = response.data;
     setStatus(data.message || data.data?.message || 'Provider setup requirements loaded.');
   };
 

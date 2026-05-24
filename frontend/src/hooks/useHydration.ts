@@ -7,9 +7,7 @@
  * ============================================================================
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_BASE
-  || (import.meta.env.PROD ? '' : 'http://localhost:10000');
+import apiService from '../services/api.service';
 
 const LS_KEY_PREFIX = 'ss-hydration-';
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -28,12 +26,9 @@ export function useHydration(): UseHydrationResult {
   const [loading, setLoading] = useState(true);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const getToken = () => localStorage.getItem('token');
-
   // Load today's hydration on mount
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
+    if (!apiService.isAuthenticated()) {
       // Unauthenticated: use localStorage
       const saved = localStorage.getItem(`${LS_KEY_PREFIX}${todayStr()}`);
       if (saved) setFilled(Number(saved) || 0);
@@ -42,11 +37,9 @@ export function useHydration(): UseHydrationResult {
     }
 
     // Authenticated: fetch from API
-    fetch(`${API_BASE}/api/hydration?date=${todayStr()}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(res => res.json())
-      .then(data => {
+    apiService.get(`/api/hydration?date=${todayStr()}`)
+      .then(response => {
+        const data = response.data;
         if (data.success && data.hydration) {
           setFilled(data.hydration.glassesFilled);
           setDailyGoal(data.hydration.dailyGoal);
@@ -65,20 +58,12 @@ export function useHydration(): UseHydrationResult {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
 
     saveTimeout.current = setTimeout(() => {
-      const token = getToken();
-      if (!token) {
+      if (!apiService.isAuthenticated()) {
         localStorage.setItem(`${LS_KEY_PREFIX}${todayStr()}`, String(count));
         return;
       }
 
-      fetch(`${API_BASE}/api/hydration`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ glassesFilled: count, date: todayStr() }),
-      }).catch(() => {
+      apiService.put('/api/hydration', { glassesFilled: count, date: todayStr() }).catch(() => {
         // Save to localStorage as fallback
         localStorage.setItem(`${LS_KEY_PREFIX}${todayStr()}`, String(count));
       });

@@ -21,6 +21,12 @@ import express from 'express';
 // ─────────────────────────────────────────────────────────────
 
 const mockAssignmentFindAll = vi.fn();
+const mockAssignmentFindAndCountAll = vi.fn();
+const mockAssignmentFindOne = vi.fn();
+const mockAssignmentFindByPk = vi.fn();
+const mockAssignmentUpdate = vi.fn();
+const mockUserFindOne = vi.fn();
+const mockSequelizeQuery = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -45,12 +51,18 @@ vi.mock('../middleware/authMiddleware.mjs', () => ({
 vi.mock('../models/index.mjs', () => ({
   getClientTrainerAssignment: () => ({
     findAll: mockAssignmentFindAll,
+    findAndCountAll: mockAssignmentFindAndCountAll,
+    findOne: mockAssignmentFindOne,
+    findByPk: mockAssignmentFindByPk,
+    update: mockAssignmentUpdate,
   }),
-  getUser: () => ({}),
+  getUser: () => ({
+    findOne: mockUserFindOne,
+  }),
 }));
 
 vi.mock('../database.mjs', () => ({
-  default: { query: vi.fn() },
+  default: { query: mockSequelizeQuery },
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
@@ -65,6 +77,12 @@ beforeEach(async () => {
     { id: 2, clientId: 100, status: 'active' },
     { id: 3, clientId: 101, status: 'active' },
   ]);
+  mockAssignmentFindAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+  mockAssignmentFindOne.mockResolvedValue(null);
+  mockAssignmentFindByPk.mockResolvedValue(null);
+  mockAssignmentUpdate.mockResolvedValue([0]);
+  mockUserFindOne.mockResolvedValue(null);
+  mockSequelizeQuery.mockResolvedValue([[]]);
 
   const { default: clientTrainerAssignmentRoutes } = await import(
     '../routes/clientTrainerAssignmentRoutes.mjs'
@@ -76,6 +94,26 @@ beforeEach(async () => {
 });
 
 describe('trainerOwnerCheck::stringNumberCoercion (production bug 2026-05-01)', () => {
+  it('keeps assignment diagnostics behind admin auth and avoids database writes', async () => {
+    const forbidden = await request(app)
+      .get('/api/assignments/test')
+      .set('x-test-user-id', '98')
+      .set('x-test-user-role', 'trainer');
+
+    expect(forbidden.status).toBe(403);
+    expect(mockSequelizeQuery).not.toHaveBeenCalled();
+
+    const allowed = await request(app)
+      .get('/api/assignments/test')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin');
+
+    expect(allowed.status).toBe(200);
+    expect(mockSequelizeQuery).toHaveBeenCalledTimes(2);
+    const sqlText = mockSequelizeQuery.mock.calls.map(([sql]) => String(sql)).join('\n');
+    expect(sqlText).not.toMatch(/\b(BEGIN|ROLLBACK|INSERT\s+INTO)\b/i);
+  });
+
   it('returns 200 + assignments when trainer (req.user.id="98") asks about own id (params.trainerId="98")', async () => {
     const res = await request(app)
       .get('/api/assignments/trainer/98')
@@ -86,6 +124,29 @@ describe('trainerOwnerCheck::stringNumberCoercion (production bug 2026-05-01)', 
     expect(res.body.success).toBe(true);
     expect(res.body.totalClients).toBe(3);
     expect(mockAssignmentFindAll).toHaveBeenCalledTimes(1);
+    expect(mockAssignmentFindAll.mock.calls[0][0].where.trainerId).toBe(98);
+  });
+
+  it('rejects malformed trainer route IDs before querying assignments', async () => {
+    const res = await request(app)
+      .get('/api/assignments/trainer/98abc')
+      .set('x-test-user-id', '98')
+      .set('x-test-user-role', 'admin');
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Trainer ID must be a positive integer');
+    expect(mockAssignmentFindAll).not.toHaveBeenCalled();
+  });
+
+  it('rejects malformed admin filters before querying assignments', async () => {
+    const res = await request(app)
+      .get('/api/assignments?trainerId=42abc')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin');
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Trainer ID must be a positive integer');
+    expect(mockAssignmentFindAndCountAll).not.toHaveBeenCalled();
   });
 
   it('returns 403 when trainer (req.user.id="98") tries to view OTHER trainer (params.trainerId="42")', async () => {
@@ -107,6 +168,53 @@ describe('trainerOwnerCheck::stringNumberCoercion (production bug 2026-05-01)', 
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+
+  it('rejects malformed create-assignment IDs before user lookup', async () => {
+    const res = await request(app)
+      .post('/api/assignments')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin')
+      .send({ clientId: '12abc', trainerId: 2 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Client ID and Trainer ID must be positive integers');
+    expect(mockUserFindOne).not.toHaveBeenCalled();
+  });
+
+  it('does not expose operational errors from create-assignment failures', async () => {
+    mockUserFindOne.mockRejectedValue(new Error('database password leaked in stack'));
+
+    const res = await request(app)
+      .post('/api/assignments')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin')
+      .send({ clientId: 12, trainerId: 2 });
+
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({
+      success: false,
+      message: 'Failed to create assignment',
+      error: 'internal_error',
+    });
+    expect(JSON.stringify(res.body)).not.toContain('password leaked');
+  });
+
+  it('rejects malformed update and delete IDs before assignment lookup', async () => {
+    const updateRes = await request(app)
+      .put('/api/assignments/9abc')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin')
+      .send({ status: 'inactive' });
+
+    const deleteRes = await request(app)
+      .delete('/api/assignments/9abc')
+      .set('x-test-user-id', '1')
+      .set('x-test-user-role', 'admin');
+
+    expect(updateRes.status).toBe(400);
+    expect(deleteRes.status).toBe(400);
+    expect(mockAssignmentFindByPk).not.toHaveBeenCalled();
   });
 
   it('handles numeric req.user.id gracefully (defensive: comparison should still work if id ever becomes a number)', async () => {

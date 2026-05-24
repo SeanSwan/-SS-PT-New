@@ -23,9 +23,6 @@ import {
 const AegisHud = lazy(() =>
   import('../../../../AdvancedGamification/components/AegisHud').then((module) => ({ default: module.AegisHud })),
 );
-const StreakFortress = lazy(() =>
-  import('../../../../AdvancedGamification/components/StreakFortress').then((module) => ({ default: module.StreakFortress })),
-);
 const JobClassSelector = lazy(() =>
   import('../../../../AdvancedGamification/components/JobClassSelector').then((module) => ({ default: module.JobClassSelector })),
 );
@@ -88,7 +85,9 @@ const RPGFeaturesPanel: React.FC = () => {
               <GhostModeBanner userId={userId} />
             )}
             {previewFeature === 'streak-fortress' && (
-              <StreakFortress streakDays={14} streakFreezes={2} maxFreezes={3} />
+              <PreviewLoading>
+                Streak Fortress requires live streak data before this preview can display client progress.
+              </PreviewLoading>
             )}
             {previewFeature === 'job-classes' && (
               <JobClassSelector userId={userId} currentJobClass={null} />

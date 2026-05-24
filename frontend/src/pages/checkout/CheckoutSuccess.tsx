@@ -203,14 +203,13 @@ const CheckoutSuccess: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Validate required parameters
-        if (!sessionId && !paymentIntentId) {
-          throw new Error('Missing payment session information. Please contact support if you completed a payment.');
+        // Validate Stripe-owned parameters
+        if (!sessionId) {
+          throw new Error('Missing Stripe checkout session ID. Please contact support if you completed a payment.');
         }
         
-        // Generate fallback IDs if needed
-        const finalSessionId = sessionId || `cs_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-        const finalPaymentIntentId = paymentIntentId || `pi_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        const finalSessionId = sessionId;
+        const finalPaymentIntentId = paymentIntentId || '';
         const finalAmount = amount ? parseFloat(amount) : 0;
         
         // Create success data object

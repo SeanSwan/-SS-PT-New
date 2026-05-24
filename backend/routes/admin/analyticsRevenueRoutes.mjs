@@ -49,6 +49,7 @@ import Order from '../../models/Order.mjs';
 import OrderItem from '../../models/OrderItem.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
 
 const analyticsRateLimit = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -170,7 +171,7 @@ router.get('/revenue', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch revenue analytics',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      error: INTERNAL_ERROR,
     });
   }
 });

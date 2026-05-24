@@ -9,6 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Sparkles, Check, PawPrint } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
@@ -203,21 +204,15 @@ const PetAdoptionModal: React.FC<PetAdoptionModalProps> = ({ userId, onClose, on
   const [petName, setPetName] = useState('');
   const [adopting, setAdopting] = useState(false);
 
-  const token = localStorage.getItem('token');
-
   const handleAdopt = async () => {
     if (!selected || !petName.trim()) return;
     setAdopting(true);
     try {
-      const res = await fetch(`/api/gamification/users/${userId}/pet/adopt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ species: selected, petName: petName.trim() }),
+      const res = await apiService.post<{ success: boolean }>(`/api/gamification/users/${userId}/pet/adopt`, {
+        species: selected,
+        petName: petName.trim(),
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         onAdopted();
         onClose();

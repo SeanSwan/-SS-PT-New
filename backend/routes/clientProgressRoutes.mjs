@@ -2,10 +2,28 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import { getClientProgress, getUser, getWorkoutSession } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
+
+function parsePositiveInteger(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Workout history helpers (exported for unit tests)
@@ -43,17 +61,17 @@ export const toWorkoutHistoryEntry = (session) => {
  * @access Private (clients only)
  */
 router.get('/', 
-  // protect, 
-  // authorize(['client']), 
+  protect,
+  authorize(['client', 'admin']),
   async (req, res) => {
     try {
       const ClientProgress = getClientProgress();
       
       // Find or create progress record for the current user
       const [clientProgress, created] = await ClientProgress.findOrCreate({
-        where: { userId: req.user?.id || 'default-user' },
+        where: { userId: req.user.id },
         defaults: {
-          userId: req.user?.id || 'default-user',
+          userId: req.user.id,
           overallLevel: 0,
           experiencePoints: 0
           // All other fields have default values in the model
@@ -71,11 +89,7 @@ router.get('/',
       });
     } catch (error) {
       console.error('Error fetching client progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error fetching progress data',
-        error: error.message
-      });
+      return sendInternalError(res, 'Server error fetching progress data');
     }
 });
 
@@ -195,11 +209,7 @@ router.put('/',
       
     } catch (error) {
       console.error('Error updating client progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error updating progress data',
-        error: error.message
-      });
+      return sendInternalError(res, 'Server error updating progress data');
     }
 });
 
@@ -236,18 +246,14 @@ router.get('/leaderboard',
       });
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error fetching leaderboard',
-        error: error.message
-      });
+      return sendInternalError(res, 'Server error fetching leaderboard');
     }
 });
 
 /**
  * @route GET /api/client-progress/:clientId/workout-history
  * @desc Real workout history for the client dashboard (replaces silent mock fallback)
- * @access Private — client reading own data; trainer/admin reading any client
+ * @access Private — client reading own data; assigned trainer/admin reading client
  *
  * Response: bare WorkoutHistoryEntry[] (matches the caller contract in
  * frontend/src/services/enhanced-progress-analytics-service.ts getWorkoutHistory).
@@ -256,17 +262,13 @@ router.get('/leaderboard',
 router.get('/:clientId/workout-history',
   protect,
   authorize(['client', 'trainer', 'admin']),
+  verifyClientAccessByUserId({ paramName: 'clientId' }),
   async (req, res) => {
     try {
       const { clientId } = req.params;
-      const numericClientId = Number(clientId);
-      if (!Number.isFinite(numericClientId) || numericClientId <= 0) {
+      const numericClientId = parsePositiveInteger(clientId);
+      if (!numericClientId) {
         return res.status(400).json({ success: false, message: 'Invalid clientId' });
-      }
-
-      // IDOR guard: clients may only read their own history
-      if (req.user?.role === 'client' && Number(req.user.id) !== numericClientId) {
-        return res.status(403).json({ success: false, message: 'Forbidden' });
       }
 
       const WorkoutSession = getWorkoutSession();
@@ -293,11 +295,7 @@ router.get('/:clientId/workout-history',
       return res.status(200).json(sessions.map(toWorkoutHistoryEntry));
     } catch (error) {
       logger.error('Error fetching client workout history:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error fetching workout history',
-        error: error.message,
-      });
+      return sendInternalError(res, 'Server error fetching workout history');
     }
   });
 
@@ -309,6 +307,7 @@ router.get('/:clientId/workout-history',
 router.get('/:userId',
   protect,
   authorize(['trainer', 'admin']),
+  verifyClientAccessByUserId({ paramName: 'userId' }),
   async (req, res) => {
     try {
       const { userId } = req.params;
@@ -352,11 +351,7 @@ router.get('/:userId',
       
     } catch (error) {
       console.error('Error fetching client progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error fetching progress data',
-        error: error.message
-      });
+      return sendInternalError(res, 'Server error fetching progress data');
     }
 });
 
@@ -368,6 +363,7 @@ router.get('/:userId',
 router.put('/:userId',
   protect,
   authorize(['trainer', 'admin']),
+  verifyClientAccessByUserId({ paramName: 'userId' }),
   async (req, res) => {
     try {
       const { userId } = req.params;
@@ -422,11 +418,7 @@ router.put('/:userId',
       
     } catch (error) {
       console.error('Error updating client progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Server error updating progress data',
-        error: error.message
-      });
+      return sendInternalError(res, 'Server error updating progress data');
     }
 });
 

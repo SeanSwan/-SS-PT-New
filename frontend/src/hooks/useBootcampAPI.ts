@@ -2,6 +2,7 @@
  * useBootcampAPI -- Frontend hook for Boot Camp Class Builder (Phase 10)
  */
 import { useCallback, useMemo } from 'react';
+import apiService from '../services/api.service';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -141,31 +142,25 @@ export interface ExerciseTrend {
 
 // ── API Helpers ───────────────────────────────────────────────────────
 
-function getHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-const API_BASE_URL = import.meta.env.PROD ||
-  window.location.hostname.includes('render.com') ||
-  window.location.hostname.includes('sswanstudios.com') ||
-  window.location.hostname.includes('swanstudios.com')
-    ? 'https://sswanstudios.com'
-    : 'http://localhost:10000';
-
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${url}`, { ...options, headers: { ...getHeaders(), ...options?.headers } });
-  let data;
+  const method = (options?.method || 'GET').toUpperCase();
+  const payload = typeof options?.body === 'string'
+    ? JSON.parse(options.body)
+    : options?.body;
+
   try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Server returned invalid response (${res.status})`);
+    const response = method === 'POST'
+      ? await apiService.post<T>(url, payload)
+      : method === 'PUT'
+        ? await apiService.put<T>(url, payload)
+        : method === 'DELETE'
+          ? await apiService.delete<T>(url)
+          : await apiService.get<T>(url);
+
+    return response.data;
+  } catch (err: any) {
+    throw new Error(err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Request failed');
   }
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────

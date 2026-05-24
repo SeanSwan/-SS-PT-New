@@ -102,92 +102,147 @@ const AdminOverviewPanel: React.FC = () => {
     });
   };
 
+  const readSettledData = (
+    result: PromiseSettledResult<{ data?: { data?: Record<string, any> } }>
+  ): Record<string, any> | null => (
+    result.status === 'fulfilled' ? (result.value.data?.data ?? {}) : null
+  );
+
+  const metricUnavailable = (
+    metric: Pick<AdminDashboardMetric, 'id' | 'title' | 'icon' | 'color' | 'description'>
+  ): AdminDashboardMetric => ({
+    ...metric,
+    value: 'Unavailable',
+    change: 0,
+    changeType: 'neutral',
+    trend: [],
+    format: 'text',
+  });
+
   const fetchAdminOverview = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const [revenueRes, usersRes, workoutsRes, healthRes] = await Promise.all([
+      const [revenueRes, usersRes, workoutsRes, healthRes] = await Promise.allSettled([
         authAxios.get('/api/admin/analytics/statistics/revenue', { params: { timeRange } }),
         authAxios.get('/api/admin/analytics/statistics/users'),
         authAxios.get('/api/admin/analytics/statistics/workouts'),
         authAxios.get('/api/admin/analytics/statistics/system-health'),
       ]);
 
-      const revenueData = revenueRes.data?.data ?? {};
-      const usersData = usersRes.data?.data ?? {};
-      const workoutsData = workoutsRes.data?.data ?? {};
-      const healthData = healthRes.data?.data ?? {};
+      const revenueData = readSettledData(revenueRes);
+      const usersData = readSettledData(usersRes);
+      const workoutsData = readSettledData(workoutsRes);
+      const healthData = readSettledData(healthRes);
+
+      if ([revenueRes, usersRes, workoutsRes, healthRes].some(result => result.status === 'rejected')) {
+        setError('Some admin overview metrics could not be loaded.');
+      }
 
       const nextMetrics: AdminDashboardMetric[] = [
-        {
-          id: 'total-revenue',
-          title: 'Total Revenue',
-          value: revenueData.totalRevenue ?? 0,
-          change: Number(revenueData.changePercent ?? 0),
-          changeType: mapChangeType(Number(revenueData.changePercent ?? 0)),
-          icon: <DollarSign size={24} />,
-          color: '#C6A84B',
-          description: 'Monthly recurring revenue',
-          trend: safeTrend(revenueData.trend),
-          target: revenueData.target ?? undefined,
-          format: 'currency',
-        },
-        {
-          id: 'active-users',
-          title: 'Active Users',
-          value: (usersData.activeUsers ?? usersData.totalUsers) ?? 0,
-          change: Number(usersData.changePercent ?? 0),
-          changeType: mapChangeType(Number(usersData.changePercent ?? 0)),
-          icon: <Users size={24} />,
-          color: '#60C0F0',
-          description: 'Daily active users',
-          trend: safeTrend(usersData.trend),
-          target: usersData.target ?? undefined,
-          format: 'number',
-        },
-        {
-          id: 'completion-rate',
-          title: 'Workout Completion',
-          value: Number(workoutsData.completionRate ?? 0).toFixed(1),
-          change: Number(workoutsData.changePercent ?? 0),
-          changeType: mapChangeType(Number(workoutsData.changePercent ?? 0)),
-          icon: <Dumbbell size={24} />,
-          color: '#8B5CF6',
-          description: 'Average workout completion rate',
-          trend: safeTrend(workoutsData.trend),
-          target: workoutsData.target ?? undefined,
-          format: 'percentage',
-        },
-        {
-          id: 'system-health',
-          title: 'System Health',
-          value: Number(healthData.uptime ?? 0).toFixed(2),
-          change: Number(healthData.changePercent ?? 0),
-          changeType: mapChangeType(Number(healthData.changePercent ?? 0)),
-          icon: <Monitor size={24} />,
-          color: '#4A90D9',
-          description: 'Overall system uptime',
-          trend: safeTrend(healthData.trend),
-          target: 99.9,
-          format: 'percentage',
-        },
+        revenueData ? {
+            id: 'total-revenue',
+            title: 'Total Revenue',
+            value: revenueData.totalRevenue ?? 0,
+            change: Number(revenueData.changePercent ?? 0),
+            changeType: mapChangeType(Number(revenueData.changePercent ?? 0)),
+            icon: <DollarSign size={24} />,
+            color: '#C6A84B',
+            description: 'Monthly recurring revenue',
+            trend: safeTrend(revenueData.trend),
+            target: revenueData.target ?? undefined,
+            format: 'currency',
+          } : metricUnavailable({
+            id: 'total-revenue',
+            title: 'Total Revenue',
+            icon: <DollarSign size={24} />,
+            color: '#C6A84B',
+            description: 'Revenue endpoint unavailable',
+          }),
+        usersData ? {
+            id: 'active-users',
+            title: 'Active Users',
+            value: (usersData.activeUsers ?? usersData.totalUsers) ?? 0,
+            change: Number(usersData.changePercent ?? 0),
+            changeType: mapChangeType(Number(usersData.changePercent ?? 0)),
+            icon: <Users size={24} />,
+            color: '#60C0F0',
+            description: 'Daily active users',
+            trend: safeTrend(usersData.trend),
+            target: usersData.target ?? undefined,
+            format: 'number',
+          } : metricUnavailable({
+            id: 'active-users',
+            title: 'Active Users',
+            icon: <Users size={24} />,
+            color: '#60C0F0',
+            description: 'User statistics endpoint unavailable',
+          }),
+        workoutsData ? {
+            id: 'completion-rate',
+            title: 'Workout Completion',
+            value: Number(workoutsData.completionRate ?? 0).toFixed(1),
+            change: Number(workoutsData.changePercent ?? 0),
+            changeType: mapChangeType(Number(workoutsData.changePercent ?? 0)),
+            icon: <Dumbbell size={24} />,
+            color: '#8B5CF6',
+            description: 'Average workout completion rate',
+            trend: safeTrend(workoutsData.trend),
+            target: workoutsData.target ?? undefined,
+            format: 'percentage',
+          } : metricUnavailable({
+            id: 'completion-rate',
+            title: 'Workout Completion',
+            icon: <Dumbbell size={24} />,
+            color: '#8B5CF6',
+            description: 'Workout statistics endpoint unavailable',
+          }),
+        healthData ? {
+            id: 'system-health',
+            title: 'System Health',
+            value: Number(healthData.uptime ?? 0).toFixed(2),
+            change: Number(healthData.changePercent ?? 0),
+            changeType: mapChangeType(Number(healthData.changePercent ?? 0)),
+            icon: <Monitor size={24} />,
+            color: '#4A90D9',
+            description: 'Overall system uptime',
+            trend: safeTrend(healthData.trend),
+            target: 99.9,
+            format: 'percentage',
+          } : metricUnavailable({
+            id: 'system-health',
+            title: 'System Health',
+            icon: <Monitor size={24} />,
+            color: '#4A90D9',
+            description: 'System health endpoint unavailable',
+          }),
       ];
 
-      const nextSystemHealth: SystemHealthMetric[] = (healthData.services ?? []).map((service: any) => ({
-        service: service.name ?? 'Service',
-        status:
-          service.status === 'online'
-            ? 'healthy'
-            : service.status === 'degraded'
-              ? 'warning'
-              : 'error',
-        uptime: Number(service.uptime ?? 0),
-        responseTime: Number(service.responseTime ?? 0),
-        errorRate: Number(healthData.systemMetrics?.errorRate ?? 0),
-        throughput: Number((service.requestsPerMin ?? healthData.systemMetrics?.throughput) ?? 0),
-        details: service.status === 'online' ? 'All endpoints responding normally' : 'Performance degraded',
-      }));
+      const nextSystemHealth: SystemHealthMetric[] = healthData
+        ? (healthData.services ?? []).map((service: any) => ({
+            service: service.name ?? 'Service',
+            status:
+              service.status === 'online'
+                ? 'healthy'
+                : service.status === 'degraded'
+                  ? 'warning'
+                  : 'error',
+            uptime: Number(service.uptime ?? 0),
+            responseTime: Number(service.responseTime ?? 0),
+            errorRate: Number(healthData.systemMetrics?.errorRate ?? 0),
+            throughput: Number((service.requestsPerMin ?? healthData.systemMetrics?.throughput) ?? 0),
+            details: service.status === 'online' ? 'All endpoints responding normally' : 'Performance degraded',
+          }))
+        : [{
+            service: 'System health API',
+            status: 'error',
+            uptime: 0,
+            responseTime: 0,
+            errorRate: 0,
+            throughput: 0,
+            details: 'System health endpoint unavailable',
+          }];
 
       setMetrics(nextMetrics);
       setSystemHealth(nextSystemHealth);

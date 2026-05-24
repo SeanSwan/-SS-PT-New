@@ -8,22 +8,9 @@ import WatchProgress from '../components/video/WatchProgress';
 import YouTubeCTA from '../components/video/YouTubeCTA';
 import MembersGateBanner from '../components/video/MembersGateBanner';
 import VideoStructuredData from '../components/seo/VideoStructuredData';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiService from '../services/api.service';
 
 /* ---------- helpers ---------- */
-
-const fetchApi = async (path: string, options?: RequestInit) => {
-  const token = localStorage.getItem('token');
-  return fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-  });
-};
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', {
@@ -58,6 +45,14 @@ interface VideoData {
   progress?: { currentTime: number; completed: boolean };
 }
 
+type RawVideoPayload = Omit<Partial<VideoData>, 'chapters' | 'progress'> & {
+  viewCount?: number;
+  thumbnail?: string;
+  visibility?: string;
+  progress?: { currentTime?: number; progressSeconds?: number; completed?: boolean };
+  chapters?: Array<{ time?: number; label?: string; title?: string }>;
+};
+
 interface RelatedVideo {
   id: string;
   slug: string;
@@ -87,18 +82,48 @@ const VideoWatch: React.FC = () => {
     (async () => {
       setState('loading');
       try {
-        const res = await fetchApi(`/api/v2/videos/watch/${slug}`);
+        const res = await apiService.get(`/api/v2/videos/watch/${slug}`, {
+          validateStatus: status => status < 500,
+        });
         if (cancelled) return;
 
         if (res.status === 404) { setState('not_found'); return; }
         if (res.status === 401) { setState('login_required'); return; }
         if (res.status === 403) { setState('forbidden'); return; }
 
-        const json = await res.json();
+        const json = res.data;
         const data = json?.data ?? json;
-        setVideo(data.video ?? data);
+        const videoPayload: RawVideoPayload = data.video ?? data;
+        const progress = data.progress ?? videoPayload.progress;
+        setVideo({
+          ...videoPayload,
+          id: videoPayload.id || '',
+          title: videoPayload.title || '',
+          slug: videoPayload.slug || slug,
+          description: videoPayload.description || '',
+          source: videoPayload.source || 'upload',
+          signedUrl: data.signedUrl ?? videoPayload.signedUrl,
+          captionsUrl: data.captionsUrl ?? videoPayload.captionsUrl,
+          youtubeVideoId: data.youtubeVideoId ?? videoPayload.youtubeVideoId,
+          thumbnailUrl: videoPayload.thumbnailUrl ?? videoPayload.thumbnail ?? '',
+          durationSeconds: videoPayload.durationSeconds ?? 0,
+          views: videoPayload.views ?? videoPayload.viewCount ?? 0,
+          tags: videoPayload.tags ?? [],
+          chapters: (videoPayload.chapters ?? []).map(ch => ({
+            time: ch.time ?? 0,
+            label: ch.label ?? ch.title ?? '',
+          })),
+          publishedAt: videoPayload.publishedAt || new Date().toISOString(),
+          isPublic: videoPayload.isPublic ?? videoPayload.visibility === 'public',
+          progress: progress
+            ? {
+                currentTime: progress.currentTime ?? progress.progressSeconds ?? 0,
+                completed: Boolean(progress.completed),
+              }
+            : undefined,
+        });
         setRelated(data.related ?? []);
-        setCurrentTime(data.video?.progress?.currentTime ?? data.progress?.currentTime ?? 0);
+        setCurrentTime(progress?.currentTime ?? progress?.progressSeconds ?? 0);
         setState('ready');
       } catch {
         setState('not_found');

@@ -3,7 +3,7 @@
  * =======================
  *
  * GitHub-style calendar heatmap for workout consistency tracking
- * Built with styled divs (no Recharts — Recharts has no heatmap primitive)
+ * Built with styled divs for a compact heatmap primitive.
  * Last 90 days, 7 rows (days of week) x ~13 columns (weeks)
  *
  * THEME: Enchanted Apex — Crystalline Swan

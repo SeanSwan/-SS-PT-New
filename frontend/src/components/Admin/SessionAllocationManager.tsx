@@ -15,7 +15,7 @@
  * This ensures proper session flow: Purchase → Allocation → Scheduling → Deduction
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { 
@@ -23,6 +23,7 @@ import {
   AlertTriangle, CheckCircle, Plus, RefreshCw,
   Filter, Download, Eye
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Import services
 import sessionService from '../../services/sessionService';
@@ -442,10 +443,17 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const escapeCsvCell = (value: string | number | undefined): string => {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
 // ==================== MAIN COMPONENT ====================
 
 const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onSessionCountChange }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // State
   const [clients, setClients] = useState<Client[]>([]);
@@ -460,20 +468,11 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     try {
       setLoading(true);
       
-      // Get all clients first
       const clientsResponse = await sessionService.getClients() as SessionClientResponse[];
       
-      // Get session summaries for each client
       const clientsWithSessions = await Promise.all(
         clientsResponse.map(async (client) => {
           try {
-            // Get session summary from backend
-            const sessionSummaryResponse = await fetch(`/api/sessions/user-summary/${client.id}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-              }
-            });
-            
             let summary: SessionSummary = {
               userId: client.id,
               available: 0,
@@ -482,11 +481,9 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               cancelled: 0,
               total: 0
             };
-            
-            if (sessionSummaryResponse.ok) {
-              const summaryData = await sessionSummaryResponse.json();
-              summary = summaryData.data || summary;
-            }
+
+            const sessionSummary = await sessionService.getUserSessionSummary(client.id);
+            summary = sessionSummary || summary;
             
             return {
               id: client.id,
@@ -538,20 +535,13 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     if (!selectedClient) return;
 
     try {
-      const response = await fetch('/api/sessions/add-to-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          userId: selectedClient.id,
-          sessionCount: addSessionCount,
-          reason: addSessionReason || 'Admin added sessions'
-        })
-      });
+      const result = await sessionService.addSessionsToClient(
+        selectedClient.id,
+        addSessionCount,
+        addSessionReason || 'Admin added sessions'
+      );
       
-      if (response.ok) {
+      if (result?.success !== false) {
         toast({
           title: 'Success',
           description: `Added ${addSessionCount} sessions to ${selectedClient.firstName} ${selectedClient.lastName}`,
@@ -568,8 +558,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
         setAddSessionCount(1);
         setAddSessionReason('');
       } else {
-        const errorData = await response.json() as { message?: string };
-        throw new Error(errorData.message || 'Failed to add sessions');
+        throw new Error(result?.message || 'Failed to add sessions');
       }
     } catch (error: unknown) {
       console.error('Error adding sessions:', error);
@@ -581,14 +570,58 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     }
   };
   
-  const filteredClients = clients.filter(client => {
+  const filteredClients = useMemo(() => clients.filter(client => {
     const searchTerm = searchQuery.toLowerCase();
     return (
       client.firstName.toLowerCase().includes(searchTerm) ||
       client.lastName.toLowerCase().includes(searchTerm) ||
       client.email.toLowerCase().includes(searchTerm)
     );
-  });
+  }), [clients, searchQuery]);
+
+  const handleFilterButton = useCallback(() => {
+    if (searchQuery.trim()) {
+      setSearchQuery('');
+      searchInputRef.current?.focus();
+      return;
+    }
+
+    searchInputRef.current?.focus();
+  }, [searchQuery]);
+
+  const handleExport = useCallback(() => {
+    if (filteredClients.length === 0) {
+      toast({
+        title: 'Nothing to export',
+        description: 'No clients match the current allocation filter.',
+        variant: 'default'
+      });
+      return;
+    }
+
+    const header = ['Client', 'Email', 'Available', 'Total Purchased', 'Completed', 'Status'];
+    const rows = filteredClients.map((client) => [
+      `${client.firstName} ${client.lastName}`,
+      client.email,
+      client.availableSessions,
+      client.totalSessionsPurchased,
+      client.sessionsUsed,
+      client.availableSessions === 0 ? 'No Sessions' : client.availableSessions <= 3 ? 'Low' : 'Good'
+    ]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => escapeCsvCell(cell)).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `session-allocation-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, [filteredClients, toast]);
   
   const getSessionBadgeType = (available: number): 'good' | 'low' | 'none' => {
     if (available === 0) return 'none';
@@ -666,16 +699,25 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
       {/* Action Bar */}
       <ActionBar>
         <SearchInput
+          ref={searchInputRef}
           type="text"
           placeholder="Search clients by name or email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button variant="secondary">
+        <Button
+          variant="secondary"
+          onClick={handleFilterButton}
+          aria-label={searchQuery ? 'Clear allocation filter' : 'Focus allocation filter'}
+        >
           <Filter size={16} />
-          Filter
+          {searchQuery ? 'Clear' : 'Filter'}
         </Button>
-        <Button variant="secondary">
+        <Button
+          variant="secondary"
+          onClick={handleExport}
+          aria-label="Export filtered session allocations"
+        >
           <Download size={16} />
           Export
         </Button>
@@ -722,6 +764,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               <ActionButtons>
                 <IconButton
                   className="success"
+                  aria-label={`Add sessions to ${client.firstName} ${client.lastName}`}
                   onClick={() => {
                     setSelectedClient(client);
                     setShowAddModal(true);
@@ -731,9 +774,8 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
                   <Plus size={14} />
                 </IconButton>
                 <IconButton
-                  onClick={() => {
-                    // TODO: Implement view client details
-                  }}
+                  aria-label={`View details for ${client.firstName} ${client.lastName}`}
+                  onClick={() => navigate(`/dashboard/admin/client-management?clientId=${client.id}`)}
                   title="View Details"
                 >
                   <Eye size={14} />

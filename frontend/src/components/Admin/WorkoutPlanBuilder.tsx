@@ -29,6 +29,7 @@ import {
   FlexBox
 } from '../UniversalMasterSchedule/ui';
 import { useCurrentWorkout } from '../../hooks/useCurrentWorkout';
+import apiService from '../../services/api.service';
 
 type ExerciseSearchResult = {
   id: string | number;
@@ -229,24 +230,10 @@ const WorkoutPlanBuilder: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to save workout plans.');
-        return;
-      }
+      const response = await apiService.post('/api/workout/plans', buildPayload());
+      const result = response.data;
 
-      const response = await fetch('/api/workout/plans', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(buildPayload())
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to save workout plan.');
         return;
       }
@@ -587,20 +574,9 @@ const ExerciseSearch: React.FC<{ onSelect: (exercise: ExerciseSearchResult) => v
     setSearchError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setSearchError('Please log in to search exercises.');
-        return;
-      }
-
-      const response = await fetch(`/api/exercises/search?q=${encodeURIComponent(query.trim())}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.get(`/api/exercises/search?q=${encodeURIComponent(query.trim())}`);
+      const result = response.data;
+      if (result?.success === false) {
         setSearchError(result?.message || 'Failed to search exercises.');
         return;
       }

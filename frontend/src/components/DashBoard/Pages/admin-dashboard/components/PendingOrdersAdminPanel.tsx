@@ -218,6 +218,26 @@ interface PendingOrder {
 const CA_TAX_RATE = 0.0725;
 type ViewMode = 'pending' | 'completed' | 'all';
 
+const normalizeOrderStatus = (status: unknown, defaultStatus: PendingOrder['status']): PendingOrder['status'] => {
+  switch (String(status || '').toLowerCase()) {
+    case 'pending':
+    case 'pending_payment':
+    case 'active':
+    case 'pending_manual_payment':
+      return 'pending_manual_payment';
+    case 'completed':
+    case 'paid':
+      return 'paid';
+    case 'expired':
+      return 'expired';
+    case 'cancelled':
+    case 'canceled':
+      return 'cancelled';
+    default:
+      return defaultStatus;
+  }
+};
+
 // ── Component ───────────────────────────────────────────
 
 const PendingOrdersAdminPanel: React.FC = () => {
@@ -231,11 +251,13 @@ const PendingOrdersAdminPanel: React.FC = () => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setPartialWarning(null);
 
       const endpoint = viewMode === 'completed'
         ? '/api/admin/orders/completed'
@@ -253,9 +275,9 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
       if (response.data.success) {
         const rawOrders = response.data.orders || response.data.data || [];
-        const mapOrder = (order: any, defaultStatus: string) => ({
-          id: order.id,
-          orderReference: order.id,
+        const mapOrder = (order: any, defaultStatus: PendingOrder['status']): PendingOrder => ({
+          id: String(order.id),
+          orderReference: String(order.id),
           paymentReference: order.checkoutSessionId || 'N/A',
           customer: {
             id: order.user?.id || order.userId || 0,
@@ -267,10 +289,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
           },
           amount: parseFloat(order.totalAmount || order.total || 0),
           currency: 'USD',
-          status:
-            order.status === 'pending' ? 'pending_manual_payment'
-            : order.status === 'completed' ? 'paid'
-            : (order.status || defaultStatus),
+          status: normalizeOrderStatus(order.status, defaultStatus),
           createdAt: order.createdAt,
           expiresAt: order.expiresAt || order.completedAt || new Date(Date.now() + 86400000).toISOString(),
           items: (order.cartItems || order.items || []).map((item: any) => ({
@@ -305,9 +324,11 @@ const PendingOrdersAdminPanel: React.FC = () => {
               mappedOrders.sort((a: any, b: any) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
               );
+            } else {
+              setPartialWarning('Completed orders unavailable. Totals may exclude completed orders.');
             }
           } catch {
-            // Completed endpoint may not exist yet
+            setPartialWarning('Completed orders unavailable. Totals may exclude completed orders.');
           }
         }
 
@@ -324,8 +345,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
   const markAsPaid = useCallback(async (orderId: string) => {
     try {
-      const response = await authAxios.post('/api/payments/confirm-payment', {
-        paymentIntentId: orderId,
+      const response = await authAxios.post(`/api/admin/orders/${orderId}/complete`, {
         adminNotes: 'Manually verified payment',
         verifiedBy: 'Admin',
       });
@@ -445,8 +465,8 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
         <FilterSelect value={sortBy} onChange={e => setSortBy(e.target.value)}>
           <option value="createdAt">Created Date</option>
-          <option value="amount">Amount</option>
-          <option value="customer">Customer</option>
+          <option value="total">Amount</option>
+          <option value="status">Status</option>
         </FilterSelect>
 
         <StoreButton $variant="ghost" onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}>
@@ -466,6 +486,10 @@ const PendingOrdersAdminPanel: React.FC = () => {
           {autoRefresh ? 'Live' : 'Manual'}
         </StoreButton>
       </ControlsRow>
+
+      {partialWarning && (
+        <ErrorBanner role="status"><AlertTriangle size={18} /> {partialWarning}</ErrorBanner>
+      )}
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (

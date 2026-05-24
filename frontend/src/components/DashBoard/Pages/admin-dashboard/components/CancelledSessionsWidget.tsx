@@ -42,15 +42,34 @@ interface CancelledSession {
 interface PackagePriceInfo {
   pricePerSession: number | null;
   packageName: string | null;
-  fallbackPrice: number;
-  defaultChargeAmount: number;
-  lateFeeAmount: number;
+  fallbackPrice: number | null;
+  defaultChargeAmount: number | null;
+  lateFeeAmount: number | null;
+  isPricingAvailable: boolean;
 }
 
 interface CancelledSessionsWidgetProps {
   maxItems?: number;
   showChargeButtons?: boolean;
 }
+
+const PRICING_UNAVAILABLE: PackagePriceInfo = {
+  pricePerSession: null,
+  packageName: null,
+  fallbackPrice: null,
+  defaultChargeAmount: null,
+  lateFeeAmount: null,
+  isPricingAvailable: false
+};
+
+const normalizePackagePriceInfo = (raw: Partial<PackagePriceInfo>): PackagePriceInfo => ({
+  pricePerSession: raw.pricePerSession ?? null,
+  packageName: raw.packageName ?? null,
+  fallbackPrice: raw.fallbackPrice ?? null,
+  defaultChargeAmount: raw.defaultChargeAmount ?? null,
+  lateFeeAmount: raw.lateFeeAmount ?? null,
+  isPricingAvailable: true
+});
 
 const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   maxItems = 10,
@@ -67,6 +86,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   // MindBody Parity: Waive reason input
   const [waiveReasons, setWaiveReasons] = useState<Record<number, string>>({});
   const [decisionFilter, setDecisionFilter] = useState<'all' | 'pending' | 'charged' | 'waived'>('all');
+  const [operationNotice, setOperationNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const fetchCancelledSessions = useCallback(async () => {
     try {
@@ -105,18 +125,11 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
         try {
           const response = await authAxios.get(`/api/sessions/${session.id}/client-package-price`);
           if (response.data.success) {
-            newPriceCache[session.id] = response.data.data;
+            newPriceCache[session.id] = normalizePackagePriceInfo(response.data.data);
           }
         } catch (err) {
           logger.warn(`Could not fetch price for session ${session.id}`);
-          // Use default fallback values
-          newPriceCache[session.id] = {
-            pricePerSession: null,
-            packageName: null,
-            fallbackPrice: 175,
-            defaultChargeAmount: 175,
-            lateFeeAmount: 88
-          };
+          newPriceCache[session.id] = PRICING_UNAVAILABLE;
         }
       }
     }
@@ -135,6 +148,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   ) => {
     try {
       setChargingId(sessionId);
+      setOperationNotice(null);
 
       // MindBody Parity: Include decision and reason
       const decision = chargeType === 'none' ? 'waived' : 'charged';
@@ -142,7 +156,10 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
 
       // Require reason for waived cancellations
       if (chargeType === 'none' && !reason?.trim()) {
-        alert('Please provide a reason for waiving the charge');
+        setOperationNotice({
+          type: 'error',
+          message: 'Add a waive reason before recording the decision.'
+        });
         setChargingId(null);
         return;
       }
@@ -158,9 +175,15 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
         // Refresh the list
         await fetchCancelledSessions();
         if (chargeType === 'none') {
-          alert('Cancellation waived - no charge applied');
+          setOperationNotice({
+            type: 'success',
+            message: 'Cancellation waiver recorded for billing review.'
+          });
         } else {
-          alert(`Charge of $${response.data.data.chargeAmount} applied successfully`);
+          setOperationNotice({
+            type: 'success',
+            message: `$${response.data.data.chargeAmount} cancellation fee recorded for billing review. No card charge was processed here.`
+          });
         }
         setExpandedSession(null);
         setCustomAmounts((prev) => ({ ...prev, [sessionId]: '' }));
@@ -168,7 +191,10 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
       }
     } catch (err: any) {
       console.error('Error charging cancellation:', err);
-      alert(err.response?.data?.message || 'Failed to apply charge');
+      setOperationNotice({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to record cancellation billing decision.'
+      });
     } finally {
       setChargingId(null);
     }
@@ -185,13 +211,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   };
 
   const getPriceInfo = (sessionId: number): PackagePriceInfo => {
-    return priceCache[sessionId] || {
-      pricePerSession: null,
-      packageName: null,
-      fallbackPrice: 175,
-      defaultChargeAmount: 175,
-      lateFeeAmount: 88
-    };
+    return priceCache[sessionId] || PRICING_UNAVAILABLE;
   };
 
   if (isLoading) {
@@ -265,6 +285,12 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
         </HeaderActions>
       </WidgetHeader>
 
+      {operationNotice && (
+        <OperationNotice $type={operationNotice.type} role="status" aria-live="polite">
+          {operationNotice.message}
+        </OperationNotice>
+      )}
+
       {sessions.length === 0 ? (
         <EmptyState>No cancelled sessions</EmptyState>
       ) : (
@@ -272,6 +298,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
           {sessions.map((session) => {
             const priceInfo = getPriceInfo(session.id);
             const isExpanded = expandedSession === session.id;
+            const pricingUnavailable = !priceInfo.isPricingAvailable;
 
             return (
               <SessionCard key={session.id} $isLate={session.isLateCancellation}>
@@ -326,9 +353,11 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                     <PackageInfo>
                       <DollarSign size={14} />
                       <span>
-                        {priceInfo.packageName
+                        {pricingUnavailable
+                          ? 'Pricing unavailable - refresh before recording a preset fee.'
+                          : priceInfo.packageName
                           ? `Package: ${priceInfo.packageName} - $${priceInfo.pricePerSession ?? 0}/session`
-                          : `Standard rate: $${priceInfo.fallbackPrice ?? 0}/session`}
+                          : `Policy rate: $${priceInfo.fallbackPrice ?? 0}/session`}
                       </span>
                     </PackageInfo>
                   )}
@@ -340,12 +369,12 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                       {session.cancellationChargeType === 'none' ? (
                         <>
                           <Ban size={14} />
-                          No Charge Applied
+                          Waived - no billing action
                         </>
                       ) : (
                         <>
                           <DollarSign size={14} />
-                          Charged ${session.cancellationChargeAmount}
+                          Recorded ${session.cancellationChargeAmount} fee
                         </>
                       )}
                     </ChargedBadge>
@@ -368,21 +397,25 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                         <ChargeActions>
                           <ChargeButton
                             onClick={() => handleCharge(session.id, 'late_fee')}
-                            disabled={chargingId === session.id}
+                            disabled={chargingId === session.id || pricingUnavailable}
                             $variant="fee"
                           >
                             {chargingId === session.id
                               ? 'Processing...'
-                              : `Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
+                              : pricingUnavailable
+                                ? 'Pricing unavailable'
+                                : `Record Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
                           </ChargeButton>
                           <ChargeButton
                             onClick={() => handleCharge(session.id, 'full')}
-                            disabled={chargingId === session.id}
+                            disabled={chargingId === session.id || pricingUnavailable}
                             $variant="full"
                           >
                             {chargingId === session.id
                               ? 'Processing...'
-                              : `Full $${priceInfo.defaultChargeAmount ?? 0}`}
+                              : pricingUnavailable
+                                ? 'Pricing unavailable'
+                                : `Record Full $${priceInfo.defaultChargeAmount ?? 0}`}
                           </ChargeButton>
                           <ExpandButton
                             onClick={() => setExpandedSession(session.id)}
@@ -396,17 +429,17 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                           <ChargeOptionRow>
                             <ChargeButton
                               onClick={() => handleCharge(session.id, 'late_fee')}
-                              disabled={chargingId === session.id}
+                              disabled={chargingId === session.id || pricingUnavailable}
                               $variant="fee"
                             >
-                              Late Fee ${priceInfo.lateFeeAmount ?? 0}
+                              {pricingUnavailable ? 'Pricing unavailable' : `Record Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
                             </ChargeButton>
                             <ChargeButton
                               onClick={() => handleCharge(session.id, 'full')}
-                              disabled={chargingId === session.id}
+                              disabled={chargingId === session.id || pricingUnavailable}
                               $variant="full"
                             >
-                              Full Session ${priceInfo.defaultChargeAmount ?? 0}
+                              {pricingUnavailable ? 'Pricing unavailable' : `Record Full Session $${priceInfo.defaultChargeAmount ?? 0}`}
                             </ChargeButton>
                           </ChargeOptionRow>
 
@@ -441,7 +474,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                               $variant="full"
                             >
                               <Check size={14} />
-                              Apply
+                              Record
                             </ChargeButton>
                           </CustomAmountSection>
 
@@ -465,7 +498,7 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
                               disabled={chargingId === session.id || !waiveReasons[session.id]?.trim()}
                             >
                               <Ban size={14} />
-                              Waive Charge
+                              Record Waiver
                             </NoChargeButton>
                             <CancelButton onClick={() => setExpandedSession(null)}>
                               Cancel
@@ -603,6 +636,17 @@ const ErrorState = styled.div`
   text-align: center;
   padding: 2rem;
   color: #ef4444;
+`;
+
+const OperationNotice = styled.div<{ $type: 'success' | 'error' }>`
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${({ $type }) => ($type === 'success' ? '#10b981' : '#ef4444')};
+  background: ${({ $type }) => ($type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)')};
+  border: 1px solid ${({ $type }) => ($type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)')};
 `;
 
 const EmptyState = styled.div`

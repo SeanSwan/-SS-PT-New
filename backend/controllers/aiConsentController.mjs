@@ -17,6 +17,11 @@ import { evaluateWaiverVersionEligibility } from '../services/waivers/waiverVers
 const CURRENT_CONSENT_VERSION = '1.0';
 const VALID_CONSENT_VERSIONS = ['1.0'];
 
+function parsePositiveUserId(value) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 /**
  * POST /api/ai/consent/grant
  * Body: { userId?, consentVersion? }
@@ -27,7 +32,7 @@ const VALID_CONSENT_VERSIONS = ['1.0'];
  */
 export const grantAiConsent = async (req, res) => {
   try {
-    const requesterId = req.user?.id;
+    const requesterId = parsePositiveUserId(req.user?.id);
     const requesterRole = req.user?.role;
 
     if (!requesterId || !requesterRole) {
@@ -117,7 +122,7 @@ export const grantAiConsent = async (req, res) => {
  */
 export const withdrawAiConsent = async (req, res) => {
   try {
-    const requesterId = req.user?.id;
+    const requesterId = parsePositiveUserId(req.user?.id);
     const requesterRole = req.user?.role;
 
     if (!requesterId || !requesterRole) {
@@ -191,7 +196,7 @@ export const withdrawAiConsent = async (req, res) => {
  */
 export const getAiConsentStatus = async (req, res) => {
   try {
-    const requesterId = req.user?.id;
+    const requesterId = parsePositiveUserId(req.user?.id);
     const requesterRole = req.user?.role;
 
     if (!requesterId || !requesterRole) {
@@ -313,8 +318,7 @@ export const getAiConsentStatus = async (req, res) => {
  */
 function resolveTargetUser(rawUserId, requesterId, requesterRole) {
   if (rawUserId !== undefined && rawUserId !== null && rawUserId !== '') {
-    const parsed = Number(rawUserId);
-    return Number.isFinite(parsed) && Number.isInteger(parsed) ? parsed : null;
+    return parsePositiveUserId(rawUserId);
   }
   return requesterId;
 }

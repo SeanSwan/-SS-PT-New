@@ -19,7 +19,6 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import stripeAnalyticsService from '../services/analytics/StripeAnalyticsService.mjs';
-import businessIntelligenceService from '../services/analytics/BusinessIntelligenceService.mjs';
 import logger from '../utils/logger.mjs';
 
 // Import models for direct data verification
@@ -29,6 +28,23 @@ import User from '../models/User.mjs';
 import { Op, fn, col } from 'sequelize';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const TIME_RANGE_DAYS = Object.freeze({
+  '7d': 7,
+  '30d': 30
+});
+
+const resolveTimeRangeDays = (timeRange) => (
+  Object.prototype.hasOwnProperty.call(TIME_RANGE_DAYS, timeRange)
+    ? TIME_RANGE_DAYS[timeRange]
+    : null
+);
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: INTERNAL_ERROR
+});
 
 // Initialize Stripe client
 let stripeClient = null;
@@ -49,9 +65,17 @@ router.use(requireAdmin);
 router.get('/verify/stripe-comparison', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
+    const rangeDays = resolveTimeRangeDays(timeRange);
     
     logger.info(`🔍 Data verification requested by admin ${req.user.email} for ${timeRange}`);
     
+    if (!rangeDays) {
+      return res.status(400).json({
+        success: false,
+        message: 'timeRange must be one of: 7d, 30d'
+      });
+    }
+
     if (!stripeClient) {
       return res.status(500).json({
         success: false,
@@ -62,11 +86,7 @@ router.get('/verify/stripe-comparison', async (req, res) => {
     // Get date range
     const endDate = new Date();
     const startDate = new Date();
-    switch (timeRange) {
-      case '7d': startDate.setDate(startDate.getDate() - 7); break;
-      case '30d': startDate.setDate(startDate.getDate() - 30); break;
-      default: startDate.setDate(startDate.getDate() - 30);
-    }
+    startDate.setDate(startDate.getDate() - rangeDays);
     
     // Get raw Stripe data
     const stripeCharges = await stripeClient.charges.list({
@@ -168,11 +188,7 @@ router.get('/verify/stripe-comparison', async (req, res) => {
   } catch (error) {
     logger.error(`❌ Data verification failed for ${req.user.email}:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to verify data sources',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Verification error'
-    });
+    sendInternalError(res, 'Failed to verify data sources');
   }
 });
 
@@ -250,11 +266,7 @@ router.get('/verify/data-sources', async (req, res) => {
   } catch (error) {
     logger.error(`❌ Data sources inspection failed:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to inspect data sources',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Inspection error'
-    });
+    sendInternalError(res, 'Failed to inspect data sources');
   }
 });
 
@@ -265,9 +277,17 @@ router.get('/verify/data-sources', async (req, res) => {
 router.get('/verify/test-calculations', async (req, res) => {
   try {
     const { metric = 'revenue', timeRange = '7d' } = req.query;
+    const rangeDays = resolveTimeRangeDays(timeRange);
     
     logger.info(`🧪 Testing calculations for ${metric} by admin ${req.user.email}`);
     
+    if (!rangeDays) {
+      return res.status(400).json({
+        success: false,
+        message: 'timeRange must be one of: 7d, 30d'
+      });
+    }
+
     if (!stripeClient) {
       return res.status(500).json({
         success: false,
@@ -278,7 +298,7 @@ router.get('/verify/test-calculations', async (req, res) => {
     // Get date range
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - parseInt(timeRange.replace('d', '')));
+    startDate.setDate(startDate.getDate() - rangeDays);
     
     let calculationSteps = {};
     
@@ -331,11 +351,7 @@ router.get('/verify/test-calculations', async (req, res) => {
   } catch (error) {
     logger.error(`❌ Calculation test failed:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to test calculations',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Calculation error'
-    });
+    sendInternalError(res, 'Failed to test calculations');
   }
 });
 
@@ -390,11 +406,7 @@ router.post('/verify/refresh-all', async (req, res) => {
   } catch (error) {
     logger.error(`❌ Cache refresh failed:`, error);
     
-    res.status(500).json({
-      success: false,
-      message: 'Failed to refresh cache',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Refresh error'
-    });
+    sendInternalError(res, 'Failed to refresh cache');
   }
 });
 

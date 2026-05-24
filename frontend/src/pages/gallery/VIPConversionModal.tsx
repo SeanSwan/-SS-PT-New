@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import apiService, { ProductionTokenManager } from '../../services/api.service';
 
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
 
@@ -543,6 +544,7 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [activationChecked, setActivationChecked] = useState(false);
 
   // Limited-time deal: first 5 clients get unlimited enhancements, rest get 50
   const [vipSpotsRemaining, setVipSpotsRemaining] = useState<number | null>(null);
@@ -579,6 +581,57 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
       setStep('success');
     }
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || step !== 'success' || activationChecked || !galleryToken) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    const userId = params.get('userId');
+
+    if (!sessionId) {
+      setError('Payment received. VIP activation may take a moment to sync.');
+      setActivationChecked(true);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/gallery/vip-activate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${galleryToken}`,
+          },
+          body: JSON.stringify({ sessionId, userId }),
+        });
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (!res.ok || !data.success) {
+          setError(data.message || data.error || 'VIP activation is still syncing. Please refresh in a moment.');
+          return;
+        }
+
+        setActivationChecked(true);
+      } catch {
+        if (!cancelled) {
+          setError('VIP activation is still syncing. Please refresh in a moment.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, step, activationChecked, galleryToken]);
 
   // ── Step 1: Account Creation / Login ──────────────────────────────────
   const handleAccountSubmit = async (e: React.FormEvent) => {
@@ -628,6 +681,11 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
         return;
       }
 
+      ProductionTokenManager.setToken(data.token);
+      if (data.user) {
+        ProductionTokenManager.setUser(data.user);
+      }
+      apiService.setAuthToken(data.token);
       setUserToken(data.token);
       setStep('checkout');
     } catch {
@@ -674,6 +732,8 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
     // Clean up URL param
     const url = new URL(window.location.href);
     url.searchParams.delete('vip');
+    url.searchParams.delete('session_id');
+    url.searchParams.delete('userId');
     window.history.replaceState({}, '', url.toString());
 
     onVipActivated();
@@ -903,8 +963,10 @@ const VIPConversionModal: React.FC<VIPConversionModalProps> = ({
           That&apos;s 2 hours of expert training + photo enhancements included.
         </SuccessDescription>
 
-        <PrimaryButton type="button" onClick={handleViewGallery}>
-          View Your Enhanced Gallery
+        {error && <ErrorText>{error}</ErrorText>}
+
+        <PrimaryButton type="button" onClick={handleViewGallery} disabled={loading}>
+          {loading ? 'Activating VIP...' : 'View Your Enhanced Gallery'}
         </PrimaryButton>
         <SecondaryButton type="button" onClick={handleBookSession}>
           Book Your PT Session

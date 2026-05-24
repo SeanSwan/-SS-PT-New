@@ -15,7 +15,7 @@
  * Theme: Crystalline Swan (#002060 background, #00CED1 cyan accents, glass borders)
  */
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useId, useMemo } from 'react';
 import styled from 'styled-components';
 import { Search, ChevronDown, X } from 'lucide-react';
 
@@ -54,7 +54,8 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
 
-  const listboxId = useMemo(() => `searchable-select-listbox-${Math.random().toString(36).slice(2, 9)}`, []);
+  const stableId = useId().replace(/:/g, '');
+  const listboxId = `searchable-select-listbox-${stableId}`;
 
   // Derive selected option label
   const selectedOption = useMemo(

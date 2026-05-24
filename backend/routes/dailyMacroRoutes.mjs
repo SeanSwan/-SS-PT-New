@@ -15,6 +15,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
 import logger from '../utils/logger.mjs';
 import { createSingleMacroEntry } from '../services/nutrition/macroLogService.mjs';
@@ -43,6 +44,24 @@ const isValidDate = (str) => {
   if (!DATE_REGEX.test(str)) return false;
   const d = new Date(str + 'T00:00:00Z');
   return !isNaN(d.getTime());
+};
+
+const resolveMacroTargetUserId = async (req, queryField = 'userId') => {
+  const ownUserId = Number(req.user.id);
+  const rawTarget = req.query?.[queryField];
+  if (!rawTarget) return { userId: ownUserId };
+
+  const targetUserId = parseInt(rawTarget, 10);
+  if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
+    return { status: 400, error: 'Invalid userId' };
+  }
+
+  const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, targetUserId);
+  if (!allowed) {
+    return { status: 404, error: 'Macro data not found' };
+  }
+
+  return { userId: targetUserId };
 };
 
 /**
@@ -150,12 +169,11 @@ router.get('/summary', async (req, res) => {
     const rawDate = req.query.date || new Date().toISOString().split('T')[0];
     const date = isValidDate(rawDate) ? rawDate : new Date().toISOString().split('T')[0];
 
-    // Admin/trainer can view any client's macros via ?userId=123
-    let targetUserId = req.user.id;
-    if (req.query.userId && ['admin', 'trainer'].includes(req.user.role)) {
-      const qId = parseInt(req.query.userId, 10);
-      if (Number.isFinite(qId) && qId > 0) targetUserId = qId;
+    const target = await resolveMacroTargetUserId(req);
+    if (target.error) {
+      return res.status(target.status).json({ success: false, error: target.error });
     }
+    const targetUserId = target.userId;
 
     const entries = await DailyMacroLog.findAll({
       where: {
@@ -238,12 +256,11 @@ router.get('/weekly', async (req, res) => {
       return res.status(400).json({ success: false, error: `Date range must be within ${MAX_WEEKLY_RANGE_DAYS} days` });
     }
 
-    // Admin/trainer can view any client's macros via ?userId=123
-    let weeklyUserId = req.user.id;
-    if (req.query.userId && ['admin', 'trainer'].includes(req.user.role)) {
-      const qId = parseInt(req.query.userId, 10);
-      if (Number.isFinite(qId) && qId > 0) weeklyUserId = qId;
+    const target = await resolveMacroTargetUserId(req);
+    if (target.error) {
+      return res.status(target.status).json({ success: false, error: target.error });
     }
+    const weeklyUserId = target.userId;
 
     const entries = await DailyMacroLog.findAll({
       where: {

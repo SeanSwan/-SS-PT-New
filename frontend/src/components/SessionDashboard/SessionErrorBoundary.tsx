@@ -177,6 +177,23 @@ interface SessionErrorBoundaryProps {
   context?: string;
 }
 
+let sessionErrorIdFallbackCounter = 0;
+
+const createSessionErrorId = (): string => {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `session_error_${globalThis.crypto.randomUUID()}`;
+  }
+
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const values = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(values);
+    return `session_error_${values[0].toString(36)}_${values[1].toString(36)}`;
+  }
+
+  sessionErrorIdFallbackCounter += 1;
+  return `session_error_${Date.now()}_${sessionErrorIdFallbackCounter}`;
+};
+
 /**
  * SessionErrorBoundary - Production-grade error boundary for session components
  * 
@@ -204,7 +221,7 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
 
   static getDerivedStateFromError(error: Error): Partial<SessionErrorBoundaryState> {
     // Generate unique error ID for tracking
-    const errorId = `session_error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = createSessionErrorId();
     
     return {
       hasError: true,

@@ -5,9 +5,10 @@
  * after sessions are completed or the scheduled time has passed.
  */
 
-import { getSession, getUser, Op } from '../models/index.mjs';
+import { getClientTrainerAssignment, getSession, getUser, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { generateRecoveryOrderNumber } from '../utils/orderNumber.mjs';
 import {
   VALID_PAYMENT_METHODS,
   METHODS_REQUIRING_REFERENCE,
@@ -216,16 +217,41 @@ export async function processSessionDeductions() {
  *
  * @returns {Array} List of clients needing payment
  */
-export async function getClientsNeedingPayment() {
+export async function getClientsNeedingPayment(requester = {}) {
   const Session = getSession();
   const User = getUser();
 
   try {
+    const requesterRole = requester?.role;
+    const requesterId = Number(requester?.id);
+    const where = {
+      role: { [Op.in]: ['client', 'user'] },
+      availableSessions: { [Op.lte]: 0 }
+    };
+
+    if (requesterRole === 'trainer') {
+      if (!Number.isInteger(requesterId) || requesterId <= 0) {
+        return [];
+      }
+
+      const ClientTrainerAssignment = getClientTrainerAssignment();
+      const assignments = await ClientTrainerAssignment.findAll({
+        where: { trainerId: requesterId, status: 'active' },
+        attributes: ['clientId']
+      });
+      const assignedClientIds = assignments
+        .map((assignment) => Number(assignment.clientId))
+        .filter((clientId) => Number.isInteger(clientId) && clientId > 0);
+
+      if (assignedClientIds.length === 0) {
+        return [];
+      }
+
+      where.id = { [Op.in]: assignedClientIds };
+    }
+
     const clients = await User.findAll({
-      where: {
-        role: { [Op.in]: ['client', 'user'] },
-        availableSessions: { [Op.lte]: 0 }
-      },
+      where,
       attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions'],
       include: [{
         model: Session,
@@ -594,9 +620,7 @@ export async function applyPackagePayment({
     }
 
     // 6. Generate order number
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    const orderNumber = `REC-${timestamp}-${random}`;
+    const orderNumber = generateRecoveryOrderNumber();
 
     // Build order notes (include force reason if applicable)
     let orderNotes = sanitizedNotes || `Admin recovery payment via ${paymentMethod}`;

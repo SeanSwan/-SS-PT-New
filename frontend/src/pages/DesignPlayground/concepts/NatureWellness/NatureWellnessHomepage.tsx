@@ -401,7 +401,7 @@ const NatureWellnessHomepage: React.FC = () => {
               <ProgramName>Strength & Vitality</ProgramName>
               <ProgramDesc>
                 Build functional strength through movement patterns inspired by natural biomechanics.
-                Progressive overload meets mindful execution.
+                Progressive overload meets intentional execution.
               </ProgramDesc>
             </ProgramCard>
             <ProgramCard {...fadeUp} transition={{ duration: 0.6, delay: 0.1 }}>

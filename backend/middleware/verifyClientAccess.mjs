@@ -50,6 +50,20 @@
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
 /**
  * Core helper - returns boolean. Used by both middleware variants and exposed
  * for direct test use.
@@ -68,9 +82,13 @@ import logger from '../utils/logger.mjs';
  * @returns {Promise<boolean>}
  */
 export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
+  const requesterId = parseStrictPositiveInteger(userId);
+  const targetClientId = parseStrictPositiveInteger(clientId);
+
+  if (!targetClientId || (userRole !== 'admin' && !requesterId)) return false;
   if (userRole === 'admin') return true;
   if (userRole === 'client') {
-    return Number(userId) === Number(clientId);
+    return requesterId === targetClientId;
   }
   if (userRole !== 'trainer') return false;
   // Trainer: look up via the ClientTrainerAssignment model (real schema:
@@ -83,7 +101,7 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
   try {
     const Model = getModel('ClientTrainerAssignment');
     const assignment = await Model.findOne({
-      where: { trainerId: Number(userId), clientId: Number(clientId), status: 'active' },
+      where: { trainerId: requesterId, clientId: targetClientId, status: 'active' },
     });
     return !!assignment;
   } catch (err) {
@@ -114,8 +132,8 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
  * @returns {Promise<boolean>}
  */
 export async function loadFreshCanGenerateFlag(userId) {
-  const id = Number(userId);
-  if (!Number.isInteger(id) || id < 1) return false;
+  const id = parseStrictPositiveInteger(userId);
+  if (!id) return false;
   try {
     const User = getModel('User');
     const user = await User.findByPk(id, { attributes: ['id', 'canGenerateWorkoutPlans'] });
@@ -139,8 +157,8 @@ export async function loadFreshCanGenerateFlag(userId) {
 export function verifyClientAccessByUserId({ paramName = 'userId', bodyField = 'userId' } = {}) {
   return async (req, res, next) => {
     const raw = req.params?.[paramName] ?? req.body?.[bodyField];
-    const clientId = parseInt(raw, 10);
-    if (!Number.isInteger(clientId) || clientId < 1) {
+    const clientId = parseStrictPositiveInteger(raw);
+    if (!clientId) {
       return res.status(400).json({ success: false, message: 'Valid clientId is required' });
     }
     const allowed = await assertAssignmentOrAdmin(req.user?.id, req.user?.role, clientId);
@@ -208,7 +226,9 @@ export async function filterPlansByTrainerAssignment(req, plans) {
   const userRole = req.user?.role;
   if (userRole === 'admin') return plans;
   if (userRole === 'client') {
-    return plans.filter((p) => Number(p.userId) === Number(userId));
+    const requesterId = parseStrictPositiveInteger(userId);
+    if (!requesterId) return [];
+    return plans.filter((p) => parseStrictPositiveInteger(p.userId) === requesterId);
   }
   if (userRole !== 'trainer') return [];
   // Trainer: keep plans the trainer is assigned to

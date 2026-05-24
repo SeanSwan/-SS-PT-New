@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import apiService from '../services/api.service';
 
 interface ClientPhoto {
   id: number;
@@ -31,8 +32,9 @@ export function useClientPhotos(userId?: number, type?: string): UseClientPhotos
   const [error, setError] = useState<string | null>(null);
 
   const fetchPhotos = useCallback(async () => {
-    if (!userId) {
+    if (!userId || userId <= 0) {
       setIsLoading(false);
+      setData([]);
       return;
     }
 
@@ -40,18 +42,11 @@ export function useClientPhotos(userId?: number, type?: string): UseClientPhotos
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
       const queryParams = type ? `?type=${type}` : '';
-      const response = await fetch(`/api/photos/${userId}${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get(`/api/photos/${userId}${queryParams}`);
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to fetch photos');
       } else {
         setData(result.data || []);

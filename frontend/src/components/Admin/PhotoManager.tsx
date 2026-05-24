@@ -29,6 +29,7 @@ import {
   CustomSelect
 } from '../UniversalMasterSchedule/ui';
 import { useClientPhotos } from '../../hooks/useClientPhotos';
+import apiService from '../../services/api.service';
 
 const photoTypeOptions = [
   { value: 'front', label: 'Front' },
@@ -116,12 +117,6 @@ const PhotoManager: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to upload photos.');
-        return;
-      }
-
       const payload = {
         url: photoUrl.trim(),
         storageKey: storageKey.trim(),
@@ -130,18 +125,10 @@ const PhotoManager: React.FC = () => {
         visibility
       };
 
-      const response = await fetch(`/api/photos/${numericClientId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await apiService.post(`/api/photos/${numericClientId}`, payload);
+      const result = response.data;
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to upload photo.');
         return;
       }
@@ -167,22 +154,10 @@ const PhotoManager: React.FC = () => {
     setSuccessMessage(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to delete photos.');
-        return;
-      }
+      const response = await apiService.delete(`/api/photos/${numericClientId}/${photoId}`);
+      const result = response.data;
 
-      const response = await fetch(`/api/photos/${numericClientId}/${photoId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to delete photo.');
         return;
       }

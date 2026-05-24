@@ -18,19 +18,14 @@ import {
   FaSwimmer,
 } from "react-icons/fa";
 import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+  VictoryAxis,
+  VictoryBar,
+  VictoryChart,
+  VictoryLine,
+  VictoryPie,
+  VictoryTooltip,
+  VictoryVoronoiContainer,
+} from "victory";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import ParallaxImageBackground from "../ui/backgrounds/ParallaxImageBackground";
 import nebula2Image from "../../assets/nebula2.png";
@@ -110,12 +105,6 @@ interface IconWrapperProps {
   $color: string;
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{ value: number; unit?: string; name?: string }>;
-  label?: string;
-}
-
 // --- Styled Components ---
 
 const StatsSection = styled.section`
@@ -125,7 +114,7 @@ const StatsSection = styled.section`
   font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
   background: ${T.bg};
   border-top: 1px solid rgba(0, 212, 170, 0.25);
-  /* Override global content-visibility: auto that breaks Recharts offscreen */
+  /* Override global content-visibility: auto that breaks SVG chart sizing offscreen */
   content-visibility: visible;
 
   @media (max-width: 1024px) {
@@ -416,48 +405,69 @@ const ChartBody = styled.div`
   flex: 1;
   width: 100%;
   min-height: 240px;
-`;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-const TooltipContainer = styled.div`
-  background: rgba(15, 25, 35, 0.95);
-  border: 1px solid rgba(0, 212, 170, 0.2);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-`;
-
-const TooltipLabel = styled.p`
-  color: ${T.text};
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-  font-size: 0.85rem;
-`;
-
-const TooltipValue = styled.p`
-  color: ${T.primary};
-  font-size: 0.9rem;
-`;
-
-// --- Custom Tooltip ---
-
-const CustomTooltip: React.FC<CustomTooltipProps> = ({
-  active,
-  payload,
-  label,
-}) => {
-  if (active && payload && payload.length > 0) {
-    return (
-      <TooltipContainer>
-        <TooltipLabel>{label}</TooltipLabel>
-        <TooltipValue>
-          {payload[0].value} {payload[0].unit || ""}
-        </TooltipValue>
-      </TooltipContainer>
-    );
+  svg {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible;
   }
-  return null;
-};
+`;
+
+// --- Chart Helpers ---
+
+interface VictoryChartDatum {
+  x: string;
+  y: number;
+  label: string;
+  fill?: string;
+}
+
+const chartAxisStyle = {
+  axis: { stroke: "rgba(255,255,255,0.2)" },
+  tickLabels: {
+    fill: T.textSecondary,
+    fontSize: 10,
+    fontFamily: '"Source Sans 3", "Source Sans Pro", sans-serif',
+    padding: 6,
+  },
+  grid: {
+    stroke: "rgba(255,255,255,0.1)",
+    strokeDasharray: "3,3",
+  },
+} as const;
+
+const chartTooltip = (
+  <VictoryTooltip
+    cornerRadius={8}
+    flyoutPadding={{ top: 8, bottom: 8, left: 10, right: 10 }}
+    flyoutStyle={{
+      fill: T.surface,
+      stroke: "rgba(0, 212, 170, 0.24)",
+      strokeWidth: 1,
+    }}
+    style={{
+      fill: T.text,
+      fontFamily: '"Source Sans 3", "Source Sans Pro", sans-serif',
+      fontSize: 11,
+      fontWeight: 600,
+    }}
+  />
+);
+
+const toVictoryData = (
+  data: ChartDataPoint[],
+  colors: string[],
+  suffix = ""
+): VictoryChartDatum[] =>
+  data.map((point, index) => ({
+    x: point.name,
+    y: point.value,
+    fill: colors[index % colors.length],
+    label: `${point.name}: ${point.value}${suffix}`,
+  }));
 
 // --- Animation Variants ---
 
@@ -674,129 +684,109 @@ const FitnessStats: React.FC = () => {
   // Chart rendering
   const renderChart = (config: ChartConfig): React.ReactNode => {
     const { type, data, colors, id } = config;
+    const chartData = toVictoryData(data, colors, type === "pie" ? "%" : "");
+    const chartAnimation = prefersReducedMotion
+      ? undefined
+      : { duration: 900, easing: "cubicInOut" as const };
 
     switch (type) {
       case "line":
         return (
-          <ResponsiveContainer width="100%" height={240} debounce={100}>
-            <LineChart
-              data={data}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.1)"
+          <VictoryChart
+            height={240}
+            padding={{ top: 16, right: 28, bottom: 48, left: 48 }}
+            domainPadding={{ x: 16, y: 12 }}
+            containerComponent={
+              <VictoryVoronoiContainer
+                labels={({ datum }: { datum: any }) => datum.label}
+                labelComponent={chartTooltip}
               />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: T.textSecondary }}
-                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
-              />
-              <YAxis
-                tick={{ fill: T.textSecondary }}
-                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <defs>
-                <linearGradient
-                  id={`lineGradient-${id}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
-                </linearGradient>
-              </defs>
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={`url(#lineGradient-${id})`}
-                strokeWidth={3}
-                dot={{
-                  stroke: colors[0],
-                  strokeWidth: 2,
-                  r: 4,
-                  fill: T.bg,
-                }}
-                activeDot={{ r: 6, fill: colors[0] }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+            }
+          >
+            <defs>
+              <linearGradient
+                id={`lineGradient-${id}`}
+                x1="0"
+                y1="0"
+                x2="1"
+                y2="0"
+              >
+                <stop offset="5%" stopColor={colors[0]} stopOpacity={0.95} />
+                <stop offset="95%" stopColor={colors[1]} stopOpacity={0.75} />
+              </linearGradient>
+            </defs>
+            <VictoryAxis style={chartAxisStyle} />
+            <VictoryAxis dependentAxis style={chartAxisStyle} />
+            <VictoryLine
+              data={chartData}
+              interpolation="monotoneX"
+              animate={chartAnimation}
+              style={{
+                data: {
+                  stroke: `url(#lineGradient-${id})`,
+                  strokeLinecap: "round",
+                  strokeWidth: 3,
+                },
+              }}
+            />
+          </VictoryChart>
         );
 
       case "bar":
         return (
-          <ResponsiveContainer width="100%" height={240} debounce={100}>
-            <BarChart
-              data={data}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.1)"
+          <VictoryChart
+            height={240}
+            padding={{ top: 16, right: 28, bottom: 58, left: 48 }}
+            domainPadding={{ x: 34, y: 12 }}
+            containerComponent={
+              <VictoryVoronoiContainer
+                labels={({ datum }: { datum: any }) => datum.label}
+                labelComponent={chartTooltip}
               />
-              <XAxis
-                dataKey="name"
-                tick={{ fill: T.textSecondary }}
-                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
-              />
-              <YAxis
-                tick={{ fill: T.textSecondary }}
-                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <defs>
-                <linearGradient
-                  id={`barGradient-${id}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
-                </linearGradient>
-              </defs>
-              <Bar
-                dataKey="value"
-                fill={`url(#barGradient-${id})`}
-                radius={[5, 5, 0, 0]}
-                barSize={40}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+            }
+          >
+            <VictoryAxis
+              style={chartAxisStyle}
+              tickFormat={(tick: string) =>
+                tick.length > 14 ? `${tick.slice(0, 12)}...` : tick
+              }
+            />
+            <VictoryAxis dependentAxis style={chartAxisStyle} />
+            <VictoryBar
+              data={chartData}
+              animate={chartAnimation}
+              cornerRadius={{ top: 5 }}
+              style={{
+                data: {
+                  fill: ({ datum }: { datum: VictoryChartDatum }) =>
+                    datum.fill || colors[0],
+                  width: 26,
+                },
+              }}
+            />
+          </VictoryChart>
         );
 
       case "pie":
         return (
-          <ResponsiveContainer width="100%" height={240} debounce={100}>
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={70}
-                innerRadius={35}
-                fill={T.secondary}
-                dataKey="value"
-                animationDuration={1500}
-              >
-                {data.map((_entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={colors[index % colors.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                content={<CustomTooltip />}
-                formatter={(value: any) => [`${value}%`, "Value"]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <VictoryPie
+            data={chartData}
+            height={240}
+            width={360}
+            padding={{ top: 18, right: 34, bottom: 18, left: 34 }}
+            innerRadius={45}
+            radius={82}
+            colorScale={colors}
+            animate={chartAnimation}
+            labels={({ datum }: { datum: any }) => datum.label}
+            labelComponent={chartTooltip}
+            style={{
+              data: {
+                stroke: T.bg,
+                strokeWidth: 2,
+              },
+            }}
+          />
         );
 
       default:

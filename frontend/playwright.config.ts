@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const skipWebServer = process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
+const frontendPort = Number(process.env.SWAN_PLAYWRIGHT_FRONTEND_PORT || '5173');
+const backendPort = Number(process.env.SWAN_PLAYWRIGHT_BACKEND_PORT || '10000');
+const reuseExistingFrontend = process.env.SWAN_PLAYWRIGHT_REUSE_EXISTING_SERVER === '1';
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,14 +18,14 @@ export default defineConfig({
     webServer: [
       {
         command: 'cd ../backend && node server.mjs',
-        port: 10000,
+        port: backendPort,
         reuseExistingServer: true,
         timeout: 60_000,
       },
       {
-        command: 'npm run dev',
-        port: 5173,
-        reuseExistingServer: true,
+        command: `npm run dev -- --host 0.0.0.0 --port ${frontendPort} --strictPort`,
+        port: frontendPort,
+        reuseExistingServer: reuseExistingFrontend,
         timeout: 30_000,
       },
     ],
@@ -33,7 +36,7 @@ export default defineConfig({
     {
       name: 'API Tests',
       testMatch: /e2e\/api\/.*\.spec\.ts/,
-      use: { baseURL: 'http://localhost:10000' },
+      use: { baseURL: `http://localhost:${backendPort}` },
       fullyParallel: false,
       retries: 0,
     },

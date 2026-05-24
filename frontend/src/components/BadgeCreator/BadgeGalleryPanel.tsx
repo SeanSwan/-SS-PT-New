@@ -15,6 +15,7 @@ import {
   Tag, Sparkles, Loader, Image, Share2,
 } from 'lucide-react';
 import AnimatedBadge from './AnimatedBadge';
+import apiService from '../../services/api.service';
 
 // ── Rarity gradient animation ──
 const legendaryGlow = keyframes`
@@ -249,15 +250,11 @@ const BadgeGalleryPanel: React.FC = () => {
   const [assigning, setAssigning] = useState(false);
   const [sharing, setSharing] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchBadges = useCallback(async () => {
     try {
       const query = filter !== 'all' ? `?rarity=${filter}` : '';
-      const res = await fetch(`/api/admin/badge-creator/gallery${query}`, { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: BadgeData[] }>(`/api/admin/badge-creator/gallery${query}`);
+      const d = res.data;
       if (d.success) setBadges(d.data);
     } catch { /* best-effort */ }
     setLoading(false);
@@ -270,12 +267,11 @@ const BadgeGalleryPanel: React.FC = () => {
     if (!selected || !assignTarget.trim()) return;
     setAssigning(true);
     try {
-      const res = await fetch(`/api/admin/badge-creator/${selected.id}/assign`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ assignedTo: assignType, assignedTarget: assignTarget.trim() }),
+      const res = await apiService.patch<{ success: boolean }>(`/api/admin/badge-creator/${selected.id}/assign`, {
+        assignedTo: assignType,
+        assignedTarget: assignTarget.trim(),
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         setSelected(null);
         setAssignTarget('');
@@ -289,11 +285,8 @@ const BadgeGalleryPanel: React.FC = () => {
     if (!selected) return;
     setAssigning(true);
     try {
-      const res = await fetch(`/api/admin/badge-creator/${selected.id}/unassign`, {
-        method: 'PATCH',
-        headers,
-      });
-      const d = await res.json();
+      const res = await apiService.patch<{ success: boolean }>(`/api/admin/badge-creator/${selected.id}/unassign`);
+      const d = res.data;
       if (d.success) {
         setSelected(null);
         fetchBadges();
@@ -422,11 +415,7 @@ const BadgeGalleryPanel: React.FC = () => {
                   ? '/api/admin/badge-creator/marketplace/unshare'
                   : '/api/admin/badge-creator/marketplace/share';
                 try {
-                  await fetch(endpoint, {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ badgeId: selected.id }),
-                  });
+                  await apiService.post(endpoint, { badgeId: selected.id });
                   fetchBadges();
                 } catch { /* best-effort */ }
                 setSharing(false);

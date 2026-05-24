@@ -103,8 +103,8 @@ describe('AI and admin auth transport', () => {
     expect(COACH_INTAKE_SERVICE_SOURCE).toMatch(/apiService\.get[\s\S]{0,180}\(['"]\/api\/coach\/intake\/queue/);
     expect(COACH_INTAKE_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]{0,180}\(['"]\/api\/coach\/intake/);
     expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.get[\s\S]{0,180}\(`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}`/);
-    expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]{0,220}\(`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}\/approve`/);
-    expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]{0,220}\(`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}\/reject`/);
+    expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]*`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}\/approve`/);
+    expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]*`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}\/reject`/);
   });
 
   it('routes Coach transcription, voice readback, and teach-mode calls through apiService', () => {

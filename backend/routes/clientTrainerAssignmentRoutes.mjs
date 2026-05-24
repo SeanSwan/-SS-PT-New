@@ -237,13 +237,34 @@ import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 
 const router = express.Router();
+const VALID_ASSIGNMENT_STATUSES = new Set(['active', 'inactive', 'pending']);
+const MAX_PAGE_LIMIT = 300;
+
+const parsePositiveInteger = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parsePaginationInteger = (value, fallback, max = Number.MAX_SAFE_INTEGER) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= max ? parsed : null;
+};
+
+const parseBooleanQuery = (value) => value === true || value === 'true';
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  error: 'internal_error'
+});
 
 /**
  * @route   GET /api/assignments/test
  * @desc    Test endpoint — returns table schema for debugging
- * @access  Public (temporary diagnostic — remove after fix confirmed)
+ * @access  Admin Only
  */
-router.get('/test', async (req, res) => {
+router.get('/test', protect, adminOnly, async (req, res) => {
   try {
     // Check actual column names in the DB
     const [columns] = await sequelize.query(
@@ -262,33 +283,15 @@ router.get('/test', async (req, res) => {
        WHERE tc.table_name = 'client_trainer_assignments' AND tc.constraint_type = 'FOREIGN KEY'`
     );
 
-    // Try a simple raw insert test (dry run — rollback)
-    let insertTest = 'not tested';
-    try {
-      await sequelize.query('BEGIN');
-      await sequelize.query(
-        `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", notes, status, "createdAt", "updatedAt")
-         VALUES (1, 2, 1, 'test', 'active', NOW(), NOW())`
-      );
-      insertTest = 'INSERT succeeded (rolled back)';
-      await sequelize.query('ROLLBACK');
-    } catch (insertErr) {
-      insertTest = `INSERT failed: ${insertErr.message}`;
-      try { await sequelize.query('ROLLBACK'); } catch (_) { /* ignore */ }
-    }
-
     res.json({
       success: true,
       columns,
       foreignKeys: fks,
-      insertTest,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    logger.error('Error fetching assignment schema diagnostics:', error);
+    sendInternalError(res, 'Failed to fetch assignment diagnostics');
   }
 });
 
@@ -309,25 +312,58 @@ router.get('/', protect, adminOnly, async (req, res) => {
       includeInactive = false 
     } = req.query;
 
+    const parsedPage = parsePaginationInteger(page, 1);
+    const parsedLimit = parsePaginationInteger(limit, 50, MAX_PAGE_LIMIT);
+    const parsedTrainerId = trainerId ? parsePositiveInteger(trainerId) : null;
+    const parsedClientId = clientId ? parsePositiveInteger(clientId) : null;
+
+    if (!parsedPage || !parsedLimit) {
+      return res.status(400).json({
+        success: false,
+        message: `Page and limit must be positive integers; limit cannot exceed ${MAX_PAGE_LIMIT}`
+      });
+    }
+
+    if (status && !VALID_ASSIGNMENT_STATUSES.has(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${Array.from(VALID_ASSIGNMENT_STATUSES).join(', ')}`
+      });
+    }
+
+    if (trainerId && !parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID must be a positive integer'
+      });
+    }
+
+    if (clientId && !parsedClientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client ID must be a positive integer'
+      });
+    }
+
     // Build query conditions
     const whereConditions = {};
     
     if (status) {
       whereConditions.status = status;
-    } else if (!includeInactive) {
+    } else if (!parseBooleanQuery(includeInactive)) {
       whereConditions.status = 'active';
     }
     
     if (trainerId) {
-      whereConditions.trainerId = parseInt(trainerId);
+      whereConditions.trainerId = parsedTrainerId;
     }
     
     if (clientId) {
-      whereConditions.clientId = parseInt(clientId);
+      whereConditions.clientId = parsedClientId;
     }
 
     // Calculate pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
@@ -360,7 +396,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
           }
         ],
         order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: parsedLimit,
         offset: offset
       });
       count = result.count;
@@ -385,39 +421,36 @@ router.get('/', protect, adminOnly, async (req, res) => {
           }
         ],
         order: [['createdAt', 'DESC']],
-        limit: parseInt(limit),
+        limit: parsedLimit,
         offset: offset
       });
       count = result.count;
       assignments = result.rows;
     }
 
-    const totalPages = Math.ceil(count / parseInt(limit));
+    const totalPages = Math.ceil(count / parsedLimit);
 
     logger.info(`Retrieved ${assignments.length} assignments for admin`, {
       userId: req.user.id,
       filters: { status, trainerId, clientId },
-      pagination: { page, limit, totalPages }
+      pagination: { page: parsedPage, limit: parsedLimit, totalPages }
     });
 
     res.json({
       success: true,
       assignments,
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: parsedPage,
         totalPages,
         totalCount: count,
-        hasNextPage: parseInt(page) < totalPages,
-        hasPrevPage: parseInt(page) > 1
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1
       }
     });
 
   } catch (error) {
     logger.error('Error fetching assignments:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to fetch assignments',
-    });
+    sendInternalError(res, 'Failed to fetch assignments');
   }
 });
 
@@ -429,14 +462,21 @@ router.get('/', protect, adminOnly, async (req, res) => {
 router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) => {
   try {
     const { trainerId } = req.params;
+    const parsedTrainerId = parsePositiveInteger(trainerId);
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
 
+    if (!parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID must be a positive integer'
+      });
+    }
+
     // Trainers can only view their own assignments, admins can view any.
-    // String() both sides: req.user.id is stored as a string (see
-    // authMiddleware.mjs:631 round-5 fix); parseInt(trainerId) returns a
-    // number; strict !== between number and string is always true → 403.
-    if (requestingUserRole === 'trainer' && String(trainerId) !== String(requestingUserId)) {
+    // String() both sides after strict route-param parsing so string and
+    // numeric auth IDs both pass for the trainer's own account.
+    if (requestingUserRole === 'trainer' && String(parsedTrainerId) !== String(requestingUserId)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only view their own assigned clients'
@@ -448,7 +488,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     const assignments = await ClientTrainerAssignment.findAll({
       where: {
-        trainerId: parseInt(trainerId),
+        trainerId: parsedTrainerId,
         status: 'active'
       },
       // lastModifiedBy removed from model — no exclude needed,
@@ -469,9 +509,9 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
       order: [['createdAt', 'DESC']]
     });
 
-    logger.info(`Trainer ${trainerId} retrieved ${assignments.length} assigned clients`, {
+    logger.info(`Trainer ${parsedTrainerId} retrieved ${assignments.length} assigned clients`, {
       requestingUserId,
-      trainerId
+      trainerId: parsedTrainerId
     });
 
     res.json({
@@ -482,11 +522,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
   } catch (error) {
     logger.error('Error fetching trainer assignments:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch trainer assignments',
-      error: error.message
-    });
+    sendInternalError(res, 'Failed to fetch trainer assignments');
   }
 });
 
@@ -498,13 +534,21 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
   try {
     const { clientId } = req.params;
+    const parsedClientId = parsePositiveInteger(clientId);
+
+    if (!parsedClientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Client ID must be a positive integer'
+      });
+    }
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
 
     const assignment = await ClientTrainerAssignment.findOne({
       where: {
-        clientId: parseInt(clientId),
+        clientId: parsedClientId,
         status: 'active'
       },
       // lastModifiedBy removed from model — no exclude needed,
@@ -525,7 +569,7 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    logger.info(`Retrieved assignment for client ${clientId}`, {
+    logger.info(`Retrieved assignment for client ${parsedClientId}`, {
       userId: req.user.id,
       hasAssignment: !!assignment
     });
@@ -537,11 +581,7 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching client assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch client assignment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    sendInternalError(res, 'Failed to fetch client assignment');
   }
 });
 
@@ -554,18 +594,27 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
     const { clientId, trainerId, notes } = req.body;
-    const assignedBy = req.user.id;
+    const assignedBy = parsePositiveInteger(req.user.id);
+    const parsedClientId = parsePositiveInteger(clientId);
+    const parsedTrainerId = parsePositiveInteger(trainerId);
 
     // Validate required fields
-    if (!clientId || !trainerId) {
+    if (!parsedClientId || !parsedTrainerId) {
       return res.status(400).json({
         success: false,
-        message: 'Client ID and Trainer ID are required'
+        message: 'Client ID and Trainer ID must be positive integers'
+      });
+    }
+
+    if (!assignedBy) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
       });
     }
 
     // Prevent self-assignment
-    if (parseInt(clientId) === parseInt(trainerId)) {
+    if (parsedClientId === parsedTrainerId) {
       return res.status(400).json({
         success: false,
         message: 'Client and trainer cannot be the same user'
@@ -575,7 +624,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
 
-    logger.info('[ASSIGN-DEBUG] Step 1: Looking up client=%d trainer=%d', parseInt(clientId), parseInt(trainerId));
+    logger.info('[ASSIGN-DEBUG] Step 1: Looking up client=%d trainer=%d', parsedClientId, parsedTrainerId);
 
     // Verify users exist and have correct roles
     let client, trainer;
@@ -583,13 +632,13 @@ router.post('/', protect, adminOnly, async (req, res) => {
       [client, trainer] = await Promise.all([
         User.findOne({
           where: {
-            id: parseInt(clientId),
+            id: parsedClientId,
             role: { [Op.in]: ['client', 'user'] }
           }
         }),
         User.findOne({
           where: {
-            id: parseInt(trainerId),
+            id: parsedTrainerId,
             role: { [Op.in]: ['trainer', 'admin'] }
           }
         })
@@ -599,10 +648,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
         trainer ? `${trainer.firstName} (role=${trainer.role})` : 'NOT FOUND');
     } catch (lookupErr) {
       logger.error('[ASSIGN-DEBUG] Step 1 FAILED:', lookupErr.message);
-      return res.status(500).json({
-        success: false,
-        message: `User lookup failed: ${lookupErr.message}`
-      });
+      return sendInternalError(res, 'Failed to create assignment');
     }
 
     if (!client) {
@@ -626,18 +672,15 @@ router.post('/', protect, adminOnly, async (req, res) => {
     try {
       existingAssignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId),
-          trainerId: parseInt(trainerId),
+          clientId: parsedClientId,
+          trainerId: parsedTrainerId,
           status: 'active'
         }
       });
       logger.info('[ASSIGN-DEBUG] Step 2 done: existing=%s', existingAssignment ? 'YES' : 'NO');
     } catch (findErr) {
       logger.error('[ASSIGN-DEBUG] Step 2 FAILED:', findErr.message);
-      return res.status(500).json({
-        success: false,
-        message: `Existing check failed: ${findErr.message}`
-      });
+      return sendInternalError(res, 'Failed to create assignment');
     }
 
     if (existingAssignment) {
@@ -655,7 +698,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
         { status: 'inactive' },
         {
           where: {
-            clientId: parseInt(clientId),
+            clientId: parsedClientId,
             status: 'active'
           }
         }
@@ -663,10 +706,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       logger.info('[ASSIGN-DEBUG] Step 3 done');
     } catch (deactivateErr) {
       logger.error('[ASSIGN-DEBUG] Step 3 FAILED:', deactivateErr.message);
-      return res.status(500).json({
-        success: false,
-        message: `Deactivate old assignments failed: ${deactivateErr.message}`
-      });
+      return sendInternalError(res, 'Failed to create assignment');
     }
 
     logger.info('[ASSIGN-DEBUG] Step 4: Creating new assignment');
@@ -680,9 +720,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
          RETURNING *`,
         {
           replacements: {
-            clientId: parseInt(clientId),
-            trainerId: parseInt(trainerId),
-            assignedBy: parseInt(assignedBy),
+            clientId: parsedClientId,
+            trainerId: parsedTrainerId,
+            assignedBy,
             notes: notes || null
           }
         }
@@ -694,10 +734,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       logger.info('[ASSIGN-DEBUG] Step 4 done: assignment id=%d', assignment.id);
     } catch (createErr) {
       logger.error('[ASSIGN-DEBUG] Step 4 FAILED:', createErr.message);
-      return res.status(500).json({
-        success: false,
-        message: `Create assignment failed: ${createErr.message}`
-      });
+      return sendInternalError(res, 'Failed to create assignment');
     }
 
     const assignmentId = assignment.id;
@@ -733,7 +770,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       logger.warn('[ASSIGN-DEBUG] Step 5: Re-fetch failed (non-fatal):', fetchErr.message);
     }
 
-    logger.info(`Admin ${assignedBy} assigned client ${clientId} to trainer ${trainerId}`, {
+    logger.info(`Admin ${assignedBy} assigned client ${parsedClientId} to trainer ${parsedTrainerId}`, {
       assignmentId: assignment.id,
       clientName: `${client.firstName} ${client.lastName}`,
       trainerName: `${trainer.firstName} ${trainer.lastName}`
@@ -747,11 +784,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error creating assignment:', error);
-    // Always return the error message so we can debug in production
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create assignment',
-    });
+    sendInternalError(res, 'Failed to create assignment');
   }
 });
 
@@ -764,12 +797,20 @@ router.post('/', protect, adminOnly, async (req, res) => {
 router.put('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
+    const parsedAssignmentId = parsePositiveInteger(id);
     const { status, notes } = req.body;
     const updatedBy = req.user.id;
 
+    if (!parsedAssignmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assignment ID must be a positive integer'
+      });
+    }
+
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
-    const assignment = await ClientTrainerAssignment.findByPk(id, {
+    const assignment = await ClientTrainerAssignment.findByPk(parsedAssignmentId, {
       // lastModifiedBy removed from model — no exclude needed
     });
     if (!assignment) {
@@ -797,7 +838,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     // Fetch updated assignment with related data
     const User = getUser();
-    const updatedAssignment = await ClientTrainerAssignment.findByPk(id, {
+    const updatedAssignment = await ClientTrainerAssignment.findByPk(parsedAssignmentId, {
       // lastModifiedBy removed from model — no exclude needed,
       include: [
         {
@@ -821,9 +862,9 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
       ]
     });
 
-    logger.info(`Admin ${updatedBy} updated assignment ${id}`, {
+    logger.info(`Admin ${updatedBy} updated assignment ${parsedAssignmentId}`, {
       changes: updateData,
-      assignmentId: id
+      assignmentId: parsedAssignmentId
     });
 
     res.json({
@@ -834,11 +875,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error updating assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update assignment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    sendInternalError(res, 'Failed to update assignment');
   }
 });
 
@@ -850,11 +887,19 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 router.delete('/:id', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
+    const parsedAssignmentId = parsePositiveInteger(id);
     const deletedBy = req.user.id;
+
+    if (!parsedAssignmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Assignment ID must be a positive integer'
+      });
+    }
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
-    const assignment = await ClientTrainerAssignment.findByPk(id, {
+    const assignment = await ClientTrainerAssignment.findByPk(parsedAssignmentId, {
       // lastModifiedBy removed from model — no exclude needed
     });
     if (!assignment) {
@@ -867,8 +912,8 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     // Set status to inactive instead of hard delete for audit trail
     await assignment.update({ status: 'inactive' });
 
-    logger.info(`Admin ${deletedBy} deactivated assignment ${id}`, {
-      assignmentId: id,
+    logger.info(`Admin ${deletedBy} deactivated assignment ${parsedAssignmentId}`, {
+      assignmentId: parsedAssignmentId,
       originalStatus: assignment.status
     });
 
@@ -879,11 +924,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error deleting assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete assignment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    sendInternalError(res, 'Failed to delete assignment');
   }
 });
 
@@ -927,11 +968,7 @@ router.get('/unassigned/clients', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching unassigned clients:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch unassigned clients',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    sendInternalError(res, 'Failed to fetch unassigned clients');
   }
 });
 
@@ -1011,11 +1048,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching assignment statistics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch assignment statistics',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    sendInternalError(res, 'Failed to fetch assignment statistics');
   }
 });
 

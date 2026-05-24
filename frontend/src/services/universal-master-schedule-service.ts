@@ -21,7 +21,8 @@
  * - User: Available sessions for booking
  */
 
-import axios, { AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
+import apiService from './api.service';
 
 // Import types from Universal Master Schedule
 import type {
@@ -35,43 +36,12 @@ import type {
 } from '../components/UniversalMasterSchedule/types';
 import { logger } from '@/utils/logger';
 
-// API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
-
-/**
- * Create axios instance with dynamic auth headers
- * Uses interceptor to always get fresh token from localStorage
- */
-function createApiClient() {
-  const instance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    timeout: 30000
-  });
-
-  // Add request interceptor to include fresh token on every request
-  instance.interceptors.request.use(
-    (config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
-
-  return instance;
-}
-
 /**
  * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
  * Handles all scheduling operations with role-based access using the unified backend
  */
 class UniversalMasterScheduleService {
-  private api = createApiClient();
+  private api = apiService;
 
   // ==================== CORE SESSION OPERATIONS ====================
 

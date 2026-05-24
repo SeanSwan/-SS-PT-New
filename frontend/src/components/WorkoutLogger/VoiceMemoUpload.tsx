@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Upload, Mic, FileText, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -49,7 +49,7 @@ const Container = styled.div<{ $uploading?: boolean }>`
     background: rgba(139, 92, 246, 0.04);
   }
 
-  ${({ $uploading }) => $uploading && `
+  ${({ $uploading }) => $uploading && css`
     background: linear-gradient(90deg, rgba(139, 92, 246,0.02) 25%, rgba(139, 92, 246,0.08) 50%, rgba(139, 92, 246,0.02) 75%);
     background-size: 200% 100%;
     animation: ${shimmer} 2s infinite linear;
@@ -80,6 +80,10 @@ const DropLabel = styled.p`
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   margin: 12px 0 4px;
+`;
+
+const PulsingDropLabel = styled(DropLabel)`
+  animation: ${pulse} 1.5s ease-in-out infinite;
 `;
 
 const SubLabel = styled.p`
@@ -219,7 +223,7 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
 
 /* ---- Types ---- */
 
-interface ParsedExercise {
+export interface ParsedExercise {
   exerciseName: string;
   sets: Array<{
     setNumber: number;
@@ -234,7 +238,7 @@ interface ParsedExercise {
   performanceNotes?: string;
 }
 
-interface ParsedWorkout {
+export interface ParsedWorkout {
   exercises: ParsedExercise[];
   sessionNotes?: string;
   overallIntensity?: number;
@@ -264,6 +268,9 @@ const ACCEPTED_TYPES = [
   'application/pdf',
 ].join(',');
 
+export const MAX_UPLOAD_FILE_SIZE_MB = 20;
+export const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
+
 const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
   clientId,
   clientName,
@@ -281,15 +288,13 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
     parsedWorkout: ParsedWorkout;
   } | null>(null);
 
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-
   const handleFile = useCallback(async (file: File) => {
     setError(null);
     setResult(null);
 
     // Client-side validation
-    if (file.size > MAX_FILE_SIZE) {
-      setError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 50MB.`);
+    if (file.size > MAX_UPLOAD_FILE_SIZE_BYTES) {
+      setError(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is ${MAX_UPLOAD_FILE_SIZE_MB}MB.`);
       return;
     }
 
@@ -366,6 +371,13 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
           role="button"
           tabIndex={0}
           aria-label="Upload voice memo or file"
+          onKeyDown={(e) => {
+            if (uploading) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
         >
           <HiddenInput
             ref={fileInputRef}
@@ -382,9 +394,9 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
                 <WaveBar $delay="0.2s" />
                 <WaveBar $delay="0.0s" />
               </WaveContainer>
-              <DropLabel style={{ animation: `${pulse} 1.5s ease-in-out infinite` }}>
+              <PulsingDropLabel>
                 Processing{clientName ? ` for ${clientName}` : ''}...
-              </DropLabel>
+              </PulsingDropLabel>
               <SubLabel>Transcribing and parsing workout data</SubLabel>
             </>
           ) : (
@@ -398,7 +410,7 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
                 Drop voice memo or click to upload
               </DropLabel>
               <SubLabel>
-                Supports: .m4a, .mp3, .wav, .webm, .ogg, .flac, .txt, .csv, .pdf (max 50MB)
+                Supports: .m4a, .mp3, .wav, .webm, .ogg, .flac, .txt, .csv, .pdf (max {MAX_UPLOAD_FILE_SIZE_MB}MB)
               </SubLabel>
             </>
           )}

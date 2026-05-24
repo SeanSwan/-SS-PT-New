@@ -8,7 +8,9 @@
  * PAGE_VIEW_BUFFER: Batched writes to PostgreSQL every 15s or at 50 records.
  */
 
-export const PAGE_VIEW_CACHE = new Map(); // ip -> { geo, lastSeen, pages[], userAgent, ... }
+import { createHmac } from 'node:crypto';
+
+export const PAGE_VIEW_CACHE = new Map(); // visitorKey -> { geo, lastSeen, pages[], userAgent, ... }
 export const PAGE_VIEW_TTL = 24 * 60 * 60 * 1000; // 24h
 
 // ── Buffered DB persistence ──
@@ -19,12 +21,69 @@ const FLUSH_THRESHOLD = 50;   // records
 let flushTimer = null;
 let PageViewModel = null; // Lazy-loaded to avoid circular imports
 
+const FALLBACK_ANONYMIZATION_SALT = 'swanstudios-local-page-view-salt';
+
+function getAnonymizationSalt() {
+  return (
+    process.env.PAGE_VIEW_ANONYMIZATION_SALT ||
+    process.env.JWT_SECRET ||
+    process.env.SESSION_SECRET ||
+    FALLBACK_ANONYMIZATION_SALT
+  );
+}
+
+export function anonymizeVisitorIp(ip) {
+  const input = typeof ip === 'string' && ip.trim() ? ip.trim() : 'unknown';
+  const digest = createHmac('sha256', getAnonymizationSalt()).update(input).digest('hex');
+  return `pv_${digest.slice(0, 32)}`;
+}
+
+export function sanitizePagePath(page) {
+  if (typeof page !== 'string') return null;
+  const trimmed = page.trim();
+  if (!trimmed || !trimmed.startsWith('/')) return null;
+  return trimmed.split(/[?#]/)[0].slice(0, 200) || null;
+}
+
+export function sanitizeReferrer(referrer) {
+  if (typeof referrer !== 'string') return null;
+  const trimmed = referrer.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    return `${url.origin}${url.pathname}`.slice(0, 200);
+  } catch {
+    const withoutQuery = trimmed.split(/[?#]/)[0].slice(0, 200);
+    return withoutQuery || null;
+  }
+}
+
+export function summarizeUserAgent(userAgent) {
+  if (typeof userAgent !== 'string' || !userAgent.trim()) return 'unknown';
+  const ua = userAgent.toLowerCase();
+  const device = /mobile|iphone|android/.test(ua)
+    ? 'mobile'
+    : /ipad|tablet/.test(ua)
+      ? 'tablet'
+      : 'desktop';
+  const browser = ua.includes('edg/')
+    ? 'edge'
+    : ua.includes('firefox/')
+      ? 'firefox'
+      : ua.includes('chrome/')
+        ? 'chrome'
+        : ua.includes('safari/')
+          ? 'safari'
+          : 'other';
+  return `${device}:${browser}`;
+}
+
 /**
  * Push a page view record to the buffer for batched DB write.
  */
 export function bufferPageView(entry) {
   PAGE_VIEW_BUFFER.push({
-    ip: entry.ip,
+    ip: entry.visitorKey || entry.ip,
     page: entry.pages?.[entry.pages.length - 1] || null,
     referrer: entry.referrer || null,
     userAgent: entry.userAgent || null,

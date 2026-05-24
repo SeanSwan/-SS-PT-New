@@ -163,7 +163,10 @@ describe('SessionGrantService', () => {
 
     expect(mockShoppingCart.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        lock: 'UPDATE',
+        lock: {
+          level: mockTransaction.LOCK.UPDATE,
+          of: mockShoppingCart,
+        },
         transaction: mockTransaction,
       })
     );

@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { Play } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import apiService from '../../services/api.service';
 
 interface WatchProgressProps {
   videoId: string;
@@ -35,18 +34,16 @@ const WatchProgress: React.FC<WatchProgressProps> = ({
   const saveProgress = useCallback(
     async (time: number) => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return; // unauthenticated users cannot save progress
-        await fetch(`${API_BASE}/api/v2/videos/${videoId}/progress`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            currentTime: Math.floor(time),
-            completed: time / durationSeconds >= 0.95,
-          }),
+        if (!apiService.isAuthenticated()) return; // unauthenticated users cannot save progress
+        const completionPct = durationSeconds > 0
+          ? Math.min(100, Math.max(0, Math.round((time / durationSeconds) * 100)))
+          : 0;
+        await apiService.post(`/api/v2/videos/${videoId}/progress`, {
+          progressSeconds: Math.floor(time),
+          completionPct,
+          completed: completionPct >= 95,
+        }, {
+          validateStatus: status => status < 500,
         });
       } catch {
         // non-critical -- swallow

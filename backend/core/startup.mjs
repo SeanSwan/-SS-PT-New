@@ -29,6 +29,15 @@ const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
 
+export const shouldRunProductionDatabaseSync = ({
+  nodeEnv = process.env.NODE_ENV,
+  startupDatabaseRepair = process.env.STARTUP_DATABASE_REPAIR,
+} = {}) => {
+  if (startupDatabaseRepair === 'true') return true;
+  if (startupDatabaseRepair === 'false') return false;
+  return nodeEnv === 'production';
+};
+
 /**
  * Create required directories for uploads and data
  */
@@ -157,6 +166,10 @@ const initializeDatabases = async () => {
       } catch (syncError) {
         logger.error(`Error syncing database: ${syncError.message}`);
       }
+    } else if (!shouldRunProductionDatabaseSync()) {
+      logger.info(
+        'Database repair sync skipped outside production; set STARTUP_DATABASE_REPAIR=true to run it locally.',
+      );
     } else {
       // ENHANCED: Production-safe database sync with dependency-aware table creation
       try {
@@ -319,6 +332,17 @@ const startServer = async (app) => {
   if (isProduction) {
     server.maxHeadersCount = 100;
     server.requestTimeout = 20000; // Faster timeout for production
+  }
+
+  try {
+    const io = initSocketIO(httpServer);
+    if (io) {
+      logger.info('Socket.io initialized successfully on primary server');
+    } else {
+      logger.warn('Socket.io initialization skipped on primary server');
+    }
+  } catch (socketError) {
+    logger.warn('Socket.io initialization failed on primary server:', socketError.message);
   }
 
   // Initialize Socket.io AFTER server is listening (non-blocking)

@@ -31,6 +31,7 @@ import { useSessionCredits } from './hooks/useSessionCredits';
 import { useToast } from '../../hooks/use-toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSessionTemplates } from './hooks/useSessionTemplates';
+import { buildScheduleTrainerScope } from './utils/trainerScope';
 
 // Redux: Layout & Density state
 import { useDispatch, useSelector } from 'react-redux';
@@ -140,16 +141,16 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setStatusFilter(prev => prev === status ? null : status);
   }, []);
 
-  // First: filter by admin scope (my vs global)
-  const scopedSessions = useMemo(() => {
-    if (mode === 'admin' && adminViewScope === 'my' && userId) {
-      const normalizedUserId = String(userId);
-      return sessions.filter((s: any) =>
-        String(s.trainerId) === normalizedUserId
-      );
-    }
-    return sessions;
-  }, [sessions, mode, adminViewScope, userId]);
+  const trainerScope = useMemo(() => buildScheduleTrainerScope({
+    mode,
+    adminViewScope,
+    currentUser: user as any,
+    trainers: trainers as any[],
+    sessions: sessions as any[],
+    selectedTrainerId,
+  }), [mode, adminViewScope, user, trainers, sessions, selectedTrainerId]);
+
+  const scopedSessions = trainerScope.displaySessions;
 
   // Then: apply KPI status filter on top of scoped sessions
   const displaySessions = useMemo(() => {
@@ -257,6 +258,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     const newTrainerId = scope === 'my' ? null : selectedTrainerId;
     if (scope === 'my') {
       setSelectedTrainerId(null);
+    } else {
+      setView('day');
+      dispatch(setLayoutMode('columns'));
     }
     // Trigger data refresh with new scope - pass filter options directly
     refreshData(false, {
@@ -268,11 +272,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       location: '',
       searchTerm: ''
     });
-  }, [refreshData, selectedTrainerId]);
+  }, [refreshData, selectedTrainerId, setView, dispatch]);
 
   // Handle trainer filter change
   const handleTrainerFilterChange = useCallback((trainerId: number | string | null) => {
     setSelectedTrainerId(trainerId);
+    setView('day');
+    dispatch(setLayoutMode('columns'));
     // Refresh data with new trainer filter - pass filter options directly
     refreshData(false, {
       adminScope: adminViewScope,
@@ -283,7 +289,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       location: '',
       searchTerm: ''
     });
-  }, [refreshData, adminViewScope]);
+  }, [refreshData, adminViewScope, setView, dispatch]);
 
   const isAnyModalOpen = [
     showCreateDialog,
@@ -766,6 +772,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         density={density}
         onDensityChange={handleDensityChange}
         currentUser={user ? { firstName: user.firstName || '', lastName: user.lastName || '', profileImageUrl: (user as any).profileImageUrl } : undefined}
+        headerTitle={trainerScope.headerTitle}
+        headerSubtitle={trainerScope.headerSubtitle}
+        headerImageUrl={trainerScope.headerImageUrl}
       />
 
       <ScheduleStats
@@ -789,7 +798,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           activeView={activeView}
           currentDate={currentDate}
           sessions={displaySessions}
-          trainers={trainers}
+          trainers={trainerScope.calendarTrainers}
           canReschedule={canReschedule}
           canQuickBook={canQuickBook}
           isAdmin={mode === 'admin'}

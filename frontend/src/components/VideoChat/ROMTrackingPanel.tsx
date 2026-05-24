@@ -14,6 +14,7 @@ import {
   Activity, Plus, Trash2, Save, TrendingUp, X,
   AlertTriangle,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 // ── Types ──
 interface ROMMeasurement {
@@ -273,10 +274,6 @@ const ROMTrackingPanel: React.FC<Props> = ({ open, onClose, videoSessionId, reco
   const [measurements, setMeasurements] = useState<ROMMeasurement[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const addMeasurement = () => {
     const a = parseFloat(angle);
     if (isNaN(a) || a < 0 || a > 360) return;
@@ -297,19 +294,17 @@ const ROMTrackingPanel: React.FC<Props> = ({ open, onClose, videoSessionId, reco
     if (measurements.length === 0) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/video-sessions/${videoSessionId}/rom`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ measurements }),
+      const res = await apiService.post<{ success: boolean; data: { recoveryScore: number | null } }>(`/api/video-sessions/${videoSessionId}/rom`, {
+        measurements,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         onScoreUpdate(d.data.recoveryScore);
         setMeasurements([]);
       }
     } catch { /* best-effort */ }
     setSaving(false);
-  }, [measurements, videoSessionId, headers, onScoreUpdate]);
+  }, [measurements, videoSessionId, onScoreUpdate]);
 
   const getPercent = (joint: string, a: number) => {
     const j = JOINTS.find(j => j.value === joint);

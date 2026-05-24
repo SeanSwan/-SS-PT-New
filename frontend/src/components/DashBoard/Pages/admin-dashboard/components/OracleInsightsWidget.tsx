@@ -85,6 +85,11 @@ const DEFAULT_QUERIES: Record<OracleTab, string> = {
   youtube: 'NASM exercise technique form',
 };
 
+const safeExternalHref = (link: string | null | undefined) => {
+  if (typeof link !== 'string') return undefined;
+  return /^https?:\/\//i.test(link) ? link : undefined;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -96,13 +101,6 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState<OracleTab>(defaultTab);
   const [query, setQuery] = useState(defaultQuery || DEFAULT_QUERIES[defaultTab]);
-  // Sync query when parent passes a new defaultQuery (e.g., Teach Mode exercise change)
-  useEffect(() => {
-    if (defaultQuery) {
-      setQuery(defaultQuery);
-      fetchData(activeTab, defaultQuery);
-    }
-  }, [defaultQuery]); // eslint-disable-line react-hooks/exhaustive-deps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newsResults, setNewsResults] = useState<NewsArticle[]>([]);
@@ -110,6 +108,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   const [youtubeResults, setYoutubeResults] = useState<YouTubeVideo[]>([]);
   const [fromCache, setFromCache] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const lastDefaultQueryRef = useRef(defaultQuery);
 
   const fetchData = useCallback(async (tab: OracleTab, q: string) => {
     // Abort any in-flight request to prevent stale data overwrites
@@ -142,10 +141,17 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
     }
   }, [authAxios, compact]);
 
+  // Sync query when parent passes a new defaultQuery (e.g., Teach Mode exercise change).
+  useEffect(() => {
+    if (!defaultQuery || defaultQuery === lastDefaultQueryRef.current) return;
+    lastDefaultQueryRef.current = defaultQuery;
+    setQuery(defaultQuery);
+  }, [defaultQuery]);
+
   useEffect(() => {
     fetchData(activeTab, query);
     return () => { abortRef.current?.abort(); };
-  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab, query, fetchData]);
 
   const handleTabChange = (tab: OracleTab) => {
     setActiveTab(tab);
@@ -183,11 +189,11 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
             <span>Searching fitness content...</span>
           </LoadingState>
         ) : error ? (
-          <ErrorState>{error}</ErrorState>
+          <ErrorState role="alert">{error}</ErrorState>
         ) : activeTab === 'news' ? (
           newsResults.length === 0 ? <EmptyState>No fitness news found.</EmptyState> : (
             newsResults.map((a, i) => (
-              <ArticleRow key={i} href={a.link?.startsWith('http') ? a.link : '#'} target="_blank" rel="noopener noreferrer">
+              <ArticleRow key={i} href={safeExternalHref(a.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(a.link)}>
                 <ArticleContent>
                   <ArticleTitle>{a.title}</ArticleTitle>
                   <ArticleMeta>{a.source} {a.date && `· ${a.date}`}</ArticleMeta>
@@ -199,7 +205,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
         ) : activeTab === 'scholar' ? (
           scholarResults.length === 0 ? <EmptyState>No research articles found.</EmptyState> : (
             scholarResults.map((a, i) => (
-              <ArticleRow key={i} href={a.link?.startsWith('http') ? a.link : '#'} target="_blank" rel="noopener noreferrer">
+              <ArticleRow key={i} href={safeExternalHref(a.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(a.link)}>
                 <ArticleContent>
                   <ArticleTitle>{a.title}</ArticleTitle>
                   <ArticleMeta>
@@ -214,7 +220,7 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
         ) : (
           youtubeResults.length === 0 ? <EmptyState>No training videos found.</EmptyState> : (
             youtubeResults.map((v, i) => (
-              <VideoRow key={i} href={v.link?.startsWith('http') ? v.link : '#'} target="_blank" rel="noopener noreferrer">
+              <VideoRow key={i} href={safeExternalHref(v.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(v.link)}>
                 {v.thumbnail && <VideoThumb src={v.thumbnail} alt="" loading="lazy" />}
                 <ArticleContent>
                   <ArticleTitle>{v.title}</ArticleTitle>
@@ -318,6 +324,11 @@ const RefreshBtn = styled.button`
 
   &:hover { color: var(--accent-primary, #60C0F0); }
   &:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 const CacheBadge = styled.span`
@@ -357,6 +368,16 @@ const ArticleRow = styled.a`
   &:hover {
     background: rgba(96, 192, 240, 0.05);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  &[aria-disabled='true'] {
+    opacity: 0.55;
+    pointer-events: none;
+  }
 `;
 
 const VideoRow = styled.a`
@@ -372,6 +393,16 @@ const VideoRow = styled.a`
 
   &:hover {
     background: rgba(96, 192, 240, 0.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  &[aria-disabled='true'] {
+    opacity: 0.55;
+    pointer-events: none;
   }
 `;
 

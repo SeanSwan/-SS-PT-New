@@ -11,6 +11,24 @@ import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
+
+function parseOptionalInteger(value, fallback, { min, max }) {
+  if (value === undefined || value === null || value === '') return fallback;
+  const normalized = String(value).trim();
+  if (!/^\d+$/.test(normalized)) return null;
+  const parsed = Number.parseInt(normalized, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < min) return null;
+  return Math.min(parsed, max);
+}
 
 /**
  * GET /api/photos/:userId
@@ -35,6 +53,10 @@ router.get('/:userId', protect, async (req, res) => {
     }
 
     const { type, limit = 20 } = req.query;
+    const safeLimit = parseOptionalInteger(limit, 20, { min: 1, max: 100 });
+    if (safeLimit === null) {
+      return res.status(400).json({ success: false, message: 'Invalid pagination parameters' });
+    }
 
     // Build where clause
     const where = {
@@ -56,7 +78,7 @@ router.get('/:userId', protect, async (req, res) => {
     const photos = await ClientPhoto.findAll({
       where,
       order: [['takenAt', 'DESC'], ['uploadedAt', 'DESC']],
-      limit: parseInt(limit)
+      limit: safeLimit
     });
 
     const formattedPhotos = photos.map(photo => ({
@@ -76,11 +98,7 @@ router.get('/:userId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching client photos:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching photos',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error fetching photos');
   }
 });
 
@@ -131,11 +149,7 @@ router.post('/:userId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error uploading photo:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error uploading photo',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error uploading photo');
   }
 });
 
@@ -176,11 +190,7 @@ router.delete('/:userId/:photoId', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error deleting photo:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error deleting photo',
-      error: error.message
-    });
+    return sendInternalError(res, 'Server error deleting photo');
   }
 });
 

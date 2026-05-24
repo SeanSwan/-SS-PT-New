@@ -29,14 +29,92 @@ import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import User from "../models/User.mjs";
+import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
+import { getClientPackagePricing, computeCancellationCharge } from '../utils/cancellationPricing.mjs';
+import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 
 const router = express.Router();
+const MAX_MANUAL_SESSION_ADD = 50;
 
 const parsePositiveInteger = (value) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseBoundedPositiveInteger = (value, max) => {
+  const parsed = parseStrictPositiveInteger(value);
+  return parsed && parsed <= max ? parsed : null;
+};
+
+const parseNonNegativeInteger = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+const canAccessSessionRecord = (user, session, { allowClient = true, allowTrainer = true } = {}) => {
+  if (!user || !session) return false;
+  if (user.role === 'admin') return true;
+
+  const requesterId = Number(user.id);
+  if (!Number.isInteger(requesterId)) return false;
+
+  if (allowClient && user.role === 'client' && Number(session.userId) === requesterId) {
+    return true;
+  }
+
+  if (allowTrainer && user.role === 'trainer' && Number(session.trainerId) === requesterId) {
+    return true;
+  }
+
+  return false;
+};
+
+const parseMoneyAmount = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : null;
+};
+
+const cancellationPricingModels = () => ({
+  Order: getOrder(),
+  OrderItem: getOrderItem(),
+  StorefrontItem: getStorefrontItem()
+});
+
+const getSessionPackagePricing = async (session) => {
+  const fallbackPrice = Number(session.duration || 60) >= 60 ? 175 : 110;
+
+  if (!session.userId) {
+    return {
+      pricePerSession: null,
+      packageName: null,
+      fallbackPrice,
+      defaultChargeAmount: fallbackPrice,
+      lateFeeAmount: Math.round(fallbackPrice * 0.5),
+      isFallback: true
+    };
+  }
+
+  const packageInfo = await getClientPackagePricing(session.userId, cancellationPricingModels());
+  const pricePerSession = parseMoneyAmount(packageInfo.pricePerSession);
+  const defaultChargeAmount = pricePerSession ?? fallbackPrice;
+
+  return {
+    ...packageInfo,
+    pricePerSession,
+    packageName: packageInfo.packageName || null,
+    fallbackPrice,
+    defaultChargeAmount,
+    lateFeeAmount: Math.round(defaultChargeAmount * 0.5),
+    isFallback: Boolean(packageInfo.isFallback)
+  };
 };
 
 // ==================== CORE SESSION CRUD OPERATIONS ====================
@@ -371,8 +449,8 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
  */
 router.get("/upcoming/:userId", protect, async (req, res) => {
   try {
-    const targetUserId = Number(req.params.userId);
-    if (Number.isNaN(targetUserId)) {
+    const targetUserId = parseStrictPositiveInteger(req.params.userId);
+    if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
@@ -380,13 +458,13 @@ router.get("/upcoming/:userId", protect, async (req, res) => {
     // - Admin: full access to any user's sessions
     // - Trainer: only sessions where THEY are the trainer for the target user
     // - Client: only their own sessions
-    const requesterId = req.user.id;
+    const requesterId = Number(req.user.id);
     const role = req.user.role;
     if (role !== 'admin' && role !== 'trainer' && requesterId !== targetUserId) {
       return res.status(403).json({ success: false, message: 'Not authorized to view these sessions' });
     }
 
-    const limit = Math.min(Number(req.query.limit) || 10, 50);
+    const limit = parseBoundedPositiveInteger(req.query.limit, 50) || 10;
     const now = new Date();
     const { Op } = Session.sequelize.Sequelize;
 
@@ -426,8 +504,8 @@ router.get("/upcoming/:userId", protect, async (req, res) => {
  */
 router.get("/history/:userId", protect, async (req, res) => {
   try {
-    const targetUserId = Number(req.params.userId);
-    if (Number.isNaN(targetUserId)) {
+    const targetUserId = parseStrictPositiveInteger(req.params.userId);
+    if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
@@ -435,13 +513,13 @@ router.get("/history/:userId", protect, async (req, res) => {
     // - Admin: full access to any user's sessions
     // - Trainer: only sessions where THEY are the trainer for the target user
     // - Client: only their own sessions
-    const requesterId = req.user.id;
+    const requesterId = Number(req.user.id);
     const role = req.user.role;
     if (role !== 'admin' && role !== 'trainer' && requesterId !== targetUserId) {
       return res.status(403).json({ success: false, message: 'Not authorized to view these sessions' });
     }
 
-    const limit = Math.min(Number(req.query.limit) || 10, 50);
+    const limit = parseBoundedPositiveInteger(req.query.limit, 50) || 10;
     const now = new Date();
     const { Op } = Session.sequelize.Sequelize;
 
@@ -513,15 +591,23 @@ router.post("/allocate-from-order", protect, adminOnly, async (req, res) => {
 router.post("/add-to-user", protect, adminOnly, async (req, res) => {
   try {
     const userId = parsePositiveInteger(req.body.userId);
-    const sessionCount = parsePositiveInteger(req.body.sessionCount);
+    const rawSessionCount = parseStrictPositiveInteger(req.body.sessionCount);
+    const sessionCount = parseBoundedPositiveInteger(req.body.sessionCount, MAX_MANUAL_SESSION_ADD);
     const reason = typeof req.body.reason === 'string' && req.body.reason.trim()
       ? req.body.reason.trim()
       : 'Manually added by admin';
 
-    if (!userId || !sessionCount) {
+    if (!userId || !rawSessionCount) {
       return res.status(400).json({
         success: false,
         message: 'User ID and positive session count are required'
+      });
+    }
+
+    if (!sessionCount) {
+      return res.status(400).json({
+        success: false,
+        message: `Session count must be between 1 and ${MAX_MANUAL_SESSION_ADD}`
       });
     }
 
@@ -542,6 +628,19 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
     }
 
     const availableSessions = Number(user.availableSessions || 0);
+
+    try {
+      await realTimeScheduleService.broadcastAllocationUpdated({
+        userId,
+        sessionsAdded: sessionCount,
+        sessionsRemaining: availableSessions,
+        packageType: 'Manual Addition',
+        reason,
+        allocatedBy: req.user.id
+      });
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast manual allocation update:', broadcastError.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -631,6 +730,159 @@ router.get("/allocation-health", protect, adminOnly, async (_req, res) => {
       timestamp: new Date().toISOString()
     }
   });
+});
+
+/**
+ * GET /api/sessions/health
+ * Health check for the unified session service.
+ */
+router.get("/health", async (_req, res) => {
+  try {
+    const health = await unifiedSessionService.healthCheck();
+
+    return res.status(200).json({
+      status: health.status === 'healthy' ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/health:', error);
+    return res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/admin/cancelled
+ * Admin review queue for cancelled sessions and cancellation billing decisions.
+ */
+router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
+  try {
+    const { Op } = Session.sequelize.Sequelize;
+    const {
+      limit = 50,
+      offset = 0,
+      startDate,
+      endDate,
+      chargeStatus,
+      decisionStatus = 'all'
+    } = req.query;
+    const allowedDecisionStatuses = new Set(['all', 'pending', 'charged', 'waived']);
+
+    if (!allowedDecisionStatuses.has(decisionStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'decisionStatus must be one of: all, pending, charged, waived'
+      });
+    }
+
+    const whereClause = { status: 'cancelled' };
+    if (startDate && endDate) {
+      const parsedStart = new Date(startDate);
+      const parsedEnd = new Date(endDate);
+      if (!Number.isNaN(parsedStart.getTime()) && !Number.isNaN(parsedEnd.getTime())) {
+        whereClause.cancellationDate = { [Op.between]: [parsedStart, parsedEnd] };
+      }
+    }
+
+    if (decisionStatus !== 'all') {
+      whereClause.cancellationDecision = decisionStatus;
+    } else if (chargeStatus === 'charged') {
+      whereClause.cancellationChargedAt = { [Op.ne]: null };
+    } else if (chargeStatus === 'uncharged') {
+      whereClause.cancellationChargedAt = null;
+    }
+
+    const limitValue = Math.min(parsePositiveInteger(limit) ?? 50, 100);
+    const offsetValue = parseNonNegativeInteger(offset);
+    const { count, rows: cancelledSessions } = await Session.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'reviewer',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false
+        }
+      ],
+      order: [['cancellationDate', 'DESC']],
+      limit: limitValue,
+      offset: offsetValue
+    });
+
+    const processedSessions = cancelledSessions.map((session) => {
+      const sessionData = session.toJSON();
+      const sessionTime = new Date(sessionData.sessionDate);
+      const cancellationTime = new Date(sessionData.cancellationDate || sessionData.updatedAt || sessionData.sessionDate);
+      const rawHoursUntilSession = (sessionTime.getTime() - cancellationTime.getTime()) / (1000 * 60 * 60);
+      const hasValidCancellationWindow = Number.isFinite(rawHoursUntilSession);
+      const hoursUntilSession = hasValidCancellationWindow
+        ? Math.max(0, Math.round(rawHoursUntilSession * 10) / 10)
+        : 0;
+      const isLateCancellation = hasValidCancellationWindow && rawHoursUntilSession < 24 && rawHoursUntilSession >= 0;
+      const cancellationDecision = sessionData.cancellationDecision || (isLateCancellation ? 'pending' : null);
+
+      return {
+        ...sessionData,
+        isLateCancellation,
+        hoursUntilSession,
+        chargePending: isLateCancellation && (!sessionData.cancellationDecision || sessionData.cancellationDecision === 'pending'),
+        cancellationDecision,
+        decision: cancellationDecision || 'pending',
+        reviewReason: sessionData.cancellationReviewReason,
+        reviewerInfo: sessionData.reviewer
+          ? {
+              id: sessionData.reviewer.id,
+              firstName: sessionData.reviewer.firstName,
+              lastName: sessionData.reviewer.lastName,
+              reviewedAt: sessionData.cancellationReviewedAt
+            }
+          : null,
+        clientName: sessionData.client
+          ? `${sessionData.client.firstName || ''} ${sessionData.client.lastName || ''}`.trim()
+          : 'Unknown Client',
+        trainerName: sessionData.trainer
+          ? `${sessionData.trainer.firstName || ''} ${sessionData.trainer.lastName || ''}`.trim()
+          : 'Unassigned'
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: processedSessions,
+      pagination: {
+        total: count,
+        limit: limitValue,
+        offset: offsetValue,
+        hasMore: offsetValue + processedSessions.length < count
+      },
+      stats: {
+        pending: processedSessions.filter(session => session.cancellationDecision === 'pending').length,
+        charged: processedSessions.filter(session => session.cancellationDecision === 'charged').length,
+        waived: processedSessions.filter(session => session.cancellationDecision === 'waived').length
+      }
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/admin/cancelled:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching cancelled sessions',
+      error: error.message
+    });
+  }
 });
 
 /**
@@ -1328,6 +1580,11 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
  */
 router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) => {
   try {
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session ID' });
+    }
+
     const { attendanceStatus, noShowReason, notes } = req.body;
 
     if (!['present', 'late', 'no_show'].includes(attendanceStatus)) {
@@ -1337,9 +1594,13 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
       });
     }
 
-    const session = await Session.findByPk(req.params.id);
+    const session = await Session.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (!canAccessSessionRecord(req.user, session, { allowClient: false, allowTrainer: true })) {
+      return res.status(403).json({ success: false, message: 'Not authorized to record attendance for this session' });
     }
 
     const updates = {
@@ -1373,22 +1634,28 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
  */
 router.post("/:id/feedback", protect, async (req, res) => {
   try {
-    const { rating, comment } = req.body;
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session ID' });
+    }
 
-    if (!rating || rating < 1 || rating > 5) {
+    const rating = parseBoundedPositiveInteger(req.body.rating, 5);
+    const { comment } = req.body;
+
+    if (!rating) {
       return res.status(400).json({
         success: false,
         message: 'Rating must be between 1 and 5'
       });
     }
 
-    const session = await Session.findByPk(req.params.id);
+    const session = await Session.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
 
     // Only the client assigned to this session can leave feedback
-    if (session.userId !== req.user.id && req.user.role !== 'admin') {
+    if (!canAccessSessionRecord(req.user, session, { allowClient: true, allowTrainer: false })) {
       return res.status(403).json({
         success: false,
         message: 'Only the assigned client or an admin can submit feedback'
@@ -1429,9 +1696,18 @@ router.post("/:id/feedback", protect, async (req, res) => {
  */
 router.get("/:id/cancel-warning", protect, async (req, res) => {
   try {
-    const session = await Session.findByPk(req.params.id);
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session ID' });
+    }
+
+    const session = await Session.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (!canAccessSessionRecord(req.user, session, { allowClient: true, allowTrainer: true })) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this session' });
     }
 
     const sessionDate = new Date(session.sessionDate);
@@ -1474,19 +1750,34 @@ router.get("/:id/cancel-warning", protect, async (req, res) => {
  */
 router.get("/:id/client-package-price", protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const session = await Session.findByPk(req.params.id);
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session ID' });
+    }
+
+    const session = await Session.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
 
+    if (!canAccessSessionRecord(req.user, session, { allowClient: false, allowTrainer: true })) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view this session package price' });
+    }
+
     // Default pricing — can be enhanced with actual package lookup later
+    const packageInfo = await getSessionPackagePricing(session);
+
     return res.status(200).json({
       success: true,
       data: {
-        pricePerSession: 175,
-        defaultChargeAmount: 175,
-        lateFeeAmount: 88,
-        packageName: 'Standard Training Package'
+        sessionId: session.id,
+        clientId: session.userId,
+        pricePerSession: packageInfo.pricePerSession,
+        packageName: packageInfo.packageName,
+        fallbackPrice: packageInfo.fallbackPrice,
+        defaultChargeAmount: packageInfo.defaultChargeAmount,
+        lateFeeAmount: packageInfo.lateFeeAmount,
+        isFallback: packageInfo.isFallback
       }
     });
   } catch (error) {
@@ -1499,24 +1790,157 @@ router.get("/:id/client-package-price", protect, trainerOrAdminOnly, async (req,
   }
 });
 
-// ==================== SERVICE HEALTH CHECK ====================
-
 /**
- * GET /api/sessions/health
- * Health check for the unified session service
+ * POST /api/sessions/:sessionId/charge-cancellation
+ * Record the admin cancellation billing decision for the review queue.
+ *
+ * This endpoint records the fee decision and audit trail. Actual card charging
+ * stays in the dedicated payment workflow.
  */
-router.get("/health", async (req, res) => {
+router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, res) => {
   try {
-    const health = await unifiedSessionService.healthCheck();
-    
-    return res.status(200).json(health);
+    const sessionId = parsePositiveInteger(req.params.sessionId);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session id' });
+    }
+
+    const {
+      decision,
+      reason,
+      chargeType = 'late_fee',
+      chargeAmount
+    } = req.body;
+    const allowedDecisions = new Set(['charged', 'waived']);
+    const allowedChargeTypes = new Set(['none', 'late_fee', 'full', 'partial', 'custom']);
+
+    if (!allowedDecisions.has(decision)) {
+      return res.status(400).json({
+        success: false,
+        message: "Decision is required and must be 'charged' or 'waived'"
+      });
+    }
+
+    if (!allowedChargeTypes.has(chargeType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'chargeType must be one of: none, late_fee, full, partial, custom'
+      });
+    }
+
+    const normalizedReason = typeof reason === 'string' ? reason.trim() : '';
+    if (decision === 'waived' && normalizedReason.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reason is required when waiving a cancellation charge'
+      });
+    }
+
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
+        }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (session.status !== 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only cancelled sessions can be reviewed for cancellation billing'
+      });
+    }
+
+    const packageInfo = await getSessionPackagePricing(session);
+    let actualChargeAmount = 0;
+    let actualChargeType = 'none';
+
+    if (decision === 'charged') {
+      const customAmount = chargeType === 'custom' || chargeType === 'partial'
+        ? parseMoneyAmount(chargeAmount)
+        : null;
+      if ((chargeType === 'custom' || chargeType === 'partial') && customAmount === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'A non-negative chargeAmount is required for custom or partial cancellation decisions'
+        });
+      }
+
+      const chargeCalc = computeCancellationCharge(session, packageInfo, {
+        chargeType,
+        customAmount
+      });
+      actualChargeAmount = chargeCalc.chargeAmount;
+      actualChargeType = chargeCalc.chargeType;
+
+      if (actualChargeAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'A charged cancellation decision requires an amount greater than zero'
+        });
+      }
+    }
+
+    const now = new Date();
+    session.cancellationChargeType = actualChargeType;
+    session.cancellationChargeAmount = actualChargeAmount;
+    session.cancellationChargedAt = now;
+    session.cancellationDecision = decision;
+    session.cancellationReviewedBy = req.user.id;
+    session.cancellationReviewedAt = now;
+    session.cancellationReviewReason = normalizedReason || null;
+
+    if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored && session.userId) {
+      const client = await User.findByPk(session.userId);
+      if (client) {
+        await client.update({ availableSessions: Number(client.availableSessions || 0) + 1 });
+        session.sessionCreditRestored = true;
+      }
+    }
+
+    await session.save();
+
+    logger.info('Cancellation billing decision recorded', {
+      sessionId,
+      decision,
+      chargeType: actualChargeType,
+      chargeAmount: actualChargeAmount,
+      reviewedBy: req.user.id
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: decision === 'waived'
+        ? 'Cancellation waived and recorded for billing review'
+        : `Cancellation charge of $${actualChargeAmount} recorded for billing review`,
+      data: {
+        sessionId: session.id,
+        decision: session.cancellationDecision,
+        chargeType: session.cancellationChargeType,
+        chargeAmount: Number.parseFloat(session.cancellationChargeAmount) || 0,
+        chargedAt: session.cancellationChargedAt,
+        reviewedBy: session.cancellationReviewedBy,
+        reviewedAt: session.cancellationReviewedAt,
+        reason: session.cancellationReviewReason,
+        creditRestored: session.sessionCreditRestored,
+        packageInfo: {
+          pricePerSession: packageInfo.pricePerSession,
+          packageName: packageInfo.packageName,
+          isFallback: packageInfo.isFallback
+        }
+      }
+    });
   } catch (error) {
-    logger.error('Error in GET /api/sessions/health:', error);
+    logger.error('Error in POST /api/sessions/:sessionId/charge-cancellation:', error);
     return res.status(500).json({
-      service: 'UnifiedSessionService',
-      status: 'unhealthy',
-      error: error.message,
-      timestamp: new Date().toISOString()
+      success: false,
+      message: 'Server error recording cancellation billing decision',
+      error: error.message
     });
   }
 });

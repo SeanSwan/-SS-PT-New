@@ -16,7 +16,7 @@
  * Uses findOrCreate by exercise_key — safe to re-run without duplicates.
  *
  * KEY DECISIONS: All exercises tagged source: 'nasm-advanced' for easy filtering.
- * No yoga/meditation per project rules — correctives use stretching/flexibility.
+ * Forbidden wellness terms are excluded per project rules; correctives use stretching/flexibility.
  */
 
 import Exercise from '../models/Exercise.mjs';
@@ -2405,7 +2405,7 @@ const correctivePronation = [
     bodyPartCategory: 'recovery',
   }),
   exV2({
-    name: 'Toe Yoga',
+    name: 'Toe Control Drill',
     source: 'nasm-advanced',
     description: 'Isolated toe control exercise lifting big toe and small toes independently for foot intrinsic muscle activation.',
     instructions: '1. Stand or sit barefoot. 2. Lift only the big toe while keeping other toes on floor. 3. Then lift only the small toes while keeping big toe on floor. 4. Alternate for 10-15 reps each direction.',

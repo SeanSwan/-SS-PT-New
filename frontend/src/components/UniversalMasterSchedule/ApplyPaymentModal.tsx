@@ -30,6 +30,7 @@ import {
 import GlowButton from '../ui/buttons/GlowButton';
 import DuplicatePaymentWarning from './DuplicatePaymentWarning';
 import { usePaymentIdempotency, generateUUID } from '../../hooks/usePaymentIdempotency';
+import apiService from '../../services/api.service';
 import { AlertTriangle, CreditCard, User, Calendar, Package, DollarSign } from 'lucide-react';
 
 interface ClientNeedingPayment {
@@ -121,6 +122,9 @@ const PAYMENT_METHOD_CONFIG: Record<string, {
   }
 };
 
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || error?.response?.data?.error || error?.message || fallback;
+
 const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   open,
   onClose,
@@ -172,22 +176,15 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   // Venmo/Zelle confirmation gate
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
 
-  const getToken = () => localStorage.getItem('token');
-
   const fetchClientsNeedingPayment = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const token = getToken();
-      if (!token) { setError('Please log in.'); return; }
+      const response = await apiService.get('/api/sessions/deductions/clients-needing-payment');
 
-      const response = await fetch('/api/sessions/deductions/clients-needing-payment', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const result = await response.json();
-      if (!response.ok || result?.success === false) {
+      const result = response.data;
+      if (result?.success === false) {
         setError(result?.message || 'Failed to fetch clients.');
         return;
       }
@@ -195,7 +192,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       setClients(result.data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);
-      setError('Failed to fetch clients needing payment.');
+      setError(getApiErrorMessage(err, 'Failed to fetch clients needing payment.'));
     } finally {
       setLoading(false);
     }
@@ -204,22 +201,14 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
   const fetchPackages = useCallback(async () => {
     setPackagesLoading(true);
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch('/api/storefront', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const result = await response.json() as {
+      const response = await apiService.get('/api/storefront');
+      const result = response.data as {
         items?: StorefrontPackageWithStatus[];
         data?: { packages?: StorefrontPackageWithStatus[] };
       };
-      if (response.ok) {
-        const items = result.items || result.data?.packages || [];
-        const active = items.filter((p) => p.isActive !== false);
-        setPackages(active);
-      }
+      const items = result.items || result.data?.packages || [];
+      const active = items.filter((p) => p.isActive !== false);
+      setPackages(active);
     } catch (err) {
       console.error('Error fetching packages:', err);
     } finally {
@@ -229,15 +218,9 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
 
   const fetchLastPackage = useCallback(async (clientId: number, activePackages?: StorefrontPackage[]) => {
     try {
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`/api/sessions/deductions/client-last-package/${clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const result = await response.json();
-      if (response.ok && result?.success && result.data) {
+      const response = await apiService.get(`/api/sessions/deductions/client-last-package/${clientId}`);
+      const result = response.data;
+      if (result?.success && result.data) {
         setLastPackage(result.data);
         // Only auto-select if the package is in the active packages list
         const available = activePackages || packages;
@@ -259,13 +242,9 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setSavedCards([]);
     setSelectedCardId(null);
     try {
-      const token = getToken();
-      if (!token) return;
-      const response = await fetch(`/api/admin/charge-card/payment-methods/${clientId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (response.ok && result.success) {
+      const response = await apiService.get(`/api/admin/charge-card/payment-methods/${clientId}`);
+      const result = response.data;
+      if (result.success) {
         setSavedCards(result.paymentMethods || []);
       }
     } catch (err) {
@@ -338,21 +317,14 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setSuccess(null);
 
     try {
-      const token = getToken();
-      if (!token) { setError('Please log in.'); return; }
-
-      const response = await fetch('/api/sessions/deductions/apply-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          clientId: selectedClient.id,
-          sessionsToAdd: sessions,
-          paymentNote: paymentNote.trim() || undefined
-        })
+      const response = await apiService.post('/api/sessions/deductions/apply-payment', {
+        clientId: selectedClient.id,
+        sessionsToAdd: sessions,
+        paymentNote: paymentNote.trim() || undefined
       });
 
-      const result = await response.json();
-      if (!response.ok || result?.success === false) {
+      const result = response.data;
+      if (result?.success === false) {
         setError(result?.message || 'Failed to apply payment.');
         return;
       }
@@ -363,7 +335,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       onApplied?.();
     } catch (err) {
       console.error('Error applying payment:', err);
-      setError('Failed to apply payment. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to apply payment. Please try again.'));
     } finally {
       setApplying(false);
     }
@@ -380,9 +352,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setDuplicateInfo(null);
 
     try {
-      const authToken = getToken();
-      if (!authToken) { setError('Please log in.'); return; }
-
       // For force overrides, generate a fresh token synchronously
       // (resetIdempotencyToken is async via setState, so we can't rely on it here)
       const effectiveToken = forceOverride?.force ? generateUUID() : idempotencyToken;
@@ -402,13 +371,11 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         payload.forceReason = forceOverride.forceReason;
       }
 
-      const response = await fetch('/api/sessions/deductions/apply-package-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify(payload)
+      const response = await apiService.post('/api/sessions/deductions/apply-package-payment', payload, {
+        validateStatus: (status) => status < 500
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       // Handle 409 — duplicate detection
       if (response.status === 409) {
@@ -431,7 +398,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         return;
       }
 
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to apply package payment.');
         return;
       }
@@ -444,7 +411,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       onApplied?.();
     } catch (err) {
       console.error('Error applying package payment:', err);
-      setError('Failed to apply package payment. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to apply package payment. Please try again.'));
     } finally {
       setApplying(false);
     }
@@ -477,9 +444,6 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setDuplicateInfo(null);
 
     try {
-      const authToken = getToken();
-      if (!authToken) { setError('Please log in.'); return; }
-
       const effectiveToken = forceOverride?.force ? generateUUID() : idempotencyToken;
 
       const payload: Record<string, unknown> = {
@@ -494,13 +458,11 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         payload.forceReason = forceOverride.forceReason;
       }
 
-      const response = await fetch('/api/admin/charge-card/charge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify(payload)
+      const response = await apiService.post('/api/admin/charge-card/charge', payload, {
+        validateStatus: (status) => status < 500
       });
 
-      const result = await response.json();
+      const result = response.data;
 
       // Handle 409 — duplicate detection (same flow as other methods)
       if (response.status === 409) {
@@ -514,7 +476,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
         return;
       }
 
-      if (!response.ok || !result?.success) {
+      if (!result?.success) {
         setError(result?.error || 'Card charge failed.');
         return;
       }
@@ -529,7 +491,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       onApplied?.();
     } catch (err) {
       console.error('Error charging card:', err);
-      setError('Failed to charge card. Please try again.');
+      setError(getApiErrorMessage(err, 'Failed to charge card. Please try again.'));
     } finally {
       setApplying(false);
     }
@@ -542,17 +504,12 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setError(null);
 
     try {
-      const authToken = getToken();
-      if (!authToken) { setError('Please log in.'); return; }
-
-      const response = await fetch('/api/admin/charge-card/test-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ clientId: selectedClient.id })
+      const response = await apiService.post('/api/admin/charge-card/test-card', {
+        clientId: selectedClient.id
       });
 
-      const result = await response.json();
-      if (!response.ok || !result?.success) {
+      const result = response.data;
+      if (!result?.success) {
         setError(result?.error || 'Failed to attach test card.');
         return;
       }
@@ -561,7 +518,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       await fetchSavedCards(selectedClient.id);
     } catch (err) {
       console.error('Error attaching test card:', err);
-      setError('Failed to attach test card.');
+      setError(getApiErrorMessage(err, 'Failed to attach test card.'));
     } finally {
       setAttachingTestCard(false);
     }
@@ -573,16 +530,10 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
     setSuccess(null);
 
     try {
-      const token = getToken();
-      if (!token) { setError('Please log in.'); return; }
+      const response = await apiService.post('/api/sessions/deductions/process');
 
-      const response = await fetch('/api/sessions/deductions/process', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const result = await response.json();
-      if (!response.ok || result?.success === false) {
+      const result = response.data;
+      if (result?.success === false) {
         setError(result?.message || 'Failed to process deductions.');
         return;
       }
@@ -592,7 +543,7 @@ const ApplyPaymentModal: React.FC<ApplyPaymentModalProps> = ({
       onApplied?.();
     } catch (err) {
       console.error('Error processing deductions:', err);
-      setError('Failed to process deductions.');
+      setError(getApiErrorMessage(err, 'Failed to process deductions.'));
     } finally {
       setApplying(false);
     }

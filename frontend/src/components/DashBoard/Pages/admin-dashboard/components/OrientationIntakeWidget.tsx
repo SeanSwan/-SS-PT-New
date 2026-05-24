@@ -60,7 +60,7 @@ const ActionRow = styled.div`
 `;
 
 const Button = styled.button`
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid rgba(59, 130, 246, 0.35);
@@ -80,6 +80,11 @@ const Button = styled.button`
   &:disabled {
     opacity: 0.65;
     cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring, #8B5CF6);
+    outline-offset: 2px;
   }
 `;
 
@@ -155,15 +160,28 @@ const AlertStrip = styled.div`
   font-weight: 600;
 `;
 
+const ErrorStrip = styled.div`
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--error-border, rgba(248, 113, 113, 0.32));
+  background: var(--error-bg, rgba(127, 29, 29, 0.18));
+  color: var(--error-text, #fecaca);
+  font-size: 0.8rem;
+  font-weight: 600;
+`;
+
 const OrientationIntakeWidget: React.FC = () => {
   const navigate = useNavigate();
   const { authAxios } = useAuth();
   const [items, setItems] = useState<OrientationQueueItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchOrientationQueue = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await authAxios.get('/api/orientation/all');
       const allRows = (res.data?.data || []) as OrientationQueueItem[];
@@ -174,6 +192,7 @@ const OrientationIntakeWidget: React.FC = () => {
     } catch (error) {
       console.error('Failed to load orientation intake queue:', error);
       setItems([]);
+      setLoadError('Orientation data unavailable');
     } finally {
       setLoading(false);
     }
@@ -226,13 +245,17 @@ const OrientationIntakeWidget: React.FC = () => {
         </ActionRow>
       </HeaderRow>
 
-      {items.length > 0 && (
+      {loadError ? (
+        <ErrorStrip role="alert">
+          Orientation data unavailable. Refresh or open the full queue before assuming there are no submissions.
+        </ErrorStrip>
+      ) : items.length > 0 && (
         <AlertStrip>
           {items.length} pending orientation submission{items.length === 1 ? '' : 's'} awaiting admin review and account linking.
         </AlertStrip>
       )}
 
-      {items.length === 0 ? (
+      {loadError ? null : items.length === 0 ? (
         <Empty>{loading ? 'Loading orientation queue...' : 'No pending orientation submissions.'}</Empty>
       ) : (
         <List>

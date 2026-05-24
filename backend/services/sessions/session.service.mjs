@@ -708,8 +708,8 @@ class UnifiedSessionService {
       // Trainers can view their own assigned sessions OR available sessions (for scheduling).
       // Clients can view their own sessions OR available sessions (for booking).
       const isAdmin = user.role === 'admin';
-      const isOwnSession = session.userId === user.id;
-      const isTrainerSession = user.role === 'trainer' && session.trainerId === user.id;
+      const isOwnSession = Number(session.userId) === Number(user.id);
+      const isTrainerSession = user.role === 'trainer' && Number(session.trainerId) === Number(user.id);
       const isAvailable = session.status === 'available';
 
       if (!isAdmin && !isOwnSession && !isTrainerSession && !isAvailable) {
@@ -1558,8 +1558,8 @@ class UnifiedSessionService {
       
       // **CRITICAL: Role-based access control**
       const isAdmin = user.role === 'admin';
-      const isTrainer = user.role === 'trainer' && session.trainerId === user.id;
-      const isOwner = session.userId === user.id;
+      const isTrainer = user.role === 'trainer' && Number(session.trainerId) === Number(user.id);
+      const isOwner = Number(session.userId) === Number(user.id);
       
       if (!isAdmin && !isOwner && !isTrainer) {
         throw new Error('You do not have permission to cancel this session');
@@ -1659,7 +1659,7 @@ class UnifiedSessionService {
       }
       
       // Additional check for trainers - they can only confirm sessions assigned to them
-      if (user.role === 'trainer' && session.trainerId !== user.id) {
+      if (user.role === 'trainer' && Number(session.trainerId) !== Number(user.id)) {
         throw new Error('You can only confirm sessions assigned to you');
       }
       
@@ -1747,7 +1747,7 @@ class UnifiedSessionService {
       }
       
       // Additional check for trainers - they can only complete sessions assigned to them
-      if (user.role === 'trainer' && session.trainerId !== user.id) {
+      if (user.role === 'trainer' && Number(session.trainerId) !== Number(user.id)) {
         throw new Error('You can only complete sessions assigned to you');
       }
       

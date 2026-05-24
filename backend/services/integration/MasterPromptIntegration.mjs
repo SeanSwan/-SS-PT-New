@@ -1,3 +1,5 @@
+import os from 'os';
+
 /**
  * Master Prompt v26 Integration Service
  * Central integration point for all Master Prompt features
@@ -61,10 +63,10 @@ export class MasterPromptIntegration {
     };
     
     this.compliance = {
-      gdpr: true,
-      ccpa: true,
-      wcag: 'AA',
-      ethical: true
+      gdpr: { compliant: false, verificationStatus: 'not_verified' },
+      ccpa: { compliant: false, verificationStatus: 'not_verified' },
+      wcag: { level: 'AA', compliant: false, verificationStatus: 'not_verified' },
+      ethical: { compliant: false, verificationStatus: 'not_verified' }
     };
   }
   
@@ -286,7 +288,7 @@ export class MasterPromptIntegration {
   async performSystemHealthCheck() {
     try {
       const healthCheck = {
-        overall: 'healthy',
+        overall: 'unknown',
         systems: {},
         timestamp: new Date().toISOString(),
         version: this.version,
@@ -311,6 +313,8 @@ export class MasterPromptIntegration {
       // Run additional system checks
       const systemChecks = await this.runSystemHealthChecks();
       healthCheck.systemChecks = systemChecks;
+      const hasUncheckedInfrastructure = Object.values(systemChecks)
+        .some(check => check?.verificationStatus === 'not_checked');
       
       // Determine overall health
       if (criticalIssues > 0) {
@@ -319,6 +323,10 @@ export class MasterPromptIntegration {
         healthCheck.overall = 'degraded';
       } else if (warnings > 0) {
         healthCheck.overall = 'warning';
+      } else if (hasUncheckedInfrastructure) {
+        healthCheck.overall = 'not_verified';
+      } else {
+        healthCheck.overall = 'healthy';
       }
       
       return healthCheck;
@@ -337,7 +345,9 @@ export class MasterPromptIntegration {
     try {
       const health = {
         feature: featureName,
-        status: 'healthy',
+        status: 'not_verified',
+        healthVerified: false,
+        verificationStatus: 'not_checked',
         issues: [],
         metrics: {},
         timestamp: new Date().toISOString()
@@ -347,6 +357,8 @@ export class MasterPromptIntegration {
       switch (featureName) {
         case 'mcpCentric':
           health.status = 'retired';
+          health.healthVerified = true;
+          health.verificationStatus = 'retired';
           health.metrics = {
             retired: true,
             replacement: 'SwanStudios REST APIs'
@@ -356,9 +368,13 @@ export class MasterPromptIntegration {
         case 'gamification': {
           const gamificationHealth = await gamificationEngine.getSystemHealth();
           health.metrics = gamificationHealth;
+          health.healthVerified = true;
+          health.verificationStatus = 'verified';
           if (gamificationHealth.healthStatus !== 'healthy') {
             health.status = 'warning';
             health.issues.push('Gamification system issues');
+          } else {
+            health.status = 'healthy';
           }
           break;
         }
@@ -367,9 +383,13 @@ export class MasterPromptIntegration {
           // Check accessibility compliance
           const accessibilityReport = await accessibilityTesting.generateAccessibilityReport();
           health.metrics = accessibilityReport.summary;
+          health.healthVerified = true;
+          health.verificationStatus = 'verified';
           if (accessibilityReport.overallStatus !== 'compliant') {
             health.status = 'warning';
             health.issues.push('Accessibility compliance issues');
+          } else {
+            health.status = 'healthy';
           }
           break;
         }
@@ -377,20 +397,29 @@ export class MasterPromptIntegration {
         case 'privacyFirst': {
           const privacyStatus = await privacyCompliance.generateComplianceReport();
           health.metrics = privacyStatus.metrics;
-          if (privacyStatus.compliance.gdpr.score < 90) {
+          const gdprScore = privacyStatus.compliance?.gdpr?.score;
+          const hasVerifiedScore = Number.isFinite(gdprScore);
+          health.healthVerified = hasVerifiedScore;
+          health.verificationStatus = hasVerifiedScore ? 'verified' : 'not_verified';
+          if (!hasVerifiedScore) {
+            health.status = 'not_verified';
+            health.issues.push('Privacy compliance verification is not connected');
+          } else if (gdprScore < 90) {
             health.status = 'warning';
             health.issues.push('Privacy compliance below threshold');
+          } else {
+            health.status = 'healthy';
           }
           break;
         }
           
         case 'ethicalAI':
-          // Check ethical AI status
           health.metrics = {
-            biasDetection: 'active',
-            inclusiveLanguage: 'active',
-            humanReview: 'active'
+            biasDetection: 'not_verified',
+            inclusiveLanguage: 'not_verified',
+            humanReview: 'not_verified'
           };
+          health.issues.push('Ethical AI health probe is not connected');
           break;
       }
       
@@ -442,6 +471,8 @@ export class MasterPromptIntegration {
         report.overallHealth = 'critical';
       } else if (systemHealths.includes('warning')) {
         report.overallHealth = 'warning';
+      } else if (systemHealths.includes('not_verified')) {
+        report.overallHealth = 'not_verified';
       }
       
       return report;
@@ -553,43 +584,60 @@ export class MasterPromptIntegration {
   
   checkCPUUsage() {
     // Simplified CPU check - would implement more sophisticated monitoring in production
+    const hasLoadAverage = process.platform !== 'win32';
+
     return {
-      status: 'healthy',
-      loadAverage: process.platform !== 'win32' ? require('os').loadavg() : [0, 0, 0]
+      status: hasLoadAverage ? 'observed' : 'not_checked',
+      healthVerified: hasLoadAverage,
+      verificationStatus: hasLoadAverage ? 'observed' : 'not_checked',
+      loadAverage: hasLoadAverage ? os.loadavg() : null
     };
   }
   
   async checkDatabaseHealth() {
-    // Mock database health check
     return {
-      status: 'healthy',
-      connections: 'active',
-      responseTime: Math.random() * 100 + 10
+      status: 'not_checked',
+      healthVerified: false,
+      verificationStatus: 'not_checked',
+      connections: null,
+      responseTime: null,
+      message: 'Database health probe is not connected to an authoritative runtime check'
     };
   }
   
   checkNetworkHealth() {
     return {
-      status: 'healthy',
-      connections: 'stable'
+      status: 'not_checked',
+      healthVerified: false,
+      verificationStatus: 'not_checked',
+      connections: null,
+      message: 'Network health probe is not connected to an authoritative runtime check'
     };
   }
   
   checkStorageHealth() {
     return {
-      status: 'healthy',
-      available: 'sufficient'
+      status: 'not_checked',
+      healthVerified: false,
+      verificationStatus: 'not_checked',
+      available: null,
+      message: 'Storage health probe is not connected to an authoritative runtime check'
     };
   }
   
   // Report generation methods
   
   async generateFeatureReport(featureName, feature) {
+    const featureHealth = await this.checkFeatureHealth(featureName, feature);
+
     return {
       name: feature.name,
-      health: 'healthy',
+      health: featureHealth.status,
+      healthVerified: featureHealth.healthVerified === true,
+      verificationStatus: featureHealth.verificationStatus,
       status: feature.status,
-      metrics: await this.getFeatureMetrics(featureName),
+      metrics: featureHealth.metrics,
+      issues: featureHealth.issues,
       lastChecked: new Date().toISOString()
     };
   }
@@ -628,25 +676,29 @@ export class MasterPromptIntegration {
   async checkSystemCompliance() {
     return {
       gdpr: {
-        compliant: true,
-        score: 95,
-        lastAudit: new Date().toISOString()
+        compliant: false,
+        score: null,
+        lastAudit: null,
+        verificationStatus: 'not_verified'
       },
       ccpa: {
-        compliant: true,
-        score: 93,
-        lastAudit: new Date().toISOString()
+        compliant: false,
+        score: null,
+        lastAudit: null,
+        verificationStatus: 'not_verified'
       },
       wcag: {
         level: 'AA',
-        compliant: true,
-        score: 96,
-        lastAudit: new Date().toISOString()
+        compliant: false,
+        score: null,
+        lastAudit: null,
+        verificationStatus: 'not_verified'
       },
       ethical: {
-        compliant: true,
-        score: 94,
-        lastReview: new Date().toISOString()
+        compliant: false,
+        score: null,
+        lastReview: null,
+        verificationStatus: 'not_verified'
       }
     };
   }
@@ -668,7 +720,9 @@ export class MasterPromptIntegration {
     
     // Compliance recommendations
     for (const [standard, compliance] of Object.entries(report.compliance)) {
-      if (compliance.score < 95) {
+      if (compliance.verificationStatus === 'not_verified') {
+        recommendations.push(`Connect ${standard.toUpperCase()} compliance verification to an authoritative audit source`);
+      } else if (Number.isFinite(compliance.score) && compliance.score < 95) {
         recommendations.push(`Improve ${standard.toUpperCase()} compliance score`);
       }
     }

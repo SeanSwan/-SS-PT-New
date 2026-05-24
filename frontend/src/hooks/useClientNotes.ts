@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import apiService from '../services/api.service';
 
 interface NoteCreator {
   id: number;
@@ -51,17 +52,10 @@ export function useClientNotes(userId?: number): UseClientNotesResult {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/notes/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get(`/api/notes/${userId}`);
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to fetch notes');
       } else {
         setData(result.data || []);
@@ -79,19 +73,10 @@ export function useClientNotes(userId?: number): UseClientNotesResult {
     if (!userId || userId <= 0) return false;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/notes/${userId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content, noteType: type })
-      });
+      const response = await apiService.post(`/api/notes/${userId}`, { content, noteType: type });
+      const result = response.data;
 
-      const result = await response.json();
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setError(result?.message || 'Failed to create note');
         return false;
       }

@@ -20,18 +20,9 @@ import StudyPlatform from './StudyPlatform';
 import ResourceHub from './ResourceHub';
 import ImmigrationTimeline from './ImmigrationTimeline';
 import AITerminalPanel from '../../../Shared/AITerminalPanel';
+import apiService from '../../../../services/api.service';
 
 /* ────────── API helpers ────────── */
-
-const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? '' : 'http://localhost:10000');
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 /* ────────── Types ────────── */
 
@@ -58,6 +49,10 @@ export interface ImmigrationDocument {
   status: string;
   score: string | null;
   notes: string | null;
+  dueDate?: string | null;
+  cost?: number | null;
+  costEach?: number | null;
+  cost_each?: number | null;
 }
 
 export interface StudySession {
@@ -75,6 +70,73 @@ export interface ImmigrationData {
   loading: boolean;
   error: string | null;
 }
+
+type ApiEnvelope<T> = T[] | {
+  success?: boolean;
+  data?: T | T[];
+  tasks?: T[];
+  documents?: T[];
+  studySessions?: T[];
+};
+
+const okResponse = (response: { status: number; data?: unknown }) => {
+  const payload = response.data;
+  const failedEnvelope = payload !== null
+    && typeof payload === 'object'
+    && !Array.isArray(payload)
+    && 'success' in payload
+    && (payload as { success?: boolean }).success === false;
+
+  return response.status >= 200 && response.status < 300 && !failedEnvelope;
+};
+
+const readArray = <T,>(payload: ApiEnvelope<T>, legacyKey: 'tasks' | 'documents' | 'studySessions'): T[] => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.[legacyKey])) return payload[legacyKey] ?? [];
+  return [];
+};
+
+const readData = <T,>(payload: T | { data?: T }): T =>
+  payload && typeof payload === 'object' && 'data' in payload && payload.data !== undefined
+    ? payload.data
+    : payload as T;
+
+const normalizeTask = (raw: any): ImmigrationTask => ({
+  ...raw,
+  cost: raw.cost == null ? null : String(raw.cost),
+  resourceUrl: raw.resourceUrl ?? raw.resource_url ?? null,
+  resourceLabel: raw.resourceLabel ?? raw.resource_label ?? null,
+  dueDate: raw.dueDate ?? raw.due_date ?? null,
+  sortOrder: Number(raw.sortOrder ?? raw.sort_order ?? 0),
+});
+
+const normalizeDocument = (raw: any): ImmigrationDocument => ({
+  ...raw,
+  score: raw.score == null ? null : String(raw.score),
+  dueDate: raw.dueDate ?? raw.due_date ?? null,
+  costEach: raw.costEach ?? raw.cost_each ?? null,
+});
+
+const normalizeStudySession = (raw: any): StudySession => ({
+  ...raw,
+  date: raw.date ?? raw.session_date ?? raw.created_at ?? '',
+});
+
+const mapMutationPayload = (updates: Record<string, unknown>) => {
+  const payload: Record<string, unknown> = { ...updates };
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'dueDate')) {
+    payload.due_date = payload.dueDate;
+    delete payload.dueDate;
+  }
+
+  delete payload.resourceUrl;
+  delete payload.resourceLabel;
+  delete payload.sortOrder;
+
+  return payload;
+};
 
 /* ────────── Animations ────────── */
 
@@ -272,24 +334,27 @@ const CanadaImmigrationTab: React.FC = () => {
   /* ── Fetch helpers ── */
 
   const fetchTasks = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/immigration/tasks`, { headers: authHeaders() });
-    if (!res.ok) throw new Error('Failed to load tasks');
-    const data = await res.json();
-    return Array.isArray(data) ? data : data.tasks ?? [];
+    const res = await apiService.get<ApiEnvelope<any>>('/api/immigration/tasks', {
+      validateStatus: status => status < 500,
+    });
+    if (!okResponse(res)) throw new Error('Failed to load tasks');
+    return readArray(res.data, 'tasks').map(normalizeTask);
   }, []);
 
   const fetchDocuments = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/immigration/documents`, { headers: authHeaders() });
-    if (!res.ok) throw new Error('Failed to load documents');
-    const data = await res.json();
-    return Array.isArray(data) ? data : data.documents ?? [];
+    const res = await apiService.get<ApiEnvelope<any>>('/api/immigration/documents', {
+      validateStatus: status => status < 500,
+    });
+    if (!okResponse(res)) throw new Error('Failed to load documents');
+    return readArray(res.data, 'documents').map(normalizeDocument);
   }, []);
 
   const fetchStudySessions = useCallback(async () => {
-    const res = await fetch(`${API_BASE}/api/immigration/study`, { headers: authHeaders() });
-    if (!res.ok) throw new Error('Failed to load study sessions');
-    const data = await res.json();
-    return Array.isArray(data) ? data : data.studySessions ?? [];
+    const res = await apiService.get<ApiEnvelope<any>>('/api/immigration/study', {
+      validateStatus: status => status < 500,
+    });
+    if (!okResponse(res)) throw new Error('Failed to load study sessions');
+    return readArray(res.data, 'studySessions').map(normalizeStudySession);
   }, []);
 
   const loadAll = useCallback(async () => {
@@ -314,9 +379,8 @@ const CanadaImmigrationTab: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        await fetch(`${API_BASE}/api/immigration/seed`, {
-          method: 'POST',
-          headers: authHeaders(),
+        await apiService.post('/api/immigration/seed', undefined, {
+          validateStatus: status => status < 500,
         });
       } catch {
         // seed endpoint may not exist yet; continue anyway
@@ -330,13 +394,15 @@ const CanadaImmigrationTab: React.FC = () => {
 
   const updateTask = useCallback(async (id: number, updates: Partial<ImmigrationTask>) => {
     try {
-      const res = await fetch(`${API_BASE}/api/immigration/tasks/${id}`, {
-        method: 'PATCH',
-        headers: authHeaders(),
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('Update failed');
-      const updated = await res.json();
+      const res = await apiService.put<{ success?: boolean; data?: any }>(
+        `/api/immigration/tasks/${id}`,
+        mapMutationPayload(updates as Record<string, unknown>),
+        {
+          validateStatus: status => status < 500,
+        },
+      );
+      if (!okResponse(res)) throw new Error('Update failed');
+      const updated = normalizeTask(readData(res.data));
       setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updated } : t)));
     } catch {
       await loadAll();
@@ -347,13 +413,15 @@ const CanadaImmigrationTab: React.FC = () => {
 
   const updateDocument = useCallback(async (id: number, updates: Partial<ImmigrationDocument>) => {
     try {
-      const res = await fetch(`${API_BASE}/api/immigration/documents/${id}`, {
-        method: 'PATCH',
-        headers: authHeaders(),
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) throw new Error('Update failed');
-      const updated = await res.json();
+      const res = await apiService.put<{ success?: boolean; data?: any }>(
+        `/api/immigration/documents/${id}`,
+        mapMutationPayload(updates as Record<string, unknown>),
+        {
+          validateStatus: status => status < 500,
+        },
+      );
+      if (!okResponse(res)) throw new Error('Update failed');
+      const updated = normalizeDocument(readData(res.data));
       setDocuments((prev) => prev.map((d) => (d.id === id ? { ...d, ...updated } : d)));
     } catch {
       await loadAll();
@@ -364,13 +432,18 @@ const CanadaImmigrationTab: React.FC = () => {
 
   const addStudySession = useCallback(async (session: Omit<StudySession, 'id' | 'date'>) => {
     try {
-      const res = await fetch(`${API_BASE}/api/immigration/study`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify(session),
-      });
-      if (!res.ok) throw new Error('Create failed');
-      const created = await res.json();
+      const res = await apiService.post<{ success?: boolean; data?: any }>(
+        '/api/immigration/study',
+        {
+          ...session,
+          session_date: new Date().toISOString().slice(0, 10),
+        },
+        {
+          validateStatus: status => status < 500,
+        },
+      );
+      if (!okResponse(res)) throw new Error('Create failed');
+      const created = normalizeStudySession(readData(res.data));
       setStudySessions((prev) => [...prev, created]);
     } catch {
       await loadAll();

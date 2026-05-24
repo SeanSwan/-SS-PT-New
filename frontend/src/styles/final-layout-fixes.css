@@ -4,7 +4,6 @@
 /* Make header flush with top of viewport */
 header, 
 .header, 
-.MuiAppBar-root, 
 .HeaderContainer {
   position: fixed !important;
   top: 0 !important;
@@ -162,8 +161,7 @@ main,
 
 /* Fix any remaining width issues */
 .container,
-section,
-.MuiContainer-root {
+section {
   width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;

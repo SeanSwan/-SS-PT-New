@@ -515,7 +515,7 @@ const NatureWellnessV2Homepage: React.FC = () => {
               <ProgramName>Flow & Flexibility</ProgramName>
               <ProgramDesc>
                 Water finds its way. Restore range of motion and cultivate fluidity
-                through mobility work, breathwork, and mindful stretching that
+                through mobility work, breathwork, and intentional stretching that
                 honors the body's natural rhythms.
               </ProgramDesc>
             </ProgramCard>
@@ -552,7 +552,7 @@ const NatureWellnessV2Homepage: React.FC = () => {
             </TestimonialCard>
             <TestimonialCard {...fadeUp} transition={{ duration: 0.6, delay: 0.12 }}>
               <TestimonialText>
-                "SwanStudios taught me that strength isn't loud. The meditative
+                "SwanStudios taught me that strength isn't loud. The focused
                 approach to training has transformed not just my body but the way
                 I breathe through every challenge."
               </TestimonialText>

@@ -3,7 +3,7 @@
  * =========================================================================
  *
  * Purpose: Admin controller for moderating user-generated content including social posts,
- * comments, and automated content flagging with fallback to mock data
+ * comments, and automated content flagging with fail-closed database reads
  *
  * Blueprint Reference: SwanStudios Personal Training Platform - Content Moderation System
  *
@@ -15,8 +15,7 @@
  *                                        │
  *                                        ▼
  *                              ┌──────────────────┐
- *                              │  Mock Data       │
- *                              │  (Fallback)      │
+ *                              │  Real DB Records │
  *                              └──────────────────┘
  *
  * Database Schema (social_posts table):
@@ -62,11 +61,10 @@
  *
  * Business Logic:
  *
- * WHY Fallback to Mock Data on Database Failure?
- * - Development environment flexibility (social models may not exist)
- * - Frontend testing without complete backend setup
- * - Graceful degradation (admin dashboard remains functional)
- * - Allows UI development independent of database schema
+ * WHY Fail Closed on Database Failure?
+ * - Moderation is an admin decision surface; fabricated rows hide production issues
+ * - Admins must see an explicit error instead of approving or rejecting fake content
+ * - Database/schema drift must be visible during QA and production monitoring
  *
  * WHY Auto-Moderation Flags?
  * - Profanity detection (automated keyword scanning)
@@ -93,7 +91,7 @@
  * - Sensitive content hidden immediately (not deleted for appeals)
  *
  * Error Handling:
- * - Database query failures trigger fallback to mock data
+ * - Database query failures return a stable internal_error code to clients
  * - 400: Invalid request (missing params, invalid status)
  * - 404: Content not found
  * - 500: Server error (database failures, validation errors)
@@ -112,7 +110,7 @@
  *
  * Testing Strategy:
  * - Unit tests for each controller method
- * - Test fallback to mock data on database failure
+ * - Test fail-closed behavior on database failure
  * - Test moderation status transitions
  * - Test admin notifications on content removal
  * - Test auto-moderation flag detection
@@ -123,8 +121,63 @@
 
 import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
+import { Op } from 'sequelize';
 import { SocialPost, SocialComment, PostReport, ModerationAction } from '../models/social/index.mjs';
 import User from '../models/User.mjs';
+
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR
+  });
+}
+
+function buildDayKeys(days) {
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (days - index - 1));
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function countRowsByDay(rows, dateField, dayKeys) {
+  const counts = Object.fromEntries(dayKeys.map((dayKey) => [dayKey, 0]));
+
+  rows.forEach((row) => {
+    const rawDate = row[dateField];
+    if (!rawDate) return;
+
+    const dayKey = new Date(rawDate).toISOString().slice(0, 10);
+    if (Object.prototype.hasOwnProperty.call(counts, dayKey)) {
+      counts[dayKey] += 1;
+    }
+  });
+
+  return dayKeys.map((dayKey) => counts[dayKey]);
+}
+
+function formatReasonLabel(reason) {
+  return String(reason || 'other')
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function getModerationAuditAction(status) {
+  const statusToAction = {
+    approved: 'approve',
+    flagged: 'flag',
+    rejected: 'reject',
+    hidden: 'hide',
+    pending: 'restore'
+  };
+
+  return statusToAction[status] || null;
+}
 
 class AdminContentModerationController {
   /**
@@ -182,11 +235,11 @@ class AdminContentModerationController {
         
         // Search in content or user name
         if (search) {
-          whereClause[sequelize.Op.or] = [
-            { content: { [sequelize.Op.iLike]: `%${search}%` } },
-            { '$user.firstName$': { [sequelize.Op.iLike]: `%${search}%` } },
-            { '$user.lastName$': { [sequelize.Op.iLike]: `%${search}%` } },
-            { '$user.email$': { [sequelize.Op.iLike]: `%${search}%` } }
+          whereClause[Op.or] = [
+            { content: { [Op.iLike]: `%${search}%` } },
+            { '$user.firstName$': { [Op.iLike]: `%${search}%` } },
+            { '$user.lastName$': { [Op.iLike]: `%${search}%` } },
+            { '$user.email$': { [Op.iLike]: `%${search}%` } }
           ];
         }
 
@@ -249,58 +302,13 @@ class AdminContentModerationController {
         });
 
       } catch (dbError) {
-        logger.warn(`📋 Database query failed, using fallback data: ${dbError.message}`);
-        
-        // Fallback to mock data if database query fails
-        const mockPosts = this.getMockPosts();
-        let filteredPosts = mockPosts;
-        
-        if (status !== 'all') {
-          filteredPosts = mockPosts.filter(post => post.status === status);
-        }
-        
-        if (search) {
-          filteredPosts = filteredPosts.filter(post => 
-            post.content.toLowerCase().includes(search.toLowerCase()) ||
-            post.userName.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
-
-        res.json({
-          success: true,
-          data: {
-            posts: paginatedPosts,
-            pagination: {
-              page: parseInt(page),
-              limit: parseInt(limit),
-              total: filteredPosts.length,
-              pages: Math.ceil(filteredPosts.length / limit)
-            },
-            summary: {
-              total: mockPosts.length,
-              pending: mockPosts.filter(p => p.status === 'pending').length,
-              approved: mockPosts.filter(p => p.status === 'approved').length,
-              flagged: mockPosts.filter(p => p.status === 'flagged').length,
-              rejected: mockPosts.filter(p => p.status === 'rejected').length,
-              hidden: mockPosts.filter(p => p.status === 'hidden').length
-            }
-          },
-          timestamp: new Date().toISOString(),
-          fallback: true
-        });
+        logger.error('Post moderation query failed', { error: dbError.message });
+        throw dbError;
       }
 
     } catch (error) {
       logger.error('Error fetching posts for moderation:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching posts for moderation',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error fetching posts for moderation');
     }
   }
 
@@ -375,10 +383,10 @@ class AdminContentModerationController {
         
         // Search in content or user name
         if (search) {
-          whereClause[sequelize.Op.or] = [
-            { content: { [sequelize.Op.iLike]: `%${search}%` } },
-            { '$user.firstName$': { [sequelize.Op.iLike]: `%${search}%` } },
-            { '$user.lastName$': { [sequelize.Op.iLike]: `%${search}%` } }
+          whereClause[Op.or] = [
+            { content: { [Op.iLike]: `%${search}%` } },
+            { '$user.firstName$': { [Op.iLike]: `%${search}%` } },
+            { '$user.lastName$': { [Op.iLike]: `%${search}%` } }
           ];
         }
 
@@ -433,60 +441,13 @@ class AdminContentModerationController {
         });
 
       } catch (dbError) {
-        logger.warn(`💬 Database query failed, using fallback data: ${dbError.message}`);
-        
-        // Fallback to mock data
-        const mockComments = this.getMockComments();
-        let filteredComments = mockComments;
-        
-        if (status !== 'all') {
-          filteredComments = mockComments.filter(comment => comment.status === status);
-        }
-        if (postId) {
-          filteredComments = filteredComments.filter(comment => comment.postId === postId);
-        }
-        if (search) {
-          filteredComments = filteredComments.filter(comment =>
-            comment.content.toLowerCase().includes(search.toLowerCase()) ||
-            comment.userName.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedComments = filteredComments.slice(startIndex, endIndex);
-
-        res.json({
-          success: true,
-          data: {
-            comments: paginatedComments,
-            pagination: {
-              page: parseInt(page),
-              limit: parseInt(limit),
-              total: filteredComments.length,
-              pages: Math.ceil(filteredComments.length / limit)
-            },
-            summary: {
-              total: mockComments.length,
-              pending: mockComments.filter(c => c.status === 'pending').length,
-              approved: mockComments.filter(c => c.status === 'approved').length,
-              flagged: mockComments.filter(c => c.status === 'flagged').length,
-              rejected: mockComments.filter(c => c.status === 'rejected').length,
-              hidden: mockComments.filter(c => c.status === 'hidden').length
-            }
-          },
-          timestamp: new Date().toISOString(),
-          fallback: true
-        });
+        logger.error('Comment moderation query failed', { error: dbError.message });
+        throw dbError;
       }
 
     } catch (error) {
       logger.error('Error fetching comments for moderation:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching comments for moderation',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error fetching comments for moderation');
     }
   }
 
@@ -625,52 +586,13 @@ class AdminContentModerationController {
         });
 
       } catch (dbError) {
-        logger.warn(`🚨 Database query failed, using fallback data: ${dbError.message}`);
-        
-        // Fallback to mock data
-        const mockReports = this.getMockReports();
-        let filteredReports = mockReports;
-        
-        if (type !== 'all') {
-          filteredReports = mockReports.filter(report => report.type === type);
-        }
-        if (status !== 'all') {
-          filteredReports = filteredReports.filter(report => report.status === status);
-        }
-
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + parseInt(limit);
-        const paginatedReports = filteredReports.slice(startIndex, endIndex);
-
-        res.json({
-          success: true,
-          data: {
-            reports: paginatedReports,
-            pagination: {
-              page: parseInt(page),
-              limit: parseInt(limit),
-              total: filteredReports.length,
-              pages: Math.ceil(filteredReports.length / limit)
-            },
-            summary: {
-              total: mockReports.length,
-              pending: mockReports.filter(r => r.status === 'pending').length,
-              resolved: mockReports.filter(r => r.status === 'resolved').length,
-              dismissed: mockReports.filter(r => r.status === 'dismissed').length
-            }
-          },
-          timestamp: new Date().toISOString(),
-          fallback: true
-        });
+        logger.error('Report moderation query failed', { error: dbError.message });
+        throw dbError;
       }
 
     } catch (error) {
       logger.error('Error fetching content reports:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching content reports',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error fetching content reports');
     }
   }
 
@@ -796,11 +718,7 @@ class AdminContentModerationController {
 
     } catch (error) {
       logger.error('Error moderating content:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error moderating content',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error moderating content');
     }
   }
 
@@ -816,6 +734,14 @@ class AdminContentModerationController {
         return res.status(400).json({
           success: false,
           message: 'Status is required'
+        });
+      }
+
+      const auditAction = getModerationAuditAction(status);
+      if (!auditAction) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid moderation status: ${status}`
         });
       }
 
@@ -852,7 +778,7 @@ class AdminContentModerationController {
           contentType: 'post',
           contentId: parseInt(id),
           contentAuthorId: post.userId,
-          action: 'status-update',
+          action: auditAction,
           previousStatus: previousStatus,
           newStatus: status,
           reason: reason,
@@ -886,11 +812,7 @@ class AdminContentModerationController {
 
     } catch (error) {
       logger.error('Error updating post status:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error updating post status',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error updating post status');
     }
   }
 
@@ -962,11 +884,7 @@ class AdminContentModerationController {
 
     } catch (error) {
       logger.error('Error deleting post:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error deleting post',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error deleting post');
     }
   }
 
@@ -982,6 +900,14 @@ class AdminContentModerationController {
         return res.status(400).json({
           success: false,
           message: 'Status is required'
+        });
+      }
+
+      const auditAction = getModerationAuditAction(status);
+      if (!auditAction) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid moderation status: ${status}`
         });
       }
 
@@ -1018,7 +944,7 @@ class AdminContentModerationController {
           contentType: 'comment',
           contentId: parseInt(id),
           contentAuthorId: comment.userId,
-          action: 'status-update',
+          action: auditAction,
           previousStatus: previousStatus,
           newStatus: status,
           reason: reason,
@@ -1052,11 +978,7 @@ class AdminContentModerationController {
 
     } catch (error) {
       logger.error('Error updating comment status:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error updating comment status',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error updating comment status');
     }
   }
 
@@ -1128,11 +1050,7 @@ class AdminContentModerationController {
 
     } catch (error) {
       logger.error('Error deleting comment:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error deleting comment',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error deleting comment');
     }
   }
 
@@ -1166,7 +1084,7 @@ class AdminContentModerationController {
         const reportsStats = await PostReport.findAll({
           where: {
             createdAt: {
-              [sequelize.Op.gte]: dateThreshold
+              [Op.gte]: dateThreshold
             }
           },
           attributes: [
@@ -1176,6 +1094,54 @@ class AdminContentModerationController {
           group: ['status'],
           raw: true
         });
+
+        const [
+          moderationActionRows,
+          flaggedPostRows,
+          flaggedCommentRows,
+          resolvedReportRows,
+          topReasonRows
+        ] = await Promise.all([
+          ModerationAction.findAll({
+            where: {
+              createdAt: { [Op.gte]: dateThreshold }
+            },
+            attributes: ['createdAt'],
+            raw: true
+          }),
+          SocialPost.findAll({
+            where: {
+              flaggedAt: { [Op.gte]: dateThreshold }
+            },
+            attributes: ['flaggedAt'],
+            raw: true
+          }),
+          SocialComment.findAll({
+            where: {
+              flaggedAt: { [Op.gte]: dateThreshold }
+            },
+            attributes: ['flaggedAt'],
+            raw: true
+          }),
+          PostReport.findAll({
+            where: {
+              resolvedAt: { [Op.gte]: dateThreshold }
+            },
+            attributes: ['resolvedAt'],
+            raw: true
+          }),
+          PostReport.findAll({
+            where: {
+              createdAt: { [Op.gte]: dateThreshold }
+            },
+            attributes: [
+              'reason',
+              [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+            ],
+            group: ['reason'],
+            raw: true
+          })
+        ]);
 
         const reports = {
           total: 0,
@@ -1189,23 +1155,31 @@ class AdminContentModerationController {
           reports.total += parseInt(stat.count);
         });
 
+        const dayKeys = buildDayKeys(days);
+        const flaggedRows = [
+          ...flaggedPostRows.map((row) => ({ flaggedAt: row.flaggedAt })),
+          ...flaggedCommentRows.map((row) => ({ flaggedAt: row.flaggedAt }))
+        ];
+        const topReasons = topReasonRows
+          .map((row) => ({
+            reason: formatReasonLabel(row.reason),
+            count: parseInt(row.count, 10) || 0
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
         const stats = {
           timeRange,
           posts: postsStats,
           comments: commentsStats,
           reports: reports,
           trends: {
-            dailyModerations: [15, 23, 18, 31, 22, 27, 19], // TODO: Calculate real daily trends
-            flaggedContent: [3, 5, 2, 8, 4, 6, 3],
-            resolvedReports: [8, 12, 7, 15, 9, 11, 8]
+            labels: dayKeys,
+            dailyModerations: countRowsByDay(moderationActionRows, 'createdAt', dayKeys),
+            flaggedContent: countRowsByDay(flaggedRows, 'flaggedAt', dayKeys),
+            resolvedReports: countRowsByDay(resolvedReportRows, 'resolvedAt', dayKeys)
           },
-          topReasons: [
-            { reason: 'Inappropriate content', count: 25 },
-            { reason: 'Spam', count: 18 },
-            { reason: 'Harassment', count: 12 },
-            { reason: 'False information', count: 8 },
-            { reason: 'Copyright violation', count: 4 }
-          ]
+          topReasons
         };
 
         res.json({
@@ -1215,216 +1189,14 @@ class AdminContentModerationController {
         });
 
       } catch (dbError) {
-        logger.warn(`📊 Database query failed, using fallback stats: ${dbError.message}`);
-        
-        // Fallback to mock statistics
-        const stats = {
-          timeRange,
-          posts: {
-            total: 1547,
-            pending: 23,
-            approved: 1489,
-            flagged: 28,
-            rejected: 7,
-            deleted: 0
-          },
-          comments: {
-            total: 4892,
-            pending: 45,
-            approved: 4798,
-            flagged: 38,
-            rejected: 11,
-            deleted: 0
-          },
-          reports: {
-            total: 67,
-            pending: 12,
-            resolved: 48,
-            dismissed: 7
-          },
-          trends: {
-            dailyModerations: [15, 23, 18, 31, 22, 27, 19],
-            flaggedContent: [3, 5, 2, 8, 4, 6, 3],
-            resolvedReports: [8, 12, 7, 15, 9, 11, 8]
-          },
-          topReasons: [
-            { reason: 'Inappropriate content', count: 25 },
-            { reason: 'Spam', count: 18 },
-            { reason: 'Harassment', count: 12 },
-            { reason: 'False information', count: 8 },
-            { reason: 'Copyright violation', count: 4 }
-          ]
-        };
-
-        res.json({
-          success: true,
-          data: stats,
-          timestamp: new Date().toISOString(),
-          fallback: true
-        });
+        logger.error('Moderation statistics query failed', { error: dbError.message });
+        throw dbError;
       }
 
     } catch (error) {
       logger.error('Error fetching moderation statistics:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching moderation statistics',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-      });
+      return sendInternalError(res, 'Error fetching moderation statistics');
     }
-  }
-
-  // ===================================
-  // FALLBACK MOCK DATA METHODS
-  // ===================================
-
-  getMockPosts() {
-    return [
-      {
-        id: '1',
-        userId: '101',
-        userName: 'Alice Johnson',
-        userEmail: 'alice@example.com',
-        userAvatar: null,
-        content: 'Just completed my first 5K run! 🏃‍♀️ Feeling amazing and ready for more challenges. Thanks to my trainer @mike_trainer for the motivation!',
-        type: 'text',
-        status: 'pending',
-        flaggedReason: null,
-        reports: [],
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-        updatedAt: new Date(Date.now() - 3600000).toISOString(),
-        engagement: {
-          likes: 45,
-          comments: 12,
-          shares: 3
-        },
-        media: []
-      },
-      {
-        id: '2',
-        userId: '102',
-        userName: 'Bob Smith',
-        userEmail: 'bob@example.com',
-        userAvatar: null,
-        content: 'This workout app is terrible! Complete waste of money. The trainers don\'t know what they\'re doing!',
-        type: 'text',
-        status: 'flagged',
-        flaggedReason: 'Inappropriate language and false claims',
-        reports: [
-          {
-            reporterId: '103',
-            reporterName: 'Carol Davis',
-            reason: 'Inappropriate content',
-            timestamp: new Date(Date.now() - 1800000).toISOString()
-          }
-        ],
-        createdAt: new Date(Date.now() - 7200000).toISOString(),
-        updatedAt: new Date(Date.now() - 1800000).toISOString(),
-        engagement: {
-          likes: 2,
-          comments: 8,
-          shares: 0
-        },
-        media: []
-      },
-      {
-        id: '3',
-        userId: '103',
-        userName: 'Carol Davis',
-        userEmail: 'carol@example.com',
-        userAvatar: null,
-        content: 'Love the new nutrition tracking feature! It\'s helping me stay on track with my macro goals. 💪',
-        type: 'text',
-        status: 'approved',
-        flaggedReason: null,
-        reports: [],
-        createdAt: new Date(Date.now() - 10800000).toISOString(),
-        updatedAt: new Date(Date.now() - 10800000).toISOString(),
-        engagement: {
-          likes: 67,
-          comments: 23,
-          shares: 15
-        },
-        media: []
-      }
-    ];
-  }
-
-  getMockComments() {
-    return [
-      {
-        id: '1',
-        postId: '1',
-        userId: '102',
-        userName: 'Bob Smith',
-        userEmail: 'bob@example.com',
-        userAvatar: null,
-        content: 'Great job on your first 5K! Keep it up! 👏',
-        status: 'approved',
-        flaggedReason: null,
-        reports: [],
-        createdAt: new Date(Date.now() - 3000000).toISOString(),
-        parentCommentId: null,
-        replies: []
-      },
-      {
-        id: '2',
-        postId: '1',
-        userId: '103',
-        userName: 'Carol Davis',
-        userEmail: 'carol@example.com',
-        userAvatar: null,
-        content: 'This is inappropriate content that should be moderated.',
-        status: 'flagged',
-        flaggedReason: 'Inappropriate content',
-        reports: [
-          {
-            reporterId: '104',
-            reporterName: 'David Wilson',
-            reason: 'Inappropriate content',
-            timestamp: new Date(Date.now() - 1200000).toISOString()
-          }
-        ],
-        createdAt: new Date(Date.now() - 2400000).toISOString(),
-        parentCommentId: null,
-        replies: []
-      }
-    ];
-  }
-
-  getMockReports() {
-    return [
-      {
-        id: '1',
-        type: 'post',
-        contentId: '2',
-        contentPreview: 'This workout app is terrible! Complete waste of money...',
-        reporterId: '103',
-        reporterName: 'Carol Davis',
-        reason: 'Inappropriate content',
-        description: 'This post contains false claims and inappropriate language about our services.',
-        status: 'pending',
-        createdAt: new Date(Date.now() - 1800000).toISOString(),
-        resolvedAt: null,
-        resolvedBy: null,
-        action: null
-      },
-      {
-        id: '2',
-        type: 'post',
-        contentId: '5',
-        contentPreview: 'Spam message with suspicious links! Click here for...',
-        reporterId: '106',
-        reporterName: 'Frank Miller',
-        reason: 'Spam',
-        description: 'This post is clearly spam with suspicious links.',
-        status: 'pending',
-        createdAt: new Date(Date.now() - 900000).toISOString(),
-        resolvedAt: null,
-        resolvedBy: null,
-        action: null
-      }
-    ];
   }
 }
 

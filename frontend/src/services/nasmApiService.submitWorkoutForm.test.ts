@@ -20,7 +20,7 @@
  * the unwrap is correct on the happy path, the error path, and a
  * 4xx-with-success-false path.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the axios-backed default apiService BEFORE importing the SUT.
 vi.mock('./api.service', () => {
@@ -38,6 +38,7 @@ import apiService from './api.service';
 import { dailyWorkoutFormService } from './nasmApiService';
 
 const postMock = apiService.post as unknown as ReturnType<typeof vi.fn>;
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
 const basePayload = {
   clientId: 91,
@@ -54,6 +55,11 @@ const basePayload = {
 describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (round 13)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('unwraps AxiosResponse.data.form into ApiResponse.data on 201 success', async () => {

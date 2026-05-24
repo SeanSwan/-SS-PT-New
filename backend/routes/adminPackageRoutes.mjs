@@ -5,13 +5,26 @@ import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const MAX_PAGE_LIMIT = 300;
+
+const parsePositiveInteger = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseBoundedInteger = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max ? parsed : null;
+};
 
 // NOTE: Get model inside route handlers, not at module level
 // Module-level getModels() runs before cache initialization causing undefined model
 
 // Middleware to ensure admin access
 const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
+  if (req.user?.role !== 'admin') {
     return res.status(403).json({ 
       success: false,
       message: 'Admin access required' 
@@ -44,6 +57,15 @@ router.get('/', async (req, res) => {
       packageType,
       isActive
     } = req.query;
+    const parsedLimit = parseBoundedInteger(limit, 100, { min: 1, max: MAX_PAGE_LIMIT });
+    const parsedOffset = parseBoundedInteger(offset, 0, { min: 0, max: 10000 });
+
+    if (parsedLimit === null || parsedOffset === null) {
+      return res.status(400).json({
+        success: false,
+        message: `Limit and offset must be integers; limit cannot exceed ${MAX_PAGE_LIMIT}`
+      });
+    }
 
     // Build the where clause for filtering
     const whereClause = {};
@@ -65,8 +87,8 @@ router.get('/', async (req, res) => {
     const items = await StorefrontItem.findAll({
       where: whereClause,
       order: [[validSortBy, validSortOrder]],
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10)
+      limit: parsedLimit,
+      offset: parsedOffset
     });
 
     // Return full data for admin management
@@ -103,7 +125,7 @@ router.get('/', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Server error while retrieving storefront items',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -151,7 +173,7 @@ router.post('/', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Server error while creating storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -164,7 +186,16 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const packageId = parsePositiveInteger(req.params.id);
+
+    if (!packageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Package ID must be a positive integer'
+      });
+    }
+
+    const item = await StorefrontItem.findByPk(packageId);
     
     if (!item) {
       return res.status(404).json({ 
@@ -198,7 +229,7 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Server error while updating storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -211,7 +242,16 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const packageId = parsePositiveInteger(req.params.id);
+
+    if (!packageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Package ID must be a positive integer'
+      });
+    }
+
+    const item = await StorefrontItem.findByPk(packageId);
     
     if (!item) {
       return res.status(404).json({ 
@@ -225,7 +265,7 @@ router.delete('/:id', async (req, res) => {
     
     await item.destroy();
     
-    logger.info(`Admin deleted storefront item: ${itemName} (ID: ${req.params.id})`);
+    logger.info(`Admin deleted storefront item: ${itemName} (ID: ${packageId})`);
     
     res.json({ 
       success: true,
@@ -236,7 +276,7 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Server error while deleting storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: INTERNAL_ERROR
     });
   }
 });
@@ -249,7 +289,16 @@ router.delete('/:id', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { StorefrontItem } = getAllModels();
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const packageId = parsePositiveInteger(req.params.id);
+
+    if (!packageId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Package ID must be a positive integer'
+      });
+    }
+
+    const item = await StorefrontItem.findByPk(packageId);
     
     if (!item) {
       return res.status(404).json({ 
@@ -267,7 +316,7 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Server error while retrieving storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: INTERNAL_ERROR
     });
   }
 });

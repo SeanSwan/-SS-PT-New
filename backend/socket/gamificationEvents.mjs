@@ -24,6 +24,7 @@
  */
 
 import logger from '../utils/logger.mjs';
+import { getIO as getSocketIO } from './socketManager.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Debounce State
@@ -43,12 +44,13 @@ function shouldEmit(event, userId) {
 }
 
 // Clean up stale entries every 5 minutes to prevent memory leak
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const cutoff = Date.now() - DEBOUNCE_MS * 2;
   for (const [key, ts] of lastEmission) {
     if (ts < cutoff) lastEmission.delete(key);
   }
 }, 300000);
+if (cleanupInterval.unref) cleanupInterval.unref();
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Event Emitters
@@ -60,8 +62,6 @@ setInterval(() => {
  */
 function getIO() {
   try {
-    // Try socketManager first (primary)
-    const { getSocketIO } = require('./socketManager.mjs');
     return getSocketIO?.() || null;
   } catch {
     return null;

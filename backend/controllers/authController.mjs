@@ -244,10 +244,40 @@ dotenv.config();
 const JWT_EXPIRY = process.env.JWT_EXPIRES_IN || '24h';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const PASSWORD_MIN_LENGTH = 8;
-const RESET_SECRET = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET;
+const INSECURE_JWT_PLACEHOLDERS = new Set([
+  'your-secret-key',
+  'your-secret-key-change-in-production',
+  'your-production-jwt-secret-key-here-change-this'
+]);
 // Production rate limiting — 10 attempts per 15 minutes
 const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
+
+const createJwtSecretConfigurationError = (secretName) => {
+  const error = new Error(`${secretName} is not configured`);
+  error.name = 'JwtSecretConfigurationError';
+  return error;
+};
+
+const resolveJwtSecret = (secretName, secret) => {
+  if (!secret || INSECURE_JWT_PLACEHOLDERS.has(secret)) {
+    throw createJwtSecretConfigurationError(secretName);
+  }
+
+  return secret;
+};
+
+const getJwtSecret = () => resolveJwtSecret('JWT_SECRET', process.env.JWT_SECRET);
+
+const getRefreshJwtSecret = () => {
+  const secret = process.env.JWT_REFRESH_SECRET || getJwtSecret();
+  return resolveJwtSecret('JWT_REFRESH_SECRET', secret);
+};
+
+const getPasswordResetSecret = () => {
+  const secret = process.env.PASSWORD_RESET_SECRET || getJwtSecret();
+  return resolveJwtSecret('PASSWORD_RESET_SECRET', secret);
+};
 
 /**
  * Login attempts tracking for rate limiting
@@ -269,7 +299,7 @@ const generateAccessToken = (id, role) => {
       tokenType: 'access',
       tokenId: uuidv4() // Unique identifier for token revocation
     }, 
-    process.env.JWT_SECRET, 
+    getJwtSecret(),
     { expiresIn: JWT_EXPIRY }
   );
 };
@@ -286,7 +316,7 @@ const generateRefreshToken = (id) => {
       tokenType: 'refresh',
       tokenId: uuidv4() // Unique identifier for token revocation
     }, 
-    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, 
+    getRefreshJwtSecret(),
     { expiresIn: REFRESH_TOKEN_EXPIRY }
   );
 };
@@ -389,7 +419,9 @@ export const register = async (req, res) => {
   
   try {
     logger.info('Processing new user registration');
-    console.log('Registration request body:', JSON.stringify(req.body, null, 2));
+    logger.info('Registration request received', {
+      hasRequiredFields: Boolean(req.body?.firstName && req.body?.lastName && req.body?.email && req.body?.username),
+    });
     
     const { 
       firstName, 
@@ -423,7 +455,7 @@ export const register = async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       await transaction.rollback();
-      logger.warn(`Registration attempt with invalid email format: ${email}`);
+      logger.warn('Registration attempt with invalid email format');
       return res.status(400).json({
         success: false,
         message: 'Please provide a valid email address'
@@ -533,7 +565,7 @@ export const register = async (req, res) => {
     // Commit transaction
     await transaction.commit();
 
-    logger.info(`New user registered successfully: ${username}`);
+    logger.info('New user registered successfully', { userId: user.id, role: user.role });
 
     // --- Best-effort: auto-follow admin so new users see content ---
     try {
@@ -594,14 +626,6 @@ export const register = async (req, res) => {
       code: error.code 
     });
     
-    console.error('DETAILED REGISTRATION ERROR:', { 
-      message: error.message,
-      name: error.name,
-      code: error.code,
-      stack: error.stack,
-      transaction: transaction ? true : false
-    });
-    
     // Handle specific database errors
     if (error.name === 'SequelizeValidationError') {
       return res.status(400).json({
@@ -613,8 +637,7 @@ export const register = async (req, res) => {
     
     res.status(500).json({ 
       success: false,
-      message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error during registration'
     });
   }
 };
@@ -634,11 +657,6 @@ export const login = async (req, res) => {
       })
     });
     
-    // More detailed request logging
-    console.log('========== LOGIN ATTEMPT ==========');
-    console.log('LOGIN REQUEST BODY:', JSON.stringify(req.body, null, 2).replace(/"password":"[^"]+"/, '"password":"***"'));
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    
     const { username, password } = req.body;
     const ipAddress = req.ip;
     
@@ -653,7 +671,7 @@ export const login = async (req, res) => {
 
     // 🚀 ENHANCED: Simplified rate limiting check
     if (checkAndRecordAttempt(ipAddress) || checkAndRecordAttempt(username)) {
-      logger.warn(`Rate limited login attempt for ${username} from ${ipAddress}`);
+      logger.warn('Rate limited login attempt');
       return res.status(429).json({
         success: false,
         message: 'Too many login attempts. Please try again later.'
@@ -661,7 +679,6 @@ export const login = async (req, res) => {
     }
 
     // Find the user with enhanced error handling
-    console.log(`🔍 Searching for user: ${username}`);
     let user;
     
     try {
@@ -674,33 +691,21 @@ export const login = async (req, res) => {
           ]
         }
       });
-      console.log(`📊 User query result: ${user ? 'FOUND' : 'NOT FOUND'}`);
     } catch (queryError) {
       logger.error('Database query error in findOne:', {
         error: queryError.message,
         name: queryError.name,
         code: queryError.code,
-        username: username
       });
-      
-      console.error('========== DATABASE QUERY ERROR ==========');
-      console.error('Query Error:', queryError.message);
-      console.error('Error Name:', queryError.name);
-      console.error('Error Code:', queryError.code);
       
       return res.status(500).json({
         success: false,
-        message: 'Database query error',
-        error: process.env.NODE_ENV === 'development' ? queryError.message : undefined,
-        details: process.env.NODE_ENV === 'development' ? {
-          name: queryError.name,
-          code: queryError.code
-        } : undefined
+        message: 'Database query error'
       });
     }
 
     if (!user) {
-      logger.info(`Login attempt for non-existent user: ${username}`);
+      logger.info('Login attempt for non-existent user');
       return res.status(401).json({ 
         success: false,
         message: 'Invalid credentials' 
@@ -709,7 +714,7 @@ export const login = async (req, res) => {
 
     // Check if account is locked
     if (user.isLocked) {
-      logger.warn(`Login attempt on locked account: ${username}`);
+      logger.warn('Login attempt on locked account', { userId: user.id });
       return res.status(401).json({
         success: false,
         message: 'Account is locked. Please contact support.'
@@ -718,7 +723,7 @@ export const login = async (req, res) => {
 
     // Check if account is active (block deactivated users before token issuance)
     if (user.isActive === false) {
-      logger.warn(`Login attempt on inactive account: ${username}`);
+      logger.warn('Login attempt on inactive account', { userId: user.id });
       return res.status(401).json({
         success: false,
         message: 'Account is inactive. Please contact support.'
@@ -726,12 +731,10 @@ export const login = async (req, res) => {
     }
 
     // Check password with error handling
-    console.log('🔐 Verifying password...');
     let isMatch;
     
     try {
       isMatch = await user.checkPassword(password);
-      console.log(`🔐 Password verification: ${isMatch ? 'SUCCESS' : 'FAILED'}`);
     } catch (passwordError) {
       logger.error('Password verification error:', {
         error: passwordError.message,
@@ -740,8 +743,7 @@ export const login = async (req, res) => {
       
       return res.status(500).json({
         success: false,
-        message: 'Password verification error',
-        error: process.env.NODE_ENV === 'development' ? passwordError.message : undefined
+        message: 'Password verification error'
       });
     }
     
@@ -753,7 +755,7 @@ export const login = async (req, res) => {
         isLocked: (user.failedLoginAttempts || 0) >= 9
       });
 
-      logger.warn(`Failed login attempt for user: ${username}`);
+      logger.warn('Failed login attempt for user', { userId: user.id });
       return res.status(401).json({ 
         success: false,
         message: 'Invalid credentials' 
@@ -762,10 +764,10 @@ export const login = async (req, res) => {
 
     // Force password change check (admin-created accounts)
     if (user.forcePasswordChange) {
-      logger.info(`Force password change required for user: ${username}`);
+      logger.info('Force password change required for user', { userId: user.id });
       const tempToken = jwt.sign(
         { id: user.id, tokenType: 'force-password-change', tokenId: uuidv4() },
-        process.env.JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: '15m' }
       );
       return res.status(200).json({
@@ -777,24 +779,27 @@ export const login = async (req, res) => {
     }
 
     // Generate tokens with error handling
-    console.log('🎫 Generating tokens...');
     let accessToken, refreshToken;
 
     try {
       accessToken = generateAccessToken(user.id, user.role);
       refreshToken = generateRefreshToken(user.id);
-      console.log('🎫 Tokens generated successfully');
     } catch (tokenError) {
       logger.error('Token generation error:', tokenError);
+      if (tokenError.name === 'JwtSecretConfigurationError') {
+        return res.status(500).json({
+          success: false,
+          message: 'Authentication is not configured'
+        });
+      }
+
       return res.status(500).json({
         success: false,
-        message: 'Token generation error',
-        error: process.env.NODE_ENV === 'development' ? tokenError.message : undefined
+        message: 'Token generation error'
       });
     }
 
     // Reset failed attempts and update login info
-    console.log('💾 Updating user login info...');
     try {
       await user.update({
         failedLoginAttempts: 0,
@@ -803,13 +808,12 @@ export const login = async (req, res) => {
         lastLoginIP: getClientIp(req),
         refreshTokenHash: await bcrypt.hash(refreshToken, 10)
       });
-      console.log('💾 User info updated successfully');
     } catch (updateError) {
       logger.error('Error updating user login info:', updateError);
       // Don't fail login if update fails, just log it
     }
 
-    logger.info(`✅ Successful login for user: ${username}, role: ${user.role}`);
+    logger.info('Successful login', { userId: user.id, role: user.role });
 
     // Auto-initialize gamification record for admin/trainer users
     // so they can use client features (workout logging, XP, progress)
@@ -834,7 +838,6 @@ export const login = async (req, res) => {
     }
 
     // Return user data and tokens
-    console.log('📤 Sending successful login response');
     return res.status(200).json({
       success: true,
       user: sanitizeUser(user),
@@ -850,47 +853,31 @@ export const login = async (req, res) => {
       code: error.code || 'no_code'
     });
     
-    console.error('========== LOGIN ERROR DETAILS ==========');
-    console.error('Error message:', error.message);
-    console.error('Error name:', error.name);
-    console.error('Error code:', error.code || 'no_code');
-    console.error('Error stack:', error.stack);
-    
-    if (error.original) {
-      console.error('Original error:', error.original.message);
-    }
-    
     // Database-specific errors
     if (error.name === 'SequelizeConnectionError') {
       return res.status(500).json({
         success: false,
-        message: 'Database connection error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Database connection error'
+      });
+    }
+
+    if (error.name === 'JwtSecretConfigurationError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Authentication is not configured'
       });
     }
     
     if (error.name === 'SequelizeDatabaseError') {
       return res.status(500).json({
         success: false,
-        message: 'Database query error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: 'Database query error'
       });
     }
     
-    // Provide more helpful error information in development
-    const errorDetails = process.env.NODE_ENV === 'development' 
-      ? { 
-          error: error.message, 
-          stack: error.stack, 
-          type: error.name,
-          code: error.code || 'no_code'
-        } 
-      : undefined;
-    
     res.status(500).json({ 
       success: false,
-      message: 'Server error during login',
-      debug: errorDetails
+      message: 'Server error during login'
     });
   }
 };
@@ -914,7 +901,7 @@ export const refreshToken = async (req, res) => {
     // Verify refresh token
     const decoded = jwt.verify(
       refreshToken, 
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
+      getRefreshJwtSecret()
     );
 
     // Check token type
@@ -988,11 +975,17 @@ export const refreshToken = async (req, res) => {
         message: 'Invalid refresh token'
       });
     }
+
+    if (error.name === 'JwtSecretConfigurationError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Authentication is not configured'
+      });
+    }
     
     res.status(500).json({
       success: false,
-      message: 'Server error during token refresh',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error during token refresh'
     });
   }
 };
@@ -1026,8 +1019,7 @@ export const logout = async (req, res) => {
     logger.error('Logout error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
-      message: 'Server error during logout',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error during logout'
     });
   }
 };
@@ -1063,8 +1055,7 @@ export const getProfile = async (req, res) => {
     logger.error('Profile fetch error:', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       success: false,
-      message: 'Server error fetching profile',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error fetching profile'
     });
   }
 };
@@ -1207,8 +1198,7 @@ export const updateProfile = async (req, res) => {
     
     res.status(500).json({
       success: false,
-      message: 'Server error updating profile',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error updating profile'
     });
   }
 };
@@ -1235,7 +1225,7 @@ export const validateToken = async (req, res) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     
     // Check token type
     if (decoded.tokenType !== 'access') {
@@ -1275,11 +1265,17 @@ export const validateToken = async (req, res) => {
         message: 'Token expired' 
       });
     }
+
+    if (error.name === 'JwtSecretConfigurationError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Authentication is not configured'
+      });
+    }
     
     res.status(401).json({ 
       success: false,
-      message: 'Invalid token',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Invalid token'
     });
   }
 };
@@ -1311,8 +1307,7 @@ export const getUserById = async (req, res) => {
     logger.error('Get user by ID error:', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
-      message: 'Server error fetching user',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error fetching user'
     });
   }
 };
@@ -1366,8 +1361,15 @@ export const changePasswordForced = async (req, res) => {
     // Verify the temp token
     let decoded;
     try {
-      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+      decoded = jwt.verify(tempToken, getJwtSecret());
     } catch (tokenErr) {
+      if (tokenErr.name === 'JwtSecretConfigurationError') {
+        return res.status(500).json({
+          success: false,
+          message: 'Authentication is not configured'
+        });
+      }
+
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired temporary token. Please login again.'
@@ -1444,8 +1446,11 @@ export const forgotPassword = async (req, res) => {
     try {
       logger.info('[forgotPassword] request_received');
 
-      if (!RESET_SECRET) {
-        logger.error('[forgotPassword] RESET_SECRET not configured — aborting');
+      let resetSecret;
+      try {
+        resetSecret = getPasswordResetSecret();
+      } catch (secretError) {
+        logger.error('[forgotPassword] reset secret not configured - aborting');
         return;
       }
       logger.info('[forgotPassword] RESET_SECRET=ok');
@@ -1465,7 +1470,7 @@ export const forgotPassword = async (req, res) => {
       logger.info(`[forgotPassword] user_lookup=found id=${user.id}`);
 
       const rawToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHmac('sha256', RESET_SECRET)
+      const hashedToken = crypto.createHmac('sha256', resetSecret)
         .update(rawToken).digest('hex');
 
       // Persist token (must succeed before email is useful)
@@ -1506,7 +1511,10 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    if (!RESET_SECRET) {
+    let resetSecret;
+    try {
+      resetSecret = getPasswordResetSecret();
+    } catch (secretError) {
       return res.status(500).json({
         success: false,
         message: 'Password reset is not configured'
@@ -1514,7 +1522,7 @@ export const resetPassword = async (req, res) => {
     }
 
     // Compute HMAC hash of provided token for O(1) indexed lookup
-    const hashedToken = crypto.createHmac('sha256', RESET_SECRET)
+    const hashedToken = crypto.createHmac('sha256', resetSecret)
       .update(token).digest('hex');
 
     const User = getUser();

@@ -276,6 +276,15 @@ const photoUpload = multer({
 });
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
 
 // Protect all admin routes (global middleware)
 router.use(protect);
@@ -283,6 +292,7 @@ router.use(authorize(['admin']));
 
 // Client management routes
 router.get('/clients', adminClientController.getClients);
+router.get('/clients/activation-queue', adminClientController.getClientActivationQueue);
 router.get('/clients/:clientId', adminClientController.getClientDetails);
 router.post('/clients', adminClientController.createClient);
 router.put('/clients/:clientId', adminClientController.updateClient);
@@ -356,7 +366,7 @@ router.post('/clients/:clientId/notify', async (req, res) => {
     }
 
     const result = await createNotification({
-      userId: parseInt(clientId),
+      userId: Number.parseInt(clientId, 10),
       title,
       message,
       type,
@@ -379,11 +389,7 @@ router.post('/clients/:clientId/notify', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error sending admin notification:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error sending notification',
-      error: error.message
-    });
+    return sendInternalError(res, 'Error sending notification');
   }
 });
 

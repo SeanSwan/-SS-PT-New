@@ -16,7 +16,7 @@
  * - WCAG AA accessibility compliance
  * 
  * Backend Integration:
- * - /api/auth/trainers (GET) - Get all trainers
+ * - /api/auth/users/trainers (GET) - Get all trainers
  * - /api/auth/user/:id (PUT) - Update trainer information
  * - /api/auth/user/:id (DELETE) - Deactivate trainer
  */
@@ -33,6 +33,7 @@ import {
   BarChart3, X, Plus, Settings, FileText, Camera
 } from 'lucide-react';
 import { logger } from '@/utils/logger';
+import apiService from '../../../../services/api.service';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -55,6 +56,16 @@ const ActionBar = styled(motion.div)`
     align-items: stretch;
     gap: 1rem;
   }
+`;
+
+const ErrorBanner = styled.div`
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+  font-size: 0.875rem;
 `;
 
 const SearchContainer = styled.div`
@@ -431,6 +442,7 @@ const TrainersManagementSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [specialtyFilter, setSpecialtyFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Map backend trainer data to frontend format
   const mapBackendTrainerData = (backendTrainers: any[]): Trainer[] => {
@@ -462,101 +474,27 @@ const TrainersManagementSection: React.FC = () => {
   const fetchTrainers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/auth/users/trainers?includeAdmin=true&limit=100', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      setLoadError(null);
+      const response = await apiService.get('/api/auth/users/trainers?includeAdmin=true&limit=100');
+      const data = response.data;
 
-      if (response.ok) {
-        const data = await response.json();
-        const trainersArray = data?.trainers || data || [];
-        const mappedTrainers = mapBackendTrainerData(Array.isArray(trainersArray) ? trainersArray : []);
-        setTrainers(mappedTrainers);
-        calculateStats(mappedTrainers);
-      } else {
-        console.error('Failed to fetch trainers:', response.statusText);
-        setMockData();
+      if (data?.success === false) {
+        throw new Error(data?.message || 'Trainer list request failed');
       }
+
+      const trainersArray = data?.trainers || data?.data?.trainers || [];
+      const mappedTrainers = mapBackendTrainerData(Array.isArray(trainersArray) ? trainersArray : []);
+      setTrainers(mappedTrainers);
+      calculateStats(mappedTrainers);
     } catch (error) {
       console.error('Error fetching trainers:', error);
-      setMockData();
+      setTrainers([]);
+      calculateStats([]);
+      setLoadError('Trainer data could not be loaded.');
     } finally {
       setLoading(false);
     }
   }, []);
-
-  // Set mock data for development/testing
-  const setMockData = () => {
-    const mockTrainers: Trainer[] = [
-      {
-        id: '1',
-        name: 'Sarah Wilson',
-        email: 'sarah.wilson@example.com',
-        phone: '+1 (555) 123-4567',
-        specialty: ['Strength Training', 'HIIT', 'Nutrition'],
-        certifications: ['NASM-CPT', 'ACSM-CEP', 'Precision Nutrition'],
-        verified: true,
-        status: 'active',
-        joinedAt: '2024-01-15T10:00:00Z',
-        lastActive: '2024-05-22T14:30:00Z',
-        stats: {
-          activeClients: 24,
-          totalSessions: 156,
-          monthlyRevenue: 4800,
-          rating: 4.9,
-          completedCertifications: 3
-        },
-        location: 'Los Angeles, CA',
-        bio: 'Certified trainer specializing in strength and conditioning'
-      },
-      {
-        id: '2',
-        name: 'Mike Johnson',
-        email: 'mike.johnson@example.com',
-        phone: '+1 (555) 234-5678',
-        specialty: ['Yoga', 'Flexibility', 'Mindfulness'],
-        certifications: ['RYT-500', 'YA-ERYT'],
-        verified: true,
-        status: 'active',
-        joinedAt: '2024-02-01T09:00:00Z',
-        lastActive: '2024-05-22T11:15:00Z',
-        stats: {
-          activeClients: 18,
-          totalSessions: 89,
-          monthlyRevenue: 3200,
-          rating: 4.7,
-          completedCertifications: 2
-        },
-        location: 'San Francisco, CA',
-        bio: 'Yoga instructor focused on holistic wellness'
-      },
-      {
-        id: '3',
-        name: 'Emma Davis',
-        email: 'emma.davis@example.com',
-        specialty: ['Dance Fitness', 'Cardio'],
-        certifications: ['ACE-CPT'],
-        verified: false,
-        status: 'pending',
-        joinedAt: '2024-05-18T16:45:00Z',
-        lastActive: '2024-05-22T09:20:00Z',
-        stats: {
-          activeClients: 0,
-          totalSessions: 0,
-          monthlyRevenue: 0,
-          rating: 0,
-          completedCertifications: 1
-        },
-        location: 'Miami, FL',
-        bio: 'Dance fitness enthusiast seeking certification'
-      }
-    ];
-    
-    setTrainers(mockTrainers);
-    calculateStats(mockTrainers);
-  };
 
   // Calculate trainer statistics
   const calculateStats = (trainersData: Trainer[]) => {
@@ -597,24 +535,14 @@ const TrainersManagementSection: React.FC = () => {
   // Handle trainer actions
   const handleVerifyTrainer = async (trainerId: string) => {
     try {
-      const response = await fetch(`/api/auth/user/${trainerId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          // Add verified field or update status - depends on your user model
-          // This would require backend support for a verified field
-        })
-      });
-      
-      if (response.ok) {
-        await fetchTrainers();
-        setActiveActionMenu(null);
-      } else {
-        console.error('Failed to verify trainer');
+      const response = await apiService.put(`/api/auth/user/${trainerId}`, {});
+
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'Failed to verify trainer');
       }
+
+      await fetchTrainers();
+      setActiveActionMenu(null);
     } catch (error) {
       console.error('Error verifying trainer:', error);
     }
@@ -632,20 +560,14 @@ const TrainersManagementSection: React.FC = () => {
 
   const handleDeactivateTrainer = async (trainerId: string) => {
     try {
-      const response = await fetch(`/api/auth/user/${trainerId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        await fetchTrainers();
-        setActiveActionMenu(null);
-      } else {
-        console.error('Failed to deactivate trainer');
+      const response = await apiService.delete(`/api/auth/user/${trainerId}`);
+
+      if (response.data?.success === false) {
+        throw new Error(response.data?.message || 'Failed to deactivate trainer');
       }
+
+      await fetchTrainers();
+      setActiveActionMenu(null);
     } catch (error) {
       console.error('Error deactivating trainer:', error);
     }
@@ -817,6 +739,8 @@ const TrainersManagementSection: React.FC = () => {
           </CommandButton>
         </div>
       </ActionBar>
+
+      {loadError && <ErrorBanner role="alert">{loadError}</ErrorBanner>}
 
       {/* Trainers Grid */}
       <TrainersGrid>

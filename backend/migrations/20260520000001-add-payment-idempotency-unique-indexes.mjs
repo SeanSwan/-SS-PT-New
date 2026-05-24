@@ -54,6 +54,7 @@ export async function up(queryInterface, Sequelize) {
 
 export async function down(queryInterface) {
   await queryInterface.sequelize.query(`DROP INDEX IF EXISTS "${PRINT_ORDER_INDEX}";`);
+  await queryInterface.sequelize.query(`DROP INDEX IF EXISTS "${ORDER_INDEX}";`);
 
   const printOrders = await queryInterface.describeTable(PRINT_ORDERS_TABLE);
   if (printOrders.idempotency_key) {

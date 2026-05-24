@@ -11,6 +11,25 @@ import db from '../database.mjs';
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendProgressError = (res, status, message, error = INTERNAL_ERROR) =>
+  res.status(status).json({
+    success: false,
+    message,
+    error
+  });
+
+const parsePositiveInteger = (value, fallback = null) => {
+  const stringValue = String(value ?? '').trim();
+  if (!/^[1-9]\d*$/.test(stringValue)) return fallback;
+
+  return Number(stringValue);
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) =>
+  Math.min(parsePositiveInteger(value, fallback), max);
+
 const progressController = {
   /**
    * 📊 GET USER PROGRESS DATA - WITH TIME FILTERS
@@ -30,6 +49,7 @@ const progressController = {
         limit = 100,
         metrics = 'all'
       } = req.query;
+      const normalizedLimit = parseBoundedPositiveInteger(limit, 100, 500);
 
       // Validate user exists
       const user = await User.findByPk(userId, {
@@ -79,7 +99,7 @@ const progressController = {
           ...dateFilter
         },
         order: [['date', 'ASC']],
-        limit: parseInt(limit)
+        limit: normalizedLimit
       });
 
       // Calculate aggregated metrics
@@ -101,11 +121,7 @@ const progressController = {
       });
     } catch (error) {
       console.error('❌ Error fetching user progress:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch user progress data',
-        error: error.message
-      });
+      return sendProgressError(res, 500, 'Failed to fetch user progress data');
     }
   },
 
@@ -250,11 +266,7 @@ const progressController = {
       });
     } catch (error) {
       console.error('❌ Error fetching user stats:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch user statistics',
-        error: error.message
-      });
+      return sendProgressError(res, 500, 'Failed to fetch user statistics');
     }
   },
 
@@ -322,11 +334,7 @@ const progressController = {
     } catch (error) {
       await transaction.rollback();
       console.error('❌ Error recording progress entry:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to record progress entry',
-        error: error.message
-      });
+      return sendProgressError(res, 500, 'Failed to record progress entry');
     }
   },
 
@@ -349,10 +357,9 @@ const progressController = {
         includeUser
       } = req.query;
 
-      // Security: Cap pagination limit to prevent DoS via large result sets
-      const MAX_LEADERBOARD_LIMIT = 100;
-      const limit = Math.min(parseInt(rawLimit) || 20, MAX_LEADERBOARD_LIMIT);
-      const offset = (parseInt(page) - 1) * limit;
+      const normalizedPage = parsePositiveInteger(page, 1);
+      const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);
+      const offset = (normalizedPage - 1) * normalizedLimit;
 
       const whereClause = {};
       let orderBy;
@@ -430,7 +437,7 @@ const progressController = {
         ],
         include: includeClause,
         order: orderBy,
-        limit,
+        limit: normalizedLimit,
         offset,
         subQuery: false,
         distinct: true
@@ -480,9 +487,9 @@ const progressController = {
         leaderboard: rankedLeaderboard,
         pagination: {
           total,
-          page: parseInt(page),
-          limit,
-          pages: Math.ceil(total / limit)
+          page: normalizedPage,
+          limit: normalizedLimit,
+          pages: Math.ceil(total / normalizedLimit)
         },
         filters: {
           timeframe,
@@ -493,11 +500,7 @@ const progressController = {
       });
     } catch (error) {
       console.error('❌ Error fetching leaderboard:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch leaderboard',
-        error: req.user?.role === 'admin' ? error.message : 'An error occurred. Please try again.'
-      });
+      return sendProgressError(res, 500, 'Failed to fetch leaderboard');
     }
   },
 
@@ -545,11 +548,7 @@ const progressController = {
       });
     } catch (error) {
       console.error('❌ Error generating insights:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to generate progress insights',
-        error: error.message
-      });
+      return sendProgressError(res, 500, 'Failed to generate progress insights');
     }
   },
 

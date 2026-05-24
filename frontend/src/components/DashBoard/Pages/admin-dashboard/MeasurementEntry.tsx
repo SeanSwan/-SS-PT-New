@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,7 +16,8 @@ import {
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import GlowButton from '../../../ui/buttons/GlowButton';
-import BodyMap from '../../../BodyMap';
+
+const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
 // ─── Interfaces (unchanged from blueprint) ─────────────────────────────────────
 interface Client { id: string; name: string; }
@@ -1623,7 +1624,9 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       {/* ── Pain & Injury Body Map ── */}
       {selectedClient && (
         <motion.div variants={itemVariants}>
-          <BodyMap userId={Number(selectedClient.id)} />
+          <Suspense fallback={<BodyText>Loading body map...</BodyText>}>
+            <BodyMap userId={Number(selectedClient.id)} />
+          </Suspense>
         </motion.div>
       )}
 

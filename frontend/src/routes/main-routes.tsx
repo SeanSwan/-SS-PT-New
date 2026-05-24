@@ -13,8 +13,6 @@ import ErrorBoundary from './error-boundary';
 // Route Protection Components
 import ProtectedRoute from './protected-route';
 
-// Custom Routes
-import DebugRoutes from './debug-routes';
 import { lazyLoadWithErrorHandling } from './lazyLoadWithErrorHandling';
 
 const spin = keyframes`
@@ -45,6 +43,13 @@ const PageLoader: React.FC = () => (
     <LoaderSpinner />
   </LoaderShell>
 );
+
+const DebugRoutes = import.meta.env.DEV
+  ? lazyLoadWithErrorHandling(
+      () => import('./debug-routes'),
+      'Debug Routes'
+    )
+  : null;
 
 // Lazy-loaded Components
 // v4.0 HOMEPAGE: Gemini 3.1 Pro cinematic redesign — parallax, weighted motion, glassmorphism
@@ -823,12 +828,16 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    
-    // Debug Routes
-    {
-      path: 'debug/*',
-      element: <DebugRoutes />
-    },
+    ...(DebugRoutes
+      ? [{
+          path: 'debug/*',
+          element: (
+            <Suspense fallback={<PageLoader />}>
+              <DebugRoutes />
+            </Suspense>
+          )
+        }]
+      : []),
     
     {
       path: 'training-packages',

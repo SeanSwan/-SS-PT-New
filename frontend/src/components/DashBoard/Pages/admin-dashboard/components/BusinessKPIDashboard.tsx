@@ -14,7 +14,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import {
   DollarSign, TrendingUp, TrendingDown, Users, UserPlus, UserMinus,
-  Activity, Target, ArrowUpRight, ArrowDownRight, Minus, RefreshCw,
+  Activity, Target, ArrowUpRight, ArrowDownRight, Minus, RefreshCw, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CommandCard } from '../admin-dashboard-view';
@@ -48,6 +48,32 @@ interface BusinessData {
   clientSparkline: number[];
 }
 
+const EMPTY_BUSINESS_DATA: BusinessData = {
+  mrr: 0, mrrChange: 0, totalRevenue: 0, revenueChange: 0, activeClients: 0, newClients: 0, churnedClients: 0,
+  churnRate: 0, sessionUtilization: 0, avgLTV: 0, avgRevenuePerClient: 0, sessionsThisMonth: 0, sessionsLastMonth: 0,
+  revenueSparkline: [], clientSparkline: [],
+};
+
+const numericBusinessKeys: Array<keyof Omit<BusinessData, 'revenueSparkline' | 'clientSparkline'>> = [
+  'mrr', 'mrrChange', 'totalRevenue', 'revenueChange', 'activeClients', 'newClients', 'churnedClients',
+  'churnRate', 'sessionUtilization', 'avgLTV', 'avgRevenuePerClient', 'sessionsThisMonth', 'sessionsLastMonth',
+];
+
+const toNumber = (value: unknown) => {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : 0;
+};
+
+const toSparkline = (value: unknown) => (Array.isArray(value) ? value.map(toNumber) : []);
+
+const normalizeBusinessData = (raw: Partial<BusinessData> | null | undefined): BusinessData => {
+  const next = { ...EMPTY_BUSINESS_DATA };
+  for (const key of numericBusinessKeys) next[key] = toNumber(raw?.[key]);
+  next.revenueSparkline = toSparkline(raw?.revenueSparkline);
+  next.clientSparkline = toSparkline(raw?.clientSparkline);
+  return next;
+};
+
 /* ─── Component ─────────────────────────────────────── */
 
 const BusinessKPIDashboard: React.FC = () => {
@@ -55,14 +81,17 @@ const BusinessKPIDashboard: React.FC = () => {
   const [data, setData] = useState<BusinessData | null>(null);
   const [period, setPeriod] = useState<'30d' | '90d' | '12m'>('30d');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await authAxios.get('/api/admin/analytics/business-kpis', { params: { period } });
-      setData(res.data?.data ?? null);
+      setData(normalizeBusinessData(res.data?.data));
+      setError(null);
     } catch {
-      setData(buildDemoData());
+      setData(null);
+      setError('Business KPI data could not be loaded.');
     } finally {
       setLoading(false);
     }
@@ -70,7 +99,7 @@ const BusinessKPIDashboard: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const d = data ?? buildDemoData();
+  const d = data ?? EMPTY_BUSINESS_DATA;
 
   const kpis: KPIMetric[] = [
     { label: 'Monthly Revenue', value: `$${d.mrr.toLocaleString()}`, change: d.mrrChange, icon: <DollarSign size={18} />, color: '#10b981', sparkline: d.revenueSparkline },
@@ -97,6 +126,17 @@ const BusinessKPIDashboard: React.FC = () => {
         </PeriodSelector>
       </Header>
 
+      {error ? (
+        <ErrorState role="alert" aria-live="polite">
+          <AlertTriangle size={18} />
+          <span>{error}</span>
+          <RetryInline type="button" onClick={fetchData}>
+            <RefreshCw size={14} />
+            Retry
+          </RetryInline>
+        </ErrorState>
+      ) : (
+        <>
       {/* KPI Grid */}
       <KPIGrid>
         {kpis.map((kpi, i) => (
@@ -112,7 +152,7 @@ const BusinessKPIDashboard: React.FC = () => {
                 </KPIChange>
               )}
             </KPIContent>
-            {kpi.sparkline && !loading && (
+            {kpi.sparkline && kpi.sparkline.length > 1 && !loading && (
               <Sparkline>
                 <svg viewBox="0 0 60 24" preserveAspectRatio="none">
                   <polyline
@@ -154,35 +194,42 @@ const BusinessKPIDashboard: React.FC = () => {
           <BreakdownValue>${loading ? '—' : d.totalRevenue.toLocaleString()}</BreakdownValue>
         </BreakdownCard>
       </BreakdownRow>
+        </>
+      )}
     </CommandCard>
   );
 };
 
-/* ─── Demo Data ─────────────────────────────────────── */
-
-function buildDemoData(): BusinessData {
-  return {
-    mrr: 8750,
-    mrrChange: 12.5,
-    totalRevenue: 26250,
-    revenueChange: 8.3,
-    activeClients: 47,
-    newClients: 6,
-    churnedClients: 2,
-    churnRate: 4.3,
-    sessionUtilization: 78,
-    avgLTV: 2840,
-    avgRevenuePerClient: 186,
-    sessionsThisMonth: 142,
-    sessionsLastMonth: 128,
-    revenueSparkline: [5200, 6100, 5800, 7200, 7600, 8100, 8750],
-    clientSparkline: [38, 40, 41, 43, 44, 45, 47],
-  };
-}
-
 export default BusinessKPIDashboard;
 
 /* ─── Styled Components ─────────────────────────────── */
+
+const ErrorState = styled.div`
+  align-items: center;
+  background: color-mix(in srgb, var(--error, #EF4444) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--error, #EF4444) 35%, transparent);
+  border-radius: 10px;
+  color: var(--text-primary, #E0ECF4);
+  display: flex; flex-wrap: wrap; gap: 10px;
+  padding: 14px;
+`;
+
+const RetryInline = styled.button`
+  align-items: center;
+  background: var(--btn-primary-bg, #002060);
+  border: 1px solid var(--accent-secondary, #8B5CF6);
+  border-radius: 8px;
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  display: inline-flex; font-weight: 700; gap: 6px;
+  margin-left: auto;
+  min-height: 44px;
+  padding: 8px 12px;
+
+  &:hover {
+    box-shadow: 0 0 14px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 35%, transparent);
+  }
+`;
 
 const Header = styled.div`
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;

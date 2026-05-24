@@ -53,8 +53,13 @@ import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
+import VoiceMemoUpload, { type ParsedWorkout } from './VoiceMemoUpload';
 import NASMExerciseRolodex from './NASMExerciseRolodex';
 import type { ExerciseSlim } from './useExerciseSearch';
+import {
+  appendImportedSessionNotes,
+  parsedWorkoutToExerciseEntries,
+} from './workoutLoggerVoiceImport';
 // 2026-04-17: CompactProtocolSection replaces the always-rendered 25/20/15
 // static NASMProtocolSection checklists that used to swallow the logger
 // page. Rolodex is now the primary add flow; recommendations are chips.
@@ -240,6 +245,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [client, setClient] = useState<Client | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
+  const workoutLoggerLocalIdCounterRef = useRef(0);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
   const [isLoadingPlan, setIsLoadingPlan] = useState(false);
@@ -299,6 +305,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   // stash the section here so `onSelectExercise` knows where to route
   // the selected exercise. null = main exercises section.
   const [pendingSectionContext, setPendingSectionContext] = useState<ProtocolSectionKey | null>(null);
+
+  const createWorkoutLoggerLocalId = useCallback((prefix: string) => {
+    const nextId = workoutLoggerLocalIdCounterRef.current;
+    workoutLoggerLocalIdCounterRef.current += 1;
+    return `${prefix}-local-${Date.now()}-${nextId}`;
+  }, []);
 
   // ── NASM Helpers ──
   const toggleNasmSection = useCallback((key: ProtocolSectionKey) =>
@@ -436,7 +448,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return incoming.map(ex => {
       const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
       return {
-      exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      exerciseId: createWorkoutLoggerLocalId('ai'),
       exerciseName: ex.exerciseName,
       sets: Array.from({ length: setCount }, (_, i) => ({
         setNumber: i + 1,
@@ -470,6 +482,21 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     return () => window.removeEventListener(APPLY_WORKOUT_EVENT, handler);
   }, [convertAIExercises]);
 
+  const handleVoiceMemoParsed = useCallback((workout: ParsedWorkout) => {
+    const parsedExercises = parsedWorkoutToExerciseEntries(workout);
+    if (parsedExercises.length === 0) {
+      toast.error('No usable exercises found in upload');
+      return;
+    }
+
+    setExercises(prev => [...prev, ...parsedExercises]);
+    setSessionNotes(prev => appendImportedSessionNotes(prev, workout.sessionNotes));
+    if (typeof workout.overallIntensity === 'number' && Number.isFinite(workout.overallIntensity)) {
+      setOverallIntensity(workout.overallIntensity);
+    }
+    toast.success(`Applied ${parsedExercises.length} parsed exercise${parsedExercises.length === 1 ? '' : 's'}`);
+  }, [createWorkoutLoggerLocalId]);
+
   // ── AI-as-Operator Event Listeners ──
   useEffect(() => {
     const onLoadTemplate = (e: Event) => {
@@ -480,7 +507,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const d = (e as CustomEvent).detail;
       if (!d?.exerciseName) return;
       const entry: ExerciseEntry = {
-        exerciseId: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        exerciseId: createWorkoutLoggerLocalId('ai'),
         exerciseName: d.exerciseName,
         sets: Array.from({ length: Array.isArray(d.sets) ? d.sets.length : (Number(d.sets) || 3) }, (_, i) => ({
           setNumber: i + 1,
@@ -568,7 +595,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     // protocolSectionSetters is intentionally omitted: it's rebuilt
     // every render but its contained setState setters are stable refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadPhaseTemplate, currentOPTPhase]);
+  }, [loadPhaseTemplate, currentOPTPhase, createWorkoutLoggerLocalId]);
 
   // Check sessionStorage on mount for pending AI plan
   useEffect(() => {
@@ -693,7 +720,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const exerciseToEntry = (ex: PlannedExercise): ExerciseEntry => {
         const setCount = Array.isArray(ex.sets) ? ex.sets.length : numberOr(ex.sets, 3);
         return {
-          exerciseId: String(ex.exerciseId || ex.id || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+          exerciseId: String(ex.exerciseId || ex.id || createWorkoutLoggerLocalId('plan')),
           exerciseName: ex.exerciseName || ex.name || 'Unknown Exercise',
           sets: Array.from({ length: setCount }, (_, i) => ({
             setNumber: i + 1,
@@ -762,7 +789,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingPlan(false);
     }
-  }, [effectiveClientId]);
+  }, [effectiveClientId, createWorkoutLoggerLocalId]);
 
   // ── Exercise CRUD (Phase 6: pre-fill from last session) ──
   //
@@ -1072,6 +1099,20 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           currentOPTPhase={currentOPTPhase}
           onOPTPhaseChange={setCurrentOPTPhase}
         />
+
+        {!isClientSelfMode && typeof effectiveClientId === 'number' && (
+          <VoiceImportPanel aria-label="Voice and file workout import">
+            <VoiceImportHeader>
+              <h2>Voice or file import</h2>
+              <p>Upload audio, text, CSV, or PDF. Review parsed exercises before applying.</p>
+            </VoiceImportHeader>
+            <VoiceMemoUpload
+              clientId={effectiveClientId}
+              clientName={`${client.firstName} ${client.lastName}`}
+              onParsed={handleVoiceMemoParsed}
+            />
+          </VoiceImportPanel>
+        )}
 
         {/* Phase 6: Session Stats Bar (sticky, live volume/sets/calories) */}
         {exercises.length > 0 && <SessionStatsBar stats={sessionStats} />}
@@ -1399,6 +1440,35 @@ const CooldownProtocolIcon = styled(RotateCcw)`
 
 const ExerciseSection = styled.div`
   margin-bottom: 2rem;
+`;
+
+const VoiceImportPanel = styled.section`
+  margin: 0 0 1.5rem;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.2));
+  background: var(--surface-elevated, rgba(20, 20, 25, 0.68));
+`;
+
+const VoiceImportHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.875rem;
+
+  h2 {
+    margin: 0;
+    color: var(--text-primary, #E0ECF4);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+    font-size: 0.875rem;
+    line-height: 1.45;
+  }
 `;
 
 const LoadPlanRow = styled.div`

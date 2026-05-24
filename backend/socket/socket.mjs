@@ -7,11 +7,12 @@
  * Blueprint Reference: docs/ai-workflow/MESSAGING-SYSTEM-BLUEPRINT.md
  */
 
-import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 import logger from '../utils/logger.mjs';
+import { getIO as getManagedSocketIO } from './socketManager.mjs';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 
 // In-memory store for online users. For production, this should be moved to Redis.
 const onlineUsers = new Map(); // Map<userId, socketId>
@@ -25,9 +26,9 @@ const socketAuthMiddleware = async (socket, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     const [user] = await sequelize.query(
-      'SELECT id, role, "firstName", "lastName", username, photo FROM users WHERE id = :id AND "isActive" = true AND "deletedAt" IS NULL',
+      'SELECT id, role, "firstName", "lastName", username, photo FROM "Users" WHERE id = :id AND "isActive" = true AND "deletedAt" IS NULL',
       {
         replacements: { id: decoded.id },
         type: QueryTypes.SELECT,
@@ -41,29 +42,23 @@ const socketAuthMiddleware = async (socket, next) => {
     socket.user = user; // Attach user to the socket object
     next();
   } catch (error) {
+    if (isJwtSecretConfigurationError(error)) {
+      logger.error('JWT_SECRET not configured for messaging socket authentication');
+      return next(new Error('Authentication error: Server configuration error'));
+    }
+
     return next(new Error('Authentication error: Invalid token'));
   }
 };
 
-export const initializeSocket = (httpServer) => {
-  // Get allowed origins from environment or use defaults
-  const allowedOrigins = process.env.FRONTEND_ORIGINS
-    ? process.env.FRONTEND_ORIGINS.split(',')
-    : [
-        'http://localhost:5173',
-        'http://localhost:5174',
-        'https://sswanstudios.com',
-        'https://www.sswanstudios.com',
-        'https://swanstudios-frontend.onrender.com'
-      ];
+export const initializeSocket = () => {
+  const managedIO = getManagedSocketIO();
+  if (!managedIO) {
+    logger.warn('Messaging Socket.IO namespace skipped because primary Socket.IO is not initialized');
+    return null;
+  }
 
-  const io = new Server(httpServer, {
-    cors: {
-      origin: allowedOrigins,
-      methods: ['GET', 'POST'],
-      credentials: true
-    },
-  });
+  const io = managedIO.of('/messaging');
 
   // Use authentication middleware for all connections
   io.use(socketAuthMiddleware);

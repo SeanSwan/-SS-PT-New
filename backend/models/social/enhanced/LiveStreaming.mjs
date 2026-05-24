@@ -51,8 +51,8 @@ const LiveStream = db.define('LiveStream', {
   // =====================
   category: {
     type: DataTypes.ENUM(
-      'workout', 'yoga', 'cardio', 'strength_training', 'dance',
-      'nutrition', 'cooking', 'meditation', 'motivation', 'q_and_a',
+      'workout', 'flexibility', 'cardio', 'strength_training', 'dance',
+      'nutrition', 'cooking', 'recovery', 'motivation', 'q_and_a',
       'challenge', 'competition', 'tutorial', 'review', 'lifestyle'
     ),
     allowNull: false

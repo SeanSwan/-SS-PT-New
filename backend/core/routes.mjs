@@ -252,7 +252,6 @@ export const setupRoutes = async (app) => {
   app.get('/', (req, res) => {
     res.json({
       message: 'SwanStudios API Server is running',
-      environment: process.env.NODE_ENV || 'development',
       version: '1.0.0',
       timestamp: new Date().toISOString()
     });
@@ -262,7 +261,6 @@ export const setupRoutes = async (app) => {
     res.status(200).json({
       status: 'ok',
       message: 'Server is running correctly',
-      environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
   });
@@ -456,12 +454,16 @@ export const setupRoutes = async (app) => {
     try {
       const { default: Badge } = (await import('../models/Badge.mjs'));
       const overrides = await Badge.findAll({
-        where: { assignedTo: 'tab' },
-        attributes: ['assignedTarget', 'imageUrl', 'name'],
+        where: { criteriaType: 'custom_criteria' },
+        attributes: ['criteria', 'imageUrl', 'name'],
       });
       const iconMap = {};
       for (const b of overrides) {
-        iconMap[b.assignedTarget] = { imageUrl: b.imageUrl, name: b.name };
+        const criteria = typeof b.criteria === 'string' ? JSON.parse(b.criteria) : (b.criteria || {});
+        const assignment = criteria.assignment || {};
+        if (assignment.assignedTo === 'tab' && assignment.assignedTarget) {
+          iconMap[assignment.assignedTarget] = { imageUrl: b.imageUrl, name: b.name };
+        }
       }
       res.json({ success: true, data: iconMap });
     } catch {

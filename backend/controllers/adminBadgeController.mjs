@@ -1,4 +1,4 @@
-import { Badge } from '../models/index.mjs';
+import Badge from '../models/Badge.mjs';
 
 /**
  * =============================================================================
@@ -33,13 +33,29 @@ const adminBadgeController = {
    * @access Admin
    */
   async createBadge(req, res) {
-    const { name, description, imageUrl, xpReward } = req.body;
+    const { name, description, imageUrl } = req.body;
     if (!name || !description || !imageUrl) {
       return res.status(400).json({ message: 'Name, description, and imageUrl are required.' });
     }
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Authenticated admin user is required.' });
+    }
 
     try {
-      const newBadge = await Badge.create({ name, description, imageUrl, xpReward });
+      const points = Number(req.body.xpReward);
+      const newBadge = await Badge.create({
+        name,
+        description,
+        imageUrl,
+        category: 'general',
+        difficulty: 'beginner',
+        criteriaType: 'custom_criteria',
+        criteria: { source: 'admin_badge_controller' },
+        rewards: { points: Number.isFinite(points) && points > 0 ? Math.floor(points) : 50 },
+        collectionId: null,
+        isActive: true,
+        createdBy: req.user.id,
+      });
       res.status(201).json(newBadge);
     } catch (error) {
       console.error('Error creating badge:', error);

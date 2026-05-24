@@ -98,7 +98,7 @@ async function _doRefresh(req, userId) {
     const [stats, atRisk, kpis, signups] = await Promise.allSettled([
       fetchInternal('/api/admin/dashboard-stats', req, 5000),
       fetchInternal('/api/admin/compliance/at-risk', req, 5000),
-      fetchInternal('/api/admin/compliance/analytics/business-kpis', req, 5000),
+      fetchInternal('/api/admin/analytics/business-kpis', req, 5000),
       fetchInternal('/api/admin/recent-signups', req, 5000),
     ]);
 
@@ -186,7 +186,8 @@ router.get('/client-summary/:clientId', protect, async (req, res) => {
       }
     }
 
-    const cacheKey = `client_summary_${clientId}`;
+    const requesterCacheScope = `${req.user?.role || 'unknown'}_${req.user?.id || 'anonymous'}`;
+    const cacheKey = `client_summary_${requesterCacheScope}_${clientId}`;
     const cached = getCached(cacheKey);
     if (cached && (Date.now() - cached.fetchedAt) < CACHE_TTL_MS) {
       return res.json(cached.data);
@@ -195,9 +196,9 @@ router.get('/client-summary/:clientId', protect, async (req, res) => {
     // Fetch client data from multiple endpoints
     const [profile, pain, measurements, workouts] = await Promise.allSettled([
       fetchInternal(`/api/admin/clients/${clientId}`, req, 5000),
-      fetchInternal(`/api/pain/${clientId}/active`, req, 5000),
+      fetchInternal(`/api/pain-entries/${clientId}/active`, req, 5000),
       fetchInternal(`/api/measurements/user/${clientId}/latest`, req, 5000),
-      fetchInternal(`/api/admin/clients/${clientId}/workouts`, req, 5000),
+      fetchInternal(`/api/admin/clients/${clientId}/workout-stats`, req, 5000),
     ]);
 
     const result = {

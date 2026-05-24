@@ -18,6 +18,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import apiService from '../../../services/api.service';
 import type { ExerciseTeachData } from '../types/TeachModeContracts';
 
 // ─────────────────────────────────────────────────────────────
@@ -52,20 +53,15 @@ export function useExerciseTeachData(exerciseId: string | null, enabled = true) 
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/exercises/${id}/teach-mode`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await apiService.get<{
+        success?: boolean;
+        teachData?: ExerciseTeachData;
+        message?: string;
+      }>(`/api/exercises/${id}/teach-mode`, {
         signal: abortRef.current.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch teach data (${response.status})`);
-      }
-
-      const json = await response.json();
+      const json = response.data;
       if (!json.success || !json.teachData) {
         throw new Error(json.message || 'Invalid response');
       }
@@ -74,9 +70,15 @@ export function useExerciseTeachData(exerciseId: string | null, enabled = true) 
       teachDataCache.set(id, teachData);
       setData(teachData);
       setError(null);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : 'Failed to load exercise data');
+    } catch (err: any) {
+      if (
+        (err instanceof DOMException && err.name === 'AbortError')
+        || err?.name === 'CanceledError'
+        || err?.code === 'ERR_CANCELED'
+      ) {
+        return;
+      }
+      setError(err?.response?.data?.message || err?.message || 'Failed to load exercise data');
       setData(null);
     } finally {
       setIsLoading(false);

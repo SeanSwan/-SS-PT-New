@@ -236,6 +236,13 @@ const CenteredMsg = styled.div`
   font-size: 0.84rem;
 `;
 
+const ErrorMsg = styled(CenteredMsg)`
+  color: var(--warning, #E5C76B);
+  text-align: center;
+  line-height: 1.4;
+  padding: 0.5rem;
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers
 // ─────────────────────────────────────────────────────────────
@@ -257,16 +264,21 @@ const WaiverSummaryWidget: React.FC = () => {
   const [records, setRecords] = useState<WaiverRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchRecent = useCallback(async () => {
     setLoading(true);
     try {
+      setLoadError(null);
       const res = await apiService.get('/api/admin/waivers?page=1&limit=5');
       const data = res.data?.data;
       setRecords(data?.records || []);
       setTotal(data?.pagination?.total || 0);
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch waiver summary:', err);
       setRecords([]);
+      setTotal(0);
+      setLoadError('Waiver data unavailable');
     } finally {
       setLoading(false);
     }
@@ -302,6 +314,10 @@ const WaiverSummaryWidget: React.FC = () => {
 
       {loading ? (
         <CenteredMsg>Loading...</CenteredMsg>
+      ) : loadError ? (
+        <ErrorMsg role="alert">
+          Waiver data unavailable. Open the full manager before assuming there are no waivers.
+        </ErrorMsg>
       ) : records.length === 0 ? (
         <CenteredMsg>No waivers yet</CenteredMsg>
       ) : (

@@ -22,34 +22,6 @@
   z-index: 1000 !important;
 }
 
-/* Override Material-UI Grid constraints */
-.MuiGrid-container.dashboard-schedule-container {
-  height: 100vh !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-}
-
-.MuiGrid-item.dashboard-schedule-item {
-  padding: 0 !important;
-  margin: 0 !important;
-  width: 100% !important;
-  max-width: 100% !important;
-}
-
-/* Override Material-UI Card constraints in schedule tabs */
-.MuiCard-root.dashboard-schedule-card {
-  height: 100% !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
-.MuiCardContent-root.dashboard-schedule-content {
-  padding: 0 !important;
-  height: 100% !important;
-}
-
 /* Schedule Container Full Height */
 .schedule-container-full-height {
   height: calc(100vh - 48px) !important; /* Account for minimal footer */
@@ -132,7 +104,6 @@ body.dashboard-mode {
 }
 
 /* Remove any unwanted margins/padding from common components */
-.dashboard-full-space .MuiContainer-root,
 .dashboard-full-space .container,
 .dashboard-full-space .wrapper {
   padding: 0 !important;

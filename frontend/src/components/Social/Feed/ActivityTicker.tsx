@@ -42,17 +42,23 @@ import type { ActivityEvent } from '../../../hooks/social/useActivityTicker';
 // ─────────────────────────────────────────────────────────────
 
 function getEventDisplay(event: ActivityEvent): { icon: React.ReactNode; text: string } {
+  const actor = event.userName || 'A member';
+
   switch (event.type) {
     case 'workout_completed':
-      return { icon: <Dumbbell size={14} />, text: `${event.userName} completed a workout` };
+      return { icon: <Dumbbell size={14} />, text: `${actor} completed a workout` };
+    case 'streak_milestone':
+      return { icon: <Zap size={14} />, text: event.preview || `${actor} hit a streak milestone` };
+    case 'achievement_unlocked':
+      return { icon: <Zap size={14} />, text: event.preview || `${actor} unlocked an achievement` };
     case 'post_created':
-      return { icon: <Zap size={14} />, text: `${event.userName} shared a ${event.postType || 'post'}` };
+      return { icon: <Zap size={14} />, text: `${actor} shared a ${event.postType || 'post'}` };
     case 'reaction_added':
-      return { icon: <Heart size={14} />, text: `${event.userName} reacted to a post` };
+      return { icon: <Heart size={14} />, text: `${actor} reacted to a post` };
     case 'comment_added':
-      return { icon: <MessageCircle size={14} />, text: `${event.userName} commented` };
+      return { icon: <MessageCircle size={14} />, text: `${actor} commented` };
     default:
-      return { icon: <Zap size={14} />, text: `${event.userName} was active` };
+      return { icon: <Zap size={14} />, text: `${actor} was active` };
   }
 }
 

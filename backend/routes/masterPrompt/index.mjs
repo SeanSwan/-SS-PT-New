@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { masterPromptIntegration } from '../../services/integration/MasterPromptIntegration.mjs';
+import { protect } from '../../middleware/authMiddleware.mjs';
 import { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 
@@ -21,6 +22,8 @@ const disabledMasterPromptMcpRoute = (_req, res) => res.status(410).json({
   message: 'Master Prompt MCP routes are decommissioned. Use SwanStudios API routes instead.'
 });
 
+router.use(protect);
+
 // Mount sub-routes
 router.use('/ethical-ai', ethicalAIRoutes);
 router.use('/accessibility', accessibilityRoutes);
@@ -32,7 +35,7 @@ router.use('/privacy', privacyRoutes);
 /**
  * @route   GET /api/master-prompt/status
  * @desc    Get Master Prompt v26 integration status
- * @access  Public
+ * @access  Private
  */
 router.get('/status', async (req, res) => {
   try {
@@ -51,7 +54,7 @@ router.get('/status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve system status',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -80,7 +83,7 @@ router.get('/health',
       res.status(500).json({
         success: false,
         message: 'System health check failed',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -116,7 +119,7 @@ router.get('/report',
       res.status(500).json({
         success: false,
         message: 'Failed to generate integration report',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -152,7 +155,7 @@ router.post('/initialize',
       res.status(500).json({
         success: false,
         message: 'Master Prompt initialization failed',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -230,7 +233,7 @@ router.get('/features', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve features',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });
@@ -264,7 +267,7 @@ router.get('/metrics',
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve system metrics',
-        error: error.message
+        error: 'internal_error'
       });
     }
   }
@@ -279,45 +282,49 @@ router.get('/compliance', async (req, res) => {
   try {
     const compliance = {
       ethical: {
-        status: 'compliant',
-        score: 92,
-        lastReview: new Date().toISOString(),
+        status: 'not_verified',
+        score: null,
+        lastReview: null,
+        verificationStatus: 'not_verified',
         areas: {
-          biasDetection: 'passing',
-          inclusiveLanguage: 'passing',
-          humanReview: 'active'
+          biasDetection: 'not_verified',
+          inclusiveLanguage: 'not_verified',
+          humanReview: 'not_verified'
         }
       },
       accessibility: {
-        status: 'compliant',
+        status: 'not_verified',
         wcagLevel: 'AA',
-        score: 96,
-        lastAudit: new Date().toISOString(),
+        score: null,
+        lastAudit: null,
+        verificationStatus: 'not_verified',
         areas: {
-          screenReader: 'compliant',
-          keyboardNav: 'compliant',
-          colorContrast: 'compliant',
-          focusManagement: 'compliant'
+          screenReader: 'not_verified',
+          keyboardNav: 'not_verified',
+          colorContrast: 'not_verified',
+          focusManagement: 'not_verified'
         }
       },
       privacy: {
-        status: 'compliant',
-        score: 98,
+        status: 'not_verified',
+        score: null,
+        verificationStatus: 'not_verified',
         features: {
-          piiScrubbing: 'active',
-          dataMinimization: 'active',
-          userConsent: 'active',
-          rightToDeletion: 'supported'
+          piiScrubbing: 'not_verified',
+          dataMinimization: 'not_connected',
+          userConsent: 'not_connected',
+          rightToDeletion: 'not_connected'
         }
       },
       gamification: {
-        status: 'ethical',
-        score: 89,
+        status: 'not_verified',
+        score: null,
+        verificationStatus: 'not_verified',
         principles: {
-          healthyEngagement: 'enforced',
-          inclusiveCompetition: 'active',
-          positiveReinforcement: 'active',
-          noAddictivePatterns: 'verified'
+          healthyEngagement: 'not_verified',
+          inclusiveCompetition: 'not_verified',
+          positiveReinforcement: 'not_verified',
+          noAddictivePatterns: 'not_verified'
         }
       }
     };
@@ -340,7 +347,7 @@ router.get('/compliance', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve compliance status',
-      error: error.message
+      error: 'internal_error'
     });
   }
 });

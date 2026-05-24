@@ -46,6 +46,29 @@ class SessionService {
     const response = await this.apiService.get('/api/sessions/users/clients');
     return response.data?.data ?? response.data ?? [];
   }
+
+  async addSessionsToClient(
+    userId: string | number,
+    sessionCount: number,
+    reason = 'Manually added by admin'
+  ): Promise<ApiResponse<any>> {
+    const response = await this.apiService.post('/api/sessions/add-to-user', {
+      userId,
+      sessionCount,
+      reason
+    });
+    return response.data;
+  }
+
+  async getUserSessionSummary(userId: string | number): Promise<any> {
+    const response = await this.apiService.get(`/api/sessions/user-summary/${userId}`);
+    return response.data?.data ?? response.data ?? null;
+  }
+
+  async checkAllocationHealth(): Promise<any> {
+    const response = await this.apiService.get('/api/sessions/allocation-health');
+    return response.data?.data ?? response.data ?? null;
+  }
   
   // ==================== SESSION CRUD OPERATIONS ====================
   

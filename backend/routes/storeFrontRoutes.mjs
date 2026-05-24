@@ -8,6 +8,72 @@ import { getStorefrontItem, getAdminSpecial } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'internal_error';
+const MAX_STOREFRONT_LIMIT = 100;
+const MAX_STOREFRONT_OFFSET = 10000;
+const PACKAGE_TYPES = new Set(['fixed', 'monthly']);
+
+function sendInternalError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: INTERNAL_ERROR,
+  });
+}
+
+function getSingleQueryValue(value) {
+  return Array.isArray(value) ? null : value;
+}
+
+function parseStrictInteger(value) {
+  const singleValue = getSingleQueryValue(value);
+  if (singleValue === undefined || singleValue === null || singleValue === '') {
+    return null;
+  }
+
+  const normalized = String(singleValue).trim();
+  if (!/^\d+$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function parseOptionalInteger(value, fallback) {
+  const singleValue = getSingleQueryValue(value);
+  if (singleValue === undefined || singleValue === null || singleValue === '') {
+    return fallback;
+  }
+
+  return parseStrictInteger(singleValue);
+}
+
+function parseOptionalPrice(value, fallback = null) {
+  const singleValue = getSingleQueryValue(value);
+  if (singleValue === undefined || singleValue === null || singleValue === '') {
+    return fallback;
+  }
+
+  const normalized = String(singleValue).trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseOptionalBoolean(value, fallback) {
+  const singleValue = getSingleQueryValue(value);
+  if (singleValue === undefined || singleValue === null || singleValue === '') {
+    return fallback;
+  }
+
+  if (singleValue === true || singleValue === 'true') return true;
+  if (singleValue === false || singleValue === 'false') return false;
+  return null;
+}
 
 const sanitizeStorefrontDescription = (value) => {
   if (typeof value !== 'string') {
@@ -99,6 +165,35 @@ router.get('/', async (req, res) => {
       isActive = 'true'
     } = req.query;
 
+    const requestedLimit = parseOptionalInteger(limit, 100);
+    const requestedOffset = parseOptionalInteger(offset, 0);
+    const requestedIsActive = parseOptionalBoolean(isActive, true);
+    const requestedPackageType = typeof packageType === 'string' ? packageType.trim() : packageType;
+
+    if (requestedLimit === null || requestedOffset === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pagination parameters',
+      });
+    }
+
+    if (requestedIsActive === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'isActive must be true or false',
+      });
+    }
+
+    if (requestedPackageType && !PACKAGE_TYPES.has(requestedPackageType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid packageType',
+      });
+    }
+
+    const safeLimit = Math.min(Math.max(requestedLimit, 1), MAX_STOREFRONT_LIMIT);
+    const safeOffset = Math.min(Math.max(requestedOffset, 0), MAX_STOREFRONT_OFFSET);
+
     // Validate sortOrder
     const validSortOrder = ['ASC', 'DESC'].includes(sortOrder) ? sortOrder : 'ASC';
     
@@ -108,14 +203,12 @@ router.get('/', async (req, res) => {
     };
     
     // Add packageType filter if provided
-    if (packageType) {
-      whereClause.packageType = packageType;
+    if (requestedPackageType) {
+      whereClause.packageType = requestedPackageType;
     }
     
     // Add isActive filter if provided (convert string to boolean)
-    if (isActive !== undefined) {
-      whereClause.isActive = isActive === 'true';
-    }
+    whereClause.isActive = requestedIsActive;
     
     // Check if the sortBy field exists in the model
     // FIXED: Checking if the requested sort field exists, falling back to 'id' if not
@@ -126,8 +219,8 @@ router.get('/', async (req, res) => {
     const items = await StorefrontItem.findAll({
       where: whereClause,
       order: [[validSortBy, validSortOrder]],
-      limit: parseInt(limit, 10),
-      offset: parseInt(offset, 10)
+      limit: safeLimit,
+      offset: safeOffset
     });
 
     // Transform data to meet frontend expectations
@@ -152,8 +245,8 @@ router.get('/', async (req, res) => {
           const seededItems = await StorefrontItem.findAll({
             where: whereClause,
             order: [[validSortBy, validSortOrder]],
-            limit: parseInt(limit, 10),
-            offset: parseInt(offset, 10),
+            limit: safeLimit,
+            offset: safeOffset,
           });
           const seededTransformed = seededItems.map(mapStorefrontItem);
           return res.json({ success: true, items: seededTransformed, data: { packages: seededTransformed, activeSpecials: [] } });
@@ -212,11 +305,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching storefront items:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error while retrieving storefront items',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Server error while retrieving storefront items');
   }
 });
 
@@ -259,14 +348,28 @@ router.get('/', async (req, res) => {
  */
 router.get('/calculate-price', async (req, res) => {
   try {
-    const sessions = parseInt(req.query.sessions, 10);
-    const basePricePerSession = parseFloat(req.query.pricePerSession) || 175; // Default: single session price
+    const sessions = parseStrictInteger(req.query.sessions);
+    const basePricePerSession = parseOptionalPrice(req.query.pricePerSession, 175); // Default: single session price
 
     // Validate sessions input
-    if (isNaN(sessions)) {
+    if (sessions === null) {
       return res.status(400).json({
         success: false,
-        message: 'Sessions parameter is required and must be a number'
+        message: 'Sessions parameter is required and must be a whole number'
+      });
+    }
+
+    if (basePricePerSession === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'pricePerSession must be a valid currency amount'
+      });
+    }
+
+    if (basePricePerSession < 140 || basePricePerSession > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'pricePerSession must be between 140 and 1000'
       });
     }
 
@@ -343,11 +446,7 @@ router.get('/calculate-price', async (req, res) => {
 
   } catch (error) {
     logger.error('Error calculating custom package price:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error calculating custom package price',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Error calculating custom package price');
   }
 });
 
@@ -360,10 +459,18 @@ router.get('/:id', async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
-    
+    const itemId = parseStrictInteger(req.params.id);
+
+    if (!itemId || itemId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid storefront item id',
+      });
+    }
+
     const item = await StorefrontItem.findOne({
       where: {
-        id: req.params.id
+        id: itemId
         // Removed pricing constraint to ensure all packages are visible
       }
     });
@@ -384,11 +491,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching storefront item:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error while retrieving storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Server error while retrieving storefront item');
   }
 });
 
@@ -401,7 +504,7 @@ router.post('/', protect, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
-    
+
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
@@ -411,9 +514,18 @@ router.post('/', protect, async (req, res) => {
     }
     
     const sanitizedPayload = sanitizeStorefrontPayload(req.body);
+    const hasPricePerSession = Object.prototype.hasOwnProperty.call(sanitizedPayload, 'pricePerSession');
+    const pricePerSession = parseOptionalPrice(sanitizedPayload.pricePerSession);
 
     // Validate that pricePerSession is at least $140
-    if (sanitizedPayload.pricePerSession && parseFloat(sanitizedPayload.pricePerSession) < 140) {
+    if (hasPricePerSession && pricePerSession === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price per session must be a valid currency amount'
+      });
+    }
+
+    if (pricePerSession !== null && pricePerSession < 140) {
       return res.status(400).json({
         success: false,
         message: 'Price per session must be at least $140'
@@ -440,11 +552,7 @@ router.post('/', protect, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error while creating storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Server error while creating storefront item');
   }
 });
 
@@ -457,7 +565,15 @@ router.put('/:id', protect, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
-    
+    const itemId = parseStrictInteger(req.params.id);
+
+    if (!itemId || itemId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid storefront item id',
+      });
+    }
+
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
@@ -467,7 +583,9 @@ router.put('/:id', protect, async (req, res) => {
     }
     
     const sanitizedPayload = sanitizeStorefrontPayload(req.body);
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const hasPricePerSession = Object.prototype.hasOwnProperty.call(sanitizedPayload, 'pricePerSession');
+    const pricePerSession = parseOptionalPrice(sanitizedPayload.pricePerSession);
+    const item = await StorefrontItem.findByPk(itemId);
     
     if (!item) {
       return res.status(404).json({ 
@@ -477,7 +595,14 @@ router.put('/:id', protect, async (req, res) => {
     }
     
     // Validate that pricePerSession is at least $140 if being updated
-    if (sanitizedPayload.pricePerSession && parseFloat(sanitizedPayload.pricePerSession) < 140) {
+    if (hasPricePerSession && pricePerSession === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price per session must be a valid currency amount'
+      });
+    }
+
+    if (pricePerSession !== null && pricePerSession < 140) {
       return res.status(400).json({
         success: false,
         message: 'Price per session must be at least $140'
@@ -504,11 +629,7 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error while updating storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Server error while updating storefront item');
   }
 });
 
@@ -521,7 +642,15 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
-    
+    const itemId = parseStrictInteger(req.params.id);
+
+    if (!itemId || itemId < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid storefront item id',
+      });
+    }
+
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
@@ -530,7 +659,7 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
     
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const item = await StorefrontItem.findByPk(itemId);
     
     if (!item) {
       return res.status(404).json({ 
@@ -549,11 +678,7 @@ router.delete('/:id', protect, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error deleting storefront item:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while deleting storefront item',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Server error while deleting storefront item');
   }
 });
 

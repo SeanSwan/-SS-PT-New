@@ -76,7 +76,6 @@ const TYPE_ALIASES = {
   flexibility: 'flexibility',
   stretching: 'flexibility',
   mobility: 'flexibility',
-  yoga: 'flexibility',
   foam_rolling: 'flexibility',
   balance: 'balance',
   stability: 'balance',

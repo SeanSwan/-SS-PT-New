@@ -44,7 +44,24 @@ const saveCustomTemplates = (templates: SessionTemplate[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
 };
 
-const createId = () => `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+let sessionTemplateIdFallbackCounter = 0;
+
+const createSessionTemplateId = () => {
+  const cryptoApi = globalThis.crypto;
+
+  if (cryptoApi?.randomUUID) {
+    return `custom-${cryptoApi.randomUUID()}`;
+  }
+
+  if (cryptoApi?.getRandomValues) {
+    const values = new Uint32Array(2);
+    cryptoApi.getRandomValues(values);
+    return `custom-${Date.now()}-${Array.from(values).map((value) => value.toString(36)).join('-')}`;
+  }
+
+  sessionTemplateIdFallbackCounter += 1;
+  return `custom-${Date.now()}-${sessionTemplateIdFallbackCounter}`;
+};
 
 export const useSessionTemplates = (): UseSessionTemplatesReturn => {
   const [customTemplates, setCustomTemplates] = useState<SessionTemplate[]>(() => loadCustomTemplates());
@@ -57,7 +74,7 @@ export const useSessionTemplates = (): UseSessionTemplatesReturn => {
   const addTemplate = useCallback((template: Omit<SessionTemplate, 'id' | 'isDefault'>) => {
     const newTemplate: SessionTemplate = {
       ...template,
-      id: createId(),
+      id: createSessionTemplateId(),
       isDefault: false
     };
     setCustomTemplates((prev) => {

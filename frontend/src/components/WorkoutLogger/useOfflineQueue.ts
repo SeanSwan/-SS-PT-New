@@ -40,6 +40,13 @@ function getQueueKey(clientId: number): string {
   return `${QUEUE_KEY_PREFIX}-${clientId}`;
 }
 
+let offlineQueueIdFallbackCounter = 0;
+
+function createOfflineQueueId(): string {
+  offlineQueueIdFallbackCounter += 1;
+  return `offline-local-${Date.now()}-${offlineQueueIdFallbackCounter}`;
+}
+
 function readQueue(clientId: number): QueuedWorkout[] {
   try {
     const raw = localStorage.getItem(getQueueKey(clientId));
@@ -98,7 +105,7 @@ export function useOfflineQueue(clientId: number) {
   /** Queue a workout submission for later sync */
   const queueSubmission = useCallback((formData: QueuedWorkout['formData']): void => {
     const entry: QueuedWorkout = {
-      id: `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: createOfflineQueueId(),
       timestamp: new Date().toISOString(),
       formData,
     };

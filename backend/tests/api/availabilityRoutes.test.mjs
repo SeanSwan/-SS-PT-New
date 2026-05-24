@@ -12,17 +12,21 @@ import request from 'supertest';
 const {
   getAvailabilityForTrainerMock,
   getAvailableSlotsMock,
+  updateWeeklyAvailabilityMock,
+  createOverrideMock,
 } = vi.hoisted(() => ({
   getAvailabilityForTrainerMock: vi.fn(),
   getAvailableSlotsMock: vi.fn(),
+  updateWeeklyAvailabilityMock: vi.fn(),
+  createOverrideMock: vi.fn(),
 }));
 
 vi.mock('../../services/availabilityService.mjs', () => ({
   default: {
     getAvailabilityForTrainer: getAvailabilityForTrainerMock,
     getAvailableSlots: getAvailableSlotsMock,
-    updateWeeklyAvailability: vi.fn(),
-    createOverride: vi.fn(),
+    updateWeeklyAvailability: updateWeeklyAvailabilityMock,
+    createOverride: createOverrideMock,
   },
 }));
 
@@ -37,7 +41,10 @@ vi.mock('../../utils/logger.mjs', () => ({
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, res, next) => {
     if (req.headers.authorization === 'Bearer valid') {
-      req.user = { id: 42, role: 'trainer' };
+      req.user = {
+        id: Number(req.headers['x-test-user-id'] || 42),
+        role: req.headers['x-test-role'] || 'trainer',
+      };
       next();
       return;
     }
@@ -103,6 +110,17 @@ describe('availability routes', () => {
     expect(getAvailableSlotsMock).not.toHaveBeenCalled();
   });
 
+  it('rejects non-integer trainer IDs before the service call', async () => {
+    const app = createApp();
+    const res = await request(app)
+      .get('/api/availability/9.5/slots?date=2026-04-15&duration=60')
+      .set('Authorization', 'Bearer valid');
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Invalid trainerId');
+    expect(getAvailableSlotsMock).not.toHaveBeenCalled();
+  });
+
   it('rejects impossible date strings on the base availability route too', async () => {
     const app = createApp();
     const res = await request(app)
@@ -112,5 +130,32 @@ describe('availability routes', () => {
     expect(res.status).toBe(400);
     expect(res.body.message).toBe('Invalid date. Use YYYY-MM-DD.');
     expect(getAvailabilityForTrainerMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks trainers from updating another trainer availability calendar', async () => {
+    const app = createApp();
+    const res = await request(app)
+      .put('/api/availability/9')
+      .set('Authorization', 'Bearer valid')
+      .send({ schedule: [] });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe('Access denied');
+    expect(updateWeeklyAvailabilityMock).not.toHaveBeenCalled();
+  });
+
+  it('allows trainers to update their own availability calendar', async () => {
+    updateWeeklyAvailabilityMock.mockResolvedValue([{ dayOfWeek: 1, startTime: '09:00', endTime: '17:00' }]);
+
+    const app = createApp();
+    const res = await request(app)
+      .put('/api/availability/42')
+      .set('Authorization', 'Bearer valid')
+      .send({ schedule: [{ dayOfWeek: 1, startTime: '09:00', endTime: '17:00' }] });
+
+    expect(res.status).toBe(200);
+    expect(updateWeeklyAvailabilityMock).toHaveBeenCalledWith(42, [
+      { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' },
+    ]);
   });
 });

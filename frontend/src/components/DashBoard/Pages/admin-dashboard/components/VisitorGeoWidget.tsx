@@ -127,22 +127,40 @@ const VisitorGeoWidget: React.FC = () => {
   const [selectedVisitor, setSelectedVisitor] = useState<AnonVisitor | GeoVisitor | null>(null);
   const [historyData, setHistoryData] = useState<{ visitors: any[]; total: number; page: number; totalPages: number } | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const [geoRes, anonRes] = await Promise.allSettled([
         authAxios.get('/api/admin/dashboard/visitor-geo'),
         authAxios.get('/api/admin/dashboard/anonymous-visitors'),
       ]);
 
-      if (geoRes.status === 'fulfilled' && geoRes.value.data?.success) {
+      const geoOk = geoRes.status === 'fulfilled' && geoRes.value.data?.success;
+      const anonOk = anonRes.status === 'fulfilled' && anonRes.value.data?.success;
+
+      if (geoOk) {
         setGeoData(geoRes.value.data);
       }
-      if (anonRes.status === 'fulfilled' && anonRes.value.data?.success) {
+      if (anonOk) {
         setAnonData(anonRes.value.data);
       }
-    } catch { /* silent */ } finally {
+
+      if (!geoOk && !anonOk) {
+        console.error('Failed to fetch visitor intelligence:', { geoRes, anonRes });
+        setGeoData(null);
+        setAnonData(null);
+        setLoadError('Visitor data unavailable');
+      }
+    } catch (err) {
+      console.error('Failed to fetch visitor intelligence:', err);
+      setGeoData(null);
+      setAnonData(null);
+      setLoadError('Visitor data unavailable');
+    } finally {
       setLoading(false);
     }
   }, [authAxios]);
@@ -153,13 +171,21 @@ const VisitorGeoWidget: React.FC = () => {
   const fetchHistory = useCallback(async (page = 1) => {
     try {
       setHistoryLoading(true);
+      setHistoryError(null);
       const res = await authAxios.get('/api/admin/dashboard/visitor-history', {
         params: { page, limit: 50 },
       });
       if (res.data?.success) {
         setHistoryData(res.data);
+      } else {
+        setHistoryData(null);
+        setHistoryError('Visitor history unavailable');
       }
-    } catch { /* silent */ } finally {
+    } catch (err) {
+      console.error('Failed to fetch visitor history:', err);
+      setHistoryData(null);
+      setHistoryError('Visitor history unavailable');
+    } finally {
       setHistoryLoading(false);
     }
   }, [authAxios]);
@@ -293,6 +319,13 @@ const VisitorGeoWidget: React.FC = () => {
       {/* ── Content ── */}
       {loading && !geoData && !anonData ? (
         <LoadingState>Loading visitor intelligence...</LoadingState>
+      ) : loadError ? (
+        <ContentArea>
+          <ErrorState role="alert">
+            <Activity size={32} />
+            <span>Visitor data unavailable. Refresh before assuming traffic is empty.</span>
+          </ErrorState>
+        </ContentArea>
       ) : (
         <ContentArea key={activeTab}>
           {/* Live Feed — Anonymous visitors in real-time */}
@@ -598,6 +631,12 @@ const VisitorGeoWidget: React.FC = () => {
                 {historyLoading && !historyData && (
                   <LoadingState>Loading visitor history...</LoadingState>
                 )}
+                {historyError && (
+                  <ErrorState role="alert">
+                    <Clock size={24} />
+                    <span>Visitor history unavailable. Retry before treating history as empty.</span>
+                  </ErrorState>
+                )}
                 <ModalList>
                   {historyData?.visitors?.map((v: any) => (
                     <ModalRow key={v.id} type="button" onClick={() => setSelectedVisitor({
@@ -781,7 +820,7 @@ const StatLabel = styled.span`
 `;
 
 const RefreshBtn = styled.button`
-  width: 36px; height: 36px;
+  width: 44px; height: 44px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(139, 92, 246, 0.15);
@@ -791,9 +830,10 @@ const RefreshBtn = styled.button`
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
-  min-width: 36px;
+  min-width: 44px;
 
   &:hover { background: rgba(139, 92, 246, 0.15); color: ${WING_PURPLE}; }
+  &:focus-visible { outline: 2px solid ${WING_PURPLE}; outline-offset: 2px; }
   .spinning { animation: ${spin} 1s linear infinite; }
 `;
 
@@ -908,6 +948,12 @@ const EmptyState = styled.div`
   svg { opacity: 0.3; }
 `;
 
+const ErrorState = styled(EmptyState)`
+  color: var(--warning, #E5C76B);
+
+  svg { opacity: 0.7; }
+`;
+
 const GeoList = styled.div`
   display: flex;
   flex-direction: column;
@@ -920,6 +966,7 @@ const LiveRow = styled.button<{ $clickable?: boolean }>`
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 0;
@@ -1150,12 +1197,13 @@ const ViewAllBtn = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 36px;
+  min-height: 44px;
 
   &:hover {
     background: rgba(139, 92, 246, 0.2);
     border-color: ${WING_PURPLE};
   }
+  &:focus-visible { outline: 2px solid ${WING_PURPLE}; outline-offset: 2px; }
 `;
 
 // ── Detail Panel (inline, slides up from bottom of widget) ──
@@ -1182,7 +1230,8 @@ const DetailTitle = styled.h4`
 `;
 
 const CloseDetailBtn = styled.button`
-  width: 28px; height: 28px;
+  width: 44px; height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1194,6 +1243,7 @@ const CloseDetailBtn = styled.button`
   transition: all 0.2s;
 
   &:hover { background: rgba(139, 92, 246, 0.15); color: ${WING_PURPLE}; }
+  &:focus-visible { outline: 2px solid ${WING_PURPLE}; outline-offset: 2px; }
 `;
 
 const DetailContent = styled.div`
@@ -1393,12 +1443,13 @@ const PaginationBtn = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 36px;
+  min-height: 44px;
 
   &:hover:not(:disabled) {
     background: rgba(139, 92, 246, 0.2);
     border-color: ${WING_PURPLE};
   }
+  &:focus-visible { outline: 2px solid ${WING_PURPLE}; outline-offset: 2px; }
   &:disabled { opacity: 0.3; cursor: not-allowed; }
 `;
 

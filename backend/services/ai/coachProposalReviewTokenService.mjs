@@ -4,6 +4,7 @@
  * Stateless detail-review token for Coach proposal approvals.
  */
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { getJwtSecret, isJwtSecretConfigurationError } from '../../utils/jwtSecretGuard.mjs';
 
 const VERSION = 'review-v1';
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -16,8 +17,12 @@ const REVIEW_REQUIRED_TYPES = new Set([
 ]);
 
 function reviewSecret() {
-  const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
-  return secret && secret !== 'your-production-jwt-secret-key-here-change-this' ? secret : null;
+  try {
+    return getJwtSecret();
+  } catch (error) {
+    if (isJwtSecretConfigurationError(error)) return null;
+    throw error;
+  }
 }
 
 function signPayload(payload, secret) {

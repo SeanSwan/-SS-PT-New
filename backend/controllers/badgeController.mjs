@@ -29,6 +29,32 @@
 import badgeService from '../services/badgeService.mjs';
 import { piiSafeLogger } from '../utils/monitoring/piiSafeLogging.mjs';
 
+const INTERNAL_ERROR = 'Internal server error';
+
+const sendBadgeError = (res, status, error) => res.status(status).json({
+  success: false,
+  error
+});
+
+const parsePositiveInteger = (value, fallback = null) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+  }
+  if (typeof value !== 'string') return fallback;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return fallback;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : fallback;
+};
+
+const parseBoundedPositiveInteger = (value, fallback, max) => {
+  const parsed = parsePositiveInteger(value, fallback);
+  return Math.min(parsed, max);
+};
+
 class BadgeController {
   constructor() {
     this.logger = piiSafeLogger;
@@ -70,10 +96,7 @@ class BadgeController {
         badgeData: req.body
       });
 
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      return sendBadgeError(res, 400, 'Failed to create badge');
     }
   }
 
@@ -90,10 +113,9 @@ class BadgeController {
         search: req.query.search
       };
 
-      const pagination = {
-        page: parseInt(req.query.page) || 1,
-        limit: Math.min(parseInt(req.query.limit) || 20, 100)
-      };
+      const page = parsePositiveInteger(req.query.page, 1);
+      const limit = parseBoundedPositiveInteger(req.query.limit, 20, 100);
+      const pagination = { page, limit };
 
       const result = await badgeService.getBadges(filters, pagination);
 
@@ -229,10 +251,7 @@ class BadgeController {
 
       // Handle specific error cases
       if (error.message.includes('Cannot delete badge')) {
-        return res.status(409).json({
-          success: false,
-          error: error.message
-        });
+        return sendBadgeError(res, 409, 'Badge cannot be deleted while it is in use');
       }
 
       res.status(500).json({
@@ -249,7 +268,11 @@ class BadgeController {
   async checkBadgeEarnings(req, res) {
     try {
       const userId = req.user.id;
-      const activity = req.body;
+      const { activityType, activityData } = req.body;
+      const activity = {
+        ...activityData,
+        type: activityType
+      };
 
       const earnedBadges = await badgeService.checkBadgeEarnings(userId, activity);
 
@@ -283,11 +306,21 @@ class BadgeController {
     try {
       const { userId } = req.params;
       const currentUserId = req.user.id;
+      const targetUserId = parsePositiveInteger(userId);
+      const requesterId = parsePositiveInteger(currentUserId);
 
-      // Allow users to see their own badges or admins/trainers to see anyone's
-      const allowedRoles = ['admin', 'trainer'];
-      const canViewAll = allowedRoles.includes(req.user.role);
-      const isOwnProfile = userId === currentUserId;
+      if (!targetUserId) {
+        return sendBadgeError(res, 400, 'Invalid user ID');
+      }
+
+      if (!requesterId) {
+        return sendBadgeError(res, 401, 'Invalid authenticated user');
+      }
+
+      // Route middleware has already proven trainer assignment; keep this
+      // local gate for direct controller tests and client self-access.
+      const canViewAll = req.user.role === 'admin' || req.user.role === 'trainer';
+      const isOwnProfile = targetUserId === requesterId;
 
       if (!canViewAll && !isOwnProfile) {
         return res.status(403).json({
@@ -301,12 +334,12 @@ class BadgeController {
         recent: req.query.recent === 'true'
       };
 
-      const badges = await badgeService.getUserBadges(userId, options);
+      const badges = await badgeService.getUserBadges(targetUserId, options);
 
       res.json({
         success: true,
         data: {
-          userId,
+          userId: targetUserId,
           totalEarned: badges.length,
           badges: badges.slice(0, 50), // Limit for performance
           badgesByCategory: this.groupBadgesByCategory(badges)
@@ -382,6 +415,14 @@ class BadgeController {
         badgeId: req.params.badgeId,
         adminId: req.user?.id
       });
+
+      if (error.code === 'BADGE_IMAGE_STORAGE_NOT_CONFIGURED') {
+        return res.status(501).json({
+          success: false,
+          error: 'Badge image storage is not configured',
+          code: 'BADGE_IMAGE_STORAGE_NOT_CONFIGURED'
+        });
+      }
 
       res.status(500).json({
         success: false,

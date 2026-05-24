@@ -98,4 +98,12 @@ describe('admin gamification economy guardrail contract', () => {
     expect(stylesSource).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
     expect(stylesSource).toContain('flex-shrink: 0');
   });
+
+  it('does not preview Streak Fortress with fabricated streak values', () => {
+    const panelSource = readSource('src/components/DashBoard/Pages/admin-gamification/components/RPGFeaturesPanel.tsx');
+
+    expect(panelSource).not.toContain('streakDays={14}');
+    expect(panelSource).not.toContain('streakFreezes={2}');
+    expect(panelSource).toContain('requires live streak data');
+  });
 });

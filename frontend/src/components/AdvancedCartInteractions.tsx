@@ -19,7 +19,7 @@
  * - Smart quantity recommendations
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, TrendingUp, Zap, Star, Target } from 'lucide-react';
@@ -209,6 +209,17 @@ interface SmartNotificationData {
   };
 }
 
+const PARTICLE_COUNT = 8;
+
+const getParticleOffset = (index: number) => {
+  const angle = (Math.PI * 2 * index) / PARTICLE_COUNT;
+  const radius = 36 + (index % 3) * 14;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+  };
+};
+
 // Main interaction hook
 export const useAdvancedCartInteractions = () => {
   const [tooltips, setTooltips] = useState<TooltipInfo[]>([]);
@@ -216,6 +227,13 @@ export const useAdvancedCartInteractions = () => {
   const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
   const [notifications, setNotifications] = useState<SmartNotificationData[]>([]);
   const [sessionProgress, setSessionProgress] = useState(0);
+  const interactionIdRef = useRef(0);
+
+  const createInteractionId = useCallback((prefix: string) => {
+    const nextId = interactionIdRef.current;
+    interactionIdRef.current += 1;
+    return `${prefix}-${Date.now()}-${nextId}`;
+  }, []);
   
   // Haptic feedback function
   const triggerHaptic = useCallback((pattern: 'light' | 'medium' | 'heavy' = 'light') => {
@@ -231,7 +249,7 @@ export const useAdvancedCartInteractions = () => {
   
   // Celebration effect
   const triggerCelebration = useCallback((x: number, y: number, type: CelebrationEffect['type']) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = createInteractionId(type);
     setCelebrations(prev => [...prev, { id, x, y, type }]);
     
     // Trigger haptic feedback
@@ -241,7 +259,7 @@ export const useAdvancedCartInteractions = () => {
     setTimeout(() => {
       setCelebrations(prev => prev.filter(c => c.id !== id));
     }, 2000);
-  }, [triggerHaptic]);
+  }, [createInteractionId, triggerHaptic]);
   
   // Price change animation
   const animatePriceChange = useCallback((itemId: number, oldPrice: number, newPrice: number) => {
@@ -255,13 +273,13 @@ export const useAdvancedCartInteractions = () => {
   
   // Smart notification
   const showNotification = useCallback((message: string, type: SmartNotificationData['type'], action?: SmartNotificationData['action']) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = createInteractionId(`notification-${type}`);
     setNotifications(prev => [...prev, { id, message, type, action }]);
     
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
-  }, []);
+  }, [createInteractionId]);
   
   // Session progress update
   const updateSessionProgress = useCallback((totalSessions: number, targetSessions: number = 12) => {
@@ -375,28 +393,31 @@ export const CelebrationParticles: React.FC<{
     <>
       {celebrations.map(celebration => (
         <div key={celebration.id}>
-          {[...Array(8)].map((_, i) => (
-            <CelebrationParticle
-              key={i}
-              initial={{
-                opacity: 0,
-                scale: 0,
-                x: celebration.x,
-                y: celebration.y
-              }}
-              animate={{
-                opacity: [0, 1, 0],
-                scale: [0, 1, 0],
-                x: celebration.x + (Math.random() - 0.5) * 100,
-                y: celebration.y + (Math.random() - 0.5) * 100
-              }}
-              transition={{
-                duration: 1.5,
-                delay: i * 0.1,
-                ease: [0.25, 0.46, 0.45, 0.94]
-              }}
-            />
-          ))}
+          {Array.from({ length: PARTICLE_COUNT }, (_, i) => {
+            const offset = getParticleOffset(i);
+            return (
+              <CelebrationParticle
+                key={i}
+                initial={{
+                  opacity: 0,
+                  scale: 0,
+                  x: celebration.x,
+                  y: celebration.y
+                }}
+                animate={{
+                  opacity: [0, 1, 0],
+                  scale: [0, 1, 0],
+                  x: celebration.x + offset.x,
+                  y: celebration.y + offset.y
+                }}
+                transition={{
+                  duration: 1.5,
+                  delay: i * 0.1,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }}
+              />
+            );
+          })}
         </div>
       ))}
     </>

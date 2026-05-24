@@ -34,7 +34,7 @@ import {
   LineChart
 } from 'lucide-react';
 
-// Advanced Chart Components (would normally import from recharts)
+// Lightweight placeholders until this dashboard is wired to the Victory chart set.
 interface ChartProps {
   data: any[];
   height?: number;

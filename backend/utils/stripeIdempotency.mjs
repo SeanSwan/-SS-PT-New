@@ -39,6 +39,23 @@ export function buildStripeIdempotencyKey(prefix, payload) {
   return `${cleanPrefix(prefix)}:${digest}`;
 }
 
+function normalizeStripeFingerprintNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : '0.00';
+}
+
+export function buildCartItemsStripeFingerprint(cartItems = [], getSessionCredits = () => 0) {
+  return (cartItems || [])
+    .map((item) => [
+      String(item?.storefrontItemId ?? ''),
+      normalizeStripeFingerprintNumber(item?.quantity || 0),
+      normalizeStripeFingerprintNumber(item?.price || 0),
+      normalizeStripeFingerprintNumber(getSessionCredits(item)),
+    ].join(':'))
+    .sort()
+    .join('|');
+}
+
 export function buildWindowedStripeIdempotencyKey(prefix, payload, options = {}) {
   const windowMs = options.windowMs ?? DEFAULT_IDEMPOTENCY_WINDOW_MS;
   const nowMs = options.nowMs ?? Date.now();

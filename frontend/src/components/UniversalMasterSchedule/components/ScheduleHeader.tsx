@@ -52,6 +52,9 @@ interface ScheduleHeaderProps {
   onDensityChange?: (density: DensityMode) => void;
   // User identity for personalized header
   currentUser?: { firstName: string; lastName: string; profileImageUrl?: string };
+  headerTitle?: string;
+  headerSubtitle?: string;
+  headerImageUrl?: string;
 }
 
 const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
@@ -85,22 +88,26 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   onLayoutModeChange,
   density = 'comfortable',
   onDensityChange,
-  currentUser
+  currentUser,
+  headerTitle: headerTitleProp,
+  headerSubtitle,
+  headerImageUrl
 }) => {
-  const headerTitle = currentUser
+  const headerTitle = headerTitleProp || (currentUser
     ? `${currentUser.firstName}'s Schedule`
-    : 'Universal Master Schedule';
-  const headerSub = currentUser
+    : 'Universal Master Schedule');
+  const headerSub = headerSubtitle || (currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}`
-    : 'Professional session management system';
+    : 'Professional session management system');
+  const headerImage = headerImageUrl || currentUser?.profileImageUrl;
 
   return (
     <>
       <HeaderContainer>
         <FlexBox align="center" gap="1rem">
-          {currentUser?.profileImageUrl ? (
+          {headerImage ? (
             <img
-              src={currentUser.profileImageUrl}
+              src={headerImage}
               alt={headerSub}
               style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(96, 192, 240, 0.3)' }}
             />
@@ -563,4 +570,3 @@ const TrainerSelect = styled.select`
     width: 100%;
   }
 `;
-

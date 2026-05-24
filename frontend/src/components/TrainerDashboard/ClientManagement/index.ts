@@ -10,5 +10,5 @@
 export { default as MyClientsView } from './MyClientsView';
 export { default as MyClientsViewWithFallback } from './MyClientsViewWithFallback';
 
-// Export fallback component as default for better UX
-export { default } from './MyClientsViewWithFallback';
+// Live trainer route must render the real assignment-backed client view.
+export { default } from './MyClientsView';

@@ -34,6 +34,42 @@ import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
 
 const router = express.Router();
+const INTERNAL_ERROR = 'INTERNAL_ERROR';
+
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string' || !/^\d+$/.test(value.trim())) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const sameId = (a, b) => String(a) === String(b);
+
+const parseOptionalBoolean = (value) => {
+  if (value === undefined) return { ok: true, value: undefined };
+  if (value === 'true') return { ok: true, value: true };
+  if (value === 'false') return { ok: true, value: false };
+  return { ok: false };
+};
+
+const parseOptionalDate = (value) => {
+  if (!value) return { ok: true, value: null };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { ok: false };
+  return { ok: true, value: date };
+};
+
+const sendInternalError = (res, message) => res.status(500).json({
+  success: false,
+  message,
+  code: INTERNAL_ERROR,
+});
 
 /**
  * @route   GET /api/workout-forms/my/info
@@ -102,8 +138,8 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
     const trainerId = req.user.id;
     const userRole = req.user.role;
 
-    // Validate client ID
-    if (!clientId || isNaN(parseInt(clientId))) {
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    if (!parsedClientId) {
       return res.status(400).json({
         success: false,
         message: 'Valid client ID is required'
@@ -116,7 +152,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
     // Get client information (allow any role — admin may test with own account)
     const client = await User.findOne({
       where: {
-        id: parseInt(clientId)
+        id: parsedClientId
       },
       attributes: [
         'id',
@@ -140,7 +176,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
     if (userRole === 'trainer') {
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId),
+          clientId: parsedClientId,
           trainerId: trainerId,
           status: 'active'
         }
@@ -170,7 +206,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
       try {
         recentWorkoutCount = await DailyWorkoutForm.count({
           where: {
-            clientId: parseInt(clientId),
+            clientId: parsedClientId,
             date: {
               [Op.gte]: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
             }
@@ -188,7 +224,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
       try {
         todayWorkout = await DailyWorkoutForm.findOne({
           where: {
-            clientId: parseInt(clientId),
+            clientId: parsedClientId,
             date: today
           }
         });
@@ -219,11 +255,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
 
   } catch (error) {
     logger.error('Error fetching client info for workout logging:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to load client information',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to load client information');
   }
 });
 
@@ -345,9 +377,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const { clientId, date, exercises, sessionNotes, overallIntensity } = req.body;
     // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
     // by `protect` (authMiddleware.mjs:359). Callers here need a number for
-    // comparison against parseInt(clientId) and for Sequelize trainerId
+    // comparison against parsedClientId and for Sequelize trainerId
     // lookups against an INT column. Coerce once at the top of the handler.
-    const userNumericId = parseInt(req.user.id, 10);
+    const userNumericId = parseStrictPositiveInteger(req.user.id);
     const trainerId = userNumericId;
     const userRole = req.user.role;
 
@@ -360,8 +392,25 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
+    if (!userNumericId) {
+      await transaction.rollback();
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid authenticated user'
+      });
+    }
+
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    if (!parsedClientId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Valid client ID is required'
+      });
+    }
+
     // Client can only submit for themselves
-    if (userRole === 'client' && parseInt(clientId, 10) !== userNumericId) {
+    if (userRole === 'client' && parsedClientId !== userNumericId) {
       await transaction.rollback();
       return res.status(403).json({
         success: false,
@@ -384,7 +433,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId, 10),
+          clientId: parsedClientId,
           trainerId,
           status: 'active'
         },
@@ -402,7 +451,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
     // Validate client exists and has available sessions
     const User = getUser();
-    const client = await User.findByPk(clientId, { transaction });
+    const client = await User.findByPk(parsedClientId, { transaction });
     if (!client) {
       await transaction.rollback();
       return res.status(404).json({
@@ -456,7 +505,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       const ClientTrainerAssignment = getClientTrainerAssignment();
       const assignment = await ClientTrainerAssignment.findOne({
         where: {
-          clientId: parseInt(clientId, 10),
+          clientId: parsedClientId,
           status: 'active',
         },
         transaction,
@@ -484,7 +533,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const DailyWorkoutForm = getDailyWorkoutForm();
     const existingForm = await DailyWorkoutForm.findOne({
       where: {
-        clientId: parseInt(clientId),
+        clientId: parsedClientId,
         date: date
       },
       transaction
@@ -549,7 +598,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const WorkoutSession = getWorkoutSession();
     const [workoutSession, created] = await WorkoutSession.findOrCreate({
       where: {
-        userId: clientId,
+        userId: parsedClientId,
         date: date
       },
       defaults: {
@@ -559,7 +608,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         // import at the top of this file. Same UUID v4 primitive, correct
         // module system.
         id: randomUUID(),
-        userId: clientId,
+        userId: parsedClientId,
         title: `Personal Training Session - ${date}`,
         date: date,
         // Phase 16 (2026-04-16): honor null when the logger did not record
@@ -619,7 +668,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
     const dailyForm = await DailyWorkoutForm.create({
       sessionId: workoutSession.id,
-      clientId: parseInt(clientId),
+      clientId: parsedClientId,
       // Use the role-resolved attribution trainer (see round 9 derivation
       // above). For trainer/admin actors this equals `trainerId`; for
       // client self-log it's the assigned trainer or admin fallback so
@@ -644,7 +693,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         xpTransaction = await sequelize.transaction();
         const exercises = formData?.exercises || [];
         await awardWorkoutXP({
-          userId: clientId,
+          userId: parsedClientId,
           workoutId: dailyForm.id,
           duration: estimatedDuration || null,
           exercisesCompleted: exercises.length,
@@ -700,11 +749,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     logger.error('Error submitting workout form:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to submit workout form',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to submit workout form');
   }
 });
 
@@ -728,41 +773,80 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
 
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
+    const parsedPage = parseStrictPositiveInteger(page);
+    if (!parsedPage) {
+      return res.status(400).json({ success: false, message: 'Invalid page' });
+    }
+
+    const rawLimit = parseStrictPositiveInteger(limit);
+    if (!rawLimit) {
+      return res.status(400).json({ success: false, message: 'Invalid limit' });
+    }
+    const parsedLimit = Math.min(rawLimit, 100);
+
+    const parsedStartDate = parseOptionalDate(startDate);
+    if (!parsedStartDate.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid startDate' });
+    }
+
+    const parsedEndDate = parseOptionalDate(endDate);
+    if (!parsedEndDate.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid endDate' });
+    }
+
+    const parsedMcpProcessed = parseOptionalBoolean(mcpProcessed);
+    if (!parsedMcpProcessed.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid mcpProcessed' });
+    }
 
     // Build query conditions
     const whereConditions = {};
 
     if (clientId) {
-      whereConditions.clientId = parseInt(clientId);
+      const parsedClientId = parseStrictPositiveInteger(clientId);
+      if (!parsedClientId) {
+        return res.status(400).json({ success: false, message: 'Invalid clientId' });
+      }
+      whereConditions.clientId = parsedClientId;
     }
 
     if (trainerId) {
-      whereConditions.trainerId = parseInt(trainerId);
+      const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+      if (!parsedTrainerId) {
+        return res.status(400).json({ success: false, message: 'Invalid trainerId' });
+      }
+      if (requestingUserRole === 'trainer' && !sameId(parsedTrainerId, requestingUserId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Trainers can only view their own workout forms',
+        });
+      }
+      whereConditions.trainerId = parsedTrainerId;
     } else if (requestingUserRole === 'trainer') {
       // Trainers can only see their own forms
       whereConditions.trainerId = requestingUserId;
     }
 
-    if (startDate && endDate) {
+    if (parsedStartDate.value && parsedEndDate.value) {
       whereConditions.date = {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
+        [Op.between]: [parsedStartDate.value, parsedEndDate.value]
       };
-    } else if (startDate) {
+    } else if (parsedStartDate.value) {
       whereConditions.date = {
-        [Op.gte]: new Date(startDate)
+        [Op.gte]: parsedStartDate.value
       };
-    } else if (endDate) {
+    } else if (parsedEndDate.value) {
       whereConditions.date = {
-        [Op.lte]: new Date(endDate)
+        [Op.lte]: parsedEndDate.value
       };
     }
 
-    if (mcpProcessed !== undefined) {
-      whereConditions.mcpProcessed = mcpProcessed === 'true';
+    if (parsedMcpProcessed.value !== undefined) {
+      whereConditions.mcpProcessed = parsedMcpProcessed.value;
     }
 
     // Calculate pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parsedPage - 1) * parsedLimit;
 
     const DailyWorkoutForm = getDailyWorkoutForm();
     const User = getUser();
@@ -782,37 +866,33 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
         }
       ],
       order: [['submittedAt', 'DESC']],
-      limit: parseInt(limit),
+      limit: parsedLimit,
       offset: offset
     });
 
-    const totalPages = Math.ceil(count / parseInt(limit));
+    const totalPages = Math.ceil(count / parsedLimit);
 
     logger.info(`Retrieved ${forms.length} workout forms`, {
       requestingUserId,
       filters: { clientId, trainerId, startDate, endDate },
-      pagination: { page, limit, totalPages }
+      pagination: { page: parsedPage, limit: parsedLimit, totalPages }
     });
 
     res.json({
       success: true,
       forms,
       pagination: {
-        currentPage: parseInt(page),
+        currentPage: parsedPage,
         totalPages,
         totalCount: count,
-        hasNextPage: parseInt(page) < totalPages,
-        hasPrevPage: parseInt(page) > 1
+        hasNextPage: parsedPage < totalPages,
+        hasPrevPage: parsedPage > 1
       }
     });
 
   } catch (error) {
     logger.error('Error fetching workout forms:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch workout forms',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch workout forms');
   }
 });
 
@@ -883,11 +963,7 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching workout form:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch workout form',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch workout form');
   }
 });
 
@@ -903,9 +979,9 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
     const { timeRange = '3months', startDate, endDate } = req.query;
     const requestingUserId = req.user.id;
     const requestingUserRole = req.user.role;
-    const parsedClientId = parseInt(clientId, 10);
+    const parsedClientId = parseStrictPositiveInteger(clientId);
 
-    if (!parsedClientId || isNaN(parsedClientId)) {
+    if (!parsedClientId) {
       return res.status(400).json({
         success: false,
         message: 'Valid client ID is required'
@@ -1104,11 +1180,7 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching progress data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch progress data',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch progress data');
   }
 });
 
@@ -1128,13 +1200,17 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
   try {
     const { clientId } = req.params;
     const { timeRange = '90d' } = req.query;
-    const requestingUserId = req.user.id;
+    const requestingUserId = parseStrictPositiveInteger(req.user.id);
     const requestingUserRole = req.user.role;
 
     // Validate clientId as integer
-    const parsedClientId = parseInt(clientId, 10);
-    if (!parsedClientId || isNaN(parsedClientId)) {
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    if (!Number.isInteger(parsedClientId) || parsedClientId <= 0) {
       return res.status(400).json({ success: false, message: 'Valid client ID is required' });
+    }
+
+    if (!Number.isInteger(requestingUserId) || requestingUserId <= 0) {
+      return res.status(401).json({ success: false, message: 'Invalid authenticated user' });
     }
 
     // --- Access control (admin, trainer assignment, or client self-access) ---
@@ -1150,6 +1226,8 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       if (!assignment) {
         return res.status(403).json({ success: false, message: 'You are not assigned to this client' });
       }
+    } else if (requestingUserRole !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
     // admins pass through
 
@@ -1594,11 +1672,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching detailed progress data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch detailed progress data',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch detailed progress data');
   }
 });
 
@@ -1649,11 +1723,7 @@ router.post('/:id/reprocess', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error reprocessing workout form:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to reprocess workout form',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to reprocess workout form');
   }
 });
 
@@ -1729,11 +1799,7 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
 
   } catch (error) {
     logger.error('Error fetching workout form statistics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch workout form statistics',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    return sendInternalError(res, 'Failed to fetch workout form statistics');
   }
 });
 

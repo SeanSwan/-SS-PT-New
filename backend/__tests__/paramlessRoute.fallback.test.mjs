@@ -109,6 +109,21 @@ function buildConsentApp() {
   return app;
 }
 
+function buildStringIdConsentApp() {
+  const app = express();
+  app.use(express.json());
+  app.use((req, _res, next) => {
+    const id = req.headers['x-test-user-id'];
+    if (id) req.user = { id, role: req.headers['x-test-user-role'] || 'client' };
+    next();
+  });
+  app.get('/consent/status', getAiConsentStatus);
+  app.get('/consent/status/:userId', getAiConsentStatus);
+  app.post('/consent/grant', grantAiConsent);
+  app.post('/consent/withdraw', withdrawAiConsent);
+  return app;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockSequelize.query.mockResolvedValue([[]]);
@@ -213,6 +228,17 @@ describe('Triage Slice 1 - getAiConsentStatus :userId path role gates preserved'
       .set('x-test-user-id', '42')
       .set('x-test-user-role', 'trainer');
     expect(res.status).toBe(403);
+  });
+
+  it('client self-access via /:userId works when req.user.id is a string', async () => {
+    const app = buildStringIdConsentApp();
+    const res = await request(app)
+      .get('/consent/status/42')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.profile.userId).toBe(42);
   });
 });
 

@@ -434,11 +434,17 @@ describe('Admin Charge Card — Capture-First + Refund-on-Failure', () => {
     mockRefundsCreate.mockRejectedValue(new Error('Stripe refund network timeout'));
     mockFinancialTransactionCreate.mockResolvedValue({ id: 'ft_audit_1' });
 
-    const res = await executeChargeFlow({
-      client: makeClient(), pkg: makePackage(),
-      paymentMethodId: 'pm_test_visa123', idempotencyToken: VALID_UUID,
-      stripe, FinancialTransaction,
-    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let res;
+    try {
+      res = await executeChargeFlow({
+        client: makeClient(), pkg: makePackage(),
+        paymentMethodId: 'pm_test_visa123', idempotencyToken: VALID_UUID,
+        stripe, FinancialTransaction,
+      });
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
 
     // ── Response verification ────────────────────────────────
     expect(res._status).toBe(500);
@@ -491,11 +497,17 @@ describe('Admin Charge Card — Capture-First + Refund-on-Failure', () => {
     mockRefundsCreate.mockRejectedValue(new Error('Network error'));
     mockFinancialTransactionCreate.mockRejectedValue(new Error('DB connection lost'));
 
-    const res = await executeChargeFlow({
-      client: makeClient(), pkg: makePackage(),
-      paymentMethodId: 'pm_test_visa123', idempotencyToken: VALID_UUID,
-      stripe, FinancialTransaction,
-    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    let res;
+    try {
+      res = await executeChargeFlow({
+        client: makeClient(), pkg: makePackage(),
+        paymentMethodId: 'pm_test_visa123', idempotencyToken: VALID_UUID,
+        stripe, FinancialTransaction,
+      });
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
 
     // Still returns STRIPE_REFUND_FAILED (doesn't crash)
     expect(res._status).toBe(500);

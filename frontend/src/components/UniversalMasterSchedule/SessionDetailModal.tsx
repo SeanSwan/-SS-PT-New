@@ -22,6 +22,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import GlowButton from '../ui/buttons/GlowButton';
 import { logger } from '@/utils/logger';
+import { useToast } from '../../hooks/use-toast';
+import apiService from '../../services/api.service';
 
 interface Session {
   id: number;
@@ -78,6 +80,9 @@ const statusColors: Record<string, string> = {
   blocked: '#f59e0b'
 };
 
+const getApiErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.message || fallback;
+
 const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   session,
   open,
@@ -89,6 +94,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   seriesCount
 }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [notes, setNotes] = useState('');
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
@@ -238,27 +244,17 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       }
 
       try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+        const response = await apiService.get(`/api/sessions/${session.id}/client-package-price`);
+        const result = response.data;
+        if (result.success && result.data) {
+          const data = result.data;
+          const fullCharge = data.pricePerSession || data.defaultChargeAmount || 175;
+          const lateFee = data.lateFeeAmount || Math.round(fullCharge * 0.5);
 
-        const response = await fetch(`/api/sessions/${session.id}/client-package-price`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            const data = result.data;
-            const fullCharge = data.pricePerSession || data.defaultChargeAmount || 175;
-            const lateFee = data.lateFeeAmount || Math.round(fullCharge * 0.5);
-
-            setPackagePrice(data.pricePerSession);
-            setPackageName(data.packageName);
-            setDefaultFullCharge(fullCharge);
-            setDefaultLateFee(lateFee);
-          }
+          setPackagePrice(data.pricePerSession);
+          setPackageName(data.packageName);
+          setDefaultFullCharge(fullCharge);
+          setDefaultLateFee(lateFee);
         }
       } catch (error) {
         logger.warn('Could not fetch package price:', error);
@@ -287,29 +283,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     }
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to complete sessions.');
-        return;
-      }
-
       const payload = {
         notes: notes.trim() || undefined,
         trainerRating: ratingValue,
         clientFeedback: clientFeedback.trim() || undefined
       };
 
-      const response = await fetch(`/api/sessions/${session.id}/complete`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.patch(`/api/sessions/${session.id}/complete`, payload);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to mark session complete.');
         return;
       }
@@ -318,7 +300,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error completing session:', error);
-      setFormError('Failed to mark session complete. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to mark session complete. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -338,12 +320,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setAttendanceLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to record attendance.');
-        return;
-      }
-
       const payload: {
         attendanceStatus: string;
         noShowReason?: string;
@@ -360,17 +336,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         payload.notes = notes.trim();
       }
 
-      const response = await fetch(`/api/sessions/${session.id}/attendance`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.patch(`/api/sessions/${session.id}/attendance`, payload);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to record attendance.');
         return;
       }
@@ -381,7 +349,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error recording attendance:', error);
-      setFormError('Failed to record attendance. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to record attendance. Please try again.'));
     } finally {
       setAttendanceLoading(false);
     }
@@ -400,21 +368,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to delete recurring series.');
-        return;
-      }
-
-      const response = await fetch(`/api/sessions/recurring/${session.recurringGroupId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.delete(`/api/sessions/recurring/${session.recurringGroupId}`);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to delete recurring series.');
         return;
       }
@@ -423,7 +379,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error deleting recurring series:', error);
-      setFormError('Failed to delete recurring series. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to delete recurring series. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -440,26 +396,13 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setFormError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to submit feedback.');
-        return;
-      }
-
-      const response = await fetch(`/api/sessions/${session.id}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          rating: clientRating,
-          comment: clientComment.trim() || undefined
-        })
+      const response = await apiService.post(`/api/sessions/${session.id}/feedback`, {
+        rating: clientRating,
+        comment: clientComment.trim() || undefined
       });
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to submit feedback.');
         return;
       }
@@ -468,7 +411,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       onUpdated();
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      setFormError('Failed to submit feedback. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to submit feedback. Please try again.'));
     } finally {
       setFeedbackLoading(false);
     }
@@ -482,22 +425,10 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setFormError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to cancel sessions.');
-        return;
-      }
+      const response = await apiService.get(`/api/sessions/${session.id}/cancel-warning`);
+      const result = response.data;
 
-      const response = await fetch(`/api/sessions/${session.id}/cancel-warning`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || result?.success === false) {
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to check cancellation status.');
         return;
       }
@@ -517,7 +448,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
     } catch (error) {
       console.error('Error fetching cancel warning:', error);
-      setFormError('Failed to check cancellation status. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to check cancellation status. Please try again.'));
     } finally {
       setLateCancelLoading(false);
     }
@@ -585,12 +516,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setFormError('Please log in to cancel sessions.');
-        return;
-      }
-
       // Build payload based on user type
       const payload: Record<string, unknown> = {
         reason: cancelReason.trim() || undefined,
@@ -611,33 +536,39 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         payload.restoreCredit = earlyCancel && isEarlyCancelEligible;
       }
 
-      const response = await fetch(`/api/sessions/${session.id}/cancel`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || result?.success === false) {
+      const response = await apiService.patch(`/api/sessions/${session.id}/cancel`, payload);
+      const result = response.data;
+      if (result?.success === false) {
         setFormError(result?.message || 'Failed to cancel session.');
         return;
       }
 
-      // Show success message with charge info
-      if (result?.data?.chargeAmount > 0) {
-        alert(`Session cancelled. Charge applied: $${result.data.chargeAmount.toFixed(2)}`);
+      const appliedChargeAmount = Number(result?.data?.chargeAmount || 0);
+      if (appliedChargeAmount > 0) {
+        toast({
+          title: 'Session cancelled',
+          description: `Charge applied: $${appliedChargeAmount.toFixed(2)}`,
+          variant: 'default'
+        });
       } else if (result?.data?.creditRestored) {
-        alert('Session cancelled. Session credit has been restored.');
+        toast({
+          title: 'Session cancelled',
+          description: 'Session credit has been restored.',
+          variant: 'default'
+        });
+      } else {
+        toast({
+          title: 'Session cancelled',
+          description: 'The schedule has been updated.',
+          variant: 'default'
+        });
       }
 
       onUpdated();
       onClose();
     } catch (error) {
       console.error('Error cancelling session:', error);
-      setFormError('Failed to cancel session. Please try again.');
+      setFormError(getApiErrorMessage(error, 'Failed to cancel session. Please try again.'));
     } finally {
       setLoading(false);
       setShowCancelOptions(false);

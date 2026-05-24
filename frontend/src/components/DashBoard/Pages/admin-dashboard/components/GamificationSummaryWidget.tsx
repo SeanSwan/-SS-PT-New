@@ -6,26 +6,20 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
-import { Trophy, Star, Zap, Crown, Medal } from 'lucide-react';
+import { Trophy, Star, Zap, Crown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
 
 interface LeaderEntry { rank: number; name: string; xp: number; level: number; }
 
 interface GamificationData {
-  totalXPAwarded: number;
-  achievementsThisWeek: number;
-  totalAchievements: number;
-  activeStreaks: number;
+  topFiveXPAwarded: number;
   topLevel: number;
   leaderboard: LeaderEntry[];
 }
 
 const EMPTY_GAMIFICATION: GamificationData = {
-  totalXPAwarded: 0,
-  achievementsThisWeek: 0,
-  totalAchievements: 0,
-  activeStreaks: 0,
+  topFiveXPAwarded: 0,
   topLevel: 0,
   leaderboard: [],
 };
@@ -39,27 +33,34 @@ const RARITY_COLORS: Record<number, string> = {
 const GamificationSummaryWidget: React.FC = () => {
   const { authAxios } = useAuth();
   const [data, setData] = useState<GamificationData>(EMPTY_GAMIFICATION);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
+      setError(null);
       const [lbRes] = await Promise.all([
         authAxios.get('/api/gamification/leaderboard', { params: { limit: 5 } }),
       ]);
       const lb = lbRes.data?.data ?? lbRes.data?.leaderboard;
-      if (lb?.length) {
-        setData(prev => ({
-          ...prev,
-          leaderboard: lb.slice(0, 5).map((u: any, i: number) => ({
-            rank: i + 1,
-            name: u.username ?? u.name ?? `User ${u.userId ?? i + 1}`,
-            xp: u.totalXP ?? u.xp ?? u.points ?? 0,
-            level: u.level ?? Math.floor((u.totalXP ?? 0) / 200) + 1,
-          })),
-          totalXPAwarded: lb.reduce((sum: number, u: any) => sum + (u.totalXP ?? u.xp ?? 0), 0),
-        }));
-      }
+      const rawLeaderboard = Array.isArray(lb) ? lb : [];
+      const leaderboard = rawLeaderboard.slice(0, 5).map((u: any, i: number) => {
+        const xp = u.totalXP ?? u.xp ?? u.points ?? 0;
+        return {
+          rank: i + 1,
+          name: u.username ?? u.name ?? `User ${u.userId ?? i + 1}`,
+          xp,
+          level: u.level ?? Math.floor(xp / 200) + 1,
+        };
+      });
+
+      setData({
+        leaderboard,
+        topFiveXPAwarded: leaderboard.reduce((sum: number, u: LeaderEntry) => sum + u.xp, 0),
+        topLevel: Math.max(...leaderboard.map((u: LeaderEntry) => u.level), 0),
+      });
     } catch {
       setData(EMPTY_GAMIFICATION);
+      setError('Gamification leaderboard unavailable.');
     }
   }, [authAxios]);
 
@@ -78,30 +79,34 @@ const GamificationSummaryWidget: React.FC = () => {
       <StatsRow>
         <MiniStat>
           <Zap size={16} color={CHART_COLORS.gildedFern} />
-          <MiniValue>{(data.totalXPAwarded / 1000).toFixed(1)}k</MiniValue>
-          <MiniLabel>Total XP</MiniLabel>
+          <MiniValue>{(data.topFiveXPAwarded / 1000).toFixed(1)}k</MiniValue>
+          <MiniLabel>Top 5 XP</MiniLabel>
         </MiniStat>
         <MiniStat>
           <Star size={16} color={CHART_COLORS.wingPurple} />
-          <MiniValue>{data.achievementsThisWeek}</MiniValue>
-          <MiniLabel>This Week</MiniLabel>
-        </MiniStat>
-        <MiniStat>
-          <Medal size={16} color={CHART_COLORS.iceWing} />
-          <MiniValue>{data.totalAchievements}</MiniValue>
-          <MiniLabel>Total</MiniLabel>
+          <MiniValue>{data.leaderboard.length}</MiniValue>
+          <MiniLabel>Entries</MiniLabel>
         </MiniStat>
         <MiniStat>
           <Crown size={16} color={CHART_COLORS.gildedFern} />
-          <MiniValue>{data.activeStreaks}</MiniValue>
-          <MiniLabel>Streaks</MiniLabel>
+          <MiniValue>{data.topLevel}</MiniValue>
+          <MiniLabel>Top Level</MiniLabel>
         </MiniStat>
       </StatsRow>
 
       {/* Leaderboard */}
       <LeaderLabel>Leaderboard Snapshot</LeaderLabel>
       <LeaderList>
-        {data.leaderboard.length === 0 ? (
+        {error ? (
+          <ErrorCopy role="alert">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={fetchData}>
+              <RefreshCw size={14} />
+              Retry
+            </RetryInline>
+          </ErrorCopy>
+        ) : data.leaderboard.length === 0 ? (
           <EmptyCopy>No leaderboard entries returned yet.</EmptyCopy>
         ) : data.leaderboard.map((entry) => (
           <LeaderRow key={entry.rank}>
@@ -151,9 +156,9 @@ const Title = styled.h3`
 `;
 
 const StatsRow = styled.div`
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
   margin-bottom: 16px;
-  @media (max-width: 430px) { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 430px) { grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); }
 `;
 
 const MiniStat = styled.div`
@@ -187,6 +192,25 @@ const EmptyCopy = styled.div`
   color: var(--text-muted, #94A3B8);
   font-size: 0.85rem;
   padding: 8px 0;
+`;
+
+const ErrorCopy = styled.div`
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  min-height: 44px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(198, 168, 75, 0.12);
+  border: 1px solid rgba(198, 168, 75, 0.24);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 12px;
+  @media (max-width: 430px) { grid-template-columns: auto 1fr; }
+`;
+
+const RetryInline = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
+  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
+  @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
 `;
 
 const LeaderRow = styled.div`

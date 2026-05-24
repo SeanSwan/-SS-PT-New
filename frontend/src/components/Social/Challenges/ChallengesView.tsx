@@ -1,8 +1,8 @@
 /**
  * ChallengesView.tsx
  * Crystalline Swan themed challenges UI with tabs for active/upcoming/completed.
- * Fetches real data from /api/v1/gamification/challenges; falls back to
- * mock data when the API is unavailable (e.g., migration not yet run).
+ * Fetches real data from /api/v1/gamification/challenges and shows an
+ * honest empty state when no live challenges are available.
  */
 import React, { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
@@ -29,9 +29,10 @@ import {
   Laugh
 } from 'lucide-react';
 
-/* ─── Mock Data (fallback when API unavailable) ────── */
+/* ─── Retired Demo Fixture (disabled; API failures render empty state) ────── */
 
-const MOCK_CHALLENGES: Challenge[] = [
+const RETIRED_CHALLENGE_FIXTURE: Challenge[] = [];
+/*
   {
     id: '1',
     title: '30-Day Push-Up Challenge',
@@ -163,7 +164,7 @@ const MOCK_CHALLENGES: Challenge[] = [
     reward: '800 XP + Collab Crown',
     joined: false,
   },
-];
+*/
 
 /* ─── Theme Tokens ─────────────────────────────────── */
 
@@ -487,8 +488,8 @@ const ChallengesView: React.FC = () => {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { challenges, loading, isDemoData, joinChallenge } = useChallenges();
 
-  // Use API data when available, mock data as fallback
-  const displayData = isDemoData ? MOCK_CHALLENGES : challenges;
+  // Hook API failures now return an empty list; the retired fixture remains disabled.
+  const displayData = isDemoData ? RETIRED_CHALLENGE_FIXTURE : challenges;
   const filtered = displayData.filter((c) =>
     c.status === activeTab && (selectedCategory === 'all' || c.category === selectedCategory)
   );

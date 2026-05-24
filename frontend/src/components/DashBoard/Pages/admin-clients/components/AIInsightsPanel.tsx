@@ -18,12 +18,12 @@
  * │ │ └─────────────────────────────┘ │                        │
  * │ └──────────────────────────────────┘                        │
  * │ Props: { clientId, clientName }                             │
- * │ API: GET /api/admin/clients/:id/ai-insights                │
+ * │ API: GET /api/admin/ai-bff/client-summary/:id              │
  * │ GAMIFICATION: Surfaces badge predictions + tier progress    │
  * └─────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
 import {
   Brain,
@@ -38,6 +38,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from 'lucide-react';
+import { useAuth } from '../../../../../context/AuthContext';
 import { logger } from '@/utils/logger';
 
 // ── Crystalline Swan Theme Tokens ──
@@ -266,6 +267,11 @@ const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined'; $fullW
   text-transform: none;
   transition: all 0.2s ease;
   ${({ $fullWidth }) => $fullWidth && css`width: 100%;`}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   ${({ $variant }) =>
     $variant === 'contained'
@@ -516,6 +522,10 @@ const RightAlignedBlock = styled.div`
   text-align: right;
 `;
 
+const EmptyPanel = styled(CardPanel)`
+  border-style: dashed;
+`;
+
 // ── Circular Progress (SVG) ──
 const CircularProgressSVG: React.FC<{
   value: number;
@@ -634,290 +644,393 @@ interface AIInsightsPanelProps {
   onRecommendationImplement?: (recommendationId: string) => void;
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+interface ClientSummaryPayload {
+  profile?: unknown;
+  activePain?: unknown;
+  latestMeasurements?: unknown;
+  recentWorkouts?: unknown;
+  fetchedAt?: string;
+}
+
+interface BuiltClientInsights {
+  insights: AIInsight[];
+  recommendations: AIRecommendation[];
+  riskAssessments: RiskAssessment[];
+  models: PredictionModel[];
+}
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const responseData = (value: unknown): unknown => {
+  if (isRecord(value) && 'data' in value) {
+    return value.data;
+  }
+  return value;
+};
+
+const responseHasError = (value: unknown): boolean =>
+  isRecord(value) && (value.success === false || typeof value.error === 'string');
+
+const recordArray = (value: unknown): UnknownRecord[] =>
+  Array.isArray(value) ? value.filter(isRecord) : [];
+
+const recordsFrom = (value: unknown, keys: string[] = []): UnknownRecord[] => {
+  const root = responseData(value);
+  const direct = recordArray(root);
+  if (direct.length > 0) return direct;
+  if (!isRecord(root)) return [];
+
+  for (const key of keys) {
+    const keyed = root[key];
+    const keyedArray = recordArray(keyed);
+    if (keyedArray.length > 0) return keyedArray;
+  }
+
+  return [];
+};
+
+const nestedRecord = (value: unknown, key: string): UnknownRecord | null => {
+  const root = responseData(value);
+  if (!isRecord(root)) return null;
+  const next = root[key];
+  return isRecord(next) ? next : null;
+};
+
+const numberFrom = (record: UnknownRecord | null, keys: string[]): number | null => {
+  if (!record) return null;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+  return null;
+};
+
+const stringFrom = (record: UnknownRecord | null, keys: string[]): string | null => {
+  if (!record) return null;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim() !== '') return value;
+  }
+  return null;
+};
+
+const clampPercent = (value: number): number => Math.max(0, Math.min(100, Math.round(value)));
+
+const formatLabel = (value: string | null): string =>
+  value ? value.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : 'Unspecified';
+
+const daysSince = (dateValue: string | null): number | null => {
+  if (!dateValue) return null;
+  const time = Date.parse(dateValue);
+  if (!Number.isFinite(time)) return null;
+  return Math.floor((Date.now() - time) / 86400000);
+};
+
+const buildClientSummaryInsights = (
+  summary: ClientSummaryPayload,
+  clientId: string,
+  onInsightAction?: (insightId: string, action: string) => void,
+): BuiltClientInsights => {
+  const fetchedAt = summary.fetchedAt || new Date().toISOString();
+  const painEntries = recordsFrom(summary.activePain);
+  const workoutData = responseData(summary.recentWorkouts);
+  const workoutRecord = isRecord(workoutData) ? workoutData : null;
+  const recentWorkouts = recordsFrom(workoutData, ['recentWorkouts']);
+  const totalWorkouts = numberFrom(workoutRecord, ['totalWorkouts']) ?? recentWorkouts.length;
+  const latestWorkout = recentWorkouts[0] || null;
+  const lastWorkoutDate = stringFrom(latestWorkout, ['date', 'completedAt', 'updatedAt']);
+  const lastWorkoutDays = daysSince(lastWorkoutDate);
+  const latestMeasurementRoot = responseData(summary.latestMeasurements);
+  const latestMeasurement = isRecord(latestMeasurementRoot) && !responseHasError(latestMeasurementRoot)
+    ? latestMeasurementRoot
+    : null;
+  const measurementDate = stringFrom(latestMeasurement, ['measurementDate', 'createdAt', 'updatedAt']);
+  const highestPain = painEntries.reduce<UnknownRecord | null>((current, entry) => {
+    const currentLevel = numberFrom(current, ['painLevel', 'pain_level', 'level', 'severity']) ?? 0;
+    const entryLevel = numberFrom(entry, ['painLevel', 'pain_level', 'level', 'severity']) ?? 0;
+    return entryLevel > currentLevel ? entry : current;
+  }, null);
+  const highestPainLevel = numberFrom(highestPain, ['painLevel', 'pain_level', 'level', 'severity']);
+  const highestPainRegion = formatLabel(stringFrom(highestPain, ['bodyRegion', 'body_region', 'region']));
+  const profileData = nestedRecord(summary.profile, 'client') || (isRecord(responseData(summary.profile)) ? responseData(summary.profile) as UnknownRecord : null);
+  const fitnessGoal = formatLabel(stringFrom(profileData, ['fitnessGoal', 'primaryGoal', 'goal']));
+
+  const insights: AIInsight[] = [];
+  const recommendations: AIRecommendation[] = [];
+  const riskAssessments: RiskAssessment[] = [];
+
+  if (painEntries.length > 0) {
+    const priority = highestPainLevel && highestPainLevel >= 7 ? 'critical' : 'high';
+    const painDescription = `${painEntries.length} active pain ${painEntries.length === 1 ? 'entry is' : 'entries are'} open${highestPainLevel ? `; highest level is ${highestPainLevel}/10 at ${highestPainRegion}` : ''}. Review constraints before changing training load.`;
+
+    insights.push({
+      id: 'active-pain-review',
+      type: 'warning',
+      category: 'health',
+      title: 'Active pain review needed',
+      description: painDescription,
+      confidence: 92,
+      priority,
+      actionable: true,
+      action: {
+        label: 'Review Pain',
+        callback: () => onInsightAction?.('active-pain-review', 'review-pain'),
+      },
+      data: { clientId, source: 'activePain' },
+      timestamp: fetchedAt,
+      modelUsed: 'AI BFF client summary',
+      evidencePoints: [
+        `${painEntries.length} active pain entries returned by /api/pain-entries/:userId/active`,
+        highestPainLevel ? `Highest recorded pain level: ${highestPainLevel}/10` : 'Pain entries did not include a numeric level',
+      ],
+    });
+
+    recommendations.push({
+      id: 'review-pain-before-programming',
+      title: 'Review pain constraints before programming',
+      description: 'Confirm active pain regions and adjust exercise selection before increasing load, intensity, or volume.',
+      type: 'immediate',
+      impact: 'high',
+      effort: 'low',
+      category: 'Health',
+      confidence: 90,
+      estimatedBenefit: 'Lower programming risk while pain entries are active',
+      implementationSteps: [
+        'Open the client pain log',
+        'Identify affected regions and pain level',
+        'Swap or regress movements that load the affected area',
+      ],
+      relatedMetrics: ['active pain entries', 'pain level', 'exercise constraints'],
+    });
+
+    riskAssessments.push({
+      id: 'active-pain-injury-risk',
+      riskType: 'injury',
+      probability: clampPercent((highestPainLevel ?? 5) * 10),
+      severity: highestPainLevel && highestPainLevel >= 7 ? 'high' : 'medium',
+      factors: [
+        `${painEntries.length} active pain entries are open`,
+        highestPainLevel ? `Highest pain level is ${highestPainLevel}/10` : 'Pain level is missing from at least one active entry',
+      ],
+      mitigation: [
+        'Review affected body regions before workout changes',
+        'Use regressions or substitutions for painful movements',
+        'Track follow-up status before progressing load',
+      ],
+      timeline: 'Current',
+      monitoring: ['Pain entry status', 'Pain level trend', 'Exercise substitutions'],
+    });
+  }
+
+  if (totalWorkouts > 0) {
+    insights.push({
+      id: 'workout-history-loaded',
+      type: 'achievement',
+      category: 'performance',
+      title: 'Workout history loaded',
+      description: `${totalWorkouts} completed workout ${totalWorkouts === 1 ? 'record is' : 'records are'} available for this client.`,
+      confidence: 86,
+      priority: 'low',
+      actionable: false,
+      data: { clientId, source: 'recentWorkouts' },
+      timestamp: fetchedAt,
+      modelUsed: 'AI BFF client summary',
+      evidencePoints: [
+        `Workout stats returned ${totalWorkouts} completed workouts`,
+        lastWorkoutDate ? `Latest workout date: ${new Date(lastWorkoutDate).toLocaleDateString()}` : 'Latest workout date was not returned',
+      ],
+    });
+  } else {
+    insights.push({
+      id: 'no-workout-history',
+      type: 'recommendation',
+      category: 'workout',
+      title: 'Workout data is missing',
+      description: 'No completed workouts were returned for this client, so progress predictions should wait for logged training data.',
+      confidence: 88,
+      priority: 'medium',
+      actionable: true,
+      action: {
+        label: 'Open Logger',
+        callback: () => onInsightAction?.('no-workout-history', 'open-workout-logger'),
+      },
+      data: { clientId, source: 'recentWorkouts' },
+      timestamp: fetchedAt,
+      modelUsed: 'AI BFF client summary',
+      evidencePoints: ['Workout stats returned zero completed workouts'],
+    });
+
+    recommendations.push({
+      id: 'log-next-workout',
+      title: 'Log the next workout',
+      description: 'Capture one complete workout before relying on trend or prediction language for this client.',
+      type: 'short-term',
+      impact: 'medium',
+      effort: 'low',
+      category: 'Workout',
+      confidence: 88,
+      estimatedBenefit: 'Creates a real baseline for progress analysis',
+      implementationSteps: [
+        'Open the workout logger',
+        'Record exercises, sets, reps, and intensity',
+        'Refresh this panel after save',
+      ],
+      relatedMetrics: ['completed workouts', 'training volume', 'intensity'],
+    });
+  }
+
+  if (lastWorkoutDays !== null && lastWorkoutDays > 14) {
+    riskAssessments.push({
+      id: 'inactivity-dropout-risk',
+      riskType: 'dropout',
+      probability: clampPercent(35 + lastWorkoutDays),
+      severity: lastWorkoutDays > 30 ? 'high' : 'medium',
+      factors: [
+        `Last completed workout was ${lastWorkoutDays} days ago`,
+        'Recent workout cadence is below the active coaching target',
+      ],
+      mitigation: [
+        'Schedule a low-friction check-in',
+        'Assign a shorter re-entry workout',
+        'Confirm barriers before increasing volume',
+      ],
+      timeline: 'Next 7 days',
+      monitoring: ['Last workout date', 'Scheduled sessions', 'Workout completion'],
+    });
+  }
+
+  if (latestMeasurement) {
+    insights.push({
+      id: 'latest-measurement-available',
+      type: 'achievement',
+      category: 'health',
+      title: 'Measurement baseline available',
+      description: measurementDate
+        ? `Latest body measurement was recorded on ${new Date(measurementDate).toLocaleDateString()}.`
+        : 'A latest body measurement exists, but the measurement date was not returned.',
+      confidence: 84,
+      priority: 'low',
+      actionable: false,
+      data: { clientId, source: 'latestMeasurements' },
+      timestamp: fetchedAt,
+      modelUsed: 'AI BFF client summary',
+      evidencePoints: [
+        measurementDate ? `Measurement date: ${new Date(measurementDate).toLocaleDateString()}` : 'Measurement record exists without a date',
+        fitnessGoal !== 'Unspecified' ? `Client goal: ${fitnessGoal}` : 'Client goal was not returned',
+      ],
+    });
+  } else {
+    recommendations.push({
+      id: 'record-current-measurements',
+      title: 'Record current measurements',
+      description: 'Add a current body measurement before drawing body-composition or transformation conclusions.',
+      type: 'short-term',
+      impact: 'medium',
+      effort: 'low',
+      category: 'Measurements',
+      confidence: 82,
+      estimatedBenefit: 'Improves trend confidence for progress reviews',
+      implementationSteps: [
+        'Open the measurement workflow',
+        'Capture required body metrics',
+        'Refresh AI insights after save',
+      ],
+      relatedMetrics: ['body measurements', 'measurement date', 'progress trend'],
+    });
+  }
+
+  if (insights.length === 0) {
+    insights.push({
+      id: 'client-summary-data-needed',
+      type: 'recommendation',
+      category: 'performance',
+      title: 'More client data needed',
+      description: 'The client summary endpoint returned no usable workout, pain, or measurement signals.',
+      confidence: 80,
+      priority: 'medium',
+      actionable: true,
+      action: {
+        label: 'Refresh',
+        callback: () => onInsightAction?.('client-summary-data-needed', 'refresh'),
+      },
+      data: { clientId },
+      timestamp: fetchedAt,
+      modelUsed: 'AI BFF client summary',
+      evidencePoints: ['No usable source records were returned by the BFF summary response'],
+    });
+  }
+
+  return {
+    insights,
+    recommendations,
+    riskAssessments,
+    models: [],
+  };
+};
+
 const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
-  clientId: _clientId,
+  clientId,
   refreshInterval = 30000,
-  onInsightAction: _onInsightAction,
+  onInsightAction,
   onRecommendationImplement
 }) => {
+  const { authAxios } = useAuth();
   // State management
   const [insights, setInsights] = useState<AIInsight[]>([]);
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [riskAssessments, setRiskAssessments] = useState<RiskAssessment[]>([]);
   const [models, setModels] = useState<PredictionModel[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
   const [confidenceThreshold, setConfidenceThreshold] = useState(70);
   const [expandedAccordion, setExpandedAccordion] = useState<string>('insights');
 
-  // Mock data generation
-  const generateMockInsights = (): AIInsight[] => [
-    {
-      id: '1',
-      type: 'recommendation',
-      category: 'workout',
-      title: 'Increase Progressive Overload',
-      description: 'Based on your recovery metrics and performance data, you can handle 12% more volume in your upper body workouts.',
-      confidence: 94,
-      priority: 'high',
-      actionable: true,
-      action: {
-        label: 'Adjust Workout Plan',
-        callback: () => logger.log('Adjusting workout plan...')
-      },
-      timestamp: '2024-12-10T14:30:00Z',
-      modelUsed: 'Training Load Optimizer v2.1',
-      evidencePoints: [
-        'HRV has improved by 15% over last 2 weeks',
-        'Current training stress score is 65/100',
-        'No signs of overreaching in recent sessions',
-        'Sleep quality average 8.2/10'
-      ],
-      relatedInsights: ['2', '3']
-    },
-    {
-      id: '2',
-      type: 'warning',
-      category: 'recovery',
-      title: 'Recovery Pattern Change Detected',
-      description: 'Your sleep quality has decreased by 18% over the past week. This may impact performance and injury risk.',
-      confidence: 87,
-      priority: 'medium',
-      actionable: true,
-      action: {
-        label: 'Optimize Recovery Protocol',
-        callback: () => logger.log('Opening recovery recommendations...')
-      },
-      timestamp: '2024-12-10T12:15:00Z',
-      modelUsed: 'Recovery Predictor AI',
-      evidencePoints: [
-        'Average sleep duration decreased from 8.1h to 6.9h',
-        'REM sleep percentage down 22%',
-        'Morning HRV readings 12% below baseline',
-        'Reported fatigue levels increased'
-      ]
-    },
-    {
-      id: '3',
-      type: 'prediction',
-      category: 'performance',
-      title: 'PR Prediction',
-      description: 'High probability (89%) of achieving a new personal record in bench press within the next 2 weeks.',
-      confidence: 89,
-      priority: 'medium',
-      actionable: false,
-      timestamp: '2024-12-10T09:00:00Z',
-      modelUsed: 'Performance Predictor Neural Network',
-      evidencePoints: [
-        'Strength progression curve indicates optimal timing',
-        'Recent volume has prepared neuromuscular system',
-        'Recovery metrics are within optimal range',
-        'Historical data shows similar patterns before PRs'
-      ]
-    },
-    {
-      id: '4',
-      type: 'optimization',
-      category: 'nutrition',
-      title: 'Meal Timing Optimization',
-      description: 'Adjusting your pre-workout meal timing by 45 minutes could improve performance by an estimated 8-12%.',
-      confidence: 76,
-      priority: 'low',
-      actionable: true,
-      action: {
-        label: 'Create Meal Plan',
-        callback: () => logger.log('Creating optimized meal plan...')
-      },
-      timestamp: '2024-12-10T08:45:00Z',
-      modelUsed: 'Nutrition Timing AI',
-      evidencePoints: [
-        'Current meal timing shows suboptimal insulin response',
-        'Energy availability during workouts could be improved',
-        'Glycogen replenishment timing has room for optimization'
-      ]
-    },
-    {
-      id: '5',
-      type: 'achievement',
-      category: 'social',
-      title: 'Engagement Milestone Reached',
-      description: 'You\'ve reached a new level of community engagement! Your social score has increased by 25% this month.',
-      confidence: 100,
-      priority: 'low',
-      actionable: false,
-      timestamp: '2024-12-09T19:30:00Z',
-      modelUsed: 'Social Engagement Tracker',
-      evidencePoints: [
-        'Increased app usage by 30%',
-        'More frequent workout posts',
-        'Higher interaction rates with other users',
-        'Completed 3 group challenges'
-      ]
-    }
-  ];
+  const loadInsights = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
 
-  const generateMockRecommendations = (): AIRecommendation[] => [
-    {
-      id: 'r1',
-      title: 'Implement Periodization Blocks',
-      description: 'Your training would benefit from structured periodization with specific power, strength, and endurance blocks.',
-      type: 'long-term',
-      impact: 'high',
-      effort: 'medium',
-      category: 'Programming',
-      confidence: 91,
-      estimatedBenefit: '15-25% performance improvement over 6 months',
-      implementationSteps: [
-        'Complete current training cycle',
-        'Design 3-phase periodization plan',
-        'Start with power block (weeks 1-4)',
-        'Monitor and adjust based on response'
-      ],
-      relatedMetrics: ['power output', 'strength gains', 'recovery scores']
-    },
-    {
-      id: 'r2',
-      title: 'Add Mobility Work Focus',
-      description: 'Your movement quality assessments suggest targeted mobility work could prevent future issues.',
-      type: 'immediate',
-      impact: 'medium',
-      effort: 'low',
-      category: 'Movement Quality',
-      confidence: 83,
-      estimatedBenefit: 'Reduced injury risk by 30-40%',
-      implementationSteps: [
-        'Add 10-minute mobility routine to warm-up',
-        'Focus on hip and shoulder mobility',
-        'Include 2 dedicated mobility sessions per week',
-        'Track range of motion improvements'
-      ],
-      relatedMetrics: ['joint mobility', 'movement quality', 'injury risk']
-    },
-    {
-      id: 'r3',
-      title: 'Optimize Rest Periods',
-      description: 'Swan Coach analysis suggests customizing rest periods based on heart rate recovery could improve workout efficiency.',
-      type: 'short-term',
-      impact: 'medium',
-      effort: 'low',
-      category: 'Training Efficiency',
-      confidence: 78,
-      estimatedBenefit: '8-12% time savings with equal or better results',
-      implementationSteps: [
-        'Implement HRV-based rest period calculator',
-        'Use 85% max HR recovery as rest completion marker',
-        'Adjust rest periods by exercise complexity',
-        'Monitor volume and intensity maintenance'
-      ],
-      relatedMetrics: ['heart rate recovery', 'training volume', 'time efficiency']
+    try {
+      const response = await authAxios.get(`/api/admin/ai-bff/client-summary/${clientId}`);
+      const built = buildClientSummaryInsights(response.data as ClientSummaryPayload, clientId, onInsightAction);
+      setInsights(built.insights);
+      setRecommendations(built.recommendations);
+      setRiskAssessments(built.riskAssessments);
+      setModels(built.models);
+    } catch (error) {
+      logger.error('[AIInsightsPanel] Failed to load client summary insights', {
+        clientId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      setInsights([]);
+      setRecommendations([]);
+      setRiskAssessments([]);
+      setModels([]);
+      setLoadError('Client AI summary is unavailable.');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  }, [authAxios, clientId, onInsightAction]);
 
-  const generateMockRisks = (): RiskAssessment[] => [
-    {
-      id: 'risk1',
-      riskType: 'overtraining',
-      probability: 23,
-      severity: 'medium',
-      factors: [
-        'Training load increased by 35% last month',
-        'HRV showing declining trend',
-        'Self-reported fatigue scores elevated',
-        'Sleep duration decreased'
-      ],
-      mitigation: [
-        'Implement mandatory recovery day',
-        'Reduce volume by 15% for next week',
-        'Focus on sleep optimization',
-        'Add stress management techniques'
-      ],
-      timeline: 'Next 2-3 weeks',
-      monitoring: [
-        'Daily HRV measurements',
-        'Weekly fatigue questionnaire',
-        'Training load calculations',
-        'Sleep quality tracking'
-      ]
-    },
-    {
-      id: 'risk2',
-      riskType: 'plateauing',
-      probability: 67,
-      severity: 'low',
-      factors: [
-        'Progress rate has slowed by 40%',
-        'Same training variables for 6 weeks',
-        'Adaptation markers stabilizing',
-        'Motivation scores declining'
-      ],
-      mitigation: [
-        'Introduce new training stimulus',
-        'Modify rep ranges and tempos',
-        'Add exercise variations',
-        'Set short-term challenges'
-      ],
-      timeline: 'Current',
-      monitoring: [
-        'Weekly performance metrics',
-        'Training load variety',
-        'Motivation assessments',
-        'Progress photo comparisons'
-      ]
-    }
-  ];
-
-  const mockModels = useMemo<PredictionModel[]>(() => [
-    {
-      id: 'm1',
-      name: 'Performance Predictor',
-      description: 'Predicts future PR achievements and performance milestones',
-      accuracy: 94.2,
-      lastTrained: '2024-12-08',
-      status: 'active',
-      predictions: 1247,
-      category: 'Performance'
-    },
-    {
-      id: 'm2',
-      name: 'Injury Risk Assessor',
-      description: 'Evaluates injury risk based on movement patterns and load',
-      accuracy: 91.8,
-      lastTrained: '2024-12-07',
-      status: 'active',
-      predictions: 892,
-      category: 'Health & Safety'
-    },
-    {
-      id: 'm3',
-      name: 'Recovery Optimizer',
-      description: 'Recommends optimal recovery protocols based on biomarkers',
-      accuracy: 88.5,
-      lastTrained: '2024-12-09',
-      status: 'training',
-      predictions: 634,
-      category: 'Recovery'
-    }
-  ], []);
-
-  // Initialize data
   useEffect(() => {
-    setInsights(generateMockInsights());
-    setRecommendations(generateMockRecommendations());
-    setRiskAssessments(generateMockRisks());
-    setModels(mockModels);
-  }, [mockModels]);
+    void loadInsights();
+  }, [loadInsights]);
 
-  // Auto-refresh insights
   useEffect(() => {
+    if (refreshInterval <= 0) return undefined;
     const interval = setInterval(() => {
-      if (refreshInterval > 0) {
-        // In a real implementation, this would fetch new insights
-        logger.log('Auto-refreshing AI insights...');
-      }
+      void loadInsights();
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [refreshInterval]);
+  }, [loadInsights, refreshInterval]);
 
   // Filter insights based on criteria
   const filteredInsights = useMemo(() => {
@@ -1074,7 +1187,11 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
         AI Recommendations
       </SectionHeading>
       <GridContainer $cols="1fr 1fr" $gap={16}>
-        {recommendations.map((rec) => (
+        {recommendations.length === 0 ? (
+          <EmptyPanel>
+            <BodyText>No data-backed recommendations are available yet.</BodyText>
+          </EmptyPanel>
+        ) : recommendations.map((rec) => (
           <CardPanel key={rec.id}>
             <FlexRow $justify="space-between" $align="flex-start" $mb={12}>
               <Heading6>{rec.title}</Heading6>
@@ -1149,7 +1266,11 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
         Risk Assessments
       </SectionHeading>
       <GridContainer $cols="1fr 1fr" $gap={16}>
-        {riskAssessments.map((risk) => (
+        {riskAssessments.length === 0 ? (
+          <EmptyPanel>
+            <BodyText>No data-backed risk signals were returned by the client summary.</BodyText>
+          </EmptyPanel>
+        ) : riskAssessments.map((risk) => (
           <CardPanel key={risk.id}>
             <FlexRow $justify="space-between" $align="center" $mb={12}>
               <Heading6 $capitalize>
@@ -1249,7 +1370,11 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
         Active AI Models
       </SectionHeading>
       <GridContainer $cols="1fr 1fr 1fr" $gap={16}>
-        {models.map((model) => (
+        {models.length === 0 ? (
+          <EmptyPanel>
+            <BodyText>AI model telemetry is not available from the current client-summary endpoint.</BodyText>
+          </EmptyPanel>
+        ) : models.map((model) => (
           <AIModelCardStyled key={model.id}>
             <FlexRow $justify="space-between" $align="flex-start" $mb={12}>
               <Heading6>{model.name}</Heading6>
@@ -1311,7 +1436,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           AI Insights &amp; Analytics
         </Heading4>
         <BodyText $mt={8}>
-          Advanced Swan Coach insights, predictions, and personalized recommendations
+          Client-summary insights from verified workout, pain, and measurement data.
         </BodyText>
       </SectionBox>
 
@@ -1362,17 +1487,34 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           </ToggleLabel>
 
           <FlexRow $gap={8}>
-            <ActionButton $variant="outlined" title="Refresh insights">
+            <ActionButton
+              $variant="outlined"
+              title="Refresh insights"
+              onClick={() => void loadInsights()}
+              disabled={isLoading}
+            >
               <RefreshCw size={16} />
-              Refresh
+              {isLoading ? 'Refreshing' : 'Refresh'}
             </ActionButton>
-            <ActionButton $variant="outlined" title="Settings">
+            <ActionButton
+              $variant="outlined"
+              title="Model settings require backend telemetry"
+              disabled
+            >
               <Settings size={16} />
               Settings
             </ActionButton>
           </FlexRow>
         </ControlsGrid>
       </SectionBox>
+
+      {loadError && (
+        <SectionBox $mb={16}>
+          <EmptyPanel>
+            <BodyText>{loadError}</BodyText>
+          </EmptyPanel>
+        </SectionBox>
+      )}
 
       {/* Content */}
       <div>
@@ -1388,7 +1530,11 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           </AccordionHeader>
           <AccordionBody $expanded={expandedAccordion === 'insights'}>
             <GridContainer $cols="1fr" $gap={20}>
-              {filteredInsights.map(renderInsightCard)}
+              {filteredInsights.length === 0 ? (
+                <EmptyPanel>
+                  <BodyText>No insights match the current filters.</BodyText>
+                </EmptyPanel>
+              ) : filteredInsights.map(renderInsightCard)}
             </GridContainer>
           </AccordionBody>
         </AccordionWrapper>

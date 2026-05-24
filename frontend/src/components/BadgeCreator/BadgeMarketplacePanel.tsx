@@ -13,6 +13,7 @@ import {
   Share2, Download, Image, Loader, ShoppingBag,
   CheckCircle, X,
 } from 'lucide-react';
+import apiService from '../../services/api.service';
 
 // ── Types ──
 interface MarketBadge {
@@ -177,14 +178,10 @@ const BadgeMarketplacePanel: React.FC = () => {
   const [claiming, setClaiming] = useState<string | null>(null);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const token = localStorage.getItem('token');
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
   const fetchMarketplace = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/badge-creator/marketplace', { headers });
-      const d = await res.json();
+      const res = await apiService.get<{ success: boolean; data: MarketBadge[] }>('/api/admin/badge-creator/marketplace');
+      const d = res.data;
       if (d.success) setBadges(d.data);
     } catch { /* best-effort */ }
     setLoading(false);
@@ -197,11 +194,10 @@ const BadgeMarketplacePanel: React.FC = () => {
     setClaiming(badgeId);
     setStatus(null);
     try {
-      const res = await fetch(`/api/admin/badge-creator/marketplace/claim/${badgeId}`, {
-        method: 'POST',
-        headers,
+      const res = await apiService.post<{ success: boolean; message?: string }>(`/api/admin/badge-creator/marketplace/claim/${badgeId}`, undefined, {
+        validateStatus: status => status < 500,
       });
-      const d = await res.json();
+      const d = res.data;
       if (d.success) {
         setStatus({ type: 'success', text: `Claimed "${badgeName}"! Check your gallery.` });
       } else {

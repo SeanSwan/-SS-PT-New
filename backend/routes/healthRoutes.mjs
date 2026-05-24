@@ -27,13 +27,7 @@ router.get('/', async (req, res) => {
     const basicStatus = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      server: 'listening',
-      uptime: process.uptime(),
-      memory: {
-        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
-      }
+      server: 'listening'
     };
 
     // Try enhanced status with database (non-blocking)
@@ -69,42 +63,28 @@ router.get('/', async (req, res) => {
           
           clearTimeout(timeoutId);
 
-        // Add enhanced status if database is available
-        basicStatus.database = 'connected';
-        basicStatus.store = {
-          totalPackages: packageCount,
-          activePackages: activePackages,
-          validPricedPackages: validPricedPackages,
-          ready: validPricedPackages > 0
-        };
-        basicStatus.genesis = {
-          paymentSystem: 'ready',
-          checkoutFlow: 'active',
-          stripeConfigured: !!(process.env.STRIPE_SECRET_KEY && process.env.VITE_STRIPE_PUBLISHABLE_KEY)
+        basicStatus.checks = {
+          store: validPricedPackages > 0 ? 'ready' : 'degraded'
         };
 
-        // Determine overall health
         if (validPricedPackages === 0) {
           basicStatus.status = 'degraded';
-          basicStatus.message = 'Store not ready: No training packages with valid pricing found';
-        } else if (!basicStatus.genesis.stripeConfigured) {
-          basicStatus.status = 'degraded';
-          basicStatus.message = 'Payment system not configured: Missing Stripe keys';
+          basicStatus.message = 'Store readiness degraded';
         } else {
-          basicStatus.message = 'Genesis Checkout System fully operational';
+          basicStatus.message = 'API operational';
         }
         
         } catch (dbQueryError) {
           // Database query failed - fallback gracefully
-          basicStatus.database = 'query_failed';
-          basicStatus.message = 'Server healthy - database queries timing out';
+          basicStatus.checks = { store: 'unknown' };
+          basicStatus.message = 'Server healthy';
           console.log('Health check: Database query failed:', dbQueryError.message);
         }
       }
     } catch (dbError) {
       // Database not ready yet - still return healthy for basic server operation
-      basicStatus.database = 'initializing';
-      basicStatus.message = 'Server healthy - database initializing in background';
+      basicStatus.checks = { store: 'unknown' };
+      basicStatus.message = 'Server healthy';
       console.log('Health check: Database not ready yet:', dbError.message);
     }
 
@@ -117,7 +97,7 @@ router.get('/', async (req, res) => {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: 'Server error',
-      message: error.message
+      message: 'Health check failed'
     });
   }
 });
@@ -176,7 +156,6 @@ router.get('/store', async (req, res) => {
       success: false,
       ready: false,
       status: 'initializing',
-      error: error.message,
       message: 'Store data not yet available - initialization in progress'
     });
   }

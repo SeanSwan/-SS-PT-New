@@ -484,6 +484,7 @@ interface ClientStellarSidebarProps {
   onToggleCollapse?: () => void;
   isMobileOpen?: boolean;
   onToggleMobile?: () => void;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
 }
 
 const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
@@ -491,6 +492,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
   onToggleCollapse,
   isMobileOpen = false,
   onToggleMobile,
+  clientSource,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -539,6 +541,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
 
   const collapsed = isMobile ? false : isCollapsed;
   const showLabel = !collapsed;
+  const canBookSwanStudiosSessions = clientSource !== 'move_fitness' && clientSource !== 'external';
 
   return (
     <>
@@ -588,7 +591,9 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
           {clientNavConfig.map((group) => (
             <React.Fragment key={group.section}>
               <SectionLabel $visible={showLabel}>{group.section}</SectionLabel>
-              {group.items.map((item, i) => {
+              {group.items.filter((item) => {
+                return canBookSwanStudiosSessions || item.path !== '/dashboard/client/schedule';
+              }).map((item, i) => {
                 const Icon = item.icon;
                 return (
                   <NavItem

@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import {
   Activity, UserPlus, Dumbbell, DollarSign, Trophy,
-  Shield, Bell, Clock,
+  Shield, Clock, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
@@ -27,44 +27,56 @@ const ICON_MAP: Record<ActivityType, { icon: React.ReactNode; color: string }> =
   signup:      { icon: <UserPlus size={14} />,  color: CHART_COLORS.iceWing },
   workout:     { icon: <Dumbbell size={14} />,  color: CHART_COLORS.wingPurple },
   payment:     { icon: <DollarSign size={14} />, color: CHART_COLORS.gildedFern },
-  achievement: { icon: <Trophy size={14} />,    color: '#10B981' },
+  achievement: { icon: <Trophy size={14} />,    color: CHART_COLORS.gildedFern },
   session:     { icon: <Clock size={14} />,     color: CHART_COLORS.arcticCyan },
   system:      { icon: <Shield size={14} />,    color: CHART_COLORS.swanLavender },
 };
 
-const DEMO_FEED: ActivityItem[] = [
-  { id: '1', type: 'signup',      message: 'New user registered',                timestamp: '2 min ago' },
-  { id: '2', type: 'workout',     message: 'Client completed Upper Body workout', timestamp: '8 min ago' },
-  { id: '3', type: 'payment',     message: 'Payment received — $186.00',          timestamp: '15 min ago' },
-  { id: '4', type: 'achievement', message: 'Achievement unlocked: 10-Day Streak', timestamp: '22 min ago' },
-  { id: '5', type: 'session',     message: 'Training session scheduled',          timestamp: '35 min ago' },
-  { id: '6', type: 'workout',     message: 'Client completed Leg Day',            timestamp: '1 hr ago' },
-  { id: '7', type: 'signup',      message: 'New user registered',                timestamp: '1.5 hr ago' },
-  { id: '8', type: 'payment',     message: 'Subscription renewed — $24.99/mo',    timestamp: '2 hr ago' },
-  { id: '9', type: 'system',      message: 'Daily backup completed',              timestamp: '3 hr ago' },
-  { id: '10', type: 'achievement', message: 'Achievement unlocked: First Workout', timestamp: '4 hr ago' },
-];
+const ACTIVITY_TYPES: ActivityType[] = ['signup', 'workout', 'payment', 'achievement', 'session', 'system'];
+
+const normalizeText = (value: unknown, fallback: string): string => {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed || fallback;
+};
+
+const normalizeActivityType = (value: unknown): ActivityType => (
+  typeof value === 'string' && ACTIVITY_TYPES.includes(value as ActivityType)
+    ? value as ActivityType
+    : 'system'
+);
+
+const normalizeFeed = (value: unknown): ActivityItem[] => {
+  if (!Array.isArray(value)) return [];
+
+  return value.map((item, index) => {
+    const row = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+    const id = normalizeText(row.id, String(index));
+    return {
+      id,
+      type: normalizeActivityType(row.type),
+      message: normalizeText(row.message ?? row.description, 'Activity recorded'),
+      timestamp: normalizeText(row.timeAgo ?? row.timestamp, 'Timestamp unavailable'),
+      meta: typeof row.meta === 'string' ? row.meta : undefined,
+    };
+  });
+};
 
 const RecentActivityFeed: React.FC = () => {
   const { authAxios } = useAuth();
-  const [feed, setFeed] = useState<ActivityItem[]>(DEMO_FEED);
+  const [feed, setFeed] = useState<ActivityItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async () => {
     try {
       const res = await authAxios.get('/api/gamification/activity-feed', {
         params: { limit: 10 },
       });
-      if (res.data?.data?.length) {
-        setFeed(res.data.data.map((item: any, i: number) => ({
-          id: item.id ?? String(i),
-          type: item.type ?? 'system',
-          message: item.message ?? item.description ?? 'Activity recorded',
-          timestamp: item.timeAgo ?? item.timestamp ?? 'just now',
-          meta: item.meta,
-        })));
-      }
+      setFeed(normalizeFeed(res.data?.data));
+      setError(null);
     } catch {
-      setFeed(DEMO_FEED);
+      setFeed([]);
+      setError('Recent activity could not be loaded.');
     }
   }, [authAxios]);
 
@@ -81,18 +93,31 @@ const RecentActivityFeed: React.FC = () => {
       </Header>
 
       <FeedList>
-        {feed.map((item) => {
-          const config = ICON_MAP[item.type] ?? ICON_MAP.system;
-          return (
-            <FeedItem key={item.id}>
-              <FeedIcon $color={config.color}>{config.icon}</FeedIcon>
-              <FeedContent>
-                <FeedMessage>{item.message}</FeedMessage>
-                <FeedTime>{item.timestamp}</FeedTime>
-              </FeedContent>
-            </FeedItem>
-          );
-        })}
+        {error ? (
+          <ErrorState role="alert">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+            <RetryInline type="button" onClick={fetchFeed}>
+              <RefreshCw size={14} />
+              Retry
+            </RetryInline>
+          </ErrorState>
+        ) : feed.length === 0 ? (
+          <EmptyState>No recent platform activity yet.</EmptyState>
+        ) : (
+          feed.map((item) => {
+            const config = ICON_MAP[item.type] ?? ICON_MAP.system;
+            return (
+              <FeedItem key={item.id}>
+                <FeedIcon $color={config.color}>{config.icon}</FeedIcon>
+                <FeedContent>
+                  <FeedMessage>{item.message}</FeedMessage>
+                  <FeedTime>{item.timestamp}</FeedTime>
+                </FeedContent>
+              </FeedItem>
+            );
+          })
+        )}
       </FeedList>
     </Wrapper>
   );
@@ -132,6 +157,33 @@ const Subtitle = styled.p`
 
 const FeedList = styled.div`
   display: flex; flex-direction: column; gap: 2px;
+`;
+
+const ErrorState = styled.div`
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  min-height: 44px; padding: 10px 12px; border-radius: 8px;
+  background: rgba(198, 168, 75, 0.12);
+  border: 1px solid rgba(198, 168, 75, 0.24);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 12px;
+  @media (max-width: 430px) { grid-template-columns: auto 1fr; }
+`;
+
+const RetryInline = styled.button`
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
+  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
+`;
+
+const EmptyState = styled.div`
+  min-height: 44px; display: flex; align-items: center;
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(0, 32, 96, 0.2);
+  border: 1px dashed rgba(96, 192, 240, 0.18);
+  color: var(--text-secondary, rgba(224,236,244,0.7));
+  font-size: 12px;
 `;
 
 const FeedItem = styled.div`
