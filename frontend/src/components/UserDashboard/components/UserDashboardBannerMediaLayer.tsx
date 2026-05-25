@@ -15,6 +15,7 @@ import {
   BannerTileLayer,
 } from '../styles/DashboardV3Styles';
 import {
+  MAX_BANNER_COLLAGE_PHOTOS,
   isBannerCarouselLayout,
   type BannerCollageLayout,
   type BannerObjectFit,
@@ -75,7 +76,7 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
 
   if (bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0) {
     const isCarouselLayout = isBannerCarouselLayout(bannerCollageLayout);
-    const photos = bannerCollagePhotos.slice(0, 6);
+    const photos = bannerCollagePhotos.slice(0, MAX_BANNER_COLLAGE_PHOTOS);
     const displayPhotos = isCarouselLayout ? [...photos, ...photos] : photos;
     const collageFrames = displayPhotos.map((photo, index) => {
       const mediaKey = `${photo}-${index}`;
@@ -120,15 +121,17 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
 
     return (
       <>
-        <BannerCollageLayer
-          data-layout={bannerCollageLayout}
-          style={{
-            '--banner-image-scale': String(bannerImageScale),
-            '--banner-object-position': bannerObjectPosition,
-          } as React.CSSProperties}
-        >
-          {isCarouselLayout ? <BannerCarouselTrack>{collageFrames}</BannerCarouselTrack> : collageFrames}
-        </BannerCollageLayer>
+        {(!isCarouselLayout || !bannerStickyCarousel) && (
+          <BannerCollageLayer
+            data-layout={bannerCollageLayout}
+            style={{
+              '--banner-image-scale': String(bannerImageScale),
+              '--banner-object-position': bannerObjectPosition,
+            } as React.CSSProperties}
+          >
+            {isCarouselLayout ? <BannerCarouselTrack>{collageFrames}</BannerCarouselTrack> : collageFrames}
+          </BannerCollageLayer>
+        )}
         {isCarouselLayout && bannerStickyCarousel && (
           <BannerStickyCarouselLayer
             data-testid="banner-sticky-carousel"
@@ -139,9 +142,22 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
               {displayPhotos.map((photo, index) => (
                 <BannerStickyCarouselFrame key={`${photo}-sticky-${index}`}>
                   {isBannerVideoUrl(photo) ? (
-                    <BannerStickyCarouselVideo src={photo} muted loop autoPlay playsInline preload="metadata" />
+                    <BannerStickyCarouselVideo
+                      src={photo}
+                      data-testid="banner-sticky-carousel-video"
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                      preload="metadata"
+                    />
                   ) : (
-                    <BannerStickyCarouselImage src={photo} alt="" draggable={false} />
+                    <BannerStickyCarouselImage
+                      src={photo}
+                      alt=""
+                      data-testid="banner-sticky-carousel-image"
+                      draggable={false}
+                    />
                   )}
                 </BannerStickyCarouselFrame>
               ))}

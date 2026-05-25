@@ -76,6 +76,42 @@ describe('useBannerCompositionState', () => {
     });
   });
 
+  it('caps collage videos while still accepting photos into remaining slots', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const uploadBannerCollagePhoto = vi.fn()
+      .mockResolvedValueOnce('/uploads/third.mp4')
+      .mockResolvedValueOnce('/uploads/photo.jpg');
+    const profile = {
+      bannerObjectFit: 'collage',
+      bannerCollagePhotos: ['/uploads/one.mp4', '/uploads/two.webm'],
+    } as any;
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile,
+      updateProfile,
+      uploadBannerCollagePhoto,
+    }));
+
+    await waitFor(() => expect(result.current.bannerCollagePhotos).toHaveLength(2));
+    await act(async () => {
+      await result.current.handleBannerCollageFiles([
+        new File(['video'], 'third.mp4', { type: 'video/mp4' }),
+        new File(['video'], 'fourth.mov', { type: 'video/quicktime' }),
+        new File(['photo'], 'photo.jpg', { type: 'image/jpeg' }),
+      ]);
+    });
+
+    expect(uploadBannerCollagePhoto).toHaveBeenCalledTimes(2);
+    expect(updateProfile).toHaveBeenCalledWith({
+      bannerCollagePhotos: [
+        '/uploads/one.mp4',
+        '/uploads/two.webm',
+        '/uploads/third.mp4',
+        '/uploads/photo.jpg',
+      ],
+      bannerObjectFit: 'collage',
+    });
+  });
+
   it('rolls collage uploads back when profile persistence fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const updateProfile = vi.fn().mockRejectedValue(new Error('save failed'));

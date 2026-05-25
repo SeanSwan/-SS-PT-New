@@ -20,6 +20,8 @@ describe('UserDashboard banner crop contract', () => {
   const controller = read('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
   const compositionHook = read('src/components/UserDashboard/hooks/useBannerCompositionState.ts');
   const profileService = read('src/services/profileService.ts');
+  const bannerCompositionService = read('src/services/profileBannerComposition.ts');
+  const profileTypesService = read('src/services/profileTypes.ts');
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
   const compositionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCompositionStyles.ts');
   const carouselStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCarouselStyles.ts');
@@ -57,26 +59,27 @@ describe('UserDashboard banner crop contract', () => {
   });
 
   it('allows percentage object-position strings and fit modes at the profile service boundary', () => {
-    expect(profileService).toContain('type BannerObjectFit');
-    expect(profileService).toContain('isBannerObjectFit');
-    expect(profileService).toContain('normalizeBannerImageScale');
-    expect(profileService).toContain('normalizeBannerObjectPosition');
-    expect(profileService).toContain('normalizeBannerFrameHeight');
-    expect(profileService).toContain('normalizeBannerCollagePhotos');
-    expect(profileService).toContain('normalizeBannerCollageLayout');
-    expect(profileService).toContain('normalizeBannerPresets');
-    expect(profileService).toContain('BANNER_OBJECT_FIT_OPTIONS');
-    expect(profileService).toContain('BANNER_COLLAGE_LAYOUT_OPTIONS');
-    expect(profileService).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
-    expect(profileService).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
-    expect(profileService).toContain("'tile'");
-    expect(profileService).toContain("'collage'");
-    expect(profileService).toContain('bannerCollagePhotos');
-    expect(profileService).toContain('bannerCollageLayout');
-    expect(profileService).toContain('bannerStickyCarousel');
-    expect(profileService).toContain('bannerPresets');
+    expect(profileService).toContain("export * from './profileBannerComposition'");
+    expect(bannerCompositionService).toContain('type BannerObjectFit');
+    expect(bannerCompositionService).toContain('isBannerObjectFit');
+    expect(bannerCompositionService).toContain('normalizeBannerImageScale');
+    expect(bannerCompositionService).toContain('normalizeBannerObjectPosition');
+    expect(bannerCompositionService).toContain('normalizeBannerFrameHeight');
+    expect(bannerCompositionService).toContain('normalizeBannerCollagePhotos');
+    expect(bannerCompositionService).toContain('normalizeBannerCollageLayout');
+    expect(bannerCompositionService).toContain('normalizeBannerPresets');
+    expect(bannerCompositionService).toContain('BANNER_OBJECT_FIT_OPTIONS');
+    expect(bannerCompositionService).toContain('BANNER_COLLAGE_LAYOUT_OPTIONS');
+    expect(bannerCompositionService).toContain('BANNER_CAROUSEL_LAYOUT_OPTIONS');
+    expect(bannerCompositionService).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
+    expect(bannerCompositionService).toContain("'tile'");
+    expect(bannerCompositionService).toContain("'collage'");
+    expect(profileTypesService).toContain('bannerCollagePhotos');
+    expect(profileTypesService).toContain('bannerCollageLayout');
+    expect(profileTypesService).toContain('bannerStickyCarousel');
+    expect(profileTypesService).toContain('bannerPresets');
     expect(profileService).toContain('/api/profile/upload-banner-collage-photo');
-    expect(profileService).toContain('video/mp4');
+    expect(bannerCompositionService).toContain('video/mp4');
   });
 
   it('renders creative modes with image elements instead of CSS background-url repetition', () => {
@@ -89,13 +92,30 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('BannerCarouselTrack');
     expect(mediaLayer).toContain('BannerStickyCarouselTrack');
     expect(mediaLayer).toContain('data-testid="banner-sticky-carousel"');
+    expect(mediaLayer).toContain('!bannerStickyCarousel');
+    expect(mediaLayer).toContain('data-testid="banner-sticky-carousel-image"');
+    expect(carouselStyles).toMatch(/const stickyCarouselMediaCss[\s\S]*?object-fit: contain;/);
+    expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_PHOTOS = 12');
+    expect(bannerCompositionService).toContain('MAX_BANNER_COLLAGE_VIDEOS = 3');
+    expect(compositionHook).toContain('MAX_BANNER_COLLAGE_VIDEOS');
+    expect(compositionHook).toContain('nextVideoCount >= MAX_BANNER_COLLAGE_VIDEOS');
+    expect(mediaLayer).toContain('slice(0, MAX_BANNER_COLLAGE_PHOTOS)');
     expect(cropControls).not.toContain('backgroundImage: `');
     expect(mediaLayer).not.toContain('backgroundImage: `');
   });
 
-  it('keeps tile and collage media from cropping inside their grid cells', () => {
+  it('keeps tile media whole and removes carousel frame containers below photos', () => {
     expect(compositionStyles).toMatch(/export const BannerTileImage[\s\S]*?object-fit: contain;/);
-    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
+    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: cover;/);
+    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?data-layout\^='carousel-'[\s\S]*?object-fit: contain;/);
+    expect(compositionStyles).toMatch(/BannerCollageLayer[\s\S]*?data-layout='stream'[\s\S]*?display: grid;/);
+    expect(compositionStyles).toContain("${BannerCollageLayer}[data-layout='stream'] &,");
+    expect(compositionStyles).toMatch(/\$\{BannerCollageLayer\}\[data-layout='stream'\][\s\S]*?height: 100%;/);
+    expect(compositionStyles).toMatch(/\$\{BannerCollageLayer\}\[data-layout\^='carousel-'\][\s\S]*?flex: 0 0 auto;/);
+    expect(compositionStyles).toMatch(/\$\{BannerCollageLayer\}\[data-layout\^='carousel-'\][\s\S]*?aspect-ratio: auto;/);
+    expect(compositionStyles).toMatch(/\$\{BannerCollageLayer\}\[data-layout\^='carousel-'\][\s\S]*?background: transparent;/);
+    expect(compositionStyles).toMatch(/\$\{BannerCollageLayer\}\[data-layout\^='carousel-'\][\s\S]*?box-shadow: none;/);
+    expect(carouselStyles).toMatch(/export const BannerCarouselTrack[\s\S]*?align-items: flex-start;/);
   });
 
   it('uses an adaptive aspect-ratio collage mosaic instead of fixed two-row cells', () => {
@@ -106,6 +126,7 @@ describe('UserDashboard banner crop contract', () => {
     expect(collageLayerBlock).toContain('align-items: flex-start;');
     expect(collageLayerBlock).toContain('justify-content: flex-start;');
     expect(collageLayerBlock).toContain('padding: 0 clamp');
+    expect(collageLayerBlock).toContain("data-layout='stream'");
     expect(collageLayerBlock).toContain("data-layout='mosaic'");
     expect(collageLayerBlock).toContain("data-layout^='carousel-'");
     expect(collageFrameBlock).toContain('flex: var(--banner-collage-grow');
@@ -117,11 +138,11 @@ describe('UserDashboard banner crop contract', () => {
   });
 
   it('supports five carousel banner layouts plus an optional sticky mini strip', () => {
-    expect(profileService).toContain("'carousel-reel'");
-    expect(profileService).toContain("'carousel-cinema'");
-    expect(profileService).toContain("'carousel-coverflow'");
-    expect(profileService).toContain("'carousel-stack'");
-    expect(profileService).toContain("'carousel-ticker'");
+    expect(bannerCompositionService).toContain("'carousel-reel'");
+    expect(bannerCompositionService).toContain("'carousel-cinema'");
+    expect(bannerCompositionService).toContain("'carousel-coverflow'");
+    expect(bannerCompositionService).toContain("'carousel-stack'");
+    expect(bannerCompositionService).toContain("'carousel-ticker'");
     expect(carouselStyles).toContain('BannerCarouselTrack');
     expect(carouselStyles).toContain('BannerStickyCarouselLayer');
     expect(carouselStyles).toContain('BannerStickyCarouselTrack');

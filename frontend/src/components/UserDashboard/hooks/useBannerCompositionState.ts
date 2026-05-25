@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   BANNER_COLLAGE_MEDIA_TYPES,
+  BANNER_MEDIA_VIDEO_TYPES,
   DEFAULT_BANNER_FRAME_HEIGHT,
   DEFAULT_BANNER_COLLAGE_LAYOUT,
   DEFAULT_BANNER_STICKY_CAROUSEL,
@@ -9,7 +10,9 @@ import {
   DEFAULT_BANNER_OBJECT_POSITION,
   MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE,
   MAX_BANNER_COLLAGE_PHOTOS,
+  MAX_BANNER_COLLAGE_VIDEOS,
   MAX_BANNER_PRESETS,
+  isBannerCollageVideoUrl,
   isBannerObjectFit,
   normalizeBannerCollageLayout,
   normalizeBannerCollagePhotos,
@@ -158,9 +161,20 @@ export function useBannerCompositionState({
     const previousFit = bannerObjectFit;
     const capacity = MAX_BANNER_COLLAGE_PHOTOS - bannerCollagePhotos.length;
     if (capacity <= 0) return;
-    const files = Array.from(filesLike).filter((file) =>
-      (BANNER_COLLAGE_MEDIA_TYPES as readonly string[]).includes(file.type)
-      && file.size <= MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE).slice(0, capacity);
+    let nextVideoCount = bannerCollagePhotos.filter(isBannerCollageVideoUrl).length;
+    const files: File[] = [];
+    for (const file of Array.from(filesLike)) {
+      if (files.length >= capacity) break;
+      const isAllowedType = (BANNER_COLLAGE_MEDIA_TYPES as readonly string[]).includes(file.type);
+      const isAllowedSize = file.size <= MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE;
+      if (!isAllowedType || !isAllowedSize) continue;
+      const isVideo = (BANNER_MEDIA_VIDEO_TYPES as readonly string[]).includes(file.type);
+      if (isVideo) {
+        if (nextVideoCount >= MAX_BANNER_COLLAGE_VIDEOS) continue;
+        nextVideoCount += 1;
+      }
+      files.push(file);
+    }
     if (files.length === 0) return;
 
     const uploaded: string[] = [];

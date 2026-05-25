@@ -170,7 +170,10 @@ const BANNER_COLLAGE_LAYOUTS = new Set([
 ]);
 const MIN_BANNER_FRAME_HEIGHT = 180;
 const MAX_BANNER_FRAME_HEIGHT = 1000;
+const MAX_BANNER_COLLAGE_PHOTOS = 12;
+const MAX_BANNER_COLLAGE_VIDEOS = 3;
 const MAX_BANNER_PRESETS = 12;
+const BANNER_VIDEO_EXTENSION_PATTERN = /\.(mp4|webm|mov)(?:[?#].*)?$/i;
 
 const clampPercent = value => Math.min(100, Math.max(0, value));
 const formatPercent = value => `${Number(value.toFixed(2))}%`;
@@ -210,13 +213,24 @@ const normalizeBannerFrameHeight = value => {
   return Math.round(Math.min(MAX_BANNER_FRAME_HEIGHT, Math.max(MIN_BANNER_FRAME_HEIGHT, next)));
 };
 
+const isBannerCollageVideoUrl = value =>
+  typeof value === 'string' && BANNER_VIDEO_EXTENSION_PATTERN.test(value);
+
 const normalizeBannerCollagePhotos = value => {
   if (!Array.isArray(value)) return null;
-  const candidates = value.slice(0, 6);
-  const safePhotos = candidates
-    .map(url => sanitizeImageUrl(url))
-    .filter(Boolean);
-  return safePhotos.length === candidates.length ? safePhotos : null;
+  const safePhotos = [];
+  let videoCount = 0;
+  for (const candidate of value) {
+    if (safePhotos.length >= MAX_BANNER_COLLAGE_PHOTOS) break;
+    const safeUrl = sanitizeImageUrl(candidate);
+    if (!safeUrl) return null;
+    if (isBannerCollageVideoUrl(safeUrl)) {
+      if (videoCount >= MAX_BANNER_COLLAGE_VIDEOS) continue;
+      videoCount += 1;
+    }
+    safePhotos.push(safeUrl);
+  }
+  return safePhotos;
 };
 
 const normalizeBannerPresets = value => {

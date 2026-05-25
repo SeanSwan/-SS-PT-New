@@ -83,12 +83,12 @@ describe('normalizeBannerFrameHeight', () => {
   it('keeps the cover frame height in a usable banner range', () => {
     expect(normalizeBannerFrameHeight(120)).toBe(180);
     expect(normalizeBannerFrameHeight(460)).toBe(460);
-    expect(normalizeBannerFrameHeight(900)).toBe(640);
+    expect(normalizeBannerFrameHeight(1200)).toBe(1000);
   });
 });
 
 describe('normalizeBannerCollagePhotos', () => {
-  it('keeps only safe uploaded image URLs and caps the collage size', () => {
+  it('keeps only safe uploaded media URLs and caps the collage size', () => {
     expect(normalizeBannerCollagePhotos([
       '/uploads/one.jpg',
       ' javascript:alert(1)',
@@ -98,6 +98,12 @@ describe('normalizeBannerCollagePhotos', () => {
       '/uploads/five.jpg',
       '/uploads/six.jpg',
       '/uploads/seven.jpg',
+      '/uploads/eight.jpg',
+      '/uploads/nine.jpg',
+      '/uploads/ten.jpg',
+      '/uploads/eleven.jpg',
+      '/uploads/twelve.jpg',
+      '/uploads/thirteen.jpg',
     ])).toEqual([
       '/uploads/one.jpg',
       '/uploads/two.jpg',
@@ -105,6 +111,27 @@ describe('normalizeBannerCollagePhotos', () => {
       '/uploads/four.jpg',
       '/uploads/five.jpg',
       '/uploads/six.jpg',
+      '/uploads/seven.jpg',
+      '/uploads/eight.jpg',
+      '/uploads/nine.jpg',
+      '/uploads/ten.jpg',
+      '/uploads/eleven.jpg',
+      '/uploads/twelve.jpg',
+    ]);
+  });
+
+  it('caps video media while preserving photo slots', () => {
+    expect(normalizeBannerCollagePhotos([
+      '/uploads/one.mp4',
+      '/uploads/two.webm',
+      '/uploads/three.mov',
+      '/uploads/four.mp4',
+      '/uploads/photo.jpg',
+    ])).toEqual([
+      '/uploads/one.mp4',
+      '/uploads/two.webm',
+      '/uploads/three.mov',
+      '/uploads/photo.jpg',
     ]);
   });
 });

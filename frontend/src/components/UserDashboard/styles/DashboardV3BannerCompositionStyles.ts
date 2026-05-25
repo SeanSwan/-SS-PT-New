@@ -41,6 +41,17 @@ export const BannerCollageLayer = styled.div<{ $layout?: BannerCollageLayout }>`
   z-index: 0;
   pointer-events: none;
 
+  &[data-layout='stream'] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(clamp(132px, calc(15vw * var(--banner-image-scale, 1)), 320px), 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    grid-auto-flow: dense;
+    align-items: stretch;
+    align-content: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+
   &[data-layout='mosaic'],
   &[data-layout='spotlight'] {
     display: grid;
@@ -56,7 +67,7 @@ export const BannerCollageLayer = styled.div<{ $layout?: BannerCollageLayout }>`
   &[data-layout^='carousel-'] {
     display: flex;
     flex-wrap: nowrap;
-    align-items: stretch;
+    align-items: flex-start;
     align-content: flex-start;
     gap: clamp(6px, 0.65vw, 14px);
     padding: 0;
@@ -65,6 +76,10 @@ export const BannerCollageLayer = styled.div<{ $layout?: BannerCollageLayout }>`
   @media (max-width: 768px) {
     gap: 4px;
     padding-inline: 0;
+
+    &[data-layout='stream'] {
+      grid-template-columns: repeat(auto-fit, minmax(clamp(118px, 42vw, 220px), 1fr));
+    }
   }
 `;
 
@@ -72,12 +87,20 @@ const collageMediaCss = css`
   width: 100%;
   height: 100%;
   min-width: 0;
-  object-fit: contain;
+  object-fit: cover;
   object-position: var(--banner-object-position, center center);
   transition: object-position 140ms ease;
   border-radius: inherit;
   user-select: none;
   -webkit-user-drag: none;
+
+  ${BannerCollageLayer}[data-layout^='carousel-'] & {
+    width: auto;
+    height: 100%;
+    max-width: min(58vw, 760px);
+    object-fit: contain;
+    background: transparent;
+  }
 `;
 
 export const BannerCollageMediaFrame = styled.div`
@@ -96,6 +119,7 @@ export const BannerCollageMediaFrame = styled.div`
     0 12px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
 
+  ${BannerCollageLayer}[data-layout='stream'] &,
   ${BannerCollageLayer}[data-layout='mosaic'] &,
   ${BannerCollageLayer}[data-layout='spotlight'] & {
     flex: none;
@@ -130,27 +154,32 @@ export const BannerCollageMediaFrame = styled.div`
   }
 
   ${BannerCollageLayer}[data-layout^='carousel-'] & {
-    flex: 0 0 clamp(180px, calc(26vw * var(--banner-image-scale, 1)), 520px);
-    height: 100%;
-    max-height: none;
+    flex: 0 0 auto;
+    width: auto;
+    height: clamp(150px, calc(var(--banner-frame-height, 320px) * 0.46), 520px);
+    aspect-ratio: auto;
+    max-height: 100%;
+    overflow: visible;
+    background: transparent;
+    box-shadow: none;
   }
 
   ${BannerCollageLayer}[data-layout='carousel-cinema'] & {
-    flex-basis: clamp(260px, calc(38vw * var(--banner-image-scale, 1)), 760px);
+    height: clamp(180px, calc(var(--banner-frame-height, 320px) * 0.6), 640px);
   }
 
   ${BannerCollageLayer}[data-layout='carousel-coverflow'] & {
-    flex-basis: clamp(170px, calc(24vw * var(--banner-image-scale, 1)), 440px);
+    height: clamp(160px, calc(var(--banner-frame-height, 320px) * 0.54), 540px);
     transform: perspective(900px) rotateY(-8deg);
   }
 
   ${BannerCollageLayer}[data-layout='carousel-stack'] & {
-    flex-basis: clamp(150px, calc(20vw * var(--banner-image-scale, 1)), 380px);
+    height: clamp(150px, calc(var(--banner-frame-height, 320px) * 0.5), 500px);
     margin-right: clamp(-36px, -2vw, -14px);
   }
 
   ${BannerCollageLayer}[data-layout='carousel-ticker'] & {
-    flex-basis: clamp(132px, calc(18vw * var(--banner-image-scale, 1)), 320px);
+    height: clamp(112px, calc(var(--banner-frame-height, 320px) * 0.34), 320px);
   }
 
   @media (max-width: 768px) {

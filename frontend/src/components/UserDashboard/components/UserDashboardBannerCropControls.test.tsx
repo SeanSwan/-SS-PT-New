@@ -189,6 +189,19 @@ describe('UserDashboardBannerCropControls', () => {
     expect(props.onBannerStickyCarouselCommit).toHaveBeenCalledWith(false);
   });
 
+  it('hides the full carousel layer when the sticky mini carousel is enabled', () => {
+    renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerCollageLayout: 'carousel-cinema' as const,
+      bannerStickyCarousel: true,
+      bannerCollagePhotos: ['/uploads/tall.jpg', '/uploads/wide.jpg'],
+    });
+
+    expect(screen.getByTestId('banner-sticky-carousel')).toBeInTheDocument();
+    expect(screen.getAllByTestId('banner-sticky-carousel-image')).toHaveLength(4);
+    expect(screen.queryAllByTestId('banner-collage-image')).toHaveLength(0);
+  });
+
   it('saves, applies, and removes full banner composition presets', () => {
     const preset = {
       id: 'preset-one',
@@ -267,7 +280,7 @@ describe('UserDashboardBannerCropControls', () => {
     expect(screen.getByTestId('banner-collage-video')).toBeInTheDocument();
   });
 
-  it('disables the collage picker once the six-photo banner is full', () => {
+  it('keeps collage capacity at twelve media items before disabling uploads', () => {
     renderCropControls({
       bannerObjectFit: 'collage' as const,
       bannerCollagePhotos: [
@@ -277,6 +290,12 @@ describe('UserDashboardBannerCropControls', () => {
         '/uploads/four.jpg',
         '/uploads/five.jpg',
         '/uploads/six.jpg',
+        '/uploads/seven.jpg',
+        '/uploads/eight.jpg',
+        '/uploads/nine.jpg',
+        '/uploads/ten.jpg',
+        '/uploads/eleven.jpg',
+        '/uploads/twelve.jpg',
       ],
     });
 

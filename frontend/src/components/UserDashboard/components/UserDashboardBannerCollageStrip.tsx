@@ -19,6 +19,7 @@ import {
   BANNER_COLLAGE_LAYOUT_OPTIONS,
   BANNER_COLLAGE_MEDIA_TYPES,
   MAX_BANNER_COLLAGE_PHOTOS,
+  MAX_BANNER_COLLAGE_VIDEOS,
   isBannerCarouselLayout,
   type BannerCollageLayout,
   type BannerObjectPosition,
@@ -83,7 +84,9 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
 
   return (
     <>
-      <BannerCropHint>Collage mode layers up to six photos or short videos.</BannerCropHint>
+      <BannerCropHint>
+        Collage mode layers up to {MAX_BANNER_COLLAGE_PHOTOS} media items, with {MAX_BANNER_COLLAGE_VIDEOS} short videos max.
+      </BannerCropHint>
       <BannerCropModeRow>
         {BANNER_COLLAGE_LAYOUT_OPTIONS.map((option) => (
           <BannerCropModeButton

@@ -26,6 +26,9 @@ describe('profile banner crop persistence contract', () => {
     expect(controllerSource).toContain('normalizeBannerCollagePhotos');
     expect(controllerSource).toContain('normalizeBannerPresets');
     expect(controllerSource).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
+    expect(controllerSource).toContain('MAX_BANNER_COLLAGE_PHOTOS = 12');
+    expect(controllerSource).toContain('MAX_BANNER_COLLAGE_VIDEOS = 3');
+    expect(controllerSource).toContain('videoCount >= MAX_BANNER_COLLAGE_VIDEOS');
     expect(controllerSource).not.toContain('bannerObjectPosition must be one of the 9 supported presets');
   });
 

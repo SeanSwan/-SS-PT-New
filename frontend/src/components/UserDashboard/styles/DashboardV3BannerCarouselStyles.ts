@@ -8,11 +8,12 @@ const carouselTrack = keyframes`
 export const BannerCarouselTrack = styled.div`
   display: flex;
   flex-wrap: nowrap;
-  align-items: stretch;
+  align-items: flex-start;
   gap: clamp(6px, 0.65vw, 14px);
   width: max-content;
   min-width: 200%;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   animation: ${carouselTrack} 38s linear infinite;
   will-change: transform;
 
@@ -70,8 +71,9 @@ const stickyCarouselMediaCss = css`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
+  background: var(--bg-base, #0A0A0F);
 `;
 
 export const BannerStickyCarouselImage = styled.img`
