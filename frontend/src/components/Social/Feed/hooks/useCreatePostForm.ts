@@ -21,7 +21,7 @@
  * the component becomes a thin render shell.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useSocialFeed } from '../../../../hooks/social/useSocialFeed';
 import { useCelebrationTriggers } from '../../../../hooks/useCelebrationTriggers';
@@ -31,6 +31,7 @@ import type {
   PostType, Visibility, WorkoutSession, WorkoutSessionsResponse, WorkoutStats,
   CategorySuggestion,
 } from '../types/CreatePostTypes';
+import { appendHashtag, inferSmartPostIntent } from '../utils/postIntentInference';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
@@ -40,6 +41,13 @@ import type {
 const EMPTY_WORKOUT_STATS: WorkoutStats = {
   duration: '', exerciseCount: '', totalWeight: '', caloriesBurned: '',
 };
+
+const CORE_SUGGESTION_TYPES = new Set<PostType>([
+  'workout',
+  'transformation',
+  'achievement',
+  'challenge',
+]);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hook
@@ -72,9 +80,6 @@ export function useCreatePostForm() {
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutSession[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Category override (AI Village mandate)
-  const [categorySuggestion] = useState<CategorySuggestion | null>(null);
-
   // Refs
   const createCardRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +96,30 @@ export function useCreatePostForm() {
       });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const smartIntent = useMemo(
+    () => inferSmartPostIntent(postContent, postType),
+    [postContent, postType],
+  );
+
+  const categorySuggestion = useMemo<CategorySuggestion | null>(() => {
+    if (
+      postType !== 'general' ||
+      smartIntent.submissionType === 'general' ||
+      !CORE_SUGGESTION_TYPES.has(smartIntent.submissionType)
+    ) {
+      return null;
+    }
+    return {
+      suggested: smartIntent.submissionType,
+      confidence: smartIntent.confidence,
+      reason: smartIntent.reason,
+    };
+  }, [postType, smartIntent]);
+
+  const addHashtagToContent = useCallback((hashtag: string) => {
+    setPostContent(current => appendHashtag(current, hashtag));
   }, []);
 
   // ── Workout History ─────────────────────────────────────────
@@ -196,7 +225,8 @@ export function useCreatePostForm() {
     else if (postType === 'workout' && !postContent.trim() && !Object.values(workoutStats).some(s => s.trim())) return;
     else if (postType !== 'transformation' && postType !== 'workout' && !postContent.trim() && !media) return;
 
-    const postData: any = { content: postContent, type: postType, visibility };
+    const typeForSubmit = postType === 'general' ? smartIntent.submissionType : postType;
+    const postData: any = { content: postContent, type: typeForSubmit, visibility };
     if (postType === 'transformation') {
       if (beforeImage) postData.media = beforeImage;
       postData.transformationData = { hasBeforeImage: !!beforeImage, hasAfterImage: !!afterImage };
@@ -210,7 +240,7 @@ export function useCreatePostForm() {
     const result = await createPost(postData);
     if (result?.pointsAwarded) triggerFromResult(result);
     resetForm();
-  }, [postType, postContent, beforeImage, afterImage, workoutStats, media, visibility, createPost, triggerFromResult, resetForm]);
+  }, [postType, smartIntent.submissionType, postContent, beforeImage, afterImage, workoutStats, media, visibility, createPost, triggerFromResult, resetForm]);
 
   // ── Derived: is submit disabled? ───────────────────────────
   const isSubmitDisabled = isCreatingPost || (
@@ -237,6 +267,8 @@ export function useCreatePostForm() {
     isLoadingHistory,
     // Category
     categorySuggestion,
+    smartIntent,
+    addHashtagToContent,
     // Refs
     createCardRef, fileInputRef, beforeImageRef, afterImageRef,
     // Submission

@@ -13,7 +13,7 @@
  * HOW IT FITS IN THE APP: Imported by CreatePostCard.tsx, CreatePostForm.tsx,
  * CreatePostMediaUpload.tsx, CreatePostTypeSelector.tsx, CategoryOverrideSelector.tsx.
  *
- * KEY DECISIONS: PostType union covers all 11 content verticals. WorkoutSession
+ * KEY DECISIONS: PostType union covers core and smart-inferred verticals. WorkoutSession
  * interface tolerates multiple API field name conventions (duration vs durationMinutes)
  * because the backend has not yet standardised response shapes.
  */

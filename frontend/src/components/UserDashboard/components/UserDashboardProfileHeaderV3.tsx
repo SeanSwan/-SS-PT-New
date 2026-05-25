@@ -32,6 +32,8 @@ import type { ProfileData, ProfileStats } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import type {
   BannerCropState,
+  BannerCollageLayout,
+  BannerPreset,
   BannerObjectFit,
   BannerObjectPosition,
 } from '../../../services/profileService';
@@ -50,12 +52,20 @@ interface UserDashboardProfileHeaderV3Props {
   bannerImageScale: number;
   bannerFrameHeight: number;
   bannerCollagePhotos: string[];
+  bannerCollageLayout: BannerCollageLayout;
+  bannerStickyCarousel: boolean;
+  bannerPresets: BannerPreset[];
   showRepositionPanel: boolean;
   onToggleRepositionPanel: () => void;
   onBannerCropPreview: (next: BannerCropState) => void;
   onBannerCropCommit: (next: BannerCropState) => void;
   onBannerCollageFiles: (files: FileList | File[]) => void;
   onBannerCollageRemove: (index: number) => void;
+  onBannerCollageLayoutCommit: (layout: BannerCollageLayout) => void;
+  onBannerStickyCarouselCommit: (sticky: boolean) => void;
+  onBannerPresetSave: () => void;
+  onBannerPresetApply: (presetId: string) => void;
+  onBannerPresetRemove: (presetId: string) => void;
   profile: ProfileData | null;
   displayStats: ProfileStats;
   topBadges: TopBadge[];
@@ -77,12 +87,20 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
   bannerImageScale,
   bannerFrameHeight,
   bannerCollagePhotos,
+  bannerCollageLayout,
+  bannerStickyCarousel,
+  bannerPresets,
   showRepositionPanel,
   onToggleRepositionPanel,
   onBannerCropPreview,
   onBannerCropCommit,
   onBannerCollageFiles,
   onBannerCollageRemove,
+  onBannerCollageLayoutCommit,
+  onBannerStickyCarouselCommit,
+  onBannerPresetSave,
+  onBannerPresetApply,
+  onBannerPresetRemove,
   profile,
   displayStats,
   topBadges,
@@ -111,12 +129,20 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
         bannerImageScale={bannerImageScale}
         bannerFrameHeight={bannerFrameHeight}
         bannerCollagePhotos={bannerCollagePhotos}
+        bannerCollageLayout={bannerCollageLayout}
+        bannerStickyCarousel={bannerStickyCarousel}
+        bannerPresets={bannerPresets}
         showRepositionPanel={showRepositionPanel}
         onToggleRepositionPanel={onToggleRepositionPanel}
         onBannerCropPreview={onBannerCropPreview}
         onBannerCropCommit={onBannerCropCommit}
         onBannerCollageFiles={onBannerCollageFiles}
         onBannerCollageRemove={onBannerCollageRemove}
+        onBannerCollageLayoutCommit={onBannerCollageLayoutCommit}
+        onBannerStickyCarouselCommit={onBannerStickyCarouselCommit}
+        onBannerPresetSave={onBannerPresetSave}
+        onBannerPresetApply={onBannerPresetApply}
+        onBannerPresetRemove={onBannerPresetRemove}
         onBackgroundClick={onBackgroundClick}
       />
 

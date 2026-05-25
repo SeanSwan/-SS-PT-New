@@ -3,38 +3,26 @@
  */
 
 import React from 'react';
-import { Camera, Move, RotateCcw } from 'lucide-react';
+import { Camera, Move } from 'lucide-react';
 import {
   BackgroundSection,
   BannerActionRow,
-  BannerCropField,
-  BannerCropHint,
-  BannerCropModeButton,
-  BannerCropModeRow,
-  BannerCropResetButton,
-  BannerCropSlider,
-  BannerCropValue,
   BannerRepositionAnchor,
   BannerRepositionButton,
   BannerRepositionPanel,
+  BannerStage,
   BannerUploadButton,
 } from '../styles/DashboardV3Styles';
 import {
-  BANNER_OBJECT_FIT_OPTIONS,
-  DEFAULT_BANNER_FRAME_HEIGHT,
-  DEFAULT_BANNER_IMAGE_SCALE,
-  DEFAULT_BANNER_OBJECT_FIT,
-  DEFAULT_BANNER_OBJECT_POSITION,
-  MAX_BANNER_FRAME_HEIGHT,
-  MIN_BANNER_FRAME_HEIGHT,
   type BannerCropState,
+  type BannerCollageLayout,
+  type BannerPreset,
   type BannerObjectFit,
   type BannerObjectPosition,
 } from '../../../services/profileService';
-import UserDashboardBannerCollageStrip from './UserDashboardBannerCollageStrip';
 import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
+import UserDashboardBannerRepositionPanelContent from './UserDashboardBannerRepositionPanelContent';
 import {
-  FIT_LABELS,
   formatBannerPosition,
   parseBannerPosition,
 } from '../utils/bannerCompositionMedia';
@@ -46,12 +34,20 @@ interface UserDashboardBannerCropControlsProps {
   bannerImageScale: number;
   bannerFrameHeight: number;
   bannerCollagePhotos: string[];
+  bannerCollageLayout: BannerCollageLayout;
+  bannerStickyCarousel: boolean;
+  bannerPresets: BannerPreset[];
   showRepositionPanel: boolean;
   onToggleRepositionPanel: () => void;
   onBannerCropPreview: (next: BannerCropState) => void;
   onBannerCropCommit: (next: BannerCropState) => void;
   onBannerCollageFiles: (files: FileList | File[]) => void;
   onBannerCollageRemove: (index: number) => void;
+  onBannerCollageLayoutCommit: (layout: BannerCollageLayout) => void;
+  onBannerStickyCarouselCommit: (sticky: boolean) => void;
+  onBannerPresetSave: () => void;
+  onBannerPresetApply: (presetId: string) => void;
+  onBannerPresetRemove: (presetId: string) => void;
   onBackgroundClick: () => void;
 }
 
@@ -62,12 +58,20 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
   bannerImageScale,
   bannerFrameHeight,
   bannerCollagePhotos,
+  bannerCollageLayout,
+  bannerStickyCarousel,
+  bannerPresets,
   showRepositionPanel,
   onToggleRepositionPanel,
   onBannerCropPreview,
   onBannerCropCommit,
   onBannerCollageFiles,
   onBannerCollageRemove,
+  onBannerCollageLayoutCommit,
+  onBannerStickyCarouselCommit,
+  onBannerPresetSave,
+  onBannerPresetApply,
+  onBannerPresetRemove,
   onBackgroundClick,
 }) => {
   const canDragBanner = showRepositionPanel
@@ -145,169 +149,72 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
     commitCrop({ position: dragState.nextPosition });
   }, [commitCrop]);
 
-  const handleFitChange = React.useCallback((fit: BannerObjectFit) => {
-    const next: BannerCropState = {
-      ...cropStateRef.current,
-      fit,
-      scale: fit === 'contain' ? Math.min(cropStateRef.current.scale, 1) : cropStateRef.current.scale,
-    };
-    onBannerCropPreview(next);
-    onBannerCropCommit(next);
-  }, [onBannerCropCommit, onBannerCropPreview]);
-
-  const handleCollageFocusChange = React.useCallback((position: BannerObjectPosition) => {
-    const next: BannerCropState = { ...cropStateRef.current, fit: 'collage', position };
-    cropStateRef.current = next;
-    onBannerCropPreview(next);
-    onBannerCropCommit(next);
-  }, [onBannerCropCommit, onBannerCropPreview]);
-
-  const handleScaleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    previewCrop({ scale: Number(event.target.value) });
-  }, [previewCrop]);
-
-  const handleScaleCommit = React.useCallback(() => {
-    commitCrop({ scale: cropStateRef.current.scale });
-  }, [commitCrop]);
-
-  const handleHeightChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    previewCrop({ height: Number(event.target.value) });
-  }, [previewCrop]);
-
-  const handleHeightCommit = React.useCallback(() => {
-    commitCrop({ height: cropStateRef.current.height });
-  }, [commitCrop]);
-
-  const handleCropReset = React.useCallback(() => {
-    const resetCrop: BannerCropState = {
-      position: DEFAULT_BANNER_OBJECT_POSITION,
-      fit: DEFAULT_BANNER_OBJECT_FIT,
-      scale: DEFAULT_BANNER_IMAGE_SCALE,
-      height: DEFAULT_BANNER_FRAME_HEIGHT,
-    };
-    onBannerCropPreview(resetCrop);
-    onBannerCropCommit(resetCrop);
-  }, [onBannerCropCommit, onBannerCropPreview]);
-
-  const scaleLabel = bannerObjectFit === 'tile'
-    ? 'Tile size'
-    : bannerObjectFit === 'collage'
-      ? 'Collage media size'
-      : 'Zoom';
-  const scaleAriaLabel = bannerObjectFit === 'tile'
-    ? 'Banner tile size'
-    : bannerObjectFit === 'collage'
-      ? 'Collage media size'
-      : 'Cover photo zoom';
-  const showScaleControl = bannerObjectFit !== 'contain';
-  const cropHint = canDragBanner
-    ? bannerObjectFit === 'collage'
-      ? 'Drag the collage to set its shared focal point.'
-      : 'Drag the cover photo to frame it.'
-    : 'Choose a cover mode and frame size.';
-
   return (
     <>
-      <BackgroundSection
-        $backgroundImage={backgroundImage}
-        $repositioning={canDragBanner}
-        style={{ '--banner-frame-height': `${bannerFrameHeight}px` } as React.CSSProperties}
-        onPointerDown={handleBannerPointerDown}
-        onPointerMove={handleBannerPointerMove}
-        onPointerUp={handleBannerPointerEnd}
-        onPointerCancel={handleBannerPointerEnd}
-      >
-        <UserDashboardBannerMediaLayer
-          backgroundImage={backgroundImage}
-          bannerObjectPosition={bannerObjectPosition}
-          bannerObjectFit={bannerObjectFit}
-          bannerImageScale={bannerImageScale}
-          bannerCollagePhotos={bannerCollagePhotos}
-        />
-      </BackgroundSection>
-      <BannerActionRow>
-        <BannerRepositionAnchor>
-          <BannerRepositionButton
-            type="button"
-            onClick={onToggleRepositionPanel}
-            aria-expanded={showRepositionPanel}
-            aria-haspopup="dialog"
-            aria-label={designButtonLabel}
-          >
-            <Move size={18} />
-            {backgroundImage ? 'Reposition' : 'Design Cover'}
-          </BannerRepositionButton>
-          {showRepositionPanel && (
-            <BannerRepositionPanel role="dialog" aria-label="Adjust cover photo crop">
-              <BannerCropHint>{cropHint}</BannerCropHint>
-              <BannerCropModeRow>
-                {BANNER_OBJECT_FIT_OPTIONS.map((fit) => (
-                  <BannerCropModeButton
-                    key={fit}
-                    type="button"
-                    $active={bannerObjectFit === fit}
-                    onClick={() => handleFitChange(fit)}
-                    aria-pressed={bannerObjectFit === fit}
-                  >
-                    {FIT_LABELS[fit]}
-                  </BannerCropModeButton>
-                ))}
-              </BannerCropModeRow>
-              {bannerObjectFit === 'collage' && (
-                <UserDashboardBannerCollageStrip
-                  photos={bannerCollagePhotos}
-                  position={bannerObjectPosition}
-                  onFiles={onBannerCollageFiles}
-                  onRemove={onBannerCollageRemove}
-                  onFocusChange={handleCollageFocusChange}
+      <BannerStage>
+        <BackgroundSection
+          $backgroundImage={backgroundImage}
+          $repositioning={canDragBanner}
+          style={{ '--banner-frame-height': `${bannerFrameHeight}px` } as React.CSSProperties}
+          onPointerDown={handleBannerPointerDown}
+          onPointerMove={handleBannerPointerMove}
+          onPointerUp={handleBannerPointerEnd}
+          onPointerCancel={handleBannerPointerEnd}
+        >
+          <UserDashboardBannerMediaLayer
+            backgroundImage={backgroundImage}
+            bannerObjectPosition={bannerObjectPosition}
+            bannerObjectFit={bannerObjectFit}
+            bannerImageScale={bannerImageScale}
+            bannerCollagePhotos={bannerCollagePhotos}
+            bannerCollageLayout={bannerCollageLayout}
+            bannerStickyCarousel={bannerStickyCarousel}
+          />
+        </BackgroundSection>
+        <BannerActionRow>
+          <BannerRepositionAnchor>
+            <BannerRepositionButton
+              type="button"
+              onClick={onToggleRepositionPanel}
+              aria-expanded={showRepositionPanel}
+              aria-haspopup="dialog"
+              aria-label={designButtonLabel}
+            >
+              <Move size={18} />
+              {backgroundImage ? 'Reposition' : 'Design Cover'}
+            </BannerRepositionButton>
+            {showRepositionPanel && (
+              <BannerRepositionPanel role="dialog" aria-label="Adjust cover photo crop">
+                <UserDashboardBannerRepositionPanelContent
+                  backgroundImage={backgroundImage}
+                  bannerObjectPosition={bannerObjectPosition}
+                  bannerObjectFit={bannerObjectFit}
+                  bannerImageScale={bannerImageScale}
+                  bannerFrameHeight={bannerFrameHeight}
+                  bannerCollagePhotos={bannerCollagePhotos}
+                  bannerCollageLayout={bannerCollageLayout}
+                  bannerStickyCarousel={bannerStickyCarousel}
+                  bannerPresets={bannerPresets}
+                  canDragBanner={canDragBanner}
+                  onBannerCropPreview={onBannerCropPreview}
+                  onBannerCropCommit={onBannerCropCommit}
+                  onBannerCollageFiles={onBannerCollageFiles}
+                  onBannerCollageRemove={onBannerCollageRemove}
+                  onBannerCollageLayoutCommit={onBannerCollageLayoutCommit}
+                  onBannerStickyCarouselCommit={onBannerStickyCarouselCommit}
+                  onBannerPresetSave={onBannerPresetSave}
+                  onBannerPresetApply={onBannerPresetApply}
+                  onBannerPresetRemove={onBannerPresetRemove}
                 />
-              )}
-              {showScaleControl && (
-                <BannerCropField>
-                  <span>{scaleLabel}</span>
-                  <BannerCropValue>{Math.round(bannerImageScale * 100)}%</BannerCropValue>
-                  <BannerCropSlider
-                    type="range"
-                    min="0.5"
-                    max="3"
-                    step="0.05"
-                    value={bannerImageScale}
-                    onChange={handleScaleChange}
-                    onInput={handleScaleChange}
-                    onPointerUp={handleScaleCommit}
-                    onBlur={handleScaleCommit}
-                    aria-label={scaleAriaLabel}
-                  />
-                </BannerCropField>
-              )}
-              <BannerCropField>
-                <span>Height</span>
-                <BannerCropValue>{bannerFrameHeight}px</BannerCropValue>
-                <BannerCropSlider
-                  type="range"
-                  min={MIN_BANNER_FRAME_HEIGHT}
-                  max={MAX_BANNER_FRAME_HEIGHT}
-                  step="20"
-                  value={bannerFrameHeight}
-                  onChange={handleHeightChange}
-                  onInput={handleHeightChange}
-                  onPointerUp={handleHeightCommit}
-                  onBlur={handleHeightCommit}
-                  aria-label="Cover banner height"
-                />
-              </BannerCropField>
-              <BannerCropResetButton type="button" onClick={handleCropReset}>
-                <RotateCcw size={16} />
-                Reset
-              </BannerCropResetButton>
-            </BannerRepositionPanel>
-          )}
-        </BannerRepositionAnchor>
-        <BannerUploadButton onClick={onBackgroundClick}>
-          <Camera size={18} />
-          {backgroundImage ? 'Change Cover' : 'Add Cover'}
-        </BannerUploadButton>
-      </BannerActionRow>
+              </BannerRepositionPanel>
+            )}
+          </BannerRepositionAnchor>
+          <BannerUploadButton onClick={onBackgroundClick}>
+            <Camera size={18} />
+            {backgroundImage ? 'Change Cover' : 'Add Cover'}
+          </BannerUploadButton>
+        </BannerActionRow>
+      </BannerStage>
     </>
   );
 };

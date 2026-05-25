@@ -73,14 +73,14 @@
 
 import React from 'react';
 import {
-  User, Users, Globe, Plus, Dumbbell, Camera, Trophy, Target, Star,
-  Music2, Mic2, Palette, Gamepad2, Mic, Laugh, Image, Send,
+  User, Users, Globe, Plus, Dumbbell, Camera, Trophy, Target, Star, Image, Send,
 } from 'lucide-react';
 
 // Sub-components
 import CreatePostTypeSelector from './components/CreatePostTypeSelector';
 import CategoryOverrideSelector from './components/CategoryOverrideSelector';
 import CreatePostForm from './components/CreatePostForm';
+import CreatePostHashtagAssist from './components/CreatePostHashtagAssist';
 import CreatePostMediaUpload from './components/CreatePostMediaUpload';
 
 // Hook
@@ -103,18 +103,12 @@ import type { PostTypeOption, VisibilityOption } from './types/CreatePostTypes';
 // PURPOSE: Post type and visibility option definitions
 // ─────────────────────────────────────────────────────────────
 
-const POST_TYPE_OPTIONS: PostTypeOption[] = [
-  { value: 'general', label: 'General Post', icon: <User size={16} />, points: 10, description: 'Share your thoughts or updates' },
-  { value: 'workout', label: 'Workout Share', icon: <Dumbbell size={16} />, points: 25, description: 'Share your completed workout' },
+export const POST_TYPE_OPTIONS: PostTypeOption[] = [
+  { value: 'general', label: 'Post', icon: <User size={16} />, points: 10, description: 'Share a quick update' },
+  { value: 'workout', label: 'Workout', icon: <Dumbbell size={16} />, points: 25, description: 'Share your completed workout' },
   { value: 'transformation', label: 'Transformation', icon: <Camera size={16} />, points: 50, description: 'Before & after progress photos' },
   { value: 'achievement', label: 'Achievement', icon: <Trophy size={16} />, points: 30, description: 'Celebrate a fitness milestone' },
   { value: 'challenge', label: 'Challenge', icon: <Target size={16} />, points: 20, description: 'Create or complete a challenge' },
-  { value: 'dance', label: 'Dance', icon: <Music2 size={16} />, points: 20, description: 'Share a dance or movement video' },
-  { value: 'music', label: 'Music Production', icon: <Mic2 size={16} />, points: 20, description: 'Making songs, playing instruments, producing beats' },
-  { value: 'singing', label: 'Singing', icon: <Mic size={16} />, points: 20, description: 'Vocal performances, covers, and original songs' },
-  { value: 'art', label: 'Art', icon: <Palette size={16} />, points: 20, description: 'Share artwork, digital art, photography, and creative projects' },
-  { value: 'gaming', label: 'Gaming', icon: <Gamepad2 size={16} />, points: 15, description: 'Gaming builds, streams, and fitness crossover content' },
-  { value: 'comedy', label: 'Comedy', icon: <Laugh size={16} />, points: 15, description: 'Standup, skits, memes, and funny content' },
 ];
 
 const VISIBILITY_OPTIONS: VisibilityOption[] = [
@@ -177,6 +171,11 @@ const CreatePostCard: React.FC = () => {
             showWorkoutHistory={form.showWorkoutHistory}
             workoutHistory={form.workoutHistory}
             onSelectWorkout={form.selectWorkoutFromHistory}
+          />
+
+          <CreatePostHashtagAssist
+            intent={form.smartIntent}
+            onAddHashtag={form.addHashtagToContent}
           />
 
           <FlexColumn>

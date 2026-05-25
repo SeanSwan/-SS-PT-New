@@ -1,19 +1,28 @@
 import React from 'react';
-import { Film, Image, Plus } from 'lucide-react';
+import { Film, Image, Plus, Save, Trash2 } from 'lucide-react';
 import {
   BannerCollageControlGrid,
   BannerCollageThumb,
   BannerCollageThumbButton,
   BannerCollageThumbVideo,
+  BannerPresetApplyButton,
+  BannerPresetGrid,
+  BannerPresetRemoveButton,
+  BannerPresetRow,
+  BannerStickyToggle,
   BannerCropHint,
   BannerCropModeButton,
   BannerCropModeRow,
   BannerCropResetButton,
 } from '../styles/DashboardV3Styles';
 import {
+  BANNER_COLLAGE_LAYOUT_OPTIONS,
   BANNER_COLLAGE_MEDIA_TYPES,
   MAX_BANNER_COLLAGE_PHOTOS,
+  isBannerCarouselLayout,
+  type BannerCollageLayout,
   type BannerObjectPosition,
+  type BannerPreset,
 } from '../../../services/profileService';
 import { isBannerVideoUrl } from '../utils/bannerCompositionMedia';
 
@@ -25,28 +34,81 @@ const COLLAGE_FOCUS_OPTIONS: Array<{ label: string; aria: string; position: Bann
   { label: 'Right', aria: 'Collage focus right', position: '100% 50%' },
 ];
 
+const COLLAGE_LAYOUT_LABELS: Record<BannerCollageLayout, { label: string; aria: string }> = {
+  stream: { label: 'Stream', aria: 'stream' },
+  mosaic: { label: 'Mosaic', aria: 'mosaic' },
+  spotlight: { label: 'Spotlight', aria: 'spotlight' },
+  'carousel-reel': { label: 'Reel', aria: 'reel carousel' },
+  'carousel-cinema': { label: 'Cinema', aria: 'cinema carousel' },
+  'carousel-coverflow': { label: 'Coverflow', aria: 'coverflow carousel' },
+  'carousel-stack': { label: 'Stack', aria: 'stack carousel' },
+  'carousel-ticker': { label: 'Ticker', aria: 'ticker carousel' },
+};
+
 interface UserDashboardBannerCollageStripProps {
   photos: string[];
   position: BannerObjectPosition;
+  layout: BannerCollageLayout;
+  stickyCarousel: boolean;
+  presets: BannerPreset[];
   onFiles: (files: FileList | File[]) => void;
   onRemove: (index: number) => void;
   onFocusChange: (position: BannerObjectPosition) => void;
+  onLayoutChange: (layout: BannerCollageLayout) => void;
+  onStickyCarouselChange: (sticky: boolean) => void;
+  onPresetSave: () => void;
+  onPresetApply: (presetId: string) => void;
+  onPresetRemove: (presetId: string) => void;
 }
 
 const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripProps> = ({
   photos,
   position,
+  layout,
+  stickyCarousel,
+  presets,
   onFiles,
   onRemove,
   onFocusChange,
+  onLayoutChange,
+  onStickyCarouselChange,
+  onPresetSave,
+  onPresetApply,
+  onPresetRemove,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isFull = photos.length >= MAX_BANNER_COLLAGE_PHOTOS;
   const accept = BANNER_COLLAGE_MEDIA_TYPES.join(',');
+  const carouselSelected = isBannerCarouselLayout(layout);
 
   return (
     <>
       <BannerCropHint>Collage mode layers up to six photos or short videos.</BannerCropHint>
+      <BannerCropModeRow>
+        {BANNER_COLLAGE_LAYOUT_OPTIONS.map((option) => (
+          <BannerCropModeButton
+            key={option}
+            type="button"
+            $active={layout === option}
+            aria-label={`Collage layout ${COLLAGE_LAYOUT_LABELS[option].aria}`}
+            aria-pressed={layout === option}
+            onClick={() => onLayoutChange(option)}
+          >
+            {COLLAGE_LAYOUT_LABELS[option].label}
+          </BannerCropModeButton>
+        ))}
+      </BannerCropModeRow>
+      {carouselSelected && (
+        <BannerStickyToggle>
+          <input
+            type="checkbox"
+            checked={stickyCarousel}
+            aria-label="Keep mini carousel sticky while scrolling"
+            onChange={(event) => onStickyCarouselChange(event.target.checked)}
+          />
+          <span>Sticky mini carousel</span>
+        </BannerStickyToggle>
+      )}
       <BannerCropHint>Set a shared focal point, then use Collage media size to tighten or reveal each frame.</BannerCropHint>
       <BannerCropModeRow>
         {COLLAGE_FOCUS_OPTIONS.map((option) => (
@@ -69,6 +131,14 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
       >
         <Plus size={16} />
         {isFull ? 'Full' : 'Add photos/videos'}
+      </BannerCropResetButton>
+      <BannerCropResetButton
+        type="button"
+        onClick={onPresetSave}
+        aria-label="Save banner preset"
+      >
+        <Save size={16} />
+        Save preset
       </BannerCropResetButton>
       <input
         ref={inputRef}
@@ -103,6 +173,28 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
         <BannerCropHint>
           <Image size={14} aria-hidden="true" /> <Film size={14} aria-hidden="true" /> Add media to build a futuristic banner grid.
         </BannerCropHint>
+      )}
+      {presets.length > 0 && (
+        <BannerPresetGrid aria-label="Saved banner presets">
+          {presets.map((preset) => (
+            <BannerPresetRow key={preset.id}>
+              <BannerPresetApplyButton
+                type="button"
+                onClick={() => onPresetApply(preset.id)}
+                aria-label={`Apply banner preset ${preset.name}`}
+              >
+                {preset.name}
+              </BannerPresetApplyButton>
+              <BannerPresetRemoveButton
+                type="button"
+                onClick={() => onPresetRemove(preset.id)}
+                aria-label={`Remove banner preset ${preset.name}`}
+              >
+                <Trash2 size={14} />
+              </BannerPresetRemoveButton>
+            </BannerPresetRow>
+          ))}
+        </BannerPresetGrid>
       )}
     </>
   );

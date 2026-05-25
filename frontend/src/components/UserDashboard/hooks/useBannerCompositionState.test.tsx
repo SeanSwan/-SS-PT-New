@@ -121,4 +121,80 @@ describe('useBannerCompositionState', () => {
 
     expect(result.current.bannerCollagePhotos).toEqual(['/uploads/one.jpg', '/uploads/two.jpg']);
   });
+
+  it('persists carousel layout choices and enables collage mode', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile: null,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleBannerCollageLayoutCommit('carousel-coverflow');
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith({
+      bannerCollageLayout: 'carousel-coverflow',
+      bannerObjectFit: 'collage',
+    });
+  });
+
+  it('persists the optional sticky mini carousel toggle', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile: null,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleBannerStickyCarouselCommit(true);
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith({ bannerStickyCarousel: true });
+  });
+
+  it('saves and reapplies full banner presets', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const onBannerPhotoPreview = vi.fn();
+    const profile = {
+      bannerPhoto: '/uploads/cover.jpg',
+      bannerPresets: [],
+    } as any;
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+      onBannerPhotoPreview,
+    }));
+
+    await act(async () => {
+      await result.current.handleBannerCollageLayoutCommit('carousel-reel');
+      await result.current.handleBannerStickyCarouselCommit(true);
+      await result.current.handleBannerPresetSave();
+    });
+
+    const savedPresets = updateProfile.mock.calls.at(-1)?.[0].bannerPresets;
+    expect(savedPresets).toHaveLength(1);
+    expect(savedPresets[0]).toEqual(expect.objectContaining({
+      bannerPhoto: '/uploads/cover.jpg',
+      bannerObjectFit: 'collage',
+      bannerCollageLayout: 'carousel-reel',
+      bannerStickyCarousel: true,
+    }));
+
+    updateProfile.mockClear();
+    await act(async () => {
+      await result.current.handleBannerPresetApply(savedPresets[0].id);
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+      bannerPhoto: '/uploads/cover.jpg',
+      bannerObjectFit: 'collage',
+      bannerCollageLayout: 'carousel-reel',
+      bannerStickyCarousel: true,
+    }));
+    expect(onBannerPhotoPreview).toHaveBeenCalledWith('/uploads/cover.jpg');
+  });
 });

@@ -62,7 +62,12 @@ export function useUserDashboardV3Controller() {
     return () => revokePreview();
   }, [revokePreview]);
 
-  const bannerComposition = useBannerCompositionState({ profile, updateProfile, uploadBannerCollagePhoto });
+  const bannerComposition = useBannerCompositionState({
+    profile,
+    updateProfile,
+    uploadBannerCollagePhoto,
+    onBannerPhotoPreview: setBackgroundImage,
+  });
 
   const displayStats = useMemo(() => ({
     posts: stats?.posts || 0,

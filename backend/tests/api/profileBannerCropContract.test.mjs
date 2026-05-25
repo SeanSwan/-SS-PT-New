@@ -16,10 +16,15 @@ describe('profile banner crop persistence contract', () => {
     expect(controllerSource).toContain("'bannerImageScale'");
     expect(controllerSource).toContain("'bannerFrameHeight'");
     expect(controllerSource).toContain("'bannerCollagePhotos'");
+    expect(controllerSource).toContain("'bannerCollageLayout'");
+    expect(controllerSource).toContain("'bannerStickyCarousel'");
+    expect(controllerSource).toContain("'bannerPresets'");
     expect(controllerSource).toContain('isValidBannerObjectPosition');
     expect(controllerSource).toContain('isValidBannerObjectFit');
+    expect(controllerSource).toContain('isValidBannerCollageLayout');
     expect(controllerSource).toContain('normalizeBannerImageScale');
     expect(controllerSource).toContain('normalizeBannerCollagePhotos');
+    expect(controllerSource).toContain('normalizeBannerPresets');
     expect(controllerSource).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
     expect(controllerSource).not.toContain('bannerObjectPosition must be one of the 9 supported presets');
   });
@@ -30,6 +35,9 @@ describe('profile banner crop persistence contract', () => {
     expect(userModelSource).toContain('bannerImageScale');
     expect(userModelSource).toContain('bannerFrameHeight');
     expect(userModelSource).toContain('bannerCollagePhotos');
+    expect(userModelSource).toContain('bannerCollageLayout');
+    expect(userModelSource).toContain('bannerStickyCarousel');
+    expect(userModelSource).toContain('bannerPresets');
     expect(userModelSource).not.toContain('enum_Users_bannerObjectPosition');
   });
 
@@ -45,6 +53,9 @@ describe('profile banner crop persistence contract', () => {
     expect(startupMigrationSource).toContain("'bannerImageScale', 'DOUBLE PRECISION NOT NULL DEFAULT 1'");
     expect(startupMigrationSource).toContain("'bannerFrameHeight', 'INTEGER NOT NULL DEFAULT 320'");
     expect(startupMigrationSource).toContain("'bannerCollagePhotos', \"JSONB NOT NULL DEFAULT '[]'::jsonb\"");
+    expect(startupMigrationSource).toContain("'bannerCollageLayout', \"VARCHAR(24) NOT NULL DEFAULT 'stream'\"");
+    expect(startupMigrationSource).toContain("'bannerStickyCarousel', 'BOOLEAN NOT NULL DEFAULT false'");
+    expect(startupMigrationSource).toContain("'bannerPresets', \"JSONB NOT NULL DEFAULT '[]'::jsonb\"");
     expect(startupMigrationSource).not.toContain('enum_Users_bannerObjectPosition');
   });
 
@@ -58,6 +69,18 @@ describe('profile banner crop persistence contract', () => {
     expect(heightMigrationSource).toContain('defaultValue: 320');
     expect(heightMigrationSource).toContain("addColumn('Users', 'bannerCollagePhotos'");
     expect(heightMigrationSource).toContain('defaultValue: []');
+  });
+
+  it('ships a follow-up migration for banner presentation layouts, sticky carousel, and presets', () => {
+    const presentationMigrationSource = readFileSync(
+      resolve(process.cwd(), 'migrations/20260525000100-add-banner-presentation-presets.cjs'),
+      'utf8',
+    );
+
+    expect(presentationMigrationSource).toContain("addColumn('Users', 'bannerCollageLayout'");
+    expect(presentationMigrationSource).toContain("addColumn('Users', 'bannerStickyCarousel'");
+    expect(presentationMigrationSource).toContain("addColumn('Users', 'bannerPresets'");
+    expect(presentationMigrationSource).toContain('defaultValue: []');
   });
 
   it('has a non-destructive collage photo upload route separate from the main cover upload', () => {

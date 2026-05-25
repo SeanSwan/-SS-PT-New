@@ -206,7 +206,7 @@ export const postTypeLabels: Record<string, string> = {
 export const postTypeColors: Record<string, string> = {
   general: 'default',
   workout: 'primary',
-  achievement: 'success',
+  achievement: 'warning',
   challenge: 'warning',
   transformation: 'secondary',
   dance: 'secondary',

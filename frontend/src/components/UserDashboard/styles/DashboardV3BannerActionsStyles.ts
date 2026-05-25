@@ -71,8 +71,8 @@ export const BannerRepositionButton = styled.button`
 
 export const BannerRepositionPanel = styled.div`
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -90,7 +90,8 @@ export const BannerRepositionPanel = styled.div`
   overscroll-behavior: contain;
 
   @media (max-width: 430px) {
-    right: -54px;
+    left: 50%;
+    transform: translateX(-50%);
   }
 `;
 
@@ -205,28 +206,23 @@ export const BannerCropResetButton = styled.button`
 `;
 
 export const BannerActionRow = styled.div`
+  position: absolute;
+  left: clamp(1rem, 6vw, 7rem);
+  right: auto;
+  bottom: clamp(1rem, 2vw, 1.5rem);
   display: flex;
-  justify-content: flex-end;
-  width: min(100% - 2rem, 1440px);
-  margin: 0.875rem auto 0;
-  padding: 0 0.25rem;
+  justify-content: flex-start;
+  width: auto;
+  margin: 0;
+  padding: 0;
   pointer-events: none;
+  z-index: 5;
 
   @media (max-width: 768px) {
-    width: calc(100% - 1.5rem);
-    margin-top: 0.625rem;
-  }
-
-  @media (min-width: 1920px) {
-    width: min(100% - 4rem, 1760px);
-  }
-
-  @media (min-width: 2560px) {
-    width: min(100% - 6rem, 2360px);
-  }
-
-  @media (min-width: 3840px) {
-    width: min(100% - 8rem, 3440px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: 0.75rem;
   }
 `;
 

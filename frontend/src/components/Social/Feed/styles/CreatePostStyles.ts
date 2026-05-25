@@ -593,3 +593,60 @@ export const CategoryOverrideBtn = styled.button`
     border-color: var(--accent-primary, #60C0F0);
   }
 `;
+
+export const SmartAssistRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 4px 52px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    margin-left: 0;
+  }
+`;
+
+export const SmartIntentPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 12%, transparent);
+  color: var(--accent-gold, #C6A84B);
+  font-size: 0.8125rem;
+  font-weight: 700;
+`;
+
+export const HashtagAssistGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const HashtagAssistChip = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;

@@ -25,12 +25,20 @@ function renderCropControls(overrides = {}) {
     bannerImageScale: 1,
     bannerFrameHeight: 320,
     bannerCollagePhotos: ['/uploads/collage-one.jpg', '/uploads/collage-two.jpg'],
+    bannerCollageLayout: 'stream' as const,
+    bannerStickyCarousel: false,
+    bannerPresets: [],
     showRepositionPanel: true,
     onToggleRepositionPanel: vi.fn(),
     onBannerCropPreview: vi.fn(),
     onBannerCropCommit: vi.fn(),
     onBannerCollageFiles: vi.fn(),
     onBannerCollageRemove: vi.fn(),
+    onBannerCollageLayoutCommit: vi.fn(),
+    onBannerStickyCarouselCommit: vi.fn(),
+    onBannerPresetSave: vi.fn(),
+    onBannerPresetApply: vi.fn(),
+    onBannerPresetRemove: vi.fn(),
     onBackgroundClick: vi.fn(),
     ...overrides,
   };
@@ -155,6 +163,58 @@ describe('UserDashboardBannerCropControls', () => {
       fit: 'collage',
       position: '50% 0%',
     }));
+  });
+
+  it('switches between saved collage grid and carousel layouts while keeping the current straight-row option', () => {
+    const props = renderCropControls({ bannerObjectFit: 'collage' as const });
+
+    expect(screen.getByRole('button', { name: 'Collage layout stream' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Collage layout mosaic' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Collage layout coverflow carousel' }));
+
+    expect(props.onBannerCollageLayoutCommit).toHaveBeenCalledWith('mosaic');
+    expect(props.onBannerCollageLayoutCommit).toHaveBeenCalledWith('carousel-coverflow');
+  });
+
+  it('can pin carousel layouts as a sticky mini banner while scrolling', () => {
+    const props = renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerCollageLayout: 'carousel-reel' as const,
+      bannerStickyCarousel: true,
+    });
+
+    expect(screen.getByTestId('banner-sticky-carousel')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Keep mini carousel sticky while scrolling' }));
+
+    expect(props.onBannerStickyCarouselCommit).toHaveBeenCalledWith(false);
+  });
+
+  it('saves, applies, and removes full banner composition presets', () => {
+    const preset = {
+      id: 'preset-one',
+      name: 'Saved banner 1',
+      bannerPhoto: '/uploads/preset-cover.jpg',
+      bannerObjectPosition: '20% 40%',
+      bannerObjectFit: 'collage' as const,
+      bannerImageScale: 1.25,
+      bannerFrameHeight: 520,
+      bannerCollagePhotos: ['/uploads/preset-one.jpg'],
+      bannerCollageLayout: 'spotlight' as const,
+      bannerStickyCarousel: true,
+      createdAt: '2026-05-25T14:00:00.000Z',
+    };
+    const props = renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerPresets: [preset],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save banner preset' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply banner preset Saved banner 1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove banner preset Saved banner 1' }));
+
+    expect(props.onBannerPresetSave).toHaveBeenCalled();
+    expect(props.onBannerPresetApply).toHaveBeenCalledWith('preset-one');
+    expect(props.onBannerPresetRemove).toHaveBeenCalledWith('preset-one');
   });
 
   it('sizes collage frames from loaded media aspect ratios', async () => {

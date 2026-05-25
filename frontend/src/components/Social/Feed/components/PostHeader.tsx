@@ -28,8 +28,6 @@ import React from 'react';
 import { MoreVertical, User, Link2, VolumeX, Flag, Trash2, Pencil } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
 import { postTypeLabels, postTypeColors } from '../types/PostCardTypes';
-import MembershipBadge from '../../../MembershipBadge/MembershipBadge';
-import type { ClientSource } from '../../../MembershipBadge/MembershipBadge';
 import RPGProfileHeader from '../../../Social/RPGProfileHeader';
 import swanLogoSrc from '../../../../assets/Logo.png';
 import {
@@ -40,6 +38,7 @@ import {
   AvatarImage,
   PostType,
   UserName,
+  AuthorLogoMark,
   TimeAgoText,
   HeaderRightGroup,
   MenuWrapper,
@@ -119,12 +118,11 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
           <div>
             <UserName>
               {post.user.firstName} {post.user.lastName}
-              {post.user.clientSource && post.user.clientSource !== 'external' && (
-                <MembershipBadge
-                  clientSource={post.user.clientSource as ClientSource}
-                  size="sm"
-                  showLabel={false}
-                  className="membership-badge-inline"
+              {post.user.clientSource === 'swanstudios' && (
+                <AuthorLogoMark
+                  src={swanLogoSrc}
+                  alt="SwanStudios logo"
+                  title="SwanStudios member"
                 />
               )}
             </UserName>

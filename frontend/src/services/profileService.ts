@@ -25,14 +25,31 @@ type LegacyBannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number
 export const BANNER_OBJECT_FIT_OPTIONS = ['cover', 'contain', 'fill', 'tile', 'collage'] as const;
 export type BannerObjectFit = (typeof BANNER_OBJECT_FIT_OPTIONS)[number];
 export type BannerObjectPosition = string;
+export const BANNER_CAROUSEL_LAYOUT_OPTIONS = [
+  'carousel-reel',
+  'carousel-cinema',
+  'carousel-coverflow',
+  'carousel-stack',
+  'carousel-ticker',
+] as const;
+export const BANNER_COLLAGE_LAYOUT_OPTIONS = [
+  'stream',
+  'mosaic',
+  'spotlight',
+  ...BANNER_CAROUSEL_LAYOUT_OPTIONS,
+] as const;
+export type BannerCollageLayout = (typeof BANNER_COLLAGE_LAYOUT_OPTIONS)[number];
 
 export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
 export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
+export const DEFAULT_BANNER_COLLAGE_LAYOUT: BannerCollageLayout = 'stream';
+export const DEFAULT_BANNER_STICKY_CAROUSEL = false;
 export const DEFAULT_BANNER_IMAGE_SCALE = 1;
 export const DEFAULT_BANNER_FRAME_HEIGHT = 320;
 export const MIN_BANNER_FRAME_HEIGHT = 180;
 export const MAX_BANNER_FRAME_HEIGHT = 1000;
 export const MAX_BANNER_COLLAGE_PHOTOS = 6;
+export const MAX_BANNER_PRESETS = 12;
 export const BANNER_MEDIA_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const BANNER_MEDIA_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
 export const BANNER_COLLAGE_MEDIA_TYPES = [...BANNER_MEDIA_IMAGE_TYPES, ...BANNER_MEDIA_VIDEO_TYPES] as const;
@@ -88,6 +105,24 @@ export function isBannerObjectFit(value: unknown): value is BannerObjectFit {
     && (BANNER_OBJECT_FIT_OPTIONS as readonly string[]).includes(value);
 }
 
+export function isBannerCollageLayout(value: unknown): value is BannerCollageLayout {
+  return typeof value === 'string'
+    && (BANNER_COLLAGE_LAYOUT_OPTIONS as readonly string[]).includes(value);
+}
+
+export function isBannerCarouselLayout(value: unknown): value is (typeof BANNER_CAROUSEL_LAYOUT_OPTIONS)[number] {
+  return typeof value === 'string'
+    && (BANNER_CAROUSEL_LAYOUT_OPTIONS as readonly string[]).includes(value);
+}
+
+export function normalizeBannerCollageLayout(value: unknown): BannerCollageLayout {
+  return isBannerCollageLayout(value) ? value : DEFAULT_BANNER_COLLAGE_LAYOUT;
+}
+
+export function normalizeBannerStickyCarousel(value: unknown): boolean {
+  return value === true;
+}
+
 export function normalizeBannerImageScale(value: unknown): number {
   const next = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(next)) return DEFAULT_BANNER_IMAGE_SCALE;
@@ -106,6 +141,53 @@ export function normalizeBannerCollagePhotos(value: unknown): string[] {
     .map((url) => sanitizeImageUrl(typeof url === 'string' ? url : null))
     .filter((url): url is string => Boolean(url))
     .slice(0, MAX_BANNER_COLLAGE_PHOTOS);
+}
+
+export interface BannerPreset {
+  id: string;
+  name: string;
+  bannerPhoto?: string;
+  bannerObjectPosition: BannerObjectPosition;
+  bannerObjectFit: BannerObjectFit;
+  bannerImageScale: number;
+  bannerFrameHeight: number;
+  bannerCollagePhotos: string[];
+  bannerCollageLayout: BannerCollageLayout;
+  bannerStickyCarousel: boolean;
+  createdAt: string;
+}
+
+export function normalizeBannerPresets(value: unknown): BannerPreset[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((preset, index): BannerPreset | null => {
+      if (!preset || typeof preset !== 'object') return null;
+      const candidate = preset as Partial<BannerPreset>;
+      const bannerPhoto = sanitizeImageUrl(typeof candidate.bannerPhoto === 'string' ? candidate.bannerPhoto : null);
+      return {
+        id: typeof candidate.id === 'string' && candidate.id.trim()
+          ? candidate.id.trim().slice(0, 80)
+          : `banner-preset-${index + 1}`,
+        name: typeof candidate.name === 'string' && candidate.name.trim()
+          ? candidate.name.trim().slice(0, 72)
+          : `Saved banner ${index + 1}`,
+        ...(bannerPhoto ? { bannerPhoto } : {}),
+        bannerObjectPosition: normalizeBannerObjectPosition(candidate.bannerObjectPosition),
+        bannerObjectFit: isBannerObjectFit(candidate.bannerObjectFit)
+          ? candidate.bannerObjectFit
+          : DEFAULT_BANNER_OBJECT_FIT,
+        bannerImageScale: normalizeBannerImageScale(candidate.bannerImageScale),
+        bannerFrameHeight: normalizeBannerFrameHeight(candidate.bannerFrameHeight),
+        bannerCollagePhotos: normalizeBannerCollagePhotos(candidate.bannerCollagePhotos),
+        bannerCollageLayout: normalizeBannerCollageLayout(candidate.bannerCollageLayout),
+        bannerStickyCarousel: normalizeBannerStickyCarousel(candidate.bannerStickyCarousel),
+        createdAt: typeof candidate.createdAt === 'string' && candidate.createdAt.trim()
+          ? candidate.createdAt
+          : new Date(0).toISOString(),
+      };
+    })
+    .filter((preset): preset is BannerPreset => Boolean(preset))
+    .slice(0, MAX_BANNER_PRESETS);
 }
 
 export interface BannerCropState {
@@ -142,6 +224,9 @@ export interface UserProfile {
   bannerImageScale?: number;
   bannerFrameHeight?: number;
   bannerCollagePhotos?: string[];
+  bannerCollageLayout?: BannerCollageLayout;
+  bannerStickyCarousel?: boolean;
+  bannerPresets?: BannerPreset[];
   bio?: string;
   city?: string;
   state?: string;

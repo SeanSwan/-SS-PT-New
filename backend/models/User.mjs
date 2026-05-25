@@ -101,6 +101,24 @@ User.init(
       defaultValue: [],
       comment: 'Safe uploaded image/video URLs used by collage banner mode.',
     },
+    bannerCollageLayout: {
+      type: DataTypes.STRING(24),
+      allowNull: false,
+      defaultValue: 'stream',
+      comment: 'Dashboard collage presentation layout, including grid and carousel variants.',
+    },
+    bannerStickyCarousel: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Whether carousel banner layouts render a compact sticky strip while scrolling.',
+    },
+    bannerPresets: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      comment: 'Saved dashboard banner composition presets.',
+    },
     // Role - now supports user, client, trainer, and admin
     role: {
       type: DataTypes.ENUM('user', 'client', 'trainer', 'admin'),

@@ -32,6 +32,12 @@ export const ProfileHeader = styled(motion.div)`
   }
 `;
 
+export const BannerStage = styled.div`
+  position: relative;
+  width: 100%;
+  pointer-events: none;
+`;
+
 export const BackgroundSection = styled.div<{
   $backgroundImage?: string | null;
   $repositioning?: boolean;

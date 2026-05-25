@@ -26,7 +26,7 @@
  * AI VILLAGE VALIDATED: 2026-03-22
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Renders a horizontal chip row of 11 post types.
+ * WHAT THIS FILE DOES: Renders a horizontal chip row of core post types.
  * Selecting a chip updates the parent's postType state, which drives the
  * form fields, placeholder text, and gamification point preview.
  *

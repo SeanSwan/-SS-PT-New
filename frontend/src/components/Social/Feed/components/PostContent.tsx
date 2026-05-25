@@ -40,6 +40,7 @@ import {
   AchievementTextBlock,
   AchievementTitle,
   AchievementDescription,
+  AchievementSummaryDetails,
   PointsChip,
 } from '../styles/PostCardStyles';
 import { logger } from '@/utils/logger';
@@ -77,25 +78,42 @@ WorkoutStats.displayName = 'WorkoutStats';
 // SECTION: Achievement Badge Renderer
 // ─────────────────────────────────────────────────────────────
 
-const AchievementBadgeBlock: React.FC<{ achievementData: NonNullable<PostContentProps['post']['achievementData']> }> = React.memo(({ achievementData }) => (
-  <AchievementBadge>
-    <Trophy size={24} color="#f7b32b" />
-    <AchievementTextBlock>
-      <AchievementTitle>
-        {achievementData.title || 'Achievement Unlocked!'}
-      </AchievementTitle>
-      <AchievementDescription>
-        {achievementData.description || 'Reached a new milestone'}
-      </AchievementDescription>
-    </AchievementTextBlock>
-    {achievementData.points && (
-      <PointsChip>
-        <Star size={14} />
-        +{achievementData.points} pts
-      </PointsChip>
-    )}
-  </AchievementBadge>
-));
+const AchievementBadgeBlock: React.FC<{ achievementData: NonNullable<PostContentProps['post']['achievementData']> }> = React.memo(({ achievementData }) => {
+  const [open, setOpen] = React.useState(false);
+  const detailId = React.useId();
+  const title = achievementData.title || 'Achievement Unlocked!';
+  const description = achievementData.description || 'Reached a new SwanStudios milestone.';
+
+  return (
+    <>
+      <AchievementBadge
+        type="button"
+        aria-expanded={open}
+        aria-controls={detailId}
+        aria-label={`${title} achievement summary`}
+        onClick={() => setOpen(value => !value)}
+      >
+        <Trophy size={24} />
+        <AchievementTextBlock>
+          <AchievementTitle>{title}</AchievementTitle>
+          <AchievementDescription>Tap for why you earned it</AchievementDescription>
+        </AchievementTextBlock>
+        {achievementData.points && (
+          <PointsChip>
+            <Star size={14} />
+            +{achievementData.points} pts
+          </PointsChip>
+        )}
+      </AchievementBadge>
+
+      {open && (
+        <AchievementSummaryDetails id={detailId} role="status">
+          {description} Unlocked for reaching this SwanStudios milestone.
+        </AchievementSummaryDetails>
+      )}
+    </>
+  );
+});
 AchievementBadgeBlock.displayName = 'AchievementBadgeBlock';
 
 // ─────────────────────────────────────────────────────────────

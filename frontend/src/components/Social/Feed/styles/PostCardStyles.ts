@@ -140,6 +140,20 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
   }}
 `;
 
+export const VideoMediaShell = styled.div`
+  position: relative;
+  background: var(--bg-base, #0A0A0F);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+`;
+
+export const PostVideo = styled.video`
+  display: block;
+  width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+`;
+
 export const SwanWatermark = styled.div`
   position: absolute;
   inset: 0;
@@ -156,6 +170,8 @@ export const SwanWatermark = styled.div`
     max-width: 560px;
     max-height: 560px;
     object-fit: contain;
+    border-radius: 50%;
+    filter: drop-shadow(0 0 30px rgba(96, 192, 240, 0.4));
   }
 `;
 
@@ -229,6 +245,16 @@ export const AvatarImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+`;
+
+export const AuthorLogoMark = styled.img`
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  border-radius: 50%;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 8px rgba(96, 192, 240, 0.55));
 `;
 
 export const PostType = styled.span<{ $type: string }>`
@@ -453,15 +479,30 @@ export const CenteredFlex = styled.div`
   justify-content: center;
 `;
 
-export const AchievementBadge = styled.div`
+export const AchievementBadge = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  min-height: 44px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #ffd700, #ffed4a);
+  background: linear-gradient(
+    135deg,
+    var(--accent-gold, #C6A84B),
+    color-mix(in srgb, var(--accent-gold, #C6A84B) 72%, var(--accent-primary, #60C0F0))
+  );
   border-radius: 12px;
   margin: 16px 0;
-  border: 2px solid #f7b32b;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 70%, transparent);
+  color: var(--bg-base, #000B18);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+  }
 `;
 
 export const AchievementTextBlock = styled.div`
@@ -471,14 +512,23 @@ export const AchievementTextBlock = styled.div`
 export const AchievementTitle = styled.span`
   font-size: 1rem;
   font-weight: 600;
-  color: #8b4513;
+  color: var(--bg-base, #000B18);
   display: block;
 `;
 
 export const AchievementDescription = styled.span`
   font-size: 0.875rem;
-  color: #8b4513;
+  color: color-mix(in srgb, var(--bg-base, #000B18) 78%, transparent);
   display: block;
+`;
+
+export const AchievementSummaryDetails = styled.span`
+  display: block;
+  margin: -8px 0 16px;
+  padding: 0 4px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgba(224, 236, 244, 0.86);
 `;
 
 export const PointsChip = styled.span`
@@ -487,8 +537,8 @@ export const PointsChip = styled.span`
   gap: 4px;
   padding: 4px 8px;
   border-radius: 16px;
-  background: #f7b32b;
-  color: white;
+  background: var(--bg-base, #000B18);
+  color: var(--accent-gold, #C6A84B);
   font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;

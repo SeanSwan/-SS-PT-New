@@ -4,11 +4,22 @@ import {
   BannerCollageLayer,
   BannerCollageMediaFrame,
   BannerCollageVideo,
+  BannerCarouselTrack,
   BannerImage,
+  BannerStickyCarouselFrame,
+  BannerStickyCarouselImage,
+  BannerStickyCarouselLayer,
+  BannerStickyCarouselTrack,
+  BannerStickyCarouselVideo,
   BannerTileImage,
   BannerTileLayer,
 } from '../styles/DashboardV3Styles';
-import type { BannerObjectFit, BannerObjectPosition } from '../../../services/profileService';
+import {
+  isBannerCarouselLayout,
+  type BannerCollageLayout,
+  type BannerObjectFit,
+  type BannerObjectPosition,
+} from '../../../services/profileService';
 import {
   buildBannerCollageFrameStyle,
   DEFAULT_BANNER_COLLAGE_ASPECT_RATIO,
@@ -25,6 +36,8 @@ interface UserDashboardBannerMediaLayerProps {
   bannerObjectFit: BannerObjectFit;
   bannerImageScale: number;
   bannerCollagePhotos: string[];
+  bannerCollageLayout: BannerCollageLayout;
+  bannerStickyCarousel: boolean;
 }
 
 const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps> = ({
@@ -33,6 +46,8 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   bannerObjectFit,
   bannerImageScale,
   bannerCollagePhotos,
+  bannerCollageLayout,
+  bannerStickyCarousel,
 }) => {
   const [collageAspectRatios, setCollageAspectRatios] = React.useState<Record<string, number>>({});
   const updateCollageAspectRatio = React.useCallback((key: string, width: number, height: number) => {
@@ -59,53 +74,81 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   }
 
   if (bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0) {
-    return (
-      <BannerCollageLayer
-        style={{
-          '--banner-image-scale': String(bannerImageScale),
-          '--banner-object-position': bannerObjectPosition,
-        } as React.CSSProperties}
-      >
-        {bannerCollagePhotos.slice(0, 6).map((photo, index) => {
-          const mediaKey = `${photo}-${index}`;
-          const aspectRatio = collageAspectRatios[mediaKey] ?? DEFAULT_BANNER_COLLAGE_ASPECT_RATIO;
-          return (
-            <BannerCollageMediaFrame
-              key={mediaKey}
-              style={buildBannerCollageFrameStyle(aspectRatio, bannerImageScale)}
-            >
-              {isBannerVideoUrl(photo) ? (
-                <BannerCollageVideo
-                  src={photo}
-                  data-testid="banner-collage-video"
-                  muted
-                  loop
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                  onLoadedMetadata={(event) => updateCollageAspectRatio(
-                    mediaKey,
-                    event.currentTarget.videoWidth,
-                    event.currentTarget.videoHeight,
-                  )}
-                />
-              ) : (
-                <BannerCollageImage
-                  src={photo}
-                  alt=""
-                  data-testid="banner-collage-image"
-                  draggable={false}
-                  onLoad={(event) => updateCollageAspectRatio(
-                    mediaKey,
-                    event.currentTarget.naturalWidth,
-                    event.currentTarget.naturalHeight,
-                  )}
-                />
+    const isCarouselLayout = isBannerCarouselLayout(bannerCollageLayout);
+    const photos = bannerCollagePhotos.slice(0, 6);
+    const displayPhotos = isCarouselLayout ? [...photos, ...photos] : photos;
+    const collageFrames = displayPhotos.map((photo, index) => {
+      const mediaKey = `${photo}-${index}`;
+      const aspectRatio = collageAspectRatios[mediaKey] ?? DEFAULT_BANNER_COLLAGE_ASPECT_RATIO;
+      return (
+        <BannerCollageMediaFrame
+          key={mediaKey}
+          data-index={index % photos.length}
+          style={buildBannerCollageFrameStyle(aspectRatio, bannerImageScale)}
+        >
+          {isBannerVideoUrl(photo) ? (
+            <BannerCollageVideo
+              src={photo}
+              data-testid="banner-collage-video"
+              muted
+              loop
+              autoPlay
+              playsInline
+              preload="metadata"
+              onLoadedMetadata={(event) => updateCollageAspectRatio(
+                mediaKey,
+                event.currentTarget.videoWidth,
+                event.currentTarget.videoHeight,
               )}
-            </BannerCollageMediaFrame>
-          );
-        })}
-      </BannerCollageLayer>
+            />
+          ) : (
+            <BannerCollageImage
+              src={photo}
+              alt=""
+              data-testid="banner-collage-image"
+              draggable={false}
+              onLoad={(event) => updateCollageAspectRatio(
+                mediaKey,
+                event.currentTarget.naturalWidth,
+                event.currentTarget.naturalHeight,
+              )}
+            />
+          )}
+        </BannerCollageMediaFrame>
+      );
+    });
+
+    return (
+      <>
+        <BannerCollageLayer
+          data-layout={bannerCollageLayout}
+          style={{
+            '--banner-image-scale': String(bannerImageScale),
+            '--banner-object-position': bannerObjectPosition,
+          } as React.CSSProperties}
+        >
+          {isCarouselLayout ? <BannerCarouselTrack>{collageFrames}</BannerCarouselTrack> : collageFrames}
+        </BannerCollageLayer>
+        {isCarouselLayout && bannerStickyCarousel && (
+          <BannerStickyCarouselLayer
+            data-testid="banner-sticky-carousel"
+            data-layout={bannerCollageLayout}
+            aria-hidden="true"
+          >
+            <BannerStickyCarouselTrack>
+              {displayPhotos.map((photo, index) => (
+                <BannerStickyCarouselFrame key={`${photo}-sticky-${index}`}>
+                  {isBannerVideoUrl(photo) ? (
+                    <BannerStickyCarouselVideo src={photo} muted loop autoPlay playsInline preload="metadata" />
+                  ) : (
+                    <BannerStickyCarouselImage src={photo} alt="" draggable={false} />
+                  )}
+                </BannerStickyCarouselFrame>
+              ))}
+            </BannerStickyCarouselTrack>
+          </BannerStickyCarouselLayer>
+        )}
+      </>
     );
   }
 

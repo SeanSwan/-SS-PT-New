@@ -158,8 +158,19 @@ const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
 
 const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
 const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill', 'tile', 'collage']);
+const BANNER_COLLAGE_LAYOUTS = new Set([
+  'stream',
+  'mosaic',
+  'spotlight',
+  'carousel-reel',
+  'carousel-cinema',
+  'carousel-coverflow',
+  'carousel-stack',
+  'carousel-ticker',
+]);
 const MIN_BANNER_FRAME_HEIGHT = 180;
 const MAX_BANNER_FRAME_HEIGHT = 1000;
+const MAX_BANNER_PRESETS = 12;
 
 const clampPercent = value => Math.min(100, Math.max(0, value));
 const formatPercent = value => `${Number(value.toFixed(2))}%`;
@@ -184,6 +195,9 @@ const isValidBannerObjectPosition = value =>
 const isValidBannerObjectFit = value =>
   typeof value === 'string' && BANNER_OBJECT_FITS.has(value);
 
+const isValidBannerCollageLayout = value =>
+  typeof value === 'string' && BANNER_COLLAGE_LAYOUTS.has(value);
+
 const normalizeBannerImageScale = value => {
   const next = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(next)) return null;
@@ -205,6 +219,50 @@ const normalizeBannerCollagePhotos = value => {
   return safePhotos.length === candidates.length ? safePhotos : null;
 };
 
+const normalizeBannerPresets = value => {
+  if (!Array.isArray(value)) return null;
+  const presets = [];
+  for (const [index, preset] of value.slice(0, MAX_BANNER_PRESETS).entries()) {
+    if (!preset || typeof preset !== 'object' || Array.isArray(preset)) return null;
+    const bannerPhoto = preset.bannerPhoto ? sanitizeImageUrl(preset.bannerPhoto) : null;
+    if (preset.bannerPhoto && !bannerPhoto) return null;
+    const photos = normalizeBannerCollagePhotos(preset.bannerCollagePhotos || []);
+    const position = normalizeBannerObjectPosition(preset.bannerObjectPosition);
+    const scale = normalizeBannerImageScale(preset.bannerImageScale);
+    const height = normalizeBannerFrameHeight(preset.bannerFrameHeight);
+    if (
+      photos === null
+      || !position
+      || !isValidBannerObjectFit(preset.bannerObjectFit)
+      || scale === null
+      || height === null
+      || !isValidBannerCollageLayout(preset.bannerCollageLayout)
+    ) {
+      return null;
+    }
+    presets.push({
+      id: typeof preset.id === 'string' && preset.id.trim()
+        ? preset.id.trim().slice(0, 80)
+        : `banner-preset-${index + 1}`,
+      name: typeof preset.name === 'string' && preset.name.trim()
+        ? preset.name.trim().slice(0, 72)
+        : `Saved banner ${index + 1}`,
+      ...(bannerPhoto ? { bannerPhoto } : {}),
+      bannerObjectPosition: position,
+      bannerObjectFit: preset.bannerObjectFit,
+      bannerImageScale: scale,
+      bannerFrameHeight: height,
+      bannerCollagePhotos: photos,
+      bannerCollageLayout: preset.bannerCollageLayout,
+      bannerStickyCarousel: preset.bannerStickyCarousel === true,
+      createdAt: typeof preset.createdAt === 'string' && preset.createdAt.trim()
+        ? preset.createdAt
+        : new Date(0).toISOString(),
+    });
+  }
+  return presets;
+};
+
 /**
  * Update user profile
  * 
@@ -218,7 +276,7 @@ export const updateUserProfile = async (req, res) => {
     
     // Fields that are allowed to be updated by the user
     const allowedFields = [
-      'firstName', 'lastName', 'phone', 'email', 'photo', 'bio',
+      'firstName', 'lastName', 'phone', 'email', 'photo', 'bannerPhoto', 'bio',
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
       'emailNotifications', 'smsNotifications', 'preferences',
@@ -226,7 +284,8 @@ export const updateUserProfile = async (req, res) => {
       'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
       'showWorkoutHistory', 'showLevel', 'chartVisibility',
       'bannerObjectPosition', 'bannerObjectFit', 'bannerImageScale',
-      'bannerFrameHeight', 'bannerCollagePhotos'
+      'bannerFrameHeight', 'bannerCollagePhotos', 'bannerCollageLayout',
+      'bannerStickyCarousel', 'bannerPresets'
     ];
 
     // Cover crop settings are persisted as a narrow CSS-safe contract:
@@ -279,6 +338,39 @@ export const updateUserProfile = async (req, res) => {
         });
       }
       updateData.bannerCollagePhotos = normalizedPhotos;
+    }
+
+    if (updateData.bannerCollageLayout !== undefined && !isValidBannerCollageLayout(updateData.bannerCollageLayout)) {
+      return res.status(400).json({
+        success: false,
+        message: 'bannerCollageLayout must be a supported grid or carousel layout',
+      });
+    }
+
+    if (updateData.bannerStickyCarousel !== undefined) {
+      updateData.bannerStickyCarousel = updateData.bannerStickyCarousel === true;
+    }
+
+    if (updateData.bannerPresets !== undefined) {
+      const normalizedPresets = normalizeBannerPresets(updateData.bannerPresets);
+      if (normalizedPresets === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerPresets must contain safe banner preset objects',
+        });
+      }
+      updateData.bannerPresets = normalizedPresets;
+    }
+
+    if (updateData.bannerPhoto !== undefined && updateData.bannerPhoto !== null && updateData.bannerPhoto !== '') {
+      const sanitizedBannerPhoto = sanitizeImageUrl(updateData.bannerPhoto);
+      if (sanitizedBannerPhoto === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerPhoto must be a relative /uploads path or an https URL on the configured photo-origin allowlist',
+        });
+      }
+      updateData.bannerPhoto = sanitizedBannerPhoto;
     }
 
     if (updateData.notificationPreferences !== undefined) {
