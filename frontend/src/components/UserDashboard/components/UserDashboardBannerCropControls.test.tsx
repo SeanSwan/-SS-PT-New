@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import UserDashboardBannerCropControls from './UserDashboardBannerCropControls';
 
@@ -155,6 +155,26 @@ describe('UserDashboardBannerCropControls', () => {
       fit: 'collage',
       position: '50% 0%',
     }));
+  });
+
+  it('sizes collage frames from loaded media aspect ratios', async () => {
+    renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerCollagePhotos: ['/uploads/wide.jpg', '/uploads/tall.jpg'],
+    });
+
+    const image = screen.getAllByTestId('banner-collage-image')[0] as HTMLImageElement;
+    Object.defineProperty(image, 'naturalWidth', { configurable: true, value: 1600 });
+    Object.defineProperty(image, 'naturalHeight', { configurable: true, value: 900 });
+
+    fireEvent.load(image);
+
+    await waitFor(() => {
+      const frameStyle = image.parentElement?.getAttribute('style') ?? '';
+      expect(frameStyle).toContain('--banner-collage-aspect-ratio: 1.778');
+      expect(frameStyle).toContain('--banner-collage-grow: 1.778');
+      expect(frameStyle).toContain('--banner-collage-basis:');
+    });
   });
 
   it('lets users start a collage banner before a single cover photo exists', () => {

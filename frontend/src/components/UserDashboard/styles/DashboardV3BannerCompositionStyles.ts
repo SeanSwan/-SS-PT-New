@@ -26,24 +26,19 @@ export const BannerTileImage = styled.img`
   -webkit-user-drag: none;
 `;
 
-export const BannerCollageLayer = styled.div<{ $count?: number }>`
+export const BannerCollageLayer = styled.div`
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: ${({ $count }) => {
-    if ($count === 1) return '1fr';
-    if ($count === 2) return 'repeat(2, 1fr)';
-    return '1.35fr repeat(2, 1fr)';
-  }};
-  grid-template-rows: repeat(2, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
   gap: clamp(4px, 0.45vw, 10px);
   padding: clamp(6px, 0.7vw, 14px);
+  overflow: hidden;
   z-index: 0;
   pointer-events: none;
-
-  @media (max-width: 640px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
 `;
 
 const collageMediaCss = css`
@@ -52,17 +47,19 @@ const collageMediaCss = css`
   min-width: 0;
   object-fit: contain;
   object-position: var(--banner-object-position, center center);
-  transform: translateZ(0) scale(var(--banner-image-scale, 1));
-  transform-origin: var(--banner-object-position, center center);
-  transition: object-position 140ms ease, transform 140ms ease;
+  transition: object-position 140ms ease;
   border-radius: inherit;
   user-select: none;
   -webkit-user-drag: none;
 `;
 
-export const BannerCollageMediaFrame = styled.div<{ $feature?: boolean }>`
+export const BannerCollageMediaFrame = styled.div`
+  flex: var(--banner-collage-grow, 1.35) 1 var(--banner-collage-basis, 202px);
+  aspect-ratio: var(--banner-collage-aspect-ratio, 1.35);
   min-width: 0;
   min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
   overflow: hidden;
   border-radius: 8px;
   background:
@@ -71,11 +68,6 @@ export const BannerCollageMediaFrame = styled.div<{ $feature?: boolean }>`
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  grid-row: ${({ $feature }) => ($feature ? '1 / -1' : 'auto')};
-
-  @media (max-width: 640px) {
-    grid-row: auto;
-  }
 `;
 
 export const BannerCollageImage = styled.img`

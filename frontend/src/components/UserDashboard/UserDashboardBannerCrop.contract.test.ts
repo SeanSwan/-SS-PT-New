@@ -77,6 +77,22 @@ describe('UserDashboard banner crop contract', () => {
     expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
   });
 
+  it('uses an adaptive aspect-ratio collage mosaic instead of fixed two-row cells', () => {
+    const collageLayerBlock = styledBlock(compositionStyles, 'BannerCollageLayer');
+    const collageFrameBlock = styledBlock(compositionStyles, 'BannerCollageMediaFrame');
+
+    expect(collageLayerBlock).toContain('display: flex;');
+    expect(collageLayerBlock).toContain('flex-wrap: wrap;');
+    expect(collageLayerBlock).not.toContain('grid-template-columns');
+    expect(collageLayerBlock).not.toContain('grid-template-rows');
+    expect(collageFrameBlock).toContain('flex: var(--banner-collage-grow');
+    expect(collageFrameBlock).toContain('aspect-ratio: var(--banner-collage-aspect-ratio');
+    expect(collageFrameBlock).toContain('--banner-collage-basis');
+    expect(compositionStyles).not.toContain('scale(var(--banner-image-scale');
+    expect(mediaLayer).toContain('buildBannerCollageFrameStyle');
+    expect(mediaLayer).toContain('normalizeBannerMediaAspectRatio');
+  });
+
   it('fills tile mode with wrapped full-image tiles instead of wide dark cells', () => {
     const tileImageBlock = styledBlock(compositionStyles, 'BannerTileImage');
 

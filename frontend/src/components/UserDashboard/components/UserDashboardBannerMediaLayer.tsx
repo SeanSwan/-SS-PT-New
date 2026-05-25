@@ -9,7 +9,13 @@ import {
   BannerTileLayer,
 } from '../styles/DashboardV3Styles';
 import type { BannerObjectFit, BannerObjectPosition } from '../../../services/profileService';
-import { isBannerVideoUrl, TILE_REPEAT_COUNT } from '../utils/bannerCompositionMedia';
+import {
+  buildBannerCollageFrameStyle,
+  DEFAULT_BANNER_COLLAGE_ASPECT_RATIO,
+  isBannerVideoUrl,
+  normalizeBannerMediaAspectRatio,
+  TILE_REPEAT_COUNT,
+} from '../utils/bannerCompositionMedia';
 
 const TILE_INDEXES = Array.from({ length: TILE_REPEAT_COUNT }, (_, index) => index);
 
@@ -28,6 +34,14 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   bannerImageScale,
   bannerCollagePhotos,
 }) => {
+  const [collageAspectRatios, setCollageAspectRatios] = React.useState<Record<string, number>>({});
+  const updateCollageAspectRatio = React.useCallback((key: string, width: number, height: number) => {
+    const nextAspectRatio = normalizeBannerMediaAspectRatio(width, height);
+    setCollageAspectRatios((current) => (
+      current[key] === nextAspectRatio ? current : { ...current, [key]: nextAspectRatio }
+    ));
+  }, []);
+
   if (bannerObjectFit === 'tile' && backgroundImage) {
     return (
       <BannerTileLayer style={{ '--banner-image-scale': String(bannerImageScale) } as React.CSSProperties}>
@@ -47,16 +61,19 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   if (bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0) {
     return (
       <BannerCollageLayer
-        $count={bannerCollagePhotos.length}
         style={{
           '--banner-image-scale': String(bannerImageScale),
           '--banner-object-position': bannerObjectPosition,
         } as React.CSSProperties}
       >
         {bannerCollagePhotos.slice(0, 6).map((photo, index) => {
-          const isFeature = index === 0 && bannerCollagePhotos.length > 2;
+          const mediaKey = `${photo}-${index}`;
+          const aspectRatio = collageAspectRatios[mediaKey] ?? DEFAULT_BANNER_COLLAGE_ASPECT_RATIO;
           return (
-            <BannerCollageMediaFrame key={`${photo}-${index}`} $feature={isFeature}>
+            <BannerCollageMediaFrame
+              key={mediaKey}
+              style={buildBannerCollageFrameStyle(aspectRatio, bannerImageScale)}
+            >
               {isBannerVideoUrl(photo) ? (
                 <BannerCollageVideo
                   src={photo}
@@ -65,6 +82,12 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
                   loop
                   autoPlay
                   playsInline
+                  preload="metadata"
+                  onLoadedMetadata={(event) => updateCollageAspectRatio(
+                    mediaKey,
+                    event.currentTarget.videoWidth,
+                    event.currentTarget.videoHeight,
+                  )}
                 />
               ) : (
                 <BannerCollageImage
@@ -72,6 +95,11 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
                   alt=""
                   data-testid="banner-collage-image"
                   draggable={false}
+                  onLoad={(event) => updateCollageAspectRatio(
+                    mediaKey,
+                    event.currentTarget.naturalWidth,
+                    event.currentTarget.naturalHeight,
+                  )}
                 />
               )}
             </BannerCollageMediaFrame>
