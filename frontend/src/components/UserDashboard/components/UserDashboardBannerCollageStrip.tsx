@@ -7,6 +7,7 @@ import {
   BannerCropHint,
   BannerCropResetButton,
 } from '../styles/DashboardV3Styles';
+import { MAX_BANNER_COLLAGE_PHOTOS } from '../../../services/profileService';
 
 interface UserDashboardBannerCollageStripProps {
   photos: string[];
@@ -20,18 +21,23 @@ const UserDashboardBannerCollageStrip: React.FC<UserDashboardBannerCollageStripP
   onRemove,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const isFull = photos.length >= MAX_BANNER_COLLAGE_PHOTOS;
 
   return (
     <>
       <BannerCropHint>Collage mode layers up to six cover photos.</BannerCropHint>
-      <BannerCropResetButton type="button" onClick={() => inputRef.current?.click()}>
+      <BannerCropResetButton
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={isFull}
+      >
         <Plus size={16} />
-        Add photo
+        {isFull ? 'Full' : 'Add photo'}
       </BannerCropResetButton>
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         multiple
         style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         aria-label="Add collage photos"

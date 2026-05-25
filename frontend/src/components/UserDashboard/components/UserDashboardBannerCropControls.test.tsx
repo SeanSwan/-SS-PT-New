@@ -125,4 +125,37 @@ describe('UserDashboardBannerCropControls', () => {
     expect(props.onBannerCollageFiles).toHaveBeenCalled();
     expect(props.onBannerCollageRemove).toHaveBeenCalledWith(0);
   });
+
+  it('lets users start a collage banner before a single cover photo exists', () => {
+    const props = renderCropControls({
+      backgroundImage: null,
+      bannerObjectFit: 'collage' as const,
+      bannerCollagePhotos: [],
+    });
+    const files = [new File(['one'], 'one.webp', { type: 'image/webp' })];
+
+    expect(screen.getByRole('button', { name: 'Design cover banner' })).toBeInTheDocument();
+    expect(screen.getByText('Choose a cover mode and frame size.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add collage photos')).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp');
+
+    fireEvent.change(screen.getByLabelText('Add collage photos'), { target: { files } });
+
+    expect(props.onBannerCollageFiles).toHaveBeenCalled();
+  });
+
+  it('disables the collage picker once the six-photo banner is full', () => {
+    renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerCollagePhotos: [
+        '/uploads/one.jpg',
+        '/uploads/two.jpg',
+        '/uploads/three.jpg',
+        '/uploads/four.jpg',
+        '/uploads/five.jpg',
+        '/uploads/six.jpg',
+      ],
+    });
+
+    expect(screen.getByRole('button', { name: 'Full' })).toBeDisabled();
+  });
 });

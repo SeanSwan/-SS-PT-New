@@ -29,10 +29,10 @@ describe('UserDashboard banner crop contract', () => {
     expect(compositionHook).toContain('bannerCollagePhotos');
     expect(compositionHook).toContain('handleBannerCropCommit');
     expect(compositionHook).toContain('updateProfile({');
-    expect(compositionHook).toContain('bannerObjectPosition: next.position');
-    expect(compositionHook).toContain('bannerObjectFit: next.fit');
-    expect(compositionHook).toContain('bannerImageScale: next.scale');
-    expect(compositionHook).toContain('bannerFrameHeight: next.height');
+    expect(compositionHook).toContain('bannerObjectPosition: normalizedNext.position');
+    expect(compositionHook).toContain('bannerObjectFit: normalizedNext.fit');
+    expect(compositionHook).toContain('bannerImageScale: normalizedNext.scale');
+    expect(compositionHook).toContain('bannerFrameHeight: normalizedNext.height');
     expect(compositionHook).toContain('bannerCollagePhotos: normalized');
   });
 

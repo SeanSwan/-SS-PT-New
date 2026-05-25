@@ -64,10 +64,10 @@ export function useBannerCompositionState({
     previewBannerCrop(normalizedNext);
     try {
       await updateProfile({
-        bannerObjectPosition: next.position,
-        bannerObjectFit: next.fit,
-        bannerImageScale: next.scale,
-        bannerFrameHeight: next.height,
+        bannerObjectPosition: normalizedNext.position,
+        bannerObjectFit: normalizedNext.fit,
+        bannerImageScale: normalizedNext.scale,
+        bannerFrameHeight: normalizedNext.height,
       });
     } catch (positionError) {
       console.error('Failed to save banner crop settings:', positionError);
@@ -75,6 +75,8 @@ export function useBannerCompositionState({
   }, [previewBannerCrop, updateProfile]);
 
   const handleBannerCollageFiles = useCallback(async (filesLike: FileList | File[]) => {
+    const previousPhotos = bannerCollagePhotos;
+    const previousFit = bannerObjectFit;
     const capacity = MAX_BANNER_COLLAGE_PHOTOS - bannerCollagePhotos.length;
     if (capacity <= 0) return;
     const files = Array.from(filesLike).filter((file) =>
@@ -95,13 +97,25 @@ export function useBannerCompositionState({
     const normalized = normalizeBannerCollagePhotos([...bannerCollagePhotos, ...uploaded]);
     setBannerCollagePhotos(normalized);
     setBannerObjectFit('collage');
-    await updateProfile({ bannerCollagePhotos: normalized, bannerObjectFit: 'collage' });
-  }, [bannerCollagePhotos, updateProfile, uploadBannerCollagePhoto]);
+    try {
+      await updateProfile({ bannerCollagePhotos: normalized, bannerObjectFit: 'collage' });
+    } catch (persistError) {
+      console.error('Failed to save banner collage photos:', persistError);
+      setBannerCollagePhotos(previousPhotos);
+      setBannerObjectFit(previousFit);
+    }
+  }, [bannerCollagePhotos, bannerObjectFit, updateProfile, uploadBannerCollagePhoto]);
 
   const handleBannerCollageRemove = useCallback(async (index: number) => {
+    const previousPhotos = bannerCollagePhotos;
     const normalized = normalizeBannerCollagePhotos(bannerCollagePhotos.filter((_, photoIndex) => photoIndex !== index));
     setBannerCollagePhotos(normalized);
-    await updateProfile({ bannerCollagePhotos: normalized });
+    try {
+      await updateProfile({ bannerCollagePhotos: normalized });
+    } catch (persistError) {
+      console.error('Failed to remove banner collage photo:', persistError);
+      setBannerCollagePhotos(previousPhotos);
+    }
   }, [bannerCollagePhotos, updateProfile]);
 
   const toggleRepositionPanel = useCallback(() => setShowRepositionPanel((open) => !open), []);

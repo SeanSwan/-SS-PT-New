@@ -26,9 +26,9 @@ export const BannerRepositionButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   pointer-events: auto;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   z-index: 3;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   margin-right: 0.5rem;
 
   &:hover {
@@ -45,6 +45,11 @@ export const BannerRepositionButton = styled.button`
 
   svg {
     opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
   }
 
   @media (max-width: 768px) {
@@ -122,7 +127,7 @@ export const BannerCropModeButton = styled.button<{ $active?: boolean }>`
   justify-content: center;
   font-size: 0.72rem;
   font-weight: 600;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   white-space: nowrap;
 
   &:hover {
@@ -148,7 +153,7 @@ export const BannerCropField = styled.label`
   color: var(--text-primary, #E0ECF4);
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 `;
 
 export const BannerCropValue = styled.span`
@@ -188,6 +193,11 @@ export const BannerCropResetButton = styled.button`
   &:focus-visible {
     outline: 2px solid var(--accent-secondary, #8B5CF6);
     outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
   }
 `;
 
@@ -232,9 +242,9 @@ export const BannerUploadButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   pointer-events: auto;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
   z-index: 3;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 
   &:hover {
     opacity: 1;
@@ -250,6 +260,11 @@ export const BannerUploadButton = styled.button`
 
   svg {
     opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
   }
 
   @media (max-width: 768px) {
