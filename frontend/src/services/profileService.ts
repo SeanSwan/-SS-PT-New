@@ -30,7 +30,13 @@ export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
 export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
 export const DEFAULT_BANNER_IMAGE_SCALE = 1;
 export const DEFAULT_BANNER_FRAME_HEIGHT = 320;
+export const MIN_BANNER_FRAME_HEIGHT = 180;
+export const MAX_BANNER_FRAME_HEIGHT = 1000;
 export const MAX_BANNER_COLLAGE_PHOTOS = 6;
+export const BANNER_MEDIA_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const BANNER_MEDIA_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'] as const;
+export const BANNER_COLLAGE_MEDIA_TYPES = [...BANNER_MEDIA_IMAGE_TYPES, ...BANNER_MEDIA_VIDEO_TYPES] as const;
+export const MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE = 15 * 1024 * 1024;
 
 const LEGACY_BANNER_OBJECT_POSITIONS: Record<LegacyBannerObjectPosition, BannerObjectPosition> = {
   'left top': '0% 0%',
@@ -91,7 +97,7 @@ export function normalizeBannerImageScale(value: unknown): number {
 export function normalizeBannerFrameHeight(value: unknown): number {
   const next = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(next)) return DEFAULT_BANNER_FRAME_HEIGHT;
-  return Math.round(Math.min(640, Math.max(180, next)));
+  return Math.round(Math.min(MAX_BANNER_FRAME_HEIGHT, Math.max(MIN_BANNER_FRAME_HEIGHT, next)));
 }
 
 export function normalizeBannerCollagePhotos(value: unknown): string[] {

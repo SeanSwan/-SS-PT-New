@@ -25,12 +25,19 @@ import {
   DEFAULT_BANNER_IMAGE_SCALE,
   DEFAULT_BANNER_OBJECT_FIT,
   DEFAULT_BANNER_OBJECT_POSITION,
+  MAX_BANNER_FRAME_HEIGHT,
+  MIN_BANNER_FRAME_HEIGHT,
   type BannerCropState,
   type BannerObjectFit,
   type BannerObjectPosition,
 } from '../../../services/profileService';
 import UserDashboardBannerCollageStrip from './UserDashboardBannerCollageStrip';
 import UserDashboardBannerMediaLayer from './UserDashboardBannerMediaLayer';
+import {
+  FIT_LABELS,
+  formatBannerPosition,
+  parseBannerPosition,
+} from '../utils/bannerCompositionMedia';
 
 interface UserDashboardBannerCropControlsProps {
   backgroundImage: string | null;
@@ -47,29 +54,6 @@ interface UserDashboardBannerCropControlsProps {
   onBannerCollageRemove: (index: number) => void;
   onBackgroundClick: () => void;
 }
-
-const POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
-const FIT_LABELS: Record<BannerObjectFit, string> = {
-  cover: 'Crop',
-  contain: 'Fit whole',
-  fill: 'Stretch',
-  tile: 'Tile',
-  collage: 'Collage',
-};
-
-const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
-const formatPercent = (value: number) => `${Number(value.toFixed(2))}%`;
-
-const parsePosition = (position: BannerObjectPosition) => {
-  const match = position.match(POSITION_PATTERN);
-  return {
-    x: match ? Number(match[1]) : 50,
-    y: match ? Number(match[2]) : 50,
-  };
-};
-
-const formatPosition = (x: number, y: number): BannerObjectPosition =>
-  `${formatPercent(clampPercent(x))} ${formatPercent(clampPercent(y))}`;
 
 const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsProps> = ({
   backgroundImage,
@@ -130,7 +114,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      startPosition: parsePosition(cropStateRef.current.position),
+      startPosition: parseBannerPosition(cropStateRef.current.position),
       nextPosition: cropStateRef.current.position,
     };
   }, [backgroundImage, showRepositionPanel]);
@@ -141,7 +125,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
     const rect = event.currentTarget.getBoundingClientRect();
     const dx = rect.width > 0 ? ((event.clientX - dragState.startX) / rect.width) * 100 : 0;
     const dy = rect.height > 0 ? ((event.clientY - dragState.startY) / rect.height) * 100 : 0;
-    const nextPosition = formatPosition(
+    const nextPosition = formatBannerPosition(
       dragState.startPosition.x - dx,
       dragState.startPosition.y - dy,
     );
@@ -196,6 +180,10 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
     onBannerCropCommit(resetCrop);
   }, [onBannerCropCommit, onBannerCropPreview]);
 
+  const scaleLabel = bannerObjectFit === 'tile' ? 'Tile size' : 'Zoom';
+  const scaleAriaLabel = bannerObjectFit === 'tile' ? 'Banner tile size' : 'Cover photo zoom';
+  const showScaleControl = bannerObjectFit !== 'collage';
+
   return (
     <>
       <BackgroundSection
@@ -245,29 +233,38 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
                   </BannerCropModeButton>
                 ))}
               </BannerCropModeRow>
-              <BannerCropField>
-                <span>Zoom</span>
-                <BannerCropValue>{Math.round(bannerImageScale * 100)}%</BannerCropValue>
-                <BannerCropSlider
-                  type="range"
-                  min="0.5"
-                  max="3"
-                  step="0.05"
-                  value={bannerImageScale}
-                  onChange={handleScaleChange}
-                  onInput={handleScaleChange}
-                  onPointerUp={handleScaleCommit}
-                  onBlur={handleScaleCommit}
-                  aria-label="Cover photo zoom"
+              {bannerObjectFit === 'collage' && (
+                <UserDashboardBannerCollageStrip
+                  photos={bannerCollagePhotos}
+                  onFiles={onBannerCollageFiles}
+                  onRemove={onBannerCollageRemove}
                 />
-              </BannerCropField>
+              )}
+              {showScaleControl && (
+                <BannerCropField>
+                  <span>{scaleLabel}</span>
+                  <BannerCropValue>{Math.round(bannerImageScale * 100)}%</BannerCropValue>
+                  <BannerCropSlider
+                    type="range"
+                    min="0.5"
+                    max="3"
+                    step="0.05"
+                    value={bannerImageScale}
+                    onChange={handleScaleChange}
+                    onInput={handleScaleChange}
+                    onPointerUp={handleScaleCommit}
+                    onBlur={handleScaleCommit}
+                    aria-label={scaleAriaLabel}
+                  />
+                </BannerCropField>
+              )}
               <BannerCropField>
                 <span>Height</span>
                 <BannerCropValue>{bannerFrameHeight}px</BannerCropValue>
                 <BannerCropSlider
                   type="range"
-                  min="180"
-                  max="640"
+                  min={MIN_BANNER_FRAME_HEIGHT}
+                  max={MAX_BANNER_FRAME_HEIGHT}
                   step="20"
                   value={bannerFrameHeight}
                   onChange={handleHeightChange}
@@ -277,13 +274,6 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
                   aria-label="Cover banner height"
                 />
               </BannerCropField>
-              {bannerObjectFit === 'collage' && (
-                <UserDashboardBannerCollageStrip
-                  photos={bannerCollagePhotos}
-                  onFiles={onBannerCollageFiles}
-                  onRemove={onBannerCollageRemove}
-                />
-              )}
               <BannerCropResetButton type="button" onClick={handleCropReset}>
                 <RotateCcw size={16} />
                 Reset

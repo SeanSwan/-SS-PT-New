@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  BANNER_COLLAGE_MEDIA_TYPES,
   DEFAULT_BANNER_FRAME_HEIGHT,
   DEFAULT_BANNER_IMAGE_SCALE,
   DEFAULT_BANNER_OBJECT_FIT,
   DEFAULT_BANNER_OBJECT_POSITION,
+  MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE,
   MAX_BANNER_COLLAGE_PHOTOS,
   isBannerObjectFit,
   normalizeBannerCollagePhotos,
@@ -16,9 +18,6 @@ import {
   type UserProfile,
 } from '../../../services/profileService';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 interface BannerCompositionArgs {
   profile: UserProfile | null | undefined;
@@ -80,7 +79,8 @@ export function useBannerCompositionState({
     const capacity = MAX_BANNER_COLLAGE_PHOTOS - bannerCollagePhotos.length;
     if (capacity <= 0) return;
     const files = Array.from(filesLike).filter((file) =>
-      ALLOWED_TYPES.includes(file.type) && file.size <= MAX_UPLOAD_SIZE).slice(0, capacity);
+      (BANNER_COLLAGE_MEDIA_TYPES as readonly string[]).includes(file.type)
+      && file.size <= MAX_BANNER_COLLAGE_MEDIA_UPLOAD_SIZE).slice(0, capacity);
     if (files.length === 0) return;
 
     const uploaded: string[] = [];

@@ -36,7 +36,7 @@ export const BackgroundSection = styled.div<{
   $backgroundImage?: string | null;
   $repositioning?: boolean;
 }>`
-  height: clamp(180px, var(--banner-frame-height, 320px), 640px);
+  height: clamp(180px, var(--banner-frame-height, 320px), 1000px);
   position: relative;
   background: var(--bg-elevated, #141419);
   background:
@@ -123,23 +123,23 @@ export const BackgroundSection = styled.div<{
   }
 
   @media (max-width: 768px) {
-    height: clamp(180px, calc(var(--banner-frame-height, 320px) * 0.72), 420px);
+    height: clamp(180px, calc(var(--banner-frame-height, 320px) * 0.72), 720px);
   }
 
   @media (max-width: 430px) {
-    height: clamp(170px, calc(var(--banner-frame-height, 320px) * 0.68), 380px);
+    height: clamp(170px, calc(var(--banner-frame-height, 320px) * 0.68), 680px);
   }
 
   @media (max-width: 340px) {
-    height: clamp(160px, calc(var(--banner-frame-height, 320px) * 0.62), 340px);
+    height: clamp(160px, calc(var(--banner-frame-height, 320px) * 0.62), 620px);
   }
 
   @media (min-width: 2560px) {
-    height: clamp(260px, calc(var(--banner-frame-height, 320px) * 1.15), 720px);
+    height: clamp(260px, calc(var(--banner-frame-height, 320px) * 1.05), 1050px);
   }
 
   @media (min-width: 3840px) {
-    height: clamp(320px, calc(var(--banner-frame-height, 320px) * 1.25), 800px);
+    height: clamp(320px, calc(var(--banner-frame-height, 320px) * 1.08), 1080px);
   }
 `;
 

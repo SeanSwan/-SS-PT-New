@@ -89,7 +89,8 @@ describe('UserDashboardBannerCropControls', () => {
   it('switches to tile mode and renders repeated safe image elements', () => {
     const props = renderCropControls({ bannerObjectFit: 'tile' as const });
 
-    expect(screen.getAllByTestId('banner-tile-image').length).toBeGreaterThan(1);
+    expect(screen.getAllByTestId('banner-tile-image')).toHaveLength(360);
+    expect(screen.getByText('Tile size')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Tile' }));
 
     expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
@@ -114,13 +115,27 @@ describe('UserDashboardBannerCropControls', () => {
     }));
   });
 
+  it('previews and commits a tall 1000px cinematic banner height', () => {
+    const props = renderCropControls({ bannerFrameHeight: 640 });
+
+    fireEvent.change(screen.getByLabelText('Cover banner height'), { target: { value: '1000' } });
+    fireEvent.blur(screen.getByLabelText('Cover banner height'));
+
+    expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
+      height: 1000,
+    }));
+    expect(props.onBannerCropCommit).toHaveBeenCalledWith(expect.objectContaining({
+      height: 1000,
+    }));
+  });
+
   it('renders collage photos and exposes add/remove controls', () => {
     const props = renderCropControls({ bannerObjectFit: 'collage' as const });
     const files = [new File(['one'], 'one.jpg', { type: 'image/jpeg' })];
 
     expect(screen.getAllByTestId('banner-collage-image')).toHaveLength(2);
-    fireEvent.change(screen.getByLabelText('Add collage photos'), { target: { files } });
-    fireEvent.click(screen.getByRole('button', { name: 'Remove collage photo 1' }));
+    fireEvent.change(screen.getByLabelText('Add collage media'), { target: { files } });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove collage media 1' }));
 
     expect(props.onBannerCollageFiles).toHaveBeenCalled();
     expect(props.onBannerCollageRemove).toHaveBeenCalledWith(0);
@@ -136,11 +151,24 @@ describe('UserDashboardBannerCropControls', () => {
 
     expect(screen.getByRole('button', { name: 'Design cover banner' })).toBeInTheDocument();
     expect(screen.getByText('Choose a cover mode and frame size.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Add collage photos')).toHaveAttribute('accept', 'image/jpeg,image/png,image/webp');
+    expect(screen.getByRole('button', { name: 'Add photos/videos' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Add collage media')).toHaveAttribute(
+      'accept',
+      'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime',
+    );
 
-    fireEvent.change(screen.getByLabelText('Add collage photos'), { target: { files } });
+    fireEvent.change(screen.getByLabelText('Add collage media'), { target: { files } });
 
     expect(props.onBannerCollageFiles).toHaveBeenCalled();
+  });
+
+  it('renders uploaded short videos inside collage mode', () => {
+    renderCropControls({
+      bannerObjectFit: 'collage' as const,
+      bannerCollagePhotos: ['/uploads/banner-clip.mp4'],
+    });
+
+    expect(screen.getByTestId('banner-collage-video')).toBeInTheDocument();
   });
 
   it('disables the collage picker once the six-photo banner is full', () => {

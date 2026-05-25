@@ -99,7 +99,7 @@ User.init(
       type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: [],
-      comment: 'Safe uploaded image URLs used by collage banner mode.',
+      comment: 'Safe uploaded image/video URLs used by collage banner mode.',
     },
     // Role - now supports user, client, trainer, and admin
     role: {

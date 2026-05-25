@@ -1,13 +1,14 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 export const BannerTileLayer = styled.div`
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(96px, calc(120px * var(--banner-image-scale, 1)), 220px), 1fr));
-  grid-auto-rows: clamp(72px, calc(92px * var(--banner-image-scale, 1)), 180px);
+  grid-template-columns: repeat(auto-fill, minmax(clamp(150px, calc(180px * var(--banner-image-scale, 1)), 360px), 1fr));
+  grid-auto-rows: clamp(118px, calc(138px * var(--banner-image-scale, 1)), 260px);
   gap: 6px;
   padding: 6px;
+  align-content: start;
   z-index: 0;
   pointer-events: none;
 `;
@@ -27,7 +28,11 @@ export const BannerCollageLayer = styled.div<{ $count?: number }>`
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: ${({ $count }) => ($count && $count <= 2 ? 'repeat(2, 1fr)' : '1.35fr repeat(2, 1fr)')};
+  grid-template-columns: ${({ $count }) => {
+    if ($count === 1) return '1fr';
+    if ($count === 2) return 'repeat(2, 1fr)';
+    return '1.35fr repeat(2, 1fr)';
+  }};
   grid-template-rows: repeat(2, 1fr);
   gap: clamp(4px, 0.45vw, 10px);
   padding: clamp(6px, 0.7vw, 14px);
@@ -39,7 +44,7 @@ export const BannerCollageLayer = styled.div<{ $count?: number }>`
   }
 `;
 
-export const BannerCollageImage = styled.img<{ $feature?: boolean }>`
+const collageMediaCss = css<{ $feature?: boolean }>`
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -56,6 +61,14 @@ export const BannerCollageImage = styled.img<{ $feature?: boolean }>`
   @media (max-width: 640px) {
     grid-row: auto;
   }
+`;
+
+export const BannerCollageImage = styled.img<{ $feature?: boolean }>`
+  ${collageMediaCss}
+`;
+
+export const BannerCollageVideo = styled.video<{ $feature?: boolean }>`
+  ${collageMediaCss}
 `;
 
 export const BannerCollageControlGrid = styled.div`
@@ -80,7 +93,7 @@ export const BannerCollageThumbButton = styled.button`
   }
 `;
 
-export const BannerCollageThumb = styled.img`
+const collageThumbMediaCss = css`
   display: block;
   width: 100%;
   height: 52px;
@@ -91,4 +104,12 @@ export const BannerCollageThumb = styled.img`
   ${BannerCollageThumbButton}:hover & {
     opacity: 0.55;
   }
+`;
+
+export const BannerCollageThumb = styled.img`
+  ${collageThumbMediaCss}
+`;
+
+export const BannerCollageThumbVideo = styled.video`
+  ${collageThumbMediaCss}
 `;

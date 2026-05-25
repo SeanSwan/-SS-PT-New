@@ -28,7 +28,51 @@ describe('useBannerCompositionState', () => {
       bannerObjectPosition: '100% 0%',
       bannerObjectFit: 'contain',
       bannerImageScale: 3,
-      bannerFrameHeight: 640,
+      bannerFrameHeight: 900,
+    });
+  });
+
+  it('persists the new 1000px banner height ceiling', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile: null,
+      updateProfile,
+      uploadBannerCollagePhoto: vi.fn(),
+    }));
+
+    await act(async () => {
+      await result.current.handleBannerCropCommit({
+        position: '50% 50%',
+        fit: 'cover',
+        scale: 1,
+        height: 1200,
+      });
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({
+      bannerFrameHeight: 1000,
+    }));
+  });
+
+  it('accepts small uploaded videos for collage media', async () => {
+    const updateProfile = vi.fn().mockResolvedValue(undefined);
+    const uploadBannerCollagePhoto = vi.fn().mockResolvedValue('/uploads/banner-clip.mp4');
+    const { result } = renderHook(() => useBannerCompositionState({
+      profile: null,
+      updateProfile,
+      uploadBannerCollagePhoto,
+    }));
+
+    await act(async () => {
+      await result.current.handleBannerCollageFiles([
+        new File(['video'], 'banner-clip.mp4', { type: 'video/mp4' }),
+      ]);
+    });
+
+    expect(uploadBannerCollagePhoto).toHaveBeenCalled();
+    expect(updateProfile).toHaveBeenCalledWith({
+      bannerCollagePhotos: ['/uploads/banner-clip.mp4'],
+      bannerObjectFit: 'collage',
     });
   });
 

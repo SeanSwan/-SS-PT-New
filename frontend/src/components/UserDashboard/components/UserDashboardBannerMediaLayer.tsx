@@ -2,14 +2,15 @@ import React from 'react';
 import {
   BannerCollageImage,
   BannerCollageLayer,
+  BannerCollageVideo,
   BannerImage,
   BannerTileImage,
   BannerTileLayer,
 } from '../styles/DashboardV3Styles';
 import type { BannerObjectFit, BannerObjectPosition } from '../../../services/profileService';
+import { isBannerVideoUrl, TILE_REPEAT_COUNT } from '../utils/bannerCompositionMedia';
 
-const TILE_COUNT = 24;
-const TILE_INDEXES = Array.from({ length: TILE_COUNT }, (_, index) => index);
+const TILE_INDEXES = Array.from({ length: TILE_REPEAT_COUNT }, (_, index) => index);
 
 interface UserDashboardBannerMediaLayerProps {
   backgroundImage: string | null;
@@ -26,10 +27,6 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
   bannerImageScale,
   bannerCollagePhotos,
 }) => {
-  const collagePhotos = bannerCollagePhotos.length > 0
-    ? bannerCollagePhotos
-    : (backgroundImage ? [backgroundImage] : []);
-
   if (bannerObjectFit === 'tile' && backgroundImage) {
     return (
       <BannerTileLayer style={{ '--banner-image-scale': String(bannerImageScale) } as React.CSSProperties}>
@@ -46,18 +43,31 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
     );
   }
 
-  if (bannerObjectFit === 'collage' && collagePhotos.length > 0) {
+  if (bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0) {
     return (
-      <BannerCollageLayer $count={collagePhotos.length}>
-        {collagePhotos.slice(0, 6).map((photo, index) => (
-          <BannerCollageImage
-            key={`${photo}-${index}`}
-            src={photo}
-            alt=""
-            $feature={index === 0 && collagePhotos.length > 2}
-            data-testid="banner-collage-image"
-            draggable={false}
-          />
+      <BannerCollageLayer $count={bannerCollagePhotos.length}>
+        {bannerCollagePhotos.slice(0, 6).map((photo, index) => (
+          isBannerVideoUrl(photo) ? (
+            <BannerCollageVideo
+              key={`${photo}-${index}`}
+              src={photo}
+              $feature={index === 0 && bannerCollagePhotos.length > 2}
+              data-testid="banner-collage-video"
+              muted
+              loop
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <BannerCollageImage
+              key={`${photo}-${index}`}
+              src={photo}
+              alt=""
+              $feature={index === 0 && bannerCollagePhotos.length > 2}
+              data-testid="banner-collage-image"
+              draggable={false}
+            />
+          )
         ))}
       </BannerCollageLayer>
     );

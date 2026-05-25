@@ -77,6 +77,7 @@ export const BannerRepositionPanel = styled.div`
   flex-direction: column;
   gap: 10px;
   width: min(320px, calc(100vw - 32px));
+  max-height: min(82vh, 760px);
   padding: 14px;
   border-radius: 12px;
   background: color-mix(in srgb, var(--bg-elevated, #141419) 96%, transparent);
@@ -85,6 +86,8 @@ export const BannerRepositionPanel = styled.div`
   box-shadow: 0 12px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent);
   z-index: 4;
   pointer-events: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 
   @media (max-width: 430px) {
     right: -54px;

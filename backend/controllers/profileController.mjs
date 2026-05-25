@@ -158,6 +158,8 @@ const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
 
 const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
 const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill', 'tile', 'collage']);
+const MIN_BANNER_FRAME_HEIGHT = 180;
+const MAX_BANNER_FRAME_HEIGHT = 1000;
 
 const clampPercent = value => Math.min(100, Math.max(0, value));
 const formatPercent = value => `${Number(value.toFixed(2))}%`;
@@ -191,7 +193,7 @@ const normalizeBannerImageScale = value => {
 const normalizeBannerFrameHeight = value => {
   const next = typeof value === 'number' ? value : Number(value);
   if (!Number.isFinite(next)) return null;
-  return Math.round(Math.min(640, Math.max(180, next)));
+  return Math.round(Math.min(MAX_BANNER_FRAME_HEIGHT, Math.max(MIN_BANNER_FRAME_HEIGHT, next)));
 };
 
 const normalizeBannerCollagePhotos = value => {
@@ -273,7 +275,7 @@ export const updateUserProfile = async (req, res) => {
       if (normalizedPhotos === null) {
         return res.status(400).json({
           success: false,
-          message: 'bannerCollagePhotos must contain safe uploaded image URLs',
+          message: 'bannerCollagePhotos must contain safe uploaded media URLs',
         });
       }
       updateData.bannerCollagePhotos = normalizedPhotos;

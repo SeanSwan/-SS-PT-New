@@ -44,10 +44,12 @@ describe('UserDashboard banner crop contract', () => {
     expect(profileService).toContain('normalizeBannerFrameHeight');
     expect(profileService).toContain('normalizeBannerCollagePhotos');
     expect(profileService).toContain('BANNER_OBJECT_FIT_OPTIONS');
+    expect(profileService).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
     expect(profileService).toContain("'tile'");
     expect(profileService).toContain("'collage'");
     expect(profileService).toContain('bannerCollagePhotos');
     expect(profileService).toContain('/api/profile/upload-banner-collage-photo');
+    expect(profileService).toContain('video/mp4');
   });
 
   it('renders creative modes with image elements instead of CSS background-url repetition', () => {
@@ -55,6 +57,7 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('data-testid="banner-tile-image"');
     expect(mediaLayer).toContain('BannerCollageLayer');
     expect(mediaLayer).toContain('data-testid="banner-collage-image"');
+    expect(mediaLayer).toContain('data-testid="banner-collage-video"');
     expect(cropControls).not.toContain('backgroundImage: `');
     expect(mediaLayer).not.toContain('backgroundImage: `');
   });

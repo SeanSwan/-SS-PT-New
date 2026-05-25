@@ -7,6 +7,8 @@ const userModelSource = readFileSync(resolve(process.cwd(), 'models/User.mjs'), 
 const migrationSource = readFileSync(resolve(process.cwd(), 'migrations/20260524000100-expand-banner-crop-controls.cjs'), 'utf8');
 const startupMigrationSource = readFileSync(resolve(process.cwd(), 'utils/startupMigrations.mjs'), 'utf8');
 const profileRoutesSource = readFileSync(resolve(process.cwd(), 'routes/profileRoutes.mjs'), 'utf8');
+const coreRoutesSource = readFileSync(resolve(process.cwd(), 'core/routes.mjs'), 'utf8');
+const coreMiddlewareSource = readFileSync(resolve(process.cwd(), 'core/middleware/index.mjs'), 'utf8');
 
 describe('profile banner crop persistence contract', () => {
   it('accepts free percentage crop coordinates plus fit and scale fields', () => {
@@ -18,6 +20,7 @@ describe('profile banner crop persistence contract', () => {
     expect(controllerSource).toContain('isValidBannerObjectFit');
     expect(controllerSource).toContain('normalizeBannerImageScale');
     expect(controllerSource).toContain('normalizeBannerCollagePhotos');
+    expect(controllerSource).toContain('MAX_BANNER_FRAME_HEIGHT = 1000');
     expect(controllerSource).not.toContain('bannerObjectPosition must be one of the 9 supported presets');
   });
 
@@ -60,6 +63,13 @@ describe('profile banner crop persistence contract', () => {
   it('has a non-destructive collage photo upload route separate from the main cover upload', () => {
     expect(profileRoutesSource).toContain("'/upload-banner-collage-photo'");
     expect(profileRoutesSource).toContain("category: 'banner-collage'");
+    expect(profileRoutesSource).toContain("'.mp4'");
+    expect(profileRoutesSource).toContain("'video/mp4'");
     expect(profileRoutesSource).not.toContain('await deletePhoto(user.bannerCollagePhotos');
+  });
+
+  it('serves uploaded collage media from the photo proxy category allowlists', () => {
+    expect(coreRoutesSource).toContain("'banner-collage'");
+    expect(coreMiddlewareSource).toContain('banner-collage');
   });
 });

@@ -28,6 +28,21 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB max file size
   }
 });
+const bannerMediaUpload = multer({
+  storage,
+  limits: {
+    fileSize: 15 * 1024 * 1024, // short banner videos
+  }
+});
+const bannerCollageMediaExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.webm', '.mov'];
+const bannerCollageMediaMimeTypes = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+];
 
 /**
  * @route   POST /api/profile/upload-profile-photo
@@ -120,7 +135,7 @@ router.post(
   '/upload-banner-collage-photo',
   protect,
   rateLimiter({ windowMs: 15 * 60 * 1000, max: 20 }),
-  upload.single('bannerPhoto'),
+  bannerMediaUpload.single('bannerPhoto'),
   async (req, res) => {
     try {
       const { default: path } = await import('path');
@@ -130,11 +145,13 @@ router.post(
       }
 
       const fileExt = path.extname(req.file.originalname).toLowerCase();
-      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-      if (!allowedExtensions.includes(fileExt)) {
+      if (
+        !bannerCollageMediaExtensions.includes(fileExt)
+        || !bannerCollageMediaMimeTypes.includes(req.file.mimetype)
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid file type. Only JPG, JPEG, PNG, and WEBP files are allowed.'
+          message: 'Invalid file type. Only JPG, JPEG, PNG, WEBP, MP4, WEBM, and MOV files are allowed.'
         });
       }
 

@@ -73,7 +73,7 @@ export const setupMiddleware = async (app) => {
       const objectKey = req.path.replace(/^\//, ''); // "photos/banners/57/2026-03/uuid.jpg"
 
       // Validate the key looks like a photo path
-      if (!/^photos\/(profiles|banners|measurements)\/\d+\/\d{4}-\d{2}\/[\w-]+\.\w+$/.test(objectKey)) {
+      if (!/^photos\/(profiles|banners|banner-collage|measurements)\/\d+\/\d{4}-\d{2}\/[\w-]+\.\w+$/.test(objectKey)) {
         return res.status(400).json({ error: 'Invalid photo path' });
       }
 
