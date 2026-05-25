@@ -7,6 +7,7 @@ export * from './DashboardV3Animations';
 export * from './DashboardV3LayoutStyles';
 export * from './DashboardV3BannerStyles';
 export * from './DashboardV3BannerActionsStyles';
+export * from './DashboardV3BannerCompositionStyles';
 export * from './DashboardV3BadgeStyles';
 export * from './DashboardV3ProfileImageStyles';
 export * from './DashboardV3IdentityStyles';

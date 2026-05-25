@@ -7,6 +7,7 @@
 
 import productionApiService from './api.service';
 import { AxiosResponse } from 'axios';
+import { sanitizeImageUrl } from '../utils/imageUrl';
 
 /**
  * 9-preset 3×3 grid for banner photo crop alignment (CSS object-position).
@@ -21,13 +22,15 @@ export const BANNER_OBJECT_POSITION_PRESETS = [
 
 type LegacyBannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number];
 
-export const BANNER_OBJECT_FIT_OPTIONS = ['cover', 'contain', 'fill'] as const;
+export const BANNER_OBJECT_FIT_OPTIONS = ['cover', 'contain', 'fill', 'tile', 'collage'] as const;
 export type BannerObjectFit = (typeof BANNER_OBJECT_FIT_OPTIONS)[number];
 export type BannerObjectPosition = string;
 
 export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
 export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
 export const DEFAULT_BANNER_IMAGE_SCALE = 1;
+export const DEFAULT_BANNER_FRAME_HEIGHT = 320;
+export const MAX_BANNER_COLLAGE_PHOTOS = 6;
 
 const LEGACY_BANNER_OBJECT_POSITIONS: Record<LegacyBannerObjectPosition, BannerObjectPosition> = {
   'left top': '0% 0%',
@@ -85,10 +88,25 @@ export function normalizeBannerImageScale(value: unknown): number {
   return Number(Math.min(3, Math.max(0.5, next)).toFixed(2));
 }
 
+export function normalizeBannerFrameHeight(value: unknown): number {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) return DEFAULT_BANNER_FRAME_HEIGHT;
+  return Math.round(Math.min(640, Math.max(180, next)));
+}
+
+export function normalizeBannerCollagePhotos(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((url) => sanitizeImageUrl(typeof url === 'string' ? url : null))
+    .filter((url): url is string => Boolean(url))
+    .slice(0, MAX_BANNER_COLLAGE_PHOTOS);
+}
+
 export interface BannerCropState {
   position: BannerObjectPosition;
   fit: BannerObjectFit;
   scale: number;
+  height: number;
 }
 
 // Types for profile data
@@ -116,6 +134,8 @@ export interface UserProfile {
   bannerObjectPosition?: BannerObjectPosition;
   bannerObjectFit?: BannerObjectFit;
   bannerImageScale?: number;
+  bannerFrameHeight?: number;
+  bannerCollagePhotos?: string[];
   bio?: string;
   city?: string;
   state?: string;
@@ -327,6 +347,27 @@ class ProfileService {
     } catch (error: any) {
       console.error('ProfileService: Error uploading banner photo:', error);
       throw new Error(error.response?.data?.message || 'Failed to upload banner photo');
+    }
+  }
+
+  async uploadBannerCollagePhoto(file: File): Promise<{ bannerPhoto: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('bannerPhoto', file);
+
+      const response: AxiosResponse = await productionApiService.post(
+        '/api/profile/upload-banner-collage-photo',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      if (response.data.success) {
+        return { bannerPhoto: response.data.data?.bannerPhoto || response.data.bannerPhoto };
+      }
+      throw new Error(response.data.message || 'Failed to upload collage photo');
+    } catch (error: any) {
+      console.error('ProfileService: Error uploading collage photo:', error);
+      throw new Error(error.response?.data?.message || 'Failed to upload collage photo');
     }
   }
 

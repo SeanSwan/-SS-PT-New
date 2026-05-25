@@ -8,7 +8,9 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 describe('UserDashboard banner crop contract', () => {
   const header = read('src/components/UserDashboard/components/UserDashboardProfileHeaderV3.tsx');
   const cropControls = read('src/components/UserDashboard/components/UserDashboardBannerCropControls.tsx');
+  const mediaLayer = read('src/components/UserDashboard/components/UserDashboardBannerMediaLayer.tsx');
   const controller = read('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
+  const compositionHook = read('src/components/UserDashboard/hooks/useBannerCompositionState.ts');
   const profileService = read('src/services/profileService.ts');
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
 
@@ -20,13 +22,18 @@ describe('UserDashboard banner crop contract', () => {
   });
 
   it('persists position, fit mode, and zoom through the dashboard controller', () => {
-    expect(controller).toContain('bannerObjectFit');
-    expect(controller).toContain('bannerImageScale');
-    expect(controller).toContain('handleBannerCropCommit');
-    expect(controller).toContain('updateProfile({');
-    expect(controller).toContain('bannerObjectPosition: next.position');
-    expect(controller).toContain('bannerObjectFit: next.fit');
-    expect(controller).toContain('bannerImageScale: next.scale');
+    expect(controller).toContain('useBannerCompositionState');
+    expect(compositionHook).toContain('bannerObjectFit');
+    expect(compositionHook).toContain('bannerImageScale');
+    expect(compositionHook).toContain('bannerFrameHeight');
+    expect(compositionHook).toContain('bannerCollagePhotos');
+    expect(compositionHook).toContain('handleBannerCropCommit');
+    expect(compositionHook).toContain('updateProfile({');
+    expect(compositionHook).toContain('bannerObjectPosition: next.position');
+    expect(compositionHook).toContain('bannerObjectFit: next.fit');
+    expect(compositionHook).toContain('bannerImageScale: next.scale');
+    expect(compositionHook).toContain('bannerFrameHeight: next.height');
+    expect(compositionHook).toContain('bannerCollagePhotos: normalized');
   });
 
   it('allows percentage object-position strings and fit modes at the profile service boundary', () => {
@@ -34,6 +41,21 @@ describe('UserDashboard banner crop contract', () => {
     expect(profileService).toContain('isBannerObjectFit');
     expect(profileService).toContain('normalizeBannerImageScale');
     expect(profileService).toContain('normalizeBannerObjectPosition');
+    expect(profileService).toContain('normalizeBannerFrameHeight');
+    expect(profileService).toContain('normalizeBannerCollagePhotos');
     expect(profileService).toContain('BANNER_OBJECT_FIT_OPTIONS');
+    expect(profileService).toContain("'tile'");
+    expect(profileService).toContain("'collage'");
+    expect(profileService).toContain('bannerCollagePhotos');
+    expect(profileService).toContain('/api/profile/upload-banner-collage-photo');
+  });
+
+  it('renders creative modes with image elements instead of CSS background-url repetition', () => {
+    expect(mediaLayer).toContain('BannerTileLayer');
+    expect(mediaLayer).toContain('data-testid="banner-tile-image"');
+    expect(mediaLayer).toContain('BannerCollageLayer');
+    expect(mediaLayer).toContain('data-testid="banner-collage-image"');
+    expect(cropControls).not.toContain('backgroundImage: `');
+    expect(mediaLayer).not.toContain('backgroundImage: `');
   });
 });

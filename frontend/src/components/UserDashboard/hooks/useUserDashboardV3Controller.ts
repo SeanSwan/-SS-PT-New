@@ -12,17 +12,7 @@ import {
 } from '../components/ObservatoryShellAdapter';
 import type { TabId } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-import {
-  DEFAULT_BANNER_IMAGE_SCALE,
-  DEFAULT_BANNER_OBJECT_FIT,
-  DEFAULT_BANNER_OBJECT_POSITION,
-  isBannerObjectFit,
-  normalizeBannerImageScale,
-  normalizeBannerObjectPosition,
-  type BannerCropState,
-  type BannerObjectFit,
-  type BannerObjectPosition,
-} from '../../../services/profileService';
+import { useBannerCompositionState } from './useBannerCompositionState';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -38,6 +28,7 @@ export function useUserDashboardV3Controller() {
     error,
     uploadProfilePhoto,
     uploadBannerPhoto,
+    uploadBannerCollagePhoto,
     updateProfile,
     getDisplayName,
     getUsernameForDisplay,
@@ -48,13 +39,6 @@ export function useUserDashboardV3Controller() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [bannerObjectPosition, setBannerObjectPosition] =
-    useState<BannerObjectPosition>(DEFAULT_BANNER_OBJECT_POSITION);
-  const [bannerObjectFit, setBannerObjectFit] =
-    useState<BannerObjectFit>(DEFAULT_BANNER_OBJECT_FIT);
-  const [bannerImageScale, setBannerImageScale] =
-    useState<number>(DEFAULT_BANNER_IMAGE_SCALE);
-  const [showRepositionPanel, setShowRepositionPanel] = useState(false);
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,27 +52,17 @@ export function useUserDashboardV3Controller() {
     }
   }, []);
 
-  // Ignore profile refreshes while an optimistic banner preview is active.
   useEffect(() => {
     if (previewUrlRef.current !== null) return;
     const safe = sanitizeImageUrl(profile?.bannerPhoto);
     setBackgroundImage(safe);
   }, [profile?.bannerPhoto]);
 
-  // Unmount cleanup so a hot navigation away mid-upload doesn't leak the blob.
   useEffect(() => {
     return () => revokePreview();
   }, [revokePreview]);
 
-  useEffect(() => {
-    setBannerObjectPosition(normalizeBannerObjectPosition(profile?.bannerObjectPosition));
-    setBannerObjectFit(
-      isBannerObjectFit(profile?.bannerObjectFit)
-        ? profile.bannerObjectFit
-        : DEFAULT_BANNER_OBJECT_FIT,
-    );
-    setBannerImageScale(normalizeBannerImageScale(profile?.bannerImageScale));
-  }, [profile?.bannerImageScale, profile?.bannerObjectFit, profile?.bannerObjectPosition]);
+  const bannerComposition = useBannerCompositionState({ profile, updateProfile, uploadBannerCollagePhoto });
 
   const displayStats = useMemo(() => ({
     posts: stats?.posts || 0,
@@ -113,23 +87,10 @@ export function useUserDashboardV3Controller() {
       }));
   }, [gamProfile?.data?.achievements]);
 
-  const transformationPhotos = useMemo(
-    () => getTransformationPhotos(profile as unknown as Record<string, unknown> | null | undefined),
-    [profile],
-  );
-
-  const transformationVisibility = useMemo(
-    () => getTransformationVisibility(profile as unknown as Record<string, unknown> | null | undefined),
-    [profile],
-  );
+  const transformationPhotos = useMemo(() => getTransformationPhotos(profile as unknown as Record<string, unknown> | null | undefined), [profile]);
+  const transformationVisibility = useMemo(() => getTransformationVisibility(profile as unknown as Record<string, unknown> | null | undefined), [profile]);
 
   // 2026-05-10 SLICE 1 — AI Village 15-brain Phase-2B consensus + Architecture
-  // & Bug Hunter agreement: the prior implementation revoked the optimistic
-  // preview blob in a `finally` block while React state still pointed at it,
-  // leaving a broken image until the profile.bannerPhoto effect resolved.
-  // The rewrite below pairs each upload with an ID so a stale failure path
-  // cannot clobber a newer upload, and defers revocation to either the
-  // server-URL effect (success) or the gated catch (failure) / unmount.
   const handleFileUpload = useCallback(async (file: File, type: 'profile' | 'background') => {
     if (!file || !ALLOWED_TYPES.includes(file.type)) return;
     if (file.size > MAX_UPLOAD_SIZE) return;
@@ -143,7 +104,6 @@ export function useUserDashboardV3Controller() {
       return;
     }
 
-    // Background path: optimistic preview, gated success + failure commit.
     revokePreview();
     const thisUploadId = ++uploadIdRef.current;
     const objectUrl = URL.createObjectURL(file);
@@ -176,35 +136,6 @@ export function useUserDashboardV3Controller() {
       }
     }
   }, [profile?.bannerPhoto, uploadBannerPhoto, uploadProfilePhoto, revokePreview]);
-
-  const previewBannerCrop = useCallback((next: BannerCropState) => {
-    setBannerObjectPosition(normalizeBannerObjectPosition(next.position));
-    setBannerObjectFit(isBannerObjectFit(next.fit) ? next.fit : DEFAULT_BANNER_OBJECT_FIT);
-    setBannerImageScale(normalizeBannerImageScale(next.scale));
-  }, []);
-
-  const handleBannerCropCommit = useCallback(async (next: BannerCropState) => {
-    const normalizedNext: BannerCropState = {
-      position: normalizeBannerObjectPosition(next.position),
-      fit: isBannerObjectFit(next.fit) ? next.fit : DEFAULT_BANNER_OBJECT_FIT,
-      scale: normalizeBannerImageScale(next.scale),
-    };
-
-    previewBannerCrop(normalizedNext);
-    try {
-      await updateProfile({
-        bannerObjectPosition: next.position,
-        bannerObjectFit: next.fit,
-        bannerImageScale: next.scale,
-      });
-    } catch (positionError) {
-      console.error('Failed to save banner crop settings:', positionError);
-    }
-  }, [previewBannerCrop, updateProfile]);
-
-  const toggleRepositionPanel = useCallback(() => {
-    setShowRepositionPanel((open) => !open);
-  }, []);
 
   const handleProfileImageClick = useCallback(() => {
     profileInputRef.current?.click();
@@ -256,13 +187,7 @@ export function useUserDashboardV3Controller() {
     activeTab,
     setActiveTab,
     backgroundImage,
-    bannerObjectPosition,
-    bannerObjectFit,
-    bannerImageScale,
-    showRepositionPanel,
-    toggleRepositionPanel,
-    previewBannerCrop,
-    handleBannerCropCommit,
+    ...bannerComposition,
     showEditModal,
     setShowEditModal,
     displayStats,

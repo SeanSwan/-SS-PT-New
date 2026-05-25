@@ -81,13 +81,25 @@ User.init(
       type: DataTypes.STRING(12),
       allowNull: false,
       defaultValue: 'cover',
-      comment: 'CSS object-fit mode for banner photo: cover, contain, or fill.',
+      comment: 'Banner composition mode: cover, contain, fill, tile, or collage.',
     },
     bannerImageScale: {
       type: DataTypes.FLOAT,
       allowNull: false,
       defaultValue: 1,
       comment: 'Manual banner photo zoom multiplier for the dashboard cover image.',
+    },
+    bannerFrameHeight: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 320,
+      comment: 'Manual dashboard cover frame height in pixels.',
+    },
+    bannerCollagePhotos: {
+      type: DataTypes.JSONB,
+      allowNull: false,
+      defaultValue: [],
+      comment: 'Safe uploaded image URLs used by collage banner mode.',
     },
     // Role - now supports user, client, trainer, and admin
     role: {

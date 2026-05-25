@@ -48,10 +48,14 @@ interface UserDashboardProfileHeaderV3Props {
   bannerObjectPosition: BannerObjectPosition;
   bannerObjectFit: BannerObjectFit;
   bannerImageScale: number;
+  bannerFrameHeight: number;
+  bannerCollagePhotos: string[];
   showRepositionPanel: boolean;
   onToggleRepositionPanel: () => void;
   onBannerCropPreview: (next: BannerCropState) => void;
   onBannerCropCommit: (next: BannerCropState) => void;
+  onBannerCollageFiles: (files: FileList | File[]) => void;
+  onBannerCollageRemove: (index: number) => void;
   profile: ProfileData | null;
   displayStats: ProfileStats;
   topBadges: TopBadge[];
@@ -71,10 +75,14 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
   bannerObjectPosition,
   bannerObjectFit,
   bannerImageScale,
+  bannerFrameHeight,
+  bannerCollagePhotos,
   showRepositionPanel,
   onToggleRepositionPanel,
   onBannerCropPreview,
   onBannerCropCommit,
+  onBannerCollageFiles,
+  onBannerCollageRemove,
   profile,
   displayStats,
   topBadges,
@@ -101,10 +109,14 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
         bannerObjectPosition={bannerObjectPosition}
         bannerObjectFit={bannerObjectFit}
         bannerImageScale={bannerImageScale}
+        bannerFrameHeight={bannerFrameHeight}
+        bannerCollagePhotos={bannerCollagePhotos}
         showRepositionPanel={showRepositionPanel}
         onToggleRepositionPanel={onToggleRepositionPanel}
         onBannerCropPreview={onBannerCropPreview}
         onBannerCropCommit={onBannerCropCommit}
+        onBannerCollageFiles={onBannerCollageFiles}
+        onBannerCollageRemove={onBannerCollageRemove}
         onBackgroundClick={onBackgroundClick}
       />
 

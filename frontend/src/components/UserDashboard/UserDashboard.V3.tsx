@@ -86,10 +86,14 @@ const UserDashboardV3: React.FC = () => {
                   bannerObjectPosition={dashboard.bannerObjectPosition}
                   bannerObjectFit={dashboard.bannerObjectFit}
                   bannerImageScale={dashboard.bannerImageScale}
+                  bannerFrameHeight={dashboard.bannerFrameHeight}
+                  bannerCollagePhotos={dashboard.bannerCollagePhotos}
                   showRepositionPanel={dashboard.showRepositionPanel}
                   onToggleRepositionPanel={dashboard.toggleRepositionPanel}
                   onBannerCropPreview={dashboard.previewBannerCrop}
                   onBannerCropCommit={dashboard.handleBannerCropCommit}
+                  onBannerCollageFiles={dashboard.handleBannerCollageFiles}
+                  onBannerCollageRemove={dashboard.handleBannerCollageRemove}
                   profile={dashboard.profile as any}
                   displayStats={dashboard.displayStats}
                   topBadges={dashboard.topBadges}

@@ -116,6 +116,49 @@ router.post(
   }
 );
 
+router.post(
+  '/upload-banner-collage-photo',
+  protect,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 20 }),
+  upload.single('bannerPhoto'),
+  async (req, res) => {
+    try {
+      const { default: path } = await import('path');
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+      if (!allowedExtensions.includes(fileExt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file type. Only JPG, JPEG, PNG, and WEBP files are allowed.'
+        });
+      }
+
+      const { url: bannerUrl } = await uploadPhoto(req.file.buffer, {
+        userId: req.user.id,
+        category: 'banner-collage',
+        originalFilename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+
+      logger.info('Banner collage photo uploaded', { userId: req.user.id, bannerUrl });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Banner collage photo uploaded successfully',
+        data: { bannerPhoto: bannerUrl }
+      });
+    } catch (error) {
+      logger.error('Banner collage photo upload error:', { error: error.message, userId: req.user?.id });
+      return res.status(500).json({ success: false, message: 'Server error uploading banner collage photo' });
+    }
+  }
+);
+
 /**
  * @route   GET /api/profile
  * @desc    Get current user profile

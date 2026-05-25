@@ -188,6 +188,8 @@ async function migrateStabilizationColumns() {
   await addColumnIfMissing('Users', 'bannerObjectPosition', "VARCHAR(32) NOT NULL DEFAULT '50% 50%'");
   await addColumnIfMissing('Users', 'bannerObjectFit', "VARCHAR(12) NOT NULL DEFAULT 'cover'");
   await addColumnIfMissing('Users', 'bannerImageScale', 'DOUBLE PRECISION NOT NULL DEFAULT 1');
+  await addColumnIfMissing('Users', 'bannerFrameHeight', 'INTEGER NOT NULL DEFAULT 320');
+  await addColumnIfMissing('Users', 'bannerCollagePhotos', "JSONB NOT NULL DEFAULT '[]'::jsonb");
 
   // session_types table
   await addColumnIfMissing('session_types', 'creditsRequired', 'INTEGER DEFAULT 1');

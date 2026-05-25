@@ -23,10 +23,14 @@ function renderCropControls(overrides = {}) {
     bannerObjectPosition: '50% 50%',
     bannerObjectFit: 'cover' as const,
     bannerImageScale: 1,
+    bannerFrameHeight: 320,
+    bannerCollagePhotos: ['/uploads/collage-one.jpg', '/uploads/collage-two.jpg'],
     showRepositionPanel: true,
     onToggleRepositionPanel: vi.fn(),
     onBannerCropPreview: vi.fn(),
     onBannerCropCommit: vi.fn(),
+    onBannerCollageFiles: vi.fn(),
+    onBannerCollageRemove: vi.fn(),
     onBackgroundClick: vi.fn(),
     ...overrides,
   };
@@ -80,5 +84,45 @@ describe('UserDashboardBannerCropControls', () => {
       fit: 'contain',
       scale: 1,
     }));
+  });
+
+  it('switches to tile mode and renders repeated safe image elements', () => {
+    const props = renderCropControls({ bannerObjectFit: 'tile' as const });
+
+    expect(screen.getAllByTestId('banner-tile-image').length).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Tile' }));
+
+    expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'tile',
+    }));
+    expect(props.onBannerCropCommit).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'tile',
+    }));
+  });
+
+  it('previews and commits banner frame height changes', () => {
+    const props = renderCropControls();
+
+    fireEvent.change(screen.getByLabelText('Cover banner height'), { target: { value: '460' } });
+    fireEvent.blur(screen.getByLabelText('Cover banner height'));
+
+    expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
+      height: 460,
+    }));
+    expect(props.onBannerCropCommit).toHaveBeenCalledWith(expect.objectContaining({
+      height: 460,
+    }));
+  });
+
+  it('renders collage photos and exposes add/remove controls', () => {
+    const props = renderCropControls({ bannerObjectFit: 'collage' as const });
+    const files = [new File(['one'], 'one.jpg', { type: 'image/jpeg' })];
+
+    expect(screen.getAllByTestId('banner-collage-image')).toHaveLength(2);
+    fireEvent.change(screen.getByLabelText('Add collage photos'), { target: { files } });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove collage photo 1' }));
+
+    expect(props.onBannerCollageFiles).toHaveBeenCalled();
+    expect(props.onBannerCollageRemove).toHaveBeenCalledWith(0);
   });
 });

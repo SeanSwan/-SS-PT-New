@@ -6,14 +6,18 @@ const controllerSource = readFileSync(resolve(process.cwd(), 'controllers/profil
 const userModelSource = readFileSync(resolve(process.cwd(), 'models/User.mjs'), 'utf8');
 const migrationSource = readFileSync(resolve(process.cwd(), 'migrations/20260524000100-expand-banner-crop-controls.cjs'), 'utf8');
 const startupMigrationSource = readFileSync(resolve(process.cwd(), 'utils/startupMigrations.mjs'), 'utf8');
+const profileRoutesSource = readFileSync(resolve(process.cwd(), 'routes/profileRoutes.mjs'), 'utf8');
 
 describe('profile banner crop persistence contract', () => {
   it('accepts free percentage crop coordinates plus fit and scale fields', () => {
     expect(controllerSource).toContain("'bannerObjectFit'");
     expect(controllerSource).toContain("'bannerImageScale'");
+    expect(controllerSource).toContain("'bannerFrameHeight'");
+    expect(controllerSource).toContain("'bannerCollagePhotos'");
     expect(controllerSource).toContain('isValidBannerObjectPosition');
     expect(controllerSource).toContain('isValidBannerObjectFit');
     expect(controllerSource).toContain('normalizeBannerImageScale');
+    expect(controllerSource).toContain('normalizeBannerCollagePhotos');
     expect(controllerSource).not.toContain('bannerObjectPosition must be one of the 9 supported presets');
   });
 
@@ -21,6 +25,8 @@ describe('profile banner crop persistence contract', () => {
     expect(userModelSource).toMatch(/bannerObjectPosition:\s*{[\s\S]*?DataTypes\.STRING\(32\)/);
     expect(userModelSource).toContain('bannerObjectFit');
     expect(userModelSource).toContain('bannerImageScale');
+    expect(userModelSource).toContain('bannerFrameHeight');
+    expect(userModelSource).toContain('bannerCollagePhotos');
     expect(userModelSource).not.toContain('enum_Users_bannerObjectPosition');
   });
 
@@ -34,6 +40,26 @@ describe('profile banner crop persistence contract', () => {
     expect(startupMigrationSource).toContain("'bannerObjectPosition', \"VARCHAR(32) NOT NULL DEFAULT '50% 50%'\"");
     expect(startupMigrationSource).toContain("'bannerObjectFit', \"VARCHAR(12) NOT NULL DEFAULT 'cover'\"");
     expect(startupMigrationSource).toContain("'bannerImageScale', 'DOUBLE PRECISION NOT NULL DEFAULT 1'");
+    expect(startupMigrationSource).toContain("'bannerFrameHeight', 'INTEGER NOT NULL DEFAULT 320'");
+    expect(startupMigrationSource).toContain("'bannerCollagePhotos', \"JSONB NOT NULL DEFAULT '[]'::jsonb\"");
     expect(startupMigrationSource).not.toContain('enum_Users_bannerObjectPosition');
+  });
+
+  it('ships a follow-up migration for persisted banner frame height and collage photos', () => {
+    const heightMigrationSource = readFileSync(
+      resolve(process.cwd(), 'migrations/20260524000200-add-banner-frame-height.cjs'),
+      'utf8',
+    );
+
+    expect(heightMigrationSource).toContain("addColumn('Users', 'bannerFrameHeight'");
+    expect(heightMigrationSource).toContain('defaultValue: 320');
+    expect(heightMigrationSource).toContain("addColumn('Users', 'bannerCollagePhotos'");
+    expect(heightMigrationSource).toContain('defaultValue: []');
+  });
+
+  it('has a non-destructive collage photo upload route separate from the main cover upload', () => {
+    expect(profileRoutesSource).toContain("'/upload-banner-collage-photo'");
+    expect(profileRoutesSource).toContain("category: 'banner-collage'");
+    expect(profileRoutesSource).not.toContain('await deletePhoto(user.bannerCollagePhotos');
   });
 });

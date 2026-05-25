@@ -95,7 +95,7 @@ export const BannerCropHint = styled.p`
 
 export const BannerCropModeRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 `;
 
@@ -133,6 +133,10 @@ export const BannerCropModeButton = styled.button<{ $active?: boolean }>`
   &:focus-visible {
     outline: 2px solid var(--accent-secondary, #8B5CF6);
     outline-offset: 2px;
+  }
+
+  &:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 `;
 

@@ -34,6 +34,7 @@ interface UseProfileReturn {
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   uploadProfilePhoto: (file: File) => Promise<void>;
   uploadBannerPhoto: (file: File) => Promise<string | null>;
+  uploadBannerCollagePhoto: (file: File) => Promise<string | null>;
   loadUserPosts: (userId?: string, limit?: number, offset?: number) => Promise<void>;
   loadMorePosts: () => Promise<void>;
   refreshStats: () => Promise<void>;
@@ -349,6 +350,23 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     }
   }, [user]);
 
+  const uploadBannerCollagePhoto = useCallback(async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const result = await profileService.uploadBannerCollagePhoto(file);
+      return result.bannerPhoto ?? null;
+    } catch (err: any) {
+      console.error('Error uploading banner collage photo:', err);
+      setError(err.message || 'Failed to upload collage photo');
+      throw err;
+    } finally {
+      setIsUploading(false);
+    }
+  }, [user]);
+
   /**
    * Utility function to get display name
    */
@@ -414,6 +432,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     updateProfile,
     uploadProfilePhoto,
     uploadBannerPhoto,
+    uploadBannerCollagePhoto,
     loadUserPosts,
     loadMorePosts,
     refreshStats,

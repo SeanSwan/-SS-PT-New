@@ -6,7 +6,9 @@ import {
   BANNER_OBJECT_POSITION_PRESETS,
   DEFAULT_BANNER_OBJECT_POSITION,
   isBannerObjectPosition,
+  normalizeBannerCollagePhotos,
   normalizeBannerImageScale,
+  normalizeBannerFrameHeight,
   normalizeBannerObjectPosition,
 } from './profileService';
 
@@ -74,5 +76,35 @@ describe('normalizeBannerImageScale', () => {
     expect(normalizeBannerImageScale(0.1)).toBe(0.5);
     expect(normalizeBannerImageScale(1.25)).toBe(1.25);
     expect(normalizeBannerImageScale(9)).toBe(3);
+  });
+});
+
+describe('normalizeBannerFrameHeight', () => {
+  it('keeps the cover frame height in a usable banner range', () => {
+    expect(normalizeBannerFrameHeight(120)).toBe(180);
+    expect(normalizeBannerFrameHeight(460)).toBe(460);
+    expect(normalizeBannerFrameHeight(900)).toBe(640);
+  });
+});
+
+describe('normalizeBannerCollagePhotos', () => {
+  it('keeps only safe uploaded image URLs and caps the collage size', () => {
+    expect(normalizeBannerCollagePhotos([
+      '/uploads/one.jpg',
+      ' javascript:alert(1)',
+      '/uploads/two.jpg',
+      '/uploads/three.jpg',
+      '/uploads/four.jpg',
+      '/uploads/five.jpg',
+      '/uploads/six.jpg',
+      '/uploads/seven.jpg',
+    ])).toEqual([
+      '/uploads/one.jpg',
+      '/uploads/two.jpg',
+      '/uploads/three.jpg',
+      '/uploads/four.jpg',
+      '/uploads/five.jpg',
+      '/uploads/six.jpg',
+    ]);
   });
 });

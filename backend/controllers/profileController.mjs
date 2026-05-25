@@ -157,7 +157,7 @@ const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
 ]);
 
 const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
-const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill']);
+const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill', 'tile', 'collage']);
 
 const clampPercent = value => Math.min(100, Math.max(0, value));
 const formatPercent = value => `${Number(value.toFixed(2))}%`;
@@ -188,6 +188,21 @@ const normalizeBannerImageScale = value => {
   return Number(Math.min(3, Math.max(0.5, next)).toFixed(2));
 };
 
+const normalizeBannerFrameHeight = value => {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) return null;
+  return Math.round(Math.min(640, Math.max(180, next)));
+};
+
+const normalizeBannerCollagePhotos = value => {
+  if (!Array.isArray(value)) return null;
+  const candidates = value.slice(0, 6);
+  const safePhotos = candidates
+    .map(url => sanitizeImageUrl(url))
+    .filter(Boolean);
+  return safePhotos.length === candidates.length ? safePhotos : null;
+};
+
 /**
  * Update user profile
  * 
@@ -208,7 +223,8 @@ export const updateUserProfile = async (req, res) => {
       'notificationPreferences',
       'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
       'showWorkoutHistory', 'showLevel', 'chartVisibility',
-      'bannerObjectPosition', 'bannerObjectFit', 'bannerImageScale'
+      'bannerObjectPosition', 'bannerObjectFit', 'bannerImageScale',
+      'bannerFrameHeight', 'bannerCollagePhotos'
     ];
 
     // Cover crop settings are persisted as a narrow CSS-safe contract:
@@ -226,7 +242,7 @@ export const updateUserProfile = async (req, res) => {
     if (updateData.bannerObjectFit !== undefined && !isValidBannerObjectFit(updateData.bannerObjectFit)) {
       return res.status(400).json({
         success: false,
-        message: 'bannerObjectFit must be cover, contain, or fill',
+        message: 'bannerObjectFit must be cover, contain, fill, tile, or collage',
       });
     }
 
@@ -239,6 +255,28 @@ export const updateUserProfile = async (req, res) => {
         });
       }
       updateData.bannerImageScale = normalizedScale;
+    }
+
+    if (updateData.bannerFrameHeight !== undefined) {
+      const normalizedHeight = normalizeBannerFrameHeight(updateData.bannerFrameHeight);
+      if (normalizedHeight === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerFrameHeight must be a finite number',
+        });
+      }
+      updateData.bannerFrameHeight = normalizedHeight;
+    }
+
+    if (updateData.bannerCollagePhotos !== undefined) {
+      const normalizedPhotos = normalizeBannerCollagePhotos(updateData.bannerCollagePhotos);
+      if (normalizedPhotos === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerCollagePhotos must contain safe uploaded image URLs',
+        });
+      }
+      updateData.bannerCollagePhotos = normalizedPhotos;
     }
 
     if (updateData.notificationPreferences !== undefined) {
