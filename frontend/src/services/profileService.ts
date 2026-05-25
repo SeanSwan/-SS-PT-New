@@ -19,11 +19,76 @@ export const BANNER_OBJECT_POSITION_PRESETS = [
   'left bottom', 'center bottom', 'right bottom',
 ] as const;
 
-export type BannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number];
+type LegacyBannerObjectPosition = (typeof BANNER_OBJECT_POSITION_PRESETS)[number];
+
+export const BANNER_OBJECT_FIT_OPTIONS = ['cover', 'contain', 'fill'] as const;
+export type BannerObjectFit = (typeof BANNER_OBJECT_FIT_OPTIONS)[number];
+export type BannerObjectPosition = string;
+
+export const DEFAULT_BANNER_OBJECT_POSITION: BannerObjectPosition = '50% 50%';
+export const DEFAULT_BANNER_OBJECT_FIT: BannerObjectFit = 'cover';
+export const DEFAULT_BANNER_IMAGE_SCALE = 1;
+
+const LEGACY_BANNER_OBJECT_POSITIONS: Record<LegacyBannerObjectPosition, BannerObjectPosition> = {
+  'left top': '0% 0%',
+  'center top': '50% 0%',
+  'right top': '100% 0%',
+  'left center': '0% 50%',
+  'center center': DEFAULT_BANNER_OBJECT_POSITION,
+  'right center': '100% 50%',
+  'left bottom': '0% 100%',
+  'center bottom': '50% 100%',
+  'right bottom': '100% 100%',
+};
+
+const PERCENT_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
+
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+const formatPercent = (value: number) => `${Number(value.toFixed(2))}%`;
+
+const isLegacyBannerObjectPosition = (value: string): value is LegacyBannerObjectPosition =>
+  (BANNER_OBJECT_POSITION_PRESETS as readonly string[]).includes(value);
 
 export function isBannerObjectPosition(value: unknown): value is BannerObjectPosition {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (isLegacyBannerObjectPosition(trimmed)) return true;
+  const match = trimmed.match(PERCENT_POSITION_PATTERN);
+  if (!match) return false;
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  return Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100;
+}
+
+export function normalizeBannerObjectPosition(value: unknown): BannerObjectPosition {
+  if (typeof value !== 'string') return DEFAULT_BANNER_OBJECT_POSITION;
+  const trimmed = value.trim();
+  if (isLegacyBannerObjectPosition(trimmed)) {
+    return LEGACY_BANNER_OBJECT_POSITIONS[trimmed];
+  }
+  const match = trimmed.match(PERCENT_POSITION_PATTERN);
+  if (!match) return DEFAULT_BANNER_OBJECT_POSITION;
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return DEFAULT_BANNER_OBJECT_POSITION;
+  return `${formatPercent(clampPercent(x))} ${formatPercent(clampPercent(y))}`;
+}
+
+export function isBannerObjectFit(value: unknown): value is BannerObjectFit {
   return typeof value === 'string'
-    && (BANNER_OBJECT_POSITION_PRESETS as readonly string[]).includes(value);
+    && (BANNER_OBJECT_FIT_OPTIONS as readonly string[]).includes(value);
+}
+
+export function normalizeBannerImageScale(value: unknown): number {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) return DEFAULT_BANNER_IMAGE_SCALE;
+  return Number(Math.min(3, Math.max(0.5, next)).toFixed(2));
+}
+
+export interface BannerCropState {
+  position: BannerObjectPosition;
+  fit: BannerObjectFit;
+  scale: number;
 }
 
 // Types for profile data
@@ -49,6 +114,8 @@ export interface UserProfile {
   preferences?: string;
   bannerPhoto?: string;
   bannerObjectPosition?: BannerObjectPosition;
+  bannerObjectFit?: BannerObjectFit;
+  bannerImageScale?: number;
   bio?: string;
   city?: string;
   state?: string;

@@ -12,7 +12,17 @@ import {
 } from '../components/ObservatoryShellAdapter';
 import type { TabId } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-import { isBannerObjectPosition, type BannerObjectPosition } from '../../../services/profileService';
+import {
+  DEFAULT_BANNER_IMAGE_SCALE,
+  DEFAULT_BANNER_OBJECT_FIT,
+  DEFAULT_BANNER_OBJECT_POSITION,
+  isBannerObjectFit,
+  normalizeBannerImageScale,
+  normalizeBannerObjectPosition,
+  type BannerCropState,
+  type BannerObjectFit,
+  type BannerObjectPosition,
+} from '../../../services/profileService';
 
 const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -38,29 +48,16 @@ export function useUserDashboardV3Controller() {
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  // 2026-05-10 SLICE 2: banner crop-alignment state.
   const [bannerObjectPosition, setBannerObjectPosition] =
-    useState<BannerObjectPosition>('center center');
+    useState<BannerObjectPosition>(DEFAULT_BANNER_OBJECT_POSITION);
+  const [bannerObjectFit, setBannerObjectFit] =
+    useState<BannerObjectFit>(DEFAULT_BANNER_OBJECT_FIT);
+  const [bannerImageScale, setBannerImageScale] =
+    useState<number>(DEFAULT_BANNER_IMAGE_SCALE);
   const [showRepositionPanel, setShowRepositionPanel] = useState(false);
   const profileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
-  // 2026-05-10 SLICE 1 (Phase-2B consensus + Security CHAIN-1 + Codex
-  // rounds 3 / 4 / 5 race fix):
-  //   - previewUrlRef tracks the current optimistic blob: URL (may be null).
-  //   - uploadIdRef monotonically increases on each upload kick-off; it is
-  //     the canonical "latest upload" token.
-  //   - The banner-sync effect ONLY commits external profile changes when
-  //     no optimistic preview is showing. While a preview is showing,
-  //     handleFileUpload owns the commit (via the explicit success branch
-  //     below, gated on `thisUploadId === uploadIdRef.current`).
-  //   - The success branch commits the server URL RETURNED DIRECTLY by
-  //     uploadBannerPhoto, NOT from profile state — useProfile's
-  //     setProfile call schedules a render whose effects only run AFTER
-  //     commit, so reading profile via a ref-bridge here could see the
-  //     PREVIOUS upload's URL on a concurrent-upload race (Codex round-5).
-  //   - sanitizeImageUrl() filters server URLs through an origin allowlist
-  //     and strips CSS-injection chars BEFORE they reach styled-components.
   const previewUrlRef = useRef<string | null>(null);
   const uploadIdRef = useRef<number>(0);
 
@@ -71,12 +68,7 @@ export function useUserDashboardV3Controller() {
     }
   }, []);
 
-  // Hydrate banner state from external profile changes (initial load,
-  // refetches triggered by sibling surfaces). When the user is mid-upload
-  // (previewUrlRef !== null), this effect refuses to act — handleFileUpload
-  // owns the commit at that point, so a stale older-upload server URL
-  // arriving via this effect cannot clobber the newer optimistic preview.
-  // The else branch fires on both empty AND rejected (Codex round-2 LOW).
+  // Ignore profile refreshes while an optimistic banner preview is active.
   useEffect(() => {
     if (previewUrlRef.current !== null) return;
     const safe = sanitizeImageUrl(profile?.bannerPhoto);
@@ -88,15 +80,15 @@ export function useUserDashboardV3Controller() {
     return () => revokePreview();
   }, [revokePreview]);
 
-  // 2026-05-10 SLICE 2: hydrate bannerObjectPosition from profile. Guard
-  // with isBannerObjectPosition() so a malformed/poisoned value from the
-  // server falls back to the default rather than landing in CSS.
   useEffect(() => {
-    const incoming = profile?.bannerObjectPosition;
-    if (isBannerObjectPosition(incoming)) {
-      setBannerObjectPosition(incoming);
-    }
-  }, [profile?.bannerObjectPosition]);
+    setBannerObjectPosition(normalizeBannerObjectPosition(profile?.bannerObjectPosition));
+    setBannerObjectFit(
+      isBannerObjectFit(profile?.bannerObjectFit)
+        ? profile.bannerObjectFit
+        : DEFAULT_BANNER_OBJECT_FIT,
+    );
+    setBannerImageScale(normalizeBannerImageScale(profile?.bannerImageScale));
+  }, [profile?.bannerImageScale, profile?.bannerObjectFit, profile?.bannerObjectPosition]);
 
   const displayStats = useMemo(() => ({
     posts: stats?.posts || 0,
@@ -185,18 +177,30 @@ export function useUserDashboardV3Controller() {
     }
   }, [profile?.bannerPhoto, uploadBannerPhoto, uploadProfilePhoto, revokePreview]);
 
-  // 2026-05-10 SLICE 2: change crop preset. Optimistic local update so the
-  // user sees the crop apply instantly; updateProfile() persists. On failure
-  // the next profile refresh restores the truth via the hydration effect.
-  const handleBannerPositionChange = useCallback(async (next: BannerObjectPosition) => {
-    setBannerObjectPosition(next);
-    setShowRepositionPanel(false);
+  const previewBannerCrop = useCallback((next: BannerCropState) => {
+    setBannerObjectPosition(normalizeBannerObjectPosition(next.position));
+    setBannerObjectFit(isBannerObjectFit(next.fit) ? next.fit : DEFAULT_BANNER_OBJECT_FIT);
+    setBannerImageScale(normalizeBannerImageScale(next.scale));
+  }, []);
+
+  const handleBannerCropCommit = useCallback(async (next: BannerCropState) => {
+    const normalizedNext: BannerCropState = {
+      position: normalizeBannerObjectPosition(next.position),
+      fit: isBannerObjectFit(next.fit) ? next.fit : DEFAULT_BANNER_OBJECT_FIT,
+      scale: normalizeBannerImageScale(next.scale),
+    };
+
+    previewBannerCrop(normalizedNext);
     try {
-      await updateProfile({ bannerObjectPosition: next });
+      await updateProfile({
+        bannerObjectPosition: next.position,
+        bannerObjectFit: next.fit,
+        bannerImageScale: next.scale,
+      });
     } catch (positionError) {
-      console.error('Failed to save banner crop preset:', positionError);
+      console.error('Failed to save banner crop settings:', positionError);
     }
-  }, [updateProfile]);
+  }, [previewBannerCrop, updateProfile]);
 
   const toggleRepositionPanel = useCallback(() => {
     setShowRepositionPanel((open) => !open);
@@ -253,9 +257,12 @@ export function useUserDashboardV3Controller() {
     setActiveTab,
     backgroundImage,
     bannerObjectPosition,
+    bannerObjectFit,
+    bannerImageScale,
     showRepositionPanel,
     toggleRepositionPanel,
-    handleBannerPositionChange,
+    previewBannerCrop,
+    handleBannerCropCommit,
     showEditModal,
     setShowEditModal,
     displayStats,

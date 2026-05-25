@@ -18,6 +18,7 @@ function expectStyleBlockContains(source: string, exportName: string, declaratio
 const USER_DASHBOARD_V3_SHELL_FILES = [
   'src/components/UserDashboard/UserDashboard.V3.tsx',
   'src/components/UserDashboard/components/UserDashboardProfileHeaderV3.tsx',
+  'src/components/UserDashboard/components/UserDashboardBannerCropControls.tsx',
   'src/components/UserDashboard/components/UserDashboardSidebarV3.tsx',
   'src/components/UserDashboard/components/UserDashboardStatusStatesV3.tsx',
   'src/components/UserDashboard/components/UserDashboardTabsV3.tsx',
@@ -225,6 +226,16 @@ describe('UserDashboard V3 daily loop contract', () => {
       expect(adapterSource, `${tabId} must be reachable from desktop observatory rail`)
         .toContain(`id: '${tabId}'`);
     });
+  });
+
+  it('keeps Progress immediately after Home in user-dashboard navigation', () => {
+    const tabBarSource = readSource('src/components/UserDashboard/components/UserDashboardTabBarV3.tsx');
+    const adapterSource = readSource('src/components/UserDashboard/components/ObservatoryShellAdapter.ts');
+
+    expect(tabBarSource.indexOf("id: 'home'")).toBeLessThan(tabBarSource.indexOf("id: 'progress'"));
+    expect(tabBarSource.indexOf("id: 'progress'")).toBeLessThan(tabBarSource.indexOf("id: 'feed'"));
+    expect(adapterSource.indexOf("id: 'home'")).toBeLessThan(adapterSource.indexOf("id: 'progress'"));
+    expect(adapterSource.indexOf("id: 'progress'")).toBeLessThan(adapterSource.indexOf("id: 'feed'"));
   });
 
   it('keeps shared role-dashboard workspaces independent from UserDashboard-only chrome', () => {

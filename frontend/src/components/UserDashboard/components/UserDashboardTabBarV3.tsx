@@ -33,6 +33,7 @@ interface UserDashboardTabBarV3Props {
 
 const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon }> = [
   { id: 'home', label: 'Home', Icon: Home },
+  { id: 'progress', label: 'Progress', Icon: Dumbbell },
   { id: 'feed', label: 'Feed', Icon: Sparkles },
   { id: 'reels', label: 'Reels', Icon: Video },
   { id: 'creative', label: 'Creative', Icon: Aperture },
@@ -40,7 +41,6 @@ const dashboardTabs: Array<{ id: TabId; label: string; Icon: LucideIcon }> = [
   { id: 'about', label: 'About', Icon: Info },
   { id: 'activity', label: 'Activity', Icon: Activity },
   { id: 'nutrition', label: 'Nutrition', Icon: Utensils },
-  { id: 'progress', label: 'Progress', Icon: Dumbbell },
   { id: 'community', label: 'Community', Icon: Users },
   { id: 'profile', label: 'Profile', Icon: User },
 ];

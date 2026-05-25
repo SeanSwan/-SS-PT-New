@@ -72,20 +72,22 @@ User.init(
       comment: 'Banner/cover photo URL for client profile'
     },
     bannerObjectPosition: {
-      // 2026-05-10 SLICE 2: CSS object-position value applied to the banner
-      // <img> on /user-dashboard so portrait photos can be reframed without
-      // a re-upload (Sean: "only shows the chest of the two people standing
-      // there"). Enum-constrained at the column level AND validated in the
-      // route handler so a poisoned write cannot smuggle CSS into the
-      // styled-component output.
-      type: DataTypes.ENUM(
-        'left top', 'center top', 'right top',
-        'left center', 'center center', 'right center',
-        'left bottom', 'center bottom', 'right bottom',
-      ),
+      type: DataTypes.STRING(32),
       allowNull: false,
-      defaultValue: 'center center',
-      comment: 'CSS object-position preset for banner photo crop alignment (9-preset 3x3 grid).',
+      defaultValue: '50% 50%',
+      comment: 'CSS object-position percentage coordinates for manual banner crop alignment.',
+    },
+    bannerObjectFit: {
+      type: DataTypes.STRING(12),
+      allowNull: false,
+      defaultValue: 'cover',
+      comment: 'CSS object-fit mode for banner photo: cover, contain, or fill.',
+    },
+    bannerImageScale: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 1,
+      comment: 'Manual banner photo zoom multiplier for the dashboard cover image.',
     },
     // Role - now supports user, client, trainer, and admin
     role: {

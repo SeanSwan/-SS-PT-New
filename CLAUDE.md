@@ -8,6 +8,14 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 
 - **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
+## Product Core Loop
+SwanStudios is workout-progress-first. The main product loop is: log the workout -> save the workout diary entry -> turn it into charts/progress proof -> help the user, trainer, and admin decide the next training action -> make meaningful milestones shareable with the community.
+
+- **User dashboard priority:** Home is first, then workout/progress visibility must be immediately reachable. Do not bury Progress below secondary social/profile surfaces. Dashboard work should make workout logging, chart review, streak/progression feedback, and community sharing feel addictive, low-click, and visually rewarding.
+- **Trainer dashboard priority:** Trainers need fast client workout logging, reviewable workout history, progress charts generated from real logged data, and low-friction plan adjustments. Trainer features that do not improve this coaching loop are secondary unless Sean explicitly prioritizes them.
+- **Admin dashboard priority:** Admin needs proof-of-value visibility across clients: who trained, what changed, what is stale, what needs intervention, and what progress can be celebrated or shared. Admin UI should surface workout/progress truth before decorative or low-revenue features.
+- **Data truth rule:** Workout charts must come from real workout logs/sessions whenever possible. Mock progress data is a placeholder only and should be treated as a gap to replace.
+
 ## Build & Run
 - **Local dev:** `npm run dev` (from root — backend:10000 + frontend:5173 concurrently, auto-opens browser)
 - **Frontend build:** `cd frontend && npm run build` (Vite)

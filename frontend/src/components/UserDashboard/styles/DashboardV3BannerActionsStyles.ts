@@ -68,23 +68,40 @@ export const BannerRepositionPanel = styled.div`
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  display: grid;
-  grid-template-columns: repeat(3, 44px);
-  grid-template-rows: repeat(3, 44px);
-  gap: 4px;
-  padding: 10px;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--bg-elevated, #141419) 96%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
   backdrop-filter: blur(20px);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent);
   z-index: 4;
   pointer-events: auto;
+
+  @media (max-width: 430px) {
+    right: -54px;
+  }
 `;
 
-export const BannerRepositionCell = styled.button<{ $active?: boolean }>`
-  width: 44px;
-  height: 44px;
+export const BannerCropHint = styled.p`
+  margin: 0;
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent));
+  font-size: 0.82rem;
+  line-height: 1.45;
+`;
+
+export const BannerCropModeRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+`;
+
+export const BannerCropModeButton = styled.button<{ $active?: boolean }>`
+  min-height: 44px;
+  padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid ${({ $active }) =>
     $active
@@ -103,13 +120,65 @@ export const BannerRepositionCell = styled.button<{ $active?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   transition: all 0.15s ease;
+  white-space: nowrap;
 
   &:hover {
     border-color: var(--accent-secondary, #8B5CF6);
     color: var(--text-primary, #E0ECF4);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
+export const BannerCropField = styled.label`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  align-items: center;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+`;
+
+export const BannerCropValue = styled.span`
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.78rem;
+`;
+
+export const BannerCropSlider = styled.input`
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--accent-primary, #60C0F0);
+  cursor: pointer;
+`;
+
+export const BannerCropResetButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 28%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-surface, var(--bg-elevated, #141419)) 64%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  pointer-events: auto;
+
+  &:hover {
+    border-color: var(--accent-gold, #C6A84B);
+    color: var(--accent-gold, #C6A84B);
   }
 
   &:focus-visible {

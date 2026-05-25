@@ -144,6 +144,50 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+const LEGACY_BANNER_OBJECT_POSITIONS = new Map([
+  ['left top', '0% 0%'],
+  ['center top', '50% 0%'],
+  ['right top', '100% 0%'],
+  ['left center', '0% 50%'],
+  ['center center', '50% 50%'],
+  ['right center', '100% 50%'],
+  ['left bottom', '0% 100%'],
+  ['center bottom', '50% 100%'],
+  ['right bottom', '100% 100%'],
+]);
+
+const BANNER_POSITION_PATTERN = /^(-?\d+(?:\.\d+)?)%\s+(-?\d+(?:\.\d+)?)%$/;
+const BANNER_OBJECT_FITS = new Set(['cover', 'contain', 'fill']);
+
+const clampPercent = value => Math.min(100, Math.max(0, value));
+const formatPercent = value => `${Number(value.toFixed(2))}%`;
+
+const normalizeBannerObjectPosition = value => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (LEGACY_BANNER_OBJECT_POSITIONS.has(trimmed)) {
+    return LEGACY_BANNER_OBJECT_POSITIONS.get(trimmed);
+  }
+  const match = trimmed.match(BANNER_POSITION_PATTERN);
+  if (!match) return null;
+  const x = Number(match[1]);
+  const y = Number(match[2]);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return `${formatPercent(clampPercent(x))} ${formatPercent(clampPercent(y))}`;
+};
+
+const isValidBannerObjectPosition = value =>
+  typeof normalizeBannerObjectPosition(value) === 'string';
+
+const isValidBannerObjectFit = value =>
+  typeof value === 'string' && BANNER_OBJECT_FITS.has(value);
+
+const normalizeBannerImageScale = value => {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) return null;
+  return Number(Math.min(3, Math.max(0.5, next)).toFixed(2));
+};
+
 /**
  * Update user profile
  * 
@@ -164,29 +208,37 @@ export const updateUserProfile = async (req, res) => {
       'notificationPreferences',
       'profileVisibility', 'showBadges', 'showAchievements', 'showStats',
       'showWorkoutHistory', 'showLevel', 'chartVisibility',
-      // 2026-05-10 SLICE 2: cover photo crop preset
-      'bannerObjectPosition'
+      'bannerObjectPosition', 'bannerObjectFit', 'bannerImageScale'
     ];
 
-    // 2026-05-10 SLICE 2: hard-whitelist the bannerObjectPosition value
-    // BEFORE it reaches the model so a poisoned write cannot smuggle CSS
-    // into the frontend styled-component output (defense in depth — the
-    // Postgres enum and the frontend sanitizer also reject anything else).
+    // Cover crop settings are persisted as a narrow CSS-safe contract:
+    // percentage position, object-fit allowlist, and bounded zoom.
     if (updateData.bannerObjectPosition !== undefined) {
-      const BANNER_OBJECT_POSITION_PRESETS = new Set([
-        'left top', 'center top', 'right top',
-        'left center', 'center center', 'right center',
-        'left bottom', 'center bottom', 'right bottom',
-      ]);
-      if (
-        typeof updateData.bannerObjectPosition !== 'string' ||
-        !BANNER_OBJECT_POSITION_PRESETS.has(updateData.bannerObjectPosition)
-      ) {
+      if (!isValidBannerObjectPosition(updateData.bannerObjectPosition)) {
         return res.status(400).json({
           success: false,
-          message: 'bannerObjectPosition must be one of the 9 supported presets',
+          message: 'bannerObjectPosition must be percentage coordinates such as 50% 50%',
         });
       }
+      updateData.bannerObjectPosition = normalizeBannerObjectPosition(updateData.bannerObjectPosition);
+    }
+
+    if (updateData.bannerObjectFit !== undefined && !isValidBannerObjectFit(updateData.bannerObjectFit)) {
+      return res.status(400).json({
+        success: false,
+        message: 'bannerObjectFit must be cover, contain, or fill',
+      });
+    }
+
+    if (updateData.bannerImageScale !== undefined) {
+      const normalizedScale = normalizeBannerImageScale(updateData.bannerImageScale);
+      if (normalizedScale === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'bannerImageScale must be a finite number',
+        });
+      }
+      updateData.bannerImageScale = normalizedScale;
     }
 
     if (updateData.notificationPreferences !== undefined) {

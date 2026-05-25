@@ -32,7 +32,10 @@ export const ProfileHeader = styled(motion.div)`
   }
 `;
 
-export const BackgroundSection = styled.div<{ $backgroundImage?: string | null }>`
+export const BackgroundSection = styled.div<{
+  $backgroundImage?: string | null;
+  $repositioning?: boolean;
+}>`
   height: 320px;
   position: relative;
   background: var(--bg-elevated, #141419);
@@ -63,6 +66,13 @@ export const BackgroundSection = styled.div<{ $backgroundImage?: string | null }
   justify-content: flex-end;
   overflow: hidden;
   contain: paint;
+  cursor: ${({ $repositioning }) => ($repositioning ? 'grab' : 'default')};
+  pointer-events: ${({ $repositioning }) => ($repositioning ? 'auto' : 'none')};
+  touch-action: none;
+
+  &:active {
+    cursor: ${({ $repositioning }) => ($repositioning ? 'grabbing' : 'default')};
+  }
 
   &::before {
     content: '';
@@ -140,8 +150,15 @@ export const BannerImage = styled.img`
   height: 100%;
   object-fit: cover;
   object-position: center center;
+  transform: translateZ(0) scale(var(--banner-image-scale, 1));
+  transform-origin: center center;
+  transition: object-position 140ms ease, transform 140ms ease;
   z-index: 0;
   pointer-events: none;
   user-select: none;
   -webkit-user-drag: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;

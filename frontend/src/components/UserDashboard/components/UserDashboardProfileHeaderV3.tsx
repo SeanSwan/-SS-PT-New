@@ -1,29 +1,15 @@
 /**
  * Profile header rendered on non-home UserDashboard V3 tabs.
- *
- * 2026-05-10 SLICE 1 + SLICE 2: banner photo renders as an <img> with
- * enum-validated object-position (not CSS background-image), and the
- * profile avatar URL is sanitized at the React boundary so a poisoned
- * server value cannot inject CSS. Reposition picker is a 3×3 grid of
- * preset cells anchored under the BannerActionRow.
  */
 
 import React from 'react';
-import { Camera, Crown, Edit3, Move, Settings, Share2 } from 'lucide-react';
+import { Camera, Crown, Edit3, Settings, Share2 } from 'lucide-react';
 import {
   ActionButtons,
-  BackgroundSection,
-  BannerActionRow,
   BadgeIcon,
   BadgeName,
   BadgeShowcase,
   BadgeShowcaseItem,
-  BannerImage,
-  BannerRepositionAnchor,
-  BannerRepositionButton,
-  BannerRepositionCell,
-  BannerRepositionPanel,
-  BannerUploadButton,
   Bio,
   DisplayName,
   HexLevelBadge,
@@ -44,10 +30,12 @@ import {
 } from '../styles/DashboardV3Styles';
 import type { ProfileData, ProfileStats } from '../types/UserDashboardTypes';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
-import {
-  BANNER_OBJECT_POSITION_PRESETS,
-  type BannerObjectPosition,
+import type {
+  BannerCropState,
+  BannerObjectFit,
+  BannerObjectPosition,
 } from '../../../services/profileService';
+import UserDashboardBannerCropControls from './UserDashboardBannerCropControls';
 
 interface TopBadge {
   id: string;
@@ -58,9 +46,12 @@ interface TopBadge {
 interface UserDashboardProfileHeaderV3Props {
   backgroundImage: string | null;
   bannerObjectPosition: BannerObjectPosition;
+  bannerObjectFit: BannerObjectFit;
+  bannerImageScale: number;
   showRepositionPanel: boolean;
   onToggleRepositionPanel: () => void;
-  onBannerPositionChange: (next: BannerObjectPosition) => void;
+  onBannerCropPreview: (next: BannerCropState) => void;
+  onBannerCropCommit: (next: BannerCropState) => void;
   profile: ProfileData | null;
   displayStats: ProfileStats;
   topBadges: TopBadge[];
@@ -78,9 +69,12 @@ interface UserDashboardProfileHeaderV3Props {
 const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> = ({
   backgroundImage,
   bannerObjectPosition,
+  bannerObjectFit,
+  bannerImageScale,
   showRepositionPanel,
   onToggleRepositionPanel,
-  onBannerPositionChange,
+  onBannerCropPreview,
+  onBannerCropCommit,
   profile,
   displayStats,
   topBadges,
@@ -94,9 +88,6 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
   onSettings,
   onShare,
 }) => {
-  // 2026-05-10 SLICE 1 (Codex round-2 finding): sanitize profile.photo at
-  // the React boundary so a poisoned server value cannot reach the CSS-backed
-  // ProfileImage styled-component. Sanitiser returns null on reject -> initials.
   const safePhoto = sanitizeImageUrl(profile?.photo);
 
   return (
@@ -105,63 +96,17 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8 }}
     >
-      <BackgroundSection $backgroundImage={backgroundImage}>
-        {/* 2026-05-10 SLICE 2: banner photo as <img> + object-position from
-            the enum-validated preset; no CSS-url interpolation surface. */}
-        {backgroundImage && (
-          <BannerImage
-            src={backgroundImage}
-            alt="Profile cover photo"
-            style={{ objectPosition: bannerObjectPosition }}
-            draggable={false}
-          />
-        )}
-      </BackgroundSection>
-      <BannerActionRow>
-        {backgroundImage && (
-          <BannerRepositionAnchor>
-            <BannerRepositionButton
-              type="button"
-              onClick={onToggleRepositionPanel}
-              aria-expanded={showRepositionPanel}
-              aria-haspopup="dialog"
-              aria-label="Reposition cover photo"
-            >
-              <Move size={18} />
-              Reposition
-            </BannerRepositionButton>
-            {showRepositionPanel && (
-              <BannerRepositionPanel
-                role="dialog"
-                aria-label="Choose cover photo crop alignment"
-              >
-                {BANNER_OBJECT_POSITION_PRESETS.map((preset) => (
-                  <BannerRepositionCell
-                    key={preset}
-                    type="button"
-                    $active={bannerObjectPosition === preset}
-                    onClick={() => onBannerPositionChange(preset)}
-                    aria-label={`Crop ${preset}`}
-                    aria-pressed={bannerObjectPosition === preset}
-                  >
-                    {/* Cell label = first letter of each token, e.g. 'TL', 'TC',
-                        'TR'. Screen readers read the full aria-label. */}
-                    {preset
-                      .split(' ')
-                      .map((w) => w[0]?.toUpperCase())
-                      .join('')
-                      .replace('CC', 'C')}
-                  </BannerRepositionCell>
-                ))}
-              </BannerRepositionPanel>
-            )}
-          </BannerRepositionAnchor>
-        )}
-        <BannerUploadButton onClick={onBackgroundClick}>
-          <Camera size={18} />
-          {backgroundImage ? 'Change Cover' : 'Add Cover'}
-        </BannerUploadButton>
-      </BannerActionRow>
+      <UserDashboardBannerCropControls
+        backgroundImage={backgroundImage}
+        bannerObjectPosition={bannerObjectPosition}
+        bannerObjectFit={bannerObjectFit}
+        bannerImageScale={bannerImageScale}
+        showRepositionPanel={showRepositionPanel}
+        onToggleRepositionPanel={onToggleRepositionPanel}
+        onBannerCropPreview={onBannerCropPreview}
+        onBannerCropCommit={onBannerCropCommit}
+        onBackgroundClick={onBackgroundClick}
+      />
 
       <ProfileImageSection>
         <ProfileImageContainer whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -200,9 +145,6 @@ const UserDashboardProfileHeaderV3: React.FC<UserDashboardProfileHeaderV3Props> 
             : 'User'}
         </UserRole>
 
-        {/* 2026-05-10 SLICE 1 (Phase-2C UX consensus + rule 22): StatItems
-            are non-interactive read-only stats. whileHover scaling removed
-            so the cards no longer look like fake buttons. */}
         <StatsContainer>
           <StatItem>
             <StatValue>{displayStats.posts}</StatValue>

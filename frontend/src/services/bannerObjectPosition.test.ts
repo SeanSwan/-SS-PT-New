@@ -1,52 +1,49 @@
 /**
- * bannerObjectPosition — enum-guard regression tests
- * ===================================================
- * 2026-05-10 SLICE 2: locks the 9-preset whitelist contract on the
- * frontend boundary. The same whitelist must also exist on the backend
- * route (profileController.mjs) and as a Postgres ENUM column. Anyone
- * editing the preset list in one place must update all three.
+ * bannerObjectPosition - free crop coordinate regression tests.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   BANNER_OBJECT_POSITION_PRESETS,
+  DEFAULT_BANNER_OBJECT_POSITION,
   isBannerObjectPosition,
+  normalizeBannerImageScale,
+  normalizeBannerObjectPosition,
 } from './profileService';
 
 describe('BANNER_OBJECT_POSITION_PRESETS', () => {
-  it('contains exactly 9 entries (3×3 grid)', () => {
-    expect(BANNER_OBJECT_POSITION_PRESETS).toHaveLength(9);
-  });
-
-  it('matches the documented presets in row-major order', () => {
+  it('keeps the legacy 3x3 values readable for existing profile rows', () => {
     expect([...BANNER_OBJECT_POSITION_PRESETS]).toEqual([
       'left top', 'center top', 'right top',
       'left center', 'center center', 'right center',
       'left bottom', 'center bottom', 'right bottom',
     ]);
   });
-
-  it("includes 'center center' as the default-safe value", () => {
-    expect(BANNER_OBJECT_POSITION_PRESETS).toContain('center center');
-  });
 });
 
 describe('isBannerObjectPosition', () => {
-  it('accepts every preset in the whitelist', () => {
+  it('accepts every legacy preset so old profile rows can hydrate', () => {
     for (const preset of BANNER_OBJECT_POSITION_PRESETS) {
       expect(isBannerObjectPosition(preset)).toBe(true);
     }
   });
 
-  it('rejects values outside the whitelist (case + spacing variations)', () => {
+  it('accepts bounded percentage crop coordinates for manual dragging', () => {
+    expect(isBannerObjectPosition('50% 50%')).toBe(true);
+    expect(isBannerObjectPosition('0% 100%')).toBe(true);
+    expect(isBannerObjectPosition('33.25% 71.5%')).toBe(true);
+  });
+
+  it('rejects values outside the safe percentage coordinate contract', () => {
     expect(isBannerObjectPosition('Center Center')).toBe(false);
     expect(isBannerObjectPosition('center  center')).toBe(false);
     expect(isBannerObjectPosition('top')).toBe(false);
     expect(isBannerObjectPosition('center top center')).toBe(false);
+    expect(isBannerObjectPosition('-1% 50%')).toBe(false);
+    expect(isBannerObjectPosition('50% 101%')).toBe(false);
   });
 
   it('rejects CSS-injection-shaped strings', () => {
     expect(isBannerObjectPosition('center center; background: url(evil)')).toBe(false);
-    expect(isBannerObjectPosition('50% 50%')).toBe(false);
     expect(isBannerObjectPosition('100px 200px')).toBe(false);
   });
 
@@ -56,5 +53,26 @@ describe('isBannerObjectPosition', () => {
     expect(isBannerObjectPosition(0)).toBe(false);
     expect(isBannerObjectPosition(['center center'])).toBe(false);
     expect(isBannerObjectPosition({ value: 'center center' })).toBe(false);
+  });
+});
+
+describe('normalizeBannerObjectPosition', () => {
+  it('maps legacy presets to percentage coordinates', () => {
+    expect(normalizeBannerObjectPosition('left top')).toBe('0% 0%');
+    expect(normalizeBannerObjectPosition('center center')).toBe(DEFAULT_BANNER_OBJECT_POSITION);
+    expect(normalizeBannerObjectPosition('right bottom')).toBe('100% 100%');
+  });
+
+  it('clamps malformed saved percentages back into the visible crop area', () => {
+    expect(normalizeBannerObjectPosition('-10% 125%')).toBe('0% 100%');
+    expect(normalizeBannerObjectPosition('33.333% 66.666%')).toBe('33.33% 66.67%');
+  });
+});
+
+describe('normalizeBannerImageScale', () => {
+  it('keeps cover zoom in a bounded range', () => {
+    expect(normalizeBannerImageScale(0.1)).toBe(0.5);
+    expect(normalizeBannerImageScale(1.25)).toBe(1.25);
+    expect(normalizeBannerImageScale(9)).toBe(3);
   });
 });

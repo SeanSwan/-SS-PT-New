@@ -84,9 +84,12 @@ const UserDashboardV3: React.FC = () => {
                 <UserDashboardProfileHeaderV3
                   backgroundImage={dashboard.backgroundImage}
                   bannerObjectPosition={dashboard.bannerObjectPosition}
+                  bannerObjectFit={dashboard.bannerObjectFit}
+                  bannerImageScale={dashboard.bannerImageScale}
                   showRepositionPanel={dashboard.showRepositionPanel}
                   onToggleRepositionPanel={dashboard.toggleRepositionPanel}
-                  onBannerPositionChange={dashboard.handleBannerPositionChange}
+                  onBannerCropPreview={dashboard.previewBannerCrop}
+                  onBannerCropCommit={dashboard.handleBannerCropCommit}
                   profile={dashboard.profile as any}
                   displayStats={dashboard.displayStats}
                   topBadges={dashboard.topBadges}
