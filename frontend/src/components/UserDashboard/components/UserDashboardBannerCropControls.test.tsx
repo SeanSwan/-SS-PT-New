@@ -141,6 +141,22 @@ describe('UserDashboardBannerCropControls', () => {
     expect(props.onBannerCollageRemove).toHaveBeenCalledWith(0);
   });
 
+  it('exposes collage media sizing and focal point controls', () => {
+    const props = renderCropControls({ bannerObjectFit: 'collage' as const });
+
+    expect(screen.getByText('Collage media size')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Collage focus top' }));
+
+    expect(props.onBannerCropPreview).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'collage',
+      position: '50% 0%',
+    }));
+    expect(props.onBannerCropCommit).toHaveBeenCalledWith(expect.objectContaining({
+      fit: 'collage',
+      position: '50% 0%',
+    }));
+  });
+
   it('lets users start a collage banner before a single cover photo exists', () => {
     const props = renderCropControls({
       backgroundImage: null,

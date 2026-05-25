@@ -3,25 +3,23 @@ import styled, { css } from 'styled-components';
 export const BannerTileLayer = styled.div`
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(150px, calc(180px * var(--banner-image-scale, 1)), 360px), 1fr));
-  grid-auto-rows: clamp(118px, calc(138px * var(--banner-image-scale, 1)), 260px);
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
   gap: 6px;
   padding: 6px;
-  align-content: start;
   z-index: 0;
   pointer-events: none;
 `;
 
 export const BannerTileImage = styled.img`
-  width: 100%;
-  height: 100%;
+  flex: 0 0 auto;
+  width: clamp(72px, calc(132px * var(--banner-image-scale, 1)), 360px);
+  height: auto;
   object-fit: contain;
   object-position: center center;
   border-radius: 8px;
-  background:
-    radial-gradient(circle at center, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), transparent 68%),
-    var(--bg-elevated, #10131A);
   opacity: 0.92;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   user-select: none;
@@ -48,34 +46,43 @@ export const BannerCollageLayer = styled.div<{ $count?: number }>`
   }
 `;
 
-const collageMediaCss = css<{ $feature?: boolean }>`
+const collageMediaCss = css`
   width: 100%;
   height: 100%;
   min-width: 0;
   object-fit: contain;
-  object-position: center center;
+  object-position: var(--banner-object-position, center center);
+  transform: translateZ(0) scale(var(--banner-image-scale, 1));
+  transform-origin: var(--banner-object-position, center center);
+  transition: object-position 140ms ease, transform 140ms ease;
+  border-radius: inherit;
+  user-select: none;
+  -webkit-user-drag: none;
+`;
+
+export const BannerCollageMediaFrame = styled.div<{ $feature?: boolean }>`
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-radius: 8px;
   background:
     radial-gradient(circle at center, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), transparent 70%),
     var(--bg-elevated, #10131A);
-  transform: translateZ(0);
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   grid-row: ${({ $feature }) => ($feature ? '1 / -1' : 'auto')};
-  user-select: none;
-  -webkit-user-drag: none;
 
   @media (max-width: 640px) {
     grid-row: auto;
   }
 `;
 
-export const BannerCollageImage = styled.img<{ $feature?: boolean }>`
+export const BannerCollageImage = styled.img`
   ${collageMediaCss}
 `;
 
-export const BannerCollageVideo = styled.video<{ $feature?: boolean }>`
+export const BannerCollageVideo = styled.video`
   ${collageMediaCss}
 `;
 

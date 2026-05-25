@@ -4,16 +4,25 @@ import { resolve } from 'path';
 
 const root = process.cwd();
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
+const styledBlock = (source: string, exportName: string) => {
+  const start = source.indexOf(`export const ${exportName}`);
+  const end = start >= 0 ? source.indexOf('`;', start) : -1;
+  return start >= 0 && end >= 0 ? source.slice(start, end + 2) : '';
+};
 
 describe('UserDashboard banner crop contract', () => {
+  const dashboard = read('src/components/UserDashboard/UserDashboard.V3.tsx');
   const header = read('src/components/UserDashboard/components/UserDashboardProfileHeaderV3.tsx');
   const cropControls = read('src/components/UserDashboard/components/UserDashboardBannerCropControls.tsx');
   const mediaLayer = read('src/components/UserDashboard/components/UserDashboardBannerMediaLayer.tsx');
+  const shell = read('src/components/UserDashboard/components/ObservatoryShell.tsx');
   const controller = read('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
   const compositionHook = read('src/components/UserDashboard/hooks/useBannerCompositionState.ts');
   const profileService = read('src/services/profileService.ts');
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
   const compositionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCompositionStyles.ts');
+  const layoutStyles = read('src/components/UserDashboard/styles/ObservatoryShellLayoutStyles.ts');
+  const profilePhotoStyles = read('src/components/UserDashboard/styles/DashboardV3ProfilePhotoStyles.ts');
 
   it('uses free drag crop controls instead of the old 9-preset grid', () => {
     expect(header).not.toContain('BANNER_OBJECT_POSITION_PRESETS.map');
@@ -66,5 +75,24 @@ describe('UserDashboard banner crop contract', () => {
   it('keeps tile and collage media from cropping inside their grid cells', () => {
     expect(compositionStyles).toMatch(/export const BannerTileImage[\s\S]*?object-fit: contain;/);
     expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
+  });
+
+  it('fills tile mode with wrapped full-image tiles instead of wide dark cells', () => {
+    const tileImageBlock = styledBlock(compositionStyles, 'BannerTileImage');
+
+    expect(compositionStyles).toMatch(/export const BannerTileLayer[\s\S]*?display: flex;/);
+    expect(compositionStyles).toMatch(/export const BannerTileLayer[\s\S]*?flex-wrap: wrap;/);
+    expect(tileImageBlock).toContain('height: auto;');
+    expect(tileImageBlock).not.toContain('background:');
+  });
+
+  it('keeps profile and observatory rails below the dynamic banner height', () => {
+    expect(profilePhotoStyles).toMatch(/export const ProfileImageSection[\s\S]*?position: relative;/);
+    expect(profilePhotoStyles).not.toContain('top: 230px');
+    expect(layoutStyles).toContain('$profileBannerClearance');
+    expect(layoutStyles).not.toContain('--observatory-profile-banner-clearance: 440px');
+    expect(layoutStyles).not.toContain('--observatory-profile-banner-clearance: 540px');
+    expect(shell).toContain('profileBannerClearance');
+    expect(dashboard).toContain('profileBannerClearance={dashboard.bannerFrameHeight}');
   });
 });

@@ -18,6 +18,7 @@ import styled, { css } from 'styled-components';
 
 interface ObservatoryRailProps {
   $profileHeaderVisible?: boolean;
+  $profileBannerClearance?: number;
 }
 
 const profileHeaderRailOffset = css<ObservatoryRailProps>`
@@ -27,8 +28,9 @@ const profileHeaderRailOffset = css<ObservatoryRailProps>`
       : '0'};
 `;
 
-export const ObservatoryGrid = styled.div`
-  --observatory-profile-banner-clearance: 340px;
+export const ObservatoryGrid = styled.div<ObservatoryRailProps>`
+  --observatory-profile-banner-clearance: ${({ $profileBannerClearance }) =>
+    `${Math.min(1000, Math.max(180, $profileBannerClearance ?? 340))}px`};
 
   display: grid;
   grid-template-columns: 1fr;
@@ -59,13 +61,11 @@ export const ObservatoryGrid = styled.div`
   }
 
   @media (min-width: 2560px) {
-    --observatory-profile-banner-clearance: 440px;
     grid-template-columns: minmax(320px, 420px) minmax(0, 1fr) minmax(360px, 440px);
     gap: 2rem;
   }
 
   @media (min-width: 3840px) {
-    --observatory-profile-banner-clearance: 540px;
     grid-template-columns: minmax(360px, 520px) minmax(0, 1fr) minmax(420px, 560px);
     gap: 2.5rem;
   }

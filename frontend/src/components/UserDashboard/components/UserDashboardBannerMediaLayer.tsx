@@ -2,6 +2,7 @@ import React from 'react';
 import {
   BannerCollageImage,
   BannerCollageLayer,
+  BannerCollageMediaFrame,
   BannerCollageVideo,
   BannerImage,
   BannerTileImage,
@@ -45,30 +46,37 @@ const UserDashboardBannerMediaLayer: React.FC<UserDashboardBannerMediaLayerProps
 
   if (bannerObjectFit === 'collage' && bannerCollagePhotos.length > 0) {
     return (
-      <BannerCollageLayer $count={bannerCollagePhotos.length}>
-        {bannerCollagePhotos.slice(0, 6).map((photo, index) => (
-          isBannerVideoUrl(photo) ? (
-            <BannerCollageVideo
-              key={`${photo}-${index}`}
-              src={photo}
-              $feature={index === 0 && bannerCollagePhotos.length > 2}
-              data-testid="banner-collage-video"
-              muted
-              loop
-              autoPlay
-              playsInline
-            />
-          ) : (
-            <BannerCollageImage
-              key={`${photo}-${index}`}
-              src={photo}
-              alt=""
-              $feature={index === 0 && bannerCollagePhotos.length > 2}
-              data-testid="banner-collage-image"
-              draggable={false}
-            />
-          )
-        ))}
+      <BannerCollageLayer
+        $count={bannerCollagePhotos.length}
+        style={{
+          '--banner-image-scale': String(bannerImageScale),
+          '--banner-object-position': bannerObjectPosition,
+        } as React.CSSProperties}
+      >
+        {bannerCollagePhotos.slice(0, 6).map((photo, index) => {
+          const isFeature = index === 0 && bannerCollagePhotos.length > 2;
+          return (
+            <BannerCollageMediaFrame key={`${photo}-${index}`} $feature={isFeature}>
+              {isBannerVideoUrl(photo) ? (
+                <BannerCollageVideo
+                  src={photo}
+                  data-testid="banner-collage-video"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                />
+              ) : (
+                <BannerCollageImage
+                  src={photo}
+                  alt=""
+                  data-testid="banner-collage-image"
+                  draggable={false}
+                />
+              )}
+            </BannerCollageMediaFrame>
+          );
+        })}
       </BannerCollageLayer>
     );
   }

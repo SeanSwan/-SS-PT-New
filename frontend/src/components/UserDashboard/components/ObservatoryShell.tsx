@@ -44,6 +44,7 @@ export type {
 interface ObservatoryShellProps {
   activeTab: TabId;
   profileHeaderVisible?: boolean;
+  profileBannerClearance?: number;
   onTabChange: (tab: TabId) => void;
   observatoryLevel: number;
   observatoryPoints: number;
@@ -59,6 +60,7 @@ interface ObservatoryShellProps {
 const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   activeTab,
   profileHeaderVisible = false,
+  profileBannerClearance,
   onTabChange,
   observatoryLevel,
   observatoryPoints,
@@ -72,7 +74,7 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
 }) => {
   return (
     <>
-      <ObservatoryGrid>
+      <ObservatoryGrid $profileBannerClearance={profileBannerClearance}>
         <ObservatoryLeftRail
           activeTab={activeTab}
           profileHeaderVisible={profileHeaderVisible}

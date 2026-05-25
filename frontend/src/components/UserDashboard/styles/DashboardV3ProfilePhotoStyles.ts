@@ -8,28 +8,28 @@ import { motion } from 'framer-motion';
 import { pulseScale, subtleGlow } from './DashboardV3Animations';
 
 export const ProfileImageSection = styled.div`
-  position: absolute;
-  top: 230px;  /* 320px cover height - 90px (half of 180px avatar) = center on cover boundary */
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
   z-index: 10;
   pointer-events: none;
 
   @media (max-width: 768px) {
-    top: 150px;  /* 220px cover height - 70px (half of 140px avatar) = center on cover boundary */
+    margin-top: 1.25rem;
   }
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
-    top: 120px;
+    margin-top: 1rem;
   }
 
   @media (min-width: 2560px) {
-    top: 330px;
+    margin-top: 2rem;
   }
 
   @media (min-width: 3840px) {
-    top: 430px;
+    margin-top: 2.5rem;
   }
 `;
 

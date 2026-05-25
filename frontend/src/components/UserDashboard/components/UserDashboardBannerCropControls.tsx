@@ -71,8 +71,8 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
   onBackgroundClick,
 }) => {
   const canDragBanner = showRepositionPanel
-    && Boolean(backgroundImage)
-    && !['tile', 'collage'].includes(bannerObjectFit);
+    && (bannerObjectFit === 'collage' ? bannerCollagePhotos.length > 0 : Boolean(backgroundImage))
+    && ['cover', 'collage'].includes(bannerObjectFit);
   const designButtonLabel = backgroundImage ? 'Reposition cover photo' : 'Design cover banner';
   const cropState = React.useMemo<BannerCropState>(() => ({
     position: bannerObjectPosition,
@@ -106,8 +106,10 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
   }, [onBannerCropCommit]);
 
   const handleBannerPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!showRepositionPanel || !backgroundImage) return;
-    if (['tile', 'collage'].includes(cropStateRef.current.fit)) return;
+    if (!showRepositionPanel) return;
+    if (cropStateRef.current.fit === 'collage' && bannerCollagePhotos.length === 0) return;
+    if (cropStateRef.current.fit !== 'collage' && !backgroundImage) return;
+    if (!['cover', 'collage'].includes(cropStateRef.current.fit)) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     dragStateRef.current = {
@@ -117,7 +119,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
       startPosition: parseBannerPosition(cropStateRef.current.position),
       nextPosition: cropStateRef.current.position,
     };
-  }, [backgroundImage, showRepositionPanel]);
+  }, [backgroundImage, bannerCollagePhotos.length, showRepositionPanel]);
 
   const handleBannerPointerMove = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     const dragState = dragStateRef.current;
@@ -153,6 +155,13 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
     onBannerCropCommit(next);
   }, [onBannerCropCommit, onBannerCropPreview]);
 
+  const handleCollageFocusChange = React.useCallback((position: BannerObjectPosition) => {
+    const next: BannerCropState = { ...cropStateRef.current, fit: 'collage', position };
+    cropStateRef.current = next;
+    onBannerCropPreview(next);
+    onBannerCropCommit(next);
+  }, [onBannerCropCommit, onBannerCropPreview]);
+
   const handleScaleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     previewCrop({ scale: Number(event.target.value) });
   }, [previewCrop]);
@@ -180,9 +189,22 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
     onBannerCropCommit(resetCrop);
   }, [onBannerCropCommit, onBannerCropPreview]);
 
-  const scaleLabel = bannerObjectFit === 'tile' ? 'Tile size' : 'Zoom';
-  const scaleAriaLabel = bannerObjectFit === 'tile' ? 'Banner tile size' : 'Cover photo zoom';
-  const showScaleControl = bannerObjectFit !== 'collage';
+  const scaleLabel = bannerObjectFit === 'tile'
+    ? 'Tile size'
+    : bannerObjectFit === 'collage'
+      ? 'Collage media size'
+      : 'Zoom';
+  const scaleAriaLabel = bannerObjectFit === 'tile'
+    ? 'Banner tile size'
+    : bannerObjectFit === 'collage'
+      ? 'Collage media size'
+      : 'Cover photo zoom';
+  const showScaleControl = bannerObjectFit !== 'contain';
+  const cropHint = canDragBanner
+    ? bannerObjectFit === 'collage'
+      ? 'Drag the collage to set its shared focal point.'
+      : 'Drag the cover photo to frame it.'
+    : 'Choose a cover mode and frame size.';
 
   return (
     <>
@@ -217,9 +239,7 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
           </BannerRepositionButton>
           {showRepositionPanel && (
             <BannerRepositionPanel role="dialog" aria-label="Adjust cover photo crop">
-              <BannerCropHint>
-                {canDragBanner ? 'Drag the cover photo to frame it.' : 'Choose a cover mode and frame size.'}
-              </BannerCropHint>
+              <BannerCropHint>{cropHint}</BannerCropHint>
               <BannerCropModeRow>
                 {BANNER_OBJECT_FIT_OPTIONS.map((fit) => (
                   <BannerCropModeButton
@@ -236,8 +256,10 @@ const UserDashboardBannerCropControls: React.FC<UserDashboardBannerCropControlsP
               {bannerObjectFit === 'collage' && (
                 <UserDashboardBannerCollageStrip
                   photos={bannerCollagePhotos}
+                  position={bannerObjectPosition}
                   onFiles={onBannerCollageFiles}
                   onRemove={onBannerCollageRemove}
+                  onFocusChange={handleCollageFocusChange}
                 />
               )}
               {showScaleControl && (

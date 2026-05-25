@@ -9,7 +9,7 @@ import { slideInUp } from './DashboardV3Animations';
 
 export const ProfileInfo = styled(motion.div)`
   text-align: center;
-  padding: 90px 2rem 3rem;
+  padding: 1.5rem 2rem 3rem;
   position: relative;
   pointer-events: none;
 
@@ -17,11 +17,11 @@ export const ProfileInfo = styled(motion.div)`
   &::before {
     content: '';
     position: absolute;
-    top: 60px;
+    top: 0;
     left: 50%;
     transform: translateX(-50%);
     width: 120%;
-    height: calc(100% - 60px);
+    height: 100%;
     background: linear-gradient(
       180deg,
       transparent 0%,
@@ -40,26 +40,26 @@ export const ProfileInfo = styled(motion.div)`
   }
 
   @media (max-width: 768px) {
-    padding: 80px 1rem 2rem;
+    padding: 1.25rem 1rem 2rem;
 
     &::before {
-      top: 50px;
+      top: 0;
       width: 110%;
-      height: calc(100% - 50px);
+      height: 100%;
     }
   }
 
   /* V3: Extended breakpoints */
   @media (max-width: 320px) {
-    padding: 70px 0.75rem 1.5rem;
+    padding: 1rem 0.75rem 1.5rem;
   }
 
   @media (min-width: 2560px) {
-    padding: 110px 3rem 4rem;
+    padding: 2rem 3rem 4rem;
   }
 
   @media (min-width: 3840px) {
-    padding: 130px 4rem 5rem;
+    padding: 2.5rem 4rem 5rem;
   }
 `;
 
