@@ -13,6 +13,7 @@ describe('UserDashboard banner crop contract', () => {
   const compositionHook = read('src/components/UserDashboard/hooks/useBannerCompositionState.ts');
   const profileService = read('src/services/profileService.ts');
   const actionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerActionsStyles.ts');
+  const compositionStyles = read('src/components/UserDashboard/styles/DashboardV3BannerCompositionStyles.ts');
 
   it('uses free drag crop controls instead of the old 9-preset grid', () => {
     expect(header).not.toContain('BANNER_OBJECT_POSITION_PRESETS.map');
@@ -60,5 +61,10 @@ describe('UserDashboard banner crop contract', () => {
     expect(mediaLayer).toContain('data-testid="banner-collage-video"');
     expect(cropControls).not.toContain('backgroundImage: `');
     expect(mediaLayer).not.toContain('backgroundImage: `');
+  });
+
+  it('keeps tile and collage media from cropping inside their grid cells', () => {
+    expect(compositionStyles).toMatch(/export const BannerTileImage[\s\S]*?object-fit: contain;/);
+    expect(compositionStyles).toMatch(/const collageMediaCss[\s\S]*?object-fit: contain;/);
   });
 });

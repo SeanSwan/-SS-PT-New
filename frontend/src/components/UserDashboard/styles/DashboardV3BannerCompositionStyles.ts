@@ -16,8 +16,12 @@ export const BannerTileLayer = styled.div`
 export const BannerTileImage = styled.img`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
   border-radius: 8px;
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), transparent 68%),
+    var(--bg-elevated, #10131A);
   opacity: 0.92;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
   user-select: none;
@@ -48,8 +52,12 @@ const collageMediaCss = css<{ $feature?: boolean }>`
   width: 100%;
   height: 100%;
   min-width: 0;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center center;
   border-radius: 8px;
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent), transparent 70%),
+    var(--bg-elevated, #10131A);
   transform: translateZ(0);
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--bg-base, #0A0A0F) 42%, transparent),
