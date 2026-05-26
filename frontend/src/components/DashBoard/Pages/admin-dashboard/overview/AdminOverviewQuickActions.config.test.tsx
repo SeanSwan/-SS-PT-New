@@ -11,13 +11,13 @@ describe('AdminOverviewQuickActions config', () => {
     expect(navigate).toHaveBeenCalledWith('/dashboard/admin/coach-assistant?intent=onboard_client');
   });
 
-  it('routes Log Workout to the canonical client hub, not session administration', () => {
+  it('routes Log Workout to the canonical client hub with a logging intent', () => {
     const navigate = vi.fn();
     const actions = buildAdminOverviewQuickActions(navigate as any);
 
     actions.find(action => action.id === 'log-client-workout')?.action();
 
-    expect(navigate).toHaveBeenCalledWith('/dashboard/admin/client-management');
+    expect(navigate).toHaveBeenCalledWith('/dashboard/admin/client-management?intent=log_workout');
     expect(navigate).not.toHaveBeenCalledWith('/dashboard/admin/admin-sessions');
   });
 });

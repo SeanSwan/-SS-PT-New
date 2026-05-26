@@ -16,9 +16,9 @@ export const buildAdminOverviewQuickActions = (
   {
     id: 'log-client-workout',
     title: 'Log Workout',
-    description: 'Choose client, then log today',
+    description: 'Choose client, log today',
     icon: <Dumbbell size={20} />,
-    action: () => navigate('/dashboard/admin/client-management'),
+    action: () => navigate('/dashboard/admin/client-management?intent=log_workout'),
   },
   {
     id: 'view-reports',

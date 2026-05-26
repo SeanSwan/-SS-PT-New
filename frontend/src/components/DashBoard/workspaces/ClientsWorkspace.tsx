@@ -4,7 +4,7 @@
  * training cockpit, and selected-client detail tabs.
  */
 
-import React, { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MessageCircle, UserPlus, Eye, UserCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
@@ -24,30 +24,24 @@ import ClientSelectorDropdown from './clients-team/ClientSelectorDropdown';
 import ClientHeaderCard from './clients-team/ClientHeaderCard';
 import ClientDailyActionStrip from './clients-team/ClientDailyActionStrip';
 import ClientHubGridCard from './clients-team/ClientHubGridCard';
+import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
 import {
   buildClientCoachDailyRoute,
   buildClientWorkoutLoggerRoute,
   buildClientWorkoutPlannerRoute,
 } from './clients-team/clientDailyTrainingRoutes';
+import { toMiniCardClient } from './clients-team/clientOptionMappers';
 import { ClientDetailView } from './clients-team';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
-import type { MiniCardClient } from './clients-team/ClientMiniCard';
 import type { DetailTab } from './clients-team/ClientDetailView';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 
-// Lazy-load tab content to keep initial bundle lean.
-//
-// Phase 15.4 (2026-04-16): ProgressTabContent added here on the canonical
-// mount path. Phase 15.3's original wiring was on MasterDetailLayout (a
-// dormant sibling never mounted in the canonical route tree), which meant
-// the live /dashboard/admin/client-management surface rendered the
-// ClientDetailView placeholder "Truthful workout charts and analytics."
-// instead of the real 12-chart Phase 14 grid.
-const TrainingTabContent = lazy(() => import('./clients-team/tabs/TrainingTabContent'));
-const ProgressTabContent = lazy(() => import('./clients-team/tabs/ProgressTabContent'));
-const BiometricsTabContent = lazy(() => import('./clients-team/tabs/BiometricsTabContent'));
-const OverviewTabContent = lazy(() => import('./clients-team/tabs/OverviewTabContent'));
-const SettingsTabContent = lazy(() => import('./clients-team/tabs/SettingsTabContent'));
+type ClientHubIntent = 'log_workout' | 'plan_next' | null;
+
+const getClientHubIntent = (searchParams: URLSearchParams): ClientHubIntent => {
+  const intent = searchParams.get('intent');
+  return intent === 'log_workout' || intent === 'plan_next' ? intent : null;
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -64,6 +58,21 @@ const ClientsWorkspace: React.FC = () => {
 
   // Read clientId from URL if present
   const urlClientId = searchParams.get('clientId') ? parseInt(searchParams.get('clientId')!) : null;
+  const clientHubIntent = getClientHubIntent(searchParams);
+
+  const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {
+    if (intent === 'log_workout') {
+      navigate(buildClientWorkoutLoggerRoute(client.id));
+      return true;
+    }
+
+    if (intent === 'plan_next') {
+      navigate(buildClientWorkoutPlannerRoute(client.id));
+      return true;
+    }
+
+    return false;
+  }, [navigate]);
 
   // Fetch all clients on mount
   useEffect(() => {
@@ -93,7 +102,10 @@ const ClientsWorkspace: React.FC = () => {
           // Auto-select from URL param
           if (urlClientId) {
             const match = mapped.find(c => c.id === urlClientId);
-            if (match) setSelectedClient(match);
+            if (match) {
+              if (runClientHubIntent(match, clientHubIntent)) return;
+              setSelectedClient(match);
+            }
           }
         }
       } catch (err) {
@@ -106,10 +118,12 @@ const ClientsWorkspace: React.FC = () => {
   }, [authAxios]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectClient = useCallback((client: ClientOption) => {
+    if (runClientHubIntent(client, clientHubIntent)) return;
+
     setSelectedClient(client);
     setDetailTab('training');
     setSearchParams({ clientId: String(client.id) });
-  }, [setSearchParams]);
+  }, [clientHubIntent, runClientHubIntent, setSearchParams]);
 
   const handleNewClient = useCallback(() => {
     navigate('/dashboard/admin/coach-assistant');
@@ -166,56 +180,14 @@ const ClientsWorkspace: React.FC = () => {
     navigate('/dashboard/admin/client-trainer-assignments');
   }, [navigate]);
 
-  // Map ClientOption to MiniCardClient for ClientDetailView compatibility
-  const detailClient: MiniCardClient | null = useMemo(() => {
-    if (!selectedClient) return null;
-    return {
-      id: selectedClient.id,
-      firstName: selectedClient.firstName,
-      lastName: selectedClient.lastName,
-      email: selectedClient.email,
-      status: selectedClient.isActive ? 'active' as const : 'inactive' as const,
-      tier: (selectedClient.availableSessions || 0) > 20 ? 'elite' : (selectedClient.availableSessions || 0) > 0 ? 'premium' : 'starter',
-      engagementScore: 50,
-      lastWeighIn: null,
-      sessionsLeft: selectedClient.availableSessions || 0,
-      workoutCount: selectedClient.workoutCount || 0,
-    };
-  }, [selectedClient]);
-
-  // Render props for ClientDetailView tabs
-  const renderTraining = useCallback((clientId: number | string) => (
-    <Suspense fallback={<LoadingPulse>Loading training...</LoadingPulse>}>
-      <TrainingTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
-    </Suspense>
-  ), [selectedClient]);
-
-  // Phase 15.4: truthful 12-chart admin-scoped progress view for the
-  // selected client, using /api/analytics/:userId/chart-*. Do NOT mount
-  // the legacy ClientProgressDashboard (the "Preview Mode" surface).
-  const renderProgress = useCallback((clientId: number | string) => (
-    <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>
-      <ProgressTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
-    </Suspense>
-  ), [selectedClient]);
-
-  const renderBiometrics = useCallback((clientId: number | string) => (
-    <Suspense fallback={<LoadingPulse>Loading biometrics...</LoadingPulse>}>
-      <BiometricsTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
-    </Suspense>
-  ), [selectedClient]);
-
-  const renderOverview = useCallback((clientId: number | string) => (
-    <Suspense fallback={<LoadingPulse>Loading overview...</LoadingPulse>}>
-      <OverviewTabContent clientId={clientId} />
-    </Suspense>
-  ), []);
-
-  const renderSettings = useCallback((clientId: number | string) => (
-    <Suspense fallback={<LoadingPulse>Loading settings...</LoadingPulse>}>
-      <SettingsTabContent clientId={clientId} clientName={`${selectedClient?.firstName} ${selectedClient?.lastName}`} />
-    </Suspense>
-  ), [selectedClient]);
+  const detailClient = useMemo(() => toMiniCardClient(selectedClient), [selectedClient]);
+  const {
+    renderTraining,
+    renderProgress,
+    renderBiometrics,
+    renderOverview,
+    renderSettings,
+  } = useClientsWorkspaceTabRenderers(selectedClient);
 
   return (
     <HubContainer>

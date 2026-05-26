@@ -32,6 +32,10 @@ const CLIENTS_WORKSPACE_SOURCE = readFileSync(
   resolve(__dirname, '../ClientsWorkspace.tsx'),
   'utf8',
 );
+const CLIENTS_WORKSPACE_TABS_SOURCE = readFileSync(
+  resolve(__dirname, '../ClientsWorkspaceTabs.tsx'),
+  'utf8',
+);
 const TAB_INDEX_SOURCE = readFileSync(
   resolve(__dirname, './tabs/index.ts'),
   'utf8',
@@ -85,19 +89,20 @@ describe('Phase 15.3 — Clients & Team Progress tab', () => {
 // ─────────────────────────────────────────────────────────────
 
 describe('Phase 15.4 — Canonical consumer (ClientsWorkspace) Progress wiring', () => {
-  it('ClientsWorkspace lazy-imports ProgressTabContent', () => {
-    expect(CLIENTS_WORKSPACE_SOURCE).toMatch(
+  it('ClientsWorkspaceTabs lazy-imports ProgressTabContent for the canonical hub', () => {
+    expect(CLIENTS_WORKSPACE_SOURCE).toMatch(/useClientsWorkspaceTabRenderers/);
+    expect(CLIENTS_WORKSPACE_TABS_SOURCE).toMatch(
       /ProgressTabContent\s*=\s*lazy\(\s*\(\s*\)\s*=>\s*import\([^)]*ProgressTabContent[^)]*\)\s*\)/,
     );
   });
 
-  it('ClientsWorkspace defines a renderProgress callback that mounts ProgressTabContent', () => {
+  it('ClientsWorkspaceTabs defines a renderProgress callback that mounts ProgressTabContent', () => {
     // The callback must exist AND reference ProgressTabContent in its body.
     // We check both conditions by slicing the source around the callback.
-    const callbackIdx = CLIENTS_WORKSPACE_SOURCE.indexOf('renderProgress');
+    const callbackIdx = CLIENTS_WORKSPACE_TABS_SOURCE.indexOf('renderProgress');
     expect(callbackIdx).toBeGreaterThan(0);
     // Take a generous window that covers the callback definition.
-    const slice = CLIENTS_WORKSPACE_SOURCE.slice(callbackIdx, callbackIdx + 500);
+    const slice = CLIENTS_WORKSPACE_TABS_SOURCE.slice(callbackIdx, callbackIdx + 500);
     expect(slice).toMatch(/useCallback/);
     expect(slice).toMatch(/<ProgressTabContent\b/);
   });

@@ -184,6 +184,18 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     );
   });
 
+  it('turns admin overview log-workout intent plus one client click into the logger route', async () => {
+    const user = userEvent.setup();
+    renderWorkspace('/dashboard/admin/client-management?intent=log_workout');
+
+    const clientCard = await screen.findByRole('button', { name: /open fixture client/i });
+    await user.click(clientCard);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}`
+    );
+  });
+
   it('does not render the View As button when no client is selected', async () => {
     renderWorkspace('/dashboard/admin/client-management');
 
