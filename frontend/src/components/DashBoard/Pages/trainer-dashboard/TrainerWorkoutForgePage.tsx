@@ -1,208 +1,196 @@
 /**
- * ============================================================================
- * FILE: TrainerWorkoutForgePage.tsx
- * PURPOSE: Workout intelligence page for trainers to build NASM OPT-based templates
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-24
- * AI VILLAGE VALIDATED: 2026-03-24
- * ============================================================================
+ * COMPONENT: TrainerWorkoutForgePage
+ * PURPOSE: Trainer workout-planning surface that combines manual draft
+ * creation with the existing Swan Coach workout copilot.
  *
- * WHAT THIS FILE DOES: Provides a workout template builder with client selection,
- * OPT phase configuration, exercise list management, and AI generation trigger.
- * HOW IT FITS IN THE APP: Trainer Dashboard → Workout Forge tab
- * KEY DECISIONS: NASM 5-phase OPT model drives rep/set/tempo defaults
- * NASM PROTOCOL CONTEXT: Phase selector controls suggested parameters per OPT model
+ * CANONICAL ROUTE:
+ * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/workout-forge.
  *
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: TrainerWorkoutForgePage                           ║
- * ║  PURPOSE: Build NASM OPT workout templates for clients        ║
- * ║  OWNER: Claude Opus 4.6                                       ║
- * ║  LAST VALIDATED: 2026-03-24                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────────────────────────────────────────┐
- * │ Workout Forge                             [Save] [AI Gen] │
- * ├────────────────────────────────────────────────────────────┤
- * │ Client: [Select Client ▼]   OPT Phase: [Phase 1 ▼]       │
- * │ Template Name: [________________________]                  │
- * ├────────────────────────────────────────────────────────────┤
- * │ Phase 1: Stabilization — 12-20 reps, 1-3 sets, 4/2/1     │
- * ├────────────────────────────────────────────────────────────┤
- * │ Exercise List                               [+ Add]       │
- * │ ┌──────────────────────────────────────────────────────┐  │
- * │ │ 1. Goblet Squat  •  3×15  •  4/2/1  •  60s rest     │  │
- * │ │ 2. Cable Row     •  3×15  •  4/2/1  •  60s rest     │  │
- * │ └──────────────────────────────────────────────────────┘  │
- * └────────────────────────────────────────────────────────────┘
- *
- * DATA FLOW:
- * Props In:  None (page-level component)
- * State:     { clients, selectedClient, phase, templateName, exercises, loading }
- * API Calls: GET /api/users?role=client, POST /api/workout-templates, POST /api/ai/generate-workout
- * Events:    onPhaseChange → update defaults, onAddExercise → append, onSave → POST, onAIGenerate → POST
- * Children:  ClientSelector, PhaseSelector, PhaseInfoBar, ExerciseList, ExerciseRow
- *
- * CLICK-OUTCOMES:
- * [Phase dropdown]   → Update OPT phase → Refresh rep/set/tempo defaults
- * [+ Add Exercise]   → Append blank exercise row to list
- * [AI Generate]      → POST /api/ai/generate-workout → Populate exercise list
- * [Save Template]    → POST /api/workout-templates → Success toast
- * [Remove exercise]  → Remove row from exercise list
- *
- * NASM PROTOCOL CONTEXT: OPT_PHASES constant drives rep/set/tempo/rest defaults
- * GAMIFICATION: Template save → trainer does not earn XP (client earns on completion)
+ * DATA CONTRACTS:
+ * - GET /api/admin/clients for trainer/admin client selector parity.
+ * - POST /api/workout-plans for draft plan persistence.
+ * - WorkoutCopilotPanel for AI generation and approval flow.
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import styled from 'styled-components';
-import {
-  Zap, ChevronDown, Plus, Sparkles, Save, User, Dumbbell, Clock, Target
-} from 'lucide-react';
+import { Zap, ChevronDown, Plus, Sparkles, Save, User, Dumbbell, Target, Trash2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
+import WorkoutCopilotPanel from '../admin-clients/components/WorkoutCopilotPanel';
+import {
+  ActionBtn,
+  ButtonRow,
+  Card,
+  CardTitle,
+  Chip,
+  ChipRow,
+  EmptyState,
+  ExerciseArea,
+  ExerciseGrid,
+  ExerciseRow,
+  FieldRow,
+  HelperCopy,
+  Input,
+  Label,
+  PageWrapper,
+  PhaseCard,
+  PhaseDetails,
+  PhaseGrid,
+  PhaseName,
+  PhaseNum,
+  RemoveExerciseBtn,
+  Select,
+  Title,
+} from './TrainerWorkoutForgePage.styles';
+import {
+  EQUIPMENT_OPTIONS,
+  OPT_PHASES,
+  buildExerciseId,
+  toClientName,
+  type ManualExercise,
+  type TrainerClient,
+} from './TrainerWorkoutForgePage.data';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types & Constants
-// ─────────────────────────────────────────────────────────────
-const OPT_PHASES = [
-  { phase: 1, name: 'Stabilization Endurance', reps: '12-20', sets: '1-3', tempo: '4/2/1', rest: '0-90s' },
-  { phase: 2, name: 'Strength Endurance', reps: '8-12', sets: '2-4', tempo: '2/0/2', rest: '0-60s' },
-  { phase: 3, name: 'Hypertrophy', reps: '6-12', sets: '3-5', tempo: '2/0/2', rest: '0-60s' },
-  { phase: 4, name: 'Maximal Strength', reps: '1-5', sets: '4-6', tempo: 'X/0/X', rest: '3-5min' },
-  { phase: 5, name: 'Power', reps: '1-5 / 8-10', sets: '3-6', tempo: 'X/0/X', rest: '3-5min' },
-] as const;
-
-const EQUIPMENT_OPTIONS = ['Barbell', 'Dumbbell', 'Cable', 'Machine', 'Bodyweight', 'Kettlebell', 'Resistance Band', 'Stability Ball', 'Medicine Ball', 'BOSU Ball'];
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
-const PageWrapper = styled.div`
-  padding: 24px;
-  min-height: 100vh;
-  background: var(--bg-base, #030712);
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const Title = styled.h1`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin: 0 0 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const Card = styled.div`
-  background: var(--bg-elevated, #141419); border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
-  border-radius: 12px; padding: 24px; margin-bottom: 20px;
-`;
-const CardTitle = styled.h2`
-  font-size: 1rem; font-weight: 700; margin: 0 0 16px;
-  display: flex; align-items: center; gap: 8px; color: var(--accent-primary, #60C0F0);
-`;
-const Label = styled.label`
-  display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.05em; color: var(--text-secondary, rgba(224,236,244,0.6)); margin-bottom: 8px;
-`;
-const Select = styled.div`
-  position: relative; margin-bottom: 16px;
-  select { width: 100%; min-height: 44px; padding: 10px 40px 10px 14px; border-radius: 8px;
-    border: 1px solid var(--border-soft, rgba(96,192,240,0.12)); background: var(--bg-surface, #1A1A24);
-    color: var(--text-primary, #E0ECF4); font-size: 0.9rem; appearance: none; cursor: pointer; }
-  svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.5; }
-`;
-const Input = styled.input`
-  width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96,192,240,0.12)); background: var(--bg-surface, #1A1A24);
-  color: var(--text-primary, #E0ECF4); font-size: 0.9rem; margin-bottom: 16px;
-  &:focus { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
-`;
-
-const PhaseGrid = styled.div`
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px;
-`;
-const PhaseCard = styled.button<{ $active?: boolean }>`
-  min-height: 44px; padding: 12px; border-radius: 10px; text-align: left; cursor: pointer; transition: all 0.2s;
-  border: 1px solid ${({ $active }) => $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96,192,240,0.12))'};
-  background: ${({ $active }) => $active ? 'rgba(139,92,246,0.12)' : 'var(--bg-surface, #1A1A24)'};
-  color: var(--text-primary, #E0ECF4); &:hover { border-color: var(--accent-secondary, #8B5CF6); }
-`;
-const PhaseName = styled.div`font-weight: 700; font-size: 0.85rem;`;
-const PhaseNum = styled.div`font-size: 0.7rem; color: var(--accent-secondary, #8B5CF6); margin-bottom: 2px;`;
-const PhaseDetails = styled.div`
-  display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border-radius: 8px;
-  background: var(--bg-surface, #1A1A24); font-size: 0.8rem;
-  color: var(--text-secondary, rgba(224,236,244,0.6)); margin-bottom: 16px;
-  span { color: var(--text-primary, #E0ECF4); font-weight: 600; }
-`;
-
-const ChipRow = styled.div`display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;`;
-const Chip = styled.button<{ $active?: boolean }>`
-  min-height: 36px; padding: 6px 14px; border-radius: 99px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
-  border: 1px solid ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(96,192,240,0.12))'};
-  background: ${({ $active }) => $active ? 'rgba(96,192,240,0.12)' : 'transparent'};
-  color: ${({ $active }) => $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, rgba(224,236,244,0.6))'};
-`;
-const FieldRow = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  @media (max-width: 600px) { grid-template-columns: 1fr; }
-`;
-const ExerciseArea = styled.div`
-  min-height: 80px; border: 1px dashed var(--border-soft, rgba(96,192,240,0.2)); border-radius: 10px;
-  padding: 20px; text-align: center; color: var(--text-muted, rgba(224,236,244,0.4)); font-size: 0.85rem; margin-bottom: 16px;
-`;
-const ButtonRow = styled.div`display: flex; gap: 12px; flex-wrap: wrap;`;
-const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 24px;
-  border-radius: 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: box-shadow 0.2s;
-  background: ${({ $variant }) => $variant === 'secondary' ? 'var(--bg-surface, #1A1A24)' : 'var(--accent-secondary, #8B5CF6)'};
-  color: ${({ $variant }) => $variant === 'secondary' ? 'var(--accent-primary, #60C0F0)' : '#fff'};
-  border: 1px solid ${({ $variant }) => $variant === 'secondary' ? 'var(--border-soft, rgba(96,192,240,0.12))' : 'transparent'};
-  &:hover { box-shadow: 0 0 16px rgba(139,92,246,0.3); }
-`;
-const EmptyState = styled.div`
-  text-align: center; padding: 48px 24px; color: var(--text-muted, rgba(224,236,244,0.5)); font-size: 0.95rem;
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios } = useAuth();
-  const [clients, setClients] = useState<{ id: number; name: string }[]>([]);
+  const [clients, setClients] = useState<TrainerClient[]>([]);
   const [clientId, setClientId] = useState('');
   const [optPhase, setOptPhase] = useState(1);
   const [workoutTitle, setWorkoutTitle] = useState('');
   const [duration, setDuration] = useState('60');
   const [goal, setGoal] = useState('');
   const [equipment, setEquipment] = useState<string[]>([]);
+  const [exercises, setExercises] = useState<ManualExercise[]>([]);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const loadClients = async () => {
       try {
         const res = await authAxios.get('/api/admin/clients');
         const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.clients || [];
-        setClients(list.map((u: any) => ({ id: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username })));
-      } catch { setClients([]); }
+        setClients(list.map((u: any) => ({ id: u.id, name: toClientName(u) })));
+      } catch {
+        setClients([]);
+      }
     };
+
     loadClients();
   }, [authAxios]);
+
+  const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
+  const selectedClient = useMemo(
+    () => clients.find(client => String(client.id) === clientId) || null,
+    [clientId, clients],
+  );
+  const parsedClientId = Number(clientId);
 
   const toggleEquipment = useCallback((eq: string) => {
     setEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
   }, []);
 
-  const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
+  const handleAddExercise = useCallback(() => {
+    setExercises(prev => [
+      ...prev,
+      {
+        id: buildExerciseId(prev.length),
+        name: '',
+        sets: activePhase.sets,
+        reps: activePhase.reps,
+        tempo: activePhase.tempo,
+        rest: activePhase.rest,
+        equipment: equipment[0] || 'Bodyweight',
+      },
+    ]);
+  }, [activePhase.reps, activePhase.rest, activePhase.sets, activePhase.tempo, equipment]);
+
+  const updateExercise = useCallback((id: string, field: keyof ManualExercise, value: string) => {
+    setExercises(prev => prev.map(ex => ex.id === id ? { ...ex, [field]: value } : ex));
+  }, []);
+
+  const removeExercise = useCallback((id: string) => {
+    setExercises(prev => prev.filter(ex => ex.id !== id));
+  }, []);
+
+  const buildPlanPayload = useCallback(() => {
+    const namedExercises = exercises
+      .map(ex => ({ ...ex, name: ex.name.trim() }))
+      .filter(ex => ex.name.length > 0);
+
+    return {
+      userId: parsedClientId,
+      title: workoutTitle.trim(),
+      description: goal.trim() || `${activePhase.name} draft plan`,
+      nasmPhase: optPhase,
+      durationWeeks: 4,
+      status: 'draft',
+      createdBy: 'trainer',
+      planData: {
+        weeks: [
+          {
+            weekNumber: 1,
+            sessions: [
+              {
+                day: 1,
+                title: workoutTitle.trim(),
+                focus: goal.trim() || activePhase.name,
+                durationMinutes: Number(duration) || 60,
+                exercises: namedExercises.map((ex, index) => ({
+                  order: index + 1,
+                  name: ex.name,
+                  sets: ex.sets,
+                  reps: ex.reps,
+                  tempo: ex.tempo,
+                  rest: ex.rest,
+                  equipment: ex.equipment,
+                })),
+              },
+            ],
+          },
+        ],
+      },
+      metadata: {
+        source: 'trainer_workout_forge',
+        equipment,
+        optPhaseName: activePhase.name,
+      },
+    };
+  }, [activePhase.name, duration, equipment, exercises, goal, optPhase, parsedClientId, workoutTitle]);
+
+  const handleSavePlan = useCallback(async () => {
+    const namedCount = exercises.filter(ex => ex.name.trim().length > 0).length;
+
+    if (!selectedClient || !Number.isFinite(parsedClientId)) {
+      toast.error('Select a client before saving a workout plan.');
+      return;
+    }
+    if (!workoutTitle.trim()) {
+      toast.error('Add a title before saving the plan.');
+      return;
+    }
+    if (namedCount === 0) {
+      toast.error('Add at least one named exercise before saving.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await authAxios.post('/api/workout-plans', buildPlanPayload());
+      toast.success(`Draft plan saved for ${selectedClient.name}.`);
+    } catch {
+      toast.error('Unable to save this draft plan. Check the client assignment and try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [authAxios, buildPlanPayload, exercises, parsedClientId, selectedClient, workoutTitle]);
 
   if (!clientId) {
     return (
       <PageWrapper>
         <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
         <Card>
-          <Label>Select a Client</Label>
+          <Label htmlFor="trainer-forge-client">Select a Client</Label>
           <Select>
-            <select value={clientId} onChange={e => setClientId(e.target.value)}>
+            <select id="trainer-forge-client" value={clientId} onChange={e => setClientId(e.target.value)}>
               <option value="">Choose client...</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -219,9 +207,9 @@ const TrainerWorkoutForgePage: React.FC = () => {
       <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
 
       <Card>
-        <Label>Client</Label>
+        <Label htmlFor="trainer-forge-client">Client</Label>
         <Select>
-          <select value={clientId} onChange={e => setClientId(e.target.value)}>
+          <select id="trainer-forge-client" value={clientId} onChange={e => setClientId(e.target.value)}>
             <option value="">Choose client...</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
@@ -249,16 +237,16 @@ const TrainerWorkoutForgePage: React.FC = () => {
 
       <Card>
         <CardTitle><Dumbbell size={18} /> Workout Template</CardTitle>
-        <Label>Title</Label>
-        <Input placeholder="e.g. Upper Body Push — Phase 2" value={workoutTitle} onChange={e => setWorkoutTitle(e.target.value)} />
+        <Label htmlFor="trainer-forge-title">Title</Label>
+        <Input id="trainer-forge-title" placeholder="e.g. Upper Body Push - Phase 2" value={workoutTitle} onChange={e => setWorkoutTitle(e.target.value)} />
         <FieldRow>
           <div>
-            <Label>Duration (min)</Label>
-            <Input type="number" value={duration} onChange={e => setDuration(e.target.value)} />
+            <Label htmlFor="trainer-forge-duration">Duration (min)</Label>
+            <Input id="trainer-forge-duration" type="number" value={duration} onChange={e => setDuration(e.target.value)} />
           </div>
           <div>
-            <Label>Goal</Label>
-            <Input placeholder="e.g. Strength endurance" value={goal} onChange={e => setGoal(e.target.value)} />
+            <Label htmlFor="trainer-forge-goal">Goal</Label>
+            <Input id="trainer-forge-goal" placeholder="e.g. Strength endurance" value={goal} onChange={e => setGoal(e.target.value)} />
           </div>
         </FieldRow>
         <Label>Equipment</Label>
@@ -271,19 +259,58 @@ const TrainerWorkoutForgePage: React.FC = () => {
 
       <Card>
         <CardTitle><User size={18} /> Exercises</CardTitle>
-        <ExerciseArea>No exercises added yet. Use the buttons below to build the workout.</ExerciseArea>
+        {exercises.length === 0 ? (
+          <ExerciseArea>No exercises added yet. Add a manual row or use Swan Coach.</ExerciseArea>
+        ) : (
+          <ExerciseGrid>
+            {exercises.map((exercise, index) => (
+              <ExerciseRow key={exercise.id}>
+                <div>
+                  <Label htmlFor={`${exercise.id}-name`}>Exercise {index + 1} Name</Label>
+                  <Input id={`${exercise.id}-name`} value={exercise.name} onChange={e => updateExercise(exercise.id, 'name', e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor={`${exercise.id}-sets`}>Sets</Label>
+                  <Input id={`${exercise.id}-sets`} value={exercise.sets} onChange={e => updateExercise(exercise.id, 'sets', e.target.value)} />
+                </div>
+                <div>
+                  <Label htmlFor={`${exercise.id}-reps`}>Reps</Label>
+                  <Input id={`${exercise.id}-reps`} value={exercise.reps} onChange={e => updateExercise(exercise.id, 'reps', e.target.value)} />
+                </div>
+                <RemoveExerciseBtn onClick={() => removeExercise(exercise.id)} aria-label={`Remove exercise ${index + 1}`}>
+                  <Trash2 size={16} />
+                </RemoveExerciseBtn>
+              </ExerciseRow>
+            ))}
+          </ExerciseGrid>
+        )}
         <ButtonRow>
-          <ActionBtn $variant="secondary" onClick={() => toast.info('Exercise picker coming in Phase 3')}>
+          <ActionBtn $variant="secondary" onClick={handleAddExercise}>
             <Plus size={18} /> Add Exercise
           </ActionBtn>
-          <ActionBtn onClick={() => toast.info('Swan Coach workout generation coming in Phase 3')}>
+          <ActionBtn onClick={() => setCopilotOpen(true)}>
             <Sparkles size={18} /> Generate with Swan Coach
           </ActionBtn>
-          <ActionBtn $variant="secondary" onClick={() => toast.info('Template saving coming in Phase 3')}>
-            <Save size={18} /> Save Template
+          <ActionBtn $variant="secondary" onClick={handleSavePlan} disabled={saving}>
+            <Save size={18} /> {saving ? 'Saving...' : 'Save Draft Plan'}
           </ActionBtn>
         </ButtonRow>
+        <HelperCopy>Manual drafts save as trainer-reviewable plans. Swan Coach opens the existing AI approval workflow.</HelperCopy>
       </Card>
+
+      {selectedClient && Number.isFinite(parsedClientId) && (
+        <WorkoutCopilotPanel
+          open={copilotOpen}
+          onClose={() => setCopilotOpen(false)}
+          clientId={parsedClientId}
+          clientName={selectedClient.name}
+          autoGenerate
+          onSuccess={() => {
+            setCopilotOpen(false);
+            toast.success(`Swan Coach plan saved for ${selectedClient.name}.`);
+          }}
+        />
+      )}
     </PageWrapper>
   );
 };

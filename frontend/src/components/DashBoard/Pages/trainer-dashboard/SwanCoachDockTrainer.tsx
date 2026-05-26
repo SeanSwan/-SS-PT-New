@@ -16,7 +16,7 @@
  * ┌──────────────────────────────────────────┐
  * │ [Brain]  "Good morning, Sean."           │
  * │          3 sessions today  ·  Lv.12      │
- * │ [Log Session] [View Clients] [Schedule]  │
+ * │ [Log Workout] [View Clients] [Schedule]  │
  * │ ─────────────────────────────────────── │
  * │ [✦] Ask Swan Coach...       (Ctrl+K)    │
  * └──────────────────────────────────────────┘
@@ -154,7 +154,7 @@ function getGreeting(name: string): string {
 }
 
 const CHIPS = [
-  { label: 'Log Session',  path: '/dashboard/trainer/log-workout', Icon: ClipboardCheck },
+  { label: 'Log Workout',  path: '/dashboard/trainer/log-workout', Icon: ClipboardCheck },
   { label: 'View Clients', path: '/dashboard/trainer/clients',     Icon: Users          },
   { label: 'My Schedule',  path: '/dashboard/trainer/schedule',    Icon: Calendar       },
 ] as const;
