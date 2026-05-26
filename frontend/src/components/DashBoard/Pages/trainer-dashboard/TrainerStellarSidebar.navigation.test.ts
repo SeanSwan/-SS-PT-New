@@ -14,4 +14,12 @@ describe('TrainerStellarSidebar navigation priority', () => {
       'Messages',
     ]);
   });
+
+  it('routes the sidebar Log Workout entry through client selection instead of an empty logger', () => {
+    const logWorkoutItem = trainerNavConfig
+      .find((group) => group.section === 'CLIENTS')
+      ?.items.find((item) => item.label === 'Log Workout');
+
+    expect(logWorkoutItem?.path).toBe('/dashboard/trainer/clients?intent=log_workout');
+  });
 });

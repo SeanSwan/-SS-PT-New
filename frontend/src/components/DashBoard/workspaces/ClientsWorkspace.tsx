@@ -43,6 +43,25 @@ const getClientHubIntent = (searchParams: URLSearchParams): ClientHubIntent => {
   return intent === 'log_workout' || intent === 'plan_next' ? intent : null;
 };
 
+const clampPercent = (value: unknown): number | undefined => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+};
+
+const getClientOnboardingPct = (client: ClientOption | null): number | undefined => {
+  if (!client) return undefined;
+  const explicitPct =
+    clampPercent(client.onboardingPct) ??
+    clampPercent(client.onboardingCompletionPercentage) ??
+    clampPercent(client.completionPercentage);
+
+  if (explicitPct !== undefined) return explicitPct;
+  if (client.onboardingComplete || client.isOnboardingComplete) return 100;
+
+  return undefined;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -96,6 +115,11 @@ const ClientsWorkspace: React.FC = () => {
             fitnessGoal: c.fitnessGoal || '',
             trainingExperience: c.trainingExperience || '',
             dateOfBirth: c.dateOfBirth || null,
+            onboardingComplete: Boolean(c.onboardingComplete),
+            isOnboardingComplete: Boolean(c.isOnboardingComplete),
+            onboardingPct: c.onboardingPct ?? null,
+            onboardingCompletionPercentage: c.onboardingCompletionPercentage ?? null,
+            completionPercentage: c.completionPercentage ?? null,
           }));
           setClients(mapped);
 
@@ -246,7 +270,7 @@ const ClientsWorkspace: React.FC = () => {
           />
           <ClientHeaderCard
             client={selectedClient as any}
-            onboardingPct={50} // TODO: fetch from questionnaire API
+            onboardingPct={getClientOnboardingPct(selectedClient)}
           />
         </HeaderSection>
       )}

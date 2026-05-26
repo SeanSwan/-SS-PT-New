@@ -33,7 +33,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Users, Plus, Search, MoreVertical, User,
   Calendar, TrendingUp, MessageSquare, Star,
@@ -609,10 +609,18 @@ const getMembershipBadgeStyle = (level: string) => {
   }
 };
 
+type TrainerClientIntent = 'log_workout' | null;
+
+const getTrainerClientIntent = (searchParams: URLSearchParams): TrainerClientIntent => {
+  const intent = searchParams.get('intent');
+  return intent === 'log_workout' ? intent : null;
+};
+
 // === MAIN COMPONENT ===
 const MyClientsView: React.FC = () => {
   const { user, authAxios } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   // Phase 18.A (2026-04-20): admin-view-as trainer dashboard pulls from the
   // global admin roster (/api/admin/clients via GlobalClientContext) instead
@@ -620,6 +628,7 @@ const MyClientsView: React.FC = () => {
   // with no trainer rows. Trainer accounts keep the existing assignment path.
   const { clientList, loadingClients: loadingGlobalClients } = useGlobalClient();
   const isAdminViewAs = user?.role === 'admin';
+  const trainerClientIntent = getTrainerClientIntent(searchParams);
   
   // State
   const [clients, setClients] = useState<ClientAssignment[]>([]);
@@ -820,19 +829,23 @@ const MyClientsView: React.FC = () => {
   const handleViewProgress = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/client-progress?clientId=${clientId}`);
   }, [navigate]);
+
+  const handleOpenClient = useCallback((clientId: string) => {
+    if (trainerClientIntent === 'log_workout') {
+      handleLogWorkout(clientId);
+      return;
+    }
+
+    handleViewProgress(clientId);
+  }, [handleLogWorkout, handleViewProgress, trainerClientIntent]);
   
   const handleScheduleSession = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/schedule?clientId=${clientId}`);
   }, [navigate]);
   
   const handleMessageClient = useCallback((clientId: string) => {
-    // TODO: Implement messaging system
-    toast({ 
-      title: 'Coming Soon', 
-      description: 'Client messaging system is in development', 
-      variant: 'default' 
-    });
-  }, [toast]);
+    navigate(`/dashboard/trainer/messages?clientId=${clientId}`);
+  }, [navigate]);
   
   // Render loading state
   if (loading) {
@@ -1003,7 +1016,7 @@ const MyClientsView: React.FC = () => {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                   whileHover={{ scale: 1.02 }}
-                  onClick={() => handleViewProgress(client.id)}
+                  onClick={() => handleOpenClient(client.id)}
                 >
                   <ClientHeader>
                     <ClientAvatar status={client.status}>

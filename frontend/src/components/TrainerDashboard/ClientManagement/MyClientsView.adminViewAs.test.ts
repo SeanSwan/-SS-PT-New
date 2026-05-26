@@ -83,6 +83,18 @@ describe('MyClientsView — Phase 18.A admin-view-as source-text lock', () => {
     expect(SOURCE).toMatch(/authAxios\.get\(\s*`\/api\/client-trainer-assignments\/trainer\/\$\{user\.id\}`/);
   });
 
+  it('message quick action routes to the canonical trainer messages hub instead of a coming-soon toast', () => {
+    expect(SOURCE).toMatch(/navigate\(\s*`\/dashboard\/trainer\/messages\?clientId=\$\{clientId\}`\s*\)/);
+    expect(SOURCE).not.toMatch(/Client messaging system is in development/);
+  });
+
+  it('supports the trainer client-pick intent for sidebar Log Workout routing', () => {
+    expect(SOURCE).toMatch(/useSearchParams\(\)/);
+    expect(SOURCE).toMatch(/intent\s*===\s*['"]log_workout['"]/);
+    expect(SOURCE).toMatch(/handleOpenClient/);
+    expect(SOURCE).toMatch(/handleLogWorkout\(clientId\)/);
+  });
+
   it('loadClients useCallback deps include the admin-view-as inputs', () => {
     // The deps array must include the three new admin-path dependencies so
     // stale closures don't re-use a prior clientList after role/context changes.

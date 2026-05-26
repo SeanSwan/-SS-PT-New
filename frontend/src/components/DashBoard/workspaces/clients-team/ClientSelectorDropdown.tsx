@@ -42,6 +42,11 @@ export interface ClientOption {
   trainingExperience?: string;
   dateOfBirth?: string | null;
   photo?: string;
+  onboardingComplete?: boolean;
+  isOnboardingComplete?: boolean;
+  onboardingPct?: number | null;
+  onboardingCompletionPercentage?: number | null;
+  completionPercentage?: number | null;
 }
 
 interface ClientSelectorDropdownProps {

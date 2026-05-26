@@ -60,7 +60,7 @@ export const trainerNavConfig = [
     section: 'CLIENTS',
     items: [
       { label: 'My Clients', path: '/dashboard/trainer/clients', icon: Users },
-      { label: 'Log Workout', path: '/dashboard/trainer/log-workout', icon: ClipboardCheck },
+      { label: 'Log Workout', path: '/dashboard/trainer/clients?intent=log_workout', icon: ClipboardCheck },
       { label: 'Client Progress', path: '/dashboard/trainer/client-progress', icon: BarChart3 },
       { label: 'Messages', path: '/dashboard/trainer/messages', icon: MessageSquare },
     ],
@@ -149,9 +149,15 @@ const TrainerStellarSidebar: React.FC<TrainerStellarSidebarProps> = ({
     if (isMobile && onToggleMobile) onToggleMobile();
   }, [navigate, isMobile, onToggleMobile]);
 
-  const isActive = useCallback((prefix: string) => {
-    return location.pathname === prefix || location.pathname.startsWith(prefix + '/');
-  }, [location.pathname]);
+  const isActive = useCallback((path: string) => {
+    const [basePath, query = ''] = path.split('?');
+    const matchesPath = location.pathname === basePath || location.pathname.startsWith(basePath + '/');
+
+    if (!matchesPath) return false;
+    if (!query) return !location.search;
+
+    return location.search === `?${query}`;
+  }, [location.pathname, location.search]);
 
   const collapsed = isMobile ? false : isCollapsed;
   const showLabel = !collapsed;

@@ -90,6 +90,8 @@ const CLIENTS_RESPONSE = {
           isActive: true,
           totalWorkouts: 7,
           availableSessions: 12,
+          onboardingComplete: true,
+          isOnboardingComplete: true,
         },
       ],
     },
@@ -147,6 +149,13 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     expect(screen.getByRole('button', { name: /^plan next$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^progress$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^dictate \/ ai$/i })).toBeInTheDocument();
+  });
+
+  it('does not show a fake 50 percent onboarding bar for a completed client', async () => {
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    expect(await screen.findByText(/daily training flow/i)).toBeInTheDocument();
+    expect(screen.queryByText(/onboarding:\s*50%/i)).not.toBeInTheDocument();
   });
 
   it('jumps the selected-client detail panel to Progress from the daily cockpit', async () => {
