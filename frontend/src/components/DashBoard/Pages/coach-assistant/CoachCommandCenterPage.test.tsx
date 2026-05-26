@@ -262,6 +262,33 @@ describe('CoachCommandCenterPage', () => {
     });
   });
 
+  it('hydrates selected-client daily context from Clients & Team and sends targetUserId', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+    );
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('Client #424242');
+    });
+
+    expect(screen.getAllByText(/Client #424242/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/daily log context loaded/i).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        expect.stringContaining('Client #424242'),
+        'coach_assistant',
+        expect.stringContaining('Client #424242'),
+        424242,
+        'both',
+      );
+    });
+  });
+
   it('opens and closes mobile drawers with aria-expanded and Escape handling', () => {
     renderPage();
 

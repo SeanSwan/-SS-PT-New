@@ -43,6 +43,7 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { List } from 'react-window';
+import { useSearchParams } from 'react-router-dom';
 import {
   Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
   Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
@@ -331,6 +332,13 @@ function parseEquipment(eq: unknown): string[] {
 // ─────────────────────────────────────────────────────────────
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  const requestedClientId = useMemo(() => {
+    const rawClientId = searchParams.get('clientId');
+    const parsedClientId = rawClientId ? Number.parseInt(rawClientId, 10) : NaN;
+    return Number.isFinite(parsedClientId) && parsedClientId > 0 ? parsedClientId : null;
+  }, [searchParams]);
 
   // ── Client State ──
   const [clients, setClients] = useState<PlannerClient[]>([]);
@@ -533,13 +541,21 @@ const WorkoutPlannerPage: React.FC = () => {
             .map((a: TrainerAssignmentResponse) => a.client || a.Client)
             .filter((client): client is PlannerClient => Boolean(client));
           setClients(clients);
-          if (clients.length > 0) setSelectedClientId(clients[0].id);
+          if (clients.length > 0) {
+            const preferredClientId = requestedClientId && clients.some(c => Number(c.id) === requestedClientId)
+              ? requestedClientId
+              : clients[0].id;
+            setSelectedClientId(preferredClientId);
+          }
         } else {
           const res = await authAxios.get('/api/auth/clients');
           if (res.data?.success && Array.isArray(res.data.clients)) {
             setClients(res.data.clients);
             if (res.data.clients.length > 0) {
-              setSelectedClientId(res.data.clients[0].id);
+              const preferredClientId = requestedClientId && res.data.clients.some((c: PlannerClient) => Number(c.id) === requestedClientId)
+                ? requestedClientId
+                : res.data.clients[0].id;
+              setSelectedClientId(preferredClientId);
             }
           }
         }
@@ -550,7 +566,7 @@ const WorkoutPlannerPage: React.FC = () => {
       }
     };
     fetchClients();
-  }, [authAxios, user?.role, user?.id]);
+  }, [authAxios, requestedClientId, user?.role, user?.id]);
 
   // ── Remove Exercise ──
   const removeExercise = useCallback((id: string) => {

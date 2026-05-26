@@ -32,11 +32,13 @@ import {
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-type DetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
+export type DetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
 
 interface ClientDetailViewProps {
   client: MiniCardClient;
   onBack: () => void;
+  activeTab?: DetailTab;
+  onTabChange?: (tab: DetailTab) => void;
   /** Render props for tab content — keeps this component lean */
   renderTraining?: (clientId: number | string) => React.ReactNode;
   /** Phase 15.3: truthful 12-chart progress view for the selected client. */
@@ -73,22 +75,30 @@ const getInitials = (first: string, last: string): string => {
 const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   client,
   onBack,
+  activeTab: controlledActiveTab,
+  onTabChange,
   renderTraining,
   renderProgress,
   renderBiometrics,
   renderOverview,
   renderSettings,
 }) => {
-  const [activeTab, setActiveTab] = useState<DetailTab>('training');
+  const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<DetailTab>('training');
+  const activeTab = controlledActiveTab ?? uncontrolledActiveTab;
 
   // Reset tab to Training when switching clients (avoids stale tab state)
   useEffect(() => {
-    setActiveTab('training');
-  }, [client.id]);
+    if (controlledActiveTab === undefined) {
+      setUncontrolledActiveTab('training');
+    }
+  }, [client.id, controlledActiveTab]);
 
   const handleTabChange = useCallback((tab: DetailTab) => {
-    setActiveTab(tab);
-  }, []);
+    if (controlledActiveTab === undefined) {
+      setUncontrolledActiveTab(tab);
+    }
+    onTabChange?.(tab);
+  }, [controlledActiveTab, onTabChange]);
 
   const tabContent = useMemo(() => {
     switch (activeTab) {

@@ -58,6 +58,7 @@ import {
   Activity, BarChart3, Target, TrendingUp as TrendIcon, Calendar, Flame,
   Trophy, Dumbbell, Layers, Users, AlertTriangle, HeartPulse,
 } from 'lucide-react';
+import ClientExerciseMegaStats from './ClientExerciseMegaStats';
 
 // ─────────────────────────────────────────────────────────────
 // Styled components — thin local set for the admin grid
@@ -248,6 +249,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
         <TrendingUp size={13} />
         <span>{clientName} — {nonEmptyChartCount} of 12 charts populated</span>
       </SummaryLine>
+      <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>
         {/* 1. Workout Frequency */}
         <Card data-testid="admin-chart-workoutFrequency">

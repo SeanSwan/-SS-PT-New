@@ -65,6 +65,7 @@
 import React, { useState, useCallback, Suspense } from 'react';
 import styled from 'styled-components';
 import { Wand2, Play, Sparkles, Archive, FileAudio } from 'lucide-react';
+import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
 // AICommandBar now embedded at workspace level, not per-tab
 
 // ─────────────────────────────────────────────────────────────
@@ -378,7 +379,7 @@ const SuspenseFallback: React.FC = () => (
 // ─────────────────────────────────────────────────────────────
 
 const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clientName }) => {
-  const [activeSection, setActiveSection] = useState<TrainingSection>('architect');
+  const [activeSection, setActiveSection] = useState<TrainingSection>('logger');
 
   const handleSectionChange = useCallback((section: TrainingSection) => {
     setActiveSection(section);
@@ -404,7 +405,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
                 console.log('Workout completed:', formData);
               }}
               onCancel={() => {
-                setActiveSection('architect');
+                setActiveSection('history');
               }}
             />
           </Suspense>
@@ -472,6 +473,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clien
         id={`training-panel-${activeSection}`}
         aria-label={SECTIONS.find((s) => s.id === activeSection)?.label}
       >
+        <ClientTrainingCommandBar clientId={clientId} clientName={clientName} />
         {renderContent()}
       </ContentArea>
     </LayoutWrapper>

@@ -51,6 +51,7 @@ SwanStudios is workout-progress-first. The main product loop is: log the workout
 - **Trainer dashboard priority:** Trainers need fast client workout logging, reviewable workout history, progress charts generated from real logged data, and low-friction plan adjustments. Trainer features that do not improve this coaching loop are secondary unless Sean explicitly prioritizes them.
 - **Admin dashboard priority:** Admin needs proof-of-value visibility across clients: who trained, what changed, what is stale, what needs intervention, and what progress can be celebrated or shared. Admin UI should surface workout/progress truth before decorative or low-revenue features.
 - **Data truth rule:** Workout charts must come from real workout logs/sessions whenever possible. Mock progress data is a placeholder only and should be treated as a gap to replace.
+- **Best-in-class strategy:** SwanStudios is a trainer-led B2B2C operating system, not a generic fitness social network. The product combines coach workflow depth, first-party workout/progress data, AI-assisted accountability, payments, and community belonging around one canonical user/client record. Full compact strategy: `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`.
 
 ## Build & Run
 - **Local dev:** `npm run dev` (from root â€” backend:10000 + frontend:5173 concurrently, auto-opens browser)
@@ -456,6 +457,18 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 
     **Allowed progress updates:** Short working updates are allowed while implementation and review are in progress, but they must not claim the slice is complete or summarize the slice outcome before the hostile review and fixes are done.
 
+62. **Best-in-Class Product Strategy Gate (MANDATORY for product/UX/roadmap work)** â€” Established 2026-05-25 from the GPT Pro personal-training/community strategy analysis and Sean's SwanStudios vision. Any product, dashboard, onboarding, workout/progress, community, monetization, integration, or roadmap change MUST pass the SwanStudios strategy gate before implementation. Read `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md` when planning these changes. The gate:
+    - Preserve the wedge: trainer-led coaching + first-party workout/progress record + paid accountability/community loops, not generic social media.
+    - Ask the north-star questions: what is the trainee's next best action, which client needs coach intervention, what progress can be shown, and what reason brings the group back this week?
+    - Keep coaching records first-party: programs, assignments, workout logs, coach notes, adherence, progress, and session history cannot be treated as secondary integration artifacts.
+    - Make role-specific activation explicit: trainer = first template + first client invite + payout/payment path; trainee = first workout logged + first coach/group interaction within seven days + first visible progress proof; admin = exceptions, stale clients, billing/support/moderation, and retention risk visible without hunting.
+    - Favor mobile-first daily training flows plus a strong web coach/admin console. Live-session tasks must be low-tap: find client, start session, dictate or manually log, save, review, and show progress.
+    - Make community reinforce coaching through challenges, cohorts, events, badges, progress sharing, and accountability. Do not add noisy generic feed behavior unless it strengthens adherence, retention, or trust.
+    - Treat integrations as enrichment, not source of truth. Wearables, calendar, nutrition, and third-party sync must feed consented context while SwanStudios owns the canonical workout/program/progress model.
+    - Treat workout, biometric, pain/injury, recovery, sleep, and nutrition-like data as sensitive by design. Consent, export, revocation, deletion, access rationale, and auditability are product surfaces, not afterthoughts.
+    - Use operating KPIs when prioritizing: activation, engagement, retention, commercial, and quality metrics, including workout-save success, sync freshness, coach response time, checkout failure rate, and program completion.
+    - Kill or defer scope that does not improve coaching, adherence, progress proof, community belonging, revenue, or trust.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -634,6 +647,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Privacy Proxy | `docs/ai-workflow/references/PRIVACY-PROXY.md` | AI/PII features |
 | Design System Handoff | `docs/ai-workflow/references/DESIGN-SYSTEM-HANDOFF.md` | Design/styling specs |
 | Execution Roadmap | `docs/ai-workflow/references/SWANSTUDIOS-EXECUTION-ROADMAP.md` | Product sequencing, anti-scatter prioritization, dictation-first operating model |
+| Best-in-Class Training App Strategy | `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md` | **MANDATORY** for product/UX/roadmap work. Trainer-led B2B2C wedge, next-best-action north star, first-party workout/progress record, activation loops, community/accountability strategy, privacy posture, monetization and KPI gates. |
 | Swan Coach V1 Spec | `docs/ai-workflow/references/SWAN-COACH-V1-SPEC.md` | Swan Coach scope, command model, permissions, dictation-first execution |
 | Swan Coach V1 Impl Roadmap | `docs/ai-workflow/references/SWAN-COACH-V1-IMPLEMENTATION-ROADMAP.md` | Swan Coach build phases, file map, acceptance criteria, rollout order |
 | Swan Coach Sprint A Checklist | `docs/ai-workflow/references/SWAN-COACH-SPRINT-A-ACCEPTANCE-CHECKLIST.md` | Pass/fail review target for shell unification, command routing, inline confirmations, and execution results |

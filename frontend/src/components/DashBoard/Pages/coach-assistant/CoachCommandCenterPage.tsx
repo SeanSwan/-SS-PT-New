@@ -142,6 +142,18 @@ const CoachCommandCenterPage: React.FC = () => {
   );
   const activeThreadTitle = getConversationTitle(activeThread);
   const searchKey = searchParams.toString();
+  const rawClientId = searchParams.get('clientId');
+  const routeClientId = useMemo(() => {
+    const parsed = rawClientId ? Number.parseInt(rawClientId, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }, [rawClientId]);
+  const routeIntent = searchParams.get('intent');
+  const routeClientLabel = routeClientId ? `Client #${routeClientId}` : null;
+  const routeContextPrompt = useMemo(() => {
+    if (!routeClientLabel || routeIntent !== 'log_workout') return null;
+
+    return `${routeClientLabel} daily workout log. Ask me for dictated exercises, sets, reps, load, pain, and session notes. Prepare a review-gated workout_log proposal only after I confirm the details.`;
+  }, [routeClientLabel, routeIntent]);
   const rawMergeRequestId = searchParams.get('mergeRequestId');
   const directMergeRequestId = parsePlaudMergeRequestId(rawMergeRequestId);
   const reviewNextRequested = searchParams.get('review') === 'next';
@@ -166,7 +178,7 @@ const CoachCommandCenterPage: React.FC = () => {
       preparedDrafts: queueSummary.preparedDrafts ?? 0,
     };
   }, [coachQueue.summary]);
-  const selectedClientLabel = activeThread ? activeThreadTitle : 'Selected client';
+  const selectedClientLabel = routeClientLabel || (activeThread ? activeThreadTitle : 'Selected client');
 
   const statusMetrics = useMemo<QueueMetric[]>(() => [
     {
@@ -358,11 +370,17 @@ const CoachCommandCenterPage: React.FC = () => {
     });
     setCommandText('');
     setSelectedStatus('Sending command to Swan Coach');
+    const commandTitle = activeThread
+      ? activeThreadTitle
+      : routeClientLabel
+        ? `${routeClientLabel} daily workout log`
+        : trimmed.slice(0, 60);
+
     const response = await chat.sendMessageWithConversation(
       trimmed,
       'coach_assistant',
-      activeThread ? activeThreadTitle : trimmed.slice(0, 60),
-      null,
+      commandTitle,
+      routeClientId,
       'both',
     );
 
@@ -423,11 +441,19 @@ const CoachCommandCenterPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeThreadId !== null || coachThreads.length === 0) return;
+    if (routeClientId || activeThreadId !== null || coachThreads.length === 0) return;
     const firstThread = coachThreads[0];
     setActiveThreadId(firstThread.id);
     setSelectedStatus(`${getConversationTitle(firstThread)} - thread ready`);
-  }, [activeThreadId, coachThreads]);
+  }, [activeThreadId, coachThreads, routeClientId]);
+
+  useEffect(() => {
+    if (!routeContextPrompt || !routeClientLabel) return;
+
+    setActiveThreadId(null);
+    setSelectedStatus(`${routeClientLabel} daily log context loaded`);
+    setCommandText((current) => current.trim() ? current : routeContextPrompt);
+  }, [routeClientLabel, routeContextPrompt, searchKey]);
 
   useEffect(() => {
     const syncDockSpace = () => {

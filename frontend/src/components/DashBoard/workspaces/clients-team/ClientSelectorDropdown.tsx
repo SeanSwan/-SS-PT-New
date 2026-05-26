@@ -8,8 +8,23 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import styled from 'styled-components';
 import { Search, ChevronDown, Star, Clock, UserPlus, X } from 'lucide-react';
+import {
+  Avatar,
+  ClientRow,
+  Dropdown,
+  EmptyMsg,
+  NewClientRow,
+  SearchInput,
+  SearchWrap,
+  SectionLabel,
+  SelectionInfo,
+  SelectionMeta,
+  SelectionName,
+  SelectorButton,
+  SelectorWrap,
+  SourceBadge,
+} from './ClientSelectorDropdown.styles';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -23,6 +38,9 @@ export interface ClientOption {
   isActive?: boolean;
   availableSessions?: number;
   workoutCount?: number;
+  fitnessGoal?: string;
+  trainingExperience?: string;
+  dateOfBirth?: string | null;
   photo?: string;
 }
 
@@ -37,189 +55,6 @@ interface ClientSelectorDropdownProps {
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
-const SelectorWrap = styled.div`
-  position: relative;
-  width: 100%;
-  max-width: 480px;
-`;
-
-const SelectorButton = styled.button<{ $hasSelection: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 16px;
-  min-height: 52px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-surface, #1A1A24);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 15px;
-  cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &:hover {
-    border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-`;
-
-const Avatar = styled.div<{ $source?: string }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: ${({ $source }) =>
-    $source === 'move_fitness'
-      ? 'linear-gradient(135deg, #C6A84B 0%, #8B5CF6 100%)'
-      : 'linear-gradient(135deg, #002060 0%, #60C0F0 100%)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-  flex-shrink: 0;
-`;
-
-const SelectionInfo = styled.div`
-  flex: 1;
-  text-align: left;
-  min-width: 0;
-`;
-
-const SelectionName = styled.div`
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const SelectionMeta = styled.div`
-  font-size: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.85));
-  font-family: 'Fira Code', monospace;
-`;
-
-const SourceBadge = styled.span<{ $source: string }>`
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: 'Sora', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: ${({ $source }) =>
-    $source === 'move_fitness'
-      ? 'rgba(198, 168, 75, 0.15)'
-      : 'rgba(96, 192, 240, 0.12)'};
-  color: ${({ $source }) =>
-    $source === 'move_fitness'
-      ? 'var(--accent-gold, #C6A84B)'
-      : 'var(--accent-primary, #60C0F0)'};
-`;
-
-const Dropdown = styled.div<{ $open: boolean }>`
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  max-height: 380px;
-  overflow-y: auto;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-surface, #1A1A24);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-  z-index: 50;
-  display: ${({ $open }) => $open ? 'block' : 'none'};
-
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(96, 192, 240, 0.15);
-    border-radius: 2px;
-  }
-`;
-
-const SearchWrap = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  position: sticky;
-  top: 0;
-  background: var(--bg-surface, #1A1A24);
-  z-index: 1;
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.35));
-  }
-`;
-
-const SectionLabel = styled.div`
-  padding: 8px 14px 4px;
-  font-family: 'Sora', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted, rgba(224, 236, 244, 0.75));
-`;
-
-const ClientRow = styled.button<{ $active?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 14px;
-  min-height: 48px;
-  border: none;
-  background: ${({ $active }) =>
-    $active ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)' : 'transparent'};
-  color: var(--text-primary, #E0ECF4);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: -2px;
-  }
-`;
-
-const NewClientRow = styled(ClientRow)`
-  color: var(--accent-secondary, #8B5CF6);
-  font-weight: 600;
-  border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-`;
-
-const EmptyMsg = styled.div`
-  padding: 24px 14px;
-  text-align: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.75));
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-`;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────

@@ -19,4 +19,11 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*30px/);
     expect(STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
   });
+
+  it('honors a clientId deep link from Client Hub before defaulting to the first client', () => {
+    expect(PAGE_SOURCE).toMatch(/useSearchParams/);
+    expect(PAGE_SOURCE).toMatch(/requestedClientId/);
+    expect(PAGE_SOURCE).toMatch(/preferredClientId/);
+    expect(PAGE_SOURCE).toMatch(/setSelectedClientId\(preferredClientId\)/);
+  });
 });

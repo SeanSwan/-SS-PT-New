@@ -44,6 +44,7 @@ import {
   type WorkoutPlanTransfer,
   type WorkoutExerciseTransfer,
 } from '../../utils/parseAIWorkoutPlan';
+import { AI_UPDATE_SET, type AIUpdateSetPayload } from '../../utils/aiWorkoutEvents';
 import { exportWorkoutLoggerPDF, type PDFExerciseEntry } from '../../services/pdfExportService';
 
 // Sub-components
@@ -60,6 +61,7 @@ import {
   appendImportedSessionNotes,
   parsedWorkoutToExerciseEntries,
 } from './workoutLoggerVoiceImport';
+import { applyAIUpdateSet } from './aiWorkoutEventReducers';
 // 2026-04-17: CompactProtocolSection replaces the always-rendered 25/20/15
 // static NASMProtocolSection checklists that used to swallow the logger
 // page. Rolodex is now the primary add flow; recommendations are chips.
@@ -527,6 +529,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setExercises(prev => [...prev, entry]);
       toast.success(`Added ${d.exerciseName}`);
     };
+    const onUpdateSet = (e: Event) => {
+      const detail = (e as CustomEvent<AIUpdateSetPayload>).detail;
+      if (!detail?.exerciseName) return;
+
+      setExercises((prev) => {
+        const next = applyAIUpdateSet(prev, detail);
+        if (next !== prev) {
+          toast.success(`Updated ${detail.exerciseName}`);
+        }
+        return next;
+      });
+    };
     // 2026-04-17: rebuilt for the compact ProtocolSelection model that
     // replaced the old 25/20/15-row completed-checkbox lists. The
     // assistant-facing AI_TOGGLE_NASM_ITEM payload contract is unchanged
@@ -583,10 +597,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     };
     window.addEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
     window.addEventListener('AI_ADD_EXERCISE', onAddExercise);
+    window.addEventListener(AI_UPDATE_SET, onUpdateSet);
     window.addEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     return () => {
       window.removeEventListener('AI_LOAD_TEMPLATE', onLoadTemplate);
       window.removeEventListener('AI_ADD_EXERCISE', onAddExercise);
+      window.removeEventListener(AI_UPDATE_SET, onUpdateSet);
       window.removeEventListener('AI_TOGGLE_NASM_ITEM', onToggleItem);
     };
     // currentOPTPhase is a dep because the `markAll` path uses it to

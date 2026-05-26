@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-05-17 (QA smoke canonicalization + backend root script hygiene)
+**Last updated:** 2026-05-25 (best-in-class training app strategy gate)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -33,6 +33,7 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `HANDOFF-PROTOCOL.md` — how cross-AI handoff works
 - `USER-DASHBOARD-SYSTEM-STATUS-2026-05-13.md` - canonical user-dashboard runtime map, current feature inventory, wiring gaps, and future-AI rules
 - `SWANSTUDIOS-FUNNEL-ACTIVATION-SURFACE-MAP-2026-05-20.md` - canonical acquisition-to-client-dashboard funnel map with active/dormant route ownership and backend mount notes
+- `oracle-requests/ADMIN-CLIENT-TRAINING-FLOW-ORACLE-PACKET-2026-05-25.md` - GPT Pro/Oracle packet and working vision for the admin client-first training flow across Coach Command Center, Clients & Team, and Workouts
 
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 
@@ -98,6 +99,7 @@ Core reference set (most frequently used):
 - `DOCUMENTATION-STANDARD.md`
 - `DASHBOARD-ARCHITECTURE.md`
 - `SWANSTUDIOS-DASHBOARD-VISION-BRIEF.md`
+- `BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`
 - `NASM-OPT-PROTOCOL.md`
 - `GAMIFICATION-SYSTEM.md`
 - `CHART-ANALYTICS-SYSTEM.md`

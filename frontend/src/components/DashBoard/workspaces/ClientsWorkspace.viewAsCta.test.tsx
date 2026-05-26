@@ -64,7 +64,9 @@ vi.mock('./clients-team', async () => {
   const actual = await vi.importActual<any>('./clients-team');
   return {
     ...actual,
-    ClientDetailView: () => null,
+    ClientDetailView: ({ activeTab }: any) => (
+      <div data-testid="mock-client-detail-tab">{activeTab}</div>
+    ),
   };
 });
 
@@ -135,6 +137,51 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     // that Phase 19 cleanup unmounted.
     const navCalls = mockNavigate.mock.calls.map((args) => args[0] as string);
     expect(navCalls.some((u) => u.startsWith('/dashboard/people/'))).toBe(false);
+  });
+
+  it('renders the daily training cockpit actions for the selected client', async () => {
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    expect(await screen.findByText(/daily training flow/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^log today$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^plan next$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^progress$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^dictate \/ ai$/i })).toBeInTheDocument();
+  });
+
+  it('jumps the selected-client detail panel to Progress from the daily cockpit', async () => {
+    const user = userEvent.setup();
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    expect(await screen.findByTestId('mock-client-detail-tab')).toHaveTextContent('training');
+
+    await user.click(screen.getByRole('button', { name: /^progress$/i }));
+
+    expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('progress');
+  });
+
+  it('opens the workout planner with the selected client preloaded', async () => {
+    const user = userEvent.setup();
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    const planNextBtn = await screen.findByRole('button', { name: /^plan next$/i });
+    await user.click(planNextBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      `/dashboard/admin/workout-planner?clientId=${FIXTURE_CLIENT_ID}`
+    );
+  });
+
+  it('opens Swan Coach with selected-client daily logging context', async () => {
+    const user = userEvent.setup();
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    const dictateBtn = await screen.findByRole('button', { name: /^dictate \/ ai$/i });
+    await user.click(dictateBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      `/dashboard/admin/coach-assistant?clientId=${FIXTURE_CLIENT_ID}&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
+    );
   });
 
   it('does not render the View As button when no client is selected', async () => {
