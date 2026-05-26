@@ -160,8 +160,22 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   }, [navigate, isMobile, setMobileOpen]);
 
   const isActive = useCallback((prefix: string) => {
-    return location.pathname === prefix || location.pathname.startsWith(prefix + '/');
-  }, [location.pathname]);
+    const [basePath, query = ''] = prefix.split('?');
+    const matchesPath = location.pathname === basePath || location.pathname.startsWith(basePath + '/');
+    if (!matchesPath) return false;
+
+    const currentParams = new URLSearchParams(location.search);
+    if (query) {
+      const expectedParams = new URLSearchParams(query);
+      return Array.from(expectedParams.entries()).every(([key, value]) => currentParams.get(key) === value);
+    }
+
+    if (basePath === '/dashboard/admin/client-management') {
+      return currentParams.get('intent') === 'log_workout' ? false : true;
+    }
+
+    return true;
+  }, [location.pathname, location.search]);
 
   // Filter workspace tabs by feature access — admin sees all, others only see
   // tabs where featureKey is absent OR they have the feature enabled

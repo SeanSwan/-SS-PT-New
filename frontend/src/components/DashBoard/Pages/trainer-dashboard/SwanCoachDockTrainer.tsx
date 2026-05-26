@@ -154,7 +154,7 @@ function getGreeting(name: string): string {
 }
 
 const CHIPS = [
-  { label: 'Log Workout',  path: '/dashboard/trainer/log-workout', Icon: ClipboardCheck },
+  { label: 'Log Workout',  path: '/dashboard/trainer/clients?intent=log_workout', Icon: ClipboardCheck },
   { label: 'View Clients', path: '/dashboard/trainer/clients',     Icon: Users          },
   { label: 'My Schedule',  path: '/dashboard/trainer/schedule',    Icon: Calendar       },
 ] as const;

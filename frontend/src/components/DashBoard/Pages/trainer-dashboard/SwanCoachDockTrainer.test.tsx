@@ -24,6 +24,6 @@ describe('SwanCoachDockTrainer workout-first actions', () => {
     await user.click(screen.getByRole('button', { name: /^log workout$/i }));
 
     expect(screen.queryByRole('button', { name: /^log session$/i })).toBeNull();
-    expect(onNavigate).toHaveBeenCalledWith('/dashboard/trainer/log-workout');
+    expect(onNavigate).toHaveBeenCalledWith('/dashboard/trainer/clients?intent=log_workout');
   });
 });

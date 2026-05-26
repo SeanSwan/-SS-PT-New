@@ -538,6 +538,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
   // their replacement decisions are tracked in
   // docs/ai-workflow/AI-HANDOFF/PHASE-19-CANONICAL-SURFACE-RECEIPT-2026-04-21.md.
   { id: 'people', section: 'clients', label: 'Clients & Team', icon: 'Users', prefix: '/dashboard/admin/client-management', description: 'Client and team management' },
+  { id: 'log-workout', section: 'clients', label: 'Log Workout', icon: 'Dumbbell', prefix: '/dashboard/admin/client-management?intent=log_workout', description: 'Pick a client, then log the workout from the client hub' },
   { id: 'waivers', section: 'clients', label: 'Waivers', icon: 'FileSignature', prefix: '/dashboard/admin/waivers', description: 'Waiver records, match approval, and manual linking' },
   { id: 'scheduling', section: 'clients', label: 'Scheduling', icon: 'Calendar', prefix: '/dashboard/admin/master-schedule', description: 'Session scheduling' },
 

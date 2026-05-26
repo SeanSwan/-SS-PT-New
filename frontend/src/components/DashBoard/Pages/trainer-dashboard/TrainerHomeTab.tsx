@@ -64,7 +64,7 @@ const KPI_COLORS = [
 ] as const;
 
 export const TRAINER_HOME_QUICK_ACTIONS = [
-  { label: 'Log Workout',     Icon: Dumbbell,  path: '/dashboard/trainer/log-workout',     tone: 'var(--accent-primary, #60C0F0)',   i: 0 },
+  { label: 'Log Workout',     Icon: Dumbbell,  path: '/dashboard/trainer/clients?intent=log_workout', tone: 'var(--accent-primary, #60C0F0)',   i: 0 },
   { label: 'View Clients',    Icon: Eye,       path: '/dashboard/trainer/clients',         tone: 'var(--accent-secondary, #8B5CF6)', i: 1 },
   { label: 'Client Progress', Icon: BarChart3, path: '/dashboard/trainer/client-progress', tone: 'var(--accent-gold, #C6A84B)',      i: 2 },
   { label: 'Swan Coach',      Icon: Brain,     path: '/dashboard/trainer/coach-assistant', tone: 'var(--swan-lavender, #4070C0)',    i: 3 },

@@ -129,13 +129,14 @@ const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
 /* ---------- Chip / Badge ---------- */
 
 interface RiskChipProps {
-  $level: 'low' | 'medium' | 'high';
+  $level: ClientData['riskLevel'];
 }
 
 const riskColors: Record<string, { bg: string; text: string; border: string }> = {
   low:    { bg: 'rgba(34, 197, 94, 0.15)',  text: '#4ade80', border: 'rgba(34, 197, 94, 0.3)' },
   medium: { bg: 'rgba(234, 179, 8, 0.15)',  text: '#facc15', border: 'rgba(234, 179, 8, 0.3)' },
   high:   { bg: 'rgba(239, 68, 68, 0.15)',  text: '#f87171', border: 'rgba(239, 68, 68, 0.3)' },
+  unknown: { bg: 'rgba(148, 163, 184, 0.12)', text: '#cbd5e1', border: 'rgba(148, 163, 184, 0.28)' },
 };
 
 const RiskChip = styled.span<RiskChipProps>`
@@ -333,6 +334,14 @@ const toProgressMetrics = (metrics: any): ClientData['progressMetrics'] => ({
   stability: toBoundedMetric(metrics?.stability),
 });
 
+const toRiskLevel = (value: unknown): ClientData['riskLevel'] => {
+  const normalized = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  if (normalized === 'low' || normalized === 'medium' || normalized === 'high') {
+    return normalized;
+  }
+  return 'unknown';
+};
+
 /* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
@@ -384,7 +393,7 @@ const EnhancedClientProgressView: React.FC = () => {
         startDate: clientInfo?.createdAt || '',
         totalSessions: progressInfo?.totalSessions || 0,
         completedSessions: progressInfo?.completedSessions || 0,
-        riskLevel: 'low' as const,
+        riskLevel: toRiskLevel(progressInfo?.riskLevel ?? progressInfo?.risk?.level ?? clientInfo?.riskLevel),
         primaryGoals: toStringList(clientInfo?.goals),
         lastAssessment: progressInfo?.lastAssessmentDate || '',
         progressMetrics: toProgressMetrics(metrics)
@@ -410,7 +419,7 @@ const EnhancedClientProgressView: React.FC = () => {
         startDate: '',
         totalSessions: 0,
         completedSessions: 0,
-        riskLevel: 'low' as const,
+        riskLevel: 'unknown',
         primaryGoals: [],
         lastAssessment: '',
         progressMetrics: toProgressMetrics(null)
@@ -427,7 +436,7 @@ const EnhancedClientProgressView: React.FC = () => {
   // Use real data, fallback to safe defaults
   const enhancedClientData = clientData || {
     id: clientId, firstName: 'Loading', lastName: '...', username: '',
-    startDate: '', totalSessions: 0, completedSessions: 0, riskLevel: 'low' as const,
+    startDate: '', totalSessions: 0, completedSessions: 0, riskLevel: 'unknown' as const,
     primaryGoals: [], lastAssessment: '', progressMetrics: { strength: 0, cardio: 0, flexibility: 0, balance: 0, stability: 0 }
   };
 
@@ -487,7 +496,7 @@ const EnhancedClientProgressView: React.FC = () => {
             <SmallText>Advanced Analytics Mode</SmallText>
           </ToggleLabel>
 
-          <RiskChip $level={enhancedClientData.riskLevel as 'low' | 'medium' | 'high'}>
+          <RiskChip $level={enhancedClientData.riskLevel}>
             Risk Level: {enhancedClientData.riskLevel.toUpperCase()}
           </RiskChip>
         </HeaderRight>

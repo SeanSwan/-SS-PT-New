@@ -10,7 +10,7 @@ export interface ClientData {
   startDate: string;
   totalSessions: number;
   completedSessions: number;
-  riskLevel: 'low' | 'medium' | 'high';
+  riskLevel: 'low' | 'medium' | 'high' | 'unknown';
   primaryGoals: string[];
   lastAssessment: string;
   progressMetrics: {

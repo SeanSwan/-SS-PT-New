@@ -11,7 +11,7 @@ describe('TrainerHomeTab quick-action priority', () => {
     ]);
 
     expect(TRAINER_HOME_QUICK_ACTIONS.map(action => action.path)).toEqual([
-      '/dashboard/trainer/log-workout',
+      '/dashboard/trainer/clients?intent=log_workout',
       '/dashboard/trainer/clients',
       '/dashboard/trainer/client-progress',
       '/dashboard/trainer/coach-assistant',

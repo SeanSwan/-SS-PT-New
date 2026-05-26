@@ -32,4 +32,9 @@ describe('EnhancedClientProgressView truth locks', () => {
   it('does not invent a generic client goal when the API has no goals', () => {
     expect(SOURCE).not.toMatch(/Fitness Improvement/);
   });
+
+  it('does not downgrade missing risk data into a fake low-risk label', () => {
+    expect(SOURCE).not.toMatch(/riskLevel:\s*'low'\s+as\s+const/);
+    expect(SOURCE).toMatch(/riskLevel:\s*'unknown'/);
+  });
 });
