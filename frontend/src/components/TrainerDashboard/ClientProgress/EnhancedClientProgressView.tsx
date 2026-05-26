@@ -5,7 +5,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
 import {
   Activity,
-  Trophy,
   Target,
   ArrowLeftRight,
   Shield,
@@ -85,13 +84,6 @@ const CaptionText = styled.span`
   color: #94a3b8;
   display: block;
   margin-bottom: 8px;
-`;
-
-const SubHeading = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #e2e8f0;
-  margin: 0 0 8px 0;
 `;
 
 /* ---------- Toggle Switch ---------- */
@@ -225,39 +217,6 @@ const TabPanelWrapper = styled.div`
   padding: 24px 0;
 `;
 
-/* ---------- Buttons ---------- */
-
-const PrimaryButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 10px 24px;
-  border: none;
-  border-radius: 8px;
-  background: #0ea5e9;
-  color: #0f172a;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
-
-  &:hover {
-    background: #38bdf8;
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #0ea5e9;
-    outline-offset: 2px;
-  }
-`;
-
 const SmallButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -305,13 +264,6 @@ const QuickActionButtons = styled.div`
   gap: 8px;
 `;
 
-/* ---------- Gamification Placeholder ---------- */
-
-const CenteredContent = styled.div`
-  padding: 24px;
-  text-align: center;
-`;
-
 /* ------------------------------------------------------------------ */
 /*  Sub-Components                                                     */
 /* ------------------------------------------------------------------ */
@@ -348,6 +300,38 @@ function a11yProps(index: number) {
     'aria-controls': `enhanced-progress-tabpanel-${index}`,
   };
 }
+
+const toBoundedMetric = (value: unknown): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, Math.min(100, Math.round(parsed)));
+};
+
+const toNonNegativeNumber = (value: unknown): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.max(0, parsed);
+};
+
+const toStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    return [value.trim()];
+  }
+
+  return [];
+};
+
+const toProgressMetrics = (metrics: any): ClientData['progressMetrics'] => ({
+  strength: toBoundedMetric(metrics?.strength),
+  cardio: toBoundedMetric(metrics?.cardio),
+  flexibility: toBoundedMetric(metrics?.flexibility),
+  balance: toBoundedMetric(metrics?.balance),
+  stability: toBoundedMetric(metrics?.stability),
+});
 
 /* ------------------------------------------------------------------ */
 /*  Main Component                                                     */
@@ -390,34 +374,29 @@ const EnhancedClientProgressView: React.FC = () => {
 
       const clientInfo = clientRes.status === 'fulfilled' ? clientRes.value.data?.client : null;
       const progressInfo = progressRes.status === 'fulfilled' ? progressRes.value.data : null;
+      const metrics = progressInfo?.metrics;
 
       setClientData({
         id: clientId,
         firstName: clientInfo?.firstName || 'Client',
         lastName: clientInfo?.lastName || `#${clientId}`,
         username: clientInfo?.email?.split('@')[0] || `client${clientId}`,
-        startDate: clientInfo?.createdAt || new Date().toISOString(),
+        startDate: clientInfo?.createdAt || '',
         totalSessions: progressInfo?.totalSessions || 0,
         completedSessions: progressInfo?.completedSessions || 0,
         riskLevel: 'low' as const,
-        primaryGoals: clientInfo?.goals || ['Fitness Improvement'],
-        lastAssessment: progressInfo?.lastAssessmentDate || new Date().toISOString(),
-        progressMetrics: {
-          strength: progressInfo?.metrics?.strength || 50,
-          cardio: progressInfo?.metrics?.cardio || 50,
-          flexibility: progressInfo?.metrics?.flexibility || 50,
-          balance: progressInfo?.metrics?.balance || 50,
-          stability: progressInfo?.metrics?.stability || 50
-        }
+        primaryGoals: toStringList(clientInfo?.goals),
+        lastAssessment: progressInfo?.lastAssessmentDate || '',
+        progressMetrics: toProgressMetrics(metrics)
       });
 
       // Load workout history
       if (progressInfo?.recentWorkouts) {
         setWorkoutHistory(progressInfo.recentWorkouts.map((w: any) => ({
           date: w.date || w.createdAt,
-          type: w.workoutType || 'Strength',
-          duration: w.duration || 45,
-          intensity: w.intensity || 5
+          type: w.workoutType || 'Workout',
+          duration: toNonNegativeNumber(w.duration),
+          intensity: toNonNegativeNumber(w.intensity)
         })));
       }
     } catch (error) {
@@ -428,13 +407,13 @@ const EnhancedClientProgressView: React.FC = () => {
         firstName: 'Client',
         lastName: `#${clientId}`,
         username: `client${clientId}`,
-        startDate: new Date().toISOString(),
+        startDate: '',
         totalSessions: 0,
         completedSessions: 0,
         riskLevel: 'low' as const,
-        primaryGoals: ['Fitness Improvement'],
-        lastAssessment: new Date().toISOString(),
-        progressMetrics: { strength: 50, cardio: 50, flexibility: 50, balance: 50, stability: 50 }
+        primaryGoals: [],
+        lastAssessment: '',
+        progressMetrics: toProgressMetrics(null)
       });
     } finally {
       setIsLoadingClient(false);
@@ -452,8 +431,6 @@ const EnhancedClientProgressView: React.FC = () => {
     primaryGoals: [], lastAssessment: '', progressMetrics: { strength: 0, cardio: 0, flexibility: 0, balance: 0, stability: 0 }
   };
 
-  const mockWorkoutHistory = workoutHistory;
-
   const handleGoalUpdate = (goalId: string, update: GoalUpdate): void => {
     // Handle goal updates - in real implementation, this would call API
     logger.log('Goal update:', goalId, update);
@@ -462,6 +439,12 @@ const EnhancedClientProgressView: React.FC = () => {
   const handleTabChange = (newValue: number) => {
     setTabValue(newValue);
   };
+
+  useEffect(() => {
+    if (!advancedMode && tabValue !== 0) {
+      setTabValue(0);
+    }
+  }, [advancedMode, tabValue]);
 
   // Build the list of tabs dynamically based on advancedMode
   const tabs = useMemo(() => {
@@ -476,12 +459,6 @@ const EnhancedClientProgressView: React.FC = () => {
         { label: 'Goal Tracking', icon: <Target size={18} />, ...a11yProps(3) },
       );
     }
-
-    base.push({
-      label: 'Gamification',
-      icon: <Trophy size={18} />,
-      ...a11yProps(advancedMode ? 4 : 1),
-    });
 
     return base;
   }, [advancedMode]);
@@ -563,7 +540,7 @@ const EnhancedClientProgressView: React.FC = () => {
             <InjuryRiskAssessment
               clientId={clientId}
               clientData={enhancedClientData}
-              workoutHistory={mockWorkoutHistory}
+              workoutHistory={workoutHistory}
             />
           </TabPanel>
 
@@ -577,24 +554,6 @@ const EnhancedClientProgressView: React.FC = () => {
         </>
       )}
 
-      {/* Gamification Tab */}
-      <TabPanel value={tabValue} index={advancedMode ? 4 : 1}>
-        <CenteredContent>
-          <SubHeading>
-            Gamification &amp; Social Progress
-          </SubHeading>
-          <BodyText>
-            This tab will show the gamification content from the original ClientProgressView.
-            Integration with existing gamification functionality will be completed in the next phase.
-          </BodyText>
-          <PrimaryButton
-            style={{ marginTop: 16 }}
-            onClick={() => setTabValue(0)}
-          >
-            View in Overview Tab
-          </PrimaryButton>
-        </CenteredContent>
-      </TabPanel>
     </TabsContainer>
   );
 
