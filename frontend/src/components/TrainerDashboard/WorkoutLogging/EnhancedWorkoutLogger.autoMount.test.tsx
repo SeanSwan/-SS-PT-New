@@ -68,17 +68,21 @@ vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({
     clientId,
     scheduledSessionId,
+    onComplete,
   }: {
     clientId: number;
     scheduledSessionId?: string | null;
+    onComplete?: (formData: unknown) => void;
   }) => (
-    <div
+    <button
+      type="button"
       data-testid="real-workout-logger"
       data-client-id={String(clientId)}
       data-session-id={scheduledSessionId ?? ''}
+      onClick={() => onComplete?.({ id: 'completed-form' })}
     >
       REAL_WORKOUT_LOGGER_MOUNTED
-    </div>
+    </button>
   ),
 }));
 
@@ -154,6 +158,25 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     await user.click(backBtn);
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?clientId=61');
+  });
+
+  it('admin: completed clients-team logs return to Client Hub workout history', async () => {
+    mockRole = 'admin';
+    mockSearchQuery =
+      'clientId=61&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D61';
+    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
+    const user = userEvent.setup();
+
+    render(<EnhancedWorkoutLogger />);
+
+    await user.click(await screen.findByTestId('real-workout-logger'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=history',
+      expect.objectContaining({
+        state: expect.objectContaining({ workoutCompleted: true }),
+      })
+    );
   });
 
   it('trainer: /info success auto-mounts the real WorkoutLogger with "Back to My Clients" nav', async () => {

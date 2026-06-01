@@ -65,13 +65,16 @@ const isUsableSessionDate = (value: unknown) => {
   return !Number.isNaN(new Date(value).getTime());
 };
 
-export const canSessionOpenWorkoutLogger = (session: SessionDetail | null) =>
-  Boolean(
-    isPositiveInteger(session?.id)
-    && isPositiveInteger(session?.userId)
-    && isUsableSessionDate(session?.sessionDate)
+export const canSessionOpenWorkoutLogger = (session: SessionDetail | null) => {
+  if (!session) return false;
+
+  return Boolean(
+    isPositiveInteger(session.id)
+    && isPositiveInteger(session.userId)
+    && isUsableSessionDate(session.sessionDate)
     && session.status !== 'cancelled'
     && session.status !== 'blocked'
     && !session.isBlocked
     && session.attendanceStatus !== 'no_show'
   );
+};

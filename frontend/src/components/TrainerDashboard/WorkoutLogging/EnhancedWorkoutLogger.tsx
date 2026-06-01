@@ -33,7 +33,12 @@ import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
 import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 import { logger } from '@/utils/logger';
-import { normalizeDashboardReturnTo, parseLoggerClientId, parseLoggerSessionId } from './EnhancedWorkoutLogger.logic';
+import {
+  buildClientHubWorkoutCompleteReturnPath,
+  normalizeDashboardReturnTo,
+  parseLoggerClientId,
+  parseLoggerSessionId,
+} from './EnhancedWorkoutLogger.logic';
 import {
   ActionRow,
   CenteredLoading,
@@ -178,11 +183,14 @@ const EnhancedWorkoutLogger: React.FC = () => {
       variant: 'default'
     });
 
-    // Navigate back to the workflow origin with success state.
-    navigate(workflowReturnPath, {
+    const completionReturnPath = isClientHubOrigin
+      ? buildClientHubWorkoutCompleteReturnPath(workflowReturnPath)
+      : workflowReturnPath;
+
+    navigate(completionReturnPath, {
       state: { workoutCompleted: true, clientName: `${client?.firstName} ${client?.lastName}` }
     });
-  }, [client, navigate, toast, workflowReturnPath]);
+  }, [client, isClientHubOrigin, navigate, toast, workflowReturnPath]);
 
   const handleWorkoutCancel = useCallback(() => {
     navigate(workflowReturnPath);

@@ -1,10 +1,30 @@
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
+export type ClientTrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
+
+const CLIENT_TRAINING_SECTIONS = new Set<ClientTrainingSection>([
+  'architect',
+  'logger',
+  'plaud',
+  'copilot',
+  'history',
+]);
 
 export const getClientHubIntent = (searchParams: URLSearchParams): ClientHubIntent => {
   const intent = searchParams.get('intent');
   return intent === 'log_workout' || intent === 'plan_next' ? intent : null;
+};
+
+export const getClientTrainingSectionFromSearchParams = (
+  searchParams: URLSearchParams,
+): ClientTrainingSection | null => {
+  if (searchParams.get('tab') !== 'training') return null;
+
+  const section = searchParams.get('trainingSection');
+  return CLIENT_TRAINING_SECTIONS.has(section as ClientTrainingSection)
+    ? section as ClientTrainingSection
+    : null;
 };
 
 export const getClientIdFromSearchParams = (searchParams: URLSearchParams): number | null => {

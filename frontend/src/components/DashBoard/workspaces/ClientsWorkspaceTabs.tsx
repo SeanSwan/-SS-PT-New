@@ -5,6 +5,7 @@
 
 import React, { lazy, Suspense, useCallback } from 'react';
 import { LoadingPulse } from './ClientsWorkspace.styles';
+import type { ClientTrainingSection } from './ClientsWorkspace.logic';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
 
@@ -17,12 +18,19 @@ const SettingsTabContent = lazy(() => import('./clients-team/tabs/SettingsTabCon
 const clientName = (client: ClientOption | null) =>
   client ? getClientDisplayName(client) : '';
 
-export const useClientsWorkspaceTabRenderers = (selectedClient: ClientOption | null) => {
+export const useClientsWorkspaceTabRenderers = (
+  selectedClient: ClientOption | null,
+  initialTrainingSection: ClientTrainingSection | null = null,
+) => {
   const renderTraining = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading training...</LoadingPulse>}>
-      <TrainingTabContent clientId={clientId} clientName={clientName(selectedClient)} />
+      <TrainingTabContent
+        clientId={clientId}
+        clientName={clientName(selectedClient)}
+        initialSection={initialTrainingSection ?? undefined}
+      />
     </Suspense>
-  ), [selectedClient]);
+  ), [initialTrainingSection, selectedClient]);
 
   const renderProgress = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>

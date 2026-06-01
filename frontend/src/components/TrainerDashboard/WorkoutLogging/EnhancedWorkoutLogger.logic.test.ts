@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeDashboardReturnTo, parseLoggerClientId, parseLoggerSessionId } from './EnhancedWorkoutLogger.logic';
+import {
+  buildClientHubWorkoutCompleteReturnPath,
+  normalizeDashboardReturnTo,
+  parseLoggerClientId,
+  parseLoggerSessionId,
+} from './EnhancedWorkoutLogger.logic';
 
 describe('EnhancedWorkoutLogger return path normalization', () => {
   it('keeps dashboard-local return paths', () => {
@@ -39,5 +44,17 @@ describe('EnhancedWorkoutLogger scheduled session identity parsing', () => {
     expect(parseLoggerSessionId('314junk')).toBeNull();
     expect(parseLoggerSessionId('0')).toBeNull();
     expect(parseLoggerSessionId(null)).toBeNull();
+  });
+});
+
+describe('EnhancedWorkoutLogger Client Hub completion return path', () => {
+  it('returns completed Client Hub logs to training history while preserving client identity', () => {
+    expect(buildClientHubWorkoutCompleteReturnPath('/dashboard/admin/client-management?clientId=61'))
+      .toBe('/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=history');
+  });
+
+  it('does not rewrite non Client Hub dashboard return paths', () => {
+    expect(buildClientHubWorkoutCompleteReturnPath('/dashboard/admin/schedule?sessionId=314'))
+      .toBe('/dashboard/admin/schedule?sessionId=314');
   });
 });

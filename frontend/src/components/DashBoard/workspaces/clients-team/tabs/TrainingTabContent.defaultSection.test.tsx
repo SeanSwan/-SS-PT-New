@@ -87,6 +87,16 @@ describe('TrainingTabContent daily workflow default', () => {
     expect(screen.queryByTestId('workout-plan-builder')).not.toBeInTheDocument();
   });
 
+  it('can open directly on Workout History after returning from a saved full-page log', async () => {
+    render(<TrainingTabContent clientId={424242} clientName="Fixture Client" initialSection="history" />);
+
+    expect(await screen.findByTestId('workout-history-panel')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /workout history/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
   it('keeps training sub-section tabs as explicit non-submit buttons', () => {
     render(<TrainingTabContent clientId={424242} clientName="Fixture Client" />);
 

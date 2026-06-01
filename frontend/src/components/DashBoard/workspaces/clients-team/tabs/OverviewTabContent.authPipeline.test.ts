@@ -21,7 +21,9 @@ const adminClientRoutesSource = read('../../../../../../../backend/routes/adminC
 describe('OverviewTabContent auth pipeline', () => {
   it('is mounted through the canonical admin client-management workspace overview tab', () => {
     expect(layoutSource).toMatch(/path: '\/client-management', component: React\.lazy\(\(\) => import\('\.\/workspaces\/ClientsWorkspace'\)\)/);
-    expect(clientsWorkspaceSource).toMatch(/useClientsWorkspaceTabRenderers\(selectedClient\)/);
+    expect(clientsWorkspaceSource).toMatch(
+      /useClientsWorkspaceTabRenderers\(selectedClient, getClientTrainingSectionFromSearchParams\(searchParams\)\)/,
+    );
     expect(clientsWorkspaceSource).toMatch(/renderOverview=\{renderOverview\}/);
     expect(clientsWorkspaceTabsSource).toMatch(/const OverviewTabContent = lazy\(\(\) => import\('\.\/clients-team\/tabs\/OverviewTabContent'\)\)/);
     expect(clientsWorkspaceTabsSource).toMatch(/const renderOverview = useCallback\(\(clientId: number \| string\) =>/);

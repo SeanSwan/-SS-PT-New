@@ -21,6 +21,7 @@ import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
 import {
   getClientHubIntent,
   getClientIdFromSearchParams,
+  getClientTrainingSectionFromSearchParams,
   getClientOnboardingPct,
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
@@ -204,7 +205,7 @@ const ClientsWorkspace: React.FC = () => {
     renderBiometrics,
     renderOverview,
     renderSettings,
-  } = useClientsWorkspaceTabRenderers(selectedClient);
+  } = useClientsWorkspaceTabRenderers(selectedClient, getClientTrainingSectionFromSearchParams(searchParams));
 
   return (
     <HubContainer>

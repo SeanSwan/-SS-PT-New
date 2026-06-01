@@ -18,7 +18,7 @@
  * Children: ClientTrainingCommandBar plus lazy training workflow panels.
  */
 
-import React, { Suspense, useCallback, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { Archive, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
 import {
@@ -52,11 +52,12 @@ const WorkoutHistoryPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')
 );
 
-type TrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
+export type TrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
 
 interface TrainingTabContentProps {
   clientId: number | string;
   clientName?: string;
+  initialSection?: TrainingSection;
 }
 
 const SECTIONS: {
@@ -90,9 +91,17 @@ const SuspenseFallback: React.FC = () => (
   </ShimmerLoader>
 );
 
-const TrainingTabContent: React.FC<TrainingTabContentProps> = ({ clientId, clientName }) => {
-  const [activeSection, setActiveSection] = useState<TrainingSection>('logger');
+const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
+  clientId,
+  clientName,
+  initialSection,
+}) => {
+  const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
   const numericClientId = getNumericClientId(clientId);
+
+  useEffect(() => {
+    setActiveSection(initialSection ?? 'logger');
+  }, [clientId, initialSection]);
 
   const handleSectionChange = useCallback((section: TrainingSection) => {
     setActiveSection(section);

@@ -49,6 +49,7 @@ describe('SessionDetailModal extracted route and permission logic', () => {
 
   it('blocks cancelled, blocked, no-show, and missing-client sessions from opening the logger', () => {
     expect(canSessionOpenWorkoutLogger(baseSession)).toBe(true);
+    expect(canSessionOpenWorkoutLogger(null)).toBe(false);
     expect(canSessionOpenWorkoutLogger({ ...baseSession, status: 'cancelled' })).toBe(false);
     expect(canSessionOpenWorkoutLogger({ ...baseSession, status: 'blocked' })).toBe(false);
     expect(canSessionOpenWorkoutLogger({ ...baseSession, isBlocked: true })).toBe(false);
