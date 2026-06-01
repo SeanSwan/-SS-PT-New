@@ -1,5 +1,6 @@
 import React from 'react';
-import { FileAudio, Mic, Paperclip, ShieldCheck, Volume2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, FileAudio, Mic, Paperclip, ShieldCheck, Volume2 } from 'lucide-react';
 
 import type { DrawerSide } from './CoachCommandCenter.types';
 
@@ -11,6 +12,8 @@ type CoachCommandComposerProps = {
   selectedStatus: string;
   voiceActive: boolean;
   voiceSupported?: boolean;
+  workflowReturnLabel?: string | null;
+  workflowReturnTo?: string | null;
   onAttach: () => void;
   onCommandTextChange: (value: string) => void;
   onOpenDrawer: (side: DrawerSide, event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -28,6 +31,8 @@ const CoachCommandComposer: React.FC<CoachCommandComposerProps> = ({
   selectedStatus,
   voiceActive,
   voiceSupported = true,
+  workflowReturnLabel,
+  workflowReturnTo,
   onAttach,
   onCommandTextChange,
   onOpenDrawer,
@@ -72,6 +77,12 @@ const CoachCommandComposer: React.FC<CoachCommandComposerProps> = ({
         <span>Start PLAUD Upload</span>
       </button>
     </div>
+    {workflowReturnTo && workflowReturnLabel && (
+      <Link className="secondary-button workflow-return-link" to={workflowReturnTo}>
+        <ArrowLeft size={16} aria-hidden="true" />
+        <span>{workflowReturnLabel}</span>
+      </Link>
+    )}
     <textarea
       ref={commandTextRef}
       value={commandText}

@@ -89,6 +89,8 @@ const CoachCommandCenterPage: React.FC = () => {
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceSupported={commandCenter.voiceSupported}
+            workflowReturnLabel={commandCenter.workflowReturnLabel}
+            workflowReturnTo={commandCenter.workflowReturnTo}
             onAttach={commandCenter.handleAttach}
             onCommandTextChange={commandCenter.setCommandText}
             onOpenDrawer={commandCenter.openDrawer}

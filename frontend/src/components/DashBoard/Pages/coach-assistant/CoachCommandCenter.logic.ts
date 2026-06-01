@@ -45,6 +45,20 @@ export function parseRouteClientId(rawClientId: string | null): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+export function normalizeCommandCenterReturnTo(rawReturnTo: string | null): string | null {
+  if (!rawReturnTo || rawReturnTo.startsWith('//') || !rawReturnTo.startsWith('/dashboard/')) {
+    return null;
+  }
+
+  return rawReturnTo;
+}
+
+export function commandCenterReturnLabel(source: string | null): string {
+  if (source === 'clients-team') return 'Back to Client Hub';
+  if (source === 'master-schedule') return 'Back to Schedule';
+  return 'Back to Dashboard';
+}
+
 export function buildRouteContext(routeIntent: string | null, routeClientLabel: string | null) {
   if (routeIntent === 'client_onboarding') {
     return {

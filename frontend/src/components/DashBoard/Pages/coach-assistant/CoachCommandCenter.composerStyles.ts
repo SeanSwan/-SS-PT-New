@@ -141,6 +141,17 @@ export const coachCommandComposerStyles = css`
     white-space: nowrap;
   }
 
+  .workflow-return-link {
+    justify-self: start;
+    min-height: 44px;
+    text-decoration: none;
+  }
+
+  .workflow-return-link:focus-visible {
+    outline: 2px solid var(--coach-cyan);
+    outline-offset: 3px;
+  }
+
   .command-dock {
     background:
       linear-gradient(135deg, color-mix(in srgb, var(--coach-cyan) 9%, transparent), transparent 34%),

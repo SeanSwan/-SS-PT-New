@@ -18,7 +18,9 @@ import {
   buildRightRailItems,
   buildRouteContext,
   buildStatusMetrics,
+  commandCenterReturnLabel,
   getConversationTitle,
+  normalizeCommandCenterReturnTo,
   parseRouteClientId,
   pickReviewNextMergeRequestId,
 } from './CoachCommandCenter.logic';
@@ -74,6 +76,12 @@ export function useCoachCommandCenterController() {
     [searchKey],
   );
   const routeIntent = searchParams.get('intent');
+  const routeSource = searchParams.get('source');
+  const workflowReturnTo = useMemo(
+    () => normalizeCommandCenterReturnTo(searchParams.get('returnTo')),
+    [searchKey],
+  );
+  const workflowReturnLabel = workflowReturnTo ? commandCenterReturnLabel(routeSource) : null;
   const routeClientLabel = routeClientId ? `Client #${routeClientId}` : null;
   const routeContext = useMemo(
     () => buildRouteContext(routeIntent, routeClientLabel),
@@ -253,5 +261,7 @@ export function useCoachCommandCenterController() {
     toggleTeachMode: () => setTeachMode((current) => !current),
     voiceActive: speech.listening,
     voiceSupported: speech.speechSupported,
+    workflowReturnLabel,
+    workflowReturnTo,
   };
 }

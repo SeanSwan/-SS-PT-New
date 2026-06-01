@@ -433,6 +433,19 @@ describe('CoachCommandCenterPage', () => {
     });
   });
 
+  it('offers a one-click return to the selected Client Hub route from Clients & Team', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+    );
+
+    const returnLink = await screen.findByRole('link', { name: /back to client hub/i });
+
+    expect(returnLink).toHaveAttribute(
+      'href',
+      '/dashboard/admin/client-management?clientId=424242',
+    );
+  });
+
   it('hydrates new-client onboarding context from Client Hub', async () => {
     renderPage(
       '/dashboard/admin/coach-assistant?intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management',
