@@ -84,6 +84,7 @@ export interface TrainerDirectoryUser {
 }
 
 export interface ExerciseSet {
+  loggerSetId?: string; // UI-only stable row id; stripped before API submit.
   setNumber: number;
   weight: number;
   reps: number;
@@ -98,6 +99,7 @@ export interface ExerciseSet {
 }
 
 export interface ExerciseEntry {
+  loggerExerciseId?: string; // UI-only stable row id; stripped before API submit.
   exerciseId: string;
   exerciseName: string;
   sets: ExerciseSet[];
@@ -576,6 +578,7 @@ export class DailyWorkoutFormService {
     clientId: number;
     date: string;
     exercises: ExerciseEntry[];
+    scheduledSessionId?: string;
     sessionNotes?: string;
     // Phase 16 (2026-04-16): nullable on the wire. WorkoutLogger omits this
     // field from the payload when the user has not rated; the key is
@@ -608,7 +611,6 @@ export class DailyWorkoutFormService {
         message: payload.message
       };
     } catch (error) {
-      console.error('Error submitting workout form:', error);
       const axiosError = error as {
         response?: {
           status?: number;
@@ -629,6 +631,7 @@ export class DailyWorkoutFormService {
           message: payload.message
         };
       }
+      console.error('Error submitting workout form:', error);
       throw error;
     }
   }

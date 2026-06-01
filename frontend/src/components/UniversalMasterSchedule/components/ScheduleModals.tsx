@@ -35,7 +35,12 @@ import {
   getTimezoneAbbr,
 } from '../ui';
 import GlowButton from '../../ui/buttons/GlowButton';
+import {
+  getClientSessionSignal,
+  isNonDeductingClientSource,
+} from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import SearchableSelect from '../ui/SearchableSelect';
+import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';
 
 interface ScheduleModalsProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -93,6 +98,7 @@ interface ScheduleModalsProps {
   bookingError: string | null;
   creditsDisplay: string | number;
   sessionsRemaining: number | undefined;
+  clientSource?: string | null;
   availableSessions: any[];
   
   detailSession: any;
@@ -158,6 +164,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   bookingError,
   creditsDisplay,
   sessionsRemaining,
+  clientSource,
   availableSessions,
 
   detailSession,
@@ -180,6 +187,9 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   const navigate = useNavigate();
   const [preselectedPaymentClientId, setPreselectedPaymentClientId] = useState<number | null>(null);
   const hasNoCredits = typeof sessionsRemaining === 'number' && sessionsRemaining <= 0;
+  const isFreeTrackingBooking = mode === 'client' && isNonDeductingClientSource(clientSource);
+  const isPaidCreditLocked = mode === 'client' && !isFreeTrackingBooking && hasNoCredits;
+  const isBookingLocked = isFreeTrackingBooking || isPaidCreditLocked;
 
   const locationOptions = [
     { value: 'Main Studio', label: 'Main Studio' },
@@ -399,7 +409,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               <Label htmlFor="trainerId">Assign Trainer</Label>
               <CustomSelect
                 value={formData.trainerId?.toString() || ''}
-                onChange={(value) => setFormData({ ...formData, trainerId: value ? Number(value) : undefined })}
+                onChange={(value) => {
+                  const nextTrainerId = normalizeScheduleOptionalId(value);
+                  setFormData({ ...formData, trainerId: nextTrainerId ?? undefined });
+                }}
                 options={[
                   { value: '', label: '-- Select Trainer --' },
                   ...dbTrainers.map((t: any) => ({
@@ -420,14 +433,18 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                     placeholder="Search clients by name..."
                     value={formData.clientId?.toString() || ''}
                     onChange={(value) => {
-                      setFormData({ ...formData, clientId: value ? Number(value) : undefined, manualClientName: '' });
+                      const nextClientId = normalizeScheduleOptionalId(value);
+                      setFormData({ ...formData, clientId: nextClientId ?? undefined, manualClientName: '' });
                     }}
                     options={
-                      (dbClients || []).map((c: any) => ({
-                        value: (c.id || c.userId || c._id)?.toString(),
-                        label: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client',
-                        subLabel: c.availableSessions != null ? `${c.availableSessions} sessions remaining` : undefined,
-                      }))
+                      (dbClients || []).map((c: any) => {
+                        const sessionSignal = getClientSessionSignal(c);
+                        return {
+                          value: (c.id || c.userId || c._id)?.toString(),
+                          label: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client',
+                          subLabel: `${sessionSignal.label} - ${sessionSignal.note}`,
+                        };
+                      })
                     }
                   />
                   {dbClients.length === 0 && (
@@ -471,9 +488,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                 value={formData.sessionTypeId?.toString() || ''}
                 onChange={(value) => {
                   const selected = sessionTypes.find((type) => String(type.id) === String(value));
+                  const nextSessionTypeId = normalizeScheduleOptionalId(value);
                   setFormData({
                     ...formData,
-                    sessionTypeId: value ? Number(value) : undefined,
+                    sessionTypeId: nextSessionTypeId ?? undefined,
                     duration: selected?.duration ?? formData.duration,
                     bufferBefore: selected?.bufferBefore ?? 0,
                     bufferAfter: selected?.bufferAfter ?? 0
@@ -575,10 +593,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         <Modal
           isOpen={showBookingDialog}
           onClose={() => setShowBookingDialog(false)}
-          title={hasNoCredits && mode === 'client' ? 'Session Locked' : 'Confirm Booking'}
+          title={isBookingLocked ? (isFreeTrackingBooking ? 'Session Tracking Only' : 'Session Locked') : 'Confirm Booking'}
           size="sm"
           footer={
-            hasNoCredits && mode === 'client' ? (
+            isBookingLocked ? (
               <OutlinedButton onClick={() => setShowBookingDialog(false)}>
                 Close
               </OutlinedButton>
@@ -601,15 +619,17 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
           }
         >
           <FlexBox direction="column" gap="1rem">
-            {hasNoCredits && mode === 'client' ? (
+            {isBookingLocked ? (
               /* Premium Lock State — Gemini 3.1 Pro Design Spec */
               <PremiumLockOverlay>
                 <LockIconWrapper>
                   <Lock size={28} color="#8B5CF6" />
                 </LockIconWrapper>
-                <LockTitle>Unlock Sessions</LockTitle>
+                <LockTitle>{isFreeTrackingBooking ? 'Session Tracking Only' : 'Unlock Sessions'}</LockTitle>
                 <LockDescription>
-                  You have no session credits remaining. Purchase a package to book this session.
+                  {isFreeTrackingBooking
+                    ? 'This account is tracked through Workout Logger. SwanStudios booking credits do not apply.'
+                    : 'You have no paid session credits remaining. Purchase a package to book this session.'}
                 </LockDescription>
                 <BookingCard>
                   <BookingRow>
@@ -621,15 +641,17 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                     <BodyText>{new Date(bookingTarget.sessionDate).toLocaleTimeString()}</BodyText>
                   </BookingRow>
                 </BookingCard>
-                <PurchaseButton onClick={() => { setShowBookingDialog(false); navigate('/shop'); }}>
-                  <ShoppingCart size={18} />
-                  Secure Your Session
-                </PurchaseButton>
+                {!isFreeTrackingBooking && (
+                  <PurchaseButton onClick={() => { setShowBookingDialog(false); navigate('/shop'); }}>
+                    <ShoppingCart size={18} />
+                    Secure Your Session
+                  </PurchaseButton>
+                )}
               </PremiumLockOverlay>
             ) : (
               <>
                 <BodyText>
-                  You are booking the session below. One credit will be deducted on confirmation.
+                  You are booking the session below. One paid credit will be deducted on confirmation.
                 </BodyText>
                 <BookingCard>
                   <BookingRow>
@@ -679,7 +701,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         onSuccess={fetchSessions}
       />
 
-      {mode === 'client' && (
+      {mode === 'client' && !isFreeTrackingBooking && (
         <ClientRecurringBookingModal
           open={showClientRecurringDialog}
           onClose={() => setShowClientRecurringDialog(false)}

@@ -5,19 +5,7 @@
  */
 
 const CHAT_FALLBACK_NOT_WIRED_COMMANDS = new Set([
-  'add_exercise_to_form',
-  'create_client',
-  'create_external_client',
-  'create_workout_session',
-  'fill_baseline_measurements',
-  'load_phase_template',
-  'start_onboarding',
-  'submit_onboarding',
-  'submit_workout_form',
-  'toggle_nasm_item',
-  'update_client',
-  'update_nasm_level',
-  'update_set_data',
+  'nutrition_advice',
 ]);
 
 export function shouldFallbackNotWiredCommandToChat(commandType) {

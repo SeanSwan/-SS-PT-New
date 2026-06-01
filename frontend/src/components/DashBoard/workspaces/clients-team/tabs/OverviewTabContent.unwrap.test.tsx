@@ -86,4 +86,57 @@ describe('OverviewTabContent — Phase 18 P1-O sibling-sweep unwrap', () => {
     expect(totalWorkoutMatches.length).toBeGreaterThan(0);
     expect(screen.getByText('Phase 2')).toBeInTheDocument();
   });
+
+  it('uses availableSessions as the paid SwanStudios session inventory source', async () => {
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          client: {
+            ...synthStats,
+            sessionsRemaining: undefined,
+            remainingSessions: undefined,
+            availableSessions: 8,
+            clientSource: 'swanstudios',
+          },
+          mcpStats: {},
+        },
+      },
+    });
+
+    render(<OverviewTabContent clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText(/8 paid sessions/i)).toBeInTheDocument();
+    expect(screen.getByText(/deducts when logged/i)).toBeInTheDocument();
+  });
+
+  it('labels Move Fitness clients as free tracking instead of zero-session debt', async () => {
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          client: {
+            ...synthStats,
+            sessionsRemaining: undefined,
+            remainingSessions: undefined,
+            availableSessions: 0,
+            clientSource: 'move_fitness',
+          },
+          mcpStats: {},
+        },
+      },
+    });
+
+    render(<OverviewTabContent clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText(/free tracking/i)).toBeInTheDocument();
+    expect(screen.getByText(/no deduction/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 sessions remaining/i)).not.toBeInTheDocument();
+  });
+
+  it('does not call the admin client detail API for malformed client ids', () => {
+    render(<OverviewTabContent clientId="fixture-424242" clientName="Fixture Client" />);
+
+    expect(apiGetMock).not.toHaveBeenCalled();
+  });
 });

@@ -136,7 +136,11 @@ export const GridContainer = styled.div<{ columns?: number; gap?: string }>`
 `;
 
 // Flex container utilities
-export const FlexBox = styled.div<{
+const flexBoxStyleProps = new Set(['direction', 'align', 'justify', 'gap', 'wrap']);
+
+export const FlexBox = styled.div.withConfig({
+  shouldForwardProp: (prop) => !flexBoxStyleProps.has(prop),
+})<{
   direction?: 'row' | 'column';
   align?: string;
   justify?: string;

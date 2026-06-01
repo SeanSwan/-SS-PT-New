@@ -16,6 +16,22 @@ import logger from '../utils/logger.mjs';
 
 const router = Router();
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const normalizeOptionalUuid = (value) => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return UUID_PATTERN.test(trimmed) ? trimmed : null;
+};
+
 /**
  * POST /api/workout-summaries
  * Generates a workout summary from exercise data and optionally emails it.
@@ -36,11 +52,23 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       sendEmail = false,
     } = req.body;
 
-    if (!clientId) {
-      return res.status(400).json({ success: false, message: 'clientId is required' });
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    const normalizedFormId = normalizeOptionalUuid(formId);
+    const formIdProvided = formId !== undefined && formId !== null && String(formId).trim() !== '';
+
+    if (!parsedClientId) {
+      return res.status(400).json({ success: false, message: 'Valid clientId is required' });
     }
 
-    if (!exercises.length && !formId) {
+    if (formIdProvided && !normalizedFormId) {
+      return res.status(400).json({ success: false, message: 'Valid formId is required' });
+    }
+
+    if (!Array.isArray(exercises)) {
+      return res.status(400).json({ success: false, message: 'exercises must be an array' });
+    }
+
+    if (!exercises.length && !normalizedFormId) {
       return res.status(400).json({ success: false, message: 'exercises or formId is required' });
     }
 
@@ -48,7 +76,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     const { User, DailyWorkoutForm } = models;
 
     // Fetch client info
-    const client = await User.findByPk(clientId, {
+    const client = await User.findByPk(parsedClientId, {
       attributes: ['id', 'firstName', 'lastName', 'email'],
     });
 
@@ -132,11 +160,11 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     ].filter(Boolean).join('\n');
 
     // Persist summary to form if formId provided
-    if (formId && DailyWorkoutForm) {
+    if (normalizedFormId && DailyWorkoutForm) {
       try {
         await DailyWorkoutForm.update(
           { clientSummary: summaryText },
-          { where: { id: formId } }
+          { where: { id: normalizedFormId } }
         );
       } catch (persistErr) {
         logger.warn('[WorkoutSummary] Failed to persist summary to form:', persistErr.message);
@@ -157,7 +185,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
             html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
           });
           emailSent = true;
-          logger.info('[WorkoutSummary] Email sent', { clientId, email: client.email });
+          logger.info('[WorkoutSummary] Email sent', { clientId: parsedClientId, email: client.email });
         } else {
           logger.warn('[WorkoutSummary] Email service not available');
         }
@@ -170,7 +198,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       success: true,
       summary: summaryText,
       emailSent,
-      formId: formId || null,
+      formId: normalizedFormId,
     });
   } catch (error) {
     logger.error('[WorkoutSummary] Error:', error);

@@ -1,120 +1,42 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: AITerminalPanel                                   ║
- * ║  PURPOSE: Embeddable AI chat for ALL dashboard tabs           ║
- * ║  OWNER: Claude Opus 4.6 | LAST VALIDATED: 2026-03-21         ║
- * ╚══════════════════════════════════════════════════════════════╝
+ * AITerminalPanel
  *
- * WIREFRAME:
- * ┌──────────────────────────────────────────────────────┐
- * │ [🤖 SwanStudios AI] [context badge]    [▲/▼] [✕]   │ PanelHeader (collapsible)
- * ├──────────────────────────────────────────────────────┤
- * │ ┌── Messages Area (scrollable) ──────────────────┐  │
- * │ │ 🤖 AI: Welcome! How can I help with [context]? │  │
- * │ │ 👤 User: Generate a workout for Jackie         │  │
- * │ │ 🤖 AI: Here's a Phase 2 workout...             │  │
- * │ │ ... (auto-scroll, smart near-bottom detection)  │  │
- * │ └────────────────────────────────────────────────┘  │
- * │ [Error bar] ← on API error (CS.errorText tokens)   │
- * │ [Type a message...                          ] [➤]   │ InputArea
- * └──────────────────────────────────────────────────────┘
- *
- * EMBEDS IN (auto-context per tab):
- * | Dashboard Tab      | AI Context          | Route                    |
- * |-------------------|---------------------|--------------------------|
- * | Overview          | general             | /dashboard/default       |
- * | Schedule          | scheduling          | /dashboard/schedule      |
- * | Training Sessions | workout_generation  | /dashboard/admin-sessions|
- * | Client Progress   | progress_analysis   | /dashboard/client-progress|
- * | Client Management | client_review       | /dashboard/client-management|
- * | NASM Exercises    | exercise_library    | /dashboard/nasm-exercises|
- * | Reports           | data_analysis       | /dashboard/reports       |
- *
- * CLICK OUTCOMES:
- * Header chevron → toggle panel collapse/expand
- * Close (✕) → hide panel entirely
- * Send (➤) → send message via useAIChat
- * Error retry → clear error + retry last message
- *
- * DATA FLOW:
- * Props In:  { context, title?, clientId?, onClose? }
- * State:     { collapsed, inputText }
- * Hook:      useAIChat (conversations, messages, send, create)
- * Events:    CustomEvent('ai-workout-generated') for WorkoutLogger integration
- *
- * ARCHITECTURE:
- * graph TD
- *   Tab[Dashboard Tab] --> Panel[AITerminalPanel]
- *   Panel --> Hook[useAIChat]
- *   Hook --> API[/api/ai-chat/*]
- *   Panel -->|CustomEvent| Logger[WorkoutLogger]
- *
- * NOTE: 453 lines — exceeds 300-line rule. TODO: extract styled
- * components to AITerminalPanelStyles.ts, types to shared AITypes.ts
+ * Shared Swan Coach terminal for active dashboard and workout surfaces.
+ * Chat traffic flows through useAIChat -> /api/ai-chat/*.
+ * Canonical admin client hub: /dashboard/admin/client-management.
  */
-import React, { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Bot, ChevronDown, ChevronUp, Send, Sparkles, Volume2, VolumeX, X } from 'lucide-react';
 import { useAIChat } from '../../hooks/useAIChat';
 import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 import MarkdownRenderer from '../DashBoard/Pages/coach-assistant/MarkdownRenderer';
+import { CONTEXT_LABELS, DEEP_RESEARCH_LABEL, toDeepResearchLabel } from './AITerminalPanel.logic';
+import {
+  AiBadge,
+  BubbleContent,
+  BubbleIcon,
+  ChatInput,
+  CompactTrigger,
+  EmptyHint,
+  ErrorBar,
+  HeaderLeft,
+  HeaderTitle,
+  HeaderToggle,
+  InputArea,
+  MessageBubble,
+  MessagesArea,
+  PanelBody,
+  PanelHeader,
+  PanelWrapper,
+  SendButton,
+  TtsToggle,
+  TypingDots,
+} from './AITerminalPanel.styles';
+import type { AITerminalPanelProps } from './AITerminalPanel.types';
+
+export type { AIContext, AITerminalPanelProps } from './AITerminalPanel.types';
 
 const CrystallineVoicePill = lazy(() => import('./CrystallineVoicePill'));
-
-// ── Types ─────────────────────────────────────────────────────────────
-
-export type AIContext =
-  | 'general'
-  | 'macro_logging'
-  | 'form_tips'
-  | 'workout_suggestions'
-  | 'workout_generation'
-  | 'client_review'
-  | 'data_management';
-
-export interface AITerminalPanelProps {
-  context?: AIContext;
-  clientId?: number;
-  equipmentProfileId?: number | null;
-  placeholder?: string;
-  label?: string;
-  emptyHint?: string;
-  compact?: boolean;
-  defaultOpen?: boolean;
-  onExerciseSelected?: (exercise: any) => void;
-  onWorkoutGenerated?: (workout: any) => void;
-}
-
-// ── Component ─────────────────────────────────────────────────────────
-
-const DEEP_RESEARCH_LABEL = 'Deep Research';
-
-const CONTEXT_LABELS: Record<string, string> = {
-  general: DEEP_RESEARCH_LABEL,
-  macro_logging: 'Deep Research — Nutrition Intelligence',
-  form_tips: 'Deep Research — Movement Intelligence',
-  workout_suggestions: 'Deep Research — Workout Intelligence',
-  workout_generation: 'Deep Research — Workout Intelligence',
-  client_review: 'Deep Research — Client Intelligence',
-  data_management: 'Deep Research — Platform Intelligence',
-  scheduling: 'Deep Research — Schedule Intelligence',
-  progress_analysis: 'Deep Research — Progress Intelligence',
-  exercise_library: 'Deep Research — Exercise Intelligence',
-  gamification: 'Deep Research — Motivation Intelligence',
-};
-
-const toDeepResearchLabel = (value?: string): string | null => {
-  const trimmed = value?.trim();
-  if (!trimmed) return null;
-  if (/^Deep Research\b/i.test(trimmed)) return trimmed;
-
-  const domain = trimmed
-    .replace(/\b(AI|Assistant|Coach|Builder|Expert|Analyst)\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return domain ? `Deep Research — ${domain} Intelligence` : DEEP_RESEARCH_LABEL;
-};
 
 const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   context = 'workout_generation',
@@ -125,8 +47,6 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
   emptyHint,
   compact = false,
   defaultOpen = false,
-  onExerciseSelected,
-  onWorkoutGenerated,
 }) => {
   const {
     messages,
@@ -138,23 +58,22 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
 
   const displayLabel = toDeepResearchLabel(label) || CONTEXT_LABELS[context] || DEEP_RESEARCH_LABEL;
   const displayPlaceholder = placeholder || `Ask ${displayLabel} anything...`;
-  const displayHint = emptyHint || `I'm your ${displayLabel}. Ask me anything about ${context === 'general' ? 'this workspace' : context.replace(/_/g, ' ')}.`;
+  const displayHint = emptyHint
+    || `I'm your ${displayLabel}. Ask me anything about ${
+      context === 'general' ? 'this workspace' : context.replace(/_/g, ' ')
+    }.`;
 
-  // ── Text-to-Speech for AI responses ──
   const tts = useTextToSpeech({ rate: 1.05, volume: 0.9 });
-
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const prevMessageCountRef = useRef(messages.length);
 
-  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-speak new AI messages when TTS is enabled
   useEffect(() => {
     if (messages.length > prevMessageCountRef.current) {
       const latest = messages[messages.length - 1];
@@ -169,11 +88,7 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     };
   }, [messages, tts]);
 
-  const handleSend = useCallback(async () => {
-    const text = inputValue.trim();
-    if (!text || sending) return;
-
-    // Inject context into the message
+  const enrichMessage = useCallback((text: string) => {
     let enrichedMessage = text;
     if (clientId) {
       enrichedMessage += `\n[Context: clientId=${clientId}]`;
@@ -181,39 +96,44 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     if (equipmentProfileId) {
       enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
     }
+    return enrichedMessage;
+  }, [clientId, equipmentProfileId]);
+
+  const handleSend = useCallback(async () => {
+    const text = inputValue.trim();
+    if (!text || sending) return;
 
     setInputValue('');
-    // Atomic: creates conversation if needed + sends message in one call
-    await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
-  }, [inputValue, sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
+    await sendMessageWithConversation(
+      enrichMessage(text),
+      context,
+      `${displayLabel} — ${context}`,
+      clientId || null,
+    );
+  }, [clientId, context, displayLabel, enrichMessage, inputValue, sendMessageWithConversation, sending]);
 
-  // Voice auto-send: transcript goes directly to AI (no manual Send needed)
   const handleVoiceAutoSend = useCallback(async (text: string) => {
-    if (!text.trim() || sending) return;
-    let enrichedMessage = text.trim();
-    if (clientId) {
-      enrichedMessage += `\n[Context: clientId=${clientId}]`;
-    }
-    if (equipmentProfileId) {
-      enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
-    }
-    await sendMessageWithConversation(enrichedMessage, context, `${displayLabel} — ${context}`, clientId || null);
-  }, [sending, clientId, equipmentProfileId, context, displayLabel, sendMessageWithConversation]);
+    const trimmed = text.trim();
+    if (!trimmed || sending) return;
 
-  // Voice transcript → fill input (non-auto-send mode, e.g., for review before sending)
+    await sendMessageWithConversation(
+      enrichMessage(trimmed),
+      context,
+      `${displayLabel} — ${context}`,
+      clientId || null,
+    );
+  }, [clientId, context, displayLabel, enrichMessage, sendMessageWithConversation, sending]);
+
   const handleVoiceTranscript = useCallback((text: string) => {
-    setInputValue((prev) => (prev ? prev + ' ' + text : text));
+    setInputValue((prev) => (prev ? `${prev} ${text}` : text));
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend],
-  );
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
 
   if (compact) {
     return (
@@ -287,7 +207,6 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
           )}
 
           <InputArea>
-            {/* Voice Pill — auto-sends after 2s silence */}
             <Suspense fallback={null}>
               <CrystallineVoicePill
                 onTranscript={handleVoiceTranscript}
@@ -309,7 +228,6 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
               disabled={sending}
             />
 
-            {/* TTS toggle */}
             {tts.supported && (
               <TtsToggle
                 type="button"
@@ -337,281 +255,3 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
 };
 
 export default AITerminalPanel;
-
-// ── Styled Components ─────────────────────────────────────────────────
-
-const PanelWrapper = styled.div`
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 12px;
-  background: rgba(0, 20, 60, 0.6);
-  backdrop-filter: blur(12px);
-  overflow: hidden;
-  margin-bottom: 16px;
-`;
-
-const PanelHeader = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 12px 16px;
-  min-height: 48px;
-  border: none;
-  background: rgba(0, 32, 96, 0.5);
-  color: #e0ecf4;
-  cursor: pointer;
-  transition: background 0.15s;
-
-  &:hover {
-    background: rgba(0, 32, 96, 0.7);
-  }
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const AiBadge = styled.div`
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #8b5cf6 0%, #60c0f0 100%);
-  color: #002060;
-`;
-
-const HeaderTitle = styled.span`
-  font-size: 14px;
-  font-weight: 600;
-  color: #f0f0ff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
-const HeaderToggle = styled.div`
-  color: rgba(255, 255, 255, 0.5);
-`;
-
-const PanelBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  max-height: 400px;
-`;
-
-const MessagesArea = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 120px;
-  max-height: 300px;
-`;
-
-const EmptyHint = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-  padding: 24px 16px;
-  color: rgba(255, 255, 255, 0.4);
-
-  p {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    max-width: 320px;
-  }
-`;
-
-const MessageBubble = styled.div<{ $role: string }>`
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  justify-content: ${(p) => (p.$role === 'user' ? 'flex-end' : 'flex-start')};
-`;
-
-const BubbleIcon = styled.div`
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: rgba(139, 92, 246, 0.15);
-  color: #8b5cf6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-`;
-
-const BubbleContent = styled.div<{ $role: string }>`
-  max-width: 80%;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: ${(p) =>
-    p.$role === 'user'
-      ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(96, 192, 240, 0.2))'
-      : 'rgba(255, 255, 255, 0.06)'};
-  color: ${(p) => (p.$role === 'user' ? '#f0f0ff' : '#cbd5e1')};
-`;
-
-const typingBounce = keyframes`
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-4px); }
-`;
-
-const TypingDots = styled.div`
-  display: flex;
-  gap: 4px;
-  padding: 4px 0;
-
-  span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #8b5cf6;
-    animation: ${typingBounce} 1.2s ease-in-out infinite;
-
-    &:nth-child(2) {
-      animation-delay: 0.15s;
-    }
-    &:nth-child(3) {
-      animation-delay: 0.3s;
-    }
-  }
-`;
-
-const ErrorBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  background: rgba(153, 27, 27, 0.3);
-  border-top: 1px solid rgba(248, 113, 113, 0.35);
-  color: #fca5a5;
-  font-size: 12px;
-
-  button {
-    background: none;
-    border: none;
-    color: #fca5a5;
-    cursor: pointer;
-    padding: 2px;
-  }
-`;
-
-const InputArea = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const ChatInput = styled.textarea`
-  flex: 1;
-  padding: 10px 12px;
-  min-height: 44px;
-  max-height: 100px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(0, 32, 96, 0.4);
-  color: #f0f0ff;
-  font-size: 16px; /* iOS Safari requires 16px minimum to prevent auto-zoom */
-  font-family: inherit;
-  resize: none;
-
-  @media (min-width: 1280px) {
-    font-size: 13px; /* Desktop density */
-  }
-
-  &:focus {
-    outline: none;
-    border-color: rgba(96, 192, 240, 0.4);
-  }
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-`;
-
-const SendButton = styled.button`
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: none;
-  background: linear-gradient(135deg, #8b5cf6 0%, #60c0f0 100%);
-  color: #002060;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  &:not(:disabled):hover {
-    opacity: 0.85;
-  }
-`;
-
-const TtsToggle = styled.button<{ $active: boolean }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: none;
-  background: ${({ $active }) =>
-    $active ? 'rgba(34, 197, 94, 0.15)' : 'transparent'};
-  color: ${({ $active }) =>
-    $active ? '#22C55E' : 'rgba(255, 255, 255, 0.4)'};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.15s;
-
-  &:hover {
-    background: ${({ $active }) =>
-      $active ? 'rgba(34, 197, 94, 0.25)' : 'rgba(255, 255, 255, 0.08)'};
-    color: ${({ $active }) =>
-      $active ? '#22C55E' : 'rgba(255, 255, 255, 0.6)'};
-  }
-`;
-
-const CompactTrigger = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  min-height: 44px;
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 8px;
-  background: rgba(0, 32, 96, 0.3);
-  color: #60c0f0;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-
-  &:hover {
-    background: rgba(0, 32, 96, 0.5);
-  }
-`;

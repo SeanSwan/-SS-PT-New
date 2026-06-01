@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ActivitySection from './ActivitySection';
@@ -74,5 +74,25 @@ describe('ActivitySection', () => {
     await waitFor(() => {
       expect(screen.queryAllByText('General post update')).toHaveLength(0);
     });
+  });
+
+  it('lets mobile users tap an achievement icon to read why they earned it', async () => {
+    const user = userEvent.setup();
+
+    render(<ActivitySection />);
+
+    const detailsToggle = await screen.findByRole('button', {
+      name: /show achievement details for achievement unlocked/i,
+    });
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(detailsToggle);
+
+    expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+    const detailsPanel = screen.getByRole('region', {
+      name: /achievement details for achievement unlocked/i,
+    });
+    expect(within(detailsPanel).getByText(/why you earned it/i)).toBeInTheDocument();
+    expect(within(detailsPanel).getByText(/achievement unlocked/i)).toBeInTheDocument();
   });
 });

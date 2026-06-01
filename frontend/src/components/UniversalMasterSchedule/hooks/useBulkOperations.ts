@@ -313,22 +313,16 @@ export const useBulkOperations = (dependencies: {
             
             switch (actionType) {
               case 'confirm':
-                result = await sessionService.updateSession(sessionId, { status: 'confirmed' });
+                result = await sessionService.confirmSession(sessionId);
                 break;
               case 'cancel':
-                result = await sessionService.updateSession(sessionId, { 
-                  status: 'cancelled',
-                  cancellationReason: actionData?.reason || 'Bulk cancellation'
-                });
+                result = await sessionService.cancelSession(sessionId, actionData?.reason || 'Bulk cancellation');
                 break;
               case 'delete':
                 result = await sessionService.deleteSession(sessionId);
                 break;
               case 'reassign':
-                result = await sessionService.updateSession(sessionId, { 
-                  trainerId: actionData?.newTrainerId,
-                  reassignmentReason: actionData?.reason || 'Bulk reassignment'
-                });
+                result = await sessionService.assignSessionToTrainer(sessionId, actionData?.newTrainerId);
                 break;
               default:
                 throw new Error(`Unknown bulk action: ${actionType}`);

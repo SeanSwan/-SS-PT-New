@@ -31,6 +31,7 @@ import { useClientBillingOverview } from '../../../../../hooks/useClientBillingO
 import BookSessionDialog from './BookSessionDialog';
 import AddSessionsDialog from './AddSessionsDialog';
 import ApplyPaymentDialog from './ApplyPaymentDialog';
+import { isNonDeductingClientSource } from '../../../workspaces/clients-team/clientSessionSignal';
 
 /* ------------------------------------------------------------------ */
 /*  Styled Components                                                  */
@@ -415,6 +416,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
   onUpdate
 }) => {
   const { data, isLoading, error, refetch } = useClientBillingOverview(clientId);
+  const isNonDeductingClient = isNonDeductingClientSource(data?.client?.clientSource);
 
   // Dialog states
   const [bookSessionOpen, setBookSessionOpen] = useState(false);
@@ -502,12 +504,16 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
             {/* Sessions Remaining - Prominent Display */}
             <SessionsBox>
               <SessionCount>
-                {data?.sessionsRemaining ?? 0}
+                {isNonDeductingClient ? 'Log' : (data?.sessionsRemaining ?? 0)}
               </SessionCount>
               <SessionLabel>
-                Sessions Remaining
+                {isNonDeductingClient ? 'Workout Logger Tracking' : 'Sessions Remaining'}
               </SessionLabel>
-              {data?.sessionsRemaining === 0 && (
+              {isNonDeductingClient ? (
+                <Chip $variant="info">
+                  No deduction
+                </Chip>
+              ) : data?.sessionsRemaining === 0 && (
                 <Chip $variant="error">
                   <AlertTriangle size={14} />
                   No Credits
@@ -607,20 +613,22 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
             <ActionButton
               $variant="blue"
               onClick={() => setBookSessionOpen(true)}
-              disabled={!data?.sessionsRemaining || data.sessionsRemaining === 0}
+              disabled={isNonDeductingClient || !data?.sessionsRemaining || data.sessionsRemaining === 0}
               style={{ minWidth: 150 }}
             >
               <CalendarCheck size={18} />
               Book Session
             </ActionButton>
-            <ActionButton
-              $variant="purple"
-              onClick={() => setAddSessionsOpen(true)}
-              style={{ minWidth: 150 }}
-            >
-              <Plus size={18} />
-              Add Sessions
-            </ActionButton>
+            {!isNonDeductingClient && (
+              <ActionButton
+                $variant="purple"
+                onClick={() => setAddSessionsOpen(true)}
+                style={{ minWidth: 150 }}
+              >
+                <Plus size={18} />
+                Add Sessions
+              </ActionButton>
+            )}
             {data?.pendingOrders && data.pendingOrders.length > 0 && (
               <ActionButton
                 $variant="green-outline"
@@ -674,13 +682,15 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
         onSuccess={handleDialogSuccess}
       />
 
-      <AddSessionsDialog
-        open={addSessionsOpen}
-        onClose={() => setAddSessionsOpen(false)}
-        clientId={clientId}
-        clientName={clientName || data?.client?.name}
-        onSuccess={handleDialogSuccess}
-      />
+      {!isNonDeductingClient && (
+        <AddSessionsDialog
+          open={addSessionsOpen}
+          onClose={() => setAddSessionsOpen(false)}
+          clientId={clientId}
+          clientName={clientName || data?.client?.name}
+          onSuccess={handleDialogSuccess}
+        />
+      )}
 
       <ApplyPaymentDialog
         open={applyPaymentOpen}

@@ -11,6 +11,7 @@
  */
 import { useState, useCallback, useRef } from 'react';
 import { safeAttachmentSourceLabel } from '../CoachIntakeOperationalText.logic';
+import { createCoachMessageId } from '../utils/coachMessageIds';
 
 export interface AttachedFile {
   id: string;
@@ -145,7 +146,7 @@ export function useFileAttachment(): UseFileAttachmentReturn {
         const previewUrl = IMAGE_TYPES.includes(file.type) ? URL.createObjectURL(file) : null;
 
         validated.push({
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id: createCoachMessageId('attachment'),
           file,
           name: file.name,
           size: file.size,

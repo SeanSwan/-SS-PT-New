@@ -8,6 +8,11 @@ const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/adminOnboardingRoutes.mjs'), 'utf8');
 const controllerSource = readFileSync(resolve(__dirname, '../../controllers/clientOnboardingController.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const baselineModelSource = readFileSync(resolve(__dirname, '../../models/ClientBaselineMeasurements.mjs'), 'utf8');
+const romAssessmentSource = readFileSync(
+  resolve(__dirname, '../../../frontend/src/components/DashBoard/workspaces/clients-team/tabs/ROMAssessment.tsx'),
+  'utf8',
+);
 
 describe('admin onboarding baseline access guard', () => {
   it('keeps baseline create/history assignment-scoped for trainers', () => {
@@ -22,5 +27,27 @@ describe('admin onboarding baseline access guard', () => {
     expect(controllerSource).toContain('const accessResult = await ensureTrainerAccess(req.user, targetUserId, ClientTrainerAssignment);');
     expect(controllerSource).toContain('const accessResult = await ensureClientAccess(req.user, targetUserId, ClientTrainerAssignment);');
     expect(controllerSource).not.toContain("req.user.role === 'admin' || req.user.role === 'trainer'");
+  });
+
+  it('persists canonical Client Hub ROM payloads into the rangeOfMotion JSONB field', () => {
+    expect(romAssessmentSource).toContain("authAxios.post('/api/admin/baseline-measurements'");
+    expect(romAssessmentSource).toContain('rangeOfMotion: { date: assessmentDate, measurements, notes }');
+    expect(baselineModelSource).toContain('rangeOfMotion: {');
+    expect(baselineModelSource).toContain('type: DataTypes.JSONB');
+    expect(controllerSource).toContain('rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion)');
+  });
+
+  it('keeps dictated baseline weight aligned with the model column used by controller and Coach dispatcher', () => {
+    const dispatcherSource = readFileSync(resolve(__dirname, '../../services/ai/commandDispatcher.mjs'), 'utf8');
+    const migrationSource = readFileSync(
+      resolve(__dirname, '../../migrations/20260531000001-add-body-weight-to-client-baseline-measurements.cjs'),
+      'utf8',
+    );
+
+    expect(controllerSource).toContain('bodyWeight: measurementData.bodyWeight || null');
+    expect(dispatcherSource).toContain('bodyWeight: toFiniteNumberOrNull(params.bodyWeight ?? params.weight)');
+    expect(baselineModelSource).toContain('bodyWeight: {');
+    expect(baselineModelSource).toContain('type: DataTypes.DECIMAL(6, 2)');
+    expect(migrationSource).toContain("addColumn('client_baseline_measurements', 'bodyWeight'");
   });
 });

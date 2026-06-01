@@ -40,7 +40,7 @@ const UserDashboardV3: React.FC = () => {
   }
 
   if (dashboard.error && !dashboard.profile) {
-    return <UserDashboardErrorState message={dashboard.error} />;
+    return <UserDashboardErrorState message={dashboard.error} onRetry={dashboard.refreshProfile} />;
   }
 
   return (

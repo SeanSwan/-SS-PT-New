@@ -7,18 +7,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
-  FormField,
-  Label,
-  StyledInput,
-  CustomSelect,
   PrimaryButton,
   OutlinedButton,
   ErrorText,
   SmallText,
-  HelperText,
-  CheckboxWrapper
 } from './ui';
 import apiService from '../../services/api.service';
+import ScheduleConfirmDialog, {
+  type ScheduleConfirmRequest,
+} from './ScheduleConfirmDialog';
+import RecurringSeriesModalFields, {
+  type RecurringTrainerOption,
+} from './RecurringSeriesModalFields';
 
 interface SessionSummary {
   sessionDate: string;
@@ -26,11 +26,6 @@ interface SessionSummary {
   trainerId?: number;
   location?: string;
   notes?: string;
-}
-
-interface TrainerOption {
-  value: string;
-  label: string;
 }
 
 interface RecurringSeriesModalProps {
@@ -66,8 +61,9 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [trainers, setTrainers] = useState<TrainerOption[]>([]);
+  const [trainers, setTrainers] = useState<RecurringTrainerOption[]>([]);
   const [deleteAll, setDeleteAll] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<ScheduleConfirmRequest | null>(null);
 
   const [time, setTime] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
@@ -90,11 +86,13 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
 
   useEffect(() => {
     if (!open) {
+      setConfirmRequest(null);
       return;
     }
 
     setFormError(null);
     setDeleteAll(false);
+    setConfirmRequest(null);
     setTime(formatTimeValue(firstSession?.sessionDate));
     setDuration(firstSession?.duration || '');
     setTrainerId(firstSession?.trainerId ? String(firstSession.trainerId) : '');
@@ -198,32 +196,37 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
       ? 'Delete all sessions in this series, including past sessions?'
       : 'Delete all future sessions in this series?';
 
-    if (!window.confirm(confirmMessage)) {
-      return;
-    }
+    setConfirmRequest({
+      title: deleteAll ? 'Delete full recurring series?' : 'Delete future recurring sessions?',
+      message: confirmMessage,
+      confirmLabel: deleteAll ? 'Delete full series' : 'Delete future sessions',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const query = deleteAll ? '?deleteAll=true' : '';
+          const response = await apiService.delete(`/api/sessions/recurring/${groupId}${query}`);
+          const result = response.data;
+          if (result?.success === false) {
+            setFormError(result?.message || 'Failed to delete recurring series.');
+            return;
+          }
 
-    try {
-      setLoading(true);
-      const query = deleteAll ? '?deleteAll=true' : '';
-      const response = await apiService.delete(`/api/sessions/recurring/${groupId}${query}`);
-      const result = response.data;
-      if (result?.success === false) {
-        setFormError(result?.message || 'Failed to delete recurring series.');
-        return;
-      }
-
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('Error deleting recurring series:', error);
-      setFormError(getApiErrorMessage(error, 'Failed to delete series. Please try again.'));
-    } finally {
-      setLoading(false);
-    }
+          onSuccess();
+          onClose();
+        } catch (error) {
+          console.error('Error deleting recurring series:', error);
+          setFormError(getApiErrorMessage(error, 'Failed to delete series. Please try again.'));
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
   };
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={open}
       onClose={onClose}
       title="Manage Recurring Series"
@@ -254,72 +257,27 @@ const RecurringSeriesModal: React.FC<RecurringSeriesModalProps> = ({
           : 'Series details unavailable. Update will apply to all future sessions.'}
       </SmallText>
 
-      <FormField>
-        <Label htmlFor="series-time">New Time (optional)</Label>
-        <StyledInput
-          id="series-time"
-          type="time"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-        />
-        <HelperText>Updates the time for all future sessions.</HelperText>
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="series-duration">Duration (minutes)</Label>
-        <StyledInput
-          id="series-duration"
-          type="number"
-          min={15}
-          step={15}
-          value={duration}
-          onChange={(e) => setDuration(e.target.value ? Number(e.target.value) : '')}
-        />
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="series-trainer">Trainer</Label>
-        <CustomSelect
-          value={trainerId}
-          onChange={(value) => setTrainerId(String(value))}
-          options={trainerOptions}
-          placeholder="Select trainer"
-          searchable
-          aria-label="Select trainer"
-        />
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="series-location">Location</Label>
-        <StyledInput
-          id="series-location"
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="series-notes">Notes</Label>
-        <StyledInput
-          id="series-notes"
-          type="text"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </FormField>
-
-      <FormField>
-        <CheckboxWrapper>
-          <input
-            type="checkbox"
-            checked={deleteAll}
-            onChange={(e) => setDeleteAll(e.target.checked)}
-          />
-          <span>Delete past sessions too</span>
-        </CheckboxWrapper>
-      </FormField>
-    </Modal>
+      <RecurringSeriesModalFields
+        time={time}
+        setTime={setTime}
+        duration={duration}
+        setDuration={setDuration}
+        trainerId={trainerId}
+        setTrainerId={setTrainerId}
+        trainerOptions={trainerOptions}
+        location={location}
+        setLocation={setLocation}
+        notes={notes}
+        setNotes={setNotes}
+        deleteAll={deleteAll}
+        setDeleteAll={setDeleteAll}
+      />
+      </Modal>
+      <ScheduleConfirmDialog
+        request={confirmRequest}
+        onClose={() => setConfirmRequest(null)}
+      />
+    </>
   );
 };
 

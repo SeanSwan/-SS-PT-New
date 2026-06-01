@@ -1,53 +1,10 @@
 /**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: PostCard                                         ║
- * ║  PURPOSE: Orchestrator for a single social feed post card    ║
- * ║  OWNER: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22         ║
- * ║  LAST VALIDATED: 2026-03-22                                  ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌─────────────────────────────────────────────────────────┐
- * │ [PostMediaDisplay: hero image / video / swan watermark] │
- * ├─────────────────────────────────────────────────────────┤
- * │ [PostHeader: avatar, name, time, type chip, menu]       │
- * ├─────────────────────────────────────────────────────────┤
- * │ [PostContent: text, workout stats, achievement, images] │
- * ├─────────────────────────────────────────────────────────┤
- * │ [PostActions: like, heart, swan, comment, share]        │
- * ├─────────────────────────────────────────────────────────┤
- * │ [PostComments: comment list + input] (toggled)          │
- * └─────────────────────────────────────────────────────────┘
- *
- * MERMAID ARCHITECTURE:
- * graph TD
- *   A[PostCard] --> B[PostMediaDisplay]
- *   A --> C[PostHeader]
- *   A --> D[PostContent]
- *   A --> E[PostActions]
- *   A --> F[PostComments]
- *   A --> G[ReportPostModal]
- *
- * CLICK-OUTCOME FLOWCHART:
- * [Reaction btn] -> handleReaction -> onReact/onRemoveReaction -> XP toast
- * [Comment toggle] -> setShowComments -> reveals PostComments
- * [Share btn] -> setShareDialogOpen -> shows share modal with copy link
- * [Menu: Copy Link] -> copies post URL to clipboard
- * [Menu: Mute User] -> TODO: POST /api/social/mute
- * [Menu: Report Post] -> opens ReportPostModal -> POST /api/social/posts/:id/report
- * [Menu: Delete Post] -> confirm -> DELETE /api/social/posts/:id -> removes from feed
- * [Send comment] -> onComment callback -> POST /api/social/comments
- *
- * DATA FLOW:
- * Props In:  PostCardProps { post, onLike, onReact, onRemoveReaction, onComment, onDelete, onReport }
- * State:     { commentText, showComments, menuOpen, shareDialogOpen, reportModalOpen, toast state }
- * API Calls: None directly (parent Feed handles API calls via callbacks)
- * Events:    onLike, onReact, onRemoveReaction, onComment, onDelete, onReport
- * Children:  PostMediaDisplay, PostHeader, PostContent, PostActions, PostComments, ReportPostModal
- *
- * GAMIFICATION HOOKS:
- * - Reaction click -> triggerFromResult celebration effect at click position
- * - Points earned -> Toast notification with Gilded Fern gradient
+ * COMPONENT: PostCard
+ * PURPOSE: Canonical SwanStudios social feed card orchestrator.
+ * FLOW: SocialPage.V3 -> SocialFeed -> PostCard -> callbacks in useSocialFeed.
+ * API: parent callback deletes via DELETE /api/social/posts/:postId.
+ * CHILDREN: media, header/menu, content, actions, comments, share/report/delete dialogs.
+ * UX: destructive actions use in-app confirmations, not browser dialogs.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -58,74 +15,54 @@ import { useCelebrationTriggers } from '../../../hooks/useCelebrationTriggers';
 import type { PostCardProps } from './types/PostCardTypes';
 import { CATEGORY_GRADIENTS } from './types/PostCardTypes';
 
-// Sub-components
 import PostMediaDisplay from './components/PostMediaDisplay';
 import PostHeader from './components/PostHeader';
 import PostContent from './components/PostContent';
 import PostActions from './components/PostActions';
 import PostComments from './components/PostComments';
 import ReportPostModal from './components/ReportPostModal';
+import DeletePostConfirmDialog from './components/DeletePostConfirmDialog';
+import PostEditComposer from './components/PostEditComposer';
+import PostShareDialog from './components/PostShareDialog';
 
-// Styles
 import {
   PostCardWrapper,
   StyledDivider,
   Toast,
   ToastCloseBtn,
-  Overlay,
-  ModalContent,
-  ModalTitle,
-  ModalBody,
-  ModalBodyText,
-  ModalInputReadonly,
-  ModalActions,
-  PlainButton,
-  ContainedButton,
 } from './styles/PostCardStyles';
 import { logger } from '@/utils/logger';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: PostCard Orchestrator Component
-// PURPOSE: Manages state and composes all sub-components
-// ─────────────────────────────────────────────────────────────
 
 const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReaction, onComment, onDelete, onEdit, onReport, onRepost }) => {
   const { triggerFromResult } = useCelebrationTriggers();
   const { user } = useAuth();
 
-  // UI state
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [transformationSliderValue] = useState(50);
 
-  // Menu state
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Edit state
   const [editMode, setEditMode] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
-
-  // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
-  // Toast state
   const [showPointNotification, setShowPointNotification] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
 
-  // Derived values
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
   const userReactions = post.userReactions || [];
   const reactionCounts = post.reactionCounts || { thumbs_up: 0, heart: 0, swan: 0 };
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
   const isOwnPost = !!(user?.id && user.id === post.user.id);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -137,14 +74,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuOpen]);
 
-  // Sync toast visibility with notification state
   useEffect(() => {
     if (showPointNotification) {
       setToastVisible(true);
     }
   }, [showPointNotification]);
-
-  // ─── Handlers ─────────────────────────────────────────────
 
   const handleReaction = async (reactionType: string, event?: React.MouseEvent) => {
     const isActive = userReactions.includes(reactionType);
@@ -158,7 +92,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
       result = await (onLike as any)(post.id);
     }
 
-    // Fire celebration effect at click position
     if (result && result.pointsAwarded) {
       triggerFromResult(result, event);
       setPointsEarned(result.pointsAwarded);
@@ -185,18 +118,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     }
   };
 
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setShareDialogOpen(false);
-    }
-  }, []);
-
   const handleDismissToast = () => {
     setToastVisible(false);
     setTimeout(() => setShowPointNotification(false), 300);
   };
-
-  // ─── Menu action handlers ─────────────────────────────────
 
   const handleCopyLink = useCallback(() => {
     const url = `${window.location.origin}/social/posts/${post.id}`;
@@ -226,11 +151,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     if (ok) setEditMode(false);
   }, [onEdit, editContent, post.id, post.content]);
 
-  const handleDeletePost = useCallback(async () => {
+  const handleDeletePost = useCallback(() => {
     if (!onDelete) return;
-    const confirmed = window.confirm('Are you sure you want to delete this post? This cannot be undone.');
-    if (confirmed) {
+    setDeleteConfirmOpen(true);
+  }, [onDelete]);
+
+  const handleConfirmDeletePost = useCallback(async () => {
+    if (!onDelete) return;
+    setIsDeletingPost(true);
+    try {
       await onDelete(post.id);
+      setDeleteConfirmOpen(false);
+    } finally {
+      setIsDeletingPost(false);
     }
   }, [onDelete, post.id]);
 
@@ -244,8 +177,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
     await onRepost(post.id);
     setShareDialogOpen(false);
   }, [onRepost, post.id]);
-
-  // ─── Render ───────────────────────────────────────────────
 
   return (
     <>
@@ -268,57 +199,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
         />
 
         {editMode ? (
-          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <textarea
-              value={editContent}
-              onChange={e => setEditContent(e.target.value)}
-              autoFocus
-              rows={4}
-              style={{
-                width: '100%',
-                background: 'var(--bg-elevated, #1A1A24)',
-                color: 'var(--text-primary, #E0ECF4)',
-                border: '1px solid var(--accent-primary, #60C0F0)',
-                borderRadius: 8,
-                padding: '10px 12px',
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 14,
-                lineHeight: 1.5,
-                resize: 'vertical',
-                boxSizing: 'border-box',
-                outline: 'none',
-              }}
-              aria-label="Edit post content"
-            />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setEditMode(false)}
-                disabled={isSavingEdit}
-                style={{
-                  padding: '6px 16px', borderRadius: 6, border: '1px solid rgba(96,192,240,0.2)',
-                  background: 'transparent', color: 'var(--text-muted, rgba(224,236,244,0.5))',
-                  fontFamily: "'Sora', sans-serif", fontSize: 13, cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={isSavingEdit || !editContent.trim()}
-                style={{
-                  padding: '6px 16px', borderRadius: 6, border: 'none',
-                  background: 'var(--accent-primary, #60C0F0)', color: '#0A0A0F',
-                  fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700,
-                  cursor: isSavingEdit ? 'not-allowed' : 'pointer',
-                  opacity: isSavingEdit ? 0.7 : 1,
-                }}
-              >
-                {isSavingEdit ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
+          <PostEditComposer
+            content={editContent}
+            disabled={isSavingEdit}
+            canSave={!!editContent.trim()}
+            onChange={setEditContent}
+            onCancel={() => setEditMode(false)}
+            onSave={handleSaveEdit}
+          />
         ) : (
           <PostContent
             post={post}
@@ -352,41 +240,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           </>
         )}
 
-        {/* Share Dialog */}
         {shareDialogOpen && (
-          <Overlay onClick={handleOverlayClick}>
-            <ModalContent onClick={(e) => e.stopPropagation()}>
-              <ModalTitle>Share Post</ModalTitle>
-              <ModalBody>
-                <ModalBodyText>
-                  Share this post with friends or on other platforms.
-                </ModalBodyText>
-                <ModalInputReadonly
-                  readOnly
-                  value={`https://swanstudios.com/social/posts/${post.id}`}
-                  onFocus={(e) => e.target.select()}
-                />
-              </ModalBody>
-              <ModalActions>
-                <PlainButton onClick={() => setShareDialogOpen(false)}>
-                  Cancel
-                </PlainButton>
-                {onRepost && !isOwnPost && (
-                  <ContainedButton onClick={handleRepost}>
-                    Repost to Feed
-                  </ContainedButton>
-                )}
-                <ContainedButton
-                  onClick={() => {
-                    navigator.clipboard.writeText(`https://swanstudios.com/social/posts/${post.id}`);
-                    setShareDialogOpen(false);
-                  }}
-                >
-                  Copy Link
-                </ContainedButton>
-              </ModalActions>
-            </ModalContent>
-          </Overlay>
+          <PostShareDialog
+            postId={post.id}
+            canRepost={!!onRepost && !isOwnPost}
+            onClose={() => setShareDialogOpen(false)}
+            onRepost={handleRepost}
+          />
         )}
       </PostCardWrapper>
 
@@ -395,6 +255,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
         <ReportPostModal
           onClose={() => setReportModalOpen(false)}
           onSubmit={handleReportSubmit}
+        />
+      )}
+
+      {deleteConfirmOpen && (
+        <DeletePostConfirmDialog
+          busy={isDeletingPost}
+          onCancel={() => setDeleteConfirmOpen(false)}
+          onConfirm={handleConfirmDeletePost}
         />
       )}
 

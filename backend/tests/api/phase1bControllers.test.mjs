@@ -118,6 +118,14 @@ describe('Shared onboarding helpers (onboardingHelpers.mjs)', () => {
     expect(helpers.countAnsweredQuestions(['a', 'b'])).toBe(1); // array counts as 1 if non-empty
     expect(helpers.countAnsweredQuestions({ a: 'x', b: { c: 'y' } })).toBe(2);
   });
+
+  test('11b - normalizeOnboardingQueueStatus treats canonical completed records as complete', () => {
+    expect(helpers.normalizeOnboardingQueueStatus(null)).toBe('not_started');
+    expect(helpers.normalizeOnboardingQueueStatus('in_progress')).toBe('draft');
+    expect(helpers.normalizeOnboardingQueueStatus('submitted')).toBe('complete');
+    expect(helpers.normalizeOnboardingQueueStatus('completed')).toBe('complete');
+    expect(helpers.normalizeOnboardingQueueStatus('archived')).toBe('archived');
+  });
 });
 
 // ===== onboardingController exports =====

@@ -17,6 +17,8 @@ vi.mock('../../../../../context/AuthContext', () => ({
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SOURCE = readFileSync(resolve(__dirname, './RevenueChart.tsx'), 'utf8');
+const STYLES_SOURCE = readFileSync(resolve(__dirname, './RevenueChart.styles.ts'), 'utf8');
+const TYPES_SOURCE = readFileSync(resolve(__dirname, './RevenueChart.types.ts'), 'utf8');
 
 describe('RevenueChart truth handling', () => {
   beforeEach(() => {
@@ -71,5 +73,20 @@ describe('RevenueChart truth handling', () => {
   it('does not retain demo revenue fixtures', () => {
     expect(SOURCE).not.toContain('DEMO_DATA');
     expect(SOURCE).not.toMatch(/8750|26250|5200|6100|Avg:\s*\$186/);
+  });
+
+  it('bridges chart controls to Crystalline Swan theme tokens', () => {
+    expect(STYLES_SOURCE).toContain("color: ${p => p.$active ? CHART_COLORS.gildedFern : 'var(--text-muted, rgba(255,255,255,0.5))'};");
+    expect(STYLES_SOURCE).toContain('&:hover { color: ${CHART_COLORS.iceWing}; background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent); }');
+    expect(STYLES_SOURCE).not.toContain("color: ${p => p.$active ? CHART_COLORS.gildedFern : 'rgba(255,255,255,0.5)'};");
+    expect(STYLES_SOURCE).not.toContain('background: rgba(96,192,240,0.1);');
+  });
+
+  it('keeps the active revenue chart split into bounded files', () => {
+    expect(SOURCE).toContain("from './RevenueChart.styles'");
+    expect(SOURCE).toContain("from './RevenueChart.types'");
+    expect(SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(220);
+    expect(STYLES_SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(220);
+    expect(TYPES_SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(80);
   });
 });

@@ -59,6 +59,64 @@ function safeJsonParse(value, fallback = []) {
   try { return JSON.parse(value); } catch { return fallback; }
 }
 
+function normalizeQueryRows(result) {
+  if (Array.isArray(result?.[0]) && !result[0]?.id) return result[0];
+  return Array.isArray(result) ? result : [];
+}
+
+function selectQueryType(sequelizeInstance) {
+  return sequelizeInstance?.QueryTypes?.SELECT || 'SELECT';
+}
+
+export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, options = {}) {
+  const { limit = 14, sequelizeOverride = sequelize } = options;
+
+  try {
+    const rows = await sequelizeOverride.query(
+      `SELECT
+         ws.id,
+         ws.date,
+         ws.intensity AS "overallIntensity",
+         json_agg(json_build_object(
+           'exerciseName', wl."exerciseName",
+           'formRating', wl.rpe
+         ) ORDER BY wl."exerciseName", wl."setNumber") AS exercises
+       FROM workout_sessions ws
+       JOIN workout_logs wl ON wl."sessionId" = ws.id
+       WHERE ws."userId" = :clientId
+         AND ws.status = 'completed'
+         AND ws.date >= :sinceDate
+       GROUP BY ws.id, ws.date, ws.intensity
+       ORDER BY ws.date DESC
+       LIMIT :limit`,
+      {
+        replacements: { clientId, sinceDate, limit },
+        type: selectQueryType(sequelizeOverride),
+      },
+    );
+
+    return normalizeQueryRows(rows).map((row) => {
+      const exercises = safeJsonParse(row.exercises, []);
+      return {
+        id: row.id,
+        date: row.date,
+        formData: {
+          overallIntensity: Number(row.overallIntensity) || 0,
+          exercises: (Array.isArray(exercises) ? exercises : [])
+            .filter((exercise) => exercise?.exerciseName)
+            .map((exercise) => ({
+              exerciseName: exercise.exerciseName,
+              formRating: exercise.formRating == null ? null : Number(exercise.formRating),
+            })),
+        },
+      };
+    });
+  } catch (err) {
+    logger.warn('[ClientIntelligence] Recent workout-log summaries fetch failed:', err.message);
+    return [];
+  }
+}
+
 // ── Body Region to NASM Muscle Taxonomy ──────────────────────────────
 
 const REGION_TO_MUSCLE_MAP = {
@@ -317,15 +375,8 @@ export async function getClientContext(clientId, trainerId) {
       return [];
     }),
 
-    // 4. Recent workouts (last 2 weeks)
-    getDailyWorkoutForm().findAll({
-      where: {
-        clientId,
-        createdAt: { [Op.gte]: twoWeeksAgo },
-      },
-      order: [['date', 'DESC']],
-      limit: 14,
-    }).catch(err => {
+    // 4. Recent completed workouts from the canonical workout diary tables.
+    fetchRecentWorkoutLogSummaries(clientId, twoWeeksAgo, { limit: 14 }).catch(err => {
       logger.warn('[ClientIntelligence] Workouts fetch failed:', err.message);
       return [];
     }),

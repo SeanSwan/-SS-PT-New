@@ -11,6 +11,30 @@ export const ActivityContent = styled.div`
   margin-left: 60px;
 `;
 
+export const AchievementIconButton = styled.button<{ $color?: string }>`
+  position: absolute;
+  top: 1.125rem;
+  left: 1.125rem;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 55%, transparent);
+  border-radius: 8px;
+  background: ${({ $color }) => $color || 'var(--accent-gold, #C6A84B)'};
+  color: var(--button-text, #FFFFFF);
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring, #8B5CF6);
+    outline-offset: 3px;
+  }
+`;
+
 export const ActivityItemHeader = styled.div`
   min-width: 0;
   display: flex;
@@ -73,6 +97,26 @@ export const MetaItem = styled.div`
 
 export const MetaLabel = styled.span`
   font-weight: 500;
+`;
+
+export const AchievementDetails = styled.div`
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, var(--bg-elevated, #141419));
+  color: var(--text-secondary, #94a3b8);
+  font-size: 0.875rem;
+  line-height: 1.45;
+`;
+
+export const AchievementDetailsTitle = styled.strong`
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 `;
 
 export const ShowMoreButton = styled(motion.button)`

@@ -1,41 +1,90 @@
 /**
  * ============================================================================
  * FILE: classStyleModifiers.mjs
- * PURPOSE: Class style modifiers (pyramid, superset, board 2) + stretch generator
+ * PURPOSE: Class style modifiers (pyramid, superset, alternative boards) + stretch generator
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-01
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Applies class style modifications (pyramid weight drops,
- * superset grouping) to generated exercises, generates Board 2 alternatives,
+ * superset grouping) to generated exercises, generates Board 2/3 alternatives,
  * and produces warm-up stretch sequences.
  * HOW IT FITS: bootcampGenerator → classStyleModifiers (steps 9-11 in pipeline)
  */
 
 // ── Two-Board System ──────────────────────────────────────────────────
-// Board 1 = main intensity. Board 2 = easier alternatives for people
-// who can't keep up (injury modifications, lower intensity).
+// Board 1 = main intensity. Board 2 = joint-friendly alternatives.
+// Board 3 = low-impact swaps for lower-pounding movement paths.
+
+const JOINT_MOD_FIELDS = [
+  'kneeMod',
+  'ankleMod',
+  'backMod',
+  'shoulderMod',
+  'wristMod',
+  'elbowMod',
+  'footMod',
+  'hipMod',
+];
+
+function cleanAlternativeName(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'n/a') return null;
+  return trimmed;
+}
+
+function firstAvailableAlternative(exercise, fields) {
+  for (const field of fields) {
+    const alternative = cleanAlternativeName(exercise[field]);
+    if (alternative) return alternative;
+  }
+  return null;
+}
+
+function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, boardLabel) {
+  return {
+    ...exercise,
+    board,
+    boardNumber,
+    boardLabel,
+    sourceExerciseName: exercise.exerciseName,
+    exerciseName,
+    pyramidStartWeight: null,
+    pyramidDrops: null,
+    supersetOrder: null,
+    supersetGroupId: null,
+  };
+}
 
 export function generateBoard2(board1Exercises) {
-  const board2 = [];
+  const alternatives = [];
   for (const ex of board1Exercises) {
-    const altName = ex.easyVariation
-      || ex.kneeMod
-      || ex.backMod
-      || ex.shoulderMod;
+    const jointName = firstAvailableAlternative(ex, JOINT_MOD_FIELDS)
+      || cleanAlternativeName(ex.easyVariation);
+    const lowImpactName = cleanAlternativeName(ex.easyVariation)
+      || firstAvailableAlternative(ex, ['ankleMod', 'kneeMod', 'backMod', 'hipMod', 'footMod', 'shoulderMod']);
 
-    if (!altName) continue;
+    if (jointName) {
+      alternatives.push(buildAlternativeExercise(
+        ex,
+        jointName,
+        'alternative',
+        2,
+        'Joint-Friendly Alternatives',
+      ));
+    }
 
-    board2.push({
-      ...ex,
-      board: 'alternative',
-      exerciseName: altName,
-      pyramidStartWeight: null,
-      pyramidDrops: null,
-      supersetOrder: null,
-      supersetGroupId: null,
-    });
+    if (lowImpactName && lowImpactName !== jointName) {
+      alternatives.push(buildAlternativeExercise(
+        ex,
+        lowImpactName,
+        'lowImpact',
+        3,
+        'Low-Impact Swaps',
+      ));
+    }
   }
-  return board2;
+  return alternatives;
 }
 
 // ── Pyramid Style ─────────────────────────────────────────────────────

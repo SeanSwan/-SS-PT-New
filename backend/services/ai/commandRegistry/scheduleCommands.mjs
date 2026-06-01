@@ -1,5 +1,5 @@
 /**
- * Command Registry — Category C: Scheduling (9 commands)
+ * Command Registry — Category C: Scheduling (10 commands)
  */
 import { z } from 'zod';
 import { registerCommands, DateSchema, TimeSchema } from './baseSchemas.mjs';
@@ -29,9 +29,10 @@ const commands = [
     type: 'schedule_session',
     description: 'Schedule a client for a session at a specific date and time',
     naturalLanguagePatterns: ['schedule {client} for {date} at {time}', 'book {client} on {date}', 'add session for {client}'],
-    method: 'POST', endpoint: '/api/sessions/admin/create',
+    method: 'POST', endpoint: '/api/sessions/admin/book',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
+      trainerId: z.number().int().positive().optional(),
       date: DateSchema,
       time: TimeSchema,
       duration: z.number().int().min(15).max(180).default(60),
@@ -143,7 +144,7 @@ const commands = [
     type: 'reschedule_session',
     description: 'Reschedule a client from one date to another',
     naturalLanguagePatterns: ['reschedule {client} from {date} to {date}', 'move {client}\'s session to {date}'],
-    method: 'POST', endpoint: '/api/sessions/admin/create',
+    method: 'PUT', endpoint: '/api/sessions/:sessionId/reschedule',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       originalDate: DateSchema,

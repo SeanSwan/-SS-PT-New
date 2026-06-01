@@ -15,6 +15,8 @@ import {
   type ClientActivationQueueResponse,
   type ClientActivationQueueRow,
 } from './clientActivationQueue';
+import { getClientDisplayName } from './clients-team/clientIdentity';
+import { normalizeClientOptionId } from './clients-team/clientOptionMappers';
 
 interface ClientActivationQueuePanelProps {
   authAxios: {
@@ -167,6 +169,11 @@ const ActionButton = styled.button<{ $primary?: boolean }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
 `;
 
 const StateText = styled.div`
@@ -175,9 +182,12 @@ const StateText = styled.div`
   font: 500 13px 'Sora', sans-serif;
 `;
 
-function rowToClientOption(row: ClientActivationQueueRow): ClientOption {
+function rowToClientOption(row: ClientActivationQueueRow): ClientOption | null {
+  const id = normalizeClientOptionId(row.client.id);
+  if (!id) return null;
+
   return {
-    id: row.client.id,
+    id,
     firstName: row.client.firstName,
     lastName: row.client.lastName,
     email: row.client.email,
@@ -223,6 +233,7 @@ const ClientActivationQueuePanel: React.FC<ClientActivationQueuePanelProps> = ({
           <PanelMeta>{summary?.total || 0} paid clients needing activation review</PanelMeta>
         </TitleGroup>
         <IconButton
+          type="button"
           onClick={loadQueue}
           aria-label="Refresh activation queue"
           title="Refresh activation queue"
@@ -249,19 +260,36 @@ const ClientActivationQueuePanel: React.FC<ClientActivationQueuePanelProps> = ({
         <QueueList>
           {rows.slice(0, 6).map((row) => {
             const cta = getAdminActivationCta(row);
+            const clientOption = rowToClientOption(row);
+            const clientName = getClientDisplayName(row.client);
             return (
               <QueueCard key={`${row.cartId}-${row.sessionId}`}>
                 <div>
-                  <ClientName>{row.client.firstName} {row.client.lastName}</ClientName>
+                  <ClientName>{clientName}</ClientName>
                   <QueueMeta>{row.activation.nextStep} | {row.activation.sessionsAvailable} sessions</QueueMeta>
                 </div>
                 <ActionRow>
-                  <ActionButton type="button" onClick={() => onSelectClient(rowToClientOption(row))}>
+                  <ActionButton
+                    type="button"
+                    onClick={() => {
+                      if (clientOption) onSelectClient(clientOption);
+                    }}
+                    aria-label={`Focus ${clientName}`}
+                    disabled={!clientOption}
+                  >
                     Focus Client
                   </ActionButton>
-                  <ActionButton type="button" $primary onClick={() => onNavigate(cta.route)}>
-                    {cta.label}
-                    <ArrowRight size={14} />
+                  <ActionButton
+                    type="button"
+                    $primary
+                    onClick={() => {
+                      if (cta) onNavigate(cta.route);
+                    }}
+                    aria-label={cta ? `${cta.label} for ${clientName}` : `Activation route unavailable for ${clientName}`}
+                    disabled={!cta}
+                  >
+                    {cta?.label || 'Unavailable'}
+                    {cta && <ArrowRight size={14} />}
                   </ActionButton>
                 </ActionRow>
               </QueueCard>

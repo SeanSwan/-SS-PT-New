@@ -76,9 +76,9 @@ const FileName = styled.span`
 `;
 
 const RemoveBtn = styled.button`
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   border: none;
   background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   color: var(--text-muted, rgba(224, 236, 244, 0.4));
@@ -143,7 +143,7 @@ const AttachmentPreview: React.FC<AttachmentPreviewProps> = memo(({ files, onRem
             )}
             <FileName title={`${label} (${formatSize(f.size)})`}>{label}</FileName>
             <RemoveBtn type="button" onClick={() => onRemove(f.id)} aria-label={`Remove ${label}`}>
-              <X size={10} />
+              <X size={14} />
             </RemoveBtn>
           </FileChip>
         );

@@ -25,8 +25,9 @@ describe('AI gamification command path truth contracts', () => {
     expect(clientSelfServiceSource).not.toContain("endpoint: '/api/gamification',");
     expect(goalCommandsSource).not.toContain('badgeType: z.string()');
     expect(goalCommandsSource).toContain("endpoint: '/api/gamification/users/:userId/achievements/:achievementId'");
-    expect(goalCommandsSource).toContain('achievementId: z.number().int().positive()');
-    expect(goalCommandsSource).toContain("endpoint: '/api/gamification/profile'");
+    expect(goalCommandsSource).toContain('achievementId: z.union([z.string().trim().min(1), z.number().int().positive()])');
+    expect(goalCommandsSource).toContain('.transform((value) => String(value))');
+    expect(goalCommandsSource).toContain("endpoint: '/api/gamification/users/:userId/profile'");
     expect(clientSelfServiceSource).toContain("endpoint: '/api/gamification/profile'");
   });
 

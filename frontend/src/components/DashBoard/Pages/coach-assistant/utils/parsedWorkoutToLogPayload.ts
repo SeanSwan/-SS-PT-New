@@ -53,92 +53,28 @@
  */
 
 import { getLocalIsoDate } from '../../../../../utils/localDate';
+import type {
+  LogWorkoutPayload,
+  LogWorkoutPayloadExercise,
+  LogWorkoutPayloadSet,
+  ParsedWorkout,
+} from './parsedWorkoutToLogPayload.types';
+
+export type {
+  LogWorkoutPayload,
+  LogWorkoutPayloadExercise,
+  LogWorkoutPayloadSet,
+  ParsedExercise,
+  ParsedSet,
+  ParsedWorkout,
+} from './parsedWorkoutToLogPayload.types';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Input types (mirrors VoiceMemoUpload.tsx ParsedWorkout shape)
 // ─────────────────────────────────────────────────────────────
-export interface ParsedSet {
-  setNumber: number;
-  weight: number | null;
-  reps: number;
-  rpe?: number;
-  formQuality?: number;
-  notes?: string;
-  /**
-   * Parser may extract tempo as an "eccentric/pause/concentric" string
-   * (e.g. "3/1/1"). If missing, the canonical mapper substitutes
-   * `DEFAULT_TEMPO` so the log row always has a usable value.
-   */
-  tempo?: string;
-}
-
-export interface ParsedExercise {
-  exerciseName: string;
-  sets: ParsedSet[];
-  formRating?: number;
-  painLevel?: number;
-  performanceNotes?: string;
-}
-
-export interface ParsedWorkout {
-  exercises: ParsedExercise[];
-  sessionNotes?: string;
-  overallIntensity?: number;
-  painFlags?: Array<{ bodyRegion: string; side: string; mention: string }>;
-  confidence?: number;
-  date?: string;
-}
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Output type (mirrors adminClientService.logWorkout signature)
 // ─────────────────────────────────────────────────────────────
-export interface LogWorkoutPayloadSet {
-  setNumber: number;
-  reps: number;
-  weight: number;
-  rpe?: number;
-  notes?: string;
-  /**
-   * Phase 13 (2026-04-15): canonical tempo on every transcript-applied set.
-   * The backend accepts tempo already ([workoutLogService.mjs:110]), the
-   * transcript lane just wasn't feeding it. Parser tempo wins when present;
-   * otherwise the mapper substitutes `DEFAULT_TEMPO` so admin history tables
-   * (and future anatomy/tempo analytics) always have a value.
-   */
-  tempo?: string;
-}
-
-export interface LogWorkoutPayloadExercise {
-  name: string;
-  sets: LogWorkoutPayloadSet[];
-  /**
-   * Phase 15.0 (2026-04-15): exercise-level coaching note (e.g.
-   * "knees caved on last set" or "shoulder clicking on dumbbell bench").
-   * The backend service stamps this on EVERY row of the exercise group
-   * so deleting any single set preserves the note on the remaining rows.
-   *
-   * Replaces the Phase 13.2 set-1-encoded `Coach: ` marker, which had
-   * two real correctness bugs:
-   *   1. Deleting set 1 in the admin edit flow silently lost the note.
-   *   2. A legitimate trainer-authored set note starting with `Coach: `
-   *      could be misclassified as an exercise note on read.
-   */
-  exerciseNote?: string;
-}
-
-export interface LogWorkoutPayload {
-  title: string;
-  date: string;
-  duration: number;
-  // Phase 16 (2026-04-16): optional on the wire. When the transcript did
-  // not yield an explicit intensity rating, this key is omitted from the
-  // payload rather than forced to a fallback 5. The backend accepts
-  // missing keys and persists DB null.
-  intensity?: number;
-  notes?: string;
-  exercises: LogWorkoutPayloadExercise[];
-}
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Mapper options
 // ─────────────────────────────────────────────────────────────
@@ -162,7 +98,6 @@ export interface MapperOptions {
 
 const DEFAULT_TITLE = 'Voice Memo Workout';
 const DEFAULT_DURATION_MINUTES = 50;
-const DEFAULT_INTENSITY = 5;
 /**
  * Phase 13 (2026-04-15): canonical default tempo for transcript-applied sets.
  * Represents eccentric/pause/concentric in seconds. "1/1/0" is the NASM
@@ -208,13 +143,6 @@ export const EXERCISE_NOTE_SEPARATOR = ' · Coach: ';
 // `toISOString().split` returned tomorrow for PDT users after ~5pm local.
 function todayIsoDate(): string {
   return getLocalIsoDate();
-}
-
-function clampIntensity(value: number | undefined, fallback: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
-  if (value < 1) return 1;
-  if (value > 10) return 10;
-  return Math.round(value);
 }
 
 function clampDuration(value: number | undefined, fallback: number): number {

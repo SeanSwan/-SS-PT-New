@@ -15,7 +15,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { TrendingUp } from 'lucide-react';
-import { CS, reducedMotionSafe } from './WorkoutLoggerCS';
+import { CS, reducedMotionSafe, withAlpha } from './WorkoutLoggerCS';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 
 interface OverloadSuggestionProps {
@@ -31,6 +31,7 @@ const OverloadSuggestionComponent: React.FC<OverloadSuggestionProps> = React.mem
 
   return (
     <Pill
+      type="button"
       onClick={onApply}
       aria-label={`Apply progressive overload: ${suggestion.label}`}
       title={`Last: ${suggestion.current} lbs → Suggested: ${suggestion.suggested} lbs`}
@@ -50,16 +51,17 @@ const Pill = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  min-height: 28px;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
   min-width: 44px;
-  background: rgba(96, 192, 240, 0.1);
-  border: 1px solid rgba(96, 192, 240, 0.25);
+  background: ${withAlpha(CS.gaming, 0.1)};
+  border: 1px solid ${withAlpha(CS.gaming, 0.25)};
   border-radius: 999px;
   color: ${CS.gaming};
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   font-weight: 600;
+  line-height: 1.15;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -70,10 +72,10 @@ const Pill = styled.button`
   }
 
   &:hover {
-    background: rgba(96, 192, 240, 0.2);
-    border-color: rgba(96, 192, 240, 0.5);
+    background: ${withAlpha(CS.gaming, 0.2)};
+    border-color: ${withAlpha(CS.gaming, 0.5)};
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(96, 192, 240, 0.2);
+    box-shadow: 0 2px 8px ${withAlpha(CS.gaming, 0.2)};
   }
 
   &:active {

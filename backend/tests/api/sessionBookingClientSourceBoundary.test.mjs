@@ -2,33 +2,195 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { processSessionDeduction } from '../../utils/notification.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/sessionRoutes.mjs'), 'utf8');
+const unifiedRouteSource = readFileSync(resolve(__dirname, '../../routes/sessions.mjs'), 'utf8');
+const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/session.service.mjs'), 'utf8');
+
+const routeSlice = (startMarker, endMarker) => {
+  const start = routeSource.indexOf(startMarker);
+  const end = routeSource.indexOf(endMarker, start + startMarker.length);
+  return {
+    start,
+    end,
+    source: routeSource.slice(start, end)
+  };
+};
+
+const unifiedRouteSlice = (startMarker, endMarker) => {
+  const start = unifiedRouteSource.indexOf(startMarker);
+  const end = unifiedRouteSource.indexOf(endMarker, start + startMarker.length);
+  return {
+    start,
+    end,
+    source: unifiedRouteSource.slice(start, end)
+  };
+};
 
 describe('session booking clientSource boundary', () => {
   it('defines every non-booking client source in one shared boundary', () => {
     expect(routeSource).toContain("const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external'])");
   });
 
-  it('blocks every non-booking client source from self-service booking', () => {
-    const routeStart = routeSource.indexOf('router.post("/book"');
-    const routeEnd = routeSource.indexOf('router.post("/request"', routeStart);
-    const bookRoute = routeSource.slice(routeStart, routeEnd);
+  it('blocks every non-booking client source from the user-id self-service booking route', () => {
+    const { start, end, source } = routeSlice('router.post("/book/:userId"', 'router.post("/:sessionId/book"');
 
-    expect(routeStart).toBeGreaterThan(-1);
-    expect(routeEnd).toBeGreaterThan(routeStart);
-    expect(bookRoute).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+  });
+
+  it('blocks every non-booking client source from the session-id self-service booking route', () => {
+    const { start, end, source } = routeSlice('router.post("/:sessionId/book"', 'router.post("/book-recurring"');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+  });
+
+  it('blocks every non-booking client source from the unified client booking service', () => {
+    const start = unifiedServiceSource.indexOf('async bookSession(sessionId, user, bookingData = {})');
+    const end = unifiedServiceSource.indexOf('async cancelSession', start);
+    const source = unifiedServiceSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(unifiedServiceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';");
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(unifiedRouteSource).toContain("normalizedMessage.includes('booking access')");
+  });
+
+  it('serves the active SessionContext user-id booking route from the unified router', () => {
+    const start = unifiedRouteSource.indexOf('router.post("/book/:userId", protect');
+    const end = unifiedRouteSource.indexOf('router.post("/:id/book"', start);
+    const source = unifiedRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('const targetUserId = parseStrictPositiveInteger(req.params.userId);');
+    expect(source).toContain('const sessionId = parseStrictPositiveInteger(req.body?.sessionId);');
+    expect(source).toContain('Number(req.user.id) !== targetUserId');
+    expect(source).toContain("req.user.role !== 'admin'");
+    expect(source).toContain('const bookingUser = req.user.role === \'admin\'');
+    expect(source).toContain('deductSession: false');
+    expect(source).toContain('const result = await unifiedSessionService.bookSession(sessionId, bookingUser, bookingData);');
+    expect(source).toContain('return res.status(200).json(result);');
+    expect(source).toContain("normalizedMessage.includes('booking access')");
+  });
+
+  it('blocks every non-booking client source from recurring self-service booking', () => {
+    const { start, end, source } = routeSlice('router.post("/book-recurring"', 'let sessionsToBook = []');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)');
+  });
+
+  it('serves the active client recurring booking route from the unified router', () => {
+    const start = unifiedRouteSource.indexOf('router.post("/book-recurring", protect');
+    const end = unifiedRouteSource.indexOf('router.post("/:id/book"', start);
+    const source = unifiedRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('const requestedSessionIds = Array.isArray(req.body?.sessionIds)');
+    expect(source).toContain('parseStrictPositiveInteger(sessionId)');
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('processSessionDeduction(session, client, transaction)');
+    expect(source).toContain('recurringGroupId');
+    expect(source).toContain('return res.status(200).json');
+  });
+
+  it('blocks every non-booking client source from custom session requests', () => {
+    const start = unifiedRouteSource.indexOf('router.post("/request", protect');
+    const end = unifiedRouteSource.indexOf('// ==================== UPCOMING', start);
+    const source = unifiedRouteSource.slice(start, end);
+    const guard = source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    const createSession = source.indexOf('Session.create({');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(guard).toBeGreaterThan(-1);
+    expect(createSession).toBeGreaterThan(guard);
+    expect(source).toContain('Use the Workout Logger to track training.');
+  });
+
+  it('only sends recurring booking deduction notifications when a credit was actually deducted', () => {
+    const start = unifiedRouteSource.indexOf('router.post("/book-recurring", protect');
+    const end = unifiedRouteSource.indexOf('router.post("/:id/book"', start);
+    const source = unifiedRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('deductionResultsBySessionId.set(session.id, deductionResult)');
+    expect(source).toContain('const deductionResult = deductionResultsBySessionId.get(session.id);');
+    expect(source).toContain('if (deductionResult?.creditsDeducted > 0)');
+    expect(source).toContain('sendDeductionNotification(session, client)');
+  });
+
+  it('self-defends processSessionDeduction against non-deducting client sources', async () => {
+    const session = {
+      sessionDeducted: false,
+      save: async () => {},
+    };
+    const client = {
+      clientSource: 'external',
+      availableSessions: 9,
+      save: async () => {
+        throw new Error('free-tracking clients must not save paid-session deductions');
+      },
+    };
+
+    const result = await processSessionDeduction(session, client);
+
+    expect(result).toMatchObject({
+      success: true,
+      deducted: false,
+      creditsDeducted: 0,
+      message: 'No credits required for this client source',
+    });
+    expect(client.availableSessions).toBe(9);
+    expect(session.sessionDeducted).toBe(true);
+  });
+
+  it('does not deduct late-reschedule credits from every non-booking client source', () => {
+    const { start, end, source } = routeSlice('router.put("/reschedule/:sessionId"', 'router.delete("/cancel/:sessionId"');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+  });
+
+  it('blocks every non-booking client source from the no-user-id self-service booking route', () => {
+    const { start, end, source } = routeSlice('router.post("/book"', 'router.post("/request"');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
   });
 
   it('blocks every non-booking client source from admin-created bookings', () => {
-    const routeStart = routeSource.indexOf('router.post("/admin/book"');
-    const routeEnd = routeSource.indexOf('// Parse session date', routeStart);
-    const adminBookRoute = routeSource.slice(routeStart, routeEnd);
+    const { start, end, source } = routeSlice('router.post("/admin/book"', '// Parse session date');
 
-    expect(routeStart).toBeGreaterThan(-1);
-    expect(routeEnd).toBeGreaterThan(routeStart);
-    expect(adminBookRoute).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
+  });
+
+  it('serves admin-created paid bookings from the unified router before legacy fallback', () => {
+    const { start, end, source } = unifiedRouteSlice('router.post("/admin/book"', 'router.get("/admin/cancelled"');
+    const dynamicRoute = unifiedRouteSource.indexOf('router.get("/:id"');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(start).toBeLessThan(dynamicRoute);
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('processSessionDeduction(session, client, transaction)');
+    expect(source).toContain('unifiedSessionService.sendBookingNotifications(session, client).catch');
+    expect(source).toContain('sendDeductionNotification(session, client)');
+    expect(source).not.toContain('error: error.message');
   });
 });

@@ -48,4 +48,19 @@ describe('PostReportsWidget active surface truth contract', () => {
     expect(source).not.toContain('<ActionBtn');
     expect(source).not.toContain('min-height: 36px');
   });
+
+  it('uses Crystalline Swan theme tokens for report priority visuals', () => {
+    expect(source).toContain("const REPORT_ERROR = 'var(--error, #EF4444)'");
+    expect(source).toContain("const REPORT_WARNING = 'var(--warning, #F59E0B)'");
+    expect(source).toContain("const REPORT_PRIMARY = 'var(--accent-primary, #60C0F0)'");
+    expect(source).toContain('const REPORT_PRIORITY_STYLES: Record<string, ReportPriorityStyle> = {');
+    expect(source).toContain('background: ${({ $level }) => getPriorityStyle($level).background};');
+    expect(source).toContain('color: ${({ $level }) => getPriorityStyle($level).color};');
+    expect(source).toContain('<Flag size={20} color={REPORT_ERROR} />');
+    expect(source).not.toContain('rgba(201, 42, 84');
+    expect(source).not.toContain('color="#ef4444"');
+    expect(source).not.toContain("props.$level === 'urgent' ? '#ef4444'");
+    expect(source).not.toContain("props.$level === 'high' ? '#f59e0b'");
+    expect(source).not.toContain("props.$level === 'medium' ? '#60C0F0'");
+  });
 });

@@ -3,8 +3,6 @@ import styled, { css, keyframes } from 'styled-components';
 import {
   Search as SearchIcon,
   Dumbbell as ExerciseIcon,
-  Plus as AddIcon,
-  Edit as EditIcon,
   Filter as FilterIcon,
   ChevronDown as ExpandMoreIcon,
   Clock as DurationIcon,
@@ -92,32 +90,6 @@ const Title = styled.h2`
   font-weight: 700;
   color: ${theme.text};
   margin: 0;
-`;
-
-const FabButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 50%;
-  border: 1px solid ${theme.border};
-  background: linear-gradient(135deg, ${theme.accent}, #7c3aed);
-  color: #fff;
-  cursor: pointer;
-  box-shadow: ${theme.shadow};
-  transition: ${theme.transition};
-
-  &:hover {
-    transform: scale(1.08);
-    box-shadow: ${theme.shadowHover};
-  }
-
-  &:active {
-    transform: scale(0.96);
-  }
 `;
 
 /* ───────────────────────────────────────────
@@ -405,7 +377,7 @@ const ExerciseName = styled.h3`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 36px);
+  max-width: 100%;
 `;
 
 const IconBtn = styled.button`
@@ -729,10 +701,10 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
 
   const emptyExercises: Exercise[] = [];
 
-  // Load exercises on component mount
+  // Load exercises on mount and when the goal changes
   useEffect(() => {
     loadExercises();
-  }, []);
+  }, [filters.goal]);
 
   // Filter exercises based on search and filters
   useEffect(() => {
@@ -820,12 +792,6 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
       {/* Header */}
       <Header>
         <Title>Exercise Library</Title>
-        <FabButton
-          title="Add New Exercise"
-          onClick={() => {/* TODO: Implement add exercise */}}
-        >
-          <AddIcon size={20} />
-        </FabButton>
       </Header>
 
       {/* Search and Filter Bar */}
@@ -969,15 +935,6 @@ const ExerciseLibrary: React.FC<ExerciseLibraryProps> = ({
             <CardBody>
               <CardHeader>
                 <ExerciseName>{exercise.name}</ExerciseName>
-                <IconBtn
-                  title="Edit exercise"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // TODO: Implement edit exercise
-                  }}
-                >
-                  <EditIcon size={16} />
-                </IconBtn>
               </CardHeader>
 
               <Description>

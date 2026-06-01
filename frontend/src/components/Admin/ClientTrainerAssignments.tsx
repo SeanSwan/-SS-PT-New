@@ -14,6 +14,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getClientSessionSignal } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 interface ClientTrainerAssignmentsProps {
   onAssignmentChange?: () => void;
@@ -25,6 +26,7 @@ interface AssignmentClient {
   lastName: string;
   email: string;
   availableSessions?: number;
+  clientSource?: string;
   photo?: string | null;
 }
 
@@ -54,6 +56,7 @@ interface ClientRow {
   lastName: string;
   email: string;
   availableSessions: number;
+  clientSource?: string;
   isActive: boolean;
   photo?: string | null;
 }
@@ -433,6 +436,7 @@ const parseClients = (payload: any): ClientRow[] => {
     lastName: client.lastName || '',
     email: client.email || '',
     availableSessions: Number(client.availableSessions || 0),
+    clientSource: client.clientSource || 'swanstudios',
     isActive: Boolean(client.isActive),
     photo: client.photo || null,
   }));
@@ -741,55 +745,61 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
             {filteredUnassignedClients.length === 0 ? (
               <Empty>All clients are currently assigned.</Empty>
             ) : (
-              filteredUnassignedClients.map((client) => (
-                <Card
-                  key={client.id}
-                  data-testid={`unassigned-client-${client.id}`}
-                  draggable
-                  onPointerDown={() => {
-                    setDraggedClient(client.id);
-                  }}
-                  onDragStart={(event) => {
-                    const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
-                    dragEvent.dataTransfer.setData('text/plain', String(client.id));
-                    dragEvent.dataTransfer.effectAllowed = 'move';
-                    setDraggedClient(client.id);
-                  }}
-                  onDragEnd={(event) => {
-                    const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
-                    let fallbackTrainerId = dropTrainerIdRef.current;
-                    if (fallbackTrainerId === null && dragEvent.clientX > 0 && dragEvent.clientY > 0) {
-                      const zone = document
-                        .elementFromPoint(dragEvent.clientX, dragEvent.clientY)
-                        ?.closest('[data-testid^="trainer-zone-"]');
-                      const zoneTestId = zone?.getAttribute('data-testid') || '';
-                      const parsedTrainerId = Number(zoneTestId.replace('trainer-zone-', ''));
-                      if (Number.isFinite(parsedTrainerId)) {
-                        fallbackTrainerId = parsedTrainerId;
-                      }
-                    }
+              filteredUnassignedClients.map((client) => {
+                const unassignedClientSessionSignal = getClientSessionSignal(client);
 
-                    // Fallback for environments where drop event isn't emitted reliably.
-                    if (fallbackTrainerId !== null && draggedClientIdRef.current === client.id) {
-                      void onDropToTrainer(fallbackTrainerId);
-                      return;
-                    }
-                    setDraggedClient(null);
-                    setDropTrainer(null);
-                  }}
-                  $dragging={draggedClientId === client.id}
-                  whileHover={{ y: -2 }}
-                >
-                  <NameRow>
-                    <Avatar $src={client.photo}>{!client.photo && initials(client.firstName, client.lastName)}</Avatar>
-                    <Person>
-                      <div className="name">{client.firstName} {client.lastName}</div>
-                      <div className="meta">{client.email}</div>
-                      <div className="meta">{client.availableSessions} sessions available</div>
-                    </Person>
-                  </NameRow>
-                </Card>
-              ))
+                return (
+                  <Card
+                    key={client.id}
+                    data-testid={`unassigned-client-${client.id}`}
+                    draggable
+                    onPointerDown={() => {
+                      setDraggedClient(client.id);
+                    }}
+                    onDragStart={(event) => {
+                      const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
+                      dragEvent.dataTransfer.setData('text/plain', String(client.id));
+                      dragEvent.dataTransfer.effectAllowed = 'move';
+                      setDraggedClient(client.id);
+                    }}
+                    onDragEnd={(event) => {
+                      const dragEvent = event as unknown as React.DragEvent<HTMLElement>;
+                      let fallbackTrainerId = dropTrainerIdRef.current;
+                      if (fallbackTrainerId === null && dragEvent.clientX > 0 && dragEvent.clientY > 0) {
+                        const zone = document
+                          .elementFromPoint(dragEvent.clientX, dragEvent.clientY)
+                          ?.closest('[data-testid^="trainer-zone-"]');
+                        const zoneTestId = zone?.getAttribute('data-testid') || '';
+                        const parsedTrainerId = Number(zoneTestId.replace('trainer-zone-', ''));
+                        if (Number.isFinite(parsedTrainerId)) {
+                          fallbackTrainerId = parsedTrainerId;
+                        }
+                      }
+
+                      // Fallback for environments where drop event isn't emitted reliably.
+                      if (fallbackTrainerId !== null && draggedClientIdRef.current === client.id) {
+                        void onDropToTrainer(fallbackTrainerId);
+                        return;
+                      }
+                      setDraggedClient(null);
+                      setDropTrainer(null);
+                    }}
+                    $dragging={draggedClientId === client.id}
+                    whileHover={{ y: -2 }}
+                  >
+                    <NameRow>
+                      <Avatar $src={client.photo}>{!client.photo && initials(client.firstName, client.lastName)}</Avatar>
+                      <Person>
+                        <div className="name">{client.firstName} {client.lastName}</div>
+                        <div className="meta">{client.email}</div>
+                        <div className="meta" title={unassignedClientSessionSignal.note}>
+                          {unassignedClientSessionSignal.label}
+                        </div>
+                      </Person>
+                    </NameRow>
+                  </Card>
+                );
+              })
             )}
           </List>
         </Panel>
@@ -850,6 +860,7 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
                       trainerAssignments.map((assignment) => {
                         const client = clients.find((row) => row.id === assignment.clientId) || assignment.client;
                         if (!client) return null;
+                        const assignedClientSessionSignal = getClientSessionSignal(client);
 
                         return (
                           <AssignmentItem
@@ -868,8 +879,8 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
                               </IconButton>
                             </div>
                             <div className="meta">{client.email}</div>
-                            <div className="meta">
-                              {Number(client.availableSessions || 0)} sessions available
+                            <div className="meta" title={assignedClientSessionSignal.note}>
+                              {assignedClientSessionSignal.label}
                             </div>
                           </AssignmentItem>
                         );

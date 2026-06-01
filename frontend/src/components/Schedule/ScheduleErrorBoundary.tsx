@@ -110,9 +110,6 @@ class ScheduleErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryS
 
   handleRetry = (): void => {
     this.setState({ hasError: false, error: null });
-
-    // Try to refresh the page data
-    window.location.reload();
   };
 
   render(): React.ReactNode {

@@ -16,6 +16,22 @@ const SOURCE = readFileSync(
   resolve(__dirname, './EnhancedClientProgressView.tsx'),
   'utf8',
 );
+const STATE_PANEL_SOURCE = readFileSync(
+  resolve(__dirname, './EnhancedClientProgressViewStatePanels.tsx'),
+  'utf8',
+);
+const COMPARISON_SOURCE = readFileSync(
+  resolve(__dirname, './Analytics/ComparisonAnalytics.tsx'),
+  'utf8',
+);
+const GOAL_TRACKER_SOURCE = readFileSync(
+  resolve(__dirname, './Analytics/GoalProgressTracker.tsx'),
+  'utf8',
+);
+const INJURY_RISK_SOURCE = readFileSync(
+  resolve(__dirname, './Analytics/InjuryRiskAssessment.tsx'),
+  'utf8',
+);
 
 describe('EnhancedClientProgressView truth locks', () => {
   it('does not expose a placeholder gamification tab on the trainer progress route', () => {
@@ -24,9 +40,29 @@ describe('EnhancedClientProgressView truth locks', () => {
     expect(SOURCE).not.toMatch(/This tab will show the gamification content/);
   });
 
+  it('keeps route-state panels extracted from the oversized progress shell', () => {
+    expect(SOURCE).toContain("from './EnhancedClientProgressViewStatePanels'");
+    expect(STATE_PANEL_SOURCE).toContain('MissingClientProgressState');
+    expect(STATE_PANEL_SOURCE).toContain('LoadingClientProgressState');
+  });
+
   it('does not seed missing progress metrics with a fake midpoint value', () => {
     expect(SOURCE).not.toMatch(/\|\|\s*50/);
     expect(SOURCE).not.toMatch(/progressMetrics:\s*\{[^}]*strength:\s*50/s);
+  });
+
+  it('does not render the trainer progress shell without a selected client identity', () => {
+    expect(SOURCE).toContain('if (!clientId)');
+    expect(SOURCE).toContain('MissingClientProgressState');
+    expect(STATE_PANEL_SOURCE).toContain('Select a client first');
+    expect(SOURCE).toContain("navigate('/dashboard/trainer/clients')");
+    expect(SOURCE).not.toContain("id: clientId, firstName: 'Loading'");
+  });
+
+  it('shows an explicit loading state before mounting the progress shell', () => {
+    expect(SOURCE).toContain('if (isLoadingClient)');
+    expect(SOURCE).toContain('LoadingClientProgressState');
+    expect(STATE_PANEL_SOURCE).toContain('Loading client progress');
   });
 
   it('does not invent a generic client goal when the API has no goals', () => {
@@ -36,5 +72,41 @@ describe('EnhancedClientProgressView truth locks', () => {
   it('does not downgrade missing risk data into a fake low-risk label', () => {
     expect(SOURCE).not.toMatch(/riskLevel:\s*'low'\s+as\s+const/);
     expect(SOURCE).toMatch(/riskLevel:\s*'unknown'/);
+  });
+
+  it('does not manufacture comparison analytics from hardcoded benchmark stories', () => {
+    expect(COMPARISON_SOURCE).toContain('/api/client-progress/${clientId}/comparison');
+    expect(COMPARISON_SOURCE).not.toMatch(/Generate comparison mock data/);
+    expect(COMPARISON_SOURCE).not.toMatch(/client:\s*75/);
+    expect(COMPARISON_SOURCE).not.toMatch(/Compared to 12 clients/);
+    expect(COMPARISON_SOURCE).not.toMatch(/Bench 100kg|Run 5K under 25min|Core Development/);
+  });
+
+  it('does not manufacture goal tracking and achievements from hardcoded stories', () => {
+    expect(GOAL_TRACKER_SOURCE).toContain('/api/client-progress/${clientId}/goals');
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/Generate comprehensive goal tracking data/);
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/Lose 15 lbs|Bench Press 100kg|Run 5K under 25 minutes/);
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/First Milestone Master|Consistency Champion|Goal Crusher/);
+  });
+
+  it('does not expose goal add or update controls as no-op UI', () => {
+    expect(GOAL_TRACKER_SOURCE).toContain("authAxios.post(`/api/client-progress/${clientId}/goals`");
+    expect(GOAL_TRACKER_SOURCE).toContain("authAxios.put(`/api/client-progress/${clientId}/goals/${goal.id}`");
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/\/\* Edit goal \*\//);
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/<AccentButton>Update Progress<\/AccentButton>/);
+  });
+
+  it('does not manufacture goal insight dates or likelihood from missing API evidence', () => {
+    expect(GOAL_TRACKER_SOURCE).not.toMatch(/predictedCompletion\s*\?\?\s*Date\.now\(\)/);
+    expect(GOAL_TRACKER_SOURCE).toContain('formatPredictedCompletion');
+    expect(GOAL_TRACKER_SOURCE).toContain('formatSuccessLikelihood');
+    expect(GOAL_TRACKER_SOURCE).toContain('Not enough evidence yet');
+  });
+
+  it('does not manufacture injury risk assessment findings from hardcoded stories', () => {
+    expect(INJURY_RISK_SOURCE).toContain('/api/client-progress/${clientId}/risk-assessment');
+    expect(INJURY_RISK_SOURCE).not.toMatch(/Generate comprehensive risk assessment/);
+    expect(INJURY_RISK_SOURCE).not.toMatch(/Proper knee tracking|Slight shoulder impingement pattern|Averaging 5\.5 hours/);
+    expect(INJURY_RISK_SOURCE).not.toMatch(/Recovery Deficit|Volume Spike|Clamshells|Couch Stretch/);
   });
 });

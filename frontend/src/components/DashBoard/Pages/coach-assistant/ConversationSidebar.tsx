@@ -37,6 +37,8 @@ import {
   ConversationList,
   GroupLabel,
   EmptyState,
+  EmptyStateIcon,
+  EmptyStateHint,
 } from './styles/CoachSidebarStyles';
 
 interface ConversationSidebarProps {
@@ -119,11 +121,13 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         <ConversationList>
           {isEmpty ? (
             <EmptyState>
-              <MessageSquareOff size={32} style={{ opacity: 0.3 }} />
+              <EmptyStateIcon aria-hidden="true">
+                <MessageSquareOff size={32} />
+              </EmptyStateIcon>
               <div>{searchQuery ? 'No matches found' : 'No conversations yet'}</div>
-              <div style={{ fontSize: '12px' }}>
+              <EmptyStateHint>
                 {searchQuery ? 'Try a different search' : 'Start a New Coach Thread to begin'}
-              </div>
+              </EmptyStateHint>
             </EmptyState>
           ) : (
             groupedConversations.map(group => (

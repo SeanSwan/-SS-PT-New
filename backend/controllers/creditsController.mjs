@@ -1,5 +1,7 @@
 import { getUser, getModel } from '../models/index.mjs';
 import sequelize from '../database.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { countCompletedPaidTrainingSessions } from '../services/creditGrantLoyaltyService.mjs';
 
 const getCreditsModels = () => ({
   User: getUser(),
@@ -7,6 +9,8 @@ const getCreditsModels = () => ({
   OrderItem: getModel('OrderItem'),
   StorefrontItem: getModel('StorefrontItem'),
   TrainerCommission: getModel('TrainerCommission'),
+  Session: getModel('Session'),
+  DailyWorkoutForm: getModel('DailyWorkoutForm'),
 });
 import { calculateCommissionSplit, isEligibleForLoyaltyBump } from '../utils/commissionCalculator.mjs';
 import { calculateTax } from '../utils/taxCalculator.mjs';
@@ -38,9 +42,9 @@ const creditsController = {
    *   absorbTax?: boolean,
    *   grantReason?: string
    * }
-   */
+  */
   async adminPurchaseAndGrant(req, res) {
-    const { User, Order, OrderItem, StorefrontItem, TrainerCommission } = getCreditsModels();
+    const { User, Order, OrderItem, StorefrontItem, TrainerCommission, Session, DailyWorkoutForm } = getCreditsModels();
     const {
       clientId,
       storefrontItemId,
@@ -117,7 +121,11 @@ const creditsController = {
       }
 
       // 7. Check if client is eligible for loyalty bump
-      const clientCompletedSessions = (client.availableSessions || 0); // TODO: Track actual completed sessions
+      const clientCompletedSessions = await countCompletedPaidTrainingSessions(
+        clientId,
+        { Session, DailyWorkoutForm },
+        { transaction }
+      );
       const applyLoyaltyBump = isEligibleForLoyaltyBump(clientCompletedSessions, sessionsGranted);
 
       // 8. Calculate commission split
@@ -186,7 +194,11 @@ const creditsController = {
 
       // 12. **INSTANT CREDIT GRANT** - Add sessions to client
       const newCreditsBalance = (client.availableSessions || 0) + sessionsGranted;
-      await client.update({ availableSessions: newCreditsBalance }, { transaction });
+      const clientCreditUpdate = { availableSessions: newCreditsBalance };
+      if (sessionsGranted > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        clientCreditUpdate.clientSource = 'swanstudios';
+      }
+      await client.update(clientCreditUpdate, { transaction });
 
       await transaction.commit();
 

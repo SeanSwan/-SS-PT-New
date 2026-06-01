@@ -7,7 +7,7 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Catches React rendering errors in the UserDashboard
- * subtree and displays a recovery UI with a refresh button.
+ * subtree and displays a recovery UI with a local retry button.
  * HOW IT FITS IN THE APP: Wraps the entire UserDashboard in the orchestrator
  * KEY DECISIONS: Class component required for getDerivedStateFromError lifecycle
  */
@@ -21,12 +21,12 @@ import React from 'react';
  * | WIREFRAME:                                                 |
  * | +------------------------------------------+               |
  * | |  Something went wrong                    |               |
- * | |  Please refresh the page to try again.   |               |
- * | |  [Refresh Page]                          |               |
+ * | |  Retry this panel without leaving.        |               |
+ * | |  [Try Again]                             |               |
  * | +------------------------------------------+               |
  * | Props: { children: React.ReactNode }                       |
  * | CLICK-OUTCOMES:                                            |
- * | [Refresh Page] -> window.location.reload() -> Full reload  |
+ * | [Try Again] -> clears local boundary state                 |
  * +------------------------------------------------------------+
  */
 class UserDashboardErrorBoundary extends React.Component<
@@ -42,6 +42,10 @@ class UserDashboardErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
+  handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -53,11 +57,11 @@ class UserDashboardErrorBoundary extends React.Component<
           minHeight: '50vh',
           padding: '2rem',
           textAlign: 'center'
-        }}>
+          }}>
           <h2>Something went wrong</h2>
-          <p>Please refresh the page to try again.</p>
+          <p>Retry this dashboard panel without leaving the page.</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={this.handleRetry}
             style={{
               padding: '0.75rem 1.5rem',
               background: 'linear-gradient(135deg, #60C0F0, #8B5CF6)',
@@ -69,7 +73,7 @@ class UserDashboardErrorBoundary extends React.Component<
               minHeight: '44px'
             }}
           >
-            Refresh Page
+            Try Again
           </button>
         </div>
       );

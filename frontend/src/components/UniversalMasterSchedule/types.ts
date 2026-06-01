@@ -50,6 +50,7 @@ export interface Session {
     sessionsTotal?: number | null;
     purchasedAt?: string | Date | null;
   } | null;
+  sessionDeducted?: boolean;
 }
 
 /**
@@ -63,6 +64,7 @@ export interface Client {
   phone?: string;
   photo?: string;
   availableSessions: number;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   role: 'client' | string;
   createdAt: string;
   updatedAt: string;

@@ -70,17 +70,35 @@ describe('HomeTabViewModel', () => {
     const media = new File(['image'], 'proof.png', { type: 'image/png' });
 
     expect(buildHomePostPayload('Logged a heavy leg day', 'workout', media)).toEqual({
-      content: 'Logged a heavy leg day',
+      content: 'Logged a heavy leg day #WorkoutDiary #SwanProgress',
       type: 'workout',
       visibility: 'friends',
       media,
     });
 
     expect(buildHomePostPayload('New sketch', 'art')).toMatchObject({
-      content: 'New sketch',
+      content: 'New sketch #SwanCreative #Art',
       type: 'art',
       visibility: 'friends',
     });
+  });
+
+  it('infers smart labels and hashtags when quick post mood is broad', () => {
+    const workoutPayload = buildHomePostPayload('Finished leg day with 5 sets of squats', 'community');
+    expect(workoutPayload).toMatchObject({
+      type: 'workout',
+      visibility: 'friends',
+    });
+    expect(workoutPayload.content).toContain('#WorkoutDiary');
+    expect(workoutPayload.content).toContain('#SwanProgress');
+
+    const musicPayload = buildHomePostPayload('New beat in the studio for tonight', 'community');
+    expect(musicPayload).toMatchObject({
+      type: 'music',
+      visibility: 'friends',
+    });
+    expect(musicPayload.content).toContain('#SwanCreative');
+    expect(musicPayload.content).toContain('#MusicProduction');
   });
 
   it('parses unread notification and message counts from existing API shapes', () => {

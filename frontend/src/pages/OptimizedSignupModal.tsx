@@ -908,8 +908,7 @@ const OptimizedSignupModal: React.FC = () => {
 
   const handleForgotPassword = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    // Navigate to forgot password page or show another modal
-    alert("Having trouble? Please contact support for assistance.");
+    setError("Having trouble? Please contact support for assistance.");
   };
 
   // --- Animation Variants ---

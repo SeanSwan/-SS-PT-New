@@ -36,6 +36,13 @@ export const LeftRailBrandMark = styled.div`
   justify-content: center;
   color: var(--accent-primary, #60C0F0);
   flex-shrink: 0;
+
+  & img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 55%, transparent));
+  }
 `;
 
 export const LeftRailBrandText = styled.div`

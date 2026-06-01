@@ -388,14 +388,16 @@ export async function generateBootcampClass(options) {
   // Step 8: Flow optimization — interleave fast/slow setup exercises
   const flowData = optimizeStationFlow(stations, allExercises, explanations);
 
-  // Step 9: Generate Board 2 (alternative/modified exercises)
+  // Step 9: Generate alternative boards for joint-friendly and low-impact paths.
   const board2Exercises = generateBoard2(allExercises);
   const allWithBoard2 = [...allExercises, ...board2Exercises];
 
   if (board2Exercises.length > 0) {
+    const jointFriendlyCount = board2Exercises.filter(ex => ex.board === 'alternative').length;
+    const lowImpactCount = board2Exercises.filter(ex => ex.board === 'lowImpact').length;
     explanations.push({
       type: 'board',
-      message: `Board 2 generated: ${board2Exercises.length} alternative exercises for participants who need modifications (knee/shoulder/back issues, lower intensity).`,
+      message: `Alternative boards generated: Board 2 has ${jointFriendlyCount} joint-friendly modifications and Board 3 has ${lowImpactCount} low-impact swaps.`,
     });
   }
 
@@ -429,14 +431,14 @@ export async function generateBootcampClass(options) {
               region,
               severity: Math.max(...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel)),
               flaggedExercises: flaggedExercises.map(e => e.exerciseName),
-              recommendation: `Participants with ${region.replace(/_/g, ' ')} issues should use Board 2 alternatives for these exercises.`,
+              recommendation: `Participants with ${region.replace(/_/g, ' ')} issues should use Board 2 joint-friendly alternatives or Board 3 low-impact swaps for these exercises.`,
             });
           }
         }
         if (painAlerts.length > 0) {
           explanations.push({
             type: 'pain_alert',
-            message: `Pain-aware: ${painAlerts.length} exercise group(s) flagged based on active client injuries. Board 2 modifications recommended.`,
+            message: `Pain-aware: ${painAlerts.length} exercise group(s) flagged based on active client injuries. Board 2 joint-friendly modifications and Board 3 low-impact swaps recommended.`,
           });
         }
       }

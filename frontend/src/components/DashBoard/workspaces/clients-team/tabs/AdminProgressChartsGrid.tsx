@@ -13,7 +13,6 @@
  */
 
 import React from 'react';
-import styled from 'styled-components';
 import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 
@@ -46,177 +45,46 @@ import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/use
 // version that shares the hook types but owns its own lightweight
 // grid. This is ~50 lines, not a duplication of 600.
 
-import {
-  VictoryChart, VictoryBar, VictoryLine, VictoryArea, VictoryAxis,
-  VictoryTooltip, VictoryVoronoiContainer, VictoryPie,
-  VictoryGroup,
-} from 'victory';
-import {
-  CHART_COLORS, FULL_PALETTE, victoryTheme, hexAlpha,
-} from '../../../../Charts/chartTheme';
-import {
-  Activity, BarChart3, Target, TrendingUp as TrendIcon, Calendar, Flame,
-  Trophy, Dumbbell, Layers, Users, AlertTriangle, HeartPulse,
-} from 'lucide-react';
+import { VictoryChart, VictoryBar, VictoryLine, VictoryArea, VictoryAxis, VictoryTooltip, VictoryVoronoiContainer, VictoryPie, VictoryGroup } from 'victory';
+import { CHART_COLORS, FULL_PALETTE, victoryTheme } from '../../../../Charts/chartTheme';
+import { Activity, BarChart3, Target, TrendingUp as TrendIcon, Calendar, Flame, Trophy, Dumbbell, Layers, Users, HeartPulse } from 'lucide-react';
 import ClientExerciseMegaStats from './ClientExerciseMegaStats';
+import {
+  AttendanceMeta,
+  AttendancePercent,
+  AttendanceSummary,
+  BarFill,
+  BarLabel,
+  BarList,
+  BarRow,
+  BarTrack,
+  BarValue,
+  Card,
+  CardBody,
+  CardHeader,
+  CardTitle,
+  Empty,
+  ErrorLoadingStrip,
+  GridWrap,
+  LoadingStrip,
+  RecoveryIcon,
+  SummaryLine,
+} from './AdminProgressChartsGrid.styles';
+import {
+  durationLineProps,
+  getAnchorLineProps,
+  intensityLineProps,
+  movementPatternLabelProps,
+  repsBarProps,
+  setsBarProps,
+  weeklyVolumeAreaProps,
+  workoutFrequencyBarProps,
+} from './AdminProgressChartsGrid.chartConfig';
+import type { ExerciseFrequencyPoint, RecoverySignalPoint } from './AdminProgressChartsGrid.chartConfig';
 
 // ─────────────────────────────────────────────────────────────
 // Styled components — thin local set for the admin grid
 // ─────────────────────────────────────────────────────────────
-
-const GridWrap = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  @media (max-width: 768px) { grid-template-columns: 1fr; }
-`;
-
-const Card = styled.div`
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  border-radius: 12px;
-  padding: 1rem 1.25rem 1.25rem;
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  &:hover { border-color: rgba(96, 192, 240, 0.18); }
-`;
-
-const CardHeader = styled.div`
-  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;
-`;
-
-const CardTitle = styled.h4`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.85rem; font-weight: 600; margin: 0;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const CardBody = styled.div`
-  flex: 1; min-height: 140px; display: flex; align-items: center; justify-content: center;
-`;
-
-const Empty = styled.div`
-  text-align: center; padding: 1rem 0.5rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  font-family: 'Sora', sans-serif; font-size: 0.8rem;
-`;
-
-const SummaryLine = styled.div`
-  display: flex; align-items: center; gap: 0.5rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-  font-family: 'Sora', sans-serif; font-size: 0.7rem;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  padding: 0.25rem 0 0.5rem;
-`;
-
-const BarList = styled.ul`
-  list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 0.4rem;
-`;
-const BarRow = styled.li`
-  display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,2fr) auto;
-  align-items: center; gap: 0.5rem;
-  font-family: 'Sora', sans-serif; font-size: 0.75rem; color: var(--text-primary, #E0ECF4);
-`;
-const BarLabel = styled.span`
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-`;
-const BarTrack = styled.div`
-  position: relative; height: 8px; border-radius: 4px; background: rgba(96,192,240,0.08); overflow: hidden;
-`;
-const BarFill = styled.div<{ $pct: number; $color?: string }>`
-  position: absolute; top: 0; left: 0; bottom: 0;
-  width: ${({ $pct }) => Math.max(Math.min($pct, 100), 2)}%;
-  background: ${({ $color }) => $color || CHART_COLORS.iceWing};
-  border-radius: 4px;
-`;
-const BarValue = styled.span`
-  font-family: 'Fira Code', monospace; font-size: 0.7rem; color: var(--accent-primary, #60C0F0); white-space: nowrap;
-`;
-
-const LoadingStrip = styled.div`
-  padding: 1rem; text-align: center;
-  color: var(--text-muted, rgba(224,236,244,0.45)); font-family: 'Sora', sans-serif; font-size: 0.85rem;
-`;
-
-const ErrorLoadingStrip = styled(LoadingStrip)`
-  color: ${CHART_COLORS.crimsonFrost};
-`;
-
-const AttendanceSummary = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  width: 100%;
-`;
-
-const AttendancePercent = styled.div`
-  color: ${CHART_COLORS.iceWing};
-  font-family: 'Fira Code', monospace;
-  font-size: 2rem;
-  font-weight: 700;
-`;
-
-const AttendanceMeta = styled.div`
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  font-family: 'Sora', sans-serif;
-  font-size: 0.7rem;
-`;
-
-const RecoveryIcon = styled(AlertTriangle)`
-  color: ${CHART_COLORS.crimsonFrost};
-  margin-right: 4px;
-  vertical-align: -2px;
-`;
-
-const workoutFrequencyBarStyle = { data: { fill: CHART_COLORS.iceWing } };
-const workoutFrequencyBarProps = { style: workoutFrequencyBarStyle };
-const weeklyVolumeAreaStyle = {
-  data: {
-    fill: hexAlpha(CHART_COLORS.wingPurple, 0.3),
-    stroke: CHART_COLORS.wingPurple,
-    strokeWidth: 2,
-  },
-};
-const weeklyVolumeAreaProps = { style: weeklyVolumeAreaStyle };
-const setsBarStyle = { data: { fill: CHART_COLORS.arcticCyan } };
-const setsBarProps = { style: setsBarStyle };
-const repsBarStyle = { data: { fill: CHART_COLORS.gildedFern } };
-const repsBarProps = { style: repsBarStyle };
-const durationLineStyle = { data: { stroke: CHART_COLORS.iceWing, strokeWidth: 2 } };
-const durationLineProps = { style: durationLineStyle };
-const intensityLineStyle = { data: { stroke: CHART_COLORS.wingPurple, strokeWidth: 2 } };
-const intensityLineProps = { style: intensityLineStyle };
-const movementPatternLabelStyle = {
-  labels: {
-    fill: CHART_COLORS.textSecondary,
-    fontFamily: "'Fira Code', monospace",
-    fontSize: 9,
-  },
-};
-const movementPatternLabelProps = { style: movementPatternLabelStyle };
-
-const getAnchorLineStyle = (index: number) => ({
-  data: {
-    stroke: FULL_PALETTE[index % FULL_PALETTE.length],
-    strokeWidth: 2,
-  },
-});
-const getAnchorLineProps = (index: number) => ({ style: getAnchorLineStyle(index) });
-
-type ExerciseFrequencyPoint = {
-  x: string;
-  y: number;
-  sets?: number;
-};
-
-type RecoverySignalPoint = {
-  x: string;
-  painFlags?: number;
-  highRpeFlags?: number;
-  totalSets?: number;
-};
 
 // ─────────────────────────────────────────────────────────────
 // Component
@@ -247,7 +115,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
     <div data-testid="admin-progress-charts-grid">
       <SummaryLine>
         <TrendingUp size={13} />
-        <span>{clientName} — {nonEmptyChartCount} of 12 charts populated</span>
+        <span>{clientName} - {nonEmptyChartCount} of 12 charts populated</span>
       </SummaryLine>
       <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>
@@ -336,7 +204,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
             for (const r of charts.prTimeline) { const c=map.get(r.exercise); if(!c||r.y>c.y) map.set(r.exercise,r); }
             const best = Array.from(map.values()).sort((a,b)=>b.y-a.y).slice(0,6);
             const pcts = barPcts(best);
-            return <BarList>{best.map((r,i)=><BarRow key={r.exercise}><BarLabel>{r.exercise}</BarLabel><BarTrack><BarFill $pct={pcts[i]} $color={CHART_COLORS.gildedFern} /></BarTrack><BarValue>{r.y}lbs×{r.reps}</BarValue></BarRow>)}</BarList>;
+            return <BarList>{best.map((r,i)=><BarRow key={r.exercise}><BarLabel>{r.exercise}</BarLabel><BarTrack><BarFill $pct={pcts[i]} $color={CHART_COLORS.gildedFern} /></BarTrack><BarValue>{r.y}lbs x {r.reps}</BarValue></BarRow>)}</BarList>;
           })()}</CardBody>
         </Card>
 
@@ -411,7 +279,7 @@ const AdminProgressChartsGrid: React.FC<Props> = ({ clientId, clientName }) => {
                 <BarRow key={row.x}>
                   <BarLabel><RecoveryIcon size={11} />{row.x}</BarLabel>
                   <BarTrack><BarFill $pct={riskPct} $color={CHART_COLORS.crimsonFrost} /></BarTrack>
-                  <BarValue>{painFlags > 0 ? `${painFlags} pain` : ''}{painFlags > 0 && highRpeFlags > 0 ? ' · ' : ''}{highRpeFlags > 0 ? `${highRpeFlags} redline` : ''}</BarValue>
+                  <BarValue>{painFlags > 0 ? `${painFlags} pain` : ''}{painFlags > 0 && highRpeFlags > 0 ? ' / ' : ''}{highRpeFlags > 0 ? `${highRpeFlags} redline` : ''}</BarValue>
                 </BarRow>
               );
             })}</BarList>

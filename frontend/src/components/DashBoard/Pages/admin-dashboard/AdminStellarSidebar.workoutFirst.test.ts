@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
+import { ADMIN_DASHBOARD_TABS, WORKSPACE_CONFIG } from '../../../../config/dashboard-tabs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,5 +24,12 @@ describe('AdminStellarSidebar workout-first navigation', () => {
     expect(source).toContain("const [basePath, query = ''] = prefix.split('?');");
     expect(source).toContain("currentParams.get(key) === value");
     expect(source).toContain("currentParams.get('intent') === 'log_workout'");
+  });
+
+  it('keeps deprecated workout-plan config pointed at the client-first planner flow', () => {
+    const workoutPlans = ADMIN_DASHBOARD_TABS.find((tab) => tab.key === 'workout-plans');
+
+    expect(workoutPlans?.route).toBe('/dashboard/admin/client-management?intent=plan_next');
+    expect(ADMIN_DASHBOARD_TABS.map((tab) => tab.route)).not.toContain('/dashboard/admin/workouts');
   });
 });

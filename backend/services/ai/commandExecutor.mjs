@@ -18,7 +18,7 @@ import { scanForPHI, stripPHI } from './phiScanner.mjs';
 import { classifyIntent } from './intentClassifier.mjs';
 import { getCommand } from './commandRegistry/index.mjs';
 import { resolveClient } from './clientResolver.mjs';
-import { deIdentifyClient, rehydrateResponse } from './deIdentifier.mjs';
+import { rehydrateResponse } from './deIdentifier.mjs';
 import {
   prepareDestructiveOperation,
   verifyAndRetrieveOperation,
@@ -26,8 +26,10 @@ import {
   retrievePendingConfirmation,
 } from './destructiveOperations.mjs';
 import { startDebate } from './debate/debateOrchestrator.mjs';
+import { buildDebateClientContext } from './debate/debateClientContextService.mjs';
 import { checkErrorLoop, recordAction } from './errorLoopPrevention.mjs';
 import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
+import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
 
 // ── Command Context (flows through pipeline) ────────────────────────────────
 
@@ -82,6 +84,37 @@ function createContext(rawInput, user, options = {}) {
     },
   };
 }
+
+const CLIENT_ID_VALIDATION_SENTINEL = 1;
+
+const toPositiveInteger = (value) => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const buildParamsForValidation = (ctx, command) => {
+  const params = (
+    ctx.intent?.params &&
+    typeof ctx.intent.params === 'object' &&
+    !Array.isArray(ctx.intent.params)
+  )
+    ? { ...ctx.intent.params }
+    : {};
+
+  let insertedClientId = false;
+
+  if (command.requiresClientRef && params.clientId == null) {
+    const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
+    if (selectedClientId) {
+      params.clientId = selectedClientId;
+    } else {
+      params.clientId = CLIENT_ID_VALIDATION_SENTINEL;
+      insertedClientId = true;
+    }
+  }
+
+  return { params, insertedClientId };
+};
 
 // ── Pipeline Steps ──────────────────────────────────────────────────────────
 
@@ -150,13 +183,23 @@ async function stepValidate(ctx) {
 
   // Validate params against command's Zod schema
   if (command.inputSchema) {
-    const validation = command.inputSchema.safeParse(ctx.intent.params);
+    const { params, insertedClientId } = buildParamsForValidation(ctx, command);
+    const validation = command.inputSchema.safeParse(params);
     if (!validation.success) {
       const issues = validation.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
       ctx.error = `I understood your request but need more details: ${issues}`;
       return ctx;
     }
-    ctx.intent.params = validation.data;
+    const validatedParams = validation.data || {};
+    if (
+      insertedClientId &&
+      validatedParams &&
+      typeof validatedParams === 'object' &&
+      !Array.isArray(validatedParams)
+    ) {
+      delete validatedParams.clientId;
+    }
+    ctx.intent.params = validatedParams;
   }
 
   return ctx;
@@ -254,10 +297,10 @@ async function stepDebateRouting(ctx) {
   const debateType = debateTypeMap[ctx.command.type];
   if (!debateType) return ctx; // No debate mapping — proceed normally
 
-  // De-identify client for debate
-  const { deIdentified } = deIdentifyClient(
+  const { deIdentified } = await buildDebateClientContext(
+    clientId,
+    ctx.options.sequelize,
     { id: clientId, ...(ctx.resolvedClient || {}) },
-    {} // Enrichment happens inside the debate route
   );
 
   // Start debate asynchronously
@@ -278,6 +321,25 @@ async function stepConfirmation(ctx) {
   ctx.stage = 'confirmation';
   if (!ctx.command) return ctx;
   if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
+
+  // Never mint confirmation operations for commands that cannot actually run.
+  // Frontend-dispatch commands are the exception: /confirm returns a typed
+  // browser event, and the browser performs the explicit UI action.
+  const isConfirmedFrontendDispatch = ctx.command.method === 'FRONTEND_DISPATCH' && ctx.command.frontendEvent;
+  if (!hasDispatcher(ctx.command.type) && !isConfirmedFrontendDispatch) {
+    const manualOnly = getManualOnlyCommand(ctx.command.type);
+    ctx.result = {
+      type: 'not_wired',
+      command: ctx.command.type,
+      manualOnly: Boolean(manualOnly),
+      reason: manualOnly?.reason || null,
+      message: manualOnly
+        ? `"${ctx.command.description}" is recognized but requires a manual admin workflow: ${manualOnly.reason}. No data was changed.`
+        : `"${ctx.command.description}" is recognized but not yet wired for execution. No data was changed.`,
+    };
+    ctx.skipRemainingSteps = true;
+    return ctx;
+  }
 
   // For destructive ops, prepare HMAC-signed operation
   if (ctx.command.destructive) {
@@ -302,19 +364,6 @@ async function stepConfirmation(ctx) {
   }
 
   // Non-destructive but requires confirmation
-  // Only mint a real operationId if the command has a dispatcher handler.
-  // Commands without a handler get an honest 'not_wired' response instead of
-  // fake confirmation UI that would silently fail at the /confirm route.
-  if (!hasDispatcher(ctx.command.type)) {
-    ctx.result = {
-      type: 'not_wired',
-      command: ctx.command.type,
-      message: `"${ctx.command.description}" is recognized but not yet wired for execution. Coming soon.`,
-    };
-    ctx.skipRemainingSteps = true;
-    return ctx;
-  }
-
   const clientName = ctx.resolvedClient
     ? (ctx.resolvedClient.firstName || `Client #${ctx.resolvedClient.id}`)
     : null;
@@ -325,6 +374,7 @@ async function stepConfirmation(ctx) {
     clientId: ctx.resolvedClient?.id ?? null,
     userId: ctx.user.id,
     description: `${ctx.command.description}${clientName ? ` for ${clientName}` : ''}`,
+    frontendEvent: isConfirmedFrontendDispatch ? ctx.command.frontendEvent : null,
   });
 
   ctx.result = {
@@ -345,13 +395,25 @@ async function stepConfirmation(ctx) {
  *   - The command is not FRONTEND_DISPATCH (handled by frontend event bus)
  *   - No prior step already set ctx.result (debate_started / confirmation_required)
  *
- * Commands with no dispatcher entry return null → ctx.result stays null →
- * route returns { type: 'executed', result: null } (unchanged pre-Hermes behavior).
+ * Commands with no dispatcher entry return an explicit not_wired receipt so
+ * command surfaces never report fake execution.
  */
 async function stepExecute(ctx) {
   ctx.stage = 'execute';
   if (!ctx.command) return ctx;          // chat / clarification — no command to execute
   if (ctx.result !== null) return ctx;   // debate_started or confirmation_required already set
+
+  const manualOnly = getManualOnlyCommand(ctx.command.type);
+  if (manualOnly) {
+    ctx.result = {
+      type: 'not_wired',
+      command: ctx.command.type,
+      manualOnly: true,
+      reason: manualOnly.reason,
+      message: `"${ctx.command.description}" is recognized but requires a manual admin workflow: ${manualOnly.reason}. No data was changed.`,
+    };
+    return ctx;
+  }
 
   // FRONTEND_DISPATCH commands are handled by the browser event bus, not the server.
   // Returning a not_wired result here is honest — we never execute these server-side.
@@ -370,7 +432,7 @@ async function stepExecute(ctx) {
     // No registered dispatcher — honest not_wired response instead of fake 'executed'
     ctx.result = {
       type: 'not_wired',
-      message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution. Ask Sean to enable it.`,
+      message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution. No data was changed.`,
     };
   }
   return ctx;
@@ -494,7 +556,7 @@ function auditPipelineResult(ctx) {
  * Handles two kinds:
  *   1. Non-destructive pending confirmation (kind: 'pending_confirmed')
  *      — minted by stepConfirmation for requiresConfirmation: true, destructive: false commands
- *      — dispatches to the registered service function, returns real execution result
+ *      — dispatches to the registered service function or returns a confirmed browser event
  *
  *   2. Destructive HMAC-signed operation (no kind field)
  *      — minted by prepareDestructiveOperation for destructive: true commands
@@ -506,7 +568,7 @@ function auditPipelineResult(ctx) {
  * @param {Object} sequelize - Sequelize instance
  * @returns {Promise<{
  *   success: boolean,
- *   type: 'executed' | 'error' | 'not_wired',
+ *   type: 'executed' | 'error' | 'not_wired' | 'frontend_dispatch',
  *   command?: string,
  *   result?: Object|null,
  *   client?: Object|null,
@@ -518,6 +580,33 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   const ndResult = retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
+    if (operation.frontendEvent) {
+      return {
+        success: true,
+        type: 'frontend_dispatch',
+        command: operation.commandType,
+        event: operation.frontendEvent,
+        payload: operation.params || {},
+        result: null,
+        client: operation.clientId ? { id: operation.clientId } : null,
+        message: `${operation.description} confirmed. Sent to the workout logger.`,
+      };
+    }
+
+    if (!hasDispatcher(operation.commandType)) {
+      logger.warn('[CommandExecutor] Confirmed pending op has no dispatcher entry', {
+        commandType: operation.commandType,
+        operationId,
+      });
+      return {
+        success: false,
+        type: 'not_wired',
+        command: operation.commandType,
+        client: operation.clientId ? { id: operation.clientId } : null,
+        message: `${operation.commandType.replace(/_/g, ' ')} is no longer wired for execution. No data was changed.`,
+      };
+    }
+
     try {
       const result = await dispatch(operation.commandType, operation.params, {
         user,
@@ -559,10 +648,8 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // Attempt to dispatch if a handler exists.
-  // Note: destructive ops store operation.type = 'DELETE'|'UPDATE', not the command type.
-  // commandType is stored separately via prepareDestructiveOperation's commandParams.commandType
-  // if the caller sets it — currently it is NOT set, so destructive dispatch remains unexecuted
-  // (same behavior as before, but now explicitly honest rather than returning routing metadata).
+  // Destructive ops store operation.type = 'DELETE'|'UPDATE'; operation.commandType
+  // stores the command-lane dispatcher key signed into the pending operation.
   const commandType = operation.commandType || null;
   if (commandType && hasDispatcher(commandType)) {
     const clientId = operation.params?.clientId ?? null;

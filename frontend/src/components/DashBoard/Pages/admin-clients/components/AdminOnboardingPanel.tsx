@@ -17,11 +17,14 @@ import ClientOnboardingWizard from '../../../../../pages/onboarding/ClientOnboar
 import { createAdminClientService } from '../../../../../services/adminClientService';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
+import AdminOnboardingResetConfirmDialog from './AdminOnboardingResetConfirmDialog';
 
 /* ─────────────────────── Theme Tokens ─────────────────────── */
 
 const SWAN_CYAN = '#8B5CF6';
 const COSMIC_PURPLE = '#8B5CF6';
+const RESET_CONFIRM_TITLE = 'Reset onboarding draft?';
+const RESET_CONFIRM_CANCEL_LABEL = 'Cancel reset';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -245,6 +248,7 @@ const AdminOnboardingPanel: React.FC<AdminOnboardingPanelProps> = ({
   const adminClientService = createAdminClientService(authAxios);
   const [panelState, setPanelState] = useState<PanelState>({ type: 'loading' });
   const [resetting, setResetting] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
   // Debounced draft save ref
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -327,8 +331,12 @@ const AdminOnboardingPanel: React.FC<AdminOnboardingPanelProps> = ({
     onClose();
   };
 
-  const handleReset = async () => {
-    if (!window.confirm(`Reset ${clientName}'s onboarding? This will delete all saved progress.`)) return;
+  const handleReset = () => {
+    setResetConfirmOpen(true);
+  };
+
+  const confirmReset = async () => {
+    setResetConfirmOpen(false);
     cancelPendingSave();
     autosaveDisabledRef.current = true;
     setResetting(true);
@@ -350,6 +358,10 @@ const AdminOnboardingPanel: React.FC<AdminOnboardingPanelProps> = ({
       autosaveDisabledRef.current = false;
       setResetting(false);
     }
+  };
+
+  const cancelReset = () => {
+    setResetConfirmOpen(false);
   };
 
   const getStatusLabel = () => {
@@ -426,6 +438,16 @@ const AdminOnboardingPanel: React.FC<AdminOnboardingPanelProps> = ({
           )}
         </PanelBody>
       </PanelContainer>
+      {resetConfirmOpen && (
+        <AdminOnboardingResetConfirmDialog
+          title={RESET_CONFIRM_TITLE}
+          cancelLabel={RESET_CONFIRM_CANCEL_LABEL}
+          clientName={clientName}
+          resetting={resetting}
+          onCancel={cancelReset}
+          onConfirm={confirmReset}
+        />
+      )}
     </PanelOverlay>
   );
 };

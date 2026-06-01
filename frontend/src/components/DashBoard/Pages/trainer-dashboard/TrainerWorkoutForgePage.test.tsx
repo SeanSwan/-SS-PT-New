@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import TrainerWorkoutForgePage from './TrainerWorkoutForgePage';
 
-const { mockAuthAxios, mockToastSuccess, mockToastError, mockToastInfo } = vi.hoisted(() => ({
+const { mockAuthAxios, mockToastSuccess, mockToastError, mockToastInfo, mockUser } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
     post: vi.fn(),
@@ -11,10 +11,11 @@ const { mockAuthAxios, mockToastSuccess, mockToastError, mockToastInfo } = vi.ho
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockToastInfo: vi.fn(),
+  mockUser: { id: 9001, role: 'trainer' },
 }));
 
 vi.mock('../../../../context/AuthContext', () => ({
-  useAuth: () => ({ authAxios: mockAuthAxios }),
+  useAuth: () => ({ authAxios: mockAuthAxios, user: mockUser }),
 }));
 
 vi.mock('react-toastify', () => ({
@@ -50,11 +51,68 @@ const CLIENTS_RESPONSE = {
   },
 };
 
+const TRAINER_ASSIGNMENTS_RESPONSE = {
+  data: {
+    success: true,
+    assignments: [
+      {
+        id: 77,
+        status: 'active',
+        client: {
+          id: 424242,
+          firstName: 'Fixture',
+          lastName: 'Client',
+          username: 'fixture-client',
+        },
+      },
+    ],
+  },
+};
+
 describe('TrainerWorkoutForgePage workflow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuthAxios.get.mockResolvedValue(CLIENTS_RESPONSE);
+    mockUser.id = 9001;
+    mockUser.role = 'trainer';
+    mockAuthAxios.get.mockResolvedValue(TRAINER_ASSIGNMENTS_RESPONSE);
     mockAuthAxios.post.mockResolvedValue({ data: { success: true, plan: { id: 'plan-1' } } });
+  });
+
+  it('loads trainer clients through the trainer assignment endpoint, not the admin-only roster', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        assignments: [
+          {
+            id: 77,
+            status: 'active',
+            client: {
+              id: 424242,
+              firstName: 'Assigned',
+              lastName: 'Client',
+              username: 'assigned-client',
+            },
+          },
+        ],
+      },
+    });
+
+    render(<TrainerWorkoutForgePage />);
+
+    expect(await screen.findByRole('option', { name: 'Assigned Client' })).toBeInTheDocument();
+    expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/client-trainer-assignments/trainer/9001');
+    expect(mockAuthAxios.get).not.toHaveBeenCalledWith('/api/admin/clients');
+  });
+
+  it('keeps admin users on the admin roster endpoint', async () => {
+    mockUser.id = 1;
+    mockUser.role = 'admin';
+    mockAuthAxios.get.mockResolvedValueOnce(CLIENTS_RESPONSE);
+
+    render(<TrainerWorkoutForgePage />);
+
+    expect(await screen.findByRole('option', { name: 'Fixture Client' })).toBeInTheDocument();
+    expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/admin/clients');
   });
 
   it('turns Add Exercise into an editable manual exercise row', async () => {

@@ -1,109 +1,26 @@
 /**
  * Phase 18.C.1B.1R — ClientsWorkspace "View As" CTA navigation tests
- * ===================================================================
- * The Client Hub at /dashboard/admin/client-management is the canonical
- * live entry point for admin client ops. Phase 18.C.1B.1R added a
- * selected-client "View As" CTA in the top-bar action row that navigates
- * to the canonical AdminViewAsWrapper mount at
- * /dashboard/admin/client-management/view-as/:userId.
- *
- * These tests prove the workflow gap is closed:
  *   - Clicking the CTA with a selected client navigates to the correct
  *     canonical URL (regression guard against the CTA pointing at
  *     /dashboard/people/view-as/:userId, the dead path).
- *   - The CTA is not rendered when no client is selected (matches the
- *     gating pattern of the adjacent "Log Workout" button and prevents
- *     navigation to /view-as/undefined).
  */
-import { render, screen, cleanup } from '@testing-library/react';
+import { screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  CLIENTS_RESPONSE,
+  FIXTURE_CLIENT_ID,
+  INACTIVE_CLIENTS_RESPONSE,
+  MOVE_FITNESS_CLIENTS_RESPONSE,
+  mockAuthAxios,
+  mockNavigate,
+  mockToast,
+  renderWorkspace,
+} from './ClientsWorkspace.viewAsCta.testHarness';
 
-// vi.hoisted keeps the mock objects stable across renders. Without this,
-// each useAuth() call returns a fresh object, which makes the `authAxios`
-// reference change on every render, which re-fires ClientsWorkspace's
-// effect at line 274 (deps: [authAxios]), which calls setState, which
-// triggers another render — classic infinite loop. Hoisting fixes it
-// because useAuth returns the SAME reference every time.
-const { mockNavigate, mockAuthAxios, mockUser } = vi.hoisted(() => {
-  const mockAuthAxiosGet = vi.fn();
-  return {
-    mockNavigate: vi.fn(),
-    mockAuthAxios: { get: mockAuthAxiosGet },
-    mockUser: { id: 1, role: 'admin' as const },
-  };
-});
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock('../../../context/AuthContext', () => ({
-  useAuth: () => ({
-    authAxios: mockAuthAxios,
-    user: mockUser,
-  }),
-}));
-
-// Convenience alias for test-body access
 const mockAuthAxiosGet = mockAuthAxios.get as ReturnType<typeof vi.fn>;
-
-// Tab content components trigger heavy imports in JSDOM; stub them so the
-// CTA render path stays focused on the top bar.
-vi.mock('./clients-team/tabs/TrainingTabContent', () => ({ default: () => null }));
-vi.mock('./clients-team/tabs/ProgressTabContent', () => ({ default: () => null }));
-vi.mock('./clients-team/tabs/BiometricsTabContent', () => ({ default: () => null }));
-vi.mock('./clients-team/tabs/OverviewTabContent', () => ({ default: () => null }));
-vi.mock('./clients-team/tabs/SettingsTabContent', () => ({ default: () => null }));
-vi.mock('./clients-team', async () => {
-  const actual = await vi.importActual<any>('./clients-team');
-  return {
-    ...actual,
-    ClientDetailView: ({ activeTab }: any) => (
-      <div data-testid="mock-client-detail-tab">{activeTab}</div>
-    ),
-  };
-});
-
-import ClientsWorkspace from './ClientsWorkspace';
-
-// Synthetic fixture id chosen to keep production PII out of commit-bound
-// files (rule 44). 424242 has no resemblance to any real client id.
-const FIXTURE_CLIENT_ID = 424242;
-
-const CLIENTS_RESPONSE = {
-  data: {
-    success: true,
-    data: {
-      clients: [
-        {
-          id: FIXTURE_CLIENT_ID,
-          firstName: 'Fixture',
-          lastName: 'Client',
-          email: 'fixture.client@example.test',
-          clientSource: 'swanstudios',
-          isActive: true,
-          totalWorkouts: 7,
-          availableSessions: 12,
-          onboardingComplete: true,
-          isOnboardingComplete: true,
-        },
-      ],
-    },
-  },
-};
-
-const renderWorkspace = (initialEntry: string) =>
-  render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <ClientsWorkspace />
-    </MemoryRouter>
-  );
+const mockAuthAxiosDelete = mockAuthAxios.delete as ReturnType<typeof vi.fn>;
+const mockAuthAxiosPut = mockAuthAxios.put as ReturnType<typeof vi.fn>;
 
 describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   beforeEach(() => {
@@ -112,10 +29,37 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
       if (url === '/api/admin/clients') return Promise.resolve(CLIENTS_RESPONSE);
       return Promise.resolve({ data: {} });
     });
+    mockAuthAxiosDelete.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'Client deactivated. Profile, workout history, and paid credits are retained for 6 months.',
+        data: {
+          retainedUntil: '2026-11-25T00:00:00.000Z',
+          preservedAvailableSessions: 12,
+        },
+      },
+    });
+    mockAuthAxiosPut.mockResolvedValue({
+      data: {
+        success: true,
+        message: 'Client reactivated. Login access restored and retained records remain connected.',
+      },
+    });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     cleanup();
+  });
+
+  it('loads active clients by default so soft-deactivated accounts leave the daily hub', async () => {
+    renderWorkspace('/dashboard/admin/client-management');
+
+    await screen.findByRole('button', { name: /open fixture client/i });
+
+    expect(mockAuthAxiosGet).toHaveBeenCalledWith('/api/admin/clients', {
+      params: { limit: 100, status: 'active' },
+    });
   });
 
   it('navigates to canonical /dashboard/admin/client-management/view-as/:userId when clicked with a selected client', async () => {
@@ -126,7 +70,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     // auto-select branch). Button accessible name comes from text content
     // ("View As"), not the title attribute (which becomes the tooltip).
     // The Eye icon is decorative.
-    const viewAsBtn = await screen.findByRole('button', { name: /^view as$/i });
+    const viewAsBtn = await screen.findByRole('button', { name: /view fixture client as admin/i });
 
     await user.click(viewAsBtn);
 
@@ -145,10 +89,26 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
     expect(await screen.findByText(/daily training flow/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^log today$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^plan next$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^progress$/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^dictate \/ ai$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /log today for fixture client/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /plan next for fixture client/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /view fixture client progress/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i })).toBeInTheDocument();
+  });
+
+  it('preserves Move Fitness free-tracking copy in the selected-client daily cockpit', async () => {
+    mockAuthAxiosGet.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients') return Promise.resolve(MOVE_FITNESS_CLIENTS_RESPONSE);
+      return Promise.resolve({ data: {} });
+    });
+
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    const dailyStrip = await screen.findByRole('region', {
+      name: /fixture client daily training actions/i,
+    });
+    expect(within(dailyStrip).getByText(/free tracking/i)).toBeInTheDocument();
+    expect(within(dailyStrip).getByText(/no deduction/i)).toBeInTheDocument();
+    expect(within(dailyStrip).queryByText(/0 sessions left/i)).not.toBeInTheDocument();
   });
 
   it('does not show a fake 50 percent onboarding bar for a completed client', async () => {
@@ -164,7 +124,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
 
     expect(await screen.findByTestId('mock-client-detail-tab')).toHaveTextContent('training');
 
-    await user.click(screen.getByRole('button', { name: /^progress$/i }));
+    await user.click(screen.getByRole('button', { name: /view fixture client progress/i }));
 
     expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('progress');
   });
@@ -173,11 +133,11 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     const user = userEvent.setup();
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
-    const planNextBtn = await screen.findByRole('button', { name: /^plan next$/i });
+    const planNextBtn = await screen.findByRole('button', { name: /plan next for fixture client/i });
     await user.click(planNextBtn);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/workout-planner?clientId=${FIXTURE_CLIENT_ID}`
+      `/dashboard/admin/workout-planner?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
     );
   });
 
@@ -185,12 +145,80 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     const user = userEvent.setup();
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
 
-    const dictateBtn = await screen.findByRole('button', { name: /^dictate \/ ai$/i });
+    const dictateBtn = await screen.findByRole('button', { name: /dictate to swan for fixture client/i });
     await user.click(dictateBtn);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/coach-assistant?clientId=${FIXTURE_CLIENT_ID}&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
+      `/dashboard/admin/coach-assistant?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}&intent=log_workout`
     );
+  });
+
+  it('opens Swan Coach in new-client onboarding mode from Client Hub', async () => {
+    const user = userEvent.setup();
+    renderWorkspace('/dashboard/admin/client-management');
+
+    await user.click(await screen.findByRole('button', { name: /^new client$/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/dashboard/admin/coach-assistant?source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management&intent=client_onboarding'
+    );
+  });
+
+  it('soft-deactivates the selected client from the canonical Client Hub with a retention warning', async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    const deactivateBtn = await screen.findByRole('button', { name: /deactivate fixture client/i });
+    await user.click(deactivateBtn);
+
+    const dialog = await screen.findByRole('dialog', {
+      name: /deactivate fixture client\?/i,
+    });
+    expect(within(dialog).getByText(/soft delete/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/6 months/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/remaining session credits/i)).toBeInTheDocument();
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: /deactivate client/i }));
+
+    expect(mockAuthAxiosDelete).toHaveBeenCalledWith(
+      `/api/admin/clients/${FIXTURE_CLIENT_ID}`,
+      { data: { softDelete: true } }
+    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Client deactivated',
+      description: expect.stringContaining('retained for 6 months'),
+    }));
+  });
+
+  it('reactivates an inactive selected client without losing retained records', async () => {
+    const inactiveClient = INACTIVE_CLIENTS_RESPONSE.data.data.clients[0];
+    mockAuthAxiosGet.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients') {
+        return Promise.resolve({ data: { success: true, data: { clients: [] } } });
+      }
+      if (url === `/api/admin/clients/${FIXTURE_CLIENT_ID}`) {
+        return Promise.resolve({
+          data: { success: true, data: { client: inactiveClient } },
+        });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    const user = userEvent.setup();
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);
+
+    const reactivateBtn = await screen.findByRole('button', { name: /reactivate fixture client/i });
+    await user.click(reactivateBtn);
+
+    expect(mockAuthAxiosPut).toHaveBeenCalledWith(
+      `/api/admin/clients/${FIXTURE_CLIENT_ID}/restore`,
+      {}
+    );
+    expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Client reactivated',
+      description: expect.stringContaining('Login access restored'),
+    }));
   });
 
   it('turns admin overview log-workout intent plus one client click into the logger route', async () => {
@@ -201,7 +229,7 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     await user.click(clientCard);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}`
+      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
     );
   });
 

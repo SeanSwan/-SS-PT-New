@@ -907,13 +907,114 @@ async function checkAchievements(userId, gamification, metrics, session, transac
  * @param {Object} options - Recommendation options
  * @returns {Promise<Array>} Array of recommended exercises
  */
+const normalizeDifficultyFilter = (difficulty) => {
+  if (!difficulty || difficulty === 'all') return null;
+  if (typeof difficulty === 'number') return difficulty;
+
+  const normalized = String(difficulty).trim().toLowerCase();
+  const numeric = Number(normalized);
+  if (Number.isFinite(numeric)) return numeric;
+
+  const difficultyBands = {
+    beginner: [0, 333],
+    easy: [0, 333],
+    low: [0, 333],
+    intermediate: [334, 666],
+    medium: [334, 666],
+    moderate: [334, 666],
+    advanced: [667, 1000],
+    hard: [667, 1000],
+    high: [667, 1000],
+  };
+
+  return difficultyBands[normalized]
+    ? { [Op.between]: difficultyBands[normalized] }
+    : null;
+};
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const BODY_REGION_ALIASES = new Map([
+  ['upper_body', 'upper_body'],
+  ['upper body', 'upper_body'],
+  ['upper-body', 'upper_body'],
+  ['upper', 'upper_body'],
+  ['arms', 'upper_body'],
+  ['chest', 'upper_body'],
+  ['back', 'upper_body'],
+  ['shoulders', 'upper_body'],
+  ['lower_body', 'lower_body'],
+  ['lower body', 'lower_body'],
+  ['lower-body', 'lower_body'],
+  ['lower', 'lower_body'],
+  ['legs', 'lower_body'],
+  ['leg', 'lower_body'],
+  ['glutes', 'lower_body'],
+  ['quads', 'lower_body'],
+  ['hamstrings', 'lower_body'],
+  ['core', 'core'],
+  ['abs', 'core'],
+  ['abdominals', 'core'],
+  ['full_body', 'full_body'],
+  ['full body', 'full_body'],
+  ['full-body', 'full_body'],
+  ['total body', 'full_body'],
+  ['total-body', 'full_body'],
+]);
+
+const normalizeStringList = (value, maxItems = 10) => {
+  const values = Array.isArray(value) ? value : [value];
+  return values
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, maxItems);
+};
+
+const normalizeLikeToken = (value) => String(value || '')
+  .trim()
+  .replace(/[%_]/g, '')
+  .slice(0, 80);
+
+const normalizeBodyRegions = (values) => [...new Set(
+  normalizeStringList(values)
+    .map((value) => BODY_REGION_ALIASES.get(value.toLowerCase()))
+    .filter(Boolean)
+)];
+
+const buildMuscleGroupWhere = ({ muscleGroups = [], muscleGroupNames = [], bodyRegions = [] }) => {
+  const requestedMuscleGroups = normalizeStringList(muscleGroups);
+  const muscleGroupIds = requestedMuscleGroups.filter((value) => UUID_PATTERN.test(value));
+  const spokenMuscleGroups = requestedMuscleGroups.filter((value) => !UUID_PATTERN.test(value));
+  const nameFilters = [...spokenMuscleGroups, ...normalizeStringList(muscleGroupNames)]
+    .map(normalizeLikeToken)
+    .filter(Boolean);
+  const regionFilters = normalizeBodyRegions([...bodyRegions, ...spokenMuscleGroups]);
+  const filters = [];
+
+  if (muscleGroupIds.length > 0) {
+    filters.push({ id: { [Op.in]: muscleGroupIds } });
+  }
+
+  if (regionFilters.length > 0) {
+    filters.push({ bodyRegion: { [Op.in]: regionFilters } });
+  }
+
+  nameFilters.forEach((name) => {
+    filters.push({ name: { [Op.iLike]: `%${name}%` } });
+    filters.push({ shortName: { [Op.iLike]: `%${name}%` } });
+  });
+
+  return filters.length > 0 ? { [Op.or]: filters } : null;
+};
+
 async function getExerciseRecommendations(userId, options = {}) {
-  const { ClientProgress, MuscleGroup, Equipment, Exercise } = getAllModels();
+  const { ClientProgress, MuscleGroup, Exercise } = getAllModels();
   const {
     goal = 'general',
     difficulty = 'all',
     equipment = [],
     muscleGroups = [],
+    muscleGroupNames = [],
+    bodyRegions = [],
     excludeExercises = [],
     limit = 10,
     rehabFocus = false,
@@ -931,8 +1032,9 @@ async function getExerciseRecommendations(userId, options = {}) {
   const includeClause = [];
   
   // Filter by difficulty
-  if (difficulty !== 'all') {
-    whereClause.difficulty = difficulty;
+  const difficultyFilter = normalizeDifficultyFilter(difficulty);
+  if (difficultyFilter !== null) {
+    whereClause.difficulty = difficultyFilter;
   }
   
   // Filter by rehab focus
@@ -942,7 +1044,7 @@ async function getExerciseRecommendations(userId, options = {}) {
   
   // Filter by OPT phase
   if (optPhase) {
-    whereClause.optPhase = optPhase;
+    whereClause.optPhases = { [Op.iLike]: `%${optPhase}%` };
   }
   
   // Exclude specific exercises
@@ -950,46 +1052,22 @@ async function getExerciseRecommendations(userId, options = {}) {
     whereClause.id = { [Op.notIn]: excludeExercises };
   }
   
-  // Filter by muscle groups
-  if (muscleGroups.length > 0) {
+  const muscleGroupWhere = buildMuscleGroupWhere({ muscleGroups, muscleGroupNames, bodyRegions });
+  if (MuscleGroup && muscleGroupWhere) {
     includeClause.push({
       model: MuscleGroup,
       as: 'muscleGroups',
-      through: {
-        where: {
-          muscleGroupId: { [Op.in]: muscleGroups }
-        }
-      },
+      where: muscleGroupWhere,
       required: true
-    });
-  } else {
-    // Include muscle groups without requiring them
-    includeClause.push({
-      model: MuscleGroup,
-      as: 'muscleGroups',
-      required: false
     });
   }
   
-  // Filter by equipment
+  // Equipment association skipped: exercise_equipment is absent in production.
+  // The Exercise catalog carries equipmentNeeded as a JSON-encoded text column.
   if (equipment.length > 0) {
-    includeClause.push({
-      model: Equipment,
-      as: 'equipment',
-      through: {
-        where: {
-          equipmentId: { [Op.in]: equipment }
-        }
-      },
-      required: true
-    });
-  } else {
-    // Include equipment without requiring it
-    includeClause.push({
-      model: Equipment,
-      as: 'equipment',
-      required: false
-    });
+    whereClause.equipmentNeeded = {
+      [Op.or]: equipment.map(item => ({ [Op.iLike]: `%${item}%` }))
+    };
   }
   
   // Get exercises

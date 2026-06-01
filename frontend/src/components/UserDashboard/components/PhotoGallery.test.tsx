@@ -80,7 +80,11 @@ describe('PhotoGallery', () => {
     fireEvent.change(screen.getByLabelText('Photo gallery upload'), { target: { files: [file] } });
 
     await waitFor(() => {
-      expect(mockCreatePost).toHaveBeenCalledWith({ content: 'Shared a photo', type: 'general', media: file });
+      expect(mockCreatePost).toHaveBeenCalledWith({
+        content: expect.stringContaining('#Transformation'),
+        type: 'transformation',
+        media: file,
+      });
     });
     expect(mockRefreshPosts).toHaveBeenCalledTimes(1);
     expect(mockRefreshProfile).toHaveBeenCalledTimes(1);

@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Trophy } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
-import { CommandCard } from '../admin-dashboard-view';
+import { CommandCard } from '../AdminDashboardCards';
 
 const TrainerList = styled.ul`
   list-style: none;

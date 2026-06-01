@@ -28,6 +28,8 @@ const EMPTY_SESSION_DATA: SessionData = {
   avgDuration: 0,
   topClients: [],
 };
+const sessionRankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';
+const sessionRankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';
 
 const toFiniteNumber = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -184,8 +186,8 @@ const StatGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: rgba(0, 32, 96, 0.3);
-  border: 1px solid rgba(96, 192, 240, 0.08);
+  background: color-mix(in srgb, var(--royal-depth, #003080) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
   border-radius: 10px; padding: 12px; text-align: center;
 `;
 
@@ -195,14 +197,14 @@ const StatValue = styled.div`
 `;
 
 const StatLabel = styled.div`
-  font-size: 10px; color: rgba(224,236,244,0.5);
+  font-size: 10px; color: var(--text-muted, rgba(224,236,244,0.5));
   text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
 `;
 
 const AvgRow = styled.div`
   display: flex; align-items: center; gap: 6px;
   padding: 8px 12px; margin-bottom: 16px;
-  background: rgba(0, 32, 96, 0.2); border-radius: 8px;
+  background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent); border-radius: 8px;
 `;
 
 const AvgText = styled.span`
@@ -223,8 +225,8 @@ const ClientList = styled.div`
 const ErrorState = styled.div`
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
   min-height: 44px; padding: 10px 12px; border-radius: 8px;
-  background: rgba(198, 168, 75, 0.12);
-  border: 1px solid rgba(198, 168, 75, 0.24);
+  background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);
   color: var(--text-primary, #E0ECF4);
   font-size: 12px;
   @media (max-width: 430px) { grid-template-columns: auto 1fr; }
@@ -232,17 +234,18 @@ const ErrorState = styled.div`
 
 const RetryInline = styled.button`
   min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
-  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent); border-radius: 8px; padding: 0 12px;
+  background: color-mix(in srgb, var(--royal-depth, #003080) 40%, transparent); color: var(--text-primary, #E0ECF4);
   font-size: 12px; font-weight: 700; cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
   @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
 `;
 
 const EmptyState = styled.div`
   min-height: 44px; display: flex; align-items: center;
   padding: 10px 12px; border-radius: 8px;
-  background: rgba(0, 32, 96, 0.2);
-  border: 1px dashed rgba(96, 192, 240, 0.18);
+  background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   color: var(--text-secondary, rgba(224,236,244,0.7));
   font-size: 12px;
 `;
@@ -255,8 +258,8 @@ const Rank = styled.div<{ $isTop: boolean }>`
   width: 22px; height: 22px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; flex-shrink: 0;
-  background: ${p => p.$isTop ? hexAlpha(CHART_COLORS.gildedFern, 0.2) : 'rgba(255,255,255,0.05)'};
-  color: ${p => p.$isTop ? CHART_COLORS.gildedFern : 'rgba(224,236,244,0.5)'};
+  background: ${p => p.$isTop ? hexAlpha(CHART_COLORS.gildedFern, 0.2) : sessionRankFallbackBackground};
+  color: ${p => p.$isTop ? CHART_COLORS.gildedFern : sessionRankFallbackColor};
 `;
 
 const ClientName = styled.span`
@@ -266,7 +269,7 @@ const ClientName = styled.span`
 `;
 
 const BarWrapper = styled.div`
-  flex: 1; height: 6px; background: rgba(255,255,255,0.05);
+  flex: 1; height: 6px; background: var(--surface-muted, rgba(255,255,255,0.05));
   border-radius: 3px; overflow: hidden;
 `;
 

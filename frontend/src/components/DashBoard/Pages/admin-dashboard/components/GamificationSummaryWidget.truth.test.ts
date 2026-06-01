@@ -43,4 +43,20 @@ describe('GamificationSummaryWidget active surface truth contract', () => {
     expect(source).toContain('<RetryInline type="button" onClick={fetchData}>');
     expect(source).not.toContain('catch {\n      setData(EMPTY_GAMIFICATION);\n    }');
   });
+
+  it('bridges summary cards and rank fallbacks to Crystalline Swan theme tokens', () => {
+    expect(source).toContain('const rankFallbackBackground = \'var(--surface-muted, rgba(255,255,255,0.05))\';');
+    expect(source).toContain('const rankFallbackColor = \'var(--text-muted, rgba(224,236,244,0.5))\';');
+    expect(source).toContain('background: color-mix(in srgb, var(--royal-depth, #003080) 25%, transparent);');
+    expect(source).toContain('border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);');
+    expect(source).toContain('color: var(--text-muted, rgba(224,236,244,0.45));');
+    expect(source).toContain('background: ${p => p.$rank <= 3 ? hexAlpha(RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing, 0.2) : rankFallbackBackground};');
+    expect(source).toContain('color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing) : rankFallbackColor};');
+    expect(source).not.toContain('background: rgba(0, 32, 96, 0.25);');
+    expect(source).not.toContain('border: 1px solid rgba(96, 192, 240, 0.06);');
+    expect(source).not.toContain('background: rgba(198, 168, 75, 0.12);');
+    expect(source).not.toContain('border: 1px solid rgba(198, 168, 75, 0.24);');
+    expect(source).not.toContain(" : 'rgba(255,255,255,0.05)'");
+    expect(source).not.toContain(" : 'rgba(224,236,244,0.5)'");
+  });
 });

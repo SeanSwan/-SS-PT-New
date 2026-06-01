@@ -107,15 +107,16 @@ describe('admin compliance business KPI route truth handling', () => {
     expect(sequelizeQuery).not.toHaveBeenCalled();
   });
 
-  it('uses the mapped daily_workout_forms columns for compliance recency queries', async () => {
+  it('uses completed workout_sessions for compliance recency queries', async () => {
     sequelizeQuery.mockResolvedValueOnce([[]]);
 
     const res = await request(app).get('/api/admin/compliance/at-risk');
 
     expect(res.status).toBe(200);
-    expect(sequelizeQuery.mock.calls[0][0]).toContain('dwf.created_at');
-    expect(sequelizeQuery.mock.calls[0][0]).toContain('dwf.client_id');
-    expect(sequelizeQuery.mock.calls[0][0]).not.toContain('dwf."createdAt"');
-    expect(sequelizeQuery.mock.calls[0][0]).not.toContain('dwf."clientId"');
+    expect(sequelizeQuery.mock.calls[0][0]).toContain('LEFT JOIN workout_sessions ws');
+    expect(sequelizeQuery.mock.calls[0][0]).toContain('ws."userId" = u.id');
+    expect(sequelizeQuery.mock.calls[0][0]).toContain("ws.status = 'completed'");
+    expect(sequelizeQuery.mock.calls[0][0]).toContain('MAX(ws.date) AS "lastWorkoutDate"');
+    expect(sequelizeQuery.mock.calls[0][0]).not.toContain('daily_workout_forms');
   });
 });

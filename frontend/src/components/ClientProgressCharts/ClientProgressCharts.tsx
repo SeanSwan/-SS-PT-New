@@ -63,7 +63,6 @@ import productionApiService from '../../services/api.service';
 
 // Types and Interfaces
 import {
-  WorkoutLogData,
   ChartDataPoint,
   NASMCategory,
   ProgressMetrics,
@@ -80,6 +79,7 @@ import {
   ExerciseFrequencyDataPoint,
   SessionIntensityDataPoint,
 } from './types/ClientProgressTypes';
+import { sanitizeProgressPayload } from './ClientProgressCharts.sanitizers';
 
 // ==================== INTERFACES ====================
 
@@ -93,7 +93,7 @@ interface ClientProgressChartsProps {
 }
 
 interface ProgressData {
-  workoutLogs: WorkoutLogData[];
+  workoutLogs: Record<string, unknown>[];
   volumeData: ChartDataPoint[];
   oneRepMaxData: any[];
   formQualityData: ChartDataPoint[];
@@ -509,15 +509,17 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         throw new Error('No progress data received from server');
       }
 
-      const pd = response.data.progressData;
+      const pd = sanitizeProgressPayload(response.data.progressData);
       const workoutLogs = pd.workoutHistory || [];
 
       const processedData: ProgressData = {
         workoutLogs,
         volumeData: processVolumeData(pd.volumeProgression || []),
-        oneRepMaxData: pd.oneRepMaxes || processOneRepMaxData(workoutLogs),
+        oneRepMaxData: pd.oneRepMaxes.length > 0 ? pd.oneRepMaxes : processOneRepMaxData(workoutLogs),
         formQualityData: processFormQualityData(pd.formTrends || []),
-        nasmCategoryData: processNASMCategoryData(pd.nasmCategories || pd.categories || []),
+        nasmCategoryData: processNASMCategoryData(
+          pd.nasmCategories.length > 0 ? pd.nasmCategories : pd.categories,
+        ),
         bodyCompositionData: pd.bodyComposition || [],
         strengthProgressionData: pd.strengthProgression || [],
         consistencyData: pd.consistencyData || [],
@@ -528,11 +530,17 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
         lastUpdated: new Date(),
         // V5 chart data — processed from raw workout history
         trainingLoadData: processTrainingLoadData(pd.volumeProgression || [], workoutLogs),
-        rpeDistributionData: processRPEDistribution(pd.rpeDistribution || workoutLogs),
+        rpeDistributionData: pd.rpeDistribution.length > 0
+          ? pd.rpeDistribution
+          : processRPEDistribution(workoutLogs),
         personalRecordsData: pd.personalRecords || [],
         restComplianceData: pd.restCompliance || [],
-        exerciseFrequencyData: pd.exerciseFrequency || processExerciseFrequency(workoutLogs),
-        sessionIntensityData: pd.sessionIntensity || processSessionIntensity(workoutLogs),
+        exerciseFrequencyData: pd.exerciseFrequency.length > 0
+          ? pd.exerciseFrequency
+          : processExerciseFrequency(workoutLogs),
+        sessionIntensityData: pd.sessionIntensity.length > 0
+          ? pd.sessionIntensity
+          : processSessionIntensity(workoutLogs),
       };
 
       setProgressData(processedData);

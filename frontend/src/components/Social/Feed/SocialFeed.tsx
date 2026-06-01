@@ -382,6 +382,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
     deletePost,
     reportPost,
     repostPost,
+    refreshPosts,
   } = useSocialFeed();
 
   const { profile } = useGamificationData();
@@ -461,7 +462,7 @@ const SocialFeed: React.FC<SocialFeedProps> = ({ variant = 'full' }) => {
           </BodyText2>
           <ContainedButton
             $color="primary"
-            onClick={() => window.location.reload()}
+            onClick={() => void refreshPosts()}
           >
             Retry
           </ContainedButton>

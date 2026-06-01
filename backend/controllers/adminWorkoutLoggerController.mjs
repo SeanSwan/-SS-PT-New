@@ -120,7 +120,11 @@ export const logWorkout = async (req, res) => {
         // approved is the bigger problem the trainer must see.
         try {
           await sequelize.query(
-            `DELETE FROM "WorkoutSessions" WHERE id = :sessionId`,
+            `DELETE FROM workout_logs WHERE "sessionId" = :sessionId`,
+            { replacements: { sessionId: serviceResult.sessionId } },
+          );
+          await sequelize.query(
+            `DELETE FROM workout_sessions WHERE id = :sessionId`,
             { replacements: { sessionId: serviceResult.sessionId } },
           );
         } catch (cleanupErr) {

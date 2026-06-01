@@ -14,6 +14,8 @@ const routeSource = readFileSync(
   resolve(process.cwd(), '../backend/routes/adminContentModerationRoutes.mjs'),
   'utf8',
 );
+const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const lineCount = (text: string) => text.split(/\r?\n/).length;
 
 describe('ModerationWidget active surface truth contract', () => {
   it('is mounted by the admin overview dashboard and backed by the moderation route module', () => {
@@ -31,5 +33,35 @@ describe('ModerationWidget active surface truth contract', () => {
     expect(source).not.toContain('silently fail');
     expect(source).toContain('loadError');
     expect(source).toContain('Moderation data unavailable');
+  });
+
+  it('uses theme tokens and color-mix for moderation status/action visuals', () => {
+    const styles = readSource('src/components/DashBoard/Pages/admin-dashboard/components/ModerationWidget.styles.ts');
+
+    expect(styles).toContain('export const MODERATION_COLORS = {');
+    expect(styles).toContain("success: 'var(--success, #10B981)'");
+    expect(styles).toContain("error: 'var(--error, #EF4444)'");
+    expect(styles).toContain('background: color-mix(in srgb, ${p => p.$color} 15%, transparent);');
+    expect(source).not.toContain('color="#60C0F0"');
+    expect(source).not.toContain('$color="#10b981"');
+    expect(source).not.toContain('$color="#ef4444"');
+    expect(source).not.toContain('$color="#94a3b8"');
+    expect(source).not.toContain('`${p.$color}15`');
+    expect(source).not.toContain('`${p.$color}30`');
+    expect(source).not.toContain('`${p.$color}20`');
+  });
+
+  it('keeps the overview moderation widget split into bounded files', () => {
+    const styles = readSource('src/components/DashBoard/Pages/admin-dashboard/components/ModerationWidget.styles.ts');
+    const types = readSource('src/components/DashBoard/Pages/admin-dashboard/components/ModerationWidget.types.ts');
+
+    expect(source).toContain("from './ModerationWidget.styles'");
+    expect(source).toContain("from './ModerationWidget.types'");
+    expect(source).not.toContain("from 'styled-components'");
+    expect(styles).toContain("from 'styled-components'");
+
+    [source, styles, types].forEach((fileSource) => {
+      expect(lineCount(fileSource)).toBeLessThanOrEqual(300);
+    });
   });
 });

@@ -16,6 +16,7 @@ import type {
   TimelineEntry,
   ExerciseEntry,
 } from '../../hooks/useVariationAPI';
+import { parseVariationClientId } from './VariationEnginePage.logic';
 
 // --- Keyframes ---
 
@@ -440,6 +441,7 @@ const VariationEnginePage: React.FC = () => {
   const [category, setCategory] = useState<string>('chest');
   const [rotationPattern, setRotationPattern] = useState<string>('standard');
   const [nasmPhase, setNasmPhase] = useState<string>('');
+  const parsedClientId = parseVariationClientId(clientId);
 
   // Data state
   const [exercises, setExercises] = useState<ExerciseEntry[]>([]);
@@ -461,8 +463,8 @@ const VariationEnginePage: React.FC = () => {
 
   // Load timeline when clientId + category are set
   const loadTimeline = useCallback(async () => {
-    const cid = parseInt(clientId, 10);
-    if (isNaN(cid)) return;
+    const cid = parseVariationClientId(clientId);
+    if (!cid) return;
     try {
       const res = await api.getTimeline(cid, category, rotationPattern);
       setTimeline(res.timeline);
@@ -473,8 +475,8 @@ const VariationEnginePage: React.FC = () => {
   }, [api, clientId, category, rotationPattern]);
 
   useEffect(() => {
-    if (clientId) loadTimeline();
-  }, [clientId, category, rotationPattern, loadTimeline]);
+    if (parsedClientId) loadTimeline();
+  }, [parsedClientId, category, rotationPattern, loadTimeline]);
 
   // Toggle exercise selection
   const toggleExercise = (key: string) => {
@@ -485,8 +487,8 @@ const VariationEnginePage: React.FC = () => {
 
   // Generate suggestions
   const handleGenerate = async () => {
-    const cid = parseInt(clientId, 10);
-    if (isNaN(cid) || selectedExercises.length === 0) return;
+    const cid = parseVariationClientId(clientId);
+    if (!cid || selectedExercises.length === 0) return;
 
     setLoading(true);
     setSuggestions(null);
@@ -569,7 +571,7 @@ const VariationEnginePage: React.FC = () => {
         </Section>
 
         {/* 2-Week Timeline */}
-        {clientId && (
+        {parsedClientId && (
           <Section>
             <SectionTitle>Rotation Timeline</SectionTitle>
             <TimelineWrapper>
@@ -637,7 +639,7 @@ const VariationEnginePage: React.FC = () => {
           <PrimaryButton
             type="button"
             onClick={handleGenerate}
-            disabled={loading || !clientId || selectedExercises.length === 0}
+            disabled={loading || !parsedClientId || selectedExercises.length === 0}
           >
             {loading ? 'Generating...' : 'Generate Variation'}
           </PrimaryButton>

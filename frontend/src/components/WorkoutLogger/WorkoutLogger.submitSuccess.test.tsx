@@ -26,13 +26,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Track offline-queue calls + submit service mock. vi.hoisted() makes
 // these safe to reference inside vi.mock factories (which are hoisted to
 // the top of the file before plain `const` declarations).
-const { mockQueueSubmission, mockFlush, submitWorkoutFormMock, toastErrorMock, toastSuccessMock, apiPostMock } = vi.hoisted(() => ({
+const { mockQueueSubmission, mockFlush, submitWorkoutFormMock, toastErrorMock, toastSuccessMock, toastWarningMock, apiPostMock, apiGetMock } = vi.hoisted(() => ({
   mockQueueSubmission: vi.fn(),
   mockFlush: vi.fn(),
   submitWorkoutFormMock: vi.fn(),
   toastErrorMock: vi.fn(),
   toastSuccessMock: vi.fn(),
+  toastWarningMock: vi.fn(),
   apiPostMock: vi.fn(),
+  apiGetMock: vi.fn(),
 }));
 
 vi.mock('./useOfflineQueue', () => ({
@@ -86,18 +88,7 @@ vi.mock('react-router-dom', async () => {
 vi.mock('../../services/api.service', async () => {
   const actual = await vi.importActual<any>('../../services/api.service');
   class MockApiService {
-    get = vi.fn().mockResolvedValue({
-      data: {
-        success: true,
-        client: {
-          id: 91,
-          firstName: 'Test',
-          lastName: 'Client',
-          email: 'client@example.com',
-          availableSessions: 10,
-        },
-      },
-    });
+    get = apiGetMock;
     post = apiPostMock;
     put = vi.fn().mockResolvedValue({ data: { success: true } });
     delete = vi.fn().mockResolvedValue({ data: { success: true } });
@@ -132,7 +123,7 @@ vi.mock('../../services/pdfExportService', () => ({
 }));
 
 vi.mock('react-toastify', () => ({
-  toast: { info: vi.fn(), success: toastSuccessMock, warning: vi.fn(), error: toastErrorMock },
+  toast: { info: vi.fn(), success: toastSuccessMock, warning: toastWarningMock, error: toastErrorMock },
   ToastContainer: () => null,
 }));
 
@@ -208,6 +199,20 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     toastErrorMock.mockClear();
     toastSuccessMock.mockClear();
     apiPostMock.mockClear();
+    apiGetMock.mockClear();
+    apiGetMock.mockResolvedValue({
+      data: {
+        success: true,
+        client: {
+          id: 91,
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'client@example.com',
+          availableSessions: 10,
+          clientSource: 'swanstudios',
+        },
+      },
+    });
     apiPostMock.mockResolvedValue({ data: { success: true } });
     navigateMock.mockClear();
     localStorage.setItem('token', 'test-token');
@@ -285,8 +290,9 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     fireEvent.click(await screen.findByTestId('mock-footer-submit'));
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith('A workout form already exists for this client on this date');
+      expect(toastWarningMock).toHaveBeenCalledWith('A workout form already exists for this client on this date');
     });
+    expect(toastErrorMock).not.toHaveBeenCalledWith('A workout form already exists for this client on this date');
     expect(mockQueueSubmission).not.toHaveBeenCalled();
 
     fireEvent.click(await screen.findByTestId('mock-footer-summary'));
@@ -302,6 +308,55 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       );
     });
     expect(toastSuccessMock).toHaveBeenCalledWith('Summary generated and sent to client!');
+  });
+
+  it('allows Move Fitness clients with zero paid sessions to submit without frontend blocking', async () => {
+    apiGetMock.mockResolvedValueOnce({
+      data: {
+        success: true,
+        client: {
+          id: 91,
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'client@example.com',
+          availableSessions: 0,
+          clientSource: 'move_fitness',
+        },
+      },
+    });
+    submitWorkoutFormMock.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'form-move-fitness',
+        clientId: 91,
+        trainerId: 5,
+        date: '2026-05-26',
+        sessionDeducted: false,
+      },
+      message: 'Workout logged successfully without session deduction',
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('free tracking')).toBeInTheDocument();
+    expect(screen.queryByText('Move Fitness Access')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sessions Remaining: 0')).not.toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    expect(await screen.findByText('No Paid Session Deduction')).toBeInTheDocument();
+    expect(screen.queryByText('Will Deduct 1 Session')).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+
+    await waitFor(() => {
+      expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
+    });
+    expect(toastErrorMock).not.toHaveBeenCalledWith('Client has no available sessions remaining');
+    expect(toastSuccessMock).toHaveBeenCalledWith('Workout logged successfully without session deduction');
   });
 
   it('rejected save DOES call queueSubmission (preserve offline-first behavior)', async () => {
@@ -355,7 +410,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
   });
 
   it('requires confirmation before canceling an unsaved workout', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     render(
       <MemoryRouter>
@@ -367,8 +422,19 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
     fireEvent.click(await screen.findByTestId('mock-footer-cancel'));
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('Discard this unsaved workout'));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('dialog', { name: /discard unsaved workout/i })).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /keep logging/i }));
+    expect(navigateMock).not.toHaveBeenCalled();
+
+    fireEvent.click(await screen.findByTestId('mock-footer-cancel'));
+    fireEvent.click(await screen.findByRole('button', { name: /discard workout/i }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/dashboard/client/overview');
+    });
 
     confirmSpy.mockRestore();
   });

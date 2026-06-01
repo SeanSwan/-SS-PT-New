@@ -1,30 +1,34 @@
 /**
- * ============================================================================
  * FILE: OverviewTabContent.tsx
- * PURPOSE: Bento grid overview dashboard for a selected client (LIVE DATA)
- * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-04-02
- * AI VILLAGE VALIDATED: 2026-04-02
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Renders a bento-grid of dashboard cards for a client's
- * overview tab. Fetches real data from /api/admin/clients/:id and gamification
- * endpoints to show live stats, sessions, and engagement data.
- *
- * HOW IT FITS IN THE APP: ClientDetailView → OverviewTabContent (renderOverview prop)
- * KEY DECISIONS: Cards now show real data where available, with graceful '--' fallbacks.
+ * PURPOSE: Live bento overview dashboard for a selected client.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import styled from 'styled-components';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Brain, Gauge, Flame, BarChart3,
-  Award, DollarSign, Calendar, TrendingUp,
+  Brain,
+  Flame,
+  BarChart3,
+  Award,
+  DollarSign,
+  Calendar,
+  TrendingUp,
 } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
+import { getClientSessionSignal } from '../clientSessionSignal';
+import { getNumericClientId } from './clientTabId';
+import {
+  BentoCard,
+  BentoGrid,
+  CardHeader,
+  CardIcon,
+  CardSubtext,
+  CardTitle,
+  CardValue,
+  HeroRow,
+  HeroStat,
+  HeroStatLabel,
+  HeroStatValue,
+} from './OverviewTabContent.styles';
 
 interface OverviewTabContentProps {
   clientId: number | string;
@@ -38,6 +42,7 @@ interface ClientOverviewData {
   tier: string;
   streakDays: number;
   sessionsRemaining: number;
+  clientSource: string;
   totalRevenue: number;
   lastWorkoutDate: string | null;
   nextSessionDate: string | null;
@@ -45,150 +50,37 @@ interface ClientOverviewData {
   optPhase: number;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
-
-const BentoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 16px 0;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 430px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const BentoCard = styled.div<{ $span?: number; $heroAccent?: string }>`
-  grid-column: span ${({ $span }) => $span || 1};
-  background: var(--bg-surface, #141419);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-
-  ${({ $heroAccent }) => $heroAccent && `
-    border-left: 3px solid ${$heroAccent};
-  `}
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
-  }
-
-  @media (max-width: 1024px) {
-    grid-column: span ${({ $span }) => ($span && $span > 2 ? 2 : $span || 1)};
-  }
-
-  @media (max-width: 430px) {
-    grid-column: span 1;
-  }
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const CardIcon = styled.div<{ $color?: string }>`
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, ${({ $color }) => $color || 'var(--accent-primary, #60C0F0)'} 12%, transparent);
-  color: ${({ $color }) => $color || 'var(--accent-primary, #60C0F0)'};
-  flex-shrink: 0;
-`;
-
-const CardTitle = styled.h4`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-  margin: 0;
-`;
-
-const CardValue = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const CardSubtext = styled.p`
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.65));
-  margin: 0;
-  line-height: 1.5;
-`;
-
-const HeroRow = styled.div`
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-`;
-
-const HeroStat = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-`;
-
-const HeroStatLabel = styled.span`
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.65));
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const HeroStatValue = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--accent-primary, #60C0F0);
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Data Fetching
-// ─────────────────────────────────────────────────────────────
-
 function useClientOverview(clientId: number | string) {
   const [data, setData] = useState<ClientOverviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!clientId) return;
+    const numericClientId = getNumericClientId(clientId);
+    if (!numericClientId) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     let cancelled = false;
 
-    apiService.get(`/api/admin/clients/${clientId}`)
+    apiService.get(`/api/admin/clients/${numericClientId}`)
       .then(response => {
         if (cancelled) return;
+
         const json = response.data;
-        // Backend `getClientDetails` (adminClientController.mjs:570-576) wraps
-        // the client one extra level deep: `{ data: { client, mcpStats } }`.
-        // Pierce that first; preserve legacy `client` / `data` fallbacks.
         const c = json.data?.client || json.client || json.data || json;
+        const availableSessions = c.availableSessions ?? c.sessionsRemaining ?? c.remainingSessions ?? 0;
+
         setData({
           totalWorkouts: c.totalWorkouts || c.workoutCount || 0,
           points: c.points || 0,
           level: c.level || 1,
           tier: c.tier || 'Bronze Forge',
           streakDays: c.streakDays || 0,
-          sessionsRemaining: c.sessionsRemaining ?? c.remainingSessions ?? 0,
+          sessionsRemaining: Number.isFinite(Number(availableSessions)) ? Number(availableSessions) : 0,
+          clientSource: typeof c.clientSource === 'string' ? c.clientSource : 'swanstudios',
           totalRevenue: c.totalRevenue || c.revenue || 0,
           lastWorkoutDate: c.lastWorkoutDate || c.lastActiveDate || null,
           nextSessionDate: c.nextSessionDate || null,
@@ -211,40 +103,41 @@ function useClientOverview(clientId: number | string) {
   return { data, loading };
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Helpers
-// ─────────────────────────────────────────────────────────────
-
 const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return 'None scheduled';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'None scheduled';
+
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return 'None scheduled';
+
   const now = new Date();
-  const diff = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const diff = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
   if (diff === 0) return 'Today';
   if (diff === 1) return 'Tomorrow';
   if (diff < 0) return `${Math.abs(diff)} days ago`;
   return `In ${diff} days`;
 };
 
-const formatCurrency = (val: number): string => {
-  if (val === 0) return '$0';
-  return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const formatCurrency = (value: number): string => {
+  if (value === 0) return '$0';
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 
 const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clientId, clientName }) => {
   const { data, loading } = useClientOverview(clientId);
 
   const cards = useMemo(() => {
-    const d = data;
+    const sessionSignal = data
+      ? getClientSessionSignal({
+          clientSource: data.clientSource,
+          availableSessions: data.sessionsRemaining,
+        })
+      : null;
+
     return [
       {
         id: 'ai-protocol',
-        title: `${clientName || 'Client'} — Training Overview`,
+        title: `${clientName || 'Client'} - Training Overview`,
         icon: <Brain size={18} />,
         iconColor: 'var(--accent-secondary, #8B5CF6)',
         span: 4,
@@ -257,8 +150,8 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <TrendingUp size={18} />,
         iconColor: 'var(--accent-primary, #60C0F0)',
         span: 1,
-        value: d ? `Phase ${d.optPhase}` : '--',
-        subtext: d ? `Level ${d.level} · ${d.tier}` : 'Loading...',
+        value: data ? `Phase ${data.optPhase}` : '--',
+        subtext: data ? `Level ${data.level} - ${data.tier}` : 'Loading...',
       },
       {
         id: 'xp-streak',
@@ -266,8 +159,8 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <Flame size={18} />,
         iconColor: 'var(--accent-gold, #C6A84B)',
         span: 1,
-        value: d ? `${d.points.toLocaleString()} XP` : '0 XP',
-        subtext: d ? `${d.streakDays}-day streak` : '0-day streak',
+        value: data ? `${data.points.toLocaleString()} XP` : '0 XP',
+        subtext: data ? `${data.streakDays}-day streak` : '0-day streak',
       },
       {
         id: 'workouts',
@@ -275,8 +168,8 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <BarChart3 size={18} />,
         iconColor: 'var(--accent-primary, #60C0F0)',
         span: 1,
-        value: d ? `${d.totalWorkouts}` : '--',
-        subtext: d?.lastWorkoutDate ? `Last: ${formatDate(d.lastWorkoutDate)}` : 'No workouts logged',
+        value: data ? `${data.totalWorkouts}` : '--',
+        subtext: data?.lastWorkoutDate ? `Last: ${formatDate(data.lastWorkoutDate)}` : 'No workouts logged',
       },
       {
         id: 'badges',
@@ -284,7 +177,7 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <Award size={18} />,
         iconColor: 'var(--accent-secondary, #8B5CF6)',
         span: 1,
-        value: d ? `${d.achievementCount}` : '0',
+        value: data ? `${data.achievementCount}` : '0',
         subtext: 'Badges earned',
       },
       {
@@ -293,8 +186,8 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <DollarSign size={18} />,
         iconColor: 'var(--accent-gold, #C6A84B)',
         span: 2,
-        value: d ? formatCurrency(d.totalRevenue) : '--',
-        subtext: d ? `${d.sessionsRemaining} sessions remaining` : 'Loading...',
+        value: data ? formatCurrency(data.totalRevenue) : '--',
+        subtext: sessionSignal ? `${sessionSignal.label} - ${sessionSignal.note}` : 'Loading...',
       },
       {
         id: 'schedule',
@@ -302,7 +195,7 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
         icon: <Calendar size={18} />,
         iconColor: 'var(--accent-primary, #60C0F0)',
         span: 2,
-        value: d ? formatDate(d.nextSessionDate) : '--',
+        value: data ? formatDate(data.nextSessionDate) : '--',
         subtext: 'Upcoming scheduled session',
       },
     ];
@@ -311,11 +204,7 @@ const OverviewTabContent: React.FC<OverviewTabContentProps> = React.memo(({ clie
   return (
     <BentoGrid>
       {cards.map((card) => (
-        <BentoCard
-          key={card.id}
-          $span={card.span}
-          $heroAccent={card.heroAccent}
-        >
+        <BentoCard key={card.id} $span={card.span} $heroAccent={card.heroAccent}>
           <CardHeader>
             <CardIcon $color={card.iconColor}>
               {card.icon}

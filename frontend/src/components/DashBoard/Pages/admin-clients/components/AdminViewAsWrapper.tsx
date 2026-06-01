@@ -35,6 +35,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Shield, X, Dumbbell, Flame, Trophy, Star, Calendar, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { TIER_DISPLAY, type TierName } from '../../../../../types/gamification';
+import { getNumericClientId } from '../../../workspaces/clients-team/tabs/clientTabId';
 import EnhancedWorkoutsModal from './EnhancedWorkoutsModal';
 
 // ─────────────────────────────────────────────────────────────
@@ -271,6 +272,7 @@ interface ViewAsData {
 
 const AdminViewAsWrapper: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
+  const numericUserId = getNumericClientId(userId ?? '');
   const navigate = useNavigate();
   const { authAxios } = useAuth();
   const [data, setData] = useState<ViewAsData | null>(null);
@@ -279,23 +281,37 @@ const AdminViewAsWrapper: React.FC = () => {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const fetchViewAsData = useCallback(async () => {
-    if (!userId || !authAxios) return;
+    if (!authAxios) return;
+    if (!userId) {
+      setData(null);
+      setError('Select a client before opening admin preview.');
+      setLoading(false);
+      return;
+    }
+    if (numericUserId === null) {
+      setData(null);
+      setError('Select a valid client before opening admin preview.');
+      setLoading(false);
+      return;
+    }
+
+    const routeUserId = String(numericUserId);
     setLoading(true);
     setError(null);
 
     try {
       // Parallel fetch: client profile + workouts + sessions + gamification
       const [profileRes, workoutsRes, sessionsRes, gamRes] = await Promise.allSettled([
-        authAxios.get(`/api/admin/clients/${userId}`),
-        authAxios.get(`/api/admin/clients/${userId}/workouts`, { params: { limit: 10 } }),
-        authAxios.get(`/api/sessions`, { params: { userId, limit: 10, upcoming: true } }),
+        authAxios.get(`/api/admin/clients/${routeUserId}`),
+        authAxios.get(`/api/admin/clients/${routeUserId}/workouts`, { params: { limit: 10 } }),
+        authAxios.get(`/api/sessions`, { params: { userId: routeUserId, limit: 10, upcoming: true } }),
         // Phase 18.C.1A/1B: canonical viewAs read. Backend routes
         // `/api/v1/gamification/profile` through viewAsGuard (admin-only,
         // strict positive-integer, active-client target). The legacy
         // `/api/gamification/profile/:userId` path had no backend handler
         // and 404'd silently via Promise.allSettled, which is why this
         // panel rendered zeros for every admin view before this fix.
-        authAxios.get('/api/v1/gamification/profile', { params: { viewAs: userId } }),
+        authAxios.get('/api/v1/gamification/profile', { params: { viewAs: routeUserId } }),
       ]);
 
       // Extract profile (required)
@@ -310,6 +326,7 @@ const AdminViewAsWrapper: React.FC = () => {
                    || profileRes.value.data?.client
                    || profileRes.value.data?.user
                    || profileRes.value.data;
+      const profileClientId = getNumericClientId(profile.id ?? routeUserId) ?? numericUserId;
 
       // Extract workouts (optional)
       const workouts = workoutsRes.status === 'fulfilled'
@@ -363,7 +380,7 @@ const AdminViewAsWrapper: React.FC = () => {
 
       setData({
         user: {
-          id: profile.id,
+          id: profileClientId,
           firstName: profile.firstName || '',
           lastName: profile.lastName || '',
           email: profile.email || '',
@@ -389,7 +406,7 @@ const AdminViewAsWrapper: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, authAxios]);
+  }, [userId, numericUserId, authAxios]);
 
   useEffect(() => { fetchViewAsData(); }, [fetchViewAsData]);
 

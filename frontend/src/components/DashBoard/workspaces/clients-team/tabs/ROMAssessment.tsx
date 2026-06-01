@@ -7,9 +7,29 @@
  */
 
 import React, { useState, useCallback, useEffect, memo } from 'react';
-import styled from 'styled-components';
 import { Ruler, Save, RotateCcw, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import {
+  Btn,
+  BtnRow,
+  ClientNameAccent,
+  Container,
+  DateInput,
+  DegreeInput,
+  GroupHeader,
+  Header,
+  JointGroup,
+  MovementLabel,
+  MovementRow,
+  NormalBadge,
+  NotesArea,
+  RomGridHeader,
+  SideLabel,
+  StatusMsg,
+  Title,
+  TitleIcon,
+} from './ROMAssessment.styles';
+import { getNumericClientId } from './clientTabId';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: ROM Joint Definitions (NASM Standard)
@@ -50,181 +70,7 @@ const ROM_JOINTS = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
-const Container = styled.div`
-  padding: 20px;
-  max-width: 900px;
-
-  @media (max-width: 768px) { padding: 12px; }
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-`;
-
-const Title = styled.h3`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-heading, #E0ECF4);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const DateInput = styled.input`
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Fira Code', monospace;
-  font-size: 13px;
-  min-height: 40px;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent-primary, #60C0F0);
-  }
-`;
-
-const JointGroup = styled.div`
-  margin-bottom: 20px;
-`;
-
-const GroupHeader = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--accent-primary, #60C0F0);
-  padding: 8px 0 6px;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
-  margin-bottom: 8px;
-`;
-
-const MovementRow = styled.div`
-  display: grid;
-  grid-template-columns: 160px 1fr 1fr 60px;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 0;
-
-  @media (max-width: 600px) {
-    grid-template-columns: 120px 1fr 1fr 50px;
-    gap: 4px;
-  }
-`;
-
-const MovementLabel = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
-`;
-
-const DegreeInput = styled.input<{ $status: 'normal' | 'limited' | 'severe' }>`
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid ${({ $status }) =>
-    $status === 'normal' ? 'rgba(96, 192, 240, 0.15)'
-    : $status === 'limited' ? 'rgba(198, 168, 75, 0.3)'
-    : 'rgba(201, 42, 84, 0.3)'};
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Fira Code', monospace;
-  font-size: 13px;
-  text-align: center;
-  min-height: 40px;
-
-  &:focus {
-    outline: none;
-    border-color: var(--accent-primary, #60C0F0);
-  }
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.25));
-  }
-`;
-
-const NormalBadge = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.75));
-  text-align: center;
-`;
-
-const SideLabel = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 10px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.75));
-  text-align: center;
-  padding-bottom: 2px;
-`;
-
-const BtnRow = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-`;
-
-const Btn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  min-height: 44px;
-  border-radius: 10px;
-  border: 1px solid ${({ $variant }) =>
-    $variant === 'primary' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
-  background: ${({ $variant }) =>
-    $variant === 'primary' ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)' : 'transparent'};
-  color: ${({ $variant }) =>
-    $variant === 'primary' ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-primary, #E0ECF4)'};
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover { opacity: 0.85; }
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
-
-const NotesArea = styled.textarea`
-  width: 100%;
-  padding: 10px 14px;
-  min-height: 80px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
-  background: var(--bg-elevated, #141419);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  resize: vertical;
-  margin-top: 12px;
-
-  &:focus { outline: none; border-color: var(--accent-primary, #60C0F0); }
-  &::placeholder { color: var(--text-muted, rgba(224, 236, 244, 0.3)); }
-`;
-
-const StatusMsg = styled.div<{ $type: 'success' | 'error' }>`
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin-top: 12px;
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  background: ${({ $type }) => $type === 'success' ? 'rgba(96, 192, 240, 0.1)' : 'rgba(201, 42, 84, 0.1)'};
-  color: ${({ $type }) => $type === 'success' ? '#60C0F0' : '#E0ECF4'};
-  border: 1px solid ${({ $type }) => $type === 'success' ? 'rgba(96, 192, 240, 0.2)' : 'rgba(201, 42, 84, 0.3)'};
-`;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -237,6 +83,7 @@ type ROMValues = Record<string, { left: string; right: string }>;
 
 const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) => {
   const { authAxios } = useAuth() as any;
+  const numericClientId = getNumericClientId(clientId);
   const [values, setValues] = useState<ROMValues>({});
   const [assessmentDate, setAssessmentDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
@@ -263,8 +110,13 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
 
   const handleSave = useCallback(async () => {
     if (!authAxios) return;
-    setSaving(true);
     setStatus(null);
+    if (numericClientId === null) {
+      setStatus({ type: 'error', msg: 'Select a valid client before saving ROM assessment' });
+      return;
+    }
+
+    setSaving(true);
 
     try {
       // Build measurements object
@@ -276,7 +128,7 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
 
       // Save via baseline measurements API (uses rangeOfMotion JSONB field)
       await authAxios.post('/api/admin/baseline-measurements', {
-        userId: clientId,
+        userId: numericClientId,
         rangeOfMotion: { date: assessmentDate, measurements, notes },
       });
 
@@ -286,7 +138,7 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
     } finally {
       setSaving(false);
     }
-  }, [authAxios, clientId, values, assessmentDate, notes]);
+  }, [authAxios, numericClientId, values, assessmentDate, notes]);
 
   const handleReset = useCallback(() => {
     setValues({});
@@ -301,9 +153,11 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
     <Container>
       <Header>
         <Title>
-          <Ruler size={20} style={{ color: 'var(--accent-primary, #60C0F0)' }} />
+          <TitleIcon aria-hidden="true">
+            <Ruler size={20} />
+          </TitleIcon>
           Range of Motion Assessment
-          {clientName && <span style={{ fontWeight: 400, fontSize: 14, opacity: 0.6 }}>— {clientName}</span>}
+          {clientName && <ClientNameAccent>- {clientName}</ClientNameAccent>}
         </Title>
         <DateInput
           type="date"
@@ -313,12 +167,12 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
         />
       </Header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 1fr 60px', gap: 8, marginBottom: 4 }}>
+      <RomGridHeader aria-hidden="true">
         <div />
         <SideLabel>LEFT (°)</SideLabel>
         <SideLabel>RIGHT (°)</SideLabel>
         <SideLabel>Normal</SideLabel>
-      </div>
+      </RomGridHeader>
 
       {ROM_JOINTS.map(group => (
         <JointGroup key={group.group}>
@@ -358,11 +212,11 @@ const ROMAssessment: React.FC<ROMAssessmentProps> = ({ clientId, clientName }) =
       />
 
       <BtnRow>
-        <Btn $variant="primary" onClick={handleSave} disabled={saving || filledCount === 0}>
+        <Btn type="button" $variant="primary" onClick={handleSave} disabled={saving || filledCount === 0}>
           <Save size={16} />
           {saving ? 'Saving...' : `Save Assessment (${filledCount}/${totalMovements} measured)`}
         </Btn>
-        <Btn onClick={handleReset}>
+        <Btn type="button" onClick={handleReset}>
           <RotateCcw size={16} />
           Reset
         </Btn>

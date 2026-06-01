@@ -1,177 +1,47 @@
 /**
  * ============================================================================
  * FILE: useClientProgressCharts.ts
- * PURPOSE: Canonical hook for the 12 client-progress charts (Phase 14 rebuild)
- * AUTHOR: Claude Opus 4.6 | CREATED: 2026-04-15 (Phase 14)
+ * PURPOSE: Canonical runtime hook for the 12 client-progress charts.
  * ============================================================================
  *
- * WHAT THIS FILE DOES:
- * Fetches the 12 canonical client-progress chart datasets in parallel from
- * `/api/client/analytics/chart-*` and returns them as a single typed bundle
- * keyed by canonical chart IDs. Intentionally separate from
- * `useClientAnalytics` — that older hook fetches the pre-Phase-14 mix of 9
- * endpoints (with 5 broken PascalCase endpoints silently returning empty)
- * plus derived summary data. This hook is the single-responsibility fetcher
- * for the canonical progress surface.
- *
- * WHY THIS FILE EXISTS:
- * Phase 14 establishes a 12-chart canonical contract. Rather than overload
- * the legacy hook, this file gives the new canonical grid one place to own:
- *   - the canonical chart ID constants (shared with the backend)
- *   - per-chart request shapes
- *   - typed empty-state fallbacks
- *   - a single `isLoading` + `error` surface for the whole grid
- *
- * TRUTHFUL EMPTY STATES:
- * Every chart defaults to an empty array / empty object when its endpoint
- * returns no data. No demo / preview / fake fallbacks. The canonical grid
- * renders "None logged yet" copy based on these empty-but-real arrays,
- * never hides the absence of data.
- *
- * DATA FLOW:
- *   CanonicalProgressChartsGrid → useClientProgressCharts →
- *   GET /api/client/analytics/chart-* (12 endpoints in parallel) →
- *   shaped {chartId: data} bundle
+ * Fetches the client-safe `/api/client/analytics/chart-*` endpoints in
+ * parallel, sanitizes every payload before Victory receives it, and returns
+ * truthful empty shapes when logged workout data does not exist yet.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import {
+  CANONICAL_CHART_IDS,
+  CANONICAL_CHART_ROUTES,
+  type AnchorLiftsBundle,
+  type AttendanceBundle,
+  type CanonicalProgressCharts,
+  type SetsRepsBundle,
+} from './useClientProgressCharts.types';
+import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Canonical chart ID constants
-//
-// These strings are the canonical IDs for the 12 client-progress charts.
-// They must match the backend endpoint suffix AFTER the `chart-` prefix —
-// e.g. `weeklyVolume` → `/api/client/analytics/chart-weekly-volume`.
-//
-// Do NOT rename without also updating:
-//   - `backend/controllers/chartDataController.mjs` (function names)
-//   - `backend/routes/clientAnalyticsRoutes.mjs` (route paths)
-//   - `backend/routes/analyticsRoutes.mjs` (admin/trainer routes)
-//   - `CanonicalProgressChartsGrid.tsx` (registry)
-// ─────────────────────────────────────────────────────────────
+export {
+  CANONICAL_CHART_IDS,
+  CANONICAL_CHART_ROUTES,
+} from './useClientProgressCharts.types';
 
-export const CANONICAL_CHART_IDS = [
-  'workoutFrequency',          // #1 — workouts/week (workout_sessions)
-  'attendanceReliability',     // #2 — status breakdown (workout_sessions.status)
-  'weeklyVolume',              // #3 — sum(weight*reps)/week (workout_logs)
-  'setsRepsTrend',             // #4 — dual series sets + reps (workout_logs)
-  'durationTrend',             // #5 — per-session duration (workout_sessions)
-  'intensityRpeTrend',         // #6 — rpe precedence, intensity fallback
-  'prTimeline',                // #7 — running best sets (workout_logs)
-  'anchorLifts',               // #8 — top-3 most-frequent progression
-  'exerciseFrequency',         // #9 — top-10 by session count (workout_logs)
-  'movementPatternBalance',    // #10 — NASM patterns volume aggregate
-  'muscleGroupBalance',        // #11 — NASM muscle groups volume aggregate
-  'recoverySignal',            // #12 — pain notes + high-RPE clustering
-] as const;
-
-export type CanonicalChartId = typeof CANONICAL_CHART_IDS[number];
-
-/**
- * Map from canonical ID to the backend route suffix. Kept as an explicit
- * object (rather than derived via kebab-casing) so the mapping is
- * grep-friendly and refactor-safe.
- */
-export const CANONICAL_CHART_ROUTES: Record<CanonicalChartId, string> = {
-  workoutFrequency: 'chart-workout-frequency',
-  attendanceReliability: 'chart-attendance-reliability',
-  weeklyVolume: 'chart-weekly-volume',
-  setsRepsTrend: 'chart-sets-reps-trend',
-  durationTrend: 'chart-duration-trend',
-  intensityRpeTrend: 'chart-intensity-rpe-trend',
-  prTimeline: 'chart-pr-timeline',
-  anchorLifts: 'chart-anchor-lifts',
-  exerciseFrequency: 'chart-exercise-frequency',
-  movementPatternBalance: 'chart-movement-pattern-balance',
-  muscleGroupBalance: 'chart-muscle-group-balance',
-  recoverySignal: 'chart-recovery-signal',
-};
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Per-chart response shapes
-// ─────────────────────────────────────────────────────────────
-
-export interface ChartPoint {
-  x: string;
-  y: number;
-}
-
-export interface WeeklyVolumePoint extends ChartPoint {
-  workouts: number;
-}
-
-export interface ExerciseFrequencyPoint extends ChartPoint {
-  sets: number;
-}
-
-export interface MovementPatternPoint extends ChartPoint {
-  sets: number;
-}
-
-export interface MuscleGroupPoint extends ChartPoint {
-  sets: number;
-}
-
-export interface PRPoint extends ChartPoint {
-  exercise: string;
-  reps: number;
-}
-
-export interface AnchorLiftPoint extends ChartPoint {
-  reps: number;
-}
-
-export interface IntensityPoint extends ChartPoint {
-  source: 'rpe' | 'intensity';
-}
-
-export interface RecoveryPoint extends ChartPoint {
-  painFlags: number;
-  highRpeFlags: number;
-  totalSets: number;
-}
-
-export interface AttendanceBundle {
-  data: ChartPoint[];
-  reliabilityPercent: number;
-  totals: {
-    completed: number;
-    skipped: number;
-    cancelled: number;
-    resolved: number;
-  };
-}
-
-export interface SetsRepsBundle {
-  sets: ChartPoint[];
-  reps: ChartPoint[];
-}
-
-export interface AnchorLiftsBundle {
-  data: Record<string, AnchorLiftPoint[]>;
-  exercises: string[];
-}
-
-/**
- * Single canonical bundle returned by `useClientProgressCharts`.
- * Every field defaults to an empty array / zeroed object on failure —
- * no chart ever renders stale or fake data.
- */
-export interface CanonicalProgressCharts {
-  workoutFrequency: ChartPoint[];
-  attendanceReliability: AttendanceBundle;
-  weeklyVolume: WeeklyVolumePoint[];
-  setsRepsTrend: SetsRepsBundle;
-  durationTrend: ChartPoint[];
-  intensityRpeTrend: IntensityPoint[];
-  prTimeline: PRPoint[];
-  anchorLifts: AnchorLiftsBundle;
-  exerciseFrequency: ExerciseFrequencyPoint[];
-  movementPatternBalance: MovementPatternPoint[];
-  muscleGroupBalance: MuscleGroupPoint[];
-  recoverySignal: RecoveryPoint[];
-}
+export type {
+  AnchorLiftPoint,
+  AnchorLiftsBundle,
+  AttendanceBundle,
+  CanonicalChartId,
+  CanonicalProgressCharts,
+  ChartPoint,
+  ExerciseFrequencyPoint,
+  IntensityPoint,
+  MovementPatternPoint,
+  MuscleGroupPoint,
+  PRPoint,
+  RecoveryPoint,
+  SetsRepsBundle,
+  WeeklyVolumePoint,
+} from './useClientProgressCharts.types';
 
 const EMPTY_ATTENDANCE: AttendanceBundle = {
   data: [],
@@ -198,20 +68,11 @@ const EMPTY_BUNDLE: CanonicalProgressCharts = {
   recoverySignal: [],
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
-
 interface UseClientProgressChartsReturn {
   charts: CanonicalProgressCharts;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
-  /**
-   * Count of charts that have at least one data point. Used by the grid
-   * to detect the "empty client" state and render a single "no workouts
-   * logged yet" hero message instead of twelve near-empty cards.
-   */
   nonEmptyChartCount: number;
 }
 
@@ -233,8 +94,6 @@ export function useClientProgressCharts(): UseClientProgressChartsReturn {
         .catch(() => null);
 
     try {
-      // Parallel fetch. Every endpoint tolerates failure via null →
-      // the extractor below substitutes the canonical empty shape.
       const responses = await Promise.all(
         CANONICAL_CHART_IDS.map((id) => get(CANONICAL_CHART_ROUTES[id])),
       );
@@ -256,7 +115,7 @@ export function useClientProgressCharts(): UseClientProgressChartsReturn {
       const listOrEmpty = (r: any): any[] =>
         r?.success && Array.isArray(r?.data) ? r.data : [];
 
-      const next: CanonicalProgressCharts = {
+      const next: CanonicalProgressCharts = sanitizeClientProgressChartsBundle({
         workoutFrequency: listOrEmpty(workoutFreqRes),
         attendanceReliability: attendanceRes?.success
           ? {
@@ -295,7 +154,7 @@ export function useClientProgressCharts(): UseClientProgressChartsReturn {
         movementPatternBalance: listOrEmpty(movementPatternRes),
         muscleGroupBalance: listOrEmpty(muscleGroupRes),
         recoverySignal: listOrEmpty(recoveryRes),
-      };
+      });
 
       setCharts(next);
     } catch (err: any) {

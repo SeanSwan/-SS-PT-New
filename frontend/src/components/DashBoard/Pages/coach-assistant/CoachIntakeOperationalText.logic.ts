@@ -1,9 +1,3 @@
-/**
- * CoachIntakeOperationalText.logic.ts
- * ===================================
- * PII-safe operational text helpers for Coach/PLAUD intake UI surfaces.
- */
-
 const SAFE_HOLD_REASON_LABELS = new Set([
   'Client confirmation needed',
   'Clarification required',

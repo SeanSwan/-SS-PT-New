@@ -4,6 +4,7 @@ import { AdminSpecial, AdminSpecialFormData, Package, ClientOption } from './adm
 import { Container, Header, Title, AddButton } from './adminSpecials.styles';
 import AdminSpecialsTable from './AdminSpecialsTable';
 import AdminSpecialsModal from './AdminSpecialsModal';
+import ConfirmActionDialog from '../../../Shared/ConfirmActionDialog';
 
 const defaultFormData = (): AdminSpecialFormData => ({
   name: '',
@@ -23,6 +24,7 @@ const AdminSpecialsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingSpecial, setEditingSpecial] = useState<AdminSpecial | null>(null);
+  const [specialToDelete, setSpecialToDelete] = useState<number | null>(null);
   const [formData, setFormData] = useState<AdminSpecialFormData>(defaultFormData());
 
   const fetchSpecials = useCallback(async () => {
@@ -121,12 +123,18 @@ const AdminSpecialsManager: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this special?')) return;
+    setSpecialToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!specialToDelete) return;
     try {
-      await apiService.delete(`/api/admin/specials/${id}`);
+      await apiService.delete(`/api/admin/specials/${specialToDelete}`);
       fetchSpecials();
     } catch (error) {
       console.error('Failed to delete special:', error);
+    } finally {
+      setSpecialToDelete(null);
     }
   };
 
@@ -168,6 +176,16 @@ const AdminSpecialsManager: React.FC = () => {
         onChange={setFormData}
         onSave={handleSave}
         onTogglePackage={handlePackageToggle}
+      />
+      <ConfirmActionDialog
+        open={specialToDelete !== null}
+        title="Delete special?"
+        message="This removes the bonus-session promotion from the admin store tools. Existing client records and workout history stay intact."
+        confirmLabel="Delete special"
+        cancelLabel="Keep special"
+        tone="danger"
+        onCancel={() => setSpecialToDelete(null)}
+        onConfirm={confirmDelete}
       />
     </Container>
   );

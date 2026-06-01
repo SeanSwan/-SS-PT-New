@@ -5,6 +5,10 @@ import {
   getPersonalRecords,
   getWorkoutFrequency
 } from '../services/analyticsService.mjs';
+import {
+  getExerciseHistoryFromLogs,
+  getExerciseVarietyFromLogs,
+} from '../services/analyticsExerciseHistoryService.mjs';
 import { updateClientProgress, getPhaseRecommendations } from '../services/nasmProgressionService.mjs';
 
 /**
@@ -294,13 +298,13 @@ export async function getAnalyticsDashboard(req, res) {
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Exercise History (Rolodex)
-// PURPOSE: All-time exercise frequency, volume, PRs from materialized view
+// PURPOSE: All-time exercise frequency, volume, PRs from workout logs
 // WHY: Powers the Exercise Rolodex full-page chart
 // ─────────────────────────────────────────────────────────────
 
 /**
  * Get exercise history for a user (all-time exercise stats).
- * Uses materialized view for performance — no heavy JOINs per request.
+ * Uses canonical workout_logs joined to workout_sessions.
  * GET /api/analytics/:userId/exercise-history
  */
 export async function getExerciseHistory(req, res) {
@@ -308,111 +312,19 @@ export async function getExerciseHistory(req, res) {
     const { userId } = req.params;
     const { muscleGroup, sort = 'timesPerformed', cursor, limit = 50 } = req.query;
 
-    const sequelize = req.app.get('sequelize');
-    if (!sequelize) {
-      return res.json({
-        success: true,
-        exercises: [],
-        totalUniqueExercises: 0,
-        totalAvailableExercises: 0,
-        varietyScore: 0,
-        usedMaterializedView: false,
-      });
-    }
-
-    // Try materialized view first, fall back to direct query
-    let exercises = [];
-    let usedMV = false;
-
-    try {
-      const whereClause = muscleGroup && muscleGroup !== 'All'
-        ? `AND "primaryMuscles" ILIKE :muscleGroup`
-        : '';
-
-      const cursorClause = cursor
-        ? `AND ("lastPerformedDate", "exerciseId") < (:cursorDate, :cursorId)`
-        : '';
-
-      const orderMap = {
-        timesPerformed: '"timesPerformed" DESC',
-        totalVolume: '"totalVolume" DESC',
-        lastPerformed: '"lastPerformedDate" DESC',
-        alphabetical: '"exerciseName" ASC',
-      };
-      const orderBy = orderMap[sort] || orderMap.timesPerformed;
-
-      const replacements = { userId, limit: parseInt(limit) };
-      if (muscleGroup && muscleGroup !== 'All') replacements.muscleGroup = `%${muscleGroup}%`;
-      if (cursor) {
-        const [cursorDate, cursorId] = cursor.split(',');
-        replacements.cursorDate = cursorDate;
-        replacements.cursorId = parseInt(cursorId);
-      }
-
-      const [rows] = await sequelize.query(
-        `SELECT * FROM "UserExerciseStats_MV"
-         WHERE "userId" = :userId ${whereClause} ${cursorClause}
-         ORDER BY ${orderBy}, "exerciseId" DESC
-         LIMIT :limit`,
-        { replacements }
-      );
-
-      exercises = rows || [];
-      usedMV = true;
-    } catch {
-      // MV doesn't exist — fall back to direct query
-      try {
-        const [rows] = await sequelize.query(
-          `SELECT
-            e.id AS "exerciseId", e.name AS "exerciseName",
-            e."primaryMuscles", e.category,
-            COUNT(DISTINCT we."workoutSessionId") AS "timesPerformed",
-            COALESCE(MAX(s."weightUsed"), 0) AS "maxWeight",
-            COALESCE(MAX(s."repsCompleted"), 0) AS "maxReps",
-            COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0) AS "totalVolume",
-            MAX(ws.date) AS "lastPerformedDate",
-            MIN(ws.date) AS "firstPerformedDate"
-          FROM "WorkoutExercises" we
-          JOIN "Exercises" e ON we."exerciseId" = e.id
-          JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-          LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-          WHERE ws."userId" = :userId AND ws.status = 'completed'
-          GROUP BY e.id, e.name, e."primaryMuscles", e.category
-          ORDER BY "timesPerformed" DESC
-          LIMIT :limit`,
-          { replacements: { userId, limit: parseInt(limit) } }
-        );
-        exercises = rows || [];
-      } catch (fallbackErr) {
-        console.warn('Exercise history fallback query failed (tables may not exist):', fallbackErr.message);
-        exercises = [];
-      }
-    }
-
-    // Get total unique exercises and available exercises count
-    const [totalResult] = await sequelize.query(
-      `SELECT COUNT(DISTINCT we."exerciseId") as total
-       FROM "WorkoutExercises" we
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       WHERE ws."userId" = :userId AND ws.status = 'completed'`,
-      { replacements: { userId } }
-    ).catch(() => [[{ total: 0 }]]);
-
-    const [availableResult] = await sequelize.query(
-      `SELECT COUNT(*) as total FROM "Exercises" WHERE "isActive" = true`
-    ).catch(() => [[{ total: 840 }]]);
-
-    const totalUnique = parseInt(totalResult?.[0]?.total || 0);
-    const totalAvailable = parseInt(availableResult?.[0]?.total || 840);
-
-    res.json({
-      success: true,
-      exercises,
-      totalUniqueExercises: totalUnique,
-      totalAvailableExercises: totalAvailable,
-      varietyScore: totalAvailable > 0 ? parseFloat(((totalUnique / totalAvailable) * 100).toFixed(1)) : 0,
-      usedMaterializedView: usedMV,
+    const history = await getExerciseHistoryFromLogs(userId, {
+      muscleGroup,
+      sort,
+      cursor,
+      limit,
+      sequelize: req.app.get('sequelize'),
     });
+
+    return res.json({
+      success: true,
+      ...history,
+    });
+
   } catch (error) {
     console.error('Error getting exercise history:', error);
     res.status(500).json({
@@ -430,44 +342,15 @@ export async function getExerciseHistory(req, res) {
 export async function getExerciseVariety(req, res) {
   try {
     const { userId } = req.params;
-    const sequelize = req.app.get('sequelize');
-
-    // New exercises this month
-    const [newThisMonth] = await sequelize.query(
-      `SELECT COUNT(DISTINCT we."exerciseId") as count
-       FROM "WorkoutExercises" we
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       WHERE ws."userId" = :userId
-         AND ws.status = 'completed'
-         AND ws.date >= DATE_TRUNC('month', NOW())
-         AND we."exerciseId" NOT IN (
-           SELECT DISTINCT we2."exerciseId"
-           FROM "WorkoutExercises" we2
-           JOIN "WorkoutSessions" ws2 ON we2."workoutSessionId" = ws2.id
-           WHERE ws2."userId" = :userId
-             AND ws2.status = 'completed'
-             AND ws2.date < DATE_TRUNC('month', NOW())
-         )`,
-      { replacements: { userId } }
-    ).catch(() => [[{ count: 0 }]]);
-
-    // Muscle groups hit this month
-    const [muscleGroups] = await sequelize.query(
-      `SELECT DISTINCT e."primaryMuscles"
-       FROM "WorkoutExercises" we
-       JOIN "Exercises" e ON we."exerciseId" = e.id
-       JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-       WHERE ws."userId" = :userId
-         AND ws.status = 'completed'
-         AND ws.date >= DATE_TRUNC('month', NOW())`,
-      { replacements: { userId } }
-    ).catch(() => [[]]);
-
-    res.json({
-      success: true,
-      newExercisesThisMonth: parseInt(newThisMonth?.[0]?.count || 0),
-      muscleGroupsHitThisMonth: muscleGroups?.length || 0,
+    const variety = await getExerciseVarietyFromLogs(userId, {
+      sequelize: req.app.get('sequelize'),
     });
+
+    return res.json({
+      success: true,
+      ...variety,
+    });
+
   } catch (error) {
     console.error('Error getting exercise variety:', error);
     res.status(500).json({ success: false, message: 'Failed to get variety stats' });

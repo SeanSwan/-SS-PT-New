@@ -2,7 +2,31 @@
  * Command Registry — Category L: Client Self-Service Mode (10 commands)
  */
 import { z } from 'zod';
-import { registerCommands, PainLevelSchema } from './baseSchemas.mjs';
+import { DateSchema, registerCommands } from './baseSchemas.mjs';
+
+const PositiveIntSchema = z.coerce.number().int().positive();
+const PainLevelInputSchema = z.coerce.number().int().min(1).max(10);
+const MacroNumberSchema = z.coerce.number().min(0).optional();
+const ScheduleMySessionSchema = z.object({
+  trainerId: PositiveIntSchema,
+  date: DateSchema,
+  duration: z.coerce.number().int().min(15).max(180).default(60),
+});
+const NutritionMealSchema = z.object({
+  description: z.string().trim().min(1).max(500).optional(),
+  name: z.string().trim().min(1).max(500).optional(),
+  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']).default('snack'),
+  calories: MacroNumberSchema,
+  protein: MacroNumberSchema,
+  carbs: MacroNumberSchema,
+  fat: MacroNumberSchema,
+}).refine(
+  (meal) => Boolean(meal.description || meal.name),
+  { message: 'Meal description is required', path: ['description'] },
+).transform(({ name, ...meal }) => ({
+  ...meal,
+  description: meal.description || name,
+}));
 
 const commands = [
   {
@@ -20,15 +44,10 @@ const commands = [
     type: 'log_my_nutrition',
     description: 'Log the client\'s own nutrition intake',
     naturalLanguagePatterns: ['log my nutrition', 'I ate {food}', 'record my meals'],
-    method: 'POST', endpoint: '/api/ai-chat/data-update',
+    method: 'POST', endpoint: '/api/macros',
     inputSchema: z.object({
-      meals: z.array(z.object({
-        name: z.string().min(1),
-        calories: z.number().min(0).optional(),
-        protein: z.number().min(0).optional(),
-        carbs: z.number().min(0).optional(),
-        fat: z.number().min(0).optional(),
-      })).min(1),
+      date: DateSchema.optional(),
+      meals: z.array(NutritionMealSchema).min(1),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['client'],
@@ -43,7 +62,7 @@ const commands = [
     method: 'POST', endpoint: '/api/pain-entries/:myId',
     inputSchema: z.object({
       bodyPart: z.string().min(1).max(100),
-      painLevel: PainLevelSchema,
+      painLevel: PainLevelInputSchema,
       notes: z.string().max(500).optional(),
     }),
     destructive: false, requiresConfirmation: true,
@@ -53,10 +72,10 @@ const commands = [
   },
   {
     type: 'schedule_my_session',
-    description: 'Schedule the client\'s next session',
-    naturalLanguagePatterns: ['schedule my next session', 'book me a session', 'when can I come in'],
-    method: 'GET', endpoint: '/api/availability/trainer/:trainerId',
-    inputSchema: z.object({}),
+    description: 'Show available session slots for the client to choose from',
+    naturalLanguagePatterns: ['schedule my next session', 'find me a session time', 'when can I come in'],
+    method: 'GET', endpoint: '/api/availability/:trainerId/slots',
+    inputSchema: ScheduleMySessionSchema,
     destructive: false, requiresConfirmation: false,
     roleRequired: ['client'],
     requiresClientRef: false, category: 'L',
@@ -67,7 +86,9 @@ const commands = [
     description: 'Show the client\'s own progress this month',
     naturalLanguagePatterns: ['show my progress', 'how am I doing', 'my progress this month'],
     method: 'GET', endpoint: '/api/measurements/user/:myId/stats',
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      days: PositiveIntSchema.max(365).default(30),
+    }).optional(),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['client'],
     requiresClientRef: false, category: 'L',
@@ -101,7 +122,9 @@ const commands = [
     description: 'Show the client\'s streaks and badges',
     naturalLanguagePatterns: ['show my streaks', 'my badges', 'what badges do I have'],
     method: 'GET', endpoint: '/api/gamification/profile',
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      limit: PositiveIntSchema.max(20).default(5),
+    }).optional(),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['client'],
     requiresClientRef: false, category: 'L',
@@ -126,7 +149,9 @@ const commands = [
     description: 'Show exercises the client should avoid based on pain entries',
     naturalLanguagePatterns: ['what exercises should I avoid', 'exercises to skip', 'what\'s bad for my injuries'],
     method: 'GET', endpoint: '/api/pain-entries/:myId/active',
-    inputSchema: z.object({}),
+    inputSchema: z.object({
+      limit: PositiveIntSchema.max(20).default(5),
+    }).optional(),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['client'],
     requiresClientRef: false, category: 'L',

@@ -125,6 +125,7 @@ function compactText(value: unknown, fallback: string): string {
 }
 
 const SAFE_PROPOSAL_TITLES = new Set([
+  'Review client onboarding draft',
   'Review workout draft',
   'Review Coach proposal',
   'Draft review not prepared',
@@ -133,6 +134,7 @@ const SAFE_PROPOSAL_TITLES = new Set([
 const PROPOSAL_TYPE_LABELS: Record<string, string> = {
   clarification: 'Clarification',
   client_data_update: 'Client Data Update',
+  client_onboarding: 'Client Onboarding',
   onboarding_draft: 'Onboarding Draft',
   split_plan: 'Split Plan',
   workout_log: 'Workout Log',
@@ -164,7 +166,9 @@ function safeProposalStatus(value: unknown, fallback: string): string {
 }
 
 export function isPreparedDraftCommand(command: string): boolean {
-  return command === 'view_coach_intake_prepared_draft';
+  return command === 'view_coach_intake_prepared_draft'
+    || command === 'create_client'
+    || command === 'create_external_client';
 }
 
 export function CoachPreparedDraftResultCard({

@@ -177,6 +177,18 @@ const TotalLine = styled.div`
   }
 `;
 
+const CheckoutError = styled.div`
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--danger-border, rgba(201, 42, 84, 0.35));
+  background: var(--danger-bg, rgba(201, 42, 84, 0.12));
+  color: var(--danger, #ff8aa8);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.45;
+`;
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, galleryToken, onClose }) => {
@@ -186,6 +198,7 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
   const [selectedSize, setSelectedSize] = useState<PrintSize | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // Fetch products on mount
   useEffect(() => {
@@ -222,6 +235,7 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
   const handleCheckout = async () => {
     if (!selectedProduct || !selectedSize) return;
     setSubmitting(true);
+    setCheckoutError(null);
     try {
       const res = await fetch(`${API_BASE}/api/gallery/print-order`, {
         method: 'POST',
@@ -240,10 +254,10 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
       if (data.success && data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
-        alert(data.error || 'Failed to create order');
+        setCheckoutError(data.error || 'Failed to create order');
       }
     } catch {
-      alert('Network error. Please try again.');
+      setCheckoutError('Network error. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -335,6 +349,10 @@ const PrintStore: React.FC<PrintStoreProps> = ({ photoId, photoUrl, photoName, g
                   <span className="label">{selectedProduct?.label} — {selectedSize.size} × {quantity}</span>
                   <span className="price">${total}</span>
                 </TotalLine>
+
+                {checkoutError && (
+                  <CheckoutError role="alert">{checkoutError}</CheckoutError>
+                )}
 
                 <GildedButton
                   onClick={handleCheckout}

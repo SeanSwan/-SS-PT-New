@@ -6,287 +6,49 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
+import type { ClientProgressData, WorkoutStatistics } from '../types/progress.types';
+import {
+  extractClientProgress,
+  extractWorkoutStatistics,
+  getApiErrorMessage,
+  getClientProgressUrl,
+  getProgressDateRange,
+  getTopExercises,
+  getWorkoutStatisticsUrl,
+  WEEKDAY_NAMES,
+} from './ClientProgress.logic';
+import {
+  DataTable,
+  FilterContainer,
+  FilterSelect,
+  HeaderSection,
+  MetricCard,
+  MetricLabel,
+  MetricsGrid,
+  MetricValue,
+  ProgressContainer,
+  SkillBar,
+  SkillLabel,
+  SkillLevelCard,
+  SkillLevelTitle,
+  TableLabel,
+  TableRow,
+  TableTitle,
+  TableValue,
+  Title,
+  TwoColumnGrid,
+} from '../styles/ClientProgress.styles';
 
-// Types
-interface ClientProgressData {
-  userId: string;
-  strengthLevel: number;
-  cardioLevel: number;
-  flexibilityLevel: number;
-  balanceLevel: number;
-  coreLevel: number;
-  totalWorkouts: number;
-  totalSets: number;
-  totalReps: number;
-  totalWeight: number;
-  totalExercises: number;
-  lastWorkoutDate: string;
-  currentStreak: number;
-  personalRecords?: Record<string, Array<{
-    setId: string;
-    weight: number;
-    reps: number;
-    date: string;
-  }>>;
+interface ClientProgressProps {
+  userId?: string | null;
+  userRole?: string;
 }
 
-interface WorkoutStatistics {
-  totalWorkouts: number;
-  totalDuration: number;
-  totalExercises: number;
-  totalSets: number;
-  totalReps: number;
-  totalWeight: number;
-  averageIntensity: number;
-  weekdayBreakdown: number[];
-  exerciseBreakdown?: Array<{
-    id: string;
-    name: string;
-    count: number;
-    sets: number;
-    reps: number;
-    totalWeight: number;
-    category: string;
-  }>;
-  muscleGroupBreakdown?: Array<{
-    id: string;
-    name: string;
-    shortName: string;
-    count: number;
-    bodyRegion: string;
-  }>;
-  intensityTrends?: Array<{
-    week: string;
-    averageIntensity: number;
-  }>;
-  recentWorkouts?: Array<{
-    id: string;
-    title: string;
-    date: string;
-    duration: number;
-    exerciseCount: number;
-    intensity: number;
-  }>;
-}
-
-interface ApiErrorLike {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-}
-
-const getApiErrorMessage = (error: unknown, fallback: string): string => {
-  const apiError = error as ApiErrorLike;
-  return apiError.response?.data?.message
-    ?? (error instanceof Error ? error.message : fallback);
-};
-
-// Styled Components
-const ProgressContainer = styled.div`
-  padding: 20px;
-  background: linear-gradient(135deg, #1e1e3f, #002060);
-  border-radius: 12px;
-  color: white;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-`;
-
-const HeaderSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-`;
-
-const Title = styled.h2`
-  font-size: 1.8rem;
-  color: #60C0F0;
-  text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
-  margin: 0;
-`;
-
-const FilterContainer = styled.div`
-  display: flex;
-  gap: 15px;
-  
-  @media (max-width: 480px) {
-    flex-direction: column;
-    width: 100%;
-  }
-`;
-
-const FilterSelect = styled.select`
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  outline: none;
-  cursor: pointer;
-  font-size: 0.9rem;
-  
-  &:hover, &:focus {
-    border-color: #60C0F0;
-    box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
-  }
-  
-  @media (max-width: 480px) {
-    width: 100%;
-  }
-`;
-
-const MetricsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-`;
-
-const MetricCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    border-color: rgba(139, 92, 246, 0.3);
-  }
-`;
-
-const MetricValue = styled.div`
-  font-size: 2rem;
-  font-weight: 600;
-  margin-bottom: 5px;
-  color: #60C0F0;
-`;
-
-const MetricLabel = styled.div`
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const SkillLevelCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const SkillLevelTitle = styled.h3`
-  font-size: 1.2rem;
-  color: white;
-  margin-bottom: 20px;
-  font-weight: 400;
-`;
-
-const SkillBar = styled.div<{ $percentage: number; $color: string }>`
-  height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  margin-bottom: 15px;
-  position: relative;
-  overflow: hidden;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: ${props => props.$percentage}%;
-    background: ${props => props.$color};
-    border-radius: 5px;
-    transition: width 1s ease-out;
-  }
-`;
-
-const SkillLabel = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  
-  span:first-child {
-    color: white;
-  }
-  
-  span:last-child {
-    color: rgba(255, 255, 255, 0.7);
-  }
-`;
-
-const DataTable = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const TableTitle = styled.h3`
-  font-size: 1.2rem;
-  color: white;
-  margin-bottom: 15px;
-  font-weight: 400;
-`;
-
-const TableRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  
-  &:last-child {
-    border-bottom: none;
-  }
-`;
-
-const TableLabel = styled.span`
-  color: rgba(255, 255, 255, 0.8);
-`;
-
-const TableValue = styled.span`
-  color: #60C0F0;
-  font-weight: 500;
-`;
-
-const TwoColumnGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const ChartPlaceholder = styled.div`
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  padding: 40px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-  margin-bottom: 20px;
-`;
-
-const ClientProgress: React.FC = () => {
-  const { userId } = useParams<{ userId: string }>();
+const ClientProgress: React.FC<ClientProgressProps> = ({ userId, userRole = 'client' }) => {
+  const { userId: routeUserId } = useParams<{ userId: string }>();
   const { user, authAxios } = useAuth();
+  const selectedUserId = userId || routeUserId || user?.id;
   const [timeRange, setTimeRange] = useState<string>('30days');
   const [loading, setLoading] = useState<boolean>(true);
   const [progress, setProgress] = useState<ClientProgressData | null>(null);
@@ -300,8 +62,7 @@ const ClientProgress: React.FC = () => {
         setLoading(true);
         setError(null);
         
-        // Determine which user to fetch data for
-        const targetUserId = userId || user?.id;
+        const targetUserId = selectedUserId;
         
         if (!targetUserId) {
           setError('No user specified');
@@ -309,53 +70,13 @@ const ClientProgress: React.FC = () => {
           return;
         }
         
-        // Calculate date range based on selected time filter
-        const getDateRange = () => {
-          const now = new Date();
-          const endDate = now.toISOString().split('T')[0];
-          let startDate = '';
-          
-          switch (timeRange) {
-            case '7days': {
-              const sevenDaysAgo = new Date(now);
-              sevenDaysAgo.setDate(now.getDate() - 7);
-              startDate = sevenDaysAgo.toISOString().split('T')[0];
-              break;
-            }
-            case '30days': {
-              const thirtyDaysAgo = new Date(now);
-              thirtyDaysAgo.setDate(now.getDate() - 30);
-              startDate = thirtyDaysAgo.toISOString().split('T')[0];
-              break;
-            }
-            case '90days': {
-              const ninetyDaysAgo = new Date(now);
-              ninetyDaysAgo.setDate(now.getDate() - 90);
-              startDate = ninetyDaysAgo.toISOString().split('T')[0];
-              break;
-            }
-            case 'year': {
-              const oneYearAgo = new Date(now);
-              oneYearAgo.setFullYear(now.getFullYear() - 1);
-              startDate = oneYearAgo.toISOString().split('T')[0];
-              break;
-            }
-            case 'all':
-            default:
-              // No start date constraint for 'all'
-              startDate = '';
-          }
-          
-          return { startDate, endDate };
-        };
+        const { startDate, endDate } = getProgressDateRange(timeRange);
         
-        const { startDate, endDate } = getDateRange();
-        
-        // Fetch client progress
-        const progressResponse = await authAxios.get(`/api/client-progress/${targetUserId}`);
-        
-        // Fetch workout statistics
-        const statisticsResponse = await authAxios.get(`/api/workout/statistics/${targetUserId}`, {
+        const progressResponse = await authAxios.get(
+          getClientProgressUrl(targetUserId, userRole, user?.id)
+        );
+
+        const statisticsResponse = await authAxios.get(getWorkoutStatisticsUrl(targetUserId, userRole, user?.id), {
           params: {
             startDate,
             endDate,
@@ -366,8 +87,8 @@ const ClientProgress: React.FC = () => {
           }
         });
         
-        setProgress(progressResponse.data.progress);
-        setStatistics(statisticsResponse.data.statistics);
+        setProgress(extractClientProgress(progressResponse.data));
+        setStatistics(extractWorkoutStatistics(statisticsResponse.data));
       } catch (err: unknown) {
         console.error('Error fetching progress data:', err);
         setError(getApiErrorMessage(err, 'Failed to load progress data'));
@@ -377,22 +98,7 @@ const ClientProgress: React.FC = () => {
     };
     
     fetchData();
-  }, [userId, user?.id, authAxios, timeRange]);
-  
-  // Function to get top exercises
-  const getTopExercises = () => {
-    if (!statistics?.exerciseBreakdown) return [];
-    
-    // Sort by count and take top 5
-    return [...statistics.exerciseBreakdown]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-  };
-  
-  // Function to get weekday names
-  const getWeekdayNames = () => {
-    return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  };
+  }, [selectedUserId, authAxios, timeRange, userRole, user?.id]);
   
   // Render loading state
   if (loading) {
@@ -422,7 +128,8 @@ const ClientProgress: React.FC = () => {
       </ProgressContainer>
     );
   }
-  
+  const topExercises = getTopExercises(statistics);
+
   return (
     <ProgressContainer>
       <HeaderSection>
@@ -483,31 +190,31 @@ const ClientProgress: React.FC = () => {
           <span>Strength</span>
           <span>Level {progress.strengthLevel}</span>
         </SkillLabel>
-        <SkillBar $percentage={progress.strengthLevel * 10} $color="#ff4757" />
+        <SkillBar $percentage={progress.strengthLevel * 10} $color="var(--danger, #ff6b7a)" />
         
         <SkillLabel>
           <span>Cardio</span>
           <span>Level {progress.cardioLevel}</span>
         </SkillLabel>
-        <SkillBar $percentage={progress.cardioLevel * 10} $color="#1e90ff" />
+        <SkillBar $percentage={progress.cardioLevel * 10} $color="var(--accent-primary, #60c0f0)" />
         
         <SkillLabel>
           <span>Flexibility</span>
           <span>Level {progress.flexibilityLevel}</span>
         </SkillLabel>
-        <SkillBar $percentage={progress.flexibilityLevel * 10} $color="#ffa502" />
+        <SkillBar $percentage={progress.flexibilityLevel * 10} $color="var(--accent-gold, #c6a84b)" />
         
         <SkillLabel>
           <span>Balance</span>
           <span>Level {progress.balanceLevel}</span>
         </SkillLabel>
-        <SkillBar $percentage={progress.balanceLevel * 10} $color="#2ed573" />
+        <SkillBar $percentage={progress.balanceLevel * 10} $color="var(--success, #72d6a0)" />
         
         <SkillLabel>
           <span>Core</span>
           <span>Level {progress.coreLevel}</span>
         </SkillLabel>
-        <SkillBar $percentage={progress.coreLevel * 10} $color="#7d5fff" />
+        <SkillBar $percentage={progress.coreLevel * 10} $color="var(--accent-secondary, #8b5cf6)" />
       </SkillLevelCard>
       
       {/* Data Tables */}
@@ -515,8 +222,8 @@ const ClientProgress: React.FC = () => {
         {/* Top Exercises */}
         <DataTable>
           <TableTitle>Top Exercises</TableTitle>
-          {getTopExercises().length > 0 ? (
-            getTopExercises().map((exercise) => (
+          {topExercises.length > 0 ? (
+            topExercises.map((exercise) => (
               <TableRow key={exercise.id}>
                 <TableLabel>{exercise.name}</TableLabel>
                 <TableValue>{exercise.count} times</TableValue>
@@ -534,7 +241,7 @@ const ClientProgress: React.FC = () => {
         <DataTable>
           <TableTitle>Workout Frequency by Day</TableTitle>
           {statistics.weekdayBreakdown && statistics.weekdayBreakdown.length > 0 ? (
-            getWeekdayNames().map((day, index) => (
+            WEEKDAY_NAMES.map((day, index) => (
               <TableRow key={day}>
                 <TableLabel>{day}</TableLabel>
                 <TableValue>{statistics.weekdayBreakdown[index] || 0} workouts</TableValue>
@@ -548,12 +255,6 @@ const ClientProgress: React.FC = () => {
           )}
         </DataTable>
       </TwoColumnGrid>
-      
-      {/* Chart Placeholders */}
-      <ChartPlaceholder>
-        📊 Advanced charts will be available when charting library is added.<br/>
-        All your workout data is still being tracked and displayed above.
-      </ChartPlaceholder>
     </ProgressContainer>
   );
 };

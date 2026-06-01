@@ -53,6 +53,7 @@ interface ClientObservatoryHeroProps {
   streakDays: number;
   tierLabel: string;
   tierTone: string;
+  canBookSessions: boolean;
   onLensSelect: (id: LensId, path: string) => void;
   onNavigate: (path: string) => void;
 }
@@ -68,6 +69,7 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
   streakDays,
   tierLabel,
   tierTone,
+  canBookSessions,
   onLensSelect,
   onNavigate,
 }) => (
@@ -121,10 +123,12 @@ const ClientObservatoryHero: React.FC<ClientObservatoryHeroProps> = ({
         </div>
 
         <HeroActions>
-          <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/schedule')}>
-            <Calendar size={17} aria-hidden="true" />
-            Book Session
-          </PrimaryButton>
+          {canBookSessions && (
+            <PrimaryButton type="button" onClick={() => onNavigate('/dashboard/client/schedule')}>
+              <Calendar size={17} aria-hidden="true" />
+              Book Session
+            </PrimaryButton>
+          )}
           <GhostButton type="button" onClick={() => onNavigate('/dashboard/client/profile')}>
             <UserRound size={17} aria-hidden="true" />
             View Profile

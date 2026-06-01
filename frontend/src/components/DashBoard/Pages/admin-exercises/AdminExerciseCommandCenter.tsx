@@ -718,6 +718,7 @@ const AdminExerciseCommandCenter: React.FC<ExerciseCommandCenterProps> = ({
   
   const {
     stats: exerciseStats,
+    topExercises,
     recentActivity,
     isLoading: statsLoading,
     refreshStats
@@ -1046,7 +1047,9 @@ const AdminExerciseCommandCenter: React.FC<ExerciseCommandCenterProps> = ({
             <ExerciseStatsPanel 
               stats={exerciseStats}
               recentActivity={recentActivity}
+              topExercises={topExercises}
               isLoading={statsLoading}
+              onRefresh={refreshStats}
             />
           </SecondarySection>
         </MainContent>

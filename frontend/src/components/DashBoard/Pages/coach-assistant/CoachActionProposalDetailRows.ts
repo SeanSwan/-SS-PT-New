@@ -149,6 +149,19 @@ function approvalGateRows(detail: Record<string, unknown>): DetailRow[] {
 function withApprovalGateRows(detail: Record<string, unknown>, rows: DetailRow[]) {
   return [...rows, ...approvalGateRows(detail)];
 }
+
+function onboardingContextRows(value: unknown): Array<[string, unknown]> {
+  const context = asRecord(value);
+  if (!context) return [];
+  return [
+    ['Limitations', readyIfPresent(context.limitations, 'Limitations context ready for review')],
+    ['Pain notes', readyIfPresent(context.painNotes, 'Pain context ready for review')],
+    ['Equipment', readyIfPresent(context.equipmentAccess, 'Equipment context ready for review')],
+    ['Availability', readyIfPresent(context.availability, 'Availability context ready for review')],
+    ['Priorities', readyIfPresent(context.firstSessionPriorities, 'First-session context ready for review')],
+  ];
+}
+
 export function hasDetailBlockingError(detail: Record<string, unknown> | null) {
   return Boolean(detail && (detail.errorCode || detail.error));
 }
@@ -209,6 +222,7 @@ export function buildDetailRows(detail: Record<string, unknown> | null): DetailR
       ['Health', readyIfPresent(client.healthConcerns, 'Health context requires trainer review')],
       ['Experience', readyIfPresent(client.trainingExperience, 'Training experience ready for review')],
       ['Notes', readyIfPresent(client.trainerNotes, 'Trainer notes ready for review')],
+      ...onboardingContextRows(client.onboardingContext),
     ]));
   }
   const workout = asRecord(detail.workout);

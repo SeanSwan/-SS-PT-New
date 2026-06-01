@@ -22,6 +22,7 @@
  * - User management (trainers/clients)
  */
 
+import crypto from 'node:crypto';
 import express from "express";
 import { protect, adminOnly, trainerOrAdminOnly } from "../middleware/authMiddleware.mjs";
 import unifiedSessionService from "../services/sessions/session.service.mjs";
@@ -29,11 +30,14 @@ import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
 import User from "../models/User.mjs";
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyticsFavoriteExercisesService.mjs';
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import { getClientPackagePricing, computeCancellationCharge } from '../utils/cancellationPricing.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
+import { processSessionDeduction, sendDeductionNotification } from '../utils/notification.mjs';
 
 const router = express.Router();
 const MAX_MANUAL_SESSION_ADD = 50;
@@ -237,6 +241,8 @@ router.get("/analytics", protect, async (req, res) => {
       });
     }
 
+    const favoriteExercises = await getSessionAnalyticsFavoriteExercises(userId);
+
     // Get all completed sessions for the user
     const userSessions = await Session.findAll({
       where: {
@@ -253,7 +259,7 @@ router.get("/analytics", protect, async (req, res) => {
         totalDuration: 0,
         averageDuration: 0,
         caloriesBurned: 0,
-        favoriteExercises: [],
+        favoriteExercises,
         weeklyProgress: [],
         currentStreak: 0,
         longestStreak: 0
@@ -348,7 +354,7 @@ router.get("/analytics", protect, async (req, res) => {
       totalDuration,
       averageDuration,
       caloriesBurned: userSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
-      favoriteExercises: [], // TODO: Implement when exercise tracking is added
+      favoriteExercises,
       weeklyProgress,
       currentStreak,
       longestStreak
@@ -400,6 +406,38 @@ router.post('/assign-trainer', protect, adminOnly, async (req, res) => {
 });
 
 /**
+ * POST /api/sessions/remove-trainer-assignment
+ * Remove trainer assignments from selected sessions.
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.post('/remove-trainer-assignment', protect, adminOnly, async (req, res) => {
+  try {
+    const { sessionIds = [] } = req.body || {};
+
+    if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session IDs are required'
+      });
+    }
+
+    const result = await trainerAssignmentService.removeTrainerAssignment(sessionIds, req.user.id);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/remove-trainer-assignment:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to remove trainer assignment'
+    });
+  }
+});
+
+/**
  * GET /api/sessions/assignment-statistics
  * Must be defined before /:id route to prevent path collision.
  */
@@ -436,6 +474,192 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to get trainer assignment health'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/trainer-assignments/:trainerId
+ * Get trainer's assigned clients and sessions.
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.get('/trainer-assignments/:trainerId', protect, async (req, res) => {
+  try {
+    const trainerId = parseStrictPositiveInteger(req.params.trainerId);
+    if (!trainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid trainer ID'
+      });
+    }
+
+    if (Number(req.user.id) !== trainerId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only view your own trainer assignments'
+      });
+    }
+
+    const assignments = await trainerAssignmentService.getTrainerAssignments(trainerId);
+
+    return res.status(200).json({
+      success: true,
+      data: assignments
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/trainer-assignments/:trainerId:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get trainer assignments'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/client-assignments/:clientId
+ * Get client's trainer assignments.
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.get('/client-assignments/:clientId', protect, async (req, res) => {
+  try {
+    const clientId = parseStrictPositiveInteger(req.params.clientId);
+    if (!clientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid client ID'
+      });
+    }
+
+    if (Number(req.user.id) !== clientId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only view your own assignments'
+      });
+    }
+
+    const assignments = await trainerAssignmentService.getClientAssignments(clientId);
+
+    return res.status(200).json({
+      success: true,
+      data: assignments
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/client-assignments/:clientId:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get client assignments'
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/request
+ * Request a custom session time with admin approval workflow.
+ * Must be defined before /:id route to prevent path collision.
+ */
+router.post("/request", protect, async (req, res) => {
+  try {
+    const { start, end, duration, notes, sessionType, sessionTypeId, location, preferredTrainerId } = req.body || {};
+
+    if (!start) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session start time is required'
+      });
+    }
+
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : null;
+
+    if (Number.isNaN(startDate.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format'
+      });
+    }
+
+    if (startDate < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot request sessions in the past'
+      });
+    }
+
+    if (endDate && endDate <= startDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session end time must be after the start time'
+      });
+    }
+
+    const parsedSessionTypeId = sessionTypeId || sessionType
+      ? parseStrictPositiveInteger(sessionTypeId || sessionType)
+      : null;
+    const parsedTrainerId = preferredTrainerId
+      ? parseStrictPositiveInteger(preferredTrainerId)
+      : null;
+
+    if ((sessionTypeId || sessionType) && !parsedSessionTypeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session type'
+      });
+    }
+
+    if (preferredTrainerId && !parsedTrainerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid preferred trainer'
+      });
+    }
+
+    const client = await User.findByPk(req.user.id);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      return res.status(403).json({
+        success: false,
+        message: 'This client account does not have custom session request access. Use the Workout Logger to track training.'
+      });
+    }
+
+    const sessionRequest = await Session.create({
+      sessionDate: startDate,
+      endDate,
+      duration: parseBoundedPositiveInteger(duration, 480) || 60,
+      status: 'requested',
+      userId: client.id,
+      trainerId: parsedTrainerId,
+      notes: notes || null,
+      sessionTypeId: parsedSessionTypeId,
+      location: location || 'Main Studio',
+      confirmed: false,
+      bookingDate: new Date()
+    });
+
+    realTimeScheduleService.broadcastSessionRequest({
+      sessionId: sessionRequest.id,
+      clientId: client.id,
+      requestedDate: startDate.toISOString(),
+      timestamp: new Date().toISOString()
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Session request submitted successfully',
+      session: sessionRequest
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/request:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error creating session request',
+      error: error.message
     });
   }
 });
@@ -612,13 +836,20 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'availableSessions']
+      attributes: ['id', 'firstName', 'lastName', 'availableSessions', 'clientSource']
     });
 
     if (!user) {
       return res.status(404).json({
         success: false,
         message: `User ${userId} not found`
+      });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Manual paid-session allocation is disabled for free-tracking clients'
       });
     }
 
@@ -679,7 +910,7 @@ router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
     }
 
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'availableSessions']
+      attributes: ['id', 'availableSessions', 'clientSource']
     });
 
     if (!user) {
@@ -695,7 +926,9 @@ router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
       Session.count({ where: { userId, status: 'cancelled' } })
     ]);
 
-    const available = Number(user.availableSessions || 0);
+    const available = NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)
+      ? 0
+      : Number(user.availableSessions || 0);
 
     return res.status(200).json({
       success: true,
@@ -749,6 +982,212 @@ router.get("/health", async (_req, res) => {
     return res.status(500).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/admin/book
+ * Admin books a paid SwanStudios session on behalf of a client.
+ * This canonical unified route keeps session credits, sessionDeducted, and
+ * cancellation review logic aligned with the shared deduction helper.
+ */
+router.post("/admin/book", protect, adminOnly, async (req, res) => {
+  const transaction = await Session.sequelize.transaction();
+
+  try {
+    const { clientId, sessionDate, trainerId, duration = 60, notes, location } = req.body || {};
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    const parsedTrainerId = trainerId ? parseStrictPositiveInteger(trainerId) : null;
+    const parsedDuration = parseBoundedPositiveInteger(duration, 480) || 60;
+
+    if (!parsedClientId) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "clientId is required" });
+    }
+
+    if (!sessionDate) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "sessionDate is required" });
+    }
+
+    const parsedSessionDate = new Date(sessionDate);
+    if (Number.isNaN(parsedSessionDate.getTime())) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sessionDate format. Use ISO 8601."
+      });
+    }
+
+    const client = await User.findByPk(parsedClientId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
+
+    if (!client) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: "Client not found" });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "This client account does not have session booking. They track training via the Workout Logger."
+      });
+    }
+
+    if (!client.availableSessions || client.availableSessions <= 0) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Client has no available sessions. Add sessions first.",
+        availableSessions: client.availableSessions || 0
+      });
+    }
+
+    if (trainerId && !parsedTrainerId) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: "Invalid trainerId" });
+    }
+
+    if (parsedTrainerId) {
+      const trainer = await User.findByPk(parsedTrainerId, { transaction });
+      if (!trainer || !['trainer', 'admin'].includes(trainer.role)) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: "Trainer not found" });
+      }
+    }
+
+    const endDate = new Date(parsedSessionDate.getTime() + parsedDuration * 60 * 1000);
+    const { Op } = Session.sequelize.Sequelize;
+    const overlapWindow = {
+      status: { [Op.in]: ['scheduled', 'confirmed'] },
+      [Op.and]: [
+        { sessionDate: { [Op.lt]: endDate } },
+        { endDate: { [Op.gt]: parsedSessionDate } }
+      ]
+    };
+
+    const clientConflict = await Session.findOne({
+      where: {
+        ...overlapWindow,
+        userId: parsedClientId
+      },
+      transaction
+    });
+
+    if (clientConflict) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: "Client has a conflicting session at this time",
+        conflictingSession: {
+          id: clientConflict.id,
+          sessionDate: clientConflict.sessionDate,
+          endDate: clientConflict.endDate
+        }
+      });
+    }
+
+    if (parsedTrainerId) {
+      const trainerConflict = await Session.findOne({
+        where: {
+          ...overlapWindow,
+          trainerId: parsedTrainerId
+        },
+        transaction
+      });
+
+      if (trainerConflict) {
+        await transaction.rollback();
+        return res.status(409).json({
+          success: false,
+          message: "Trainer has a conflicting session at this time",
+          conflictingSession: {
+            id: trainerConflict.id,
+            sessionDate: trainerConflict.sessionDate,
+            endDate: trainerConflict.endDate
+          }
+        });
+      }
+    }
+
+    const session = await Session.create({
+      sessionDate: parsedSessionDate,
+      endDate,
+      duration: parsedDuration,
+      userId: parsedClientId,
+      trainerId: parsedTrainerId,
+      status: 'scheduled',
+      notes: notes || null,
+      location: location || 'Main Studio',
+      bookedByAdminId: req.user.id,
+      bookingDate: new Date(),
+      isBlocked: false,
+      confirmed: false,
+      sessionDeducted: false
+    }, { transaction });
+
+    const deductionResult = await processSessionDeduction(session, client, transaction);
+    if (!deductionResult?.success) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: deductionResult?.message || 'Failed to deduct session credits'
+      });
+    }
+
+    await transaction.commit();
+
+    unifiedSessionService.sendBookingNotifications(session, client).catch((err) => {
+      logger.error('[adminBookSession] Booking notification failed:', err);
+    });
+
+    if (deductionResult?.creditsDeducted > 0) {
+      sendDeductionNotification(session, client).catch((err) => {
+        logger.error('[adminBookSession] Deduction notification failed:', err);
+      });
+    }
+
+    try {
+      realTimeScheduleService.broadcast('session:created', {
+        session: session.toJSON(),
+        bookedByAdmin: true
+      });
+    } catch (broadcastError) {
+      logger.error("Error broadcasting admin booking session update:", broadcastError);
+    }
+
+    logger.info(`Admin ${req.user.id} booked session ${session.id} for client ${parsedClientId}`, {
+      sessionDate: parsedSessionDate.toISOString(),
+      trainerId: parsedTrainerId,
+      remainingSessions: client.availableSessions
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Session booked successfully",
+      session: session.toJSON(),
+      client: {
+        id: client.id,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        availableSessions: client.availableSessions
+      }
+    });
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error("Rollback failed in unified admin booking route:", rollbackError);
+    }
+
+    logger.error("Error in unified admin book session:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error booking session"
     });
   }
 });
@@ -886,6 +1325,144 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
 });
 
 /**
+ * GET /api/sessions/available
+ * Return future available slots for app-wide SessionContext consumers.
+ */
+router.get("/available", protect, async (_req, res) => {
+  try {
+    const { Op } = Session.sequelize.Sequelize;
+    const availableSessions = await Session.findAll({
+      where: {
+        status: 'available',
+        userId: null,
+        sessionDate: {
+          [Op.gt]: new Date()
+        }
+      },
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'specialties', 'photo'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+
+    return res.status(200).json(availableSessions);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/available:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching available sessions'
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/client/:userId
+ * Return all sessions for a target client for active SessionContext consumers.
+ */
+router.get("/client/:userId", protect, async (req, res) => {
+  try {
+    const targetUserId = parseStrictPositiveInteger(req.params.userId);
+    if (!targetUserId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const requesterId = Number(req.user.id);
+    const role = req.user.role;
+    if (!Number.isInteger(requesterId)) {
+      return res.status(403).json({ success: false, message: 'Invalid requester' });
+    }
+
+    if (role !== 'admin' && role !== 'trainer' && requesterId !== targetUserId) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view these sessions' });
+    }
+
+    const ownershipFilter = role === 'trainer'
+      ? { userId: targetUserId, trainerId: requesterId }
+      : { userId: targetUserId };
+
+    const clientSessions = await Session.findAll({
+      where: ownershipFilter,
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'photo'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'DESC']]
+    });
+
+    return res.status(200).json(clientSessions);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/client/:userId:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching client sessions'
+    });
+  }
+});
+
+// ==================== USER MANAGEMENT FOR DROPDOWNS ====================
+
+/**
+ * GET /api/sessions/users/trainers
+ * Get all trainers for dropdown selection
+ */
+router.get("/users/trainers", protect, async (req, res) => {
+  try {
+    const trainers = await unifiedSessionService.getTrainers();
+
+    return res.status(200).json(trainers);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/users/trainers:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching trainers',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/sessions/users/clients
+ * Get all clients for dropdown selection (admin/trainer only)
+ */
+router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const clients = await unifiedSessionService.getClients(req.user);
+
+    return res.status(200).json(clients);
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/users/clients:', error);
+
+    if (error.message.includes('privileges required')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching clients',
+      error: error.message
+    });
+  }
+});
+
+/**
  * GET /api/sessions/:id
  * Get a single session by ID with role-based access control
  */
@@ -900,21 +1477,21 @@ router.get("/:id", protect, async (req, res) => {
     }
 
     const session = await unifiedSessionService.getSessionById(sessionId, req.user);
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       session
     });
   } catch (error) {
     logger.error(`Error in GET /api/sessions/${req.params.id}:`, error);
-    
+
     // Handle permission errors
     if (error.message.includes('permission')) {
       return res.status(403).json({
@@ -922,10 +1499,265 @@ router.get("/:id", protect, async (req, res) => {
         message: error.message
       });
     }
-    
+
     return res.status(500).json({
       success: false,
       message: 'Server error fetching session',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/sessions/:id
+ * Conservative generic update path for app-wide SessionContext autosave.
+ */
+router.put("/:id", protect, async (req, res) => {
+  try {
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session id' });
+    }
+
+    const session = await Session.findByPk(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (!canAccessSessionRecord(req.user, session, { allowClient: true, allowTrainer: true })) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this session'
+      });
+    }
+
+    if (req.body?.status === 'completed') {
+      const result = await unifiedSessionService.completeSession(sessionId, req.user, {
+        notes: req.body?.notes
+      });
+      return res.status(200).json(result);
+    }
+
+    const allowedStatusUpdates = new Set(['scheduled', 'confirmed', 'cancelled']);
+    if (typeof req.body?.status === 'string' && allowedStatusUpdates.has(req.body.status)) {
+      if (!['admin', 'trainer'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Admin or trainer privileges required to update session status'
+        });
+      }
+      session.status = req.body.status;
+    }
+
+    const trimmedNotes = typeof req.body?.notes === 'string' ? req.body.notes.trim() : null;
+    if (trimmedNotes) {
+      session.notes = trimmedNotes;
+    }
+
+    await session.save();
+
+    const updatedSession = await unifiedSessionService.getSessionById(sessionId, req.user);
+    return res.status(200).json({
+      success: true,
+      session: updatedSession
+    });
+  } catch (error) {
+    logger.error(`Error in PUT /api/sessions/${req.params.id}:`, error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+
+    if (normalizedMessage.includes('permission') || normalizedMessage.includes('privileges')) {
+      return res.status(403).json({
+        success: false,
+        message: rawMessage || 'Not authorized to update this session'
+      });
+    }
+
+    if (normalizedMessage.includes('invalid') || normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
+      return res.status(400).json({
+        success: false,
+        message: rawMessage || 'Invalid session update'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error updating session',
+      error: rawMessage
+    });
+  }
+});
+
+/**
+ * DELETE /api/sessions/bulk
+ * Admin-only bulk removal for unused session slots.
+ * Must stay before DELETE /:id so Express does not parse "bulk" as an id.
+ */
+router.delete("/bulk", protect, adminOnly, async (req, res) => {
+  try {
+    const rawSessionIds = Array.isArray(req.body?.sessionIds) ? req.body.sessionIds : [];
+    const parsedSessionIds = rawSessionIds.map((sessionId) => parseStrictPositiveInteger(sessionId));
+
+    if (rawSessionIds.length === 0 || parsedSessionIds.some((sessionId) => !sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid sessionIds are required'
+      });
+    }
+
+    const sessionIds = [...new Set(parsedSessionIds)];
+    if (sessionIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bulk delete is limited to 100 sessions at a time'
+      });
+    }
+
+    const { Op } = Session.sequelize.Sequelize;
+    const sessions = await Session.findAll({
+      where: {
+        id: { [Op.in]: sessionIds }
+      }
+    });
+
+    if (sessions.length !== sessionIds.length) {
+      const foundIds = new Set(sessions.map((session) => Number(session.id)));
+      const missingSessionIds = sessionIds.filter((sessionId) => !foundIds.has(sessionId));
+      return res.status(404).json({
+        success: false,
+        message: 'One or more sessions were not found',
+        missingSessionIds
+      });
+    }
+
+    const blockedDeleteStatuses = new Set(['scheduled', 'confirmed', 'completed']);
+    const blockedSessions = sessions.filter((session) =>
+      session.status === 'completed' ||
+      blockedDeleteStatuses.has(session.status) ||
+      session.sessionDeducted
+    );
+
+    if (blockedSessions.length > 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Booked, confirmed, completed, or credited sessions must be cancelled or archived instead of deleted.',
+        blockedSessionIds: blockedSessions.map((session) => session.id)
+      });
+    }
+
+    const deletedSessions = sessions.map((session) =>
+      typeof session.toJSON === 'function'
+        ? session.toJSON()
+        : {
+            id: session.id,
+            trainerId: session.trainerId,
+            userId: session.userId,
+            status: session.status
+          }
+    );
+
+    const deletedCount = await Session.destroy({
+      where: {
+        id: { [Op.in]: sessionIds }
+      }
+    });
+
+    await Promise.all(deletedSessions.map((session) =>
+      realTimeScheduleService.broadcastEvent('session:deleted', {
+        sessionId: session.id,
+        trainerId: session.trainerId,
+        clientId: session.userId,
+        status: session.status
+      }, {
+        sessionId: session.id,
+        trainerId: session.trainerId,
+        clientId: session.userId,
+        priority: 'high'
+      })
+    ));
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${deletedCount} session(s).`,
+      deletedCount,
+      deletedSessionIds: sessionIds
+    });
+  } catch (error) {
+    logger.error('Error in DELETE /api/sessions/bulk:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error deleting sessions',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/sessions/:id
+ * Admin-only removal for unused session slots.
+ * Booked or deducted sessions must use cancellation/attendance flows so paid
+ * credits and workout history stay auditable.
+ */
+router.delete("/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const sessionId = parseStrictPositiveInteger(req.params.id);
+    if (!sessionId) {
+      return res.status(400).json({ success: false, message: 'Invalid session id' });
+    }
+
+    const session = await Session.findByPk(sessionId);
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' });
+    }
+
+    if (!canAccessSessionRecord(req.user, session, { allowClient: false, allowTrainer: false })) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this session'
+      });
+    }
+
+    const blockedDeleteStatuses = new Set(['scheduled', 'confirmed', 'completed']);
+    if (session.status === 'completed' || blockedDeleteStatuses.has(session.status) || session.sessionDeducted) {
+      return res.status(409).json({
+        success: false,
+        message: 'Booked, confirmed, completed, or credited sessions must be cancelled or archived instead of deleted.'
+      });
+    }
+
+    const deletedSession = typeof session.toJSON === 'function'
+      ? session.toJSON()
+      : {
+          id: session.id,
+          trainerId: session.trainerId,
+          userId: session.userId,
+          status: session.status
+        };
+
+    await session.destroy();
+
+    await realTimeScheduleService.broadcastEvent('session:deleted', {
+      sessionId,
+      trainerId: deletedSession.trainerId,
+      clientId: deletedSession.userId,
+      status: deletedSession.status
+    }, {
+      sessionId,
+      trainerId: deletedSession.trainerId,
+      clientId: deletedSession.userId,
+      priority: 'high'
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Session deleted successfully',
+      deletedSessionId: sessionId
+    });
+  } catch (error) {
+    logger.error(`Error in DELETE /api/sessions/${req.params.id}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error deleting session',
       error: error.message
     });
   }
@@ -1250,6 +2082,227 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
 // ==================== SESSION LIFECYCLE MANAGEMENT ====================
 
 /**
+ * POST /api/sessions/book/:userId
+ * Compatibility path used by app-wide SessionContext booking.
+ */
+router.post("/book/:userId", protect, async (req, res) => {
+  try {
+    const targetUserId = parseStrictPositiveInteger(req.params.userId);
+    const sessionId = parseStrictPositiveInteger(req.body?.sessionId);
+
+    if (!targetUserId || !sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid user ID and session ID are required'
+      });
+    }
+
+    if (Number(req.user.id) !== targetUserId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only book sessions for yourself.'
+      });
+    }
+
+    const bookingUser = req.user.role === 'admin'
+      ? { ...req.user, id: targetUserId, role: 'client' }
+      : req.user;
+    const bookingData = req.user.role === 'admin'
+      ? { ...(req.body || {}), deductSession: false }
+      : (req.body || {});
+
+    const result = await unifiedSessionService.bookSession(sessionId, bookingUser, bookingData);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    logger.error(`Error in POST /api/sessions/book/${req.params.userId}:`, error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+    const responseMessage = rawMessage || 'Request validation failed';
+
+    if (normalizedMessage.includes('permission') ||
+        normalizedMessage.includes('privileges') ||
+        normalizedMessage.includes('booking access') ||
+        normalizedMessage.includes('does not have session booking')) {
+      return res.status(403).json({
+        success: false,
+        message: responseMessage
+      });
+    }
+
+    if (normalizedMessage.includes('not available') ||
+        normalizedMessage.includes('in the past') ||
+        normalizedMessage.includes('not found') ||
+        normalizedMessage.includes('insufficient') ||
+        normalizedMessage.includes('credit') ||
+        normalizedMessage.includes('double-booking') ||
+        normalizedMessage.includes('conflict')) {
+      return res.status(400).json({
+        success: false,
+        message: responseMessage
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error booking session',
+      error: responseMessage
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/book-recurring
+ * Client self-service booking for multiple available sessions.
+ */
+router.post("/book-recurring", protect, async (req, res) => {
+  const transaction = await Session.sequelize.transaction();
+
+  try {
+    const requestedSessionIds = Array.isArray(req.body?.sessionIds)
+      ? [...new Set(req.body.sessionIds
+        .map((sessionId) => parseStrictPositiveInteger(sessionId))
+        .filter(Boolean))]
+      : [];
+
+    if (requestedSessionIds.length === 0) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Provide at least one valid session id to book."
+      });
+    }
+
+    const client = await User.findByPk(req.user.id, {
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    if (!client) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "User not found."
+      });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "This client account does not have recurring session booking access. Use the Workout Logger to track training."
+      });
+    }
+
+    const { Op } = Session.sequelize.Sequelize;
+    const sessionsToBook = await Session.findAll({
+      where: {
+        id: { [Op.in]: requestedSessionIds },
+        status: 'available',
+        sessionDate: { [Op.gt]: new Date() }
+      },
+      order: [['sessionDate', 'ASC']],
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    if (sessionsToBook.length !== requestedSessionIds.length) {
+      const foundIds = sessionsToBook.map((session) => Number(session.id));
+      const unavailableSessionIds = requestedSessionIds.filter((sessionId) => !foundIds.includes(sessionId));
+
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Some sessions are not available for booking.",
+        unavailableSessionIds,
+        availableCount: sessionsToBook.length,
+        requestedCount: requestedSessionIds.length
+      });
+    }
+
+    const recurringGroupId = crypto.randomUUID();
+    const bookingDate = new Date();
+    const bookedSessions = [];
+    const deductionResultsBySessionId = new Map();
+
+    for (const session of sessionsToBook) {
+      const sessionStart = new Date(session.sessionDate);
+      session.userId = client.id;
+      session.status = 'scheduled';
+      session.bookingDate = bookingDate;
+      session.isRecurring = true;
+      session.recurringGroupId = recurringGroupId;
+      if (!session.endDate) {
+        session.endDate = new Date(sessionStart.getTime() + (session.duration || 60) * 60000);
+      }
+      await session.save({ transaction });
+
+      const deductionResult = await processSessionDeduction(session, client, transaction);
+      if (!deductionResult?.success) {
+        throw new Error(deductionResult?.message || 'Failed to deduct session credits');
+      }
+
+      deductionResultsBySessionId.set(session.id, deductionResult);
+      bookedSessions.push(session);
+    }
+
+    await transaction.commit();
+
+    try {
+      for (const session of bookedSessions) {
+        realTimeScheduleService.broadcastSessionBooked(session, client);
+        const deductionResult = deductionResultsBySessionId.get(session.id);
+        if (deductionResult?.creditsDeducted > 0) {
+          sendDeductionNotification(session, client).catch((err) =>
+            logger.error('[bookRecurring] Deduction notification failed:', err)
+          );
+        }
+      }
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast recurring booking events:', broadcastError.message);
+    }
+
+    const updatedSessions = await Session.findAll({
+      where: { recurringGroupId },
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully booked ${bookedSessions.length} recurring sessions.`,
+      recurringGroupId,
+      sessions: updatedSessions,
+      availableSessions: client.availableSessions,
+      totalBooked: bookedSessions.length
+    });
+  } catch (error) {
+    if (!transaction.finished) {
+      await transaction.rollback();
+    }
+    logger.error('Error in POST /api/sessions/book-recurring:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error booking recurring sessions.',
+      error: error.message
+    });
+  }
+});
+
+/**
  * POST /api/sessions/:id/book
  * Book an available session
  */
@@ -1265,7 +2318,10 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
       const responseMessage = rawMessage || 'Request validation failed';
 
       // Handle booking-specific errors
-      if (normalizedMessage.includes('permission') || normalizedMessage.includes('privileges')) {
+      if (normalizedMessage.includes('permission') ||
+          normalizedMessage.includes('privileges') ||
+          normalizedMessage.includes('booking access') ||
+          normalizedMessage.includes('does not have session booking')) {
         return res.status(403).json({
           success: false,
           message: responseMessage
@@ -1299,8 +2355,12 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
  */
 router.patch("/:id/cancel", protect, async (req, res) => {
   try {
-    const { reason } = req.body;
-    const result = await unifiedSessionService.cancelSession(req.params.id, req.user, reason);
+    const { reason, chargeType, chargeAmount, restoreCredit } = req.body || {};
+    const result = await unifiedSessionService.cancelSession(req.params.id, req.user, reason, {
+      chargeType,
+      chargeAmount,
+      restoreCredit
+    });
     
     return res.status(200).json(result);
   } catch (error) {
@@ -1322,6 +2382,13 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     }
     
     if (error.message.includes('Cannot cancel')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.toLowerCase().includes('invalid')) {
       return res.status(400).json({
         success: false,
         message: error.message
@@ -1524,54 +2591,6 @@ router.post("/allocate", protect, adminOnly, async (req, res) => {
   }
 });
 
-// ==================== USER MANAGEMENT FOR DROPDOWNS ====================
-
-/**
- * GET /api/sessions/users/trainers
- * Get all trainers for dropdown selection
- */
-router.get("/users/trainers", protect, async (req, res) => {
-  try {
-    const trainers = await unifiedSessionService.getTrainers();
-    
-    return res.status(200).json(trainers);
-  } catch (error) {
-    logger.error('Error in GET /api/sessions/users/trainers:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching trainers',
-      error: error.message
-    });
-  }
-});
-
-/**
- * GET /api/sessions/users/clients
- * Get all clients for dropdown selection (admin/trainer only)
- */
-router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
-  try {
-    const clients = await unifiedSessionService.getClients(req.user);
-    
-    return res.status(200).json(clients);
-  } catch (error) {
-    logger.error('Error in GET /api/sessions/users/clients:', error);
-    
-    if (error.message.includes('privileges required')) {
-      return res.status(403).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching clients',
-      error: error.message
-    });
-  }
-});
-
 // ==================== ATTENDANCE & FEEDBACK ====================
 
 /**
@@ -1579,13 +2598,14 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
  * Record attendance for a session (admin/trainer only)
  */
 router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) => {
+  let transaction;
   try {
     const sessionId = parseStrictPositiveInteger(req.params.id);
     if (!sessionId) {
       return res.status(400).json({ success: false, message: 'Invalid session ID' });
     }
 
-    const { attendanceStatus, noShowReason, notes } = req.body;
+    const { attendanceStatus, noShowReason, notes, deductSessionCredit } = req.body || {};
 
     if (!['present', 'late', 'no_show'].includes(attendanceStatus)) {
       return res.status(400).json({
@@ -1594,31 +2614,89 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
       });
     }
 
-    const session = await Session.findByPk(sessionId);
+    const attendanceRecorderId = parseStrictPositiveInteger(req.user?.id);
+    if (!attendanceRecorderId) {
+      return res.status(401).json({ success: false, message: 'Invalid attendance recorder' });
+    }
+
+    transaction = await Session.sequelize.transaction();
+
+    const session = await Session.findByPk(sessionId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE
+    });
     if (!session) {
+      await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
 
     if (!canAccessSessionRecord(req.user, session, { allowClient: false, allowTrainer: true })) {
+      await transaction.rollback();
       return res.status(403).json({ success: false, message: 'Not authorized to record attendance for this session' });
+    }
+
+    const attendanceRecordedAt = new Date();
+
+    const trimmedNoShowReason = typeof noShowReason === 'string' && noShowReason.trim()
+      ? noShowReason.trim()
+      : null;
+    const trimmedNotes = typeof notes === 'string' && notes.trim()
+      ? notes.trim()
+      : null;
+    let deductionResult = null;
+
+    if (attendanceStatus === 'no_show' && deductSessionCredit === true && !session.sessionDeducted && session.userId) {
+      const client = await User.findByPk(session.userId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (!client) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Client not found for session' });
+      }
+
+      if (!NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        deductionResult = await processSessionDeduction(session, client, transaction);
+        if (!deductionResult?.success) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: deductionResult?.message || 'Unable to deduct session credit for no-show'
+          });
+        }
+      }
     }
 
     const updates = {
       attendanceStatus,
-      attendanceRecordedAt: new Date(),
-      ...(attendanceStatus === 'present' && { checkInTime: new Date() }),
-      ...(attendanceStatus === 'no_show' && noShowReason && { noShowReason }),
-      ...(notes && { notes })
+      attendanceRecordedAt,
+      markedPresentBy: attendanceRecorderId,
+      checkInTime: attendanceStatus === 'no_show' ? null : (session.checkInTime || attendanceRecordedAt),
+      noShowReason: attendanceStatus === 'no_show' ? trimmedNoShowReason : null,
+      ...(trimmedNotes && { notes: trimmedNotes })
     };
 
-    await session.update(updates);
+    await session.update(updates, { transaction });
+    await transaction.commit();
 
     return res.status(200).json({
       success: true,
       message: `Attendance recorded: ${attendanceStatus}`,
-      data: session
+      data: session,
+      deduction: deductionResult ? {
+        deducted: Boolean(deductionResult.deducted),
+        creditsDeducted: deductionResult.creditsDeducted || 0,
+        remainingSessions: deductionResult.remainingSessions ?? null
+      } : null
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.error('Rollback failed in PATCH /api/sessions/:id/attendance:', rollbackError);
+      }
+    }
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/attendance:`, error);
     return res.status(500).json({
       success: false,
@@ -1840,7 +2918,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']
         }
       ]
     });
@@ -1898,8 +2976,16 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored && session.userId) {
       const client = await User.findByPk(session.userId);
       if (client) {
-        await client.update({ availableSessions: Number(client.availableSessions || 0) + 1 });
-        session.sessionCreditRestored = true;
+        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+          logger.info('Skipped cancellation waiver credit restore for non-deducting client source', {
+            sessionId: session.id,
+            userId: client.id,
+            clientSource: client.clientSource
+          });
+        } else {
+          await client.update({ availableSessions: Number(client.availableSessions || 0) + 1 });
+          session.sessionCreditRestored = true;
+        }
       }
     }
 

@@ -29,6 +29,11 @@ import styled from 'styled-components';
 import { X, Share2, Globe, Users, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../hooks/use-toast';
+import {
+  buildShareToFeedPostPayload,
+  type ShareToFeedPostType,
+  type ShareToFeedVisibility,
+} from './ShareToFeedModal.payload';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -197,8 +202,8 @@ const PointsHint = styled.div`
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-type PostType = 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
-type Visibility = 'public' | 'friends' | 'private';
+type PostType = ShareToFeedPostType;
+type Visibility = ShareToFeedVisibility;
 
 interface Props {
   open: boolean;
@@ -264,14 +269,14 @@ const ShareToFeedModal: React.FC<Props> = ({
     setSubmitting(true);
 
     try {
-      const payload: Record<string, any> = {
-        content: content.trim(),
-        type: postType,
+      const payload = buildShareToFeedPostPayload({
+        content,
+        postType,
         visibility,
-      };
-      if (workoutSessionId) payload.workoutSessionId = workoutSessionId;
-      if (achievementId) payload.achievementId = achievementId;
-      if (userAchievementId) payload.userAchievementId = userAchievementId;
+        workoutSessionId,
+        achievementId,
+        userAchievementId,
+      });
 
       const resp = await authAxios.post('/api/social/posts', payload);
 

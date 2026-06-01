@@ -17,7 +17,7 @@ import {
   safeCommandResultMessage,
 } from './CoachIntakeOperationalText.logic';
 
-interface AudioInspectionItem {
+export interface AudioInspectionItem {
   id?: string | null;
   kind?: string | null;
   queueStatus?: string | null;
@@ -181,6 +181,26 @@ function numberValue(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function keyText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+export function audioInspectionItemKey(item: AudioInspectionItem): string {
+  if (item.id) return item.id;
+  const confidence = ['single', 'low', 'medium', 'high'].includes(keyText(item.audioConfidence, 'medium'))
+    ? keyText(item.audioConfidence, 'medium')
+    : 'medium';
+  return [
+    'audio-review',
+    keyText(item.kind, 'unknown'),
+    keyText(item.queueStatus, 'unknown'),
+    numberValue(item.audioPieces),
+    numberValue(item.audioBundles),
+    confidence,
+    keyText(item.reviewRoute, item.needsOrderingReview ? 'review' : 'no-review'),
+  ].join('-');
+}
+
 function audioItems(value: unknown): AudioInspectionItem[] {
   return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') as AudioInspectionItem[] : [];
 }
@@ -247,8 +267,8 @@ export function CoachAudioInspectionResultCard({
       </SummaryGrid>
       {items.length > 0 && (
         <ItemList aria-label="Audio piece review targets">
-          {items.map((item, index) => (
-            <ItemRow key={item.id || `audio-item-${index}`}>
+          {items.map((item) => (
+            <ItemRow key={audioInspectionItemKey(item)}>
               <ItemMain>
                 <GitBranch size={14} aria-hidden="true" />
                 <strong>{plural(numberValue(item.audioPieces), 'piece')}</strong>

@@ -95,167 +95,6 @@ interface UseExerciseStatsReturn {
   exportStats: (format: 'csv' | 'json' | 'pdf') => Promise<void>;
 }
 
-// === MOCK DATA ===
-
-const MOCK_EXERCISE_STATS: ExerciseStats = {
-  totalExercises: 247,
-  totalVideos: 189,
-  activeUsers: 1247,
-  avgQualityScore: 94.5,
-  totalViews: 15420,
-  totalCompletions: 8947,
-  engagementRate: 78.5,
-  popularityTrend: 'up'
-};
-
-const MOCK_TOP_EXERCISES: ExerciseUsage[] = [
-  {
-    exerciseId: 'ex_001',
-    exerciseName: 'Push-up Progression',
-    views: 1247,
-    completions: 892,
-    avgRating: 4.8,
-    lastUsed: '2025-02-01T14:30:00Z',
-    trend: 'up',
-    completionRate: 71.5
-  },
-  {
-    exerciseId: 'ex_002',
-    exerciseName: 'Deadlift Form Check',
-    views: 1089,
-    completions: 743,
-    avgRating: 4.9,
-    lastUsed: '2025-02-01T13:45:00Z',
-    trend: 'up',
-    completionRate: 68.2
-  },
-  {
-    exerciseId: 'ex_003',
-    exerciseName: 'Core Stability Sequence',
-    views: 987,
-    completions: 654,
-    avgRating: 4.7,
-    lastUsed: '2025-02-01T12:15:00Z',
-    trend: 'stable',
-    completionRate: 66.3
-  },
-  {
-    exerciseId: 'ex_004',
-    exerciseName: 'Squat Technique Master',
-    views: 876,
-    completions: 589,
-    avgRating: 4.6,
-    lastUsed: '2025-02-01T11:20:00Z',
-    trend: 'down',
-    completionRate: 67.2
-  },
-  {
-    exerciseId: 'ex_005',
-    exerciseName: 'Shoulder Mobility Flow',
-    views: 743,
-    completions: 512,
-    avgRating: 4.8,
-    lastUsed: '2025-02-01T10:30:00Z',
-    trend: 'up',
-    completionRate: 68.9
-  }
-];
-
-const MOCK_RECENT_ACTIVITY: ActivityItem[] = [
-  {
-    id: 'act_001',
-    type: 'exercise_created',
-    title: 'New Exercise Created',
-    description: 'Hip Flexor Stretch Sequence added to library',
-    timestamp: '2025-02-01T14:30:00Z',
-    metadata: { exerciseId: 'ex_106' },
-    icon: '🏃‍♂️',
-    priority: 'medium'
-  },
-  {
-    id: 'act_002',
-    type: 'milestone_reached',
-    title: 'Milestone Achieved!',
-    description: '1000+ users completed your exercises this week',
-    timestamp: '2025-02-01T13:15:00Z',
-    metadata: { value: 1000 },
-    icon: '🎯',
-    priority: 'high'
-  },
-  {
-    id: 'act_003',
-    type: 'video_uploaded',
-    title: 'Video Demonstration Added',
-    description: 'HD video uploaded for Plank Progression',
-    timestamp: '2025-02-01T12:45:00Z',
-    metadata: { exerciseId: 'ex_098' },
-    icon: '🎬',
-    priority: 'medium'
-  },
-  {
-    id: 'act_004',
-    type: 'achievement_earned',
-    title: 'Achievement Unlocked',
-    description: 'Video Master badge earned!',
-    timestamp: '2025-02-01T11:30:00Z',
-    metadata: { achievementId: 'video_master' },
-    icon: '🏆',
-    priority: 'high'
-  },
-  {
-    id: 'act_005',
-    type: 'user_completed',
-    title: 'High Engagement',
-    description: 'Sarah M. completed 5 exercises in a row',
-    timestamp: '2025-02-01T10:15:00Z',
-    metadata: { userId: 'user_456' },
-    icon: '⭐',
-    priority: 'low'
-  }
-];
-
-const MOCK_TRENDING_EXERCISES: TrendingExercise[] = [
-  {
-    id: 'ex_trending_001',
-    name: 'Functional Movement Screen',
-    category: 'Assessment',
-    completions: 342,
-    views: 478,
-    rating: 4.9,
-    growthRate: 45.2,
-    isNew: true
-  },
-  {
-    id: 'ex_trending_002',
-    name: 'Kettlebell Turkish Get-Up',
-    category: 'Strength',
-    completions: 289,
-    views: 401,
-    rating: 4.7,
-    growthRate: 32.1,
-    isNew: false
-  },
-  {
-    id: 'ex_trending_003',
-    name: 'Balance Challenge Series',
-    category: 'Balance',
-    completions: 267,
-    views: 389,
-    rating: 4.8,
-    growthRate: 28.7,
-    isNew: true
-  }
-];
-
-const MOCK_PERFORMANCE_METRICS: PerformanceMetrics = {
-  dailyActiveUsers: 247,
-  weeklyActiveUsers: 1089,
-  monthlyActiveUsers: 3421,
-  avgSessionDuration: 18.5, // minutes
-  bounceRate: 12.3, // percentage
-  retentionRate: 87.6 // percentage
-};
-
 // === UTILITY FUNCTIONS ===
 
 const formatNumber = (num: number): string => {
@@ -284,10 +123,130 @@ const sortByPriority = (activities: ActivityItem[]): ActivityItem[] => {
   });
 };
 
+type RawExerciseRecord = Record<string, any>;
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const unwrapExerciseArray = (payload: any): RawExerciseRecord[] => {
+  const rawExercises = payload?.exercises ?? payload?.data?.exercises ?? payload ?? [];
+  return Array.isArray(rawExercises) ? rawExercises : [];
+};
+
+const getExerciseIdentifier = (exercise: RawExerciseRecord, index: number): string => (
+  String(exercise.id ?? exercise.exerciseId ?? exercise.exerciseKey ?? `exercise-${index}`)
+);
+
+const getExerciseName = (exercise: RawExerciseRecord): string => (
+  String(exercise.name ?? exercise.exerciseName ?? 'Unnamed Exercise')
+);
+
+const buildExerciseUsageFromRecord = (exercise: RawExerciseRecord, index = 0): ExerciseUsage => {
+  const stats = exercise.stats ?? {};
+  const views = toNumber(exercise.views ?? stats.views);
+  const completions = toNumber(exercise.completions ?? stats.completions);
+  const previousViews = toNumber(exercise.previousViews ?? stats.previousViews, views);
+  const completionRate = views > 0 ? Math.round((completions / views) * 1000) / 10 : 0;
+  const growthRate = calculateGrowthRate(views, previousViews);
+
+  return {
+    exerciseId: getExerciseIdentifier(exercise, index),
+    exerciseName: getExerciseName(exercise),
+    views,
+    completions,
+    avgRating: toNumber(exercise.avgRating ?? exercise.rating ?? stats.avgRating),
+    lastUsed: String(exercise.lastUsed ?? exercise.updatedAt ?? exercise.createdAt ?? new Date().toISOString()),
+    trend: getTrendDirection(growthRate),
+    completionRate
+  };
+};
+
+const buildExerciseStatsFromLibrary = (exercises: RawExerciseRecord[]) => {
+  const usageRows = exercises.map(buildExerciseUsageFromRecord);
+  const topExercises = usageRows
+    .sort((a, b) => (
+      b.views - a.views ||
+      b.completions - a.completions ||
+      a.exerciseName.localeCompare(b.exerciseName)
+    ))
+    .slice(0, 5);
+  const totalViews = usageRows.reduce((total, exercise) => total + exercise.views, 0);
+  const totalCompletions = usageRows.reduce((total, exercise) => total + exercise.completions, 0);
+  const scoredExercises = exercises
+    .map(exercise => toNumber(exercise.nasmScore ?? exercise.qualityScore ?? exercise.stats?.qualityScore))
+    .filter(score => score > 0);
+  const datedExercises = exercises.filter(exercise => exercise.createdAt || exercise.updatedAt);
+  const averageQualityScore = scoredExercises.length > 0
+    ? Math.round((scoredExercises.reduce((total, score) => total + score, 0) / scoredExercises.length) * 10) / 10
+    : 0;
+
+  return {
+    stats: {
+      totalExercises: exercises.length,
+      totalVideos: exercises.filter(exercise => exercise.videoUrl || exercise.video_url || exercise.mediaUrl).length,
+      activeUsers: exercises.reduce(
+        (total, exercise) => total + toNumber(exercise.activeUsers ?? exercise.stats?.activeUsers),
+        0
+      ),
+      avgQualityScore: averageQualityScore,
+      totalViews,
+      totalCompletions,
+      engagementRate: totalViews > 0 ? Math.round((totalCompletions / totalViews) * 1000) / 10 : 0,
+      popularityTrend: 'stable' as const
+    },
+    topExercises,
+    recentActivity: sortByPriority(datedExercises.slice(0, 10).map((exercise, index): ActivityItem => ({
+      id: `exercise-${getExerciseIdentifier(exercise, index)}-${index}`,
+      type: exercise.videoUrl || exercise.video_url ? 'video_uploaded' : 'exercise_created',
+      title: exercise.videoUrl || exercise.video_url ? 'Exercise Video Available' : 'Exercise Available',
+      description: getExerciseName(exercise),
+      timestamp: String(exercise.updatedAt ?? exercise.createdAt),
+      metadata: { exerciseId: getExerciseIdentifier(exercise, index) },
+      icon: exercise.videoUrl || exercise.video_url ? 'video' : 'exercise',
+      priority: 'low'
+    }))),
+    trendingExercises: topExercises.slice(0, 3).map((exercise, index): TrendingExercise => ({
+      id: exercise.exerciseId,
+      name: exercise.exerciseName,
+      category: String(exercises[index]?.exerciseType ?? exercises[index]?.category ?? 'General'),
+      completions: exercise.completions,
+      views: exercise.views,
+      rating: exercise.avgRating,
+      growthRate: 0,
+      isNew: false
+    })),
+    performanceMetrics: {
+      dailyActiveUsers: 0,
+      weeklyActiveUsers: 0,
+      monthlyActiveUsers: 0,
+      avgSessionDuration: 0,
+      bounceRate: 0,
+      retentionRate: 0
+    },
+    lastUpdated: new Date().toISOString()
+  };
+};
+
+const buildExerciseAnalyticsFromRecord = (exercise: RawExerciseRecord, exerciseId: string) => {
+  const usage = buildExerciseUsageFromRecord({ ...exercise, id: exerciseId });
+
+  return {
+    exerciseId,
+    views: usage.views,
+    completions: usage.completions,
+    avgRating: usage.avgRating,
+    completionRate: usage.completionRate,
+    dailyViews: [],
+    userFeedback: []
+  };
+};
+
 // === CUSTOM HOOK ===
 
 export const useExerciseStats = (): UseExerciseStatsReturn => {
-  const { user } = useAuth();
+  const { user, authAxios } = useAuth();
   
   // State
   const [stats, setStats] = useState<ExerciseStats | null>(null);
@@ -335,27 +294,8 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
         return;
       }
       
-      // TODO: Replace with actual API calls
-      // const [statsRes, topExercisesRes, activityRes, trendingRes, metricsRes] = await Promise.all([
-      //   fetch('/api/admin/exercises/stats'),
-      //   fetch('/api/admin/exercises/top'),
-      //   fetch('/api/admin/exercises/activity'),
-      //   fetch('/api/admin/exercises/trending'),
-      //   fetch('/api/admin/exercises/metrics')
-      // ]);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Use mock data for now
-      const statsData = {
-        stats: MOCK_EXERCISE_STATS,
-        topExercises: MOCK_TOP_EXERCISES,
-        recentActivity: sortByPriority(MOCK_RECENT_ACTIVITY),
-        trendingExercises: MOCK_TRENDING_EXERCISES,
-        performanceMetrics: MOCK_PERFORMANCE_METRICS,
-        lastUpdated: new Date().toISOString()
-      };
+      const response = await authAxios.get('/api/exercises/all');
+      const statsData = buildExerciseStatsFromLibrary(unwrapExerciseArray(response.data));
       
       // Update state
       setStats(statsData.stats);
@@ -374,7 +314,7 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [getCachedData, setCachedData]);
+  }, [authAxios, getCachedData, setCachedData]);
   
   // Refresh stats
   const refreshStats = useCallback(async () => {
@@ -392,28 +332,9 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
         return cachedAnalytics;
       }
       
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/admin/exercises/${exerciseId}/analytics`);
-      // const analytics = await response.json();
-      
-      // Mock analytics data
-      const analytics = {
-        exerciseId,
-        views: Math.floor(Math.random() * 1000) + 100,
-        completions: Math.floor(Math.random() * 500) + 50,
-        avgRating: +(Math.random() * 2 + 3).toFixed(1), // 3.0 - 5.0
-        completionRate: +(Math.random() * 30 + 60).toFixed(1), // 60% - 90%
-        dailyViews: Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          views: Math.floor(Math.random() * 50) + 10,
-          completions: Math.floor(Math.random() * 25) + 5
-        })),
-        userFeedback: [
-          { rating: 5, comment: 'Excellent form demonstration!', timestamp: '2025-02-01T10:00:00Z' },
-          { rating: 4, comment: 'Very helpful, would like more variations', timestamp: '2025-01-31T15:30:00Z' },
-          { rating: 5, comment: 'Perfect for beginners', timestamp: '2025-01-30T09:45:00Z' }
-        ]
-      };
+      const response = await authAxios.get(`/api/exercises/${exerciseId}`);
+      const exercise = response.data?.exercise ?? response.data?.data ?? response.data ?? {};
+      const analytics = buildExerciseAnalyticsFromRecord(exercise, exerciseId);
       
       // Cache the analytics
       setCachedData(`exercise-analytics-${exerciseId}`, analytics);
@@ -423,7 +344,7 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
       console.error('Failed to fetch exercise analytics:', err);
       throw err;
     }
-  }, [getCachedData, setCachedData]);
+  }, [authAxios, getCachedData, setCachedData]);
   
   // Mark activity as read
   const markActivityAsRead = useCallback((activityId: string) => {
@@ -475,13 +396,35 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
           filename = `exercise-stats-${new Date().toISOString().split('T')[0]}.csv`;
           break;
           
-        case 'pdf':
-          // For PDF, we'd need a PDF generation library
-          // For now, just export as JSON
-          content = JSON.stringify(exportData, null, 2);
-          mimeType = 'application/json';
-          filename = `exercise-stats-${new Date().toISOString().split('T')[0]}.json`;
-          break;
+        case 'pdf': {
+          const { jsPDF } = await import('jspdf');
+          const autoTableModule = await import('jspdf-autotable');
+          const autoTable = autoTableModule.default;
+          const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(16);
+          doc.text('SwanStudios Exercise Stats', 14, 18);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          doc.text(`Exported ${new Date().toLocaleString()}`, 14, 25);
+
+          autoTable(doc, {
+            startY: 32,
+            head: [['Exercise Name', 'Views', 'Completions', 'Rating', 'Completion Rate']],
+            body: topExercises.map(ex => [
+              ex.exerciseName,
+              ex.views.toString(),
+              ex.completions.toString(),
+              ex.avgRating.toString(),
+              `${ex.completionRate.toFixed(1)}%`
+            ]),
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [0, 32, 96], textColor: [255, 255, 255] }
+          });
+          doc.save(`exercise-stats-${new Date().toISOString().split('T')[0]}.pdf`);
+          return;
+        }
           
         default:
           throw new Error(`Unsupported export format: ${format}`);

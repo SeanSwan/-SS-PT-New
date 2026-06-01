@@ -28,6 +28,11 @@ import {
   getAdminNotification
 } from '../models/index.mjs';
 
+const appendAuditNote = (existingNotes, auditNote) => {
+  const currentNotes = typeof existingNotes === 'string' ? existingNotes.trim() : '';
+  return currentNotes ? `${currentNotes} | ${auditNote}` : auditNote;
+};
+
 class TrainerAssignmentService {
   constructor() {
     this.serviceName = 'TrainerAssignmentService';
@@ -244,7 +249,6 @@ class TrainerAssignmentService {
    * @returns {Array} Updated session records
    */
   async performSessionAssignment(sessions, trainerId, adminUserId) {
-    const Session = getSession();
     const assignedSessions = [];
     const assignmentTime = new Date();
 
@@ -258,7 +262,10 @@ class TrainerAssignmentService {
           status: 'assigned', // New status for assigned but not yet scheduled
           assignedAt: assignmentTime,
           assignedBy: adminUserId,
-          notes: session.notes + ` | Assigned to trainer ${trainerId} by admin ${adminUserId || 'system'} on ${assignmentTime.toISOString()}`
+          notes: appendAuditNote(
+            session.notes,
+            `Assigned to trainer ${trainerId} by admin ${adminUserId || 'system'} on ${assignmentTime.toISOString()}`
+          )
         });
 
         assignedSessions.push(session);
@@ -458,7 +465,7 @@ class TrainerAssignmentService {
       const sessions = await Session.findAll({
         where: {
           userId: clientId,
-          trainerId: { [Session.sequelize.Op.not]: null }
+          trainerId: { [Op.not]: null }
         },
         include: [{
           model: User,
@@ -529,8 +536,8 @@ class TrainerAssignmentService {
       const sessions = await Session.findAll({
         where: {
           id: sessionIds,
-          trainerId: { [Session.sequelize.Op.not]: null },
-          status: ['assigned', 'scheduled'] // Only allow unassigning if not completed
+          trainerId: { [Op.not]: null },
+          status: { [Op.in]: ['assigned', 'scheduled'] } // Only allow unassigning if not completed
         }
       });
 
@@ -550,7 +557,10 @@ class TrainerAssignmentService {
           status: 'available',
           assignedAt: null,
           assignedBy: null,
-          notes: session.notes + ` | Trainer assignment removed by admin ${adminUserId || 'system'} on ${new Date().toISOString()}`
+          notes: appendAuditNote(
+            session.notes,
+            `Trainer assignment removed by admin ${adminUserId || 'system'} on ${new Date().toISOString()}`
+          )
         });
 
         unassignedSessions.push(session);

@@ -7,7 +7,11 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { normalizeCoachOnboardingDraft } from '../../services/coachClientOnboardingApprovalService.mjs';
+import {
+  getApprovedOnboardingAvailableSessions,
+  normalizeCoachOnboardingDraft,
+  summarizeOnboardingDraftForReview,
+} from '../../services/coachClientOnboardingApprovalService.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +46,78 @@ describe('coachClientOnboardingApprovalService', () => {
     expect(() => normalizeCoachOnboardingDraft({
       payload: { firstName: 'Marcus', lastName: 'Lee' },
     })).toThrow(/client source/i);
+  });
+
+  it('keeps every free-tracking source out of paid session inventory on approval', () => {
+    expect(getApprovedOnboardingAvailableSessions({
+      clientSource: 'move_fitness',
+      availableSessions: 8,
+    })).toBe(0);
+
+    expect(getApprovedOnboardingAvailableSessions({
+      clientSource: 'external',
+      availableSessions: 8,
+    })).toBe(0);
+
+    expect(getApprovedOnboardingAvailableSessions({
+      clientSource: 'swanstudios',
+      availableSessions: 8,
+    })).toBe(8);
+  });
+
+  it('keeps approved session inventory whole-numbered and review-visible', () => {
+    expect(getApprovedOnboardingAvailableSessions({
+      clientSource: 'swanstudios',
+      availableSessions: 2.5,
+    })).toBe(0);
+
+    expect(getApprovedOnboardingAvailableSessions({
+      clientSource: 'swanstudios',
+      availableSessions: '3',
+    })).toBe(3);
+
+    expect(summarizeOnboardingDraftForReview({
+      payload: {
+        firstName: 'Mia',
+        lastName: 'Torres',
+        clientSource: 'move_fitness',
+        availableSessions: 9,
+      },
+    }).client.availableSessions).toBe(0);
+  });
+
+  it('preserves dictated training context in review detail and assignment notes', () => {
+    const proposal = {
+      payload: {
+        firstName: 'Marcus',
+        lastName: 'Lee',
+        clientSource: 'move_fitness',
+        trainingGoal: 'Build strength while protecting the knee.',
+        trainerNotes: 'Prefers concise coaching cues.',
+        limitations: 'Avoid loaded knee flexion this week.',
+        painNotes: 'Right knee discomfort after stairs.',
+        equipmentAccess: 'Dumbbells, bands, turf sled.',
+        availability: 'Weekday mornings before 9.',
+        firstSessionPriorities: 'Baseline pushups, squat pattern, and pain-free conditioning.',
+      },
+    };
+
+    const draft = normalizeCoachOnboardingDraft(proposal);
+    expect(draft.fitnessGoal).toBe('Build strength while protecting the knee.');
+    expect(draft.trainerNotes).toContain('Prefers concise coaching cues.');
+    expect(draft.trainerNotes).toContain('Limitations: Avoid loaded knee flexion this week.');
+    expect(draft.trainerNotes).toContain('Pain notes: Right knee discomfort after stairs.');
+    expect(draft.trainerNotes).toContain('Equipment access: Dumbbells, bands, turf sled.');
+    expect(draft.trainerNotes).toContain('Availability: Weekday mornings before 9.');
+    expect(draft.trainerNotes).toContain('First session priorities: Baseline pushups, squat pattern, and pain-free conditioning.');
+
+    expect(summarizeOnboardingDraftForReview(proposal).client.onboardingContext).toEqual({
+      limitations: 'Avoid loaded knee flexion this week.',
+      painNotes: 'Right knee discomfort after stairs.',
+      equipmentAccess: 'Dumbbells, bands, turf sled.',
+      availability: 'Weekday mornings before 9.',
+      firstSessionPriorities: 'Baseline pushups, squat pattern, and pain-free conditioning.',
+    });
   });
 
   it('does not depend on stale ClientProgress fields during client creation', () => {

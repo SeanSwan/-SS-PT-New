@@ -29,6 +29,7 @@ import {
   initializeRegistry,
 } from '../services/ai/commandRegistry/index.mjs';
 import { shouldFallbackNotWiredCommandToChat } from '../services/ai/commandFallbackPolicy.mjs';
+import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs';
 
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
@@ -113,6 +114,18 @@ router.post('/execute', protect, async (req, res) => {
     }
 
     if (ctx.result?.type === 'not_wired') {
+      if (ctx.command?.method === 'FRONTEND_DISPATCH' && !ctx.command?.requiresConfirmation) {
+        return res.json({
+          success: true,
+          type: 'frontend_dispatch',
+          message: `Sent ${ctx.command.description.toLowerCase()} to the workout form.`,
+          command: ctx.command.type,
+          event: ctx.command.frontendEvent || ctx.command.endpoint,
+          payload: ctx.intent?.params || {},
+          fallbackToChat: false,
+          timing: ctx.metadata.timing,
+        });
+      }
       if (shouldFallbackNotWiredCommandToChat(ctx.command?.type)) {
         return res.json({
           success: true,
@@ -128,6 +141,8 @@ router.post('/execute', protect, async (req, res) => {
         type: 'not_wired',
         message: ctx.result.message,
         command: ctx.command?.type,
+        manualOnly: ctx.result.manualOnly ?? false,
+        reason: ctx.result.reason || null,
         client: ctx.resolvedClient,
         timing: ctx.metadata.timing,
       });
@@ -153,8 +168,10 @@ router.post('/execute', protect, async (req, res) => {
       return res.json({
         success: true,
         type: 'not_wired',
-        message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution.`,
+        message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution. No data was changed.`,
         command: ctx.command.type,
+        manualOnly: false,
+        reason: null,
         client: ctx.resolvedClient,
         timing: ctx.metadata.timing,
       });
@@ -231,14 +248,18 @@ router.get('/commands', protect, (req, res) => {
       success: true,
       role: req.user.role,
       commandCount: commands.length,
-      commands: commands.map(cmd => ({
-        type: cmd.type,
-        description: cmd.description,
-        category: cmd.category,
-        examples: cmd.naturalLanguagePatterns.slice(0, 2),
-        destructive: cmd.destructive,
-        requiresClientRef: cmd.requiresClientRef || false,
-      })),
+      commands: commands.map(cmd => {
+        const execution = getCommandExecutionLane(cmd);
+        return {
+          type: cmd.type,
+          description: cmd.description,
+          category: cmd.category,
+          examples: cmd.naturalLanguagePatterns.slice(0, 2),
+          destructive: cmd.destructive,
+          requiresClientRef: cmd.requiresClientRef || false,
+          ...execution,
+        };
+      }),
     });
   } catch (err) {
     logger.error('[AICommand] Commands list error', { error: err.message });

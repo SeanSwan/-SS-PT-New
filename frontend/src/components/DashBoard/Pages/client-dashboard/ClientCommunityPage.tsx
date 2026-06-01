@@ -63,6 +63,10 @@ import {
   useSocialFeed, useSocialChallenges, useLeaderboard, useCreatePost,
 } from '../../../../hooks/useDashboardQueries';
 import {
+  appendHashtag,
+  inferSmartPostIntent,
+} from '../../../Social/Feed/utils/postIntentInference';
+import {
   PageWrap, PostBtn, PostBox, PostInput, HashtagHint, TwoCol, SectionCard,
   ChallengeCard, ChallengeTitle, ChallengeDesc, ChallengeFooter, ProgressBarOuter,
   ProgressBarInner, LeaderRow, RankBadge, FeedPost, EmptyState, ShimmerBlock,
@@ -75,6 +79,8 @@ import {
 const MAX_POST_LENGTH = 500;
 
 interface LeaderboardEntry {
+  id?: string | number;
+  userId?: string | number;
   firstName?: string;
   username?: string;
   totalPoints?: number;
@@ -101,6 +107,41 @@ interface CommunityFeedPost {
   createdAt?: string;
 }
 
+const stableKeyPart = (value: unknown): string => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '');
+
+const communityChallengeKey = (challenge: CommunityChallenge, index: number): string => {
+  const primary = challenge.id ?? challenge.title ?? challenge.name ?? challenge.description;
+  return `challenge-${stableKeyPart(primary) || `slot-${index}`}`;
+};
+
+const leaderboardEntryKey = (leader: LeaderboardEntry, index: number): string => {
+  const primary = leader.id ?? leader.userId ?? leader.username ?? leader.firstName;
+  return `leader-${stableKeyPart(primary) || `slot-${index}`}`;
+};
+
+const communityFeedPostKey = (post: CommunityFeedPost, index: number): string => {
+  const primary = post.id ?? post.createdAt ?? post.content ?? post.text ?? post.authorName ?? post.user?.firstName;
+  return `post-${stableKeyPart(primary) || `slot-${index}`}`;
+};
+
+const prepareCommunityPost = (content: string) => {
+  const smartIntent = inferSmartPostIntent(content, 'general');
+  const enrichedContent = smartIntent.hashtags.reduce(
+    (nextContent, hashtag) => appendHashtag(nextContent, hashtag),
+    content,
+  );
+
+  return {
+    content: enrichedContent,
+    type: smartIntent.submissionType,
+    visibility: 'friends' as const,
+  };
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // TanStack Query handles caching, deduplication, abort on unmount
@@ -126,8 +167,9 @@ const ClientCommunityPage: React.FC = () => {
   const fetchError = feedError?.message || challengesError?.message || null;
 
   const handlePost = () => {
-    if (!postText.trim()) return;
-    createPost.mutate(postText, {
+    const trimmedPost = postText.trim();
+    if (!trimmedPost) return;
+    createPost.mutate(prepareCommunityPost(trimmedPost), {
       onSuccess: () => setPostText(''),
     });
   };
@@ -135,6 +177,7 @@ const ClientCommunityPage: React.FC = () => {
   // Memoize leaderboard mapping to avoid recomputing on every render
   const leaderData = useMemo(() => {
     return (leaderboard as LeaderboardEntry[]).slice(0, 5).map((u, i) => ({
+      id: leaderboardEntryKey(u, i),
       name: u.firstName || u.username || `Athlete ${i + 1}`,
       xp: u.totalPoints || u.points || 0,
     }));
@@ -213,7 +256,7 @@ const ClientCommunityPage: React.FC = () => {
           {challenges.length === 0
             ? <EmptyState>No active challenges right now. Check back soon!</EmptyState>
             : (challenges as CommunityChallenge[]).slice(0, 3).map((c, i) => (
-              <ChallengeCard key={c.id || i}>
+              <ChallengeCard key={communityChallengeKey(c, i)}>
                 <ChallengeTitle>{c.title || c.name || 'Challenge'}</ChallengeTitle>
                 <ChallengeDesc>{c.description || 'Complete this challenge to earn rewards.'}</ChallengeDesc>
                 <ChallengeFooter>
@@ -242,7 +285,7 @@ const ClientCommunityPage: React.FC = () => {
               </EmptyState>
             )
             : leaderData.map((l, i) => (
-              <LeaderRow key={i}>
+              <LeaderRow key={l.id}>
                 <RankBadge $rank={i + 1}>{i + 1}</RankBadge>
                 <LeaderName>{l.name}</LeaderName>
                 <LeaderPoints>
@@ -263,7 +306,7 @@ const ClientCommunityPage: React.FC = () => {
                 : 'No posts yet. Be the first to share something!'}
             </EmptyState>
           : (feed as CommunityFeedPost[]).map((p, i) => (
-            <FeedPost key={p.id || i}>
+            <FeedPost key={communityFeedPostKey(p, i)}>
               <div className="post-author">
                 {p.user?.firstName || p.authorName || 'Community Member'}
               </div>

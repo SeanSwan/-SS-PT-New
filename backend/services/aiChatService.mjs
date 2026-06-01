@@ -5,7 +5,7 @@
  * PhD-level sports nutrition knowledge, and full client data access.
  *
  * Data Sources (17): User profile, equipment profiles, onboarding questionnaire,
- * movement analysis, baseline measurements, daily workout forms, body measurements,
+ * movement analysis, baseline measurements, workout diary logs, body measurements,
  * gamification, goals, client notes, client progress (NASM levels), macro logs,
  * movement profile, waiver records, form analysis, pain entries, sessions.
  *
@@ -14,6 +14,40 @@
 import logger from '../utils/logger.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mjs';
+
+export function getCoachRosterClientSourceLabel(clientSource) {
+  if (clientSource === 'move_fitness') return ' [Move Fitness - FREE TRACKING]';
+  if (clientSource === 'external') return ' [External - FREE TRACKING]';
+  return ' [SwanStudios - PAID]';
+}
+
+export function getCoachRosterClientSessionsLabel(client = {}) {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    return 'free tracking/no paid-session deduction';
+  }
+  const sessions = Number(client.availableSessions);
+  return Number.isFinite(sessions) ? `${sessions} sessions` : 'unknown sessions';
+}
+
+export function getCoachClientProfileSourceLabel(clientSource) {
+  if (clientSource === 'move_fitness') {
+    return 'Move Fitness (free tracking - no billing, session packages, or SwanStudios pricing discussion)';
+  }
+  if (clientSource === 'external') {
+    return 'External (free tracking - no billing, session packages, or SwanStudios pricing discussion)';
+  }
+  return 'SwanStudios';
+}
+
+export function getCoachClientProfileSessionsLabel(client = {}) {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    return 'Free tracking/no paid-session deduction';
+  }
+  const sessions = Number(client.availableSessions);
+  return Number.isFinite(sessions) ? String(sessions) : 'Unknown';
+}
 
 // ─── NASM OPT Model Reference (embedded in prompts) ───
 const NASM_OPT_REFERENCE = `
@@ -558,7 +592,7 @@ ${HEALTH_CONDITION_PROTOCOLS}`,
     client_onboarding: `You are SwanStudios Client Onboarding Intelligence — a NASM-CPT certified intake specialist for personal trainers. Your job is to parse unstructured trainer dictation about a new client and generate a structured onboarding record.
 
 INTAKE PROTOCOL:
-The trainer will describe a new client in natural language — possibly dictated via voice, typed in shorthand, or pasted from notes. You must extract ALL relevant data and generate a structured ONBOARD_CLIENT_INTENT action block.
+The trainer will describe a new client in natural language — possibly dictated via voice, typed in shorthand, or pasted from notes. You must extract ALL relevant data and prepare a review-gated coach_action_proposal draft with proposal_type "client_onboarding".
 
 REQUIRED FIELDS (ask clarifying questions if missing):
 - firstName (REQUIRED — cannot proceed without it)
@@ -567,14 +601,18 @@ REQUIRED FIELDS (ask clarifying questions if missing):
 EXTRACTED FIELDS (parse from description):
 - dateOfBirth or age (convert age to approximate DOB if only age given, using format YYYY-MM-DD)
 - gender (Male, Female, Non-binary, Prefer not to say)
-- clientSource: "move_fitness" (free tier — gym client the trainer works with at their gym job) OR "swanstudios" (paid tier — client purchasing personal training sessions directly)
+- clientSource: "swanstudios" (paid tier - client purchasing personal training sessions directly), "move_fitness" (free-tracking tier - gym client the trainer works with at Move Fitness; No session deduction), OR "external" (free-tracking tier - outside gym, studio, imported, or trainer-managed client who does not buy SwanStudios sessions; No session deduction)
 - fitnessGoal (combine all stated goals into a comma-separated string, e.g., "Senior Fitness & Balance, Improve Mobility & Flexibility")
 - trainingExperience: "beginner" (0-6 months), "intermediate" (6-24 months), "advanced" (2+ years)
 - healthConcerns (injuries, surgeries, chronic conditions, medications, limitations — be thorough)
 - trainerNotes (YOUR NASM assessment — see below)
-- assignToSelf: true (always default to true — the trainer creating the client is assigned)
-- generateClaimCode: true (always default to true — generates a code/URL for the client to claim their account)
-- availableSessions: 0 for move_fitness clients, ask or default to 0 for swanstudios clients
+- trainingGoal (progress-first outcome the client wants to track)
+- limitations (movement limits, contraindicated patterns, or trainer-stated boundaries)
+- painNotes (pain areas and severity only when the trainer provides them)
+- equipmentAccess (gym/home/park/client-home equipment that affects first programming)
+- availability (days/times or cadence the client can train)
+- firstSessionPriorities (what the trainer should assess or prove in session one)
+- availableSessions: include only when explicitly stated for SwanStudios paid clients; free-tracking clients (move_fitness/external) should remain 0 unless policy changes
 
 NASM ASSESSMENT (trainerNotes field):
 Based on the trainer's description, write a professional NASM assessment paragraph that includes:
@@ -590,17 +628,18 @@ CRITICAL RULES:
 - NEVER generate workout routines, exercise sets, reps, or weight prescriptions during onboarding
 - The trainerNotes field is a TEXT PARAGRAPH summarizing movement analysis — NOT a workout plan
 - Refer to the client by first name only in your conversational response (identity-blind in data)
-- If the trainer mentions the client is from their gym job / Move Fitness / a gym they work at → clientSource = "move_fitness"
-- If the trainer mentions the client is paying for sessions / buying packages / SwanStudios client → clientSource = "swanstudios"
+- If the trainer mentions the client is from Move Fitness specifically -> clientSource = "move_fitness"
+- If the trainer mentions the client is from another gym, an outside studio, imported records, a trainer-managed non-Swan account, or free tracking without paid SwanStudios sessions -> clientSource = "external"
+- If the trainer mentions the client is paying for sessions / buying packages / SwanStudios client -> clientSource = "swanstudios"
 - If clientSource is unclear, ASK the trainer
 
 OUTPUT FORMAT:
-After your conversational summary, ALWAYS include this action block:
+After your conversational summary, ALWAYS include this review-gated proposal block:
 \`\`\`json
-{"action": "ONBOARD_CLIENT", "data": {"firstName": "...", "lastName": "...", "dateOfBirth": "YYYY-MM-DD", "gender": "...", "clientSource": "move_fitness|swanstudios", "fitnessGoal": "...", "trainingExperience": "beginner|intermediate|advanced", "healthConcerns": "...", "trainerNotes": "...", "assignToSelf": true, "generateClaimCode": true, "availableSessions": 0}}
+{"action": "coach_action_proposal", "schema_version": "2026-05-07", "proposal_type": "client_onboarding", "requires_confirmation": true, "evidence_refs": ["trainer_dictation"], "safety_flags": ["trainer_approval_required"], "payload": {"firstName": "...", "lastName": "...", "clientSource": "move_fitness|external|swanstudios", "fitnessGoal": "...", "trainingGoal": "...", "limitations": "...", "painNotes": "...", "equipmentAccess": "...", "availability": "...", "firstSessionPriorities": "...", "trainerNotes": "..."}}
 \`\`\`
 
-If critical info is missing (name), ask the trainer before generating the action block. For non-critical missing fields, use reasonable defaults and note what you assumed.
+If critical info is missing (firstName, lastName, or clientSource), ask the trainer one short clarification before generating the proposal. For non-critical missing fields, omit the field or state what still needs review; do not invent defaults.
 
 ${NASM_OPT_REFERENCE}`,
 
@@ -621,7 +660,7 @@ When a trainer asks about boot camp / group fitness classes, you can help with:
 - Class styles: standard, pyramid (heavy→drop weight→lighter→failure), superset (compound→bodyweight→banded), mixed
 - Day types: lower body, upper body, cardio, full body, custom
 - Intensity categories: high impact, medium impact, calisthenics, stability, flexibility, cardio
-- Two-board system: Board 1 (main intensity) + Board 2 (modified for injuries/lower fitness)
+- Three-board system: Board 1 (main intensity) + Board 2 (joint-friendly modifications) + Board 3 (low-impact swaps)
 - Warm-up stretching sequences (3-5 minutes, day-type specific)
 - Overflow plans for large classes (lap rotation when stations are full)
 - Flow optimization (interleaving fast-setup and slow-setup exercises so nobody waits)
@@ -630,7 +669,7 @@ When a trainer asks about boot camp / group fitness classes, you can help with:
 When the trainer describes a class (e.g., "Give me a lower body pyramid for 15 people"), suggest:
 1. The format, style, and day type
 2. Station layout with exercises, equipment, and timing
-3. Board 2 modifications for participants with limitations
+3. Board 2 joint-friendly modifications and Board 3 low-impact swaps for participants with limitations
 4. Warm-up stretch sequence
 5. Overflow plan if participant count exceeds station capacity
 
@@ -737,7 +776,7 @@ ${HEALTH_CONDITION_PROTOCOLS}`,
     client_onboarding: `You are SwanStudios Client Onboarding Intelligence — a NASM-CPT certified intake specialist for platform administrators. Your job is to parse unstructured dictation about a new client and generate a structured onboarding record.
 
 INTAKE PROTOCOL:
-The admin will describe a new client in natural language — possibly dictated via voice, typed in shorthand, or pasted from notes. You must extract ALL relevant data and generate a structured ONBOARD_CLIENT_INTENT action block.
+The admin will describe a new client in natural language — possibly dictated via voice, typed in shorthand, or pasted from notes. You must extract ALL relevant data and prepare a review-gated coach_action_proposal draft with proposal_type "client_onboarding".
 
 REQUIRED FIELDS (ask clarifying questions if missing):
 - firstName (REQUIRED — cannot proceed without it)
@@ -746,14 +785,12 @@ REQUIRED FIELDS (ask clarifying questions if missing):
 EXTRACTED FIELDS (parse from description):
 - dateOfBirth or age (convert age to approximate DOB if only age given, using format YYYY-MM-DD)
 - gender (Male, Female, Non-binary, Prefer not to say)
-- clientSource: "move_fitness" (free tier — gym client the trainer works with at their gym job) OR "swanstudios" (paid tier — client purchasing personal training sessions directly)
+- clientSource: "swanstudios" (paid tier - client purchasing personal training sessions directly), "move_fitness" (free-tracking tier - gym client the trainer works with at Move Fitness; No session deduction), OR "external" (free-tracking tier - outside gym, studio, imported, or trainer-managed client who does not buy SwanStudios sessions; No session deduction)
 - fitnessGoal (combine all stated goals into a comma-separated string, e.g., "Senior Fitness & Balance, Improve Mobility & Flexibility")
 - trainingExperience: "beginner" (0-6 months), "intermediate" (6-24 months), "advanced" (2+ years)
 - healthConcerns (injuries, surgeries, chronic conditions, medications, limitations — be thorough)
 - trainerNotes (YOUR NASM assessment — see below)
-- assignToSelf: true (always default to true — the admin creating the client is assigned)
-- generateClaimCode: true (always default to true — generates a code/URL for the client to claim their account)
-- availableSessions: 0 for move_fitness clients, ask or default to 0 for swanstudios clients
+- availableSessions: include only when explicitly stated for SwanStudios paid clients; free-tracking clients (move_fitness/external) should remain 0 unless policy changes
 
 NASM ASSESSMENT (trainerNotes field):
 Based on the description, write a professional NASM assessment paragraph that includes:
@@ -769,18 +806,19 @@ CRITICAL RULES:
 - NEVER generate workout routines, exercise sets, reps, or weight prescriptions during onboarding
 - The trainerNotes field is a TEXT PARAGRAPH summarizing movement analysis — NOT a workout plan
 - Refer to the client by first name only in your conversational response (identity-blind in data)
-- If the description mentions the client is from a gym job / Move Fitness / a gym they work at → clientSource = "move_fitness"
-- If the description mentions the client is paying for sessions / buying packages / SwanStudios client → clientSource = "swanstudios"
+- If the description mentions Move Fitness specifically -> clientSource = "move_fitness"
+- If the description mentions another gym, an outside studio, imported records, a trainer-managed non-Swan account, or free tracking without paid SwanStudios sessions -> clientSource = "external"
+- If the description mentions the client is paying for sessions / buying packages / SwanStudios client -> clientSource = "swanstudios"
 - If clientSource is unclear, ASK
 - As admin, you can also assign the client to a specific trainer if mentioned
 
 OUTPUT FORMAT:
-After your conversational summary, ALWAYS include this action block:
+After your conversational summary, ALWAYS include this review-gated proposal block:
 \`\`\`json
-{"action": "ONBOARD_CLIENT", "data": {"firstName": "...", "lastName": "...", "dateOfBirth": "YYYY-MM-DD", "gender": "...", "clientSource": "move_fitness|swanstudios", "fitnessGoal": "...", "trainingExperience": "beginner|intermediate|advanced", "healthConcerns": "...", "trainerNotes": "...", "assignToSelf": true, "generateClaimCode": true, "availableSessions": 0}}
+{"action": "coach_action_proposal", "schema_version": "2026-05-07", "proposal_type": "client_onboarding", "requires_confirmation": true, "evidence_refs": ["admin_dictation"], "safety_flags": ["trainer_approval_required"], "payload": {"firstName": "...", "lastName": "...", "clientSource": "move_fitness|external|swanstudios", "fitnessGoal": "...", "trainingGoal": "...", "limitations": "...", "painNotes": "...", "equipmentAccess": "...", "availability": "...", "firstSessionPriorities": "...", "trainerNotes": "..."}}
 \`\`\`
 
-If critical info is missing (name), ask before generating the action block. For non-critical missing fields, use reasonable defaults and note what you assumed.
+If critical info is missing (firstName, lastName, or clientSource), ask one short clarification before generating the proposal. For non-critical missing fields, omit the field or state what still needs review; do not invent defaults.
 
 ${NASM_OPT_REFERENCE}`,
 
@@ -839,7 +877,7 @@ EQUIPMENT AWARENESS:
 - Only suggest exercises using available gear
 - Suggest bodyweight alternatives when equipment is limited
 
-Two-board system: Board 1 (main) + Board 2 (easier modifications). Every exercise should have a regression.
+Three-board system: Board 1 (main), Board 2 (joint-friendly modifications), and Board 3 (low-impact swaps). Every exercise should have a regression and a low-impact path when data supports it.
 Warm-up stretches: 3-5 minutes, day-type specific.
 Overflow: lap rotation for oversized classes.
 Flow optimization: interleave fast/slow setup exercises.
@@ -1047,7 +1085,7 @@ export function getSystemPrompt(role, context, responseStyle = 'both') {
  *  3. Client onboarding questionnaire (goals, health risk, nutrition prefs)
  *  4. Movement analysis (OHSA, PAR-Q, corrective strategy)
  *  5. Baseline measurements (strength benchmarks, body comp, medical clearance)
- *  6. Daily workout forms (exercise history with sets/reps/weight/RPE/form)
+ *  6. Workout diary logs (exercise history with sets/reps/weight/RPE/form)
  *  7. Body measurements (weight, body fat, circumferences, progress)
  *  8. Gamification (XP, level, tier, achievements, streaks)
  *  9. Active goals (with progress tracking)
@@ -1129,13 +1167,48 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          FROM client_baseline_measurements
          WHERE "userId" = :userId
          ORDER BY "takenAt" DESC NULLS LAST LIMIT 1`, { userId }),
-      // 6. Recent workout forms
+      // 6. Recent completed workout diary entries
       safeQuery(
-        `SELECT date, "formData", "totalPointsEarned", "estimatedDuration",
-                "trainerNotes", "clientSummary"
-         FROM daily_workout_forms
-         WHERE "clientId" = :userId AND "submittedAt" IS NOT NULL
-         ORDER BY date DESC LIMIT 10`, { userId }),
+        `WITH exercise_rollup AS (
+           SELECT
+             ws.id AS "sessionId",
+             wl."exerciseName",
+             COUNT(*) AS sets,
+             MAX(wl.reps) AS reps,
+             MAX(wl.weight) AS weight,
+             ROUND(AVG(wl.rpe)::numeric, 1) AS rpe
+           FROM workout_sessions ws
+           JOIN workout_logs wl ON wl."sessionId" = ws.id
+           WHERE ws."userId" = :userId
+             AND ws.status = 'completed'
+           GROUP BY ws.id, wl."exerciseName"
+         )
+         SELECT
+           ws.date,
+           ws."experiencePoints" AS "totalPointsEarned",
+           ws.duration AS "estimatedDuration",
+           ws.notes AS "trainerNotes",
+           ws.title AS "clientSummary",
+           json_build_object(
+             'overallIntensity', ws.intensity,
+             'exercises', COALESCE(
+               json_agg(json_build_object(
+                 'name', er."exerciseName",
+                 'exerciseName', er."exerciseName",
+                 'sets', er.sets,
+                 'reps', er.reps,
+                 'weight', er.weight,
+                 'rpe', er.rpe
+               ) ORDER BY er."exerciseName") FILTER (WHERE er."exerciseName" IS NOT NULL),
+               '[]'::json
+             )
+           ) AS "workoutData"
+         FROM workout_sessions ws
+         LEFT JOIN exercise_rollup er ON er."sessionId" = ws.id
+         WHERE ws."userId" = :userId
+           AND ws.status = 'completed'
+         GROUP BY ws.id, ws.date, ws."experiencePoints", ws.duration, ws.notes, ws.title, ws.intensity
+         ORDER BY ws.date DESC LIMIT 10`, { userId }),
       // 7. Body measurements
       safeQuery(
         `SELECT "measurementDate", weight, "weightUnit", "bodyFatPercentage",
@@ -1223,18 +1296,20 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
       // 18. Compliance data (workout frequency for this client)
       safeQuery(
         `SELECT
-           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
-           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d",
-           COUNT(CASE WHEN "createdAt" >= NOW() - INTERVAL '90 days' THEN 1 END) AS "workouts90d",
-           MAX("createdAt") AS "lastWorkoutDate"
-         FROM daily_workout_forms WHERE "userId" = :userId OR "clientId" = :userId`, { userId }),
+           COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
+           COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d",
+           COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '90 days' THEN 1 END) AS "workouts90d",
+           MAX(ws.date) AS "lastWorkoutDate"
+         FROM workout_sessions ws
+         WHERE ws."userId" = :userId
+           AND ws.status = 'completed'`, { userId }),
       // 19. Business KPIs (admin/trainer only — platform-wide stats)
       isAdminOrTrainer ? safeQuery(
         `SELECT
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "isActive" != false) AS "activeClients",
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "createdAt" >= NOW() - INTERVAL '30 days') AS "newClientsThisMonth",
            (SELECT COALESCE(SUM("totalAmount"), 0) FROM orders WHERE status IN ('completed', 'paid') AND "createdAt" >= NOW() - INTERVAL '30 days') AS "revenueThisMonth",
-           (SELECT COUNT(*) FROM daily_workout_forms WHERE "createdAt" >= NOW() - INTERVAL '7 days') AS "platformWorkouts7d"`,
+           (SELECT COUNT(*) FROM workout_sessions ws WHERE ws.status = 'completed' AND ws.date >= NOW() - INTERVAL '7 days') AS "platformWorkouts7d"`,
         {}) : Promise.resolve([]),
       // 20. Check-in data placeholder (for when check-in scheduling is built out)
       Promise.resolve([]),
@@ -1272,8 +1347,8 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
 
         if (assignedClients.length > 0) {
           const clientLines = assignedClients.map((c, i) => {
-            const source = c.clientSource === 'move_fitness' ? ' [Move Fitness - FREE]' : ' [SwanStudios]';
-            const sessions = c.availableSessions != null ? `${c.availableSessions} sessions` : 'unknown sessions';
+            const source = getCoachRosterClientSourceLabel(c.clientSource);
+            const sessions = getCoachRosterClientSessionsLabel(c);
             const lastWorkout = c.lastWorkoutDate ? new Date(c.lastWorkoutDate).toLocaleDateString() : 'never';
             return `  ${i + 1}. Client #${c.id}: ${c.firstName} ${c.lastName}${source} | ${sessions} available | ${c.totalWorkouts || 0} workouts | Last: ${lastWorkout} | Goal: ${c.fitnessGoal || 'not set'}`;
           });
@@ -1361,7 +1436,7 @@ Use their Client #ID for all data operations. You can log workouts, check progre
             const painLines = clientPainData.map(p =>
               `  Client #${p.user_id}: ${p.body_region}${p.side ? ` (${p.side})` : ''} — ${p.pain_level}/10 ${p.pain_type || ''}`
             );
-            bootcampParts.push(`Active Client Pain Entries (severity 5+):\n${painLines.join('\n')}\nUse Board 2 wellness modifications for exercises targeting these areas. Use "wellness modifications" language, not "medical treatments".`);
+            bootcampParts.push(`Active Client Pain Entries (severity 5+):\n${painLines.join('\n')}\nUse Board 2 joint-friendly wellness modifications and Board 3 low-impact swaps for exercises targeting these areas. Use "wellness modifications" language, not "medical treatments".`);
           }
         } catch { /* non-fatal */ }
 
@@ -1446,8 +1521,8 @@ Height: ${u.height || 'Not recorded'}
 Goal: ${u.fitnessGoal || 'Not set'}
 Experience: ${u.trainingExperience || 'Not set'}
 Health Concerns: ${u.healthConcerns || 'None noted'}${conditionFlags}
-Sessions Available: ${u.availableSessions ?? 'Unknown'}
-Client Source: ${u.clientSource === 'move_fitness' ? 'Move Fitness (external gym client — DO NOT discuss billing, session packages, or SwanStudios pricing)' : u.clientSource === 'external' ? 'External Client' : 'SwanStudios'}
+Sessions Available: ${getCoachClientProfileSessionsLabel(u)}
+Client Source: ${getCoachClientProfileSourceLabel(u.clientSource)}
 Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unknown'}`);
 
         if (u.masterPromptJson) {
@@ -1510,7 +1585,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     // ── 6. WORKOUT HISTORY ──
     if (workouts.length > 0) {
       const lines = workouts.map(w => {
-        const fd = tryParse(w.formData);
+        const fd = tryParse(w.workoutData || w.formData);
         const exs = fd?.exercises?.slice(0, 6)?.map(ex => `${ex.name || ex.exerciseName}: ${ex.sets || '?'}×${ex.reps || '?'}@${ex.weight || '?'}lbs${ex.rpe ? ` RPE${ex.rpe}` : ''}`).join(', ') || 'N/A';
         return `${w.date}: ${exs}${w.totalPointsEarned ? ` +${w.totalPointsEarned}XP` : ''}`;
       });
@@ -1717,27 +1792,13 @@ ${planLines.join('\n\n')}
       }
     } catch { /* workout_plans table may not exist yet — non-fatal */ }
 
-    // ── 21. ANALYTICS: Exercise history + variety (from MV or direct query) ──
+    // 21. ANALYTICS: Exercise history + variety from canonical workout logs
     try {
-      const [exerciseStats] = await Promise.all([
-        safeQuery(
-          `SELECT "exerciseName", "timesPerformed"::int, "maxWeight"::numeric, "totalVolume"::numeric
-           FROM "UserExerciseStats_MV"
-           WHERE "userId" = :userId
-           ORDER BY "timesPerformed" DESC LIMIT 10`, { userId })
-          .catch(() => safeQuery(
-            `SELECT e.name AS "exerciseName",
-                    COUNT(DISTINCT we."workoutSessionId")::int AS "timesPerformed",
-                    COALESCE(MAX(s."weightUsed"), 0)::numeric AS "maxWeight",
-                    COALESCE(SUM(s."weightUsed" * s."repsCompleted"), 0)::numeric AS "totalVolume"
-             FROM "WorkoutExercises" we
-             JOIN "Exercises" e ON we."exerciseId" = e.id
-             JOIN "WorkoutSessions" ws ON we."workoutSessionId" = ws.id
-             LEFT JOIN "Sets" s ON s."workoutExerciseId" = we.id
-             WHERE ws."userId" = :userId AND ws.status = 'completed'
-             GROUP BY e.id, e.name
-             ORDER BY "timesPerformed" DESC LIMIT 10`, { userId })),
-      ]);
+      const { exercises: exerciseStats = [] } = await getExerciseHistoryFromLogs(userId, {
+        sequelize,
+        sort: 'timesPerformed',
+        limit: 10,
+      });
 
       if (exerciseStats.length > 0) {
         const lines = exerciseStats.map(e =>
@@ -1745,7 +1806,7 @@ ${planLines.join('\n\n')}
         );
         dataParts.push(`\n--- EXERCISE ANALYTICS (Top ${exerciseStats.length}) ---\n${lines.join('\n')}`);
       }
-    } catch { /* MV or tables may not exist yet — non-fatal */ }
+    } catch { /* exercise analytics enrichment is non-fatal */ }
 
     if (dataParts.length === 0) return '';
 

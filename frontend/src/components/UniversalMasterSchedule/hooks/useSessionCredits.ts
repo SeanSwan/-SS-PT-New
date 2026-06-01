@@ -3,6 +3,7 @@ import apiService from '../../../services/api.service';
 
 export interface SessionCredits {
   sessionsRemaining: number;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external' | string | null;
   packageName?: string | null;
   expiresAt?: string | null;
 }
@@ -17,6 +18,7 @@ const fetchSessionCredits = async (): Promise<SessionCredits> => {
 
   return result?.data || {
     sessionsRemaining: 0,
+    clientSource: null,
     packageName: null,
     expiresAt: null
   };

@@ -3,8 +3,34 @@
  * ==========================
  * Validates soft-delete behavior, login blocking, and session cancellation.
  */
+import { readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { testUsers } from '../fixtures/testData.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const backendRoot = resolve(__dirname, '../..');
+const readBackendFile = (relativePath) => readFileSync(resolve(backendRoot, relativePath), 'utf8');
+
+const getDeleteClientSource = () => {
+  const source = readBackendFile('controllers/adminClientController.mjs');
+  const start = source.indexOf('  async deleteClient(req, res) {');
+  const end = source.indexOf('  async resetClientPassword(req, res) {', start);
+  return source.slice(start, end);
+};
+
+const getRestoreClientSource = () => {
+  const source = readBackendFile('controllers/adminClientController.mjs');
+  const start = source.indexOf('  async restoreClient(req, res) {');
+  const end = source.indexOf('  async deleteClient(req, res) {', start);
+  return source.slice(start, end);
+};
+
+const getAdminClientRoutesSource = () => readBackendFile('routes/adminClientRoutes.mjs');
+
+const getUserModelSource = () => readBackendFile('models/User.mjs');
 
 describe('Client Deactivation', () => {
   beforeEach(() => {
@@ -27,6 +53,36 @@ describe('Client Deactivation', () => {
     expect(client.firstName).toBe('Test');
     expect(client.lastName).toBe('Client');
     expect(client.availableSessions).toBe(10);
+  });
+
+  it('soft-delete controller preserves paid session credits during 6-month retention', () => {
+    const deleteClientSource = getDeleteClientSource();
+
+    expect(deleteClientSource).not.toMatch(/availableSessions\s*:\s*0/);
+    expect(deleteClientSource).toMatch(/6 months/i);
+    expect(deleteClientSource).toContain('preservedAvailableSessions');
+    expect(deleteClientSource).toContain('retainedUntil');
+  });
+
+  it('soft-delete retention deadline is persisted on the User model', () => {
+    const userModelSource = getUserModelSource();
+    const deleteClientSource = getDeleteClientSource();
+
+    expect(userModelSource).toContain('accountDeactivatedAt');
+    expect(userModelSource).toContain('accountRetentionUntil');
+    expect(deleteClientSource).toContain('accountDeactivatedAt');
+    expect(deleteClientSource).toContain('accountRetentionUntil');
+  });
+
+  it('reactivation has a dedicated endpoint and clears retention timestamps', () => {
+    const routesSource = getAdminClientRoutesSource();
+    const restoreClientSource = getRestoreClientSource();
+
+    expect(routesSource).toContain("router.put('/clients/:clientId/restore'");
+    expect(restoreClientSource).toContain('async restoreClient');
+    expect(restoreClientSource).toContain('isActive: true');
+    expect(restoreClientSource).toContain('accountDeactivatedAt: null');
+    expect(restoreClientSource).toContain('accountRetentionUntil: null');
   });
 
   // ─── Login Blocking ───

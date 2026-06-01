@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { buildBootcampExerciseFromRolodex, getLowImpactSwap } from './BootcampExerciseAlternatives';
 
 describe('Bootcamp exercise alternatives', () => {
@@ -25,6 +27,30 @@ describe('Bootcamp exercise alternatives', () => {
     expect(exercise.kneeMod).toMatch(/step/i);
     expect(exercise.ankleMod).toMatch(/no-jump/i);
     expect(getLowImpactSwap(exercise)).toMatch(/step/i);
+  });
+
+  it('keeps jump/cardio Board 2 alternatives low-impact instead of low-hop', () => {
+    const exercise = buildBootcampExerciseFromRolodex(
+      {
+        id: '360-jump',
+        name: '360 Jump',
+        exerciseType: 'cardio',
+        difficulty: 720,
+        primaryMuscles: ['cardio'],
+        equipmentNeeded: ['Bodyweight'],
+      },
+      {
+        durationSec: 50,
+        restSec: 15,
+        sortOrder: 1,
+        stationIndex: 0,
+      },
+    );
+
+    expect(exercise.easyVariation).toMatch(/step|march/i);
+    expect(exercise.mediumVariation).toMatch(/step|march/i);
+    expect(exercise.mediumVariation).not.toMatch(/hop|jump|bound/i);
+    expect([exercise.kneeMod, exercise.ankleMod, exercise.footMod].join(' ')).toMatch(/no-jump|march|step/i);
   });
 
   it('preserves authored alternatives from the exercise library', () => {

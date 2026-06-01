@@ -14,6 +14,15 @@ import {
 } from '../../../store/slices/workoutSlice';
 import { format, parseISO } from 'date-fns';
 
+export interface WorkoutSessionConfirmationRequest {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  tone: 'danger' | 'warning';
+  onConfirm: () => void | Promise<void>;
+}
+
 interface UseWorkoutSessionsStateReturn {
   // State
   sessions: any[];
@@ -24,6 +33,8 @@ interface UseWorkoutSessionsStateReturn {
   searchTerm: string;
   selectedSession: any | null;
   showDetails: boolean;
+  confirmationRequest: WorkoutSessionConfirmationRequest | null;
+  confirmationBusy: boolean;
   
   // Actions
   setTimeFilter: (filter: string) => void;
@@ -33,6 +44,8 @@ interface UseWorkoutSessionsStateReturn {
   handleCloseDetails: () => void;
   handleDeleteSession: (sessionId: string) => void;
   refreshSessions: () => void;
+  cancelConfirmation: () => void;
+  confirmPendingAction: () => Promise<void>;
   
   // Utility functions
   formatSessionDate: (dateString: string) => string;
@@ -63,6 +76,8 @@ const useWorkoutSessionsState = (userId?: string): UseWorkoutSessionsStateReturn
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationRequest, setConfirmationRequest] = useState<WorkoutSessionConfirmationRequest | null>(null);
+  const [confirmationBusy, setConfirmationBusy] = useState(false);
   
   // Load sessions on component mount
   useEffect(() => {
@@ -147,20 +162,42 @@ const useWorkoutSessionsState = (userId?: string): UseWorkoutSessionsStateReturn
   
   // Delete a session
   const handleDeleteSession = useCallback((sessionId: string) => {
-    if (window.confirm('Are you sure you want to delete this workout session? This action cannot be undone.')) {
-      dispatch(deleteWorkoutSession(sessionId))
-        .unwrap()
-        .then(() => {
-          // Close details modal if we're viewing the deleted session
-          if (showDetails && reduxSelectedSession?.id === sessionId) {
-            setShowDetails(false);
-          }
-        })
-        .catch(err => {
-          setError(err || 'Failed to delete workout session. Please try again.');
-        });
-    }
+    setConfirmationRequest({
+      title: 'Delete workout session?',
+      message: 'This permanently deletes the workout diary entry. Progress charts may lose the training proof from this session.',
+      confirmLabel: 'Delete session',
+      cancelLabel: 'Keep session',
+      tone: 'danger',
+      onConfirm: async () => {
+        await dispatch(deleteWorkoutSession(sessionId))
+          .unwrap()
+          .then(() => {
+            // Close details modal if we're viewing the deleted session
+            if (showDetails && reduxSelectedSession?.id === sessionId) {
+              setShowDetails(false);
+            }
+          })
+          .catch(err => {
+            setError(err || 'Failed to delete workout session. Please try again.');
+          });
+      },
+    });
   }, [dispatch, showDetails, reduxSelectedSession]);
+
+  const cancelConfirmation = useCallback(() => {
+    if (!confirmationBusy) setConfirmationRequest(null);
+  }, [confirmationBusy]);
+
+  const confirmPendingAction = useCallback(async () => {
+    if (!confirmationRequest || confirmationBusy) return;
+    setConfirmationBusy(true);
+    try {
+      await confirmationRequest.onConfirm();
+      setConfirmationRequest(null);
+    } finally {
+      setConfirmationBusy(false);
+    }
+  }, [confirmationBusy, confirmationRequest]);
   
   // Refresh sessions list
   const refreshSessions = useCallback(() => {
@@ -215,6 +252,8 @@ const useWorkoutSessionsState = (userId?: string): UseWorkoutSessionsStateReturn
     searchTerm,
     selectedSession: reduxSelectedSession,
     showDetails,
+    confirmationRequest,
+    confirmationBusy,
     
     // Actions
     setTimeFilter,
@@ -224,6 +263,8 @@ const useWorkoutSessionsState = (userId?: string): UseWorkoutSessionsStateReturn
     handleCloseDetails,
     handleDeleteSession,
     refreshSessions,
+    cancelConfirmation,
+    confirmPendingAction,
     
     // Utility functions
     formatSessionDate,

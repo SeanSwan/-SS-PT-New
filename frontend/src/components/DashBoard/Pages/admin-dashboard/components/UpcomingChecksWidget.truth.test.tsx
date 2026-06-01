@@ -60,4 +60,22 @@ describe('UpcomingChecksWidget backend contract', () => {
     expect(SOURCE).not.toContain('measurementDaysRemaining');
     expect(SOURCE).not.toContain('weighInDaysRemaining');
   });
+
+  it('uses theme tokens and color-mix for status visuals', () => {
+    expect(SOURCE).toContain("red: 'var(--error, #EF4444)'");
+    expect(SOURCE).toContain("yellow: 'var(--warning, #EAB308)'");
+    expect(SOURCE).toContain("green: 'var(--success, #22C55E)'");
+    expect(SOURCE).toContain("const STATUS_FALLBACK = 'var(--text-muted, #94A3B8)'");
+    expect(SOURCE).toContain('color-mix(in srgb, ${({ $color }) => $color} 20%, transparent)');
+    expect(SOURCE).not.toContain("red: '#ef4444'");
+    expect(SOURCE).not.toContain("yellow: '#eab308'");
+    expect(SOURCE).not.toContain("green: '#22c55e'");
+    expect(SOURCE).not.toContain('color: #e2e8f0;');
+    expect(SOURCE).not.toContain('color: #94a3b8;');
+    expect(SOURCE).not.toContain("color: '#60C0F0'");
+    expect(SOURCE).not.toContain("|| '#94a3b8'");
+    expect(SOURCE).not.toContain('${({ $color }) => $color}20');
+    expect(SOURCE).not.toContain('${({ $color }) => $color}40');
+    expect(SOURCE).not.toContain('${({ $color }) => $color}80');
+  });
 });

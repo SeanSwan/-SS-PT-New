@@ -4,53 +4,35 @@
  * Admin-only form to create recurring sessions via /api/sessions/recurring
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
-  FormField,
-  Label,
-  StyledInput,
-  CheckboxWrapper,
-  CustomSelect,
   PrimaryButton,
   OutlinedButton,
   ErrorText,
-  HelperText,
   SmallText,
-  TimeWheelPicker,
 } from './ui';
 import apiService from '../../services/api.service';
+import {
+  createRecurringTimeRow,
+  getRecurringTimeValues,
+  removeRecurringTimeRow,
+  updateRecurringTimeRow,
+  type RecurringTimeRow,
+  type TrainerOption,
+} from './RecurringSessionModal.logic';
+import {
+  RecurringDayFields,
+  RecurringScheduleFields,
+  RecurringSessionDetailsFields,
+  RecurringTimeFields,
+} from './RecurringSessionModal.sections';
 
 interface RecurringSessionModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
-
-interface TrainerOption {
-  value: string;
-  label: string;
-}
-
-const daysOfWeekOptions = [
-  { value: 0, label: 'Sun' },
-  { value: 1, label: 'Mon' },
-  { value: 2, label: 'Tue' },
-  { value: 3, label: 'Wed' },
-  { value: 4, label: 'Thu' },
-  { value: 5, label: 'Fri' },
-  { value: 6, label: 'Sat' }
-];
-
-const durationPresets = [
-  { value: '4weeks', label: '4 Weeks' },
-  { value: '8weeks', label: '8 Weeks' },
-  { value: '12weeks', label: '12 Weeks' },
-  { value: '6months', label: '6 Months' },
-  { value: '1year', label: '1 Year' },
-  { value: 'ongoing', label: 'Ongoing (12 months max)' },
-  { value: 'custom', label: 'Custom Date Range' },
-];
 
 const getApiErrorMessage = (error: any, fallback: string) =>
   error?.response?.data?.message || fallback;
@@ -87,7 +69,8 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
-  const [times, setTimes] = useState<string[]>(['09:00']);
+  const nextTimeRowId = useRef(2);
+  const [timeRows, setTimeRows] = useState<RecurringTimeRow[]>([createRecurringTimeRow(1, '09:00')]);
   const [duration, setDuration] = useState(60);
   const [trainerId, setTrainerId] = useState('');
   const [location, setLocation] = useState('Main Studio');
@@ -156,20 +139,18 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
     });
   };
 
-  const updateTime = (index: number, value: string) => {
-    setTimes((prev) => {
-      const updated = [...prev];
-      updated[index] = value;
-      return updated;
-    });
+  const updateTime = (rowId: string, value: string) => {
+    setTimeRows((prev) => updateRecurringTimeRow(prev, rowId, value));
   };
 
   const addTime = () => {
-    setTimes((prev) => [...prev, '']);
+    const row = createRecurringTimeRow(nextTimeRowId.current);
+    nextTimeRowId.current += 1;
+    setTimeRows((prev) => [...prev, row]);
   };
 
-  const removeTime = (index: number) => {
-    setTimes((prev) => prev.filter((_, idx) => idx !== index));
+  const removeTime = (rowId: string) => {
+    setTimeRows((prev) => removeRecurringTimeRow(prev, rowId));
   };
 
   const validate = () => {
@@ -195,7 +176,7 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
       errors.daysOfWeek = 'Select at least one day';
     }
 
-    const trimmedTimes = times.map((time) => time.trim()).filter(Boolean);
+    const trimmedTimes = getRecurringTimeValues(timeRows);
     if (!trimmedTimes.length) {
       errors.times = 'At least one time is required';
     }
@@ -275,153 +256,41 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
         </ErrorText>
       )}
 
-      <FormField>
-        <Label required>Schedule Duration</Label>
-        <CustomSelect
-          value={durationPreset}
-          onChange={handlePresetChange}
-          options={durationPresets}
-          placeholder="Select duration"
-          aria-label="Schedule duration preset"
-        />
-        <HelperText>
-          {durationPreset === 'custom'
-            ? 'Choose your own start and end dates below.'
-            : durationPreset === 'ongoing'
-              ? 'Creates sessions for 12 months (max allowed).'
-              : `Sessions will repeat for the selected period.`}
-        </HelperText>
-      </FormField>
+      <RecurringScheduleFields
+        durationPreset={durationPreset}
+        startDate={startDate}
+        endDate={endDate}
+        fieldErrors={fieldErrors}
+        onPresetChange={handlePresetChange}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+      />
 
-      <FormField>
-        <Label htmlFor="recurring-start-date" required>
-          Start Date
-        </Label>
-        <StyledInput
-          id="recurring-start-date"
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          hasError={Boolean(fieldErrors.startDate)}
-        />
-        {fieldErrors.startDate && <ErrorText>{fieldErrors.startDate}</ErrorText>}
-      </FormField>
+      <RecurringDayFields
+        daysOfWeek={daysOfWeek}
+        fieldErrors={fieldErrors}
+        onToggleDay={handleToggleDay}
+      />
 
-      <FormField>
-        <Label htmlFor="recurring-end-date" required>
-          End Date {durationPreset !== 'custom' && endDate && '(auto-calculated)'}
-        </Label>
-        <StyledInput
-          id="recurring-end-date"
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          hasError={Boolean(fieldErrors.endDate)}
-          disabled={durationPreset !== 'custom'}
-        />
-        {fieldErrors.endDate && <ErrorText>{fieldErrors.endDate}</ErrorText>}
-      </FormField>
+      <RecurringTimeFields
+        timeRows={timeRows}
+        fieldErrors={fieldErrors}
+        onAddTime={addTime}
+        onRemoveTime={removeTime}
+        onUpdateTime={updateTime}
+      />
 
-      <FormField>
-        <Label required>Days of Week</Label>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {daysOfWeekOptions.map((day) => (
-            <CheckboxWrapper key={day.value}>
-              <input
-                type="checkbox"
-                checked={daysOfWeek.includes(day.value)}
-                onChange={() => handleToggleDay(day.value)}
-              />
-              <span>{day.label}</span>
-            </CheckboxWrapper>
-          ))}
-        </div>
-        {fieldErrors.daysOfWeek && <ErrorText>{fieldErrors.daysOfWeek}</ErrorText>}
-      </FormField>
-
-      <FormField>
-        <Label required>Times</Label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {times.map((time, index) => (
-            <div key={`time-${index}`} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <TimeWheelPicker
-                  value={time}
-                  onChange={(val) => updateTime(index, val)}
-                  step={15}
-                  label={`Session time ${index + 1}`}
-                  data-testid={`recurring-time-${index}`}
-                />
-              </div>
-              <OutlinedButton
-                onClick={() => removeTime(index)}
-                disabled={times.length === 1}
-                type="button"
-              >
-                Remove
-              </OutlinedButton>
-            </div>
-          ))}
-        </div>
-        <div style={{ marginTop: '0.75rem' }}>
-          <OutlinedButton onClick={addTime} type="button">
-            Add Time
-          </OutlinedButton>
-        </div>
-        {fieldErrors.times && <ErrorText>{fieldErrors.times}</ErrorText>}
-        <HelperText>At least one time is required.</HelperText>
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="recurring-duration" required>
-          Duration (minutes)
-        </Label>
-        <StyledInput
-          id="recurring-duration"
-          type="number"
-          min={15}
-          step={15}
-          value={duration}
-          onChange={(e) => setDuration(Number(e.target.value) || 0)}
-        />
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="recurring-trainer">
-          Trainer (optional)
-        </Label>
-        <CustomSelect
-          value={trainerId}
-          onChange={(value) => setTrainerId(String(value))}
-          options={trainerOptions}
-          placeholder="Select trainer"
-          searchable
-          aria-label="Select trainer"
-        />
-      </FormField>
-
-      <FormField>
-        <Label htmlFor="recurring-location" required>
-          Location
-        </Label>
-        <StyledInput
-          id="recurring-location"
-          type="text"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
-      </FormField>
-
-      <FormField>
-        <CheckboxWrapper>
-          <input
-            type="checkbox"
-            checked={notifyClient}
-            onChange={(e) => setNotifyClient(e.target.checked)}
-          />
-          <span>Notify client about these sessions</span>
-        </CheckboxWrapper>
-      </FormField>
+      <RecurringSessionDetailsFields
+        duration={duration}
+        trainerId={trainerId}
+        trainerOptions={trainerOptions}
+        location={location}
+        notifyClient={notifyClient}
+        onDurationChange={setDuration}
+        onTrainerChange={setTrainerId}
+        onLocationChange={setLocation}
+        onNotifyClientChange={setNotifyClient}
+      />
     </Modal>
   );
 };

@@ -196,7 +196,7 @@ describe('trainer permission grant validation', () => {
 
     const response = await request(app)
       .post('/api/trainer-permissions/grant')
-      .send({ trainerId: '901', permissionType: 'edit_workouts', expiresAt });
+      .send({ trainerId: '901', permissionType: 'edit_workouts', expiresAt, reason: 'Temporary coverage' });
 
     expect(response.status).toBe(201);
     expect(trainerFindOne).toHaveBeenCalledWith({
@@ -207,6 +207,7 @@ describe('trainer permission grant validation', () => {
       permissionType: 'edit_workouts',
       expiresAt: expect.any(Date),
       isActive: true,
+      reason: 'Temporary coverage',
     }));
   });
 
@@ -236,6 +237,25 @@ describe('trainer permission grant validation', () => {
     expect(permissionFindByPk).not.toHaveBeenCalled();
   });
 
+  it('uses model-backed lifecycle fields when revoking permissions', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    permissionFindByPk
+      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, reason: 'Existing reason', update })
+      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts' });
+
+    const response = await request(app)
+      .put('/api/trainer-permissions/12/revoke')
+      .send({ reason: 'Coverage period ended' });
+
+    expect(response.status).toBe(200);
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      isActive: false,
+      deactivatedAt: expect.any(Date),
+      deactivatedBy: 1,
+      reason: 'Coverage period ended',
+    }));
+  });
+
   it('rejects invalid extension dates before permission lookup', async () => {
     const response = await request(app)
       .put('/api/trainer-permissions/12/extend')
@@ -253,25 +273,18 @@ describe('trainer permission grant validation', () => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const update = vi.fn().mockResolvedValue(undefined);
     permissionFindByPk
-      .mockResolvedValueOnce({
-        id: 12,
-        permissionType: 'edit_workouts',
-        trainerId: 901,
-        isActive: true,
-        notes: 'Existing note',
-        update,
-      })
+      .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts', trainerId: 901, isActive: true, reason: 'Existing reason', update })
       .mockResolvedValueOnce({ id: 12, permissionType: 'edit_workouts' });
 
     const response = await request(app)
       .put('/api/trainer-permissions/12/extend')
-      .send({ expiresAt, notes: 'Extended' });
+      .send({ expiresAt, reason: 'Extended' });
 
     expect(response.status).toBe(200);
     expect(permissionFindByPk).toHaveBeenNthCalledWith(1, 12);
     expect(update).toHaveBeenCalledWith(expect.objectContaining({
       expiresAt: expect.any(Date),
-      notes: 'Extended',
+      reason: 'Extended',
     }));
     expect(permissionFindByPk).toHaveBeenNthCalledWith(2, 12, expect.any(Object));
   });

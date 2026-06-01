@@ -29,9 +29,14 @@ describe('normalizeClientListResponse — admin path', () => {
             firstName: 'Alice',
             lastName: 'Admin',
             email: 'alice@example.com',
-            profileImageUrl: 'https://cdn/alice.jpg',
-            role: 'client',
-          },
+          profileImageUrl: 'https://cdn/alice.jpg',
+          role: 'client',
+          clientSource: 'move_fitness',
+          availableSessions: 0,
+          totalWorkouts: 6,
+          lastWorkout: { date: '2026-05-20T12:00:00.000Z' },
+          nextSession: { sessionDate: '2026-05-27T12:00:00.000Z' },
+        },
           {
             id: 2,
             firstName: 'Bob',
@@ -53,6 +58,12 @@ describe('normalizeClientListResponse — admin path', () => {
       email: 'alice@example.com',
       photo: 'https://cdn/alice.jpg',
       role: 'client',
+      clientSource: 'move_fitness',
+      availableSessions: 0,
+      membershipLevel: undefined,
+      totalWorkouts: 6,
+      lastWorkoutDate: '2026-05-20T12:00:00.000Z',
+      nextSessionDate: '2026-05-27T12:00:00.000Z',
     });
     expect(out[1].id).toBe(2);
     // The normalizer uses `??` which collapses null → undefined (single
@@ -90,6 +101,12 @@ describe('normalizeClientListResponse — admin path', () => {
       email: '',
       photo: undefined,
       role: undefined,
+      availableSessions: undefined,
+      clientSource: undefined,
+      membershipLevel: undefined,
+      totalWorkouts: undefined,
+      lastWorkoutDate: undefined,
+      nextSessionDate: undefined,
     });
   });
 
@@ -196,14 +213,28 @@ describe('normalizeClientListResponse — trainer path', () => {
           clientId: 99,
           trainerId: 98,
           status: 'active',
-          client: { id: 99, firstName: 'QaClient', lastName: 'Test', email: 'qa@example.com' },
+          client: {
+            id: 99,
+            firstName: 'QaClient',
+            lastName: 'Test',
+            email: 'qa@example.com',
+            clientSource: 'move_fitness',
+            availableSessions: 0,
+          },
         },
         {
           id: 51,
           clientId: 91,
           trainerId: 98,
           status: 'active',
-          client: { id: 91, firstName: 'QA', lastName: 'TestClient', email: 'qa.tc@example.com' },
+          client: {
+            id: 91,
+            firstName: 'QA',
+            lastName: 'TestClient',
+            email: 'qa.tc@example.com',
+            clientSource: 'swanstudios',
+            availableSessions: 8,
+          },
         },
       ],
       totalClients: 2,
@@ -217,6 +248,8 @@ describe('normalizeClientListResponse — trainer path', () => {
       email: 'qa@example.com',
       photo: undefined,
       role: undefined,
+      clientSource: 'move_fitness',
+      availableSessions: 0,
     });
     expect(out[1].firstName).toBe('QA');
   });

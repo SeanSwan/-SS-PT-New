@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Award, Dumbbell, MessageSquare, UserPlus } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
-import { CommandCard } from '../admin-dashboard-view';
+import { CommandCard } from '../AdminDashboardCards';
 
 const ActivityList = styled.ul`
   list-style: none;

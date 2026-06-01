@@ -33,6 +33,7 @@ const ErrorCopy = styled.p`
 interface DashboardErrorStateProps {
   title?: string;
   message: string;
+  onRetry?: () => void;
 }
 
 export const UserDashboardLoadingState = () => (
@@ -49,6 +50,7 @@ export const UserDashboardLoadingState = () => (
 export const UserDashboardErrorState: React.FC<DashboardErrorStateProps> = ({
   title = 'Error Loading Profile',
   message,
+  onRetry,
 }) => (
   <ProfileContainer>
     <NoiseOverlay />
@@ -57,9 +59,11 @@ export const UserDashboardErrorState: React.FC<DashboardErrorStateProps> = ({
         <ErrorPanel>
           <h2>{title}</h2>
           <ErrorCopy>{message}</ErrorCopy>
-          <PrimaryButton onClick={() => window.location.reload()}>
-            Retry
-          </PrimaryButton>
+          {onRetry && (
+            <PrimaryButton onClick={onRetry}>
+              Retry
+            </PrimaryButton>
+          )}
         </ErrorPanel>
       </ContentWrapper>
     </MainContentZWrapper>
@@ -79,12 +83,17 @@ class UserDashboardErrorBoundaryV3 extends React.Component<
     return { hasError: true };
   }
 
+  private handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
         <UserDashboardErrorState
           title="Something went wrong"
-          message="Please refresh the page to try again."
+          message="Try reopening this dashboard section."
+          onRetry={this.handleRetry}
         />
       );
     }

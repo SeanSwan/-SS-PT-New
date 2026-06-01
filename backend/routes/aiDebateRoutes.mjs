@@ -102,8 +102,27 @@ router.post('/start', protect, trainerOrAdminOnly, async (req, res) => {
         { replacements: { clientId: resolvedClientId }, type: sequelize.QueryTypes.SELECT }
       ).catch(() => []),
       sequelize.query(
-        `SELECT exercises, "createdAt" FROM "WorkoutSessions"
-         WHERE "userId" = :clientId ORDER BY "createdAt" DESC LIMIT 5`,
+        `SELECT
+           ws.id,
+           ws.title,
+           ws.date AS "createdAt",
+           ws.duration,
+           ws.intensity,
+           ws.notes,
+           json_agg(json_build_object(
+             'exerciseName', wl."exerciseName",
+             'name', wl."exerciseName",
+             'setNumber', wl."setNumber",
+             'reps', wl.reps,
+             'weight', wl.weight
+           ) ORDER BY wl."exerciseName", wl."setNumber") AS exercises
+         FROM workout_sessions ws
+         JOIN workout_logs wl ON wl."sessionId" = ws.id
+         WHERE ws."userId" = :clientId
+           AND ws.status = 'completed'
+         GROUP BY ws.id, ws.title, ws.date, ws.duration, ws.intensity, ws.notes
+         ORDER BY ws.date DESC
+         LIMIT 5`,
         { replacements: { clientId: resolvedClientId }, type: sequelize.QueryTypes.SELECT }
       ).catch(() => []),
       sequelize.query(

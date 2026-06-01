@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
 import GamificationPointsService from '../../services/gamification/GamificationPointsService.mjs';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
+import { cleanupSocialPostDeletionSideEffects } from '../../services/social/socialPostDeletionCleanupService.mjs';
 import { getIO } from '../../socket/socketManager.mjs';
 
 const router = express.Router();
@@ -1033,37 +1034,7 @@ router.delete('/:postId', async (req, res) => {
       });
     }
     
-    // Delete media from R2 (or local disk for legacy posts)
-    if (post.mediaUrl) {
-      try {
-        // Extract R2 storage key from URL
-        const storageKey = post.mediaUrl.startsWith('/api/serve-photo/')
-          ? post.mediaUrl.replace('/api/serve-photo/', '')
-          : post.mediaUrl;
-        await deletePhoto(storageKey);
-      } catch (unlinkError) {
-        console.error('Error deleting post media:', unlinkError);
-      }
-    }
-    
-    // Decrement hashtag usage counts before cascade deletes PostHashtags (Issue #2 fix)
-    try {
-      const PostHashtag = (await import('../../models/social/PostHashtag.mjs')).default;
-      const Hashtag = (await import('../../models/social/Hashtag.mjs')).default;
-      const linkedHashtags = await PostHashtag.findAll({
-        where: { postId: post.id },
-        attributes: ['hashtagId']
-      });
-      if (linkedHashtags.length > 0) {
-        const hashtagIds = linkedHashtags.map(ph => ph.hashtagId);
-        await Hashtag.decrement(['usageCount', 'weeklyCount'], {
-          where: { id: { [Op.in]: hashtagIds } }
-        });
-      }
-    } catch (hashtagErr) {
-      // Non-fatal: hashtag count cleanup shouldn't block post deletion
-      console.warn('Hashtag count decrement failed (non-fatal):', hashtagErr.message);
-    }
+    await cleanupSocialPostDeletionSideEffects(post);
 
     // Delete the post (and its associated comments due to CASCADE)
     await post.destroy();

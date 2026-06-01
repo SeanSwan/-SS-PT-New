@@ -2,6 +2,12 @@
  * COMPONENT: TrainerWorkoutForgePage.data
  * PURPOSE: Constants and small pure helpers for the trainer Workout Forge.
  */
+import {
+  normalizeTrainerClientOptions,
+  resolveTrainerClientSource,
+  toTrainerClientName,
+  type TrainerClientOption,
+} from './trainerClientSource';
 
 export const OPT_PHASES = [
   { phase: 1, name: 'Stabilization Endurance', reps: '12-20', sets: '1-3', tempo: '4/2/1', rest: '0-90s' },
@@ -24,10 +30,7 @@ export const EQUIPMENT_OPTIONS = [
   'BOSU Ball',
 ];
 
-export type TrainerClient = {
-  id: number;
-  name: string;
-};
+export type TrainerClient = TrainerClientOption;
 
 export type ManualExercise = {
   id: string;
@@ -41,5 +44,20 @@ export type ManualExercise = {
 
 export const buildExerciseId = (index: number) => `manual-exercise-${Date.now()}-${index}`;
 
-export const toClientName = (client: any) =>
-  `${client.firstName || ''} ${client.lastName || ''}`.trim() || client.username || `Client ${client.id}`;
+export const parseTrainerForgeClientId = (value: string | number | null | undefined): number | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  const trimmedValue = value?.trim();
+  if (!trimmedValue || !/^[1-9]\d*$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue) ? parsedValue : null;
+};
+
+export const toClientName = toTrainerClientName;
+export const resolveTrainerForgeClientSource = resolveTrainerClientSource;
+export const normalizeTrainerForgeClients = normalizeTrainerClientOptions;

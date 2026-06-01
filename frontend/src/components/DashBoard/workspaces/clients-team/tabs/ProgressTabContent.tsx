@@ -17,6 +17,7 @@
 
 import React, { Suspense } from 'react';
 import styled from 'styled-components';
+import { getNumericClientId } from './clientTabId';
 
 const AdminProgressChartsGrid = React.lazy(
   () => import('./AdminProgressChartsGrid'),
@@ -38,13 +39,25 @@ const FallbackWrap = styled.div`
 const ProgressTabContent: React.FC<ProgressTabContentProps> = ({
   clientId,
   clientName,
-}) => (
-  <Suspense fallback={<FallbackWrap>Loading progress charts...</FallbackWrap>}>
-    <AdminProgressChartsGrid
-      clientId={typeof clientId === 'string' ? Number(clientId) : clientId}
-      clientName={clientName || 'Client'}
-    />
-  </Suspense>
-);
+}) => {
+  const numericClientId = getNumericClientId(clientId);
+
+  if (numericClientId === null) {
+    return (
+      <FallbackWrap role="alert" aria-live="assertive">
+        Select a valid client before opening progress charts.
+      </FallbackWrap>
+    );
+  }
+
+  return (
+    <Suspense fallback={<FallbackWrap>Loading progress charts...</FallbackWrap>}>
+      <AdminProgressChartsGrid
+        clientId={numericClientId}
+        clientName={clientName || 'Client'}
+      />
+    </Suspense>
+  );
+};
 
 export default React.memo(ProgressTabContent);

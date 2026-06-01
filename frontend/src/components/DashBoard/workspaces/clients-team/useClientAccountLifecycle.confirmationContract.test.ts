@@ -1,0 +1,21 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const read = (fileName: string) =>
+  readFileSync(resolve(__dirname, fileName), 'utf8');
+
+describe('client account lifecycle confirmation contract', () => {
+  it('uses an in-app confirmation dialog for client soft-delete actions', () => {
+    const hookSource = read('useClientAccountLifecycle.ts');
+    const dialogSource = read('ClientLifecycleConfirmDialog.tsx');
+    const workspaceSource = read('../ClientsWorkspace.tsx');
+
+    expect(hookSource).not.toContain('window.confirm');
+    expect(hookSource).toContain('deactivationConfirmation');
+    expect(workspaceSource).toContain('ClientLifecycleConfirmDialog');
+    expect(dialogSource).toContain('role="dialog"');
+    expect(dialogSource).toContain('aria-modal="true"');
+    expect(dialogSource).toContain('min-height: 44px');
+  });
+});

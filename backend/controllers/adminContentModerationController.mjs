@@ -124,6 +124,7 @@ import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { SocialPost, SocialComment, PostReport, ModerationAction } from '../models/social/index.mjs';
 import User from '../models/User.mjs';
+import { cleanupSocialPostDeletionSideEffects } from '../services/social/socialPostDeletionCleanupService.mjs';
 
 const INTERNAL_ERROR = 'internal_error';
 
@@ -856,6 +857,8 @@ class AdminContentModerationController {
           ipAddress: req.ip,
           userAgent: req.get('User-Agent')
         });
+
+        await cleanupSocialPostDeletionSideEffects(post, { transaction });
 
         // Delete the post
         await post.destroy({ transaction });

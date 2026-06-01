@@ -1,9 +1,6 @@
 /**
  * ============================================================================
- * FILE: AdminStellarSidebar.tsx
  * PURPOSE: Admin workspace navigation sidebar — Crystalline Swan theme
- * AUTHOR: Claude Opus 4.6 (CEO) | LAST MODIFIED: 2026-03-26
- * AI VILLAGE VALIDATED: 2026-03-26
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the admin dashboard sidebar navigation.
@@ -61,8 +58,6 @@ import {
 } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Icon Map
-// PURPOSE: Maps WORKSPACE_CONFIG icon strings to Lucide components
 // ─────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,13 +74,11 @@ const getIcon = (name: string, size = 20) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Animations
 // ─────────────────────────────────────────────────────────────
 
 interface AdminStellarSidebarProps {
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
-  // Aliases used by UniversalDashboardLayout
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   isMobileOpen?: boolean;
@@ -178,7 +171,6 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   }, [location.pathname, location.search]);
 
   // Filter workspace tabs by feature access — admin sees all, others only see
-  // tabs where featureKey is absent OR they have the feature enabled
   const visibleWorkspaces = WORKSPACE_CONFIG.filter((ws: WorkspaceConfig) => {
     if (isAdmin) return true;
     if (!ws.featureKey) return true;
@@ -189,7 +181,6 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
 
   return (
     <>
-      {/* Mobile hamburger */}
       {isMobile && !mobileOpen && (
         <MobileMenuBtn
           onClick={() => setMobileOpen(true)}
@@ -199,10 +190,8 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         </MobileMenuBtn>
       )}
 
-      {/* Mobile overlay */}
       <Overlay $visible={mobileOpen && isMobile} onClick={() => setMobileOpen(false)} />
 
-      {/* Sidebar */}
       <SidebarWrap
         ref={sidebarRef}
         $collapsed={collapsed && !isMobile}
@@ -210,7 +199,6 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         role="navigation"
         aria-label="Admin navigation"
       >
-        {/* Header */}
         <SidebarHeader $collapsed={collapsed && !isMobile}>
           <LogoBrand $collapsed={collapsed && !isMobile}>
             <LogoMark>SS</LogoMark>

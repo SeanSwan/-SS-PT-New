@@ -12,6 +12,9 @@ const newChatMock = vi.hoisted(() => vi.fn());
 const deleteConversationMock = vi.hoisted(() => vi.fn());
 const renameConversationMock = vi.hoisted(() => vi.fn());
 const createQuickCoachCommandClientMock = vi.hoisted(() => vi.fn());
+const executeCommandMock = vi.hoisted(() => vi.fn());
+const confirmCommandMock = vi.hoisted(() => vi.fn());
+const cancelCommandMock = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
   default: useCoachIntakeQueueMock,
@@ -20,6 +23,15 @@ vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
 
 vi.mock('../../../../hooks/useAIChat', () => ({
   useAIChat: useAIChatMock,
+}));
+
+vi.mock('../../../../hooks/useCoachCommand', () => ({
+  useCoachCommand: () => ({
+    executeCommand: executeCommandMock,
+    confirmCommand: confirmCommandMock,
+    cancelCommand: cancelCommandMock,
+    executingCommand: false,
+  }),
 }));
 
 vi.mock('./CoachIntakeWorkspace', () => ({
@@ -76,6 +88,17 @@ function renderPage(route = '/dashboard/admin/coach-assistant') {
 
 describe('CoachCommandCenterPage', () => {
   beforeEach(() => {
+    listConversationsMock.mockReset();
+    loadConversationMock.mockReset();
+    sendMessageWithConversationMock.mockReset();
+    newChatMock.mockReset();
+    deleteConversationMock.mockReset();
+    renameConversationMock.mockReset();
+    executeCommandMock.mockReset();
+    confirmCommandMock.mockReset();
+    cancelCommandMock.mockReset();
+    createQuickCoachCommandClientMock.mockReset();
+
     listConversationsMock.mockResolvedValue([]);
     loadConversationMock.mockResolvedValue(null);
     sendMessageWithConversationMock.mockResolvedValue({
@@ -83,9 +106,11 @@ describe('CoachCommandCenterPage', () => {
       content: 'Prepared the review package. No final writes have been made.',
       timestamp: '2026-05-14T12:00:00.000Z',
     });
-    newChatMock.mockReset();
     deleteConversationMock.mockResolvedValue(undefined);
     renameConversationMock.mockResolvedValue(undefined);
+    executeCommandMock.mockResolvedValue({ type: 'fallback_to_chat' });
+    confirmCommandMock.mockResolvedValue({ success: true, type: 'executed', message: '', result: null });
+    cancelCommandMock.mockResolvedValue(undefined);
     createQuickCoachCommandClientMock.mockResolvedValue({
       client: {
         id: 77,
@@ -262,6 +287,125 @@ describe('CoachCommandCenterPage', () => {
     });
   });
 
+  it('routes command-like admin prompts through the AI command lane before chat fallback', async () => {
+    executeCommandMock.mockResolvedValueOnce({
+      type: 'executed',
+      command: 'list_active_clients',
+      result: {
+        totalCount: 2,
+        returnedCount: 2,
+        swanStudiosCount: 1,
+        moveFitnessCount: 1,
+      },
+      client: null,
+    });
+    renderPage();
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    fireEvent.change(composer, { target: { value: 'List active clients' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(executeCommandMock).toHaveBeenCalledWith('List active clients', {
+        selectedClientId: null,
+        routeContext: {
+          source: 'coach-command-center',
+          intent: null,
+        },
+      });
+    });
+
+    expect(sendMessageWithConversationMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/2 of 2 active clients loaded/i)).toBeInTheDocument();
+  });
+
+  it('renders command-created onboarding drafts as actionable prepared-draft cards', async () => {
+    executeCommandMock.mockResolvedValueOnce({
+      type: 'executed',
+      command: 'create_external_client',
+      result: {
+        hasPreparedDraft: true,
+        proposalId: 'proposal-123',
+        proposalType: 'client_onboarding',
+        proposalStatus: 'PENDING',
+        proposalTitle: 'Review client onboarding draft',
+        reviewRoute: '/dashboard/admin/coach-assistant?proposal=proposal-123',
+        nextActionLabel: 'Review prepared draft',
+      },
+      client: null,
+    });
+    renderPage();
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    fireEvent.change(composer, { target: { value: 'Create external client Ava Stone' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    expect(await screen.findByText(/Prepared draft waiting/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review client onboarding draft/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open prepared draft/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?proposal=proposal-123');
+  });
+
+  it('lets admins confirm command-lane approval holds from the command log', async () => {
+    executeCommandMock.mockResolvedValueOnce({
+      type: 'confirmation_required',
+      message: 'Confirm that this no-show should cancel the paid session.',
+      operationId: 'op-session-42',
+      command: 'cancel_session',
+      params: { sessionId: 42, refundCredit: true },
+      client: { id: 77, firstName: 'Ava', lastName: 'Stone' },
+      details: null,
+      isDestructive: true,
+    });
+    confirmCommandMock.mockResolvedValueOnce({
+      success: true,
+      type: 'executed',
+      message: '',
+      result: { sessionId: 42, refundIssued: true },
+      command: 'cancel_session',
+    });
+    renderPage();
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    fireEvent.change(composer, { target: { value: 'Cancel session 42' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    expect(await screen.findByText(/Confirm Destructive Action/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
+
+    await waitFor(() => {
+      expect(confirmCommandMock).toHaveBeenCalledWith('op-session-42');
+    });
+    expect(await screen.findByText(/Session #42 cancelled for Ava/i)).toBeInTheDocument();
+  });
+
+  it('lets admins cancel command-lane approval holds without confirming writes', async () => {
+    executeCommandMock.mockResolvedValueOnce({
+      type: 'confirmation_required',
+      message: 'Confirm this session cancellation before writing anything.',
+      operationId: 'op-session-cancel',
+      command: 'cancel_session',
+      params: { sessionId: 43 },
+      client: { id: 77, firstName: 'Ava', lastName: 'Stone' },
+      details: null,
+      isDestructive: true,
+    });
+    renderPage();
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+    fireEvent.change(composer, { target: { value: 'Cancel session 43' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    expect(await screen.findByText(/Confirm Destructive Action/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Cancel action/i }));
+
+    await waitFor(() => {
+      expect(cancelCommandMock).toHaveBeenCalledWith('op-session-cancel');
+    });
+    expect(confirmCommandMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/cancel session cancelled. No data was changed/i)).toBeInTheDocument();
+  });
+
   it('hydrates selected-client daily context from Clients & Team and sends targetUserId', async () => {
     renderPage(
       '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
@@ -287,6 +431,45 @@ describe('CoachCommandCenterPage', () => {
         'both',
       );
     });
+  });
+
+  it('hydrates new-client onboarding context from Client Hub', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management',
+    );
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('New client onboarding intake');
+    });
+
+    expect(screen.getAllByText(/New client onboarding context loaded/i).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        expect.stringContaining('client_onboarding proposal'),
+        'coach_assistant',
+        'New client onboarding',
+        null,
+        'both',
+      );
+    });
+  });
+
+  it('does not show static workout or nutrition proof when selected-client data has not been loaded', () => {
+    renderPage('/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team');
+
+    const commandRail = screen.getByLabelText('Coach threads and command modes');
+
+    expect(within(commandRail).queryByText('12 sessions')).not.toBeInTheDocument();
+    expect(within(commandRail).queryByText('context on')).not.toBeInTheDocument();
+    expect(within(commandRail).getByText('Workout context')).toBeInTheDocument();
+    expect(within(commandRail).getByText('ready to log')).toBeInTheDocument();
+    expect(within(commandRail).getByText('Nutrition context')).toBeInTheDocument();
+    expect(within(commandRail).getByText('review gated')).toBeInTheDocument();
   });
 
   it('opens and closes mobile drawers with aria-expanded and Escape handling', () => {
@@ -327,14 +510,15 @@ describe('CoachCommandCenterPage', () => {
   it('creates a minimal client stub from the command rail and stages the composer for approved follow-up', async () => {
     renderPage();
 
+    expect(within(screen.getByLabelText('Client source')).getByRole('option', { name: 'External' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Client name'), { target: { value: 'Ava Stone' } });
-    fireEvent.change(screen.getByLabelText('Client source'), { target: { value: 'move_fitness' } });
+    fireEvent.change(screen.getByLabelText('Client source'), { target: { value: 'external' } });
     fireEvent.click(screen.getByRole('button', { name: /Create stub client/i }));
 
     await waitFor(() => {
       expect(createQuickCoachCommandClientMock).toHaveBeenCalledWith({
         fullName: 'Ava Stone',
-        clientSource: 'move_fitness',
+        clientSource: 'external',
       });
     });
 

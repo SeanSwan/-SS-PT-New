@@ -88,6 +88,7 @@ export const LearningModeToggle: React.FC<LearningModeToggleProps> = memo(({ com
 
   return (
     <ToggleWrapper
+      type="button"
       onClick={toggle}
       role="switch"
       aria-checked={enabled}
@@ -173,7 +174,7 @@ const ToggleThumb = styled.div<{ $active: boolean }>`
   top: 2px;
   left: ${p => p.$active ? '18px' : '2px'};
   transition: left 0.25s, background 0.25s;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px ${withAlpha(CS.bgDeep, 0.3)};
 `;
 
 export default NASMLearningProvider;

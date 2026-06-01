@@ -11,6 +11,8 @@ const routeSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'),
   'utf8'
 );
+const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const lineCount = (text: string) => text.split(/\r?\n/).length;
 
 describe('TrainersManagementSection legacy route truth contract', () => {
   it('is mounted only as the legacy admin trainer route', () => {
@@ -37,5 +39,30 @@ describe('TrainersManagementSection legacy route truth contract', () => {
     expect(source).not.toContain("localStorage.getItem('token')");
     expect(source).not.toContain('Authorization');
     expect(source).not.toContain('fetch(');
+  });
+
+  it('keeps the legacy trainer route split into bounded source files', () => {
+    const component = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.tsx');
+    const sections = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.sections.tsx');
+    const styles = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.styles.ts');
+    const cardStyles = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.cardStyles.ts');
+    const stateStyles = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.stateStyles.ts');
+    const types = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.types.ts');
+    const utils = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.utils.ts');
+
+    expect(component).toContain("from './TrainersManagementSection.sections'");
+    expect(component).toContain("from './TrainersManagementSection.styles'");
+    expect(component).toContain("from './TrainersManagementSection.types'");
+    expect(component).toContain("from './TrainersManagementSection.utils'");
+    expect(component).not.toContain("from 'styled-components'");
+
+    expect(sections).toContain("from './TrainersManagementSection.styles'");
+    expect(styles).toContain("from 'styled-components'");
+    expect(cardStyles).toContain("from 'styled-components'");
+    expect(stateStyles).toContain("from 'styled-components'");
+
+    [component, sections, styles, cardStyles, stateStyles, types, utils].forEach((fileSource) => {
+      expect(lineCount(fileSource)).toBeLessThanOrEqual(300);
+    });
   });
 });

@@ -18,7 +18,7 @@ import React from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Download, Save, MessageSquare } from 'lucide-react';
-import { CS, shimmer, reducedMotionSafe } from './WorkoutLoggerCS';
+import { CS, shimmer, reducedMotionSafe, withAlpha } from './WorkoutLoggerCS';
 
 interface WorkoutLoggerFooterProps {
   onCancel: () => void;
@@ -43,6 +43,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
 }) => (
   <ActionButtons>
     <Button
+      type="button"
       variant="secondary"
       onClick={onCancel}
       whileHover={{ scale: 1.05 }}
@@ -52,6 +53,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
       Cancel
     </Button>
     <Button
+      type="button"
       variant="secondary"
       onClick={onExportPDF}
       disabled={!hasExercises}
@@ -62,6 +64,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
       Export PDF
     </Button>
     <Button
+      type="button"
       variant="primary"
       onClick={onSubmit}
       disabled={!hasExercises || isSubmitting}
@@ -80,6 +83,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
     </Button>
     {showGenerateSummary && onGenerateSummary && (
       <Button
+        type="button"
         variant="secondary"
         onClick={onGenerateSummary}
         disabled={isGeneratingSummary}
@@ -112,9 +116,9 @@ const Spinner = styled.div`
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid ${withAlpha(CS.text, 0.2)};
   border-radius: 50%;
-  border-top-color: #ffffff;
+  border-top-color: ${CS.text};
   animation: ${spin} 0.8s ease-in-out infinite;
 `;
 
@@ -150,15 +154,15 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
 
   ${props => props.variant === 'primary' && css`
     background: linear-gradient(135deg, ${CS.glow}, ${CS.gaming});
-    color: #ffffff;
-    box-shadow: 0 4px 20px rgba(80, 160, 240, 0.3);
+    color: ${CS.text};
+    box-shadow: 0 4px 20px ${withAlpha(CS.glow, 0.3)};
 
     &::after {
       content: '';
       position: absolute;
       inset: 0;
       border-radius: inherit;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+      background: linear-gradient(90deg, transparent, ${withAlpha(CS.text, 0.12)}, transparent);
       background-size: 200% 100%;
       animation: ${shimmer} 3s ease-in-out infinite;
       pointer-events: none;
@@ -172,15 +176,15 @@ const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'dange
     backdrop-filter: blur(8px);
 
     &:hover {
-      border-color: rgba(96, 192, 240, 0.4);
-      background: rgba(96, 192, 240, 0.06);
+      border-color: ${withAlpha(CS.gaming, 0.4)};
+      background: ${withAlpha(CS.gaming, 0.06)};
     }
   `}
 
   ${props => props.variant === 'danger' && css`
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: ${withAlpha(CS.error, 0.15)};
+    color: ${CS.errorText};
+    border: 1px solid ${CS.errorBorder};
   `}
 
   &:hover { transform: translateY(-2px); }

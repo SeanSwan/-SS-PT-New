@@ -12,7 +12,7 @@ const repoRoot = resolve(__dirname, '../../../../../../..');
 const source = readFileSync(resolve(__dirname, './RealTimeSignupMonitoring.tsx'), 'utf8');
 const parentSource = readFileSync(resolve(__dirname, '../overview/AdminOverviewPanel.tsx'), 'utf8');
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
-const adminDashboardRoutes = readFileSync(resolve(repoRoot, 'backend/routes/dashboard/adminDashboardRoutes.mjs'), 'utf8');
+const adminRoutes = readFileSync(resolve(repoRoot, 'backend/routes/adminRoutes.mjs'), 'utf8');
 
 const dashboardStats = {
   overview: {
@@ -61,11 +61,26 @@ describe('RealTimeSignupMonitoring truth handling', () => {
 
   it('is mounted by admin overview and backed by mounted admin dashboard routes', () => {
     expect(parentSource).toContain('<RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} />');
-    expect(coreRoutes).toContain("app.use('/api/admin/dashboard', adminDashboardRoutes)");
-    expect(adminDashboardRoutes).toContain("router.get('/visitor-geo'");
+    expect(coreRoutes).toContain("app.use('/api/admin', adminRoutes)");
+    expect(adminRoutes).toContain("router.get('/dashboard-stats'");
+    expect(adminRoutes).toContain("router.get('/signups-list'");
+    expect(adminRoutes).toContain("router.get('/database-health'");
     expect(source).toContain("authAxios.get<DashboardStats>('/api/admin/dashboard-stats')");
     expect(source).toContain('authAxios.get<SignupsListData>(`/api/admin/signups-list?${params}`)');
     expect(source).toContain("authAxios.get<DatabaseHealth>('/api/admin/database-health')");
+  });
+
+  it('keeps the active component split into tokenized, touch-safe building blocks', () => {
+    const sourceLines = source.trimEnd().split(/\r?\n/).length;
+    const stylesSource = readFileSync(resolve(__dirname, './RealTimeSignupMonitoring.styles.ts'), 'utf8');
+
+    expect(sourceLines).toBeLessThanOrEqual(300);
+    expect(source).toContain("from './RealTimeSignupMonitoring.styles'");
+    expect(source).toContain("from './RealTimeSignupMonitoring.types'");
+    expect(source).not.toContain("import styled from 'styled-components'");
+    expect(`${source}\n${stylesSource}`).not.toMatch(/rgba\(/);
+    expect(stylesSource).toContain('min-height: 44px');
+    expect(stylesSource).toContain('focus-visible');
   });
 
   it('shows unavailable state instead of a clean empty signup list when signups fail', async () => {

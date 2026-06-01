@@ -52,6 +52,7 @@ import {
   Plus
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useCommunicationVoiceDraft } from './useCommunicationVoiceDraft';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -337,6 +338,11 @@ const RoundButton = styled.button<{ $size?: number }>`
   &:hover {
     background: rgba(255,255,255,0.08);
     color: ${theme.text};
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
   }
 `;
 
@@ -1030,9 +1036,21 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [communicationError, setCommunicationError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const { authAxios, user } = useAuth();
   const clientId = _clientId ? String(_clientId) : undefined;
   const currentUserId = user?.id != null ? String(user.id) : undefined;
+  const handleVoiceTranscript = useCallback((transcript: string) => {
+    setSendError(null);
+    setNewMessage((current) => {
+      const currentDraft = current.trim();
+      return currentDraft ? `${currentDraft} ${transcript}` : transcript;
+    });
+  }, []);
+  const voiceDraft = useCommunicationVoiceDraft({
+    onStatus: setVoiceStatus,
+    onTranscript: handleVoiceTranscript,
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -1485,18 +1503,29 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                   </FlexRow>
                   <FlexRow $gap={4}>
                     <RoundButton
-                      title="Voice Call"
+                      type="button"
+                      title={onCallStart ? 'Voice Call' : 'Voice call backend not connected'}
+                      aria-label={onCallStart ? 'Start voice call' : 'Voice call unavailable'}
+                      disabled={!onCallStart}
                       onClick={() => onCallStart?.('voice', selectedConversation.participants[0].id)}
                     >
                       <Phone size={20} />
                     </RoundButton>
                     <RoundButton
-                      title="Video Call"
+                      type="button"
+                      title={onCallStart ? 'Video Call' : 'Video call backend not connected'}
+                      aria-label={onCallStart ? 'Start video call' : 'Video call unavailable'}
+                      disabled={!onCallStart}
                       onClick={() => onCallStart?.('video', selectedConversation.participants[0].id)}
                     >
                       <Video size={20} />
                     </RoundButton>
-                    <RoundButton title="More Options">
+                    <RoundButton
+                      type="button"
+                      title="Thread options backend not connected"
+                      aria-label="Thread options unavailable"
+                      disabled
+                    >
                       <MoreVertical size={20} />
                     </RoundButton>
                   </FlexRow>
@@ -1547,6 +1576,11 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                       ))}
                     </AttachmentRow>
                   )}
+                  {voiceStatus && !sendError && (
+                    <CaptionText role="status">
+                      {voiceStatus}
+                    </CaptionText>
+                  )}
                   <FlexRow $gap={8}>
                     <MessageInput
                       placeholder="Type a message..."
@@ -1569,7 +1603,14 @@ const CommunicationCenter: React.FC<CommunicationCenterProps> = ({
                     <RoundButton title="Attach File" onClick={() => fileInputRef.current?.click()}>
                       <Paperclip size={20} />
                     </RoundButton>
-                    <RoundButton title="Voice Message">
+                    <RoundButton
+                      type="button"
+                      title={voiceDraft.title}
+                      aria-label={voiceDraft.label}
+                      aria-pressed={voiceDraft.listening}
+                      disabled={!voiceDraft.supported}
+                      onClick={voiceDraft.toggle}
+                    >
                       <Mic size={20} />
                     </RoundButton>
                     <ActionButton

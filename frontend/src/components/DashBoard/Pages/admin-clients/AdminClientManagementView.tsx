@@ -34,8 +34,9 @@ import AdminOnboardingPanel from './components/AdminOnboardingPanel';
 import WorkoutLoggerModal from './components/WorkoutLoggerModal';
 import ClientMeasurementPanel from './components/ClientMeasurementPanel';
 import ClientWeighInPanel from './components/ClientWeighInPanel';
-import { useClientActions } from './hooks/useClientActions';
+import { useClientActions, type ClientActionConfirmationRequest } from './hooks/useClientActions';
 import { getMeasurementColor } from '../../../../utils/measurementStatus';
+import ConfirmActionDialog from '../../../Shared/ConfirmActionDialog';
 
 // Import icons from lucide-react
 import {
@@ -694,6 +695,8 @@ const AdminClientManagementView: React.FC = () => {
   const [showMeasurements, setShowMeasurements] = useState(false);
   const [showWeighIn, setShowWeighIn] = useState(false);
   const [actionClient, setActionClient] = useState<AdminClient | null>(null);
+  const [clientActionConfirm, setClientActionConfirm] = useState<ClientActionConfirmationRequest | null>(null);
+  const [clientActionBusy, setClientActionBusy] = useState(false);
 
   // Add socket connection for real-time updates
   const {
@@ -903,6 +906,21 @@ const AdminClientManagementView: React.FC = () => {
     setMenuClient(null);
   };
 
+  const requestClientActionConfirmation = useCallback((request: ClientActionConfirmationRequest) => {
+    setClientActionConfirm(request);
+  }, []);
+
+  const confirmClientAction = useCallback(async () => {
+    if (!clientActionConfirm) return;
+    setClientActionBusy(true);
+    try {
+      await clientActionConfirm.onConfirm();
+      setClientActionConfirm(null);
+    } finally {
+      setClientActionBusy(false);
+    }
+  }, [clientActionConfirm]);
+
   // Extracted action handlers
   const {
     handleViewDetails,
@@ -919,6 +937,7 @@ const AdminClientManagementView: React.FC = () => {
     setShowEditModal,
     setShowCreateModal,
     handleMenuClose,
+    requestConfirmation: requestClientActionConfirmation,
   });
 
   const openOnboarding = (client: AdminClient) => {
@@ -1390,6 +1409,17 @@ const AdminClientManagementView: React.FC = () => {
           onUpdate={fetchClients}
         />
       )}
+      <ConfirmActionDialog
+        open={clientActionConfirm !== null}
+        title={clientActionConfirm?.title || ''}
+        message={clientActionConfirm?.message || ''}
+        confirmLabel={clientActionConfirm?.confirmLabel || 'Confirm'}
+        cancelLabel={clientActionConfirm?.cancelLabel || 'Cancel'}
+        tone={clientActionConfirm?.tone || 'warning'}
+        busy={clientActionBusy}
+        onCancel={() => setClientActionConfirm(null)}
+        onConfirm={confirmClientAction}
+      />
     </PageWrapper>
   );
 };

@@ -28,7 +28,7 @@ describe('admin notes and photos auth pipeline', () => {
     expect(notesHookSource).toContain('apiService.post(`/api/notes/${userId}`');
     expect(notesManagerSource).toContain('apiService.post(`/api/notes/${numericClientId}`');
     expect(notesManagerSource).toContain('apiService.put(`/api/notes/${numericClientId}/${editingNoteId}`');
-    expect(notesManagerSource).toContain('apiService.delete(`/api/notes/${numericClientId}/${noteId}`');
+    expect(notesManagerSource).toContain('apiService.delete(`/api/notes/${clientId}/${noteId}`');
     expect(notesHookSource + notesManagerSource).not.toContain("localStorage.getItem('token')");
     expect(notesHookSource + notesManagerSource).not.toContain('fetch(`/api/notes/');
   });
@@ -36,7 +36,7 @@ describe('admin notes and photos auth pipeline', () => {
   it('keeps photos load and mutations on the shared API service', () => {
     expect(photosHookSource).toContain('apiService.get(`/api/photos/${userId}${queryParams}`)');
     expect(photoManagerSource).toContain('apiService.post(`/api/photos/${numericClientId}`');
-    expect(photoManagerSource).toContain('apiService.delete(`/api/photos/${numericClientId}/${photoId}`');
+    expect(photoManagerSource).toContain('apiService.delete(`/api/photos/${clientId}/${photoId}`');
     expect(photosHookSource + photoManagerSource).not.toContain("localStorage.getItem('token')");
     expect(photosHookSource + photoManagerSource).not.toContain('fetch(`/api/photos/');
   });

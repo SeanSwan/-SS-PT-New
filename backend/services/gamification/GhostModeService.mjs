@@ -65,31 +65,104 @@ class GhostModeService {
     const db = (await import('../../database.mjs')).default;
 
     try {
-      // Query for matching previous workout sessions
+      const normalizedCategory = typeof category === 'string' && category.trim()
+        ? category.trim()
+        : 'full_body';
+      const categoryFilterEnabled = normalizedCategory !== 'full_body';
+      const muscleGroupFilterEnabled = typeof muscleGroup === 'string' && muscleGroup.trim();
+      const exerciseIdFilterEnabled = Array.isArray(exerciseIds) && exerciseIds.length > 0;
+
       const query = `
-        SELECT ws.id, ws."sessionDate", ws.category, ws.notes,
-               ws."totalVolume", ws."totalSets", ws."totalReps",
-               ws."createdAt",
-               json_agg(json_build_object(
-                 'exerciseName', we."exerciseName",
-                 'sets', we.sets,
-                 'reps', we.reps,
-                 'weight', we.weight,
-                 'volume', (COALESCE(we.sets, 0) * COALESCE(we.reps, 0) * COALESCE(we.weight, 0)),
-                 'exerciseId', we."exerciseId"
-               ) ORDER BY we."orderIndex") as exercises
-        FROM "WorkoutSessions" ws
-        LEFT JOIN "WorkoutExercises" we ON we."sessionId" = ws.id
-        WHERE ws."userId" = :userId
-          AND ws.status = 'completed'
-          ${category ? 'AND ws.category = :category' : ''}
-        GROUP BY ws.id
-        ORDER BY ws."totalVolume" DESC NULLS LAST, ws."sessionDate" DESC
-        LIMIT 5
+        WITH log_rows AS (
+          SELECT
+            ws.id,
+            ws.date,
+            ws.notes,
+            ws."createdAt",
+            ws."totalWeight",
+            ws."totalSets",
+            ws."totalReps",
+            wl."exerciseName",
+            wl."setNumber",
+            wl.reps,
+            wl.weight,
+            e.id AS "exerciseId"
+          FROM workout_sessions ws
+          JOIN workout_logs wl ON wl."sessionId" = ws.id
+          LEFT JOIN "Exercises" e ON LOWER(e.name) = LOWER(wl."exerciseName")
+          WHERE ws."userId" = :userId
+            AND ws.status = 'completed'
+            ${categoryFilterEnabled ? 'AND (e."bodyPartCategory" = :category OR e."primaryMuscles"::text ILIKE :categoryLike)' : ''}
+            ${muscleGroupFilterEnabled ? 'AND (e."bodyPartCategory" = :muscleGroup OR e."primaryMuscles"::text ILIKE :muscleGroupLike)' : ''}
+            ${exerciseIdFilterEnabled ? 'AND e.id IN (:exerciseIds)' : ''}
+        ),
+        exercise_totals AS (
+          SELECT
+            id,
+            date,
+            notes,
+            "createdAt",
+            "exerciseName",
+            MAX("exerciseId") AS "exerciseId",
+            COUNT(*)::int AS sets,
+            COALESCE(SUM(reps), 0)::int AS reps,
+            COALESCE(MAX(weight), 0)::float AS weight,
+            COALESCE(SUM(COALESCE(weight, 0) * COALESCE(reps, 0)), 0)::float AS volume,
+            MAX("totalWeight") AS "storedTotalWeight",
+            MAX("totalSets") AS "storedTotalSets",
+            MAX("totalReps") AS "storedTotalReps"
+          FROM log_rows
+          GROUP BY id, date, notes, "createdAt", "exerciseName"
+        ),
+        session_totals AS (
+          SELECT
+            id,
+            date,
+            notes,
+            "createdAt",
+            COALESCE(NULLIF(MAX("storedTotalWeight"), 0), SUM(volume), 0)::float AS "totalVolume",
+            COALESCE(NULLIF(MAX("storedTotalSets"), 0), SUM(sets), 0)::int AS "totalSets",
+            COALESCE(NULLIF(MAX("storedTotalReps"), 0), SUM(reps), 0)::int AS "totalReps"
+          FROM exercise_totals
+          GROUP BY id, date, notes, "createdAt"
+          ORDER BY "totalVolume" DESC NULLS LAST, date DESC
+          LIMIT 5
+        )
+        SELECT
+          st.id,
+          st.date,
+          st.notes,
+          st."createdAt",
+          st."totalVolume",
+          st."totalSets",
+          st."totalReps",
+          json_agg(json_build_object(
+            'exerciseName', et."exerciseName",
+            'sets', et.sets,
+            'reps', et.reps,
+            'weight', et.weight,
+            'volume', et.volume,
+            'exerciseId', et."exerciseId"
+          ) ORDER BY et.volume DESC, et."exerciseName") AS exercises
+        FROM session_totals st
+        JOIN exercise_totals et ON et.id = st.id
+        GROUP BY st.id, st.date, st.notes, st."createdAt", st."totalVolume", st."totalSets", st."totalReps"
+        ORDER BY st."totalVolume" DESC NULLS LAST, st.date DESC
       `;
 
+      const replacements = {
+        userId,
+        ...(categoryFilterEnabled
+          ? { category: normalizedCategory, categoryLike: `%${normalizedCategory}%` }
+          : {}),
+        ...(muscleGroupFilterEnabled
+          ? { muscleGroup: muscleGroup.trim(), muscleGroupLike: `%${muscleGroup.trim()}%` }
+          : {}),
+        ...(exerciseIdFilterEnabled ? { exerciseIds } : {}),
+      };
+
       const [results] = await db.query(query, {
-        replacements: { userId, ...(category ? { category } : {}) },
+        replacements,
         type: 'SELECT',
       });
 
@@ -104,12 +177,15 @@ class GhostModeService {
       const ghost = {
         ghostId: `ghost_${userId}_${bestSession.id}`,
         sourceSessionId: bestSession.id,
-        sourceDate: bestSession.sessionDate || bestSession.createdAt,
-        category: bestSession.category || category,
+        sourceDate: bestSession.date || bestSession.createdAt,
+        category: normalizedCategory,
         totalVolume: parseFloat(bestSession.totalVolume) || 0,
         totalSets: parseInt(bestSession.totalSets) || 0,
         totalReps: parseInt(bestSession.totalReps) || 0,
-        exercises: (bestSession.exercises || []).filter(e => e.exerciseName).map(e => ({
+        exercises: (Array.isArray(bestSession.exercises)
+          ? bestSession.exercises
+          : JSON.parse(bestSession.exercises || '[]')
+        ).filter(e => e.exerciseName).map(e => ({
           name: e.exerciseName,
           exerciseId: e.exerciseId,
           sets: e.sets || 0,

@@ -594,8 +594,8 @@ const PaginationBar = styled.div`
 `;
 
 const PaginationSelect = styled.select`
-  min-height: 36px;
-  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+  min-height: 44px;
+  padding: 0.4rem 1.75rem 0.4rem 0.65rem;
   background: rgba(139, 92, 246, 0.15);
   border: 1px solid rgba(139, 92, 246, 0.3);
   border-radius: 6px;
@@ -615,8 +615,8 @@ const PaginationSelect = styled.select`
 `;
 
 const PaginationButton = styled.button<{ $disabled?: boolean }>`
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -632,6 +632,71 @@ const PaginationButton = styled.button<{ $disabled?: boolean }>`
     background: rgba(139, 92, 246, 0.15);
     border-color: #60C0F0;
   }
+`;
+
+const PhotoModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg-base, #030712) 78%, transparent);
+  backdrop-filter: blur(10px);
+`;
+
+const PhotoModalCard = styled.div`
+  width: min(100%, 440px);
+  border-radius: 14px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.24));
+  background: var(--bg-surface, #141419);
+  color: var(--text-primary, #e0ecf4);
+  padding: 1rem;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+
+  h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  p {
+    margin: 0 0 1rem;
+    color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+    line-height: 1.5;
+  }
+`;
+
+const PhotoUrlInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.24));
+  background: var(--bg-elevated, #1a1a24);
+  color: var(--text-primary, #e0ecf4);
+  padding: 0 0.75rem;
+`;
+
+const PhotoModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column-reverse;
+  }
+`;
+
+const PhotoModalButton = styled.button<{ $primary?: boolean }>`
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid ${({ $primary }) => ($primary ? 'var(--accent-primary, #60c0f0)' : 'var(--border-soft, rgba(96, 192, 240, 0.24))')};
+  background: ${({ $primary }) => ($primary ? 'color-mix(in srgb, var(--accent-primary, #60c0f0) 18%, var(--bg-elevated, #1a1a24))' : 'var(--bg-elevated, #1a1a24)')};
+  color: ${({ $primary }) => ($primary ? 'var(--accent-primary, #60c0f0)' : 'var(--text-primary, #e0ecf4)')};
+  font-weight: 700;
+  padding: 0 1rem;
+  cursor: pointer;
 `;
 
 // === INTERFACES ===
@@ -734,6 +799,9 @@ const EnhancedTrainerDataManagement: React.FC = () => {
   const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null);
   const [certificationModalOpen, setCertificationModalOpen] = useState(false);
   const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
+  const [photoEditorTrainer, setPhotoEditorTrainer] = useState<Trainer | null>(null);
+  const [photoUrlDraft, setPhotoUrlDraft] = useState('');
+  const [photoSaving, setPhotoSaving] = useState(false);
 
   // Fetch trainers data
   const fetchTrainers = useCallback(async () => {
@@ -864,16 +932,21 @@ const EnhancedTrainerDataManagement: React.FC = () => {
   };
 
   const handleSetTrainerPhoto = async (trainer: Trainer) => {
-    const nextPhoto = window.prompt(
-      `Set profile photo URL for ${trainer.firstName} ${trainer.lastName}. Leave empty to clear the photo.`,
-      trainer.photo || ''
-    );
+    setPhotoEditorTrainer(trainer);
+    setPhotoUrlDraft(trainer.photo || '');
+  };
 
-    if (nextPhoto === null) {
-      return;
-    }
+  const closePhotoEditor = () => {
+    if (photoSaving) return;
+    setPhotoEditorTrainer(null);
+    setPhotoUrlDraft('');
+  };
 
-    const trimmedPhoto = nextPhoto.trim();
+  const saveTrainerPhoto = async () => {
+    if (!photoEditorTrainer) return;
+    const trainer = photoEditorTrainer;
+    const trimmedPhoto = photoUrlDraft.trim();
+    setPhotoSaving(true);
     try {
       const response = await authAxios.put(`/api/admin/users/${trainer.id}`, {
         photo: trimmedPhoto || null,
@@ -902,6 +975,10 @@ const EnhancedTrainerDataManagement: React.FC = () => {
         description: error?.message || 'Could not update trainer photo',
         variant: 'destructive',
       });
+    } finally {
+      setPhotoSaving(false);
+      setPhotoEditorTrainer(null);
+      setPhotoUrlDraft('');
     }
   };
 
@@ -1237,6 +1314,32 @@ const EnhancedTrainerDataManagement: React.FC = () => {
           </PaginationButton>
         </PaginationBar>
       </DataTable>
+      {photoEditorTrainer && (
+        <PhotoModalOverlay onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closePhotoEditor();
+        }}>
+          <PhotoModalCard role="dialog" aria-modal="true" aria-label="Set trainer profile photo">
+            <h2>Set trainer photo</h2>
+            <p>
+              Paste a secure image URL for {photoEditorTrainer.firstName} {photoEditorTrainer.lastName}, or leave the field empty to clear it.
+            </p>
+            <PhotoUrlInput
+              value={photoUrlDraft}
+              onChange={(event) => setPhotoUrlDraft(event.target.value)}
+              placeholder="https://..."
+              autoFocus
+            />
+            <PhotoModalActions>
+              <PhotoModalButton type="button" onClick={closePhotoEditor} disabled={photoSaving}>
+                Cancel
+              </PhotoModalButton>
+              <PhotoModalButton type="button" $primary onClick={saveTrainerPhoto} disabled={photoSaving}>
+                {photoSaving ? 'Saving...' : 'Save photo'}
+              </PhotoModalButton>
+            </PhotoModalActions>
+          </PhotoModalCard>
+        </PhotoModalOverlay>
+      )}
     </DashboardContainer>
   );
 };

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api.service';
 import { logger } from '@/utils/logger';
+import { normalizeWorkoutRecommendationExercises } from './useWorkoutMcp.normalizers';
 
 export interface Exercise {
   id: string;
@@ -181,8 +182,18 @@ export const useWorkoutMcp = () => {
     optPhase?: string;
   }) => withLoading('workout recommendations', async () => {
     const response = await apiService.get('/api/workout/recommendations', { params });
-    const exercises = response.data?.recommendedExercises || response.data?.exercises || response.data?.data || [];
-    return { exercises: Array.isArray(exercises) ? exercises.slice(0, params.limit || 10) : [] };
+    const exercises =
+      response.data?.recommendedExercises ||
+      response.data?.exercises ||
+      response.data?.data?.recommendedExercises ||
+      response.data?.data?.exercises ||
+      response.data?.data ||
+      [];
+    return {
+      exercises: Array.isArray(exercises)
+        ? normalizeWorkoutRecommendationExercises(exercises).slice(0, params.limit || 10)
+        : []
+    };
   }), [withLoading]);
 
   const getClientProgress = useCallback(async (userId: string) =>

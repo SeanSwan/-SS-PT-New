@@ -70,4 +70,20 @@ describe('RecentActivityFeed truth handling', () => {
     expect(SOURCE).not.toContain('DEMO_FEED');
     expect(SOURCE).not.toMatch(/Payment received|Daily backup completed|Upper Body workout|First Workout/);
   });
+
+  it('bridges activity states and hover surfaces to Crystalline Swan theme tokens', () => {
+    expect(SOURCE).toContain('background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);');
+    expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);');
+    expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);');
+    expect(SOURCE).toContain('background: color-mix(in srgb, var(--royal-depth, #003080) 40%, transparent); color: var(--text-primary, #E0ECF4);');
+    expect(SOURCE).toContain('border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);');
+    expect(SOURCE).toContain('&:hover { background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent); }');
+    expect(SOURCE).toContain("font-size: 11px; color: var(--text-muted, rgba(224,236,244,0.4));");
+    expect(SOURCE).not.toContain('background: rgba(198, 168, 75, 0.12);');
+    expect(SOURCE).not.toContain('border: 1px solid rgba(198, 168, 75, 0.24);');
+    expect(SOURCE).not.toContain('border: 1px solid rgba(96, 192, 240, 0.35);');
+    expect(SOURCE).not.toContain('background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);');
+    expect(SOURCE).not.toContain('background: rgba(0, 32, 96, 0.2);');
+    expect(SOURCE).not.toContain('color: rgba(224,236,244,0.4);');
+  });
 });

@@ -7,8 +7,7 @@
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders a 2-column settings view for a selected client
- * showing profile info, training config, privacy settings, and trainer notes.
- * All fields are currently read-only placeholders that will be wired to API data.
+ * showing real profile info, training config, privacy settings, and notes.
  *
  * HOW IT FITS IN THE APP: ClientDetailView → SettingsTabContent (renderSettings prop)
  * KEY DECISIONS: Read-only first, form submission added later. Styled inputs match
@@ -38,29 +37,46 @@
  *
  * DATA FLOW:
  * Props In:  { clientId, clientName? }
- * State:     none (read-only placeholders)
- * API Calls: none yet (future: GET /api/clients/:id, PUT /api/clients/:id)
+ * State:     real client details (read-only display)
+ * API Calls: GET /api/admin/clients/:id
  * Children:  SettingsSection, FieldRow (styled)
  *
  * CLICK-OUTCOME FLOWCHART:
- * [All fields] → read-only for now, future: inline edit → PUT /api/clients/:id
+ * [All fields] → read-only mirror of GET /api/admin/clients/:id
  */
 
 import React from 'react';
-import styled from 'styled-components';
 import {
   User, Dumbbell, ShieldCheck, FileText,
 } from 'lucide-react';
+import {
+  FieldGroup,
+  FieldLabel,
+  PolicyNote,
+  SectionHeader,
+  SectionIcon,
+  SectionTitle,
+  SettingsGrid,
+  SettingsSection,
+  StyledInput,
+  StyledSelect,
+  StyledTextarea,
+  ToggleLabel,
+  TogglePill,
+  ToggleRow,
+} from './SettingsTabContent.styles';
+import { useClientSettingsDetails } from './useClientSettingsDetails';
+import { getClientSourcePolicy, type SettingsTabContentProps } from './SettingsTabContent.logic';
+
+const getReadOnlySwitchProps = (label: string, isOn: boolean) => ({
+  role: 'switch' as const, 'aria-checked': isOn, 'aria-disabled': true,
+  'aria-label': `${label}: ${isOn ? 'on' : 'off'}`,
+});
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // PURPOSE: Component props
 // ─────────────────────────────────────────────────────────────
-
-interface SettingsTabContentProps {
-  clientId: number | string;
-  clientName?: string;
-}
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -68,164 +84,15 @@ interface SettingsTabContentProps {
 // WHY: Consistent dark-first form styling with Ice Wing focus glow
 // ─────────────────────────────────────────────────────────────
 
-const SettingsGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  padding: 16px 0;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SettingsSection = styled.div`
-  background: var(--bg-surface, #141419);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const SectionHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
-`;
-
-const SectionIcon = styled.div<{ $color?: string }>`
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, ${({ $color }) => $color || 'var(--accent-primary, #60C0F0)'} 12%, transparent);
-  color: ${({ $color }) => $color || 'var(--accent-primary, #60C0F0)'};
-  flex-shrink: 0;
-`;
-
-const SectionTitle = styled.h4`
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-  margin: 0;
-`;
-
-const FieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const FieldLabel = styled.label`
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted, rgba(224, 236, 244, 0.65));
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`;
-
-const inputStyles = `
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: var(--text-primary, #E0ECF4);
-  background: var(--bg-elevated, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.08));
-  border-radius: 8px;
-  padding: 10px 12px;
-  min-height: 44px;
-  width: 100%;
-  box-sizing: border-box;
-  outline: none;
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-  cursor: default;
-
-  &:focus-visible {
-    border-color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
-  }
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.35));
-  }
-`;
-
-const StyledInput = styled.input`
-  ${inputStyles}
-`;
-
-const StyledSelect = styled.select`
-  ${inputStyles}
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234070C0' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 32px;
-`;
-
-const StyledTextarea = styled.textarea`
-  ${inputStyles}
-  min-height: 80px;
-  resize: vertical;
-  line-height: 1.5;
-`;
-
-const ToggleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 4px 0;
-`;
-
-const ToggleLabel = styled.span`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const TogglePill = styled.div<{ $on?: boolean }>`
-  width: 40px;
-  height: 22px;
-  border-radius: 11px;
-  background: ${({ $on }) =>
-    $on
-      ? 'var(--accent-primary, #60C0F0)'
-      : 'var(--bg-elevated, #1A1A24)'};
-  border: 1px solid ${({ $on }) =>
-    $on
-      ? 'var(--accent-primary, #60C0F0)'
-      : 'var(--border-soft, rgba(224, 236, 244, 0.12))'};
-  position: relative;
-  cursor: default;
-  transition: background 200ms ease, border-color 200ms ease;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: ${({ $on }) => ($on ? '19px' : '2px')};
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--text-primary, #E0ECF4);
-    transition: left 200ms ease;
-  }
-`;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // PURPOSE: Renders the 2-column read-only settings form
 // ─────────────────────────────────────────────────────────────
 
 const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clientId, clientName }) => {
+  const { details: settings } = useClientSettingsDetails(clientId, clientName);
+  const clientSourcePolicy = getClientSourcePolicy(settings.clientSource);
+
   return (
     <SettingsGrid>
       {/* Profile Info */}
@@ -243,7 +110,7 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
             id={`first-name-${clientId}`}
             type="text"
             placeholder="First name"
-            defaultValue={clientName?.split(' ')[0] || ''}
+            value={settings.firstName}
             readOnly
           />
         </FieldGroup>
@@ -254,7 +121,7 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
             id={`last-name-${clientId}`}
             type="text"
             placeholder="Last name"
-            defaultValue={clientName?.split(' ').slice(1).join(' ') || ''}
+            value={settings.lastName}
             readOnly
           />
         </FieldGroup>
@@ -265,6 +132,7 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
             id={`email-${clientId}`}
             type="email"
             placeholder="client@email.com"
+            value={settings.email}
             readOnly
           />
         </FieldGroup>
@@ -275,6 +143,7 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
             id={`phone-${clientId}`}
             type="tel"
             placeholder="(555) 000-0000"
+            value={settings.phone}
             readOnly
           />
         </FieldGroup>
@@ -303,7 +172,7 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
 
         <FieldGroup>
           <FieldLabel htmlFor={`goal-${clientId}`}>Primary Goal</FieldLabel>
-          <StyledSelect id={`goal-${clientId}`} disabled>
+          <StyledSelect id={`goal-${clientId}`} value={settings.fitnessGoal} disabled>
             <option value="">Select goal...</option>
             <option value="fat-loss">Fat Loss</option>
             <option value="muscle-gain">Muscle Gain</option>
@@ -317,25 +186,33 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </FieldGroup>
 
         <FieldGroup>
-          <FieldLabel htmlFor={`sessions-week-${clientId}`}>Sessions / Week</FieldLabel>
+          <FieldLabel htmlFor={`available-sessions-${clientId}`}>Available Sessions</FieldLabel>
           <StyledInput
-            id={`sessions-week-${clientId}`}
+            id={`available-sessions-${clientId}`}
             type="number"
-            placeholder="3"
-            min={1}
-            max={7}
+            value={settings.availableSessions}
             readOnly
           />
         </FieldGroup>
 
         <FieldGroup>
-          <FieldLabel htmlFor={`difficulty-${clientId}`}>Difficulty Level</FieldLabel>
-          <StyledSelect id={`difficulty-${clientId}`} disabled>
-            <option value="">Select level...</option>
-            <option value="beginner">Beginner (50-300)</option>
-            <option value="intermediate">Intermediate (300-600)</option>
-            <option value="advanced">Advanced (600-900)</option>
-          </StyledSelect>
+          <FieldLabel htmlFor={`client-source-${clientId}`}>Client Source</FieldLabel>
+          <StyledInput
+            id={`client-source-${clientId}`}
+            type="text"
+            value={clientSourcePolicy.label}
+            readOnly
+          />
+          <PolicyNote>{clientSourcePolicy.note}</PolicyNote>
+        </FieldGroup>
+
+        <FieldGroup>
+          <FieldLabel htmlFor={`training-experience-${clientId}`}>Training Experience</FieldLabel>
+          <StyledTextarea
+            id={`training-experience-${clientId}`}
+            value={settings.trainingExperience}
+            readOnly
+          />
         </FieldGroup>
       </SettingsSection>
 
@@ -349,28 +226,40 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </SectionHeader>
 
         <ToggleRow>
-          <ToggleLabel>Chart Visibility (Public)</ToggleLabel>
-          <TogglePill $on={false} aria-label="Chart visibility toggle" />
+          <ToggleLabel>Account Active</ToggleLabel>
+          <TogglePill $on={settings.isActive} {...getReadOnlySwitchProps('Account active', settings.isActive)} />
         </ToggleRow>
 
         <ToggleRow>
           <ToggleLabel>Profile Visibility (Public)</ToggleLabel>
-          <TogglePill $on={true} aria-label="Profile visibility toggle" />
+          <TogglePill
+            $on={settings.profileIsPublic}
+            {...getReadOnlySwitchProps('Profile visibility', settings.profileIsPublic)}
+          />
         </ToggleRow>
 
         <ToggleRow>
-          <ToggleLabel>Allow Direct Messages</ToggleLabel>
-          <TogglePill $on={true} aria-label="Direct messages toggle" />
+          <ToggleLabel>Show Achievements</ToggleLabel>
+          <TogglePill
+            $on={settings.showAchievements}
+            {...getReadOnlySwitchProps('Achievement visibility', settings.showAchievements)}
+          />
         </ToggleRow>
 
         <ToggleRow>
-          <ToggleLabel>Allow Challenge Invites</ToggleLabel>
-          <TogglePill $on={true} aria-label="Challenge invites toggle" />
+          <ToggleLabel>Show Workout History</ToggleLabel>
+          <TogglePill
+            $on={settings.showWorkoutHistory}
+            {...getReadOnlySwitchProps('Workout history visibility', settings.showWorkoutHistory)}
+          />
         </ToggleRow>
 
         <ToggleRow>
-          <ToggleLabel>Share Achievements</ToggleLabel>
-          <TogglePill $on={true} aria-label="Share achievements toggle" />
+          <ToggleLabel>Email Notifications</ToggleLabel>
+          <TogglePill
+            $on={settings.emailNotifications}
+            {...getReadOnlySwitchProps('Email notifications', settings.emailNotifications)}
+          />
         </ToggleRow>
       </SettingsSection>
 
@@ -384,19 +273,19 @@ const SettingsTabContent: React.FC<SettingsTabContentProps> = React.memo(({ clie
         </SectionHeader>
 
         <FieldGroup>
-          <FieldLabel htmlFor={`trainer-notes-${clientId}`}>Trainer Notes</FieldLabel>
+          <FieldLabel htmlFor={`health-concerns-${clientId}`}>Health Concerns</FieldLabel>
           <StyledTextarea
-            id={`trainer-notes-${clientId}`}
-            placeholder="Training observations, form cues, modifications..."
+            id={`health-concerns-${clientId}`}
+            value={settings.healthConcerns}
             readOnly
           />
         </FieldGroup>
 
         <FieldGroup>
-          <FieldLabel htmlFor={`internal-notes-${clientId}`}>Internal Notes</FieldLabel>
+          <FieldLabel htmlFor={`emergency-contact-${clientId}`}>Emergency Contact</FieldLabel>
           <StyledTextarea
-            id={`internal-notes-${clientId}`}
-            placeholder="Scheduling preferences, injuries, special considerations..."
+            id={`emergency-contact-${clientId}`}
+            value={settings.emergencyContact}
             readOnly
           />
         </FieldGroup>

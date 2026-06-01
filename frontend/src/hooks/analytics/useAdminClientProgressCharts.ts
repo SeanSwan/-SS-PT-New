@@ -34,6 +34,7 @@ import {
   type SetsRepsBundle,
   type AnchorLiftsBundle,
 } from './useClientProgressCharts';
+import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
 
 // Re-export the shared types + IDs so consumers can import from one place.
 export type { CanonicalProgressCharts };
@@ -109,7 +110,7 @@ export function useAdminClientProgressCharts(
       const listOrEmpty = (r: any): any[] =>
         r?.success && Array.isArray(r?.data) ? r.data : [];
 
-      setCharts({
+      const next: CanonicalProgressCharts = sanitizeClientProgressChartsBundle({
         workoutFrequency: listOrEmpty(workoutFreqRes),
         attendanceReliability: attendanceRes?.success
           ? {
@@ -142,6 +143,8 @@ export function useAdminClientProgressCharts(
         muscleGroupBalance: listOrEmpty(muscleGroupRes),
         recoverySignal: listOrEmpty(recoveryRes),
       });
+
+      setCharts(next);
     } catch (err: any) {
       setError(err?.message || 'Failed to load progress charts');
     } finally {

@@ -71,7 +71,7 @@ import {
 import NutritionSummaryWidget from './NutritionSummaryWidget';
 
 // Services
-import { adminClientService } from '../../../../services/adminClientService';
+import { adminClientService, CLIENT_SOURCE_LABELS, type ClientSource } from '../../../../services/adminClientService';
 import { useToast } from '../../../../hooks/use-toast';
 
 // P0: Billing & Sessions Card
@@ -842,9 +842,9 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   // Render Tab Content
   const renderPersonalInfo = () => (
     <SectionPadding>
-      {!isMoveFitness && (
+      {!isNonDeductingClient && (
         <GridContainer $columns="1fr" $gap={24}>
-          {/* P0: Billing & Sessions Card - Hidden for Move Fitness clients */}
+          {/* P0: Billing & Sessions Card - Hidden for non-deducting clients */}
           <GridItem>
             <BillingSessionsCard
               clientId={client.id}
@@ -1193,11 +1193,11 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
     </SectionPadding>
   );
 
-  const renderMoveFitnessWorkouts = () => (
+  const renderNonDeductingWorkouts = () => (
     <SectionPadding>
       <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
-        <SectionTitle style={{ marginBottom: 0 }}>Workout Log — Move Fitness</SectionTitle>
-        <StatusChip $status="info">Move Fitness Client</StatusChip>
+        <SectionTitle style={{ marginBottom: 0 }}>Workout Log - {clientSourceLabel}</SectionTitle>
+        <StatusChip $status="info">{clientSourceLabel} Client</StatusChip>
       </FlexRow>
 
       <GridContainer $columns="1fr 1fr" $gap={24}>
@@ -1208,7 +1208,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
             <BodyText>Total Sessions Trained: {sessions.length}</BodyText>
             <Divider />
             <BodyText style={{ color: 'rgba(96, 192, 240, 0.9)', fontSize: '0.85rem', marginTop: 8 }}>
-              Move Fitness clients track training via the Workout Logger.
+              {clientSourceLabel} clients track training via the Workout Logger.
               Session scheduling is not available for this client type.
             </BodyText>
           </CardBody>
@@ -1297,12 +1297,15 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   );
 
   // Tab definitions
-  const isMoveFitness = client.clientSource === 'move_fitness';
+  const clientSource: ClientSource = client.clientSource || 'swanstudios';
+  const clientSourceLabel = CLIENT_SOURCE_LABELS[clientSource];
+  const isMoveFitness = clientSource === 'move_fitness';
+  const isNonDeductingClient = clientSource === 'move_fitness' || clientSource === 'external';
 
   const tabs = [
     { icon: <User size={18} />, label: 'Personal' },
     { icon: <Dumbbell size={18} />, label: 'Health & Fitness' },
-    { icon: <Clock size={18} />, label: isMoveFitness ? 'Workout Log' : 'Sessions' },
+    { icon: <Clock size={18} />, label: isNonDeductingClient ? 'Workout Log' : 'Sessions' },
     { icon: <CreditCard size={18} />, label: 'Payments' },
     { icon: <Apple size={18} />, label: 'Nutrition' },
     { icon: <TrendingUp size={18} />, label: 'Progress' },
@@ -1333,7 +1336,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
               ) : null}
             </div>
             <HeaderSubtitle>
-              {isMoveFitness ? 'Move Fitness Client' : 'Client Details & Management'}
+              {isNonDeductingClient ? `${clientSourceLabel} Client` : 'Client Details & Management'}
             </HeaderSubtitle>
           </div>
         </HeaderLeft>
@@ -1408,7 +1411,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
         </TabPanel>
 
         <TabPanel value={activeTab} index={2}>
-          {isMoveFitness ? renderMoveFitnessWorkouts() : renderSessions()}
+          {isNonDeductingClient ? renderNonDeductingWorkouts() : renderSessions()}
         </TabPanel>
 
         <TabPanel value={activeTab} index={3}>

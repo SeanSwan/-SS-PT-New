@@ -1,0 +1,75 @@
+import { Download, Hand, Shuffle, Wand2 } from 'lucide-react';
+import type { GeneratedBootcamp } from '../../hooks/useBootcampAPI';
+import TeachMeToggle from '../Shared/TeachMeToggle';
+import { FloorModeToggle, Subtitle, Title, TopBar } from './BootcampBuilderStyles';
+import { ModeBar, ModeBtn, TimingAlert } from './BootcampModeStyles';
+import type { BuildMode } from './BootcampBuilderPage.constants';
+import { BOOTCAMP_TEACH_ME_CONTENT } from './BootcampBuilderPage.constants';
+import { HeaderActions } from './BootcampBuilderChrome.styles';
+
+interface BootcampBuilderChromeProps {
+  bootcamp: GeneratedBootcamp | null;
+  buildMode: BuildMode;
+  floorMode: boolean;
+  isOverTime: boolean;
+  totalClassMin: number;
+  onBuildModeChange: (mode: BuildMode) => void;
+  onExportPDF: () => void;
+  onToggleFloorMode: () => void;
+}
+
+const BootcampBuilderChrome: React.FC<BootcampBuilderChromeProps> = ({
+  bootcamp,
+  buildMode,
+  floorMode,
+  isOverTime,
+  totalClassMin,
+  onBuildModeChange,
+  onExportPDF,
+  onToggleFloorMode,
+}) => (
+  <>
+    <TopBar>
+      <div>
+        <Title>Boot Camp Class Builder</Title>
+        <Subtitle>Swan Coach + manual class creation with 840+ exercises and inline regressions</Subtitle>
+      </div>
+      <HeaderActions>
+        {bootcamp && (
+          <FloorModeToggle onClick={onExportPDF} title="Export class plan as PDF">
+            <Download size={16} /> PDF
+          </FloorModeToggle>
+        )}
+        <FloorModeToggle
+          $active={floorMode}
+          onClick={onToggleFloorMode}
+          aria-pressed={floorMode}
+          title="High-contrast mode for gym floor coaching"
+        >
+          {floorMode ? 'Exit Floor' : 'Floor Mode'}
+        </FloorModeToggle>
+        <TeachMeToggle
+          sectionId="bootcamp-builder"
+          title="How to Use the Bootcamp Builder"
+          content={BOOTCAMP_TEACH_ME_CONTENT}
+        />
+      </HeaderActions>
+    </TopBar>
+    <ModeBar>
+      <ModeBtn $active={buildMode === 'ai'} onClick={() => onBuildModeChange('ai')}>
+        <Wand2 size={14} /> Swan Coach Generate
+      </ModeBtn>
+      <ModeBtn $active={buildMode === 'manual'} onClick={() => onBuildModeChange('manual')}>
+        <Hand size={14} /> Manual
+      </ModeBtn>
+      <ModeBtn $active={buildMode === 'hybrid'} onClick={() => onBuildModeChange('hybrid')}>
+        <Shuffle size={14} /> Hybrid
+      </ModeBtn>
+      <TimingAlert $over={isOverTime}>
+        {isOverTime ? 'Over' : 'On'} {totalClassMin}/55 min
+      </TimingAlert>
+    </ModeBar>
+  </>
+);
+
+export default BootcampBuilderChrome;

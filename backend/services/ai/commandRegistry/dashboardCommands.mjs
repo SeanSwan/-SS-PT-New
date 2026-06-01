@@ -4,6 +4,16 @@
 import { z } from 'zod';
 import { registerCommands } from './baseSchemas.mjs';
 
+const PositiveIntSchema = (defaultValue, maxValue) => z.coerce.number()
+  .int()
+  .min(1)
+  .max(maxValue)
+  .default(defaultValue);
+
+const RevenuePeriodSchema = z.enum(['day', 'week', 'month', 'quarter', 'year']).default('month');
+const BusinessKpiPeriodSchema = z.enum(['30d', '90d', '12m']).default('30d');
+const TimeRangeSchema = z.enum(['24h', '7d', '30d', '90d', '1y']).default('30d');
+
 const commands = [
   {
     type: 'scan_command_center',
@@ -21,7 +31,7 @@ const commands = [
     naturalLanguagePatterns: ['what\'s my revenue this month', 'show revenue', 'how much did I make'],
     method: 'GET', endpoint: '/api/admin/analytics/revenue',
     inputSchema: z.object({
-      period: z.enum(['day', 'week', 'month', 'quarter', 'year']).default('month'),
+      period: RevenuePeriodSchema,
     }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
@@ -32,7 +42,9 @@ const commands = [
     description: 'Show business KPIs and metrics',
     naturalLanguagePatterns: ['show me business KPIs', 'business metrics', 'key performance indicators'],
     method: 'GET', endpoint: '/api/admin/analytics/business-kpis',
-    inputSchema: z.object({}).optional(),
+    inputSchema: z.object({
+      period: BusinessKpiPeriodSchema,
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'G',
@@ -42,7 +54,10 @@ const commands = [
     description: 'Show who signed up recently',
     naturalLanguagePatterns: ['who signed up recently', 'recent signups', 'new clients this week'],
     method: 'GET', endpoint: '/api/admin/recent-signups',
-    inputSchema: z.object({}).optional(),
+    inputSchema: z.object({
+      hours: PositiveIntSchema(24, 168),
+      limit: PositiveIntSchema(50, 100),
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'G',
@@ -61,8 +76,10 @@ const commands = [
     type: 'view_user_engagement',
     description: 'Show user engagement metrics',
     naturalLanguagePatterns: ['show user engagement', 'engagement metrics', 'how active are users'],
-    method: 'GET', endpoint: '/api/admin/analytics/users/engagement',
-    inputSchema: z.object({}).optional(),
+    method: 'GET', endpoint: '/api/admin/analytics/users',
+    inputSchema: z.object({
+      timeRange: TimeRangeSchema,
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'G',
@@ -81,8 +98,11 @@ const commands = [
     type: 'view_visitor_intelligence',
     description: 'Show visitor intelligence and traffic data',
     naturalLanguagePatterns: ['show visitor intelligence', 'visitor data', 'site traffic'],
-    method: 'GET', endpoint: '/api/admin/analytics/visitors',
-    inputSchema: z.object({}).optional(),
+    method: 'GET', endpoint: '/api/admin/dashboard/anonymous-visitors',
+    inputSchema: z.object({
+      source: z.enum(['anonymous', 'geo', 'history']).default('anonymous'),
+      limit: PositiveIntSchema(50, 200),
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'G',

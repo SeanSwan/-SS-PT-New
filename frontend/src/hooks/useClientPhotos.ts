@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api.service';
 
-interface ClientPhoto {
+export interface ClientPhoto {
   id: number;
   url: string;
   type: 'front' | 'side' | 'back' | 'other';

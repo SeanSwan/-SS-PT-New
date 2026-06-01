@@ -20,6 +20,8 @@ import {
   ConvItemMeta,
   ConvItemActions,
   ConvActionBtn,
+  ThreadIcon,
+  InlineTitleInput,
 } from './styles/CoachSidebarStyles';
 
 interface ConversationItemProps {
@@ -60,6 +62,14 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
     if (!isEditing) onSelect(conversation.id);
   }, [conversation.id, isEditing, onSelect]);
 
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleSelect();
+    }
+  }, [handleSelect]);
+
   const handleStartEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setEditTitle(conversation.title || 'Untitled');
@@ -94,27 +104,25 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
   }, [conversation.id, editTitle, onRename]);
 
   return (
-    <ConvItemRow $active={isActive} onClick={handleSelect} role="button" tabIndex={0}>
-      <MessageSquare size={16} style={{ flexShrink: 0, opacity: 0.5 }} />
+    <ConvItemRow
+      $active={isActive}
+      onClick={handleSelect}
+      onKeyDown={handleRowKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${conversation.title || 'Untitled'} coach thread`}
+    >
+      <ThreadIcon aria-hidden="true">
+        <MessageSquare size={16} />
+      </ThreadIcon>
       <ConvItemContent>
         {isEditing ? (
-          <input
+          <InlineTitleInput
             value={editTitle}
             onChange={e => setEditTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             onClick={e => e.stopPropagation()}
             autoFocus
-            style={{
-              width: '100%',
-              background: 'var(--bg-base, #030712)',
-              border: '1px solid var(--accent-primary, #60C0F0)',
-              borderRadius: '4px',
-              color: 'var(--text-primary, #E0ECF4)',
-              padding: '4px 8px',
-              fontFamily: 'Sora, sans-serif',
-              fontSize: '14px',
-              outline: 'none',
-            }}
           />
         ) : (
           <>

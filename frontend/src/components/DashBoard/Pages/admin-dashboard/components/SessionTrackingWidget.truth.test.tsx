@@ -81,4 +81,21 @@ describe('SessionTrackingWidget truth handling', () => {
     expect(SOURCE).not.toContain('const DEMO');
     expect(SOURCE).not.toMatch(/Client A|Client B|trainerUtilization:\s*78|avgDuration:\s*52/);
   });
+
+  it('bridges session cards and rank fallbacks to Crystalline Swan theme tokens', () => {
+    expect(SOURCE).toContain("const sessionRankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';");
+    expect(SOURCE).toContain("const sessionRankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';");
+    expect(SOURCE).toContain('background: color-mix(in srgb, var(--royal-depth, #003080) 30%, transparent);');
+    expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);');
+    expect(SOURCE).toContain('background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);');
+    expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);');
+    expect(SOURCE).toContain('background: ${p => p.$isTop ? hexAlpha(CHART_COLORS.gildedFern, 0.2) : sessionRankFallbackBackground};');
+    expect(SOURCE).toContain('color: ${p => p.$isTop ? CHART_COLORS.gildedFern : sessionRankFallbackColor};');
+    expect(SOURCE).not.toContain('background: rgba(0, 32, 96, 0.3);');
+    expect(SOURCE).not.toContain('border: 1px solid rgba(96, 192, 240, 0.08);');
+    expect(SOURCE).not.toContain('background: rgba(198, 168, 75, 0.12);');
+    expect(SOURCE).not.toContain('border: 1px solid rgba(198, 168, 75, 0.24);');
+    expect(SOURCE).not.toContain(" : 'rgba(255,255,255,0.05)'");
+    expect(SOURCE).not.toContain(" : 'rgba(224,236,244,0.5)'");
+  });
 });

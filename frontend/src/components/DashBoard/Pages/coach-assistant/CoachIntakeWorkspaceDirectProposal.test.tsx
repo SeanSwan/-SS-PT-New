@@ -77,6 +77,37 @@ describe('CoachIntakeWorkspace direct proposal links', () => {
     expect(await screen.findByText(/Workout log proposal/i)).toBeInTheDocument();
   }, 10000);
 
+  it('opens a standalone proposal link when no intake route parameter exists', async () => {
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        id: 'proposal-standalone-1',
+        type: 'client_onboarding',
+        status: 'PENDING',
+        title: 'Review client onboarding draft',
+        summary: { clientSource: 'move_fitness' },
+        detail: { data: { clientSource: 'move_fitness' } },
+        reviewToken: 'review-v1.test',
+      },
+    });
+
+    const queue = {
+      ...makeQueue(),
+      items: [],
+      summary: { total: 0, actionable: 0, today: 0, unprocessed: 0, processing: 0, readyReview: 0, failed: 0, needsClient: 0 },
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?proposal=proposal-standalone-1']}>
+        <CoachIntakeWorkspace userRole="admin" selectedClientName={null} onCommandPrompt={vi.fn()} queue={queue} activeIntakeId={null} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByLabelText(/Prepared draft review panel/i)).toBeInTheDocument();
+    expect(getCoachProposal).toHaveBeenCalledWith('proposal-standalone-1');
+    expect(await screen.findByText(/Client onboarding proposal/i)).toBeInTheDocument();
+  }, 10000);
+
   it('shows a stale-link warning instead of fetching a mismatched proposal id', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant?intake=item-1&proposal=stale-proposal']}>

@@ -1,44 +1,82 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import styled from 'styled-components';
-import { format } from 'date-fns';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import WorkoutForm from './WorkoutForm';
 import ExerciseSelector from './ExerciseSelector';
 import SessionNotes from './SessionNotes';
+import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from '../../../components/WorkoutLogger/WorkoutLoggerConfirmDialog';
+import {
+  buildWorkoutSessionPayload,
+  createBlankWorkoutSession,
+  extractWorkoutHistory,
+  formatEditableSessionDate,
+  formatWorkoutSessionDate,
+  getWorkoutHistoryUrl,
+  hasWorkoutSessionDraft,
+  type PlannerWorkoutSession
+} from './WorkoutPlanner.logic';
+import {
+  PlannerContainer,
+  LoadingMessage,
+  ErrorMessage,
+  ViewContainer,
+  ViewHeader,
+  CreateButton,
+  EmptyState,
+  SessionsList,
+  SessionCard,
+  SessionHeader,
+  SessionDate,
+  SessionStatus,
+  SessionTitle,
+  SessionInfo,
+  InfoItem,
+  SessionActions,
+  ViewButton,
+  EditButton,
+  EditContainer,
+  EditHeader,
+  ButtonGroup,
+  SaveButton,
+  CancelButton,
+  EditContent,
+  FormColumn,
+  SelectorColumn,
+} from './WorkoutPlanner.styles';
 
 interface WorkoutPlannerProps {
   clientId: string | null;
   userRole: string;
 }
 
-interface WorkoutSession {
-  id: string;
-  date: string;
-  status: string;
-  title: string;
-  exercises: any[];
-}
+type WorkoutSession = PlannerWorkoutSession;
 
 const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) => {
+  const { authAxios } = useAuth();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [workoutPlans, setWorkoutPlans] = useState<any[]>([]);
+  const [workoutPlans, setWorkoutPlans] = useState<PlannerWorkoutSession[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
   const [notes, setNotes] = useState<string>('');
-  const [sessionDate, setSessionDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [sessionDate, setSessionDate] = useState<string>(formatEditableSessionDate(null));
+  const [discardRequest, setDiscardRequest] = useState<WorkoutLoggerConfirmRequest | null>(null);
 
-  // Fetch workout plans when client is selected
+  const refreshWorkoutHistory = useCallback(async () => {
+    if (!clientId) return;
+
+    const response = await authAxios.get(getWorkoutHistoryUrl(clientId));
+    setWorkoutPlans(extractWorkoutHistory(response.data));
+  }, [authAxios, clientId]);
+
   useEffect(() => {
     const fetchWorkoutPlans = async () => {
       if (!clientId) return;
 
       try {
         setIsLoading(true);
-        const response = await axios.get(`/api/workouts/history/${clientId}`);
-        setWorkoutPlans(response.data.history?.workoutSessions || []);
+        await refreshWorkoutHistory();
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching workout plans:', err);
@@ -50,61 +88,35 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
     if (clientId) {
       fetchWorkoutPlans();
     }
-  }, [clientId]);
+  }, [clientId, refreshWorkoutHistory]);
 
-  // Create new session
   const handleCreateSession = () => {
-    setCurrentSession({
-      id: '',
-      date: sessionDate,
-      status: 'scheduled',
-      title: 'New Workout Session',
-      exercises: []
-    });
+    setCurrentSession(createBlankWorkoutSession(sessionDate));
     setSelectedExercises([]);
     setNotes('');
     setIsEditing(true);
   };
 
-  // Save session
   const handleSaveSession = async () => {
     if (!clientId) return;
 
     try {
       setIsLoading(true);
-      
-      const sessionData = {
+      const sessionData = buildWorkoutSessionPayload({
         clientId,
-        date: sessionDate,
-        title: currentSession?.title || 'Workout Session',
-        workoutType: 'scheduled',
-        status: 'scheduled',
-        trainerNotes: notes,
-        exercises: selectedExercises.map((exercise, index) => ({
-          exerciseId: exercise.id,
-          orderIndex: index,
-          setsCompleted: 0,
-          setDetails: Array.from({ length: exercise.recommendedSets || 3 }).map((_, setIndex) => ({
-            setNumber: setIndex + 1,
-            reps: exercise.recommendedReps || 10,
-            weight: 0,
-            completed: false
-          })),
-          completionStatus: 'scheduled'
-        }))
-      };
+        currentSession,
+        notes,
+        selectedExercises,
+        sessionDate
+      });
       
       if (currentSession?.id) {
-        // Update existing session
-        await axios.put(`/api/workouts/sessions/${currentSession.id}`, sessionData);
+        await authAxios.put(`/api/workout/sessions/${currentSession.id}`, sessionData);
       } else {
-        // Create new session
-        await axios.post('/api/workouts/sessions', sessionData);
+        await authAxios.post('/api/workout/sessions', sessionData);
       }
       
-      // Refresh workout plans
-      const response = await axios.get(`/api/workouts/history/${clientId}`);
-      setWorkoutPlans(response.data.history?.workoutSessions || []);
+      await refreshWorkoutHistory();
       
       setIsEditing(false);
       setCurrentSession(null);
@@ -116,28 +128,64 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
     }
   };
 
-  // Cancel editing
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setCurrentSession(null);
+  const handleViewSession = (session: WorkoutSession) => {
+    setSelectedPlan(prev => (prev === session.id ? null : session.id));
   };
 
-  // Add exercise to session
+  const handleEditSession = (session: WorkoutSession) => {
+    setCurrentSession(session);
+    setSessionDate(formatEditableSessionDate(session.date));
+    setSelectedExercises(Array.isArray(session.exercises) ? session.exercises : []);
+    setNotes(session.notes || '');
+    setSelectedPlan(session.id);
+    setIsEditing(true);
+  };
+
+  const discardCurrentDraft = useCallback(() => {
+    setIsEditing(false);
+    setCurrentSession(null);
+    setDiscardRequest(null);
+  }, []);
+
+  const handleCancelEdit = () => {
+    if (!hasWorkoutSessionDraft({ currentSession, notes, selectedExercises })) {
+      discardCurrentDraft();
+      return;
+    }
+
+    setDiscardRequest({
+      title: 'Discard workout session draft?',
+      message: 'Unsaved exercise selections, notes, and session edits will be lost.',
+      confirmLabel: 'Discard draft',
+      cancelLabel: 'Keep editing',
+      tone: 'danger',
+      onConfirm: discardCurrentDraft
+    });
+  };
+
   const handleAddExercise = (exercise: any) => {
     setSelectedExercises(prev => [...prev, exercise]);
   };
 
-  // Remove exercise from session
   const handleRemoveExercise = (exerciseId: string) => {
     setSelectedExercises(prev => prev.filter(ex => ex.id !== exerciseId));
   };
 
-  // Handle notes change
+  const handleMoveExercise = (index: number, direction: 'up' | 'down') => {
+    setSelectedExercises(prev => {
+      const nextIndex = direction === 'up' ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+
+      const reordered = [...prev];
+      [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+      return reordered;
+    });
+  };
+
   const handleNotesChange = (value: string) => {
     setNotes(value);
   };
 
-  // Disable if no client selected or if not authorized
   const isDisabled = !clientId || (userRole === 'client');
 
   return (
@@ -147,7 +195,6 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
       ) : error ? (
         <ErrorMessage>{error}</ErrorMessage>
       ) : isEditing ? (
-        // Editing/creating a session
         <EditContainer>
           <EditHeader>
             <h2>{currentSession?.id ? 'Edit Workout Session' : 'Create Workout Session'}</h2>
@@ -158,25 +205,23 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
           </EditHeader>
           
           <EditContent>
-            {/* Session form */}
             <FormColumn>
               <WorkoutForm
                 session={currentSession}
                 onSessionChange={setCurrentSession}
                 selectedExercises={selectedExercises}
+                onMoveExercise={handleMoveExercise}
                 onRemoveExercise={handleRemoveExercise}
                 sessionDate={sessionDate}
                 onDateChange={setSessionDate}
               />
               
-              {/* Session notes */}
               <SessionNotes
                 notes={notes}
                 onChange={handleNotesChange}
               />
             </FormColumn>
             
-            {/* Exercise selector */}
             <SelectorColumn>
               <ExerciseSelector
                 clientId={clientId}
@@ -187,7 +232,6 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
           </EditContent>
         </EditContainer>
       ) : (
-        // Viewing session list
         <ViewContainer>
           <ViewHeader>
             <h2>Workout Sessions</h2>
@@ -205,22 +249,39 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
               {workoutPlans.map(session => (
                 <SessionCard key={session.id}>
                   <SessionHeader>
-                    <SessionDate>{format(new Date(session.date), 'MMM dd, yyyy')}</SessionDate>
+                    <SessionDate>{formatWorkoutSessionDate(session.date)}</SessionDate>
                     <SessionStatus status={session.status}>{session.status}</SessionStatus>
                   </SessionHeader>
                   <SessionTitle>{session.title}</SessionTitle>
                   <SessionInfo>
                     <InfoItem>
-                      <strong>Exercises:</strong> {session.exercises?.length || 0}
+                      <strong>Exercises:</strong> {session.exerciseCount}
                     </InfoItem>
                     <InfoItem>
                       <strong>Completion:</strong> {session.completionPercentage || 0}%
                     </InfoItem>
                   </SessionInfo>
+                  {selectedPlan === session.id && (
+                    <SessionInfo>
+                      <InfoItem>
+                        <strong>Session ID:</strong> {session.id}
+                      </InfoItem>
+                      <InfoItem>
+                        <strong>Date:</strong> {formatWorkoutSessionDate(session.date)}
+                      </InfoItem>
+                      {session.notes && (
+                        <InfoItem>
+                          <strong>Notes:</strong> {session.notes}
+                        </InfoItem>
+                      )}
+                    </SessionInfo>
+                  )}
                   <SessionActions>
-                    <ViewButton>View Details</ViewButton>
+                    <ViewButton onClick={() => handleViewSession(session)}>
+                      {selectedPlan === session.id ? 'Hide Details' : 'View Details'}
+                    </ViewButton>
                     {(userRole === 'trainer' || userRole === 'admin') && (
-                      <EditButton>Edit</EditButton>
+                      <EditButton onClick={() => handleEditSession(session)}>Edit</EditButton>
                     )}
                   </SessionActions>
                 </SessionCard>
@@ -229,261 +290,9 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ clientId, userRole }) =
           )}
         </ViewContainer>
       )}
+      <WorkoutLoggerConfirmDialog request={discardRequest} onClose={() => setDiscardRequest(null)} />
     </PlannerContainer>
   );
 };
-
-// Styled components
-const PlannerContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const LoadingMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-  font-size: 18px;
-  color: #666;
-`;
-
-const ErrorMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 300px;
-  font-size: 18px;
-  color: #dc3545;
-`;
-
-const ViewContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const ViewHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  
-  h2 {
-    font-size: 20px;
-    margin: 0;
-  }
-`;
-
-const CreateButton = styled.button`
-  padding: 10px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  
-  &:hover {
-    background-color: #0069d9;
-  }
-  
-  &:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  color: #666;
-`;
-
-const SessionsList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-`;
-
-const SessionCard = styled.div`
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: transform 0.2s;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-`;
-
-const SessionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
-`;
-
-const SessionDate = styled.span`
-  font-weight: 500;
-`;
-
-interface StatusProps {
-  status: string;
-}
-
-const SessionStatus = styled.span<StatusProps>`
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  
-  ${props => {
-    switch (props.status) {
-      case 'completed':
-        return 'background-color: #d4edda; color: #155724;';
-      case 'scheduled':
-        return 'background-color: #cce5ff; color: #004085;';
-      case 'in_progress':
-        return 'background-color: #fff3cd; color: #856404;';
-      case 'cancelled':
-        return 'background-color: #f8d7da; color: #721c24;';
-      default:
-        return 'background-color: #e2e3e5; color: #383d41;';
-    }
-  }}
-`;
-
-const SessionTitle = styled.h3`
-  padding: 16px 16px 8px;
-  margin: 0;
-  font-size: 16px;
-`;
-
-const SessionInfo = styled.div`
-  padding: 0 16px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-`;
-
-const InfoItem = styled.div`
-  font-size: 14px;
-  color: #666;
-`;
-
-const SessionActions = styled.div`
-  display: flex;
-  padding: 12px 16px;
-  border-top: 1px solid #dee2e6;
-  gap: 8px;
-`;
-
-const ViewButton = styled.button`
-  flex: 1;
-  padding: 8px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #5a6268;
-  }
-`;
-
-const EditButton = styled.button`
-  flex: 1;
-  padding: 8px;
-  background-color: #17a2b8;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  
-  &:hover {
-    background-color: #138496;
-  }
-`;
-
-const EditContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const EditHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  
-  h2 {
-    font-size: 20px;
-    margin: 0;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 10px;
-`;
-
-const SaveButton = styled.button`
-  padding: 10px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  
-  &:hover {
-    background-color: #218838;
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 10px 16px;
-  background-color: #dc3545;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  
-  &:hover {
-    background-color: #c82333;
-  }
-`;
-
-const EditContent = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
-
-const SelectorColumn = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
 
 export default WorkoutPlanner;

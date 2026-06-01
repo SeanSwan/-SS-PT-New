@@ -1,7 +1,18 @@
 import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import styled from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+
+const DROPPABLE_SLOT_THEME = {
+  primary: 'var(--accent-primary, #60C0F0)',
+  secondary: 'var(--accent-secondary, #8B5CF6)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textSoft: 'var(--text-secondary, rgba(224, 236, 244, 0.72))',
+  idleSurface: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 5%, transparent)',
+  activeSurface: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)',
+  disabledBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent)',
+  disabledSurface: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 2%, transparent)',
+  activeGlow: '0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent)',
+};
 
 interface DroppableSlotProps {
   id: string;
@@ -45,9 +56,9 @@ const SlotContainer = styled.div<{ $isOver: boolean; $disabled: boolean }>`
   min-height: 80px;
   border-radius: 12px;
   border: 1px dashed ${({ $isOver }) =>
-    $isOver ? '#00e5e5' : galaxySwanTheme.primary.main};
+    $isOver ? DROPPABLE_SLOT_THEME.primary : DROPPABLE_SLOT_THEME.secondary};
   background: ${({ $isOver }) =>
-    $isOver ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.05)'};
+    $isOver ? DROPPABLE_SLOT_THEME.activeSurface : DROPPABLE_SLOT_THEME.idleSurface};
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -58,14 +69,14 @@ const SlotContainer = styled.div<{ $isOver: boolean; $disabled: boolean }>`
     $disabled &&
     `
       opacity: 0.6;
-      border-color: rgba(255, 255, 255, 0.15);
-      background: rgba(255, 255, 255, 0.02);
+      border-color: ${DROPPABLE_SLOT_THEME.disabledBorder};
+      background: ${DROPPABLE_SLOT_THEME.disabledSurface};
     `}
 
   ${({ $isOver, $disabled }) =>
     $isOver && !$disabled &&
     `
-      box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+      box-shadow: ${DROPPABLE_SLOT_THEME.activeGlow};
       transform: scale(1.02);
     `}
 `;
@@ -74,15 +85,15 @@ const EmptySlot = styled.div<{ $isOver: boolean; $disabled: boolean }>`
   height: 100%;
   padding: 0.5rem;
   border-radius: 10px;
-  border: 1px dashed ${galaxySwanTheme.primary.main};
+  border: 1px dashed ${DROPPABLE_SLOT_THEME.primary};
   display: flex;
   align-items: center;
   justify-content: center;
   color: ${({ $isOver, $disabled }) => {
     if ($disabled) {
-      return galaxySwanTheme.text.secondary;
+      return DROPPABLE_SLOT_THEME.textSoft;
     }
-    return $isOver ? galaxySwanTheme.primary.main : galaxySwanTheme.primary.main;
+    return $isOver ? DROPPABLE_SLOT_THEME.text : DROPPABLE_SLOT_THEME.primary;
   }};
   font-size: 0.8rem;
   font-weight: 600;

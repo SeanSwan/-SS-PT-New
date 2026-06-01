@@ -24,6 +24,9 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
     type: DataTypes.STRING(100),
     allowNull: false,
   },
+  sourceExerciseName: {
+    type: DataTypes.STRING(100),
+  },
   durationSec: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -67,6 +70,15 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
   wristMod: {
     type: DataTypes.STRING(100),
   },
+  elbowMod: {
+    type: DataTypes.STRING(100),
+  },
+  footMod: {
+    type: DataTypes.STRING(100),
+  },
+  hipMod: {
+    type: DataTypes.STRING(100),
+  },
   backMod: {
     type: DataTypes.STRING(100),
   },
@@ -76,9 +88,9 @@ const BootcampExercise = sequelize.define('BootcampExercise', {
   notes: {
     type: DataTypes.TEXT,
   },
-  // ── Upgrade Phase 0a: two-board, pyramid, superset, flow, rolodex ──
+  // ── Upgrade Phase 0a: alternative boards, pyramid, superset, flow, rolodex ──
   board: {
-    type: DataTypes.ENUM('main', 'alternative'),
+    type: DataTypes.ENUM('main', 'alternative', 'lowImpact'),
     defaultValue: 'main',
   },
   setupTimeSec: {

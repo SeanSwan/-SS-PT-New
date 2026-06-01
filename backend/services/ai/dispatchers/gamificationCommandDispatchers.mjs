@@ -1,0 +1,182 @@
+/**
+ * Gamification command dispatchers
+ * ================================
+ * Coach command handlers for compact leaderboard, XP/streak, and achievement
+ * award receipts. Do not echo names, badge titles, or free-form text.
+ */
+import { getAllModels } from '../../../models/index.mjs';
+import { calculateLevel, getTier } from '../../../utils/levelingAlgorithm.mjs';
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const asPlain = (row) => (row?.toJSON ? row.toJSON() : row);
+const resolveClientId = (params, ctx) => params.clientId ?? ctx.resolvedClient?.id;
+
+const withOptionalTransaction = async (ctx, callback) => {
+  const sequelize = ctx.options?.sequelize || ctx.sequelize;
+  if (!sequelize?.transaction) return callback(null);
+  const transaction = await sequelize.transaction();
+  try {
+    const result = await callback(transaction);
+    await transaction.commit();
+    return result;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+export const dispatchViewLeaderboard = async (params = {}) => {
+  const { User } = getAllModels();
+  const page = Math.max(1, Number.parseInt(params.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, Number.parseInt(params.limit, 10) || 10));
+  const where = {};
+  if (params.tier) where.tier = String(params.tier);
+
+  const [leaderboard, totalUsers] = await Promise.all([
+    User.findAll({
+      attributes: ['id', 'points', 'level', 'tier'],
+      where,
+      order: [['points', 'DESC']],
+      limit,
+      offset: (page - 1) * limit,
+    }),
+    User.count({ where }),
+  ]);
+  const rows = leaderboard.map(asPlain);
+  const top = rows[0] || null;
+
+  return {
+    totalUsers,
+    returnedCount: rows.length,
+    topUserId: top?.id ?? null,
+    topPoints: toNumber(top?.points),
+    page,
+    limit,
+    tier: params.tier || null,
+  };
+};
+
+export const dispatchViewXpStreaks = async (params, ctx) => {
+  const { User, Streak, UserAchievement } = getAllModels();
+  const clientId = resolveClientId(params, ctx);
+  const [user, streaks, userAchievements] = await Promise.all([
+    User.findByPk(clientId, {
+      attributes: ['id', 'points', 'level', 'tier', 'streakDays', 'totalWorkouts', 'totalExercises'],
+    }),
+    Streak.findAll({
+      where: { userId: clientId, isActive: true },
+      order: [['currentCount', 'DESC']],
+    }),
+    UserAchievement.findAll({
+      where: { userId: clientId },
+      order: [['earnedAt', 'DESC']],
+      limit: 100,
+    }),
+  ]);
+
+  if (!user) return { clientId, found: false };
+
+  const data = asPlain(user);
+  const streakRows = streaks.map(asPlain);
+  const achievementRows = userAchievements.map(asPlain);
+
+  return {
+    clientId,
+    found: true,
+    points: toNumber(data.points),
+    level: toNumber(data.level),
+    tier: data.tier ?? null,
+    streakDays: toNumber(data.streakDays),
+    totalWorkouts: toNumber(data.totalWorkouts),
+    totalExercises: toNumber(data.totalExercises),
+    activeStreaks: streakRows.length,
+    longestStreak: streakRows.reduce((max, streak) => Math.max(max, toNumber(streak.longestCount)), 0),
+    completedAchievements: achievementRows.filter((achievement) => achievement.isCompleted).length,
+    newAchievements: achievementRows.filter((achievement) => achievement.isNew).length,
+  };
+};
+
+export const dispatchAwardBadge = async (params, ctx) => withOptionalTransaction(ctx, async (transaction) => {
+  const { User, Achievement, UserAchievement, PointTransaction } = getAllModels();
+  const clientId = resolveClientId(params, ctx);
+  const achievementId = String(params.achievementId);
+  const options = transaction ? { transaction } : {};
+  const [user, achievement] = await Promise.all([
+    User.findByPk(clientId, options),
+    Achievement.findByPk(achievementId, options),
+  ]);
+
+  if (!user || !achievement) {
+    return { clientId, achievementId, found: false, awarded: false, alreadyAwarded: false };
+  }
+
+  const existingAchievement = await UserAchievement.findOne({
+    where: { userId: clientId, achievementId },
+    ...options,
+  });
+
+  if (existingAchievement?.isCompleted) {
+    return {
+      clientId,
+      achievementId,
+      found: true,
+      awarded: false,
+      alreadyAwarded: true,
+      pointsAwarded: 0,
+      newBalance: toNumber(user.points),
+      newLevel: toNumber(user.level),
+      newTier: user.tier ?? null,
+    };
+  }
+
+  const pointsAwarded = toNumber(achievement.xpReward);
+  const newBalance = toNumber(user.points) + pointsAwarded;
+  const newLevel = calculateLevel(newBalance);
+  const newTier = getTier(newLevel);
+  const earnedAt = new Date();
+  const achievementFields = {
+    userId: clientId,
+    achievementId,
+    isCompleted: true,
+    progress: 100,
+    progressPercentage: 100,
+    earnedAt,
+    unlockedAt: earnedAt,
+    pointsAwarded,
+  };
+
+  if (existingAchievement) {
+    await existingAchievement.update(achievementFields, options);
+  } else {
+    await UserAchievement.create(achievementFields, options);
+  }
+
+  await PointTransaction.create({
+    userId: clientId,
+    points: pointsAwarded,
+    balance: newBalance,
+    transactionType: 'earn',
+    source: 'achievement_earned',
+    sourceId: null,
+    description: 'Achievement earned',
+    metadata: { achievementId },
+    awardedBy: ctx.user?.id ?? null,
+  }, options);
+  await user.update({ points: newBalance, level: newLevel, tier: newTier }, options);
+
+  return {
+    clientId,
+    achievementId,
+    found: true,
+    awarded: true,
+    alreadyAwarded: false,
+    pointsAwarded,
+    newBalance,
+    newLevel,
+    newTier,
+  };
+});

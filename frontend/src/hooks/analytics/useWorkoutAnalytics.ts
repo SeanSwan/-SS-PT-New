@@ -19,106 +19,51 @@ import { useAuth } from '../../context/AuthContext';
 import {
   derive1RMProgression, deriveMuscleGroupVolume, deriveRPETrend,
   calcLongestStreak, calcBrzycki1RM,
-  type OneRMProgression, type MuscleGroupVolume, type RPEPoint,
 } from './workoutAnalyticsUtils';
+import { WORKOUT_ANALYTICS_DEFAULT_LIMIT } from './useWorkoutAnalytics.types';
+import type {
+  AnalyticsData,
+  ExerciseFrequency,
+  IntensityPoint,
+  PersonalRecord,
+  UseWorkoutAnalyticsReturn,
+  WeeklyVolume,
+  WorkoutCalendarEntry,
+  WorkoutLogEntry,
+  WorkoutSession,
+} from './useWorkoutAnalytics.types';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-export interface WorkoutSession {
-  id: string;
-  title: string;
-  date: string;
-  duration: number;
-  intensity: number;
-  status: string;
-  totalSets: number;
-  totalReps: number;
-  totalWeight: number;
-  notes?: string;
-  logs: WorkoutLogEntry[];
-}
-
-export interface WorkoutLogEntry {
-  id: number;
-  exerciseName: string;
-  setNumber: number;
-  reps: number;
-  weight: number;
-  tempo?: string;
-  rest?: number;
-  rpe?: number;
-  /** Set-specific note — stays a set-level field only. */
-  notes?: string;
-  /**
-   * Phase 15.0 (2026-04-15): exercise-level coaching note. Stamped on
-   * every row of the exercise group by the backend write path, so
-   * deleting any single set preserves the note on the remaining rows.
-   * Replaces the Phase 13.2 `Coach: ` encoding into set 1's notes.
-   */
-  exerciseNote?: string;
-}
-
-export interface PersonalRecord {
-  exercise: string;
-  weight: number;
-  reps: number;
-  date: string;
-  estimated1RM?: number;
-}
-
-export interface WeeklyVolume {
-  week: string;
-  volume: number;
-  workoutCount: number;
-}
-
-export interface ExerciseFrequency {
-  name: string;
-  count: number;
-  totalVolume: number;
-}
-
-export interface WorkoutCalendarEntry {
-  date: string;
-  count: number;
-}
-
-export interface IntensityPoint {
-  date: string;
-  intensity: number;
-}
-
-export type { OneRMProgression, MuscleGroupVolume, RPEPoint };
+export type {
+  AnalyticsData,
+  ExerciseFrequency,
+  IntensityPoint,
+  MuscleGroupVolume,
+  OneRMProgression,
+  PersonalRecord,
+  RPEPoint,
+  WeeklyVolume,
+  WorkoutLogEntry,
+  WorkoutCalendarEntry,
+  WorkoutSession,
+} from './useWorkoutAnalytics.types';
 export { calcBrzycki1RM };
 
-export interface AnalyticsData {
-  sessions: WorkoutSession[];
-  weeklyVolume: WeeklyVolume[];
-  exerciseFrequency: ExerciseFrequency[];
-  intensityTrend: IntensityPoint[];
-  workoutCalendar: WorkoutCalendarEntry[];
-  personalRecords: PersonalRecord[];
-  oneRMProgression: OneRMProgression[];
-  muscleGroupVolume: MuscleGroupVolume[];
-  rpeTrend: RPEPoint[];
-  summary: {
-    totalWorkouts: number;
-    totalExercises: number;
-    totalVolume: number;
-    avgIntensity: number;
-    avgRPE: number;
-    longestStreak: number;
-  };
-}
+const getNumericAnalyticsUserId = (userId: number | string | null): number | null => {
+  if (userId === null) return null;
+  if (typeof userId === 'number') {
+    return Number.isSafeInteger(userId) && userId > 0 ? userId : null;
+  }
 
-interface UseWorkoutAnalyticsReturn {
-  data: AnalyticsData | null;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
-}
+  const trimmed = userId.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hook
@@ -126,12 +71,21 @@ interface UseWorkoutAnalyticsReturn {
 
 export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutAnalyticsReturn {
   const { authAxios } = useAuth();
+  const numericUserId = useMemo(() => getNumericAnalyticsUserId(userId), [userId]);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAnalytics = useCallback(async () => {
-    if (!userId || !authAxios) return;
+    if (!authAxios || userId === null) return;
+    if (numericUserId === null) {
+      setData(null);
+      setIsLoading(false);
+      setError('Select a valid client before loading workout analytics.');
+      return;
+    }
+
+    const analyticsUserId = String(numericUserId);
 
     setIsLoading(true);
     setError(null);
@@ -139,14 +93,14 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
     try {
       // Parallel fetch: workouts + analytics endpoints
       const [workoutsRes, volumeRes, prsRes, frequencyRes] = await Promise.allSettled([
-        authAxios.get(`/api/admin/clients/${userId}/workouts`, {
-          params: { limit: 50, offset: 0 }
+        authAxios.get(`/api/admin/clients/${analyticsUserId}/workouts`, {
+          params: { limit: WORKOUT_ANALYTICS_DEFAULT_LIMIT, offset: 0 }
         }),
-        authAxios.get(`/api/analytics/${userId}/volume-progression`, {
+        authAxios.get(`/api/analytics/${analyticsUserId}/volume-progression`, {
           params: { groupBy: 'week' }
         }),
-        authAxios.get(`/api/analytics/${userId}/personal-records`),
-        authAxios.get(`/api/analytics/${userId}/frequency`, {
+        authAxios.get(`/api/analytics/${analyticsUserId}/personal-records`),
+        authAxios.get(`/api/analytics/${analyticsUserId}/frequency`, {
           params: { days: 90 }
         }),
       ]);
@@ -325,7 +279,7 @@ export function useWorkoutAnalytics(userId: number | string | null): UseWorkoutA
     } finally {
       setIsLoading(false);
     }
-  }, [userId, authAxios]);
+  }, [authAxios, numericUserId, userId]);
 
   useEffect(() => {
     fetchAnalytics();

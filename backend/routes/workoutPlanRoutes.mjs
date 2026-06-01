@@ -48,6 +48,19 @@ const router = express.Router();
 const ACTIVATE_MAX_RETRIES = 2;
 const isUniqueViolation = (err) =>
   err?.original?.code === '23505' || err?.parent?.code === '23505';
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
@@ -72,8 +85,20 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
 
     const where = {};
     // Support both userId and clientId query params (frontend may use either)
-    if (userId || clientId) where.userId = parseInt(userId || clientId, 10);
-    if (trainerId) where.trainerId = parseInt(trainerId, 10);
+    if (userId !== undefined || clientId !== undefined) {
+      const targetUserId = parseStrictPositiveInteger(userId ?? clientId);
+      if (!targetUserId) {
+        return res.status(400).json({ success: false, message: 'Valid userId or clientId required' });
+      }
+      where.userId = targetUserId;
+    }
+    if (trainerId !== undefined) {
+      const parsedTrainerId = parseStrictPositiveInteger(trainerId);
+      if (!parsedTrainerId) {
+        return res.status(400).json({ success: false, message: 'Valid trainerId required' });
+      }
+      where.trainerId = parsedTrainerId;
+    }
     if (status) where.status = status;
 
     const plans = await WorkoutPlan.findAll({

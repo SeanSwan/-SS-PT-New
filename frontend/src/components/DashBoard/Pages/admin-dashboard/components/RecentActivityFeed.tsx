@@ -162,8 +162,8 @@ const FeedList = styled.div`
 const ErrorState = styled.div`
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
   min-height: 44px; padding: 10px 12px; border-radius: 8px;
-  background: rgba(198, 168, 75, 0.12);
-  border: 1px solid rgba(198, 168, 75, 0.24);
+  background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);
   color: var(--text-primary, #E0ECF4);
   font-size: 12px;
   @media (max-width: 430px) { grid-template-columns: auto 1fr; }
@@ -171,17 +171,18 @@ const ErrorState = styled.div`
 
 const RetryInline = styled.button`
   min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
-  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent); border-radius: 8px; padding: 0 12px;
+  background: color-mix(in srgb, var(--royal-depth, #003080) 40%, transparent); color: var(--text-primary, #E0ECF4);
   font-size: 12px; font-weight: 700; cursor: pointer;
+  &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
   @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
 `;
 
 const EmptyState = styled.div`
   min-height: 44px; display: flex; align-items: center;
   padding: 10px 12px; border-radius: 8px;
-  background: rgba(0, 32, 96, 0.2);
-  border: 1px dashed rgba(96, 192, 240, 0.18);
+  background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
   color: var(--text-secondary, rgba(224,236,244,0.7));
   font-size: 12px;
 `;
@@ -190,7 +191,7 @@ const FeedItem = styled.div`
   display: flex; align-items: flex-start; gap: 10px;
   padding: 10px 12px; border-radius: 10px;
   transition: background 0.15s;
-  &:hover { background: rgba(0, 32, 96, 0.2); }
+  &:hover { background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent); }
 `;
 
 const FeedIcon = styled.div<{ $color: string }>`
@@ -211,6 +212,6 @@ const FeedMessage = styled.div`
 `;
 
 const FeedTime = styled.div`
-  font-size: 11px; color: rgba(224,236,244,0.4);
+  font-size: 11px; color: var(--text-muted, rgba(224,236,244,0.4));
   margin-top: 2px; font-family: 'Fira Code', monospace;
 `;

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { FormEvent } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CoachActionProposalCard } from './CoachActionProposalCard';
 import {
@@ -231,6 +232,49 @@ describe('CoachActionProposalCard', () => {
       expect(getCoachProposal).toHaveBeenCalledWith(onboardingProposal.id);
     });
     expect(await screen.findByText(/Fitness goal ready for review/i)).toBeInTheDocument();
+  });
+
+  it('offers a direct Client Hub handoff after onboarding approval creates a client', async () => {
+    const onboardingProposal = {
+      ...proposal,
+      type: 'client_onboarding' as const,
+      title: 'Review client onboarding draft',
+      summary: { displayName: 'New client draft', sectionCount: 5 },
+    };
+    vi.mocked(getCoachProposal).mockResolvedValue({
+      success: true,
+      proposal: {
+        ...onboardingProposal,
+        reviewToken: 'review-token-1',
+        detail: {
+          client: {
+            firstName: 'Norma',
+            lastName: 'Patton',
+            clientSource: 'swanstudios',
+            fitnessGoal: 'Strength and balance',
+          },
+        },
+      },
+    });
+    vi.mocked(approveCoachProposal).mockResolvedValue({
+      success: true,
+      applied: true,
+      client: { id: 88, firstName: 'Norma', lastName: 'Patton' },
+      proposal: { ...onboardingProposal, status: 'APPLIED' },
+    });
+
+    render(
+      <MemoryRouter>
+        <CoachActionProposalCard proposal={onboardingProposal} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /review details/i }));
+    expect(await screen.findByText(/Draft details loaded for review/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /approve draft/i }));
+
+    const hubLink = await screen.findByRole('link', { name: /open client hub/i });
+    expect(hubLink).toHaveAttribute('href', '/dashboard/admin/client-management?clientId=88');
   });
 
   it('keeps onboarding approval blocked when loaded details contain a validation error', async () => {

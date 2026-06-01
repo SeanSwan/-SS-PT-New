@@ -344,10 +344,10 @@ const ModernUserManagementSystem: React.FC = () => {
                 {/* Left Column: User List */}
                 <div>
                   <GlassPanel>
-                    <SectionTitle>Sample User List</SectionTitle>
+                    <SectionTitle>User Directory</SectionTitle>
 
                     <IntroBodyText $muted>
-                      Below is a representation of the user management interface. When fully implemented, you&apos;ll be able to:
+                      User records come from the protected admin user API.
                     </IntroBodyText>
 
                     {loading ? (
@@ -399,59 +399,19 @@ const ModernUserManagementSystem: React.FC = () => {
                                   </StyledTableCell>
                                 </StyledTableRow>
                               ))
-                            ) : (
-                              // Sample users if none loaded
-                              <>
-                                <StyledTableRow>
-                                  <CompactTableCell>
-                                    <FlexRow $gap="0.75rem">
-                                      <User size={20} />
-                                      <div>
-                                        <UserName>Admin User</UserName>
-                                        <br />
-                                        <UserMeta>
-                                          Role: admin &bull; Status: Active
-                                        </UserMeta>
-                                      </div>
-                                    </FlexRow>
-                                  </CompactTableCell>
-                                  <StyledTableCell $align="right">
-                                    <GlowButton
-                                      variant="cosmic"
-                                      size="small"
-                                      onClick={() => {}}
-                                    >
-                                      Edit
-                                    </GlowButton>
-                                  </StyledTableCell>
-                                </StyledTableRow>
-                                <StyledTableRow>
-                                  <CompactTableCell>
-                                    <FlexRow $gap="0.75rem">
-                                      <User size={20} />
-                                      <div>
-                                        <UserName>Trainer User</UserName>
-                                        <br />
-                                        <UserMeta>
-                                          Role: trainer &bull; Status: Active
-                                        </UserMeta>
-                                      </div>
-                                    </FlexRow>
-                                  </CompactTableCell>
-                                  <StyledTableCell $align="right">
-                                    <GlowButton
-                                      variant="cosmic"
-                                      size="small"
-                                      onClick={() => {}}
-                                    >
-                                      Edit
-                                    </GlowButton>
-                                  </StyledTableCell>
-                                </StyledTableRow>
-                              </>
-                            )}
+                            ) : null}
                           </tbody>
                         </UserManagementTable>
+                        {(!filteredUsers || filteredUsers.length === 0) && (
+                          <EmptyStateContainer>
+                            <EmptyStateIcon>
+                              <User size={28} />
+                            </EmptyStateIcon>
+                            <EmptyStateText>
+                              No users were returned by the admin user API.
+                            </EmptyStateText>
+                          </EmptyStateContainer>
+                        )}
                       </div>
                     )}
                   </GlassPanel>

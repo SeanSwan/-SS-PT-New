@@ -18,7 +18,7 @@
  * - WebSocket connections for real-time updates
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import {
   fetchEvents,
@@ -32,6 +32,7 @@ import {
   selectScheduleStats
 } from '../../../redux/slices/scheduleSlice';
 import { useAuth } from '../../../context/AuthContext';
+import { useSocket } from '../../../context/SocketContext';
 import { clientTrainerAssignmentService } from '../../../services/clientTrainerAssignmentService';
 import type { 
   Client, 
@@ -121,6 +122,7 @@ export interface CalendarDataActions {
 export const useCalendarData = () => {
   const { user } = useAuth();
   const dispatch = useAppDispatch();
+  const { socket } = useSocket();
   
   // Redux selectors (Enhanced)
   const sessions = useAppSelector(selectAllSessions);
@@ -159,6 +161,9 @@ export const useCalendarData = () => {
     failedLoads: 0,
     isStale: true
   });
+
+  const refreshDataRef = useRef<CalendarDataActions['refreshData'] | null>(null);
+  const activeFilterOptionsRef = useRef<import('../types').FilterOptions | undefined>(undefined);
   
   // Use Redux data as primary source, fallback to local state
   const clients = reduxClients.length > 0 ? reduxClients : [];
@@ -252,36 +257,29 @@ export const useCalendarData = () => {
   // ==================== REAL-TIME UPDATES ====================
   
   const initializeRealTimeUpdates = useCallback(() => {
-    logger.log('🔄 Initializing real-time updates...');
-    
-    // TODO: Implement WebSocket connection
-    // const ws = new WebSocket(`${process.env.VITE_WS_URL || 'ws://localhost:3001'}/schedule-updates`);
-    // 
-    // ws.onopen = () => {
-    //   console.log('📡 WebSocket connected for real-time updates');
-    // };
-    // 
-    // ws.onmessage = (event) => {
-    //   const update = JSON.parse(event.data);
-    //   if (update.type === 'session-updated') {
-    //     refreshData(false); // Refresh without showing loading
-    //   }
-    // };
-    // 
-    // ws.onerror = (error) => {
-    //   console.error('WebSocket error:', error);
-    // };
-    // 
-    // ws.onclose = () => {
-    //   console.log('📡 WebSocket disconnected');
-    // };
-    
-    // Return cleanup function
-    return () => {
-      // ws?.close();
-      logger.log('🔄 Real-time updates cleaned up');
+    logger.log('Initializing schedule real-time updates...');
+
+    if (!socket) {
+      logger.log('Schedule real-time updates waiting for authenticated socket');
+      return () => {
+        logger.log('Schedule real-time updates cleanup skipped; socket was unavailable');
+      };
+    }
+
+    const handleScheduleUpdate = (payload?: { type?: string; data?: { type?: string } }) => {
+      logger.log('Received schedule socket event:', payload?.type || payload?.data?.type || 'schedule:update');
+      refreshDataRef.current?.(false, activeFilterOptionsRef.current);
     };
-  }, []);
+
+    socket.on('schedule:update', handleScheduleUpdate);
+    socket.on('schedule:sync_required', handleScheduleUpdate);
+
+    return () => {
+      socket.off('schedule:update', handleScheduleUpdate);
+      socket.off('schedule:sync_required', handleScheduleUpdate);
+      logger.log('Schedule real-time updates cleaned up');
+    };
+  }, [socket]);
   
   // ==================== ENHANCED DATA LOADING FUNCTIONS ====================
   
@@ -448,6 +446,9 @@ export const useCalendarData = () => {
       // Initialize real-time updates if enabled
       if (realTimeEnabled) {
         try {
+          if ((window as any).__scheduleCleanup) {
+            (window as any).__scheduleCleanup();
+          }
           const cleanup = initializeRealTimeUpdates();
           // Store cleanup function for later use
           (window as any).__scheduleCleanup = cleanup;
@@ -477,6 +478,9 @@ export const useCalendarData = () => {
   }, [loadSessions, loadClients, loadTrainers, loadAssignments, clearErrors, updateDataHealth, initializeRealTimeUpdates]);
   
   const refreshData = useCallback(async (force: boolean = false, filterOptions?: import('../types').FilterOptions) => {
+    if (filterOptions) {
+      activeFilterOptionsRef.current = filterOptions;
+    }
     logger.log(`🔄 Refreshing data${force ? ' (forced)' : ''}...`, filterOptions ? `with filters: ${JSON.stringify(filterOptions)}` : '');
 
     try {
@@ -509,6 +513,8 @@ export const useCalendarData = () => {
       setLoading(prev => ({ ...prev, refreshing: false }));
     }
   }, [loadSessions, loadClients, loadTrainers, loadAssignments, invalidateCache, updateDataHealth]);
+
+  refreshDataRef.current = refreshData;
   
 
   
@@ -570,6 +576,8 @@ export const useCalendarData = () => {
       const clientEmail = (session as any).clientEmail || (session.client as any)?.email || undefined;
       const clientPhone = (session as any).clientPhone || (session.client as any)?.phone || undefined;
       const clientAvailableSessions = (session as any).clientAvailableSessions ?? (session.client as any)?.availableSessions ?? undefined;
+      const clientSource = (session as any).clientSource ?? (session.client as any)?.clientSource ?? undefined;
+      const sessionDeducted = (session as any).sessionDeducted ?? undefined;
 
       return {
         ...session,
@@ -577,7 +585,9 @@ export const useCalendarData = () => {
         trainerName: trainerName || undefined,
         clientEmail,
         clientPhone,
-        clientAvailableSessions
+        clientAvailableSessions,
+        clientSource,
+        sessionDeducted,
       };
     });
   }, [sessions]);

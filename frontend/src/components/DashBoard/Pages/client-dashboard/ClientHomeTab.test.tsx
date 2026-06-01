@@ -28,6 +28,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockNavigate = vi.fn();
 const mockCreatePostMutate = vi.hoisted(() => vi.fn());
 const mockApiGet = vi.hoisted(() => vi.fn());
+const mockAuthUser = vi.hoisted(() => ({
+  current: {
+    id: 42,
+    firstName: 'Test',
+    lastName: 'Client',
+    username: 'testclient',
+    clientSource: 'swanstudios',
+  } as Record<string, unknown>,
+}));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
   useParams: () => ({}),
@@ -36,7 +45,7 @@ vi.mock('react-router-dom', () => ({
 // ── Mock auth context ────────────────────────────────────────────────────
 vi.mock('../../../../context/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 42, firstName: 'Test', lastName: 'Client', username: 'testclient' },
+    user: mockAuthUser.current,
   }),
 }));
 
@@ -115,6 +124,13 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     mockCreatePostMutate.mockReset();
     mockCreatePostMutate.mockResolvedValue({ success: true });
     mockApiGet.mockReset();
+    mockAuthUser.current = {
+      id: 42,
+      firstName: 'Test',
+      lastName: 'Client',
+      username: 'testclient',
+      clientSource: 'swanstudios',
+    };
     mockApiGet.mockResolvedValue({
       data: {
         success: true,
@@ -162,6 +178,23 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     await user.click(bookBtn as HTMLElement);
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/schedule');
+  });
+
+  it('does not expose SwanStudios booking actions for Move Fitness clients', async () => {
+    mockAuthUser.current = {
+      id: 42,
+      firstName: 'Test',
+      lastName: 'Client',
+      username: 'testclient',
+      clientSource: 'move_fitness',
+    };
+
+    await renderClientHomeSettled();
+
+    expect(screen.queryAllByRole('button', { name: /book session/i })).toHaveLength(0);
+    expect(screen.queryAllByRole('button', { name: /book a session/i })).toHaveLength(0);
+    expect(screen.queryByTestId('next-session-card')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('button', { name: /^book$/i })).toHaveLength(0);
   });
 
   it('renders the active current workout with a one-tap log action from the canonical workout endpoint', async () => {
@@ -218,7 +251,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(text).not.toMatch(/weight progression/i);
   });
 
-  it('turns the Reels spotlight into a structured reel post action', async () => {
+  it('turns the Reels spotlight into a structured workout post action', async () => {
     const user = userEvent.setup();
     render(<ClientHomeTab />);
 
@@ -227,8 +260,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 
     expect(mockCreatePostMutate).toHaveBeenCalledWith({
-      content: 'A controlled strength set from today',
-      type: 'reel',
+      content: 'A controlled strength set from today #WorkoutDiary #SwanProgress #SwanStudios',
+      type: 'workout',
       visibility: 'friends',
       media: null,
     });
@@ -245,8 +278,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     await user.click(screen.getByRole('button', { name: /^post$/i }));
 
     expect(mockCreatePostMutate).toHaveBeenCalledWith({
-      content: 'Clip from the final set',
-      type: 'training',
+      content: 'Clip from the final set #WorkoutDiary #SwanProgress #SwanStudios',
+      type: 'workout',
       visibility: 'friends',
       media: file,
     });

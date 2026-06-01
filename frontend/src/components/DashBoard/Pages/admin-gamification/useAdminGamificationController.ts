@@ -1,10 +1,9 @@
-/**
- * Data controller for the canonical admin gamification shell.
- */
-
+// Data controller for the canonical admin gamification shell.
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
+import type { AdminGamificationConfirmRequest } from './AdminGamificationConfirmDialog';
+import { DEFAULT_LEVEL_SETTINGS, DEFAULT_SYSTEM_SETTINGS } from './admin-gamification.defaults';
 import {
   buildAnalyticsData,
   mapAchievement,
@@ -25,27 +24,6 @@ import type {
   TierThreshold,
 } from './admin-gamification.types';
 
-const DEFAULT_LEVEL_SETTINGS: LevelSettings = {
-  pointsPerLevel: 500,
-  levelCap: 100,
-  enableLevelCap: false,
-};
-
-const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
-  enableGamification: true,
-  enableAchievements: true,
-  enableRewards: true,
-  enableLeaderboard: true,
-  enableLevels: true,
-  enableTiers: true,
-  enableStreaks: true,
-  notifyOnAchievement: true,
-  notifyOnLevelUp: true,
-  notifyOnReward: true,
-  streakExpirationDays: 3,
-  pointsExpiration: { enabled: false, expirationDays: 365 },
-};
-
 type ToastVariant = 'default' | 'destructive';
 
 export const useAdminGamificationController = () => {
@@ -61,10 +39,13 @@ export const useAdminGamificationController = () => {
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(DEFAULT_SYSTEM_SETTINGS);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [analyticsData, setAnalyticsData] = useState<GamificationAnalyticsData>(null);
+  const [confirmRequest, setConfirmRequest] = useState<AdminGamificationConfirmRequest | null>(null);
 
   const notify = useCallback((title: string, description: string, variant: ToastVariant = 'default') => {
     toast({ title, description, variant });
   }, [toast]);
+
+  const closeConfirm = useCallback(() => setConfirmRequest(null), []);
 
   const fetchAchievements = useCallback(async () => {
     const response = await authAxios.get('/api/v1/gamification/achievements');
@@ -146,15 +127,23 @@ export const useAdminGamificationController = () => {
   }, [authAxios, fetchAchievements, notify]);
 
   const handleDeleteAchievement = useCallback(async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this achievement? This action cannot be undone.')) return;
-    try {
-      await authAxios.delete(`/api/v1/gamification/achievements/${id}`);
-      await fetchAchievements();
-      notify('Success', 'Achievement deleted successfully');
-    } catch (error) {
-      console.error('Error deleting achievement:', error);
-      notify('Error', 'Failed to delete achievement', 'destructive');
-    }
+    setConfirmRequest({
+      title: 'Delete achievement?',
+      message: 'This removes the achievement from the gamification catalog and cannot be undone.',
+      confirmLabel: 'Delete achievement',
+      cancelLabel: 'Keep achievement',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          await authAxios.delete(`/api/v1/gamification/achievements/${id}`);
+          await fetchAchievements();
+          notify('Success', 'Achievement deleted successfully');
+        } catch (error) {
+          console.error('Error deleting achievement:', error);
+          notify('Error', 'Failed to delete achievement', 'destructive');
+        }
+      },
+    });
   }, [authAxios, fetchAchievements, notify]);
 
   const handleToggleAchievementStatus = useCallback(async (id: string, isActive: boolean) => {
@@ -191,15 +180,23 @@ export const useAdminGamificationController = () => {
   }, [authAxios, fetchRewards, notify]);
 
   const handleDeleteReward = useCallback(async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this reward? This action cannot be undone.')) return;
-    try {
-      await authAxios.delete(`/api/v1/gamification/rewards/${id}`);
-      await fetchRewards();
-      notify('Success', 'Reward deleted successfully');
-    } catch (error) {
-      console.error('Error deleting reward:', error);
-      notify('Error', 'Failed to delete reward', 'destructive');
-    }
+    setConfirmRequest({
+      title: 'Delete reward?',
+      message: 'This removes the reward from the redemption catalog and cannot be undone.',
+      confirmLabel: 'Delete reward',
+      cancelLabel: 'Keep reward',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          await authAxios.delete(`/api/v1/gamification/rewards/${id}`);
+          await fetchRewards();
+          notify('Success', 'Reward deleted successfully');
+        } catch (error) {
+          console.error('Error deleting reward:', error);
+          notify('Error', 'Failed to delete reward', 'destructive');
+        }
+      },
+    });
   }, [authAxios, fetchRewards, notify]);
 
   const handleToggleRewardStatus = useCallback(async (id: string, isActive: boolean) => {
@@ -249,14 +246,22 @@ export const useAdminGamificationController = () => {
   }, [authAxios, levelSettings, notify, pointValues, systemSettings, tierThresholds]);
 
   const handleRestoreDefaults = useCallback(async () => {
-    if (!window.confirm('Are you sure you want to restore default settings? This will reset all gamification settings to their factory defaults.')) return;
-    try {
-      await fetchSettings();
-      notify('Success', 'Gamification settings restored to defaults');
-    } catch (error) {
-      console.error('Error restoring default settings:', error);
-      notify('Error', 'Failed to restore default settings', 'destructive');
-    }
+    setConfirmRequest({
+      title: 'Restore default settings?',
+      message: 'This reloads the canonical gamification defaults for point, tier, level, and system settings.',
+      confirmLabel: 'Restore defaults',
+      cancelLabel: 'Keep current settings',
+      tone: 'warning',
+      onConfirm: async () => {
+        try {
+          await fetchSettings();
+          notify('Success', 'Gamification settings restored to defaults');
+        } catch (error) {
+          console.error('Error restoring default settings:', error);
+          notify('Error', 'Failed to restore default settings', 'destructive');
+        }
+      },
+    });
   }, [fetchSettings, notify]);
 
   return {
@@ -270,6 +275,8 @@ export const useAdminGamificationController = () => {
     systemSettings,
     leaderboard,
     analyticsData,
+    confirmRequest,
+    closeConfirm,
     handleTabChange,
     handleCreateAchievement,
     handleUpdateAchievement,

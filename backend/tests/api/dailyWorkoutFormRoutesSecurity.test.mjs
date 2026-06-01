@@ -57,6 +57,22 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(infoRoute).not.toMatch(/isNaN\(parseInt\(clientId\)|parseInt\(clientId\)/);
   });
 
+  it('exposes clientSource in workout logger info responses so UI can show paid vs courtesy billing state', () => {
+    const selfInfoRoute = routeSource.slice(
+      routeSource.indexOf("router.get('/my/info'"),
+      routeSource.indexOf("router.get('/client/:clientId/info'")
+    );
+    const clientInfoRoute = routeSource.slice(
+      routeSource.indexOf("router.get('/client/:clientId/info'"),
+      routeSource.indexOf('const checkTrainerPermission', routeSource.indexOf("router.get('/client/:clientId/info'"))
+    );
+
+    expect(selfInfoRoute).toContain("'clientSource'");
+    expect(selfInfoRoute).toContain('clientSource: client.clientSource');
+    expect(clientInfoRoute).toContain("'clientSource'");
+    expect(clientInfoRoute).toContain('clientSource: client.clientSource');
+  });
+
   it('strictly validates the fallback client progress route ID before access checks', () => {
     const progressRoute = routeSource.slice(
       routeSource.indexOf("router.get('/client/:clientId/progress'"),
@@ -82,5 +98,44 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('clientId: parsedClientId');
     expect(submitRoute).toContain('userId: parsedClientId');
     expect(submitRoute).not.toMatch(/parseInt\(clientId/);
+  });
+
+  it('links master-schedule workout logging to the booked Session without double deducting later', () => {
+    const submitRoute = routeSource.slice(
+      routeSource.indexOf("router.post('/', protect, checkTrainerClientRelationship"),
+      routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly")
+    );
+
+    expect(routeSource).toContain('getSession,');
+    expect(submitRoute).toContain('scheduledSessionId');
+    expect(submitRoute).toContain('const parsedScheduledSessionId = parseOptionalPositiveInteger(scheduledSessionId);');
+    expect(submitRoute).toContain("message: 'Valid scheduled session ID is required'");
+    expect(submitRoute).toContain('const Session = getSession();');
+    expect(submitRoute).toContain('linkedScheduledSession = await Session.findByPk(parsedScheduledSessionId');
+    expect(submitRoute).toContain('!sameId(linkedScheduledSession.userId, parsedClientId)');
+    expect(submitRoute).toContain("linkedScheduledSession.status === 'cancelled'");
+    expect(submitRoute).toContain('const workoutDateValue = linkedScheduledSession?.sessionDate');
+    expect(submitRoute).toContain("new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]");
+    expect(submitRoute).toContain('const workoutDate = new Date(workoutDateValue);');
+    expect(submitRoute).toContain('date: workoutDateValue');
+    expect(submitRoute).toContain('workoutDate: workoutDateValue');
+    expect(submitRoute).toContain('sessionId: linkedScheduledSession.id');
+    expect(submitRoute).toContain("sessionType: 'trainer-led'");
+    expect(submitRoute).toContain('trainerId: linkedScheduledSession.trainerId || attributedTrainerId');
+    expect(submitRoute).toContain('await linkedScheduledSession.update({');
+    expect(submitRoute).toContain("status: 'completed'");
+    expect(submitRoute).toContain("attendanceStatus: 'present'");
+    expect(submitRoute).toContain('scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true');
+    expect(submitRoute).toContain('if (billingDecision.shouldDeduct)');
+    expect(submitRoute).toContain("await client.decrement('availableSessions'");
+    expect(submitRoute).toContain('if (billingDecision.sessionDeducted)');
+    expect(submitRoute).toContain('await dailyForm.update({ sessionDeducted: true }');
+    expect(submitRoute).toContain('checkInTime: linkedScheduledSession.checkInTime || scheduledSessionCompletionDate');
+    expect(submitRoute).toContain("const scheduledSessionAttendanceRecorderId = userRole === 'client'");
+    expect(submitRoute).toContain('markedPresentBy: scheduledSessionAttendanceRecorderId');
+    expect(submitRoute).toContain('attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || scheduledSessionCompletionDate');
+    expect(submitRoute).toContain('noShowReason: null');
+    expect(submitRoute).toContain('sessionDeducted: billingDecision.sessionDeducted');
+    expect(submitRoute).toContain('deductionDate: billingDecision.sessionDeducted ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate');
   });
 });

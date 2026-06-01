@@ -193,6 +193,18 @@ async function migrateStabilizationColumns() {
   await addColumnIfMissing('Users', 'bannerCollageLayout', "VARCHAR(24) NOT NULL DEFAULT 'stream'");
   await addColumnIfMissing('Users', 'bannerStickyCarousel', 'BOOLEAN NOT NULL DEFAULT false');
   await addColumnIfMissing('Users', 'bannerPresets', "JSONB NOT NULL DEFAULT '[]'::jsonb");
+  await addColumnIfMissing('Users', 'accountDeactivatedAt', 'TIMESTAMPTZ');
+  await addColumnIfMissing('Users', 'accountRetentionUntil', 'TIMESTAMPTZ');
+
+  try {
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_users_account_retention_until
+      ON "Users" ("accountRetentionUntil")
+      WHERE "accountRetentionUntil" IS NOT NULL;
+    `);
+  } catch (error) {
+    logger.warn(`[Migration] account retention index creation failed (non-critical): ${error.message}`);
+  }
 
   // session_types table
   await addColumnIfMissing('session_types', 'creditsRequired', 'INTEGER DEFAULT 1');

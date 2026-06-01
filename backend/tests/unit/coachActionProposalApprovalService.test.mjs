@@ -3,7 +3,7 @@
  * ===========================================
  * Behavioral coverage for deterministic proposal approval writes.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createProposalReviewToken,
   verifyProposalReviewToken,
@@ -94,7 +94,12 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
   return { ...service, logWorkoutForClient };
 }
 
+beforeEach(() => {
+  vi.stubEnv('JWT_SECRET', 'unit-test-review-token-secret');
+});
+
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   vi.resetModules();
 });

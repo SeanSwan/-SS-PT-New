@@ -7,6 +7,7 @@ import { BodyText, PageTitle, Spinner } from '../../../UniversalMasterSchedule/u
 import { PageContainer } from './styled-gamification-system';
 import GamificationEconomyGuardrail from './components/GamificationEconomyGuardrail';
 import AdminGamificationTabs from './AdminGamificationTabs';
+import AdminGamificationConfirmDialog from './AdminGamificationConfirmDialog';
 import { HeaderDescription, LoadingContainer } from './admin-gamification.styles';
 import { useAdminGamificationController } from './useAdminGamificationController';
 
@@ -34,6 +35,7 @@ const AdminGamificationView: React.FC = () => {
 
       <GamificationEconomyGuardrail />
       <AdminGamificationTabs controller={controller} />
+      <AdminGamificationConfirmDialog request={controller.confirmRequest} onClose={controller.closeConfirm} />
     </PageContainer>
   );
 };

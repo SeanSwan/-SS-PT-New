@@ -26,6 +26,7 @@ import { CREATIVE_GALLERY_TAGS, mapPostsToCreativeMedia } from './CreativeGaller
 import CreativeGalleryCard from './CreativeGalleryCard';
 import CreativeGalleryEmptyState from './CreativeGalleryEmptyState';
 import CreativeGalleryUploadCard from './CreativeGalleryUploadCard';
+import { buildUserDashboardMediaPost } from './UserDashboardMediaPostIntent';
 import {
   GalleryContainer,
   GalleryGrid,
@@ -58,7 +59,7 @@ const CreativeGallery: React.FC = () => {
     if (!file) return;
 
     try {
-      await createPost({ content: 'Shared media', type: 'general' });
+      await createPost(buildUserDashboardMediaPost('Shared creative media', 'art', file));
       event.target.value = '';
     } catch {
       logger.error('Unable to upload creative media');

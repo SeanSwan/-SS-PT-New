@@ -1,0 +1,107 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const apiRoutesSource = readFileSync(resolve(__dirname, '../../routes/api.mjs'), 'utf8');
+const unifiedRouteSource = readFileSync(resolve(__dirname, '../../routes/sessions.mjs'), 'utf8');
+const legacyRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionRoutes.mjs'), 'utf8');
+const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/session.service.mjs'), 'utf8');
+const aiCancelServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/sessionCancelService.mjs'), 'utf8');
+
+const sliceBetween = (source, startMarker, endMarker) => {
+  const start = source.indexOf(startMarker);
+  const end = source.indexOf(endMarker, start + startMarker.length);
+
+  return {
+    start,
+    end,
+    source: source.slice(start, end)
+  };
+};
+
+describe('session cancellation clientSource restore boundary', () => {
+  it('documents unified session routes shadowing the legacy fallback session router', () => {
+    expect(coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)"))
+      .toBeLessThan(coreRoutesSource.indexOf("app.use('/api', apiRoutes)"));
+    expect(apiRoutesSource).toContain("router.use('/sessions', sessionRoutes)");
+  });
+
+  it('does not restore credits for free-tracking clients in unified cancellation service', () => {
+    const { start, end, source } = sliceBetween(
+      unifiedServiceSource,
+      'async cancelSession(sessionId, user',
+      'async confirmSession'
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+      .toBeLessThan(source.indexOf('client.availableSessions ='));
+  });
+
+  it('does not restore credits for free-tracking clients in unified waived cancellation review', () => {
+    const { start, end, source } = sliceBetween(
+      unifiedRouteSource,
+      'router.post("/:sessionId/charge-cancellation"',
+      "logger.info('Cancellation billing decision recorded'"
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+      .toBeLessThan(source.indexOf('availableSessions: Number(client.availableSessions || 0) + 1'));
+  });
+
+  it('does not restore credits for free-tracking clients in Swan Coach cancellation', () => {
+    const { start, end, source } = sliceBetween(
+      aiCancelServiceSource,
+      'async function restoreCredit',
+      'async function sendCancellationNotifications'
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(aiCancelServiceSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';");
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+      .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
+  });
+
+  it('does not restore credits for free-tracking clients in the legacy restore helper', () => {
+    const { start, end, source } = sliceBetween(
+      legacyRouteSource,
+      'async function restoreSessionCredit',
+      'const buildRecurrenceDates'
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(legacyRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)'))
+      .toBeLessThan(source.indexOf('await client.update({ availableSessions: newBalance })'));
+  });
+
+  it('does not bulk-restore recurring cancellation credits unless a real paid session deduction happened', () => {
+    const { start, end, source } = sliceBetween(
+      legacyRouteSource,
+      'router.delete("/my-recurring/:groupId"',
+      'router.put("/reschedule/:sessionId"'
+    );
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('const shouldRestoreRecurringCredits = !NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource);');
+    expect(source).toContain('session.sessionDeducted &&');
+    expect(source).toContain('!session.sessionCreditRestored &&');
+    expect(source).toContain('shouldRestoreRecurringCredits');
+    expect(source).not.toContain('session.sessionCreditRestored = true;\n      await session.save({ transaction });\n      sessionsRestored++;');
+  });
+});

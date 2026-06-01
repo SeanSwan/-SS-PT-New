@@ -43,6 +43,7 @@ interface Conversation {
   messageCount: number;
   lastMessageAt: string | null;
   createdAt: string;
+  targetUserId?: number | string | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -61,6 +62,20 @@ type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
 
 type FrontendAction = { event?: string; payload?: unknown };
 const BLOCKED_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
+
+function normalizeTargetUserId(value?: number | string | null): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  return String(value);
+}
+
+function activeConversationMatchesRequest(
+  conversation: Conversation | null,
+  context: AIContext,
+  targetUserId?: number | string | null,
+): conversation is Conversation {
+  if (!conversation || conversation.context !== context) return false;
+  return normalizeTargetUserId(conversation.targetUserId) === normalizeTargetUserId(targetUserId);
+}
 
 type AxiosLikeError = Error & {
   code?: string;
@@ -357,7 +372,9 @@ export function useAIChat() {
 
     try {
       // Step 1: Ensure we have a conversation (create if needed)
-      let convId = activeConversation?.id;
+      let convId = activeConversationMatchesRequest(activeConversation, context, targetUserId)
+        ? activeConversation.id
+        : null;
       if (!convId) {
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (targetUserId) payload.targetUserId = targetUserId;
@@ -367,7 +384,13 @@ export function useAIChat() {
         const createData = createRes.data;
         if (!createData.success) throw buildAiApiError(createData, 'Failed to create conversation', createRes.status);
         convId = createData.conversation.id;
-        const newConv: Conversation = { ...createData.conversation, messages: [], role: '', metadata: {} };
+        const newConv: Conversation = {
+          ...createData.conversation,
+          targetUserId: createData.conversation.targetUserId ?? targetUserId ?? null,
+          messages: [],
+          role: '',
+          metadata: {},
+        };
         setActiveConversation(newConv);
       }
 

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
+import ConfirmActionDialog from '../../Shared/ConfirmActionDialog';
 
 /* =============================================
    INTERFACES (unchanged)
@@ -544,6 +545,10 @@ const NASMAdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    type: 'template' | 'exercise';
+    id: string;
+  } | null>(null);
 
   // Compliance Dashboard State
   const [metrics, setMetrics] = useState<ComplianceMetrics | null>(null);
@@ -624,10 +629,7 @@ const NASMAdminDashboard: React.FC = () => {
   };
 
   const deleteTemplate = async (templateId: string) => {
-    if (window.confirm('Are you sure you want to delete this template?')) {
-      await api.delete(`/api/admin/workout-templates/${templateId}`);
-      await loadWorkoutTemplates();
-    }
+    setPendingDelete({ type: 'template', id: templateId });
   };
 
   // ========================================
@@ -644,10 +646,19 @@ const NASMAdminDashboard: React.FC = () => {
   };
 
   const deleteExercise = async (exerciseId: string) => {
-    if (window.confirm('Are you sure you want to delete this exercise?')) {
-      await api.delete(`/api/admin/exercise-library/${exerciseId}`);
+    setPendingDelete({ type: 'exercise', id: exerciseId });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    if (pendingDelete.type === 'template') {
+      await api.delete(`/api/admin/workout-templates/${pendingDelete.id}`);
+      await loadWorkoutTemplates();
+    } else {
+      await api.delete(`/api/admin/exercise-library/${pendingDelete.id}`);
       await loadExercises();
     }
+    setPendingDelete(null);
   };
 
   // ========================================
@@ -1100,6 +1111,20 @@ const NASMAdminDashboard: React.FC = () => {
         {activeTab === 2 && renderExerciseLibrary()}
         {activeTab === 3 && renderCertificationVerification()}
       </div>
+      <ConfirmActionDialog
+        open={pendingDelete !== null}
+        title={pendingDelete?.type === 'template' ? 'Delete template?' : 'Delete exercise?'}
+        message={
+          pendingDelete?.type === 'template'
+            ? 'This removes the workout template from admin approval tools. Existing logged workouts stay intact.'
+            : 'This removes the exercise from the admin exercise library. Existing workout logs stay intact.'
+        }
+        confirmLabel={pendingDelete?.type === 'template' ? 'Delete template' : 'Delete exercise'}
+        cancelLabel="Keep item"
+        tone="danger"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </PageContainer>
   );
 };

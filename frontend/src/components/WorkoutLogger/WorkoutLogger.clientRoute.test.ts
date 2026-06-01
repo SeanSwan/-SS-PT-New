@@ -1,5 +1,5 @@
 /**
- * Phase 16.2 (2026-04-17) — WorkoutLogger client-self-route wiring tests
+ * Phase 16.2 (2026-04-17) - WorkoutLogger client-self-route wiring tests
  * ========================================================================
  * Before 2026-04-17 the `/dashboard/client/log-workout` route mounted
  * `<WorkoutLogger />` via UniversalDashboardLayout's role router, which
@@ -19,7 +19,7 @@
  * on the client self-route so clients do not hit the trainer/admin
  * equipment endpoint.
  *
- * This test file is a **source-text lock** — it does not mount the
+ * This test file is a **source-text lock** - it does not mount the
  * full 1000-line WorkoutLogger (heavy auth / provider / hook stack).
  * Instead it asserts the specific regression-class patterns that broke
  * smoke live: the deleted `Client #undefined` pathway, the trainer-only
@@ -40,6 +40,10 @@ const RAW_SOURCE = readFileSync(
   resolve(__dirname, './WorkoutLogger.tsx'),
   'utf8',
 );
+const LOCAL_TYPES_SOURCE = readFileSync(
+  resolve(__dirname, './WorkoutLogger.localTypes.ts'),
+  'utf8',
+);
 const EXERCISE_SEARCH_SOURCE = readFileSync(
   resolve(__dirname, './useExerciseSearch.ts'),
   'utf8',
@@ -56,25 +60,33 @@ function stripComments(src: string): string {
 }
 
 const SOURCE = stripComments(RAW_SOURCE);
+const LOCAL_TYPES = stripComments(LOCAL_TYPES_SOURCE);
 const EXERCISE_SEARCH = stripComments(EXERCISE_SEARCH_SOURCE);
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // clientId prop: now optional + effectiveClientId resolution
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 — WorkoutLogger clientId prop is optional', () => {
+describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
   it('declares clientId as optional on WorkoutLoggerProps', () => {
     // The old type `clientId: number` broke the self-route mount
     // because UniversalDashboardLayout passes no props to role-routed
     // components. `clientId?: number` + session-derived fallback is
     // the new contract.
-    expect(SOURCE).toMatch(/clientId\?\s*:\s*number\s*;/);
-    expect(SOURCE).not.toMatch(/clientId\s*:\s*number\s*;/);
+    expect(LOCAL_TYPES).toMatch(/clientId\?\s*:\s*number\s*;/);
+    expect(LOCAL_TYPES).not.toMatch(/clientId\s*:\s*number\s*;/);
   });
 
   it('also allows onComplete and onCancel to be optional for the role-router mount', () => {
-    expect(SOURCE).toMatch(/onComplete\?\s*:/);
-    expect(SOURCE).toMatch(/onCancel\?\s*:/);
+    expect(LOCAL_TYPES).toMatch(/onComplete\?\s*:/);
+    expect(LOCAL_TYPES).toMatch(/onCancel\?\s*:/);
+  });
+
+  it('accepts and uses schedule-origin dates instead of hardcoding today', () => {
+    expect(LOCAL_TYPES).toMatch(/scheduledSessionDate\?\s*:\s*string\s*\|\s*null\s*;/);
+    expect(SOURCE).toMatch(/const workoutDateValue = scheduledSessionDate/);
+    expect(SOURCE).toMatch(/date: workoutDateValue/);
+    expect(SOURCE).toMatch(/workoutDate=\{workoutDateValue\}/);
   });
 
   it('resolvedOnComplete default navigates to a real client route (not a silent no-op)', () => {
@@ -109,7 +121,7 @@ describe('Phase 16.2 — WorkoutLogger clientId prop is optional', () => {
     const idxX = SOURCE.indexOf('resolvedOnCancel');
     for (const start of [idxC, idxX]) {
       const s = SOURCE.slice(start, start + 300);
-      // No empty-body arrow — body must contain `navigate(`.
+      // No empty-body arrow - body must contain `navigate(`.
       expect(s).toMatch(/navigate\s*\(/);
     }
   });
@@ -123,12 +135,39 @@ describe('Phase 16.2 — WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/<WorkoutLoggerFooter[\s\S]*?onCancel=\{handleCancel\}/);
   });
 
+  it('confirms before discarding unsaved workout entries on cancel', () => {
+    const idx = SOURCE.indexOf('const handleCancel');
+    expect(idx).toBeGreaterThan(-1);
+    const slice = SOURCE.slice(idx, idx + 650);
+    expect(slice).toMatch(/hasUnsavedWorkout/);
+    expect(slice).toMatch(/!submittedFormId/);
+    expect(slice).toMatch(/setConfirmRequest\s*\(/);
+    expect(slice).toMatch(/Discard unsaved workout/);
+    expect(slice).toMatch(/onConfirm:\s*resolvedOnCancel/);
+    expect(slice).toMatch(/resolvedOnCancel\s*\(\s*\)/);
+    expect(SOURCE).toMatch(/<WorkoutLoggerConfirmDialog[\s\S]*?request=\{confirmRequest\}/);
+  });
+
   it('self-route success path uses resolvedOnComplete, not the raw optional onComplete', () => {
     // handleSubmit's response-success block calls the resolved handler
     // so the default navigation fires on self-route. If a future edit
     // reverts to raw `onComplete(response.data)`, the self-route would
     // silently swallow success again.
     expect(SOURCE).toMatch(/resolvedOnComplete\s*\(\s*response\.data\s*\)/);
+  });
+
+  it('requires a saved workout form id before generating and sending a summary', () => {
+    const idx = SOURCE.indexOf('const handleGenerateSummary');
+    expect(idx).toBeGreaterThan(-1);
+    const slice = SOURCE.slice(idx, idx + 700);
+    expect(slice).toMatch(/if\s*\(\s*!submittedFormId\s*\)/);
+    expect(slice).toMatch(/Complete and save the workout before sending a summary/);
+    expect(slice).toMatch(/formId:\s*submittedFormId/);
+  });
+
+  it('uses neutral fallback success copy when the backend omits a billing message', () => {
+    expect(SOURCE).not.toMatch(/Session deducted and points earned/);
+    expect(SOURCE).toMatch(/Workout logged successfully! Progress updated\./);
   });
 
   it('resolves an effectiveClientId from prop OR authenticated client session', () => {
@@ -142,9 +181,9 @@ describe('Phase 16.2 — WorkoutLogger clientId prop is optional', () => {
   it('coerces user.id to a numeric id (AuthContext types it as string)', () => {
     // Codex round 2: AuthContext.tsx:17 types User.id as string, but
     // effectiveClientId is number-typed and all downstream URLs/hooks
-    // expect numbers. Lock that the coercion exists — via an explicit
+    // expect numbers. Lock that the coercion exists - via an explicit
     // helper (coerceToNumericId), Number.isFinite, or equivalent guard
-    // — so the self-mode check does not silently fail for string ids.
+    // - so the self-mode check does not silently fail for string ids.
     expect(SOURCE).toMatch(/coerceToNumericId|Number\s*\(\s*user/);
     expect(SOURCE).toMatch(/Number\.isFinite/);
   });
@@ -160,18 +199,18 @@ describe('Phase 16.2 — WorkoutLogger clientId prop is optional', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Client-info endpoint routing: /my/info for self, /client/:id/info otherwise
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 — client-info endpoint routes through self-mode when appropriate', () => {
+describe('Phase 16.2 - client-info endpoint routes through self-mode when appropriate', () => {
   it('uses /api/workout-forms/my/info when in client self-mode', () => {
     expect(SOURCE).toMatch(/isClientSelfMode[\s\S]{0,200}\/api\/workout-forms\/my\/info/);
   });
 
   it('uses /api/workout-forms/client/${effectiveClientId}/info otherwise, NOT `${clientId}`', () => {
     // Old broken pattern: `/api/workout-forms/client/${clientId}/info`
-    // with clientId === undefined → hit /client/undefined/info → 403.
+    // with clientId === undefined -> hit /client/undefined/info -> 403.
     // The fix uses effectiveClientId in the URL template.
     expect(SOURCE).toMatch(/\/api\/workout-forms\/client\/\$\{effectiveClientId\}\/info/);
     expect(SOURCE).not.toMatch(/\/api\/workout-forms\/client\/\$\{clientId\}\/info/);
@@ -185,16 +224,16 @@ describe('Phase 16.2 — client-info endpoint routes through self-mode when appr
     const loaderBody = SOURCE.slice(loaderIdx, loaderIdx + 2500);
     expect(loaderBody).toMatch(/typeof\s+effectiveClientId\s*!==\s*['"]number['"]/);
     // When the guard fires, the loader should setClient(null) and return
-    // — not still call `api.get(...)`.
+    // - not still call `api.get(...)`.
     expect(loaderBody).toMatch(/setClient\s*\(\s*null\s*\)/);
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Exercise source: client-safe library endpoint
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 — exercise source is client-safe', () => {
+describe('Phase 16.2 - exercise source is client-safe', () => {
   it('useExerciseSearch hits /api/exercises/library, NOT /api/exercises/all', () => {
     // /api/exercises/all is trainer/admin-only (exerciseRoutes.mjs:293).
     // The new /library endpoint is protect-only (any authenticated user).
@@ -218,21 +257,21 @@ describe('Phase 16.2 — exercise source is client-safe', () => {
 
   it('/api/exercises/all auth gate remains unchanged for existing callers', () => {
     // Defense-in-depth: do not regress the old trainer/admin gate on
-    // /all — other callers in the repo may depend on its current shape.
+    // /all - other callers in the repo may depend on its current shape.
     expect(EXERCISE_ROUTES_SOURCE).toMatch(
       /router\.get\(\s*['"]\/all['"]\s*,\s*protect\s*,\s*trainerOrAdminOnly/,
     );
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Equipment profile picker: hidden on client self-route
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 — EquipmentProfilePicker does not mount on the client self-route', () => {
+describe('Phase 16.2 - EquipmentProfilePicker does not mount on the client self-route', () => {
   it('renders EquipmentProfilePicker conditionally behind !isClientSelfMode', () => {
     // The old unconditional render caused the client self-route to
-    // fetch /api/equipment-profiles (admin/trainer gated → 403).
+    // fetch /api/equipment-profiles (admin/trainer gated -> 403).
     // The fix wraps the picker in `{!isClientSelfMode && (...)}`.
     expect(SOURCE).toMatch(
       /!\s*isClientSelfMode\s*&&\s*\(\s*<EquipmentProfilePicker/,
@@ -249,16 +288,16 @@ describe('Phase 16.2 — EquipmentProfilePicker does not mount on the client sel
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Codex round 4 (2026-04-18): backend POST middleware + ghost-prefill
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts client self-log', () => {
+describe('Phase 16.2 (Codex round 4) - backend POST /api/workout-forms accepts client self-log', () => {
   it('middleware chain no longer includes trainerOrAdminOnly on POST /', () => {
     // The previous chain `protect, trainerOrAdminOnly, checkTrainerClientRelationship`
     // 403'd client self-log at the middleware layer before the
     // handler's own self-check could run. The fix drops the outer
-    // role gate — `checkTrainerClientRelationship` at
+    // role gate - `checkTrainerClientRelationship` at
     // authMiddleware.mjs:614+ is already role-aware and permits
     // clients accessing their own data (line 631).
     const ROUTES = readFileSync(
@@ -272,7 +311,7 @@ describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts
     const routeLine = ROUTES.slice(routeIdx, ROUTES.indexOf('async (req, res)', routeIdx));
     expect(routeLine).not.toMatch(/trainerOrAdminOnly/);
     // `protect` and `checkTrainerClientRelationship` should still be
-    // present — they are the correct middleware for this route.
+    // present - they are the correct middleware for this route.
     expect(routeLine).toMatch(/\bprotect\b/);
     expect(routeLine).toMatch(/\bcheckTrainerClientRelationship\b/);
   });
@@ -281,7 +320,7 @@ describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts
     // Even with the middleware loosened, the handler body still
     // explicitly rejects a client attempting to submit for another
     // user id. Phase 16.2 round 5 update: both sides of the comparison
-    // must be numbers — previously `parseInt(clientId) !== req.user.id`
+    // must be numbers - previously `parseInt(clientId) !== req.user.id`
     // compared number !== string, which was always true and silently
     // 403'd every client save. The fix derives `userNumericId` at the
     // top of the handler and compares it against a strict parsed client id.
@@ -289,9 +328,12 @@ describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts
       resolve(__dirname, '../../../../backend/routes/dailyWorkoutFormRoutes.mjs'),
       'utf8',
     );
-    expect(ROUTES).toMatch(
-      /const\s+parsedClientId\s*=\s*parseStrictPositiveInteger\(\s*clientId\s*\)[\s\S]{0,300}userRole\s*===\s*['"]client['"][\s\S]{0,200}parsedClientId\s*!==\s*userNumericId/,
+    const submitRoute = ROUTES.slice(
+      ROUTES.indexOf("router.post('/', protect, checkTrainerClientRelationship"),
+      ROUTES.indexOf("router.get('/', protect, trainerOrAdminOnly")
     );
+    expect(submitRoute).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(submitRoute).toContain("if (userRole === 'client' && parsedClientId !== userNumericId)");
     expect(ROUTES).toMatch(/Clients can only log their own workouts/);
     // Negative lock: the broken pre-fix shape must not come back.
     expect(ROUTES).not.toMatch(
@@ -300,7 +342,7 @@ describe('Phase 16.2 (Codex round 4) — backend POST /api/workout-forms accepts
   });
 });
 
-describe('Phase 16.2 (Codex round 4) — useGhostPreFill skip option on client self-route', () => {
+describe('Phase 16.2 (Codex round 4) - useGhostPreFill skip option on client self-route', () => {
   it('hook signature accepts an options bag with a skip flag', () => {
     const HOOK = readFileSync(
       resolve(__dirname, './useGhostPreFill.ts'),
@@ -317,7 +359,7 @@ describe('Phase 16.2 (Codex round 4) — useGhostPreFill skip option on client s
       'utf8',
     );
     // The skip guard must fire BEFORE any network request. The
-    // fetch call lives inside fetchExerciseHistory — the early
+    // fetch call lives inside fetchExerciseHistory - the early
     // return on skip prevents the admin-only 403.
     const fnIdx = HOOK.indexOf('const fetchExerciseHistory');
     expect(fnIdx).toBeGreaterThan(-1);
@@ -372,11 +414,11 @@ describe('Phase 16.2 (Codex round 4) — useGhostPreFill skip option on client s
   });
 });
 
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // Phase 16 + 16.1-UX behavior preserved
-// ─────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
-describe('Phase 16.2 — Phase 16 + 16.1-UX contracts preserved', () => {
+describe('Phase 16.2 - Phase 16 + 16.1-UX contracts preserved', () => {
   it('null-honest overallIntensity state initializer preserved', () => {
     expect(SOURCE).toMatch(/useState<number\s*\|\s*null>\s*\(\s*null\s*\)/);
   });
@@ -391,6 +433,22 @@ describe('Phase 16.2 — Phase 16 + 16.1-UX contracts preserved', () => {
 
   it('AI_TOGGLE_NASM_ITEM bridge preserved', () => {
     expect(SOURCE).toMatch(/addEventListener\(\s*['"]AI_TOGGLE_NASM_ITEM['"]/);
+    expect(SOURCE).toMatch(/const acknowledgeAIWorkoutEvent = \(event: Event,\s*handled = true\)/);
+  });
+
+  it('AI_SUBMIT_WORKOUT bridge submits through the same save path', () => {
+    expect(SOURCE).toMatch(/addEventListener\(\s*AI_SUBMIT_WORKOUT\s*,/);
+    expect(SOURCE).toMatch(/acknowledgeAIWorkoutEvent\?\.\(\)/);
+    expect(SOURCE).toMatch(/handleSubmit\(\{\s*overallIntensity:\s*nextIntensity,\s*sessionNotes:\s*nextNotes\s*\}\)/);
+  });
+
+  it('AI_UPDATE_SET bridge only acknowledges once the form state actually changes', () => {
+    const fnIdx = SOURCE.indexOf('const onUpdateSet');
+    expect(fnIdx).toBeGreaterThan(-1);
+    const body = SOURCE.slice(fnIdx, fnIdx + 1200);
+    expect(body).not.toMatch(/if \(!detail\?\.exerciseName\) return;\s*acknowledgeAIWorkoutEvent\(e\);/);
+    expect(body).toMatch(/const next = applyAIUpdateSet\(prev, detail\);/);
+    expect(body).toMatch(/acknowledgeAIWorkoutEvent\(e,\s*next !== prev\)/);
   });
 
   it('no phantom seed pattern reintroduced', () => {

@@ -29,6 +29,8 @@ const RARITY_COLORS: Record<number, string> = {
   2: CHART_COLORS.iceWing,
   3: CHART_COLORS.wingPurple,
 };
+const rankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';
+const rankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';
 
 const GamificationSummaryWidget: React.FC = () => {
   const { authAxios } = useAuth();
@@ -164,8 +166,8 @@ const StatsRow = styled.div`
 const MiniStat = styled.div`
   display: flex; flex-direction: column; align-items: center;
   padding: 12px 8px; border-radius: 10px;
-  background: rgba(0, 32, 96, 0.25);
-  border: 1px solid rgba(96, 192, 240, 0.06);
+  background: color-mix(in srgb, var(--royal-depth, #003080) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
   gap: 4px;
 `;
 
@@ -176,7 +178,7 @@ const MiniValue = styled.div`
 
 const MiniLabel = styled.div`
   font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
-  color: rgba(224,236,244,0.45);
+  color: var(--text-muted, rgba(224,236,244,0.45));
 `;
 
 const LeaderLabel = styled.div`
@@ -197,8 +199,8 @@ const EmptyCopy = styled.div`
 const ErrorCopy = styled.div`
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
   min-height: 44px; padding: 10px 12px; border-radius: 8px;
-  background: rgba(198, 168, 75, 0.12);
-  border: 1px solid rgba(198, 168, 75, 0.24);
+  background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);
   color: var(--text-primary, #E0ECF4);
   font-size: 12px;
   @media (max-width: 430px) { grid-template-columns: auto 1fr; }
@@ -206,8 +208,8 @@ const ErrorCopy = styled.div`
 
 const RetryInline = styled.button`
   min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid rgba(96, 192, 240, 0.35); border-radius: 8px; padding: 0 12px;
-  background: rgba(0, 32, 96, 0.4); color: var(--text-primary, #E0ECF4);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent); border-radius: 8px; padding: 0 12px;
+  background: color-mix(in srgb, var(--royal-depth, #003080) 40%, transparent); color: var(--text-primary, #E0ECF4);
   font-size: 12px; font-weight: 700; cursor: pointer;
   &:focus-visible { outline: 2px solid var(--accent-primary, #60C0F0); outline-offset: 2px; }
   @media (max-width: 430px) { grid-column: 1 / -1; width: 100%; }
@@ -222,8 +224,8 @@ const RankBadge = styled.div<{ $rank: number }>`
   width: 24px; height: 24px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
-  background: ${p => p.$rank <= 3 ? hexAlpha(RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing, 0.2) : 'rgba(255,255,255,0.05)'};
-  color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing) : 'rgba(224,236,244,0.5)'};
+  background: ${p => p.$rank <= 3 ? hexAlpha(RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing, 0.2) : rankFallbackBackground};
+  color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing) : rankFallbackColor};
 `;
 
 const LeaderInfo = styled.div`
@@ -236,12 +238,12 @@ const LeaderName = styled.div`
 `;
 
 const LeaderMeta = styled.div`
-  font-size: 10px; color: rgba(224,236,244,0.4);
+  font-size: 10px; color: var(--text-muted, rgba(224,236,244,0.4));
   font-family: 'Fira Code', monospace;
 `;
 
 const XPBar = styled.div`
-  flex: 1; height: 6px; background: rgba(255,255,255,0.05);
+  flex: 1; height: 6px; background: var(--surface-muted, rgba(255,255,255,0.05));
   border-radius: 3px; overflow: hidden;
 `;
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import {
   ArrowLeftRight,
@@ -6,13 +6,11 @@ import {
   TrendingDown,
   Target,
 } from 'lucide-react';
-
-// Import chart components
-import ProgressAreaChart from '../../../FitnessStats/charts/ProgressAreaChart';
-import BarProgressChart from '../../../FitnessStats/charts/BarProgressChart';
+import { useAuth } from '../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Import proper type definitions
-import type { ComparisonAnalyticsProps, ComparisonMetric } from './types';
+import type { AnalyticsInsight, ComparisonAnalyticsProps, ComparisonData } from './types';
 
 /* ─── Crystalline Swan Theme Tokens ─── */
 const theme = {
@@ -299,6 +297,32 @@ const AlertRec = styled.p`
   color: ${theme.text};
 `;
 
+const StatePanel = styled(GlassPanel)`
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const StateText = styled.p`
+  margin: 0;
+  color: ${theme.textSecondary};
+  font-size: 0.9rem;
+  line-height: 1.5;
+`;
+
+const clampProgressWidth = (value: number): number => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, value));
+};
+
+const comparisonInsightKey = (insight: AnalyticsInsight): string => [
+  insight.type,
+  insight.title,
+  insight.description,
+  insight.recommendation,
+].join('|');
+
 /**
  * ComparisonAnalytics Component
  *
@@ -314,246 +338,93 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
   comparisonData
 }) => {
   const [comparisonType, setComparisonType] = useState<'clients' | 'average' | 'historical' | 'goals'>('average');
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['strength', 'cardio', 'flexibility']);
   const [showPercentiles, setShowPercentiles] = useState(true);
   const [timeframe, setTimeframe] = useState('3months');
+  const [comparisonAnalytics, setComparisonAnalytics] = useState<ComparisonData | null>(comparisonData ?? null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const { authAxios } = useAuth();
 
-  // Generate comparison mock data
-  const comparisonAnalytics = useMemo(() => {
-    if (!clientData) return null;
+  useEffect(() => {
+    let cancelled = false;
 
-    const generateComparisonData = () => {
-      switch (comparisonType) {
-        case 'average':
-          return {
-            title: 'vs. Average Performance',
-            subtitle: 'Compared to clients with similar profile and goals',
-            metrics: [
-              {
-                name: 'Overall Strength',
-                client: 75,
-                comparison: 65,
-                percentile: 78,
-                trend: 'above',
-                improvement: '+15%'
-              },
-              {
-                name: 'Cardiovascular Endurance',
-                client: 68,
-                comparison: 70,
-                percentile: 62,
-                trend: 'below',
-                improvement: '-3%'
-              },
-              {
-                name: 'Flexibility',
-                client: 60,
-                comparison: 58,
-                percentile: 55,
-                trend: 'above',
-                improvement: '+3%'
-              },
-              {
-                name: 'Core Stability',
-                client: 85,
-                comparison: 60,
-                percentile: 92,
-                trend: 'above',
-                improvement: '+42%'
-              },
-              {
-                name: 'Balance',
-                client: 65,
-                comparison: 62,
-                percentile: 58,
-                trend: 'above',
-                improvement: '+5%'
-              }
-            ],
-            insights: [
-              {
-                type: 'strength',
-                title: 'Exceptional Core Development',
-                description: 'Client shows significantly above-average core stability, ranking in the 92nd percentile.',
-                recommendation: 'Continue current core program and consider advanced progressions.'
-              },
-              {
-                type: 'warning',
-                title: 'Cardio Focus Needed',
-                description: 'Cardiovascular endurance is slightly below average for similar clients.',
-                recommendation: 'Incorporate more aerobic activities and HIIT sessions.'
-              },
-              {
-                type: 'info',
-                title: 'Balanced Progress',
-                description: 'Overall progress trajectory is positive with room for cardiovascular improvement.',
-                recommendation: 'Maintain current strength training, increase cardio frequency.'
-              }
-            ]
-          };
+    if (!clientData || !clientId) {
+      setComparisonAnalytics(null);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        case 'clients':
-          return {
-            title: 'vs. Similar Clients',
-            subtitle: 'Compared to 12 clients with matching goals and experience level',
-            metrics: [
-              {
-                name: 'Workout Consistency',
-                client: 84,
-                comparison: 76,
-                percentile: 73,
-                trend: 'above',
-                improvement: '+11%'
-              },
-              {
-                name: 'Progressive Overload',
-                client: 78,
-                comparison: 72,
-                percentile: 68,
-                trend: 'above',
-                improvement: '+8%'
-              },
-              {
-                name: 'Form Quality',
-                client: 82,
-                comparison: 79,
-                percentile: 65,
-                trend: 'above',
-                improvement: '+4%'
-              },
-              {
-                name: 'Recovery Rate',
-                client: 71,
-                comparison: 74,
-                percentile: 45,
-                trend: 'below',
-                improvement: '-4%'
-              }
-            ],
-            insights: [
-              {
-                type: 'success',
-                title: 'Excellent Consistency',
-                description: 'Workout attendance and consistency exceeds 73% of similar clients.',
-                recommendation: 'Use this as motivation to continue current scheduling approach.'
-              },
-              {
-                type: 'warning',
-                title: 'Recovery Attention Needed',
-                description: 'Recovery metrics suggest potential overtraining or insufficient rest.',
-                recommendation: 'Consider adding rest days or reducing training intensity.'
-              }
-            ]
-          };
+    if (comparisonData?.comparisonType === comparisonType) {
+      setComparisonAnalytics(comparisonData);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        case 'historical':
-          return {
-            title: 'vs. Personal History',
-            subtitle: 'Progress comparison over the past 6 months',
-            metrics: [
-              {
-                name: '3 Months Ago',
-                client: 75,
-                comparison: 65,
-                percentile: null,
-                trend: 'above',
-                improvement: '+15%'
-              },
-              {
-                name: '6 Months Ago',
-                client: 75,
-                comparison: 58,
-                percentile: null,
-                trend: 'above',
-                improvement: '+29%'
-              },
-              {
-                name: 'Starting Point',
-                client: 75,
-                comparison: 45,
-                percentile: null,
-                trend: 'above',
-                improvement: '+67%'
-              }
-            ],
-            insights: [
-              {
-                type: 'success',
-                title: 'Consistent Improvement',
-                description: 'Steady progress with 67% overall improvement since starting.',
-                recommendation: 'Current program is effective - continue with periodic adjustments.'
-              },
-              {
-                type: 'info',
-                title: 'Plateauing Trend',
-                description: 'Progress rate has slowed in recent months - normal adaptation response.',
-                recommendation: 'Consider program variation or periodization adjustments.'
-              }
-            ]
-          };
+    if (!authAxios) {
+      setComparisonAnalytics(null);
+      setErrorText('Comparison analytics require an authenticated dashboard session.');
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        case 'goals':
-          return {
-            title: 'vs. Target Goals',
-            subtitle: 'Progress toward established fitness milestones',
-            metrics: [
-              {
-                name: 'Weight Loss Goal',
-                client: 78,
-                comparison: 100,
-                percentile: null,
-                trend: 'approaching',
-                improvement: '78% Complete',
-                target: 'Lose 15 lbs',
-                current: '11.7 lbs lost'
-              },
-              {
-                name: 'Strength Goal',
-                client: 85,
-                comparison: 100,
-                percentile: null,
-                trend: 'approaching',
-                improvement: '85% Complete',
-                target: 'Bench 100kg',
-                current: '85kg achieved'
-              },
-              {
-                name: 'Endurance Goal',
-                client: 60,
-                comparison: 100,
-                percentile: null,
-                trend: 'in-progress',
-                improvement: '60% Complete',
-                target: 'Run 5K under 25min',
-                current: '27:30 current time'
-              }
-            ],
-            insights: [
-              {
-                type: 'success',
-                title: 'Strength Goal Nearly Achieved',
-                description: 'Only 15kg away from bench press goal - excellent progress.',
-                recommendation: 'Focus on progressive overload with proper form and recovery.'
-              },
-              {
-                type: 'info',
-                title: 'Endurance Requires Focus',
-                description: 'Cardiovascular goals need more targeted training approach.',
-                recommendation: 'Increase running frequency and incorporate interval training.'
-              }
-            ]
-          };
+    setIsLoading(true);
+    setErrorText(null);
 
-        default:
-          return null;
-      }
+    authAxios.get(`/api/client-progress/${clientId}/comparison`, {
+      params: { type: comparisonType, timeframe },
+    })
+      .then((response) => {
+        if (cancelled) return;
+        const payload = response.data?.data ?? response.data;
+        setComparisonAnalytics(payload && Array.isArray(payload.metrics) ? payload : null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        logger.warn('[ComparisonAnalytics] Failed to load comparison analytics:', error);
+        setComparisonAnalytics(null);
+        setErrorText('Comparison analytics are unavailable right now.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
-
-    return generateComparisonData();
-  }, [comparisonType, clientData, timeframe]);
+  }, [authAxios, clientData, clientId, comparisonData, comparisonType, timeframe]);
 
   const renderMetricsComparison = () => {
-    if (!comparisonAnalytics) return null;
+    if (isLoading) {
+      return (
+        <StatePanel>
+          <SectionTitle>Loading comparison analytics</SectionTitle>
+          <StateText>Reading real client progress records for this comparison.</StateText>
+        </StatePanel>
+      );
+    }
+
+    if (errorText) {
+      return (
+        <StatePanel>
+          <SectionTitle>Comparison unavailable</SectionTitle>
+          <StateText>{errorText}</StateText>
+        </StatePanel>
+      );
+    }
+
+    if (!comparisonAnalytics || comparisonAnalytics.metrics.length === 0) {
+      return (
+        <StatePanel>
+          <SectionTitle>{comparisonAnalytics?.title || 'No comparison data yet'}</SectionTitle>
+          <StateText>
+            {comparisonAnalytics?.subtitle || 'No real benchmark data was returned for this client yet.'}
+          </StateText>
+        </StatePanel>
+      );
+    }
 
     return (
       <GlassPanel>
@@ -605,7 +476,7 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
                         {metric.client}
                       </MetricScore>
                       <ProgressBarTrack>
-                        <ProgressBarFill $width={metric.client} $color="#60C0F0" />
+                        <ProgressBarFill $width={clampProgressWidth(metric.client)} $color="#60C0F0" />
                       </ProgressBarTrack>
                     </ProgressBarWrapper>
                   </StyledTd>
@@ -616,14 +487,14 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
                         {metric.comparison}
                       </MetricScore>
                       <ProgressBarTrack>
-                        <ProgressBarFill $width={metric.comparison} $color="rgba(255, 255, 255, 0.3)" />
+                        <ProgressBarFill $width={clampProgressWidth(metric.comparison)} $color="rgba(255, 255, 255, 0.3)" />
                       </ProgressBarTrack>
                     </ProgressBarWrapper>
                   </StyledTd>
 
                   {showPercentiles && comparisonType === 'average' && (
                     <StyledTd $align="center">
-                      {metric.percentile && (
+                      {metric.percentile !== undefined && metric.percentile !== null && (
                         <PercentileChip
                           $variant={
                             metric.percentile >= 70
@@ -672,7 +543,7 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
   };
 
   const renderInsights = () => {
-    if (!comparisonAnalytics?.insights) return null;
+    if (isLoading || errorText || !comparisonAnalytics?.insights?.length) return null;
 
     return (
       <GlassPanel>
@@ -681,9 +552,9 @@ const ComparisonAnalytics: React.FC<ComparisonAnalyticsProps> = ({
         </SectionTitle>
 
         <InsightsStack>
-          {comparisonAnalytics.insights.map((insight: any, index: number) => (
+          {comparisonAnalytics.insights.map((insight) => (
             <AlertBox
-              key={index}
+              key={comparisonInsightKey(insight)}
               $severity={
                 insight.type === 'success' ? 'success' :
                 insight.type === 'warning' ? 'warning' :

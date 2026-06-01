@@ -1,7 +1,7 @@
 /**
  * useTrainerTodaySessions
  * =======================
- * Fetches today's trainer sessions from GET /api/sessions?date=today
+ * Fetches today's trainer sessions from GET /api/sessions?startDate=&endDate=
  * and derives KPI stats. Extracted to keep TrainerHomeTab under 300 lines.
  *
  * Returns: { sessions, loading, error, stats, getClientName }
@@ -11,11 +11,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export interface TrainerSession {
-  id: number;
+  id: number | string;
+  userId?: number | string | null;
   clientName?: string;
-  client?: { firstName?: string; lastName?: string };
+  client?: {
+    id?: number | string | null;
+    firstName?: string;
+    lastName?: string;
+  };
+  sessionDate?: string;
   startTime?: string;
   endTime?: string;
+  duration?: number | string | null;
   status?: string;
 }
 
@@ -33,6 +40,66 @@ export function getClientName(s: TrainerSession): string {
   return s.clientName ?? 'Unassigned';
 }
 
+const parsePositiveId = (value: number | string | null | undefined): string | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+  }
+
+  const trimmedValue = value?.trim();
+  if (!trimmedValue || !/^[1-9]\d*$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue) ? String(parsedValue) : null;
+};
+
+export function getSessionClientId(s: TrainerSession): string | null {
+  return parsePositiveId(s.userId) ?? parsePositiveId(s.client?.id);
+}
+
+const parseSessionDate = (raw?: string | null): Date | null => {
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isFinite(date.getTime()) ? date : null;
+};
+
+export function getSessionStartDate(s: TrainerSession): Date | null {
+  return parseSessionDate(s.startTime ?? s.sessionDate);
+}
+
+export function getSessionEndDate(s: TrainerSession): Date | null {
+  const explicitEnd = parseSessionDate(s.endTime);
+  if (explicitEnd) return explicitEnd;
+
+  const start = getSessionStartDate(s);
+  const durationMinutes = Number(s.duration);
+  if (!start || !Number.isFinite(durationMinutes) || durationMinutes <= 0) return null;
+
+  return new Date(start.getTime() + durationMinutes * 60 * 1000);
+}
+
+export function buildTrainerSessionLogRoute(
+  session: TrainerSession,
+  returnTo = '/dashboard/trainer/overview',
+): string | null {
+  const clientId = getSessionClientId(session);
+  const sessionId = parsePositiveId(session.id);
+  if (!clientId || !sessionId) return null;
+
+  const params = new URLSearchParams({
+    clientId,
+    source: 'master-schedule',
+    returnTo,
+  });
+  params.set('sessionId', sessionId);
+
+  const start = getSessionStartDate(session);
+  if (start) params.set('sessionDate', start.toISOString());
+
+  return `/dashboard/trainer/log-workout?${params.toString()}`;
+}
+
 export function useTrainerTodaySessions() {
   const { authAxios } = useAuth();
   const [sessions, setSessions] = useState<TrainerSession[]>([]);
@@ -44,8 +111,15 @@ export function useTrainerTodaySessions() {
     (async () => {
       try {
         setError(null);
-        const today = new Date().toISOString().split('T')[0];
-        const res = await authAxios.get(`/api/sessions?date=${today}`);
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+        const params = new URLSearchParams({
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString(),
+        });
+        const res = await authAxios.get(`/api/sessions?${params.toString()}`);
         if (mounted) setSessions(Array.isArray(res.data) ? res.data : res.data?.sessions ?? []);
       } catch {
         if (mounted) {
@@ -61,12 +135,15 @@ export function useTrainerTodaySessions() {
 
   const stats = useMemo<TrainerTodayStats>(() => {
     if (sessions.length === 0) return { clientsToday: 0, sessionsToday: 0, hoursLogged: 0, completionRate: 0 };
+    const clientKeys = sessions.map((session) => getSessionClientId(session) ?? getClientName(session));
     return {
-      clientsToday: new Set(sessions.map(getClientName)).size,
+      clientsToday: new Set(clientKeys).size,
       sessionsToday: sessions.length,
       hoursLogged: sessions.reduce((sum, s) => {
-        if (!s.startTime || !s.endTime) return sum;
-        return sum + (new Date(s.endTime).getTime() - new Date(s.startTime).getTime()) / 3600000;
+        const start = getSessionStartDate(s);
+        const end = getSessionEndDate(s);
+        if (!start || !end) return sum;
+        return sum + (end.getTime() - start.getTime()) / 3600000;
       }, 0),
       completionRate: Math.round(
         (sessions.filter(s => s.status === 'completed').length / sessions.length) * 100

@@ -1,25 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import {
   AlertTriangle,
   Shield,
-  Activity,
-  Clock,
-  TrendingUp,
   ChevronDown,
   CheckCircle,
   XCircle,
-  Info,
-  Target,
-  Heart,
-  Zap
+  Info
 } from 'lucide-react';
 
-// Import chart components
-import RadarProgressChart from '../../../FitnessStats/charts/RadarProgressChart';
+import { useAuth } from '../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Import proper type definitions
 import type { InjuryRiskAssessmentProps } from './types';
+import type {
+  CorrectiveExercise,
+  CriticalAlert,
+  InjuryRiskData,
+  RecommendationCategory,
+  RiskFinding,
+} from '../../../../services/enhanced-progress-analytics-service';
 
 /* ─── styled-components (Crystalline Swan theme) ─── */
 
@@ -151,7 +152,7 @@ const ProgressBarTrack = styled.div`
 
 const ProgressBarFill = styled.div<{ $width: number; $color: string }>`
   height: 100%;
-  width: ${({ $width }) => $width}%;
+  width: ${({ $width }) => Math.max(0, Math.min(Number.isFinite($width) ? $width : 0, 100))}%;
   background: ${({ $color }) => $color};
   border-radius: 3px;
   transition: width 0.4s ease;
@@ -313,6 +314,47 @@ const SummaryLeft = styled.div`
   gap: 8px;
 `;
 
+const EmptyState = styled.div`
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+`;
+
+const criticalAlertKey = (alert: CriticalAlert): string => [
+  alert.severity,
+  alert.title,
+  alert.timeframe,
+  alert.action,
+].join('|');
+
+const findingRowKey = (finding: RiskFinding): string => [
+  finding.pattern,
+  finding.status,
+  finding.notes,
+  finding.recommendation,
+].join('|');
+
+const correctiveProtocolItemKey = (phase: string, item: CorrectiveExercise): string => [
+  phase,
+  item.muscle,
+  item.exercise,
+  item.duration || item.reps || '',
+  item.frequency,
+].join('|');
+
+const recommendationCategoryKey = (category: RecommendationCategory): string => category.category;
+
+const recommendationItemKey = (category: RecommendationCategory, item: string): string => [
+  category.category,
+  item,
+].join('|');
+
 /* ─── Component ─── */
 
 /**
@@ -330,197 +372,44 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
   clientData,
   workoutHistory
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('overall');
-  const [showDetails, setShowDetails] = useState(false);
+  const [riskAssessment, setRiskAssessment] = useState<InjuryRiskData | null>(null);
+  const [isLoadingRisk, setIsLoadingRisk] = useState(false);
+  const [riskError, setRiskError] = useState<string | null>(null);
+  const { authAxios } = useAuth();
 
-  // Generate comprehensive risk assessment
-  const riskAssessment = useMemo(() => {
-    if (!clientData) return null;
+  useEffect(() => {
+    let cancelled = false;
 
-    return {
-      overallRisk: 'medium', // low, medium, high
-      riskScore: 65, // 0-100 scale
-      lastAssessment: new Date().toISOString(),
+    if (!clientData || !clientId || !authAxios) {
+      setRiskAssessment(null);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-      categories: [
-        {
-          id: 'movement',
-          name: 'Movement Patterns',
-          risk: 'low',
-          score: 25,
-          icon: 'activity',
-          findings: [
-            {
-              pattern: 'Squat Pattern',
-              status: 'good',
-              notes: 'Proper knee tracking, adequate depth',
-              recommendation: 'Continue current form'
-            },
-            {
-              pattern: 'Overhead Movement',
-              status: 'attention',
-              notes: 'Slight shoulder impingement pattern',
-              recommendation: 'Focus on thoracic mobility'
-            },
-            {
-              pattern: 'Single Leg Balance',
-              status: 'good',
-              notes: 'Stable with eyes open and closed',
-              recommendation: 'Progress to dynamic challenges'
-            }
-          ]
-        },
-        {
-          id: 'imbalances',
-          name: 'Muscular Imbalances',
-          risk: 'medium',
-          score: 55,
-          icon: 'target',
-          findings: [
-            {
-              pattern: 'Hip Flexor Tightness',
-              status: 'caution',
-              notes: 'Overactive hip flexors affecting posture',
-              recommendation: 'Daily hip flexor stretching protocol'
-            },
-            {
-              pattern: 'Glute Activation',
-              status: 'attention',
-              notes: 'Weak glute medius, compensation patterns',
-              recommendation: 'Glute activation exercises pre-workout'
-            },
-            {
-              pattern: 'Core Stability',
-              status: 'good',
-              notes: 'Strong anterior and posterior chains',
-              recommendation: 'Maintain current core routine'
-            }
-          ]
-        },
-        {
-          id: 'recovery',
-          name: 'Recovery Patterns',
-          risk: 'high',
-          score: 75,
-          icon: 'clock',
-          findings: [
-            {
-              pattern: 'Sleep Quality',
-              status: 'caution',
-              notes: 'Averaging 5.5 hours, poor recovery',
-              recommendation: 'Improve sleep hygiene, reduce evening workouts'
-            },
-            {
-              pattern: 'HRV Trends',
-              status: 'attention',
-              notes: 'Declining heart rate variability',
-              recommendation: 'Consider deload week or stress management'
-            },
-            {
-              pattern: 'Subjective Recovery',
-              status: 'caution',
-              notes: 'Client reports frequent fatigue',
-              recommendation: 'Monitor training load, increase rest days'
-            }
-          ]
-        },
-        {
-          id: 'progression',
-          name: 'Training Progression',
-          risk: 'medium',
-          score: 45,
-          icon: 'trending-up',
-          findings: [
-            {
-              pattern: 'Load Progression',
-              status: 'good',
-              notes: 'Conservative 2-5% weekly increases',
-              recommendation: 'Continue current progression rate'
-            },
-            {
-              pattern: 'Volume Increases',
-              status: 'attention',
-              notes: '15% increase in volume last 2 weeks',
-              recommendation: 'Reduce volume increase to <10% weekly'
-            },
-            {
-              pattern: 'Exercise Complexity',
-              status: 'good',
-              notes: 'Appropriate skill progression',
-              recommendation: 'Ready for next movement level'
-            }
-          ]
-        }
-      ],
+    setIsLoadingRisk(true);
+    setRiskError(null);
 
-      criticalAlerts: [
-        {
-          severity: 'high',
-          title: 'Recovery Deficit',
-          description: 'Consistently poor sleep and declining HRV indicate overreaching.',
-          action: 'Immediate reduction in training intensity and focus on recovery protocols.',
-          timeframe: 'This week'
-        },
-        {
-          severity: 'medium',
-          title: 'Volume Spike',
-          description: 'Training volume increased 15% in 2 weeks - above recommended guidelines.',
-          action: 'Reduce volume by 10% and monitor client response.',
-          timeframe: 'Next session'
-        }
-      ],
+    authAxios.get(`/api/client-progress/${clientId}/risk-assessment`)
+      .then((response) => {
+        if (cancelled) return;
+        const payload = response.data?.data ?? response.data;
+        setRiskAssessment(payload && Array.isArray(payload.categories) ? payload : null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        logger.warn('[InjuryRiskAssessment] Failed to load injury risk assessment:', error);
+        setRiskAssessment(null);
+        setRiskError('Injury risk assessment is unavailable right now.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingRisk(false);
+      });
 
-      recommendations: [
-        {
-          category: 'Immediate',
-          items: [
-            'Reduce training intensity by 20% this week',
-            'Implement daily hip flexor stretching (2x15 seconds)',
-            'Add 5-minute glute activation warm-up',
-            'Schedule recovery assessment in 1 week'
-          ]
-        },
-        {
-          category: 'Short Term (1-2 weeks)',
-          items: [
-            'Sleep hygiene education and implementation',
-            'Introduce stress management techniques',
-            'Progress to unilateral leg exercises',
-            'Monitor subjective recovery daily'
-          ]
-        },
-        {
-          category: 'Long Term (1+ months)',
-          items: [
-            'Movement quality reassessment',
-            'Advanced balance training integration',
-            'Periodization review and adjustment',
-            'Goal setting and expectation management'
-          ]
-        }
-      ],
-
-      // NASM-based corrective exercise recommendations
-      correctiveProtocol: {
-        inhibit: [
-          { muscle: 'Hip Flexors', exercise: 'Static Stretching', duration: '30 seconds x 2', frequency: 'Daily' },
-          { muscle: 'Upper Trapezius', exercise: 'Static Stretching', duration: '30 seconds x 2', frequency: 'Daily' }
-        ],
-        lengthen: [
-          { muscle: 'Hip Flexors', exercise: 'Couch Stretch', duration: '60 seconds x 2', frequency: 'Daily' },
-          { muscle: 'Latissimus Dorsi', exercise: 'Wall Lat Stretch', duration: '30 seconds x 3', frequency: '3x/week' }
-        ],
-        activate: [
-          { muscle: 'Glute Medius', exercise: 'Clamshells', reps: '15 x 2', frequency: 'Pre-workout' },
-          { muscle: 'Deep Neck Flexors', exercise: 'Chin Tucks', reps: '10 x 2', frequency: 'Daily' }
-        ],
-        integrate: [
-          { muscle: 'Glutes', exercise: 'Single Leg Deadlifts', reps: '8-12 x 2', frequency: '2x/week' },
-          { muscle: 'Core', exercise: 'Dead Bug', reps: '10 each x 2', frequency: '3x/week' }
-        ]
-      }
+    return () => {
+      cancelled = true;
     };
-  }, [clientData, workoutHistory]);
+  }, [authAxios, clientData, clientId, workoutHistory.length]);
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -540,8 +429,45 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     }
   };
 
+  const renderRiskState = () => {
+    if (isLoadingRisk) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <Heading6>Loading Injury Risk Assessment</Heading6>
+            <SecondaryText>Reading saved pain entries, progress levels, and workout sessions.</SecondaryText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    if (riskError) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <Heading6>Risk Assessment Unavailable</Heading6>
+            <SecondaryText>{riskError}</SecondaryText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    if (!riskAssessment || riskAssessment.categories.length === 0) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <Heading6>No Injury Risk Evidence Yet</Heading6>
+            <SecondaryText>Log pain entries, client progress levels, or completed workouts to build this assessment.</SecondaryText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    return null;
+  };
+
   const renderOverallRisk = () => {
-    if (!riskAssessment) return null;
+    if (!riskAssessment || riskAssessment.categories.length === 0) return null;
 
     return (
       <GlassPanel>
@@ -603,8 +529,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
           Critical Alerts
         </Heading6>
 
-        {riskAssessment.criticalAlerts.map((alert, index) => (
-          <AlertBox key={index}>
+        {riskAssessment.criticalAlerts.map((alert) => (
+          <AlertBox key={criticalAlertKey(alert)}>
             <Subtitle style={{ marginBottom: 4 }}>
               {alert.title} - Action needed: {alert.timeframe}
             </Subtitle>
@@ -621,7 +547,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
   };
 
   const renderDetailedAssessment = () => {
-    if (!riskAssessment) return null;
+    if (!riskAssessment || riskAssessment.categories.length === 0) return null;
 
     return (
       <GlassPanel>
@@ -653,8 +579,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
                   </tr>
                 </TableHead>
                 <TableBody>
-                  {category.findings.map((finding, index) => (
-                    <tr key={index}>
+                  {category.findings.map((finding) => (
+                    <tr key={findingRowKey(finding)}>
                       <td>
                         <MediumText>{finding.pattern}</MediumText>
                       </td>
@@ -682,6 +608,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
     if (!riskAssessment?.correctiveProtocol) return null;
 
     const { inhibit, lengthen, activate, integrate } = riskAssessment.correctiveProtocol;
+    if (![inhibit, lengthen, activate, integrate].some((items) => items.length > 0)) return null;
 
     return (
       <GlassPanel>
@@ -699,8 +626,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
               1. Inhibit (Overactive)
             </ProtocolHeading>
             <StyledList>
-              {inhibit.map((item, index) => (
-                <StyledListItem key={index}>
+              {inhibit.map((item) => (
+                <StyledListItem key={correctiveProtocolItemKey('inhibit', item)}>
                   <div>
                     <ListItemPrimary>{item.muscle}</ListItemPrimary>
                     <ListItemSecondary>{item.exercise} - {item.duration} ({item.frequency})</ListItemSecondary>
@@ -715,8 +642,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
               2. Lengthen (Tight)
             </ProtocolHeading>
             <StyledList>
-              {lengthen.map((item, index) => (
-                <StyledListItem key={index}>
+              {lengthen.map((item) => (
+                <StyledListItem key={correctiveProtocolItemKey('lengthen', item)}>
                   <div>
                     <ListItemPrimary>{item.muscle}</ListItemPrimary>
                     <ListItemSecondary>{item.exercise} - {item.duration} ({item.frequency})</ListItemSecondary>
@@ -731,8 +658,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
               3. Activate (Underactive)
             </ProtocolHeading>
             <StyledList>
-              {activate.map((item, index) => (
-                <StyledListItem key={index}>
+              {activate.map((item) => (
+                <StyledListItem key={correctiveProtocolItemKey('activate', item)}>
                   <div>
                     <ListItemPrimary>{item.muscle}</ListItemPrimary>
                     <ListItemSecondary>{item.exercise} - {item.reps} ({item.frequency})</ListItemSecondary>
@@ -747,8 +674,8 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
               4. Integrate (Functional)
             </ProtocolHeading>
             <StyledList>
-              {integrate.map((item, index) => (
-                <StyledListItem key={index}>
+              {integrate.map((item) => (
+                <StyledListItem key={correctiveProtocolItemKey('integrate', item)}>
                   <div>
                     <ListItemPrimary>{item.muscle}</ListItemPrimary>
                     <ListItemSecondary>{item.exercise} - {item.reps} ({item.frequency})</ListItemSecondary>
@@ -763,7 +690,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
   };
 
   const renderRecommendations = () => {
-    if (!riskAssessment?.recommendations) return null;
+    if (!riskAssessment?.recommendations?.length) return null;
 
     return (
       <GlassPanel style={{ marginBottom: 0 }}>
@@ -772,14 +699,14 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
         </Heading6>
 
         <GridThreeCol>
-          {riskAssessment.recommendations.map((category, index) => (
-            <RecommendationCard key={index}>
+          {riskAssessment.recommendations.map((category) => (
+            <RecommendationCard key={recommendationCategoryKey(category)}>
               <RecommendationHeading>
                 {category.category}
               </RecommendationHeading>
               <StyledList>
-                {category.items.map((item, itemIndex) => (
-                  <StyledListItem key={itemIndex}>
+                {category.items.map((item) => (
+                  <StyledListItem key={recommendationItemKey(category, item)}>
                     <CheckCircle size={16} color="#4CAF50" style={{ flexShrink: 0, marginTop: 2 }} />
                     <BodyText>{item}</BodyText>
                   </StyledListItem>
@@ -794,6 +721,7 @@ const InjuryRiskAssessment: React.FC<InjuryRiskAssessmentProps> = ({
 
   return (
     <Container>
+      {renderRiskState()}
       {renderOverallRisk()}
       {renderCriticalAlerts()}
       {renderDetailedAssessment()}

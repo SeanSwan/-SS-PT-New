@@ -41,6 +41,7 @@ import {
 import AdminWaiversTable from './AdminWaiversTable';
 import AdminWaiverDetailModal from './AdminWaiverDetailModal';
 import AdminManualLinkModal from './AdminManualLinkModal';
+import AdminWaiverConfirmDialog, { type AdminWaiverConfirmRequest } from './AdminWaiverConfirmDialog';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Constants
@@ -78,6 +79,7 @@ const AdminWaiversManager: React.FC = () => {
 
   // Manual link modal
   const [linkRecordId, setLinkRecordId] = useState<number | null>(null);
+  const [confirmRequest, setConfirmRequest] = useState<AdminWaiverConfirmRequest | null>(null);
 
   // ── Search debounce ──────────────────────────────────────
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,15 +173,24 @@ const AdminWaiversManager: React.FC = () => {
     }
   };
 
-  const handleRevoke = async (recordId: number) => {
-    if (!window.confirm('Are you sure you want to revoke this waiver? This cannot be undone.')) return;
-    try {
-      await apiService.post(`/api/admin/waivers/${recordId}/revoke`);
-      fetchRecords();
-      closeDetail();
-    } catch (err) {
-      console.error('Failed to revoke waiver:', err);
-    }
+  const handleRevoke = (recordId: number) => {
+    setConfirmRequest({
+      title: 'Revoke this waiver?',
+      message: 'This removes the active waiver/consent record from operational use and cannot be undone.',
+      confirmLabel: 'Revoke waiver',
+      cancelLabel: 'Keep waiver active',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          await apiService.post(`/api/admin/waivers/${recordId}/revoke`);
+          fetchRecords();
+          closeDetail();
+        } catch (err) {
+          console.error('Failed to revoke waiver:', err);
+          throw err;
+        }
+      },
+    });
   };
 
   const handleManualLink = async (recordId: number, userId: number) => {
@@ -282,6 +293,11 @@ const AdminWaiversManager: React.FC = () => {
         recordId={linkRecordId}
         onClose={() => setLinkRecordId(null)}
         onAttach={handleManualLink}
+      />
+
+      <AdminWaiverConfirmDialog
+        request={confirmRequest}
+        onClose={() => setConfirmRequest(null)}
       />
     </Container>
   );

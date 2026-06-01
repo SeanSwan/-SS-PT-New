@@ -1,11 +1,21 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+const componentPath = resolve(
+  process.cwd(),
+  'src/components/DashBoard/Pages/admin-dashboard/components/VisitorWorldMap.tsx',
+);
+const stylesPath = resolve(
+  process.cwd(),
+  'src/components/DashBoard/Pages/admin-dashboard/components/VisitorWorldMap.styles.ts',
+);
 const source = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/VisitorWorldMap.tsx'),
+  componentPath,
   'utf8',
 );
+const stylesSource = existsSync(stylesPath) ? readFileSync(stylesPath, 'utf8') : '';
+const combinedSource = `${source}\n${stylesSource}`;
 const parentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
   'utf8',
@@ -47,10 +57,28 @@ describe('VisitorWorldMap active surface truth contract', () => {
   });
 
   it('keeps map controls at explicit 44px touch target dimensions', () => {
-    expect(source).toContain('width: 44px;');
-    expect(source).toContain('height: 44px;');
-    expect(source).toContain('min-height: 44px');
-    expect(source).not.toContain('width: 36px;');
-    expect(source).not.toContain('height: 36px;');
+    expect(combinedSource).toContain('width: 44px;');
+    expect(combinedSource).toContain('height: 44px;');
+    expect(combinedSource).toContain('min-height: 44px');
+    expect(combinedSource).not.toContain('width: 36px;');
+    expect(combinedSource).not.toContain('height: 36px;');
+  });
+
+  it('keeps map behavior split from tokenized styles below line caps', () => {
+    expect(existsSync(stylesPath)).toBe(true);
+    expect(source).not.toContain("from 'styled-components'");
+    expect(source).not.toContain('keyframes');
+    expect(source).not.toContain('style={{');
+    expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(stylesSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(combinedSource).not.toMatch(/rgba\(/);
+    expect(combinedSource).not.toContain('color: #');
+    expect(combinedSource).not.toContain('background: #');
+  });
+
+  it('does not make repeated-city marker labels unreachable', () => {
+    expect(source).toContain('const max = 4;');
+    expect(source).toContain('markerRadius(city.count) >= 3.2');
+    expect(source).not.toContain('markerRadius(city.count) >= 4');
   });
 });

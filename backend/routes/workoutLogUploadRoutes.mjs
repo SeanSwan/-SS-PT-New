@@ -17,6 +17,12 @@ const router = express.Router();
 const UNSUPPORTED_UPLOAD_MESSAGE = 'Unsupported file type. Upload an audio, text, CSV, or PDF file.';
 const UPLOAD_TOO_LARGE_MESSAGE = 'File is too large. Max upload size is 20MB.';
 
+const parseStrictPositiveInteger = (value) => {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 // Rate limiter: 10 uploads per 15 min per user
 const uploadCounts = new Map();
 const RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
@@ -115,12 +121,27 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
       return res.status(400).json({ error: 'clientId is required' });
     }
 
-    const trainerId = req.user.id;
+    const parsedClientId = parseStrictPositiveInteger(clientId);
+    const parsedTrainerId = parseStrictPositiveInteger(req.user?.id);
+    const parsedSessionId = sessionId ? parseStrictPositiveInteger(sessionId) : null;
+
+    if (!parsedClientId) {
+      return res.status(400).json({ error: 'Valid clientId is required' });
+    }
+
+    if (!parsedTrainerId) {
+      return res.status(400).json({ error: 'Valid trainer identity is required' });
+    }
+
+    if (sessionId && !parsedSessionId) {
+      return res.status(400).json({ error: 'Valid sessionId is required' });
+    }
+
     const file = req.file;
 
     logger.info('[WorkoutLogUpload] Processing upload', {
-      trainerId,
-      clientId,
+      trainerId: parsedTrainerId,
+      clientId: parsedClientId,
       filename: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
@@ -141,8 +162,8 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
     // Step 2: Parse transcript into workout structure
     const parsedWorkout = await parseWorkoutTranscript({
       transcript,
-      clientId: parseInt(clientId, 10),
-      trainerId,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
       date: date || undefined,
     });
 
@@ -155,9 +176,9 @@ router.post('/upload', authorize(['admin', 'trainer']), rateLimiter, uploadFile,
         filename: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
-        clientId: parseInt(clientId, 10),
-        trainerId,
-        sessionId: sessionId ? parseInt(sessionId, 10) : null,
+        clientId: parsedClientId,
+        trainerId: parsedTrainerId,
+        sessionId: parsedSessionId,
       },
     });
   } catch (err) {

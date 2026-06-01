@@ -3,7 +3,7 @@
 /**
  * ============================================================================
  * MIGRATION: Bootcamp Creator Upgrade — Phase 0a
- * PURPOSE: Add fields for two-board system, pyramid/superset formats,
+ * PURPOSE: Add fields for board variants, pyramid/superset formats,
  *          stretch module, flow optimization, and Exercise Rolodex link.
  * STRATEGY: Zero-downtime — all new fields are nullable with defaults.
  *           Backfill + constraints added in a later migration.

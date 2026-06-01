@@ -7,6 +7,15 @@
 
 import { useCallback } from 'react';
 
+export interface ClientActionConfirmationRequest {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  tone: 'danger' | 'warning';
+  onConfirm: () => Promise<void>;
+}
+
 interface UseClientActionsParams {
   adminClientService: any;
   toast: (opts: { title: string; description: string; variant?: string }) => void;
@@ -16,6 +25,7 @@ interface UseClientActionsParams {
   setShowEditModal: (show: boolean) => void;
   setShowCreateModal: (show: boolean) => void;
   handleMenuClose: () => void;
+  requestConfirmation: (request: ClientActionConfirmationRequest) => void;
 }
 
 export function useClientActions({
@@ -27,6 +37,7 @@ export function useClientActions({
   setShowEditModal,
   setShowCreateModal,
   handleMenuClose,
+  requestConfirmation,
 }: UseClientActionsParams) {
   const handleViewDetails = useCallback(async (client: any) => {
     setSelectedClient(client);
@@ -41,68 +52,69 @@ export function useClientActions({
   }, [setSelectedClient, setShowEditModal, handleMenuClose]);
 
   const handleDelete = useCallback(async (client: any) => {
-    if (window.confirm(`Are you sure you want to deactivate ${client.firstName} ${client.lastName}?`)) {
-      try {
-        const response = await adminClientService.deleteClient(client.id);
-        if (response) {
-          toast({
-            title: 'Success',
-            description: 'Client deactivated successfully',
-            variant: 'default',
-          });
-          fetchClients();
-        } else {
+    const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'this client';
+    requestConfirmation({
+      title: `Deactivate ${clientName}?`,
+      message: 'This is a soft delete. Login access stops immediately, future scheduled sessions are cancelled, and profile, workout history, payments, and remaining session credits are retained for 6 months.',
+      confirmLabel: 'Deactivate client',
+      cancelLabel: 'Keep client',
+      tone: 'danger',
+      onConfirm: async () => {
+        try {
+          const response = await adminClientService.deleteClient(client.id);
+          if (response) {
+            toast({
+              title: 'Client deactivated',
+              description: response.message || 'Client deactivated successfully. Records are retained for 6 months.',
+              variant: 'default',
+            });
+            fetchClients();
+          } else {
+            toast({
+              title: 'Error',
+              description: 'Failed to deactivate client',
+              variant: 'destructive',
+            });
+          }
+        } catch (error: any) {
           toast({
             title: 'Error',
-            description: 'Failed to deactivate client',
+            description: error.message || 'Failed to deactivate client',
             variant: 'destructive',
           });
         }
-      } catch (error: any) {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to deactivate client',
-          variant: 'destructive',
-        });
-      }
-    }
+      },
+    });
     handleMenuClose();
-  }, [adminClientService, toast, fetchClients, handleMenuClose]);
+  }, [adminClientService, toast, fetchClients, handleMenuClose, requestConfirmation]);
 
   const handleResetPassword = useCallback(async (client: any) => {
-    const newPassword = prompt('Enter new password for client:');
-    if (newPassword && newPassword.length >= 6) {
-      try {
-        const response = await adminClientService.resetClientPassword(client.id);
-        if (response.success) {
+    const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'this client';
+    requestConfirmation({
+      title: `Send reset link to ${clientName}?`,
+      message: 'This emails a password reset link to the client without changing their account, workouts, or session credits.',
+      confirmLabel: 'Send reset link',
+      cancelLabel: 'Do not send',
+      tone: 'warning',
+      onConfirm: async () => {
+        try {
+          const response = await adminClientService.sendClientPasswordReset(client.id);
           toast({
-            title: 'Success',
-            description: 'Password reset successfully',
-            variant: 'default',
+            title: response?.success ? 'Reset link sent' : 'Error',
+            description: response?.message || 'Password reset email sent.',
+            variant: response?.success ? 'default' : 'destructive',
           });
-        } else {
+        } catch (error: any) {
           toast({
             title: 'Error',
-            description: 'Failed to reset password',
+            description: error.message || 'Failed to send password reset email',
             variant: 'destructive',
           });
         }
-      } catch (error: any) {
-        toast({
-          title: 'Error',
-          description: error.message || 'Failed to reset password',
-          variant: 'destructive',
-        });
-      }
-    } else if (newPassword !== null) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters long',
-        variant: 'destructive',
-      });
-    }
+      },
+    });
     handleMenuClose();
-  }, [adminClientService, toast, handleMenuClose]);
+  }, [adminClientService, toast, handleMenuClose, requestConfirmation]);
 
   const handleCreateClient = useCallback(async (data: any) => {
     try {

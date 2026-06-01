@@ -37,6 +37,7 @@ import {
   trainerSessionNotificationEmail,
 } from '../../utils/emailTemplates.mjs';
 import logger from '../../utils/logger.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ export async function cancelSessionForAI(sessionId, user) {
     include: [
       {
         model: User, as: 'client',
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions'],
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource'],
       },
       {
         model: User, as: 'trainer',
@@ -181,6 +182,14 @@ async function restoreCredit(session, User) {
 
   const client = await User.findByPk(session.userId);
   if (!client) return false;
+
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    logger.info(`[SessionCancelService] Skipped credit restore for non-deducting client source ${client.clientSource}`, {
+      sessionId: session.id,
+      userId: client.id,
+    });
+    return false;
+  }
 
   const newBalance = (client.availableSessions || 0) + 1;
   await client.update({ availableSessions: newBalance });

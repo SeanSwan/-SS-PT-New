@@ -1,10 +1,10 @@
 /**
  * Enhanced Trainer Workout Logger - Integrated with My Clients View
  * =================================================================
- * 
+ *
  * Seamless workout logging interface for trainers with enhanced client integration
  * Designed to work perfectly with the My Clients view and overall trainer workflow
- * 
+ *
  * CORE FEATURES:
  * ✅ URL parameter client selection from My Clients view
  * ✅ Client pre-selection and information display
@@ -14,7 +14,7 @@
  * ✅ Mobile-optimized for gym tablet use
  * ✅ Real-time session deduction tracking
  * ✅ Professional stellar purple theme
- * 
+ *
  * INTEGRATION POINTS:
  * - Seamless navigation from /dashboard/trainer/clients
  * - URL pattern: /dashboard/trainer/log-workout?clientId=123
@@ -24,418 +24,26 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Calendar, AlertTriangle, CheckCircle,
-  ArrowLeft, Save, Plus, Dumbbell, Clock, Target,
-  BarChart3, Edit, Trash2,
-  Zap, RefreshCw
-} from 'lucide-react';
-
-// Context and Services
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
 import { useToast } from '../../../hooks/use-toast';
 import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
-
-// Original WorkoutLogger import
 import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 import { logger } from '@/utils/logger';
+import { normalizeDashboardReturnTo, parseLoggerClientId, parseLoggerSessionId } from './EnhancedWorkoutLogger.logic';
+import {
+  ActionRow,
+  CenteredLoading,
+  ErrorContainer,
+  NavigationBar,
+  WorkoutContainer,
+} from './EnhancedWorkoutLogger.styles';
 
-// === ANIMATIONS ===
-const workoutFlow = keyframes`
-  0% { transform: translateX(0); }
-  100% { transform: translateX(8px); }
-`;
-
-const progressGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
-`;
-
-// === STYLED COMPONENTS ===
-const WorkoutContainer = styled(motion.div)`
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem;
-  min-height: 100vh;
-  background: linear-gradient(135deg, 
-    rgba(10, 10, 15, 0.95) 0%, 
-    rgba(139, 92, 246, 0.1) 50%, 
-    rgba(139, 92, 246, 0.05) 100%
-  );
-  
-  @media (max-width: 768px) {
-    padding: 0.5rem;
-  }
-`;
-
-const HeaderSection = styled.div`
-  background: rgba(30, 30, 60, 0.8);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #8B5CF6, #8b5cf6, #60C0F0);
-  }
-`;
-
-const HeaderTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-    background: linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .accent-icon {
-    color: var(--accent-secondary, #8B5CF6);
-  }
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    text-align: center;
-    
-    h1 {
-      font-size: 1.5rem;
-    }
-  }
-`;
-
-const ClientCard = styled.div`
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  
-  .client-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  .client-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 1.2rem;
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
-  }
-  
-  .client-info {
-    flex: 1;
-    
-    h3 {
-      color: white;
-      margin: 0 0 0.25rem 0;
-      font-size: 1.2rem;
-      font-weight: 600;
-    }
-    
-    p {
-      color: rgba(255, 255, 255, 0.7);
-      margin: 0.125rem 0;
-      font-size: 0.9rem;
-    }
-  }
-  
-  @media (max-width: 768px) {
-    .client-header {
-      flex-direction: column;
-      text-align: center;
-    }
-  }
-`;
-
-const SessionMetrics = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const MetricCard = styled.div<{ type: 'success' | 'warning' | 'info' | 'primary' }>`
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid ${props => {
-    switch (props.type) {
-      case 'success': return 'rgba(16, 185, 129, 0.4)';
-      case 'warning': return 'rgba(245, 158, 11, 0.4)';
-      case 'info': return 'rgba(59, 130, 246, 0.4)';
-      default: return 'rgba(139, 92, 246, 0.4)';
-    }
-  }};
-  border-radius: 12px;
-  padding: 1rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: ${props => {
-      switch (props.type) {
-        case 'success': return 'rgba(16, 185, 129, 0.6)';
-        case 'warning': return 'rgba(245, 158, 11, 0.6)';
-        case 'info': return 'rgba(59, 130, 246, 0.6)';
-        default: return 'rgba(139, 92, 246, 0.6)';
-      }
-    }};
-    transform: translateY(-2px);
-    animation: ${progressGlow} 2s ease-in-out infinite;
-  }
-  
-  .metric-icon {
-    color: ${props => {
-      switch (props.type) {
-        case 'success': return '#10b981';
-        case 'warning': return '#f59e0b';
-        case 'info': return '#3b82f6';
-        default: return '#8b5cf6';
-      }
-    }};
-    margin-bottom: 0.5rem;
-  }
-  
-  .metric-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 0.25rem;
-  }
-  
-  .metric-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-`;
-
-const NavigationBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-  }
-`;
-
-const CenteredLoading = styled.div`
-  align-items: center;
-  color: var(--text-primary, #ffffff);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 60vh;
-`;
-
-const ActionRow = styled.div<{ $center?: boolean; $bottom?: string }>`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${({ $bottom }) => ($bottom ? '1rem' : '0.75rem')};
-  justify-content: ${({ $center }) => ($center ? 'center' : 'flex-start')};
-  margin-bottom: ${({ $bottom }) => $bottom ?? '0'};
-`;
-
-const WorkoutInterface = styled.div`
-  background: rgba(30, 30, 60, 0.4);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 16px;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-`;
-
-const DemoModeCard = styled(motion.div)`
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  margin: 2rem 0;
-  
-  h3 {
-    color: #8b5cf6;
-    margin: 0 0 1rem 0;
-    font-size: 1.5rem;
-  }
-  
-  p {
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0 0 2rem 0;
-    line-height: 1.6;
-  }
-`;
-
-const DemoExerciseCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: rgba(139, 92, 246, 0.6);
-    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
-    animation: ${workoutFlow} 0.3s ease forwards;
-  }
-  
-  .exercise-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-  
-  .exercise-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    
-    h4 {
-      color: white;
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-  }
-  
-  .exercise-metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 0.75rem;
-    
-    .metric {
-      text-align: center;
-      
-      .value {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #8b5cf6;
-      }
-      
-      .label {
-        font-size: 0.75rem;
-        color: rgba(255, 255, 255, 0.6);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-    }
-  }
-`;
-
-const WorkoutPlanContent = styled.div`
-  padding: 2rem;
-`;
-
-const WorkoutPlanTitle = styled.h3`
-  align-items: center;
-  color: var(--text-primary, #ffffff);
-  display: flex;
-  gap: 0.5rem;
-  margin: 0 0 1.5rem;
-
-  svg {
-    color: var(--accent-secondary, #8B5CF6);
-  }
-`;
-
-const ExerciseActionRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const ExerciseActionButton = styled.button<{ $danger?: boolean }>`
-  align-items: center;
-  background: ${({ $danger }) => $danger ? 'rgba(239, 68, 68, 0.2)' : 'rgba(139, 92, 246, 0.2)'};
-  border: 1px solid ${({ $danger }) => $danger ? 'rgba(239, 68, 68, 0.4)' : 'rgba(139, 92, 246, 0.4)'};
-  border-radius: 6px;
-  color: ${({ $danger }) => $danger ? '#ef4444' : 'var(--accent-secondary, #8B5CF6)'};
-  cursor: pointer;
-  display: inline-flex;
-  font-size: 0.75rem;
-  justify-content: center;
-  min-height: 44px;
-  min-width: ${({ $danger }) => $danger ? '44px' : '64px'};
-  padding: ${({ $danger }) => $danger ? '0.25rem' : '0.25rem 0.5rem'};
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-`;
-
-const FooterActionRow = styled(motion.div)`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: space-between;
-  margin-top: 2rem;
-`;
-
-const ErrorContainer = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.9);
-  
-  .error-icon {
-    color: #f59e0b;
-    margin-bottom: 1.5rem;
-  }
-  
-  h3 {
-    color: white;
-    margin-bottom: 1rem;
-  }
-  
-  p {
-    margin-bottom: 2rem;
-    max-width: 500px;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.8);
-  }
-`;
-
-// === INTERFACES ===
 interface Client {
-  id: string;
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -446,75 +54,26 @@ interface Client {
   membershipLevel: 'basic' | 'premium' | 'elite';
 }
 
-// === DEMO DATA ===
-const demoExercises = [
-  {
-    name: 'Barbell Back Squat',
-    sets: 4,
-    reps: '8-10',
-    weight: '185 lbs',
-    restTime: '90s'
-  },
-  {
-    name: 'Bench Press',
-    sets: 3,
-    reps: '6-8',
-    weight: '165 lbs',
-    restTime: '120s'
-  },
-  {
-    name: 'Bent-Over Row',
-    sets: 3,
-    reps: '8-10',
-    weight: '135 lbs',
-    restTime: '90s'
-  },
-  {
-    name: 'Romanian Deadlift',
-    sets: 3,
-    reps: '10-12',
-    weight: '155 lbs',
-    restTime: '90s'
-  }
-];
-
-const demoClient: Client = {
-  id: 'demo-client',
-  firstName: 'Sarah',
-  lastName: 'Johnson',
-  email: 'sarah.j@demo.com',
-  phone: '(555) 123-4567',
-  availableSessions: 8,
-  totalSessionsCompleted: 12,
-  lastSessionDate: '2024-01-10',
-  membershipLevel: 'premium'
-};
-
-// === UTILITY FUNCTIONS ===
-const getInitials = (firstName?: string, lastName?: string): string => {
-  const f = firstName || '';
-  const l = lastName || '';
-  return `${f.charAt(0)}${l.charAt(0)}`.toUpperCase() || '??';
-};
-
-// === MAIN COMPONENT ===
 const EnhancedWorkoutLogger: React.FC = () => {
   const { user, authAxios } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  
+
   // State
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showDemo, setShowDemo] = useState(false);
   const [useOriginalLogger, setUseOriginalLogger] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Get client ID from GlobalClientContext first, then fall back to URL param
   const { activeClient } = useGlobalClient();
   const urlClientId = searchParams.get('clientId');
-  const clientId = urlClientId || (activeClient?.id ? String(activeClient.id) : null);
+  const scheduledSessionId = parseLoggerSessionId(searchParams.get('sessionId'));
+  const scheduledSessionDate = searchParams.get('sessionDate');
+  const routeClientId = parseLoggerClientId(urlClientId);
+  const activeClientId = parseLoggerClientId(activeClient?.id);
+  const clientId = routeClientId ?? activeClientId;
 
   // Phase 17 (2026-04-20): role-aware navigation + copy.
   // Admin lands on ClientsWorkspace (Client Hub); trainer lands on MyClientsView.
@@ -526,14 +85,18 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const backToClientsPath = isAdmin
     ? '/dashboard/admin/client-management'
     : '/dashboard/trainer/clients';
-  const backToClientsLabel = isAdmin ? 'Back to Client Hub' : 'Back to My Clients';
+  const isMasterScheduleOrigin = searchParams.get('source') === 'master-schedule';
+  const isClientHubOrigin = searchParams.get('source') === 'clients-team';
+  const requestedReturnTo = normalizeDashboardReturnTo(searchParams.get('returnTo'));
+  const workflowReturnPath = requestedReturnTo ?? backToClientsPath;
+  const backToClientsLabel = requestedReturnTo && isMasterScheduleOrigin
+    ? 'Back to Schedule'
+    : requestedReturnTo && isClientHubOrigin
+      ? 'Back to Client Hub'
+      : isAdmin ? 'Back to Client Hub' : 'Back to My Clients';
   const noClientSelectedMessage = isAdmin
     ? 'Please select a client from Client Hub.'
     : 'Please select a client from My Clients view.';
-  const clientProgressPath = (cid: string | number | undefined) =>
-    isAdmin
-      ? `/dashboard/admin/client-management?clientId=${cid}`
-      : `/dashboard/trainer/client-progress?clientId=${cid}`;
 
   // Load client data
   const loadClientData = useCallback(async () => {
@@ -556,11 +119,15 @@ const EnhancedWorkoutLogger: React.FC = () => {
 
       if (response.data?.success && response.data.client) {
         const c = response.data.client;
+        const responseClientId = parseLoggerClientId(c.id);
+        if (!responseClientId || responseClientId !== clientId) {
+          throw new Error('Client identity mismatch');
+        }
         // /info returns pure camelCase. totalSessionsCompleted, lastSessionDate
         // and membershipLevel are not in the /info response — keep defaults so
         // the card renders without visual gaps.
         setClient({
-          id: String(c.id),
+          id: responseClientId,
           firstName: c.firstName || 'Client',
           lastName: c.lastName || '',
           email: c.email || '',
@@ -572,11 +139,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
         });
         // Phase 17.1 (2026-04-20): auto-mount the real WorkoutLogger on
         // real-client success. Pre-17.1 an admin/trainer had to click
-        // through a "Workout Logger Ready / Start Demo Workout" placeholder
-        // and then "Try Full Logger" to reach the real logger — that
-        // double-gate only made sense when the API was a mock. With real
-        // data flowing, route directly to the real logger.
-        setShowDemo(false);
+        // through a stale placeholder before reaching the real logger.
         setUseOriginalLogger(true);
       } else {
         throw new Error('Client not found or not accessible');
@@ -585,7 +148,6 @@ const EnhancedWorkoutLogger: React.FC = () => {
     } catch (loadError) {
       logger.warn('Workout logger client info unavailable', loadError);
       setClient(null);
-      setShowDemo(false);
       setUseOriginalLogger(false);
       setError('Client workout data could not be loaded. Retry or return to clients.');
 
@@ -598,43 +160,34 @@ const EnhancedWorkoutLogger: React.FC = () => {
       setLoading(false);
     }
   }, [clientId, authAxios, toast, noClientSelectedMessage]);
-  
+
   // Initialize component
   useEffect(() => {
     loadClientData();
   }, [loadClientData]);
-  
+
   // Navigation handlers (Phase 17: role-aware back-target, see backToClientsPath above)
   const handleBackToClients = useCallback(() => {
-    navigate(backToClientsPath);
-  }, [navigate, backToClientsPath]);
+    navigate(workflowReturnPath);
+  }, [navigate, workflowReturnPath]);
 
   const handleWorkoutComplete = useCallback((_formData: unknown) => {
     toast({
       title: 'Workout Completed!',
-      description: `Workout logged for ${client?.firstName}. Session deducted and progress updated.`,
+      description: `Workout logged for ${client?.firstName}. Workout saved and progress updated.`,
       variant: 'default'
     });
 
-    // Navigate back to the role-appropriate clients surface with success state
-    navigate(backToClientsPath, {
+    // Navigate back to the workflow origin with success state.
+    navigate(workflowReturnPath, {
       state: { workoutCompleted: true, clientName: `${client?.firstName} ${client?.lastName}` }
     });
-  }, [client, navigate, toast, backToClientsPath]);
+  }, [client, navigate, toast, workflowReturnPath]);
 
   const handleWorkoutCancel = useCallback(() => {
-    navigate(backToClientsPath);
-  }, [navigate, backToClientsPath]);
-  
-  const handleTryOriginalLogger = useCallback(() => {
-    if (!client) return;
-    setUseOriginalLogger(true);
-  }, [client]);
-  
-  const handleBackToDemo = useCallback(() => {
-    setUseOriginalLogger(false);
-  }, []);
-  
+    navigate(workflowReturnPath);
+  }, [navigate, workflowReturnPath]);
+
   // Render loading state
   if (loading) {
     return (
@@ -645,7 +198,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
       </WorkoutContainer>
     );
   }
-  
+
   // Render error state
   if (error) {
     return (
@@ -677,256 +230,65 @@ const EnhancedWorkoutLogger: React.FC = () => {
       </WorkoutContainer>
     );
   }
-  
+
   // If using original logger, render it
   if (useOriginalLogger && client) {
     // Phase 17.1 (2026-04-20): real-client paths auto-enter this branch
     // via loadClientData success. Those users need role-aware
-    // "Back to Client Hub" / "Back to My Clients" navigation, not the
-    // legacy "Back to Demo" action that drops them into the deleted
-    // placeholder screen. Keep "Back to Demo" only when this branch
-    // was reached via the actual demo-fallback path (API failure).
-    const isDemoFallback = showDemo;
+    // "Back to Client Hub" / "Back to My Clients" navigation.
     return (
       <WorkoutContainer>
         <NavigationBar>
           <GlowButton
-            text={isDemoFallback ? 'Back to Demo' : backToClientsLabel}
+            text={backToClientsLabel}
             theme="cosmic"
             size="small"
-            onClick={isDemoFallback ? handleBackToDemo : handleBackToClients}
+            onClick={handleBackToClients}
             leftIcon={<ArrowLeft size={16} />}
           />
         </NavigationBar>
 
         <WorkoutLogger
-          clientId={parseInt(client.id)}
+          clientId={client.id}
+          scheduledSessionId={scheduledSessionId}
+          scheduledSessionDate={scheduledSessionDate}
           onComplete={handleWorkoutComplete}
           onCancel={handleWorkoutCancel}
         />
       </WorkoutContainer>
     );
   }
-  
-  // Main interface
+
   return (
     <WorkoutContainer
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <HeaderSection>
-        <HeaderTitle>
-          <Edit size={32} className="accent-icon" />
-          <h1>Workout Logger</h1>
-        </HeaderTitle>
-        
-        {client && (
-          <ClientCard>
-            <div className="client-header">
-              <div className="client-avatar">
-                {getInitials(client.firstName, client.lastName)}
-              </div>
-              <div className="client-info">
-                <h3>{client.firstName} {client.lastName}</h3>
-                <p>📧 {client.email}</p>
-                {client.phone && <p>📞 {client.phone}</p>}
-                {client.membershipLevel && <p>{client.membershipLevel.charAt(0).toUpperCase() + client.membershipLevel.slice(1)} Member</p>}
-              </div>
-            </div>
-            
-            <SessionMetrics>
-              <MetricCard type="primary">
-                <Calendar size={24} className="metric-icon" />
-                <div className="metric-value">{client.availableSessions}</div>
-                <div className="metric-label">Sessions Left</div>
-              </MetricCard>
-              <MetricCard type="success">
-                <CheckCircle size={24} className="metric-icon" />
-                <div className="metric-value">{client.totalSessionsCompleted}</div>
-                <div className="metric-label">Completed</div>
-              </MetricCard>
-              <MetricCard type="info">
-                <Clock size={24} className="metric-icon" />
-                <div className="metric-value">{new Date().toLocaleDateString()}</div>
-                <div className="metric-label">Today&apos;s Date</div>
-              </MetricCard>
-              <MetricCard type={client.availableSessions > 3 ? 'success' : 'warning'}>
-                <Target size={24} className="metric-icon" />
-                <div className="metric-value">1</div>
-                <div className="metric-label">Will Deduct</div>
-              </MetricCard>
-            </SessionMetrics>
-          </ClientCard>
-        )}
-        
-        <NavigationBar>
+      <ErrorContainer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <AlertTriangle size={64} className="error-icon" />
+        <h3>Workout Logger Unavailable</h3>
+        <p>Client workout data is not ready. Retry or return to clients.</p>
+        <ActionRow $center>
           <GlowButton
             text={backToClientsLabel}
-            theme="cosmic"
+            theme="purple"
             onClick={handleBackToClients}
             leftIcon={<ArrowLeft size={18} />}
           />
-          <ActionRow>
-            {showDemo && (
-              <GlowButton
-                text="Try Full Logger"
-                theme="emerald"
-                size="small"
-                onClick={handleTryOriginalLogger}
-                leftIcon={<Zap size={16} />}
-              />
-            )}
-            <GlowButton
-              text="Client Progress"
-              theme="purple"
-              size="small"
-              onClick={() => navigate(clientProgressPath(client?.id))}
-              leftIcon={<BarChart3 size={16} />}
-            />
-          </ActionRow>
-        </NavigationBar>
-      </HeaderSection>
-      
-      {/* Demo Workout Interface */}
-      {showDemo && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          <DemoModeCard>
-            <h3>🎯 Enhanced Workout Logger - Demo Mode</h3>
-            <p>
-              This demonstrates how the workout logging interface integrates with your My Clients view. 
-              The full NASM-compliant workout logger with exercise library, set tracking, and progress 
-              integration is ready to connect with your backend API.
-            </p>
-            
-            <ActionRow $center $bottom="2rem">
-              <GlowButton
-                text="Try Full Logger"
-                theme="purple"
-                onClick={handleTryOriginalLogger}
-                leftIcon={<Dumbbell size={18} />}
-              />
-              <GlowButton
-                text="Complete Demo Workout"
-                theme="emerald"
-                size="small"
-                onClick={() => {
-                  toast({ 
-                    title: 'Demo Workout Complete!', 
-                    description: 'In real use, this would deduct a session and update progress.', 
-                    variant: 'default' 
-                  });
-                  handleWorkoutComplete({});
-                }}
-                leftIcon={<CheckCircle size={16} />}
-              />
-            </ActionRow>
-          </DemoModeCard>
-          
-          <WorkoutInterface>
-            <WorkoutPlanContent>
-              <WorkoutPlanTitle>
-                <Dumbbell size={24} />
-                Today&apos;s Workout Plan
-              </WorkoutPlanTitle>
-              
-              {demoExercises.map((exercise, index) => (
-                <DemoExerciseCard
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="exercise-header">
-                    <div className="exercise-title">
-                      <Dumbbell size={20} className="accent-icon" />
-                      <h4>{exercise.name}</h4>
-                    </div>
-                    <ExerciseActionRow>
-                      <ExerciseActionButton type="button">
-                        Edit
-                      </ExerciseActionButton>
-                      <ExerciseActionButton type="button" $danger aria-label={`Remove ${exercise.name}`}>
-                        <Trash2 size={14} />
-                      </ExerciseActionButton>
-                    </ExerciseActionRow>
-                  </div>
-                  
-                  <div className="exercise-metrics">
-                    <div className="metric">
-                      <div className="value">{exercise.sets}</div>
-                      <div className="label">Sets</div>
-                    </div>
-                    <div className="metric">
-                      <div className="value">{exercise.reps}</div>
-                      <div className="label">Reps</div>
-                    </div>
-                    <div className="metric">
-                      <div className="value">{exercise.weight}</div>
-                      <div className="label">Weight</div>
-                    </div>
-                    <div className="metric">
-                      <div className="value">{exercise.restTime}</div>
-                      <div className="label">Rest</div>
-                    </div>
-                  </div>
-                </DemoExerciseCard>
-              ))}
-              
-              <FooterActionRow>
-                <GlowButton
-                  text="Add Exercise"
-                  theme="cosmic"
-                  leftIcon={<Plus size={18} />}
-                  onClick={() => toast({ 
-                    title: 'Demo Feature', 
-                    description: 'Exercise library integration ready for API connection', 
-                    variant: 'default' 
-                  })}
-                />
-                <ActionRow>
-                  <GlowButton
-                    text="Save Draft"
-                    theme="purple"
-                    size="small"
-                    leftIcon={<Save size={16} />}
-                    onClick={() => toast({ 
-                      title: 'Draft Saved', 
-                      description: 'Workout saved as draft', 
-                      variant: 'default' 
-                    })}
-                  />
-                  <GlowButton
-                    text="Complete Workout"
-                    theme="emerald"
-                    leftIcon={<CheckCircle size={18} />}
-                    onClick={() => {
-                      toast({ 
-                        title: 'Demo Workout Complete!', 
-                        description: `Session logged for ${client?.firstName}. In real use, this would deduct a session and update progress.`, 
-                        variant: 'default' 
-                      });
-                      handleWorkoutComplete({});
-                    }}
-                  />
-                </ActionRow>
-              </FooterActionRow>
-            </WorkoutPlanContent>
-          </WorkoutInterface>
-        </motion.div>
-      )}
-      
-      {/* Phase 17.1 (2026-04-20): deleted the "Workout Logger Ready / Start
-          Demo Workout" placeholder. With real-client auto-mount in
-          loadClientData, this branch became unreachable for real users,
-          and routing real admins/trainers through demo-branded copy was
-          the UX bug Codex flagged. Demo fallback still lives in the
-          showDemo block above (reached only on /info failure). */}
+          <GlowButton
+            text="Try Again"
+            theme="emerald"
+            size="small"
+            onClick={loadClientData}
+            leftIcon={<RefreshCw size={18} />}
+          />
+        </ActionRow>
+      </ErrorContainer>
     </WorkoutContainer>
   );
 };

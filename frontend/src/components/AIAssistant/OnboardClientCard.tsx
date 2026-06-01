@@ -36,7 +36,7 @@ interface OnboardData {
   lastName?: string;
   dateOfBirth?: string;
   gender?: string;
-  clientSource?: 'move_fitness' | 'swanstudios';
+  clientSource?: ClientSource;
   fitnessGoal?: string;
   trainingExperience?: string;
   healthConcerns?: string;
@@ -45,6 +45,21 @@ interface OnboardData {
   generateClaimCode?: boolean;
   availableSessions?: number;
 }
+
+type ClientSource = 'move_fitness' | 'swanstudios' | 'external';
+
+export const getOnboardClientSourceMeta = (clientSource?: string | null): {
+  source: ClientSource;
+  label: string;
+} => {
+  if (clientSource === 'move_fitness') {
+    return { source: 'move_fitness', label: 'Move Fitness (Free Tracking)' };
+  }
+  if (clientSource === 'external') {
+    return { source: 'external', label: 'External (Free Tracking)' };
+  }
+  return { source: 'swanstudios', label: 'SwanStudios (Paid)' };
+};
 
 interface OnboardResponse {
   success: boolean;
@@ -59,11 +74,40 @@ interface OnboardResponse {
     claimCode?: string;
     claimUrl?: string;
   };
+  data?: {
+    client?: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email?: string;
+      temporaryPassword?: string;
+      claimCode?: string;
+      claimUrl?: string;
+    };
+    temporaryPassword?: string;
+    claimCode?: string;
+    claimUrl?: string;
+  };
 }
 
 interface OnboardClientCardProps {
   action: AIAction;
 }
+
+const normalizeOnboardResponse = (result: OnboardResponse): OnboardResponse => {
+  const nestedClient = result.data?.client;
+  if (!nestedClient) return result;
+
+  return {
+    ...result,
+    client: {
+      ...nestedClient,
+      temporaryPassword: nestedClient.temporaryPassword || result.data?.temporaryPassword,
+      claimCode: nestedClient.claimCode || result.data?.claimCode,
+      claimUrl: nestedClient.claimUrl || result.data?.claimUrl,
+    },
+  };
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
@@ -95,7 +139,7 @@ const CardHeader = styled.div`
   color: var(--text-primary, #E0ECF4);
 `;
 
-const SourceBadge = styled.span<{ $source: 'move_fitness' | 'swanstudios' }>`
+const SourceBadge = styled.span<{ $source: ClientSource }>`
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
@@ -107,15 +151,21 @@ const SourceBadge = styled.span<{ $source: 'move_fitness' | 'swanstudios' }>`
   background: ${({ $source }) =>
     $source === 'swanstudios'
       ? 'rgba(198, 168, 75, 0.15)'
-      : 'rgba(255, 255, 255, 0.06)'};
+      : $source === 'external'
+        ? 'rgba(96, 192, 240, 0.12)'
+        : 'rgba(255, 255, 255, 0.06)'};
   color: ${({ $source }) =>
     $source === 'swanstudios'
       ? 'var(--accent-gold, #C6A84B)'
-      : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
+      : $source === 'external'
+        ? 'var(--accent-primary, #60C0F0)'
+        : 'var(--text-secondary, rgba(224, 236, 244, 0.85))'};
   border: 1px solid ${({ $source }) =>
     $source === 'swanstudios'
       ? 'rgba(198, 168, 75, 0.3)'
-      : 'rgba(255, 255, 255, 0.1)'};
+      : $source === 'external'
+        ? 'rgba(96, 192, 240, 0.28)'
+        : 'rgba(255, 255, 255, 0.1)'};
 `;
 
 const FieldGrid = styled.div`
@@ -260,8 +310,7 @@ const OnboardClientCard: React.FC<OnboardClientCardProps> = React.memo(({ action
   const [errorMsg, setErrorMsg] = useState('');
 
   const data = action.data as OnboardData;
-  const clientSource = data.clientSource || 'swanstudios';
-  const sourceLabel = clientSource === 'move_fitness' ? 'Move Fitness (Free)' : 'SwanStudios (Paid)';
+  const clientSourceMeta = getOnboardClientSourceMeta(data.clientSource);
 
   const handleConfirm = useCallback(async () => {
     setStatus('loading');
@@ -279,7 +328,7 @@ const OnboardClientCard: React.FC<OnboardClientCardProps> = React.memo(({ action
         body: JSON.stringify(data),
       });
 
-      const result: OnboardResponse = await res.json();
+      const result = normalizeOnboardResponse(await res.json() as OnboardResponse);
       if (result.success) {
         setStatus('success');
         setResponse(result);
@@ -381,7 +430,7 @@ const OnboardClientCard: React.FC<OnboardClientCardProps> = React.memo(({ action
       <CardHeader>
         <UserPlus size={16} style={{ color: '#8B5CF6' }} />
         New Client Intake
-        <SourceBadge $source={clientSource}>{sourceLabel}</SourceBadge>
+        <SourceBadge $source={clientSourceMeta.source}>{clientSourceMeta.label}</SourceBadge>
       </CardHeader>
 
       <FieldGrid>

@@ -130,13 +130,13 @@ router.get('/:userId/nasm-progress', requireOwnershipOrTrainer, authorize(['admi
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Exercise Rolodex endpoints
-// PURPOSE: All-time exercise history + variety stats from materialized view
+// PURPOSE: All-time exercise history + variety stats from workout logs
 // WHY: Powers Exercise Rolodex full-page chart + gamification variety score
 // ─────────────────────────────────────────────────────────────
 
 /**
  * @route   GET /api/analytics/:userId/exercise-history
- * @desc    Get all-time exercise stats (frequency, volume, PRs) via MV
+ * @desc    Get all-time exercise stats (frequency, volume, PRs) from workout logs
  * @access  Owner, Trainer (assigned), Admin
  */
 router.get('/:userId/exercise-history', requireOwnershipOrTrainer, getExerciseHistory);

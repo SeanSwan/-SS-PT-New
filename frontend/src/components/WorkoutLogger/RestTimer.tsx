@@ -20,7 +20,7 @@
 
 import React, { memo, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { CS, reducedMotionSafe } from './WorkoutLoggerCS';
+import { CS, reducedMotionSafe, withAlpha } from './WorkoutLoggerCS';
 import { useRestTimer } from './useRestTimer';
 
 // ─── Animations ─────────────────────────────────────────────
@@ -94,8 +94,8 @@ const TimerButton = styled.button<{ $variant?: 'start' | 'stop' | 'reset' }>`
   &:hover {
     background: ${({ $variant }) =>
       $variant === 'stop'
-        ? 'rgba(245, 158, 11, 0.2)'
-        : 'rgba(80, 160, 240, 0.15)'};
+        ? withAlpha(CS.warning, 0.2)
+        : withAlpha(CS.glow, 0.15)};
   }
 
   &:focus-visible {
@@ -163,6 +163,7 @@ const RestTimer = memo(function RestTimer({
 
       {isRunning ? (
         <TimerButton
+          type="button"
           $variant="stop"
           onClick={stop}
           aria-label="Stop rest timer"
@@ -171,6 +172,7 @@ const RestTimer = memo(function RestTimer({
         </TimerButton>
       ) : (
         <TimerButton
+          type="button"
           $variant="start"
           onClick={() => start(restSeconds)}
           aria-label={`Start ${restSeconds} second rest timer`}
@@ -181,6 +183,7 @@ const RestTimer = memo(function RestTimer({
 
       {!compact && !isRunning && secondsLeft !== restSeconds && (
         <TimerButton
+          type="button"
           $variant="reset"
           onClick={reset}
           aria-label="Reset rest timer"

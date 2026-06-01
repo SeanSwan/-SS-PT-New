@@ -7,6 +7,7 @@ import { User, Plus, Trash2 } from 'lucide-react';
 import { useSocket } from '../../context/SocketContext';
 import NewConversationModal from './NewConversationModal';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import ConfirmActionDialog from '../Shared/ConfirmActionDialog';
 
 interface Participant {
   id: number;
@@ -34,6 +35,8 @@ interface ConversationListProps {
 const ConversationList: React.FC<ConversationListProps> = ({ selectedConversationId, onSelectConversation }) => {
   const [isNewConversationModalOpen, setIsNewConversationModalOpen] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   const { data: conversations, isLoading } = useQuery<Conversation[]>({
     queryKey: ['conversations'],
     queryFn: async () => (await api.get('/api/messaging/conversations')).data,
@@ -100,8 +103,13 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
 
   const handleDeleteConversation = async (e: React.MouseEvent, convId: string) => {
     e.stopPropagation(); // Don't select the conversation
-    if (!window.confirm('Delete this conversation? It will be hidden from your view.')) return;
+    setConversationToDelete(convId);
+  };
 
+  const confirmDeleteConversation = async () => {
+    const convId = conversationToDelete;
+    if (!convId) return;
+    setDeletingConversation(true);
     try {
       await api.delete(`/api/messaging/conversations/${convId}`);
       // Remove from React Query cache
@@ -114,6 +122,9 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
       }
     } catch (err) {
       console.error('Failed to delete conversation:', err);
+    } finally {
+      setDeletingConversation(false);
+      setConversationToDelete(null);
     }
   };
 
@@ -135,6 +146,9 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
     // For group chats, show online if at least one other member is online
     return conv.participants.some(p => onlineUsers.has(p.id));
   };
+
+  const pendingDeleteConversation = conversations?.find(conv => conv.id === conversationToDelete);
+  const pendingDeleteName = pendingDeleteConversation ? getDisplayName(pendingDeleteConversation) : 'this conversation';
 
   return (
     <Container>
@@ -189,6 +203,17 @@ const ConversationList: React.FC<ConversationListProps> = ({ selectedConversatio
           }}
         />
       )}
+      <ConfirmActionDialog
+        open={conversationToDelete !== null}
+        title="Delete conversation?"
+        message={`${pendingDeleteName} will be hidden from your inbox. Other participants keep their own message history.`}
+        confirmLabel="Hide conversation"
+        cancelLabel="Keep conversation"
+        tone="danger"
+        busy={deletingConversation}
+        onCancel={() => setConversationToDelete(null)}
+        onConfirm={confirmDeleteConversation}
+      />
     </Container>
   );
 };

@@ -11,20 +11,28 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Search, ChevronDown, Star, Clock, UserPlus, X } from 'lucide-react';
 import {
   Avatar,
+  ChevronIndicator,
+  ClearSearchButton,
   ClientRow,
   Dropdown,
   EmptyMsg,
+  MutedIconSlot,
   NewClientRow,
   SearchInput,
   SearchWrap,
   SectionLabel,
+  SectionLabelIcon,
   SelectionInfo,
   SelectionMeta,
   SelectionName,
   SelectorButton,
+  SelectorPlaceholder,
   SelectorWrap,
   SourceBadge,
 } from './ClientSelectorDropdown.styles';
+import { getClientSourceLabel, getClientSourceShortLabel } from './clientSourceDisplay';
+import { getClientSessionSignal } from './clientSessionSignal';
+import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -65,6 +73,22 @@ interface ClientSelectorDropdownProps {
 // ─────────────────────────────────────────────────────────────
 const RECENT_KEY = 'ss-recent-clients';
 
+const normalizeRecentClientIds = (value: unknown): number[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0)
+    .slice(0, 5);
+};
+
+const readRecentClientIds = (): number[] => {
+  try {
+    return normalizeRecentClientIds(JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'));
+  } catch {
+    return [];
+  }
+};
+
 const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
   clients,
   selectedId,
@@ -79,13 +103,11 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
 
   // Recent clients from localStorage
   const recentIds: number[] = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]').slice(0, 5);
-    } catch { return []; }
+    return readRecentClientIds();
   }, [open]); // re-read when dropdown opens
 
   const addToRecent = useCallback((id: number) => {
-    const prev = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    const prev = readRecentClientIds();
     const updated = [id, ...prev.filter((x: number) => x !== id)].slice(0, 5);
     localStorage.setItem(RECENT_KEY, JSON.stringify(updated));
   }, []);
@@ -110,7 +132,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
     if (!search.trim()) return clients;
     const term = search.toLowerCase();
     return clients.filter(c =>
-      `${c.firstName} ${c.lastName}`.toLowerCase().includes(term) ||
+      getClientDisplayName(c).toLowerCase().includes(term) ||
       (c.email || '').toLowerCase().includes(term)
     );
   }, [clients, search]);
@@ -127,44 +149,50 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
     setSearch('');
   }, [onSelect, addToRecent]);
 
-  const initials = (c: ClientOption) =>
-    `${(c.firstName || '?')[0]}${(c.lastName || '?')[0]}`.toUpperCase();
+  const selectedClientName = selectedClient ? getClientDisplayName(selectedClient) : '';
 
   return (
     <SelectorWrap ref={wrapRef}>
       <SelectorButton
+        type="button"
         $hasSelection={!!selectedClient}
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={selectedClient ? `Selected: ${selectedClient.firstName} ${selectedClient.lastName}` : 'Select a client'}
+        aria-label={selectedClient ? `Selected: ${selectedClientName}` : 'Select a client'}
       >
         {selectedClient ? (
           <>
-            <Avatar $source={selectedClient.clientSource}>{initials(selectedClient)}</Avatar>
+            <Avatar $source={selectedClient.clientSource}>{getClientInitials(selectedClient)}</Avatar>
             <SelectionInfo>
-              <SelectionName>{selectedClient.firstName} {selectedClient.lastName}</SelectionName>
+              <SelectionName>{selectedClientName}</SelectionName>
               <SelectionMeta>
-                {selectedClient.clientSource === 'move_fitness' ? 'Move Fitness' : 'SwanStudios'}
-                {selectedClient.workoutCount != null && ` · ${selectedClient.workoutCount} workouts`}
+                {getClientSourceLabel(selectedClient.clientSource)}
+                {selectedClient.workoutCount != null && ` - ${selectedClient.workoutCount} workouts`}
               </SelectionMeta>
             </SelectionInfo>
             <SourceBadge $source={selectedClient.clientSource || 'swanstudios'}>
-              {selectedClient.clientSource === 'move_fitness' ? 'MF' : 'SS'}
+              {getClientSourceShortLabel(selectedClient.clientSource)}
             </SourceBadge>
           </>
         ) : (
           <>
-            <Search size={18} style={{ opacity: 0.4 }} />
-            <span style={{ opacity: 0.5 }}>{loading ? 'Loading clients...' : 'Select a client...'}</span>
+            <MutedIconSlot>
+              <Search size={18} />
+            </MutedIconSlot>
+            <SelectorPlaceholder>{loading ? 'Loading clients...' : 'Select a client...'}</SelectorPlaceholder>
           </>
         )}
-        <ChevronDown size={16} style={{ opacity: 0.4, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+        <ChevronIndicator $open={open}>
+          <ChevronDown size={16} />
+        </ChevronIndicator>
       </SelectorButton>
 
       <Dropdown $open={open} role="listbox" aria-label="Client list">
         <SearchWrap>
-          <Search size={16} style={{ opacity: 0.4 }} />
+          <MutedIconSlot>
+            <Search size={16} />
+          </MutedIconSlot>
           <SearchInput
             ref={searchRef}
             value={search}
@@ -173,22 +201,26 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
             aria-label="Search clients"
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 4 }}>
+            <ClearSearchButton
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Clear client search"
+            >
               <X size={14} />
-            </button>
+            </ClearSearchButton>
           )}
         </SearchWrap>
 
         {/* Recent clients */}
         {!search && recentClients.length > 0 && (
           <>
-            <SectionLabel><Clock size={10} style={{ marginRight: 4 }} /> Recent</SectionLabel>
+            <SectionLabel><SectionLabelIcon><Clock size={10} /></SectionLabelIcon> Recent</SectionLabel>
             {recentClients.map(c => (
-              <ClientRow key={`recent-${c.id}`} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
-                <Avatar $source={c.clientSource}>{initials(c)}</Avatar>
+              <ClientRow type="button" key={`recent-${c.id}`} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
+                <Avatar $source={c.clientSource}>{getClientInitials(c)}</Avatar>
                 <SelectionInfo>
-                  <SelectionName>{c.firstName} {c.lastName}</SelectionName>
-                  <SelectionMeta>{c.clientSource === 'move_fitness' ? 'Move Fitness' : 'SwanStudios'}</SelectionMeta>
+                  <SelectionName>{getClientDisplayName(c)}</SelectionName>
+                  <SelectionMeta>{getClientSourceLabel(c.clientSource)}</SelectionMeta>
                 </SelectionInfo>
               </ClientRow>
             ))}
@@ -200,26 +232,30 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
         {filtered.length === 0 ? (
           <EmptyMsg>{search ? 'No clients match your search' : 'No clients found'}</EmptyMsg>
         ) : (
-          filtered.map(c => (
-            <ClientRow key={c.id} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
-              <Avatar $source={c.clientSource}>{initials(c)}</Avatar>
-              <SelectionInfo>
-                <SelectionName>{c.firstName} {c.lastName}</SelectionName>
-                <SelectionMeta>
-                  {c.clientSource === 'move_fitness' ? 'Move Fitness' : 'SwanStudios'}
-                  {c.availableSessions != null && c.availableSessions > 0 && ` · ${c.availableSessions} sessions`}
-                </SelectionMeta>
-              </SelectionInfo>
-              <SourceBadge $source={c.clientSource || 'swanstudios'}>
-                {c.clientSource === 'move_fitness' ? 'MF' : 'SS'}
-              </SourceBadge>
-            </ClientRow>
-          ))
+          filtered.map(c => {
+            const sessionSignal = getClientSessionSignal(c);
+
+            return (
+              <ClientRow type="button" key={c.id} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
+                <Avatar $source={c.clientSource}>{getClientInitials(c)}</Avatar>
+                <SelectionInfo>
+                  <SelectionName>{getClientDisplayName(c)}</SelectionName>
+                  <SelectionMeta title={sessionSignal.note}>
+                    {getClientSourceLabel(c.clientSource)}
+                    {` - ${sessionSignal.label}`}
+                  </SelectionMeta>
+                </SelectionInfo>
+                <SourceBadge $source={c.clientSource || 'swanstudios'}>
+                  {getClientSourceShortLabel(c.clientSource)}
+                </SourceBadge>
+              </ClientRow>
+            );
+          })
         )}
 
         {/* New Client action */}
         {onNewClient && (
-          <NewClientRow onClick={() => { onNewClient(); setOpen(false); }}>
+          <NewClientRow type="button" onClick={() => { onNewClient(); setOpen(false); }}>
             <UserPlus size={18} />
             <span>Onboard New Client via Swan Coach</span>
           </NewClientRow>

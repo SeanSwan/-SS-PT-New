@@ -31,6 +31,7 @@ import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 
@@ -142,6 +143,13 @@ async function restoreSessionCredit(session, User, options = {}) {
   const client = await User.findByPk(session.userId);
   if (!client) {
     return { restored: false, newBalance: null, reason: 'client_not_found' };
+  }
+
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+    if (log) {
+      log.info(`[CreditRestore] Session ${session.id} belongs to non-deducting client source ${client.clientSource}, skipping restore`);
+    }
+    return { restored: false, newBalance: null, reason: 'non_deducting_client_source' };
   }
 
   const newBalance = (client.availableSessions || 0) + 1;
@@ -945,6 +953,14 @@ router.post("/book/:userId", protect, async (req, res) => {
       });
     }
 
+    // External/free-tier clients track workouts without SwanStudios booking.
+    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(403).json({
+        success: false,
+        message: "This client account does not have session booking access. Use the Workout Logger to track training."
+      });
+    }
+
     // Check if user has available sessions (admins can bypass this check)
     if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions <= 0)) {
       return res.status(400).json({ 
@@ -1126,6 +1142,15 @@ router.post("/:sessionId/book", protect, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "User not found."
+      });
+    }
+
+    // External/free-tier clients track workouts without SwanStudios booking.
+    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "This client account does not have session booking access. Use the Workout Logger to track training."
       });
     }
 
@@ -1326,6 +1351,15 @@ router.post("/book-recurring", protect, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "User not found."
+      });
+    }
+
+    // External/free-tier clients track workouts without SwanStudios booking.
+    if (NON_BOOKING_CLIENT_SOURCES.has(user.clientSource)) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: "This client account does not have recurring session booking access. Use the Workout Logger to track training."
       });
     }
 
@@ -1664,21 +1698,31 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
       transaction
     });
 
-    // Cancel sessions and restore credits
+    const shouldRestoreRecurringCredits = !NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource);
+
+    // Cancel sessions and restore only credits that were actually deducted.
     let sessionsRestored = 0;
     for (const session of sessions) {
       session.status = 'cancelled';
       session.cancellationReason = reason || 'Recurring series cancelled by client';
       session.cancellationDate = new Date();
       session.cancelledBy = userId;
-      session.sessionCreditRestored = true;
+      if (
+        session.sessionDeducted &&
+        !session.sessionCreditRestored &&
+        shouldRestoreRecurringCredits
+      ) {
+        session.sessionCreditRestored = true;
+        sessionsRestored++;
+      }
       await session.save({ transaction });
-      sessionsRestored++;
     }
 
     // Restore session credits to user
-    user.availableSessions = (user.availableSessions || 0) + sessionsRestored;
-    await user.save({ transaction });
+    if (sessionsRestored > 0) {
+      user.availableSessions = (user.availableSessions || 0) + sessionsRestored;
+      await user.save({ transaction });
+    }
 
     await transaction.commit();
 
@@ -1766,14 +1810,18 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     
     // Deduct a session if rescheduled within 24 hours of current time
     if (hoursDiff < 24 && req.user.role !== 'admin') {
-      sessionDeducted = true;
-      
       // Check if client has available sessions
       const client = await User.findByPk(session.userId);
-      if (client && client.availableSessions > 0) {
+      if (client && NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)) {
+        logger.info(`Late reschedule credit deduction skipped for non-deducting client source ${client.clientSource}`, {
+          sessionId,
+          clientId: session.userId
+        });
+      } else if (client && client.availableSessions > 0) {
         client.availableSessions -= 1;
         await client.save();
         
+        sessionDeducted = true;
         session.sessionDeducted = true;
         session.deductionDate = new Date();
       } else {
@@ -4813,10 +4861,17 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored) {
       const client = await User.findByPk(session.userId);
       if (client) {
-        const currentSessions = client.availableSessions || 0;
-        await client.update({ availableSessions: currentSessions + 1 });
-        session.sessionCreditRestored = true;
-        logger.info(`Session credit restored for user ${session.userId} due to waived cancellation`);
+        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+          logger.info(`Skipped waived cancellation credit restore for non-deducting client source ${client.clientSource}`, {
+            sessionId: session.id,
+            userId: client.id
+          });
+        } else {
+          const currentSessions = client.availableSessions || 0;
+          await client.update({ availableSessions: currentSessions + 1 });
+          session.sessionCreditRestored = true;
+          logger.info(`Session credit restored for user ${session.userId} due to waived cancellation`);
+        }
       }
     }
 

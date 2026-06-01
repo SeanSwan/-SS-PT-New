@@ -33,7 +33,7 @@
  * DATA FLOW:
  * Props In:  None (page-level component)
  * State:     { clients, assessments, formState, loading }
- * API Calls: GET /api/admin/clients, GET /api/movement-analysis, POST /api/movement-analysis
+ * API Calls: GET role-aware clients, GET /api/movement-analysis, POST /api/movement-analysis
  * Events:    handleSubmit → POST assessment → refresh list
  * Children:  AssessmentForm, AssessmentHistoryList
  *
@@ -49,6 +49,7 @@ import styled from 'styled-components';
 import { ClipboardCheck, ChevronDown, Send, FileText, BookOpen } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import NASMTeachMode from './components/NASMTeachMode';
+import { normalizeTrainerClientOptions, parseTrainerClientId, resolveTrainerClientSource } from './trainerClientSource';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types & Constants
@@ -67,12 +68,6 @@ interface Assessment {
   status?: string;
 }
 interface ClientOption { id: number; name: string; }
-interface AdminClientApi {
-  id: number;
-  firstName?: string;
-  lastName?: string;
-  username?: string;
-}
 
 const ASSESSMENT_TYPES = [
   { value: 'movement_screen', label: 'Movement Screen' },
@@ -508,6 +503,7 @@ const TrainerAssessmentsPage: React.FC = () => {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [submitStatus, setSubmitStatus] = useState<{ msg: string; success: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const parsedClientId = parseTrainerClientId(clientId);
 
   // Per-checkpoint compensation scoring for OHSA
   const [ohsaScores, setOhsaScores] = useState<Record<string, CompensationLevel>>(
@@ -532,19 +528,19 @@ const TrainerAssessmentsPage: React.FC = () => {
         setHistory(Array.isArray(list) ? list : []);
       } catch { setHistory([]); }
       try {
-        const res = await authAxios.get('/api/admin/clients');
-        const list = (Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.clients || []) as AdminClientApi[];
-        setClients(list.map((u) => ({ id: u.id, name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username || `Client ${u.id}` })));
+        const source = resolveTrainerClientSource(user);
+        const res = await authAxios.get(source.path);
+        setClients(normalizeTrainerClientOptions(res.data, source.mode));
       } catch { setClients([]); }
     };
     load();
-  }, [authAxios]);
+  }, [authAxios, user]);
 
   // Build the payload in the format MovementAnalysis controller expects
-  const buildPayload = useCallback(() => {
-    const selectedClient = clients.find(c => c.id === Number(clientId));
+  const buildPayload = useCallback((targetClientId: number) => {
+    const selectedClient = clients.find(c => c.id === targetClientId);
     const base = {
-      userId: Number(clientId),
+      userId: targetClientId,
       fullName: selectedClient?.name || 'Client',
       status: 'completed',
       source: 'in_session',
@@ -598,14 +594,14 @@ const TrainerAssessmentsPage: React.FC = () => {
         conductedBy: user?.id,
       },
     };
-  }, [assessmentType, clientId, clients, date, notes, ohsaScores, posturalScores, perfScores, user]);
+  }, [assessmentType, clients, date, notes, ohsaScores, posturalScores, perfScores, user]);
 
   const handleSubmit = useCallback(async () => {
-    if (!authAxios || !clientId || !assessmentType) return;
+    if (!authAxios || parsedClientId === null || !assessmentType) return;
     setSubmitting(true);
     setSubmitStatus(null);
     try {
-      const payload = buildPayload();
+      const payload = buildPayload(parsedClientId);
       await authAxios.post('/api/movement-analysis', payload);
       setSubmitStatus({ msg: 'Assessment saved — Swan Coach hive mind updated', success: true });
       // Reset form
@@ -629,7 +625,7 @@ const TrainerAssessmentsPage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
-  }, [authAxios, assessmentType, clientId, buildPayload]);
+  }, [authAxios, assessmentType, parsedClientId, buildPayload]);
 
   return (
     <PageWrapper>
@@ -758,7 +754,7 @@ const TrainerAssessmentsPage: React.FC = () => {
         </FieldGroup>
 
         <ActionRow>
-          <SubmitButton onClick={handleSubmit} disabled={submitting || !clientId}>
+          <SubmitButton onClick={handleSubmit} disabled={submitting || parsedClientId === null}>
             <Send size={18} /> {submitting ? 'Saving...' : 'Submit Assessment'}
           </SubmitButton>
           {submitStatus && <SubmitStatus $success={submitStatus.success}>{submitStatus.msg}</SubmitStatus>}

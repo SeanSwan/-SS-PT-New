@@ -228,13 +228,13 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
   },
   {
     key: 'workout-plans',
-    label: 'Workout Plans',
+    label: 'Plan Client Workout',
     icon: 'Dumbbell',
     order: 9.2,
     status: 'real',
     section: 'management',
-    route: '/dashboard/admin/workouts',
-    description: 'Build client workout plans and training days',
+    route: '/dashboard/admin/client-management?intent=plan_next',
+    description: 'Pick a client, then open the canonical workout planner',
     isNew: true,
   },
   {

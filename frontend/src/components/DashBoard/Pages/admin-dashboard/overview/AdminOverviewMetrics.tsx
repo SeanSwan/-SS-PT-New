@@ -10,11 +10,24 @@ import { VictoryLine, VictoryGroup } from 'victory';
 import { AdminDashboardMetric } from './AdminOverview.types';
 import { MetricCommandCard, MetricGrid, ChartContainer } from './AdminOverview.styles';
 import AnimatedCounter from '../../../../ui/animations/AnimatedCounter';
-import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
 
 interface AdminOverviewMetricsProps {
   metrics: AdminDashboardMetric[];
 }
+
+const CHANGE_COLORS = {
+  increase: 'var(--accent-primary, #60C0F0)',
+  decrease: 'var(--error, #EF4444)',
+  neutral: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+};
+
+const getChangeColor = (type: string) => (
+  type === 'increase' ? CHANGE_COLORS.increase :
+  type === 'decrease' ? CHANGE_COLORS.decrease :
+  CHANGE_COLORS.neutral
+);
+
+const metricAccentWash = (color: string) => `color-mix(in srgb, ${color} 20%, transparent)`;
 
 const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) => {
   const renderSparkline = (trend: number[], color: string) => {
@@ -66,11 +79,11 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             {metric.format !== 'text' && (
               <ChangeRow>
                 {metric.changeType === 'increase' ? (
-                  <TrendingUp size={14} color="#60C0F0" />
+                  <TrendingUp size={14} color={CHANGE_COLORS.increase} />
                 ) : metric.changeType === 'decrease' ? (
-                  <TrendingDown size={14} color="#C92A54" />
+                  <TrendingDown size={14} color={CHANGE_COLORS.decrease} />
                 ) : (
-                  <Activity size={14} color="rgba(224, 236, 244, 0.4)" />
+                  <Activity size={14} color={CHANGE_COLORS.neutral} />
                 )}
                 <ChangeText $type={metric.changeType}>
                   {metric.change > 0 ? '+' : ''}{metric.change}%
@@ -79,7 +92,7 @@ const AdminOverviewMetrics: React.FC<AdminOverviewMetricsProps> = ({ metrics }) 
             )}
           </div>
           <IconCol>
-            <IconBubble style={{ background: `${metric.color}20`, color: metric.color }}>
+            <IconBubble style={{ background: metricAccentWash(metric.color), color: metric.color }}>
               {metric.icon}
             </IconBubble>
             {metric.target && (
@@ -181,10 +194,7 @@ const ChangeText = styled.span<{ $type: string }>`
   font-family: 'Fira Code', monospace;
   font-size: 0.75rem;
   font-weight: 600;
-  color: ${p =>
-    p.$type === 'increase' ? '#60C0F0' :
-    p.$type === 'decrease' ? '#C92A54' :
-    'rgba(224, 236, 244, 0.4)'};
+  color: ${p => getChangeColor(p.$type)};
 `;
 
 const IconCol = styled.div`

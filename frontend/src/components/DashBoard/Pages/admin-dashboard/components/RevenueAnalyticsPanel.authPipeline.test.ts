@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const readSource = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+const lineCount = (source: string) => source.split(/\r?\n/).length;
 
 describe('RevenueAnalyticsPanel auth pipeline', () => {
   it('is mounted as the admin revenue analytics route and backed by finance APIs', () => {
@@ -30,5 +31,29 @@ describe('RevenueAnalyticsPanel auth pipeline', () => {
     expect(source).not.toContain("localStorage.getItem('token')");
     expect(source).not.toContain('Authorization');
     expect(source).not.toContain('fetch(');
+  });
+
+  it('keeps the revenue surface split into bounded, testable files', () => {
+    const component = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.tsx');
+    const sections = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.sections.tsx');
+    const styles = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.styles.ts');
+    const feedbackStyles = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.feedbackStyles.ts');
+    const chartConfig = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.chartConfig.ts');
+    const types = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.types.ts');
+
+    expect(component).toContain("from './RevenueAnalyticsPanel.sections'");
+    expect(component).toContain("from './RevenueAnalyticsPanel.styles'");
+    expect(component).toContain("from './RevenueAnalyticsPanel.types'");
+    expect(component).not.toContain("from 'styled-components'");
+    expect(component).not.toContain("from 'victory'");
+
+    expect(styles).toContain("from 'styled-components'");
+    expect(feedbackStyles).toContain("from 'styled-components'");
+    expect(sections).toContain("from 'victory'");
+    expect(sections).toContain("from './RevenueAnalyticsPanel.chartConfig'");
+
+    [component, sections, styles, feedbackStyles, chartConfig, types].forEach((source) => {
+      expect(lineCount(source)).toBeLessThanOrEqual(300);
+    });
   });
 });

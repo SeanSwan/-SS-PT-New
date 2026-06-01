@@ -14,7 +14,7 @@ interface NoteCreator {
   lastName: string;
 }
 
-interface ClientNote {
+export interface ClientNote {
   id: number;
   content: string;
   type: 'observation' | 'red_flag' | 'achievement' | 'concern' | 'general';

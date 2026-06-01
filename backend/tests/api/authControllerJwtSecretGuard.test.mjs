@@ -12,7 +12,7 @@ describe('auth controller JWT secret guard', () => {
   it('resolves all auth secrets through fail-closed runtime guards', () => {
     expect(runtimeSource).toContain('const getJwtSecret = () =>');
     expect(runtimeSource).toContain('const getRefreshJwtSecret = () =>');
-    expect(runtimeSource).toContain('const getPasswordResetSecret = () =>');
+    expect(runtimeSource).toContain('getPasswordResetSecret');
     expect(runtimeSource).toContain('INSECURE_JWT_PLACEHOLDERS.has(secret)');
     expect(runtimeSource).toContain('JwtSecretConfigurationError');
   });
@@ -34,6 +34,8 @@ describe('auth controller JWT secret guard', () => {
     expect(runtimeSource).not.toMatch(/const\s+RESET_SECRET\s*=/);
     expect(compactSource).toContain('let resetSecret;');
     expect(compactSource).toContain('resetSecret = getPasswordResetSecret();');
-    expect(compactSource).toContain("crypto.createHmac('sha256', resetSecret)");
+    expect(compactSource).toContain('sendPasswordResetEmailForUser(user, { resetSecret })');
+    expect(compactSource).toContain('hashPasswordResetToken(token)');
+    expect(runtimeSource).not.toContain("crypto.createHmac('sha256', resetSecret)");
   });
 });

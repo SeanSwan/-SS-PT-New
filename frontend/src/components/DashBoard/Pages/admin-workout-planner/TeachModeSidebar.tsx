@@ -54,6 +54,14 @@ import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { useExerciseTeachData } from '../../../../features/teach-mode/hooks/useExerciseTeachData';
 import { TabBar, TabButton, TabContent, SkeletonLine, EmptyDataMsg } from '../../../../features/teach-mode/styles/TeachModeStyles';
 import { Panel, PanelHeader, PanelTitle, PanelBody, EmptyMessage } from './WorkoutPlannerStyles';
+import {
+  ExerciseName,
+  RetryButton,
+  SkeletonSpacer,
+  TeachErrorBox,
+  TeachErrorText,
+  TeachTabLabel,
+} from './TeachModeSidebar.styles';
 import HowToPerformTab from '../../../../features/teach-mode/components/tabs/HowToPerformTab';
 import PhaseProgressionTab from '../../../../features/teach-mode/components/tabs/PhaseProgressionTab';
 import LearnWatchTab from '../../../../features/teach-mode/components/tabs/LearnWatchTab';
@@ -84,7 +92,7 @@ const TeachModeSkeleton: React.FC = () => (
     <SkeletonLine />
     <SkeletonLine $width="80%" />
     <SkeletonLine $width="45%" />
-    <div style={{ height: 16 }} />
+    <SkeletonSpacer />
     <SkeletonLine $width="50%" />
     <SkeletonLine />
     <SkeletonLine $width="70%" />
@@ -121,20 +129,15 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
         {exercise ? (
           <>
             {/* Exercise Name */}
-            <div style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              color: 'var(--text-primary, #E0ECF4)',
-              marginBottom: 12,
-            }}>
+            <ExerciseName>
               {exerciseName}
-            </div>
+            </ExerciseName>
 
             {/* 3-Tab Bar */}
             <TabBar role="tablist" aria-label="Teach Mode tabs">
               {TAB_CONFIG.map(tab => (
                 <TabButton
+                  type="button"
                   key={tab.id}
                   $active={activeTab === tab.id}
                   onClick={() => setActiveTab(tab.id)}
@@ -142,10 +145,10 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
                   aria-selected={activeTab === tab.id}
                   aria-controls={`panel-${tab.id}`}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
+                  <TeachTabLabel>
                     {tab.icon}
                     {tab.label}
-                  </span>
+                  </TeachTabLabel>
                 </TabButton>
               ))}
             </TabBar>
@@ -155,39 +158,17 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
 
             {/* Error State */}
             {error && (
-              <div style={{
-                padding: 16,
-                borderRadius: 8,
-                borderLeft: '3px solid #C92A54',
-                background: 'color-mix(in srgb, #C92A54 6%, transparent)',
-                marginBottom: 12,
-              }} role="alert">
-                <p style={{
-                  margin: 0,
-                  fontFamily: "'Sora', sans-serif",
-                  fontSize: '0.78rem',
-                  color: 'var(--text-primary, #E0ECF4)',
-                  marginBottom: 8,
-                }}>
+              <TeachErrorBox role="alert">
+                <TeachErrorText>
                   {error}
-                </p>
-                <button
+                </TeachErrorText>
+                <RetryButton
+                  type="button"
                   onClick={refetch}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: 6,
-                    border: '1px solid var(--accent-primary, #60C0F0)',
-                    background: 'transparent',
-                    color: 'var(--accent-primary, #60C0F0)',
-                    fontFamily: "'Sora', sans-serif",
-                    fontSize: '0.72rem',
-                    cursor: 'pointer',
-                    minHeight: 44,
-                  }}
                 >
                   Try Again
-                </button>
-              </div>
+                </RetryButton>
+              </TeachErrorBox>
             )}
 
             {/* Tab Content — all mounted, visibility toggled via CSS (preserves state) */}

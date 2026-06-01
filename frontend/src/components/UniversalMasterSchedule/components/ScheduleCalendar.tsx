@@ -10,6 +10,15 @@ import { CalendarView } from '../types';
 import type { LayoutMode, DensityMode } from '../types';
 import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 
+const CALENDAR_CONTAINER_THEME = {
+  surface: 'var(--card-bg, rgba(10, 10, 15, 0.88))',
+  border: 'var(--border, rgba(96, 192, 240, 0.16))',
+  primary: 'var(--accent-primary, #60C0F0)',
+  track: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)',
+  thumb: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent)',
+  thumbHover: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent)',
+};
+
 interface ScheduleCalendarProps {
   activeView: CalendarView;
   currentDate: Date;
@@ -205,9 +214,9 @@ const CalendarContainer = styled.div`
   -webkit-overflow-scrolling: touch;
   margin: 0 2rem 2rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: ${CALENDAR_CONTAINER_THEME.surface};
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid ${CALENDAR_CONTAINER_THEME.border};
   contain: style;
 
   &::-webkit-scrollbar {
@@ -216,16 +225,16 @@ const CalendarContainer = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: ${CALENDAR_CONTAINER_THEME.track};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: ${CALENDAR_CONTAINER_THEME.thumb};
     border-radius: 4px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: ${CALENDAR_CONTAINER_THEME.thumbHover};
     }
   }
 
@@ -280,7 +289,6 @@ const CalendarContainer = styled.div`
     border-radius: 20px;
   }
 `;
-
 
 
 

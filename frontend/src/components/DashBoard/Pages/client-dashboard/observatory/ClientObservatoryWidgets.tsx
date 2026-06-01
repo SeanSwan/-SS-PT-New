@@ -8,7 +8,7 @@ import { Award, Calendar, Flame, Hash, Trophy, Users } from 'lucide-react';
 import {
   ChallengePreview,
   LeaderboardPreview,
-  QUICK_ACTIONS,
+  type QuickAction,
   clampPercent,
   compactNumber,
   iconLabel,
@@ -55,8 +55,10 @@ interface ClientObservatoryWidgetsProps {
   currentWorkout?: CurrentClientWorkout | null;
   currentWorkoutError?: boolean;
   currentWorkoutLoading?: boolean;
+  canBookSessions: boolean;
   leaderboard: LeaderboardPreview[];
   progress: number;
+  quickActions: QuickAction[];
   streakDays: number;
   tags: string[];
   onNavigate: (path: string) => void;
@@ -84,8 +86,10 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
   currentWorkout,
   currentWorkoutError,
   currentWorkoutLoading,
+  canBookSessions,
   leaderboard,
   progress,
+  quickActions,
   streakDays,
   tags,
   onNavigate,
@@ -102,27 +106,29 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
         onNavigate={onNavigate}
       />
 
-      <WidgetCard data-testid="next-session-card">
-        <CardInner>
-          <WidgetHeader>
-            <div>
-              <SectionKicker>
-                <Calendar size={14} aria-hidden="true" />
-                Next Session
-              </SectionKicker>
-              <SectionTitle>Not booked yet</SectionTitle>
-            </div>
-            <SmallButton
-              type="button"
-              aria-label="Book a session"
-              onClick={() => onNavigate('/dashboard/client/schedule')}
-            >
-              Book
-            </SmallButton>
-          </WidgetHeader>
-          <MutedText>Not booked yet. Tap below to schedule your next training session.</MutedText>
-        </CardInner>
-      </WidgetCard>
+      {canBookSessions && (
+        <WidgetCard data-testid="next-session-card">
+          <CardInner>
+            <WidgetHeader>
+              <div>
+                <SectionKicker>
+                  <Calendar size={14} aria-hidden="true" />
+                  Next Session
+                </SectionKicker>
+                <SectionTitle>Not booked yet</SectionTitle>
+              </div>
+              <SmallButton
+                type="button"
+                aria-label="Book a session"
+                onClick={() => onNavigate('/dashboard/client/schedule')}
+              >
+                Book
+              </SmallButton>
+            </WidgetHeader>
+            <MutedText>Not booked yet. Tap below to schedule your next training session.</MutedText>
+          </CardInner>
+        </WidgetCard>
+      )}
 
       <WidgetCard>
         <CardInner>
@@ -245,7 +251,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
       </WidgetCard>
 
       <MobileDock aria-label="Mobile dashboard actions">
-        {QUICK_ACTIONS.map(({ label, Icon, path }) => (
+        {quickActions.map(({ label, Icon, path }) => (
           <SmallButton key={path} type="button" onClick={() => onNavigate(path)} aria-label={label}>
             <Icon size={16} aria-hidden="true" />
           </SmallButton>

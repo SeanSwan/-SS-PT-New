@@ -1,256 +1,43 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
 import { Search, UserPlus, Users, UserCheck, UserX } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
 import { useSocialFriends } from '../../../hooks/social/useSocialFriends';
+import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import FriendRequests from './FriendRequests';
 import FriendSuggestions from './FriendSuggestions';
-import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
+import RemoveFriendConfirmDialog from './RemoveFriendConfirmDialog';
+import {
+  CardBody,
+  CardPanel,
+  CountRow,
+  CountText,
+  EmptyState,
+  EmptyText,
+  EmptyTitle,
+  FriendActions,
+  FriendAvatar,
+  FriendInfo,
+  FriendItem,
+  FriendName,
+  FriendsContainer,
+  FriendUsername,
+  HeaderLeft,
+  HeaderRow,
+  HeaderTitle,
+  OutlineBtn,
+  PrimaryBtn,
+  RemoveBtn,
+  SearchBarWrapper,
+  SearchIcon,
+  SearchInput,
+  SkeletonBlock,
+  TextBtn,
+} from './FriendsList.styles';
 
-const shimmer = keyframes`
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const FriendsContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-`;
-
-const CardPanel = styled.div`
-  border-radius: 12px;
-  background: var(--bg-elevated, rgba(0, 32, 96, 0.85));
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(139, 92, 246, 0.08);
-  overflow: hidden;
-
-  @supports (backdrop-filter: blur(12px)) {
-    background: var(--bg-elevated, rgba(0, 32, 96, 0.6));
-    backdrop-filter: blur(12px);
-  }
-`;
-
-const CardBody = styled.div`
-  padding: 24px;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const HeaderTitle = styled.h6`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-`;
-
-const OutlineBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  min-height: 44px;
-  border-radius: 6px;
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  background: transparent;
-  color: #60C0F0;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover { background: rgba(139, 92, 246, 0.1); }
-`;
-
-const SearchBarWrapper = styled.div`
-  margin-bottom: 16px;
-  position: relative;
-`;
-
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 10px 16px 10px 40px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-  font-size: 0.875rem;
-  transition: border-color 0.2s ease;
-
-  &::placeholder { color: rgba(255, 255, 255, 0.4); }
-  &:focus { outline: none; border-color: rgba(139, 92, 246, 0.5); }
-`;
-
-const SearchIcon = styled.div`
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.4);
-  pointer-events: none;
-`;
-
-const CountRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-`;
-
-const CountText = styled.span`
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
-`;
-
-const TextBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  min-height: 44px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #60C0F0;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover { background: rgba(139, 92, 246, 0.05); }
-`;
-
-const FriendItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  transition: background-color 0.2s ease;
-`;
-
-const FriendAvatar = styled.div<{ $src?: string }>`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: ${({ $src }) => {
-    const safe = $src ? sanitizeImageUrl($src) : null;
-    return safe ? `url(${cssUrlValue(safe)}) center/cover` : 'rgba(139, 92, 246, 0.2)';
-  }};
-  color: #60C0F0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 600;
-  flex-shrink: 0;
-  margin-right: 12px;
-`;
-
-const FriendInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const FriendName = styled.span`
-  font-size: 1rem;
-  font-weight: 500;
-  color: white;
-  display: block;
-`;
-
-const FriendUsername = styled.span`
-  font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.5);
-`;
-
-const FriendActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-`;
-
-const RemoveBtn = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: #ef5350;
-  cursor: pointer;
-  transition: background 0.2s ease;
-
-  &:hover { background: rgba(244, 67, 54, 0.1); }
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  text-align: center;
-
-  svg { opacity: 0.5; margin-bottom: 16px; color: rgba(255, 255, 255, 0.5); }
-`;
-
-const EmptyTitle = styled.h6`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
-  margin: 0 0 8px;
-`;
-
-const EmptyText = styled.p`
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 0 16px;
-`;
-
-const PrimaryBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  min-height: 44px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(139, 92, 246, 0.15);
-  color: #60C0F0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover { background: rgba(139, 92, 246, 0.25); }
-`;
-
-const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRadius?: string }>`
-  background: linear-gradient(90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0.05) 100%);
-  background-size: 200% 100%;
-  animation: ${shimmer} 2s infinite linear;
-  width: ${props => props.$width || '100%'};
-  height: ${props => props.$height || '20px'};
-  border-radius: ${props => props.$borderRadius || '4px'};
-`;
+type PendingRemoval = {
+  friendshipId: string;
+  friendName: string;
+};
 
 /**
  * FriendsList Component
@@ -258,11 +45,12 @@ const SkeletonBlock = styled.div<{ $width?: string; $height?: string; $borderRad
  */
 const FriendsList: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { friends, isLoading, removeFriend } = useSocialFriends();
   const [searchQuery, setSearchQuery] = useState('');
   const [showRequests, setShowRequests] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [pendingRemoval, setPendingRemoval] = useState<PendingRemoval | null>(null);
+  const [isRemovingFriend, setIsRemovingFriend] = useState(false);
 
   const filteredFriends = friends.filter(friend => {
     const fullName = `${friend.firstName} ${friend.lastName}`.toLowerCase();
@@ -271,9 +59,18 @@ const FriendsList: React.FC = () => {
     return fullName.includes(query) || username.includes(query);
   });
 
-  const handleRemoveFriend = async (friendId: string, friendshipId: string) => {
-    if (window.confirm('Are you sure you want to remove this friend?')) {
-      await removeFriend(friendshipId);
+  const requestRemoveFriend = (friendshipId: string, friendName: string) => {
+    setPendingRemoval({ friendshipId, friendName });
+  };
+
+  const confirmRemoveFriend = async () => {
+    if (!pendingRemoval) return;
+    setIsRemovingFriend(true);
+    try {
+      await removeFriend(pendingRemoval.friendshipId);
+      setPendingRemoval(null);
+    } finally {
+      setIsRemovingFriend(false);
     }
   };
 
@@ -312,7 +109,7 @@ const FriendsList: React.FC = () => {
         <CardBody>
           <HeaderRow>
             <HeaderLeft>
-              <Users size={20} color="rgba(255,255,255,0.7)" />
+              <Users size={20} />
               <HeaderTitle>Friends</HeaderTitle>
             </HeaderLeft>
             <OutlineBtn onClick={() => setShowSuggestions(true)}>
@@ -349,29 +146,37 @@ const FriendsList: React.FC = () => {
             </EmptyState>
           ) : (
             <div>
-              {filteredFriends.map((friend) => (
-                <FriendItem key={friend.id}>
-                  <FriendAvatar $src={friend.photo || undefined}>
-                    {!friend.photo && `${friend.firstName[0]}${friend.lastName[0]}`}
-                  </FriendAvatar>
-                  <FriendInfo>
-                    <FriendName>{friend.firstName} {friend.lastName}</FriendName>
-                    <FriendUsername>@{friend.username}</FriendUsername>
-                  </FriendInfo>
-                  <FriendActions>
-                    <OutlineBtn onClick={() => handleViewProfile(friend.id)}>
-                      View Profile
-                    </OutlineBtn>
-                    <RemoveBtn
-                      onClick={() => handleRemoveFriend(friend.id, friend.friendshipId)}
-                      title="Remove friend"
-                      aria-label="Remove friend"
-                    >
-                      <UserX size={18} />
-                    </RemoveBtn>
-                  </FriendActions>
-                </FriendItem>
-              ))}
+              {filteredFriends.map((friend) => {
+                const safeFriendPhoto = sanitizeImageUrl(friend.photo || undefined);
+                const friendAvatarImage = safeFriendPhoto ? cssUrlValue(safeFriendPhoto) : null;
+
+                return (
+                  <FriendItem key={friend.id}>
+                    <FriendAvatar $backgroundImage={friendAvatarImage}>
+                      {!safeFriendPhoto && `${friend.firstName[0]}${friend.lastName[0]}`}
+                    </FriendAvatar>
+                    <FriendInfo>
+                      <FriendName>{friend.firstName} {friend.lastName}</FriendName>
+                      <FriendUsername>@{friend.username}</FriendUsername>
+                    </FriendInfo>
+                    <FriendActions>
+                      <OutlineBtn onClick={() => handleViewProfile(friend.id)}>
+                        View Profile
+                      </OutlineBtn>
+                      <RemoveBtn
+                        onClick={() => requestRemoveFriend(
+                          friend.friendshipId,
+                          `${friend.firstName} ${friend.lastName}`,
+                        )}
+                        title="Remove friend"
+                        aria-label="Remove friend"
+                      >
+                        <UserX size={18} />
+                      </RemoveBtn>
+                    </FriendActions>
+                  </FriendItem>
+                );
+              })}
             </div>
           )}
         </CardBody>
@@ -386,6 +191,15 @@ const FriendsList: React.FC = () => {
         open={showSuggestions}
         onClose={() => setShowSuggestions(false)}
       />
+
+      {pendingRemoval && (
+        <RemoveFriendConfirmDialog
+          friendName={pendingRemoval.friendName}
+          busy={isRemovingFriend}
+          onCancel={() => setPendingRemoval(null)}
+          onConfirm={confirmRemoveFriend}
+        />
+      )}
     </FriendsContainer>
   );
 };

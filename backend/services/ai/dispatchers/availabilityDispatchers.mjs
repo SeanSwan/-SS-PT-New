@@ -42,7 +42,14 @@
 import availabilityService from '../../../services/availabilityService.mjs';
 
 // Day index → short name, matching JS Date.getDay() and TrainerAvailability.dayOfWeek
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export const timeToMinutes = (hhmm) => {
+  const [hours, minutes] = String(hhmm).split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+export const trimTime = (value) => String(value || '').slice(0, 5);
 
 // ── Shared helper — resolve and assert trainerId for both A01 + A02 ──────────
 
@@ -54,7 +61,7 @@ const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
  * @param {{ id: number, role: string }} user
  * @returns {number}
  */
-function resolveTrainerId(rawTrainerId, user) {
+export function resolveTrainerId(rawTrainerId, user) {
   const isTrainer = user.role === 'trainer';
   const trainerId = rawTrainerId != null ? Number(rawTrainerId) : null;
 
@@ -197,11 +204,7 @@ export async function dispatchCreateAvailabilityOverride(params, ctx) {
   parseDateOnlyLocal(date);
 
   // ── Time-range guard ───────────────────────────────────────────────────────
-  const toMin = (hhmm) => {
-    const [h, m] = hhmm.split(':').map(Number);
-    return h * 60 + m;
-  };
-  if (toMin(endTime) <= toMin(startTime)) {
+  if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
     throw new Error(
       `End time (${endTime}) must be after start time (${startTime}). ` +
       'Overnight blocks are not supported.'

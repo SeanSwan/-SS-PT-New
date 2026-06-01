@@ -177,7 +177,7 @@ class SessionService {
    */
   async deleteSession(sessionId: string): Promise<void> {
     try {
-      await this.apiService.delete(`/api/sessions/${sessionId}`);
+      await this.cancelSession(sessionId, 'Deleted from schedule');
     } catch (error) {
       console.error('Error deleting session:', error);
       throw error;
@@ -307,8 +307,8 @@ class SessionService {
    */
   async assignSessionToTrainer(sessionId: string, trainerId: string): Promise<Session> {
     try {
-      const response = await this.apiService.put<Session>(
-        `/api/sessions/${sessionId}/assign-trainer`,
+      const response = await this.apiService.patch<Session>(
+        `/api/sessions/${sessionId}/assign`,
         { trainerId }
       );
       return response.data;
@@ -325,7 +325,7 @@ class SessionService {
    */
   async confirmSession(sessionId: string): Promise<Session> {
     try {
-      const response = await this.apiService.put<Session>(
+      const response = await this.apiService.patch<Session>(
         `/api/sessions/${sessionId}/confirm`
       );
       return response.data;
@@ -343,7 +343,7 @@ class SessionService {
    */
   async cancelSession(sessionId: string, reason?: string): Promise<Session> {
     try {
-      const response = await this.apiService.put<Session>(
+      const response = await this.apiService.patch<Session>(
         `/api/sessions/${sessionId}/cancel`,
         { reason }
       );
@@ -362,7 +362,7 @@ class SessionService {
    */
   async completeSession(sessionId: string, notes?: string): Promise<Session> {
     try {
-      const response = await this.apiService.put<Session>(
+      const response = await this.apiService.patch<Session>(
         `/api/sessions/${sessionId}/complete`,
         { notes }
       );

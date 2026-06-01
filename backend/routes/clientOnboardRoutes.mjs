@@ -30,10 +30,31 @@ import crypto from 'crypto';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import { getUser, getClientProgress } from '../models/index.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const ALLOWED_CLIENT_ONBOARD_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+
+export const isAllowedClientOnboardSource = (clientSource) =>
+  ALLOWED_CLIENT_ONBOARD_SOURCES.has(clientSource);
+
+export const getClientOnboardAvailableSessions = ({ clientSource, availableSessions }) => {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)) return 0;
+  const sessions = Number(availableSessions || 0);
+  return Number.isFinite(sessions) && sessions > 0 ? sessions : 0;
+};
+
+export const getClientOnboardSuccessMessage = (clientSource) => {
+  if (clientSource === 'move_fitness') {
+    return 'Client onboarded successfully (Move Fitness - free tracking)';
+  }
+  if (clientSource === 'external') {
+    return 'Client onboarded successfully (External - free tracking)';
+  }
+  return 'Client onboarded successfully (SwanStudios - paid sessions)';
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Username Generation
@@ -117,10 +138,10 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    if (!clientSource || !['move_fitness', 'swanstudios'].includes(clientSource)) {
+    if (!clientSource || !isAllowedClientOnboardSource(clientSource)) {
       return res.status(400).json({
         success: false,
-        message: 'clientSource is required and must be "move_fitness" or "swanstudios"'
+        message: 'clientSource is required and must be "swanstudios", "move_fitness", or "external"'
       });
     }
 
@@ -170,7 +191,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       clientSource,
       forcePasswordChange: true,
       accountStatus: generateClaimCode ? 'stub' : 'active',
-      availableSessions: clientSource === 'move_fitness' ? 0 : (availableSessions || 0),
+      availableSessions: getClientOnboardAvailableSessions({ clientSource, availableSessions }),
       healthConcerns: healthConcerns || null,
       fitnessGoal: fitnessGoal || null,
       trainingExperience: trainingExperience || null,
@@ -266,6 +287,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
 
     // ── Build Response ──────────────────────────────────────
     const isMoveFitness = clientSource === 'move_fitness';
+    const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
     const responseData = {
       client: {
         id: newUser.id,
@@ -281,11 +303,12 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       claimUrl: claimData ? `https://sswanstudios.com/claim/${claimData.plainToken}` : null,
       assignedTrainer,
       isMoveFitness,
+      isFreeTracking,
     };
 
     return res.status(201).json({
       success: true,
-      message: `Client onboarded successfully${isMoveFitness ? ' (Move Fitness — free tier)' : ''}`,
+      message: getClientOnboardSuccessMessage(clientSource),
       data: responseData,
     });
 

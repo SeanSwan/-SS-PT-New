@@ -41,9 +41,68 @@ interface RecoveryRow {
   totalSets?: number;
 }
 
+interface SanitizedRecoveryRow {
+  x: string;
+  y: number;
+  painFlags: number;
+  highRpeFlags: number;
+  totalSets: number;
+  pct: number;
+}
+
 interface ApiResponse {
   success: boolean;
   data: RecoveryRow[];
+}
+
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+};
+
+const toNonNegativeNumber = (value: unknown, fallback = 0): number =>
+  Math.max(toFiniteNumber(value, fallback), 0);
+
+export function sanitizeRecoverySignalRows(
+  input: unknown,
+  limit = 6,
+): SanitizedRecoveryRow[] {
+  if (!Array.isArray(input)) return [];
+
+  const rows: SanitizedRecoveryRow[] = [];
+
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const record = raw as Record<string, unknown>;
+    const x = typeof record.x === 'string' ? record.x.trim() : '';
+    if (!x) continue;
+
+    const painFlags = toNonNegativeNumber(record.painFlags);
+    const highRpeFlags = toNonNegativeNumber(record.highRpeFlags);
+    const fallbackSignal = painFlags + highRpeFlags;
+    const y = toNonNegativeNumber(record.y, fallbackSignal);
+    if (y <= 0 && fallbackSignal <= 0) continue;
+
+    const totalSets = Math.max(toNonNegativeNumber(record.totalSets), 1);
+    const pct = Math.min((y / totalSets) * 100, 100);
+
+    rows.push({
+      x,
+      y,
+      painFlags,
+      highRpeFlags,
+      totalSets,
+      pct,
+    });
+
+    if (rows.length >= limit) break;
+  }
+
+  return rows;
 }
 
 const RecoverySignalBars: React.FC<Props> = ({ userId }) => {
@@ -53,10 +112,7 @@ const RecoverySignalBars: React.FC<Props> = ({ userId }) => {
   );
 
   const rows = useMemo(() => {
-    if (!data?.data) return [];
-    return data.data
-      .filter((r): r is RecoveryRow => typeof r?.x === 'string')
-      .slice(0, 6);
+    return sanitizeRecoverySignalRows(data?.data);
   }, [data]);
 
   if (loading) return <SkeletonChart height={320} />;
@@ -80,10 +136,9 @@ const RecoverySignalBars: React.FC<Props> = ({ userId }) => {
       </ChartHeader>
       <BarList>
         {rows.map((row) => {
-          const totalSets = Math.max(row.totalSets ?? 0, 1);
-          const pct = Math.min((row.y / totalSets) * 100, 100);
-          const painFlags = row.painFlags ?? 0;
-          const highRpeFlags = row.highRpeFlags ?? 0;
+          const pct = row.pct;
+          const painFlags = row.painFlags;
+          const highRpeFlags = row.highRpeFlags;
           return (
             <BarRow key={row.x}>
               <BarLabel title={row.x}>
@@ -157,7 +212,10 @@ const BarTrack = styled.div`
 const BarFill = styled.div<{ $pct: number }>`
   position: absolute;
   inset: 0 auto 0 0;
-  width: ${({ $pct }) => Math.max(Math.min($pct, 100), 2)}%;
+  width: ${({ $pct }) => {
+    const safePct = Number.isFinite($pct) ? $pct : 0;
+    return Math.max(Math.min(safePct, 100), 2);
+  }}%;
   background: ${CHART_COLORS.crimsonFrost};
   border-radius: 4px;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);

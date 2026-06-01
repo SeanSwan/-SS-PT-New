@@ -14,11 +14,13 @@
 import React from 'react';
 import styled from 'styled-components';
 import { ClipboardList, Dumbbell, MessageCircle, TrendingUp } from 'lucide-react';
+import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
 
 interface ClientDailyActionStripProps {
   clientName: string;
   workoutCount: number;
   sessionsLeft: number;
+  clientSource?: string;
   onLogToday: () => void;
   onPlanNext: () => void;
   onViewProgress: () => void;
@@ -58,7 +60,7 @@ const Eyebrow = styled.div`
   font-family: 'Fira Code', monospace;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 `;
 
@@ -84,16 +86,32 @@ const DetailLine = styled.div`
   font-size: 13px;
 `;
 
-const Metric = styled.span`
+const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 28px;
   padding: 4px 9px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-primary, #60C0F0) 8%);
+  background: ${({ $tone = 'default' }) => {
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-gold, #C6A84B) 10%)';
+    if ($tone === 'warning') return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-secondary, #8B5CF6) 12%)';
+    return 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-primary, #60C0F0) 8%)';
+  }};
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
   white-space: nowrap;
+`;
+
+const MetricStack = styled.span`
+  display: grid;
+  gap: 2px;
+`;
+
+const MetricNote = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 700;
 `;
 
 const ActionGroup = styled.div`
@@ -159,43 +177,70 @@ const ClientDailyActionStrip: React.FC<ClientDailyActionStripProps> = ({
   clientName,
   workoutCount,
   sessionsLeft,
+  clientSource,
   onLogToday,
   onPlanNext,
   onViewProgress,
   onDictateAI,
-}) => (
-  <Strip aria-label={`${clientName} daily training actions`}>
-    <CopyBlock>
-      <Eyebrow>
-        <TrendingUp size={14} />
-        Daily training flow
-      </Eyebrow>
-      <Title>{clientName}</Title>
-      <DetailLine>
-        <Metric>{workoutCount} workouts logged</Metric>
-        <Metric>{sessionsLeft} sessions left</Metric>
-      </DetailLine>
-    </CopyBlock>
+}) => {
+  const sessionSignal = getClientSessionSignal({ clientSource, availableSessions: sessionsLeft });
 
-    <ActionGroup>
-      <CockpitButton type="button" $variant="primary" onClick={onLogToday}>
-        <Dumbbell size={16} />
-        Log Today
-      </CockpitButton>
-      <CockpitButton type="button" onClick={onPlanNext}>
-        <ClipboardList size={16} />
-        Plan Next
-      </CockpitButton>
-      <CockpitButton type="button" onClick={onViewProgress}>
-        <TrendingUp size={16} />
-        Progress
-      </CockpitButton>
-      <CockpitButton type="button" onClick={onDictateAI}>
-        <MessageCircle size={16} />
-        Dictate / AI
-      </CockpitButton>
-    </ActionGroup>
-  </Strip>
-);
+  return (
+    <Strip aria-label={`${clientName} daily training actions`}>
+      <CopyBlock>
+        <Eyebrow>
+          <TrendingUp size={14} />
+          Daily training flow
+        </Eyebrow>
+        <Title>{clientName}</Title>
+        <DetailLine>
+          <Metric>{workoutCount} workouts logged</Metric>
+          <Metric $tone={sessionSignal.tone}>
+            <MetricStack>
+              <span>{sessionSignal.label}</span>
+              <MetricNote>{sessionSignal.note}</MetricNote>
+            </MetricStack>
+          </Metric>
+        </DetailLine>
+      </CopyBlock>
+
+      <ActionGroup>
+        <CockpitButton
+          type="button"
+          $variant="primary"
+          onClick={onLogToday}
+          aria-label={`Log today for ${clientName}`}
+        >
+          <Dumbbell size={16} />
+          Log Today
+        </CockpitButton>
+        <CockpitButton
+          type="button"
+          onClick={onPlanNext}
+          aria-label={`Plan next for ${clientName}`}
+        >
+          <ClipboardList size={16} />
+          Plan Next
+        </CockpitButton>
+        <CockpitButton
+          type="button"
+          onClick={onViewProgress}
+          aria-label={`View ${clientName} progress`}
+        >
+          <TrendingUp size={16} />
+          Progress
+        </CockpitButton>
+        <CockpitButton
+          type="button"
+          onClick={onDictateAI}
+          aria-label={`Dictate to Swan for ${clientName}`}
+        >
+          <MessageCircle size={16} />
+          Dictate / AI
+        </CockpitButton>
+      </ActionGroup>
+    </Strip>
+  );
+};
 
 export default ClientDailyActionStrip;

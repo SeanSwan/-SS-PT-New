@@ -41,12 +41,12 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import styled from 'styled-components';
 import { List } from 'react-window';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
   Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
@@ -67,6 +67,14 @@ import LongHorizonScheduleView from './LongHorizonScheduleView';
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
 import { buildPlanData as composePlanData, buildContentSignature } from './planDataBuilder';
+import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';
+import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
+import {
+  normalizeWorkoutPlannerClients,
+  parseWorkoutPlannerClientId,
+  pickWorkoutPlannerClientId,
+  resolveWorkoutPlannerPlanClientId,
+} from './WorkoutPlannerClientIdentity';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -76,28 +84,57 @@ import {
   OPT_PHASES, WORKOUT_CATEGORIES, PLAN_GOALS, PLAN_DURATIONS,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
+import { workoutPlannerExplanationKey, workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
 import {
   Page, Header, HeaderLeft, HeaderIcon, Title, Subtitle,
   ControlRow, Select, ActionBtn, ThreePanel,
   Panel, PanelHeader, PanelTitle, PanelBody,
   SearchWrapper, SearchInput, ChipRow, Chip,
-  ExerciseItem, ExerciseAddBtn, ExerciseName, ExerciseMeta, MetaTag,
+  ExerciseMeta,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
   SkeletonBlock, EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
-  GeneratingSkeletonWrap, GeneratingSkeletonRow, SkeletonCircle, SkeletonBar,
+  GeneratingSkeletonWrap, SkeletonCircle, SkeletonBar,
   GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
   PlanModeBar, PlanModeLabel, SmallSelect,
-  MesocycleSection, MesocycleSectionTitle, MesocycleGrid, MesocycleCard,
+  MesocycleSection, MesocycleSectionTitle, MesocycleGrid,
   MesocycleHeader, MesocycleTitle, MesocycleWeeks, MesocyclePhase,
   MesocycleParams, MesocycleParam, MesocycleOverload, DeloadBadge,
-  ScheduleRow, ScheduleDay, ScheduleDayNumber, ScheduleDayFocus,
+  ScheduleRow, ScheduleDayFocus,
   RecommendationList, RecommendationItem,
   // L5 (2026-05-02): self-service status pill rendered below ControlRow.
   ClientSelfGenPill, PillHint,
   // L3 (2026-05-02): branded PDF export trigger.
   ExportPdfBtn,
 } from './WorkoutPlannerStyles';
+import {
+  ActionWrap,
+  ActiveDayDetail,
+  ActiveDayMeta,
+  ActiveDayTitle,
+  ActiveScheduleDay,
+  ActiveScheduleDayNumber,
+  BuilderActionRow,
+  BuilderParamGroup,
+  ClickableExerciseName,
+  ClickableMesocycleCard,
+  DegradedPanel,
+  ExerciseListPane,
+  ExplanationDetails,
+  FiltersPane,
+  ParamField,
+  ParamLabel,
+  PlanLabelBlock,
+  RecommendationSource,
+  RepsInput,
+  ResultsCount,
+  SavedPlansCount,
+  SavedPlansEmpty,
+  SavedPlansLoading,
+  SkeletonDelayRow,
+  SkeletonTextStack,
+  TempoInput,
+} from './WorkoutPlannerPage.styles';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Stable skeleton row widths (W1A-1, 2026-05-01)
@@ -109,7 +146,7 @@ import {
 const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
   [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
 ];
-const WORKOUT_PLANNER_ROW_HEIGHT = 76;
+const WORKOUT_PLANNER_ROW_HEIGHT = 104;
 const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 
 // ─────────────────────────────────────────────────────────────
@@ -140,164 +177,6 @@ interface TrainerAssignmentResponse {
   client?: PlannerClient;
   Client?: PlannerClient;
 }
-
-const RowContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ResultsCount = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 0.7rem;
-  color: rgba(224, 236, 244, 0.5);
-`;
-
-const FiltersPane = styled.div`
-  flex-shrink: 0;
-  padding: 12px 16px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-`;
-
-const ExerciseListPane = styled.div`
-  flex: 1;
-  min-height: 0;
-  padding: 0 16px 8px;
-`;
-
-const DegradedPanel = styled(Panel)<{ $degraded?: boolean }>`
-  border: ${({ $degraded }) => ($degraded ? '1px solid #C6A84B' : undefined)};
-`;
-
-const ActionWrap = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const SkeletonDelayRow = styled(GeneratingSkeletonRow)<{ $delayMs: number }>`
-  animation-delay: ${({ $delayMs }) => $delayMs}ms;
-`;
-
-const SkeletonTextStack = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const ClickableExerciseName = styled(ExerciseName)`
-  cursor: pointer;
-`;
-
-const BuilderParamGroup = styled.div`
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
-const ParamField = styled.div`
-  text-align: center;
-`;
-
-const ParamLabel = styled.div`
-  font-size: 0.6rem;
-  color: rgba(224, 236, 244, 0.4);
-  margin-bottom: 2px;
-`;
-
-const RepsInput = styled(MiniInput)`
-  width: 64px;
-`;
-
-const TempoInput = styled(MiniInput)`
-  width: 56px;
-`;
-
-const BuilderActionRow = styled.div`
-  margin-top: 16px;
-  display: flex;
-  gap: 8px;
-`;
-
-const ExplanationDetails = styled.div`
-  margin-top: 4px;
-  font-size: 0.7rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
-  font-family: 'Fira Code', monospace;
-`;
-
-const PlanLabelBlock = styled(PlanModeLabel)<{ $top?: boolean }>`
-  display: block;
-  margin-top: ${({ $top }) => ($top ? '20px' : 0)};
-  margin-bottom: 8px;
-`;
-
-const ActiveScheduleDay = styled(ScheduleDay)<{ $active?: boolean }>`
-  cursor: pointer;
-  outline: ${({ $active }) => ($active ? '2px solid var(--accent-secondary, #8B5CF6)' : 'none')};
-  background: ${({ $active }) =>
-    $active
-      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, var(--bg-elevated, #1A1A24))'
-      : undefined};
-  transition: all 0.2s ease;
-`;
-
-const ActiveScheduleDayNumber = styled(ScheduleDayNumber)<{ $active?: boolean }>`
-  color: ${({ $active }) => ($active ? 'var(--accent-secondary, #8B5CF6)' : undefined)};
-`;
-
-const ActiveDayDetail = styled.div`
-  padding: 12px 16px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, var(--bg-surface, #141419));
-  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
-  margin-bottom: 16px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8rem;
-`;
-
-const ActiveDayTitle = styled.div`
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: var(--accent-secondary, #8B5CF6);
-`;
-
-const ActiveDayMeta = styled.div`
-  color: var(--text-muted, rgba(224,236,244,0.5));
-  font-size: 0.7rem;
-`;
-
-const ClickableMesocycleCard = styled(MesocycleCard)<{ $selected?: boolean }>`
-  cursor: pointer;
-  text-align: left;
-  outline: ${({ $selected }) => ($selected ? '2px solid var(--accent-secondary, #8B5CF6)' : 'none')};
-  transition: all 0.2s ease;
-`;
-
-const RecommendationSource = styled.span`
-  margin-left: 8px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.65rem;
-  color: var(--text-muted, rgba(224,236,244,0.5));
-`;
-
-const SavedPlansCount = styled.span`
-  margin-left: 8px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted, rgba(224,236,244,0.5));
-`;
-
-const SavedPlansLoading = styled.div`
-  padding: 16px;
-`;
-
-const SavedPlansEmpty = styled(EmptyMessage)`
-  padding: 16px;
-`;
 
 function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
   const lowTypes = ['flexibility', 'stability', 'balance'];
@@ -332,15 +211,18 @@ function parseEquipment(eq: unknown): string[] {
 // ─────────────────────────────────────────────────────────────
 const WorkoutPlannerPage: React.FC = () => {
   const { authAxios, user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [confirmRequest, setConfirmRequest] = useState<WorkoutPlannerConfirmRequest | null>(null);
+  const closeConfirmDialog = useCallback(() => setConfirmRequest(null), []);
 
-  const requestedClientId = useMemo(() => {
-    const rawClientId = searchParams.get('clientId');
-    const parsedClientId = rawClientId ? Number.parseInt(rawClientId, 10) : NaN;
-    return Number.isFinite(parsedClientId) && parsedClientId > 0 ? parsedClientId : null;
+  const requestedClientId = useMemo(() => parseWorkoutPlannerClientId(searchParams.get('clientId')), [searchParams]);
+  const plannerReturnTo = useMemo(() => {
+    const rawReturnTo = searchParams.get('returnTo');
+    if (!rawReturnTo || !rawReturnTo.startsWith('/dashboard/') || /[\r\n\t\\]/.test(rawReturnTo)) return null;
+    return rawReturnTo;
   }, [searchParams]);
 
-  // ── Client State ──
   const [clients, setClients] = useState<PlannerClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [clientsLoading, setClientsLoading] = useState(true);
@@ -362,11 +244,11 @@ const WorkoutPlannerPage: React.FC = () => {
       ? (selectedClient.canGenerateWorkoutPlans ? 'enabled' : 'disabled')
       : 'unknown';
   const isViewerClient = user?.role === 'client';
+  const viewerClientId = parseWorkoutPlannerClientId(user?.id);
   const clientGenBlocked = isViewerClient
-    && Number(user?.id) === Number(selectedClientId)
+    && viewerClientId === selectedClientId
     && !selectedClient?.canGenerateWorkoutPlans;
 
-  // ── Planner State ──
   const [phaseNumber, setPhaseNumber] = useState(2);
   const [category, setCategory] = useState<WorkoutCategory>('full_body');
   const [goal, setGoal] = useState<PlanGoal>('general_fitness');
@@ -378,11 +260,9 @@ const WorkoutPlannerPage: React.FC = () => {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
 
-  // ── Saved Plans State ──
   const [savedPlans, setSavedPlans] = useState<{ id: string; name: string; status: string; createdAt: string; goal: string }[]>([]);
   const [savedPlansLoading, setSavedPlansLoading] = useState(false);
 
-  // ── Advanced Filter State ──
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [impactFilter, setImpactFilter] = useState<string | null>(null);
@@ -493,35 +373,18 @@ const WorkoutPlannerPage: React.FC = () => {
   const ExerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
     const ex = filteredExercises[index];
     if (!ex) return null;
-    return React.createElement(
-      'div',
-      { style },
-      (
-        <ExerciseItem
-          role="button"
-          tabIndex={0}
-          $selected={selectedExercise?.id === ex.id}
-          onClick={() => { setSelectedExercise(ex); }}
-          onDoubleClick={() => addExercise(ex)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addExercise(ex); } }}
-        >
-          <RowContent>
-            <ExerciseName>{ex.name}</ExerciseName>
-            <ExerciseMeta>
-              <MetaTag>{ex.bodyPartCategory}</MetaTag>
-              <MetaTag>{ex.exerciseType}</MetaTag>
-              <MetaTag>{(() => { const eqArr = parseEquipment(ex.equipment); return eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'; })()}</MetaTag>
-              <MetaTag $impact={getJointImpact(ex)}>{getJointImpact(ex)}</MetaTag>
-            </ExerciseMeta>
-          </RowContent>
-          <ExerciseAddBtn
-            onClick={(e) => { e.stopPropagation(); addExercise(ex); }}
-            aria-label={`Add ${ex.name}`}
-          >
-            <Plus size={18} />
-          </ExerciseAddBtn>
-        </ExerciseItem>
-      ),
+    const impact = getJointImpact(ex);
+    const eqArr = parseEquipment(ex.equipment);
+    return (
+      <WorkoutPlannerExerciseRow
+        exercise={ex}
+        equipmentLabel={eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'}
+        impact={impact}
+        selected={selectedExercise?.id === ex.id}
+        style={style}
+        onAdd={addExercise}
+        onSelect={setSelectedExercise}
+      />
     );
   }, [filteredExercises, selectedExercise, addExercise, setSelectedExercise]);
 
@@ -537,26 +400,16 @@ const WorkoutPlannerPage: React.FC = () => {
         if (user?.role === 'trainer' && user.id) {
           const res = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
           const assignments = res.data?.assignments || res.data?.data?.assignments || [];
-          const clients = (Array.isArray(assignments) ? assignments : [])
-            .map((a: TrainerAssignmentResponse) => a.client || a.Client)
-            .filter((client): client is PlannerClient => Boolean(client));
+          const assignmentClients = (Array.isArray(assignments) ? assignments : []).map((a: TrainerAssignmentResponse) => a.client || a.Client);
+          const clients = normalizeWorkoutPlannerClients(assignmentClients);
           setClients(clients);
-          if (clients.length > 0) {
-            const preferredClientId = requestedClientId && clients.some(c => Number(c.id) === requestedClientId)
-              ? requestedClientId
-              : clients[0].id;
-            setSelectedClientId(preferredClientId);
-          }
+          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
         } else {
           const res = await authAxios.get('/api/auth/clients');
           if (res.data?.success && Array.isArray(res.data.clients)) {
-            setClients(res.data.clients);
-            if (res.data.clients.length > 0) {
-              const preferredClientId = requestedClientId && res.data.clients.some((c: PlannerClient) => Number(c.id) === requestedClientId)
-                ? requestedClientId
-                : res.data.clients[0].id;
-              setSelectedClientId(preferredClientId);
-            }
+            const clients = normalizeWorkoutPlannerClients(res.data.clients);
+            setClients(clients);
+            setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
           }
         }
       } catch {
@@ -988,27 +841,32 @@ const WorkoutPlannerPage: React.FC = () => {
   }, [authAxios, selectedClientId, fetchSavedPlans]);
 
   // Archive — DELETE /:id (soft delete; sets status='completed').
-  const handleCardArchive = useCallback(async (planId: string, planName: string) => {
+  const handleCardArchive = useCallback((planId: string, planName: string) => {
     if (!selectedClientId) return;
-    if (!window.confirm(`Archive "${planName}"? This moves the plan to the archive but keeps history.`)) {
-      return;
-    }
-    try {
-      await authAxios.delete(`/api/workout-plans/${planId}`);
-      setStatusMsg({ type: 'success', text: `Archived "${planName}".` });
-      // If the archived plan was loaded, clear the builder's loaded reference
-      // so the next save acts as a fresh draft instead of trying to PUT a
-      // soft-deleted plan.
-      if (loadedPlanId === planId) {
-        setLoadedPlanId(null);
-        setLoadedPlanName(null);
-        setSavedSnapshot(null);
+    setConfirmRequest({
+      title: `Archive "${planName}"?`,
+      message: 'This moves the plan to the archive while keeping client history available.',
+      confirmLabel: 'Archive plan',
+      tone: 'warning',
+      onConfirm: async () => {
+        try {
+          await authAxios.delete(`/api/workout-plans/${planId}`);
+          setStatusMsg({ type: 'success', text: `Archived "${planName}".` });
+          // If the archived plan was loaded, clear the builder's loaded reference
+          // so the next save acts as a fresh draft instead of trying to PUT a
+          // soft-deleted plan.
+          if (loadedPlanId === planId) {
+            setLoadedPlanId(null);
+            setLoadedPlanName(null);
+            setSavedSnapshot(null);
+          }
+          fetchSavedPlans(selectedClientId);
+        } catch (err) {
+          logApiError('Archive plan failed', err);
+          setStatusMsg({ type: 'error', text: 'Failed to archive plan.' });
+        }
       }
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Archive plan failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to archive plan.' });
-    }
+    });
   }, [authAxios, selectedClientId, loadedPlanId, fetchSavedPlans]);
 
   // Compute archive-blocked state per card. Per §5.4: block archive of the
@@ -1030,14 +888,7 @@ const WorkoutPlannerPage: React.FC = () => {
   // isDirty are now declared earlier in the component, before the save
   // matrix handlers, to avoid TDZ.)
 
-  const handleLoadPlan = useCallback(async (planId: string, planName: string) => {
-    // Dirty-state confirm: if user has unsaved exercises in builder, warn before overwrite.
-    if (isDirty) {
-      const proceed = window.confirm(
-        `You have unsaved changes in the builder. Load "${planName}" and discard them?`
-      );
-      if (!proceed) return;
-    }
+  const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
     try {
       const res = await authAxios.get(`/api/workout-plans/${planId}`);
       const plan = res.data?.plan;
@@ -1072,13 +923,6 @@ const WorkoutPlannerPage: React.FC = () => {
         notes: String(ex.notes || ''),
       }));
 
-      setPlanExercises(hydrated);
-      if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
-      if (planData.goal) setGoal(planData.goal as PlanGoal);
-      if (planData.category) setCategory(planData.category as WorkoutCategory);
-      setLoadedPlanId(String(planId));
-      setLoadedPlanName(planName);
-
       // Codex 2026-05-03 round-2 HIGH-2: a saved long-horizon plan must
       // restore generatedPlan state on load - otherwise Update Plan
       // would persist a flattened one-week manual-mode payload that
@@ -1100,6 +944,25 @@ const WorkoutPlannerPage: React.FC = () => {
           planData.planSummary
           || (Array.isArray(planData.mesocycles) && planData.mesocycles.length > 0)
         );
+      const restoredPlanClientId = wasGenerated
+        ? resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)
+        : null;
+
+      if (wasGenerated && restoredPlanClientId === null) {
+        setGeneratedPlan(null);
+        setStatusMsg({
+          type: 'error',
+          text: 'Unable to load generated plan because it is missing a valid client id.',
+        });
+        return;
+      }
+
+      setPlanExercises(hydrated);
+      if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
+      if (planData.goal) setGoal(planData.goal as PlanGoal);
+      if (planData.category) setCategory(planData.category as WorkoutCategory);
+      setLoadedPlanId(String(planId));
+      setLoadedPlanName(planName);
 
       if (wasGenerated) {
         // Reconstruct the generatedPlan shape from the saved JSONB. The
@@ -1107,7 +970,7 @@ const WorkoutPlannerPage: React.FC = () => {
         // path uses planDataBuilder generated mode), so this is a faithful
         // rehydration.
         const restored: GeneratedPlan = {
-          clientId: Number(plan.userId) || (selectedClientId ?? 0),
+          clientId: restoredPlanClientId!,
           clientName: planData.clientName || '',
           planSummary: planData.planSummary || {
             durationWeeks: planData.weeks.length,
@@ -1159,7 +1022,22 @@ const WorkoutPlannerPage: React.FC = () => {
         setStatusMsg({ type: 'error', text: 'Failed to load plan. Please try again.' });
       }
     }
-  }, [authAxios, isDirty, category, goal, phase.name, phaseNumber, selectedClientId]);
+  }, [authAxios, category, goal, phase.name, phaseNumber, selectedClientId]);
+
+  const handleLoadPlan = useCallback((planId: string, planName: string) => {
+    if (isDirty) {
+      setConfirmRequest({
+        title: 'Discard unsaved builder changes?',
+        message: `Load "${planName}" and replace the exercises currently in the builder.`,
+        confirmLabel: 'Load plan',
+        tone: 'warning',
+        onConfirm: () => loadPlanIntoBuilder(planId, planName),
+      });
+      return;
+    }
+
+    void loadPlanIntoBuilder(planId, planName);
+  }, [isDirty, loadPlanIntoBuilder]);
 
   // ── Filter chip handler ──
   const handleChipClick = useCallback((bodyPart: string) => {
@@ -1177,7 +1055,13 @@ const WorkoutPlannerPage: React.FC = () => {
             <Subtitle>Build intelligent, periodized training programs with 880+ exercises</Subtitle>
           </div>
         </HeaderLeft>
-        <TeachToggle $active={teachModeOpen} onClick={() => setTeachModeOpen(v => !v)}>
+        {plannerReturnTo && (
+          <TeachToggle type="button" onClick={() => navigate(plannerReturnTo)}>
+            <ArrowLeft size={16} />
+            Back to Client Hub
+          </TeachToggle>
+        )}
+        <TeachToggle type="button" $active={teachModeOpen} onClick={() => setTeachModeOpen(v => !v)}>
           <BookOpen size={16} />
           Teach Mode {teachModeOpen ? 'On' : 'Off'}
         </TeachToggle>
@@ -1188,13 +1072,15 @@ const WorkoutPlannerPage: React.FC = () => {
         <Select
           value={selectedClientId ?? ''}
           onChange={e => {
+            const nextClientId = parseWorkoutPlannerClientId(e.target.value);
+            if (!nextClientId) return;
             // Codex 2026-05-03 round-3 HIGH-4: clearing planExercises +
             // generatedPlan alone left `loadedPlanId` (and savedSnapshot)
             // pointing at the PRIOR client's plan. Subsequent Update Plan
             // would PUT the new client's data into the old client's plan
             // id - cross-client data corruption. Switching clients is
             // a hard reset of the loaded-plan identity.
-            setSelectedClientId(Number(e.target.value));
+            setSelectedClientId(nextClientId);
             setPlanExercises([]);
             setGeneratedPlan(null);
             setExplanations([]);
@@ -1329,7 +1215,7 @@ const WorkoutPlannerPage: React.FC = () => {
       {statusMsg && (
         <StatusBanner $type={statusMsg.type} role="alert">
           {statusMsg.text}
-          <button onClick={() => setStatusMsg(null)} aria-label="Dismiss">&times;</button>
+          <button type="button" onClick={() => setStatusMsg(null)} aria-label="Dismiss">&times;</button>
         </StatusBanner>
       )}
 
@@ -1386,6 +1272,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <ChipRow>
               {BODY_PARTS.map(bp => (
                 <Chip
+                  type="button"
                   key={bp}
                   $active={filterCategory === null ? bp === 'All' : filterCategory === bp}
                   onClick={() => handleChipClick(bp)}
@@ -1398,6 +1285,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <ChipRow>
               {SOURCE_FILTERS.map(sf => (
                 <Chip
+                  type="button"
                   key={sf}
                   $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()}
                   onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}
@@ -1410,6 +1298,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <ChipRow>
               {EXERCISE_TYPES.map(et => (
                 <Chip
+                  type="button"
                   key={et}
                   $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()}
                   onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}
@@ -1422,6 +1311,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <ChipRow>
               {EQUIPMENT_FILTERS.map(eq => (
                 <Chip
+                  type="button"
                   key={eq}
                   $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()}
                   onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}
@@ -1434,6 +1324,7 @@ const WorkoutPlannerPage: React.FC = () => {
             <ChipRow>
               {IMPACT_LEVELS.map(il => (
                 <Chip
+                  type="button"
                   key={il}
                   $active={impactFilter === null ? il === 'All Impact' : impactFilter === il}
                   onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}
@@ -1654,8 +1545,8 @@ const WorkoutPlannerPage: React.FC = () => {
                   Swan Coach Reasoning ({explanations.length} insight{explanations.length !== 1 ? 's' : ''})
                   {showExplanations ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </ExplanationsToggle>
-                {showExplanations && explanations.map((exp, i) => (
-                  <ExplanationItem key={i} $type={exp.type}>
+                {showExplanations && explanations.map((exp) => (
+                  <ExplanationItem key={workoutPlannerExplanationKey(exp)} $type={exp.type}>
                     <ExplanationBadge $type={exp.type}>
                       {exp.type.replace(/_/g, ' ')}
                     </ExplanationBadge>
@@ -1706,10 +1597,7 @@ const WorkoutPlannerPage: React.FC = () => {
                   selectedClient
                     ? `${selectedClient.firstName} ${selectedClient.lastName}`
                     : undefined,
-                  // Client source for MF co-brand mark. PlannerClient does not
-                  // carry clientSource yet; pass undefined to render Swan-only.
-                  // When PlannerClient gains the field, wire it here.
-                  undefined,
+                  selectedClient?.clientSource,
                 );
               }}
               aria-label="Export this plan as a branded PDF"
@@ -1808,7 +1696,7 @@ const WorkoutPlannerPage: React.FC = () => {
                 {generatedPlan.recommendations.map((rec, i) => {
                   const detail = generatedPlan.recommendationDetails?.[i];
                   return (
-                    <RecommendationItem key={i}>
+                    <RecommendationItem key={workoutPlannerRecommendationKey(rec, detail)}>
                       {rec}
                       {detail?.sourceCitation ? (
                         <RecommendationSource
@@ -1865,6 +1753,10 @@ const WorkoutPlannerPage: React.FC = () => {
           )}
         </MesocycleSection>
       )}
+      <WorkoutPlannerConfirmDialog
+        request={confirmRequest}
+        onClose={closeConfirmDialog}
+      />
     </Page>
   );
 };

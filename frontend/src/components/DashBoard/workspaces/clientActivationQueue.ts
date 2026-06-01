@@ -6,6 +6,8 @@
  * canonical next steps to existing admin routes.
  */
 
+import { normalizeClientOptionId } from './clients-team/clientOptionMappers';
+
 export interface ClientActivationState {
   paid: boolean;
   accountLinked: boolean;
@@ -25,7 +27,7 @@ export interface ClientActivationQueueRow {
   cartId: number;
   sessionId: string;
   client: {
-    id: number;
+    id: number | string;
     firstName: string;
     lastName: string;
     email: string;
@@ -88,8 +90,10 @@ export async function fetchClientActivationQueue(
   return response.data.data;
 }
 
-export function getAdminActivationCta(row: ClientActivationQueueRow): { label: string; route: string } {
-  const clientId = row.client.id;
+export function getAdminActivationCta(row: ClientActivationQueueRow): { label: string; route: string } | null {
+  const clientId = normalizeClientOptionId(row.client.id);
+  if (!clientId) return null;
+
   const routes: Record<string, { label: string; route: string }> = {
     complete_waiver: {
       label: 'Review Waiver',

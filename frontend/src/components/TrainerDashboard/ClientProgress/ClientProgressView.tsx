@@ -8,6 +8,7 @@ import { useClientProgress, ProgressMeasurement } from '../../UniversalMasterSch
 import theme from '../../../theme/tokens';
 import ClientProgressCharts from '../../ClientProgressCharts/ClientProgressCharts';
 import ClientAnalyticsPanel from '../../ClientProgressCharts/ClientAnalyticsPanel';
+import { parseClientProgressId } from './ClientProgressView.logic';
 
 const Page = styled.div`
   padding: ${theme.spacing.xl};
@@ -250,19 +251,19 @@ const ClientProgressView: React.FC = () => {
   const { activeClient, clientList, loadingClients, setActiveClient } = useGlobalClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialClientId = searchParams.get('clientId') || '';
-  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(() => {
-    const parsed = Number(initialClientId);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  });
+  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(
+    () => parseClientProgressId(initialClientId) ?? undefined
+  );
 
   // Auto-load client when global active client changes (trainer/admin selects from sidebar)
   // Guard: only update URL if clientId actually changed (prevents history pollution)
   useEffect(() => {
-    if (activeClient?.id && user?.role !== 'client') {
+    const activeClientId = parseClientProgressId(activeClient?.id);
+    if (activeClientId && user?.role !== 'client') {
       const currentClientId = searchParams.get('clientId');
-      const newClientId = String(activeClient.id);
+      const newClientId = String(activeClientId);
       if (currentClientId !== newClientId) {
-        setSelectedClientId(Number(activeClient.id));
+        setSelectedClientId(activeClientId);
         setSearchParams(prev => {
           const next = new URLSearchParams(prev);
           next.set('clientId', newClientId);
@@ -272,11 +273,13 @@ const ClientProgressView: React.FC = () => {
     }
   }, [activeClient?.id, user?.role, searchParams, setSearchParams]);
 
-  const resolvedClientId = user?.role === 'client' ? Number(user?.id) : selectedClientId;
+  const resolvedClientId = user?.role === 'client'
+    ? parseClientProgressId(user?.id) ?? undefined
+    : selectedClientId;
   const { data, isLoading, error } = useClientProgress(resolvedClientId, true);
 
   const handleClientSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const id = Number(e.target.value);
+    const id = parseClientProgressId(e.target.value);
     if (!id) {
       setSelectedClientId(undefined);
       setSearchParams({});
@@ -284,7 +287,7 @@ const ClientProgressView: React.FC = () => {
     }
     setSelectedClientId(id);
     setSearchParams({ clientId: String(id) });
-    const client = clientList.find(c => Number(c.id) === id);
+    const client = clientList.find(c => parseClientProgressId(c.id) === id);
     if (client) setActiveClient(client);
   };
 

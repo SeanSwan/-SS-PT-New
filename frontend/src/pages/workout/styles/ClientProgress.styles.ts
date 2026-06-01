@@ -7,7 +7,14 @@
 import styled from 'styled-components';
 
 export const ProgressContainer = styled.div`
-  color: white;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  background:
+    linear-gradient(135deg, rgba(20, 20, 25, 0.96), rgba(0, 32, 96, 0.78)),
+    var(--bg-card, #141419);
+  border: 1px solid rgba(224, 236, 244, 0.1);
+  border-radius: 8px;
+  color: var(--text-primary, #e0ecf4);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
 `;
 
 export const HeaderSection = styled.div`
@@ -25,7 +32,7 @@ export const HeaderSection = styled.div`
 
 export const Title = styled.h2`
   font-size: 1.8rem;
-  color: #60C0F0;
+  color: var(--accent-primary, #60c0f0);
   text-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   margin: 0;
 `;
@@ -41,9 +48,10 @@ export const FilterContainer = styled.div`
 `;
 
 export const FilterSelect = styled.select`
+  min-height: 44px;
   padding: 8px 12px;
   background: rgba(25, 25, 65, 0.6);
-  color: white;
+  color: var(--text-primary, #e0ecf4);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   outline: none;
@@ -51,7 +59,7 @@ export const FilterSelect = styled.select`
   font-size: 0.9rem;
   
   &:hover, &:focus {
-    border-color: #60C0F0;
+    border-color: var(--accent-primary, #60c0f0);
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
   }
   
@@ -86,7 +94,7 @@ export const MetricValue = styled.div`
   font-size: 2rem;
   font-weight: 600;
   margin-bottom: 5px;
-  color: #60C0F0;
+  color: var(--accent-primary, #60c0f0);
 `;
 
 export const MetricLabel = styled.div`
@@ -100,7 +108,7 @@ export const ChartSection = styled.div`
 
 export const ChartTitle = styled.h3`
   font-size: 1.2rem;
-  color: white;
+  color: var(--text-primary, #e0ecf4);
   margin-bottom: 20px;
   font-weight: 400;
 `;
@@ -143,7 +151,7 @@ export const SkillLevelCard = styled.div`
 
 export const SkillLevelTitle = styled.h3`
   font-size: 1.2rem;
-  color: white;
+  color: var(--text-primary, #e0ecf4);
   margin-bottom: 20px;
   font-weight: 400;
 `;
@@ -180,7 +188,7 @@ export const SkillLabel = styled.div`
   margin-bottom: 5px;
   
   span:first-child {
-    color: white;
+    color: var(--text-primary, #e0ecf4);
   }
   
   span:last-child {
@@ -193,7 +201,7 @@ export const LoadingMessage = styled.div`
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #60C0F0;
+  color: var(--accent-primary, #60c0f0);
   font-size: 1.2rem;
 `;
 
@@ -202,6 +210,51 @@ export const ErrorMessageContainer = styled.div`
   background: rgba(255, 72, 72, 0.2);
   border: 1px solid rgba(255, 72, 72, 0.3);
   border-radius: 8px;
-  color: #ff4848;
+  color: var(--danger-text, #ffb4b4);
   margin-bottom: 20px;
+`;
+
+export const DataTable = styled.div`
+  background: rgba(25, 25, 65, 0.42);
+  border: 1px solid rgba(224, 236, 244, 0.1);
+  border-radius: 8px;
+  padding: clamp(1rem, 2vw, 1.25rem);
+  margin-bottom: 1.25rem;
+`;
+
+export const TableTitle = styled.h3`
+  margin: 0 0 0.95rem;
+  color: var(--text-primary, #e0ecf4);
+  font-size: 1.05rem;
+  font-weight: 700;
+`;
+
+export const TableRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(224, 236, 244, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+`;
+
+export const TableLabel = styled.span`
+  min-width: 0;
+  color: rgba(224, 236, 244, 0.82);
+  overflow-wrap: anywhere;
+`;
+
+export const TableValue = styled.span`
+  color: var(--accent-primary, #60c0f0);
+  font-weight: 700;
+  white-space: nowrap;
 `;

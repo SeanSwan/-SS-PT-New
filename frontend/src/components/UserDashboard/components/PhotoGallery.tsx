@@ -32,6 +32,7 @@ import PhotoGalleryCard from './PhotoGalleryCard';
 import PhotoGalleryEmptyState from './PhotoGalleryEmptyState';
 import PhotoGalleryModal from './PhotoGalleryModal';
 import PhotoGalleryUploadCard from './PhotoGalleryUploadCard';
+import { buildUserDashboardMediaPost } from './UserDashboardMediaPostIntent';
 import {
   FilterButton,
   GalleryContainer,
@@ -81,7 +82,7 @@ const PhotoGallery: React.FC = () => {
     setUploadMessage('');
 
     try {
-      const createdPost = await createPost({ content: 'Shared a photo', type: 'general', media: file });
+      const createdPost = await createPost(buildUserDashboardMediaPost('Shared a progress photo', 'general', file));
       if (!createdPost) {
         throw new Error('Photo post creation returned empty');
       }

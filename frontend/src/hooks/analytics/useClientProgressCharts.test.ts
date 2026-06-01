@@ -20,6 +20,7 @@ import {
   CANONICAL_CHART_ROUTES,
   type CanonicalChartId,
 } from './useClientProgressCharts';
+import { sanitizeClientProgressChartsBundle } from './useClientProgressChartsSanitizers';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -117,6 +118,65 @@ describe('Phase 14 — hook fetch contract', () => {
 
   it('derives nonEmptyChartCount to drive the grid empty-state summary', () => {
     expect(HOOK_SOURCE).toMatch(/nonEmptyChartCount/);
+  });
+
+  it('sanitizes malformed chart coordinates before Victory receives them', () => {
+    const bundle = sanitizeClientProgressChartsBundle({
+      workoutFrequency: [
+        { x: '05/01', y: 'NaN' },
+        { x: null, y: '4' },
+      ],
+      attendanceReliability: {
+        data: [{ x: 'completed', y: undefined }],
+        reliabilityPercent: Number.POSITIVE_INFINITY,
+        totals: {
+          completed: '3',
+          skipped: Number.NaN,
+          cancelled: undefined,
+          resolved: '4',
+        },
+      },
+      weeklyVolume: [{ x: '05/08', y: Number.NEGATIVE_INFINITY, workouts: '2' }],
+      setsRepsTrend: {
+        sets: [{ x: '05/08', y: '6' }],
+        reps: [{ x: '05/08', y: 'bad' }],
+      },
+      durationTrend: [{ x: '05/10', y: null }],
+      intensityRpeTrend: [{ x: '05/10', y: '9.5', source: 'voice' }],
+      prTimeline: [{ x: '2026-05-10', y: '225', exercise: null, reps: '5' }],
+      anchorLifts: {
+        data: {
+          Squat: [{ x: '2026-05-10', y: '315', reps: '3' }],
+          Broken: [{ x: '2026-05-11', y: 'NaN', reps: 'bad' }],
+        },
+        exercises: ['Squat', 99, 'Broken'],
+      },
+      exerciseFrequency: [{ x: 'Curl', y: '2', sets: '6' }],
+      movementPatternBalance: [{ x: 'push', y: 'NaN', sets: '8' }],
+      muscleGroupBalance: [{ x: undefined, y: '1250', sets: '9' }],
+      recoverySignal: [{ x: 'knee', y: 'NaN', painFlags: '1', highRpeFlags: 'bad', totalSets: '4' }],
+    } as any);
+
+    expect(bundle.workoutFrequency).toEqual([
+      { x: '05/01', y: 0 },
+      { x: 'Point 2', y: 4 },
+    ]);
+    expect(bundle.attendanceReliability.reliabilityPercent).toBe(0);
+    expect(bundle.attendanceReliability.totals).toEqual({
+      completed: 3,
+      skipped: 0,
+      cancelled: 0,
+      resolved: 4,
+    });
+    expect(bundle.weeklyVolume[0]).toMatchObject({ x: '05/08', y: 0, workouts: 2 });
+    expect(bundle.setsRepsTrend.reps[0]).toEqual({ x: '05/08', y: 0 });
+    expect(bundle.intensityRpeTrend[0]).toMatchObject({ y: 9.5, source: 'intensity' });
+    expect(bundle.prTimeline[0]).toMatchObject({ y: 225, exercise: 'Unknown exercise', reps: 5 });
+    expect(bundle.anchorLifts.exercises).toEqual(['Squat', 'Broken']);
+    expect(bundle.anchorLifts.data.Broken[0]).toMatchObject({ y: 0, reps: 0 });
+    expect(bundle.movementPatternBalance[0]).toMatchObject({ y: 0, sets: 8 });
+    expect(bundle.muscleGroupBalance[0]).toMatchObject({ x: 'Point 1', y: 1250, sets: 9 });
+    expect(bundle.recoverySignal[0]).toMatchObject({ y: 0, painFlags: 1, highRpeFlags: 0, totalSets: 4 });
   });
 });
 

@@ -12,9 +12,8 @@
  *   1. Successful /info load sets useOriginalLogger=true, mounting the
  *      real WorkoutLogger immediately (no placeholder click-through).
  *   2. The useOriginalLogger branch shows role-aware back copy
- *      (Back to Client Hub / Back to My Clients) when the user arrived
- *      via real-client auto-mount. "Back to Demo" only appears when the
- *      API actually failed and demo fallback is active.
+ *      (Back to Client Hub / Back to My Clients) for real-client
+ *      auto-mount. The old demo fallback path is not allowed.
  *   3. The "Workout Logger Ready / Start Demo Workout" placeholder was
  *      deleted — real users should never see that copy.
  *
@@ -28,6 +27,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Module-scoped mocks — flipped per test
 let mockRole: 'admin' | 'trainer' | 'client' | undefined = 'trainer';
+let mockSearchQuery = 'clientId=61';
 const mockNavigate = vi.fn();
 const mockGet = vi.fn();
 const mockToast = vi.fn();
@@ -42,7 +42,7 @@ vi.mock('react-router-dom', async () => {
     ...actual,
     useNavigate: () => mockNavigate,
     // Client deep-link shape used by the admin/trainer CTAs.
-    useSearchParams: () => [new URLSearchParams('clientId=61'), vi.fn()],
+    useSearchParams: () => [new URLSearchParams(mockSearchQuery), vi.fn()],
   };
 });
 
@@ -65,7 +65,21 @@ vi.mock('@/utils/logger', () => ({
 // Replace the real WorkoutLogger with a lightweight test marker so we
 // can assert auto-mount without loading the full logger stack.
 vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
-  default: () => <div data-testid="real-workout-logger">REAL_WORKOUT_LOGGER_MOUNTED</div>,
+  default: ({
+    clientId,
+    scheduledSessionId,
+  }: {
+    clientId: number;
+    scheduledSessionId?: string | null;
+  }) => (
+    <div
+      data-testid="real-workout-logger"
+      data-client-id={String(clientId)}
+      data-session-id={scheduledSessionId ?? ''}
+    >
+      REAL_WORKOUT_LOGGER_MOUNTED
+    </div>
+  ),
 }));
 
 // Canonical /info response shape — matches backend handler at
@@ -95,6 +109,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     mockNavigate.mockReset();
     mockGet.mockReset();
     mockToast.mockReset();
+    mockSearchQuery = 'clientId=61';
   });
 
   it('admin: /info success auto-mounts the real WorkoutLogger, shows role-aware back nav, hides stale demo copy', async () => {
@@ -105,7 +120,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     render(<EnhancedWorkoutLogger />);
 
     // Real logger auto-mounts — no placeholder click required.
-    await screen.findByTestId('real-workout-logger');
+    expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-client-id', '61');
 
     // Role-aware back nav for admin. getByRole throws if not found,
     // so the lookup itself is the presence assertion.
@@ -122,6 +137,23 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     // Back nav routes to admin client hub.
     await user.click(backBtn);
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management');
+  });
+
+  it('admin: clients-team returnTo keeps the selected client loaded after backing out', async () => {
+    mockRole = 'admin';
+    mockSearchQuery =
+      'clientId=61&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D61';
+    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
+    const user = userEvent.setup();
+
+    render(<EnhancedWorkoutLogger />);
+
+    await screen.findByTestId('real-workout-logger');
+
+    const backBtn = screen.getByRole('button', { name: /back to client hub/i });
+    await user.click(backBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?clientId=61');
   });
 
   it('trainer: /info success auto-mounts the real WorkoutLogger with "Back to My Clients" nav', async () => {
@@ -145,6 +177,46 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/clients');
   });
 
+  it('drops malformed master-schedule session ids before mounting WorkoutLogger', async () => {
+    mockRole = 'trainer';
+    mockSearchQuery = 'clientId=61&sessionId=314junk&source=master-schedule';
+    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-session-id', '');
+    expect(mockGet).toHaveBeenCalledWith('/api/workout-forms/client/61/info');
+  });
+
+  it('rejects malformed URL client ids before hitting the client info endpoint', async () => {
+    mockRole = 'admin';
+    mockSearchQuery = 'clientId=61junk&source=clients-team';
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
+  it('rejects malformed /info client ids before mounting the real WorkoutLogger', async () => {
+    mockRole = 'admin';
+    mockGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        client: {
+          ...REAL_CLIENT_INFO_RESPONSE.data.client,
+          id: '61junk',
+        },
+      },
+    });
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
   it('API failure: shows an honest retry state and does NOT auto-mount real WorkoutLogger', async () => {
     mockRole = 'trainer';
     mockGet.mockRejectedValueOnce(Object.assign(new Error('Request failed'), {
@@ -153,24 +225,21 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     render(<EnhancedWorkoutLogger />);
 
-    // Demo toast fires on failure (preserves pre-existing fallback UX).
+    // Failure shows an honest retry state instead of falling into demo UX.
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith(
         expect.objectContaining({ title: expect.stringMatching(/unavailable/i) }),
       );
     });
 
-    // The real WorkoutLogger must NOT auto-mount on failure — demo UI
-    // still requires the user to click "Try Full Logger" by hand.
+    // The real WorkoutLogger must NOT auto-mount on failure.
     expect(screen.queryByTestId('real-workout-logger')).toBeNull();
     expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
     expect(screen.getByText(/client workout data could not be loaded/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /try full logger/i })).toBeNull();
     expect(screen.queryByText(/demo mode/i)).toBeNull();
 
-    // Role-aware copy stays consistent: failure UX is demo mode (not
-    // "Back to Client Hub" / "Back to My Clients"), but the Phase 17.1
-    // invariant we care about is that real users aren't silently dropped
-    // into this branch. Real path goes through the success branch above.
+    // Real paths go through the success branch above; failures stay in
+    // retry-only UX until the client data can be loaded.
   });
 });

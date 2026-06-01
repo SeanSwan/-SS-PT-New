@@ -27,6 +27,7 @@
 
 import { Op } from 'sequelize';
 import { createMacroEntries } from '../../nutrition/macroLogService.mjs';
+import foodScannerService from '../../foodScannerService.mjs';
 import DailyMacroLog from '../../../models/DailyMacroLog.mjs';
 import logger from '../../../utils/logger.mjs';
 
@@ -144,4 +145,138 @@ export async function viewMacroTrends(params, ctx) {
     }
     throw err;
   }
+}
+
+const toFiniteNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toWholeNumber = (value) => {
+  const parsed = toFiniteNumber(value);
+  return parsed === null ? 0 : parsed;
+};
+
+const toProductData = (product) => (
+  product && typeof product.toJSON === 'function' ? product.toJSON() : product
+);
+
+const nutritionValue = (nutrition, keys) => {
+  for (const key of keys) {
+    const value = toFiniteNumber(nutrition?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
+};
+
+const buildFoodSummary = (product, searchMode, counts) => {
+  const data = toProductData(product);
+  const nutrition = data?.nutritionalInfo || {};
+
+  return {
+    searchMode,
+    found: Boolean(data),
+    resultCount: counts.resultCount,
+    totalMatches: counts.totalMatches,
+    firstProductId: data?.id ?? null,
+    firstProductName: data?.name ?? null,
+    firstBrand: data?.brand ?? null,
+    overallRating: data?.overallRating ?? null,
+    isOrganic: data ? Boolean(data.isOrganic) : false,
+    isNonGMO: data ? Boolean(data.isNonGMO) : false,
+    hasHealthConcerns: Array.isArray(data?.healthConcerns) && data.healthConcerns.length > 0,
+    caloriesPer100g: nutritionValue(nutrition, ['energy_kcal_100g', 'energy-kcal_100g', 'energy-kcal', 'calories']),
+    proteinPer100g: nutritionValue(nutrition, ['proteins_100g', 'proteins', 'protein']),
+    carbsPer100g: nutritionValue(nutrition, ['carbohydrates_100g', 'carbohydrates', 'carbs']),
+    fatPer100g: nutritionValue(nutrition, ['fat_100g', 'fat']),
+  };
+};
+
+const todayDate = () => new Date().toISOString().slice(0, 10);
+
+const emptySodiumSummary = (clientId, date, sodiumLimit, mealSodiumLimit) => ({
+  clientId,
+  date,
+  mealCount: 0,
+  totalSodium: 0,
+  sodiumLimit,
+  mealSodiumLimit,
+  overDailyLimit: false,
+  flaggedMealCount: 0,
+  highSodiumMealCount: 0,
+  highestMealSodium: 0,
+  highestMealType: null,
+});
+
+export async function dispatchFlagSodiumIntake(params = {}, ctx = {}) {
+  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const date = params.date || todayDate();
+  const sodiumLimit = toWholeNumber(params.sodiumLimit) || 2300;
+  const mealSodiumLimit = toWholeNumber(params.mealSodiumLimit) || 800;
+
+  try {
+    const rows = await DailyMacroLog.findAll({
+      where: { userId: clientId, date },
+      attributes: ['sodium', 'flagSodium', 'mealType', 'date'],
+    });
+    const summary = emptySodiumSummary(clientId, date, sodiumLimit, mealSodiumLimit);
+
+    for (const row of rows) {
+      const data = toProductData(row) || {};
+      const sodium = toFiniteNumber(data.sodium) || 0;
+      summary.mealCount += 1;
+      summary.totalSodium += sodium;
+      if (data.flagSodium === true) summary.flaggedMealCount += 1;
+      if (sodium > mealSodiumLimit) summary.highSodiumMealCount += 1;
+      if (sodium > summary.highestMealSodium) {
+        summary.highestMealSodium = sodium;
+        summary.highestMealType = data.mealType || null;
+      }
+    }
+
+    summary.totalSodium = Math.round(summary.totalSodium * 10) / 10;
+    summary.highestMealSodium = Math.round(summary.highestMealSodium * 10) / 10;
+    summary.overDailyLimit = summary.totalSodium > sodiumLimit;
+    return summary;
+  } catch (err) {
+    if (err.name === 'SequelizeDatabaseError' && err.message?.includes('does not exist')) {
+      logger.warn('[NutritionDispatchers] daily_macro_logs table not found — returning empty sodium summary');
+      return emptySodiumSummary(clientId, date, sodiumLimit, mealSodiumLimit);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Dispatcher for scan_food.
+ * Uses the mounted food-scanner search/scan substrate and returns a flat
+ * summary instead of raw product arrays or ingredient payloads.
+ *
+ * @param {{ query?: string, barcode?: string, limit?: number }} params
+ * @param {{ user?: { id?: number|string } }} ctx
+ */
+export async function dispatchScanFood(params = {}, ctx = {}) {
+  if (params.barcode) {
+    const userId = toFiniteNumber(ctx.user?.id);
+    const product = await foodScannerService.getProductByBarcode(params.barcode, userId);
+    const foundCount = product ? 1 : 0;
+    return buildFoodSummary(product, 'barcode', {
+      resultCount: foundCount,
+      totalMatches: foundCount,
+    });
+  }
+
+  const limit = toWholeNumber(params.limit) || 5;
+  const result = await foodScannerService.searchProducts({
+    query: params.query,
+    limit,
+    offset: 0,
+  });
+  const products = Array.isArray(result?.products) ? result.products : [];
+  const totalMatches = toFiniteNumber(result?.pagination?.total) ?? products.length;
+
+  return buildFoodSummary(products[0] || null, 'query', {
+    resultCount: products.length,
+    totalMatches,
+  });
 }

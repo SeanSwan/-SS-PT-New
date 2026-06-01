@@ -6,6 +6,7 @@
 import React, { lazy, Suspense, useCallback } from 'react';
 import { LoadingPulse } from './ClientsWorkspace.styles';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
+import { getClientDisplayName } from './clients-team/clientIdentity';
 
 const TrainingTabContent = lazy(() => import('./clients-team/tabs/TrainingTabContent'));
 const ProgressTabContent = lazy(() => import('./clients-team/tabs/ProgressTabContent'));
@@ -14,7 +15,7 @@ const OverviewTabContent = lazy(() => import('./clients-team/tabs/OverviewTabCon
 const SettingsTabContent = lazy(() => import('./clients-team/tabs/SettingsTabContent'));
 
 const clientName = (client: ClientOption | null) =>
-  `${client?.firstName ?? ''} ${client?.lastName ?? ''}`.trim();
+  client ? getClientDisplayName(client) : '';
 
 export const useClientsWorkspaceTabRenderers = (selectedClient: ClientOption | null) => {
   const renderTraining = useCallback((clientId: number | string) => (
@@ -37,9 +38,9 @@ export const useClientsWorkspaceTabRenderers = (selectedClient: ClientOption | n
 
   const renderOverview = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading overview...</LoadingPulse>}>
-      <OverviewTabContent clientId={clientId} />
+      <OverviewTabContent clientId={clientId} clientName={clientName(selectedClient)} />
     </Suspense>
-  ), []);
+  ), [selectedClient]);
 
   const renderSettings = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading settings...</LoadingPulse>}>

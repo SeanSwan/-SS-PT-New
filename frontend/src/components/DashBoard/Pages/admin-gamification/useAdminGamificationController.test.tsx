@@ -82,4 +82,44 @@ describe('useAdminGamificationController', () => {
 
     expect(mocks.authAxios.put).toHaveBeenCalledWith('/api/v1/gamification/settings', draft);
   });
+
+  it('requires in-app confirmation before destructive gamification actions run', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { result } = renderHook(() => useAdminGamificationController());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.handleDeleteAchievement('achievement-1');
+    });
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mocks.authAxios.delete).not.toHaveBeenCalled();
+    expect(result.current.confirmRequest?.confirmLabel).toBe('Delete achievement');
+
+    await act(async () => {
+      await result.current.confirmRequest?.onConfirm();
+    });
+
+    expect(mocks.authAxios.delete).toHaveBeenCalledWith('/api/v1/gamification/achievements/achievement-1');
+
+    await act(async () => {
+      await result.current.handleDeleteReward('reward-1');
+    });
+
+    expect(result.current.confirmRequest?.confirmLabel).toBe('Delete reward');
+
+    await act(async () => {
+      await result.current.confirmRequest?.onConfirm();
+    });
+
+    expect(mocks.authAxios.delete).toHaveBeenCalledWith('/api/v1/gamification/rewards/reward-1');
+
+    await act(async () => {
+      await result.current.handleRestoreDefaults();
+    });
+
+    expect(result.current.confirmRequest?.confirmLabel).toBe('Restore defaults');
+    confirmSpy.mockRestore();
+  });
 });

@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback, useEffect, memo } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { HelpCircle, X, MessageCircle, ChevronDown } from 'lucide-react';
+import { HelpCircle, X, MessageCircle } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -34,7 +34,8 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   border: 1px solid ${({ $active }) =>
     $active ? 'var(--accent-secondary, #8B5CF6)' : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
@@ -89,8 +90,8 @@ const PanelTitle = styled.div`
 `;
 
 const CloseBtn = styled.button`
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: none;
   background: transparent;
@@ -100,6 +101,11 @@ const CloseBtn = styled.button`
   justify-content: center;
   cursor: pointer;
   &:hover { color: var(--text-primary, #E0ECF4); }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 const PanelContent = styled.div`
@@ -127,7 +133,8 @@ const AskAIBtn = styled.button`
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  min-height: 36px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 8px;
   border: 1px solid var(--accent-primary, #60C0F0);
   background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
@@ -140,6 +147,11 @@ const AskAIBtn = styled.button`
   transition: all 0.2s ease;
 
   &:hover { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent); }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 const FirstTimeBadge = styled.span`

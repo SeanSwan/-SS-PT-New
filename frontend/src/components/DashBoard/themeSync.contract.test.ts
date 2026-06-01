@@ -32,11 +32,12 @@ describe('dashboard theme synchronization contract', () => {
   });
 
   it('keeps store and revenue shells dark-first instead of fixed bright blue panels', () => {
-    const adminSessionsStyles = readSource('src/components/DashBoard/Pages/admin-sessions/styled-admin-sessions.ts');
+    const adminSessionsStyles = readSource('src/components/DashBoard/Pages/admin-sessions/AdminSessionsShell.styles.ts');
+    const adminSessionsTheme = readSource('src/components/DashBoard/Pages/admin-sessions/AdminSessionsTheme.styles.ts');
     const adminPackages = readSource('src/components/DashBoard/Pages/admin-packages/admin-packages-view.tsx');
-    const revenuePanel = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.tsx');
+    const revenuePanel = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.styles.ts');
 
-    expect(adminSessionsStyles).toContain("deepSpace: 'var(--bg-base, #0A0A0F)'");
+    expect(adminSessionsTheme).toContain("deepSpace: 'var(--bg-base, #0A0A0F)'");
     expect(adminSessionsStyles).toContain('linear-gradient(180deg, ${executiveTheme.deepSpace} 0%, ${executiveTheme.commandNavy} 100%)');
     expect(adminPackages).toContain('var(--accent-primary, #60C0F0)');
     expect(revenuePanel).toContain('color-mix(in srgb, var(--bg-base, #0A0A0F) 94%, transparent)');

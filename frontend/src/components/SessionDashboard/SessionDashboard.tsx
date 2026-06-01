@@ -9,6 +9,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
 import SessionErrorBoundary from './SessionErrorBoundary';
+import ConfirmActionDialog from '../Shared/ConfirmActionDialog';
 
 // Animations
 const pulse = keyframes`
@@ -297,6 +298,7 @@ const SessionDashboard: React.FC = () => {
   } = useSession();
 
   const [isStarting, setIsStarting] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   const handleStartSession = async () => {
     setIsStarting(true);
@@ -334,12 +336,15 @@ const SessionDashboard: React.FC = () => {
   };
 
   const handleCancelSession = async () => {
-    if (window.confirm('Are you sure you want to cancel this session?')) {
-      try {
-        await cancelSession();
-      } catch (error) {
-        console.error('Failed to cancel session:', error);
-      }
+    setCancelConfirmOpen(true);
+  };
+
+  const confirmCancelSession = async () => {
+    setCancelConfirmOpen(false);
+    try {
+      await cancelSession();
+    } catch (error) {
+      console.error('Failed to cancel session:', error);
     }
   };
 
@@ -533,6 +538,17 @@ const SessionDashboard: React.FC = () => {
         </SessionHistory>
       </SessionCard>
       </DashboardContainer>
+      <ConfirmActionDialog
+        open={cancelConfirmOpen}
+        title="Cancel session?"
+        message="This stops the active workout session. Use complete if the client finished the workout and you want it counted as training history."
+        confirmLabel="Cancel session"
+        cancelLabel="Keep training"
+        tone="danger"
+        busy={loading}
+        onCancel={() => setCancelConfirmOpen(false)}
+        onConfirm={confirmCancelSession}
+      />
     </SessionErrorBoundary>
   );
 };

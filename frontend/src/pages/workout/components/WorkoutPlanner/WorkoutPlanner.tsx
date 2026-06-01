@@ -7,6 +7,7 @@
 import React, { memo } from 'react';
 import useWorkoutPlannerState from '../../hooks/useWorkoutPlannerState';
 import { PlannerContainer } from '../../styles/WorkoutPlanner.styles';
+import ConfirmActionDialog from '../../../../components/Shared/ConfirmActionDialog';
 
 // Import sub-components
 import PlanHeader from './components/PlanHeader';
@@ -98,6 +99,17 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ userId }) => {
           onDeletePlan={workoutPlannerState.deletePlan} 
         />
       )}
+      <ConfirmActionDialog
+        open={workoutPlannerState.confirmationRequest !== null}
+        title={workoutPlannerState.confirmationRequest?.title || ''}
+        message={workoutPlannerState.confirmationRequest?.message || ''}
+        confirmLabel={workoutPlannerState.confirmationRequest?.confirmLabel || 'Confirm'}
+        cancelLabel={workoutPlannerState.confirmationRequest?.cancelLabel || 'Cancel'}
+        tone={workoutPlannerState.confirmationRequest?.tone || 'warning'}
+        busy={workoutPlannerState.confirmationBusy}
+        onCancel={workoutPlannerState.cancelConfirmation}
+        onConfirm={workoutPlannerState.confirmPendingAction}
+      />
     </PlannerContainer>
   );
 };

@@ -15,6 +15,7 @@ import {
   getUser,
 } from '../models/index.mjs';
 import { generateClaimToken } from './claimTokenService.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 import logger from '../utils/logger.mjs';
 
 const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
@@ -27,6 +28,23 @@ const TEXT_FIELDS = [
   'trainingExperience',
   'trainerNotes',
 ];
+const ONBOARDING_CONTEXT_FIELDS = [
+  ['limitations', 'Limitations'],
+  ['painNotes', 'Pain notes'],
+  ['equipmentAccess', 'Equipment access'],
+  ['availability', 'Availability'],
+  ['firstSessionPriorities', 'First session priorities'],
+];
+
+function parseWholeSessionCount(value) {
+  const sessions = Number(value ?? 0);
+  return Number.isInteger(sessions) && sessions > 0 ? sessions : 0;
+}
+
+export function getApprovedOnboardingAvailableSessions(draft) {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(draft?.clientSource)) return 0;
+  return parseWholeSessionCount(draft?.availableSessions);
+}
 
 function cleanText(value, maxLength = 2000) {
   if (typeof value !== 'string') return null;
@@ -45,6 +63,30 @@ function normalizeEmail(value, firstName, lastName) {
 
 function createRandomPassword() {
   return crypto.randomBytes(18).toString('base64url').slice(0, 18);
+}
+
+function collectOnboardingContext(raw) {
+  return ONBOARDING_CONTEXT_FIELDS.reduce((context, [field]) => {
+    const value = cleanText(raw[field], 1000);
+    if (value) context[field] = value;
+    return context;
+  }, {});
+}
+
+function formatOnboardingContext(context) {
+  return ONBOARDING_CONTEXT_FIELDS
+    .map(([field, label]) => context[field] ? `${label}: ${context[field]}` : null)
+    .filter(Boolean);
+}
+
+function mergeTrainerNotes(notes, context) {
+  const contextLines = formatOnboardingContext(context);
+  const lines = [];
+  if (notes) lines.push(notes);
+  if (contextLines.length > 0) {
+    lines.push(`Onboarding context:\n${contextLines.join('\n')}`);
+  }
+  return cleanText(lines.join('\n\n'), 2000);
 }
 
 async function generateUniqueUsername(firstName, lastName, User, transaction) {
@@ -102,14 +144,17 @@ export function normalizeCoachOnboardingDraft(proposal) {
     lastName,
     email: normalizeEmail(raw.email, firstName, lastName),
     clientSource,
-    availableSessions: Number.isFinite(Number(raw.availableSessions))
-      ? Math.max(0, Number(raw.availableSessions))
-      : 0,
+    availableSessions: parseWholeSessionCount(raw.availableSessions),
   };
 
   for (const field of TEXT_FIELDS) {
     draft[field] = cleanText(raw[field], field === 'phone' ? 64 : 2000);
   }
+  if (!draft.fitnessGoal) {
+    draft.fitnessGoal = cleanText(raw.trainingGoal, 2000);
+  }
+  draft.onboardingContext = collectOnboardingContext(raw);
+  draft.trainerNotes = mergeTrainerNotes(draft.trainerNotes, draft.onboardingContext);
   return draft;
 }
 
@@ -126,7 +171,8 @@ export function summarizeOnboardingDraftForReview(proposal) {
       healthConcerns: draft.healthConcerns,
       trainingExperience: draft.trainingExperience,
       trainerNotes: draft.trainerNotes,
-      availableSessions: draft.availableSessions,
+      onboardingContext: draft.onboardingContext,
+      availableSessions: getApprovedOnboardingAvailableSessions(draft),
     },
   };
 }
@@ -180,7 +226,7 @@ export async function createClientFromCoachOnboardingProposal({
       clientSource: draft.clientSource,
       accountStatus: 'stub',
       forcePasswordChange: true,
-      availableSessions: draft.clientSource === 'move_fitness' ? 0 : draft.availableSessions,
+      availableSessions: getApprovedOnboardingAvailableSessions(draft),
       healthConcerns: draft.healthConcerns,
       fitnessGoal: draft.fitnessGoal,
       trainingExperience: draft.trainingExperience,

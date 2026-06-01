@@ -14,4 +14,11 @@ describe('WorkoutHistoryPanel truth contract', () => {
     expect(SOURCE).not.toMatch(/id: -Date\.now\(\)/);
     expect(SOURCE).toContain('nextTemporarySetIdRef');
   });
+
+  it('renders personal records without mutating analytics data or keying by rank index', () => {
+    expect(SOURCE).not.toMatch(/data\.personalRecords\s*\n\s*\.sort\(/);
+    expect(SOURCE).not.toMatch(/<PRCard key=\{`\$\{pr\.exercise\}-\$\{idx\}`\}>/);
+    expect(SOURCE).toContain('sortPersonalRecords');
+    expect(SOURCE).toContain('getPersonalRecordKey');
+  });
 });

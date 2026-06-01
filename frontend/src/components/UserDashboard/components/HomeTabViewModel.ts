@@ -3,6 +3,11 @@
  */
 
 import { Mail, Radio, Search, type LucideIcon } from 'lucide-react';
+import type { PostType } from '../../Social/Feed/types/CreatePostTypes';
+import {
+  appendHashtag,
+  inferSmartPostIntent,
+} from '../../Social/Feed/utils/postIntentInference';
 export {
   buildHomeBadgeShowcase,
   buildHomeLiveActivity,
@@ -56,19 +61,9 @@ export interface HomeTopBarAction {
   count: number;
 }
 
-export type HomePostType =
-  | 'general'
-  | 'workout'
-  | 'achievement'
-  | 'challenge'
-  | 'transformation'
-  | 'creative'
-  | 'music'
-  | 'art';
-
 export interface HomePostPayload {
   content: string;
-  type: HomePostType;
+  type: PostType;
   visibility: 'friends';
   media?: File;
 }
@@ -121,7 +116,7 @@ export function buildHomeTopBarActions({
   ];
 }
 
-const MOOD_TO_POST_TYPE: Record<string, HomePostType> = {
+const MOOD_TO_POST_TYPE: Record<string, PostType> = {
   workout: 'workout',
   transformation: 'transformation',
   achievement: 'achievement',
@@ -132,9 +127,15 @@ const MOOD_TO_POST_TYPE: Record<string, HomePostType> = {
 };
 
 export function buildHomePostPayload(content: string, mood: string, media?: File | null): HomePostPayload {
+  const selectedType = MOOD_TO_POST_TYPE[mood] || 'general';
+  const smartIntent = inferSmartPostIntent(content, selectedType);
+  const taggedContent = smartIntent.hashtags.reduce(
+    (nextContent, hashtag) => appendHashtag(nextContent, hashtag),
+    content.trim(),
+  );
   const payload: HomePostPayload = {
-    content: content.trim(),
-    type: MOOD_TO_POST_TYPE[mood] || 'general',
+    content: taggedContent,
+    type: smartIntent.submissionType,
     visibility: 'friends',
   };
   if (media) payload.media = media;

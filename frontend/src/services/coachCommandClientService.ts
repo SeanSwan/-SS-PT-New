@@ -8,7 +8,7 @@
 
 import { authAxiosInstance } from '../utils/axiosConfig';
 
-export type CoachCommandClientSource = 'move_fitness' | 'swanstudios';
+export type CoachCommandClientSource = 'move_fitness' | 'swanstudios' | 'external';
 
 export type QuickCoachClientRequest = {
   fullName: string;

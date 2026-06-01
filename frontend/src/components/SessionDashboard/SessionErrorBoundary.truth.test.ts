@@ -14,4 +14,12 @@ describe('SessionErrorBoundary truth contract', () => {
     expect(SOURCE).toContain('createSessionErrorId');
     expect(SOURCE).toContain('randomUUID');
   });
+
+  it('keeps retry recovery local instead of reloading the whole page', () => {
+    expect(SOURCE).not.toContain('window.location.reload()');
+    expect(SOURCE).not.toContain('handleReload');
+    expect(SOURCE).not.toContain('Refresh Page');
+    expect(SOURCE).toContain('onClick={this.handleRetry}');
+    expect(SOURCE).toContain('onRetry?: () => void');
+  });
 });

@@ -156,6 +156,29 @@ describe('CoachMessage intake error safety', () => {
     expect(screen.queryByText(/do-not-render-private-client-create-detail/i)).not.toBeInTheDocument();
   });
 
+  it('labels legacy external client-create success as free tracking, not paid SwanStudios', () => {
+    render(
+      <CoachMessage
+        message={assistantMessage({
+          clientCreateResult: {
+            success: true,
+            clientId: 42,
+            firstName: 'Client',
+            lastName: 'FortyTwo',
+            clientSource: 'external',
+            isMoveFitness: false,
+            sectionsPreFilled: 3,
+            totalSections: 8,
+            completionPercentage: 38,
+          } as NonNullable<CoachMessageData['metadata']>['clientCreateResult'],
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/External \(free tracking\)/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SwanStudios \(paid\)/i)).not.toBeInTheDocument();
+  });
+
   it('does not render arbitrary legacy workout-import failure reasons', () => {
     render(
       <CoachMessage

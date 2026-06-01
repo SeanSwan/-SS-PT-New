@@ -15,6 +15,15 @@ import {
 } from '../../../store/slices/workoutSlice';
 import { PlanDay, PlanExercise, WorkoutPlan } from '../types/plan.types';
 
+export interface WorkoutPlannerConfirmationRequest {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  tone: 'danger' | 'warning';
+  onConfirm: () => void | Promise<void>;
+}
+
 interface UseWorkoutPlannerStateReturn {
   // State
   activeTab: string;
@@ -26,6 +35,8 @@ interface UseWorkoutPlannerStateReturn {
   showExerciseSelector: boolean;
   error: string | null;
   success: string | null;
+  confirmationRequest: WorkoutPlannerConfirmationRequest | null;
+  confirmationBusy: boolean;
   
   // Redux state
   plans: WorkoutPlan[];
@@ -57,6 +68,8 @@ interface UseWorkoutPlannerStateReturn {
   resetForm: () => void;
   loadPlan: (planId: string) => void;
   deletePlan: (planId: string) => void;
+  cancelConfirmation: () => void;
+  confirmPendingAction: () => Promise<void>;
 }
 
 /**
@@ -86,6 +99,8 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
   const [showExerciseSelector, setShowExerciseSelector] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [confirmationRequest, setConfirmationRequest] = useState<WorkoutPlannerConfirmationRequest | null>(null);
+  const [confirmationBusy, setConfirmationBusy] = useState(false);
   
   // Plan structure - an array of days, each with exercises
   const [planDays, setPlanDays] = useState<PlanDay[]>([
@@ -265,17 +280,7 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
     selectedClientId, 
     selectedPlan
   ]);
-  
-  // Handle canceling and resetting the form
-  const handleCancel = useCallback(() => {
-    if (window.confirm('Are you sure you want to discard this workout plan?')) {
-      resetForm();
-      if (activeTab === 'edit') {
-        setActiveTab('manage');
-      }
-    }
-  }, [activeTab]);
-  
+
   // Reset the form
   const resetForm = useCallback(() => {
     setPlanTitle('');
@@ -296,6 +301,23 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
     }
   }, [dispatch, activeTab]);
   
+  // Handle canceling and resetting the form
+  const handleCancel = useCallback(() => {
+    setConfirmationRequest({
+      title: 'Discard workout plan?',
+      message: 'This clears the plan draft you are editing. Save first if this program should stay in the client workout history.',
+      confirmLabel: 'Discard plan',
+      cancelLabel: 'Keep editing',
+      tone: 'warning',
+      onConfirm: () => {
+        resetForm();
+        if (activeTab === 'edit') {
+          setActiveTab('manage');
+        }
+      },
+    });
+  }, [activeTab, resetForm]);
+
   // Load a plan for editing
   const loadPlan = useCallback((planId: string) => {
     dispatch(fetchWorkoutPlan(planId))
@@ -307,26 +329,48 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
         setError(err || 'Failed to load workout plan. Please try again.');
       });
   }, [dispatch]);
-  
+
   // Delete a plan
   const deletePlan = useCallback((planId: string) => {
-    if (window.confirm('Are you sure you want to delete this workout plan? This action cannot be undone.')) {
-      dispatch(deleteWorkoutPlan(planId))
-        .unwrap()
-        .then(() => {
-          // If we're editing this plan, reset the form
-          if (activeTab === 'edit' && selectedPlan?.id === planId) {
-            resetForm();
-            setActiveTab('manage');
-          }
-          
-          setSuccess('Workout plan deleted successfully!');
-        })
-        .catch(err => {
-          setError(err || 'Failed to delete workout plan. Please try again.');
-        });
-    }
+    setConfirmationRequest({
+      title: 'Delete workout plan?',
+      message: 'This permanently deletes the saved workout plan. Logged workout sessions and progress charts stay intact.',
+      confirmLabel: 'Delete plan',
+      cancelLabel: 'Keep plan',
+      tone: 'danger',
+      onConfirm: async () => {
+        await dispatch(deleteWorkoutPlan(planId))
+          .unwrap()
+          .then(() => {
+            // If we're editing this plan, reset the form
+            if (activeTab === 'edit' && selectedPlan?.id === planId) {
+              resetForm();
+              setActiveTab('manage');
+            }
+
+            setSuccess('Workout plan deleted successfully!');
+          })
+          .catch(err => {
+            setError(err || 'Failed to delete workout plan. Please try again.');
+          });
+      },
+    });
   }, [dispatch, activeTab, selectedPlan, resetForm]);
+
+  const cancelConfirmation = useCallback(() => {
+    if (!confirmationBusy) setConfirmationRequest(null);
+  }, [confirmationBusy]);
+
+  const confirmPendingAction = useCallback(async () => {
+    if (!confirmationRequest || confirmationBusy) return;
+    setConfirmationBusy(true);
+    try {
+      await confirmationRequest.onConfirm();
+      setConfirmationRequest(null);
+    } finally {
+      setConfirmationBusy(false);
+    }
+  }, [confirmationBusy, confirmationRequest]);
   
   return {
     // State
@@ -339,6 +383,8 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
     showExerciseSelector,
     error: error || planError || null,
     success,
+    confirmationRequest,
+    confirmationBusy,
     
     // Redux state
     plans,
@@ -369,7 +415,9 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
     handleCancel,
     resetForm,
     loadPlan,
-    deletePlan
+    deletePlan,
+    cancelConfirmation,
+    confirmPendingAction
   };
 };
 

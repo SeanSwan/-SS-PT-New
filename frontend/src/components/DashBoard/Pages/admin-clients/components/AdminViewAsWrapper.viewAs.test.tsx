@@ -152,4 +152,13 @@ describe('AdminViewAsWrapper — Phase 18.C.1B viewAs wiring', () => {
     );
     expect(gamificationCalls).toHaveLength(0);
   });
+
+  it('blocks malformed route userId before any admin view-as fetches', async () => {
+    renderAt('/dashboard/admin/client-management/view-as/fixture-42');
+
+    expect(
+      await screen.findByText('Select a valid client before opening admin preview.')
+    ).toBeInTheDocument();
+    expect(mockAuthAxiosGet).not.toHaveBeenCalled();
+  });
 });

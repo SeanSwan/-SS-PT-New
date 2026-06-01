@@ -379,7 +379,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
           {
             model: User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions'],
+            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource'],
             required: false
           },
           {
@@ -410,7 +410,7 @@ router.get('/', protect, adminOnly, async (req, res) => {
           {
             model: User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions'],
+            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource'],
             required: false
           },
           {
@@ -496,7 +496,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'phone'],
+          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'phone'],
           required: false
         },
         {
@@ -951,7 +951,7 @@ router.get('/unassigned/clients', protect, adminOnly, async (req, res) => {
         role: { [Op.in]: ['client', 'user'] },
         id: { [Op.notIn]: assignedClientIds.length > 0 ? assignedClientIds : [-1] } // -1 if no assignments exist
       },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'createdAt'],
+      attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
 

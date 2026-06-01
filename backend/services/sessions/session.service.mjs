@@ -38,6 +38,7 @@ import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
@@ -75,6 +76,60 @@ const { RRule } = rrulePkg;
 
 const MAX_RECURRING_OCCURRENCES = 52;
 const MAX_RECURRING_MONTHS = 12;
+const CANCELLATION_CHARGE_TYPES = new Set(['none', 'full', 'partial', 'late_fee']);
+
+const normalizeOptionalPositiveInteger = (value, fieldName) => {
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'string' && value.trim() === '') return null;
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Session ${fieldName} must be a positive integer`);
+  }
+
+  return parsed;
+};
+
+const parseCancellationAmount = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= 0
+    ? Math.round(parsed * 100) / 100
+    : 0;
+};
+
+const normalizeCancellationBillingOptions = (user, options = {}) => {
+  const canSetBilling = user?.role === 'admin' || user?.role === 'trainer';
+  if (!canSetBilling || !options || typeof options !== 'object') {
+    return null;
+  }
+
+  const hasBillingChoice = ['chargeType', 'chargeAmount', 'restoreCredit']
+    .some((key) => options[key] !== undefined);
+  if (!hasBillingChoice) {
+    return null;
+  }
+
+  const rawChargeType = typeof options.chargeType === 'string'
+    ? options.chargeType.trim()
+    : 'none';
+  const chargeType = rawChargeType || 'none';
+  if (!CANCELLATION_CHARGE_TYPES.has(chargeType)) {
+    throw new Error('Invalid cancellation charge type');
+  }
+
+  const chargeAmount = chargeType === 'none'
+    ? 0
+    : parseCancellationAmount(options.chargeAmount);
+  if (chargeType !== 'none' && chargeAmount <= 0) {
+    throw new Error('Invalid cancellation charge amount');
+  }
+
+  return {
+    chargeType,
+    chargeAmount,
+    restoreCredit: options.restoreCredit === true
+  };
+};
 
 const parseNotificationPreferences = (prefs) => {
   if (!prefs || typeof prefs !== 'object') {
@@ -590,11 +645,22 @@ class UnifiedSessionService {
       }
 
       // **CRITICAL: Role-based filtering at service level (RBAC)**
-      // SECURITY FIX: Removed { status: 'available' } leak - clients only see their own sessions
       if (user.role === 'client') {
-        // Clients can ONLY see their own sessions - no exceptions
-        // Previously leaked ALL 'available' sessions to ALL clients
-        filter.userId = user.id;
+        // Clients can see their own sessions plus unassigned available slots
+        // they are allowed to book. Never expose another client's scheduled slot.
+        const requestedStatus = filter.status;
+        delete filter.status;
+
+        if (requestedStatus === 'available') {
+          filter[Op.or] = [{ status: 'available', userId: null }];
+        } else if (requestedStatus) {
+          filter[Op.or] = [{ userId: user.id, status: requestedStatus }];
+        } else {
+          filter[Op.or] = [
+            { userId: user.id },
+            { status: 'available', userId: null }
+          ];
+        }
       } else if (user.role === 'trainer') {
         // Trainers can see sessions assigned to them
         filter.trainerId = user.id;
@@ -618,9 +684,9 @@ class UnifiedSessionService {
       // Clients should never see other client's contact info
       // Trainers only see full contact info for their assigned clients
       const clientAttributes = user.role === 'admin'
-        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
         : user.role === 'trainer'
-          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions'] // Trainer sees their clients
+          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource'] // Trainer sees their clients
           : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal info
 
       const trainerAttributes = user.role === 'client'
@@ -763,7 +829,7 @@ class UnifiedSessionService {
     }
 
     // Input validation guards
-    for (const session of sessions) {
+    const normalizedSessions = sessions.map((session) => {
       if (!session.start) {
         throw new Error('Each session must include a start time');
       }
@@ -780,7 +846,14 @@ class UnifiedSessionService {
           throw new Error('Session location must be a string of 200 characters or fewer');
         }
       }
-    }
+
+      return {
+        ...session,
+        userId: normalizeOptionalPositiveInteger(session.userId, 'userId'),
+        trainerId: normalizeOptionalPositiveInteger(session.trainerId, 'trainerId'),
+        sessionTypeId: normalizeOptionalPositiveInteger(session.sessionTypeId, 'sessionTypeId')
+      };
+    });
 
     let transaction;
 
@@ -788,7 +861,7 @@ class UnifiedSessionService {
       transaction = await sequelize.transaction();
 
       // Resolve sessionType names to IDs (batch-unique names to minimize DB queries)
-      const uniqueTypeNames = [...new Set(sessions.map(s => s.sessionType || 'Standard Training').filter(n => n !== 'Blocked Time'))];
+      const uniqueTypeNames = [...new Set(normalizedSessions.map(s => s.sessionType || 'Standard Training').filter(n => n !== 'Blocked Time'))];
       const typeNameToId = {};
       for (const name of uniqueTypeNames) {
         typeNameToId[name] = await this.resolveSessionTypeId(name, transaction);
@@ -816,7 +889,7 @@ class UnifiedSessionService {
 
       // Build session rows. When stripTrainer is true, all trainerIds are forced to null
       // (used as FK-violation fallback).
-      const buildRows = (trainerFallback, stripTrainer = false) => sessions.map(session => {
+      const buildRows = (trainerFallback, stripTrainer = false) => normalizedSessions.map(session => {
         const startDate = new Date(session.start);
         const endDate = session.end ? new Date(session.end) :
                        new Date(startDate.getTime() + (session.duration || 60) * 60000);
@@ -836,11 +909,11 @@ class UnifiedSessionService {
           endDate: endDate,
           duration: session.duration || 60,
           status: sessionStatus,
-          trainerId: stripTrainer ? null : ((session.trainerId ? parseInt(session.trainerId, 10) : null) || trainerFallback),
-          userId: session.userId || null,
+          trainerId: stripTrainer ? null : (session.trainerId ?? trainerFallback),
+          userId: session.userId,
           location: session.location || 'Main Studio',
           notes: sessionNotes,
-          sessionTypeId: session.sessionTypeId || typeNameToId[typeName] || null,
+          sessionTypeId: session.sessionTypeId ?? typeNameToId[typeName] ?? null,
           notifyClient: session.notifyClient !== false
         };
       });
@@ -1395,6 +1468,10 @@ class UnifiedSessionService {
         throw new Error('Client not found');
       }
 
+        if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+          throw new Error('This client account does not have session booking access. Use the Workout Logger to track training.');
+        }
+
         const sessionStart = new Date(session.sessionDate);
         const sessionEnd = session.endDate
           ? new Date(session.endDate)
@@ -1529,9 +1606,10 @@ class UnifiedSessionService {
    * @param {string|number} sessionId - Session ID to cancel
    * @param {Object} user - User requesting cancellation
    * @param {string} reason - Cancellation reason
+   * @param {Object} cancellationOptions - Optional admin/trainer billing decision
    * @returns {Object} Cancellation result
    */
-  async cancelSession(sessionId, user, reason = 'No reason provided') {
+  async cancelSession(sessionId, user, reason = 'No reason provided', cancellationOptions = {}) {
     const transaction = await sequelize.transaction();
 
     try {
@@ -1560,9 +1638,14 @@ class UnifiedSessionService {
       const isAdmin = user.role === 'admin';
       const isTrainer = user.role === 'trainer' && Number(session.trainerId) === Number(user.id);
       const isOwner = Number(session.userId) === Number(user.id);
+      const actorId = Number(user.id);
       
       if (!isAdmin && !isOwner && !isTrainer) {
         throw new Error('You do not have permission to cancel this session');
+      }
+
+      if (!Number.isInteger(actorId) || actorId <= 0) {
+        throw new Error('Invalid cancellation actor');
       }
       
       // Check if cancellation is allowed for this status
@@ -1571,33 +1654,63 @@ class UnifiedSessionService {
         throw new Error(`Cannot cancel a session with status: ${session.status}`);
       }
 
-      // **TRANSACTIONAL INTEGRITY: Update session and restore balance if needed**
+      const billingOptions = normalizeCancellationBillingOptions(user, cancellationOptions);
+      const cancellationDate = new Date();
       
       // Update the session
       session.status = 'cancelled';
-      session.cancelledBy = user.id;
+      session.cancelledBy = actorId;
       session.cancellationReason = reason;
-      session.cancellationDate = new Date();
-      await session.save({ transaction });
+      session.cancellationDate = cancellationDate;
 
-        // Refund policy: only refund if cancellation is more than 24 hours before session
-        const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : null;
-        const hoursUntilSession = sessionTime ? (sessionTime - Date.now()) / (1000 * 60 * 60) : null;
-        const refundEligible = hoursUntilSession !== null && hoursUntilSession > 24;
+      if (billingOptions) {
+        session.cancellationChargeType = billingOptions.chargeType;
+        session.cancellationChargeAmount = billingOptions.chargeAmount;
+        session.cancellationChargedAt = billingOptions.chargeAmount > 0 ? cancellationDate : null;
+        session.cancellationDecision = billingOptions.chargeAmount > 0 ? 'charged' : 'waived';
+        session.cancellationReviewedBy = actorId;
+        session.cancellationReviewedAt = cancellationDate;
+        session.cancellationReviewReason = reason || null;
+      }
 
-        if (refundEligible && session.sessionDeducted && session.client) {
-          const client = await this.User.findByPk(session.userId, { transaction });
-          if (client) {
+      // Refund policy: clients keep automatic >24h restoration; admin/trainer
+      // can explicitly restore a deducted credit from the cancellation panel.
+      const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : null;
+      const hoursUntilSession = sessionTime ? (sessionTime - Date.now()) / (1000 * 60 * 60) : null;
+      const refundEligible = hoursUntilSession !== null && hoursUntilSession > 24;
+      const shouldRestoreCredit = Boolean(
+        session.sessionDeducted &&
+        !session.sessionCreditRestored &&
+        session.userId &&
+        (
+          (billingOptions && billingOptions.restoreCredit) ||
+          (!billingOptions && refundEligible)
+        )
+      );
+
+      let creditRestored = false;
+      if (shouldRestoreCredit) {
+        const client = await this.User.findByPk(session.userId, { transaction });
+        if (client) {
+          if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+            logger.info(`[UnifiedSessionService] Skipped credit restore for non-deducting client source ${client.clientSource}`, {
+              sessionId: session.id,
+              userId: client.id
+            });
+          } else {
             client.availableSessions = (client.availableSessions || 0) + 1;
             await client.save({ transaction });
 
             // Mark credit as restored (idempotency flag for canonical restoreSessionCredit)
             session.sessionCreditRestored = true;
-            await session.save({ transaction });
+            creditRestored = true;
 
             logger.info(`[UnifiedSessionService] Restored 1 session to user ${client.id} balance after cancellation`);
           }
         }
+      }
+
+      await session.save({ transaction });
 
       await transaction.commit();
 
@@ -1615,7 +1728,17 @@ class UnifiedSessionService {
             cancelledBy: session.cancelledBy,
             cancellationReason: session.cancellationReason,
             cancellationDate: session.cancellationDate,
-            refundIssued: refundEligible && session.sessionDeducted
+            refundIssued: creditRestored,
+            cancellationDecision: session.cancellationDecision,
+            cancellationChargeType: session.cancellationChargeType,
+            cancellationChargeAmount: Number.parseFloat(session.cancellationChargeAmount) || 0,
+            sessionCreditRestored: session.sessionCreditRestored
+          },
+          data: {
+            chargeType: session.cancellationChargeType || null,
+            chargeAmount: Number.parseFloat(session.cancellationChargeAmount) || 0,
+            creditRestored: Boolean(session.sessionCreditRestored),
+            decision: session.cancellationDecision || null
           }
         };
     } catch (error) {
@@ -1732,7 +1855,7 @@ class UnifiedSessionService {
           {
             model: this.User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions']
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource']
           },
           {
             model: this.User,
@@ -1769,9 +1892,20 @@ class UnifiedSessionService {
           throw new Error('Invalid actual duration');
         }
       }
+
+      const completionRecordedAt = new Date();
+      const completionRecorderId = Number(user.id);
+      if (!Number.isInteger(completionRecorderId) || completionRecorderId <= 0) {
+        throw new Error('Invalid completion recorder');
+      }
       
       // Update the session
       session.status = 'completed';
+      session.attendanceStatus = 'present';
+      session.checkInTime = session.checkInTime || completionRecordedAt;
+      session.attendanceRecordedAt = session.attendanceRecordedAt || completionRecordedAt;
+      session.markedPresentBy = completionRecorderId;
+      session.noShowReason = null;
 
       if (typeof notes === 'string' && notes.trim()) {
         session.notes = notes.trim();
@@ -2182,7 +2316,7 @@ class UnifiedSessionService {
       if (user.role === 'admin') {
         const clients = await this.User.findAll({
           where: { role: 'client' },
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
         });
         return clients;
       }
@@ -2217,7 +2351,7 @@ class UnifiedSessionService {
           id: { [Op.in]: clientIds },
           role: 'client'
         },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource']
       });
 
       logger.info(`[UnifiedSessionService] Trainer ${user.id} viewing ${clients.length} assigned clients`);
@@ -2410,6 +2544,10 @@ class UnifiedSessionService {
    */
   async updateUserSessionBalance(user, sessionCount, transaction) {
     try {
+      if (sessionCount > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+        user.clientSource = 'swanstudios';
+      }
+
       // Update user's available sessions count
       user.availableSessions = (user.availableSessions || 0) + sessionCount;
       await user.save({ transaction });

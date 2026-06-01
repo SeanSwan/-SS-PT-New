@@ -28,7 +28,9 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(layout).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
     expect(layout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
     expect(enhancedLogger).toMatch(/import WorkoutLogger from '\.\.\/\.\.\/WorkoutLogger\/WorkoutLogger'/);
-    expect(enhancedLogger).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{parseInt\(client\.id\)\}/);
+    expect(enhancedLogger).toMatch(/import \{ normalizeDashboardReturnTo, parseLoggerClientId \} from '\.\/EnhancedWorkoutLogger\.logic'/);
+    expect(enhancedLogger).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
+    expect(enhancedLogger).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
     expect(workoutLogger).toMatch(/useGhostPreFill\(hookClientId, \{ skip: isClientSelfMode \}\)/);
     expect(workoutLogger).toMatch(/ghostSkip=\{isClientSelfMode\}/);
     expect(backendMount).toMatch(/app\.use\('\/api\/admin', adminWorkoutLoggerRoutes\)/);
@@ -59,5 +61,11 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(rowBody.indexOf('if (skip) return')).toBeGreaterThan(-1);
     expect(rowBody.indexOf('apiService.get')).toBeGreaterThan(-1);
     expect(rowBody.indexOf('if (skip) return')).toBeLessThan(rowBody.indexOf('apiService.get'));
+  });
+
+  it('keeps the active ghost history row on shared Crystalline Swan tokens', () => {
+    expect(ghostRowRaw).toMatch(/import \{ CS, withAlpha \} from '\.\/WorkoutLoggerCS';/);
+    expect(ghostRow).not.toMatch(/rgba\((96, 192, 240|224, 236, 244)/);
+    expect(ghostRow).not.toMatch(/var\(--text-muted, rgba/);
   });
 });

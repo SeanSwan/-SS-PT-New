@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
 import {
   Target,
@@ -17,9 +17,12 @@ import {
 
 // Import chart components
 import ProgressAreaChart from '../../../FitnessStats/charts/ProgressAreaChart';
+import { useAuth } from '../../../../context/AuthContext';
+import { logger } from '@/utils/logger';
 
 // Import proper type definitions
 import type { GoalProgressTrackerProps } from './types';
+import type { GoalData, GoalTrackingData } from '../../../../services/enhanced-progress-analytics-service';
 
 // ─── Theme Tokens ───────────────────────────────────────────────────────────
 const THEME = {
@@ -300,7 +303,7 @@ const ProgressBarOuter = styled.div`
 `;
 
 const ProgressBarFill = styled.div<{ $value: number; $color: string }>`
-  width: ${({ $value }) => Math.min($value, 100)}%;
+  width: ${({ $value }) => Math.max(0, Math.min(Number.isFinite($value) ? $value : 0, 100))}%;
   height: 100%;
   background: ${({ $color }) => $color};
   border-radius: 3px;
@@ -509,6 +512,72 @@ const BodyText = styled.p`
   line-height: 1.6;
 `;
 
+const EmptyState = styled.div`
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  border: 1px dashed ${THEME.glassBorder};
+  border-radius: 12px;
+  background: ${THEME.surface};
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FieldLabel = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: ${THEME.textSecondary};
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+`;
+
+const TextInput = styled.input`
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid ${THEME.border};
+  background: ${THEME.surface};
+  color: ${THEME.text};
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  outline: none;
+
+  &:focus {
+    border-color: ${THEME.accent};
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+`;
+
+const NOT_ENOUGH_EVIDENCE = 'Not enough evidence yet';
+
+const formatPredictedCompletion = (value?: string | null): string => {
+  if (!value) return NOT_ENOUGH_EVIDENCE;
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return NOT_ENOUGH_EVIDENCE;
+
+  return new Date(timestamp).toLocaleDateString();
+};
+
+const formatSuccessLikelihood = (value?: number | null): string => {
+  if (!Number.isFinite(value)) return NOT_ENOUGH_EVIDENCE;
+
+  const percentage = Math.max(0, Math.min(100, Math.round(value as number)));
+  return `${percentage}%`;
+};
+
 /**
  * GoalProgressTracker Component
  *
@@ -527,232 +596,124 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [goalFilter, setGoalFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('active');
+  const [goalTrackingData, setGoalTrackingData] = useState<GoalTrackingData | null>(null);
+  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
+  const [goalError, setGoalError] = useState<string | null>(null);
+  const [isSavingGoal, setIsSavingGoal] = useState(false);
+  const [goalActionError, setGoalActionError] = useState<string | null>(null);
+  const [progressDraft, setProgressDraft] = useState('');
+  const [newGoalDraft, setNewGoalDraft] = useState({
+    title: '',
+    targetValue: '',
+    unit: 'reps',
+    category: 'fitness',
+    deadline: '',
+  });
+  const { authAxios } = useAuth();
 
-  // Generate comprehensive goal tracking data
-  const goalTrackingData = useMemo(() => {
-    if (!clientData) return null;
+  const clampPercent = (value: number) => (
+    Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0
+  );
 
-    return {
-      summary: {
-        totalGoals: 8,
-        activeGoals: 5,
-        completedGoals: 2,
-        overdueGoals: 1,
-        averageProgress: 67,
-        onTrackGoals: 4
-      },
+  const applyGoalResponse = (payload: unknown) => {
+    const data = payload as GoalTrackingData | null;
+    setGoalTrackingData(data && Array.isArray(data.goals) ? data : null);
+  };
 
-      goals: [
-        {
-          id: 'goal-1',
-          title: 'Lose 15 lbs',
-          category: 'Weight Loss',
-          type: 'measurable',
-          status: 'active',
-          priority: 'high',
-          progress: 78,
-          startDate: '2024-01-15',
-          targetDate: '2024-08-15',
-          completedDate: null,
+  const reloadGoals = useCallback(async () => {
+    if (!authAxios || !clientId) return;
+    const response = await authAxios.get(`/api/client-progress/${clientId}/goals`);
+    applyGoalResponse(response.data?.data ?? response.data);
+  }, [authAxios, clientId]);
 
-          currentValue: 11.7,
-          targetValue: 15,
-          unit: 'lbs',
+  useEffect(() => {
+    let cancelled = false;
 
-          milestones: [
-            { id: 'm1', title: 'Lose 5 lbs', target: 5, current: 5, completed: true, date: '2024-03-15' },
-            { id: 'm2', title: 'Lose 10 lbs', target: 10, current: 10, completed: true, date: '2024-05-20' },
-            { id: 'm3', title: 'Lose 15 lbs', target: 15, current: 11.7, completed: false, estimatedDate: '2024-08-01' }
-          ],
+    if (!clientData || !clientId || !authAxios) {
+      setGoalTrackingData(null);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-          progressHistory: [
-            { date: '2024-01-15', value: 0 },
-            { date: '2024-02-15', value: 2.5 },
-            { date: '2024-03-15', value: 5 },
-            { date: '2024-04-15', value: 7.2 },
-            { date: '2024-05-15', value: 9.8 },
-            { date: '2024-06-15', value: 11.7 }
-          ],
+    setIsLoadingGoals(true);
+    setGoalError(null);
 
-          insights: {
-            trend: 'positive',
-            predictedCompletion: '2024-07-28',
-            likelihood: 92,
-            weeklyRate: 0.8,
-            recommendation: 'Excellent progress! Current rate puts you ahead of schedule.'
-          }
-        },
-        {
-          id: 'goal-2',
-          title: 'Bench Press 100kg',
-          category: 'Strength',
-          type: 'performance',
-          status: 'active',
-          priority: 'high',
-          progress: 85,
-          startDate: '2024-02-01',
-          targetDate: '2024-07-01',
-          completedDate: null,
+    authAxios.get(`/api/client-progress/${clientId}/goals`)
+      .then((response) => {
+        if (cancelled) return;
+        const payload = response.data?.data ?? response.data;
+        setGoalTrackingData(payload && Array.isArray(payload.goals) ? payload : null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        logger.warn('[GoalProgressTracker] Failed to load goal tracking data:', error);
+        setGoalTrackingData(null);
+        setGoalError('Goal tracking is unavailable right now.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingGoals(false);
+      });
 
-          currentValue: 85,
-          targetValue: 100,
-          unit: 'kg',
-
-          milestones: [
-            { id: 'm1', title: '80kg Bench', target: 80, current: 80, completed: true, date: '2024-04-10' },
-            { id: 'm2', title: '90kg Bench', target: 90, current: 85, completed: false, estimatedDate: '2024-06-15' },
-            { id: 'm3', title: '100kg Bench', target: 100, current: 85, completed: false, estimatedDate: '2024-07-01' }
-          ],
-
-          progressHistory: [
-            { date: '2024-02-01', value: 70 },
-            { date: '2024-03-01', value: 75 },
-            { date: '2024-04-01', value: 80 },
-            { date: '2024-05-01', value: 82.5 },
-            { date: '2024-06-01', value: 85 }
-          ],
-
-          insights: {
-            trend: 'positive',
-            predictedCompletion: '2024-07-15',
-            likelihood: 87,
-            weeklyRate: 1.2,
-            recommendation: 'Strong progress. Consider periodization for final push.'
-          }
-        },
-        {
-          id: 'goal-3',
-          title: 'Run 5K under 25 minutes',
-          category: 'Cardiovascular',
-          type: 'performance',
-          status: 'active',
-          priority: 'medium',
-          progress: 60,
-          startDate: '2024-03-01',
-          targetDate: '2024-09-01',
-          completedDate: null,
-
-          currentValue: 27.5,
-          targetValue: 25,
-          unit: 'minutes',
-
-          milestones: [
-            { id: 'm1', title: 'Run 5K under 30min', target: 30, current: 27.5, completed: true, date: '2024-04-15' },
-            { id: 'm2', title: 'Run 5K under 27min', target: 27, current: 27.5, completed: false, estimatedDate: '2024-07-15' },
-            { id: 'm3', title: 'Run 5K under 25min', target: 25, current: 27.5, completed: false, estimatedDate: '2024-09-01' }
-          ],
-
-          progressHistory: [
-            { date: '2024-03-01', value: 32 },
-            { date: '2024-04-01', value: 30 },
-            { date: '2024-05-01', value: 28.5 },
-            { date: '2024-06-01', value: 27.5 }
-          ],
-
-          insights: {
-            trend: 'positive',
-            predictedCompletion: '2024-08-20',
-            likelihood: 75,
-            weeklyRate: 0.3,
-            recommendation: 'Good progress. Increase interval training frequency.'
-          }
-        },
-        {
-          id: 'goal-4',
-          title: 'Complete 10 Pull-ups',
-          category: 'Strength',
-          type: 'performance',
-          status: 'completed',
-          priority: 'medium',
-          progress: 100,
-          startDate: '2024-01-01',
-          targetDate: '2024-05-01',
-          completedDate: '2024-04-22',
-
-          currentValue: 12,
-          targetValue: 10,
-          unit: 'reps',
-
-          milestones: [
-            { id: 'm1', title: '5 Pull-ups', target: 5, current: 5, completed: true, date: '2024-02-15' },
-            { id: 'm2', title: '8 Pull-ups', target: 8, current: 8, completed: true, date: '2024-03-20' },
-            { id: 'm3', title: '10 Pull-ups', target: 10, current: 12, completed: true, date: '2024-04-22' }
-          ],
-
-          insights: {
-            trend: 'achieved',
-            completedAhead: 9,
-            likelihood: 100,
-            recommendation: 'Goal exceeded! Consider weighted pull-ups next.'
-          }
-        },
-        {
-          id: 'goal-5',
-          title: 'Hold 2-minute Plank',
-          category: 'Core Strength',
-          type: 'performance',
-          status: 'overdue',
-          priority: 'low',
-          progress: 75,
-          startDate: '2024-02-01',
-          targetDate: '2024-06-01',
-          completedDate: null,
-
-          currentValue: 90,
-          targetValue: 120,
-          unit: 'seconds',
-
-          milestones: [
-            { id: 'm1', title: '60 second plank', target: 60, current: 60, completed: true, date: '2024-03-10' },
-            { id: 'm2', title: '90 second plank', target: 90, current: 90, completed: true, date: '2024-05-15' },
-            { id: 'm3', title: '120 second plank', target: 120, current: 90, completed: false, estimatedDate: '2024-07-15' }
-          ],
-
-          insights: {
-            trend: 'stalled',
-            predictedCompletion: '2024-07-15',
-            likelihood: 65,
-            recommendation: 'Progress has stalled. Review technique and add variation.'
-          }
-        }
-      ],
-
-      achievements: [
-        {
-          id: 'ach-1',
-          title: 'First Milestone Master',
-          description: 'Complete first milestone in 3 different goals',
-          earned: true,
-          date: '2024-03-20',
-          icon: 'flag'
-        },
-        {
-          id: 'ach-2',
-          title: 'Consistency Champion',
-          description: 'Make progress on goals for 4 consecutive weeks',
-          earned: true,
-          date: '2024-04-15',
-          icon: 'calendar'
-        },
-        {
-          id: 'ach-3',
-          title: 'Overachiever',
-          description: 'Complete a goal ahead of schedule',
-          earned: true,
-          date: '2024-04-22',
-          icon: 'star'
-        },
-        {
-          id: 'ach-4',
-          title: 'Goal Crusher',
-          description: 'Complete 5 goals',
-          earned: false,
-          progress: 40,
-          icon: 'trophy'
-        }
-      ]
+    return () => {
+      cancelled = true;
     };
-  }, [clientData]);
+  }, [authAxios, clientData, clientId]);
+
+  const openGoalDetails = (goal: GoalData) => {
+    setSelectedGoal(goal.id);
+    setProgressDraft(String(goal.currentValue ?? ''));
+    setGoalActionError(null);
+  };
+
+  const handleCreateGoal = async () => {
+    if (!authAxios || !clientId) return;
+    setIsSavingGoal(true);
+    setGoalActionError(null);
+
+    try {
+      await authAxios.post(`/api/client-progress/${clientId}/goals`, {
+        title: newGoalDraft.title,
+        targetValue: Number(newGoalDraft.targetValue),
+        unit: newGoalDraft.unit,
+        category: newGoalDraft.category,
+        deadline: newGoalDraft.deadline,
+      });
+      await reloadGoals();
+      setShowAddGoal(false);
+      setNewGoalDraft({
+        title: '',
+        targetValue: '',
+        unit: 'reps',
+        category: 'fitness',
+        deadline: '',
+      });
+    } catch (error: any) {
+      logger.warn('[GoalProgressTracker] Failed to create goal:', error);
+      setGoalActionError(error?.response?.data?.message || 'Goal could not be created.');
+    } finally {
+      setIsSavingGoal(false);
+    }
+  };
+
+  const handleUpdateProgress = async (goal: GoalData) => {
+    if (!authAxios || !clientId) return;
+    setIsSavingGoal(true);
+    setGoalActionError(null);
+
+    try {
+      await authAxios.put(`/api/client-progress/${clientId}/goals/${goal.id}`, {
+        currentValue: Number(progressDraft),
+      });
+      await reloadGoals();
+      onGoalUpdate?.(goal.id, { currentValue: Number(progressDraft) });
+    } catch (error: any) {
+      logger.warn('[GoalProgressTracker] Failed to update goal progress:', error);
+      setGoalActionError(error?.response?.data?.message || 'Goal progress could not be updated.');
+    } finally {
+      setIsSavingGoal(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -787,6 +748,43 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
         return goalTrackingData.goals;
     }
   }, [goalTrackingData, goalFilter]);
+
+  const renderGoalState = () => {
+    if (isLoadingGoals) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <PanelTitle>Loading Goal Tracking</PanelTitle>
+            <BodyText>Reading this client's saved goal history.</BodyText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    if (goalError) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <PanelTitle>Goal Tracking Unavailable</PanelTitle>
+            <BodyText>{goalError}</BodyText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    if (!goalTrackingData) {
+      return (
+        <GlassPanel>
+          <EmptyState>
+            <PanelTitle>No Goal Data Loaded</PanelTitle>
+            <BodyText>Select a client with saved goals to review progress milestones here.</BodyText>
+          </EmptyState>
+        </GlassPanel>
+      );
+    }
+
+    return null;
+  };
 
   const renderSummaryCards = () => {
     if (!goalTrackingData) return null;
@@ -863,7 +861,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
             </Thead>
             <Tbody>
               {filteredGoals.map((goal) => (
-                <Tr key={goal.id} $clickable onClick={() => setSelectedGoal(goal.id)}>
+                <Tr key={goal.id} $clickable onClick={() => openGoalDetails(goal)}>
                   <Td>
                     <div>
                       <CellTitle>{goal.title}</CellTitle>
@@ -891,9 +889,9 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                   <Td>
                     <div style={{ width: 100 }}>
                       <ProgressBarOuter>
-                        <ProgressBarFill $value={goal.progress} $color={getStatusColor(goal.status)} />
+                        <ProgressBarFill $value={clampPercent(goal.progress)} $color={getStatusColor(goal.status)} />
                       </ProgressBarOuter>
-                      <CellCaption>{goal.progress}%</CellCaption>
+                      <CellCaption>{clampPercent(goal.progress)}%</CellCaption>
                     </div>
                   </Td>
 
@@ -916,7 +914,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                   </Td>
 
                   <Td>
-                    <IconBtn onClick={(e) => { e.stopPropagation(); /* Edit goal */ }}>
+                    <IconBtn onClick={(e) => { e.stopPropagation(); openGoalDetails(goal); }}>
                       <Edit size={16} />
                     </IconBtn>
                   </Td>
@@ -925,6 +923,13 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
             </Tbody>
           </StyledTable>
         </TableWrapper>
+
+        {filteredGoals.length === 0 && (
+          <EmptyState>
+            <PanelTitle>{goalFilter === 'all' ? 'No goals found' : `No ${goalFilter} goals found`}</PanelTitle>
+            <BodyText>This client has no saved goals for the selected filter yet.</BodyText>
+          </EmptyState>
+        )}
       </GlassPanel>
     );
   };
@@ -996,7 +1001,7 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                 <ProgressAreaChart
                   data={(goal.progressHistory ?? []).map(point => ({
                     date: point.date,
-                    progress: (point.value / goal.targetValue) * 100
+                    progress: clampPercent(goal.targetValue > 0 ? (point.value / goal.targetValue) * 100 : 0)
                   }))}
                   xKey="date"
                   yKeys={[{ key: 'progress', name: 'Progress %', color: getStatusColor(goal.status) }]}
@@ -1010,22 +1015,120 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
                     <div>
                       <InsightLabel>Predicted Completion</InsightLabel>
                       <InsightValue>
-                        {new Date(goal.insights.predictedCompletion ?? Date.now()).toLocaleDateString()}
+                        {formatPredictedCompletion(goal.insights.predictedCompletion)}
                       </InsightValue>
                     </div>
                     <div>
                       <InsightLabel>Success Likelihood</InsightLabel>
-                      <InsightValue>{goal.insights.likelihood}%</InsightValue>
+                      <InsightValue>{formatSuccessLikelihood(goal.insights.likelihood)}</InsightValue>
                     </div>
                   </InsightGrid>
                 </InsightBox>
               </div>
             </TwoColGrid>
+
+            <InsightBox>
+              <SubTitle>Update Current Value</SubTitle>
+              <FormGrid>
+                <FieldLabel>
+                  Current {goal.unit}
+                  <TextInput
+                    type="number"
+                    min="0"
+                    value={progressDraft}
+                    onChange={(event) => setProgressDraft(event.target.value)}
+                  />
+                </FieldLabel>
+                <FieldLabel>
+                  Target
+                  <TextInput value={`${goal.targetValue} ${goal.unit}`} disabled />
+                </FieldLabel>
+              </FormGrid>
+              {goalActionError && <BodyText style={{ color: THEME.error, marginTop: 12 }}>{goalActionError}</BodyText>}
+            </InsightBox>
           </ModalBody>
 
           <ModalFooter>
-            <GhostButton onClick={() => setSelectedGoal(null)}>Close</GhostButton>
-            <AccentButton>Update Progress</AccentButton>
+            <GhostButton onClick={() => { setSelectedGoal(null); setGoalActionError(null); }}>Close</GhostButton>
+            <AccentButton onClick={() => handleUpdateProgress(goal)} disabled={isSavingGoal}>
+              {isSavingGoal ? 'Saving...' : 'Update Progress'}
+            </AccentButton>
+          </ModalFooter>
+        </ModalPanel>
+      </Overlay>
+    );
+  };
+
+  const renderAddGoalModal = () => {
+    if (!showAddGoal) return null;
+
+    return (
+      <Overlay onClick={() => setShowAddGoal(false)}>
+        <ModalPanel onClick={(event) => event.stopPropagation()}>
+          <ModalHeader>
+            <PanelTitle>Create Goal</PanelTitle>
+            <IconBtn onClick={() => setShowAddGoal(false)}>
+              <X size={18} />
+            </IconBtn>
+          </ModalHeader>
+
+          <ModalBody>
+            <FormGrid>
+              <FieldLabel>
+                Goal title
+                <TextInput
+                  value={newGoalDraft.title}
+                  onChange={(event) => setNewGoalDraft((draft) => ({ ...draft, title: event.target.value }))}
+                  placeholder="Pushup volume"
+                />
+              </FieldLabel>
+              <FieldLabel>
+                Category
+                <StyledSelect
+                  value={newGoalDraft.category}
+                  onChange={(event) => setNewGoalDraft((draft) => ({ ...draft, category: event.target.value }))}
+                >
+                  <option value="fitness">Fitness</option>
+                  <option value="strength">Strength</option>
+                  <option value="cardio">Cardio</option>
+                  <option value="flexibility">Flexibility</option>
+                  <option value="habit">Habit</option>
+                  <option value="custom">Custom</option>
+                </StyledSelect>
+              </FieldLabel>
+              <FieldLabel>
+                Target value
+                <TextInput
+                  type="number"
+                  min="0"
+                  value={newGoalDraft.targetValue}
+                  onChange={(event) => setNewGoalDraft((draft) => ({ ...draft, targetValue: event.target.value }))}
+                />
+              </FieldLabel>
+              <FieldLabel>
+                Unit
+                <TextInput
+                  value={newGoalDraft.unit}
+                  onChange={(event) => setNewGoalDraft((draft) => ({ ...draft, unit: event.target.value }))}
+                />
+              </FieldLabel>
+              <FieldLabel>
+                Target date
+                <TextInput
+                  type="date"
+                  value={newGoalDraft.deadline}
+                  onChange={(event) => setNewGoalDraft((draft) => ({ ...draft, deadline: event.target.value }))}
+                />
+              </FieldLabel>
+            </FormGrid>
+            {goalActionError && <BodyText style={{ color: THEME.error, marginTop: 12 }}>{goalActionError}</BodyText>}
+          </ModalBody>
+
+          <ModalFooter>
+            <GhostButton onClick={() => { setShowAddGoal(false); setGoalActionError(null); }}>Cancel</GhostButton>
+            <AccentButton onClick={handleCreateGoal} disabled={isSavingGoal}>
+              {isSavingGoal ? 'Saving...' : 'Save Goal'}
+            </AccentButton>
           </ModalFooter>
         </ModalPanel>
       </Overlay>
@@ -1042,49 +1145,58 @@ const GoalProgressTracker: React.FC<GoalProgressTrackerProps> = ({
           Achievements &amp; Badges
         </PanelTitle>
 
-        <AchievementsGrid>
-          {goalTrackingData.achievements.map((achievement) => (
-            <AchievementCard key={achievement.id} $earned={achievement.earned}>
-              <div>
-                {achievement.icon === 'trophy' && <Trophy color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                {achievement.icon === 'star' && <Star color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                {achievement.icon === 'flag' && <Flag color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-                {achievement.icon === 'calendar' && <Calendar color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
-              </div>
-
-              <AchievementTitle>{achievement.title}</AchievementTitle>
-
-              <AchievementDesc>{achievement.description}</AchievementDesc>
-
-              {achievement.earned ? (
-                <Chip $bg="#4CAF50" $color="#fff" style={{ marginTop: 4 }}>
-                  Earned {new Date(achievement.date!).toLocaleDateString()}
-                </Chip>
-              ) : achievement.progress !== undefined ? (
-                <div style={{ width: '100%', marginTop: 8 }}>
-                  <ProgressBarOuter style={{ width: '100%' }}>
-                    <ProgressBarFill $value={achievement.progress} $color={THEME.accent} />
-                  </ProgressBarOuter>
-                  <CellCaption>{achievement.progress}% complete</CellCaption>
+        {goalTrackingData.achievements.length === 0 ? (
+          <EmptyState>
+            <PanelTitle>No Goal Achievements Yet</PanelTitle>
+            <BodyText>Completed goals will appear here once they are saved in this client's goal history.</BodyText>
+          </EmptyState>
+        ) : (
+          <AchievementsGrid>
+            {goalTrackingData.achievements.map((achievement) => (
+              <AchievementCard key={achievement.id} $earned={achievement.earned}>
+                <div>
+                  {achievement.icon === 'trophy' && <Trophy color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                  {achievement.icon === 'star' && <Star color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                  {achievement.icon === 'flag' && <Flag color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
+                  {achievement.icon === 'calendar' && <Calendar color={achievement.earned ? '#FFC107' : '#A0A0A0'} size={32} />}
                 </div>
-              ) : (
-                <Chip $bg="rgba(255, 255, 255, 0.1)" style={{ marginTop: 4 }}>
-                  Locked
-                </Chip>
-              )}
-            </AchievementCard>
-          ))}
-        </AchievementsGrid>
+
+                <AchievementTitle>{achievement.title}</AchievementTitle>
+
+                <AchievementDesc>{achievement.description}</AchievementDesc>
+
+                {achievement.earned ? (
+                  <Chip $bg="#4CAF50" $color="#fff" style={{ marginTop: 4 }}>
+                    Earned {new Date(achievement.date!).toLocaleDateString()}
+                  </Chip>
+                ) : achievement.progress !== undefined ? (
+                  <div style={{ width: '100%', marginTop: 8 }}>
+                    <ProgressBarOuter style={{ width: '100%' }}>
+                      <ProgressBarFill $value={clampPercent(achievement.progress)} $color={THEME.accent} />
+                    </ProgressBarOuter>
+                    <CellCaption>{clampPercent(achievement.progress)}% complete</CellCaption>
+                  </div>
+                ) : (
+                  <Chip $bg="rgba(255, 255, 255, 0.1)" style={{ marginTop: 4 }}>
+                    Locked
+                  </Chip>
+                )}
+              </AchievementCard>
+            ))}
+          </AchievementsGrid>
+        )}
       </GlassPanel>
     );
   };
 
   return (
     <Container>
+      {renderGoalState()}
       {renderSummaryCards()}
       {renderGoalsList()}
       {renderAchievements()}
       {renderGoalDetails()}
+      {renderAddGoalModal()}
     </Container>
   );
 };

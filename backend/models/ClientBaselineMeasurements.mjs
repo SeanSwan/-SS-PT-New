@@ -69,6 +69,13 @@ ClientBaselineMeasurements.init(
         max: 150,
       },
     },
+    bodyWeight: {
+      type: DataTypes.DECIMAL(6, 2),
+      allowNull: true,
+      validate: {
+        min: 0,
+      },
+    },
     benchPressWeight: {
       type: DataTypes.DECIMAL(6, 2),
       allowNull: true,

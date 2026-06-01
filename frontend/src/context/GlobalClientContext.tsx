@@ -41,7 +41,11 @@ export interface ActiveClient {
   // use them instead of falling back to zeros. Optional so existing consumers
   // that don't read them continue to work unchanged.
   availableSessions?: number;
+  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   membershipLevel?: 'basic' | 'premium' | 'elite';
+  totalWorkouts?: number;
+  lastWorkoutDate?: string;
+  nextSessionDate?: string;
 }
 
 export interface GlobalClientContextType {
@@ -101,7 +105,14 @@ export function normalizeClientListResponse(
       // backend provides them. Undefined when absent — consumers default.
       availableSessions:
         typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
+      clientSource: c.clientSource ?? undefined,
       membershipLevel: c.membershipLevel ?? undefined,
+      totalWorkouts:
+        typeof c.totalWorkouts === 'number' ? c.totalWorkouts : undefined,
+      lastWorkoutDate:
+        c.lastWorkoutDate ?? c.lastWorkout?.date ?? c.lastWorkout?.sessionDate ?? undefined,
+      nextSessionDate:
+        c.nextSessionDate ?? c.nextSession?.sessionDate ?? c.nextSession?.date ?? undefined,
     }));
   }
 
@@ -128,6 +139,15 @@ export function normalizeClientListResponse(
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
       role: c.role,
+      availableSessions:
+        typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
+      clientSource: c.clientSource ?? undefined,
+      totalWorkouts:
+        typeof c.totalWorkouts === 'number' ? c.totalWorkouts : undefined,
+      lastWorkoutDate:
+        c.lastWorkoutDate ?? c.lastWorkout?.date ?? c.lastWorkout?.sessionDate ?? undefined,
+      nextSessionDate:
+        c.nextSessionDate ?? c.nextSession?.sessionDate ?? c.nextSession?.date ?? undefined,
     };
   });
 }

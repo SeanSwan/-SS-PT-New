@@ -39,10 +39,10 @@ const SURFACES: Array<{ label: string; path: string }> = [
   { label: 'WorkoutClientDrawer.tsx', path: '../components/DashBoard/workspaces/WorkoutClientDrawer.tsx' },
   { label: 'CommunicationCenter.tsx', path: '../components/DashBoard/Pages/admin-clients/components/CommunicationCenter.tsx' },
   { label: 'EnhancedTrainerDataManagement.tsx', path: '../components/DashBoard/Pages/admin-trainers/EnhancedTrainerDataManagement.tsx' },
-  { label: 'admin-packages-view.tsx', path: '../components/DashBoard/Pages/admin-packages/admin-packages-view.tsx' },
+  { label: 'admin-packages-view.formStyles.ts', path: '../components/DashBoard/Pages/admin-packages/admin-packages-view.formStyles.ts' },
   { label: 'FeatureAccessPage.tsx', path: '../components/DashBoard/Pages/admin-feature-access/FeatureAccessPage.tsx' },
   { label: 'admin-client-progress-view.V2.tsx', path: '../components/DashBoard/Pages/admin-client-progress/admin-client-progress-view.V2.tsx' },
-  { label: 'ClientComplianceDashboard.tsx', path: '../components/DashBoard/Pages/admin-dashboard/components/ClientComplianceDashboard.tsx' },
+  { label: 'ClientComplianceDashboard.styles.ts', path: '../components/DashBoard/Pages/admin-dashboard/components/ClientComplianceDashboard.styles.ts' },
   // Misc cluster
   { label: 'RelatedVideos.tsx', path: '../components/video/RelatedVideos.tsx' },
   { label: 'GalleryPage.tsx', path: '../pages/GalleryPage.tsx' },

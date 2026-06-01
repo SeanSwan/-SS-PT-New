@@ -41,6 +41,35 @@ interface ApiResponse {
   data: MuscleGroupRow[];
 }
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+};
+
+export function sanitizeMuscleGroupBalanceRows(input: unknown): MuscleGroupRow[] {
+  if (!Array.isArray(input)) return [];
+
+  return input.reduce<MuscleGroupRow[]>((rows, raw) => {
+    if (!raw || typeof raw !== 'object') return rows;
+    const record = raw as Record<string, unknown>;
+    const x = typeof record.x === 'string' ? record.x.trim() : '';
+    const y = toFiniteNumber(record.y);
+    if (!x || y <= 0) return rows;
+
+    rows.push({
+      x,
+      y,
+      sets: Math.max(toFiniteNumber(record.sets), 0),
+    });
+
+    return rows;
+  }, []);
+}
+
 const MuscleGroupBalanceBars: React.FC<Props> = ({ userId }) => {
   const { data, loading, error } = useAnalytics<ApiResponse>(
     userId,
@@ -48,10 +77,7 @@ const MuscleGroupBalanceBars: React.FC<Props> = ({ userId }) => {
   );
 
   const rows = useMemo(() => {
-    if (!data?.data) return [];
-    return data.data.filter((r): r is MuscleGroupRow =>
-      typeof r?.x === 'string' && typeof r?.y === 'number' && r.y > 0,
-    );
+    return sanitizeMuscleGroupBalanceRows(data?.data);
   }, [data]);
 
   const max = useMemo(
@@ -138,7 +164,10 @@ const BarTrack = styled.div`
 const BarFill = styled.div<{ $pct: number }>`
   position: absolute;
   inset: 0 auto 0 0;
-  width: ${({ $pct }) => Math.max(Math.min($pct, 100), 2)}%;
+  width: ${({ $pct }) => {
+    const safePct = Number.isFinite($pct) ? $pct : 0;
+    return Math.max(Math.min(safePct, 100), 2);
+  }}%;
   background: ${CHART_COLORS.gildedFern};
   border-radius: 4px;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);

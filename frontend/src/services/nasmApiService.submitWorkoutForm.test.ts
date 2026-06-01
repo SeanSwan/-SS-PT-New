@@ -178,6 +178,7 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
       date: '2026-04-17',
     });
     expect(result.message).toBe('A workout form already exists for this client on this date');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('sends the full payload (clientId, date, exercises) to POST /api/workout-forms', async () => {

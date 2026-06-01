@@ -26,7 +26,8 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
 }) => {
   const [progress, setProgress] = useState(0);
   const [isTimeout, setIsTimeout] = useState(false);
-  const [loadStartTime] = useState(Date.now());
+  const [retryNonce, setRetryNonce] = useState(0);
+  const [loadStartTime, setLoadStartTime] = useState(() => Date.now());
 
   // Performance optimized progress animation
   useEffect(() => {
@@ -51,13 +52,14 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = memo(({
     }, timeout);
 
     return () => clearTimeout(timer);
-  }, [timeout]);
+  }, [timeout, retryNonce]);
 
   const handleRetry = useCallback(() => {
     logger.log('🔄 Loading retry triggered');
     setProgress(0);
     setIsTimeout(false);
-    window.location.reload();
+    setLoadStartTime(Date.now());
+    setRetryNonce(prevNonce => prevNonce + 1);
   }, []);
 
   const getSizeConfig = useCallback(() => {

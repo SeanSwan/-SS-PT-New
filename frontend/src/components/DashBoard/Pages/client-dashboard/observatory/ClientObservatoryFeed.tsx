@@ -9,7 +9,7 @@ import {
   FeedPostPreview,
   OBSERVATORY_ASSETS,
   POST_CATEGORIES,
-  QUICK_ACTIONS,
+  type QuickAction,
   compactNumber,
   countCollection,
   timeLabel,
@@ -54,6 +54,7 @@ import {
   ReelOverlay,
   ReelTitle,
 } from './ClientObservatoryFeed.styles';
+import { prepareObservatoryPost } from './ClientObservatoryPostIntent';
 
 interface ClientObservatoryFeedProps {
   feedLoading: boolean;
@@ -64,6 +65,7 @@ interface ClientObservatoryFeedProps {
     pointsAwarded: number;
     message: string;
   } | null;
+  quickActions: QuickAction[];
   onPostTextChange: (value: string) => void;
   onCreatePost: (input: {
     content: string;
@@ -87,12 +89,13 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   postText,
   creatingPost,
   postReceipt,
+  quickActions,
   onPostTextChange,
   onCreatePost,
   onNavigate = (path: string) => { window.location.href = path; },
 }) => {
   const [category, setCategory] = useState<(typeof POST_CATEGORIES)[number]>('Training');
-  const [postType, setPostType] = useState('training');
+  const [isReelMode, setIsReelMode] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const trimmedPost = postText.trim();
@@ -101,26 +104,27 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canPost) return;
+    const preparedPost = prepareObservatoryPost(trimmedPost, category, isReelMode);
 
     await onCreatePost({
-      content: trimmedPost,
-      type: postType,
+      content: preparedPost.content,
+      type: preparedPost.type,
       visibility: 'friends',
       media: mediaFile,
     });
     setMediaFile(null);
-    setPostType('training');
+    setIsReelMode(false);
     setCategory('Training');
   };
 
   const handleCategorySelect = (item: (typeof POST_CATEGORIES)[number]) => {
     setCategory(item);
-    setPostType(item.toLowerCase());
+    setIsReelMode(false);
   };
 
   const handleCreateReel = () => {
     setCategory('Progress');
-    setPostType('reel');
+    setIsReelMode(true);
   };
 
   const handleMediaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,7 +172,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                   <CategoryPill
                     key={item}
                     type="button"
-                    $active={item === category && postType !== 'reel'}
+                    $active={item === category && !isReelMode}
                     onClick={() => handleCategorySelect(item)}
                   >
                     {item}
@@ -176,7 +180,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
                 ))}
                 <CategoryPill
                   type="button"
-                  $active={postType === 'reel'}
+                  $active={isReelMode}
                   onClick={handleCreateReel}
                 >
                   Reel
@@ -186,7 +190,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
               <ComposerTextarea
                 value={postText}
                 onChange={(event) => onPostTextChange(event.target.value)}
-                placeholder={postType === 'reel'
+                placeholder={isReelMode
                   ? 'Caption your training reel before posting...'
                   : `Post a ${category.toLowerCase()} update for your community...`}
                 aria-label="Create a community post"
@@ -223,7 +227,7 @@ const ClientObservatoryFeed: React.FC<ClientObservatoryFeedProps> = ({
       </FeatureGrid>
 
       <MiniActionGrid aria-label="Dashboard quick actions">
-        {QUICK_ACTIONS.map(({ label, Icon, path }) => (
+        {quickActions.map(({ label, Icon, path }) => (
           <MiniAction key={path} type="button" onClick={() => onNavigate(path)} aria-label={label}>
             <Icon size={18} aria-hidden="true" />
             <span>{label}</span>

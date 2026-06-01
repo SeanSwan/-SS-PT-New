@@ -1,6 +1,13 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const { mockCreatePostMutate } = vi.hoisted(() => ({
+  mockCreatePostMutate: vi.fn(),
+}));
 
 vi.mock('../../../Social/Hashtags', () => ({
   FeedFilterBar: () => <div data-testid="feed-filter-bar" />,
@@ -34,12 +41,18 @@ vi.mock('../../../../hooks/useDashboardQueries', () => ({
   useSocialChallenges: () => ({ data: [], error: null }),
   useSocialFeed: () => ({ data: [], isLoading: false, error: null }),
   useLeaderboard: () => ({ data: [] }),
-  useCreatePost: () => ({ mutate: vi.fn(), isPending: false, error: null }),
+  useCreatePost: () => ({ mutate: mockCreatePostMutate, isPending: false, error: null }),
 }));
 
 import ClientCommunityPage from './ClientCommunityPage';
 
+const SOURCE = readFileSync(resolve(__dirname, './ClientCommunityPage.tsx'), 'utf8');
+
 describe('ClientCommunityPage truth states', () => {
+  beforeEach(() => {
+    mockCreatePostMutate.mockClear();
+  });
+
   it('shows an honest empty leaderboard instead of placeholder athletes', () => {
     render(<ClientCommunityPage />);
 
@@ -47,5 +60,31 @@ describe('ClientCommunityPage truth states', () => {
     expect(screen.queryByText(/SwanAthlete1/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/IronPhoenix/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/CoreCrusher/i)).not.toBeInTheDocument();
+  });
+
+  it('does not key dynamic community rows by array index', () => {
+    expect(SOURCE).not.toContain('key={i}');
+    expect(SOURCE).not.toContain('key={c.id || i}');
+    expect(SOURCE).not.toContain('key={p.id || i}');
+    expect(SOURCE).toContain('communityChallengeKey');
+    expect(SOURCE).toContain('leaderboardEntryKey');
+    expect(SOURCE).toContain('communityFeedPostKey');
+  });
+
+  it('submits smart inferred post type and hashtags from the community composer', async () => {
+    const user = userEvent.setup();
+    render(<ClientCommunityPage />);
+
+    await user.type(screen.getByLabelText('Write a post'), 'New PR on squats today');
+    await user.click(screen.getByRole('button', { name: 'Create post' }));
+
+    expect(mockCreatePostMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.stringContaining('#Milestone'),
+        type: 'achievement',
+        visibility: 'friends',
+      }),
+      expect.any(Object),
+    );
   });
 });

@@ -45,9 +45,16 @@ export const TopBarActions = styled.div`
   gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    margin-left: 0;
+  }
 `;
 
-export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
+export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -57,14 +64,20 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
   border: 1px solid ${({ $variant }) =>
     $variant === 'primary'
       ? 'var(--accent-secondary, #8B5CF6)'
+      : $variant === 'danger'
+        ? 'var(--color-error, #EF4444)'
       : 'var(--border-soft, rgba(96, 192, 240, 0.12))'};
   background: ${({ $variant }) =>
     $variant === 'primary'
       ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)'
+      : $variant === 'danger'
+        ? 'color-mix(in srgb, var(--color-error, #EF4444) 10%, transparent)'
       : 'transparent'};
   color: ${({ $variant }) =>
     $variant === 'primary'
       ? 'var(--accent-secondary, #8B5CF6)'
+      : $variant === 'danger'
+        ? 'var(--color-error, #EF4444)'
       : 'var(--text-primary, #E0ECF4)'};
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -77,6 +90,8 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' }>`
     background: ${({ $variant }) =>
       $variant === 'primary'
         ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)'
+        : $variant === 'danger'
+          ? 'color-mix(in srgb, var(--color-error, #EF4444) 16%, transparent)'
         : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)'};
   }
 
@@ -143,6 +158,40 @@ export const EmptyHub = styled.div`
   text-align: center;
   color: var(--text-muted, rgba(224, 236, 244, 0.85));
   font-family: 'Sora', sans-serif;
+
+  > svg:first-child {
+    opacity: 0.3;
+  }
+
+  [data-empty-title='true'] {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  [data-empty-copy='true'] {
+    font-size: 14px;
+  }
+`;
+
+export const EmptyHubActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 520px) {
+    width: 100%;
+
+    ${ActionBtn} {
+      width: 100%;
+      justify-content: center;
+
+      span {
+        display: inline;
+      }
+    }
+  }
 `;
 
 export const LoadingPulse = styled.div`

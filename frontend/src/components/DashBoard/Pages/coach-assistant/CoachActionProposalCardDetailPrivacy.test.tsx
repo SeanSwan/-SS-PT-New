@@ -37,6 +37,13 @@ describe('CoachActionProposalCard detail privacy', () => {
             fitnessGoal: 'Strength and balance with private notes',
             healthConcerns: 'Do not render health detail',
             trainerNotes: 'Do not render trainer note',
+            onboardingContext: {
+              limitations: 'Do not render limitations detail',
+              painNotes: 'Do not render pain notes',
+              equipmentAccess: 'Do not render equipment detail',
+              availability: 'Do not render availability detail',
+              firstSessionPriorities: 'Do not render priorities detail',
+            },
           },
         },
       },
@@ -49,12 +56,22 @@ describe('CoachActionProposalCard detail privacy', () => {
     expect(await screen.findByText(/Client draft ready for trainer review/i)).toBeInTheDocument();
     expect(screen.getByText(/Fitness goal ready for review/i)).toBeInTheDocument();
     expect(screen.getByText(/Health context requires trainer review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Limitations context ready for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pain context ready for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Equipment context ready for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/Availability context ready for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/First-session context ready for review/i)).toBeInTheDocument();
     expect(screen.queryByText(/Norma/i)).toBeNull();
     expect(screen.queryByText(/Patton/i)).toBeNull();
     expect(screen.queryByText(/private@example\.com/i)).toBeNull();
     expect(screen.queryByText(/Strength and balance with private notes/i)).toBeNull();
     expect(screen.queryByText(/Do not render health detail/i)).toBeNull();
     expect(screen.queryByText(/Do not render trainer note/i)).toBeNull();
+    expect(screen.queryByText(/Do not render limitations detail/i)).toBeNull();
+    expect(screen.queryByText(/Do not render pain notes/i)).toBeNull();
+    expect(screen.queryByText(/Do not render equipment detail/i)).toBeNull();
+    expect(screen.queryByText(/Do not render availability detail/i)).toBeNull();
+    expect(screen.queryByText(/Do not render priorities detail/i)).toBeNull();
   });
 
   it('does not expose arbitrary workout title or note text in compact detail rows', async () => {

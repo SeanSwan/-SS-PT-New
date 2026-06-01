@@ -61,7 +61,7 @@
  * │ POST    /clients                                        Admin     Create new client      │
  * │ PUT     /clients/:clientId                              Admin     Update client          │
  * │ DELETE  /clients/:clientId                              Admin     Soft delete client     │
- * │ POST    /clients/:clientId/reset-password               Admin     Reset client password  │
+ * │ POST    /clients/:clientId/send-password-reset          Admin     Send reset email       │
  * │ POST    /clients/:clientId/assign-trainer               Admin     Assign trainer         │
  * │ GET     /clients/:clientId/workout-stats                Admin     Get workout analytics  │
  * │ POST    /clients/:clientId/generate-workout-plan        Admin     Generate AI workout    │
@@ -78,7 +78,7 @@
  *    - DELETE /clients/:clientId - Soft delete (set isActive=false)
  *
  * 2. Client-Specific Actions (2 routes):
- *    - POST /clients/:clientId/reset-password - Admin password reset
+ *    - POST /clients/:clientId/send-password-reset - Send secure password reset email
  *    - POST /clients/:clientId/assign-trainer - Assign trainer to client
  *
  * 3. MCP Integration (2 routes):
@@ -177,9 +177,9 @@
  * - Future-proof: Role hierarchy changes don't require refactor
  * - Clear syntax: authorize(['admin']) is self-documenting
  *
- * WHY Separate Routes for Actions (reset-password, assign-trainer)?
+ * WHY Separate Routes for Actions (send-password-reset, assign-trainer)?
  * - RESTful design: Actions are not pure CRUD operations
- * - Clear intent: POST /clients/:id/reset-password vs PUT /clients/:id (ambiguous)
+ * - Clear intent: POST /clients/:id/send-password-reset vs PUT /clients/:id (ambiguous)
  * - Audit logging: Easier to track specific admin actions
  * - Validation: Different schemas for different actions
  *
@@ -207,9 +207,9 @@
  * POST /api/admin/clients
  * Body: { firstName, lastName, email, username, password, role: 'client' }
  *
- * // Reset forgotten password
- * POST /api/admin/clients/abc-123-def/reset-password
- * Body: { newPassword: "TempPass123!" }
+ * // Send forgotten-password reset link
+ * POST /api/admin/clients/abc-123-def/send-password-reset
+ * Body: {}
  *
  * // Assign trainer to client
  * POST /api/admin/clients/abc-123-def/assign-trainer
@@ -241,7 +241,7 @@
  *   - ✅ GET /clients as admin → 200 OK
  *   - ✅ POST /clients creates new client → 201 Created
  *   - ✅ DELETE /clients/:id soft deletes → 200 OK
- *   - ✅ POST /reset-password generates new password → 200 OK
+ *   - ✅ POST /send-password-reset emails reset link → 200 OK
  *   - ✅ GET /mcp-status returns MCP health → 200 OK
  *
  * Future Enhancements:
@@ -293,8 +293,10 @@ router.use(authorize(['admin']));
 // Client management routes
 router.get('/clients', adminClientController.getClients);
 router.get('/clients/activation-queue', adminClientController.getClientActivationQueue);
+router.get('/clients/export', adminClientController.exportClients);
 router.get('/clients/:clientId', adminClientController.getClientDetails);
 router.post('/clients', adminClientController.createClient);
+router.put('/clients/:clientId/restore', adminClientController.restoreClient);
 router.put('/clients/:clientId', adminClientController.updateClient);
 router.delete('/clients/:clientId', adminClientController.deleteClient);
 
@@ -333,6 +335,7 @@ router.post('/clients/:clientId/upload-photo', photoUpload.single('photo'), asyn
 });
 
 // Client-specific actions
+router.post('/clients/:clientId/send-password-reset', adminClientController.resetClientPassword);
 router.post('/clients/:clientId/reset-password', adminClientController.resetClientPassword);
 router.post('/clients/:clientId/assign-trainer', adminClientController.assignTrainer);
 

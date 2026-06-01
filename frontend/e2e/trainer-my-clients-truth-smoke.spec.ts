@@ -102,8 +102,11 @@ test('trainer My Clients renders live assignments without demo wrapper data', as
 
   await expect(page.getByRole('heading', { name: /^My Clients$/i })).toBeVisible();
   await expect(page.getByText(/QA Assigned/i)).toBeVisible();
-  await expect(page.getByText(/^0%$/)).toBeVisible();
-  await expect(page.getByText(/Trend:\s*stable/i)).toBeVisible();
+  await expect(page.getByText(/Workout Proof/i)).toBeVisible();
+  await expect(page.getByText(/1 logged/i)).toBeVisible();
+  await expect(page.getByText(/Last logged:/i)).toBeVisible();
+  await expect(page.getByText(/(?:Assigned|Joined) (?:Today|Yesterday|\d+ (?:days|weeks|months) ago)/i)).toBeVisible();
+  await expect(page.getByText(/NaN/i)).toHaveCount(0);
   await expect(page.getByText(/Demo Mode|View Demo Data|Sarah Johnson|sarah\.j@demo\.com|Real API integration coming soon/i)).toHaveCount(0);
 
   const layout = await layoutSnapshot(page);

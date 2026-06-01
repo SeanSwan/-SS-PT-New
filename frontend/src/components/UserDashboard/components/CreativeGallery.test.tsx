@@ -57,7 +57,12 @@ describe('CreativeGallery', () => {
     const file = new File(['media'], 'private-client-video.mp4', { type: 'video/mp4' });
     fireEvent.change(screen.getByLabelText('Creative media upload'), { target: { files: [file] } });
 
-    expect(mockCreatePost).toHaveBeenCalledWith({ content: 'Shared media', type: 'general' });
+    expect(mockCreatePost).toHaveBeenCalledWith({
+      content: expect.stringContaining('#SwanCreative'),
+      type: 'art',
+      media: file,
+    });
+    expect(mockCreatePost.mock.calls[0][0].content).not.toContain('private-client-video');
   });
 
   it('renders the empty state when no media posts exist', () => {

@@ -11,7 +11,7 @@
  * HOW IT FITS: useWorkoutAnalytics hook → these utils → Victory chart data
  */
 
-import type { WorkoutSession, WorkoutLogEntry } from './useWorkoutAnalytics';
+import type { WorkoutSession, WorkoutLogEntry } from './useWorkoutAnalytics.types';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: New NASM Analytics Types

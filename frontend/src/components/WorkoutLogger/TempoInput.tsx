@@ -23,7 +23,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import styled from 'styled-components';
-import { CS } from './WorkoutLoggerCS';
+import { CS, withAlpha } from './WorkoutLoggerCS';
 
 // ─── Validation ─────────────────────────────────────────────
 
@@ -65,13 +65,13 @@ export const TEMPO_PRESETS: Record<string, { label: string; value: string }[]> =
 const TempoContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 2px;
-  max-width: 120px;
+  gap: 4px;
+  max-width: 160px;
 `;
 
 const TempoSegment = styled.input<{ $isValid: boolean }>`
-  width: 28px;
-  height: 32px;
+  width: 44px;
+  min-width: 44px;
   min-height: 44px;
   text-align: center;
   background: ${CS.inputBg};
@@ -91,7 +91,7 @@ const TempoSegment = styled.input<{ $isValid: boolean }>`
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: ${withAlpha(CS.text, 0.35)};
   }
 `;
 
@@ -104,14 +104,14 @@ const Separator = styled.span`
 
 const TempoLabel = styled.div`
   display: flex;
-  gap: 2px;
+  gap: 4px;
   font-size: 0.6rem;
   color: ${CS.textSecondary};
   opacity: 0.6;
   margin-top: 2px;
 
   span {
-    width: 28px;
+    width: 44px;
     text-align: center;
   }
 `;

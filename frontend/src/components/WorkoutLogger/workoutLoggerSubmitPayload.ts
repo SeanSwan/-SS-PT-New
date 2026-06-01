@@ -31,6 +31,7 @@ export interface WorkoutFormSubmitBody {
   exercises: SanitizedExercise[];
   sessionNotes: string;
   overallIntensity?: number;
+  scheduledSessionId?: string;
 }
 
 interface SanitizedExercise {
@@ -95,6 +96,7 @@ export function buildWorkoutFormSubmitBody(params: {
   exercises: ExerciseEntry[];
   sessionNotes: string;
   overallIntensity: number | null | undefined;
+  scheduledSessionId?: string | null;
 }): WorkoutFormSubmitBody {
   const body: WorkoutFormSubmitBody = {
     clientId: params.clientId,
@@ -104,6 +106,9 @@ export function buildWorkoutFormSubmitBody(params: {
   };
   if (params.overallIntensity !== null && params.overallIntensity !== undefined) {
     body.overallIntensity = params.overallIntensity;
+  }
+  if (params.scheduledSessionId) {
+    body.scheduledSessionId = params.scheduledSessionId;
   }
   return body;
 }

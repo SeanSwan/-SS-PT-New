@@ -23,6 +23,7 @@
 import sequelize from '../database.mjs';
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 
 export function getStorefrontSessionCredits(storefrontItem) {
   const directSessions = Number(storefrontItem?.sessions || 0);
@@ -131,6 +132,10 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
 
     if (sessionsToAdd > 0 && user.role === 'user') {
       userPurchaseUpdate.role = 'client';
+    }
+
+    if (sessionsToAdd > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      userPurchaseUpdate.clientSource = 'swanstudios';
     }
 
     await user.update(userPurchaseUpdate, { transaction });

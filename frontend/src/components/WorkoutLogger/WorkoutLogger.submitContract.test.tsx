@@ -233,6 +233,18 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
     expect(body.exercises[0].sets[0].formQuality).toBe(5);
     expect(body.exercises[0].formRating).toBe(4);
   });
+
+  it('carries a schedule-origin session id without overloading DailyWorkoutForm.sessionId', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      scheduledSessionId: '314',
+    });
+
+    expect(body.scheduledSessionId).toBe('314');
+    expect('sessionId' in body).toBe(false);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

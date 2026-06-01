@@ -1,0 +1,201 @@
+import express from 'express';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { mockExecuteCommandPipeline, mockGetCommandExecutionLane } = vi.hoisted(() => ({
+  mockExecuteCommandPipeline: vi.fn(),
+  mockGetCommandExecutionLane: vi.fn(),
+}));
+
+vi.mock('../../middleware/authMiddleware.mjs', () => ({
+  protect: (req, _res, next) => {
+    req.user = { id: 7, role: 'admin', firstName: 'Admin', lastName: 'User' };
+    next();
+  },
+}));
+
+vi.mock('../../database.mjs', () => ({
+  default: {},
+}));
+
+vi.mock('../../services/ai/commandExecutor.mjs', () => ({
+  executeCommandPipeline: mockExecuteCommandPipeline,
+  executeConfirmedOperation: vi.fn(),
+  checkForConfirmation: vi.fn(),
+}));
+
+vi.mock('../../services/ai/commandExecutionLane.mjs', () => ({
+  getCommandExecutionLane: mockGetCommandExecutionLane,
+}));
+
+const aiCommandRoutes = (await import('../../routes/aiCommandRoutes.mjs')).default;
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/ai-command', aiCommandRoutes);
+  return app;
+}
+
+const baseCtx = {
+  error: null,
+  resolvedClient: null,
+  metadata: { timing: { totalMs: 3 } },
+};
+
+describe('aiCommandRoutes frontend dispatch responses', () => {
+  beforeEach(() => {
+    mockExecuteCommandPipeline.mockReset();
+    mockGetCommandExecutionLane.mockImplementation((command) => {
+      if (command.type === 'block_user_posting') {
+        return {
+          executionLane: 'manual_only',
+          canExecute: false,
+          manualOnly: true,
+          manualOnlyReason: 'user-level posting bans do not yet have a canonical route or model field',
+        };
+      }
+      if (command.type === 'add_exercise_to_form' || command.type === 'submit_workout_form') {
+        return {
+          executionLane: 'frontend_event',
+          canExecute: true,
+          manualOnly: false,
+          manualOnlyReason: null,
+        };
+      }
+      return {
+        executionLane: 'server_dispatch',
+        canExecute: true,
+        manualOnly: false,
+        manualOnlyReason: null,
+      };
+    });
+  });
+
+  it('returns a typed browser event for safe workout-form commands', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: {
+        intent: 'add_exercise_to_form',
+        params: { exerciseName: 'Push Up', sets: 3, reps: 10 },
+      },
+      command: {
+        type: 'add_exercise_to_form',
+        description: 'Add an exercise to the current workout form with optional set details',
+        method: 'FRONTEND_DISPATCH',
+        endpoint: 'AI_ADD_EXERCISE',
+        frontendEvent: 'AI_ADD_EXERCISE',
+        requiresConfirmation: false,
+      },
+      result: { type: 'not_wired', message: 'client-side event' },
+    });
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'add push ups' })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'frontend_dispatch',
+      command: 'add_exercise_to_form',
+      event: 'AI_ADD_EXERCISE',
+      payload: { exerciseName: 'Push Up', sets: 3, reps: 10 },
+      fallbackToChat: false,
+    });
+  });
+
+  it('passes through manual-only not-wired command receipts without frontend dispatch', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'block_user_posting', params: { userId: 88, blocked: true } },
+      command: {
+        type: 'block_user_posting',
+        description: 'Block a user from posting',
+        method: 'POST',
+        endpoint: '/api/social/moderation/users/:userId/block-posting',
+        requiresConfirmation: true,
+      },
+      result: {
+        type: 'not_wired',
+        manualOnly: true,
+        reason: 'user-level posting bans do not yet have a canonical route or model field',
+        message: 'User-level posting bans require a canonical route or model field. No data was changed.',
+      },
+    });
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'reset client password' })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'not_wired',
+      command: 'block_user_posting',
+      manualOnly: true,
+      reason: 'user-level posting bans do not yet have a canonical route or model field',
+    });
+    expect(response.body.type).not.toBe('frontend_dispatch');
+  });
+
+  it('returns a no-change receipt if a command reaches the route with a null result', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'future_command', params: {} },
+      command: {
+        type: 'future_command',
+        description: 'Future command',
+        method: 'POST',
+        endpoint: '/api/future',
+      },
+      result: null,
+    });
+
+    const response = await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'run future command' })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      success: true,
+      type: 'not_wired',
+      command: 'future_command',
+      manualOnly: false,
+      reason: null,
+    });
+    expect(response.body.message).toContain('No data was changed.');
+  });
+
+  it('lists command execution lanes so the UI can separate ready actions from manual workflows', async () => {
+    const response = await request(makeApp())
+      .get('/api/ai-command/commands')
+      .expect(200);
+
+    const commandsByType = Object.fromEntries(
+      response.body.commands.map((command) => [command.type, command]),
+    );
+
+    expect(commandsByType.view_client_profile).toMatchObject({
+      executionLane: 'server_dispatch',
+      canExecute: true,
+      manualOnly: false,
+    });
+    expect(commandsByType.add_exercise_to_form).toMatchObject({
+      executionLane: 'frontend_event',
+      canExecute: true,
+      manualOnly: false,
+    });
+    expect(commandsByType.submit_workout_form).toMatchObject({
+      executionLane: 'frontend_event',
+      canExecute: true,
+      manualOnly: false,
+    });
+    expect(commandsByType.reset_client_password).toMatchObject({
+      executionLane: 'server_dispatch',
+      canExecute: true,
+      manualOnly: false,
+    });
+    expect(commandsByType.reset_client_password.manualOnlyReason).toBeNull();
+  });
+});

@@ -7,15 +7,17 @@
  * UniversalDashboardLayout.tsx mounts this page at /dashboard/trainer/workout-forge.
  *
  * DATA CONTRACTS:
- * - GET /api/admin/clients for trainer/admin client selector parity.
+ * - GET role-aware clients for trainer/admin client selector parity.
  * - POST /api/workout-plans for draft plan persistence.
  * - WorkoutCopilotPanel for AI generation and approval flow.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { Zap, ChevronDown, Plus, Sparkles, Save, User, Dumbbell, Target, Trash2 } from 'lucide-react';
+import { Zap, Plus, Sparkles, Save, User, Dumbbell, Target, Trash2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import WorkoutCopilotPanel from '../admin-clients/components/WorkoutCopilotPanel';
+import TrainerWorkoutForgeClientSelect from './TrainerWorkoutForgeClientSelect';
+import useTrainerForgeClients from './useTrainerForgeClients';
 import {
   ActionBtn,
   ButtonRow,
@@ -38,21 +40,19 @@ import {
   PhaseName,
   PhaseNum,
   RemoveExerciseBtn,
-  Select,
   Title,
 } from './TrainerWorkoutForgePage.styles';
 import {
   EQUIPMENT_OPTIONS,
   OPT_PHASES,
   buildExerciseId,
-  toClientName,
+  parseTrainerForgeClientId,
   type ManualExercise,
-  type TrainerClient,
 } from './TrainerWorkoutForgePage.data';
 
 const TrainerWorkoutForgePage: React.FC = () => {
-  const { authAxios } = useAuth();
-  const [clients, setClients] = useState<TrainerClient[]>([]);
+  const { authAxios, user } = useAuth();
+  const clients = useTrainerForgeClients(authAxios, user);
   const [clientId, setClientId] = useState('');
   const [optPhase, setOptPhase] = useState(1);
   const [workoutTitle, setWorkoutTitle] = useState('');
@@ -63,26 +63,12 @@ const TrainerWorkoutForgePage: React.FC = () => {
   const [copilotOpen, setCopilotOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const loadClients = async () => {
-      try {
-        const res = await authAxios.get('/api/admin/clients');
-        const list = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.clients || [];
-        setClients(list.map((u: any) => ({ id: u.id, name: toClientName(u) })));
-      } catch {
-        setClients([]);
-      }
-    };
-
-    loadClients();
-  }, [authAxios]);
-
   const activePhase = OPT_PHASES.find(p => p.phase === optPhase)!;
   const selectedClient = useMemo(
     () => clients.find(client => String(client.id) === clientId) || null,
     [clientId, clients],
   );
-  const parsedClientId = Number(clientId);
+  const parsedClientId = parseTrainerForgeClientId(clientId);
 
   const toggleEquipment = useCallback((eq: string) => {
     setEquipment(prev => prev.includes(eq) ? prev.filter(e => e !== eq) : [...prev, eq]);
@@ -111,13 +97,13 @@ const TrainerWorkoutForgePage: React.FC = () => {
     setExercises(prev => prev.filter(ex => ex.id !== id));
   }, []);
 
-  const buildPlanPayload = useCallback(() => {
+  const buildPlanPayload = useCallback((targetClientId: number) => {
     const namedExercises = exercises
       .map(ex => ({ ...ex, name: ex.name.trim() }))
       .filter(ex => ex.name.length > 0);
 
     return {
-      userId: parsedClientId,
+      userId: targetClientId,
       title: workoutTitle.trim(),
       description: goal.trim() || `${activePhase.name} draft plan`,
       nasmPhase: optPhase,
@@ -154,12 +140,12 @@ const TrainerWorkoutForgePage: React.FC = () => {
         optPhaseName: activePhase.name,
       },
     };
-  }, [activePhase.name, duration, equipment, exercises, goal, optPhase, parsedClientId, workoutTitle]);
+  }, [activePhase.name, duration, equipment, exercises, goal, optPhase, workoutTitle]);
 
   const handleSavePlan = useCallback(async () => {
     const namedCount = exercises.filter(ex => ex.name.trim().length > 0).length;
 
-    if (!selectedClient || !Number.isFinite(parsedClientId)) {
+    if (!selectedClient || parsedClientId === null) {
       toast.error('Select a client before saving a workout plan.');
       return;
     }
@@ -174,7 +160,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
 
     setSaving(true);
     try {
-      await authAxios.post('/api/workout-plans', buildPlanPayload());
+      await authAxios.post('/api/workout-plans', buildPlanPayload(parsedClientId));
       toast.success(`Draft plan saved for ${selectedClient.name}.`);
     } catch {
       toast.error('Unable to save this draft plan. Check the client assignment and try again.');
@@ -188,14 +174,12 @@ const TrainerWorkoutForgePage: React.FC = () => {
       <PageWrapper>
         <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
         <Card>
-          <Label htmlFor="trainer-forge-client">Select a Client</Label>
-          <Select>
-            <select id="trainer-forge-client" value={clientId} onChange={e => setClientId(e.target.value)}>
-              <option value="">Choose client...</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <ChevronDown size={18} />
-          </Select>
+          <TrainerWorkoutForgeClientSelect
+            label="Select a Client"
+            clientId={clientId}
+            clients={clients}
+            onChange={setClientId}
+          />
         </Card>
         <EmptyState>Select a client to generate a personalized workout plan.</EmptyState>
       </PageWrapper>
@@ -207,14 +191,12 @@ const TrainerWorkoutForgePage: React.FC = () => {
       <Title><Zap size={24} color="var(--accent-secondary, #8B5CF6)" /> Workout Forge</Title>
 
       <Card>
-        <Label htmlFor="trainer-forge-client">Client</Label>
-        <Select>
-          <select id="trainer-forge-client" value={clientId} onChange={e => setClientId(e.target.value)}>
-            <option value="">Choose client...</option>
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <ChevronDown size={18} />
-        </Select>
+        <TrainerWorkoutForgeClientSelect
+          label="Client"
+          clientId={clientId}
+          clients={clients}
+          onChange={setClientId}
+        />
       </Card>
 
       <Card>
@@ -298,7 +280,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
         <HelperCopy>Manual drafts save as trainer-reviewable plans. Swan Coach opens the existing AI approval workflow.</HelperCopy>
       </Card>
 
-      {selectedClient && Number.isFinite(parsedClientId) && (
+      {selectedClient && parsedClientId !== null && (
         <WorkoutCopilotPanel
           open={copilotOpen}
           onClose={() => setCopilotOpen(false)}

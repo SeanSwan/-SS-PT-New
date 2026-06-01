@@ -11,10 +11,12 @@ const {
   getAvailableSlotsMock,
   getAvailabilityForTrainerMock,
   createOverrideMock,
+  updateWeeklyAvailabilityMock,
 } = vi.hoisted(() => ({
   getAvailableSlotsMock: vi.fn(),
   getAvailabilityForTrainerMock: vi.fn(),
   createOverrideMock: vi.fn(),
+  updateWeeklyAvailabilityMock: vi.fn(),
 }));
 
 vi.mock('../../services/availabilityService.mjs', () => ({
@@ -22,12 +24,14 @@ vi.mock('../../services/availabilityService.mjs', () => ({
     getAvailableSlots: getAvailableSlotsMock,
     getAvailabilityForTrainer: getAvailabilityForTrainerMock,
     createOverride: createOverrideMock,
+    updateWeeklyAvailability: updateWeeklyAvailabilityMock,
   },
 }));
 
 import {
   dispatchViewAvailableSlots,
 } from '../../services/ai/dispatchers/availabilityDispatchers.mjs';
+import { dispatchSetAvailability } from '../../services/ai/dispatchers/setAvailabilityDispatcher.mjs';
 
 describe('availability dispatchers', () => {
   beforeEach(() => {
@@ -107,5 +111,74 @@ describe('availability dispatchers', () => {
       firstSlotStartUtc: null,
       lastSlotEndUtc: null,
     });
+  });
+
+  it('sets one recurring day without wiping the trainer weekly schedule', async () => {
+    getAvailabilityForTrainerMock.mockResolvedValue({
+      recurring: [
+        {
+          dayOfWeek: 2,
+          startTime: '10:00:00',
+          endTime: '16:00:00',
+          type: 'available',
+          isRecurring: true,
+          isActive: true,
+        },
+      ],
+      overrides: [],
+    });
+    updateWeeklyAvailabilityMock.mockResolvedValue([
+      { id: 11, dayOfWeek: 1, startTime: '09:00', endTime: '17:00' },
+      { id: 12, dayOfWeek: 2, startTime: '10:00', endTime: '16:00' },
+    ]);
+
+    const result = await dispatchSetAvailability(
+      {
+        dayOfWeek: 'monday',
+        startTime: '09:00',
+        endTime: '17:00',
+      },
+      { user: { id: 42, role: 'trainer' } },
+    );
+
+    expect(getAvailabilityForTrainerMock).toHaveBeenCalledWith(42);
+    expect(updateWeeklyAvailabilityMock).toHaveBeenCalledWith(42, [
+      {
+        dayOfWeek: 2,
+        startTime: '10:00',
+        endTime: '16:00',
+        type: 'available',
+      },
+      {
+        dayOfWeek: 1,
+        startTime: '09:00',
+        endTime: '17:00',
+        type: 'available',
+      },
+    ]);
+    expect(result).toEqual({
+      trainerId: 42,
+      dayOfWeek: 1,
+      day: 'Mon',
+      startTime: '09:00',
+      endTime: '17:00',
+      recurringSlotCount: 2,
+      preservedOtherDays: 1,
+    });
+  });
+
+  it('rejects set_availability ranges that end before they start', async () => {
+    await expect(
+      dispatchSetAvailability(
+        {
+          dayOfWeek: 'monday',
+          startTime: '17:00',
+          endTime: '09:00',
+        },
+        { user: { id: 42, role: 'trainer' } },
+      ),
+    ).rejects.toThrow('End time (09:00) must be after start time (17:00).');
+
+    expect(updateWeeklyAvailabilityMock).not.toHaveBeenCalled();
   });
 });

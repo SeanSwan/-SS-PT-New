@@ -15,4 +15,8 @@ describe('AdminStellarSidebar mobile navigation contract', () => {
     expect(source).toContain('}, [mobileOpen, onToggleMobile]);');
     expect(source).toContain('}, [navigate, isMobile, setMobileOpen]);');
   });
+
+  it('keeps the active admin sidebar source within the project line cap', () => {
+    expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
 });

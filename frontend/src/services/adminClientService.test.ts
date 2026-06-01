@@ -53,3 +53,45 @@ describe('adminClientService createClient', () => {
     expect(utilitySource).toMatch(/Fisher-Yates/);
   });
 });
+
+describe('adminClientService sendClientPasswordReset', () => {
+  it('sends a reset-email request without raw password data', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: { success: true, message: 'Password reset email sent' },
+    });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get: vi.fn(),
+      post,
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+
+    await service.sendClientPasswordReset('client-42');
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/admin/clients/client-42/send-password-reset',
+      {},
+      undefined,
+    );
+  });
+
+  it('keeps legacy admin-client surfaces off raw password prompts', () => {
+    const hookSource = readFileSync(
+      resolve(__dirname, '../components/DashBoard/Pages/admin-clients/hooks/useClientActions.ts'),
+      'utf8',
+    );
+    const enhancedSource = readFileSync(
+      resolve(__dirname, '../components/DashBoard/Pages/admin-clients/EnhancedAdminClientManagementView.tsx'),
+      'utf8',
+    );
+
+    expect(hookSource).not.toMatch(/prompt\([^)]*password/i);
+    expect(hookSource).not.toContain('newPassword');
+    expect(hookSource).toMatch(/sendClientPasswordReset\(client\.id\)/);
+    expect(enhancedSource).not.toMatch(/prompt\([^)]*password/i);
+    expect(enhancedSource).not.toContain('newPassword');
+    expect(enhancedSource).toMatch(/sendClientPasswordReset\(client\.id\)/);
+  });
+});

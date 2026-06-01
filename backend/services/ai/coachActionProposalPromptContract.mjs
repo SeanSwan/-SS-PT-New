@@ -31,7 +31,7 @@ When ready to prepare a draft, use a coach_action_proposal block as one JSON blo
 \`\`\`
 
 Payload guidance:
-- client_onboarding payload: include gathered onboarding fields only; never invent names, claim codes, passwords, URLs, or consent.
+- client_onboarding payload: include gathered onboarding fields only; never invent names, claim codes, passwords, URLs, or consent. Prefer firstName, lastName, email, phone, clientSource, trainingGoal, limitations, painNotes, equipmentAccess, availability, and firstSessionPriorities when the trainer provides them.
 - workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence.
 - client_data_update payload: include targetUserId or clientId plus non-empty updates; each update must be reviewable.
 - frontend_dispatch payload: use only for draft UI changes, never as a final write path.
@@ -42,11 +42,12 @@ Do not emit legacy create_client, ONBOARD_CLIENT, import_workout_log, update_cli
 `;
 
 export function shouldAppendCoachActionProposalContract({ role, context } = {}) {
-  return context === 'coach_assistant' && ['admin', 'trainer'].includes(role);
+  return ['coach_assistant', 'client_onboarding'].includes(context) && ['admin', 'trainer'].includes(role);
 }
 
 const STRUCTURED_CLIENT_ONBOARDING_GUIDANCE = `CLIENT CREATION (NEW CLIENT ONBOARDING):
-When the admin/trainer asks to onboard or create a new client, gather the available onboarding fields and use a coach_action_proposal block with proposal_type "client_onboarding". Ask one short clarification when firstName, lastName, or clientSource is missing. Do not claim the account was created, do not invent claim codes/passwords/URLs, and do not emit old client-creation write blocks.`;
+When the admin/trainer asks to onboard or create a new client, gather the available onboarding fields and use a coach_action_proposal block with proposal_type "client_onboarding". Ask one short clarification when firstName, lastName, or clientSource is missing. Preserve progress-first training context when available: trainingGoal, limitations, painNotes, equipmentAccess, availability, and firstSessionPriorities. Do not claim the account was created, do not invent claim codes/passwords/URLs, and do not emit old client-creation write blocks.
+Client source policy: "swanstudios" means paid SwanStudios sessions, "move_fitness" means Move Fitness free-tracking with No session deduction, and "external" means outside gym/studio/imported/trainer-managed free-tracking with No session deduction. Use "clientSource": "move_fitness|external|swanstudios" in examples and ask which source when unclear.`;
 
 const STRUCTURED_WORKOUT_IMPORT_GUIDANCE = `HISTORICAL WORKOUT LOG IMPORT:
 When a trainer/admin pastes workout history or dictates a completed session, parse it into one or more proposed workout-log drafts and use a coach_action_proposal block with proposal_type "workout_log" or "split_plan". Dates must stay evidence-backed, final writes require trainer approval, and old workout-import write blocks are not allowed for new Coach output.`;

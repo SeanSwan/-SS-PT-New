@@ -39,6 +39,8 @@ export const Avatar = styled.div<{ $source?: string }>`
   background: ${({ $source }) =>
     $source === 'move_fitness'
       ? 'var(--client-source-move-bg, linear-gradient(135deg, #C6A84B 0%, #8B5CF6 100%))'
+      : $source === 'external'
+        ? 'var(--client-source-external-bg, linear-gradient(135deg, #1A1A24 0%, #4070C0 100%))'
       : 'var(--client-source-swan-bg, linear-gradient(135deg, #002060 0%, #60C0F0 100%))'};
   display: flex;
   align-items: center;
@@ -80,10 +82,14 @@ export const SourceBadge = styled.span<{ $source: string }>`
   background: ${({ $source }) =>
     $source === 'move_fitness'
       ? 'var(--client-source-move-soft, rgba(198, 168, 75, 0.15))'
+      : $source === 'external'
+        ? 'var(--client-source-external-soft, rgba(224, 236, 244, 0.1))'
       : 'var(--client-source-swan-soft, rgba(96, 192, 240, 0.12))'};
   color: ${({ $source }) =>
     $source === 'move_fitness'
       ? 'var(--accent-gold, #C6A84B)'
+      : $source === 'external'
+        ? 'var(--text-primary, #E0ECF4)'
       : 'var(--accent-primary, #60C0F0)'};
 `;
 
@@ -134,8 +140,65 @@ export const SearchInput = styled.input`
   }
 `;
 
+export const MutedIconSlot = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.4;
+`;
+
+export const SelectorPlaceholder = styled.span`
+  opacity: 0.5;
+`;
+
+export const ChevronIndicator = styled.span<{ $open: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0.4;
+  transform: ${({ $open }) => ($open ? 'rotate(180deg)' : 'none')};
+  transition: transform 0.2s ease;
+`;
+
+export const ClearSearchButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    color: var(--accent-primary, #60C0F0);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
+export const SectionLabelIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+`;
+
 export const SectionLabel = styled.div`
   padding: 8px 14px 4px;
+  display: flex;
+  align-items: center;
   font-family: 'Sora', sans-serif;
   font-size: 10px;
   font-weight: 700;

@@ -138,9 +138,9 @@ const workoutMcpApi: WorkoutMcpApi = {
     params: GetWorkoutRecommendationsParams
   ): Promise<McpApiResponse<{ recommendations: WorkoutRecommendation[] }>> => {
     try {
-      const response = await productionApiService.post('/api/workout/recommendations', params);
+      const response = await productionApiService.get('/api/workout/recommendations', { params });
       const data = unwrap(response);
-      return { data: { recommendations: data.recommendations || data.workouts || [] } };
+      return { data: { recommendations: data.recommendations || data.exercises || data.workouts || [] } };
     } catch {
       return { data: { recommendations: [] } };
     }

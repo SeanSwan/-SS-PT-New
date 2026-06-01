@@ -7,6 +7,7 @@ import User from '../models/User.mjs';
 import { sendEmail, isEmailServiceConfigured } from '../emailService.mjs';
 import logger from './logger.mjs';
 import { isTwilioEnabled } from './apiKeyChecker.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 
 dotenv.config();
 
@@ -474,6 +475,19 @@ export const processSessionDeduction = async (session, client, transaction = nul
       if (!session || !client) {
         throw new Error('Session and client information required');
       }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+      session.sessionDeducted = true;
+      session.deductionDate = new Date();
+      const saveOptions = transaction ? { transaction } : {};
+      await session.save(saveOptions);
+      return {
+        success: true,
+        deducted: false,
+        creditsDeducted: 0,
+        message: 'No credits required for this client source'
+      };
+    }
 
     // Determine credits to deduct from session type (default: 1)
     let creditsToDeduct = 1;

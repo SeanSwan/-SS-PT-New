@@ -2,13 +2,16 @@
  * Activity feed list for the active UserDashboard V3 activity section.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { ActivityFeed, ActivityIcon, ActivityItem } from './ActivitySection.styles';
 import {
   ActivityContent,
   ActivityDescription,
+  AchievementDetails,
+  AchievementDetailsTitle,
+  AchievementIconButton,
   ActivityItemHeader,
   ActivityItemTitle,
   ActivityMeta,
@@ -35,74 +38,109 @@ const ActivitySectionFeed: React.FC<ActivitySectionFeedProps> = ({
   hasMoreActivities,
   showMore,
   onToggleShowMore,
-}) => (
-  <ActivityFeed>
-    {activities.length > 0 ? (
-      <AnimatePresence>
-        {activities.map((activity, index) => {
-          const Icon = activity.Icon;
+}) => {
+  const [expandedAchievementId, setExpandedAchievementId] = useState<string | null>(null);
 
-          return (
-            <ActivityItem
-              key={activity.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <ActivityIcon $color={activity.color}>
-                <Icon size={20} />
-              </ActivityIcon>
+  return (
+    <ActivityFeed>
+      {activities.length > 0 ? (
+        <AnimatePresence>
+          {activities.map((activity, index) => {
+            const Icon = activity.Icon;
+            const isAchievement = activity.typeKey === 'achievement';
+            const isExpanded = expandedAchievementId === activity.id;
+            const detailsId = `achievement-details-${activity.id}`;
 
-              <ActivityContent>
-                <ActivityItemHeader>
-                  <ActivityItemTitle>{activity.title}</ActivityItemTitle>
-                  <ActivityTime>{activity.time}</ActivityTime>
-                </ActivityItemHeader>
+            return (
+              <ActivityItem
+                key={activity.id}
+                role="article"
+                aria-label={`${activity.type}: ${activity.title}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                {isAchievement ? (
+                  <AchievementIconButton
+                    type="button"
+                    $color={activity.color}
+                    aria-expanded={isExpanded}
+                    aria-controls={detailsId}
+                    aria-label={`Show achievement details for ${activity.title}`}
+                    onClick={() => setExpandedAchievementId(isExpanded ? null : activity.id)}
+                  >
+                    <Icon size={20} aria-hidden="true" />
+                  </AchievementIconButton>
+                ) : (
+                  <ActivityIcon $color={activity.color}>
+                    <Icon size={20} />
+                  </ActivityIcon>
+                )}
 
-                <ActivityDescription>{activity.description}</ActivityDescription>
+                <ActivityContent>
+                  <ActivityItemHeader>
+                    <ActivityItemTitle>{activity.title}</ActivityItemTitle>
+                    <ActivityTime>{activity.time}</ActivityTime>
+                  </ActivityItemHeader>
 
-                <ActivityMeta>
-                  <MetaItem>
-                    <MetaLabel>{activity.type}</MetaLabel>
-                  </MetaItem>
-                </ActivityMeta>
-              </ActivityContent>
-            </ActivityItem>
-          );
-        })}
-      </AnimatePresence>
-    ) : (
-      <EmptyState>
-        <EmptyIcon>
-          <Activity size={32} />
-        </EmptyIcon>
-        <EmptyTitle>No recent activity yet</EmptyTitle>
-        <EmptyCopy>Start a workout or create a post!</EmptyCopy>
-      </EmptyState>
-    )}
+                  {!isAchievement && (
+                    <ActivityDescription>{activity.description}</ActivityDescription>
+                  )}
 
-    {hasMoreActivities && (
-      <ShowMoreButton
-        type="button"
-        onClick={onToggleShowMore}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        {showMore ? (
-          <>
-            Show Less
-            <ChevronUp size={16} />
-          </>
-        ) : (
-          <>
-            Show More Activities
-            <ChevronDown size={16} />
-          </>
-        )}
-      </ShowMoreButton>
-    )}
-  </ActivityFeed>
-);
+                  <ActivityMeta>
+                    <MetaItem>
+                      <MetaLabel>{activity.type}</MetaLabel>
+                    </MetaItem>
+                  </ActivityMeta>
+
+                  {isAchievement && isExpanded && (
+                    <AchievementDetails
+                      id={detailsId}
+                      role="region"
+                      aria-label={`Achievement details for ${activity.title}`}
+                    >
+                      <AchievementDetailsTitle>Why you earned it</AchievementDetailsTitle>
+                      This achievement was recorded from your progress feed: {activity.description}
+                    </AchievementDetails>
+                  )}
+                </ActivityContent>
+              </ActivityItem>
+            );
+          })}
+        </AnimatePresence>
+      ) : (
+        <EmptyState>
+          <EmptyIcon>
+            <Activity size={32} />
+          </EmptyIcon>
+          <EmptyTitle>No recent activity yet</EmptyTitle>
+          <EmptyCopy>Start a workout or create a post!</EmptyCopy>
+        </EmptyState>
+      )}
+
+      {hasMoreActivities && (
+        <ShowMoreButton
+          type="button"
+          onClick={onToggleShowMore}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {showMore ? (
+            <>
+              Show Less
+              <ChevronUp size={16} />
+            </>
+          ) : (
+            <>
+              Show More Activities
+              <ChevronDown size={16} />
+            </>
+          )}
+        </ShowMoreButton>
+      )}
+    </ActivityFeed>
+  );
+};
 
 export default ActivitySectionFeed;

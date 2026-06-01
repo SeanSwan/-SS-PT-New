@@ -5,18 +5,20 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexPanel.tsx'), 'utf8');
+const CONSTANTS_SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexPanel.constants.ts'), 'utf8');
+const LIST_SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexList.tsx'), 'utf8');
+const LIST_STYLES_SOURCE = readFileSync(resolve(__dirname, './ExerciseRolodexList.styles.ts'), 'utf8');
 
 describe('ExerciseRolodexPanel virtual card layout', () => {
   it('reserves enough virtual row height for two-line names plus impact/equipment tags', () => {
-    expect(SOURCE).toContain('const ROLODEX_ROW_HEIGHT = 76;');
-    expect(SOURCE).toMatch(/rowHeight=\{ROLODEX_ROW_HEIGHT\}/);
-    expect(SOURCE).toMatch(/height:\s*Math\.min\(exercisePairs\.length,\s*7\)\s*\*\s*ROLODEX_ROW_HEIGHT/);
+    expect(CONSTANTS_SOURCE).toContain('ROLODEX_ROW_HEIGHT = 76;');
+    expect(LIST_SOURCE).toMatch(/rowHeight=\{ROLODEX_ROW_HEIGHT\}/);
+    expect(LIST_SOURCE).toMatch(/height:\s*Math\.min\(exercisePairs\.length,\s*7\)\s*\*\s*ROLODEX_ROW_HEIGHT/);
   });
 
   it('clips metadata inside each exercise card instead of letting tags overlap the next row', () => {
-    expect(SOURCE).toMatch(/min-height:\s*64px/);
-    expect(SOURCE).toMatch(/CardMeta[\s\S]*?max-height:\s*26px/);
-    expect(SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
+    expect(LIST_STYLES_SOURCE).toMatch(/min-height:\s*64px/);
+    expect(LIST_STYLES_SOURCE).toMatch(/CardMeta[\s\S]*?max-height:\s*26px/);
+    expect(LIST_STYLES_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
   });
 });

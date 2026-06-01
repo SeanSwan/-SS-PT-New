@@ -35,4 +35,38 @@ describe('SessionCard', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(onClick).toHaveBeenCalledWith(mockSession);
   });
+
+  it('does not show stale paid-session badges for free-tracking clients', () => {
+    render(
+      <SessionCard
+        session={{
+          ...mockSession,
+          clientSource: 'move_fitness',
+          clientAvailableSessions: 17,
+        }}
+      />
+    );
+
+    expect(screen.queryByTitle('17 sessions remaining')).not.toBeInTheDocument();
+    expect(screen.queryByText('17')).not.toBeInTheDocument();
+  });
+
+  it('does not show stale paid package copy for free-tracking clients', () => {
+    render(
+      <SessionCard
+        session={{
+          ...mockSession,
+          clientSource: 'external',
+          packageInfo: {
+            name: 'Legacy 10 Pack',
+            sessionsRemaining: 7,
+            sessionsTotal: 10,
+          },
+        }}
+      />
+    );
+
+    expect(screen.queryByText(/Legacy 10 Pack/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/7 left/)).not.toBeInTheDocument();
+  });
 });

@@ -278,12 +278,34 @@ describe('UserDashboard V3 daily loop contract', () => {
     expect(shellSource).toContain('profileHeaderVisible?: boolean;');
     expect(leftRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
     expect(rightRailSource).toContain('$profileHeaderVisible={profileHeaderVisible}');
-    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 340px;');
+    expect(layoutSource).toContain('--observatory-profile-banner-clearance: ${({ $profileBannerClearance }) =>');
+    expect(layoutSource).toContain('Math.min(1000, Math.max(180, $profileBannerClearance ?? 340))');
     expect(layoutSource).toContain('margin-top: ${({ $profileHeaderVisible }) =>');
     expect(layoutSource).toContain('@media (min-width: 2560px)');
-    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 440px;');
     expect(layoutSource).toContain('@media (min-width: 3840px)');
-    expect(layoutSource).toContain('--observatory-profile-banner-clearance: 540px;');
+  });
+
+  it('uses the real SwanStudios logo for the observatory rail brand mark', () => {
+    const leftRailSource = readSource('src/components/UserDashboard/components/ObservatoryLeftRail.tsx');
+    const leftRailStylesSource = readSource('src/components/UserDashboard/styles/ObservatoryLeftRailStyles.ts');
+
+    expect(leftRailSource).toContain("import brandLogo from '../../../assets/Logo.png'");
+    expect(leftRailSource).toContain('<img src={brandLogo} alt="" aria-hidden="true" />');
+    expect(leftRailSource).not.toContain('Sparkles size={18}');
+    expectStyleBlockContains(leftRailStylesSource, 'LeftRailBrandMark', '& img');
+    expectStyleBlockContains(leftRailStylesSource, 'LeftRailBrandMark', 'object-fit: contain;');
+  });
+
+  it('uses non-blocking toast feedback for user-dashboard profile sharing', () => {
+    const controllerSource = readSource('src/components/UserDashboard/hooks/useUserDashboardV3Controller.ts');
+
+    expect(controllerSource).toContain("import { useToast } from '../../../hooks/use-toast'");
+    expect(controllerSource).toContain('const { toast } = useToast();');
+    expect(controllerSource).toContain("user?.id ? `${window.location.origin}/profile/${user.id}` : window.location.href");
+    expect(controllerSource).toContain('if (!navigator.clipboard?.writeText)');
+    expect(controllerSource).toContain("title: 'Profile link copied'");
+    expect(controllerSource).not.toContain('alert(');
+    expect(controllerSource).not.toContain('/profile/${user?.id}');
   });
 
   it('routes user dashboard workout actions through mounted role dashboards', () => {

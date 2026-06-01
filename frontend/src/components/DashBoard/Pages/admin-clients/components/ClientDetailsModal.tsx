@@ -19,6 +19,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import CustomModal from '../../../../UniversalMasterSchedule/ui/CustomModal';
+import { getClientSessionSignal } from '../../../workspaces/clients-team/clientSessionSignal';
 import type { EnhancedAdminClient } from '../EnhancedAdminClientManagementView';
 
 const Summary = styled.div`
@@ -72,6 +73,12 @@ const DetailValue = styled.div`
   font-weight: 600;
 `;
 
+const DetailNote = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+`;
+
 interface ClientDetailsModalProps {
   open: boolean;
   onClose: () => void;
@@ -82,6 +89,7 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ open, onClose, 
   const fullName = `${client.firstName} ${client.lastName}`;
   const roleLabel = client.role ? client.role.toUpperCase() : 'CLIENT';
   const statusLabel = client.isActive ? 'Active' : 'Inactive';
+  const sessionSignal = getClientSessionSignal(client);
 
   return (
     <CustomModal
@@ -118,8 +126,9 @@ const ClientDetailsModal: React.FC<ClientDetailsModalProps> = ({ open, onClose, 
           <DetailValue>{client.currentProgram || 'None'}</DetailValue>
         </DetailCard>
         <DetailCard>
-          <DetailLabel>Available Sessions</DetailLabel>
-          <DetailValue>{client.availableSessions ?? 0}</DetailValue>
+          <DetailLabel>Session Policy</DetailLabel>
+          <DetailValue>{sessionSignal.label}</DetailValue>
+          <DetailNote>{sessionSignal.note}</DetailNote>
         </DetailCard>
         <DetailCard>
           <DetailLabel>Engagement Level</DetailLabel>

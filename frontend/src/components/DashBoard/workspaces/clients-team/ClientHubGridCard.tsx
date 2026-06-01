@@ -13,8 +13,12 @@
 
 import React from 'react';
 import styled from 'styled-components';
-import { Activity, Dumbbell, Target, UserRound } from 'lucide-react';
+import { Activity, ClipboardCheck, Dumbbell, Target, UserRound } from 'lucide-react';
+import { getClientOnboardingPct } from '../ClientsWorkspace.logic';
 import type { ClientOption } from './ClientSelectorDropdown';
+import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
+import { getClientSourceLabel } from './clientSourceDisplay';
+import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
 interface ClientHubGridCardProps {
   client: ClientOption;
@@ -102,6 +106,8 @@ const Avatar = styled.div<{ $source?: string }>`
   background: ${({ $source }) =>
     $source === 'move_fitness'
       ? 'linear-gradient(135deg, var(--rarity-rare, #C6A84B), var(--accent-secondary, #8B5CF6))'
+      : $source === 'external'
+        ? 'linear-gradient(135deg, var(--bg-elevated, #141419), var(--tertiary, #4070C0))'
       : 'linear-gradient(135deg, var(--primary, #002060), var(--accent-primary, #60C0F0))'};
   box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
 
@@ -169,35 +175,62 @@ const MetricGrid = styled.div`
   }
 `;
 
-const Metric = styled.span`
+const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
   min-height: 36px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 7px 9px;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-  background: color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent);
+  border: 1px solid ${({ $tone = 'default' }) => {
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 24%, transparent)';
+    if ($tone === 'warning') return 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent)';
+    return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)';
+  }};
+  background: ${({ $tone = 'default' }) => {
+    if ($tone === 'gold') return 'color-mix(in srgb, var(--bg-elevated, #141419) 82%, var(--accent-gold, #C6A84B) 8%)';
+    if ($tone === 'warning') return 'color-mix(in srgb, var(--bg-elevated, #141419) 82%, var(--accent-secondary, #8B5CF6) 10%)';
+    return 'color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent)';
+  }};
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
   font-weight: 800;
 `;
 
-const initials = (client: ClientOption) =>
-  `${(client.firstName || '?')[0]}${(client.lastName || '?')[0]}`.toUpperCase();
+const MetricStack = styled.span`
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+`;
+
+const MetricNote = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 700;
+`;
 
 const sourceLabel = (client: ClientOption) =>
-  client.clientSource === 'move_fitness' ? 'Move Fitness' : 'SwanStudios';
+  getClientSourceLabel(client.clientSource);
 
 const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect }) => {
-  const fullName = `${client.firstName} ${client.lastName}`.trim();
+  const fullName = getClientDisplayName(client);
   const experience = client.trainingExperience?.trim() || 'experience pending';
   const goal = client.fitnessGoal?.trim() || 'Goal not captured';
+  const sessionSignal = getClientSessionSignal(client);
+  const onboardingPct = getClientOnboardingPct(client);
+  const onboardingLabel = onboardingPct === undefined ? 'intake pending' : `${onboardingPct}% onboarded`;
+  const onboardingNote = onboardingPct === undefined
+    ? 'needs intake'
+    : onboardingPct >= 100 ? 'intake complete' : 'intake progress';
 
   return (
     <CardButton type="button" onClick={() => onSelect(client)} aria-label={`Open ${fullName}`}>
-      <Avatar $source={client.clientSource}>{initials(client)}</Avatar>
+      <Avatar $source={client.clientSource}>{getClientInitials(client)}</Avatar>
       <CardBody>
         <TopLine>
           <Name>{fullName}</Name>
@@ -213,13 +246,23 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect 
             <Dumbbell size={14} />
             {client.workoutCount || 0} workouts
           </Metric>
-          <Metric>
+          <Metric $tone={sessionSignal.tone}>
             <Activity size={14} />
-            {client.availableSessions || 0} sessions
+            <MetricStack>
+              <span>{sessionSignal.label}</span>
+              <MetricNote>{sessionSignal.note}</MetricNote>
+            </MetricStack>
           </Metric>
           <Metric>
             <Target size={14} />
             {client.isActive === false ? 'inactive' : 'active'}
+          </Metric>
+          <Metric $tone={onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'}>
+            <ClipboardCheck size={14} />
+            <MetricStack>
+              <span>{onboardingLabel}</span>
+              <MetricNote>{onboardingNote}</MetricNote>
+            </MetricStack>
           </Metric>
         </MetricGrid>
       </CardBody>

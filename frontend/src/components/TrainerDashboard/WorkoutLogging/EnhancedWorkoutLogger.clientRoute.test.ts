@@ -30,6 +30,10 @@ const RAW_SOURCE = readFileSync(
   resolve(__dirname, './EnhancedWorkoutLogger.tsx'),
   'utf8',
 );
+const RAW_LOGIC_SOURCE = readFileSync(
+  resolve(__dirname, './EnhancedWorkoutLogger.logic.ts'),
+  'utf8',
+);
 
 function stripComments(src: string): string {
   return src
@@ -38,6 +42,7 @@ function stripComments(src: string): string {
 }
 
 const SOURCE = stripComments(RAW_SOURCE);
+const LOGIC_SOURCE = stripComments(RAW_LOGIC_SOURCE);
 
 describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
   it('calls the canonical /api/workout-forms/client/:clientId/info endpoint', () => {
@@ -63,6 +68,50 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
     expect(hardCodedTrainerNavs.length).toBe(0);
   });
 
+  it('honors any dashboard-local returnTo after validation', () => {
+    expect(SOURCE).toMatch(
+      /import \{ normalizeDashboardReturnTo, parseLoggerClientId, parseLoggerSessionId \} from '\.\/EnhancedWorkoutLogger\.logic'/
+    );
+    expect(LOGIC_SOURCE).toMatch(/export const normalizeDashboardReturnTo =/);
+    expect(LOGIC_SOURCE).toMatch(/raw\.startsWith\('\/dashboard\/'\)/);
+    expect(LOGIC_SOURCE).toMatch(/raw\[0\] === '\/' && raw\[1\] === '\/'/);
+    expect(SOURCE).toMatch(/const requestedReturnTo = normalizeDashboardReturnTo\(searchParams\.get\('returnTo'\)\)/);
+    expect(SOURCE).toMatch(/const workflowReturnPath = requestedReturnTo \?\? backToClientsPath/);
+    expect(SOURCE).toMatch(/navigate\(workflowReturnPath/);
+  });
+
+  it('uses source only for contextual back-button copy, not for returnTo authorization', () => {
+    expect(SOURCE).toMatch(/searchParams\.get\('source'\) === 'master-schedule'/);
+    expect(SOURCE).toMatch(/searchParams\.get\('source'\) === 'clients-team'/);
+    expect(SOURCE).toMatch(/Back to Schedule/);
+    expect(SOURCE).toMatch(/Back to Client Hub/);
+  });
+
+  it('passes master-schedule sessionId into the real WorkoutLogger', () => {
+    expect(LOGIC_SOURCE).toMatch(/export const parseLoggerSessionId =/);
+    expect(SOURCE).toMatch(/const scheduledSessionId = parseLoggerSessionId\(searchParams\.get\('sessionId'\)\)/);
+    expect(SOURCE).toMatch(/const scheduledSessionDate = searchParams\.get\('sessionDate'\)/);
+    expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
+    expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
+  });
+
+  it('passes a strictly parsed numeric client id into WorkoutLogger', () => {
+    expect(LOGIC_SOURCE).toMatch(/export const parseLoggerClientId =/);
+    expect(SOURCE).toMatch(/const routeClientId = parseLoggerClientId\(urlClientId\)/);
+    expect(SOURCE).toMatch(/const activeClientId = parseLoggerClientId\(activeClient\?\.id\)/);
+    expect(SOURCE).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
+    expect(SOURCE).toMatch(/clientId=\{client\.id\}/);
+  });
+
+  it('uses completion copy that is truthful for deducted and non-deducted clients', () => {
+    expect(SOURCE).not.toMatch(/Session deducted and progress updated/);
+    expect(SOURCE).not.toMatch(/Will Deduct/);
+    expect(SOURCE).not.toMatch(/In real use, this would deduct a session/);
+    expect(SOURCE).not.toMatch(/handleWorkoutComplete\(\{\}\)/);
+    expect(SOURCE).toMatch(/Workout saved and progress updated/);
+    expect(SOURCE).toMatch(/Client workout data could not be loaded/);
+  });
+
   // ── Phase 17.1 locks ────────────────────────────────────────────────
   // Codex's follow-up review caught that successful /info loads were
   // still routing real users through stale demo placeholders + a
@@ -84,5 +133,13 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
     // placeholder text after a successful client load.
     expect(SOURCE).not.toMatch(/Workout Logger Ready/);
     expect(SOURCE).not.toMatch(/Start Demo Workout/);
+  });
+
+  it('removes the dead demo workout branch from the real-client logger surface', () => {
+    expect(SOURCE).not.toMatch(/const demoExercises/);
+    expect(SOURCE).not.toMatch(/const demoClient/);
+    expect(SOURCE).not.toMatch(/showDemo/);
+    expect(SOURCE).not.toMatch(/Demo Mode/);
+    expect(SOURCE).not.toMatch(/Complete Demo Workout/);
   });
 });

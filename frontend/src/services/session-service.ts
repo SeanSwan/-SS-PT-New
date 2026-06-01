@@ -133,7 +133,7 @@ class SessionService {
    */
   async bookSession(sessionId: string): Promise<SessionServiceResponse<Session>> {
     try {
-      const response = await authAxiosInstance.post('/api/sessions/book', { sessionId });
+      const response = await authAxiosInstance.post(`/api/sessions/${sessionId}/book`, {});
       return {
         success: true,
         message: response.data.message || 'Session booked successfully',
@@ -156,7 +156,7 @@ class SessionService {
    */
   async cancelSession(sessionId: string, reason?: string): Promise<SessionServiceResponse<Session>> {
     try {
-      const response = await authAxiosInstance.post(`/api/sessions/${sessionId}/cancel`, { reason });
+      const response = await authAxiosInstance.patch(`/api/sessions/${sessionId}/cancel`, { reason });
       return {
         success: true,
         message: response.data.message || 'Session cancelled successfully',

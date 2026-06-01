@@ -10,216 +10,26 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import styled, { css, keyframes } from 'styled-components';
 import { Upload, Mic, FileText, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
-/* ---- Theme Tokens ---- */
-const SWAN_CYAN = '#8B5CF6';
-const GALAXY_CORE = '#002060';
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-const waveAnimation = keyframes`
-  0%, 100% { height: 8px; }
-  50% { height: 32px; }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-/* ---- Styled Components ---- */
-
-const Container = styled.div<{ $uploading?: boolean }>`
-  background: rgba(255, 255, 255, 0.03);
-  border: 2px dashed rgba(139, 92, 246, 0.25);
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.3s;
-  cursor: pointer;
-
-  &:hover, &.drag-over {
-    border-color: ${SWAN_CYAN};
-    background: rgba(139, 92, 246, 0.04);
-  }
-
-  ${({ $uploading }) => $uploading && css`
-    background: linear-gradient(90deg, rgba(139, 92, 246,0.02) 25%, rgba(139, 92, 246,0.08) 50%, rgba(139, 92, 246,0.02) 75%);
-    background-size: 200% 100%;
-    animation: ${shimmer} 2s infinite linear;
-    border-color: rgba(139, 92, 246, 0.4);
-    cursor: default;
-  `}
-`;
-
-const WaveContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 40px;
-  margin-bottom: 16px;
-`;
-
-const WaveBar = styled.div<{ $delay: string }>`
-  width: 4px;
-  background: ${SWAN_CYAN};
-  border-radius: 2px;
-  animation: ${waveAnimation} 1.2s ease-in-out infinite;
-  animation-delay: ${(p) => p.$delay};
-  box-shadow: 0 0 8px ${SWAN_CYAN};
-`;
-
-const DropLabel = styled.p`
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.9rem;
-  margin: 12px 0 4px;
-`;
-
-const PulsingDropLabel = styled(DropLabel)`
-  animation: ${pulse} 1.5s ease-in-out infinite;
-`;
-
-const SubLabel = styled.p`
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.78rem;
-  margin: 0;
-`;
-
-const HiddenInput = styled.input`
-  display: none;
-`;
-
-const StatusBar = styled.div<{ $variant: 'info' | 'success' | 'error' }>`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-top: 16px;
-  font-size: 0.85rem;
-  color: ${(p) =>
-    p.$variant === 'success' ? '#4ade80' :
-    p.$variant === 'error' ? '#ff6b6b' : '#94a3b8'};
-  background: ${(p) =>
-    p.$variant === 'success' ? 'rgba(74, 222, 128, 0.08)' :
-    p.$variant === 'error' ? 'rgba(255, 107, 107, 0.08)' : 'rgba(148, 163, 184, 0.08)'};
-`;
-
-
-const ConfidenceBadge = styled.span<{ $level: 'high' | 'medium' | 'low' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: ${(p) =>
-    p.$level === 'high' ? 'rgba(74, 222, 128, 0.15)' :
-    p.$level === 'medium' ? 'rgba(250, 204, 21, 0.15)' : 'rgba(255, 107, 107, 0.15)'};
-  color: ${(p) =>
-    p.$level === 'high' ? '#4ade80' :
-    p.$level === 'medium' ? '#facc15' : '#ff6b6b'};
-`;
-
-const PainFlagList = styled.div`
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-const PainFlag = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background: rgba(255, 107, 107, 0.12);
-  color: #ff6b6b;
-`;
-
-const TranscriptBox = styled.details`
-  margin-top: 16px;
-  background: rgba(20, 20, 25, 0.7);
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  border-radius: 12px;
-  overflow: hidden;
-
-  summary {
-    cursor: pointer;
-    color: ${SWAN_CYAN};
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 12px 16px;
-    user-select: none;
-    background: rgba(139, 92, 246, 0.05);
-    transition: background 0.2s;
-
-    &:hover {
-      background: rgba(139, 92, 246, 0.1);
-    }
-  }
-
-  pre {
-    margin: 0;
-    padding: 16px;
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.85rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 250px;
-    overflow-y: auto;
-    border-top: 1px solid rgba(139, 92, 246, 0.1);
-
-    &::-webkit-scrollbar { width: 6px; }
-    &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
-    &::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 3px; }
-  }
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  gap: 12px;
-  margin-top: 16px;
-  justify-content: flex-end;
-`;
-
-const ActionButton = styled.button<{ $primary?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  min-height: 44px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: ${(p) => p.$primary ? 'none' : '1px solid rgba(255, 255, 255, 0.15)'};
-  background: ${(p) => p.$primary ? `linear-gradient(135deg, ${SWAN_CYAN}, #00aadd)` : 'rgba(255, 255, 255, 0.04)'};
-  color: ${(p) => p.$primary ? GALAXY_CORE : '#e2e8f0'};
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    ${(p) => p.$primary && `box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);`}
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
+import {
+  ActionButton,
+  ActionRow,
+  ConfidenceBadge,
+  Container,
+  DropLabel,
+  HiddenInput,
+  PainFlag,
+  PainFlagList,
+  PulsingDropLabel,
+  StatusBar,
+  SubLabel,
+  TranscriptBox,
+  VOICE_MEMO_ACCENT,
+  VOICE_MEMO_MUTED_ICON,
+  WaveBar,
+  WaveContainer,
+} from './VoiceMemoUpload.styles';
 
 /* ---- Types ---- */
 
@@ -258,6 +68,8 @@ interface VoiceMemoUploadProps {
   onCancel?: () => void;
 }
 
+type VoiceMemoPainFlag = NonNullable<ParsedWorkout['painFlags']>[number];
+
 /* ---- Component ---- */
 
 const ACCEPTED_TYPES = [
@@ -270,6 +82,9 @@ const ACCEPTED_TYPES = [
 
 export const MAX_UPLOAD_FILE_SIZE_MB = 20;
 export const MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024;
+
+export const voiceMemoPainFlagKey = (flag: VoiceMemoPainFlag): string =>
+  ['pain', flag.side, flag.bodyRegion, flag.mention].filter(Boolean).join('|');
 
 const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
   clientId,
@@ -402,9 +217,9 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
           ) : (
             <>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
-                <Mic size={28} color={SWAN_CYAN} />
-                <Upload size={28} color="rgba(255,255,255,0.5)" />
-                <FileText size={28} color="rgba(255,255,255,0.5)" />
+                <Mic size={28} color={VOICE_MEMO_ACCENT} />
+                <Upload size={28} color={VOICE_MEMO_MUTED_ICON} />
+                <FileText size={28} color={VOICE_MEMO_MUTED_ICON} />
               </div>
               <DropLabel>
                 Drop voice memo or click to upload
@@ -438,8 +253,8 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
 
           {result.parsedWorkout.painFlags && result.parsedWorkout.painFlags.length > 0 && (
             <PainFlagList>
-              {result.parsedWorkout.painFlags.map((flag, i) => (
-                <PainFlag key={i}>
+              {result.parsedWorkout.painFlags.map((flag) => (
+                <PainFlag key={voiceMemoPainFlagKey(flag)}>
                   <AlertTriangle size={12} />
                   {flag.side} {flag.bodyRegion}: "{flag.mention}"
                 </PainFlag>
@@ -454,15 +269,15 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
 
           <ActionRow>
             {onCancel && (
-              <ActionButton onClick={onCancel}>
+              <ActionButton type="button" onClick={onCancel}>
                 <X size={16} />
                 Cancel
               </ActionButton>
             )}
-            <ActionButton onClick={() => { setResult(null); setError(null); }}>
+            <ActionButton type="button" onClick={() => { setResult(null); setError(null); }}>
               Re-upload
             </ActionButton>
-            <ActionButton $primary onClick={handleApply}>
+            <ActionButton type="button" $primary onClick={handleApply}>
               <CheckCircle size={16} />
               Apply to Workout Log
             </ActionButton>

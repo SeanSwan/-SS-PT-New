@@ -1,9 +1,7 @@
 // admin-packages-view.tsx
 // Migrated from MUI to styled-components + lucide-react (Crystalline Swan theme)
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { sanitizeImageUrl, cssUrlValue } from '../../../../utils/imageUrl';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../ui/buttons/GlowButton';
@@ -66,456 +64,55 @@ import {
   staggeredItemVariants
 } from '../admin-sessions/styled-admin-sessions';
 import { logger } from '@/utils/logger';
-
-/* ─── Local styled-components (replacing MUI) ─── */
-
-const FlexRow = styled.div<{ $gap?: string; $align?: string; $justify?: string; $wrap?: boolean }>`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.$gap || '0.5rem'};
-  align-items: ${p => p.$align || 'center'};
-  justify-content: ${p => p.$justify || 'flex-start'};
-  flex-wrap: ${p => p.$wrap ? 'wrap' : 'nowrap'};
-`;
-
-const FlexCol = styled.div<{ $gap?: string }>`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.$gap || '0'};
-`;
-
-const Heading5 = styled.span`
-  font-weight: 300;
-  font-size: 1.25rem;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const Heading6 = styled.span`
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const BodyText = styled.span<{ $weight?: number; $color?: string; $size?: string; $block?: boolean; $top?: string; $bottom?: string }>`
-  font-weight: ${p => p.$weight || 400};
-  font-size: ${p => p.$size || '0.875rem'};
-  color: ${p => p.$color || 'var(--text-primary, #E0ECF4)'};
-  display: ${p => p.$block ? 'block' : 'inline'};
-  margin-top: ${p => p.$top || 0};
-  margin-bottom: ${p => p.$bottom || 0};
-`;
-
-const CaptionText = styled.span<{ $color?: string; $block?: boolean; $maxWidth?: string; $truncate?: boolean; $top?: string }>`
-  font-size: 0.75rem;
-  color: ${p => p.$color || 'var(--text-secondary, rgba(224, 236, 244, 0.68))'};
-  display: ${p => p.$block ? 'block' : 'inline'};
-  max-width: ${p => p.$maxWidth || 'none'};
-  margin-top: ${p => p.$top || 0};
-  ${p => p.$truncate ? `
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  ` : ''}
-`;
-
-const SubtitleText = styled.span`
-  font-weight: 500;
-  font-size: 1rem;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const SearchInputWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 300px;
-
-  @media (max-width: 600px) {
-    min-width: 100%;
-  }
-`;
-
-const SearchIconSpan = styled.span`
-  position: absolute;
-  left: 0.75rem;
-  display: flex;
-  align-items: center;
-  color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  pointer-events: none;
-`;
-
-const SearchInput = styled.input`
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
-  transition: all 0.3s ease;
-  color: var(--text-primary, #E0ECF4);
-  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
-  font-size: 0.95rem;
-  outline: none;
-  width: 100%;
-  min-height: 44px;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  }
-
-  &:hover,
-  &:focus {
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
-    box-shadow: 0 0 15px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
-  }
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormGridFull = styled.div`
-  grid-column: 1 / -1;
-`;
-
-const FormField = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const CenteredFormField = styled(FormField)`
-  justify-content: center;
-`;
-
-const FormLabel = styled.label`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-`;
-
-const FormGroupLabel = styled.span`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
-`;
-
-const FormInput = styled.input`
-  color: var(--text-primary, #E0ECF4);
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  font-size: 0.95rem;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 44px;
-
-  &:focus {
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
-  }
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  }
-
-  &[readonly] {
-    cursor: default;
-    opacity: 0.85;
-  }
-`;
-
-const FormInputAccent = styled(FormInput)`
-  color: var(--accent-primary, #60C0F0);
-  font-weight: bold;
-`;
-
-const FormTextarea = styled.textarea`
-  color: var(--text-primary, #E0ECF4);
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  font-size: 0.95rem;
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
-
-  &:focus {
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
-  }
-
-  &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.55));
-  }
-`;
-
-const FormSelect = styled.select`
-  color: var(--text-primary, #E0ECF4);
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  font-size: 0.95rem;
-  width: 100%;
-  box-sizing: border-box;
-  min-height: 44px;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.5)' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2rem;
-
-  &:focus {
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
-    box-shadow: 0 0 10px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent);
-  }
-
-  option {
-    background: var(--bg-base, #0A0A0F);
-    color: var(--text-primary, #E0ECF4);
-  }
-`;
-
-const SwitchLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.95rem;
-  min-height: 44px;
-`;
-
-const SwitchTrack = styled.span<{ $checked?: boolean }>`
-  position: relative;
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
-  background: ${p => p.$checked ? 'var(--success, #10b981)' : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 18%, transparent)'};
-  transition: background 0.2s ease;
-  flex-shrink: 0;
-`;
-
-const SwitchThumb = styled.span<{ $checked?: boolean }>`
-  position: absolute;
-  top: 2px;
-  left: ${p => p.$checked ? '22px' : '2px'};
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--text-primary, #E0ECF4);
-  transition: left 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-`;
-
-const HiddenCheckbox = styled.input`
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-`;
-
-const InfoPanel = styled.div<{ $borderColor?: string }>`
-  padding: 1rem;
-  margin-bottom: 1.25rem;
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 46%, transparent);
-  border: 1px solid ${p => p.$borderColor || 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)'};
-  border-radius: 8px;
-`;
-
-const DialogHintText = styled.p`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.68));
-  font-size: 0.9rem;
-  margin: 0 0 1rem 0;
-`;
-
-const AvatarCircle = styled.span<{ $src?: string }>`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: ${({ $src }) => {
-    const safe = $src ? sanitizeImageUrl($src) : null;
-    return safe
-      ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
-      : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))';
-  }};
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--text-inverse, #0A0A0F);
-  flex-shrink: 0;
-`;
-
-const ClientCheckItem = styled.label<{ $selected?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  min-height: 44px;
-  cursor: pointer;
-  border-radius: 6px;
-  background: ${p => p.$selected ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)' : 'transparent'};
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  }
-`;
-
-const ClientListContainer = styled.div`
-  max-height: 200px;
-  overflow-y: auto;
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  padding: 0.25rem 0;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-  }
-`;
-
-const DiscountInputWrapper = styled.div`
-  position: relative;
-  display: flex;
-  align-items: center;
-`;
-
-const DiscountSuffix = styled.span`
-  position: absolute;
-  right: 0.75rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.9rem;
-  pointer-events: none;
-`;
-
-/* Pagination */
-const PaginationContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  margin-top: 1rem;
-  flex-wrap: wrap;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
-`;
-
-const PaginationSelect = styled.select`
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.9);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-  outline: none;
-  min-height: 36px;
-  cursor: pointer;
-
-  option {
-    background: var(--bg-base, #0A0A0F);
-    color: var(--text-primary, #E0ECF4);
-  }
-`;
-
-const PaginationButton = styled.button<{ $disabled?: boolean }>`
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  color: ${p => p.$disabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.7)'};
-  cursor: ${p => p.$disabled ? 'default' : 'pointer'};
-  min-width: 36px;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  pointer-events: ${p => p.$disabled ? 'none' : 'auto'};
-
-  &:hover {
-    background: rgba(14, 165, 233, 0.1);
-    border-color: rgba(14, 165, 233, 0.3);
-  }
-`;
-
-const ThemeDot = styled.div<{ $theme?: string }>`
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: ${p =>
-    p.$theme === 'cosmic' ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))' :
-    p.$theme === 'purple' ? 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))' :
-    p.$theme === 'ruby' ? 'linear-gradient(135deg, var(--danger, #ef4444), var(--accent-secondary, #8B5CF6))' :
-    p.$theme === 'emerald' ? 'linear-gradient(135deg, var(--success, #10b981), var(--accent-primary, #60C0F0))' :
-    'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))'
-  };
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-inverse, #0A0A0F);
-  font-size: 0.75rem;
-  font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  flex-shrink: 0;
-`;
-
-const RowOpacityWrapper = styled(motion.tr)<{ $dimmed?: boolean }>`
-  opacity: ${p => p.$dimmed ? 0.6 : 1};
-`;
-
-const PackagesTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-`;
-
-const RightAlignedHeadCell = styled(StyledTableHeadCell)`
-  text-align: right;
-`;
-
-const RightAlignedCell = styled(StyledTableCell)`
-  text-align: right;
-`;
-
-const CapitalizedChip = styled(ChipContainer)`
-  text-transform: capitalize;
-`;
-
-const OfferHeaderRow = styled(FlexRow)`
-  margin-bottom: 0.5rem;
-`;
-
-const SelectedClientIcon = styled(CheckCircle)`
-  margin-left: auto;
-  color: var(--accent-primary, #60C0F0);
-`;
-
-const DiscountInput = styled(FormInput)`
-  padding-right: 2rem;
-`;
+import {
+  BodyText,
+  CaptionText,
+  DialogHintText,
+  FlexCol,
+  FlexRow,
+  Heading5,
+  Heading6,
+  InfoPanel,
+  OfferHeaderRow,
+  SearchIconSpan,
+  SearchInput,
+  SearchInputWrapper,
+  SubtitleText
+} from './admin-packages-view.layoutStyles';
+import {
+  AvatarCircle,
+  CenteredFormField,
+  ClientCheckItem,
+  ClientListContainer,
+  DiscountInput,
+  DiscountInputWrapper,
+  DiscountSuffix,
+  FormField,
+  FormGrid,
+  FormGridFull,
+  FormGroupLabel,
+  FormInput,
+  FormInputAccent,
+  FormLabel,
+  FormSelect,
+  FormTextarea,
+  HiddenCheckbox,
+  SelectedClientIcon,
+  SwitchLabel,
+  SwitchThumb,
+  SwitchTrack
+} from './admin-packages-view.formStyles';
+import {
+  CapitalizedChip,
+  PackagesTable,
+  PaginationButton,
+  PaginationContainer,
+  PaginationSelect,
+  RightAlignedCell,
+  RightAlignedHeadCell,
+  RowOpacityWrapper,
+  ThemeDot
+} from './admin-packages-view.tableStyles';
 
 // Interface for session package data
 interface SessionPackage {

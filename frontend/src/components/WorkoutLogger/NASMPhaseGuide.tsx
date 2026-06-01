@@ -44,7 +44,7 @@ const NASMPhaseGuide: React.FC<NASMPhaseGuideProps> = memo(({
 
   return (
     <GuideCard>
-      <GuideHeader onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed}>
+      <GuideHeader type="button" onClick={() => setCollapsed(!collapsed)} aria-expanded={!collapsed}>
         <BookOpen size={16} />
         <span>Phase {protocol.phase}: {protocol.name} — Training Guide</span>
         <ChevronIcon size={16} $open={!collapsed} />
@@ -89,7 +89,7 @@ const NASMPhaseGuide: React.FC<NASMPhaseGuideProps> = memo(({
             ))}
           </PrinciplesSection>
 
-          <LoadTemplateBtn onClick={() => onLoadTemplate(phase)}>
+          <LoadTemplateBtn type="button" onClick={() => onLoadTemplate(phase)}>
             <Download size={16} />
             Load Phase {phase} Template
           </LoadTemplateBtn>

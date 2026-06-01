@@ -271,6 +271,8 @@ import { sendGridEmail } from '../services/sendgridService.mjs';
 import { getMeasurementStatus } from '../services/measurementScheduleService.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
 import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -302,6 +304,35 @@ function sendInternalError(res, message) {
     error: INTERNAL_ERROR,
   });
 }
+
+const parseNonNegativeSessionCount = (value) => {
+  const parsed = Number(value ?? 0);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const CLIENT_EXPORT_FIELDS = [
+  'id',
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'clientSource',
+  'availableSessions',
+  'fitnessGoal',
+  'isActive',
+  'createdAt',
+  'updatedAt',
+];
+
+const escapeCsvValue = (value) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const serializeClientsToCsv = (rows) => [
+  CLIENT_EXPORT_FIELDS.join(','),
+  ...rows.map((row) => CLIENT_EXPORT_FIELDS.map((field) => escapeCsvValue(row[field])).join(',')),
+].join('\n');
 
 /**
  * AdminClientController class
@@ -532,6 +563,60 @@ class AdminClientController {
   }
 
   /**
+   * Export client records for admin operations.
+   */
+  async exportClients(req, res) {
+    try {
+      ensureModels();
+      const { format = 'csv', status, clientSource } = req.query;
+      const exportFormat = format === 'json' ? 'json' : 'csv';
+      const whereClause = { role: 'client' };
+
+      if (status === 'active') {
+        whereClause.isActive = true;
+      } else if (status === 'inactive') {
+        whereClause.isActive = false;
+      }
+
+      if (clientSource) {
+        whereClause.clientSource = clientSource;
+      }
+
+      const clients = await User.findAll({
+        where: whereClause,
+        order: [['createdAt', 'DESC']],
+        attributes: CLIENT_EXPORT_FIELDS,
+      });
+
+      const rows = clients.map((client) => {
+        const data = typeof client.toJSON === 'function' ? client.toJSON() : client;
+        return CLIENT_EXPORT_FIELDS.reduce((row, field) => ({
+          ...row,
+          [field]: data[field] ?? '',
+        }), {});
+      });
+
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      if (exportFormat === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="swanstudios-clients-${dateStamp}.json"`);
+        return res.status(200).json({
+          success: true,
+          count: rows.length,
+          clients: rows,
+        });
+      }
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="swanstudios-clients-${dateStamp}.csv"`);
+      return res.status(200).send(serializeClientsToCsv(rows));
+    } catch (error) {
+      logger.error('Error exporting clients:', error.message);
+      return sendInternalError(res, 'Error exporting clients');
+    }
+  }
+
+  /**
    * Get detailed client information
    */
   async getClientDetails(req, res) {
@@ -643,6 +728,19 @@ class AdminClientController {
         });
       }
 
+      const requestedAvailableSessions = parseNonNegativeSessionCount(availableSessions);
+      if (requestedAvailableSessions === null) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'availableSessions must be a non-negative whole number'
+        });
+      }
+
+      const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)
+        ? 0
+        : requestedAvailableSessions;
+
       // Validate password if admin-supplied
       if (password && password.length < 8) {
         await transaction.rollback();
@@ -688,7 +786,7 @@ class AdminClientController {
         trainingExperience,
         healthConcerns,
         emergencyContact,
-        availableSessions,
+        availableSessions: normalizedAvailableSessions,
         clientSource,
         forcePasswordChange,
         role: 'client',
@@ -709,9 +807,9 @@ class AdminClientController {
       }
 
       // If trainer specified, create initial sessions
-      if (trainerId && availableSessions > 0) {
+      if (trainerId && normalizedAvailableSessions > 0) {
         const sessions = [];
-        for (let i = 0; i < availableSessions; i++) {
+        for (let i = 0; i < normalizedAvailableSessions; i++) {
           // sessionDate is NOT NULL — set to a future placeholder date offset by session index
           const placeholderDate = new Date();
           placeholderDate.setDate(placeholderDate.getDate() + i + 1);
@@ -785,6 +883,22 @@ class AdminClientController {
       const { clientId } = req.params;
       const updates = req.body;
 
+      const validSources = ['swanstudios', 'move_fitness', 'external'];
+      if (updates.clientSource !== undefined && !validSources.includes(updates.clientSource)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
+        });
+      }
+      if (updates.isLocked !== undefined && typeof updates.isLocked !== 'boolean') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'isLocked must be a boolean'
+        });
+      }
+
       // Strict whitelist — isActive excluded to force changes through soft-delete endpoint.
       // L5 (2026-05-02): canGenerateWorkoutPlans added so admins can flip the
       // per-client opt-in for self-service workout plan generation. Coerced
@@ -796,7 +910,7 @@ class AdminClientController {
         'firstName', 'lastName', 'phone', 'dateOfBirth', 'gender',
         'weight', 'height', 'fitnessGoal', 'trainingExperience',
         'healthConcerns', 'emergencyContact', 'clientSource', 'accountStatus',
-        'canGenerateWorkoutPlans',
+        'canGenerateWorkoutPlans', 'isLocked',
       ];
       const safeUpdates = {};
       for (const field of allowedFields) {
@@ -844,15 +958,14 @@ class AdminClientController {
   }
 
   /**
-   * Delete (deactivate) a client
+   * Restore a soft-deactivated client without mutating retained records.
    */
-  async deleteClient(req, res) {
+  async restoreClient(req, res) {
     const transaction = await sequelize.transaction();
-    
+
     try {
       ensureModels();
       const { clientId } = req.params;
-      const { softDelete = true } = req.body;
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
@@ -867,10 +980,69 @@ class AdminClientController {
         });
       }
 
+      await client.update({
+        isActive: true,
+        accountDeactivatedAt: null,
+        accountRetentionUntil: null
+      }, { transaction });
+
+      await transaction.commit();
+
+      logger.info(`Reactivated client ${clientId} without mutating retained records`);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Client reactivated successfully. Login access is restored and retained records remain connected.',
+        data: {
+          clientId,
+          isActive: true
+        }
+      });
+    } catch (error) {
+      await transaction.rollback();
+      logger.error('Error restoring client:', error);
+      return sendInternalError(res, 'Error restoring client');
+    }
+  }
+
+  /**
+   * Delete (deactivate) a client
+   */
+  async deleteClient(req, res) {
+    const transaction = await sequelize.transaction();
+    
+    try {
+      ensureModels();
+      const { clientId } = req.params;
+      const { softDelete = true } = req.body || {};
+
+      const client = await User.findOne({
+        where: { id: clientId, role: 'client' },
+        transaction
+      });
+
+      if (!client) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Client not found'
+        });
+      }
+
+      const accountDeactivatedAt = new Date();
+      const retainedUntil = new Date(accountDeactivatedAt);
+      retainedUntil.setMonth(retainedUntil.getMonth() + 6);
+      const preservedAvailableSessions = Number(client.availableSessions || 0);
+      let cancelledCount = [0];
+
       if (softDelete) {
+
         // Cancel any future scheduled sessions for this client
-        const cancelledCount = await Session.update(
-          { status: 'cancelled', notes: 'Auto-cancelled: client account deactivated' },
+        cancelledCount = await Session.update(
+          {
+            status: 'cancelled',
+            notes: 'Auto-cancelled: client account deactivated; retained for 6 months'
+          },
           {
             where: {
               userId: clientId,
@@ -881,10 +1053,16 @@ class AdminClientController {
           }
         );
 
-        // Deactivate and zero out sessions to prevent corrupted math on reactivation
-        await client.update({ isActive: false, availableSessions: 0 }, { transaction });
+        // Soft delete disables login, while retaining history and paid credits for the 6-month retention window.
+        await client.update({
+          isActive: false,
+          accountDeactivatedAt,
+          accountRetentionUntil: retainedUntil
+        }, { transaction });
 
-        logger.info(`Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions, zeroed availableSessions`);
+        logger.info(
+          `Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions, preserved ${preservedAvailableSessions} available sessions until ${retainedUntil.toISOString()}`
+        );
       } else {
         // Hard delete removed for compliance (financial & liability retention)
         await transaction.rollback();
@@ -898,7 +1076,15 @@ class AdminClientController {
 
       return res.status(200).json({
         success: true,
-        message: `Client ${softDelete ? 'deactivated' : 'deleted'} successfully`
+        message: 'Client deactivated successfully. Profile, workout history, payments, and remaining credits are retained for 6 months.',
+        data: {
+          clientId,
+          accountDeactivatedAt: accountDeactivatedAt.toISOString(),
+          accountRetentionUntil: retainedUntil.toISOString(),
+          retainedUntil: retainedUntil.toISOString(),
+          cancelledFutureSessions: cancelledCount?.[0] || 0,
+          preservedAvailableSessions,
+        }
       });
     } catch (error) {
       await transaction.rollback();
@@ -908,20 +1094,12 @@ class AdminClientController {
   }
 
   /**
-   * Reset client password
+   * Send a client password reset email.
    */
   async resetClientPassword(req, res) {
     try {
       ensureModels();
       const { clientId } = req.params;
-      const { newPassword } = req.body;
-
-      if (!newPassword || newPassword.length < 8) {
-        return res.status(400).json({
-          success: false,
-          message: 'Password must be at least 8 characters long'
-        });
-      }
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' }
@@ -934,12 +1112,17 @@ class AdminClientController {
         });
       }
 
-      // Update password (it will be automatically hashed by the model hook)
-      await client.update({ password: newPassword });
+      const reset = await sendPasswordResetEmailForUser(client);
 
       return res.status(200).json({
         success: true,
-        message: 'Password reset successfully'
+        message: 'Password reset email sent.',
+        data: {
+          credentialAction: 'reset_email_sent',
+          clientId,
+          resetEmailSent: reset.emailSent === true,
+          expiresInMinutes: reset.expiresInMinutes,
+        }
       });
     } catch (error) {
       logger.error('Error resetting password:', error);
@@ -969,6 +1152,14 @@ class AdminClientController {
         return res.status(404).json({
           success: false,
           message: 'Client not found'
+        });
+      }
+
+      if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
+        await transaction.rollback();
+        return res.status(409).json({
+          success: false,
+          message: 'Trainer session assignment is disabled for free-tracking clients'
         });
       }
 
@@ -1055,9 +1246,8 @@ class AdminClientController {
         dateFilter.date = { [Op.lte]: safeEndDate };
       }
 
-      const [totalWorkouts, totalForms, recentWorkouts] = await Promise.all([
+      const [totalWorkouts, recentWorkouts] = await Promise.all([
         WorkoutSession.count({ where: { userId: clientId, status: 'completed', ...dateFilter } }),
-        DailyWorkoutForm.count({ where: { clientId, ...dateFilter } }),
         WorkoutSession.findAll({
           where: { userId: clientId, status: 'completed', ...dateFilter },
           order: [['date', 'DESC']],
@@ -1070,7 +1260,7 @@ class AdminClientController {
         success: true,
         data: {
           totalWorkouts,
-          totalForms,
+          totalForms: totalWorkouts,
           recentWorkouts: recentWorkouts.map(w => ({
             id: w.id,
             title: w.title || 'Workout',
@@ -1170,7 +1360,7 @@ class AdminClientController {
       // Get client with session credits
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
-        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
+        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']
       });
 
       if (!client) {
@@ -1179,6 +1369,7 @@ class AdminClientController {
           message: 'Client not found'
         });
       }
+      const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);
 
       // Get last completed order (most recent purchase)
       // Use completedAt for ordering since it exists on base orders table
@@ -1244,9 +1435,10 @@ class AdminClientController {
           client: {
             id: client.id,
             name: `${client.firstName} ${client.lastName}`,
-            email: client.email
+            email: client.email,
+            clientSource: client.clientSource
           },
-          sessionsRemaining: client.availableSessions || 0,
+          sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0),
           lastPurchase: lastPurchase ? {
             id: lastPurchase.id,
             packageName: lastPurchase.orderNumber || 'Session Package',  // Use orderNumber as fallback

@@ -4,19 +4,10 @@
  * Manages destructive AI-initiated operations with cryptographic signing.
  * Operations are prepared (preview), then executed only after user confirmation.
  *
- * V3 Features:
- * - HMAC-SHA256 signature on all pending operations
- * - 120s expiration (Redis or in-memory fallback)
- * - MAX_AI_BULK_DELETE = 50 hard cap
- * - Audit logging on every execution
- * - ORM-only execution (no raw SQL injection risk)
- *
  * Pipeline position: ... → ConfirmationGenerator → **DestructiveOps** → Executor → Auditor
  */
 import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
-
-// ── Config ──────────────────────────────────────────────────────────────────
 
 const OPERATION_SECRET = process.env.OPERATION_SIGNING_KEY || crypto.randomBytes(32).toString('hex');
 const MAX_AI_BULK_DELETE = 50;
@@ -36,8 +27,6 @@ const cleanupTimer = setInterval(() => {
 }, 60000);
 cleanupTimer.unref();
 
-// ── HMAC Signing ────────────────────────────────────────────────────────────
-
 function signOperation(op) {
   const payload = JSON.stringify({
     id: op.id,
@@ -55,11 +44,8 @@ function verifySignature(op) {
   return crypto.timingSafeEqual(Buffer.from(op.signature, 'hex'), Buffer.from(expected, 'hex'));
 }
 
-// ── Prepare (Preview) ───────────────────────────────────────────────────────
-
 /**
  * Prepare a destructive operation for user confirmation.
- * Returns a preview of what will happen + a signed token.
  *
  * @param {Object} params
  * @param {string} params.type - 'DELETE' | 'UPDATE' | 'DEACTIVATE' | 'LOCK'
@@ -80,8 +66,14 @@ export function prepareDestructiveOperation({
   affectedRecords = [],
 }) {
   // V3: Require explicit scope on DELETE (no unscoped mass deletions)
-  if (type === 'DELETE' && !commandParams.id && !commandParams.userId && !commandParams.dateRange) {
-    throw new Error('CRITICAL: DELETE requires explicit scope (id, userId, or dateRange). Mass unscoped deletions are blocked.');
+  if (
+    type === 'DELETE'
+    && !commandParams.id
+    && !commandParams.clientId
+    && !commandParams.userId
+    && !commandParams.dateRange
+  ) {
+    throw new Error('CRITICAL: DELETE requires explicit scope (id, clientId, userId, or dateRange). Mass unscoped deletions are blocked.');
   }
 
   // V3: Hard cap on affected records
@@ -138,8 +130,6 @@ export function prepareDestructiveOperation({
   };
 }
 
-// ── Execute (After Confirmation) ────────────────────────────────────────────
-
 /**
  * Execute a previously prepared destructive operation.
  * Verifies: ownership, expiration, HMAC signature.
@@ -192,15 +182,8 @@ export function verifyAndRetrieveOperation(operationId, userId) {
   return { verified: true, operation, error: null };
 }
 
-// ── Non-destructive Pending Confirmations ───────────────────────────────────
-//
-// For requiresConfirmation: true, destructive: false commands.
-// Reuses the same pendingOps Map, TTL, per-user cap, and cancelOperation as
-// destructive ops — but skips HMAC (no endpoint routing, just dispatcher key).
-
 /**
  * Prepare a non-destructive pending confirmation.
- * No HMAC — operation is identified by UUID and keyed to the command dispatcher.
  *
  * @param {Object} params
  * @param {string} params.commandType  - Registry command type (e.g. 'log_workout')
@@ -208,9 +191,10 @@ export function verifyAndRetrieveOperation(operationId, userId) {
  * @param {number|null} params.clientId - Resolved client ID
  * @param {number} params.userId       - ID of user requesting confirmation
  * @param {string} params.description  - Human-readable description for audit log
+ * @param {string} [params.frontendEvent] - Browser event for confirmed frontend dispatches
  * @returns {{ operationId: string, description: string, expiresAt: string }}
  */
-export function preparePendingConfirmation({ commandType, params, clientId, userId, description }) {
+export function preparePendingConfirmation({ commandType, params, clientId, userId, description, frontendEvent = null }) {
   // Apply the same per-user cap as destructive ops
   const MAX_PENDING_PER_USER = 5;
   const userCount = getPendingCount(userId);
@@ -224,6 +208,7 @@ export function preparePendingConfirmation({ commandType, params, clientId, user
     kind: 'pending_confirmed',  // distinguishes from HMAC-signed destructive ops
     commandType,
     params,
+    frontendEvent,
     clientId: clientId ?? null,
     createdBy: userId,
     description,
@@ -245,8 +230,6 @@ export function preparePendingConfirmation({ commandType, params, clientId, user
 
 /**
  * Retrieve a non-destructive pending confirmation.
- * Checks: existence, kind, expiration, ownership.
- * Deletes on success — single-use.
  *
  * @param {string} operationId
  * @param {number} userId

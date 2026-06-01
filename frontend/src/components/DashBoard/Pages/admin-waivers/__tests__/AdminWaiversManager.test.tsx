@@ -141,7 +141,7 @@ describe('AdminWaiversManager', () => {
   });
 
   it('W7 — calls revoke endpoint with confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const confirmSpy = vi.spyOn(window, 'confirm');
 
     wrap(<AdminWaiversManager />);
     await waitFor(() => expect(screen.getByText('Jane Doe')).toBeInTheDocument());
@@ -150,11 +150,19 @@ describe('AdminWaiversManager', () => {
     await waitFor(() => expect(screen.getByText('Revoke')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Revoke'));
 
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('dialog', { name: /revoke this waiver/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /keep waiver active/i }));
+    expect(mockPost).not.toHaveBeenCalledWith('/api/admin/waivers/1/revoke');
+
+    fireEvent.click(screen.getByText('Revoke'));
+    fireEvent.click(await screen.findByRole('button', { name: /revoke waiver/i }));
+
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/api/admin/waivers/1/revoke');
     });
 
-    (window.confirm as any).mockRestore();
+    confirmSpy.mockRestore();
   });
 
   it('W8 — uses contract endpoint for attach-user (not /link)', async () => {

@@ -23,6 +23,19 @@ interface ExerciseDetailPanelProps {
   equipmentProfileId: number | null;
 }
 
+type BootcampExplanationRow = {
+  type: string;
+  message: string;
+};
+
+const bootcampTeachMeTipKey = (tip: string): string => `tip|${tip}`;
+
+const bootcampMuscleTargetKey = (muscle: string): string =>
+  `muscle|${muscle.trim().toLowerCase()}`;
+
+const bootcampExplanationKey = (explanation: BootcampExplanationRow): string =>
+  `${explanation.type}|${explanation.message}`;
+
 // ── Teach Me Styled Components ──
 const TeachMeWrap = styled.div`
   margin: 8px 0;
@@ -189,7 +202,7 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
                   </TeachMeRow>
                   <TeachMeRow>
                     <TeachMeLabel>Instructions: </TeachMeLabel>
-                    {info.tips.map((t, i) => <div key={i} style={{ marginTop: 4 }}>{t}</div>)}
+                    {info.tips.map((t) => <div key={bootcampTeachMeTipKey(t)} style={{ marginTop: 4 }}>{t}</div>)}
                   </TeachMeRow>
                   {selectedExercise.easyVariation && (
                     <TeachMeRow>
@@ -238,8 +251,8 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
             <>
               <SectionDivider>Muscle Targets</SectionDivider>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {selectedExercise.muscleTargets.split(',').map((m, i) => (
-                  <ModChip key={i}>{formatMuscle(m)}</ModChip>
+                {selectedExercise.muscleTargets.split(',').map((m) => (
+                  <ModChip key={bootcampMuscleTargetKey(m)}>{formatMuscle(m)}</ModChip>
                 ))}
               </div>
             </>
@@ -254,8 +267,8 @@ const ExerciseDetailPanel: React.FC<ExerciseDetailPanelProps> = ({
       {bootcamp && bootcamp.explanations.length > 0 && (
         <>
           <SectionDivider>Swan Coach Reasoning</SectionDivider>
-          {bootcamp.explanations.map((exp, i) => (
-            <InsightCard key={i} $type={exp.type}>
+          {bootcamp.explanations.map((exp) => (
+            <InsightCard key={bootcampExplanationKey(exp)} $type={exp.type}>
               {exp.message}
             </InsightCard>
           ))}

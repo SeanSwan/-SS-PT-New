@@ -1,46 +1,45 @@
 /**
- * ============================================================================
- * FILE: OracleInsightsWidget.tsx
- * PURPOSE: Swan Oracle — fitness content feed powered by SerpAPI
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
- * AI VILLAGE VALIDATED: 2026-03-28
- * ============================================================================
+ * OracleInsightsWidget
  *
- * WHAT THIS FILE DOES: Frosted-glass widget that displays curated fitness
- * content from Google Scholar, News, and YouTube. Admin/trainer only.
+ * Active surfaces:
+ * - AdminOverviewPanel coach/operator intelligence card
+ * - Social Explore shared discovery module
+ * - Teach Mode exercise research tab
  *
- * HOW IT FITS IN THE APP: Admin Dashboard → Oracle Insights panel
- * Also importable by Trainer Dashboard and TeachModeSidebar.
- *
- * ┌─── SUB-COMPONENT: OracleInsightsWidget ────────────────────┐
- * │ PARENT: AdminOverviewPanel / TrainerDashboard               │
- * │ PURPOSE: Curated fitness content feed from SerpAPI          │
- * │ WIREFRAME:                                                   │
- * │ ┌──────────────────────────────────────┐                     │
- * │ │ 🔮 Swan Oracle          [📰][🎓][▶️] │                     │
- * │ │ ─────────────────────────────────── │                     │
- * │ │ Article Title              source   │                     │
- * │ │ Snippet text here...       2h ago   │                     │
- * │ │ ─────────────────────────────────── │                     │
- * │ │ Article Title              source   │                     │
- * │ └──────────────────────────────────────┘                     │
- * │ Props: { defaultTab?, defaultQuery?, compact? }              │
- * │ CLICK-OUTCOMES:                                              │
- * │ [Tab: News] → fetches GET /api/oracle/news?q=fitness        │
- * │ [Tab: Scholar] → fetches GET /api/oracle/scholar?q=exercise │
- * │ [Tab: YouTube] → fetches GET /api/oracle/youtube?q=workout  │
- * │ [Article link] → Opens in new tab                           │
- * └──────────────────────────────────────────────────────────────┘
+ * The backend Oracle routes are restricted to admins and trainers, so this
+ * widget must guard client/user surfaces before making network requests.
  */
-
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Newspaper, GraduationCap, Play, RefreshCcw, ExternalLink, Loader2 } from 'lucide-react';
-import styled, { keyframes } from 'styled-components';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ExternalLink,
+  GraduationCap,
+  Loader2,
+  Newspaper,
+  Play,
+  RefreshCcw,
+} from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import {
+  ArticleContent,
+  ArticleMeta,
+  ArticleRow,
+  ArticleTitle,
+  CacheBadge,
+  ContentArea,
+  EmptyState,
+  ErrorState,
+  ExternalIcon,
+  HeaderTitle,
+  LoadingState,
+  RefreshBtn,
+  TabBtn,
+  TabRow,
+  VideoRow,
+  VideoThumb,
+  WidgetContainer,
+  WidgetHeader,
+} from './OracleInsightsWidget.styles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
 type OracleTab = 'news' | 'scholar' | 'youtube';
 
 interface NewsArticle {
@@ -76,9 +75,6 @@ interface OracleInsightsWidgetProps {
   compact?: boolean;
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Default Queries (fitness-only)
-// ─────────────────────────────────────────────────────────────
 const DEFAULT_QUERIES: Record<OracleTab, string> = {
   news: 'personal training fitness industry',
   scholar: 'resistance training exercise science',
@@ -90,15 +86,19 @@ const safeExternalHref = (link: string | null | undefined) => {
   return /^https?:\/\//i.test(link) ? link : undefined;
 };
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
+const endpointForTab = (tab: OracleTab) => {
+  if (tab === 'scholar') return 'scholar';
+  if (tab === 'youtube') return 'youtube';
+  return 'news';
+};
+
 const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   defaultTab = 'news',
   defaultQuery,
   compact = false,
 }) => {
-  const { authAxios } = useAuth();
+  const { authAxios, user, loading: authLoading } = useAuth();
+  const canUseOracle = user?.role === 'admin' || user?.role === 'trainer';
   const [activeTab, setActiveTab] = useState<OracleTab>(defaultTab);
   const [query, setQuery] = useState(defaultQuery || DEFAULT_QUERIES[defaultTab]);
   const [loading, setLoading] = useState(false);
@@ -111,37 +111,40 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   const lastDefaultQueryRef = useRef(defaultQuery);
 
   const fetchData = useCallback(async (tab: OracleTab, q: string) => {
-    // Abort any in-flight request to prevent stale data overwrites
+    if (!canUseOracle) return;
+
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-
     setLoading(true);
     setError(null);
+
     try {
-      const endpoint = tab === 'news' ? 'news' : tab === 'scholar' ? 'scholar' : 'youtube';
+      const endpoint = endpointForTab(tab);
       const res = await authAxios.get(`/api/oracle/${endpoint}`, {
         params: { q, num: compact ? 4 : 6 },
         signal: controller.signal,
       });
-      if (res.data?.success) {
-        setFromCache(res.data.fromCache || false);
-        if (tab === 'news') setNewsResults(res.data.articles || []);
-        else if (tab === 'scholar') setScholarResults(res.data.articles || []);
-        else setYoutubeResults(res.data.videos || []);
-      } else {
-        setError(res.data?.error || 'Failed to fetch');
+
+      if (!res.data?.success) {
+        setError(res.data?.error || 'Failed to fetch Oracle insight.');
+        return;
       }
+
+      setFromCache(Boolean(res.data.fromCache));
+      if (tab === 'news') setNewsResults(res.data.articles || []);
+      else if (tab === 'scholar') setScholarResults(res.data.articles || []);
+      else setYoutubeResults(res.data.videos || []);
     } catch (err: unknown) {
-      if ((err as Error)?.name === 'CanceledError' || (err as Error)?.name === 'AbortError') return;
+      const name = (err as Error)?.name;
+      if (name === 'CanceledError' || name === 'AbortError') return;
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Oracle unavailable. Check API key configuration.');
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [authAxios, compact]);
+  }, [authAxios, canUseOracle, compact]);
 
-  // Sync query when parent passes a new defaultQuery (e.g., Teach Mode exercise change).
   useEffect(() => {
     if (!defaultQuery || defaultQuery === lastDefaultQueryRef.current) return;
     lastDefaultQueryRef.current = defaultQuery;
@@ -149,16 +152,91 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
   }, [defaultQuery]);
 
   useEffect(() => {
+    if (!canUseOracle) return;
     fetchData(activeTab, query);
     return () => { abortRef.current?.abort(); };
-  }, [activeTab, query, fetchData]);
+  }, [activeTab, canUseOracle, fetchData, query]);
 
   const handleTabChange = (tab: OracleTab) => {
     setActiveTab(tab);
     if (!defaultQuery) setQuery(DEFAULT_QUERIES[tab]);
   };
 
-  const handleRefresh = () => fetchData(activeTab, query);
+  const handleRefresh = () => {
+    if (!canUseOracle) return;
+    fetchData(activeTab, query);
+  };
+
+  const renderArticleLink = (
+    key: React.Key,
+    href: string | undefined,
+    title: string,
+    meta: React.ReactNode,
+  ) => (
+    <ArticleRow key={key} href={href} target="_blank" rel="noopener noreferrer" aria-disabled={!href}>
+      <ArticleContent>
+        <ArticleTitle>{title}</ArticleTitle>
+        <ArticleMeta>{meta}</ArticleMeta>
+      </ArticleContent>
+      <ExternalIcon aria-hidden="true">
+        <ExternalLink size={12} />
+      </ExternalIcon>
+    </ArticleRow>
+  );
+
+  const renderResults = () => {
+    if (authLoading || loading) {
+      return (
+        <LoadingState>
+          <Loader2 size={20} className="animate-spin" />
+          <span>Searching fitness content...</span>
+        </LoadingState>
+      );
+    }
+
+    if (!canUseOracle) {
+      return <EmptyState>Oracle insights are available for coaches and admins.</EmptyState>;
+    }
+
+    if (error) return <ErrorState role="alert">{error}</ErrorState>;
+
+    if (activeTab === 'news') {
+      if (newsResults.length === 0) return <EmptyState>No fitness news found.</EmptyState>;
+      return newsResults.map((article, index) => renderArticleLink(
+        index,
+        safeExternalHref(article.link),
+        article.title,
+        <>{article.source} {article.date && `- ${article.date}`}</>,
+      ));
+    }
+
+    if (activeTab === 'scholar') {
+      if (scholarResults.length === 0) return <EmptyState>No research articles found.</EmptyState>;
+      return scholarResults.map((article, index) => renderArticleLink(
+        index,
+        safeExternalHref(article.link),
+        article.title,
+        <>
+          {article.authors && <span>{article.authors}</span>}
+          {article.citedBy > 0 && <span>- Cited {article.citedBy}x</span>}
+        </>,
+      ));
+    }
+
+    if (youtubeResults.length === 0) return <EmptyState>No training videos found.</EmptyState>;
+    return youtubeResults.map((video, index) => {
+      const href = safeExternalHref(video.link);
+      return (
+        <VideoRow key={index} href={href} target="_blank" rel="noopener noreferrer" aria-disabled={!href}>
+          {video.thumbnail && <VideoThumb src={video.thumbnail} alt="" loading="lazy" />}
+          <ArticleContent>
+            <ArticleTitle>{video.title}</ArticleTitle>
+            <ArticleMeta>{video.channel} {video.length && `- ${video.length}`}</ArticleMeta>
+          </ArticleContent>
+        </VideoRow>
+      );
+    });
+  };
 
   return (
     <WidgetContainer $compact={compact}>
@@ -174,300 +252,15 @@ const OracleInsightsWidget: React.FC<OracleInsightsWidgetProps> = ({
           <TabBtn $active={activeTab === 'youtube'} onClick={() => handleTabChange('youtube')} aria-label="Training Videos">
             <Play size={14} />
           </TabBtn>
-          <RefreshBtn onClick={handleRefresh} disabled={loading} aria-label="Refresh">
+          <RefreshBtn onClick={handleRefresh} disabled={loading || !canUseOracle} aria-label="Refresh">
             <RefreshCcw size={12} />
           </RefreshBtn>
         </TabRow>
       </WidgetHeader>
-
-      {fromCache && <CacheBadge>cached</CacheBadge>}
-
-      <ContentArea>
-        {loading ? (
-          <LoadingState>
-            <Loader2 size={20} className="animate-spin" />
-            <span>Searching fitness content...</span>
-          </LoadingState>
-        ) : error ? (
-          <ErrorState role="alert">{error}</ErrorState>
-        ) : activeTab === 'news' ? (
-          newsResults.length === 0 ? <EmptyState>No fitness news found.</EmptyState> : (
-            newsResults.map((a, i) => (
-              <ArticleRow key={i} href={safeExternalHref(a.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(a.link)}>
-                <ArticleContent>
-                  <ArticleTitle>{a.title}</ArticleTitle>
-                  <ArticleMeta>{a.source} {a.date && `· ${a.date}`}</ArticleMeta>
-                </ArticleContent>
-                <ExternalLink size={12} style={{ flexShrink: 0, opacity: 0.4 }} />
-              </ArticleRow>
-            ))
-          )
-        ) : activeTab === 'scholar' ? (
-          scholarResults.length === 0 ? <EmptyState>No research articles found.</EmptyState> : (
-            scholarResults.map((a, i) => (
-              <ArticleRow key={i} href={safeExternalHref(a.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(a.link)}>
-                <ArticleContent>
-                  <ArticleTitle>{a.title}</ArticleTitle>
-                  <ArticleMeta>
-                    {a.authors && <span>{a.authors}</span>}
-                    {a.citedBy > 0 && <span>· Cited {a.citedBy}×</span>}
-                  </ArticleMeta>
-                </ArticleContent>
-                <ExternalLink size={12} style={{ flexShrink: 0, opacity: 0.4 }} />
-              </ArticleRow>
-            ))
-          )
-        ) : (
-          youtubeResults.length === 0 ? <EmptyState>No training videos found.</EmptyState> : (
-            youtubeResults.map((v, i) => (
-              <VideoRow key={i} href={safeExternalHref(v.link)} target="_blank" rel="noopener noreferrer" aria-disabled={!safeExternalHref(v.link)}>
-                {v.thumbnail && <VideoThumb src={v.thumbnail} alt="" loading="lazy" />}
-                <ArticleContent>
-                  <ArticleTitle>{v.title}</ArticleTitle>
-                  <ArticleMeta>{v.channel} {v.length && `· ${v.length}`}</ArticleMeta>
-                </ArticleContent>
-              </VideoRow>
-            ))
-          )
-        )}
-      </ContentArea>
+      {fromCache && canUseOracle && <CacheBadge>cached</CacheBadge>}
+      <ContentArea>{renderResults()}</ContentArea>
     </WidgetContainer>
   );
 };
 
 export default OracleInsightsWidget;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// PURPOSE: Frosted glass design per Gemini directive
-// WHY: Graphite 70% + blur(16px) + Ice Wing 15% border
-// ─────────────────────────────────────────────────────────────
-const shimmer = keyframes`
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-`;
-
-const WidgetContainer = styled.div<{ $compact?: boolean }>`
-  background: rgba(26, 26, 36, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  border-radius: 14px;
-  padding: ${({ $compact }) => $compact ? '12px' : '16px'};
-  position: relative;
-
-  @supports not (backdrop-filter: blur(16px)) {
-    background: rgba(26, 26, 36, 0.95);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  }
-`;
-
-const WidgetHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-`;
-
-const HeaderTitle = styled.h3`
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--accent-primary, #60C0F0);
-  margin: 0;
-`;
-
-const TabRow = styled.div`
-  display: flex;
-  gap: 4px;
-  align-items: center;
-`;
-
-const TabBtn = styled.button<{ $active?: boolean }>`
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  border: 1px solid ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.4)' : 'rgba(96, 192, 240, 0.1)'};
-  background: ${({ $active }) => $active ? 'rgba(139, 92, 246, 0.15)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#E0ECF4' : 'rgba(224, 236, 244, 0.5)'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-
-  &:hover {
-    background: rgba(139, 92, 246, 0.1);
-    color: #E0ECF4;
-  }
-
-  &:focus-visible {
-    outline: 2px solid #60C0F0;
-    outline-offset: 2px;
-  }
-`;
-
-const RefreshBtn = styled.button`
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: rgba(224, 236, 244, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  margin-left: 4px;
-
-  &:hover { color: var(--accent-primary, #60C0F0); }
-  &:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-`;
-
-const CacheBadge = styled.span`
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.55rem;
-  color: rgba(224, 236, 244, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-`;
-
-const ContentArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 400px;
-  overflow-y: auto;
-
-  &::-webkit-scrollbar { width: 4px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: rgba(96, 192, 240, 0.15); border-radius: 2px; }
-`;
-
-const ArticleRow = styled.a`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 8px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.15s ease;
-  min-height: 44px;
-
-  &:hover {
-    background: rgba(96, 192, 240, 0.05);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  &[aria-disabled='true'] {
-    opacity: 0.55;
-    pointer-events: none;
-  }
-`;
-
-const VideoRow = styled.a`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  text-decoration: none;
-  color: inherit;
-  transition: background 0.15s ease;
-  min-height: 44px;
-
-  &:hover {
-    background: rgba(96, 192, 240, 0.05);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-
-  &[aria-disabled='true'] {
-    opacity: 0.55;
-    pointer-events: none;
-  }
-`;
-
-const VideoThumb = styled.img`
-  width: 64px;
-  height: 36px;
-  border-radius: 4px;
-  object-fit: cover;
-  flex-shrink: 0;
-`;
-
-const ArticleContent = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ArticleTitle = styled.div`
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-primary, #E0ECF4);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const ArticleMeta = styled.div`
-  font-family: 'Fira Code', monospace;
-  font-size: 0.6rem;
-  color: rgba(224, 236, 244, 0.4);
-  margin-top: 2px;
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-`;
-
-const LoadingState = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 32px 0;
-  color: rgba(224, 236, 244, 0.5);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  animation: ${shimmer} 1.5s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) { animation: none; }
-`;
-
-const ErrorState = styled.div`
-  padding: 16px;
-  text-align: center;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  border-left: 3px solid #C92A54;
-  background: rgba(26, 26, 36, 0.5);
-  border-radius: 0 8px 8px 0;
-`;
-
-const EmptyState = styled.div`
-  padding: 24px;
-  text-align: center;
-  color: rgba(224, 236, 244, 0.4);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-`;

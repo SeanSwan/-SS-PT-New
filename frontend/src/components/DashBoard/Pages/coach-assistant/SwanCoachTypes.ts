@@ -70,6 +70,7 @@ export interface CoachMessageData {
       temporaryPassword?: string;
       claimCode?: string;
       claimUrl?: string;
+      clientSource?: 'swanstudios' | 'move_fitness' | 'external';
       isMoveFitness?: boolean;
       sectionsPreFilled?: number;
       totalSections?: number;

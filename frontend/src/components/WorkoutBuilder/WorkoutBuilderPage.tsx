@@ -1,14 +1,10 @@
 /**
- * WorkoutBuilderPage -- Intelligent Workout Builder
- * ===================================================
- * Phase 9d: 3-pane layout with Context Sidebar, Workout Canvas, AI Insights.
- *
- * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0),
- * Cosmic Purple (#8B5CF6), glassmorphic panels.
+ * WorkoutBuilderPage - Intelligent Workout Builder.
+ * Active /workout-builder surface for NASM-aligned workout and
+ * plan generation with client context, pain awareness, and correctives.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { useWorkoutBuilderAPI } from '../../hooks/useWorkoutBuilderAPI';
 import type {
   ClientContext,
@@ -18,386 +14,27 @@ import type {
 import CorrectiveRecommendationsPanel, {
   type CompensationInput,
 } from '../WorkoutLogger/CorrectiveRecommendationsPanel';
-
-// --- Styled Components ---
-
-const PageWrapper = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(180deg, #002060 0%, #001040 100%);
-  color: #e0ecf4;
-  padding: 20px;
-`;
-
-const TopBar = styled.div`
-  max-width: 1400px;
-  margin: 0 auto 20px;
-`;
-
-const Title = styled.h1`
-  font-size: 22px;
-  font-weight: 800;
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
-  font-size: 13px;
-  color: rgba(224, 236, 244, 0.7);
-  margin: 4px 0 0;
-`;
-
-const ThreePane = styled.div`
-  max-width: 1400px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 280px 1fr 320px;
-  gap: 16px;
-  min-height: calc(100vh - 120px);
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const Panel = styled.div`
-  background: rgba(0, 32, 96, 0.4);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(96, 192, 240, 0.12);
-  border-radius: 12px;
-  padding: 16px;
-  overflow-y: auto;
-  max-height: calc(100vh - 120px);
-
-  @media (max-width: 1024px) {
-    max-height: none;
-  }
-`;
-
-const PanelTitle = styled.h2`
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #60c0f0;
-  margin: 0 0 12px;
-`;
-
-const Label = styled.span`
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: rgba(224, 236, 244, 0.8);
-  margin-bottom: 4px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 8px;
-  color: #e0ecf4;
-  font-size: 14px;
-  min-height: 44px;
-  box-sizing: border-box;
-  &:focus { outline: none; border-color: #60c0f0; }
-  &::placeholder { color: rgba(224, 236, 244, 0.4); }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
-  border: 1px solid rgba(96, 192, 240, 0.2);
-  border-radius: 8px;
-  color: #e0ecf4;
-  font-size: 14px;
-  min-height: 44px;
-  &:focus { outline: none; border-color: #60c0f0; }
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 12px;
-`;
-
-const PrimaryButton = styled.button<{ $auto?: boolean }>`
-  width: ${({ $auto }) => $auto ? 'auto' : '100%'};
-  padding: 10px;
-  background: linear-gradient(135deg, #60c0f0 0%, #8B5CF6 100%);
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  transition: opacity 0.2s;
-  &:hover { opacity: 0.85; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-// --- Context Sidebar Widgets ---
-
-const ContextCard = styled.div<{ $severity?: 'danger' | 'warn' | 'info' }>`
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  background: ${({ $severity }) =>
-    $severity === 'danger' ? 'rgba(255, 71, 87, 0.1)'
-    : $severity === 'warn' ? 'rgba(255, 184, 0, 0.1)'
-    : 'rgba(96, 192, 240, 0.06)'};
-  border: 1px solid ${({ $severity }) =>
-    $severity === 'danger' ? 'rgba(255, 71, 87, 0.2)'
-    : $severity === 'warn' ? 'rgba(255, 184, 0, 0.2)'
-    : 'rgba(96, 192, 240, 0.1)'};
-`;
-
-const ContextLabel = styled.div`
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: rgba(224, 236, 244, 0.6);
-  margin-bottom: 4px;
-`;
-
-const ContextValue = styled.div`
-  font-size: 14px;
-  font-weight: 600;
-  color: #e0ecf4;
-`;
-
-const ContextMeta = styled.div<{ $center?: boolean; $pad?: number; $top?: number; $warning?: boolean }>`
-  font-size: 11px;
-  color: ${({ $warning }) => $warning ? '#FFB800' : 'rgba(224, 236, 244, 0.5)'};
-  margin-top: ${({ $top }) => $top ? `${$top}px` : '2px'};
-  padding: ${({ $pad }) => $pad ? `${$pad}px` : 0};
-  text-align: ${({ $center }) => $center ? 'center' : 'left'};
-`;
-
-// --- Exercise Card ---
-
-const ExerciseCard = styled(motion.div)<{ $aiOptimized?: boolean }>`
-  padding: 14px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  background: rgba(0, 16, 64, 0.4);
-  border: 1px solid ${({ $aiOptimized }) =>
-    $aiOptimized ? 'rgba(96, 192, 240, 0.3)' : 'rgba(96, 192, 240, 0.1)'};
-  ${({ $aiOptimized }) => $aiOptimized && `
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.1);
-  `}
-`;
-
-const ExerciseHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-`;
-
-const ExerciseName = styled.div`
-  font-size: 14px;
-  font-weight: 600;
-`;
-
-const AiBadge = styled.span`
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(96, 192, 240, 0.15);
-  color: #60c0f0;
-`;
-
-const ExerciseParams = styled.div`
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: rgba(224, 236, 244, 0.7);
-`;
-
-const InlineReason = styled.span`
-  font-size: 11px;
-  color: rgba(224,236,244,0.5);
-`;
-
-const ParamChip = styled.span`
-  background: rgba(0, 16, 64, 0.4);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-`;
-
-const MuscleTags = styled.div`
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 6px;
-`;
-
-const MuscleTag = styled.span`
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 3px;
-  background: rgba(139, 92, 246, 0.15);
-  color: rgba(224, 236, 244, 0.6);
-`;
-
-// --- Insight Card ---
-
-const InsightCard = styled.div<{ $type?: string }>`
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  background: ${({ $type }) =>
-    $type === 'pain_exclusion' ? 'rgba(255, 71, 87, 0.08)'
-    : $type === 'pain_warning' ? 'rgba(255, 184, 0, 0.08)'
-    : $type === 'compensation_awareness' ? 'rgba(139, 92, 246, 0.1)'
-    : 'rgba(96, 192, 240, 0.06)'};
-  border-left: 3px solid ${({ $type }) =>
-    $type === 'pain_exclusion' ? '#FF4757'
-    : $type === 'pain_warning' ? '#FFB800'
-    : $type === 'compensation_awareness' ? '#8B5CF6'
-    : '#60C0F0'};
-`;
-
-const InsightMessage = styled.div`
-  font-size: 13px;
-  color: #e0ecf4;
-  margin-bottom: 4px;
-`;
-
-const InsightDetail = styled.div`
-  font-size: 11px;
-  color: rgba(224, 236, 244, 0.55);
-`;
-
-// --- Section Divider ---
-
-const SectionDivider = styled.div`
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(96, 192, 240, 0.5);
-  margin: 16px 0 8px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
-`;
-
-const ErrorBanner = styled.div<{ $top?: number }>`
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(255, 71, 87, 0.1);
-  border: 1px solid rgba(255, 71, 87, 0.25);
-  color: #FF4757;
-  font-size: 13px;
-  margin-top: ${({ $top }) => $top ? `${$top}px` : 0};
-  margin-bottom: 12px;
-`;
-
-const SuccessBanner = styled.div<{ $bottom?: number }>`
-  padding: 12px;
-  border-radius: 8px;
-  background: rgba(0, 255, 136, 0.08);
-  border: 1px solid rgba(0, 255, 136, 0.2);
-  color: #00FF88;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: ${({ $bottom }) => $bottom ? `${$bottom}px` : 0};
-`;
-
-const CorrectivePanelWrap = styled.div`
-  margin-top: 4px;
-`;
-
-const ModeToggleGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-`;
-
-const ModeToggleButton = styled.button<{ $active: boolean }>`
-  min-height: 44px;
-  padding: 0 8px;
-  border: 0;
-  background: transparent;
-  color: #60c0f0;
-  cursor: pointer;
-  font: inherit;
-  opacity: ${({ $active }) => $active ? 1 : 0.5};
-`;
-
-const ConfigRow = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-`;
-
-const ConfigField = styled(FormGroup)`
-  flex: 1;
-  min-width: 120px;
-`;
-
-const CompactConfigField = styled(FormGroup)`
-  flex: 1;
-  min-width: 100px;
-`;
-
-const PhaseName = styled.div`
-  font-size: 13px;
-  color: #e0ecf4;
-  margin-bottom: 4px;
-`;
-
-const ErrorBoundaryPanel = styled.div`
-  text-align: center;
-  padding-top: 80px;
-`;
-
-const ErrorBoundaryTitle = styled.div`
-  font-size: 18px;
-  font-weight: 600;
-  color: rgba(224,236,244,0.7);
-  margin-bottom: 8px;
-`;
-
-const ErrorBoundaryCopy = styled.p`
-  color: rgba(224,236,244,0.5);
-  margin-bottom: 16px;
-`;
-
-// --- Component ---
-
-const CATEGORIES = [
-  { value: 'full_body', label: 'Full Body' },
-  { value: 'chest', label: 'Chest' },
-  { value: 'back', label: 'Back' },
-  { value: 'shoulders', label: 'Shoulders' },
-  { value: 'arms', label: 'Arms' },
-  { value: 'legs', label: 'Legs' },
-  { value: 'core', label: 'Core' },
-];
+import WorkoutBuilderErrorBoundary from './WorkoutBuilderErrorBoundary';
+import WorkoutBuilderInsightsPanel from './WorkoutBuilderInsightsPanel';
+import { parsePositiveClientId } from './WorkoutBuilderPage.logic';
+import { CATEGORIES } from './WorkoutBuilderPage.constants';
+import { CompactConfigField, ConfigField, ConfigRow, ContextCard, ContextLabel, ContextMeta, ContextValue, CorrectivePanelWrap, ErrorBanner, FormGroup, Input, Label, ModeToggleButton, ModeToggleGroup, PageWrapper, Panel, PanelTitle, PrimaryButton, Select, Subtitle, ThreePane, Title, TopBar } from './WorkoutBuilderPage.styles';
+import WorkoutBuilderResults from './WorkoutBuilderResults';
 
 const WorkoutBuilderPage: React.FC = () => {
   const api = useWorkoutBuilderAPI();
+  const [searchParams] = useSearchParams();
 
-  // Config
-  const [clientId, setClientId] = useState('');
-  // V3c.6: stable clientId + compensations for the corrective panel.
-  // The panel itself ignores invalid clientId (renders empty), but
-  // a stable parsed number lets the panel's effect dep work cleanly.
-  const parsedClientId = useMemo(() => {
-    const n = parseInt(clientId, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }, [clientId]);
+  const [clientId, setClientId] = useState(() => {
+    const queryClientId = parsePositiveClientId(searchParams.get('clientId'));
+    return queryClientId ? String(queryClientId) : '';
+  });
+  const parsedClientId = useMemo(() => parsePositiveClientId(clientId), [clientId]);
   const [category, setCategory] = useState('full_body');
   const [exerciseCount, setExerciseCount] = useState('6');
   const [rotationPattern, setRotationPattern] = useState('standard');
   const [equipmentProfileId, setEquipmentProfileId] = useState('');
 
-  // State
   const [context, setContext] = useState<ClientContext | null>(null);
   const [workout, setWorkout] = useState<GeneratedWorkout | null>(null);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
@@ -405,26 +42,25 @@ const WorkoutBuilderPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'workout' | 'plan'>('workout');
 
-  // Plan config
   const [planWeeks, setPlanWeeks] = useState('12');
   const [sessionsPerWeek, setSessionsPerWeek] = useState('3');
   const [primaryGoal, setPrimaryGoal] = useState('general_fitness');
 
-  // Load client context when clientId changes
   useEffect(() => {
-    const cid = parseInt(clientId, 10);
-    if (isNaN(cid) || cid < 1) {
+    if (!parsedClientId) {
       setContext(null);
       return;
     }
-    api.getClientContext(cid)
+    api.getClientContext(parsedClientId)
       .then(ctx => setContext(ctx))
       .catch(() => setContext(null));
-  }, [api, clientId]);
+  }, [api, parsedClientId]);
 
   const handleGenerate = useCallback(async () => {
-    const cid = parseInt(clientId, 10);
-    if (isNaN(cid)) return;
+    if (!parsedClientId) {
+      setError('Select a valid client before generating.');
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -434,7 +70,7 @@ const WorkoutBuilderPage: React.FC = () => {
     try {
       if (mode === 'workout') {
         const result = await api.generateWorkout({
-          clientId: cid,
+          clientId: parsedClientId,
           category,
           exerciseCount: parseInt(exerciseCount, 10) || 6,
           rotationPattern,
@@ -443,7 +79,7 @@ const WorkoutBuilderPage: React.FC = () => {
         setWorkout(result);
       } else {
         const result = await api.generatePlan({
-          clientId: cid,
+          clientId: parsedClientId,
           durationWeeks: parseInt(planWeeks, 10) || 12,
           sessionsPerWeek: parseInt(sessionsPerWeek, 10) || 3,
           primaryGoal,
@@ -456,7 +92,7 @@ const WorkoutBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [api, clientId, category, exerciseCount, rotationPattern, equipmentProfileId, mode, planWeeks, sessionsPerWeek, primaryGoal]);
+  }, [api, parsedClientId, category, exerciseCount, rotationPattern, equipmentProfileId, mode, planWeeks, sessionsPerWeek, primaryGoal]);
 
   return (
     <PageWrapper>
@@ -466,7 +102,6 @@ const WorkoutBuilderPage: React.FC = () => {
       </TopBar>
 
       <ThreePane>
-        {/* Left: Context Sidebar */}
         <Panel>
           <PanelTitle>Client Context</PanelTitle>
 
@@ -562,7 +197,6 @@ const WorkoutBuilderPage: React.FC = () => {
           )}
         </Panel>
 
-        {/* Center: Workout Canvas */}
         <Panel>
           <PanelTitle>
             <ModeToggleGroup>
@@ -576,7 +210,6 @@ const WorkoutBuilderPage: React.FC = () => {
             </ModeToggleGroup>
           </PanelTitle>
 
-          {/* Config Row */}
           <ConfigRow>
             {mode === 'workout' ? (
               <>
@@ -639,217 +272,21 @@ const WorkoutBuilderPage: React.FC = () => {
 
           <PrimaryButton
             onClick={handleGenerate}
-            disabled={loading || !clientId}
+            disabled={loading || !parsedClientId}
           >
             {loading ? 'Generating...' : mode === 'workout' ? 'Generate Workout' : 'Generate Plan'}
           </PrimaryButton>
 
           {error && <ErrorBanner $top={12}>{error}</ErrorBanner>}
 
-          {/* Workout Result */}
-          <AnimatePresence>
-            {workout && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <SectionDivider>
-                  {workout.sessionType.toUpperCase()} Session | Phase {workout.nasmPhase}: {workout.phaseParams.name}
-                </SectionDivider>
-
-                {workout.warmup.length > 0 && (
-                  <>
-                    <SectionDivider>Warmup (CES Protocol)</SectionDivider>
-                    {workout.warmup.map((w, i) => (
-                      <ExerciseCard key={`warmup-${i}`}>
-                        <ExerciseHeader>
-                          <ExerciseName>{w.name}</ExerciseName>
-                          <AiBadge>{w.type}</AiBadge>
-                        </ExerciseHeader>
-                        <ExerciseParams>
-                          {w.duration && <ParamChip>{w.duration}</ParamChip>}
-                          {w.sets && <ParamChip>{w.sets} x {w.reps}</ParamChip>}
-                          {w.reason && <InlineReason>{w.reason}</InlineReason>}
-                        </ExerciseParams>
-                      </ExerciseCard>
-                    ))}
-                  </>
-                )}
-
-                <SectionDivider>Main Exercises</SectionDivider>
-                {workout.exercises.map((ex) => (
-                  <ExerciseCard key={ex.exerciseKey} $aiOptimized>
-                    <ExerciseHeader>
-                      <ExerciseName>{ex.exerciseName}</ExerciseName>
-                      <AiBadge>AI Optimized</AiBadge>
-                    </ExerciseHeader>
-                    <ExerciseParams>
-                      <ParamChip>{ex.sets} sets</ParamChip>
-                      <ParamChip>{ex.reps} reps</ParamChip>
-                      <ParamChip>{ex.tempo} tempo</ParamChip>
-                      <ParamChip>{ex.rest} rest</ParamChip>
-                    </ExerciseParams>
-                    <MuscleTags>
-                      {ex.muscles.slice(0, 4).map(m => (
-                        <MuscleTag key={m}>{m.replace(/_/g, ' ')}</MuscleTag>
-                      ))}
-                    </MuscleTags>
-                  </ExerciseCard>
-                ))}
-
-                {workout.cooldown.length > 0 && (
-                  <>
-                    <SectionDivider>Cooldown</SectionDivider>
-                    {workout.cooldown.map((c, i) => (
-                      <ExerciseCard key={`cool-${i}`}>
-                        <ExerciseName>{c.name}</ExerciseName>
-                        <ExerciseParams>
-                          {c.duration && <ParamChip>{c.duration}</ParamChip>}
-                          {c.sets && <ParamChip>{c.sets} x {c.reps}</ParamChip>}
-                        </ExerciseParams>
-                      </ExerciseCard>
-                    ))}
-                  </>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Plan Result */}
-          <AnimatePresence>
-            {plan && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <SectionDivider>
-                  {plan.planSummary.durationWeeks}-Week Plan | {plan.planSummary.totalSessions} Sessions
-                </SectionDivider>
-
-                <SuccessBanner $bottom={12}>
-                  {plan.recommendations.length} AI recommendations applied
-                </SuccessBanner>
-
-                {plan.mesocycles.map(mc => (
-                  <ExerciseCard key={mc.mesocycle}>
-                    <ExerciseHeader>
-                      <ExerciseName>Mesocycle {mc.mesocycle}: Weeks {mc.weeks}</ExerciseName>
-                      <AiBadge>Phase {mc.nasmPhase}</AiBadge>
-                    </ExerciseHeader>
-                    <PhaseName>
-                      {mc.phaseName}
-                    </PhaseName>
-                    <ExerciseParams>
-                      <ParamChip>{mc.params.sets} sets</ParamChip>
-                      <ParamChip>{mc.params.reps} reps</ParamChip>
-                      <ParamChip>{mc.params.intensity}</ParamChip>
-                      <ParamChip>{mc.params.rest} rest</ParamChip>
-                    </ExerciseParams>
-                    <ContextMeta $top={6}>{mc.overloadStrategy}</ContextMeta>
-                    {mc.deloadWeek && (
-                      <ContextMeta $warning>Deload: Week {mc.deloadWeek}</ContextMeta>
-                    )}
-                  </ExerciseCard>
-                ))}
-
-                <SectionDivider>Weekly Schedule</SectionDivider>
-                {plan.weeklySchedule.map(day => (
-                  <ContextCard key={day.dayNumber} $severity="info">
-                    <ContextLabel>Day {day.dayNumber}</ContextLabel>
-                    <ContextValue>{day.focus}</ContextValue>
-                  </ContextCard>
-                ))}
-
-                <SectionDivider>Recommendations</SectionDivider>
-                {plan.recommendations.map((rec, i) => (
-                  <InsightCard key={i} $type="nasm_phase">
-                    <InsightMessage>{rec}</InsightMessage>
-                  </InsightCard>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <WorkoutBuilderResults workout={workout} plan={plan} />
         </Panel>
 
-        {/* Right: AI Insights */}
-        <Panel>
-          <PanelTitle>AI Insights</PanelTitle>
-
-          {workout && workout.explanations.map((exp, i) => (
-            <InsightCard key={i} $type={exp.type}>
-              <InsightMessage>{exp.message}</InsightMessage>
-              {exp.details && exp.details.map((d, j) => (
-                <InsightDetail key={j}>{d}</InsightDetail>
-              ))}
-            </InsightCard>
-          ))}
-
-          {!workout && !plan && (
-            <ContextMeta $center $pad={24}>
-              Generate a workout to see AI reasoning and insights
-            </ContextMeta>
-          )}
-
-          {workout && (
-            <>
-              <SectionDivider>Workout Summary</SectionDivider>
-              <ContextCard $severity="info">
-                <ContextLabel>Session Type</ContextLabel>
-                <ContextValue>{workout.sessionType.toUpperCase()}</ContextValue>
-              </ContextCard>
-              <ContextCard $severity="info">
-                <ContextLabel>NASM Phase</ContextLabel>
-                <ContextValue>Phase {workout.nasmPhase}: {workout.phaseParams.name}</ContextValue>
-                <ContextMeta>{workout.phaseParams.focus}</ContextMeta>
-              </ContextCard>
-              <ContextCard $severity={workout.context.painExclusions > 0 ? 'danger' : 'info'}>
-                <ContextLabel>Safety</ContextLabel>
-                <ContextValue>
-                  {workout.context.painExclusions} exclusion(s), {workout.context.painWarnings} warning(s)
-                </ContextValue>
-              </ContextCard>
-              <ContextCard $severity="info">
-                <ContextLabel>Compensations Addressed</ContextLabel>
-                <ContextValue>{workout.context.compensations} pattern(s) in warmup</ContextValue>
-              </ContextCard>
-            </>
-          )}
-        </Panel>
+        <WorkoutBuilderInsightsPanel workout={workout} plan={plan} />
       </ThreePane>
     </PageWrapper>
   );
 };
-
-// Error Boundary
-
-class WorkoutBuilderErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <PageWrapper>
-          <ErrorBoundaryPanel>
-            <ErrorBoundaryTitle>
-              Something went wrong
-            </ErrorBoundaryTitle>
-            <ErrorBoundaryCopy>
-              The Workout Builder encountered an error.
-            </ErrorBoundaryCopy>
-            <PrimaryButton $auto onClick={() => this.setState({ hasError: false })}>
-              Try Again
-            </PrimaryButton>
-          </ErrorBoundaryPanel>
-        </PageWrapper>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const WorkoutBuilderPageWithBoundary: React.FC = () => (
   <WorkoutBuilderErrorBoundary>

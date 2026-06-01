@@ -1,474 +1,60 @@
 /**
  * ContactNotifications.tsx - SwanStudios Business Intelligence Alert System
- * =========================================================================
- * Real-time financial and business notifications for admin dashboard
- * Displays high-priority alerts, new purchases, and system updates
- * 
- * Features:
- * - Real-time financial transaction alerts
- * - New customer registration notifications
- * - High-value purchase alerts
- * - System health notifications
- * - Contact form submissions (priority alerts)
- * - Action-required notifications
- * 
- * Master Prompt v28 Alignment:
- * - Revolutionary real-time business intelligence
- * - Galaxy-themed professional aesthetics
- * - Production-ready notification system
- * - Performance optimized with auto-refresh
+ * Crystalline Swan-themed professional aesthetics for finance and contact alerts.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useCallback, useEffect, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { Bell, ChevronDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import ContactNotificationItem from './ContactNotificationItem';
+import type { ContactNotificationsProps, Notification } from './ContactNotifications.types';
 import {
-  Bell, UserPlus, AlertTriangle,
-  CheckCircle, Clock, ShoppingBag, CreditCard,
-  TrendingUp, Star, Eye, EyeOff, RefreshCw,
-  MessageCircle, Activity,
-  RotateCcw, ShieldAlert, ChevronDown
-} from 'lucide-react';
+  getErrorMessage,
+  isDegradedError,
+  mapContactNotifications,
+  mapFinanceNotifications,
+  NOTIFICATION_ROUTE_DESTINATIONS,
+  PAGE_SIZE,
+  upsertNotifications,
+} from './ContactNotifications.helpers';
+import {
+  ControlButton,
+  EmptyCheckIcon,
+  EmptyState,
+  ErrorBanner,
+  HeaderControls,
+  HeaderTitle,
+  LoadMoreControl,
+  LoadMoreLabel,
+  LoadMoreRow,
+  LoadingSpinner,
+  NotificationBadge,
+  NotificationHeader,
+  NotificationsContainer,
+  NotificationsList,
+} from './ContactNotifications.styles';
 
-// Animations
-const notificationPulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-`;
+type ApiResponse = { data: any };
 
-const urgentBlink = keyframes`
-  0%, 50% { opacity: 1; }
-  25%, 75% { opacity: 0.3; }
-`;
-
-// Styled Components
-const NotificationsContainer = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(139, 92, 246, 0.1) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(20px);
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #60C0F0, #3b82f6, #60C0F0);
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-  }
-  
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
-`;
-
-const NotificationHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-`;
-
-const HeaderTitle = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #60C0F0;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const HeaderControls = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-`;
-
-const ControlButton = styled(motion.button)`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.8);
-  padding: 0.5rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  min-width: 44px;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5);
-    color: white;
-  }
-  
-  &.active {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: rgba(139, 92, 246, 0.5);
-    color: #60C0F0;
-  }
-`;
-
-const NotificationBadge = styled.div`
-  background: #ef4444;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-left: 0.5rem;
-  animation: ${notificationPulse} 2s infinite;
-`;
-
-const NotificationsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-height: 400px;
-  overflow-y: auto;
-  
-  /* Custom scrollbar */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
-    border-radius: 3px;
-    
-    &:hover {
-      background: rgba(59, 130, 246, 0.7);
-    }
-  }
-`;
-
-const NotificationItem = styled(motion.div)<{ $priorityColor?: string }>`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-left: 4px solid ${props => props.$priorityColor || '#3b82f6'};
-  border-radius: 8px;
-  padding: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: ${props => props.$priorityColor || '#3b82f6'};
-    transform: translateX(4px);
-  }
-  
-  &.unread {
-    border-left-width: 6px;
-    background: rgba(59, 130, 246, 0.1);
-  }
-  
-  &.urgent {
-    animation: ${urgentBlink} 3s infinite;
-    border-left-color: #ef4444;
-  }
-`;
-
-const NotificationContent = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-`;
-
-const NotificationIcon = styled.div<{ $color?: string }>`
-  background: ${({ $color }) => $color || 'rgba(59, 130, 246, 0.2)'};
-  color: ${({ $color }) => $color || '#3b82f6'};
-  border-radius: 8px;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-`;
-
-const NotificationDetails = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const NotificationTitle = styled.div`
-  font-weight: 600;
-  color: white;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
-`;
-
-const NotificationMessage = styled.div`
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.85rem;
-  line-height: 1.4;
-  margin-bottom: 0.5rem;
-`;
-
-const NotificationMeta = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-const NotificationTime = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-`;
-
-const NotificationAmount = styled.span`
-  color: #10b981;
-  font-weight: 600;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.6);
-`;
-
-const LoadingSpinner = styled.div`
-  width: 24px;
-  height: 24px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  border-top: 2px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 2rem auto;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
-const ErrorBanner = styled.div`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  color: var(--color-error, #ef4444);
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  padding: 1rem;
-`;
-
-const MessageToggle = styled.button`
-  background: transparent;
-  border: 0;
-  color: var(--accent-primary, #60c0f0);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-left: 4px;
-  padding: 0 0.25rem;
-`;
-
-const ActionRequiredBadge = styled.div`
-  background: rgba(245, 158, 11, 0.2);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 6px;
-  color: var(--color-warning, #f59e0b);
-  flex-shrink: 0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.25rem 0.5rem;
-`;
-
-const EmptyCheckIcon = styled(CheckCircle)`
-  margin-bottom: 1rem;
-  opacity: 0.5;
-`;
-
-const LoadMoreRow = styled.div`
-  margin-top: 1rem;
-  text-align: center;
-`;
-
-const LoadMoreControl = styled(ControlButton)`
-  border-radius: 8px;
-  min-height: 44px;
-  padding: 0.5rem 1.5rem;
-`;
-
-const LoadMoreLabel = styled.span`
-  margin-left: 0.5rem;
-`;
-
-// Interface definitions
-interface Notification {
-  id: string;
-  type: 'purchase' | 'new_user' | 'contact' | 'system_alert' | 'high_value_purchase'
-    | 'payment_failed' | 'security_alert' | 'refund_request' | 'performance_alert'
-    | 'revenue_milestone';
-  title: string;
-  message: string;
-  amount?: number;
-  timestamp: string;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  isRead: boolean;
-  actionRequired?: boolean;
-  userId?: number;
-  userName?: string;
-}
-
-interface FinanceNotificationPayload {
-  id?: string;
-  type?: Notification['type'];
-  title?: string;
-  message?: string;
-  amount?: number;
-  timestamp?: string;
-  createdAt?: string;
-  priority?: Notification['priority'];
-  userId?: number;
-  userName?: string;
-}
-
-interface ContactPayload {
-  id: string | number;
-  name?: string;
-  email?: string;
-  message?: string;
-  createdAt?: string;
-  priority?: string;
-}
-
-interface ContactNotificationsProps {
-  autoRefresh?: boolean;
-  initialPageSize?: number;
-  showActions?: boolean;
-}
-
-// Priority color mapping
-const getPriorityColor = (priority: string) => {
-  const colorMap = {
-    low: '#6b7280',
-    medium: '#3b82f6',
-    high: '#f59e0b',
-    critical: '#ef4444'
+const readNotificationResult = (
+  result: PromiseSettledResult<ApiResponse>,
+  fallbackMessage: string,
+) => {
+  if (result.status === 'fulfilled') return { response: result.value, error: null };
+  return {
+    response: null,
+    error: isDegradedError(result.reason)
+      ? 'Some data temporarily unavailable'
+      : getErrorMessage(result.reason, fallbackMessage),
   };
-  return colorMap[priority] || colorMap.medium;
-};
-
-// Type icon mapping
-const getTypeIcon = (type: string) => {
-  const iconMap: Record<string, React.ReactNode> = {
-    purchase: <ShoppingBag size={18} />,
-    high_value_purchase: <Star size={18} />,
-    new_user: <UserPlus size={18} />,
-    contact: <MessageCircle size={18} />,
-    system_alert: <AlertTriangle size={18} />,
-    payment_failed: <CreditCard size={18} />,
-    security_alert: <ShieldAlert size={18} />,
-    refund_request: <RotateCcw size={18} />,
-    performance_alert: <Activity size={18} />,
-    revenue_milestone: <TrendingUp size={18} />
-  };
-  return iconMap[type] || <Bell size={18} />;
-};
-
-// Time formatting
-const formatTimeAgo = (timestamp: string) => {
-  const now = new Date();
-  const time = new Date(timestamp);
-  const diffInSeconds = Math.floor((now.getTime() - time.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  return `${Math.floor(diffInSeconds / 86400)}d ago`;
-};
-
-const PAGE_SIZE = 20;
-
-const isDegradedError = (err: unknown): boolean =>
-  typeof err === 'object' &&
-  err !== null &&
-  'isDegraded' in err &&
-  Boolean((err as { isDegraded?: boolean }).isDegraded);
-
-const getErrorMessage = (err: unknown, fallback: string): string => {
-  if (typeof err !== 'object' || err === null) return fallback;
-  const response = (err as { response?: { data?: { message?: string } } }).response;
-  return response?.data?.message || fallback;
-};
-
-const sanitizeNotificationIdPart = (value: unknown): string =>
-  String(value ?? 'missing')
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'missing';
-
-const stableFinanceNotificationId = (notif: FinanceNotificationPayload, index: number): string => {
-  if (notif.id) return notif.id;
-  return [
-    'fin',
-    sanitizeNotificationIdPart(notif.type || 'system_alert'),
-    sanitizeNotificationIdPart(notif.timestamp || notif.createdAt || 'no-time'),
-    sanitizeNotificationIdPart(notif.title || 'business-notification'),
-    sanitizeNotificationIdPart(notif.amount ?? 'no-amount'),
-    sanitizeNotificationIdPart(notif.userId ?? notif.userName ?? index)
-  ].join('_');
-};
-
-// Upsert helper: merges fresh data into accumulated state, dedupes by id, sorts deterministically
-const upsertNotifications = (existing: Notification[], ...newBatches: Notification[][]): Notification[] => {
-  const merged = new Map<string, Notification>();
-  for (const n of existing) merged.set(n.id, n);
-  for (const batch of newBatches) {
-    for (const n of batch) merged.set(n.id, n);
-  }
-  return [...merged.values()].sort((a, b) => {
-    const timeDiff = new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    return timeDiff !== 0 ? timeDiff : b.id.localeCompare(a.id);
-  });
-};
-
-const NOTIFICATION_ROUTE_DESTINATIONS: Record<Notification['type'], string> = {
-  contact: '/dashboard/admin/messages',
-  purchase: '/dashboard/admin/revenue',
-  high_value_purchase: '/dashboard/admin/revenue',
-  new_user: '/dashboard/admin/client-management',
-  payment_failed: '/dashboard/admin/pending-orders',
-  system_alert: '/dashboard/admin/overview',
-  security_alert: '/dashboard/admin/security',
-  refund_request: '/dashboard/admin/pending-orders',
-  performance_alert: '/dashboard/admin/overview',
-  revenue_milestone: '/dashboard/admin/revenue'
 };
 
 const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   autoRefresh = true,
   initialPageSize = PAGE_SIZE,
-  showActions = true
+  showActions = true,
 }) => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
@@ -479,127 +65,77 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
-
-  // Pagination state for each source
   const [financeOffset, setFinanceOffset] = useState(0);
   const [contactOffset, setContactOffset] = useState(0);
   const [financeHasMore, setFinanceHasMore] = useState(true);
   const [contactHasMore, setContactHasMore] = useState(true);
 
-  // Map raw API data to Notification interface
-  const mapFinanceNotifications = (data: FinanceNotificationPayload[]): Notification[] =>
-    data.map((notif, index) => ({
-      id: stableFinanceNotificationId(notif, index),
-      type: notif.type || 'system_alert',
-      title: notif.title || 'Business notification',
-      message: notif.message || 'A business event needs review.',
-      amount: notif.amount,
-      timestamp: notif.timestamp || notif.createdAt || new Date().toISOString(),
-      priority: notif.priority || 'medium',
-      isRead: false,
-      actionRequired: notif.type === 'payment_failed',
-      userId: notif.userId,
-      userName: notif.userName
-    }));
-
-  const mapContactNotifications = (contacts: ContactPayload[]): Notification[] =>
-    contacts.map((contact) => ({
-      id: `contact_${contact.id}`,
-      type: 'contact' as const,
-      title: 'New Contact Form Submission',
-      message: `${contact.name || 'Unknown'} (${contact.email || 'no email'}) sent: "${contact.message || 'No message'}"`,
-      timestamp: contact.createdAt || new Date().toISOString(),
-      priority: (contact.priority === 'urgent' ? 'high' : 'medium') as 'high' | 'medium',
-      isRead: false,
-      actionRequired: true,
-      userName: contact.name || 'Unknown'
-    }));
-
-  // Fetch page of data from both sources and upsert into state
   const fetchPage = useCallback(async (fOffset: number, cOffset: number, _isRefresh: boolean) => {
     try {
       setRefreshing(true);
       setError(null);
 
-      const [financeRes, contactRes] = await Promise.all([
-        authAxios.get(`/api/admin/finance/notifications?limit=${pageSize}&offset=${fOffset}`).catch((err: unknown) => {
-          if (isDegradedError(err)) return { data: { success: false } };
-          throw err;
-        }),
-        authAxios.get(`/api/contact?limit=${pageSize}&offset=${cOffset}`).catch((err: unknown) => {
-          if (isDegradedError(err)) return { data: { success: false } };
-          throw err;
-        })
+      const [financeResult, contactResult] = await Promise.allSettled([
+        authAxios.get(`/api/admin/finance/notifications?limit=${pageSize}&offset=${fOffset}`),
+        authAxios.get(`/api/contact?limit=${pageSize}&offset=${cOffset}`),
       ]);
 
-      const newFinance = financeRes.data.success
+      const financeRead = readNotificationResult(financeResult, 'Finance notifications unavailable');
+      const contactRead = readNotificationResult(contactResult, 'Contact notifications unavailable');
+      const financeRes = financeRead.response;
+      const contactRes = contactRead.response;
+      const newFinance = financeRes?.data.success
         ? mapFinanceNotifications(financeRes.data.data?.notifications || [])
         : [];
-      const newContacts = contactRes.data.success
+      const newContacts = contactRes?.data.success
         ? mapContactNotifications(contactRes.data.contacts || [])
         : [];
 
-      // Update hasMore from pagination metadata
-      if (financeRes.data.data?.pagination) {
-        setFinanceHasMore(financeRes.data.data.pagination.hasMore);
-      }
-      if (contactRes.data.pagination) {
-        setContactHasMore(contactRes.data.pagination.hasMore);
-      }
+      if (financeRes?.data.data?.pagination) setFinanceHasMore(financeRes.data.data.pagination.hasMore);
+      if (contactRes?.data.pagination) setContactHasMore(contactRes.data.pagination.hasMore);
+      setNotifications((prev) => upsertNotifications(prev, newFinance, newContacts));
 
-      // Upsert into accumulated state (preserves loaded history)
-      setNotifications(prev => upsertNotifications(prev, newFinance, newContacts));
+      const sourceErrors = [financeRead.error, contactRead.error].filter(Boolean);
+      setError(sourceErrors.length ? sourceErrors.join(' | ') : null);
     } catch (err: unknown) {
-      if (isDegradedError(err)) {
-        setError('Some data temporarily unavailable');
-      } else {
-        setError(getErrorMessage(err, 'Failed to load notifications'));
-      }
+      setError(getErrorMessage(err, 'Failed to load notifications'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [authAxios, pageSize]);
 
-  // Initial load
   useEffect(() => {
     fetchPage(0, 0, false);
   }, [fetchPage]);
 
-  // Auto-refresh: upsert fresh page-1 into accumulated state (preserves history)
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh) return undefined;
     const interval = setInterval(() => fetchPage(0, 0, true), 30000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchPage]);
 
-  // Load More handler
   const handleLoadMore = useCallback(() => {
     const nextFinanceOffset = financeHasMore ? financeOffset + pageSize : financeOffset;
     const nextContactOffset = contactHasMore ? contactOffset + pageSize : contactOffset;
     if (financeHasMore) setFinanceOffset(nextFinanceOffset);
     if (contactHasMore) setContactOffset(nextContactOffset);
     fetchPage(nextFinanceOffset, nextContactOffset, false);
-  }, [financeOffset, contactOffset, financeHasMore, contactHasMore, fetchPage, pageSize]);
+  }, [contactHasMore, contactOffset, fetchPage, financeHasMore, financeOffset, pageSize]);
 
-  // Handle notification click — complete type→destination mapping
   const handleNotificationClick = (notification: Notification) => {
     navigate(NOTIFICATION_ROUTE_DESTINATIONS[notification.type]);
   };
 
-  const handleNotificationKeyDown = (
-    event: React.KeyboardEvent,
-    notification: Notification
-  ) => {
+  const handleNotificationKeyDown = (event: React.KeyboardEvent, notification: Notification) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       handleNotificationClick(notification);
     }
   };
 
-  // Toggle expandable message
   const toggleMessageExpand = (id: string) => {
-    setExpandedMessages(prev => {
+    setExpandedMessages((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -607,12 +143,10 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
     });
   };
 
-  // Filter notifications
-  const filteredNotifications = showUnreadOnly 
-    ? notifications.filter(n => !n.isRead)
+  const filteredNotifications = showUnreadOnly
+    ? notifications.filter((n) => !n.isRead)
     : notifications;
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   if (loading && notifications.length === 0) {
     return (
@@ -624,8 +158,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   return (
     <NotificationsContainer
-      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.5 }}
     >
       <NotificationHeader>
@@ -634,25 +168,25 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           Business Intelligence Alerts
           {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
         </HeaderTitle>
-        
         {showActions && (
           <HeaderControls>
             <ControlButton
               className={showUnreadOnly ? 'active' : ''}
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+              title={showUnreadOnly ? 'Show all notifications' : 'Show unread only'}
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title={showUnreadOnly ? 'Show all notifications' : 'Show unread only'}
             >
               {showUnreadOnly ? <Eye size={16} /> : <EyeOff size={16} />}
             </ControlButton>
-            
             <ControlButton
-              onClick={() => fetchPage(0, 0, true)}
               disabled={refreshing}
+              onClick={() => fetchPage(0, 0, true)}
+              title="Refresh notifications"
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              title="Refresh notifications"
             >
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             </ControlButton>
@@ -660,79 +194,21 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
         )}
       </NotificationHeader>
 
-      {error && (
-        <ErrorBanner>
-          {error}
-        </ErrorBanner>
-      )}
+      {error && <ErrorBanner role="status">{error}</ErrorBanner>}
 
       <NotificationsList>
         <AnimatePresence>
           {filteredNotifications.length > 0 ? (
             filteredNotifications.map((notification, index) => (
-              <NotificationItem
+              <ContactNotificationItem
+                index={index}
+                isExpanded={expandedMessages.has(notification.id)}
                 key={notification.id}
-                $priorityColor={getPriorityColor(notification.priority)}
-                className={`${!notification.isRead ? 'unread' : ''} ${notification.priority === 'critical' ? 'urgent' : ''}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleNotificationClick(notification)}
-                onKeyDown={(e) => handleNotificationKeyDown(e, notification)}
-                initial={{ opacity: 0, x: 100 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <NotificationContent>
-                  <NotificationIcon $color={getPriorityColor(notification.priority)}>
-                    {getTypeIcon(notification.type)}
-                  </NotificationIcon>
-                  
-                  <NotificationDetails>
-                    <NotificationTitle>{notification.title}</NotificationTitle>
-                    <NotificationMessage>
-                      {notification.message.length > 150 && !expandedMessages.has(notification.id)
-                        ? <>
-                            {notification.message.slice(0, 150)}...
-                            <MessageToggle
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
-                            >show more</MessageToggle>
-                          </>
-                        : <>
-                            {notification.message}
-                            {notification.message.length > 150 && (
-                              <MessageToggle
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); toggleMessageExpand(notification.id); }}
-                              >show less</MessageToggle>
-                            )}
-                          </>
-                      }
-                    </NotificationMessage>
-                    
-                    <NotificationMeta>
-                      <NotificationTime>
-                        <Clock size={12} />
-                        {formatTimeAgo(notification.timestamp)}
-                      </NotificationTime>
-                      
-                      {notification.amount && (
-                        <NotificationAmount>
-                          ${notification.amount.toLocaleString()}
-                        </NotificationAmount>
-                      )}
-                    </NotificationMeta>
-                  </NotificationDetails>
-                  
-                  {notification.actionRequired && (
-                    <ActionRequiredBadge>
-                      Action Required
-                    </ActionRequiredBadge>
-                  )}
-                </NotificationContent>
-              </NotificationItem>
+                notification={notification}
+                onClick={handleNotificationClick}
+                onKeyDown={handleNotificationKeyDown}
+                onToggleMessage={toggleMessageExpand}
+              />
             ))
           ) : (
             <EmptyState>
@@ -746,8 +222,9 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       {(financeHasMore || contactHasMore) && (
         <LoadMoreRow>
           <LoadMoreControl
-            onClick={handleLoadMore}
             disabled={refreshing}
+            onClick={handleLoadMore}
+            type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >

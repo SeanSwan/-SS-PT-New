@@ -6,67 +6,47 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MessageCircle, UserPlus, Eye, UserCheck } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../hooks/use-toast';
 import {
-  ActionBtn,
   CardGrid,
   ContentArea,
   DetailScrollWrap,
-  EmptyHub,
-  HeaderSection,
   HubContainer,
   LoadingPulse,
-  TopBar,
-  TopBarActions,
 } from './ClientsWorkspace.styles';
-import ClientSelectorDropdown from './clients-team/ClientSelectorDropdown';
-import ClientHeaderCard from './clients-team/ClientHeaderCard';
-import ClientDailyActionStrip from './clients-team/ClientDailyActionStrip';
 import ClientHubGridCard from './clients-team/ClientHubGridCard';
+import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
+import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
+import {
+  getClientHubIntent,
+  getClientIdFromSearchParams,
+  getClientOnboardingPct,
+  type ClientHubIntent,
+} from './ClientsWorkspace.logic';
+import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
+import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
 import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
 import {
   buildClientCoachDailyRoute,
+  buildClientCoachOnboardingRoute,
   buildClientWorkoutLoggerRoute,
   buildClientWorkoutPlannerRoute,
 } from './clients-team/clientDailyTrainingRoutes';
-import { toMiniCardClient } from './clients-team/clientOptionMappers';
+import { mapAdminClientToClientOption, toMiniCardClient } from './clients-team/clientOptionMappers';
 import { ClientDetailView } from './clients-team';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import type { DetailTab } from './clients-team/ClientDetailView';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
-
-type ClientHubIntent = 'log_workout' | 'plan_next' | null;
-
-const getClientHubIntent = (searchParams: URLSearchParams): ClientHubIntent => {
-  const intent = searchParams.get('intent');
-  return intent === 'log_workout' || intent === 'plan_next' ? intent : null;
-};
-
-const clampPercent = (value: unknown): number | undefined => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return undefined;
-  return Math.max(0, Math.min(100, Math.round(parsed)));
-};
-
-const getClientOnboardingPct = (client: ClientOption | null): number | undefined => {
-  if (!client) return undefined;
-  const explicitPct =
-    clampPercent(client.onboardingPct) ??
-    clampPercent(client.onboardingCompletionPercentage) ??
-    clampPercent(client.completionPercentage);
-
-  if (explicitPct !== undefined) return explicitPct;
-  if (client.onboardingComplete || client.isOnboardingComplete) return 100;
-
-  return undefined;
-};
+import { useClientAccountLifecycle } from './clients-team/useClientAccountLifecycle';
+import { useManualClientCreation } from './clients-team/useManualClientCreation';
+import ClientLifecycleConfirmDialog from './clients-team/ClientLifecycleConfirmDialog';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const ClientsWorkspace: React.FC = () => {
   const { authAxios } = useAuth() as any;
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -75,71 +55,81 @@ const ClientsWorkspace: React.FC = () => {
   const [detailTab, setDetailTab] = useState<DetailTab>('training');
   const [loading, setLoading] = useState(true);
 
-  // Read clientId from URL if present
-  const urlClientId = searchParams.get('clientId') ? parseInt(searchParams.get('clientId')!) : null;
+  const urlClientId = getClientIdFromSearchParams(searchParams);
   const clientHubIntent = getClientHubIntent(searchParams);
+
+  const navigateClientDailyRoute = useCallback((route: string | null) => {
+    if (!route) {
+      toast({
+        title: 'Client route unavailable',
+        description: 'Reload Clients & Team and try again.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+
+    navigate(route);
+    return true;
+  }, [navigate, toast]);
 
   const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {
     if (intent === 'log_workout') {
-      navigate(buildClientWorkoutLoggerRoute(client.id));
-      return true;
+      return navigateClientDailyRoute(buildClientWorkoutLoggerRoute(client.id));
     }
 
     if (intent === 'plan_next') {
-      navigate(buildClientWorkoutPlannerRoute(client.id));
-      return true;
+      return navigateClientDailyRoute(buildClientWorkoutPlannerRoute(client.id));
     }
 
     return false;
-  }, [navigate]);
+  }, [navigateClientDailyRoute]);
+
+  const loadClients = useCallback(async (): Promise<ClientOption[]> => {
+    if (!authAxios) return [];
+    try {
+      setLoading(true);
+      const response = await authAxios.get('/api/admin/clients', {
+        params: { limit: 100, status: 'active' },
+      });
+      if (!response.data.success) return [];
+      const mapped: ClientOption[] = (response.data.data?.clients || [])
+        .map(mapAdminClientToClientOption)
+        .filter((client: ClientOption | null): client is ClientOption => client !== null);
+      setClients(mapped);
+      return mapped;
+    } catch (err) {
+      console.warn('Failed to fetch clients:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [authAxios]);
+
+  const loadClientById = useCallback(async (clientId: number): Promise<ClientOption | null> => {
+    if (!authAxios) return null;
+    try {
+      const response = await authAxios.get(`/api/admin/clients/${clientId}`);
+      if (!response.data?.success) return null;
+      return mapAdminClientToClientOption(response.data.data?.client);
+    } catch (err) {
+      console.warn('Failed to fetch client details:', err);
+      return null;
+    }
+  }, [authAxios]);
 
   // Fetch all clients on mount
   useEffect(() => {
-    if (!authAxios) return;
     const fetchClients = async () => {
-      try {
-        setLoading(true);
-        const response = await authAxios.get('/api/admin/clients', {
-          params: { limit: 100 },
-        });
-        if (response.data.success) {
-          const mapped: ClientOption[] = (response.data.data?.clients || []).map((c: any) => ({
-            id: c.id,
-            firstName: c.firstName || '',
-            lastName: c.lastName || '',
-            email: c.email || '',
-            clientSource: c.clientSource || 'swanstudios',
-            isActive: c.isActive !== false,
-            availableSessions: c.availableSessions || 0,
-            workoutCount: c.totalWorkouts || 0,
-            fitnessGoal: c.fitnessGoal || '',
-            trainingExperience: c.trainingExperience || '',
-            dateOfBirth: c.dateOfBirth || null,
-            onboardingComplete: Boolean(c.onboardingComplete),
-            isOnboardingComplete: Boolean(c.isOnboardingComplete),
-            onboardingPct: c.onboardingPct ?? null,
-            onboardingCompletionPercentage: c.onboardingCompletionPercentage ?? null,
-            completionPercentage: c.completionPercentage ?? null,
-          }));
-          setClients(mapped);
-
-          // Auto-select from URL param
-          if (urlClientId) {
-            const match = mapped.find(c => c.id === urlClientId);
-            if (match) {
-              if (runClientHubIntent(match, clientHubIntent)) return;
-              setSelectedClient(match);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch clients:', err);
-      } finally {
-        setLoading(false);
+      const mapped = await loadClients();
+      if (!urlClientId) return;
+      const match = mapped.find(c => c.id === urlClientId) || await loadClientById(urlClientId);
+      if (match) {
+        if (runClientHubIntent(match, clientHubIntent)) return;
+        setSelectedClient(match);
       }
     };
     fetchClients();
-  }, [authAxios]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loadClients, loadClientById]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSelectClient = useCallback((client: ClientOption) => {
     if (runClientHubIntent(client, clientHubIntent)) return;
@@ -150,56 +140,59 @@ const ClientsWorkspace: React.FC = () => {
   }, [clientHubIntent, runClientHubIntent, setSearchParams]);
 
   const handleNewClient = useCallback(() => {
-    navigate('/dashboard/admin/coach-assistant');
+    navigate(buildClientCoachOnboardingRoute());
   }, [navigate]);
 
   const handleOpenAI = useCallback(() => {
     if (selectedClient) {
-      navigate(buildClientCoachDailyRoute(selectedClient.id, 'log_workout'));
+      navigateClientDailyRoute(buildClientCoachDailyRoute(selectedClient.id, 'log_workout'));
     } else {
       navigate('/dashboard/admin/coach-assistant');
     }
-  }, [navigate, selectedClient]);
+  }, [navigate, navigateClientDailyRoute, selectedClient]);
 
-  // Phase 17 (2026-04-20): admin Log Workout CTA.
-  // The client grid cards are already buttons, so the CTA lives in the top-bar
-  // action area and is only shown when a client is selected. Canonical admin
-  // log-workout route per UniversalDashboardLayout.tsx:541.
   const handleLogWorkout = useCallback(() => {
     if (selectedClient) {
-      navigate(buildClientWorkoutLoggerRoute(selectedClient.id));
+      navigateClientDailyRoute(buildClientWorkoutLoggerRoute(selectedClient.id));
     }
-  }, [navigate, selectedClient]);
+  }, [navigateClientDailyRoute, selectedClient]);
 
   const handlePlanNext = useCallback(() => {
     if (selectedClient) {
-      navigate(buildClientWorkoutPlannerRoute(selectedClient.id));
+      navigateClientDailyRoute(buildClientWorkoutPlannerRoute(selectedClient.id));
     }
-  }, [navigate, selectedClient]);
+  }, [navigateClientDailyRoute, selectedClient]);
 
   const handleViewProgress = useCallback(() => {
     setDetailTab('progress');
   }, []);
 
-  // Phase 18.C.1B.1R (2026-04-24): admin "View As" CTA. Navigates to the
-  // canonical AdminViewAsWrapper mount at
-  // /dashboard/admin/client-management/view-as/:userId, which was re-mounted
-  // in UniversalDashboardLayout.tsx this slice after Phase 19 unmounted
-  // the previous UnifiedAdminRoutes-backed route. Gated on selectedClient.
   const handleViewAsClient = useCallback(() => {
     if (selectedClient) {
       navigate(`/dashboard/admin/client-management/view-as/${selectedClient.id}`);
     }
   }, [navigate, selectedClient]);
 
-  // UI-9 (2026-05-01): "Trainer Assignments" CTA. The drag-and-drop
-  // ClientTrainerAssignments page has stayed mounted at
-  // /dashboard/admin/client-trainer-assignments (UniversalDashboardLayout.tsx:526)
-  // but its entry point was removed from this workspace when the dormant
-  // MasterDetailLayout fell out of the canonical route tree (Phase 19).
-  // Re-add the button so admins can reach trainer↔client assignment
-  // management again. Always shown (not gated on selectedClient) since
-  // it's a workspace-level operation.
+  const {
+    handleDeactivateClient,
+    handleReactivateClient,
+    handleSendPasswordReset,
+    deactivationConfirmation,
+    closeDeactivationConfirmation,
+  } = useClientAccountLifecycle({
+    authAxios,
+    selectedClient,
+    setClients,
+    setSelectedClient,
+    toast,
+  });
+  const {
+    manualCreateOpen,
+    openManualCreate,
+    closeManualCreate,
+    handleManualCreate,
+  } = useManualClientCreation({ onClientsChanged: loadClients });
+
   const handleManageAssignments = useCallback(() => {
     navigate('/dashboard/admin/client-trainer-assignments');
   }, [navigate]);
@@ -215,39 +208,29 @@ const ClientsWorkspace: React.FC = () => {
 
   return (
     <HubContainer>
-      {/* Top Bar: Client selector + actions */}
-      <TopBar>
-        <ClientSelectorDropdown
-          clients={clients}
-          selectedId={selectedClient?.id ?? null}
-          onSelect={handleSelectClient}
-          onNewClient={handleNewClient}
-          loading={loading}
-        />
-        <TopBarActions>
-          {selectedClient && (
-            <ActionBtn onClick={handleViewAsClient} title={`View ${selectedClient.firstName}'s dashboard as admin (read-only)`}>
-              <Eye size={16} />
-              <span>View As</span>
-            </ActionBtn>
-          )}
-          <ActionBtn onClick={handleManageAssignments} title="Manage trainer↔client assignments (drag-and-drop)">
-            <UserCheck size={16} />
-            <span>Trainer Assignments</span>
-          </ActionBtn>
-          {!selectedClient && (
-            <ActionBtn onClick={handleOpenAI} $variant="primary" title="Open Swan Coach">
-              <MessageCircle size={16} />
-              <span>Swan Coach</span>
-            </ActionBtn>
-          )}
-          <ActionBtn onClick={handleNewClient} title="Onboard a new client via Swan Coach">
-            <UserPlus size={16} />
-            <span>New Client</span>
-          </ActionBtn>
-        </TopBarActions>
-      </TopBar>
-
+      <ClientsWorkspaceTopBar
+        clients={clients}
+        selectedClient={selectedClient}
+        loading={loading}
+        onSelectClient={handleSelectClient}
+        onNewClient={handleNewClient}
+        onOpenAI={handleOpenAI}
+        onViewAsClient={handleViewAsClient}
+        onDeactivateClient={handleDeactivateClient}
+        onReactivateClient={handleReactivateClient}
+        onSendPasswordReset={handleSendPasswordReset}
+        onManageAssignments={handleManageAssignments}
+        onManualCreateClient={openManualCreate}
+      />
+      <CreateClientModal
+        open={manualCreateOpen}
+        onClose={closeManualCreate}
+        onSubmit={handleManualCreate}
+      />
+      <ClientLifecycleConfirmDialog
+        request={deactivationConfirmation}
+        onClose={closeDeactivationConfirmation}
+      />
       {!selectedClient && authAxios && (
         <ClientActivationQueuePanel
           authAxios={authAxios}
@@ -256,26 +239,17 @@ const ClientsWorkspace: React.FC = () => {
         />
       )}
 
-      {/* Client Header Card (shown when client selected) */}
       {selectedClient && (
-        <HeaderSection>
-          <ClientDailyActionStrip
-            clientName={`${selectedClient.firstName} ${selectedClient.lastName}`.trim()}
-            workoutCount={selectedClient.workoutCount || 0}
-            sessionsLeft={selectedClient.availableSessions || 0}
-            onLogToday={handleLogWorkout}
-            onPlanNext={handlePlanNext}
-            onViewProgress={handleViewProgress}
-            onDictateAI={handleOpenAI}
-          />
-          <ClientHeaderCard
-            client={selectedClient as any}
-            onboardingPct={getClientOnboardingPct(selectedClient)}
-          />
-        </HeaderSection>
+        <SelectedClientTrainingHeader
+          client={selectedClient}
+          onboardingPct={getClientOnboardingPct(selectedClient)}
+          onLogToday={handleLogWorkout}
+          onPlanNext={handlePlanNext}
+          onViewProgress={handleViewProgress}
+          onDictateAI={handleOpenAI}
+        />
       )}
 
-      {/* Content: either detail tabs or client card grid */}
       <ContentArea>
         {selectedClient && detailClient ? (
           <DetailScrollWrap>
@@ -298,15 +272,10 @@ const ClientsWorkspace: React.FC = () => {
         ) : loading ? (
           <LoadingPulse>Loading clients...</LoadingPulse>
         ) : clients.length === 0 ? (
-          <EmptyHub>
-            <UserPlus size={48} style={{ opacity: 0.3 }} />
-            <div style={{ fontSize: 16, fontWeight: 600 }}>No clients yet</div>
-            <div style={{ fontSize: 14 }}>Use the Swan Coach to onboard your first client</div>
-            <ActionBtn onClick={handleNewClient} $variant="primary">
-              <UserPlus size={16} />
-              <span>Onboard New Client</span>
-            </ActionBtn>
-          </EmptyHub>
+          <ClientsWorkspaceEmptyState
+            onNewClient={handleNewClient}
+            onManualCreate={openManualCreate}
+          />
         ) : (
           <CardGrid>
             {clients.map(c => (

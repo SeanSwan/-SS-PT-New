@@ -18,6 +18,7 @@
 import { Router } from 'express';
 import eventBus from '../services/eventBus.mjs';
 import { protect, authorize } from '../middleware/auth.mjs';
+import { FORMAT_CONFIG } from '../services/bootcamp/bootcampConstants.mjs';
 import {
   generateBootcampClass,
   saveBootcampTemplate,
@@ -38,7 +39,7 @@ const router = Router();
 router.use(protect);
 router.use(authorize(['admin', 'trainer']));
 
-const VALID_FORMATS = ['stations_4x', 'stations_3x5', 'stations_2x7', 'full_group', 'custom'];
+export const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
 
 // POST /api/bootcamp/generate

@@ -35,7 +35,7 @@ describe('admin automation auth pipeline', () => {
     expect(managerSource).toContain("apiService.get('/api/sms/templates')");
     expect(managerSource).toContain('apiService.put(url, payload)');
     expect(managerSource).toContain('apiService.post(url, payload)');
-    expect(managerSource).toContain('apiService.delete(`/api/automation/sequences/${selectedSequenceId}`)');
+    expect(managerSource).toContain('apiService.delete(`/api/automation/sequences/${sequenceId}`)');
     expect(managerSource).toContain("apiService.post('/api/automation/trigger'");
 
     expect(combinedSource).not.toContain("localStorage.getItem('token')");

@@ -26,23 +26,19 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import apiService from '../../services/api.service';
 import SkeletonChart from '../ui/SkeletonChart';
+import {
+  clampExerciseHistoryPercent,
+  getExerciseHistoryBarLabel,
+  getExerciseHistoryBarValue,
+  sanitizeExerciseHistoryItems,
+  toNonNegativeFinite,
+  type ExerciseHistoryItem,
+  type ExerciseHistorySortOption,
+} from './ExerciseHistoryChart.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
-
-interface ExerciseHistoryItem {
-  exerciseId: number;
-  exerciseName: string;
-  primaryMuscles: string;
-  category: string;
-  timesPerformed: number;
-  maxWeight: number;
-  maxReps: number;
-  totalVolume: number;
-  lastPerformedDate: string;
-  firstPerformedDate: string;
-}
 
 interface ExerciseHistoryResponse {
   success: boolean;
@@ -57,11 +53,9 @@ interface ExerciseHistoryChartProps {
   userId: number | string;
 }
 
-type SortOption = 'timesPerformed' | 'totalVolume' | 'lastPerformed' | 'alphabetical';
-
 const MUSCLE_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Full Body', 'Cardio', 'Recovery'] as const;
 
-const SORT_LABELS: Record<SortOption, string> = {
+const SORT_LABELS: Record<ExerciseHistorySortOption, string> = {
   timesPerformed: 'Most Used',
   totalVolume: 'Highest Volume',
   lastPerformed: 'Recent',
@@ -82,7 +76,7 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [muscleFilter, setMuscleFilter] = useState<string>('All');
-  const [sort, setSort] = useState<SortOption>('timesPerformed');
+  const [sort, setSort] = useState<ExerciseHistorySortOption>('timesPerformed');
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [varietyScore, setVarietyScore] = useState(0);
@@ -107,11 +101,11 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
       const data = res.data as ExerciseHistoryResponse;
 
       if (data.success) {
-        const items = data.exercises || [];
+        const items = sanitizeExerciseHistoryItems(data.exercises);
         setExercises(prev => append ? [...prev, ...items] : items);
-        setVarietyScore(data.varietyScore);
-        setTotalUnique(data.totalUniqueExercises);
-        setTotalAvailable(data.totalAvailableExercises);
+        setVarietyScore(toNonNegativeFinite(data.varietyScore));
+        setTotalUnique(toNonNegativeFinite(data.totalUniqueExercises));
+        setTotalAvailable(toNonNegativeFinite(data.totalAvailableExercises));
         setHasMore(items.length >= PAGE_SIZE);
 
         if (items.length > 0) {
@@ -140,12 +134,11 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
   // Compute max value for bar scaling
   const maxValue = useMemo(() => {
     if (exercises.length === 0) return 1;
-    if (sort === 'totalVolume') return Math.max(...exercises.map(e => Number(e.totalVolume)));
-    return Math.max(...exercises.map(e => Number(e.timesPerformed)));
+    return Math.max(...exercises.map(e => getExerciseHistoryBarValue(e, sort)), 1);
   }, [exercises, sort]);
 
   const getBarValue = (ex: ExerciseHistoryItem) =>
-    sort === 'totalVolume' ? Number(ex.totalVolume) : Number(ex.timesPerformed);
+    getExerciseHistoryBarValue(ex, sort);
 
   const getBarLabel = (ex: ExerciseHistoryItem) =>
     sort === 'totalVolume'
@@ -175,7 +168,7 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
 
         {/* Sort toggle */}
         <SortRow>
-          {(Object.keys(SORT_LABELS) as SortOption[]).map(key => (
+          {(Object.keys(SORT_LABELS) as ExerciseHistorySortOption[]).map(key => (
             <SortChip
               key={key}
               type="button"
@@ -209,14 +202,16 @@ const ExerciseHistoryChart: React.FC<ExerciseHistoryChartProps> = ({ userId }) =
       ) : (
         <BarList aria-label="Exercise frequency ranking">
           {exercises.map((ex, idx) => {
-            const pct = maxValue > 0 ? (getBarValue(ex) / maxValue) * 100 : 0;
+            const pct = clampExerciseHistoryPercent(
+              maxValue > 0 ? (getBarValue(ex) / maxValue) * 100 : 0,
+            );
             return (
               <BarRow key={`${ex.exerciseId}-${idx}`}>
                 <ExName title={ex.exerciseName}>{ex.exerciseName}</ExName>
                 <BarTrack>
                   <BarFill $pct={pct} $index={idx} />
                 </BarTrack>
-                <BarLabel>{getBarLabel(ex)}</BarLabel>
+                <BarLabel>{getExerciseHistoryBarLabel(ex, sort)}</BarLabel>
               </BarRow>
             );
           })}
@@ -398,7 +393,10 @@ const BarTrack = styled.div`
 
 const BarFill = styled.div<{ $pct: number; $index: number }>`
   height: 100%;
-  width: ${({ $pct }) => Math.max($pct, 2)}%;
+  width: ${({ $pct }) => {
+    const safePct = Number.isFinite($pct) ? $pct : 0;
+    return Math.max(Math.min(safePct, 100), 2);
+  }}%;
   border-radius: 4px;
   background: linear-gradient(90deg, #8B5CF6, #60C0F0);
   transform-origin: left;

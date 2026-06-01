@@ -87,13 +87,33 @@ function safeTimestampText(value: unknown) {
   return Number.isNaN(Date.parse(timestamp)) ? null : timestamp;
 }
 
+export function splitCandidateKey(split: Record<string, unknown>) {
+  const date = safeDateText(split.date) || 'unknown-date';
+  const start = safeTimestampText(split.recordedAtStart) || 'unknown-start';
+  const end = safeTimestampText(split.recordedAtEnd) || 'unknown-end';
+  const redactedCount = Number(split.redactedEvidenceRefCount || 0);
+  const count = Number.isFinite(redactedCount) && redactedCount > 0 ? redactedCount : 0;
+  return ['split-candidate', date, start, end, count].join('-');
+}
+
+export function splitCandidateItems(splits: Record<string, unknown>[]) {
+  const seen = new Map<string, number>();
+  return splits.map((split, index) => {
+    const baseKey = splitCandidateKey(split);
+    const occurrence = (seen.get(baseKey) || 0) + 1;
+    seen.set(baseKey, occurrence);
+    return { key: `${baseKey}-${occurrence}`, label: index + 1, split };
+  });
+}
+
 function splitItems(detail: Record<string, unknown> | null) {
   const splitPlan = asRecord(detail?.splitPlan);
   const splits = splitPlan?.splits;
   return Array.isArray(splits) ? splits.map(asRecord).filter(isRecord) : [];
 }
 
-function renderSplitCandidate(split: Record<string, unknown>, index: number) {
+function renderSplitCandidate(item: ReturnType<typeof splitCandidateItems>[number]) {
+  const { split } = item;
   const date = safeDateText(split.date);
   const start = safeTimestampText(split.recordedAtStart);
   const end = safeTimestampText(split.recordedAtEnd);
@@ -102,8 +122,8 @@ function renderSplitCandidate(split: Record<string, unknown>, index: number) {
   const redactedEvidence = redactedEvidenceText(split.redactedEvidenceRefCount);
 
   return (
-    <SplitCard key={`split-${index + 1}`}>
-      <SplitTitle>{`Workout candidate ${index + 1}`}</SplitTitle>
+    <SplitCard key={item.key}>
+      <SplitTitle>{`Workout candidate ${item.label}`}</SplitTitle>
       <SplitMeta>
         {date && <div>Date: {date}</div>}
         {start && <div>Starts: {start}</div>}
@@ -121,7 +141,7 @@ export function CoachActionProposalSplitPlanPanel({ detail }: { detail: Record<s
   if (!splits.length) return null;
   return (
     <Panel role="group" aria-label="Split plan workout candidates">
-      {splits.map(renderSplitCandidate)}
+      {splitCandidateItems(splits).map(renderSplitCandidate)}
     </Panel>
   );
 }

@@ -19,6 +19,9 @@ describe('admin dashboard local recovery contracts', () => {
     expect(lazyLoaderSource).toContain('isRetryableLazyImportError');
     expect(lazyLoaderSource).toContain('Failed to fetch dynamically imported module');
     expect(lazyLoaderSource).toContain('maxRetries = 1');
+    expect(lazyLoaderSource).not.toContain('window.location.reload()');
+    expect(lazyLoaderSource).toContain('handleRetryRouteImport');
+    expect(lazyLoaderSource).toContain('loadLazyRouteModule');
   });
 
   it('does not set admin bypass flags from normal login form credentials', () => {

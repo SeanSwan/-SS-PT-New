@@ -3,7 +3,7 @@
  * Error boundary component for route errors
  */
 import React from 'react';
-import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
+import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router-dom';
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
 
@@ -61,7 +61,7 @@ const ErrorCopy = styled.p`
   max-width: 600px;
 `;
 
-const RefreshButton = styled.button`
+const RecoveryButton = styled.button`
   min-height: 44px;
   background: linear-gradient(
     135deg,
@@ -115,6 +115,7 @@ const Alert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 // Error boundary component for handling routing errors
 const ErrorBoundary: React.FC = () => {
   const error = useRouteError();
+  const navigate = useNavigate();
 
   if (isRouteErrorResponse(error)) {
     // Handle specific HTTP error codes
@@ -139,13 +140,13 @@ const ErrorBoundary: React.FC = () => {
       <ErrorTitle>Application Error</ErrorTitle>
       <ErrorCopy>
         We&apos;re experiencing a temporary issue. The site is loading but encountered an error.
-        Please refresh the page or try again in a few moments.
+        Return home to continue without reloading your browser session.
       </ErrorCopy>
-      <RefreshButton
-        onClick={() => window.location.reload()}
+      <RecoveryButton
+        onClick={() => navigate('/', { replace: true })}
       >
-        Refresh Page
-      </RefreshButton>
+        Return Home
+      </RecoveryButton>
       <TechnicalDetails>
         <TechnicalSummary>Technical Details</TechnicalSummary>
         <TechnicalPre>

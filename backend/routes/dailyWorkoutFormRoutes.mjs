@@ -23,6 +23,7 @@ import {
   getDailyWorkoutForm,
   getUser,
   getWorkoutSession,
+  getSession,
   getClientTrainerAssignment,
   getTrainerPermissions,
   getBodyMeasurement
@@ -32,6 +33,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
+import { buildWorkoutSessionBillingDecision } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -47,6 +49,14 @@ const parseStrictPositiveInteger = (value) => {
 
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const parseOptionalPositiveInteger = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  return parseStrictPositiveInteger(value);
 };
 
 const sameId = (a, b) => String(a) === String(b);
@@ -84,7 +94,7 @@ router.get('/my/info', protect, async (req, res) => {
 
     const client = await User.findOne({
       where: { id: userId },
-      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'createdAt']
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions', 'clientSource', 'createdAt']
     });
 
     if (!client) {
@@ -115,6 +125,7 @@ router.get('/my/info', protect, async (req, res) => {
         email: client.email,
         phone: client.phone,
         availableSessions: client.availableSessions || 0,
+        clientSource: client.clientSource,
         memberSince: client.createdAt,
         recentWorkoutCount,
         hasWorkoutToday: !!todayWorkout,
@@ -161,6 +172,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
         'email',
         'phone',
         'availableSessions',
+        'clientSource',
         'createdAt'
       ]
     });
@@ -240,6 +252,7 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
       email: client.email,
       phone: client.phone,
       availableSessions: client.availableSessions || 0,
+      clientSource: client.clientSource,
       memberSince: client.createdAt,
       recentWorkoutCount,
       hasWorkoutToday: !!todayWorkout,
@@ -374,7 +387,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { clientId, date, exercises, sessionNotes, overallIntensity } = req.body;
+    const { clientId, date, exercises, sessionNotes, overallIntensity, scheduledSessionId } = req.body;
     // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
     // by `protect` (authMiddleware.mjs:359). Callers here need a number for
     // comparison against parsedClientId and for Sequelize trainerId
@@ -406,6 +419,20 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Valid client ID is required'
+      });
+    }
+
+    const parsedScheduledSessionId = parseOptionalPositiveInteger(scheduledSessionId);
+    if (
+      scheduledSessionId !== undefined &&
+      scheduledSessionId !== null &&
+      scheduledSessionId !== '' &&
+      !parsedScheduledSessionId
+    ) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Valid scheduled session ID is required'
       });
     }
 
@@ -449,7 +476,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       }
     }
 
-    // Validate client exists and has available sessions
+    // Validate client exists and apply client-source billing policy.
     const User = getUser();
     const client = await User.findByPk(parsedClientId, { transaction });
     if (!client) {
@@ -460,16 +487,73 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
-    if (client.availableSessions <= 0) {
+    let linkedScheduledSession = null;
+    if (parsedScheduledSessionId) {
+      const Session = getSession();
+      linkedScheduledSession = await Session.findByPk(parsedScheduledSessionId, { transaction });
+
+      if (!linkedScheduledSession) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: 'Scheduled session not found'
+        });
+      }
+
+      if (!sameId(linkedScheduledSession.userId, parsedClientId)) {
+        await transaction.rollback();
+        return res.status(403).json({
+          success: false,
+          message: 'Scheduled session does not belong to this client'
+        });
+      }
+
+      if (
+        userRole === 'trainer' &&
+        linkedScheduledSession.trainerId &&
+        !sameId(linkedScheduledSession.trainerId, trainerId)
+      ) {
+        await transaction.rollback();
+        return res.status(403).json({
+          success: false,
+          message: 'You are not assigned to this scheduled session'
+        });
+      }
+
+      if (linkedScheduledSession.status === 'cancelled' || linkedScheduledSession.status === 'blocked') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Scheduled session cannot be logged'
+        });
+      }
+
+      if (linkedScheduledSession.attendanceStatus === 'no_show') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'No-show scheduled sessions cannot be logged as workouts'
+        });
+      }
+    }
+
+    const billingDecision = buildWorkoutSessionBillingDecision(client, {
+      scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
+    });
+    if (!billingDecision.canLogWorkout) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Client has no available sessions remaining'
+        message: billingDecision.message
       });
     }
 
+    const workoutDateValue = linkedScheduledSession?.sessionDate
+      ? new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]
+      : date;
+
     // Validate date is not in the future
-    const workoutDate = new Date(date);
+    const workoutDate = new Date(workoutDateValue);
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Allow today
     
@@ -534,7 +618,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const existingForm = await DailyWorkoutForm.findOne({
       where: {
         clientId: parsedClientId,
-        date: date
+        date: workoutDateValue
       },
       transaction
     });
@@ -557,6 +641,14 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     // Calculate workout statistics
     const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 0), 0);
     const estimatedDuration = Math.min(totalSets * 3, 120); // 3 minutes per set, cap at 2 hours
+
+    const scheduledSessionWorkoutFields = linkedScheduledSession
+      ? {
+          sessionId: linkedScheduledSession.id,
+          sessionType: 'trainer-led',
+          trainerId: linkedScheduledSession.trainerId || attributedTrainerId
+        }
+      : {};
 
     // Create or update workout session
     //
@@ -600,13 +692,14 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         ? null
         : overallIntensity,
       notes: sessionNotes || '',
+      ...scheduledSessionWorkoutFields,
     };
 
     const WorkoutSession = getWorkoutSession();
     const [workoutSession, created] = await WorkoutSession.findOrCreate({
       where: {
         userId: parsedClientId,
-        date: date
+        date: workoutDateValue
       },
       defaults: {
         // 2026-04-18 Phase 16.2 round 8 fix — was `require('crypto').randomUUID()`
@@ -616,8 +709,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         // module system.
         id: randomUUID(),
         userId: parsedClientId,
-        title: `Personal Training Session - ${date}`,
-        date: date,
+        title: `Personal Training Session - ${workoutDateValue}`,
+        date: workoutDateValue,
         // Phase 16 (2026-04-16): honor null when the logger did not record
         // an intensity rating. The previous `|| 5` fallback seeded a
         // phantom 5/10 into the canonical chart on every untouched save.
@@ -681,15 +774,36 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       // client self-log it's the assigned trainer or admin fallback so
       // the model's `clientTrainerDifferent` validator passes.
       trainerId: attributedTrainerId,
-      date,
+      date: workoutDateValue,
       formData,
       sessionDeducted: false,
       mcpProcessed: false
     }, { transaction });
 
-    // Deduct session from client's available sessions
-    await client.decrement('availableSessions', { by: 1, transaction });
-    await dailyForm.update({ sessionDeducted: true }, { transaction });
+    if (billingDecision.shouldDeduct) {
+      await client.decrement('availableSessions', { by: 1, transaction });
+    }
+
+    if (billingDecision.sessionDeducted) {
+      await dailyForm.update({ sessionDeducted: true }, { transaction });
+    }
+
+    if (linkedScheduledSession) {
+      const scheduledSessionCompletionDate = new Date();
+      const scheduledSessionAttendanceRecorderId = userRole === 'client'
+        ? (linkedScheduledSession.markedPresentBy || null)
+        : trainerId;
+      await linkedScheduledSession.update({
+        status: 'completed',
+        attendanceStatus: 'present',
+        checkInTime: linkedScheduledSession.checkInTime || scheduledSessionCompletionDate,
+        markedPresentBy: scheduledSessionAttendanceRecorderId,
+        attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || scheduledSessionCompletionDate,
+        noShowReason: null,
+        sessionDeducted: billingDecision.sessionDeducted,
+        deductionDate: billingDecision.sessionDeducted ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate
+      }, { transaction });
+    }
 
     await transaction.commit();
 
@@ -709,7 +823,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
             sets: (ex.sets || []).length,
             type: ex.exerciseType || 'strength',
           })),
-          workoutDate: date,
+          workoutDate: workoutDateValue,
           awardedBy: trainerId || null,
         }, xpTransaction);
         await xpTransaction.commit();
@@ -723,7 +837,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       processMCPIntegration(dailyForm.id, {
         clientId,
         trainerId,
-        date,
+        date: workoutDateValue,
         formData,
         submittedAt: dailyForm.submittedAt
       });
@@ -733,9 +847,10 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       formId: dailyForm.id,
       clientId,
       trainerId,
-      date,
+      date: workoutDateValue,
       totalSets,
-      sessionDeducted: true
+      sessionDeducted: billingDecision.sessionDeducted,
+      clientSource: client.clientSource
     });
 
     res.status(201).json({
@@ -744,13 +859,13 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         id: dailyForm.id,
         clientId,
         trainerId,
-        date,
+        date: workoutDateValue,
         totalSets,
         estimatedDuration,
-        sessionDeducted: true,
+        sessionDeducted: billingDecision.sessionDeducted,
         submittedAt: dailyForm.submittedAt
       },
-      message: 'Workout logged successfully and session deducted'
+      message: billingDecision.message
     });
 
   } catch (error) {

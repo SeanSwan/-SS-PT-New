@@ -183,6 +183,7 @@ const CheckoutSuccess: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [successData, setSuccessData] = useState<SuccessData | null>(null);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
   
   // Extract parameters from URL
   const searchParams = new URLSearchParams(location.search);
@@ -248,7 +249,7 @@ const CheckoutSuccess: React.FC = () => {
     };
     
     initializeSuccessData();
-  }, [sessionId, paymentIntentId, amount, currency, sessions, packageType, isRecovery]);
+  }, [sessionId, paymentIntentId, amount, currency, sessions, packageType, isRecovery, retryNonce]);
   
   /**
    * Handle successful completion
@@ -283,9 +284,7 @@ const CheckoutSuccess: React.FC = () => {
   const handleRetry = () => {
     setError(null);
     setLoading(true);
-    
-    // Reload the page to retry
-    window.location.reload();
+    setRetryNonce(prevNonce => prevNonce + 1);
   };
   
   return (

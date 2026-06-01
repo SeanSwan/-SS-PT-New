@@ -31,7 +31,9 @@ import { useSessionCredits } from './hooks/useSessionCredits';
 import { useToast } from '../../hooks/use-toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSessionTemplates } from './hooks/useSessionTemplates';
+import { normalizeScheduleOptionalId, parseScheduleUserId } from './UniversalMasterSchedule.logic';
 import { buildScheduleTrainerScope } from './utils/trainerScope';
+import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 // Redux: Layout & Density state
 import { useDispatch, useSelector } from 'react-redux';
@@ -91,7 +93,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     user?.role === 'trainer' ? 'trainer' :
     'client'
   );
-  const userId = userIdProp || user?.id;
+  const userId = userIdProp ?? user?.id;
 
   // Production Data Hook
   const {
@@ -224,7 +226,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [bookingLoading, setBookingLoading] = useState(false);
   const [showAvailabilityEditor, setShowAvailabilityEditor] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
-  const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | string | null>(null);
+  const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSessionTypeManager, setShowSessionTypeManager] = useState(false);
   const [showClientRecurringDialog, setShowClientRecurringDialog] = useState(false);
@@ -308,9 +310,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   ].some(Boolean);
 
   // Permissions
-  const resolvedUserId = userId
-    ? (typeof userId === 'string' ? parseInt(userId, 10) || null : userId)
-    : null;
+  const resolvedUserId = parseScheduleUserId(userId);
   const canCreateSessions = mode === 'admin';
   const canCreateRecurring = mode === 'admin';
   const canBlockTime = mode === 'admin' || mode === 'trainer';
@@ -320,6 +320,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const canManageAvailability = mode === 'admin' || mode === 'trainer';
   const canManageSessionTypes = mode === 'admin';
   const sessionsRemaining = credits?.sessionsRemaining;
+  const clientSource = credits?.clientSource ?? user?.clientSource ?? null;
+  const canUseClientRecurringBooking = mode === 'client' && !isNonDeductingClientSource(clientSource);
   const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
 
   // Initialization
@@ -401,6 +403,19 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       return;
     }
 
+    const trainerIdForPayload = normalizeScheduleOptionalId(formData.trainerId);
+    const clientIdForPayload = normalizeScheduleOptionalId(formData.clientId);
+
+    if (trainerIdForPayload === null) {
+      warning('Select a valid trainer before creating this session.');
+      return;
+    }
+
+    if (!useManualClient && clientIdForPayload === null) {
+      warning('Select a valid client or switch to manual client entry.');
+      return;
+    }
+
     setIsCreatingSession(true);
     try {
       const endDate = new Date(startDate.getTime() + formData.duration * 60000);
@@ -408,8 +423,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       const result = await universalMasterScheduleService.createAvailableSessions([{
         start: startDate.toISOString(),
         duration: formData.duration,
-        trainerId: (formData.trainerId || null)?.toString(),
-        userId: formData.clientId?.toString(),
+        trainerId: trainerIdForPayload ? String(trainerIdForPayload) : undefined,
+        userId: clientIdForPayload ? String(clientIdForPayload) : undefined,
         clientName: useManualClient ? formData.manualClientName : undefined,
         location: formData.location,
         notes: formData.notes,
@@ -478,13 +493,15 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const handleSaveTemplate = (name: string) => {
     if (!name) return;
+    const templateSessionTypeId = normalizeScheduleOptionalId(formData.sessionTypeId);
+    const templateTrainerId = normalizeScheduleOptionalId(formData.trainerId);
     addTemplate({
       name,
       duration: formData.duration,
       location: formData.location,
       notes: formData.notes || undefined,
-      ...(formData.sessionTypeId && { sessionTypeId: Number(formData.sessionTypeId) }),
-      ...(formData.trainerId && { trainerId: Number(formData.trainerId) }),
+      ...(templateSessionTypeId ? { sessionTypeId: templateSessionTypeId } : {}),
+      ...(templateTrainerId ? { trainerId: templateTrainerId } : {}),
       ...(formData.bufferBefore !== undefined && { bufferBefore: Number(formData.bufferBefore) }),
       ...(formData.bufferAfter !== undefined && { bufferAfter: Number(formData.bufferAfter) }),
     });
@@ -636,14 +653,27 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const handleQuickBookConfirm = useCallback(async (clientId: string | number) => {
     if (!quickBookSlot) return;
+    const quickBookClientId = normalizeScheduleOptionalId(clientId);
+    const quickBookTrainerId = normalizeScheduleOptionalId(quickBookSlot.trainerId);
+
+    if (quickBookClientId === null || quickBookClientId === undefined) {
+      toastError('Select a valid client before booking this session.');
+      return;
+    }
+
+    if (quickBookTrainerId === null) {
+      toastError('Select a valid trainer before booking this session.');
+      return;
+    }
+
     setIsQuickBooking(true);
     try {
       const slotDate = quickBookSlot.date;
       await universalMasterScheduleService.createAvailableSessions([{
         start: slotDate.toISOString(),
         duration: quickBookSlot.duration,
-        trainerId: quickBookSlot.trainerId?.toString(),
-        userId: clientId.toString(),
+        trainerId: quickBookTrainerId ? String(quickBookTrainerId) : undefined,
+        userId: String(quickBookClientId),
         location: quickBookSlot.location,
         notifyClient: true,
       }]);
@@ -727,15 +757,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onRefresh={() => refreshData(true)}
         onOpenNotifications={() => setShowNotificationDialog(true)}
         onOpenAvailability={() => {
-          const tId = mode === 'trainer' ? resolvedUserId : (userId ?? null);
+          const tId = resolvedUserId;
           setAvailabilityTrainerId(tId);
-          setShowAvailabilityEditor(true);
+          if (tId) {
+            setShowAvailabilityEditor(true);
+          }
         }}
         onOpenBlocked={() => setShowBlockedDialog(true)}
         onOpenRecurring={() => setShowRecurringDialog(true)}
         onOpenPayment={() => setShowPaymentModal(true)}
         onOpenSessionTypes={() => setShowSessionTypeManager(true)}
-        onOpenClientRecurring={() => setShowClientRecurringDialog(true)}
+        onOpenClientRecurring={canUseClientRecurringBooking ? () => setShowClientRecurringDialog(true) : undefined}
         onOpenCreate={() => {
           setFormData({
             sessionDate: '',
@@ -781,6 +813,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         mode={mode}
         sessions={displaySessions}
         creditsDisplay={creditsDisplay}
+        sessionsRemaining={sessionsRemaining}
+        clientSource={clientSource}
         lowCredits={lowCredits}
         statusFilter={statusFilter}
         onStatusFilterChange={handleStatusFilterChange}
@@ -871,6 +905,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         bookingError={bookingError}
         creditsDisplay={creditsDisplay}
         sessionsRemaining={sessionsRemaining}
+        clientSource={clientSource}
         availableSessions={availableSessions}
         detailSession={detailSession}
         activeSeriesGroupId={activeSeriesGroupId}

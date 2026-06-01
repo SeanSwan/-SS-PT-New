@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PendingPaymentsWidget from './PendingPaymentsWidget';
@@ -17,6 +17,11 @@ const SOURCE = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/PendingPaymentsWidget.tsx'),
   'utf8',
 );
+const STYLE_PATH = resolve(
+  process.cwd(),
+  'src/components/DashBoard/Pages/admin-dashboard/components/PendingPaymentsWidget.styles.ts',
+);
+const readStyleSource = () => (existsSync(STYLE_PATH) ? readFileSync(STYLE_PATH, 'utf8') : '');
 
 describe('PendingPaymentsWidget truth and accessibility', () => {
   beforeEach(() => {
@@ -52,8 +57,9 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
   });
 
   it('keeps admin payment controls at 44px minimum touch targets', () => {
-    expect(SOURCE).toMatch(/const RefreshBtn[\s\S]*min-height:\s*44px/);
-    expect(SOURCE).toMatch(/const ConfirmBtn[\s\S]*min-height:\s*44px/);
+    const combinedSource = `${SOURCE}\n${readStyleSource()}`;
+    expect(combinedSource).toMatch(/const RefreshBtn[\s\S]*min-height:\s*44px/);
+    expect(combinedSource).toMatch(/const ConfirmBtn[\s\S]*min-height:\s*44px/);
   });
 
   it('shows unavailable state instead of disappearing when pending orders fail to load', async () => {
@@ -80,5 +86,20 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
     expect(SOURCE).not.toContain('// silent');
     expect(SOURCE).toContain('const [loadError, setLoadError]');
     expect(SOURCE).toContain('const [confirmError, setConfirmError]');
+  });
+
+  it('splits styled components and bridges offline payment states to theme tokens', () => {
+    expect(SOURCE).toContain("from './PendingPaymentsWidget.styles'");
+    expect(SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(existsSync(STYLE_PATH)).toBe(true);
+
+    const styleSource = readStyleSource();
+    expect(styleSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    expect(styleSource).toContain('color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)');
+    expect(styleSource).toContain('var(--accent-secondary, #8B5CF6)');
+    expect(styleSource).toContain('var(--success, #22C55E)');
+    expect(styleSource).not.toContain('background: rgba(0, 32, 96, 0.45);');
+    expect(styleSource).not.toContain("p.$method === 'zelle' ? '#8B5CF6'");
+    expect(styleSource).not.toContain('background: rgba(34, 197, 94, 0.1);');
   });
 });

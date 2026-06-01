@@ -189,6 +189,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const auth = useAuth();
   const location = useLocation();
+
+  const handleAccessRetry = React.useCallback(async () => {
+    const refreshedUser = await auth.refreshUser();
+    if (refreshedUser.success) {
+      return;
+    }
+
+    const refreshedToken = await auth.refreshToken();
+    if (refreshedToken) {
+      await auth.refreshUser();
+    }
+  }, [auth.refreshToken, auth.refreshUser]);
   
   // Show loading while authentication is being verified
   if (auth.loading) {
@@ -229,7 +241,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return (
           <AccessDeniedScreen 
             message={message}
-            onRetry={() => window.location.reload()}
+            onRetry={handleAccessRetry}
           />
         );
       }
@@ -240,7 +252,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       return (
         <AccessDeniedScreen 
           message={message}
-          onRetry={() => window.location.reload()}
+          onRetry={handleAccessRetry}
         />
       );
     }
@@ -252,7 +264,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return (
       <AccessDeniedScreen 
         message={message}
-        onRetry={() => window.location.reload()}
+        onRetry={handleAccessRetry}
       />
     );
   }

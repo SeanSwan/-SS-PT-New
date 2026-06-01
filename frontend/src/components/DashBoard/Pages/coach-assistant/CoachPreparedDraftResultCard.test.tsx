@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { ExecutionResultCard } from './CoachCommandCards';
@@ -32,6 +32,34 @@ describe('Coach prepared draft result card', () => {
       .toHaveAttribute('href', '/dashboard/admin/coach-assistant?intake=item-1&proposal=proposal-1');
     expect(screen.queryByText('proposalId')).toBeNull();
     expect(screen.queryByText('reviewRoute')).toBeNull();
+  });
+
+  it('renders command-created client onboarding proposals as prepared drafts', () => {
+    render(
+      <MemoryRouter>
+        <ExecutionResultCard
+          command="create_external_client"
+          client={null}
+          result={{
+            hasPreparedDraft: true,
+            proposalId: 'proposal-123',
+            proposalType: 'client_onboarding',
+            proposalStatus: 'PENDING',
+            proposalTitle: 'Review client onboarding draft',
+            reviewRoute: '/dashboard/admin/coach-assistant?proposal=proposal-123',
+            nextActionLabel: 'Review prepared draft',
+          }}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/Prepared draft waiting/i)).toBeInTheDocument();
+    expect(screen.getByText(/Review client onboarding draft/i)).toBeInTheDocument();
+    expect(within(screen.getByLabelText(/Prepared draft summary/i)).getByText('Client Onboarding')).toBeInTheDocument();
+    expect(screen.getByText(/Pending/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open prepared draft/i }))
+      .toHaveAttribute('href', '/dashboard/admin/coach-assistant?proposal=proposal-123');
+    expect(screen.queryByText(/Command Executed/i)).toBeNull();
   });
 
   it('renders a prepare-draft state when no proposal exists yet', () => {

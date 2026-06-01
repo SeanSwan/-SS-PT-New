@@ -6,6 +6,8 @@
  */
 import { describe, expect, it, beforeAll } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   useFileAttachment,
   isTranscriptClassMime,
@@ -16,6 +18,8 @@ import {
   hasOnlyAudioTranscriptFiles,
   TRANSCRIPT_CLASS_MIME_TYPES,
 } from './useFileAttachment';
+
+const HOOK_SOURCE = readFileSync(resolve(__dirname, './useFileAttachment.ts'), 'utf8');
 
 beforeAll(() => {
   if (typeof URL.createObjectURL !== 'function') {
@@ -97,6 +101,12 @@ describe('useFileAttachment transcript-class type acceptance', () => {
 });
 
 describe('useFileAttachment picker accepts transcript-class files', () => {
+  it('uses the shared Swan Coach id helper instead of Math.random for attachments', () => {
+    expect(HOOK_SOURCE).toContain("import { createCoachMessageId } from '../utils/coachMessageIds';");
+    expect(HOOK_SOURCE).toContain("createCoachMessageId('attachment')");
+    expect(HOOK_SOURCE).not.toContain('Math.random');
+  });
+
   it('accepts an audio/m4a file under 20MB', () => {
     const { result } = renderHook(() => useFileAttachment());
     act(() => {

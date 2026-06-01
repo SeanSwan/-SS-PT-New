@@ -59,26 +59,45 @@ export interface AISubmitWorkoutPayload {
   notes?: string;
 }
 
+export type AIWorkoutEventAck = {
+  acknowledgeAIWorkoutEvent?: (handled?: boolean) => void;
+};
+
+export type AISubmitWorkoutEventDetail = AISubmitWorkoutPayload & AIWorkoutEventAck;
+export type AIWorkoutEventDetail<T extends object> = T & AIWorkoutEventAck;
+
+function dispatchWithAcknowledgement<T extends object>(eventName: string, payload: T): boolean {
+  let handled = false;
+  const detail: AIWorkoutEventDetail<T> = {
+    ...payload,
+    acknowledgeAIWorkoutEvent: (didHandle = true) => {
+      handled = didHandle !== false;
+    },
+  };
+  window.dispatchEvent(new CustomEvent(eventName, { detail }));
+  return handled;
+}
+
 // ─── Dispatch Helpers ────────────────────────────────────────
 
-export function dispatchAILoadTemplate(payload: AILoadTemplatePayload): void {
-  window.dispatchEvent(new CustomEvent(AI_LOAD_TEMPLATE, { detail: payload }));
+export function dispatchAILoadTemplate(payload: AILoadTemplatePayload): boolean {
+  return dispatchWithAcknowledgement(AI_LOAD_TEMPLATE, payload);
 }
 
-export function dispatchAIAddExercise(payload: AIAddExercisePayload): void {
-  window.dispatchEvent(new CustomEvent(AI_ADD_EXERCISE, { detail: payload }));
+export function dispatchAIAddExercise(payload: AIAddExercisePayload): boolean {
+  return dispatchWithAcknowledgement(AI_ADD_EXERCISE, payload);
 }
 
-export function dispatchAIUpdateSet(payload: AIUpdateSetPayload): void {
-  window.dispatchEvent(new CustomEvent(AI_UPDATE_SET, { detail: payload }));
+export function dispatchAIUpdateSet(payload: AIUpdateSetPayload): boolean {
+  return dispatchWithAcknowledgement(AI_UPDATE_SET, payload);
 }
 
-export function dispatchAIToggleNASMItem(payload: AIToggleNASMItemPayload): void {
-  window.dispatchEvent(new CustomEvent(AI_TOGGLE_NASM_ITEM, { detail: payload }));
+export function dispatchAIToggleNASMItem(payload: AIToggleNASMItemPayload): boolean {
+  return dispatchWithAcknowledgement(AI_TOGGLE_NASM_ITEM, payload);
 }
 
-export function dispatchAISubmitWorkout(payload: AISubmitWorkoutPayload): void {
-  window.dispatchEvent(new CustomEvent(AI_SUBMIT_WORKOUT, { detail: payload }));
+export function dispatchAISubmitWorkout(payload: AISubmitWorkoutPayload): boolean {
+  return dispatchWithAcknowledgement(AI_SUBMIT_WORKOUT, payload);
 }
 
 // ─── Dispatcher map (for generic AI response handling) ───────
@@ -90,7 +109,7 @@ type AIEventPayload =
   | AIToggleNASMItemPayload
   | AISubmitWorkoutPayload;
 
-const dispatchers: Record<string, (payload: AIEventPayload) => void> = {
+const dispatchers: Record<string, (payload: AIEventPayload) => boolean> = {
   [AI_LOAD_TEMPLATE]: (p) => dispatchAILoadTemplate(p as AILoadTemplatePayload),
   [AI_ADD_EXERCISE]: (p) => dispatchAIAddExercise(p as AIAddExercisePayload),
   [AI_UPDATE_SET]: (p) => dispatchAIUpdateSet(p as AIUpdateSetPayload),
@@ -102,9 +121,8 @@ const dispatchers: Record<string, (payload: AIEventPayload) => void> = {
  * Dispatch an AI workout event by name. Used by the AI terminal
  * when it receives a frontend_dispatch command from the backend.
  */
-export function dispatchAIWorkoutEvent(eventName: string, payload: AIEventPayload): boolean {
+export function dispatchAIWorkoutEvent(eventName: string, payload: unknown): boolean {
   const dispatch = dispatchers[eventName];
   if (!dispatch) return false;
-  dispatch(payload);
-  return true;
+  return dispatch(payload as AIEventPayload);
 }

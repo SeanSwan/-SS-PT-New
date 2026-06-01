@@ -97,6 +97,33 @@ function labelFromMap(value: unknown, labels: Record<string, string>, fallback: 
   return labels[value] || fallback;
 }
 
+function keyText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+}
+
+export function retentionCandidateKey(item: CoachIntakeRetentionItem): string {
+  if (item.id) return item.id;
+  const time = item.recordedAt || item.uploadedAt || item.updatedAt || item.archivedAt;
+  return [
+    'retention-candidate',
+    keyText(item.sourceType, 'unknown-source'),
+    keyText(item.status, 'unknown-status'),
+    keyText(item.classification, 'unknown-classification'),
+    keyText(item.reason, 'unknown-reason'),
+    keyText(time, 'unknown-time'),
+  ].join('-');
+}
+
+export function retentionCandidateItems(items: CoachIntakeRetentionItem[]) {
+  const seen = new Map<string, number>();
+  return items.map((item) => {
+    const baseKey = retentionCandidateKey(item);
+    const occurrence = (seen.get(baseKey) || 0) + 1;
+    seen.set(baseKey, occurrence);
+    return { key: `${baseKey}-${occurrence}`, item };
+  });
+}
+
 function relevantItems(items: CoachIntakeRetentionItem[] = []): CoachIntakeRetentionItem[] {
   return items
     .filter((item) => item.classification === 'purge_ready' || item.classification === 'review_required')
@@ -110,13 +137,14 @@ export function CoachIntakeRetentionCandidates({ retention }: { retention?: Coac
   return (
     <CandidateWrap aria-label="Retention review candidates">
       <CandidateTitle><ShieldCheck size={13} aria-hidden="true" /> Retention review candidates</CandidateTitle>
-      {items.map((item, index) => {
+      {retentionCandidateItems(items).map((candidate) => {
+        const { item } = candidate;
         const classification = labelFromMap(item.classification, CLASSIFICATION_LABELS, 'Review required');
         const source = labelFromMap(item.sourceType, SOURCE_LABELS, 'Unknown source');
         const status = labelFromMap(item.status, STATUS_LABELS, 'Unknown status');
         const reason = labelFromMap(item.reason, REASON_LABELS, 'Review required');
         return (
-          <CandidateRow key={item.id || `retention-candidate-${index}`}>
+          <CandidateRow key={candidate.key}>
             <CandidateMeta>
               <Tag $tone={item.classification === 'purge_ready' ? 'gold' : undefined}>{classification}</Tag>
               <Tag>{source}</Tag>

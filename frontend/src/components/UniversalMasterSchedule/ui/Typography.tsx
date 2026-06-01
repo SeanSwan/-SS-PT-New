@@ -112,7 +112,9 @@ export const SmallText = styled.p.withConfig({
 `;
 
 // Caption text (smallest)
-export const Caption = styled.span<{ secondary?: boolean }>`
+export const Caption = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'secondary'
+})<{ secondary?: boolean }>`
   font-size: 0.75rem;
   font-weight: 400;
   color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};

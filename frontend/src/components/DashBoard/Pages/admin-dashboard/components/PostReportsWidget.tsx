@@ -31,7 +31,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
 interface PostReport {
@@ -45,6 +44,21 @@ interface PostReport {
   reporterName?: string;
   contentPreview?: string;
 }
+
+type ReportPriorityStyle = { color: string; background: string; border: string };
+const REPORT_ERROR = 'var(--error, #EF4444)';
+const REPORT_WARNING = 'var(--warning, #F59E0B)';
+const REPORT_PRIMARY = 'var(--accent-primary, #60C0F0)';
+const REPORT_TEXT_PRIMARY = 'var(--text-primary, #E0ECF4)';
+const REPORT_TEXT_MUTED = 'var(--text-muted, rgba(224, 236, 244, 0.55))';
+const reportWash = (color: string, amount: number) => `color-mix(in srgb, ${color} ${amount}%, transparent)`;
+const REPORT_PRIORITY_STYLES: Record<string, ReportPriorityStyle> = {
+  urgent: { color: REPORT_ERROR, background: reportWash(REPORT_ERROR, 18), border: reportWash(REPORT_ERROR, 30) },
+  high: { color: REPORT_WARNING, background: reportWash(REPORT_WARNING, 18), border: reportWash(REPORT_WARNING, 30) },
+  medium: { color: REPORT_PRIMARY, background: reportWash(REPORT_PRIMARY, 14), border: reportWash(REPORT_PRIMARY, 24) },
+  low: { color: REPORT_TEXT_MUTED, background: 'var(--surface-muted, rgba(255, 255, 255, 0.08))', border: 'var(--border-soft, rgba(255, 255, 255, 0.12))' },
+};
+const getPriorityStyle = (level: string) => REPORT_PRIORITY_STYLES[level] || REPORT_PRIORITY_STYLES.low;
 
 const normalizeReport = (report: any): PostReport => {
   const reporterName = report.reporterName
@@ -67,14 +81,13 @@ const normalizeReport = (report: any): PostReport => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 
 const Widget = styled.div`
-  background: rgba(0, 32, 96, 0.4);
+  background: color-mix(in srgb, var(--royal-depth, #003080) 38%, transparent);
   backdrop-filter: blur(12px);
   border-radius: 16px;
-  border: 1px solid rgba(201, 42, 84, 0.2);
+  border: 1px solid color-mix(in srgb, var(--error, #EF4444) 20%, transparent);
   padding: 20px;
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
@@ -97,13 +110,13 @@ const Title = styled.h3`
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #E0ECF4;
+  color: ${REPORT_TEXT_PRIMARY};
   font-family: 'Plus Jakarta Sans', sans-serif;
 `;
 
 const Badge = styled.span`
-  background: rgba(201, 42, 84, 0.2);
-  color: #ef4444;
+  background: ${reportWash(REPORT_ERROR, 18)};
+  color: ${REPORT_ERROR};
   font-size: 0.75rem;
   font-weight: 700;
   padding: 2px 8px;
@@ -116,27 +129,27 @@ const ViewAllBtn = styled.button`
   gap: 4px;
   border: none;
   background: transparent;
-  color: #60C0F0;
+  color: ${REPORT_PRIMARY};
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 8px;
   min-height: 44px;
-  &:hover { background: rgba(96, 192, 240, 0.08); }
-  &:focus-visible { outline: 2px solid #60C0F0; outline-offset: 2px; }
+  &:hover { background: ${reportWash(REPORT_PRIMARY, 8)}; }
+  &:focus-visible { outline: 2px solid ${REPORT_PRIMARY}; outline-offset: 2px; }
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 24px 16px;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${REPORT_TEXT_MUTED};
   font-size: 0.9rem;
 `;
 
 const ReportItem = styled.div`
   padding: 12px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.08));
   &:last-child { border-bottom: none; }
 `;
 
@@ -151,13 +164,13 @@ const ReportHeader = styled.div`
 const ReasonLabel = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
-  color: #E0ECF4;
+  color: ${REPORT_TEXT_PRIMARY};
   text-transform: capitalize;
 `;
 
 const ReporterInfo = styled.span`
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${REPORT_TEXT_MUTED};
 `;
 
 const PriorityBadge = styled.span<{ $level: string }>`
@@ -167,24 +180,15 @@ const PriorityBadge = styled.span<{ $level: string }>`
   border-radius: 6px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: ${props =>
-    props.$level === 'urgent' ? 'rgba(239, 68, 68, 0.2)' :
-    props.$level === 'high' ? 'rgba(245, 158, 11, 0.2)' :
-    props.$level === 'medium' ? 'rgba(96, 192, 240, 0.15)' :
-    'rgba(255, 255, 255, 0.08)'
-  };
-  color: ${props =>
-    props.$level === 'urgent' ? '#ef4444' :
-    props.$level === 'high' ? '#f59e0b' :
-    props.$level === 'medium' ? '#60C0F0' :
-    'rgba(255, 255, 255, 0.6)'
-  };
+  background: ${({ $level }) => getPriorityStyle($level).background};
+  border: 1px solid ${({ $level }) => getPriorityStyle($level).border};
+  color: ${({ $level }) => getPriorityStyle($level).color};
 `;
 
 const Snippet = styled.p`
   margin: 4px 0 8px;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${REPORT_TEXT_MUTED};
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -192,7 +196,6 @@ const Snippet = styled.p`
 `;
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: Component
 // ─────────────────────────────────────────────────────────────
 
 const PostReportsWidget: React.FC = () => {
@@ -242,7 +245,7 @@ const PostReportsWidget: React.FC = () => {
     <Widget>
       <Header>
         <TitleRow>
-          <Flag size={20} color="#ef4444" />
+          <Flag size={20} color={REPORT_ERROR} />
           <Title>Post Reports</Title>
           {totalPending > 0 && <Badge>{totalPending}</Badge>}
         </TitleRow>

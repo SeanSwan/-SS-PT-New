@@ -1,6 +1,7 @@
 import React from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { BarChart3, ClipboardList, Dumbbell, Mail, UserPlus, Users } from 'lucide-react';
+import { buildClientCoachOnboardingRoute } from '../../../workspaces/clients-team/clientDailyTrainingRoutes';
 import { AdminQuickAction } from './AdminOverview.types';
 
 export const buildAdminOverviewQuickActions = (
@@ -11,7 +12,7 @@ export const buildAdminOverviewQuickActions = (
     title: 'Onboard Client',
     description: 'Start Swan Coach intake',
     icon: <UserPlus size={20} />,
-    action: () => navigate('/dashboard/admin/coach-assistant?intent=onboard_client'),
+    action: () => navigate(buildClientCoachOnboardingRoute()),
   },
   {
     id: 'log-client-workout',

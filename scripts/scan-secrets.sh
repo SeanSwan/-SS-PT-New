@@ -104,6 +104,45 @@ is_skipped_path() {
   return 1
 }
 
+git_grep_cached_chunked() {
+  local regex="$1"
+  local output_file="$2"
+  shift 2
+
+  local -a batch=()
+  local file grep_rc
+  local found=1
+
+  : > "$output_file"
+
+  for file in "$@"; do
+    batch+=("$file")
+
+    if (( ${#batch[@]} >= 100 )); then
+      git grep --cached -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+      grep_rc=$?
+      if (( grep_rc == 0 )); then
+        found=0
+      elif (( grep_rc != 1 )); then
+        return "$grep_rc"
+      fi
+      batch=()
+    fi
+  done
+
+  if (( ${#batch[@]} > 0 )); then
+    git grep --cached -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+    grep_rc=$?
+    if (( grep_rc == 0 )); then
+      found=0
+    elif (( grep_rc != 1 )); then
+      return "$grep_rc"
+    fi
+  fi
+
+  return "$found"
+}
+
 is_allowlisted() {
   local file="$1"
   local pattern_name="$2"
@@ -246,9 +285,9 @@ scan_staged_fast() {
       # The full rotated-password regex is intentionally broad and can become
       # slow against large Markdown archives. First find cheap candidate lines,
       # then apply the expensive same-line password-context check in Bash.
-      git grep --cached -I -nE -- "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" -- "${staged_files[@]}" > "$tmp"
+      git_grep_cached_chunked "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" "$tmp" "${staged_files[@]}"
     else
-      git grep --cached -I -nE -- "$regex" -- "${staged_files[@]}" > "$tmp"
+      git_grep_cached_chunked "$regex" "$tmp" "${staged_files[@]}"
     fi
     rc=$?
     set -e

@@ -15,7 +15,8 @@
  */
 
 import React from 'react';
-import { Sparkles, Crown, Activity } from 'lucide-react';
+import { Crown, Activity } from 'lucide-react';
+import brandLogo from '../../../assets/Logo.png';
 import {
   ObservatoryLeftRail as LeftRailContainer,
   ObservatoryGlassPanel,
@@ -69,7 +70,7 @@ const ObservatoryLeftRail: React.FC<ObservatoryLeftRailProps> = ({
     <LeftRailContainer aria-label="Dashboard sidebar" $profileHeaderVisible={profileHeaderVisible}>
       <LeftRailBrand>
         <LeftRailBrandMark>
-          <Sparkles size={18} aria-hidden="true" />
+          <img src={brandLogo} alt="" aria-hidden="true" />
         </LeftRailBrandMark>
         <LeftRailBrandText>
           <LeftRailBrandTitle>SwanStudios</LeftRailBrandTitle>

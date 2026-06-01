@@ -114,6 +114,11 @@ export const CloseSidebarBtn = styled.button`
   transition: color 0.2s ease;
 
   &:hover { color: var(--text-primary, #E0ECF4); }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -124,7 +129,7 @@ export const SearchInput = styled.input`
   padding: 10px 14px;
   margin: 8px 14px;
   width: calc(100% - 28px);
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
   border-radius: 8px;
   background: var(--bg-base, #030712);
@@ -215,6 +220,30 @@ export const ConvItemContent = styled.div`
   min-width: 0;
 `;
 
+export const ThreadIcon = styled.span`
+  display: inline-flex;
+  flex: 0 0 auto;
+  opacity: 0.5;
+`;
+
+export const InlineTitleInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  background: var(--bg-base, #030712);
+  border: 1px solid var(--accent-primary, #60C0F0);
+  border-radius: 6px;
+  color: var(--text-primary, #E0ECF4);
+  padding: 6px 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  outline: none;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 export const ConvItemTitle = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 14px;
@@ -234,18 +263,19 @@ export const ConvItemMeta = styled.div`
 
 export const ConvItemActions = styled.div`
   display: flex;
-  gap: 2px;
+  gap: 4px;
   opacity: 0;
   transition: opacity 0.15s ease;
 
-  ${ConvItemRow}:hover & {
+  ${ConvItemRow}:hover &,
+  ${ConvItemRow}:focus-within & {
     opacity: 1;
   }
 `;
 
 export const ConvActionBtn = styled.button`
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: none;
   background: transparent;
@@ -259,6 +289,11 @@ export const ConvActionBtn = styled.button`
   &:hover {
     color: var(--text-primary, #E0ECF4);
     background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -276,4 +311,13 @@ export const EmptyState = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.3));
   font-family: 'Sora', sans-serif;
   font-size: 13px;
+`;
+
+export const EmptyStateIcon = styled.span`
+  display: inline-flex;
+  opacity: 0.3;
+`;
+
+export const EmptyStateHint = styled.div`
+  font-size: 12px;
 `;

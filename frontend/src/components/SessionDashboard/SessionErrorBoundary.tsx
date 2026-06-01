@@ -274,10 +274,6 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
     }));
   };
 
-  handleReload = () => {
-    window.location.reload();
-  };
-
   handleGoHome = () => {
     window.location.href = '/';
   };
@@ -316,12 +312,12 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
 
         <ErrorMessage>
           {variant === 'compact' ? (
-            'Something went wrong with your session. You can try refreshing or continue using other features.'
+            'Something went wrong with your session. You can retry this panel or continue using other features.'
           ) : (
             <>
               We encountered an issue with the session management system. 
               {isTransientError && ' This appears to be a temporary connectivity issue.'}
-              {canRetry && ' You can try again, or refresh the page if the problem persists.'}
+              {canRetry && ' You can try again while the rest of the dashboard stays available.'}
             </>
           )}
         </ErrorMessage>
@@ -352,14 +348,6 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
             </ActionButton>
           )}
           
-          <ActionButton
-            $variant="secondary"
-            onClick={this.handleReload}
-            whileTap={{ scale: 0.95 }}
-          >
-            🔃 Refresh Page
-          </ActionButton>
-
           {variant === 'full' && (
             <ActionButton
               $variant="secondary"
@@ -392,7 +380,11 @@ class SessionErrorBoundary extends Component<SessionErrorBoundaryProps, SessionE
 export default SessionErrorBoundary;
 
 // Convenience wrapper for common use cases
-export const SessionErrorFallback: React.FC<{ error?: Error; context?: string }> = ({ error, context }) => (
+export const SessionErrorFallback: React.FC<{ error?: Error; context?: string; onRetry?: () => void }> = ({
+  error,
+  context,
+  onRetry
+}) => (
   <ErrorContainer $variant="compact">
     <ErrorHeader>
       <span className="icon">😅</span>
@@ -401,15 +393,17 @@ export const SessionErrorFallback: React.FC<{ error?: Error; context?: string }>
     <ErrorMessage>
       Session feature temporarily unavailable. Your data is safe!
     </ErrorMessage>
-    <ActionButtons>
-      <ActionButton
-        $variant="primary"
-        onClick={() => window.location.reload()}
-        as={motion.button}
-        whileTap={{ scale: 0.95 }}
-      >
-        🔄 Refresh
-      </ActionButton>
-    </ActionButtons>
+    {onRetry && (
+      <ActionButtons>
+        <ActionButton
+          $variant="primary"
+          onClick={onRetry}
+          as={motion.button}
+          whileTap={{ scale: 0.95 }}
+        >
+          Try Again
+        </ActionButton>
+      </ActionButtons>
+    )}
   </ErrorContainer>
 );

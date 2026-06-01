@@ -61,6 +61,7 @@ import {
   toNumber,
   countAnsweredQuestions,
   calculateCompletionPercentage,
+  normalizeOnboardingQueueStatus,
   extractPrimaryGoal,
   extractTrainingTier,
   extractCommitmentLevel,
@@ -604,11 +605,7 @@ export const getAdminOnboardingList = async (req, res) => {
       const activePackage = user.packages?.find((pkg) => pkg.status === 'active') || user.packages?.[0] || null;
 
       // Apply status filter
-      const questionnaireStatus = latestQuestionnaire?.status === 'submitted' || latestQuestionnaire?.status === 'reviewed'
-        ? 'complete'
-        : latestQuestionnaire
-        ? 'draft'
-        : 'not_started';
+      const questionnaireStatus = normalizeOnboardingQueueStatus(latestQuestionnaire?.status);
 
       if (statusFilter && statusFilter !== 'all' && questionnaireStatus !== statusFilter) {
         return null;
@@ -708,6 +705,7 @@ export const createBaselineMeasurements = async (req, res) => {
       pullUpsReps: measurementData.pullUpsReps || null,
       plankDuration: measurementData.plankDuration || null,
       flexibilityNotes: measurementData.flexibilityNotes || null,
+      rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion),
       injuryNotes: measurementData.injuryNotes || null,
       painLevel: measurementData.painLevel || 0,
     });

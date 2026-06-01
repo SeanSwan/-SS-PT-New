@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 
+import BootcampExercise from '../../models/BootcampExercise.mjs';
 import { __testing__ } from '../../services/bootcamp/bootcampGenerator.mjs';
-import { applyClassStyle } from '../../services/bootcamp/classStyleModifiers.mjs';
+import { applyClassStyle, generateBoard2 } from '../../services/bootcamp/classStyleModifiers.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const bootcampCrudSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampCrud.mjs'), 'utf8');
 
 describe('bootcamp generation semantics', () => {
   it('orders calisthenics and flexibility requests around the selected intensity instead of treating it as metadata only', () => {
@@ -33,5 +40,48 @@ describe('bootcamp generation semantics', () => {
       expect(mainExercises.every(ex => typeof ex.description === 'string' && ex.description.length > 0)).toBe(true);
       expect(exercises.find(ex => ex.board === 'alternative').description).toBeUndefined();
     }
+  });
+
+  it('builds separate joint-friendly and low-impact alternative boards from the main intensity board', () => {
+    const alternatives = generateBoard2([
+      {
+        exerciseName: 'Box Jump',
+        board: 'main',
+        stationIndex: 0,
+        sortOrder: 1,
+        durationSec: 35,
+        restSec: 15,
+        isCardioFinisher: false,
+        easyVariation: 'Step-Up',
+        kneeMod: 'Low Box Step-Up',
+        shoulderMod: null,
+        backMod: null,
+        ankleMod: 'Supported Step-Up',
+      },
+    ]);
+
+    expect(alternatives).toHaveLength(2);
+    expect(alternatives.map(ex => ex.board)).toEqual(['alternative', 'lowImpact']);
+    expect(alternatives.map(ex => ex.exerciseName)).toEqual(['Low Box Step-Up', 'Step-Up']);
+    expect(alternatives.every(ex => ex.boardNumber > 1)).toBe(true);
+    expect(alternatives.every(ex => ex.sourceExerciseName === 'Box Jump')).toBe(true);
+  });
+
+  it('allows generated low-impact board entries to be saved as bootcamp exercises', () => {
+    expect(BootcampExercise.rawAttributes.board.values).toContain('lowImpact');
+  });
+
+  it('persists the source exercise name for generated alternative boards', () => {
+    expect(BootcampExercise.rawAttributes.sourceExerciseName).toBeDefined();
+    expect(bootcampCrudSource).toContain('sourceExerciseName: ex.sourceExerciseName ?? null');
+  });
+
+  it('persists every joint-modification field rendered by Board 2', () => {
+    expect(BootcampExercise.rawAttributes.elbowMod).toBeDefined();
+    expect(BootcampExercise.rawAttributes.footMod).toBeDefined();
+    expect(BootcampExercise.rawAttributes.hipMod).toBeDefined();
+    expect(bootcampCrudSource).toContain('elbowMod: ex.elbowMod');
+    expect(bootcampCrudSource).toContain('footMod: ex.footMod');
+    expect(bootcampCrudSource).toContain('hipMod: ex.hipMod');
   });
 });

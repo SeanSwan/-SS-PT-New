@@ -77,6 +77,7 @@ import ClientAnalyticsPanel from './components/ClientAnalyticsPanel';
 import ClientAssessmentModal from './components/ClientAssessmentModal';
 import BulkActionDialog from './components/BulkActionDialog';
 import AITerminalPanel from '../../../Shared/AITerminalPanel';
+import ConfirmActionDialog from '../../../Shared/ConfirmActionDialog';
 import ClientProgressDashboard from './components/ClientProgressDashboard';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import GamificationOverview from './components/GamificationOverview';
@@ -86,6 +87,8 @@ import ClientSessionsModal from './components/ClientSessionsModal';
 import ClientBodyMapModal from './components/ClientBodyMapModal';
 import BookSessionDialog from './components/BookSessionDialog';
 import WorkoutLoggerModal from './components/WorkoutLoggerModal';
+import { filterEnhancedAdminClients } from './EnhancedAdminClientManagementView.logic';
+import { getClientSessionSignal } from '../../workspaces/clients-team/clientSessionSignal';
 
 // lucide-react icons
 import {
@@ -1337,6 +1340,8 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuClient, setMenuClient] = useState<EnhancedAdminClient | null>(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [passwordResetClient, setPasswordResetClient] = useState<EnhancedAdminClient | null>(null);
+  const [passwordResetBusy, setPasswordResetBusy] = useState(false);
 
   // Speed dial state
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
@@ -1437,23 +1442,21 @@ const EnhancedAdminClientManagementView: React.FC = () => {
     setSearchTerm(event.target.value);
   }, []);
 
-  // Filter clients based on search term and source
+  const resetClientFilters = useCallback(() => {
+    setSearchTerm('');
+    setSourceFilter('all');
+    setFilters({});
+  }, []);
+
+  // Filter clients based on search term, source, level, and engagement.
   const filteredClients = useMemo(() => {
-    let result = clients;
-    // Source filter
-    if (sourceFilter !== 'all') {
-      result = result.filter(client => (client.clientSource || 'swanstudios') === sourceFilter);
-    }
-    // Text search
-    if (searchTerm) {
-      result = result.filter(client =>
-        `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.username.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    return result;
-  }, [clients, searchTerm, sourceFilter]);
+    return filterEnhancedAdminClients(clients, {
+      searchTerm,
+      sourceFilter,
+      level: filters.level,
+      engagement: filters.engagement,
+    });
+  }, [clients, searchTerm, sourceFilter, filters.level, filters.engagement]);
 
   // Handle client selection
   const handleClientSelect = (clientId: string) => {
@@ -1507,24 +1510,31 @@ const EnhancedAdminClientManagementView: React.FC = () => {
   };
 
   const handleResetPassword = async (client: EnhancedAdminClient) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to reset the password for ${client.firstName} ${client.lastName}?\n\nA temporary password will be generated and the client will be notified.`
-    );
-    if (!confirmed) return;
+    setPasswordResetClient(client);
     handleMenuClose();
+  };
+
+  const confirmResetPassword = async () => {
+    if (!passwordResetClient) return;
+    const client = passwordResetClient;
+    const clientName = `${client.firstName} ${client.lastName}`.trim() || 'this client';
+    setPasswordResetBusy(true);
     try {
-      await adminClientService.resetClientPassword(client.id);
+      await adminClientService.sendClientPasswordReset(client.id);
       toast({
-        title: "Password Reset",
-        description: `Password reset for ${client.firstName} ${client.lastName}. They will receive an email with their temporary password.`,
+        title: "Reset Link Sent",
+        description: `Password reset email sent to ${clientName}.`,
         variant: "default"
       });
     } catch (error: unknown) {
       toast({
         title: "Error",
-        description: getErrorMessage(error, "Failed to reset password"),
+        description: getErrorMessage(error, "Failed to send password reset email"),
         variant: "destructive"
       });
+    } finally {
+      setPasswordResetBusy(false);
+      setPasswordResetClient(null);
     }
   };
 
@@ -1580,7 +1590,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             </tr>
           </THead>
           <TBody>
-            {paginatedClients.map((client) => (
+            {paginatedClients.map((client) => {
+              const sessionSignal = getClientSessionSignal(client);
+
+              return (
               <Tr key={client.id}>
                 <Td $checkbox>
                   <CheckboxLabel htmlFor={`admin-client-select-${client.id}`}>
@@ -1661,8 +1674,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         <CaptionText>Streak</CaptionText>
                       </MetricCell>
                       <MetricCell>
-                        <MetricValue $color={theme.error}>{client.availableSessions}</MetricValue>
-                        <CaptionText>Sessions</CaptionText>
+                        <MetricValue $color={sessionSignal.tone === 'warning' ? theme.warning : sessionSignal.tone === 'gold' ? theme.gold : theme.cyan}>
+                          {sessionSignal.label}
+                        </MetricValue>
+                        <CaptionText>{sessionSignal.note}</CaptionText>
                       </MetricCell>
                     </FlexRow>
                   </MetricsColumn>
@@ -1772,7 +1787,8 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                   </FlexRow>
                 </Td>
               </Tr>
-            ))}
+              );
+            })}
           </TBody>
         </StyledTable>
       </TableWrapper>
@@ -1956,10 +1972,10 @@ const EnhancedAdminClientManagementView: React.FC = () => {
             <ActionButton
               $variant="outlined"
               $size="small"
-              onClick={() => {/* TODO: Advanced filters modal */}}
+              onClick={resetClientFilters}
             >
               <Filter size={16} />
-              Advanced Filters
+              Reset Filters
             </ActionButton>
 
             <SwitchWrapper htmlFor="admin-client-grid-view">
@@ -2022,10 +2038,11 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           <ActionButton
             $variant="outlined"
             onClick={() => {
-              const csvHeaders = 'Name,Email,Phone,Sessions,Created\n';
-              const csvRows = filteredClients.map(c =>
-                `"${c.firstName || ''} ${c.lastName || ''}","${c.email || ''}","${c.phone || ''}",${c.availableSessions || 0},"${c.createdAt || ''}"`
-              ).join('\n');
+              const csvHeaders = 'Name,Email,Phone,Session Policy,Billing Note,Created\n';
+              const csvRows = filteredClients.map(c => {
+                const csvSessionSignal = getClientSessionSignal(c);
+                return `"${c.firstName || ''} ${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${csvSessionSignal.label}","${csvSessionSignal.note}","${c.createdAt || ''}"`;
+              }).join('\n');
               const blob = new Blob([csvHeaders + csvRows], { type: 'text/csv' });
               const url = URL.createObjectURL(blob);
               const a = document.createElement('a');
@@ -2045,7 +2062,11 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               if (selectedClient) {
                 navigate(`/dashboard/admin/coach-assistant?clientId=${selectedClient.id}`);
               } else {
-                alert('Please select a client first to view Swan Coach insights.');
+                toast({
+                  title: 'Select a client first',
+                  description: 'Choose a client card before opening Swan Coach insights.',
+                  variant: 'default',
+                });
               }
             }}
           >
@@ -2380,6 +2401,17 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           }}
         />
       )}
+      <ConfirmActionDialog
+        open={passwordResetClient !== null}
+        title={`Send reset link to ${passwordResetClient ? `${passwordResetClient.firstName} ${passwordResetClient.lastName}`.trim() || 'this client' : 'this client'}?`}
+        message="This emails a password reset link to the client without changing their account, workouts, or session credits."
+        confirmLabel="Send reset link"
+        cancelLabel="Do not send"
+        tone="warning"
+        busy={passwordResetBusy}
+        onCancel={() => setPasswordResetClient(null)}
+        onConfirm={confirmResetPassword}
+      />
     </PageRoot>
   );
 };

@@ -34,6 +34,17 @@ describe('admin client route security contract', () => {
     expect(activationQueueIndex).toBeLessThan(clientDetailsIndex);
   });
 
+  it('keeps client export before the dynamic client id route and aligned with the frontend service', () => {
+    const exportIndex = adminClientRouteSource.indexOf("router.get('/clients/export'");
+    const clientDetailsIndex = adminClientRouteSource.indexOf("router.get('/clients/:clientId'");
+
+    expect(frontendAdminClientServiceSource).toContain("this.api.get('/admin/clients/export'");
+    expect(exportIndex).toBeGreaterThan(-1);
+    expect(clientDetailsIndex).toBeGreaterThan(-1);
+    expect(exportIndex).toBeLessThan(clientDetailsIndex);
+    expect(adminClientControllerSource).toContain('async exportClients');
+  });
+
   it('does not expose raw operational errors from active admin client responses', () => {
     for (const source of [adminClientRouteSource, adminClientControllerSource]) {
       expect(source).toContain("const INTERNAL_ERROR = 'internal_error'");
@@ -55,5 +66,22 @@ describe('admin client route security contract', () => {
     expect(notifyHandler).not.toContain('parseInt(clientId)');
     expect(notifyHandler).not.toContain('error: error.message');
     expect(notifyHandler).toContain("sendInternalError(res, 'Error sending notification')");
+  });
+
+  it('keeps account lock updates on the canonical User.isLocked field with boolean-only input', () => {
+    expect(adminClientControllerSource).toContain("'isLocked'");
+    expect(adminClientControllerSource).toContain("typeof updates.isLocked !== 'boolean'");
+    expect(adminClientControllerSource).toContain("safeUpdates[field] = updates[field]");
+    expect(adminClientControllerSource).not.toContain("'locked'");
+  });
+
+  it('sends admin client password resets through the reset-email service without raw passwords', () => {
+    expect(adminClientRouteSource).toContain("router.post('/clients/:clientId/send-password-reset'");
+    expect(adminClientControllerSource).toContain('sendPasswordResetEmailForUser(client)');
+    expect(adminClientControllerSource).toContain("credentialAction: 'reset_email_sent'");
+    expect(adminClientControllerSource).not.toContain('await client.update({ password: newPassword })');
+    expect(adminClientControllerSource).not.toContain('const { newPassword } = req.body');
+    expect(frontendAdminClientServiceSource).toContain("this.api.post(`/admin/clients/${clientId}/send-password-reset`");
+    expect(frontendAdminClientServiceSource).not.toContain('newPassword,');
   });
 });

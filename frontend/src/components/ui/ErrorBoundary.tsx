@@ -71,14 +71,6 @@ export class ErrorBoundary extends Component<Props, State> {
     }));
   };
 
-  handleReload = () => {
-    logger.log('🔄 ErrorBoundary triggering page reload');
-    sessionStorage.clear();
-    localStorage.removeItem('ums_mount_count');
-    localStorage.removeItem('ums_init_failures');
-    window.location.reload();
-  };
-
   render() {
     if (this.state.hasError) {
       return (
@@ -103,9 +95,6 @@ export class ErrorBoundary extends Component<Props, State> {
               <RetryButton onClick={this.handleRetry}>
                 Try Again
               </RetryButton>
-              <ReloadButton onClick={this.handleReload}>
-                Reload Page
-              </ReloadButton>
             </ErrorActions>
             
             <BuildInfo>
@@ -201,22 +190,6 @@ const RetryButton = styled.button`
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  }
-`;
-
-const ReloadButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
   }
 `;
 

@@ -2,7 +2,7 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: CreateClientModal                                ║
  * ║  PURPOSE: Admin form for adding new clients (SwanStudios      ║
- * ║           or Move Fitness) to the system                      ║
+ * ║           Move Fitness, or External) to the system            ║
  * ║  OWNER: Claude Opus 4.6                                      ║
  * ║  LAST VALIDATED: 2026-03-22 (AI Village Phase 2+3+4)        ║
  * ╚══════════════════════════════════════════════════════════════╝
@@ -11,7 +11,7 @@
  * ┌────────────────────────────────────────────────────────────┐
  * │ [X] Create New Client                                      │
  * │                                                            │
- * │ Source: [SwanStudios] [Move Fitness]                        │
+ * │ Source: [SwanStudios] [Move Fitness] [External]             │
  * │                                                            │
  * │ ┌──────────────┐  ┌──────────────┐                        │
  * │ │ First Name*  │  │ Last Name*   │                        │
@@ -51,7 +51,7 @@
  * Responsive: CSS Grid 2-col → 1-col at 640px
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { X, Save, XCircle } from 'lucide-react';
 import { CreateClientRequest, ClientSource, CLIENT_SOURCE_LABELS, CLIENT_SOURCE_COLORS } from '../../../../services/adminClientService';
@@ -438,6 +438,47 @@ const AlertBox = styled.div<{ $severity?: 'error' | 'warning' | 'info' | 'succes
   }};
 `;
 
+const DiscardOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(6px);
+`;
+
+const DiscardDialog = styled.div`
+  width: min(420px, 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(198, 168, 75, 0.35);
+  background: var(--bg-elevated, #1A1A24);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  padding: 20px;
+`;
+
+const DiscardTitle = styled.h3`
+  margin: 0 0 8px;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 1rem;
+`;
+
+const DiscardCopy = styled.p`
+  margin: 0;
+  color: var(--text-secondary, #94a3b8);
+  line-height: 1.5;
+  font-size: 0.875rem;
+`;
+
+const DiscardActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+`;
+
 /* ─────────────────────── Spinner ─────────────────────── */
 
 const SpinnerIcon = styled.span`
@@ -465,6 +506,28 @@ const parseOptionalPositiveNumber = (value: number | string | undefined): number
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
 
+const DEFAULT_FORM_DATA: CreateClientRequest = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  username: '',
+  password: '',
+  phone: '',
+  dateOfBirth: '',
+  gender: '',
+  weight: undefined,
+  height: undefined,
+  fitnessGoal: '',
+  trainingExperience: '',
+  healthConcerns: '',
+  emergencyContact: '',
+  availableSessions: 1,
+  trainerId: '',
+  clientSource: 'swanstudios'
+};
+
+const createDefaultFormData = (): CreateClientRequest => ({ ...DEFAULT_FORM_DATA });
+
 const heightPartsToInches = (feetValue: string, inchesValue: string): number | undefined => {
   const feet = parseOptionalPositiveNumber(feetValue) || 0;
   const inches = parseOptionalPositiveNumber(inchesValue) || 0;
@@ -483,29 +546,34 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
 
-  const [formData, setFormData] = useState<CreateClientRequest>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    username: '',
-    password: '',
-    phone: '',
-    dateOfBirth: '',
-    gender: '',
-    weight: undefined,
-    height: undefined,
-    fitnessGoal: '',
-    trainingExperience: '',
-    healthConcerns: '',
-    emergencyContact: '',
-    availableSessions: 1,
-    trainerId: '',
-    clientSource: 'swanstudios'
-  });
+  const [formData, setFormData] = useState<CreateClientRequest>(createDefaultFormData);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [discardOpen, setDiscardOpen] = useState(false);
+
+  const hasDraftChanges = useMemo(() => (
+    clientSource !== 'swanstudios' ||
+    !!heightFeet.trim() ||
+    !!heightInches.trim() ||
+    (Object.keys(DEFAULT_FORM_DATA) as Array<keyof CreateClientRequest>).some(
+      key => formData[key] !== DEFAULT_FORM_DATA[key]
+    )
+  ), [clientSource, formData, heightFeet, heightInches]);
+
+  const resetDraft = useCallback(() => {
+    setClientSource('swanstudios');
+    setHeightFeet('');
+    setHeightInches('');
+    setFormData(createDefaultFormData());
+  }, []);
+
+  const closeWithoutPrompt = useCallback(() => {
+    setError(null);
+    setFieldErrors({});
+    onClose();
+  }, [onClose]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -568,28 +636,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
       // Close modal + reset form on success
       onClose();
-      setClientSource('swanstudios');
-      setHeightFeet('');
-      setHeightInches('');
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        username: '',
-        password: '',
-        phone: '',
-        dateOfBirth: '',
-        gender: '',
-        weight: undefined,
-        height: undefined,
-        fitnessGoal: '',
-        trainingExperience: '',
-        healthConcerns: '',
-        emergencyContact: '',
-        availableSessions: 1,
-        trainerId: '',
-        clientSource: 'swanstudios'
-      });
+      resetDraft();
     } catch (err: any) {
       setError(err.message || 'Failed to create client');
     } finally {
@@ -605,13 +652,20 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     }
   };
 
-  const handleClose = () => {
-    if (!loading) {
-      setError(null);
-      setFieldErrors({});
-      onClose();
+  const handleClose = useCallback(() => {
+    if (loading) return;
+    if (hasDraftChanges) {
+      setDiscardOpen(true);
+      return;
     }
-  };
+    closeWithoutPrompt();
+  }, [closeWithoutPrompt, hasDraftChanges, loading]);
+
+  const confirmDiscard = useCallback(() => {
+    setDiscardOpen(false);
+    resetDraft();
+    closeWithoutPrompt();
+  }, [closeWithoutPrompt, resetDraft]);
 
   // Focus trap + Escape key handler
   const modalRef = useRef<HTMLDivElement>(null);
@@ -637,7 +691,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
     const firstInput = modalRef.current?.querySelector('input') as HTMLElement;
     firstInput?.focus();
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open]);
+  }, [handleClose, open]);
 
   if (!open) return null;
 
@@ -665,7 +719,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 <SectionTitle>Client Type</SectionTitle>
                 <SectionDivider />
                 <SourceSelectorRow>
-                  {(Object.entries(CLIENT_SOURCE_LABELS) as [ClientSource, string][]).filter(([key]) => key !== 'external').map(([key, label]) => (
+                  {(Object.entries(CLIENT_SOURCE_LABELS) as [ClientSource, string][]).map(([key, label]) => (
                     <SourceChip
                       key={key}
                       type="button"
@@ -975,6 +1029,24 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
           </PrimaryButton>
         </ModalFooter>
       </ModalPanel>
+      {discardOpen && (
+        <DiscardOverlay>
+          <DiscardDialog role="dialog" aria-modal="true" aria-label="Discard client draft">
+            <DiscardTitle>Discard client draft?</DiscardTitle>
+            <DiscardCopy>
+              You have client onboarding details started. Keep editing to preserve the draft, or discard it and close this modal.
+            </DiscardCopy>
+            <DiscardActions>
+              <SecondaryButton type="button" onClick={() => setDiscardOpen(false)}>
+                Keep editing
+              </SecondaryButton>
+              <PrimaryButton type="button" onClick={confirmDiscard}>
+                Discard client draft
+              </PrimaryButton>
+            </DiscardActions>
+          </DiscardDialog>
+        </DiscardOverlay>
+      )}
     </ModalOverlay>
   );
 };

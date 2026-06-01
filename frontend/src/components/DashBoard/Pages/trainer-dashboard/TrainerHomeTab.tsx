@@ -31,7 +31,12 @@ import { useNavigate } from 'react-router-dom';
 import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, BarChart3, Brain, Eye } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
-import { useTrainerTodaySessions, getClientName } from '../../../../hooks/useTrainerTodaySessions';
+import {
+  buildTrainerSessionLogRoute,
+  getClientName,
+  getSessionStartDate,
+  useTrainerTodaySessions,
+} from '../../../../hooks/useTrainerTodaySessions';
 import SwanCoachDockTrainer from './SwanCoachDockTrainer';
 import {
   ActionCard,
@@ -49,6 +54,8 @@ import {
   SessionsCard,
   SessionsHeading,
   SessionClient,
+  SessionActions,
+  SessionLogButton,
   SessionRow,
   SessionTime,
   StatusBadge,
@@ -131,19 +138,39 @@ const TrainerHomeTab: React.FC = () => {
             </BookBtn>
           </EmptyState>
         ) : (
-          sessions.slice(0, 5).map(s => (
-            <SessionRow key={s.id}>
-              <div>
-                <SessionClient>{getClientName(s)}</SessionClient>
-                <SessionTime>
-                  {s.startTime
-                    ? new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                    : 'TBD'}
-                </SessionTime>
-              </div>
-              <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
-            </SessionRow>
-          ))
+          sessions.slice(0, 5).map(s => {
+            const startDate = getSessionStartDate(s);
+            const logRoute = buildTrainerSessionLogRoute(s);
+            const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
+
+            return (
+              <SessionRow key={s.id}>
+                <div>
+                  <SessionClient>{getClientName(s)}</SessionClient>
+                  <SessionTime>
+                    {startDate
+                      ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : 'TBD'}
+                  </SessionTime>
+                </div>
+                <SessionActions>
+                  <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
+                  {canLog && (
+                    <SessionLogButton
+                      type="button"
+                      onClick={() => {
+                        if (logRoute) navigate(logRoute);
+                      }}
+                      aria-label={`Log workout for ${getClientName(s)}`}
+                    >
+                      <Dumbbell size={14} aria-hidden="true" />
+                      Log
+                    </SessionLogButton>
+                  )}
+                </SessionActions>
+              </SessionRow>
+            );
+          })
         )}
       </SessionsCard>
 

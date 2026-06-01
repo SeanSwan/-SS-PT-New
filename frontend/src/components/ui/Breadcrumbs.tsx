@@ -3,8 +3,8 @@ import { useLocation, Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 // Swan primitives + hooks
-import { Box, Chip, Typography } from './primitives';
-import { alpha, useSwanTheme, useMediaQuery } from '../../styles/mui-replacements';
+import { Box } from './primitives';
+import { alpha, useMediaQuery } from '../../styles/mui-replacements';
 
 // Icons (lucide-react)
 import {
@@ -22,8 +22,6 @@ import {
   HeartPulse,
 } from 'lucide-react';
 
-// Hooks
-import useConfig from './../../hooks/useConfig';
 import { useAuth } from '../../context/AuthContext';
 
 // Constants from your theme
@@ -98,13 +96,8 @@ const ActiveText = styled.span`
  */
 const Breadcrumbs = () => {
   const location = useLocation();
-  const theme = useSwanTheme();
   const isMobile = useMediaQuery((t) => t.breakpoints.down('sm'));
-  const config = useConfig();
   const { user } = useAuth();
-
-  // Get the fitness theme for category highlighting
-  const fitnessTheme = config.getFitnessTheme ? config.getFitnessTheme() : 'general';
 
   // Map of path segments to readable names and icons - fitness-specific
   const pathMap = useMemo(
@@ -129,10 +122,6 @@ const Breadcrumbs = () => {
     }),
     [user]
   );
-
-  // In a real app, you would get this from your session state
-  const hasActiveSession = false;
-  const activeClientName = 'John Doe';
 
   // Process the current path
   const breadcrumbItems = useMemo(() => {
@@ -162,6 +151,14 @@ const Breadcrumbs = () => {
     pathSegments.forEach((segment, index) => {
       currentPath += `/${segment}`;
 
+      if (
+        index > 0 &&
+        pathSegments[index - 1] === 'clients' &&
+        !Number.isNaN(Number(segment))
+      ) {
+        return;
+      }
+
       const isLast = index === pathSegments.length - 1;
       const pathInfo = (pathMap as Record<string, { title: string; icon: React.ReactNode | null }>)[
         segment
@@ -189,13 +186,13 @@ const Breadcrumbs = () => {
       if (
         segment === 'clients' &&
         pathSegments[index + 1] &&
-        !isNaN(Number(pathSegments[index + 1]))
+        !Number.isNaN(Number(pathSegments[index + 1]))
       ) {
-        const clientName = 'John Doe';
+        const clientId = pathSegments[index + 1];
         items.push(
-          <ActiveText key={`client-${pathSegments[index + 1]}`}>
+          <ActiveText key={`client-${clientId}`}>
             <User size={20} />
-            {clientName}
+            {`Client #${clientId}`}
           </ActiveText>
         );
       }
@@ -232,30 +229,6 @@ const Breadcrumbs = () => {
           ))}
         </StyledBreadcrumbsNav>
 
-        {hasActiveSession && !isMobile && (
-          <Chip
-            label={`Active Session: ${activeClientName}`}
-            variant="filled"
-            size="small"
-            color="#22c55e"
-            icon={<PersonStanding size={14} />}
-          />
-        )}
-
-        {user?.role === 'admin' && !isMobile && !hasActiveSession && (
-          <Box
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              fontSize: '0.75rem',
-              color: alpha('#FFFFFF', 0.6),
-            }}
-          >
-            <User size={16} />
-            <span>Active Clients: 28</span>
-          </Box>
-        )}
       </Box>
     </BreadcrumbsContainer>
   );

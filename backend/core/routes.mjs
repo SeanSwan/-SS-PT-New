@@ -343,8 +343,8 @@ export const setupRoutes = async (app) => {
   
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================
   // Consolidated from enhancedScheduleRoutes + scheduleRoutes using unified session service
-  app.use('/api/sessions', sessionsRoutes);
   app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application
+  app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/availability', availabilityRoutes);

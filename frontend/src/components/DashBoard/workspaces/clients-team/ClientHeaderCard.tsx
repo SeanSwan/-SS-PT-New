@@ -8,7 +8,10 @@
 
 import React, { memo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { Activity, Target, Calendar, TrendingUp } from 'lucide-react';
+import { Activity, Target } from 'lucide-react';
+import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
+import { getClientSourceLabel, getClientSourceTone } from './clientSourceDisplay';
+import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -31,12 +34,21 @@ interface ClientHeaderProps {
   onboardingPct?: number;
 }
 
+const getClientAge = (dateOfBirth?: string): number | null => {
+  if (!dateOfBirth) return null;
+  const birthTime = new Date(dateOfBirth).getTime();
+  if (Number.isNaN(birthTime)) return null;
+
+  const age = Math.floor((Date.now() - birthTime) / (365.25 * 86400000));
+  return age >= 0 && age <= 120 ? age : null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components
 // ─────────────────────────────────────────────────────────────
 const onboardingGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 8px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
+  0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent); }
+  50% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, transparent); }
 `;
 
 const CardWrap = styled.div`
@@ -62,15 +74,15 @@ const AvatarLarge = styled.div<{ $source?: string }>`
   border-radius: 14px;
   background: ${({ $source }) =>
     $source === 'move_fitness'
-      ? 'linear-gradient(135deg, #C6A84B 0%, #8B5CF6 100%)'
-      : 'linear-gradient(135deg, #002060 0%, #60C0F0 100%)'};
+      ? 'linear-gradient(135deg, var(--accent-gold, #C6A84B) 0%, var(--accent-secondary, #8B5CF6) 100%)'
+      : 'linear-gradient(135deg, var(--primary, #002060) 0%, var(--accent-primary, #60C0F0) 100%)'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Sora', sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: #fff;
+  color: var(--button-text, #FFFFFF);
   flex-shrink: 0;
 `;
 
@@ -91,18 +103,31 @@ const ClientName = styled.h2`
   flex-wrap: wrap;
 `;
 
-const Badge = styled.span<{ $variant: 'mf' | 'ss' | 'status' }>`
+const Badge = styled.span<{ $variant: 'mf' | 'ss' | 'external' | 'status' }>`
   padding: 3px 10px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
   font-family: 'Sora', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   ${({ $variant }) => {
-    if ($variant === 'mf') return `background: rgba(198,168,75,0.15); color: #C6A84B;`;
-    if ($variant === 'ss') return `background: rgba(96,192,240,0.12); color: #60C0F0;`;
-    return `background: rgba(139,92,246,0.12); color: #8B5CF6;`;
+    if ($variant === 'mf') return `
+      background: color-mix(in srgb, var(--accent-gold, #C6A84B) 15%, transparent);
+      color: var(--accent-gold, #C6A84B);
+    `;
+    if ($variant === 'ss') return `
+      background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+      color: var(--accent-primary, #60C0F0);
+    `;
+    if ($variant === 'external') return `
+      background: color-mix(in srgb, var(--text-muted, rgba(224, 236, 244, 0.72)) 14%, transparent);
+      color: var(--text-primary, #E0ECF4);
+    `;
+    return `
+      background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent);
+      color: var(--accent-secondary, #8B5CF6);
+    `;
   }}
 `;
 
@@ -128,7 +153,7 @@ const StatsRow = styled.div`
   }
 `;
 
-const StatPill = styled.div<{ $color?: string }>`
+const StatPill = styled.div<{ $tone?: ClientSessionSignalTone }>`
   display: flex;
   align-items: center;
   gap: 6px;
@@ -137,8 +162,23 @@ const StatPill = styled.div<{ $color?: string }>`
   background: var(--bg-elevated, #141419);
   font-family: 'Fira Code', monospace;
   font-size: 12px;
-  color: ${({ $color }) => $color || 'var(--text-primary, #E0ECF4)'};
+  color: ${({ $tone = 'default' }) => {
+    if ($tone === 'gold') return 'var(--accent-gold, #C6A84B)';
+    if ($tone === 'warning') return 'var(--accent-secondary, #8B5CF6)';
+    return 'var(--text-primary, #E0ECF4)';
+  }};
   white-space: nowrap;
+`;
+
+const StatStack = styled.span`
+  display: grid;
+  gap: 2px;
+`;
+
+const StatNote = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  font-size: 10px;
+  font-weight: 700;
 `;
 
 const OnboardingBar = styled.div<{ $pct: number; $incomplete: boolean }>`
@@ -148,7 +188,9 @@ const OnboardingBar = styled.div<{ $pct: number; $incomplete: boolean }>`
   border-radius: 8px;
   background: var(--bg-elevated, #141419);
   border: 1px solid ${({ $incomplete }) =>
-    $incomplete ? 'rgba(139, 92, 246, 0.3)' : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
+    $incomplete
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)'
+      : 'var(--border-soft, rgba(96, 192, 240, 0.08))'};
   ${({ $incomplete }) => $incomplete && css`animation: ${onboardingGlow} 3s ease-in-out infinite;`}
   display: flex;
   align-items: center;
@@ -162,7 +204,7 @@ const ProgressTrack = styled.div`
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: rgba(96, 192, 240, 0.1);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   overflow: hidden;
 `;
 
@@ -172,7 +214,7 @@ const ProgressFill = styled.div<{ $pct: number }>`
   border-radius: 3px;
   background: ${({ $pct }) =>
     $pct >= 100
-      ? 'linear-gradient(90deg, #60C0F0, #8B5CF6)'
+      ? 'linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--accent-secondary, #8B5CF6))'
       : 'var(--accent-secondary, #8B5CF6)'};
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 `;
@@ -181,11 +223,12 @@ const ProgressFill = styled.div<{ $pct: number }>`
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
 const ClientHeaderCard: React.FC<ClientHeaderProps> = ({ client, onboardingPct }) => {
-  const initials = `${(client.firstName || '?')[0]}${(client.lastName || '?')[0]}`.toUpperCase();
-  const isMF = client.clientSource === 'move_fitness';
-  const age = client.dateOfBirth
-    ? Math.floor((Date.now() - new Date(client.dateOfBirth).getTime()) / (365.25 * 86400000))
-    : null;
+  const clientName = getClientDisplayName(client);
+  const initials = getClientInitials(client);
+  const sourceTone = getClientSourceTone(client.clientSource);
+  const sourceLabel = getClientSourceLabel(client.clientSource);
+  const sessionSignal = getClientSessionSignal(client);
+  const age = getClientAge(client.dateOfBirth);
   const showOnboarding = onboardingPct != null && onboardingPct < 100;
 
   return (
@@ -194,29 +237,30 @@ const ClientHeaderCard: React.FC<ClientHeaderProps> = ({ client, onboardingPct }
 
       <InfoBlock>
         <ClientName>
-          {client.firstName} {client.lastName}
-          <Badge $variant={isMF ? 'mf' : 'ss'}>{isMF ? 'Move Fitness' : 'SwanStudios'}</Badge>
+          {clientName}
+          <Badge $variant={sourceTone}>{sourceLabel}</Badge>
           {client.trainingExperience && (
             <Badge $variant="status">{client.trainingExperience}</Badge>
           )}
         </ClientName>
         <MetaLine>
-          {age && <span>{age} years old</span>}
+          {age !== null && <span>{age} years old</span>}
           {client.fitnessGoal && <span>{client.fitnessGoal}</span>}
         </MetaLine>
       </InfoBlock>
 
       <StatsRow>
-        <StatPill $color="#60C0F0">
+        <StatPill>
           <Activity size={14} />
           {client.workoutCount || 0} workouts
         </StatPill>
-        {!isMF && (
-          <StatPill $color={client.availableSessions ? '#C6A84B' : 'rgba(224,236,244,0.75)'}>
-            <Target size={14} />
-            {client.availableSessions || 0} sessions left
-          </StatPill>
-        )}
+        <StatPill $tone={sessionSignal.tone}>
+          <Target size={14} />
+          <StatStack>
+            <span>{sessionSignal.label}</span>
+            <StatNote>{sessionSignal.note}</StatNote>
+          </StatStack>
+        </StatPill>
       </StatsRow>
 
       {showOnboarding && (

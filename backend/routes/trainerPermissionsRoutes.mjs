@@ -262,11 +262,11 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
  * @route   POST /api/trainer-permissions/grant
  * @desc    Grant a permission to a trainer
  * @access  Admin Only
- * @body    { trainerId, permissionType, expiresAt?, notes? }
+ * @body    { trainerId, permissionType, expiresAt?, reason? }
  */
 router.post('/grant', protect, adminOnly, async (req, res) => {
   try {
-    const { trainerId, permissionType, expiresAt, notes } = req.body;
+    const { trainerId, permissionType, expiresAt, reason, notes } = req.body;
     const grantedBy = req.user.id;
 
     // Validate required fields
@@ -347,7 +347,7 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
       permissionType,
       grantedBy,
       expiresAt: parsedExpiration.date,
-      notes: notes || null,
+      reason: reason || notes || null,
       isActive: true
     });
 
@@ -393,12 +393,12 @@ router.post('/grant', protect, adminOnly, async (req, res) => {
  * @route   PUT /api/trainer-permissions/:id/revoke
  * @desc    Revoke (deactivate) a trainer permission
  * @access  Admin Only
- * @body    { notes? }
+ * @body    { reason? }
  */
 router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { notes } = req.body;
+    const { reason, notes } = req.body;
     const revokedBy = req.user.id;
     const parsedPermissionId = parseStrictPositiveInteger(id);
 
@@ -429,8 +429,9 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
     // Revoke permission
     await permission.update({
       isActive: false,
-      revokedAt: new Date(),
-      notes: notes || permission.notes
+      deactivatedAt: new Date(),
+      deactivatedBy: revokedBy,
+      reason: reason || notes || permission.reason
     });
 
     // Fetch updated permission with related data
@@ -476,12 +477,12 @@ router.put('/:id/revoke', protect, adminOnly, async (req, res) => {
  * @route   PUT /api/trainer-permissions/:id/extend
  * @desc    Extend the expiration date of a permission
  * @access  Admin Only
- * @body    { expiresAt, notes? }
+ * @body    { expiresAt, reason? }
  */
 router.put('/:id/extend', protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { expiresAt, notes } = req.body;
+    const { expiresAt, reason, notes } = req.body;
     const extendedBy = req.user.id;
     const parsedPermissionId = parseStrictPositiveInteger(id);
 
@@ -527,7 +528,7 @@ router.put('/:id/extend', protect, adminOnly, async (req, res) => {
     // Update expiration date
     await permission.update({
       expiresAt: parsedExpiration.date,
-      notes: notes || permission.notes
+      reason: reason || notes || permission.reason
     });
 
     // Fetch updated permission with related data

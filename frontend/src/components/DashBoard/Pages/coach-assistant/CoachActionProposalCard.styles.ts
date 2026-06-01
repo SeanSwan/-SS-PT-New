@@ -4,6 +4,7 @@
  * Styled-components surface for deterministic Swan Coach proposal cards.
  */
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
 export const Card = styled.div`
   margin-top: 12px;
@@ -85,6 +86,23 @@ export const ActionButton = styled.button<{ $danger?: boolean }>`
     cursor: not-allowed;
     opacity: 0.62;
   }
+`;
+
+export const ActionLink = styled(Link)`
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent);
+  background: linear-gradient(135deg, var(--primary, #002060), var(--accent-secondary, #8B5CF6));
+  color: var(--text-primary, #E0ECF4);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
 `;
 
 export const StatusText = styled.div<{ $error?: boolean }>`

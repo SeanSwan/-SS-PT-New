@@ -30,10 +30,12 @@ import {
   type LensId,
   TIER_LABELS,
   avatarFrom,
+  canBookSwanStudiosSessions,
   clampPercent,
   displayNameFrom,
   handleFrom,
   hashtagsFromPosts,
+  quickActionsForClientSource,
 } from './ClientObservatoryData';
 import {
   CardInner,
@@ -65,6 +67,7 @@ const ClientObservatoryHome: React.FC = () => {
   const leaderboardQuery = useLeaderboard({ limit: 5 });
   const createPost = useCreatePost();
   const currentWorkout = useCurrentClientWorkout(user?.id);
+  const clientSource = (user as { clientSource?: string } | null | undefined)?.clientSource;
 
   const [activeLens, setActiveLens] = useState<LensId>(() => lensFromRoute(tab));
   const [postText, setPostText] = useState('');
@@ -79,6 +82,7 @@ const ClientObservatoryHome: React.FC = () => {
   const posts = useMemo(() => (Array.isArray(feedQuery.data) ? feedQuery.data : []) as FeedPostPreview[], [feedQuery.data]);
   const challenges = useMemo(() => (Array.isArray(challengeQuery.data) ? challengeQuery.data : []) as ChallengePreview[], [challengeQuery.data]);
   const leaderboard = useMemo(() => (Array.isArray(leaderboardQuery.data) ? leaderboardQuery.data : []) as LeaderboardPreview[], [leaderboardQuery.data]);
+  const quickActions = useMemo(() => quickActionsForClientSource(clientSource), [clientSource]);
   const achievements = useMemo(() => (
     Array.isArray(gamification.achievements?.data)
       ? gamification.achievements.data
@@ -94,6 +98,7 @@ const ClientObservatoryHome: React.FC = () => {
   const level = profile?.level ?? 1;
   const points = profile?.points ?? 0;
   const streakDays = profile?.streakDays ?? 0;
+  const canBookSessions = canBookSwanStudiosSessions(clientSource);
 
   useEffect(() => {
     setActiveLens(lensFromRoute(tab));
@@ -188,6 +193,7 @@ const ClientObservatoryHome: React.FC = () => {
         postText={postText}
         creatingPost={createPost.isPending}
         postReceipt={postReceipt}
+        quickActions={quickActions}
         onPostTextChange={handlePostTextChange}
         onCreatePost={handleCreatePost}
         onNavigate={handleNavigate}
@@ -203,6 +209,7 @@ const ClientObservatoryHome: React.FC = () => {
     postReceipt,
     postText,
     posts,
+    quickActions,
   ]);
 
   return (
@@ -218,6 +225,7 @@ const ClientObservatoryHome: React.FC = () => {
         streakDays={streakDays}
         tierLabel={tier.label}
         tierTone={tier.tone}
+        canBookSessions={canBookSessions}
         onLensSelect={handleLensSelect}
         onNavigate={handleNavigate}
       />
@@ -234,8 +242,10 @@ const ClientObservatoryHome: React.FC = () => {
             currentWorkout={currentWorkout.workout}
             currentWorkoutError={currentWorkout.error}
             currentWorkoutLoading={currentWorkout.loading}
+            canBookSessions={canBookSessions}
             leaderboard={leaderboard}
             progress={progress}
+            quickActions={quickActions}
             streakDays={streakDays}
             tags={tags}
             onNavigate={handleNavigate}

@@ -34,11 +34,12 @@ describe('session deduction trainer access guard', () => {
     expect(routeSource).toContain("router.post('/apply-package-payment', authenticateToken, adminOnly");
   });
 
-  it('documents the /api/sessions shadow risk and confirms deductions paths are not consumed by unified sessions', () => {
+  it('mounts deductions before /api/sessions and confirms deductions paths are not consumed by unified sessions', () => {
     const deductionMount = coreRoutesSource.indexOf("app.use('/api/sessions/deductions', sessionDeductionRoutes)");
     const sessionsMount = coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)");
     expect(sessionsMount).toBeGreaterThan(-1);
-    expect(deductionMount).toBeGreaterThan(sessionsMount);
+    expect(deductionMount).toBeGreaterThan(-1);
+    expect(deductionMount).toBeLessThan(sessionsMount);
 
     expect(sessionsRouteSource).not.toContain('router.use("/:id"');
     expect(sessionsRouteSource).not.toContain('router.get("/:id/deductions"');

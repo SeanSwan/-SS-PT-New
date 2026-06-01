@@ -33,6 +33,14 @@ export const calculateCompletionPercentage = (responses) => {
   return Math.min(100, Math.max(0, percent));
 };
 
+export const normalizeOnboardingQueueStatus = (status) => {
+  if (!status) return 'not_started';
+  if (status === 'submitted' || status === 'completed') return 'complete';
+  if (status === 'in_progress') return 'draft';
+  if (status === 'archived') return 'archived';
+  return 'draft';
+};
+
 export const extractPrimaryGoal = (responses) => {
   return (
     responses?.section2_goals?.primary_goal ??

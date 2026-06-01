@@ -60,6 +60,7 @@ vi.mock('../../models/index.mjs', () => ({
     gte: Symbol('gte'),
     lte: Symbol('lte'),
     not: Symbol('not'),
+    notIn: Symbol('notIn'),
   },
 }));
 
@@ -207,6 +208,20 @@ describe('SessionDeductionService', () => {
       expect(symbolKeys).toHaveLength(1);
       const filterValues = roleFilter[symbolKeys[0]];
       expect(filterValues).toEqual(['client', 'user']);
+    });
+
+    it('excludes Move Fitness and external clients from payment recovery debt lists', async () => {
+      mockUserModel.findAll.mockResolvedValue([]);
+
+      await getClientsNeedingPayment();
+
+      const callArgs = mockUserModel.findAll.mock.calls[0][0];
+      expect(callArgs.attributes).toContain('clientSource');
+      const sourceFilter = callArgs.where.clientSource;
+      expect(sourceFilter).toBeDefined();
+      const symbolKeys = Object.getOwnPropertySymbols(sourceFilter);
+      expect(symbolKeys).toHaveLength(1);
+      expect(sourceFilter[symbolKeys[0]]).toEqual(['move_fitness', 'external']);
     });
 
     it('orders sessions by date ascending for reliable nextSession', async () => {
@@ -360,6 +375,27 @@ describe('SessionDeductionService', () => {
       await expect(applyPackagePayment(baseParams)).rejects.toThrow(
         'User is not a client or user'
       );
+      expect(mockTransaction.rollback).toHaveBeenCalled();
+    });
+
+    it('rejects payment recovery package grants for non-deducting client sources', async () => {
+      const freeTrackingClient = makeClient(4, { clientSource: 'move_fitness' });
+      const orderCreate = vi.fn();
+      mockUserModel.findByPk.mockResolvedValue(freeTrackingClient);
+      mockSequelize.models = {
+        Order: { create: orderCreate, findOne: vi.fn().mockResolvedValue(null) },
+        OrderItem: { create: vi.fn() },
+        StorefrontItem: { findByPk: vi.fn().mockResolvedValue(makeStorefrontItem()) },
+        ShoppingCart: { create: vi.fn() },
+        FinancialTransaction: { create: vi.fn() },
+      };
+
+      await expect(applyPackagePayment(baseParams)).rejects.toMatchObject({
+        code: 'NON_BILLABLE_CLIENT_SOURCE',
+        message: 'Paid session credits are disabled for free-tracking clients',
+      });
+      expect(freeTrackingClient.increment).not.toHaveBeenCalled();
+      expect(orderCreate).not.toHaveBeenCalled();
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
@@ -753,6 +789,18 @@ describe('SessionDeductionService', () => {
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
+    it('rejects legacy payment credit grants for non-deducting client sources', async () => {
+      const freeTrackingClient = makeClient(4, { clientSource: 'external' });
+      mockUserModel.findByPk.mockResolvedValue(freeTrackingClient);
+
+      await expect(applyPaymentCredits(4, 7)).rejects.toMatchObject({
+        code: 'NON_BILLABLE_CLIENT_SOURCE',
+        message: 'Paid session credits are disabled for free-tracking clients',
+      });
+      expect(freeTrackingClient.increment).not.toHaveBeenCalled();
+      expect(mockTransaction.rollback).toHaveBeenCalled();
+    });
+
     it('uses atomic increment with row lock (not read-modify-write)', async () => {
       const client = makeClient(4, { availableSessions: 3 });
       mockUserModel.findByPk.mockResolvedValue(client);
@@ -825,6 +873,30 @@ describe('SessionDeductionService', () => {
       expect(result.noCredits[0].clientId).toBe(4);
       expect(session.status).toBe('completed');
       expect(session.sessionDeducted).toBeFalsy();
+    });
+
+    it('completes Move Fitness sessions without paid-credit deduction or no-credit debt', async () => {
+      const client = makeClient(6, {
+        availableSessions: 0,
+        clientSource: 'move_fitness',
+      });
+      const session = makeSession(6, {
+        userId: 6,
+        sessionDate: new Date(Date.now() - 86400000),
+        client,
+      });
+      mockSessionModel.findAll.mockResolvedValue([session]);
+      mockUserModel.findByPk.mockResolvedValue(client);
+
+      const result = await processSessionDeductions();
+
+      expect(result.processed).toBe(1);
+      expect(result.deducted).toBe(0);
+      expect(result.noCredits).toEqual([]);
+      expect(session.status).toBe('completed');
+      expect(session.sessionDeducted).toBe(false);
+      expect(client.decrement).not.toHaveBeenCalled();
+      expect(session.notes).toContain('No paid session credit required');
     });
 
     it('returns empty results when no eligible sessions', async () => {

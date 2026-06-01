@@ -95,6 +95,29 @@ beforeEach(() => {
 });
 
 describe('workoutPlanRoutes — mounted route stack', () => {
+  describe('list filters', () => {
+    it('admin GET /?clientId=42junk -> 400 and never queries plans', async () => {
+      const res = await request(app)
+        .get('/api/workout-plans?clientId=42junk')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin');
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/clientId/i);
+      expect(mockWorkoutPlanFindAll).not.toHaveBeenCalled();
+    });
+
+    it('admin GET /?trainerId=7junk -> 400 and never queries plans', async () => {
+      const res = await request(app)
+        .get('/api/workout-plans?trainerId=7junk')
+        .set('x-test-user-id', '1')
+        .set('x-test-user-role', 'admin');
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/trainerId/i);
+      expect(mockWorkoutPlanFindAll).not.toHaveBeenCalled();
+    });
+  });
 
   // ─────────────────────────────────────────────────────────────
   // Critical claim narrowing: client never reaches the assignment

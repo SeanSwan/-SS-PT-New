@@ -33,4 +33,18 @@ describe('CommunicationCenter active surface truth contract', () => {
     expect(source).toContain('`/api/messaging/conversations/${selectedConversation.id}/messages`');
     expect(source).toContain('authAxios.post(messagePath');
   });
+
+  it('wires the voice composer button instead of rendering a dead mic control', () => {
+    expect(source).toContain("import { useCommunicationVoiceDraft } from './useCommunicationVoiceDraft'");
+    expect(source).toContain('const voiceDraft = useCommunicationVoiceDraft');
+    expect(source).toContain('aria-label={voiceDraft.label}');
+    expect(source).toContain('onClick={voiceDraft.toggle}');
+    expect(source).not.toContain('<RoundButton title="Voice Message">');
+  });
+
+  it('does not leave communication call and thread-option controls as silent no-ops', () => {
+    expect(source).toContain('disabled={!onCallStart}');
+    expect(source).toContain('aria-label="Thread options unavailable"');
+    expect(source).not.toContain('<RoundButton title="More Options">');
+  });
 });

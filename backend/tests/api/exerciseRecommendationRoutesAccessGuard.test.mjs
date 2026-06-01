@@ -27,9 +27,29 @@ describe('exercise recommendation route access guard', () => {
     const serviceSource = readFileSync(resolve(__dirname, '../../services/workoutService.mjs'), 'utf8');
 
     expect(controllerSource).toContain('req.query.userId');
+    expect(controllerSource).toContain("const userId = libraryMode ? 'admin-library' : (requestedUserId || req.user.id);");
     expect(controllerSource).toContain('admin-library');
     expect(controllerSource).toContain('libraryMode');
     expect(serviceSource).toContain('libraryMode = false');
     expect(serviceSource).toMatch(/libraryMode\s*\?\s*null\s*:\s*await\s+ClientProgress\.findOne/);
+  });
+
+  it('normalizes recommendation limits before passing them to Sequelize', () => {
+    const controllerSource = readFileSync(resolve(__dirname, '../../controllers/workoutController.mjs'), 'utf8');
+
+    expect(controllerSource).toContain('const parsedLimit = Number.parseInt(String(limit), 10);');
+    expect(controllerSource).toContain('const normalizedLimit = Number.isFinite(parsedLimit)');
+    expect(controllerSource).toContain('Math.min(Math.max(parsedLimit, 1), 100)');
+    expect(controllerSource).toContain('limit: limit ? normalizedLimit : undefined');
+    expect(controllerSource).not.toContain('limit: limit ? parseInt(limit) : undefined');
+  });
+
+  it('forwards trainer-friendly recommendation filters from the direct workout API', () => {
+    const controllerSource = readFileSync(resolve(__dirname, '../../controllers/workoutController.mjs'), 'utf8');
+
+    expect(controllerSource).toContain('muscleGroupNames');
+    expect(controllerSource).toContain('bodyRegions');
+    expect(controllerSource).toContain("muscleGroupNames: muscleGroupNames ? (Array.isArray(muscleGroupNames) ? muscleGroupNames : [muscleGroupNames]) : undefined");
+    expect(controllerSource).toContain("bodyRegions: bodyRegions ? (Array.isArray(bodyRegions) ? bodyRegions : [bodyRegions]) : undefined");
   });
 });

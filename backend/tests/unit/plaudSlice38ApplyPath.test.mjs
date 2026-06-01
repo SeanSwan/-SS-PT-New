@@ -56,8 +56,10 @@ describe('Slice 3.8 — adminWorkoutLogger apply path augmentation', () => {
     expect(SRC).toMatch(/cipher_purged_at\s*=\s*NOW\(\)/);
   });
 
-  it('approval invariant failure rolls back workout session', () => {
-    expect(SRC).toMatch(/DELETE\s+FROM\s+"WorkoutSessions"\s+WHERE\s+id\s*=\s*:sessionId/);
+  it('approval invariant failure rolls back workout logs and canonical workout session', () => {
+    expect(SRC).toMatch(/DELETE\s+FROM\s+workout_logs\s+WHERE\s+"sessionId"\s*=\s*:sessionId/);
+    expect(SRC).toMatch(/DELETE\s+FROM\s+workout_sessions\s+WHERE\s+id\s*=\s*:sessionId/);
+    expect(SRC).not.toMatch(/DELETE\s+FROM\s+"WorkoutSessions"/);
   });
 
   it('approval invariant failure returns 409 MERGE_NOT_APPROVABLE', () => {

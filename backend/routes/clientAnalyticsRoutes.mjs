@@ -124,7 +124,7 @@ router.get('/frequency', getFrequencyStats);
 
 /**
  * @route   GET /api/client/analytics/exercise-history
- * @desc    All-time exercise stats from materialized view
+ * @desc    All-time exercise stats from workout logs
  * @access  Any authenticated user (own data only)
  */
 router.get('/exercise-history', getExerciseHistory);

@@ -140,6 +140,60 @@ export interface BusinessIntelligenceActions {
   flagRisks: () => string[];
 }
 
+type BusinessReportRow = [section: string, metric: string, value: string];
+
+const escapeBusinessReportValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+
+const escapeBusinessReportHtml = (value: string): string => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const toBusinessReportCsv = (rows: BusinessReportRow[]): string => [
+  ['Section', 'Metric', 'Value'],
+  ...rows,
+].map(row => row.map(escapeBusinessReportValue).join(',')).join('\n');
+
+const toBusinessReportExcel = (rows: BusinessReportRow[]): string => `
+<html>
+  <head><meta charset="UTF-8" /></head>
+  <body>
+    <table>
+      <thead>
+        <tr><th>Section</th><th>Metric</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(row => `
+          <tr>
+            <td>${escapeBusinessReportHtml(row[0])}</td>
+            <td>${escapeBusinessReportHtml(row[1])}</td>
+            <td>${escapeBusinessReportHtml(row[2])}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </body>
+</html>`.trim();
+
+const downloadBusinessReport = (content: string, mimeType: string, filename: string): void => {
+  if (typeof document === 'undefined') {
+    throw new Error('Business report export requires a browser document');
+  }
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 /**
  * useBusinessIntelligence Hook
  * 
@@ -451,8 +505,81 @@ export const useBusinessIntelligence = (data: {
     logger.log('📊 Business metrics recalculated');
   };
   
+  const buildBusinessReportRows = (): BusinessReportRow[] => {
+    const metrics = comprehensiveBusinessMetrics;
+    const kpis = executiveKPIs;
+    const exportDate = new Date().toLocaleString();
+
+    return [
+      ['Report', 'Generated', exportDate],
+      ['Financial', 'Monthly Recurring Revenue', `$${kpis.monthlyRecurringRevenue.toLocaleString()}`],
+      ['Financial', 'Revenue per Session', `$${kpis.revenuePerSession}`],
+      ['Financial', 'Client Lifetime Value', `$${kpis.clientLifetimeValue.toLocaleString()}`],
+      ['Financial', 'Estimated Revenue', `$${metrics.estimatedRevenue.toLocaleString()}`],
+      ['Financial', 'Completed Revenue', `$${metrics.completedRevenue.toLocaleString()}`],
+      ['Operations', 'Total Sessions', metrics.totalSessions.toString()],
+      ['Operations', 'Scheduled Sessions', metrics.scheduledSessions.toString()],
+      ['Operations', 'Completed Sessions', metrics.completedSessions.toString()],
+      ['Operations', 'Utilization Rate', `${metrics.utilizationRate}%`],
+      ['Operations', 'Completion Rate', `${metrics.completionRate}%`],
+      ['Operations', 'Cancellation Rate', `${metrics.cancellationRate}%`],
+      ['Clients', 'Active Clients', metrics.activeClients.toString()],
+      ['Clients', 'New Clients This Month', metrics.newClientsThisMonth.toString()],
+      ['Clients', 'Client Retention Rate', `${metrics.clientRetentionRate}%`],
+      ['Trainers', 'Active Trainers', metrics.activeTrainers.toString()],
+      ['Trainers', 'Average Trainer Utilization', `${metrics.averageTrainerUtilization}%`],
+      ['Trainers', 'Average Trainer Revenue', `$${Math.round(metrics.averageTrainerRevenue).toLocaleString()}`],
+      ['Quality', 'NASM Compliance Score', `${metrics.nasmComplianceScore}%`],
+      ['Quality', 'Net Promoter Score', kpis.netPromoterScore.toString()],
+      ['Quality', 'Trainer Satisfaction', `${metrics.trainerSatisfactionScore}%`],
+      ['Forecast', 'Next Month Revenue', `$${forecasts.nextMonthRevenue.toLocaleString()}`],
+      ['Forecast', 'Next Month Sessions', forecasts.nextMonthSessions.toString()],
+      ['Forecast', 'Predicted Churn', forecasts.predictedChurn.toString()],
+      ['Forecast', 'Capacity Recommendation', forecasts.capacityRecommendation],
+      ...generateInsights().map((insight, index): BusinessReportRow => ['Insight', `Insight ${index + 1}`, insight]),
+      ...identifyOpportunities().map((opportunity, index): BusinessReportRow => ['Opportunity', `Opportunity ${index + 1}`, opportunity]),
+      ...flagRisks().map((risk, index): BusinessReportRow => ['Risk', `Risk ${index + 1}`, risk]),
+    ];
+  };
+
   const exportBusinessReport = async (format: 'pdf' | 'excel' | 'csv') => {
-    // TODO: Implement export functionality
+    const rows = buildBusinessReportRows();
+    const exportDate = new Date().toISOString().slice(0, 10);
+
+    if (format === 'csv') {
+      downloadBusinessReport(
+        toBusinessReportCsv(rows),
+        'text/csv;charset=utf-8',
+        `swanstudios-business-report-${exportDate}.csv`
+      );
+    } else if (format === 'excel') {
+      downloadBusinessReport(
+        toBusinessReportExcel(rows),
+        'application/vnd.ms-excel;charset=utf-8',
+        `swanstudios-business-report-${exportDate}.xls`
+      );
+    } else {
+      const { jsPDF } = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('SwanStudios Business Report', 14, 18);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(`Generated ${new Date().toLocaleString()}`, 14, 25);
+      autoTable(doc, {
+        startY: 32,
+        head: [['Section', 'Metric', 'Value']],
+        body: rows,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [0, 32, 96], textColor: [255, 255, 255] },
+      });
+      doc.save(`swanstudios-business-report-${exportDate}.pdf`);
+    }
+
     logger.log(`📄 Exporting business report in ${format} format`);
   };
   

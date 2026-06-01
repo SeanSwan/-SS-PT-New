@@ -109,10 +109,10 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             <img
               src={headerImage}
               alt={headerSub}
-              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(96, 192, 240, 0.3)' }}
+              style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)' }}
             />
           ) : (
-            <Calendar size={32} color="#3b82f6" />
+            <Calendar size={32} color="var(--accent-primary, #60C0F0)" />
           )}
           <Box>
             <PageTitle>{headerTitle}</PageTitle>
@@ -312,9 +312,13 @@ const HeaderContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, transparent),
+      color-mix(in srgb, var(--bg-surface, #1A1A24) 72%, transparent)
+    );
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
   flex-shrink: 0;
   gap: 1rem;
   /* Ensure dropdowns render above ViewSelector below */
@@ -332,7 +336,7 @@ const HeaderContainer = styled.div`
     gap: 1rem;
     /* Disable backdrop-filter on mobile for better scroll performance */
     backdrop-filter: none;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, var(--bg-surface, #1A1A24) 12%);
   }
 
   @media (max-width: 430px) {
@@ -441,10 +445,10 @@ const MenuItemButton = styled(OutlinedButton)`
 // MindBody Parity: Admin View Scope Toggle Styles
 const AdminScopeToggle = styled.div`
   display: flex;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
   border-radius: 8px;
   padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
 
   @media (max-width: 480px) {
     grid-column: span 2;
@@ -470,16 +474,16 @@ const ScopeButton = styled.button<{ $active: boolean }>`
   ${({ $active }) =>
     $active
       ? `
-        background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
-        color: white;
-        box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+        background: linear-gradient(135deg, var(--accent-primary, #60C0F0) 0%, var(--accent-secondary, #8B5CF6) 100%);
+        color: var(--text-inverse, #0F172A);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
       `
       : `
         background: transparent;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-secondary, rgba(224, 236, 244, 0.65));
         &:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.9);
+          background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+          color: var(--text-primary, #E0ECF4);
         }
       `}
 
@@ -506,10 +510,10 @@ const LayoutDensityBar = styled.div`
 
 const ToggleGroup = styled.div`
   display: flex;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
   border-radius: 6px;
   padding: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
 `;
 
 const ToggleButton = styled.button<{ $active: boolean }>`
@@ -526,15 +530,15 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   ${({ $active }) =>
     $active
       ? `
-        background: rgba(0, 212, 255, 0.25);
-        color: #00d4ff;
+        background: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+        color: var(--accent-primary, #60C0F0);
       `
       : `
         background: transparent;
-        color: rgba(255, 255, 255, 0.45);
+        color: var(--text-muted, rgba(224, 236, 244, 0.4));
         &:hover {
-          background: rgba(255, 255, 255, 0.08);
-          color: rgba(255, 255, 255, 0.8);
+          background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+          color: var(--text-primary, #E0ECF4);
         }
       `}
 
@@ -546,23 +550,23 @@ const ToggleButton = styled.button<{ $active: boolean }>`
 
 const TrainerSelect = styled.select`
   padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 74%, transparent);
+  color: var(--text-primary, #E0ECF4);
   font-size: 0.85rem;
   min-height: 44px;
   cursor: pointer;
   outline: none;
 
   &:focus {
-    border-color: #00d4ff;
-    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 
   option {
-    background: #1a1a2e;
-    color: white;
+    background: var(--bg-surface, #1A1A24);
+    color: var(--text-primary, #E0ECF4);
   }
 
   @media (max-width: 480px) {

@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const chatMock = vi.hoisted(() => ({
   clearError: vi.fn(),
   messages: [] as Array<Record<string, unknown>>,
+  newChat: vi.fn(),
   sendMessageWithConversation: vi.fn(),
+}));
+
+const commandMock = vi.hoisted(() => ({
+  cancelCommand: vi.fn(),
+  confirmCommand: vi.fn(),
+  executeCommand: vi.fn(),
 }));
 
 vi.mock('../../../../hooks/useAIChat', () => ({
@@ -12,8 +19,18 @@ vi.mock('../../../../hooks/useAIChat', () => ({
     messages: chatMock.messages,
     sending: false,
     error: null,
+    newChat: chatMock.newChat,
     sendMessageWithConversation: chatMock.sendMessageWithConversation,
     clearError: chatMock.clearError,
+  }),
+}));
+
+vi.mock('../../../../hooks/useCoachCommand', () => ({
+  useCoachCommand: () => ({
+    cancelCommand: commandMock.cancelCommand,
+    confirmCommand: commandMock.confirmCommand,
+    executeCommand: commandMock.executeCommand,
+    executingCommand: false,
   }),
 }));
 
@@ -31,8 +48,143 @@ describe('ClientTrainingCommandBar', () => {
   beforeEach(() => {
     chatMock.clearError.mockReset();
     chatMock.messages = [];
+    chatMock.newChat.mockReset();
     chatMock.sendMessageWithConversation.mockReset();
     chatMock.sendMessageWithConversation.mockResolvedValue({ success: true });
+    commandMock.cancelCommand.mockReset();
+    commandMock.confirmCommand.mockReset();
+    commandMock.executeCommand.mockReset();
+    commandMock.executeCommand.mockResolvedValue({ type: 'fallback_to_chat' });
+  });
+
+  it('routes selected-client command-lane instructions before chat fallback', async () => {
+    commandMock.executeCommand.mockResolvedValueOnce({
+      type: 'executed',
+      command: 'log_workout',
+      result: { exerciseCount: 1, totalSets: 3, xpAwarded: 50 },
+      client: { id: 424242, firstName: 'Client' },
+    });
+
+    render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
+
+    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    fireEvent.change(input, {
+      target: { value: 'Log bench press 3 sets of 10 at 135' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+
+    await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
+    expect(commandMock.executeCommand).toHaveBeenCalledWith(
+      'Log bench press 3 sets of 10 at 135',
+      {
+        selectedClientId: 424242,
+        routeContext: {
+          source: 'clients-team',
+          intent: 'daily_training_command',
+          surface: 'client-training-command-bar',
+        },
+      }
+    );
+    expect(chatMock.sendMessageWithConversation).not.toHaveBeenCalled();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      /workout logged for client/i
+    );
+    expect(input).toHaveValue('');
+  });
+
+  it('lets the parent activate the workout logger before command-lane dispatch', async () => {
+    const callOrder: string[] = [];
+    const onCommandLaneStart = vi.fn(() => {
+      callOrder.push('activate-logger');
+    });
+    commandMock.executeCommand.mockImplementationOnce(async () => {
+      callOrder.push('execute-command');
+      return {
+        type: 'frontend_dispatch',
+        command: 'add_exercise_to_form',
+        message: 'Sent to the active workout form.',
+        event: 'AI_ADD_EXERCISE',
+        payload: { exerciseName: 'Push Up' },
+        dispatched: true,
+      };
+    });
+
+    render(
+      <ClientTrainingCommandBar
+        clientId={424242}
+        clientName="Fixture Client"
+        onCommandLaneStart={onCommandLaneStart}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+      target: { value: 'Add push ups to the workout' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+
+    await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
+    expect(onCommandLaneStart).toHaveBeenCalledWith('Add push ups to the workout');
+    expect(callOrder).toEqual(['activate-logger', 'execute-command']);
+  });
+
+  it('renders command-lane confirmation holds inline for selected-client workout logs', async () => {
+    commandMock.executeCommand.mockResolvedValueOnce({
+      type: 'confirmation_required',
+      message: 'Review workout log before saving.',
+      operationId: 'op-workout-42',
+      command: 'log_workout',
+      params: { exerciseName: 'Bench Press', sets: 3, reps: 10 },
+      client: { id: 424242, firstName: 'Fixture' },
+      details: null,
+      isDestructive: false,
+    });
+    commandMock.confirmCommand.mockResolvedValueOnce({
+      success: true,
+      type: 'executed',
+      message: 'Workout logged.',
+      command: 'log_workout',
+      result: { exerciseCount: 1, totalSets: 3, xpAwarded: 50 },
+    });
+
+    render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
+
+    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+      target: { value: 'Log bench press 3 sets of 10 at 135' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+
+    expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
+
+    await waitFor(() => expect(commandMock.confirmCommand).toHaveBeenCalledWith('op-workout-42'));
+    expect(await screen.findByRole('status')).toHaveTextContent(/workout logged for fixture/i);
+  });
+
+  it('lets admins cancel inline command-lane confirmation holds without saving', async () => {
+    commandMock.executeCommand.mockResolvedValueOnce({
+      type: 'confirmation_required',
+      message: 'Review workout log before saving.',
+      operationId: 'op-workout-cancel',
+      command: 'log_workout',
+      params: { exerciseName: 'Rows', sets: 4, reps: 12 },
+      client: { id: 424242, firstName: 'Fixture' },
+      details: null,
+      isDestructive: false,
+    });
+
+    render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
+
+    fireEvent.change(screen.getByLabelText(/tell swan about fixture client/i), {
+      target: { value: 'Log rows 4 sets of 12' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan/i }));
+
+    expect(await screen.findByText(/confirm action/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /cancel action/i }));
+
+    await waitFor(() => expect(commandMock.cancelCommand).toHaveBeenCalledWith('op-workout-cancel'));
+    expect(await screen.findByRole('status')).toHaveTextContent(/log workout cancelled/i);
+    expect(commandMock.confirmCommand).not.toHaveBeenCalled();
   });
 
   it('sends a selected-client daily workout command with review-gated AI context', async () => {
@@ -124,5 +276,18 @@ describe('ClientTrainingCommandBar', () => {
 
     expect(screen.queryByText(/prepared another client draft/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('coach-proposal-card')).not.toBeInTheDocument();
+  });
+
+  it('starts a fresh Swan conversation when the selected client changes', () => {
+    const { rerender } = render(
+      <ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />
+    );
+    const input = screen.getByLabelText(/tell swan about fixture client/i);
+    fireEvent.change(input, { target: { value: 'Log squats for this client' } });
+
+    rerender(<ClientTrainingCommandBar clientId={515151} clientName="Next Client" />);
+
+    expect(chatMock.newChat).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText(/tell swan about next client/i)).toHaveValue('');
   });
 });

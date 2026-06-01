@@ -159,8 +159,18 @@ describe('workoutLogUploadRoutes — response contract', () => {
     expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}filename:\s*file\.originalname/);
     expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}mimetype:\s*file\.mimetype/);
     expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}size:\s*file\.size/);
-    expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}clientId:\s*parseInt\(clientId,\s*10\)/);
+    expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}clientId:\s*parsedClientId/);
     expect(routeSource).toMatch(/metadata:\s*\{[\s\S]{0,600}trainerId/);
+  });
+
+  it('strictly parses upload identity fields before transcription or parsing', () => {
+    expect(routeSource).toContain('const parsedClientId = parseStrictPositiveInteger(clientId);');
+    expect(routeSource).toContain('const parsedTrainerId = parseStrictPositiveInteger(req.user?.id);');
+    expect(routeSource).toContain('const parsedSessionId = sessionId ? parseStrictPositiveInteger(sessionId) : null;');
+    expect(routeSource).toContain("return res.status(400).json({ error: 'Valid clientId is required' });");
+    expect(routeSource).toContain("return res.status(400).json({ error: 'Valid sessionId is required' });");
+    expect(routeSource).not.toMatch(/parseInt\(\s*clientId\s*,\s*10\s*\)/);
+    expect(routeSource).not.toMatch(/parseInt\(\s*sessionId\s*,\s*10\s*\)/);
   });
 
   it('does NOT ship a legacy `data:` or `result:` wrapper shape', () => {

@@ -33,6 +33,8 @@ export interface QuickAction {
   path: string;
 }
 
+export type ClientSource = 'swanstudios' | 'move_fitness' | 'external' | string | null | undefined;
+
 export interface TierDisplay {
   label: string;
   tone: 'bronze' | 'silver' | 'gold' | 'platinum' | 'crystal';
@@ -99,6 +101,15 @@ export const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },
   { label: 'Progress', Icon: Flame, path: '/dashboard/client/progress' },
 ];
+
+export function canBookSwanStudiosSessions(clientSource: ClientSource): boolean {
+  return clientSource !== 'move_fitness' && clientSource !== 'external';
+}
+
+export function quickActionsForClientSource(clientSource: ClientSource): QuickAction[] {
+  if (canBookSwanStudiosSessions(clientSource)) return QUICK_ACTIONS;
+  return QUICK_ACTIONS.filter((action) => action.path !== '/dashboard/client/schedule');
+}
 
 export const POST_CATEGORIES = ['Training', 'Nutrition', 'Progress', 'Community'] as const;
 

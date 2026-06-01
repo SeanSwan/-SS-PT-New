@@ -153,8 +153,10 @@ class AdminClientService {
    */
   async deleteClient(clientId) {
     try {
-      await this.api.delete(`/admin/clients/${clientId}`);
-      return true;
+      const response = await this.api.delete(`/admin/clients/${clientId}`, {
+        data: { softDelete: true },
+      });
+      return response.data;
     } catch (error) {
       console.error('Error deleting client:', error);
       throw new Error('Failed to delete client');
@@ -177,16 +179,20 @@ class AdminClientService {
   }
   
   /**
-   * Reset client password
+   * Send a secure password reset email to a client.
    */
-  async resetClientPassword(clientId) {
+  async sendClientPasswordReset(clientId) {
     try {
-      const response = await this.api.post(`/admin/clients/${clientId}/reset-password`);
+      const response = await this.api.post(`/admin/clients/${clientId}/send-password-reset`, {});
       return response.data;
     } catch (error) {
-      console.error('Error resetting password:', error);
-      throw new Error('Failed to reset password');
+      console.error('Error sending password reset:', error);
+      throw new Error('Failed to send password reset email');
     }
+  }
+
+  async resetClientPassword(clientId) {
+    return this.sendClientPasswordReset(clientId);
   }
   
   /**
@@ -765,6 +771,7 @@ export interface BillingOverviewData {
     id: number;
     name: string;
     email: string;
+    clientSource?: ClientSource;
   };
   sessionsRemaining: number;
   lastPurchase: {
@@ -833,8 +840,9 @@ export interface AdminClientServiceInterface {
   createClient(clientData: any): Promise<any>;
   createExternalClient(clientData: CreateExternalClientRequest): Promise<any>;
   updateClient(clientId: string, updateData: any): Promise<any>;
-  deleteClient(clientId: string): Promise<boolean>;
+  deleteClient(clientId: string): Promise<any>;
   assignTrainer(clientId: string, trainerId: string): Promise<any>;
+  sendClientPasswordReset(clientId: string): Promise<any>;
   resetClientPassword(clientId: string): Promise<any>;
   getClientWorkoutStats(clientId: string): Promise<any>;
   generateWorkoutPlan(clientId: string, planData: any): Promise<any>;

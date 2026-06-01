@@ -74,6 +74,7 @@ export const SessionRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.625rem 0;
   border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
 
@@ -112,6 +113,50 @@ export const StatusBadge = styled.span<{ $status?: string }>`
       : $status === 'cancelled'
         ? 'var(--danger, #C92A54)'
         : 'var(--accent-primary, #60C0F0)'};
+`;
+
+export const SessionActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+export const SessionLogButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:hover { transform: none; }
+  }
 `;
 
 export const EmptyState = styled.div`

@@ -463,7 +463,7 @@ export async function getExerciseRecommendations(req, res) {
     const libraryMode =
       requestedUserId === 'admin-library' &&
       (req.user.role === 'admin' || req.user.role === 'trainer');
-    const userId = libraryMode ? 'admin-library' : (req.params.userId || req.user.id);
+    const userId = libraryMode ? 'admin-library' : (requestedUserId || req.user.id);
     
     // Check if the user is authorized to get recommendations for this user
     if (!libraryMode && userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
@@ -476,11 +476,17 @@ export async function getExerciseRecommendations(req, res) {
       difficulty,
       equipment,
       muscleGroups,
+      muscleGroupNames,
+      bodyRegions,
       excludeExercises,
       limit,
       rehabFocus,
       optPhase
     } = req.query;
+    const parsedLimit = Number.parseInt(String(limit), 10);
+    const normalizedLimit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 100)
+      : undefined;
     
     // Process array parameters
     const processedParams = {
@@ -488,8 +494,10 @@ export async function getExerciseRecommendations(req, res) {
       difficulty,
       equipment: equipment ? (Array.isArray(equipment) ? equipment : [equipment]) : undefined,
       muscleGroups: muscleGroups ? (Array.isArray(muscleGroups) ? muscleGroups : [muscleGroups]) : undefined,
+      muscleGroupNames: muscleGroupNames ? (Array.isArray(muscleGroupNames) ? muscleGroupNames : [muscleGroupNames]) : undefined,
+      bodyRegions: bodyRegions ? (Array.isArray(bodyRegions) ? bodyRegions : [bodyRegions]) : undefined,
       excludeExercises: excludeExercises ? (Array.isArray(excludeExercises) ? excludeExercises : [excludeExercises]) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      limit: limit ? normalizedLimit : undefined,
       rehabFocus: rehabFocus === 'true',
       optPhase,
       libraryMode

@@ -343,8 +343,15 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import User from '../models/User.mjs';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
+const PAID_CREDIT_FREE_TRACKING_MESSAGE = 'Admin user management cannot assign paid credits to free-tracking clients';
+
+const parseAdminSessionCreditInput = (value, fallback = 0) => {
+  const parsed = Number(value ?? fallback);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
 
 /**
  * @route   GET /api/auth/users
@@ -398,6 +405,7 @@ router.get('/clients', protect, adminOnly, async (req, res) => {
         'phone',
         'photo',
         'availableSessions',
+        'clientSource',
         'createdAt',
         'lastLogin',
         // L5 (2026-05-02): per-client self-service plan generation flag.
@@ -588,6 +596,26 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
         message: 'User not found'
       });
     }
+
+    const requestedAvailableSessions = availableSessions !== undefined
+      ? parseAdminSessionCreditInput(availableSessions)
+      : undefined;
+
+    if (requestedAvailableSessions === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Available sessions must be a non-negative integer'
+      });
+    }
+
+    if (requestedAvailableSessions !== undefined
+      && requestedAvailableSessions > 0
+      && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(409).json({
+        success: false,
+        message: PAID_CREDIT_FREE_TRACKING_MESSAGE
+      });
+    }
     
     // Update fields if provided
     if (firstName) user.firstName = firstName;
@@ -597,7 +625,7 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
     if (role) user.role = role;
     
     // Handle numeric fields
-    if (availableSessions !== undefined) user.availableSessions = availableSessions;
+    if (requestedAvailableSessions !== undefined) user.availableSessions = requestedAvailableSessions;
     if (hourlyRate !== undefined && role === 'trainer') user.hourlyRate = hourlyRate;
     
     // Handle trainer-specific fields
@@ -731,10 +759,25 @@ router.post('/promote-client', protect, adminOnly, async (req, res) => {
         message: 'User not found'
       });
     }
+
+    const requestedAvailableSessions = parseAdminSessionCreditInput(availableSessions);
+    if (requestedAvailableSessions === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Available sessions must be a non-negative integer'
+      });
+    }
+
+    if (requestedAvailableSessions > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(409).json({
+        success: false,
+        message: PAID_CREDIT_FREE_TRACKING_MESSAGE
+      });
+    }
     
     // Update role to client and set available sessions
     user.role = 'client';
-    user.availableSessions = availableSessions || 0;
+    user.availableSessions = requestedAvailableSessions;
     await user.save();
     
     logger.info(`User ${userId} promoted to client by ${req.user.id}`);

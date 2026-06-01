@@ -221,7 +221,6 @@
 import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
@@ -229,9 +228,13 @@ import { Op } from 'sequelize';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
-import { sendEmailNotification } from '../utils/notification.mjs';
 import { getClientIp } from '../services/geoIpService.mjs';
 import { createNotification, createAdminNotification } from './notificationController.mjs';
+import {
+  getPasswordResetSecret,
+  hashPasswordResetToken,
+  sendPasswordResetEmailForUser,
+} from '../services/auth/passwordResetEmailService.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -272,11 +275,6 @@ const getJwtSecret = () => resolveJwtSecret('JWT_SECRET', process.env.JWT_SECRET
 const getRefreshJwtSecret = () => {
   const secret = process.env.JWT_REFRESH_SECRET || getJwtSecret();
   return resolveJwtSecret('JWT_REFRESH_SECRET', secret);
-};
-
-const getPasswordResetSecret = () => {
-  const secret = process.env.PASSWORD_RESET_SECRET || getJwtSecret();
-  return resolveJwtSecret('PASSWORD_RESET_SECRET', secret);
 };
 
 /**
@@ -1469,33 +1467,8 @@ export const forgotPassword = async (req, res) => {
       }
       logger.info(`[forgotPassword] user_lookup=found id=${user.id}`);
 
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHmac('sha256', resetSecret)
-        .update(rawToken).digest('hex');
-
-      // Persist token (must succeed before email is useful)
-      await user.update({
-        resetPasswordToken: hashedToken,
-        resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
-      });
-      logger.info(`[forgotPassword] token_persisted=true id=${user.id}`);
-
-      // Send email (only after token is in DB)
-      const resetUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/reset-password/${rawToken}`;
-      const emailResult = await sendEmailNotification({
-        to: user.email,
-        subject: 'SwanStudios Password Reset',
-        html: `<p>You requested a password reset for your SwanStudios account.</p>
-               <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
-               <p>This link expires in 1 hour. If you did not request this, please ignore this email.</p>`,
-        text: `Reset your SwanStudios password: ${resetUrl} (expires in 1 hour). If you did not request this, please ignore this email.`
-      });
-
-      if (emailResult.success) {
-        logger.info(`[forgotPassword] email_send=success id=${user.id}`);
-      } else {
-        logger.error(`[forgotPassword] email_send=failed id=${user.id} error=${emailResult.error?.message || 'unknown'}`);
-      }
+      await sendPasswordResetEmailForUser(user, { resetSecret });
+      logger.info(`[forgotPassword] email_send=success id=${user.id}`);
     } catch (err) {
       logger.error(`[forgotPassword] background_error: ${String(err?.message || err)}`, { stack: err?.stack });
     }
@@ -1511,9 +1484,8 @@ export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    let resetSecret;
     try {
-      resetSecret = getPasswordResetSecret();
+      getPasswordResetSecret();
     } catch (secretError) {
       return res.status(500).json({
         success: false,
@@ -1522,8 +1494,7 @@ export const resetPassword = async (req, res) => {
     }
 
     // Compute HMAC hash of provided token for O(1) indexed lookup
-    const hashedToken = crypto.createHmac('sha256', resetSecret)
-      .update(token).digest('hex');
+    const hashedToken = hashPasswordResetToken(token);
 
     const User = getUser();
     const user = await User.findOne({

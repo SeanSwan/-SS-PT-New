@@ -5,76 +5,11 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
-import { Plus, Save, Trash2, Zap } from 'lucide-react';
-import {
-  PageTitle,
-  SectionTitle,
-  BodyText,
-  SmallText,
-  ErrorText,
-  HelperText,
-  Label,
-  FormField,
-  StyledInput,
-  PrimaryButton,
-  OutlinedButton,
-  SecondaryButton,
-  Card,
-  CardHeader,
-  CardBody,
-  GridContainer,
-  FlexBox,
-  CustomSelect
-} from '../UniversalMasterSchedule/ui';
 import { useAutomationSequences, AutomationStep } from '../../hooks/useAutomationSequences';
 import apiService from '../../services/api.service';
-
-type TemplateOption = { value: string; label: string };
-
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const SequenceList = styled.div`
-  display: grid;
-  gap: 1rem;
-`;
-
-const StatusPill = styled.span<{ active: boolean }>`
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: ${props => props.active ? '#10b981' : '#f59e0b'};
-  background: ${props => props.active ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'};
-  border: 1px solid ${props => props.active ? 'rgba(16, 185, 129, 0.5)' : 'rgba(245, 158, 11, 0.5)'};
-`;
-
-const StepRow = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.75rem;
-  align-items: end;
-`;
-
-const TriggerPanel = styled(Card)`
-  border-style: dashed;
-`;
-
-const triggerEventOptions = [
-  { value: 'client_created', label: 'Client Created' },
-  { value: 'session_completed', label: 'Session Completed' },
-  { value: 'package_purchased', label: 'Package Purchased' }
-];
-
-const channelOptions = [
-  { value: 'sms', label: 'SMS' },
-  { value: 'email', label: 'Email' },
-  { value: 'push', label: 'Push' }
-];
+import AutomationConfirmDialog, { type AutomationConfirmRequest } from './AutomationConfirmDialog';
+import AutomationManagerView from './AutomationManagerView';
+import { triggerEventOptions, type TemplateOption } from './AutomationManager.options';
 
 const AutomationManager: React.FC = () => {
   const { data: sequences, isLoading, error, refetch } = useAutomationSequences();
@@ -88,6 +23,7 @@ const AutomationManager: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmRequest, setConfirmRequest] = useState<AutomationConfirmRequest | null>(null);
 
   const [testUserId, setTestUserId] = useState('');
   const [testEvent, setTestEvent] = useState(triggerEventOptions[0].value);
@@ -222,16 +158,13 @@ const AutomationManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedSequenceId) return;
-    if (!window.confirm('Delete this automation sequence?')) return;
-
+  const deleteSequence = async (sequenceId: number) => {
     try {
       setIsSubmitting(true);
       setFormError(null);
       setSuccessMessage(null);
 
-      const response = await apiService.delete(`/api/automation/sequences/${selectedSequenceId}`);
+      const response = await apiService.delete(`/api/automation/sequences/${sequenceId}`);
       const result = response.data;
 
       if (result?.success === false) {
@@ -248,6 +181,19 @@ const AutomationManager: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSequenceId) return;
+    const sequenceId = selectedSequenceId;
+    setConfirmRequest({
+      title: 'Delete automation sequence?',
+      message: 'This removes the selected follow-up sequence from active automation management.',
+      confirmLabel: 'Delete automation sequence',
+      cancelLabel: 'Keep sequence',
+      tone: 'danger',
+      onConfirm: () => deleteSequence(sequenceId),
+    });
   };
 
   const handleTrigger = async () => {
@@ -286,200 +232,40 @@ const AutomationManager: React.FC = () => {
   };
 
   return (
-    <Container>
-      <FlexBox justify="space-between" align="center" wrap>
-        <PageTitle>Automation Manager</PageTitle>
-        <FlexBox gap="0.5rem" wrap>
-          <SecondaryButton onClick={resetForm} disabled={isSubmitting}>Reset Form</SecondaryButton>
-          <PrimaryButton onClick={handleSave} disabled={isSubmitting}>
-            <Save size={16} /> Save Sequence
-          </PrimaryButton>
-        </FlexBox>
-      </FlexBox>
-
-      <BodyText secondary>
-        Build automated SMS follow-ups and session touchpoints using SwanStudios templates.
-      </BodyText>
-
-      {formError && <ErrorText>{formError}</ErrorText>}
-      {successMessage && <HelperText>{successMessage}</HelperText>}
-
-      <GridContainer columns={2} gap="1.5rem">
-        <Card>
-          <CardHeader>
-            <SectionTitle>Sequence Builder</SectionTitle>
-            <StatusPill active={isActive}>{isActive ? 'Active' : 'Paused'}</StatusPill>
-          </CardHeader>
-          <CardBody>
-            <FormField>
-              <Label required>Sequence Name</Label>
-              <StyledInput
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="New client nurture"
-              />
-            </FormField>
-
-            <FormField>
-              <Label required>Trigger Event</Label>
-              <CustomSelect
-                value={triggerEvent}
-                onChange={(value) => setTriggerEvent(String(value))}
-                options={triggerEventOptions}
-                placeholder="Select trigger"
-              />
-            </FormField>
-
-            <FormField>
-              <Label>Active</Label>
-              <FlexBox align="center" gap="0.5rem">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(event) => setIsActive(event.target.checked)}
-                />
-                <SmallText secondary>Enable this automation</SmallText>
-              </FlexBox>
-            </FormField>
-
-            <SectionTitle>Sequence Steps</SectionTitle>
-            <SmallText secondary>Define the timing and templates for each step.</SmallText>
-
-            <FlexBox direction="column" gap="1rem">
-              {steps.map((step, index) => (
-                <Card key={`step-${index}`} elevated>
-                  <CardBody>
-                    <StepRow>
-                      <FormField>
-                        <Label>Day Offset</Label>
-                        <StyledInput
-                          type="number"
-                          value={step.dayOffset}
-                          onChange={(event) => handleStepChange(index, 'dayOffset', Number(event.target.value))}
-                        />
-                      </FormField>
-
-                      <FormField>
-                        <Label>Template</Label>
-                        <CustomSelect
-                          value={step.templateName || ''}
-                          onChange={(value) => handleStepChange(index, 'templateName', value)}
-                          options={templates}
-                          placeholder="Choose template"
-                        />
-                      </FormField>
-
-                      <FormField>
-                        <Label>Channel</Label>
-                        <CustomSelect
-                          value={step.channel}
-                          onChange={(value) => handleStepChange(index, 'channel', value)}
-                          options={channelOptions}
-                          placeholder="Channel"
-                        />
-                      </FormField>
-                    </StepRow>
-
-                    <FlexBox justify="flex-end" gap="0.5rem">
-                      <OutlinedButton onClick={() => handleRemoveStep(index)}>
-                        <Trash2 size={16} /> Remove
-                      </OutlinedButton>
-                    </FlexBox>
-                  </CardBody>
-                </Card>
-              ))}
-            </FlexBox>
-
-            <FlexBox gap="0.5rem" wrap>
-              <SecondaryButton onClick={handleAddStep}>
-                <Plus size={16} /> Add Step
-              </SecondaryButton>
-              {selectedSequenceId && (
-                <OutlinedButton onClick={handleDelete}>
-                  <Trash2 size={16} /> Delete Sequence
-                </OutlinedButton>
-              )}
-            </FlexBox>
-          </CardBody>
-        </Card>
-
-        <FlexBox direction="column" gap="1.5rem">
-          <Card>
-            <CardHeader>
-              <SectionTitle>Existing Sequences</SectionTitle>
-            </CardHeader>
-            <CardBody>
-              {isLoading && <SmallText secondary>Loading sequences...</SmallText>}
-              {error && <ErrorText>{error}</ErrorText>}
-              {!isLoading && !error && (
-                <SequenceList>
-                  {sequences.map((sequence) => (
-                    <Card
-                      key={sequence.id}
-                      interactive
-                      onClick={() => setSelectedSequenceId(sequence.id)}
-                    >
-                      <CardBody>
-                        <FlexBox justify="space-between" align="center" gap="0.5rem">
-                          <FlexBox direction="column" gap="0.25rem">
-                            <SmallText>{sequence.name}</SmallText>
-                            <SmallText secondary>{sequence.triggerEvent}</SmallText>
-                            <SmallText secondary>{sequence.steps?.length || 0} steps</SmallText>
-                          </FlexBox>
-                          <StatusPill active={sequence.isActive}>
-                            {sequence.isActive ? 'Active' : 'Paused'}
-                          </StatusPill>
-                        </FlexBox>
-                      </CardBody>
-                    </Card>
-                  ))}
-                  {!sequences.length && (
-                    <SmallText secondary>No automation sequences created yet.</SmallText>
-                  )}
-                </SequenceList>
-              )}
-            </CardBody>
-          </Card>
-
-          <TriggerPanel>
-            <CardHeader>
-              <SectionTitle>Manual Trigger</SectionTitle>
-            </CardHeader>
-            <CardBody>
-              <BodyText secondary>Trigger a sequence for testing.</BodyText>
-              <FormField>
-                <Label required>User ID</Label>
-                <StyledInput
-                  value={testUserId}
-                  onChange={(event) => setTestUserId(event.target.value)}
-                  placeholder="Client user ID"
-                />
-              </FormField>
-              <FormField>
-                <Label required>Trigger Event</Label>
-                <CustomSelect
-                  value={testEvent}
-                  onChange={(value) => setTestEvent(String(value))}
-                  options={triggerEventOptions}
-                />
-              </FormField>
-              <FormField>
-                <Label>Message Override</Label>
-                <StyledInput
-                  value={testMessage}
-                  onChange={(event) => setTestMessage(event.target.value)}
-                  placeholder="Optional message override"
-                />
-                <HelperText>Optional: overrides the template message field.</HelperText>
-              </FormField>
-              <PrimaryButton onClick={handleTrigger} disabled={isSubmitting}>
-                <Zap size={16} /> Trigger Sequence
-              </PrimaryButton>
-            </CardBody>
-          </TriggerPanel>
-        </FlexBox>
-      </GridContainer>
-    </Container>
+    <>
+      <AutomationManagerView
+        sequences={sequences}
+        isLoading={isLoading}
+        error={error}
+        templates={templates}
+        selectedSequenceId={selectedSequenceId}
+        name={name}
+        triggerEvent={triggerEvent}
+        isActive={isActive}
+        steps={steps}
+        formError={formError}
+        successMessage={successMessage}
+        isSubmitting={isSubmitting}
+        testUserId={testUserId}
+        testEvent={testEvent}
+        testMessage={testMessage}
+        setSelectedSequenceId={setSelectedSequenceId}
+        setName={setName}
+        setTriggerEvent={setTriggerEvent}
+        setIsActive={setIsActive}
+        setTestUserId={setTestUserId}
+        setTestEvent={setTestEvent}
+        setTestMessage={setTestMessage}
+        resetForm={resetForm}
+        handleSave={handleSave}
+        handleAddStep={handleAddStep}
+        handleRemoveStep={handleRemoveStep}
+        handleStepChange={handleStepChange}
+        handleDelete={handleDelete}
+        handleTrigger={handleTrigger}
+      />
+      <AutomationConfirmDialog request={confirmRequest} onClose={() => setConfirmRequest(null)} />
+    </>
   );
 };
 

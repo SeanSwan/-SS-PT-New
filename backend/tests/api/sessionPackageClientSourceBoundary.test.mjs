@@ -1,0 +1,62 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
+const adminClientControllerSource = readFileSync(resolve(__dirname, '../../controllers/adminClientController.mjs'), 'utf8');
+
+describe('session package clientSource boundary', () => {
+  it('blocks manual package credit grants for non-deducting client sources', () => {
+    const start = packageRouteSource.indexOf("router.post('/add-sessions'");
+    const end = packageRouteSource.indexOf("router.post('/add-test-sessions'", start);
+    const source = packageRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(packageRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('Manual paid-session grants are disabled for free-tracking clients');
+  });
+
+  it('returns clientSource in admin billing overview and masks paid credits for free-tracking clients', () => {
+    const start = adminClientControllerSource.indexOf('async getBillingOverview');
+    const end = adminClientControllerSource.indexOf('async getMCPStatus', start);
+    const source = adminClientControllerSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(adminClientControllerSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']");
+    expect(source).toContain('const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);');
+    expect(source).toContain('clientSource: client.clientSource');
+    expect(source).toContain('sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0)');
+  });
+
+  it('blocks production test-session grants for non-deducting client sources', () => {
+    const start = packageRouteSource.indexOf("router.post('/add-test-sessions'");
+    const end = packageRouteSource.indexOf('export default router', start);
+    const source = packageRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('Test session grants are disabled for free-tracking clients');
+  });
+
+  it('converts legacy Stripe package grants to SwanStudios paid source before future deductions', () => {
+    const start = packageRouteSource.indexOf("if (event.type === 'checkout.session.completed')");
+    const end = packageRouteSource.indexOf("router.post('/add-sessions'", start);
+    const source = packageRouteSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('const userPackageUpdate = {};');
+    expect(source).toContain("userPackageUpdate.role = 'client';");
+    expect(source).toContain("userPackageUpdate.clientSource = 'swanstudios';");
+    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(source).toContain('await user.update(userPackageUpdate, { transaction });');
+  });
+});

@@ -15,7 +15,7 @@ import { motion } from 'framer-motion';
 import { Ruler, Scale } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import WidgetSkeleton from './WidgetSkeleton';
-import { CommandCard } from '../admin-dashboard-view';
+import { CommandCard } from '../AdminDashboardCards';
 
 /* ─── Styled Components ─────────────────────────────────── */
 
@@ -33,7 +33,7 @@ const ClientList = styled.ul`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.2);
+    background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
     border-radius: 3px;
   }
 `;
@@ -43,7 +43,7 @@ const ClientItem = styled(motion.li)`
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-tertiary, #4070C0) 12%, transparent);
 
   &:last-child {
     border-bottom: none;
@@ -56,7 +56,7 @@ const StatusDot = styled.span<{ $color: string }>`
   height: 10px;
   border-radius: 50%;
   background: ${({ $color }) => $color};
-  box-shadow: 0 0 6px ${({ $color }) => $color}80;
+  box-shadow: 0 0 6px color-mix(in srgb, ${({ $color }) => $color} 50%, transparent);
   flex-shrink: 0;
 `;
 
@@ -66,7 +66,7 @@ const ClientInfo = styled.div`
 `;
 
 const ClientName = styled.div`
-  color: #e2e8f0;
+  color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   font-size: 0.875rem;
   white-space: nowrap;
@@ -75,7 +75,7 @@ const ClientName = styled.div`
 `;
 
 const CheckType = styled.div`
-  color: #94a3b8;
+  color: var(--text-muted, #94A3B8);
   font-size: 0.75rem;
   display: flex;
   align-items: center;
@@ -90,17 +90,27 @@ const DaysBadge = styled.span<{ $color: string }>`
   font-size: 0.75rem;
   font-weight: 600;
   color: ${({ $color }) => $color};
-  background: ${({ $color }) => $color}20;
-  border: 1px solid ${({ $color }) => $color}40;
+  background: color-mix(in srgb, ${({ $color }) => $color} 20%, transparent);
+  border: 1px solid color-mix(in srgb, ${({ $color }) => $color} 40%, transparent);
   white-space: nowrap;
   flex-shrink: 0;
 `;
 
 const EmptyMsg = styled.div`
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-muted, #94A3B8);
   padding: 24px 0;
   font-size: 0.875rem;
+`;
+
+const WidgetTitle = styled.h3`
+  align-items: center;
+  color: var(--accent-primary, #60C0F0);
+  display: flex;
+  font-size: 1.25rem;
+  font-weight: 600;
+  gap: 8px;
+  margin: 0 0 1rem;
 `;
 
 const itemVariants = {
@@ -129,11 +139,13 @@ type NormalizedCheckStatus = {
   daysRemaining: number;
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  red: '#ef4444',
-  yellow: '#eab308',
-  green: '#22c55e',
+const STATUS_COLORS: Record<UpcomingCheck['status'], string> = {
+  red: 'var(--error, #EF4444)',
+  yellow: 'var(--warning, #EAB308)',
+  green: 'var(--success, #22C55E)',
 };
+
+const STATUS_FALLBACK = 'var(--text-muted, #94A3B8)';
 
 const normalizeCheckStatus = (value: unknown): NormalizedCheckStatus | null => {
   if (!value || typeof value !== 'object') return null;
@@ -213,18 +225,10 @@ const UpcomingChecksWidget: React.FC = () => {
 
   return (
     <CommandCard style={{ padding: '2rem', height: '100%', marginBottom: '1.5rem' }}>
-      <h3 style={{
-        color: '#60C0F0',
-        margin: '0 0 1rem 0',
-        fontSize: '1.25rem',
-        fontWeight: 600,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-      }}>
+      <WidgetTitle>
         <Ruler size={20} />
         Upcoming Check-ins
-      </h3>
+      </WidgetTitle>
 
       {loading ? (
         <WidgetSkeleton count={4} />
@@ -240,7 +244,7 @@ const UpcomingChecksWidget: React.FC = () => {
               animate="visible"
               transition={{ delay: index * 0.08 }}
             >
-              <StatusDot $color={STATUS_COLORS[check.status] || '#94a3b8'} />
+              <StatusDot $color={STATUS_COLORS[check.status] || STATUS_FALLBACK} />
               <ClientInfo>
                 <ClientName>{check.firstName} {check.lastName}</ClientName>
                 <CheckType>
@@ -251,7 +255,7 @@ const UpcomingChecksWidget: React.FC = () => {
                   )}
                 </CheckType>
               </ClientInfo>
-              <DaysBadge $color={STATUS_COLORS[check.status] || '#94a3b8'}>
+              <DaysBadge $color={STATUS_COLORS[check.status] || STATUS_FALLBACK}>
                 {formatDays(check.daysRemaining)}
               </DaysBadge>
             </ClientItem>

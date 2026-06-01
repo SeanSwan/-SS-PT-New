@@ -24,7 +24,7 @@
  */
 
 import React, { useState, useEffect, Suspense, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, createGlobalStyle } from 'styled-components';
 import { X } from 'lucide-react';
@@ -41,6 +41,7 @@ import {
   selectCurrentUserId
 } from '../../redux/slices/scheduleSlice';
 import { scheduleDashboardRouteScrollReset } from './DashboardRouteScroll';
+import { parseDashboardUserId } from './UniversalDashboardLayout.logic';
 
 // Import the three stellar sidebars
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
@@ -77,7 +78,6 @@ const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard
 const ClientOnboardingWizard = React.lazy(() => import('./Pages/admin-clients/components/ClientOnboardingWizard'));
 const ClientSelfOnboardingWizard = React.lazy(() => import('../../pages/onboarding/ClientOnboardingWizard'));
 const NutritionPlanBuilder = React.lazy(() => import('../Admin/NutritionPlanBuilder'));
-const WorkoutPlanBuilder = React.lazy(() => import('../Admin/WorkoutPlanBuilder'));
 const NotesManager = React.lazy(() => import('../Admin/NotesManager'));
 const PhotoManager = React.lazy(() => import('../Admin/PhotoManager'));
 const AutomationManager = React.lazy(() => import('../Admin/AutomationManager'));
@@ -473,7 +473,18 @@ const ClientProgressDashboardPage = React.lazy(
 // Wrapper component for detailed NASM analytics — kept for deep-link access
 const ClientProgressWrapper: React.FC = () => {
   const { user } = useAuth();
-  return <NASMProgressCharts clientId={Number(user?.id || 0)} />;
+  const clientId = parseDashboardUserId(user?.id);
+
+  if (!clientId) {
+    return (
+      <UniversalErrorContainer role="status">
+        <h2>Progress identity unavailable</h2>
+        <p>Reload the dashboard once your account identity finishes loading.</p>
+      </UniversalErrorContainer>
+    );
+  }
+
+  return <NASMProgressCharts clientId={clientId} />;
 };
 
 const ADMIN_PLAUD_COMMAND_CENTER_PATH = '/dashboard/admin/coach-assistant?workspace=plaud';
@@ -503,6 +514,23 @@ const ClientSelfOnboardingPage: React.FC = () => {
 const AdminClientDetailsRedirect: React.FC = () => {
   const location = useLocation();
   return <Navigate to={`/dashboard/admin/client-management${location.search}`} replace />;
+};
+
+const AdminWorkoutPlansRedirect: React.FC = () => {
+  const { clientId } = useParams<{ clientId?: string }>();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const queryClientId = params.get('clientId')?.trim();
+  const safeClientId = [clientId, queryClientId].find((value) => value && /^[1-9]\d*$/.test(value));
+
+  if (!safeClientId) {
+    return <Navigate to={'/dashboard/admin/client-management?intent=plan_next'} replace />;
+  }
+
+  params.set('clientId', safeClientId);
+  params.set('source', 'legacy-admin-workouts');
+  params.set('returnTo', `/dashboard/admin/client-management?clientId=${safeClientId}`);
+  return <Navigate to={`/dashboard/admin/workout-planner?${params.toString()}`} replace />;
 };
 
 // === ROLE CONFIGURATION ===
@@ -539,7 +567,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
       { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Create and update client nutrition plans' },
-      { path: '/workouts/:clientId?', component: WorkoutPlanBuilder, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
+      { path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
       { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
       { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
       { path: '/automation', component: AutomationManager, title: 'Automation Manager', description: 'Manage automated client outreach sequences' },
@@ -674,6 +702,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryInitNonce, setRetryInitNonce] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [omniTerminalOpen, setOmniTerminalOpen] = useState(false);
@@ -741,7 +770,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
     // Delay to ensure auth state is loaded
     const initTimer = window.setTimeout(initializeUserContext, 300);
     return () => window.clearTimeout(initTimer);
-  }, [user, userRole, dispatch, isValidRole]);
+  }, [user, userRole, dispatch, isValidRole, retryInitNonce]);
 
   // Handle sidebar toggle
   const handleToggleCollapse = useCallback(() => {
@@ -762,6 +791,12 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
     logout();
     navigate('/login?returnUrl=' + encodeURIComponent(location.pathname));
   };
+
+  const handleRetryInitialization = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    setRetryInitNonce(prev => prev + 1);
+  }, []);
 
   // Loading state
   const LoadingState = () => (
@@ -795,7 +830,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
       <p>{error}</p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
         <UniversalButton
-          onClick={() => window.location.reload()}
+          onClick={handleRetryInitialization}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >

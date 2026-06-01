@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import ClientExerciseMegaStats from './ClientExerciseMegaStats';
+import ClientExerciseMegaStats, { getExerciseMegaStatRowKey } from './ClientExerciseMegaStats';
 
 describe('ClientExerciseMegaStats', () => {
   it('renders every exercise ranked by most performed first', () => {
@@ -25,9 +25,55 @@ describe('ClientExerciseMegaStats', () => {
     expect(screen.getByText(/4 exercises tracked/i)).toBeInTheDocument();
   });
 
+  it('surfaces the most-trained and needs-attention exercise from the full diary', () => {
+    render(
+      <ClientExerciseMegaStats
+        exercises={[
+          { x: 'Pull Up', y: 4, sets: 12 },
+          { x: 'Push Up', y: 18, sets: 54 },
+          { x: 'Goblet Squat', y: 9, sets: 27 },
+          { x: 'Pallof Press', y: 2, sets: 6 },
+        ]}
+      />
+    );
+
+    const insights = screen.getByRole('group', { name: /exercise diary insights/i });
+    expect(within(insights).getByText(/most trained/i)).toBeInTheDocument();
+    expect(within(insights).getByText('Push Up')).toBeInTheDocument();
+    expect(within(insights).getByText(/18 logs \/ 54 sets/i)).toBeInTheDocument();
+    expect(within(insights).getByText(/needs attention/i)).toBeInTheDocument();
+    expect(within(insights).getByText('Pallof Press')).toBeInTheDocument();
+    expect(within(insights).getByText(/2 logs \/ 6 sets/i)).toBeInTheDocument();
+  });
+
   it('renders an empty state when no exercise history exists', () => {
     render(<ClientExerciseMegaStats exercises={[]} />);
 
     expect(screen.getByText(/no exercise history yet/i)).toBeInTheDocument();
+  });
+
+  it('filters non-finite exercise rows before ranking and width scaling', () => {
+    render(
+      <ClientExerciseMegaStats
+        exercises={[
+          { x: 'Infinite Push Up', y: Infinity, sets: 54 },
+          { x: 'Broken Squat', y: Number.NaN, sets: 12 },
+          { x: 'Pull Up', y: 4, sets: Number.NaN },
+        ]}
+      />
+    );
+
+    const rows = screen.getAllByRole('listitem');
+    expect(rows).toHaveLength(1);
+    expect(within(rows[0]).getByText('Pull Up')).toBeInTheDocument();
+    expect(screen.queryByText(/Infinity|NaN/)).not.toBeInTheDocument();
+    expect(within(rows[0]).getByText(/4 logs \/ 0 sets/i)).toBeInTheDocument();
+  });
+
+  it('keeps exercise diary row identity independent from rank order and changing totals', () => {
+    expect(getExerciseMegaStatRowKey({ x: 'Push Up', y: 18, sets: 54 }))
+      .toBe(getExerciseMegaStatRowKey({ x: 'Push Up', y: 12, sets: 36 }));
+    expect(getExerciseMegaStatRowKey({ x: 'Push Up', y: 18, sets: 54 }))
+      .not.toBe(getExerciseMegaStatRowKey({ x: 'Pull Up', y: 18, sets: 54 }));
   });
 });

@@ -39,12 +39,15 @@ vi.mock('../../models/index.mjs', () => ({
 import { grantSessionsForCart } from '../../services/SessionGrantService.mjs';
 
 // ── Helpers ──────────────────────────────────────────────────
-function makeUser(id, sessions = 0) {
+function makeUser(id, sessions = 0, overrides = {}) {
   return {
     id,
     availableSessions: sessions,
+    role: 'client',
+    clientSource: 'swanstudios',
     update: vi.fn().mockResolvedValue(true),
     increment: vi.fn().mockResolvedValue(true),
+    ...overrides,
   };
 }
 
@@ -169,6 +172,29 @@ describe('SessionGrantService', () => {
         },
         transaction: mockTransaction,
       })
+    );
+  });
+
+  it('converts free-tracking accounts to SwanStudios when a real paid cart grants sessions', async () => {
+    const cart = makeCart(1, 100);
+    const user = makeUser(100, 0, { clientSource: 'move_fitness' });
+    mockShoppingCart.findOne.mockResolvedValue(cart);
+    mockUserModel.findByPk.mockResolvedValue(user);
+
+    const result = await grantSessionsForCart(1, 100, 'verify-session');
+
+    expect(result.granted).toBe(true);
+    expect(user.increment).toHaveBeenCalledWith('availableSessions', {
+      by: 10,
+      transaction: mockTransaction,
+    });
+    expect(user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientSource: 'swanstudios',
+        hasPurchasedBefore: true,
+        lastPurchaseDate: expect.any(Date),
+      }),
+      { transaction: mockTransaction }
     );
   });
 

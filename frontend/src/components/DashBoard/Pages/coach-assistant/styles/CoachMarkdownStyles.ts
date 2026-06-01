@@ -169,6 +169,8 @@ export const CopyBtn = styled.button`
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
   border: none;
   border-radius: 4px;
   background: transparent;

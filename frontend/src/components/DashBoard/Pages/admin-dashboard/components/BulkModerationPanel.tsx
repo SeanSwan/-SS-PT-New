@@ -20,6 +20,7 @@ import {
   CheckSquare, Square, CheckCircle, X, EyeOff, Trash2,
   Play, Pause, RotateCcw, AlertTriangle, Clock, Zap
 } from 'lucide-react';
+import ConfirmActionDialog from '../../../../Shared/ConfirmActionDialog';
 
 // === STYLED COMPONENTS ===
 const BulkPanel = styled(motion.div)`
@@ -237,16 +238,14 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
     items: string[];
     timestamp: number;
   } | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
-  const handleBulkAction = useCallback(async (action: string) => {
+  const handleBulkAction = useCallback(async (action: string, confirmed = false) => {
     if (selectedItems.length === 0) return;
 
-    // Confirmation for destructive actions
-    if (action === 'delete') {
-      const confirmed = window.confirm(
-        `Are you sure you want to delete ${selectedItems.length} items? This action cannot be undone.`
-      );
-      if (!confirmed) return;
+    if (action === 'delete' && !confirmed) {
+      setDeleteConfirmOpen(true);
+      return;
     }
 
     try {
@@ -484,6 +483,20 @@ const BulkModerationPanel: React.FC<BulkModerationPanelProps> = ({
           Delete All
         </ActionButton>
       </ActionButtons>
+      <ConfirmActionDialog
+        open={deleteConfirmOpen}
+        title="Delete selected items?"
+        message={`This permanently deletes ${selectedItems.length} selected moderation items. Approve, reject, or hide is safer if the content may need review later.`}
+        confirmLabel="Delete selected"
+        cancelLabel="Keep selected"
+        tone="danger"
+        busy={progress.isRunning}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => {
+          setDeleteConfirmOpen(false);
+          void handleBulkAction('delete', true);
+        }}
+      />
     </BulkPanel>
   );
 };

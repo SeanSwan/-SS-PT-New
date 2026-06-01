@@ -45,6 +45,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(fullscreen);
+  const [retryNonce, setRetryNonce] = useState(0);
   
   // Check if user has admin permissions (simplified)
   const hasAdminPermissions = (() => {
@@ -75,13 +76,13 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
     };
     
     initializeComponent();
-  }, [hasAdminPermissions]);
+  }, [hasAdminPermissions, retryNonce]);
   
   // Error Recovery
   const handleRetry = () => {
     setError(null);
     setIsLoading(true);
-    window.location.reload();
+    setRetryNonce(prevNonce => prevNonce + 1);
   };
   
   // Render error state

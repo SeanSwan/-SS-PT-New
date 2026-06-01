@@ -84,4 +84,14 @@ describe('client activation queue adapter', () => {
       route: '/dashboard/admin/admin-sessions?clientId=9',
     });
   });
+
+  it('normalizes activation client ids before building admin action routes', () => {
+    expect(getAdminActivationCta(makeRow('complete_waiver', '12' as any))).toEqual({
+      label: 'Review Waiver',
+      route: '/dashboard/admin/waivers?clientId=12',
+    });
+
+    expect(getAdminActivationCta(makeRow('complete_waiver', '12junk' as any))).toBeNull();
+    expect(getAdminActivationCta(makeRow('schedule_first_session', 0))).toBeNull();
+  });
 });

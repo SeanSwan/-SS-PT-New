@@ -123,9 +123,10 @@ export function CoachIntakeWorkspace({
   }, [activeItemKey, activeReviewTargetId]);
 
   React.useEffect(() => {
-    if (!activeProposalId || activeProposalId !== activeItem?.latestProposalId) return;
+    if (!activeProposalId) return;
+    if (activeItem && activeProposalId !== activeItem.latestProposalId) return;
     setReviewingProposalId(activeProposalId);
-  }, [activeProposalId, activeItem?.latestProposalId]);
+  }, [activeProposalId, activeItem]);
 
   React.useEffect(() => {
     if (!activeIntakeId || !activeReviewTargetId || focusedActiveDossierRef.current === activeReviewTargetId) return undefined;

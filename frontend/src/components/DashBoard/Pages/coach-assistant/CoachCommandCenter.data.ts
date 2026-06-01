@@ -29,6 +29,24 @@ export type CommandLogEntry = {
   label: string;
   body: string;
   attachments?: string[];
+  commandConfirmation?: CommandLogConfirmation;
+  commandResult?: CommandLogResult;
+};
+
+export type CommandLogConfirmation = {
+  operationId: string | null;
+  command: string;
+  params: Record<string, unknown>;
+  client: { id?: number; firstName?: string; lastName?: string } | null;
+  details: Record<string, unknown> | null;
+  isDestructive: boolean;
+};
+
+export type CommandLogResult = {
+  command: string;
+  result: Record<string, unknown> | null;
+  client: { id?: number; firstName?: string } | null;
+  message?: string;
 };
 
 export const COMMAND_THREADS: CommandThread[] = [

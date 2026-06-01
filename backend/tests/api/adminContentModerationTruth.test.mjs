@@ -79,4 +79,15 @@ describe('admin content moderation truth contract', () => {
     expect(source).toContain('!contentIds.every(isValidContentId)');
     expect(source).toContain("message: 'Invalid bulk moderation payload'");
   });
+
+  it('cleans social post media and hashtag counters before admin hard-delete', () => {
+    const source = readFileSync(resolve(__dirname, '../../controllers/adminContentModerationController.mjs'), 'utf8');
+    const cleanupIndex = source.indexOf('cleanupSocialPostDeletionSideEffects(post');
+    const destroyIndex = source.indexOf('post.destroy({ transaction })');
+
+    expect(source).toContain('cleanupSocialPostDeletionSideEffects');
+    expect(cleanupIndex).toBeGreaterThan(-1);
+    expect(destroyIndex).toBeGreaterThan(-1);
+    expect(cleanupIndex).toBeLessThan(destroyIndex);
+  });
 });

@@ -55,6 +55,7 @@ const ExerciseFilterChips: React.FC<ExerciseFilterChipsProps> = memo(({
         return (
           <Chip
             key={cat}
+            type="button"
             role="radio"
             aria-checked={isActive}
             $active={isActive}

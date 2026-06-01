@@ -358,9 +358,7 @@ class EnhancedClientDashboardService {
 
   async bookSession(sessionId: string): Promise<SessionEvent> {
     try {
-      const response: AxiosResponse<{ session: SessionEvent }> = await apiClient.post('/api/schedule/book', {
-        sessionId,
-      });
+      const response: AxiosResponse<{ session: SessionEvent }> = await apiClient.post(`/api/sessions/${sessionId}/book`, {});
       
       return {
         ...response.data.session,
@@ -375,7 +373,9 @@ class EnhancedClientDashboardService {
 
   async cancelSession(sessionId: string): Promise<void> {
     try {
-      await apiClient.post('/api/schedule/cancel', { sessionId });
+      await apiClient.patch(`/api/sessions/${sessionId}/cancel`, {
+        reason: 'Cancelled from client dashboard'
+      });
     } catch (error) {
       console.error('❌ Error cancelling session:', error);
       throw error;

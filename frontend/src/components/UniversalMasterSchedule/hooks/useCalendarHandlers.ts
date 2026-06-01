@@ -241,7 +241,7 @@ export const useCalendarHandlers = (dependencies: {
       
       // Mark session as completed with loading state
       await withLoadingState(
-        sessionService.updateSession(sessionId, { status: 'completed' }),
+        sessionService.completeSession(sessionId),
         'medium'
       );
       

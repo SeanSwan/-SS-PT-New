@@ -14,7 +14,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
-import { CS } from './WorkoutLoggerCS';
+import { CS, withAlpha } from './WorkoutLoggerCS';
 import apiService from '../../services/api.service';
 
 interface GhostSet {
@@ -147,9 +147,9 @@ const GhostRow = styled.div`
   gap: 0.375rem;
   padding: 0.25rem 0.75rem;
   margin-bottom: 0.25rem;
-  background: rgba(96, 192, 240, 0.04);
+  background: ${withAlpha(CS.gaming, 0.04)};
   border-radius: 0.375rem;
-  border-left: 2px solid rgba(96, 192, 240, 0.15);
+  border-left: 2px solid ${withAlpha(CS.gaming, 0.15)};
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
   opacity: 0.5;
@@ -161,7 +161,7 @@ const GhostRow = styled.div`
 `;
 
 const GhostLabel = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: ${withAlpha(CS.text, 0.4)};
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -169,10 +169,10 @@ const GhostLabel = styled.span`
 `;
 
 const GhostValue = styled.span`
-  color: var(--accent-primary, ${CS.glow});
+  color: ${CS.glow};
   font-weight: 500;
 `;
 
 const GhostSep = styled.span`
-  color: var(--text-muted, rgba(224, 236, 244, 0.3));
+  color: ${withAlpha(CS.text, 0.3)};
 `;

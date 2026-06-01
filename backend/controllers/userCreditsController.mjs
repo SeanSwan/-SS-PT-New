@@ -13,12 +13,19 @@
  * - packageName/expiresAt are optional; return null when unknown.
  */
 import User from '../models/User.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import logger from '../utils/logger.mjs';
+
+export const getSourceAwareSessionsRemaining = (user) => {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(user?.clientSource)) return 0;
+  const sessions = Number(user?.availableSessions || 0);
+  return Number.isFinite(sessions) && sessions > 0 ? sessions : 0;
+};
 
 export const getUserCredits = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
-      attributes: ['id', 'availableSessions', 'masterPromptJson']
+      attributes: ['id', 'availableSessions', 'clientSource', 'masterPromptJson']
     });
 
     if (!user) {
@@ -35,7 +42,8 @@ export const getUserCredits = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        sessionsRemaining: user.availableSessions || 0,
+        sessionsRemaining: getSourceAwareSessionsRemaining(user),
+        clientSource: user.clientSource,
         packageName,
         expiresAt
       }

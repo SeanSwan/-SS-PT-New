@@ -1,10 +1,10 @@
 /**
  * MyClientsView.tsx - Enhanced Trainer Client Management
  * =====================================================
- * 
+ *
  * Revolutionary My Clients Interface for SwanStudios Trainer Dashboard
  * Implements the complete NASM workflow management system with real-time data
- * 
+ *
  * CORE FEATURES:
  * ✅ Real-time client-trainer assignments from API
  * ✅ Client session count tracking and management
@@ -14,14 +14,14 @@
  * ✅ Direct communication interface
  * ✅ Mobile-responsive stellar command center design
  * ✅ WCAG AA accessibility compliance
- * 
+ *
  * INTEGRATIONS:
  * - ClientTrainerAssignment API service
  * - Session management system
  * - NASM progress tracking
  * - Universal scheduling system
  * - Real-time WebSocket updates
- * 
+ *
  * TRAINER WORKFLOW:
  * 1. View assigned clients with session counts
  * 2. Quick access to log workouts for each client
@@ -30,802 +30,81 @@
  * 5. Communicate with clients directly
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
+import React, { useState, useCallback } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Users, Plus, Search, MoreVertical, User,
-  Calendar, TrendingUp, MessageSquare, Star,
-  Activity, Target, Clock, CheckCircle,
-  AlertCircle, Edit, Eye, BookOpen,
-  Zap, Award, BarChart3, Timer,
-  Phone, Mail, MapPin, Filter,
-  ArrowRight, RefreshCw, Download,
-  FileText, Settings, UserPlus, Sparkles
+  Users,
+  AlertCircle,
+  RefreshCw,
+  UserPlus,
 } from 'lucide-react';
 
-// Context and Services
-import { useAuth } from '../../../context/AuthContext';
-import { useGlobalClient } from '../../../context/GlobalClientContext';
-import { clientTrainerAssignmentService } from '../../../services/clientTrainerAssignmentService';
-import { sessionService } from '../../../services/sessionService';
 import { useToast } from '../../../hooks/use-toast';
 
 // Components
 import GlowButton from '../../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
 import WorkoutCopilotPanel from '../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel';
-import { logger } from '@/utils/logger';
-
-// Types
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  photo?: string;
-  availableSessions: number;
-  totalSessionsCompleted: number;
-  lastSessionDate?: string;
-  nextSessionDate?: string;
-  status: 'active' | 'inactive' | 'pending';
-  goals: {
-    current: number;
-    completed: number;
-  };
-  progress: {
-    overallProgress: number;
-    recentTrend: 'improving' | 'stable' | 'declining';
-    lastAssessment?: string;
-  };
-  membershipLevel: 'basic' | 'premium' | 'elite';
-  joinDate: string;
-  notes?: string;
-}
-
-interface ClientAssignment {
-  id: string;
-  client: Client;
-  assignedAt: string;
-  notes?: string;
-  isActive: boolean;
-}
-
-// === ANIMATIONS ===
-const clientPulse = keyframes`
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
-`;
-
-const progressGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
-`;
-
-const cardHover = keyframes`
-  0% { transform: translateX(0); }
-  100% { transform: translateX(8px); }
-`;
-
-// === STYLED COMPONENTS ===
-const ClientsContainer = styled(motion.div)`
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem;
-  
-  @media (max-width: 768px) {
-    padding: 0.5rem;
-  }
-`;
-
-const HeaderSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1.5rem;
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-`;
-
-const HeaderTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  
-  h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-    background: linear-gradient(135deg, #8B5CF6 0%, #8b5cf6 50%, #60C0F0 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .client-count {
-    background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    
-    h1 {
-      font-size: 1.5rem;
-    }
-  }
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  
-  @media (max-width: 768px) {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-`;
-
-const FilterSection = styled(motion.div)`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-`;
-
-const SearchContainer = styled.div`
-  position: relative;
-  flex: 1;
-  min-width: 250px;
-  
-  .search-input {
-    width: 100%;
-    background: rgba(30, 30, 60, 0.6);
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 12px;
-    padding: 0.75rem 1rem 0.75rem 3rem;
-    color: white;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-    
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
-    
-    &:focus {
-      outline: none;
-      border-color: #8b5cf6;
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-    }
-  }
-  
-  .search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.5);
-  }
-`;
-
-const FilterButton = styled(motion.button)<{ active?: boolean }>`
-  background: ${props => 
-    props.active 
-      ? 'linear-gradient(135deg, #8B5CF6, #8b5cf6)'
-      : 'rgba(30, 30, 60, 0.6)'
-  };
-  border: 1px solid ${props => 
-    props.active 
-      ? 'transparent'
-      : 'rgba(139, 92, 246, 0.3)'
-  };
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  color: white;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  
-  &:hover {
-    background: ${props => 
-      props.active 
-        ? 'linear-gradient(135deg, #8B5CF6, #8b5cf6)'
-        : 'rgba(50, 50, 80, 0.4)'
-    };
-    transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
-  }
-`;
-
-const StatsRow = styled(motion.div)`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-`;
-
-const StatCard = styled.div<{ color: string }>`
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid ${props => `${props.color}30`};
-  border-radius: 12px;
-  padding: 1.25rem;
-  text-align: center;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    border-color: ${props => `${props.color}60`};
-    box-shadow: 0 0 20px ${props => `${props.color}30`};
-    transform: translateY(-2px);
-  }
-  
-  .stat-icon {
-    color: ${props => props.color};
-    margin-bottom: 0.5rem;
-  }
-  
-  .stat-number {
-    font-size: 2rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 0.25rem;
-  }
-  
-  .stat-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
-  }
-`;
-
-const ClientsGrid = styled(motion.div)`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-  gap: 1.5rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-`;
-
-const ClientCard = styled(motion.div)<{ membershipColor: string }>`
-  background: rgba(30, 30, 60, 0.6);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 4px;
-    height: 100%;
-    background: ${props => props.membershipColor};
-    opacity: 0.8;
-  }
-  
-  &:hover {
-    border-color: rgba(139, 92, 246, 0.6);
-    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
-    animation: ${cardHover} 0.3s ease forwards;
-    
-    .client-actions {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-`;
-
-const ClientHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const ClientAvatar = styled.div<{ status: string }>`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 1.2rem;
-  position: relative;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: ${({ status }) => {
-      switch (status) {
-        case 'active': return '#10b981';
-        case 'inactive': return '#ef4444';
-        case 'pending': return '#f59e0b';
-        default: return '#6b7280';
-      }
-    }};
-    border: 2px solid rgba(30, 30, 60, 0.6);
-    animation: ${clientPulse} 2s ease-in-out infinite;
-  }
-`;
-
-const ClientInfo = styled.div`
-  flex: 1;
-  min-width: 0;
-`;
-
-const ClientName = styled.h3`
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
-  margin: 0 0 0.25rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  .membership-badge {
-    padding: 0.2rem 0.6rem;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-`;
-
-const ClientDetails = styled.div`
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.4;
-`;
-
-const ClientMetrics = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-  margin: 1rem 0;
-`;
-
-const MetricItem = styled.div`
-  text-align: center;
-  padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  
-  .metric-icon {
-    color: #8b5cf6;
-    margin-bottom: 0.25rem;
-  }
-  
-  .metric-value {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: white;
-    margin-bottom: 0.25rem;
-  }
-  
-  .metric-label {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-`;
-
-const ProgressBar = styled.div<{ progress: number; trend: string }>`
-  width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 3px;
-  overflow: hidden;
-  margin: 0.5rem 0;
-  
-  &::after {
-    content: '';
-    display: block;
-    height: 100%;
-    width: ${props => props.progress}%;
-    background: ${props => {
-      switch (props.trend) {
-        case 'improving': return 'linear-gradient(90deg, #10b981, #34d399)';
-        case 'stable': return 'linear-gradient(90deg, #3b82f6, #60a5fa)';
-        case 'declining': return 'linear-gradient(90deg, #ef4444, #f87171)';
-        default: return 'linear-gradient(90deg, #6b7280, #9ca3af)';
-      }
-    }};
-    border-radius: 3px;
-    animation: ${props => props.trend === 'improving' ? progressGlow : 'none'} 2s ease-in-out infinite;
-    transition: width 0.6s ease-out;
-  }
-`;
-
-const ClientActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  opacity: 0;
-  transform: translateX(20px);
-  transition: all 0.3s ease;
-  
-  @media (max-width: 768px) {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
-
-const ActionButton = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'success' | 'warning' }>`
-  background: ${props => {
-    switch (props.variant) {
-      case 'primary': return 'linear-gradient(135deg, #8B5CF6, #8b5cf6)';
-      case 'success': return 'linear-gradient(135deg, #10b981, #34d399)';
-      case 'warning': return 'linear-gradient(135deg, #f59e0b, #fbbf24)';
-      default: return 'rgba(255, 255, 255, 0.1)';
-    }
-  }};
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-`;
-
-const NeedsPlanWrapper = styled.div`
-  position: relative;
-  display: inline-flex;
-`;
-
-const NeedsPlanDot = styled.span`
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ff6b6b;
-  border: 2px solid #1a1a2e;
-  animation: needsPlanPulse 2s ease-in-out infinite;
-
-  @keyframes needsPlanPulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.3); opacity: 0.7; }
-  }
-`;
-
-const EmptyState = styled(motion.div)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  
-  .empty-icon {
-    color: rgba(139, 92, 246, 0.5);
-    margin-bottom: 1.5rem;
-  }
-  
-  h3 {
-    color: white;
-    margin-bottom: 0.5rem;
-  }
-  
-  p {
-    margin-bottom: 2rem;
-    max-width: 400px;
-    line-height: 1.6;
-  }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  color: white;
-`;
-
-// === UTILITY FUNCTIONS ===
-const getInitials = (firstName: string, lastName: string): string => {
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-};
-
-const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-  
-  if (diffInDays === 0) return 'Today';
-  if (diffInDays === 1) return 'Yesterday';
-  if (diffInDays < 7) return `${diffInDays} days ago`;
-  if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-  return `${Math.floor(diffInDays / 30)} months ago`;
-};
-
-const getMembershipColor = (level: string): string => {
-  switch (level) {
-    case 'elite': return '#FFD700';
-    case 'premium': return '#8b5cf6';
-    case 'basic': return '#3b82f6';
-    default: return '#6b7280';
-  }
-};
-
-const getMembershipBadgeStyle = (level: string) => {
-  switch (level) {
-    case 'elite':
-      return { background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000' };
-    case 'premium':
-      return { background: 'linear-gradient(135deg, #8b5cf6, #a855f7)', color: '#fff' };
-    case 'basic':
-      return { background: 'linear-gradient(135deg, #3b82f6, #60a5fa)', color: '#fff' };
-    default:
-      return { background: 'rgba(107, 114, 128, 0.8)', color: '#fff' };
-  }
-};
-
-type TrainerClientIntent = 'log_workout' | null;
-
-const getTrainerClientIntent = (searchParams: URLSearchParams): TrainerClientIntent => {
-  const intent = searchParams.get('intent');
-  return intent === 'log_workout' ? intent : null;
-};
+import { downloadTrainerClientReport } from './trainerClientReportExport';
+import {
+  ClientsContainer,
+  ClientsGrid,
+  EmptyState,
+  LoadingContainer,
+} from './MyClientsView.layoutStyles';
+import {
+  getTrainerClientIntent,
+  parseTrainerClientManagementId,
+} from './MyClientsView.logic';
+import {
+  TrainerClientsFilters,
+  TrainerClientsHeader,
+  TrainerClientsStats,
+} from './MyClientsView.sections';
+import { TrainerClientCard } from './MyClientsView.clientCard';
+import { useTrainerClients } from './useTrainerClients';
 
 // === MAIN COMPONENT ===
 const MyClientsView: React.FC = () => {
-  const { user, authAxios } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  // Phase 18.A (2026-04-20): admin-view-as trainer dashboard pulls from the
-  // global admin roster (/api/admin/clients via GlobalClientContext) instead
-  // of the trainer-assignment endpoint — which returns empty for an admin
-  // with no trainer rows. Trainer accounts keep the existing assignment path.
-  const { clientList, loadingClients: loadingGlobalClients } = useGlobalClient();
-  const isAdminViewAs = user?.role === 'admin';
   const trainerClientIntent = getTrainerClientIntent(searchParams);
-  
-  // State
-  const [clients, setClients] = useState<ClientAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'pending'>('all');
-  const [refreshing, setRefreshing] = useState(false);
   const [copilotClient, setCopilotClient] = useState<{ id: number; name: string } | null>(null);
-
-  // Computed values
-  const filteredClients = useMemo(() => {
-    return clients.filter(assignment => {
-      const client = assignment.client;
-      const matchesSearch = 
-        client.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-      
-      return matchesSearch && matchesStatus && assignment.isActive;
-    });
-  }, [clients, searchTerm, statusFilter]);
-  
-  const stats = useMemo(() => {
-    const activeClients = clients.filter(a => a.client.status === 'active' && a.isActive);
-    const totalSessions = activeClients.reduce((sum, a) => sum + a.client.availableSessions, 0);
-    const completedSessions = activeClients.reduce((sum, a) => sum + a.client.totalSessionsCompleted, 0);
-    const improvingClients = activeClients.filter(a => a.client.progress.recentTrend === 'improving').length;
-    
-    return {
-      totalClients: activeClients.length,
-      totalSessions,
-      completedSessions,
-      improvingClients
-    };
-  }, [clients]);
-  
-  // Load client assignments
-  const loadClients = useCallback(async () => {
-    if (!user) return;
-
-    // Phase 18.A (2026-04-20): admin-view-as branch. When admin visits
-    // /dashboard/trainer/clients, skip the trainer-assignment endpoint
-    // (which 403s or returns empty for an admin user with no trainer rows)
-    // and synthesize ClientAssignment[] from GlobalClientContext.clientList,
-    // which is already populated from /api/admin/clients. No backend
-    // change, no JWT swap. The view-as banner rendered by
-    // UniversalDashboardLayout makes the mode explicit. All writes still
-    // audit to the real admin account.
-    if (isAdminViewAs) {
-      // Wait for the global context to finish its own fetch before adapting.
-      if (loadingGlobalClients) return;
-
-      setLoading(true);
-      setError(null);
-
-      const adapted: ClientAssignment[] = clientList.map((c): ClientAssignment => ({
-        id: `admin-viewas-${c.id}`,
-        assignedAt: new Date().toISOString(),
-        isActive: true,
-        notes: undefined,
-        client: {
-          id: String(c.id),
-          firstName: c.firstName,
-          lastName: c.lastName,
-          email: c.email,
-          phone: undefined,
-          photo: c.photo,
-          availableSessions: c.availableSessions ?? 0,
-          totalSessionsCompleted: 0,
-          lastSessionDate: undefined,
-          nextSessionDate: undefined,
-          status: 'active',
-          goals: { current: 0, completed: 0 },
-          // Deterministic placeholder until the real progress API is wired.
-          progress: {
-            overallProgress: 0,
-            recentTrend: 'stable',
-            lastAssessment: undefined,
-          },
-          membershipLevel: c.membershipLevel ?? 'basic',
-          joinDate: new Date().toISOString(),
-          notes: undefined,
-        },
-      }));
-
-      setClients(adapted);
-      setLoading(false);
-      setRefreshing(false);
+  const {
+    error,
+    filteredClients,
+    handleRefresh,
+    loadClients,
+    loading,
+    refreshing,
+    searchTerm,
+    setSearchTerm,
+    setStatusFilter,
+    stats,
+    statusFilter,
+  } = useTrainerClients();
+  const handleExportReport = useCallback(() => {
+    if (filteredClients.length === 0) {
+      toast({
+        title: 'No clients to export',
+        description: 'Adjust filters or refresh clients before exporting.',
+      });
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    downloadTrainerClientReport(filteredClients);
+    toast({
+      title: 'Client report exported',
+      description: `Exported ${filteredClients.length} visible client${filteredClients.length === 1 ? '' : 's'}.`,
+    });
+  }, [filteredClients, toast]);
 
-      // Fetch trainer's client assignments
-      // Use the trainer-specific endpoint (GET /) is admin-only, trainers use /trainer/:id
-      const response = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
-      const assignmentsData = response.data?.assignments || response.data || [];
-
-      // Normalize API response to ClientAssignment shape. Backend returns
-      // assignment.status ('active'|'inactive'|'pending') and the inner
-      // client object without a status field. The local type expects
-      // assignment.isActive: boolean and client.status: string for the
-      // filter + stats memos. The /trainer/:id endpoint already filters
-      // to active rows server-side, so isActive is true for every result.
-      const enhancedAssignments = await Promise.all(
-        (Array.isArray(assignmentsData) ? assignmentsData : []).map(async (assignment: any) => {
-          const assignmentStatus: string = assignment.status || 'active';
-          try {
-            // Get client's session history and upcoming sessions
-            const [sessions, upcomingSessions] = await Promise.all([
-              authAxios.get(`/api/sessions/history/${assignment.client.id}?limit=5`),
-              authAxios.get(`/api/sessions/upcoming/${assignment.client.id}?limit=3`)
-            ]);
-
-            const sessionRows = Array.isArray(sessions.data) ? sessions.data : [];
-            const upcomingRows = Array.isArray(upcomingSessions.data) ? upcomingSessions.data : [];
-            const client: Client = {
-              ...assignment.client,
-              status: assignmentStatus as Client['status'],
-              totalSessionsCompleted: sessionRows.filter((s: any) => s.status === 'completed').length,
-              lastSessionDate: sessionRows[0]?.sessionDate,
-              nextSessionDate: upcomingRows[0]?.sessionDate,
-              goals: {
-                current: 0,
-                completed: 0
-              },
-              progress: {
-                overallProgress: 0,
-                recentTrend: 'stable',
-                lastAssessment: sessionRows[0]?.sessionDate
-              },
-              membershipLevel: assignment.client.membershipLevel || 'basic'
-            };
-
-            return {
-              ...assignment,
-              isActive: assignmentStatus === 'active',
-              client
-            };
-          } catch (err) {
-            logger.warn('Error fetching client session data:', err);
-            return {
-              ...assignment,
-              isActive: assignmentStatus === 'active',
-              client: {
-                ...assignment.client,
-                status: assignmentStatus as Client['status'],
-                totalSessionsCompleted: 0,
-                goals: { current: 0, completed: 0 },
-                progress: {
-                  overallProgress: 0,
-                  recentTrend: 'stable',
-                  lastAssessment: undefined,
-                },
-                membershipLevel: assignment.client.membershipLevel || 'basic',
-              },
-            };
-          }
-        })
-      );
-      
-      setClients(enhancedAssignments);
-      
-    } catch (err: any) {
-      console.error('Error loading clients:', err);
-      setError(err.response?.data?.message || 'Failed to load clients');
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to load client assignments', 
-        variant: 'destructive' 
-      });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user, authAxios, toast, isAdminViewAs, clientList, loadingGlobalClients]);
-  
-  // Initialize component
-  useEffect(() => {
-    loadClients();
-  }, [loadClients]);
-  
-  // Handlers
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadClients();
-  }, [loadClients]);
-  
   const handleLogWorkout = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/log-workout?clientId=${clientId}`);
   }, [navigate]);
-  
+
   const handleViewProgress = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/client-progress?clientId=${clientId}`);
   }, [navigate]);
@@ -838,15 +117,32 @@ const MyClientsView: React.FC = () => {
 
     handleViewProgress(clientId);
   }, [handleLogWorkout, handleViewProgress, trainerClientIntent]);
-  
+
   const handleScheduleSession = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/schedule?clientId=${clientId}`);
   }, [navigate]);
-  
+
   const handleMessageClient = useCallback((clientId: string) => {
     navigate(`/dashboard/trainer/messages?clientId=${clientId}`);
   }, [navigate]);
-  
+
+  const handleOpenCopilot = useCallback((clientId: string, clientName: string) => {
+    const parsedClientId = parseTrainerClientManagementId(clientId);
+
+    if (parsedClientId === null) {
+      toast({
+        title: 'Client identity unavailable',
+        description: 'Refresh your client list before launching Workout Intelligence.',
+      });
+      return;
+    }
+
+    setCopilotClient({
+      id: parsedClientId,
+      name: clientName,
+    });
+  }, [toast]);
+
   // Render loading state
   if (loading) {
     return (
@@ -861,7 +157,7 @@ const MyClientsView: React.FC = () => {
       </LoadingContainer>
     );
   }
-  
+
   // Render error state
   if (error) {
     return (
@@ -878,123 +174,29 @@ const MyClientsView: React.FC = () => {
       </EmptyState>
     );
   }
-  
+
   return (
     <ClientsContainer
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      {/* Header */}
-      <HeaderSection>
-        <HeaderTitle>
-          <Users size={32} style={{ color: '#8b5cf6' }} />
-          <div>
-            <h1>My Clients</h1>
-            <div className="client-count">
-              {stats.totalClients} Active Clients
-            </div>
-          </div>
-        </HeaderTitle>
-        
-        <HeaderActions>
-          <GlowButton
-            text="Export Report"
-            theme="cosmic"
-            size="small"
-            leftIcon={<Download size={16} />}
-            onClick={() => toast({ title: 'Coming Soon', description: 'Client export feature in development' })}
-          />
-          <GlowButton
-            text="Refresh"
-            theme="purple"
-            size="small"
-            leftIcon={<RefreshCw size={16} />}
-            onClick={handleRefresh}
-            disabled={refreshing}
-          />
-        </HeaderActions>
-      </HeaderSection>
-      
-      {/* Stats */}
-      <StatsRow
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <StatCard color="#8b5cf6">
-          <Users size={24} className="stat-icon" />
-          <div className="stat-number">{stats.totalClients}</div>
-          <div className="stat-label">Active Clients</div>
-        </StatCard>
-        <StatCard color="#10b981">
-          <CheckCircle size={24} className="stat-icon" />
-          <div className="stat-number">{stats.completedSessions}</div>
-          <div className="stat-label">Sessions Completed</div>
-        </StatCard>
-        <StatCard color="#3b82f6">
-          <Calendar size={24} className="stat-icon" />
-          <div className="stat-number">{stats.totalSessions}</div>
-          <div className="stat-label">Sessions Remaining</div>
-        </StatCard>
-        <StatCard color="#f59e0b">
-          <TrendingUp size={24} className="stat-icon" />
-          <div className="stat-number">{stats.improvingClients}</div>
-          <div className="stat-label">Improving Clients</div>
-        </StatCard>
-      </StatsRow>
-      
-      {/* Filters */}
-      <FilterSection
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <SearchContainer>
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search clients by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </SearchContainer>
-        
-        <FilterButton
-          active={statusFilter === 'all'}
-          onClick={() => setStatusFilter('all')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          All Clients
-        </FilterButton>
-        <FilterButton
-          active={statusFilter === 'active'}
-          onClick={() => setStatusFilter('active')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Active
-        </FilterButton>
-        <FilterButton
-          active={statusFilter === 'inactive'}
-          onClick={() => setStatusFilter('inactive')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Inactive
-        </FilterButton>
-        <FilterButton
-          active={statusFilter === 'pending'}
-          onClick={() => setStatusFilter('pending')}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Pending
-        </FilterButton>
-      </FilterSection>
-      
+      <TrainerClientsHeader
+        totalClients={stats.totalClients}
+        refreshing={refreshing}
+        onExportReport={handleExportReport}
+        onRefresh={handleRefresh}
+      />
+
+      <TrainerClientsStats stats={stats} />
+
+      <TrainerClientsFilters
+        searchTerm={searchTerm}
+        statusFilter={statusFilter}
+        onSearchTermChange={setSearchTerm}
+        onStatusFilterChange={setStatusFilter}
+      />
+
       {/* Clients Grid */}
       {filteredClients.length > 0 ? (
         <ClientsGrid
@@ -1003,178 +205,19 @@ const MyClientsView: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           <AnimatePresence mode="popLayout">
-            {filteredClients.map((assignment, index) => {
-              const { client } = assignment;
-              const membershipColor = getMembershipColor(client.membershipLevel);
-              
-              return (
-                <ClientCard
-                  key={client.id}
-                  membershipColor={membershipColor}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  whileHover={{ scale: 1.02 }}
-                  onClick={() => handleOpenClient(client.id)}
-                >
-                  <ClientHeader>
-                    <ClientAvatar status={client.status}>
-                      {getInitials(client.firstName, client.lastName)}
-                    </ClientAvatar>
-                    <ClientInfo>
-                      <ClientName>
-                        {client.firstName} {client.lastName}
-                        <span 
-                          className="membership-badge"
-                          style={getMembershipBadgeStyle(client.membershipLevel)}
-                        >
-                          {client.membershipLevel}
-                        </span>
-                      </ClientName>
-                      <ClientDetails>
-                        <div>📧 {client.email}</div>
-                        {client.phone && <div>📞 {client.phone}</div>}
-                        <div>📅 Joined {formatTimeAgo(client.joinDate)}</div>
-                      </ClientDetails>
-                    </ClientInfo>
-                  </ClientHeader>
-                  
-                  <ClientMetrics>
-                    <MetricItem>
-                      <Calendar size={16} className="metric-icon" />
-                      <div className="metric-value">{client.availableSessions}</div>
-                      <div className="metric-label">Sessions Left</div>
-                    </MetricItem>
-                    <MetricItem>
-                      <CheckCircle size={16} className="metric-icon" />
-                      <div className="metric-value">{client.totalSessionsCompleted}</div>
-                      <div className="metric-label">Completed</div>
-                    </MetricItem>
-                    <MetricItem>
-                      <Target size={16} className="metric-icon" />
-                      <div className="metric-value">{client.goals.current}</div>
-                      <div className="metric-label">Active Goals</div>
-                    </MetricItem>
-                    <MetricItem>
-                      <Award size={16} className="metric-icon" />
-                      <div className="metric-value">{client.goals.completed}</div>
-                      <div className="metric-label">Achieved</div>
-                    </MetricItem>
-                  </ClientMetrics>
-                  
-                  {/* Progress Bar */}
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      marginBottom: '0.5rem' 
-                    }}>
-                      <span style={{ 
-                        fontSize: '0.85rem', 
-                        color: 'rgba(255, 255, 255, 0.7)' 
-                      }}>
-                        Overall Progress
-                      </span>
-                      <span style={{ 
-                        fontSize: '0.85rem', 
-                        color: 'white', 
-                        fontWeight: 600 
-                      }}>
-                        {Math.round(client.progress.overallProgress)}%
-                      </span>
-                    </div>
-                    <ProgressBar 
-                      progress={client.progress.overallProgress} 
-                      trend={client.progress.recentTrend}
-                    />
-                    <div style={{ 
-                      fontSize: '0.75rem', 
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      textAlign: 'center',
-                      marginTop: '0.25rem'
-                    }}>
-                      Trend: {client.progress.recentTrend}
-                      {client.lastSessionDate && (
-                        <> • Last session: {formatTimeAgo(client.lastSessionDate)}</>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <ClientActions className="client-actions">
-                    <ActionButton
-                      variant="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLogWorkout(client.id);
-                      }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="Log Workout"
-                    >
-                      <Edit size={16} />
-                    </ActionButton>
-                    <ActionButton
-                      variant="success"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleScheduleSession(client.id);
-                      }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="Schedule Session"
-                    >
-                      <Calendar size={16} />
-                    </ActionButton>
-                    <ActionButton
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMessageClient(client.id);
-                      }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="Message Client"
-                    >
-                      <MessageSquare size={16} />
-                    </ActionButton>
-                    <ActionButton
-                      variant="warning"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProgress(client.id);
-                      }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      title="View Progress"
-                    >
-                      <BarChart3 size={16} />
-                    </ActionButton>
-                    <NeedsPlanWrapper>
-                      <ActionButton
-                        variant="primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCopilotClient({
-                            id: Number(client.id),
-                            name: `${client.firstName} ${client.lastName}`,
-                          });
-                        }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        title={client.totalSessionsCompleted === 0
-                          ? 'Generate first AI workout plan'
-                          : 'Workout Intelligence'}
-                      >
-                        <Sparkles size={16} />
-                      </ActionButton>
-                      {client.totalSessionsCompleted === 0 && <NeedsPlanDot />}
-                    </NeedsPlanWrapper>
-                  </ClientActions>
-                </ClientCard>
-              );
-            })}
+            {filteredClients.map((assignment, index) => (
+              <TrainerClientCard
+                key={assignment.client.id}
+                assignment={assignment}
+                index={index}
+                onOpenClient={handleOpenClient}
+                onLogWorkout={handleLogWorkout}
+                onScheduleSession={handleScheduleSession}
+                onMessageClient={handleMessageClient}
+                onViewProgress={handleViewProgress}
+                onOpenCopilot={handleOpenCopilot}
+              />
+            ))}
           </AnimatePresence>
         </ClientsGrid>
       ) : (
@@ -1193,9 +236,9 @@ const MyClientsView: React.FC = () => {
             <GlowButton
               text="Contact Admin"
               theme="purple"
-              onClick={() => toast({ 
-                title: 'Contact Admin', 
-                description: 'Please reach out to your administrator for client assignments' 
+              onClick={() => toast({
+                title: 'Contact Admin',
+                description: 'Please reach out to your administrator for client assignments'
               })}
               leftIcon={<UserPlus size={18} />}
             />

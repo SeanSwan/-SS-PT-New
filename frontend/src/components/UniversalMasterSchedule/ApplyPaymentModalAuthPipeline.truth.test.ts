@@ -23,6 +23,8 @@ describe('ApplyPaymentModal auth pipeline', () => {
     expect(modalsSource).toContain('preselectedClientId={preselectedPaymentClientId ?? undefined}');
 
     expect(coreRoutesSource).toContain("app.use('/api/sessions/deductions', sessionDeductionRoutes)");
+    expect(coreRoutesSource.indexOf("app.use('/api/sessions/deductions', sessionDeductionRoutes)"))
+      .toBeLessThan(coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)"));
     expect(coreRoutesSource).toContain("app.use('/api/admin/charge-card', adminChargeCardRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/storefront', storefrontRoutes)");
     expect(deductionRoutesSource).toContain("router.get('/clients-needing-payment'");
@@ -54,5 +56,17 @@ describe('ApplyPaymentModal auth pipeline', () => {
     expect(modalSource).not.toContain("localStorage.getItem('token')");
     expect(modalSource).not.toContain('Authorization');
     expect(modalSource).not.toContain('fetch(');
+  });
+
+  it('defensively filters non-deducting client sources out of payment recovery UI', () => {
+    const modalSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.tsx');
+    const deductionServiceSource = readSource('backend/services/sessionDeductionService.mjs');
+
+    expect(deductionServiceSource).toContain('clientSource: { [Op.notIn]: Array.from(NON_DEDUCTING_CLIENT_SOURCES) }');
+    expect(modalSource).toContain('clientSource?: string;');
+    expect(modalSource).toContain('isNonDeductingClientSource');
+    expect(modalSource).toContain('const paymentEligibleClients = (result.data || []).filter');
+    expect(modalSource).toContain('!isNonDeductingClientSource(client.clientSource)');
+    expect(modalSource).toContain('setClients(paymentEligibleClients);');
   });
 });

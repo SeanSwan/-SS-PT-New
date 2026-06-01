@@ -41,6 +41,7 @@ RULES:
 7. For client references, extract the name exactly as spoken (the system will fuzzy-match later).
 8. Parse dates naturally: "tomorrow" = next day, "Tuesday" = next Tuesday, "3/19" = 2026-03-19.
 9. Parse times naturally: "3pm" = "15:00", "10:30 in the morning" = "10:30".
+10. If a client creation request is missing firstName, lastName, or clientSource, return clarification_needed with one short question for the missing field.
 
 AVAILABLE COMMANDS:
 ${commandList}
@@ -49,8 +50,8 @@ OUTPUT FORMAT (strict JSON, no wrapping):
 {"intent":"command_type","clientRef":"client name or null","params":{"key":"value"},"confidence":0.95}
 
 EXAMPLES:
-User: "Add Jackie from Move Fitness"
-{"intent":"create_external_client","clientRef":"Jackie","params":{"firstName":"Jackie","clientSource":"move_fitness"},"confidence":0.95}
+User: "Add Jackie Reed from Move Fitness"
+{"intent":"create_external_client","clientRef":"Jackie Reed","params":{"firstName":"Jackie","lastName":"Reed","clientSource":"move_fitness"},"confidence":0.95}
 
 User: "Schedule her for Tuesday at 3pm"
 {"intent":"schedule_session","clientRef":null,"params":{"date":"next_tuesday","time":"15:00"},"confidence":0.85}

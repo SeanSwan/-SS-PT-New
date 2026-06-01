@@ -12,4 +12,11 @@ describe('legacy CheckoutSuccess truth contract', () => {
     expect(SOURCE).not.toMatch(/`pi_\$\{Date\.now\(\)\}/);
     expect(SOURCE).toContain('Missing Stripe checkout session ID');
   });
+
+  it('retries initialization in-app instead of reloading the page', () => {
+    expect(SOURCE).not.toContain('window.location.reload()');
+    expect(SOURCE).toContain('const [retryNonce, setRetryNonce] = useState<number>(0);');
+    expect(SOURCE).toContain('setRetryNonce(prevNonce => prevNonce + 1);');
+    expect(SOURCE).toContain('retryNonce');
+  });
 });

@@ -1,11 +1,5 @@
-/**
- * CoachActionProposalCard.tsx
- * ===========================
- * Approval card for structured Swan Coach proposals. Coach can prepare drafts;
- * server-side deterministic code owns final record writes.
- */
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, Eye, Loader2, ShieldCheck, XCircle } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, ExternalLink, Eye, Loader2, ShieldCheck, XCircle } from 'lucide-react';
 import type { CoachActionProposal } from './SwanCoachTypes';
 import {
   answerCoachProposalClarification,
@@ -18,13 +12,24 @@ import {
   buildDetailRows,
   clarificationOptionsFromDetail,
   hasDetailBlockingError,
-  proposalTypeLabel,
   safeProposalBlockingErrorMessage,
 } from './CoachActionProposalDetailRows';
 import { CoachActionProposalSplitPlanPanel } from './CoachActionProposalSplitPlanPanel';
-import { dispatchCoachProposalAction } from '../../../../services/coachProposalActionEvents';
+import {
+  createdClientHubRoute,
+  publishProposalAction,
+  safeProposalStatus,
+  safeProposalTitle,
+  safeProposalTypeLabel,
+  safeSummaryClient,
+  safeSummaryDate,
+  safeSummaryExerciseCount,
+  terminalStatusMessage,
+  type CoachActionProposalCardProps,
+} from './CoachActionProposalCard.logic';
 import {
   ActionButton,
+  ActionLink,
   Actions,
   Card,
   DetailPanel,
@@ -35,66 +40,6 @@ import {
   Value,
 } from './CoachActionProposalCard.styles';
 
-interface CoachActionProposalCardProps { proposal: CoachActionProposal; onProposalAction?: (proposal: CoachActionProposal) => void; }
-
-function publishProposalAction(
-  nextProposal: CoachActionProposal,
-  onProposalAction?: (proposal: CoachActionProposal) => void,
-) {
-  if (onProposalAction) {
-    onProposalAction(nextProposal);
-    return;
-  }
-  dispatchCoachProposalAction(nextProposal);
-}
-
-function terminalStatusMessage(status: CoachActionProposal['status'], type: CoachActionProposal['type']): string | null {
-  if (status === 'APPLIED') {
-    return 'This draft has already been applied through deterministic approval.';
-  }
-  if (status === 'REJECTED') {
-    return 'This proposal has already been rejected. Prepare a new draft if this intake still needs work.';
-  }
-  if (status === 'APPROVED' && type === 'split_plan') {
-    return 'Split plan approved. Review the generated workout drafts before any workout is logged.';
-  }
-  if (status === 'APPROVED' && type === 'clarification') {
-    return 'Clarification recorded. Coach can prepare the next deterministic draft.';
-  }
-  if (status === 'APPROVED') {
-    return 'Draft approved. Deterministic follow-up may still be pending.';
-  }
-  return null;
-}
-
-const VALID_PROPOSAL_STATUSES = new Set(['PENDING', 'APPLYING', 'APPROVED', 'APPLIED', 'REJECTED', 'FAILED']);
-
-function safeProposalTitle(type: CoachActionProposal['type']): string {
-  return `${proposalTypeLabel(type)} proposal`;
-}
-
-function safeSummaryClient(summary: CoachActionProposal['summary']): string {
-  const clientId = Number(summary.clientId);
-  return Number.isInteger(clientId) && clientId > 0 ? `#${clientId}` : 'Needs review';
-}
-
-function safeSummaryDate(date: CoachActionProposal['summary'][string]): string {
-  const value = String(date || '').trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : 'Needs review';
-}
-
-function safeSummaryExerciseCount(count: CoachActionProposal['summary'][string]): string | null {
-  if (count == null || String(count).trim() === '') {
-    return null;
-  }
-  const value = Number(count);
-  return Number.isInteger(value) && value >= 0 ? String(value) : null;
-}
-
-function safeProposalStatus(value: CoachActionProposal['status']): string {
-  return VALID_PROPOSAL_STATUSES.has(value) ? value : 'Needs review';
-}
-
 export function CoachActionProposalCard({ proposal, onProposalAction }: CoachActionProposalCardProps) {
   const [status, setStatus] = useState(proposal.status);
   const [busy, setBusy] = useState<'approve' | 'clarification' | 'detail' | 'reject' | null>(null);
@@ -103,6 +48,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const [reviewToken, setReviewToken] = useState<string | null>(proposal.reviewToken || null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createdClientRoute, setCreatedClientRoute] = useState<string | null>(null);
   const summary = proposal.summary || {};
   const pending = status === 'PENDING';
   const approveLabel = proposal.type === 'workout_log'
@@ -117,7 +63,7 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const headerTitle = safeProposalTitle(proposal.type);
   const visibleStatus = safeProposalStatus(status);
   const rows = useMemo(() => [
-    ['Type', proposalTypeLabel(proposal.type)],
+    ['Type', safeProposalTypeLabel(proposal.type)],
     ['Client', safeSummaryClient(summary)],
     ['Date', safeSummaryDate(summary.date)],
     ['Exercises', safeSummaryExerciseCount(summary.exerciseCount)],
@@ -150,12 +96,14 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
   const runApprove = async () => {
     setBusy('approve');
     setError(null);
+    setCreatedClientRoute(null);
     try {
       const result = await approveCoachProposal(proposal.id, reviewToken);
       const nextProposal = result.proposal || { ...proposal, status: result.applied ? 'APPLIED' : 'APPROVED' };
       setStatus(nextProposal.status);
       publishProposalAction(nextProposal, onProposalAction);
       if (result.client) {
+        setCreatedClientRoute(createdClientHubRoute(result.client));
         setMessage('Client created through deterministic onboarding approval.');
       } else if (proposal.type === 'client_data_update' && result.partial) {
         setMessage('Some client updates applied; review the remaining errors.');
@@ -275,6 +223,14 @@ export function CoachActionProposalCard({ proposal, onProposalAction }: CoachAct
         <StatusText><CheckCircle2 size={14} /> {terminalMessage}</StatusText>
       )}
       {message && <StatusText><CheckCircle2 size={14} /> {message}</StatusText>}
+      {createdClientRoute && (
+        <Actions aria-label="Onboarding next steps">
+          <ActionLink to={createdClientRoute}>
+            <ExternalLink size={16} />
+            Open Client Hub
+          </ActionLink>
+        </Actions>
+      )}
       {error && <StatusText $error>{error}</StatusText>}
     </Card>
     {generatedProposals.map((generatedProposal) => (

@@ -72,6 +72,7 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 
 const mockClientTrainerAssignmentFindOne = vi.fn();
 const mockTrainerPermissionsFindOne = vi.fn();
+const mockSessionFindByPk = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: mockUserFindOne }),
@@ -80,6 +81,7 @@ vi.mock('../models/index.mjs', () => ({
     create: mockDailyWorkoutFormCreate,
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
+  getSession: () => ({ findByPk: mockSessionFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: mockClientTrainerAssignmentFindOne }),
   getTrainerPermissions: () => ({ findOne: mockTrainerPermissionsFindOne }),
   getBodyMeasurement: () => ({ findOne: vi.fn() }),
@@ -171,6 +173,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUserDecrement.mockResolvedValue(undefined);
   mockDailyWorkoutFormUpdate.mockResolvedValue(undefined);
+  mockSessionFindByPk.mockReset();
 });
 
 // ─── Bug 1 — totalSets propagates into defaults ────────────────────
@@ -343,5 +346,44 @@ describe('Phase 1 Slice 1.1 — completionFields contract is consistent between 
         expect(updateArgs[key]).toEqual(createDefaults[key]);
       }
     }
+  });
+});
+
+describe('Phase 1 Slice 1.2 — linked schedule attendance gate', () => {
+  it('refuses to convert a no-show scheduled session into a logged workout', async () => {
+    mockDailyWorkoutFormFindOne.mockResolvedValueOnce(null);
+    mockUserFindByPk.mockResolvedValueOnce({
+      id: 11,
+      clientSource: 'swanstudios',
+      availableSessions: 10,
+      decrement: mockUserDecrement,
+    });
+    mockSessionFindByPk.mockResolvedValueOnce({
+      id: 777,
+      userId: 11,
+      trainerId: null,
+      status: 'scheduled',
+      attendanceStatus: 'no_show',
+      sessionDeducted: false,
+      update: vi.fn().mockResolvedValue(undefined),
+    });
+    mockWorkoutSessionFindOrCreate.mockResolvedValueOnce([
+      { id: 'should-not-write', update: vi.fn().mockResolvedValue(undefined) },
+      true,
+    ]);
+    mockDailyWorkoutFormCreate.mockResolvedValueOnce({
+      id: 'should-not-create',
+      update: mockDailyWorkoutFormUpdate,
+    });
+
+    const res = await request(app)
+      .post('/api/workout-forms')
+      .send({ ...VALID_PAYLOAD, scheduledSessionId: 777 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/no-show/i);
+    expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
+    expect(mockUserDecrement).not.toHaveBeenCalled();
   });
 });

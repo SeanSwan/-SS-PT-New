@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { useAuth } from '../../../context/AuthContext';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
 import { useProfile } from '../../../hooks/profile/useProfile';
+import { useToast } from '../../../hooks/use-toast';
 import {
   getTransformationPhotos,
   getTransformationVisibility,
@@ -19,6 +20,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 export function useUserDashboardV3Controller() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const {
     profile,
     stats,
@@ -30,6 +32,7 @@ export function useUserDashboardV3Controller() {
     uploadBannerPhoto,
     uploadBannerCollagePhoto,
     updateProfile,
+    refreshProfile,
     getDisplayName,
     getUsernameForDisplay,
     getUserInitials,
@@ -163,7 +166,7 @@ export function useUserDashboardV3Controller() {
   }, []);
 
   const handleShare = useCallback(async () => {
-    const shareUrl = `${window.location.origin}/profile/${user?.id}`;
+    const shareUrl = user?.id ? `${window.location.origin}/profile/${user.id}` : window.location.href;
     const shareData = { title: `${getDisplayName()} on SwanStudios`, url: shareUrl };
 
     if (navigator.share) {
@@ -176,12 +179,22 @@ export function useUserDashboardV3Controller() {
     }
 
     try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(shareUrl);
-      alert('Profile link copied to clipboard!');
+      toast({
+        title: 'Profile link copied',
+        description: 'The profile link is ready to share.',
+        variant: 'success',
+      });
     } catch {
+      toast({
+        title: 'Share failed',
+        description: 'Copy was not available in this browser.',
+        variant: 'destructive',
+      });
       return;
     }
-  }, [getDisplayName, user?.id]);
+  }, [getDisplayName, toast, user?.id]);
 
   return {
     profile,
@@ -210,6 +223,7 @@ export function useUserDashboardV3Controller() {
     profileInputRef,
     backgroundInputRef,
     updateProfile,
+    refreshProfile,
     getDisplayName,
     getUsernameForDisplay,
     getUserInitials,

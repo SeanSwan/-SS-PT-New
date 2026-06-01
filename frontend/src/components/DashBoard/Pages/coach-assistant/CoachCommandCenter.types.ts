@@ -1,0 +1,49 @@
+import type { ConversationSummary } from '../../../../hooks/useAIChat';
+
+export type DrawerSide = 'left' | 'right';
+
+export type QueueMetric = {
+  label: string;
+  value: string;
+  note: string;
+  accent: string;
+};
+
+export type IntakeStateTile = {
+  label: string;
+  value: string;
+  tone: 'hold' | 'stale' | 'processing' | 'ready' | 'failed';
+};
+
+export type QueueHealthRow = {
+  label: string;
+  value: string;
+  tone: IntakeStateTile['tone'];
+};
+
+export type DossierTile = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+export type ClientContextTile = {
+  label: string;
+  value: string;
+};
+
+export type CoachQueueSummaryView = {
+  total: number;
+  actionable: number;
+  today: number;
+  unprocessed: number;
+  processing: number;
+  readyReview: number;
+  needsClarification: number;
+  duplicateHold: number;
+  failed: number;
+  needsClient: number;
+  preparedDrafts: number;
+};
+
+export type CoachThreadSummary = ConversationSummary;

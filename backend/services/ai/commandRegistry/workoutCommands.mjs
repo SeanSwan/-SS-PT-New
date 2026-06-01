@@ -1,5 +1,5 @@
 /**
- * Command Registry — Category B: Workout Management (12 commands)
+ * Command Registry — Category B: Workout Management (17 commands)
  */
 import { z } from 'zod';
 import { registerCommands, DateSchema, NASMPhaseSchema, PaginationSchema } from './baseSchemas.mjs';
@@ -9,7 +9,7 @@ const commands = [
     type: 'build_workout_plan',
     description: 'Build a workout plan for a client (triggers AI debate)',
     naturalLanguagePatterns: ['build a workout plan for {client}', 'create a workout for {client}', 'design a program for {client}'],
-    method: 'POST', endpoint: '/api/workouts/plans',
+    method: 'POST', endpoint: '/api/workout-plans',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       nasmPhase: NASMPhaseSchema.optional(),
@@ -26,7 +26,7 @@ const commands = [
     type: 'create_nasm_program',
     description: 'Create a NASM phase-specific program for a client',
     naturalLanguagePatterns: ['create a phase {phase} program for {client}', 'NASM phase {phase} plan for {client}'],
-    method: 'POST', endpoint: '/api/workouts/plans',
+    method: 'POST', endpoint: '/api/workout-plans',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       nasmPhase: NASMPhaseSchema,
@@ -48,7 +48,7 @@ const commands = [
       title: z.string().max(200).optional().describe('Session title; auto-generated if absent'),
       date: DateSchema.optional(),
       duration: z.number().int().min(0).default(0).describe('Session duration in minutes'),
-      intensity: z.number().int().min(1).max(10).default(5).describe('Session intensity 1–10'),
+      intensity: z.number().int().min(1).max(10).optional().describe('Session intensity 1–10 when explicitly dictated'),
       notes: z.string().max(1000).optional(),
       // Exercise array (flat format — sets is a count, not an array)
       exercises: z.array(z.object({
@@ -83,7 +83,7 @@ const commands = [
     type: 'generate_periodization',
     description: 'Generate a long-term periodization plan for a client',
     naturalLanguagePatterns: ['generate a 12-week periodization for {client}', 'long-term plan for {client}', 'periodization for {client}'],
-    method: 'POST', endpoint: '/api/workouts/plans',
+    method: 'POST', endpoint: '/api/workout-plans',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       durationWeeks: z.number().int().min(4).max(52).default(12),
@@ -97,7 +97,7 @@ const commands = [
     type: 'view_workout_history',
     description: 'Show a client\'s workout history',
     naturalLanguagePatterns: ['show {client}\'s workout history', '{client}\'s past workouts', 'workout log for {client}'],
-    method: 'GET', endpoint: '/api/workouts/sessions/user/:clientId',
+    method: 'GET', endpoint: '/api/workout/sessions/user/:clientId',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
     }).merge(PaginationSchema),
@@ -134,8 +134,20 @@ const commands = [
     type: 'view_exercise_recommendations',
     description: 'Show exercise recommendations for a client',
     naturalLanguagePatterns: ['show exercise recommendations for {client}', 'what exercises for {client}', 'recommend exercises for {client}'],
-    method: 'GET', endpoint: '/api/workouts/recommendations/:clientId',
-    inputSchema: z.object({ clientId: z.number().int().positive() }),
+    method: 'GET', endpoint: '/api/workout/recommendations/:clientId',
+    inputSchema: z.object({
+      clientId: z.number().int().positive(),
+      goal: z.string().min(1).max(80).optional(),
+      difficulty: z.string().min(1).max(80).optional(),
+      equipment: z.array(z.string().min(1).max(80)).max(10).optional(),
+      muscleGroups: z.array(z.string().uuid()).max(10).optional(),
+      muscleGroupNames: z.array(z.string().min(1).max(80)).max(10).optional(),
+      bodyRegions: z.array(z.enum(['upper_body', 'lower_body', 'core', 'full_body'])).max(4).optional(),
+      excludeExercises: z.array(z.string().uuid()).max(25).optional(),
+      limit: z.number().int().min(1).max(10).optional(),
+      rehabFocus: z.boolean().optional(),
+      optPhase: NASMPhaseSchema.optional(),
+    }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: true, category: 'B',
@@ -144,7 +156,7 @@ const commands = [
     type: 'create_workout_session',
     description: 'Create a workout session for a client on a specific date',
     naturalLanguagePatterns: ['create a workout session for {client} on {date}', 'add workout for {client} on {date}'],
-    method: 'POST', endpoint: '/api/workouts/sessions',
+    method: 'POST', endpoint: '/api/workout/sessions',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       date: DateSchema,
@@ -158,8 +170,10 @@ const commands = [
     type: 'delete_workout_plan',
     description: 'Delete a workout plan',
     naturalLanguagePatterns: ['delete workout plan {id}', 'remove plan {id}'],
-    method: 'DELETE', endpoint: '/api/workouts/plans/:planId',
-    inputSchema: z.object({ planId: z.number().int().positive() }),
+    method: 'DELETE', endpoint: '/api/workout-plans/:planId',
+    inputSchema: z.object({
+      planId: z.union([z.string().uuid(), z.number().int().positive()]),
+    }),
     destructive: true, requiresConfirmation: true,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: false, category: 'B',
@@ -168,7 +182,7 @@ const commands = [
     type: 'view_workout_statistics',
     description: 'Show a client\'s workout statistics',
     naturalLanguagePatterns: ['show {client}\'s workout statistics', '{client}\'s workout stats', 'how often does {client} work out'],
-    method: 'GET', endpoint: '/api/workouts/statistics/:clientId',
+    method: 'GET', endpoint: '/api/workout/statistics/:clientId',
     inputSchema: z.object({ clientId: z.number().int().positive() }),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],

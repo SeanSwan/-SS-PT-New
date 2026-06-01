@@ -1,10 +1,11 @@
-import { getWorkoutSession, getUser, getModel, Op } from '../models/index.mjs';
+import { getUser } from '../models/index.mjs';
+import {
+  getRecentWorkoutSessionsWithLogs,
+  getWorkoutSessionWithLogs,
+} from './nasmWorkoutLogAnalysisService.mjs';
 
 // Models resolved at call time (after initializeModelsCache() runs at startup)
 const getModels = () => ({
-  WorkoutSession: getWorkoutSession(),
-  WorkoutExercise: getModel('WorkoutExercise'),
-  Set: getModel('Set'),
   User: getUser(),
 });
 
@@ -105,7 +106,7 @@ const EXERCISE_CATEGORIES = {
  */
 export async function updateClientProgress(userId, workoutSessionId) {
   try {
-    const { WorkoutSession, WorkoutExercise, Set, User } = getModels();
+    const { User } = getModels();
     // Get user's current NASM level (assumes User model has nasmLevel field)
     const user = await User.findByPk(userId);
     if (!user) {
@@ -114,17 +115,7 @@ export async function updateClientProgress(userId, workoutSessionId) {
 
     const currentLevel = user.nasmLevel || 'stabilization';
 
-    // Get latest workout
-    const workout = await WorkoutSession.findByPk(workoutSessionId, {
-      include: [{
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [{
-          model: Set,
-          as: 'sets'
-        }]
-      }]
-    });
+    const workout = await getWorkoutSessionWithLogs(userId, workoutSessionId);
 
     if (!workout || !workout.exercises || workout.exercises.length === 0) {
       return {
@@ -309,24 +300,7 @@ function getTargetIntensityForPhase(level) {
  */
 async function checkProgressionReadiness(userId, currentLevel, performanceAnalysis) {
   try {
-    const { WorkoutSession, WorkoutExercise, Set } = getModels();
-    // Get last 6 workouts to assess consistency
-    const recentWorkouts = await WorkoutSession.findAll({
-      where: {
-        userId,
-        status: 'completed'
-      },
-      order: [['sessionDate', 'DESC']],
-      limit: 6,
-      include: [{
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [{
-          model: Set,
-          as: 'sets'
-        }]
-      }]
-    });
+    const recentWorkouts = await getRecentWorkoutSessionsWithLogs(userId, { limit: 6 });
 
     if (recentWorkouts.length < 4) {
       return {

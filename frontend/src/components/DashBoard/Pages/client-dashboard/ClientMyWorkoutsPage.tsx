@@ -57,58 +57,16 @@ import {
   EmptyText, ErrorCard, RetryBtn, ShimmerCard,
   AccentIconSlot, StatIconSlot,
 } from './ClientMyWorkoutsStyles';
+import { CLIENT_WORKOUTS_PAGE_LIMIT, groupWorkoutLogsByExercise } from './ClientMyWorkoutsPage.logic';
+import type { WorkoutSession } from './ClientMyWorkoutsPage.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-interface WorkoutLog {
-  id: number;
-  exerciseName: string;
-  setNumber: number;
-  reps: number;
-  weight: number;
-  tempo?: string;
-  rest?: number;
-  rpe?: number;
-  notes?: string;
-}
-
-interface WorkoutSession {
-  id: string;
-  title?: string;
-  date: string;
-  duration?: number;
-  intensity?: number;
-  totalSets?: number;
-  totalReps?: number;
-  totalWeight?: number;
-  notes?: string;
-  status?: string;
-  logs?: WorkoutLog[];
-}
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helpers
 // ─────────────────────────────────────────────────────────────
-
-// Group logs by exercise name, sort sets within each exercise
-function groupLogs(logs: WorkoutLog[]): Record<string, WorkoutLog[]> {
-  const groups: Record<string, WorkoutLog[]> = {};
-  for (const log of logs) {
-    const key = log.exerciseName || 'Unknown Exercise';
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(log);
-  }
-  for (const key of Object.keys(groups)) {
-    groups[key].sort((a, b) => a.setNumber - b.setNumber);
-  }
-  return groups;
-}
-
-// Canonical pagination window size. Matches useDashboardQueries default;
-// kept as a local const so the page contract is explicit and testable.
-const PAGE_LIMIT = 50;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -127,7 +85,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
 
   // TanStack Query: automatic caching + AbortController on unmount
   const { data: workouts = [] as WorkoutSession[], isLoading, error, refetch } = useWorkoutSessions({
-    limit: PAGE_LIMIT,
+    limit: CLIENT_WORKOUTS_PAGE_LIMIT,
     page,
   });
 
@@ -203,7 +161,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
             <ClientMyWorkoutsPagination
               page={page}
               currentPageCount={0}
-              limit={PAGE_LIMIT}
+              limit={CLIENT_WORKOUTS_PAGE_LIMIT}
               onPrev={() => setPage((p) => Math.max(1, p - 1))}
               onNext={() => setPage((p) => p + 1)}
             />
@@ -236,7 +194,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
 
           {workouts.map((workout: WorkoutSession) => {
             const isExpanded = expandedIds.has(workout.id);
-            const exerciseGroups = workout.logs ? groupLogs(workout.logs) : {};
+            const exerciseGroups = workout.logs ? groupWorkoutLogsByExercise(workout.logs) : {};
             const exerciseNames = Object.keys(exerciseGroups);
             const dateStr = new Date(workout.date).toLocaleDateString(undefined, {
               weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
@@ -313,7 +271,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
           <ClientMyWorkoutsPagination
             page={page}
             currentPageCount={workouts.length}
-            limit={PAGE_LIMIT}
+            limit={CLIENT_WORKOUTS_PAGE_LIMIT}
             onPrev={() => setPage((p) => Math.max(1, p - 1))}
             onNext={() => setPage((p) => p + 1)}
           />

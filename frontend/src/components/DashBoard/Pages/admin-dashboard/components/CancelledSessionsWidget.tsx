@@ -1,57 +1,35 @@
 /**
- * CancelledSessionsWidget - Admin Dashboard Widget
- * Shows cancelled sessions with 24-hour policy tracking and charge buttons
- * Dynamically calculates charge amount based on client's package price
+ * CancelledSessionsWidget - admin review queue for cancelled-session billing decisions.
+ * Keeps session-deduction truth server-owned while giving admins a fast review surface.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-import { AlertTriangle, DollarSign, Clock, User, Calendar, RefreshCw, X, Check, Ban } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { RefreshCw, X } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { logger } from '@/utils/logger';
-
-interface CancelledSession {
-  id: number;
-  sessionDate: string;
-  cancellationDate: string;
-  cancellationReason: string;
-  clientName: string;
-  trainerName: string;
-  isLateCancellation: boolean;
-  hoursUntilSession: number;
-  chargePending: boolean;
-  cancellationChargeType: string | null;
-  cancellationChargeAmount: number | null;
-  cancellationChargedAt: string | null;
-  // MindBody Parity: Decision tracking fields
-  cancellationDecision: 'pending' | 'charged' | 'waived' | null;
-  cancellationReviewReason: string | null;
-  reviewerInfo?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-  } | null;
-  client?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-}
-
-interface PackagePriceInfo {
-  pricePerSession: number | null;
-  packageName: string | null;
-  fallbackPrice: number | null;
-  defaultChargeAmount: number | null;
-  lateFeeAmount: number | null;
-  isPricingAvailable: boolean;
-}
-
-interface CancelledSessionsWidgetProps {
-  maxItems?: number;
-  showChargeButtons?: boolean;
-}
+import CancelledSessionCard from './CancelledSessionCard';
+import type {
+  CancelledSession,
+  CancelledSessionsWidgetProps,
+  ChargeType,
+  DecisionFilter,
+  OperationNoticeState,
+  PackagePriceInfo,
+} from './CancelledSessionsWidget.types';
+import {
+  EmptyState,
+  ErrorState,
+  FilterButton,
+  FilterButtons,
+  HeaderActions,
+  HeaderTitle,
+  LoadingState,
+  OperationNotice,
+  RefreshButton,
+  SessionsList,
+  WidgetContainer,
+  WidgetHeader,
+} from './CancelledSessionsWidget.styles';
 
 const PRICING_UNAVAILABLE: PackagePriceInfo = {
   pricePerSession: null,
@@ -59,7 +37,7 @@ const PRICING_UNAVAILABLE: PackagePriceInfo = {
   fallbackPrice: null,
   defaultChargeAmount: null,
   lateFeeAmount: null,
-  isPricingAvailable: false
+  isPricingAvailable: false,
 };
 
 const normalizePackagePriceInfo = (raw: Partial<PackagePriceInfo>): PackagePriceInfo => ({
@@ -68,12 +46,20 @@ const normalizePackagePriceInfo = (raw: Partial<PackagePriceInfo>): PackagePrice
   fallbackPrice: raw.fallbackPrice ?? null,
   defaultChargeAmount: raw.defaultChargeAmount ?? null,
   lateFeeAmount: raw.lateFeeAmount ?? null,
-  isPricingAvailable: true
+  isPricingAvailable: true,
+});
+
+const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
 });
 
 const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   maxItems = 10,
-  showChargeButtons = true
+  showChargeButtons = true,
 }) => {
   const { authAxios } = useAuth();
   const [sessions, setSessions] = useState<CancelledSession[]>([]);
@@ -83,83 +69,67 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
   const [priceCache, setPriceCache] = useState<Record<number, PackagePriceInfo>>({});
   const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({});
   const [expandedSession, setExpandedSession] = useState<number | null>(null);
-  // MindBody Parity: Waive reason input
   const [waiveReasons, setWaiveReasons] = useState<Record<number, string>>({});
-  const [decisionFilter, setDecisionFilter] = useState<'all' | 'pending' | 'charged' | 'waived'>('all');
-  const [operationNotice, setOperationNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>('all');
+  const [operationNotice, setOperationNotice] = useState<OperationNoticeState | null>(null);
+
+  const fetchPricesForSessions = useCallback(async (targetSessions: CancelledSession[]) => {
+    const priceEntries: Record<number, PackagePriceInfo> = {};
+
+    for (const session of targetSessions) {
+      try {
+        const response = await authAxios.get(`/api/sessions/${session.id}/client-package-price`);
+        priceEntries[session.id] = response.data.success
+          ? normalizePackagePriceInfo(response.data.data)
+          : PRICING_UNAVAILABLE;
+      } catch (err) {
+        logger.warn(`Could not fetch price for session ${session.id}`, err);
+        priceEntries[session.id] = PRICING_UNAVAILABLE;
+      }
+    }
+
+    setPriceCache((prev) => ({ ...prev, ...priceEntries }));
+  }, [authAxios]);
 
   const fetchCancelledSessions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // MindBody Parity: Include decision status filter
       const response = await authAxios.get('/api/sessions/admin/cancelled', {
         params: {
           limit: maxItems,
-          decisionStatus: decisionFilter !== 'all' ? decisionFilter : undefined
-        }
+          decisionStatus: decisionFilter !== 'all' ? decisionFilter : undefined,
+        },
       });
 
       if (response.data.success) {
-        setSessions(response.data.data);
-        // Fetch package prices for sessions that haven't been charged yet
-        const uncharged = response.data.data.filter(
-          (s: CancelledSession) => !s.cancellationChargedAt && s.isLateCancellation
-        );
-        fetchPricesForSessions(uncharged);
+        const nextSessions = response.data.data as CancelledSession[];
+        setSessions(nextSessions);
+        const uncharged = nextSessions.filter((s) => !s.cancellationChargedAt && s.isLateCancellation);
+        await fetchPricesForSessions(uncharged);
       }
-    } catch (err: any) {
-      console.error('Error fetching cancelled sessions:', err);
+    } catch (err) {
+      logger.error('Error fetching cancelled sessions:', err);
       setError('Failed to load cancelled sessions');
     } finally {
       setIsLoading(false);
     }
-  }, [authAxios, maxItems, decisionFilter]);
-
-  const fetchPricesForSessions = async (sessions: CancelledSession[]) => {
-    const newPriceCache: Record<number, PackagePriceInfo> = { ...priceCache };
-
-    for (const session of sessions) {
-      if (!newPriceCache[session.id]) {
-        try {
-          const response = await authAxios.get(`/api/sessions/${session.id}/client-package-price`);
-          if (response.data.success) {
-            newPriceCache[session.id] = normalizePackagePriceInfo(response.data.data);
-          }
-        } catch (err) {
-          logger.warn(`Could not fetch price for session ${session.id}`);
-          newPriceCache[session.id] = PRICING_UNAVAILABLE;
-        }
-      }
-    }
-
-    setPriceCache(newPriceCache);
-  };
+  }, [authAxios, decisionFilter, fetchPricesForSessions, maxItems]);
 
   useEffect(() => {
     fetchCancelledSessions();
   }, [fetchCancelledSessions]);
 
-  const handleCharge = async (
-    sessionId: number,
-    chargeType: 'late_fee' | 'full' | 'custom' | 'none',
-    customAmount?: number
-  ) => {
+  const handleCharge = async (sessionId: number, chargeType: ChargeType, customAmount?: number) => {
     try {
       setChargingId(sessionId);
       setOperationNotice(null);
 
-      // MindBody Parity: Include decision and reason
       const decision = chargeType === 'none' ? 'waived' : 'charged';
       const reason = chargeType === 'none' ? waiveReasons[sessionId] : undefined;
-
-      // Require reason for waived cancellations
       if (chargeType === 'none' && !reason?.trim()) {
-        setOperationNotice({
-          type: 'error',
-          message: 'Add a waive reason before recording the decision.'
-        });
+        setOperationNotice({ type: 'error', message: 'Add a waive reason before recording the decision.' });
         setChargingId(null);
         return;
       }
@@ -168,118 +138,71 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
         chargeType,
         chargeAmount: chargeType === 'custom' ? customAmount : undefined,
         decision,
-        reason
+        reason,
       });
 
       if (response.data.success) {
-        // Refresh the list
         await fetchCancelledSessions();
-        if (chargeType === 'none') {
-          setOperationNotice({
-            type: 'success',
-            message: 'Cancellation waiver recorded for billing review.'
-          });
-        } else {
-          setOperationNotice({
-            type: 'success',
-            message: `$${response.data.data.chargeAmount} cancellation fee recorded for billing review. No card charge was processed here.`
-          });
-        }
+        setOperationNotice({
+          type: 'success',
+          message: chargeType === 'none'
+            ? 'Cancellation waiver recorded for billing review.'
+            : `$${response.data.data.chargeAmount} cancellation fee recorded for billing review. No card charge was processed here.`,
+        });
         setExpandedSession(null);
         setCustomAmounts((prev) => ({ ...prev, [sessionId]: '' }));
         setWaiveReasons((prev) => ({ ...prev, [sessionId]: '' }));
       }
     } catch (err: any) {
-      console.error('Error charging cancellation:', err);
+      logger.error('Error recording cancellation billing decision:', err);
       setOperationNotice({
         type: 'error',
-        message: err.response?.data?.message || 'Failed to record cancellation billing decision.'
+        message: err.response?.data?.message || 'Failed to record cancellation billing decision.',
       });
     } finally {
       setChargingId(null);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+  const updateCustomAmount = (sessionId: number, value: string) => {
+    setCustomAmounts((prev) => ({ ...prev, [sessionId]: value }));
   };
 
-  const getPriceInfo = (sessionId: number): PackagePriceInfo => {
-    return priceCache[sessionId] || PRICING_UNAVAILABLE;
+  const updateWaiveReason = (sessionId: number, value: string) => {
+    setWaiveReasons((prev) => ({ ...prev, [sessionId]: value }));
   };
 
-  if (isLoading) {
-    return (
-      <WidgetContainer>
-        <WidgetHeader>
-          <HeaderTitle>
-            <X size={20} />
-            Cancelled Sessions
-          </HeaderTitle>
-        </WidgetHeader>
-        <LoadingState>Loading cancelled sessions...</LoadingState>
-      </WidgetContainer>
-    );
-  }
+  const renderFrame = (body: React.ReactNode) => (
+    <WidgetContainer>
+      <WidgetHeader>
+        <HeaderTitle><X size={20} /> Cancelled Sessions</HeaderTitle>
+      </WidgetHeader>
+      {body}
+    </WidgetContainer>
+  );
 
-  if (error) {
-    return (
-      <WidgetContainer>
-        <WidgetHeader>
-          <HeaderTitle>
-            <X size={20} />
-            Cancelled Sessions
-          </HeaderTitle>
-        </WidgetHeader>
-        <ErrorState>{error}</ErrorState>
-      </WidgetContainer>
-    );
-  }
+  if (isLoading) return renderFrame(<LoadingState>Loading cancelled sessions...</LoadingState>);
+  if (error) return renderFrame(<ErrorState role="alert">{error}</ErrorState>);
 
   return (
     <WidgetContainer>
       <WidgetHeader>
-        <HeaderTitle>
-          <X size={20} />
-          Cancelled Sessions
-        </HeaderTitle>
+        <HeaderTitle><X size={20} /> Cancelled Sessions</HeaderTitle>
         <HeaderActions>
           <FilterButtons>
-            <FilterButton
-              $active={decisionFilter === 'all'}
-              onClick={() => setDecisionFilter('all')}
-            >
-              All
-            </FilterButton>
-            <FilterButton
-              $active={decisionFilter === 'pending'}
-              onClick={() => setDecisionFilter('pending')}
-              $variant="pending"
-            >
-              Pending
-            </FilterButton>
-            <FilterButton
-              $active={decisionFilter === 'charged'}
-              onClick={() => setDecisionFilter('charged')}
-              $variant="charged"
-            >
-              Charged
-            </FilterButton>
-            <FilterButton
-              $active={decisionFilter === 'waived'}
-              onClick={() => setDecisionFilter('waived')}
-              $variant="waived"
-            >
-              Waived
-            </FilterButton>
+            {(['all', 'pending', 'charged', 'waived'] as DecisionFilter[]).map((filter) => (
+              <FilterButton
+                key={filter}
+                $active={decisionFilter === filter}
+                $variant={filter === 'all' ? undefined : filter}
+                onClick={() => setDecisionFilter(filter)}
+                type="button"
+              >
+                {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              </FilterButton>
+            ))}
           </FilterButtons>
-          <RefreshButton onClick={fetchCancelledSessions}>
+          <RefreshButton aria-label="Refresh cancelled sessions" onClick={fetchCancelledSessions} type="button">
             <RefreshCw size={16} />
           </RefreshButton>
         </HeaderActions>
@@ -295,223 +218,24 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
         <EmptyState>No cancelled sessions</EmptyState>
       ) : (
         <SessionsList>
-          {sessions.map((session) => {
-            const priceInfo = getPriceInfo(session.id);
-            const isExpanded = expandedSession === session.id;
-            const pricingUnavailable = !priceInfo.isPricingAvailable;
-
-            return (
-              <SessionCard key={session.id} $isLate={session.isLateCancellation}>
-                <SessionHeader>
-                  <ClientInfo>
-                    <User size={16} />
-                    <ClientName>{session.clientName}</ClientName>
-                  </ClientInfo>
-                  <BadgeGroup>
-                    {session.isLateCancellation && (
-                      <LateBadge>
-                        <AlertTriangle size={14} />
-                        Late Cancel
-                      </LateBadge>
-                    )}
-                    {session.cancellationDecision && (
-                      <DecisionBadge $decision={session.cancellationDecision}>
-                        {session.cancellationDecision === 'pending' && <Clock size={12} />}
-                        {session.cancellationDecision === 'charged' && <DollarSign size={12} />}
-                        {session.cancellationDecision === 'waived' && <Check size={12} />}
-                        {session.cancellationDecision.charAt(0).toUpperCase() + session.cancellationDecision.slice(1)}
-                      </DecisionBadge>
-                    )}
-                  </BadgeGroup>
-                </SessionHeader>
-
-                <SessionDetails>
-                  <DetailRow>
-                    <Calendar size={14} />
-                    <span>Session: {formatDate(session.sessionDate)}</span>
-                  </DetailRow>
-                  <DetailRow>
-                    <X size={14} />
-                    <span>Cancelled: {formatDate(session.cancellationDate)}</span>
-                  </DetailRow>
-                  {session.isLateCancellation && (
-                    <DetailRow $highlight>
-                      <Clock size={14} />
-                      <span>
-                        {session.hoursUntilSession < 1
-                          ? 'Less than 1 hour notice'
-                          : `${Math.round(session.hoursUntilSession)} hours notice`}
-                      </span>
-                    </DetailRow>
-                  )}
-                  {session.cancellationReason && (
-                    <ReasonText>Reason: {session.cancellationReason}</ReasonText>
-                  )}
-
-                  {/* Show package info for uncharged late cancellations */}
-                  {!session.cancellationChargedAt && session.isLateCancellation && priceInfo && (
-                    <PackageInfo>
-                      <DollarSign size={14} />
-                      <span>
-                        {pricingUnavailable
-                          ? 'Pricing unavailable - refresh before recording a preset fee.'
-                          : priceInfo.packageName
-                          ? `Package: ${priceInfo.packageName} - $${priceInfo.pricePerSession ?? 0}/session`
-                          : `Policy rate: $${priceInfo.fallbackPrice ?? 0}/session`}
-                      </span>
-                    </PackageInfo>
-                  )}
-                </SessionDetails>
-
-                {session.cancellationChargedAt ? (
-                  <ChargeResult>
-                    <ChargedBadge $type={session.cancellationChargeType}>
-                      {session.cancellationChargeType === 'none' ? (
-                        <>
-                          <Ban size={14} />
-                          Waived - no billing action
-                        </>
-                      ) : (
-                        <>
-                          <DollarSign size={14} />
-                          Recorded ${session.cancellationChargeAmount} fee
-                        </>
-                      )}
-                    </ChargedBadge>
-                    {session.cancellationReviewReason && (
-                      <ReviewReasonDisplay>
-                        <strong>Admin Note:</strong> {session.cancellationReviewReason}
-                        {session.reviewerInfo && (
-                          <ReviewerInfo>
-                            - {session.reviewerInfo.firstName} {session.reviewerInfo.lastName}
-                          </ReviewerInfo>
-                        )}
-                      </ReviewReasonDisplay>
-                    )}
-                  </ChargeResult>
-                ) : (
-                  showChargeButtons &&
-                  session.isLateCancellation && (
-                    <ChargeSection>
-                      {!isExpanded ? (
-                        <ChargeActions>
-                          <ChargeButton
-                            onClick={() => handleCharge(session.id, 'late_fee')}
-                            disabled={chargingId === session.id || pricingUnavailable}
-                            $variant="fee"
-                          >
-                            {chargingId === session.id
-                              ? 'Processing...'
-                              : pricingUnavailable
-                                ? 'Pricing unavailable'
-                                : `Record Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
-                          </ChargeButton>
-                          <ChargeButton
-                            onClick={() => handleCharge(session.id, 'full')}
-                            disabled={chargingId === session.id || pricingUnavailable}
-                            $variant="full"
-                          >
-                            {chargingId === session.id
-                              ? 'Processing...'
-                              : pricingUnavailable
-                                ? 'Pricing unavailable'
-                                : `Record Full $${priceInfo.defaultChargeAmount ?? 0}`}
-                          </ChargeButton>
-                          <ExpandButton
-                            onClick={() => setExpandedSession(session.id)}
-                            disabled={chargingId === session.id}
-                          >
-                            More
-                          </ExpandButton>
-                        </ChargeActions>
-                      ) : (
-                        <ExpandedChargeSection>
-                          <ChargeOptionRow>
-                            <ChargeButton
-                              onClick={() => handleCharge(session.id, 'late_fee')}
-                              disabled={chargingId === session.id || pricingUnavailable}
-                              $variant="fee"
-                            >
-                              {pricingUnavailable ? 'Pricing unavailable' : `Record Late Fee $${priceInfo.lateFeeAmount ?? 0}`}
-                            </ChargeButton>
-                            <ChargeButton
-                              onClick={() => handleCharge(session.id, 'full')}
-                              disabled={chargingId === session.id || pricingUnavailable}
-                              $variant="full"
-                            >
-                              {pricingUnavailable ? 'Pricing unavailable' : `Record Full Session $${priceInfo.defaultChargeAmount ?? 0}`}
-                            </ChargeButton>
-                          </ChargeOptionRow>
-
-                          <CustomAmountSection>
-                            <CustomAmountLabel>Custom Amount:</CustomAmountLabel>
-                            <CustomAmountInput
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="Enter amount"
-                              value={customAmounts[session.id] || ''}
-                              onChange={(e) =>
-                                setCustomAmounts((prev) => ({
-                                  ...prev,
-                                  [session.id]: e.target.value
-                                }))
-                              }
-                            />
-                            <ChargeButton
-                              onClick={() =>
-                                handleCharge(
-                                  session.id,
-                                  'custom',
-                                  parseFloat(customAmounts[session.id] || '0')
-                                )
-                              }
-                              disabled={
-                                chargingId === session.id ||
-                                !customAmounts[session.id] ||
-                                parseFloat(customAmounts[session.id]) <= 0
-                              }
-                              $variant="full"
-                            >
-                              <Check size={14} />
-                              Record
-                            </ChargeButton>
-                          </CustomAmountSection>
-
-                          <WaiveSection>
-                            <WaiveReasonLabel>Waive Reason (required):</WaiveReasonLabel>
-                            <WaiveReasonInput
-                              placeholder="e.g., Emergency situation, first-time client courtesy..."
-                              value={waiveReasons[session.id] || ''}
-                              onChange={(e) =>
-                                setWaiveReasons((prev) => ({
-                                  ...prev,
-                                  [session.id]: e.target.value
-                                }))
-                              }
-                            />
-                          </WaiveSection>
-
-                          <NoChargeRow>
-                            <NoChargeButton
-                              onClick={() => handleCharge(session.id, 'none')}
-                              disabled={chargingId === session.id || !waiveReasons[session.id]?.trim()}
-                            >
-                              <Ban size={14} />
-                              Record Waiver
-                            </NoChargeButton>
-                            <CancelButton onClick={() => setExpandedSession(null)}>
-                              Cancel
-                            </CancelButton>
-                          </NoChargeRow>
-                        </ExpandedChargeSection>
-                      )}
-                    </ChargeSection>
-                  )
-                )}
-              </SessionCard>
-            );
-          })}
+          {sessions.map((session) => (
+            <CancelledSessionCard
+              key={session.id}
+              session={session}
+              priceInfo={priceCache[session.id] || PRICING_UNAVAILABLE}
+              isExpanded={expandedSession === session.id}
+              isCharging={chargingId === session.id}
+              showChargeButtons={showChargeButtons}
+              customAmount={customAmounts[session.id] || ''}
+              waiveReason={waiveReasons[session.id] || ''}
+              formatDate={formatDate}
+              onCharge={handleCharge}
+              onCustomAmountChange={updateCustomAmount}
+              onExpand={setExpandedSession}
+              onWaiveReasonChange={updateWaiveReason}
+              onCollapse={() => setExpandedSession(null)}
+            />
+          ))}
         </SessionsList>
       )}
     </WidgetContainer>
@@ -519,493 +243,3 @@ const CancelledSessionsWidget: React.FC<CancelledSessionsWidgetProps> = ({
 };
 
 export default CancelledSessionsWidget;
-
-// Styled Components
-const WidgetContainer = styled.div`
-  background: rgba(30, 41, 59, 0.8);
-  border-radius: 16px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const WidgetHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const HeaderTitle = styled.h3`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #ef4444;
-  margin: 0;
-`;
-
-const HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-`;
-
-const FilterButtons = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-`;
-
-const FilterButton = styled.button<{ $active: boolean; $variant?: 'pending' | 'charged' | 'waived' }>`
-  padding: 0.35rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-
-  ${({ $active, $variant }) => {
-    if ($active) {
-      switch ($variant) {
-        case 'pending':
-          return `
-            background: rgba(251, 191, 36, 0.3);
-            color: #fbbf24;
-            border-color: rgba(251, 191, 36, 0.5);
-          `;
-        case 'charged':
-          return `
-            background: rgba(16, 185, 129, 0.3);
-            color: #10b981;
-            border-color: rgba(16, 185, 129, 0.5);
-          `;
-        case 'waived':
-          return `
-            background: rgba(96, 165, 250, 0.3);
-            color: #60a5fa;
-            border-color: rgba(96, 165, 250, 0.5);
-          `;
-        default:
-          return `
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.3);
-          `;
-      }
-    }
-    return `
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.5);
-      &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.8);
-      }
-    `;
-  }}
-`;
-
-const RefreshButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-`;
-
-const LoadingState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.5);
-`;
-
-const ErrorState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #ef4444;
-`;
-
-const OperationNotice = styled.div<{ $type: 'success' | 'error' }>`
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${({ $type }) => ($type === 'success' ? '#10b981' : '#ef4444')};
-  background: ${({ $type }) => ($type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)')};
-  border: 1px solid ${({ $type }) => ($type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)')};
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.5);
-`;
-
-const SessionsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-height: 600px;
-  overflow-y: auto;
-`;
-
-const SessionCard = styled.div<{ $isLate: boolean }>`
-  background: ${({ $isLate }) =>
-    $isLate ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
-  border: 1px solid
-    ${({ $isLate }) => ($isLate ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.1)')};
-  border-radius: 12px;
-  padding: 1rem;
-`;
-
-const SessionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-`;
-
-const ClientInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: white;
-`;
-
-const ClientName = styled.span`
-  font-weight: 600;
-`;
-
-const BadgeGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const LateBadge = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-`;
-
-const DecisionBadge = styled.span<{ $decision: 'pending' | 'charged' | 'waived' }>`
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 600;
-
-  ${({ $decision }) => {
-    switch ($decision) {
-      case 'pending':
-        return `
-          background: rgba(251, 191, 36, 0.2);
-          color: #fbbf24;
-        `;
-      case 'charged':
-        return `
-          background: rgba(16, 185, 129, 0.2);
-          color: #10b981;
-        `;
-      case 'waived':
-        return `
-          background: rgba(96, 165, 250, 0.2);
-          color: #60a5fa;
-        `;
-      default:
-        return `
-          background: rgba(156, 163, 175, 0.2);
-          color: #9ca3af;
-        `;
-    }
-  }}
-`;
-
-const SessionDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const DetailRow = styled.div<{ $highlight?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: ${({ $highlight }) => ($highlight ? '#fbbf24' : 'rgba(255, 255, 255, 0.7)')};
-`;
-
-const PackageInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #10b981;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(16, 185, 129, 0.1);
-  border-radius: 6px;
-`;
-
-const ReasonText = styled.p`
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0.5rem 0 0 0;
-  font-style: italic;
-`;
-
-const ChargeResult = styled.div`
-  margin-top: 1rem;
-`;
-
-const ChargedBadge = styled.div<{ $type?: string | null }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: ${({ $type }) =>
-    $type === 'none' ? 'rgba(100, 100, 100, 0.2)' : 'rgba(16, 185, 129, 0.2)'};
-  color: ${({ $type }) => ($type === 'none' ? '#9ca3af' : '#10b981')};
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  width: fit-content;
-`;
-
-const ReviewReasonDisplay = styled.div`
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(96, 165, 250, 0.1);
-  border-left: 3px solid #60a5fa;
-  border-radius: 0 6px 6px 0;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.8);
-`;
-
-const ReviewerInfo = styled.span`
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-`;
-
-const ChargeSection = styled.div`
-  margin-top: 1rem;
-`;
-
-const ChargeActions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const ChargeButton = styled.button<{ $variant: 'fee' | 'full' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  flex: 1;
-  padding: 0.625rem 0.75rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  ${({ $variant }) =>
-    $variant === 'fee'
-      ? `
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: white;
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-    }
-  `
-      : `
-    background: linear-gradient(135deg, #60C0F0 0%, #00d4aa 100%);
-    color: #002060;
-    &:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-    }
-  `}
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const ExpandButton = styled.button`
-  padding: 0.625rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const ExpandedChargeSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-`;
-
-const ChargeOptionRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const CustomAmountSection = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const CustomAmountLabel = styled.span`
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
-`;
-
-const CustomAmountInput = styled.input`
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.875rem;
-  min-width: 80px;
-
-  &:focus {
-    outline: none;
-    border-color: #60C0F0;
-  }
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-`;
-
-const WaiveSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const WaiveReasonLabel = styled.span`
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const WaiveReasonInput = styled.textarea`
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.8rem;
-  resize: vertical;
-  min-height: 60px;
-
-  &:focus {
-    outline: none;
-    border-color: #60a5fa;
-  }
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-`;
-
-const NoChargeRow = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-`;
-
-const NoChargeButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  flex: 1;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  border-radius: 8px;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.2);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const CancelButton = styled.button`
-  padding: 0.625rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-  }
-`;

@@ -11,6 +11,7 @@ import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mj
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
 
@@ -307,6 +308,17 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
             transaction,
           });
 
+          const userPackageUpdate = {};
+          if (user.role === 'user') {
+            userPackageUpdate.role = 'client';
+          }
+          if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+            userPackageUpdate.clientSource = 'swanstudios';
+          }
+          if (Object.keys(userPackageUpdate).length > 0) {
+            await user.update(userPackageUpdate, { transaction });
+          }
+
           logger.info(`Added ${sessionsToAdd} sessions to user ${userId}`);
         });
       }
@@ -349,6 +361,13 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Manual paid-session grants are disabled for free-tracking clients'
       });
     }
     
@@ -403,6 +422,13 @@ router.post('/add-test-sessions', protect, async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+
+    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Test session grants are disabled for free-tracking clients'
       });
     }
     

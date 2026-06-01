@@ -24,6 +24,33 @@ describe('CreateClientModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('requires confirmation before discarding a partially entered client draft', () => {
+    const onClose = vi.fn();
+
+    render(
+      <CreateClientModal
+        open
+        onClose={onClose}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Taylor' } });
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: /discard client draft/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /keep editing/i }));
+    expect(screen.queryByRole('dialog', { name: /discard client draft/i })).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /discard client draft/i }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('uses USA measurement labels for new client height and weight', () => {
     render(
       <CreateClientModal
@@ -91,6 +118,37 @@ describe('CreateClientModal', () => {
     const submitted = onSubmit.mock.calls[0][0];
     expect(submitted).toMatchObject({
       clientSource: 'move_fitness',
+      availableSessions: 0,
+    });
+    expect(submitted).not.toHaveProperty('username');
+    expect(submitted).not.toHaveProperty('password');
+  });
+
+  it('offers External clients as free-tracking manual creates with no paid sessions', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateClientModal
+        open
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /external/i }));
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ari' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Lane' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: 'ari@example.com' } });
+
+    expect(screen.queryByLabelText(/^username/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^password/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /create client/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    const submitted = onSubmit.mock.calls[0][0];
+    expect(submitted).toMatchObject({
+      clientSource: 'external',
       availableSessions: 0,
     });
     expect(submitted).not.toHaveProperty('username');

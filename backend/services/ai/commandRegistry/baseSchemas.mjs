@@ -2,7 +2,7 @@
  * Command Registry — Base Schemas & Types
  * ========================================
  * Shared Zod schemas and type definitions for the God-Level AI command engine.
- * All 94 commands use BaseCommand shape with domain-specific input schemas.
+ * All registered commands use BaseCommand shape with domain-specific input schemas.
  *
  * NO OpenAI. Provider chain: Gemini → Anthropic → Venice.
  */

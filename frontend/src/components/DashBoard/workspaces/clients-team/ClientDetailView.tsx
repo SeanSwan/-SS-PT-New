@@ -25,8 +25,14 @@ import {
   DetailSubtext,
   DetailTabBar,
   DetailTabButton,
+  DetailTabLabel,
+  DetailTabPanel,
   MobileBackButton,
+  PlaceholderShell,
+  PlaceholderText,
+  PlaceholderTitle,
 } from './MasterDetailStyles';
+import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -64,10 +70,6 @@ const TABS: { id: DetailTab; label: string; icon: React.ReactNode }[] = [
 // SECTION: Helpers
 // ─────────────────────────────────────────────────────────────
 
-const getInitials = (first: string, last: string): string => {
-  return `${(first || '?')[0]}${(last || '?')[0]}`.toUpperCase();
-};
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
@@ -85,6 +87,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 }) => {
   const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<DetailTab>('training');
   const activeTab = controlledActiveTab ?? uncontrolledActiveTab;
+  const clientName = getClientDisplayName(client);
+  const clientEmail = client.email?.trim() || 'No email on file';
+  const clientStatus = client.status || 'status pending';
+  const clientTier = client.tier || 'Bronze Forge';
 
   // Reset tab to Training when switching clients (avoids stale tab state)
   useEffect(() => {
@@ -129,7 +135,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 
   return (
     <>
-      <MobileBackButton onClick={onBack} aria-label="Back to client list">
+      <MobileBackButton type="button" onClick={onBack} aria-label="Back to client list">
         <ArrowLeft size={18} />
         Back
       </MobileBackButton>
@@ -138,12 +144,12 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         <DetailHeader>
           <DetailClientInfo>
             <DetailAvatar $tier={client.tier}>
-              {getInitials(client.firstName, client.lastName)}
+              {getClientInitials(client)}
             </DetailAvatar>
             <div>
-              <DetailName>{client.firstName} {client.lastName}</DetailName>
+              <DetailName>{clientName}</DetailName>
               <DetailSubtext>
-                {client.email || '—'} · {client.status} · {client.tier || 'Bronze Forge'}
+                {clientEmail} / {clientStatus} / {clientTier}
               </DetailSubtext>
             </div>
           </DetailClientInfo>
@@ -152,26 +158,28 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
         <DetailTabBar role="tablist" aria-label="Client detail tabs">
           {TABS.map((tab) => (
             <DetailTabButton
+              type="button"
               key={tab.id}
               role="tab"
+              id={`detail-tab-${tab.id}`}
               aria-selected={activeTab === tab.id}
               aria-controls={`detail-panel-${tab.id}`}
               $active={activeTab === tab.id}
               onClick={() => handleTabChange(tab.id)}
             >
               {tab.icon}
-              <span style={{ marginLeft: 6 }}>{tab.label}</span>
+              <DetailTabLabel>{tab.label}</DetailTabLabel>
             </DetailTabButton>
           ))}
         </DetailTabBar>
 
-        <div
+        <DetailTabPanel
           role="tabpanel"
           id={`detail-panel-${activeTab}`}
-          style={{ opacity: 1, transition: 'opacity 200ms ease-in-out' }}
+          aria-labelledby={`detail-tab-${activeTab}`}
         >
           {tabContent}
-        </div>
+        </DetailTabPanel>
       </DetailContentWrapper>
     </>
   );
@@ -183,30 +191,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
 // ─────────────────────────────────────────────────────────────
 
 const PlaceholderContent: React.FC<{ label: string; description: string }> = ({ label, description }) => (
-  <div style={{
-    padding: '48px 24px',
-    textAlign: 'center',
-    background: 'var(--bg-surface, #141419)',
-    borderRadius: '12px',
-    border: '1px solid rgba(224, 236, 244, 0.05)',
-  }}>
-    <h3 style={{
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
-      fontSize: '18px',
-      color: 'var(--text-primary, #E0ECF4)',
-      margin: '0 0 8px',
-    }}>
-      {label}
-    </h3>
-    <p style={{
-      fontFamily: "'Sora', sans-serif",
-      fontSize: '14px',
-      color: 'var(--text-secondary, #4070C0)',
-      margin: 0,
-    }}>
-      {description}
-    </p>
-  </div>
+  <PlaceholderShell>
+    <PlaceholderTitle>{label}</PlaceholderTitle>
+    <PlaceholderText>{description}</PlaceholderText>
+  </PlaceholderShell>
 );
 
 export default ClientDetailView;

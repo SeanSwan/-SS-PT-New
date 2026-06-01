@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 const read = (path: string) => readFileSync(resolve(__dirname, path), 'utf8');
 
-const pageSource = read('./enhanced-admin-sessions-view.tsx');
+const dataHookSource = read('./useAdminSessionsData.ts');
 const dashboardLayoutSource = read('../../UniversalDashboardLayout.tsx');
 const socketManagerSource = read('../../../../../../backend/socket/socketManager.mjs');
 const stripeWebhookSource = read('../../../../../../backend/webhooks/stripeWebhook.mjs');
@@ -21,31 +21,31 @@ describe('admin sessions realtime socket pipeline', () => {
   });
 
   it('uses the authenticated Socket.IO context instead of the retired raw ws endpoint', () => {
-    expect(pageSource).toContain('import { useSocket } from "../../../../context/SocketContext"');
-    expect(pageSource).toContain('const { socket } = useSocket();');
-    expect(pageSource).not.toContain('from "../../../../hooks/use-socket"');
-    expect(pageSource).not.toContain("useSocket('/ws/admin-dashboard')");
-    expect(pageSource).not.toContain('/ws/admin-dashboard');
+    expect(dataHookSource).toContain("import { useSocket } from '../../../../context/SocketContext'");
+    expect(dataHookSource).toContain('const { socket } = useSocket();');
+    expect(dataHookSource).not.toContain('from "../../../../hooks/use-socket"');
+    expect(dataHookSource).not.toContain("useSocket('/ws/admin-dashboard')");
+    expect(dataHookSource).not.toContain('/ws/admin-dashboard');
   });
 
   it('listens for backend Socket.IO purchase and schedule events that can refresh the surface', () => {
-    expect(pageSource).toContain("socket.on('user_purchased_sessions', handleUserPurchasedSessions)");
-    expect(pageSource).toContain("socket.on('dashboard:update', handleDashboardUpdate)");
-    expect(pageSource).toContain("socket.on('schedule:update', handleScheduleUpdate)");
-    expect(pageSource).toContain("socket.on('schedule:sync_required', handleScheduleUpdate)");
-    expect(pageSource).toContain("socket.off('user_purchased_sessions', handleUserPurchasedSessions)");
-    expect(pageSource).toContain("socket.off('dashboard:update', handleDashboardUpdate)");
-    expect(pageSource).toContain("socket.off('schedule:update', handleScheduleUpdate)");
-    expect(pageSource).toContain("socket.off('schedule:sync_required', handleScheduleUpdate)");
+    expect(dataHookSource).toContain("socket.on('user_purchased_sessions', handleUserPurchasedSessions)");
+    expect(dataHookSource).toContain("socket.on('dashboard:update', handleDashboardUpdate)");
+    expect(dataHookSource).toContain("socket.on('schedule:update', handleScheduleUpdate)");
+    expect(dataHookSource).toContain("socket.on('schedule:sync_required', handleScheduleUpdate)");
+    expect(dataHookSource).toContain("socket.off('user_purchased_sessions', handleUserPurchasedSessions)");
+    expect(dataHookSource).toContain("socket.off('dashboard:update', handleDashboardUpdate)");
+    expect(dataHookSource).toContain("socket.off('schedule:update', handleScheduleUpdate)");
+    expect(dataHookSource).toContain("socket.off('schedule:sync_required', handleScheduleUpdate)");
   });
 
   it('normalizes dashboard purchase wrappers before passing them to the purchase handler', () => {
-    expect(pageSource).toContain('const purchasePayload = payload.data ?? payload;');
-    expect(pageSource).toContain('handleUserPurchasedSessions({');
-    expect(pageSource).toContain('userName: purchasePayload.userName,');
-    expect(pageSource).toContain('sessions: purchasePayload.sessions,');
-    expect(pageSource).toContain('sessionsPurchased: purchasePayload.sessionsPurchased,');
-    expect(pageSource).not.toContain('handleUserPurchasedSessions(payload.data || payload)');
+    expect(dataHookSource).toContain('const purchasePayload = payload.data ?? payload;');
+    expect(dataHookSource).toContain('handleUserPurchasedSessions({');
+    expect(dataHookSource).toContain('userName: purchasePayload.userName,');
+    expect(dataHookSource).toContain('sessions: purchasePayload.sessions,');
+    expect(dataHookSource).toContain('sessionsPurchased: purchasePayload.sessionsPurchased,');
+    expect(dataHookSource).not.toContain('handleUserPurchasedSessions(payload.data || payload)');
   });
 
   it('matches actual backend Socket.IO rooms and event names', () => {

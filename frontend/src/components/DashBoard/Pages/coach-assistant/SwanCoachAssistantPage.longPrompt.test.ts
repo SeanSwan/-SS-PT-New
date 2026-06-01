@@ -15,6 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const PAGE_SOURCE = readFileSync(resolve(__dirname, './SwanCoachAssistantPage.tsx'), 'utf8');
+const MESSAGES_PANEL_SOURCE = readFileSync(resolve(__dirname, './SwanCoachMessagesPanel.tsx'), 'utf8');
 const COACH_HOOK_SOURCE = readFileSync(resolve(__dirname, './hooks/useCoachAssistant.ts'), 'utf8');
 const CHAT_HOOK_SOURCE = readFileSync(resolve(__dirname, '../../../../hooks/useAIChat.ts'), 'utf8');
 const COMMAND_HOOK_SOURCE = readFileSync(resolve(__dirname, '../../../../hooks/useCoachCommand.ts'), 'utf8');
@@ -44,6 +45,7 @@ describe('SwanCoachAssistantPage long-prompt behavior', () => {
     expect(CHAT_HOOK_SOURCE).toMatch(/buildAiSendFailure\(message, apiErr\)/);
     expect(LIMIT_SOURCE).toMatch(/status\s*===\s*429/);
     expect(LIMIT_SOURCE).toMatch(/errorCode:\s*'RATE_LIMITED'/);
-    expect(PAGE_SOURCE).toMatch(/coach\.lastErrorRetryable\s*&&\s*lastAttempt/);
+    expect(PAGE_SOURCE).toMatch(/lastErrorRetryable=\{coach\.lastErrorRetryable\}/);
+    expect(MESSAGES_PANEL_SOURCE).toMatch(/lastErrorRetryable\s*&&\s*lastAttempt/);
   });
 });

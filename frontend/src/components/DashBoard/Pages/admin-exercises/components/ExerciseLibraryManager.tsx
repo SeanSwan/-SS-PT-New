@@ -649,6 +649,11 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString();
 };
 
+const escapeCsvValue = (value: unknown): string => {
+  const stringValue = Array.isArray(value) ? value.join('; ') : String(value ?? '');
+  return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
+};
+
 const getDifficultyLabel = (difficulty: number): string => {
   if (difficulty <= 200) return 'Beginner';
   if (difficulty <= 600) return 'Intermediate';
@@ -677,6 +682,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fetchRetryNonce, setFetchRetryNonce] = useState(0);
 
   // Refs
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
@@ -720,7 +726,12 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
     };
     fetchExercises();
     return () => { cancelled = true; };
-  }, [authAxios]);
+  }, [authAxios, fetchRetryNonce]);
+
+  const handleRefreshLibrary = useCallback(() => {
+    setCurrentPage(1);
+    setFetchRetryNonce(prevNonce => prevNonce + 1);
+  }, []);
   
   // Filtered and sorted exercises
   const filteredExercises = useMemo(() => {
@@ -799,6 +810,44 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
     const types = new Set(exercises.map(ex => ex.exerciseType));
     return ['all', ...Array.from(types)];
   }, [exercises]);
+
+  const handleExportLibrary = useCallback(() => {
+    const headers = [
+      'Name',
+      'Type',
+      'Primary Muscles',
+      'Difficulty',
+      'NASM Score',
+      'Views',
+      'Completions',
+      'Average Rating',
+      'Created'
+    ];
+    const rows = filteredExercises.map(exercise => [
+      exercise.name,
+      exercise.exerciseType,
+      exercise.primaryMuscles,
+      getDifficultyLabel(exercise.difficulty),
+      exercise.nasmScore ?? '',
+      exercise.stats?.views ?? 0,
+      exercise.stats?.completions ?? 0,
+      exercise.stats?.avgRating ?? 0,
+      formatDate(exercise.createdAt)
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(escapeCsvValue).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `exercise-library-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [filteredExercises]);
   
   // Debounced search
   const handleSearch = useCallback((query: string) => {
@@ -843,6 +892,10 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
       setSelectedExercises(new Set(paginatedExercises.map(ex => ex.id)));
     }
   }, [selectedExercises.size, paginatedExercises]);
+
+  const handleExercisePreview = useCallback((exercise: Exercise) => {
+    onExerciseEdit(exercise);
+  }, [onExerciseEdit]);
   
   // Cleanup search timeout
   useEffect(() => {
@@ -876,7 +929,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
                   whileTap={{ scale: 0.9 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Handle video play
+                    handleExercisePreview(exercise);
                   }}
                 >
                   <Play size={18} />
@@ -955,7 +1008,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
         </CardStats>
       </CardContent>
     </ExerciseCard>
-  ), [onExerciseSelect, onExerciseEdit, selectedExercises, handleSelectExercise]);
+  ), [onExerciseSelect, onExerciseEdit, selectedExercises, handleSelectExercise, handleExercisePreview]);
   
   if (isLoading) {
     return (
@@ -1004,7 +1057,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
             </ViewToggle>
             
             <ActionButton
-              onClick={() => {/* Handle export */}}
+              onClick={handleExportLibrary}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               title="Export exercises"
@@ -1013,7 +1066,7 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
             </ActionButton>
             
             <ActionButton
-              onClick={() => {/* Handle refresh */}}
+              onClick={handleRefreshLibrary}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               title="Refresh library"
@@ -1075,10 +1128,16 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
           <EmptyState>
             <Dumbbell size={64} className="empty-icon" />
             <h4>{fetchError}</h4>
-            <p style={{ marginTop: '8px', color: 'var(--accent-primary, #60C0F0)', cursor: 'pointer' }}
-               onClick={() => window.location.reload()}>
+            <FilterButton
+              isActive={false}
+              onClick={handleRefreshLibrary}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              style={{ marginTop: '8px' }}
+            >
+              <RefreshCw size={16} />
               Click to retry
-            </p>
+            </FilterButton>
           </EmptyState>
         ) : exercises.length === 0 ? (
           <EmptyState>
@@ -1169,7 +1228,10 @@ const ExerciseLibraryManager: React.FC<ExerciseLibraryManagerProps> = ({
                           <Edit3 size={14} />
                         </ActionButton>
                         <ActionButton
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExercisePreview(exercise);
+                          }}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                         >

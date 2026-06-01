@@ -17,6 +17,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Globe, Users, Lock, Image as ImageIcon } from 'lucide-react';
 import { useSocialFeed } from '../../hooks/social/useSocialFeed';
+import { buildShareChartPostPayload } from './ShareChartModal.payload';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -280,12 +281,12 @@ const ShareChartModal: React.FC<ShareChartModalProps> = ({
   const handleShare = useCallback(async () => {
     if (!chartImage) return;
 
-    const result = await createPost({
-      content: caption || `My ${chartTitle} progress`,
-      type: 'achievement',
+    const result = await createPost(buildShareChartPostPayload({
+      caption,
+      chartTitle,
+      chartImage,
       visibility,
-      media: chartImage,
-    });
+    }));
 
     if (result) {
       onClose();

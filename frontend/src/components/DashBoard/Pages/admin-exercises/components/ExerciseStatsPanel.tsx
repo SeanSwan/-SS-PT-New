@@ -15,7 +15,7 @@
  * - Accessibility-first design (WCAG AA compliant)
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { 
@@ -35,7 +35,6 @@ import {
   accessibleAnimation,
   animationPerformance
 } from '../styles/gamificationAnimations';
-import { logger } from '@/utils/logger';
 
 // === STYLED COMPONENTS ===
 
@@ -542,8 +541,10 @@ interface ActivityItem {
 interface ExerciseStatsPanelProps {
   stats: ExerciseStats | null;
   recentActivity: ActivityItem[];
+  topExercises: ExerciseUsage[];
   isLoading: boolean;
   className?: string;
+  onRefresh?: () => void;
 }
 
 // === UTILITY FUNCTIONS ===
@@ -552,6 +553,11 @@ const formatNumber = (num: number): string => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
   return num.toString();
+};
+
+const escapeCsvValue = (value: unknown): string => {
+  const stringValue = String(value ?? '');
+  return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
 };
 
 const formatRelativeTime = (timestamp: string): string => {
@@ -593,54 +599,63 @@ const getActivityIcon = (type: string): React.ReactNode => {
 const ExerciseStatsPanel: React.FC<ExerciseStatsPanelProps> = ({
   stats,
   recentActivity,
+  topExercises,
   isLoading,
-  className
+  className,
+  onRefresh
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'top' | 'activity'>('overview');
   
-  // Mock top exercises data (replace with real data from props)
-  const topExercises: ExerciseUsage[] = useMemo(() => [
-    {
-      exerciseId: 'ex_001',
-      exerciseName: 'Push-up Progression',
-      views: 1247,
-      completions: 892,
-      avgRating: 4.8,
-      lastUsed: '2025-02-01T14:30:00Z',
-      trend: 'up',
-      completionRate: 71.5
-    },
-    {
-      exerciseId: 'ex_002',
-      exerciseName: 'Deadlift Form Check',
-      views: 1089,
-      completions: 743,
-      avgRating: 4.9,
-      lastUsed: '2025-02-01T13:45:00Z',
-      trend: 'up',
-      completionRate: 68.2
-    },
-    {
-      exerciseId: 'ex_003',
-      exerciseName: 'Core Stability Sequence',
-      views: 987,
-      completions: 654,
-      avgRating: 4.7,
-      lastUsed: '2025-02-01T12:15:00Z',
-      trend: 'stable',
-      completionRate: 66.3
-    }
-  ], []);
-  
   const handleExport = useCallback(() => {
-    // TODO: Implement export functionality
-    logger.log('Exporting stats...');
-  }, []);
+    const exportStatsRows = [
+      ['Section', 'Metric', 'Value'],
+      ...(stats ? [
+        ['Overview', 'Total Exercises', stats.totalExercises],
+        ['Overview', 'Total Videos', stats.totalVideos],
+        ['Overview', 'Active Users', stats.activeUsers],
+        ['Overview', 'Total Views', stats.totalViews],
+        ['Overview', 'Total Completions', stats.totalCompletions],
+        ['Overview', 'Average Quality Score', `${stats.avgQualityScore.toFixed(1)}%`],
+        ['Overview', 'Engagement Rate', `${stats.engagementRate.toFixed(1)}%`],
+        ['Overview', 'Popularity Trend', stats.popularityTrend]
+      ] : []),
+      ['Top Exercise', 'Name', 'Views', 'Completions', 'Average Rating', 'Completion Rate', 'Trend'],
+      ...topExercises.map(exercise => [
+        'Top Exercise',
+        exercise.exerciseName,
+        exercise.views,
+        exercise.completions,
+        exercise.avgRating,
+        `${exercise.completionRate.toFixed(1)}%`,
+        exercise.trend
+      ]),
+      ['Recent Activity', 'Title', 'Description', 'Priority', 'Timestamp'],
+      ...recentActivity.map(activity => [
+        'Recent Activity',
+        activity.title,
+        activity.description,
+        activity.priority,
+        activity.timestamp
+      ])
+    ];
+    const csv = exportStatsRows
+      .map(row => row.map(escapeCsvValue).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = `exercise-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [recentActivity, stats, topExercises]);
   
   const handleRefresh = useCallback(() => {
-    // TODO: Implement refresh functionality
-    logger.log('Refreshing stats...');
-  }, []);
+    onRefresh?.();
+  }, [onRefresh]);
   
   const renderTabContent = useCallback(() => {
     switch (activeTab) {

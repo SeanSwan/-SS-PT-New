@@ -36,6 +36,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentSrc, setCurrentSrc] = useState(signedUrl);
   const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ---------- signed-URL refresh ---------- */
@@ -50,7 +51,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       });
       if (res.status < 200 || res.status >= 300) {
         if (res.status === 403) {
-          setError('Access expired. Please reload.');
+          setError('Playback access expired. Try again to refresh the video.');
           return;
         }
         throw new Error('URL refresh failed');
@@ -76,9 +77,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         scheduleRefresh();
       }
     } catch {
-      setError('Access expired. Please reload.');
+      setError('Playback access expired. Try again to refresh the video.');
     }
   }, [videoId]);
+
+  const handleRetryPlayback = useCallback(async () => {
+    setError(null);
+    setRetryNonce(prevNonce => prevNonce + 1);
+
+    if (source === 'upload') {
+      await refreshUrl();
+    }
+  }, [refreshUrl, source]);
 
   const scheduleRefresh = useCallback(() => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -127,13 +137,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <ErrorOverlay>
           <AlertTriangle size={36} />
           <ErrorText>{error}</ErrorText>
-          <ReloadButton
-            onClick={() => window.location.reload()}
-            aria-label="Reload page"
+          <RetryButton
+            onClick={() => void handleRetryPlayback()}
+            aria-label="Retry video playback"
           >
             <RefreshCw size={18} />
-            Reload
-          </ReloadButton>
+            Retry
+          </RetryButton>
         </ErrorOverlay>
       </PlayerWrapper>
     );
@@ -153,11 +163,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     <PlayerWrapper>
       <AspectBox>
         <StyledVideo
+          key={`hosted-video-${retryNonce}`}
           ref={videoRef}
           controls
           preload="metadata"
           src={currentSrc}
-          onError={() => setError('Access expired. Please reload.')}
+          onError={() => setError('Playback access expired. Try again to refresh the video.')}
         >
           {captionsUrl && (
             <track
@@ -249,7 +260,7 @@ const ErrorText = styled.p`
   gap: 12px;
 `;
 
-const ReloadButton = styled.button`
+const RetryButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;

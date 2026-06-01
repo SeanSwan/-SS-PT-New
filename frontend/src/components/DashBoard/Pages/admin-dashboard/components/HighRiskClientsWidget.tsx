@@ -5,7 +5,7 @@ import { AlertTriangle, Check } from 'lucide-react';
 import apiService from '../../../../../services/api.service';
 import WidgetSkeleton from './WidgetSkeleton';
 import { useToast } from '../../../../../hooks/use-toast';
-import { CommandCard } from '../admin-dashboard-view';
+import { CommandCard } from '../AdminDashboardCards';
 
 const ClientList = styled.ul`
   list-style: none;

@@ -97,6 +97,79 @@ describe('useCoachAssistant command summaries', () => {
     });
   });
 
+  it('renders a command-lane receipt when a workout form browser event is dispatched', async () => {
+    executeCommand.mockResolvedValue({
+      type: 'frontend_dispatch',
+      command: 'add_exercise_to_form',
+      message: 'Sent to the workout form.',
+      event: 'AI_ADD_EXERCISE',
+      payload: { exerciseName: 'Push Up' },
+      dispatched: true,
+    });
+
+    const { result } = renderHook(() => useCoachAssistant());
+
+    await act(async () => {
+      await result.current.sendMessage('add push ups');
+    });
+
+    const assistantMessages = result.current.messages
+      .filter((message) => message.role === 'assistant')
+      .map((message) => message.content);
+
+    expect(assistantMessages.join(' ')).toContain('Sent to the workout form.');
+    expect(sendMessageWithConversation).not.toHaveBeenCalled();
+  });
+
+  it('describes command-created onboarding proposals as review drafts, not created clients', async () => {
+    executeCommand.mockResolvedValue({
+      type: 'executed',
+      command: 'create_client',
+      result: {
+        hasPreparedDraft: true,
+        proposalId: 'proposal-1',
+        proposalType: 'client_onboarding',
+      },
+      client: null,
+    });
+
+    const { result } = renderHook(() => useCoachAssistant());
+
+    await act(async () => {
+      await result.current.sendMessage('add Sean Swan as a client');
+    });
+
+    const assistantMessages = result.current.messages
+      .filter((message) => message.role === 'assistant')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(assistantMessages).toContain('Client onboarding draft prepared for review.');
+    expect(assistantMessages).not.toContain('Client created.');
+  });
+
+  it('returns the safe backend receipt when a confirmed command is no longer wired', async () => {
+    confirmCommand.mockResolvedValue({
+      success: false,
+      type: 'not_wired',
+      command: 'future_confirmed_command',
+      message: 'future confirmed command is no longer wired for execution. No data was changed.',
+      result: null,
+    });
+
+    const { result } = renderHook(() => useCoachAssistant());
+    let response: Awaited<ReturnType<typeof result.current.confirmCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.confirmCommand('op-1');
+    });
+
+    expect(response).toEqual({
+      success: false,
+      error: 'future confirmed command is no longer wired for execution. No data was changed.',
+    });
+  });
+
   it('does not put raw transcript filenames into upload user bubbles', () => {
     const { result } = renderHook(() => useCoachAssistant());
 

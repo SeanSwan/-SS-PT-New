@@ -1,26 +1,13 @@
-import { getWorkoutSession, getModel, Op } from '../models/index.mjs';
+import { getWorkoutSession, Op } from '../models/index.mjs';
 import sequelize from '../database.mjs';
+import { calculateExerciseTotalsFromLogs } from './analyticsExerciseTotalsService.mjs';
+import { calculateVolumeOverTimeFromLogs } from './analyticsVolumeService.mjs';
 
 // Models resolved at call time (after initializeModelsCache() runs at startup)
 const getModels = () => ({
   WorkoutSession: getWorkoutSession(),
-  WorkoutExercise: getModel('WorkoutExercise'),
-  Set: getModel('Set'),
 });
 
-// Empty defaults when models/tables aren't available
-const EMPTY_TOTALS = {
-  categories: {
-    chest: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    back: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    shoulders: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    arms: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    legs: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    core: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-    cardio: { totalVolume: 0, totalReps: 0, totalExercises: 0, sessionsCount: 0, avgVolumePerSession: 0, avgRepsPerSession: 0 },
-  },
-  totalSessions: 0, totalExercises: 0, totalVolume: 0, totalReps: 0
-};
 const EMPTY_FREQUENCY = { period: '30 days', totalWorkouts: 0, avgPerWeek: 0, currentStreak: 0, longestStreak: 0, uniqueWorkoutDays: 0 };
 const EMPTY_SESSION_USAGE = { total: 0, solo: { count: 0, percentage: 0 }, trainerLed: { count: 0, percentage: 0 } };
 
@@ -40,169 +27,12 @@ const EMPTY_SESSION_USAGE = { total: 0, solo: { count: 0, percentage: 0 }, train
  */
 export async function calculateExerciseTotals(userId, options = {}) {
   try {
-    const { WorkoutSession, WorkoutExercise, Set } = getModels();
-    if (!WorkoutSession || !WorkoutExercise || !Set) {
-      console.warn('Analytics: WorkoutSession/WorkoutExercise/Set models not available — returning empty totals');
-      return EMPTY_TOTALS;
-    }
-    const whereClause = {
-      userId,
-      status: 'completed'
-      // NOTE: No filter on sessionType - includes BOTH 'solo' and 'trainer-led'
-    };
-
-    // Apply date range filter
-    if (options.startDate || options.endDate) {
-      whereClause.date = {};
-      if (options.startDate) whereClause.date[Op.gte] = options.startDate;
-      if (options.endDate) whereClause.date[Op.lte] = options.endDate;
-    }
-
-    // Get all workout sessions
-    const workoutSessions = await WorkoutSession.findAll({
-      where: whereClause,
-      include: [{
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [{
-          model: Set,
-          as: 'sets'
-        }]
-      }],
-      order: [['date', 'DESC']]
-    });
-
-    // Initialize category totals
-    const categoryTotals = {
-      chest: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      back: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      shoulders: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      arms: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      legs: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      core: { volume: 0, reps: 0, exercises: 0, sessions: 0 },
-      cardio: { volume: 0, reps: 0, exercises: 0, sessions: 0 }
-    };
-
-    const sessionsWithCategory = new Set();
-
-    // Process each workout session
-    for (const workout of workoutSessions) {
-      if (!workout.exercises || workout.exercises.length === 0) continue;
-
-      const sessionCategories = new Set();
-
-      for (const exercise of workout.exercises) {
-        const category = categorizeExercise(exercise.exerciseName);
-
-        if (!category) continue;
-
-        sessionCategories.add(category);
-
-        // Count exercise
-        categoryTotals[category].exercises++;
-
-        // Calculate volume and reps from sets
-        if (exercise.sets && exercise.sets.length > 0) {
-          for (const set of exercise.sets) {
-            const weight = parseFloat(set.weight) || 0;
-            const reps = parseInt(set.reps) || 0;
-            const volume = weight * reps;
-
-            categoryTotals[category].volume += volume;
-            categoryTotals[category].reps += reps;
-          }
-        }
-      }
-
-      // Count sessions per category
-      sessionCategories.forEach(cat => {
-        categoryTotals[cat].sessions++;
-        sessionsWithCategory.add(workout.id);
-      });
-    }
-
-    // Calculate averages
-    const totals = {
-      categories: {},
-      totalSessions: workoutSessions.length,
-      totalExercises: 0,
-      totalVolume: 0,
-      totalReps: 0
-    };
-
-    for (const [category, data] of Object.entries(categoryTotals)) {
-      totals.categories[category] = {
-        totalVolume: Math.round(data.volume),
-        totalReps: data.reps,
-        totalExercises: data.exercises,
-        sessionsCount: data.sessions,
-        avgVolumePerSession: data.sessions > 0 ? Math.round(data.volume / data.sessions) : 0,
-        avgRepsPerSession: data.sessions > 0 ? Math.round(data.reps / data.sessions) : 0
-      };
-
-      totals.totalExercises += data.exercises;
-      totals.totalVolume += data.volume;
-      totals.totalReps += data.reps;
-    }
-
-    totals.totalVolume = Math.round(totals.totalVolume);
-
-    return totals;
+    return await calculateExerciseTotalsFromLogs(userId, options);
 
   } catch (error) {
     console.error('Error calculating exercise totals:', error);
     throw error;
   }
-}
-
-/**
- * Categorize exercise by name
- * Maps exercise names to muscle group categories
- *
- * @param {string} exerciseName - Name of exercise
- * @returns {string|null} Category name or null
- */
-function categorizeExercise(exerciseName) {
-  if (!exerciseName) return null;
-
-  const name = exerciseName.toLowerCase();
-
-  // Chest exercises
-  if (name.includes('bench') || name.includes('chest') || name.includes('press') && (name.includes('chest') || name.includes('pec'))) {
-    return 'chest';
-  }
-
-  // Back exercises
-  if (name.includes('row') || name.includes('pull') || name.includes('back') || name.includes('lat') || name.includes('deadlift')) {
-    return 'back';
-  }
-
-  // Shoulder exercises
-  if (name.includes('shoulder') || name.includes('overhead') || name.includes('military press') || name.includes('lateral') || name.includes('delt')) {
-    return 'shoulders';
-  }
-
-  // Arm exercises
-  if (name.includes('curl') || name.includes('tricep') || name.includes('bicep') || name.includes('arm')) {
-    return 'arms';
-  }
-
-  // Leg exercises
-  if (name.includes('squat') || name.includes('leg') || name.includes('lunge') || name.includes('calf') || name.includes('quad') || name.includes('hamstring')) {
-    return 'legs';
-  }
-
-  // Core exercises
-  if (name.includes('crunch') || name.includes('plank') || name.includes('ab') || name.includes('core') || name.includes('sit-up')) {
-    return 'core';
-  }
-
-  // Cardio exercises
-  if (name.includes('run') || name.includes('bike') || name.includes('cardio') || name.includes('treadmill') || name.includes('elliptical')) {
-    return 'cardio';
-  }
-
-  return 'other';
 }
 
 /**
@@ -215,134 +45,12 @@ function categorizeExercise(exerciseName) {
  */
 export async function calculateVolumeOverTime(userId, options = {}) {
   try {
-    const { WorkoutSession, WorkoutExercise, Set } = getModels();
-    if (!WorkoutSession || !WorkoutExercise || !Set) return [];
-    const { startDate, endDate, groupBy = 'week' } = options;
-
-    const whereClause = {
-      userId,
-      status: 'completed'
-    };
-
-    if (startDate || endDate) {
-      whereClause.date = {};
-      if (startDate) whereClause.date[Op.gte] = startDate;
-      if (endDate) whereClause.date[Op.lte] = endDate;
-    }
-
-    const workoutSessions = await WorkoutSession.findAll({
-      where: whereClause,
-      include: [{
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [{
-          model: Set,
-          as: 'sets'
-        }]
-      }],
-      order: [['date', 'ASC']]
-    });
-
-    // Group sessions by time period
-    const groupedData = {};
-
-    for (const workout of workoutSessions) {
-      const dateKey = getDateGroupKey(workout.date, groupBy);
-
-      if (!groupedData[dateKey]) {
-        groupedData[dateKey] = {
-          date: dateKey,
-          volume: 0,
-          reps: 0,
-          exercises: 0,
-          sessions: 0,
-          avgIntensity: 0,
-          intensitySum: 0
-        };
-      }
-
-      let sessionVolume = 0;
-      let sessionReps = 0;
-
-      if (workout.exercises && workout.exercises.length > 0) {
-        for (const exercise of workout.exercises) {
-          groupedData[dateKey].exercises++;
-
-          if (exercise.sets && exercise.sets.length > 0) {
-            for (const set of exercise.sets) {
-              const weight = parseFloat(set.weight) || 0;
-              const reps = parseInt(set.reps) || 0;
-              const volume = weight * reps;
-
-              sessionVolume += volume;
-              sessionReps += reps;
-            }
-          }
-        }
-      }
-
-      groupedData[dateKey].volume += sessionVolume;
-      groupedData[dateKey].reps += sessionReps;
-      groupedData[dateKey].sessions++;
-      groupedData[dateKey].intensitySum += workout.intensity || 0;
-    }
-
-    // Calculate averages and format data
-    const timeSeriesData = Object.values(groupedData).map(group => ({
-      date: group.date,
-      totalVolume: Math.round(group.volume),
-      totalReps: group.reps,
-      totalExercises: group.exercises,
-      sessionsCount: group.sessions,
-      avgVolumePerSession: Math.round(group.volume / group.sessions),
-      avgIntensity: group.sessions > 0 ? (group.intensitySum / group.sessions).toFixed(1) : 0
-    }));
-
-    return timeSeriesData;
+    return await calculateVolumeOverTimeFromLogs(userId, options);
 
   } catch (error) {
     console.error('Error calculating volume over time:', error);
     throw error;
   }
-}
-
-/**
- * Get date group key for time series grouping
- *
- * @param {Date} date - Date to group
- * @param {string} groupBy - Grouping period (day, week, month)
- * @returns {string} Date key
- */
-function getDateGroupKey(date, groupBy) {
-  const d = new Date(date);
-
-  if (groupBy === 'day') {
-    return d.toISOString().split('T')[0]; // YYYY-MM-DD
-  } else if (groupBy === 'week') {
-    const year = d.getFullYear();
-    const week = getWeekNumber(d);
-    return `${year}-W${week.toString().padStart(2, '0')}`;
-  } else if (groupBy === 'month') {
-    const year = d.getFullYear();
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    return `${year}-${month}`;
-  }
-
-  return d.toISOString().split('T')[0];
-}
-
-/**
- * Get ISO week number
- *
- * @param {Date} date - Date
- * @returns {number} Week number
- */
-function getWeekNumber(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
 /**

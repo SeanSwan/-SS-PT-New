@@ -4,6 +4,38 @@
 import { z } from 'zod';
 import { registerCommands, DateSchema } from './baseSchemas.mjs';
 
+const BarcodeSchema = z.string().trim().regex(/^\d{8,14}$/, 'Barcode must be 8-14 digits');
+
+const ScanFoodInputSchema = z.object({
+  query: z.string().trim().min(1).max(200).optional(),
+  barcode: BarcodeSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(10).default(5),
+}).superRefine((value, ctx) => {
+  if (!value.query && !value.barcode) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['query'],
+      message: 'Food name or barcode is required',
+    });
+  }
+}).transform((value) => {
+  const query = value.query?.trim();
+  const barcode = value.barcode || (/^\d{8,14}$/.test(query || '') ? query : undefined);
+  const normalized = { limit: value.limit };
+
+  if (barcode) normalized.barcode = barcode;
+  if (query && query !== barcode) normalized.query = query;
+
+  return normalized;
+});
+
+const SodiumIntakeInputSchema = z.object({
+  clientId: z.number().int().positive(),
+  date: DateSchema.optional(),
+  sodiumLimit: z.coerce.number().int().min(500).max(5000).default(2300),
+  mealSodiumLimit: z.coerce.number().int().min(100).max(3000).default(800),
+});
+
 const commands = [
   {
     type: 'log_meals',
@@ -56,12 +88,10 @@ const commands = [
   },
   {
     type: 'scan_food',
-    description: 'Scan a food item for nutritional information',
+    description: 'Search a food item or barcode for nutritional information',
     naturalLanguagePatterns: ['scan this food', 'what\'s in {food}', 'nutrition info for {food}'],
-    method: 'POST', endpoint: '/api/food-scanner/scan',
-    inputSchema: z.object({
-      query: z.string().min(1).max(200),
-    }),
+    method: 'GET', endpoint: '/api/food-scanner/search',
+    inputSchema: ScanFoodInputSchema,
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer', 'client'],
     requiresClientRef: false, category: 'E',
@@ -80,8 +110,8 @@ const commands = [
     type: 'flag_sodium_intake',
     description: 'Flag a client\'s sodium intake for review',
     naturalLanguagePatterns: ['flag {client}\'s sodium', 'check {client}\'s sodium intake'],
-    method: 'GET', endpoint: '/api/macro/:clientId',
-    inputSchema: z.object({ clientId: z.number().int().positive() }),
+    method: 'GET', endpoint: '/api/macros/summary?date=today&userId={clientId}',
+    inputSchema: SodiumIntakeInputSchema,
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin', 'trainer'],
     requiresClientRef: true, category: 'E',

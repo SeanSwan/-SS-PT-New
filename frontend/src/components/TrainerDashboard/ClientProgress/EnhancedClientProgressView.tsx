@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
@@ -25,6 +25,11 @@ import {
   type GoalUpdate
 } from './Analytics';
 import { logger } from '@/utils/logger';
+import { parseClientProgressId } from './ClientProgressView.logic';
+import {
+  LoadingClientProgressState,
+  MissingClientProgressState,
+} from './EnhancedClientProgressViewStatePanels';
 
 /* ------------------------------------------------------------------ */
 /*  Styled Components – Crystalline Swan theme                             */
@@ -360,6 +365,7 @@ const toRiskLevel = (value: unknown): ClientData['riskLevel'] => {
  * analytics tools for comprehensive client management and progression tracking.
  */
 const EnhancedClientProgressView: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
   const [advancedMode, setAdvancedMode] = useState(false);
@@ -369,11 +375,18 @@ const EnhancedClientProgressView: React.FC = () => {
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutHistoryEntry[]>([]);
   const [isLoadingClient, setIsLoadingClient] = useState(true);
 
-  const clientId = searchParams.get('clientId') || activeClient?.id?.toString() || '';
+  const rawClientId = searchParams.get('clientId') ?? activeClient?.id?.toString() ?? '';
+  const parsedClientId = parseClientProgressId(rawClientId);
+  const clientId = parsedClientId ? String(parsedClientId) : '';
 
   // Fetch real client data from API
   const loadClientData = useCallback(async () => {
-    if (!authAxios || !clientId) return;
+    if (!authAxios || !clientId) {
+      setClientData(null);
+      setWorkoutHistory([]);
+      setIsLoadingClient(false);
+      return;
+    }
     setIsLoadingClient(true);
     try {
       const [clientRes, progressRes] = await Promise.allSettled([
@@ -435,7 +448,7 @@ const EnhancedClientProgressView: React.FC = () => {
 
   // Use real data, fallback to safe defaults
   const enhancedClientData = clientData || {
-    id: clientId, firstName: 'Loading', lastName: '...', username: '',
+    id: clientId, firstName: 'Client', lastName: clientId ? `#${clientId}` : 'not selected', username: '',
     startDate: '', totalSessions: 0, completedSessions: 0, riskLevel: 'unknown' as const,
     primaryGoals: [], lastAssessment: '', progressMetrics: { strength: 0, cardio: 0, flexibility: 0, balance: 0, stability: 0 }
   };
@@ -565,6 +578,18 @@ const EnhancedClientProgressView: React.FC = () => {
 
     </TabsContainer>
   );
+
+  if (!clientId) {
+    return (
+      <MissingClientProgressState
+        onBackToClients={() => navigate('/dashboard/trainer/clients')}
+      />
+    );
+  }
+
+  if (isLoadingClient) {
+    return <LoadingClientProgressState />;
+  }
 
   return (
     <PageWrapper>

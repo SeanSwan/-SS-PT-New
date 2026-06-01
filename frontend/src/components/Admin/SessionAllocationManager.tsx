@@ -28,6 +28,7 @@ import { useNavigate } from 'react-router-dom';
 // Import services
 import sessionService from '../../services/sessionService';
 import { useToast } from '../../hooks/use-toast';
+import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 // ==================== INTERFACES ====================
 
@@ -37,6 +38,7 @@ interface Client {
   lastName: string;
   email: string;
   availableSessions: number;
+  clientSource?: string;
   totalSessionsPurchased: number;
   sessionsUsed: number;
   lastSessionDate?: string;
@@ -49,6 +51,7 @@ interface SessionClientResponse {
   lastName: string;
   email: string;
   availableSessions?: number;
+  clientSource?: string;
   createdAt?: string;
 }
 
@@ -273,7 +276,7 @@ const TableRow = styled(motion.div)`
   }
 `;
 
-const SessionBadge = styled.span<{ type: 'good' | 'low' | 'none' }>`
+const SessionBadge = styled.span<{ type: 'good' | 'low' | 'none' | 'neutral' }>`
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.8rem;
@@ -283,6 +286,7 @@ const SessionBadge = styled.span<{ type: 'good' | 'low' | 'none' }>`
     switch (props.type) {
       case 'good': return 'rgba(16, 185, 129, 0.2)';
       case 'low': return 'rgba(245, 158, 11, 0.2)';
+      case 'neutral': return 'rgba(148, 163, 184, 0.16)';
       default: return 'rgba(239, 68, 68, 0.2)';
     }
   }};
@@ -291,6 +295,7 @@ const SessionBadge = styled.span<{ type: 'good' | 'low' | 'none' }>`
     switch (props.type) {
       case 'good': return '#10b981';
       case 'low': return '#f59e0b';
+      case 'neutral': return '#cbd5e1';
       default: return '#ef4444';
     }
   }};
@@ -299,9 +304,28 @@ const SessionBadge = styled.span<{ type: 'good' | 'low' | 'none' }>`
     switch (props.type) {
       case 'good': return 'rgba(16, 185, 129, 0.3)';
       case 'low': return 'rgba(245, 158, 11, 0.3)';
+      case 'neutral': return 'rgba(148, 163, 184, 0.24)';
       default: return 'rgba(239, 68, 68, 0.3)';
     }
   }};
+`;
+
+const SessionSignalText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  span {
+    font-weight: 700;
+    color: var(--text-primary, #e0ecf4);
+  }
+
+  small {
+    color: var(--text-secondary, rgba(224, 236, 244, 0.68));
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 `;
 
 const ActionButtons = styled.div`
@@ -325,6 +349,12 @@ const IconButton = styled.button`
   &:hover {
     background: rgba(59, 130, 246, 0.3);
     transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
   }
   
   &.success {
@@ -491,6 +521,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               lastName: client.lastName,
               email: client.email,
               availableSessions: client.availableSessions || 0, // 🚨 CRITICAL: Use client field directly
+              clientSource: client.clientSource || 'swanstudios',
               totalSessionsPurchased: summary.total,
               sessionsUsed: summary.completed,
               lastSessionDate: undefined, // TODO: Get from backend
@@ -504,6 +535,7 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
               lastName: client.lastName,
               email: client.email,
               availableSessions: client.availableSessions || 0,
+              clientSource: client.clientSource || 'swanstudios',
               totalSessionsPurchased: 0,
               sessionsUsed: 0,
               lastSessionDate: undefined,
@@ -533,6 +565,17 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
 
   const handleAddSessions = async () => {
     if (!selectedClient) return;
+
+    if (isNonDeductingClientSource(selectedClient.clientSource)) {
+      toast({
+        title: 'Free tracking client',
+        description: 'Manual paid-session allocation is disabled for free-tracking clients.',
+        variant: 'default'
+      });
+      setShowAddModal(false);
+      setSelectedClient(null);
+      return;
+    }
 
     try {
       const result = await sessionService.addSessionsToClient(
@@ -603,10 +646,10 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     const rows = filteredClients.map((client) => [
       `${client.firstName} ${client.lastName}`,
       client.email,
-      client.availableSessions,
+      getClientSessionSignal(client).label,
       client.totalSessionsPurchased,
       client.sessionsUsed,
-      client.availableSessions === 0 ? 'No Sessions' : client.availableSessions <= 3 ? 'Low' : 'Good'
+      getSessionBadgeLabel(client)
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((cell) => escapeCsvCell(cell)).join(','))
@@ -623,18 +666,34 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
     URL.revokeObjectURL(url);
   }, [filteredClients, toast]);
   
-  const getSessionBadgeType = (available: number): 'good' | 'low' | 'none' => {
-    if (available === 0) return 'none';
-    if (available <= 3) return 'low';
+  const getSessionBadgeType = (client: Client): 'good' | 'low' | 'none' | 'neutral' => {
+    if (isNonDeductingClientSource(client.clientSource)) return 'neutral';
+    if (client.availableSessions === 0) return 'none';
+    if (client.availableSessions <= 3) return 'low';
     return 'good';
+  };
+
+  const getSessionBadgeLabel = (client: Client): string => {
+    if (isNonDeductingClientSource(client.clientSource)) {
+      return 'tracked';
+    }
+
+    if (client.availableSessions === 0) return 'No Sessions';
+    if (client.availableSessions <= 3) return 'Low';
+    return 'Good';
   };
   
   // Calculate stats
   const stats = {
     totalClients: clients.length,
-    totalAvailableSessions: clients.reduce((sum, client) => sum + client.availableSessions, 0),
+    totalAvailableSessions: clients.reduce(
+      (sum, client) => sum + (isNonDeductingClientSource(client.clientSource) ? 0 : client.availableSessions),
+      0
+    ),
     totalCompletedSessions: clients.reduce((sum, client) => sum + client.sessionsUsed, 0),
-    clientsNeedingSessions: clients.filter(client => client.availableSessions === 0).length
+    clientsNeedingSessions: clients.filter(
+      client => !isNonDeductingClientSource(client.clientSource) && client.availableSessions === 0
+    ).length
   };
   
   if (loading) {
@@ -734,56 +793,69 @@ const SessionAllocationManager: React.FC<SessionAllocationManagerProps> = ({ onS
           <div className="header-cell">Actions</div>
         </TableHeader>
         
-        {filteredClients.map((client) => (
-          <TableRow
-            key={client.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="cell client-info">
-              <div className="name">{client.firstName} {client.lastName}</div>
-              <div className="email">{client.email}</div>
-            </div>
-            <div className="cell" data-label="Available">
-              {client.availableSessions}
-            </div>
-            <div className="cell" data-label="Total Purchased">
-              {client.totalSessionsPurchased}
-            </div>
-            <div className="cell" data-label="Completed">
-              {client.sessionsUsed}
-            </div>
-            <div className="cell" data-label="Status">
-              <SessionBadge type={getSessionBadgeType(client.availableSessions)}>
-                {client.availableSessions === 0 ? 'No Sessions' : 
-                 client.availableSessions <= 3 ? 'Low' : 'Good'}
-              </SessionBadge>
-            </div>
-            <div className="cell" data-label="Actions">
-              <ActionButtons>
-                <IconButton
-                  className="success"
-                  aria-label={`Add sessions to ${client.firstName} ${client.lastName}`}
-                  onClick={() => {
-                    setSelectedClient(client);
-                    setShowAddModal(true);
-                  }}
-                  title="Add Sessions"
-                >
-                  <Plus size={14} />
-                </IconButton>
-                <IconButton
-                  aria-label={`View details for ${client.firstName} ${client.lastName}`}
-                  onClick={() => navigate(`/dashboard/admin/client-management?clientId=${client.id}`)}
-                  title="View Details"
-                >
-                  <Eye size={14} />
-                </IconButton>
-              </ActionButtons>
-            </div>
-          </TableRow>
-        ))}
+        {filteredClients.map((client) => {
+          const sessionSignal = getClientSessionSignal(client);
+          const isFreeTrackingClient = isNonDeductingClientSource(client.clientSource);
+
+          return (
+            <TableRow
+              key={client.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="cell client-info">
+                <div className="name">{client.firstName} {client.lastName}</div>
+                <div className="email">{client.email}</div>
+              </div>
+              <div className="cell" data-label="Available">
+                <SessionSignalText>
+                  <span>{sessionSignal.label}</span>
+                  <small>{sessionSignal.note}</small>
+                </SessionSignalText>
+              </div>
+              <div className="cell" data-label="Total Purchased">
+                {client.totalSessionsPurchased}
+              </div>
+              <div className="cell" data-label="Completed">
+                {client.sessionsUsed}
+              </div>
+              <div className="cell" data-label="Status">
+                <SessionBadge type={getSessionBadgeType(client)}>
+                  {getSessionBadgeLabel(client)}
+                </SessionBadge>
+              </div>
+              <div className="cell" data-label="Actions">
+                <ActionButtons>
+                  <IconButton
+                    className="success"
+                    aria-label={
+                      isFreeTrackingClient
+                        ? `Paid sessions are disabled for ${client.firstName} ${client.lastName} because this is free tracking`
+                        : `Add sessions to ${client.firstName} ${client.lastName}`
+                    }
+                    disabled={isFreeTrackingClient}
+                    onClick={() => {
+                      if (isFreeTrackingClient) return;
+                      setSelectedClient(client);
+                      setShowAddModal(true);
+                    }}
+                    title={isFreeTrackingClient ? 'Free tracking - no paid-session allocation' : 'Add Sessions'}
+                  >
+                    <Plus size={14} />
+                  </IconButton>
+                  <IconButton
+                    aria-label={`View details for ${client.firstName} ${client.lastName}`}
+                    onClick={() => navigate(`/dashboard/admin/client-management?clientId=${client.id}`)}
+                    title="View Details"
+                  >
+                    <Eye size={14} />
+                  </IconButton>
+                </ActionButtons>
+              </div>
+            </TableRow>
+          );
+        })}
         
         {filteredClients.length === 0 && (
           <EmptyState>

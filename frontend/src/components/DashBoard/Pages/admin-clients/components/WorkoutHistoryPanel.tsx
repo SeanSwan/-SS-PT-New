@@ -47,6 +47,7 @@ import {
   calcBrzycki1RM,
   type WorkoutSession,
   type WorkoutLogEntry,
+  type PersonalRecord,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { useAuth } from '../../../../../context/AuthContext';
 
@@ -195,6 +196,16 @@ function resolveExerciseNote(
   }
   return { exerciseNote: '', source: 'empty' };
 }
+
+const sortPersonalRecords = (records: PersonalRecord[]): PersonalRecord[] =>
+  [...records].sort((a, b) =>
+    b.weight - a.weight ||
+    b.reps - a.reps ||
+    a.exercise.localeCompare(b.exercise) ||
+    a.date.localeCompare(b.date));
+
+const getPersonalRecordKey = (pr: PersonalRecord): string =>
+  ['pr', pr.exercise, pr.date, pr.weight, pr.reps, pr.estimated1RM ?? ''].join('|');
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -825,6 +836,10 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const nextTemporarySetIdRef = useRef(-1);
+  const sortedPersonalRecords = useMemo(
+    () => sortPersonalRecords(data?.personalRecords ?? []),
+    [data?.personalRecords],
+  );
 
   const toggleSession = (id: string) => {
     // Collapsing a session mid-edit discards the edit — matches the old
@@ -1111,15 +1126,15 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       )}
 
       <TabBar role="tablist" aria-label="Workout data views">
-        <Tab $active={activeTab === 'history'} onClick={() => setActiveTab('history')}
+        <Tab type="button" $active={activeTab === 'history'} onClick={() => setActiveTab('history')}
           role="tab" aria-selected={activeTab === 'history'} aria-controls="tab-history">
           <Dumbbell size={16} /> History
         </Tab>
-        <Tab $active={activeTab === 'charts'} onClick={() => setActiveTab('charts')}
+        <Tab type="button" $active={activeTab === 'charts'} onClick={() => setActiveTab('charts')}
           role="tab" aria-selected={activeTab === 'charts'} aria-controls="tab-charts">
           <BarChart3 size={16} /> Charts
         </Tab>
-        <Tab $active={activeTab === 'prs'} onClick={() => setActiveTab('prs')}
+        <Tab type="button" $active={activeTab === 'prs'} onClick={() => setActiveTab('prs')}
           role="tab" aria-selected={activeTab === 'prs'} aria-controls="tab-prs">
           <Trophy size={16} /> PRs
         </Tab>
@@ -1138,7 +1153,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         {error && (
           <ErrorPanel>
             <span>{error}</span>
-            <RetryButton onClick={refetch}>
+            <RetryButton type="button" onClick={refetch}>
               Retry
             </RetryButton>
           </ErrorPanel>
@@ -1182,7 +1197,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                         {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </SessionToggleButton>
                       <SessionHeaderActions>
-                        <ShareIconBtn onClick={() => setShareSession(session)}
+                        <ShareIconBtn type="button" onClick={() => setShareSession(session)}
                           aria-label={`Share ${session.title} to social feed`}>
                           <Share2 size={12} /> Share
                         </ShareIconBtn>
@@ -1336,6 +1351,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                                       {isEditing && (
                                         <Td>
                                           <EditBtn
+                                            type="button"
                                             $variant="danger"
                                             onClick={() => removeEditRow(logIndex)}
                                             aria-label={`Remove set ${idx + 1} of ${exerciseName}`}
@@ -1473,6 +1489,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                             <AddSetRow>
                               {Array.from(editGroups.keys()).map((exerciseName) => (
                                 <EditBtn
+                                  type="button"
                                   key={`add-set-${exerciseName}`}
                                   $variant="addSet"
                                   onClick={() => addEditRow(exerciseName)}
@@ -1503,6 +1520,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                             {isEditing ? (
                               <>
                                 <EditBtn
+                                  type="button"
                                   $variant="cancel"
                                   onClick={cancelEdit}
                                   disabled={saving}
@@ -1511,6 +1529,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                                   <XIcon size={14} /> Cancel
                                 </EditBtn>
                                 <EditBtn
+                                  type="button"
                                   $variant="save"
                                   onClick={() => saveEdit(session.id)}
                                   disabled={saving || editLogs.length === 0}
@@ -1522,6 +1541,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               </>
                             ) : (
                               <EditBtn
+                                type="button"
                                 $variant="edit"
                                 onClick={() => startEdit(session)}
                                 data-testid={`edit-start-${session.id}`}
@@ -1553,16 +1573,15 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         {/* PRs TAB */}
         {!isLoading && !error && activeTab === 'prs' && data && (
           <>
-            {data.personalRecords.length === 0 ? (
+            {sortedPersonalRecords.length === 0 ? (
               <EmptyState>
                 <Trophy size={40} />
                 <p>No personal records yet</p>
               </EmptyState>
             ) : (
-              data.personalRecords
-                .sort((a, b) => b.weight - a.weight)
-                .map((pr, idx) => (
-                  <PRCard key={`${pr.exercise}-${idx}`}>
+              sortedPersonalRecords
+                .map((pr) => (
+                  <PRCard key={getPersonalRecordKey(pr)}>
                     <PRDetails>
                       <PRExerciseName>
                         {pr.exercise}
@@ -1582,6 +1601,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                         </PREstimate>
                       )}
                       <ShareIconBtn
+                        type="button"
                         aria-label={`Share ${pr.exercise} personal record`}
                         onClick={() => setShareSession({
                           id: `pr-${pr.exercise}`,

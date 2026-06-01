@@ -8,6 +8,11 @@ import { Router } from 'express';
 import { protect, authorize } from '../middleware/auth.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  buildAtRiskComplianceClient,
+  buildAtRiskComplianceQuery,
+  sortAtRiskClients,
+} from '../utils/adminComplianceHelpers.mjs';
 
 const router = Router();
 const BUSINESS_KPI_PERIOD_DAYS = Object.freeze({
@@ -27,6 +32,7 @@ function validateBusinessKpiPeriod(req, res, next) {
   }
   next();
 }
+export { buildAtRiskComplianceClient };
 
 // All routes require admin/trainer auth
 router.use(protect, authorize(['admin', 'trainer']));
@@ -40,72 +46,18 @@ router.get('/compliance/at-risk', async (req, res) => {
   try {
     let clients = [];
     try {
-      const [rows] = await sequelize.query(`
-        SELECT
-          u.id,
-          u."firstName",
-          u."lastName",
-          u.photo,
-          u."availableSessions",
-          MAX(dwf.created_at) AS "lastWorkoutDate",
-          COUNT(CASE WHEN dwf.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
-          COUNT(CASE WHEN dwf.created_at >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d"
-        FROM "Users" u
-        LEFT JOIN daily_workout_forms dwf ON dwf.client_id = u.id
-        WHERE u.role = 'client' AND u."isActive" != false
-        GROUP BY u.id
-        ORDER BY MAX(dwf.created_at) ASC NULLS FIRST
-        LIMIT 50
-      `);
+      const { sql, replacements } = buildAtRiskComplianceQuery({
+        user: req.user,
+        limit: req.query.limit,
+      });
+      const [rows] = await sequelize.query(sql, { replacements });
       clients = rows || [];
     } catch (queryErr) {
       logger.warn('[Compliance] at-risk query failed (table may not exist): %s', queryErr.message);
       // Return empty if query fails — don't crash the whole endpoint
     }
 
-    const atRisk = clients.map(c => {
-      const lastWorkout = c.lastWorkoutDate ? new Date(c.lastWorkoutDate) : null;
-      const daysSince = lastWorkout ? Math.floor((Date.now() - lastWorkout.getTime()) / 86400000) : 999;
-      const w7d = Number(c.workouts7d || 0);
-      const w30d = Number(c.workouts30d || 0);
-      // Target: ~3 workouts/week = ~12/month
-      const compliance7d = Math.min(100, Math.round((w7d / 3) * 100));
-      const compliance30d = Math.min(100, Math.round((w30d / 12) * 100));
-      const sessions = Number(c.availableSessions || 0);
-
-      let riskLevel = 'watch';
-      let reason = '';
-      if (daysSince > 10 || (compliance30d < 30 && w30d < 3)) {
-        riskLevel = 'critical';
-        reason = daysSince > 10
-          ? `No workouts in ${daysSince} days`
-          : `Very low compliance (${compliance30d}%) this month`;
-        if (sessions <= 2) reason += `, only ${sessions} session${sessions !== 1 ? 's' : ''} remaining`;
-      } else if (daysSince > 5 || compliance30d < 50) {
-        riskLevel = 'warning';
-        reason = `Compliance dropped to ${compliance30d}% (${w30d} workouts in 30 days)`;
-      } else if (daysSince > 3 || compliance7d < 66) {
-        reason = `Moderate activity — ${w7d} workout${w7d !== 1 ? 's' : ''} this week`;
-      } else {
-        return null; // healthy, skip
-      }
-
-      return {
-        id: c.id,
-        firstName: c.firstName,
-        lastName: c.lastName,
-        photo: c.photo || null,
-        riskLevel,
-        reason,
-        daysSinceLastWorkout: daysSince === 999 ? 0 : daysSince,
-        complianceRate7d: compliance7d,
-        complianceRate30d: compliance30d,
-        sessionsRemaining: sessions,
-      };
-    }).filter(Boolean).sort((a, b) => {
-      const order = { critical: 0, warning: 1, watch: 2 };
-      return (order[a.riskLevel] ?? 3) - (order[b.riskLevel] ?? 3);
-    });
+    const atRisk = sortAtRiskClients(clients.map(buildAtRiskComplianceClient).filter(Boolean));
 
     res.json({ clients: atRisk });
   } catch (err) {

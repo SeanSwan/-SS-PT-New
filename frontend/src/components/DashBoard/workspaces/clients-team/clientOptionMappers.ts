@@ -4,11 +4,52 @@
 
 import type { ClientOption } from './ClientSelectorDropdown';
 import type { MiniCardClient } from './ClientMiniCard';
+import { isNonDeductingClientSource, normalizeAvailableSessions } from './clientSessionSignal';
+
+export const normalizeClientOptionId = (value: unknown): number | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+export const mapAdminClientToClientOption = (client: any): ClientOption | null => {
+  const id = normalizeClientOptionId(client?.id);
+  if (!id) return null;
+
+  return {
+    id,
+    firstName: client.firstName || '',
+    lastName: client.lastName || '',
+    email: client.email || '',
+    clientSource: client.clientSource || 'swanstudios',
+    isActive: client.isActive !== false,
+    availableSessions: normalizeAvailableSessions(client.availableSessions),
+    workoutCount: client.totalWorkouts || 0,
+    fitnessGoal: client.fitnessGoal || '',
+    trainingExperience: client.trainingExperience || '',
+    dateOfBirth: client.dateOfBirth || null,
+    onboardingComplete: Boolean(client.onboardingComplete),
+    isOnboardingComplete: Boolean(client.isOnboardingComplete),
+    onboardingPct: client.onboardingPct ?? null,
+    onboardingCompletionPercentage: client.onboardingCompletionPercentage ?? null,
+    completionPercentage: client.completionPercentage ?? null,
+  };
+};
 
 export const toMiniCardClient = (client: ClientOption | null): MiniCardClient | null => {
   if (!client) return null;
 
-  const sessionsLeft = client.availableSessions || 0;
+  const sessionsLeft = isNonDeductingClientSource(client.clientSource)
+    ? 0
+    : normalizeAvailableSessions(client.availableSessions);
 
   return {
     id: client.id,

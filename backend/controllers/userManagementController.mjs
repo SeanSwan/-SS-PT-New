@@ -321,12 +321,19 @@
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Admin access code from environment variables
 const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE;
+const PAID_CREDIT_FREE_TRACKING_MESSAGE = 'Admin user management cannot assign paid credits to free-tracking clients';
+
+const parseAdminSessionCreditInput = (value, fallback = 0) => {
+  const parsed = Number(value ?? fallback);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
 
 /**
  * @desc    Get all users (admin only)
@@ -389,10 +396,27 @@ export const promoteToClient = async (req, res) => {
       });
     }
     
+    const requestedAvailableSessions = parseAdminSessionCreditInput(availableSessions);
+    if (requestedAvailableSessions === null) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Available sessions must be a non-negative integer'
+      });
+    }
+
+    if (requestedAvailableSessions > 0 && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: PAID_CREDIT_FREE_TRACKING_MESSAGE
+      });
+    }
+
     // Update user role to client and set available sessions
     await user.update({
       role: 'client',
-      availableSessions: parseInt(availableSessions),
+      availableSessions: requestedAvailableSessions,
       // Reset these fields if they were previously set as a different role
       fitnessGoal: user.fitnessGoal || null,
       trainingExperience: user.trainingExperience || null,
@@ -534,6 +558,28 @@ export const updateUser = async (req, res) => {
       });
     }
     
+    const requestedAvailableSessions = availableSessions !== undefined
+      ? parseAdminSessionCreditInput(availableSessions)
+      : undefined;
+
+    if (requestedAvailableSessions === null) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Available sessions must be a non-negative integer'
+      });
+    }
+
+    if (requestedAvailableSessions !== undefined
+      && requestedAvailableSessions > 0
+      && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: PAID_CREDIT_FREE_TRACKING_MESSAGE
+      });
+    }
+
     // Build update object with only provided fields
     const updateData = {};
     if (firstName !== undefined) updateData.firstName = firstName;
@@ -547,7 +593,7 @@ export const updateUser = async (req, res) => {
     if (role === 'client' || user.role === 'client') {
       if (fitnessGoal !== undefined) updateData.fitnessGoal = fitnessGoal;
       if (trainingExperience !== undefined) updateData.trainingExperience = trainingExperience;
-      if (availableSessions !== undefined) updateData.availableSessions = parseInt(availableSessions);
+      if (requestedAvailableSessions !== undefined) updateData.availableSessions = requestedAvailableSessions;
       if (masterPromptJson !== undefined) updateData.masterPromptJson = masterPromptJson;
     }
     

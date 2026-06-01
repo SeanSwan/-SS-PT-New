@@ -19,6 +19,7 @@
 
 import { useState, useCallback } from 'react';
 import apiService from '../services/api.service';
+import { dispatchAIWorkoutEvent } from '../utils/aiWorkoutEvents';
 
 // ── Response discriminated union ────────────────────────────────────────────
 
@@ -40,17 +41,35 @@ export type CommandResponse =
       result: Record<string, unknown> | null;
       client: { id?: number; firstName?: string } | null;
     }
-  | { type: 'not_wired'; message: string; command: string }
+  | {
+      type: 'frontend_dispatch';
+      message: string;
+      command: string;
+      event: string;
+      payload: Record<string, unknown>;
+      dispatched: boolean;
+    }
+  | { type: 'not_wired'; message: string; command: string; manualOnly: boolean; reason: string | null }
   | { type: 'debate_started'; message: string; jobId: string; debateType: string }
   | { type: 'error'; error: string };
 
 export interface ConfirmResult {
   success: boolean;
+  type: 'executed' | 'error' | 'not_wired' | 'frontend_dispatch';
   message: string;
   /** Execution result from the service (renamed from data — matches executeConfirmedOperation shape) */
   result: Record<string, unknown> | null;
   command?: string;
+  event?: string;
+  payload?: Record<string, unknown>;
+  dispatched?: boolean;
 }
+
+const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: string): string => {
+  if (dispatched) return fallback || 'Sent to the active workout surface.';
+  if (event === 'AI_SUBMIT_WORKOUT') return 'No active Workout Logger was open. No workout was submitted.';
+  return 'No active workout surface was open. No form was changed.';
+};
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
@@ -96,8 +115,28 @@ export function useCoachCommand() {
         return { type: 'executed', command: data.command ?? '', result: data.result ?? null, client: data.client ?? null };
       }
 
+      if (data.type === 'frontend_dispatch') {
+        const event = data.event ?? '';
+        const payload = data.payload ?? {};
+        const dispatched = event ? dispatchAIWorkoutEvent(event, payload) : false;
+        return {
+          type: 'frontend_dispatch',
+          message: frontendDispatchReceipt(event, dispatched, data.message ?? 'Sent to the workout form.'),
+          command: data.command ?? '',
+          event,
+          payload,
+          dispatched,
+        };
+      }
+
       if (data.type === 'not_wired') {
-        return { type: 'not_wired', message: data.message ?? 'Command not yet wired.', command: data.command ?? '' };
+        return {
+          type: 'not_wired',
+          message: data.message ?? 'Command not yet wired.',
+          command: data.command ?? '',
+          manualOnly: !!data.manualOnly,
+          reason: data.reason ?? null,
+        };
       }
 
       if (data.type === 'debate_started') {
@@ -117,14 +156,31 @@ export function useCoachCommand() {
     try {
       const res = await apiService.post('/api/ai-command/confirm', { operationId });
       const data = res.data;
+      if (data.type === 'frontend_dispatch') {
+        const event = data.event ?? '';
+        const payload = data.payload ?? {};
+        const dispatched = event ? dispatchAIWorkoutEvent(event, payload) : false;
+        const message = frontendDispatchReceipt(event, dispatched, data.message || '');
+        return {
+          success: !!data.success,
+          type: 'frontend_dispatch',
+          message,
+          result: { dispatched, event },
+          command: data.command ?? undefined,
+          event,
+          payload,
+          dispatched,
+        };
+      }
       return {
         success: !!data.success,
+        type: data.type ?? (data.success ? 'executed' : 'error'),
         message: data.message || '',
         result: data.result ?? null,
         command: data.command ?? undefined,
       };
     } catch {
-      return { success: false, message: 'Confirm request failed.', result: null };
+      return { success: false, type: 'error', message: 'Confirm request failed.', result: null };
     }
   }, []);
 

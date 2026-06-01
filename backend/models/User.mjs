@@ -285,6 +285,16 @@ User.init(
       defaultValue: true,
       comment: 'Whether the user account is active'
     },
+    accountDeactivatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'When the account was admin-deactivated for soft-delete retention.'
+    },
+    accountRetentionUntil: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'When the soft-deleted account becomes eligible for final cleanup review.'
+    },
     forcePasswordChange: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

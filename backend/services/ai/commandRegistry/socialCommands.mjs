@@ -4,13 +4,18 @@
 import { z } from 'zod';
 import { registerCommands } from './baseSchemas.mjs';
 
+const positiveInt = z.coerce.number().int().positive();
+
 const commands = [
   {
     type: 'view_moderation_queue',
     description: 'Show posts pending review',
     naturalLanguagePatterns: ['show me posts pending review', 'moderation queue', 'what needs moderation'],
     method: 'GET', endpoint: '/api/admin/content/queue',
-    inputSchema: z.object({}).optional(),
+    inputSchema: z.object({
+      status: z.enum(['pending', 'flagged', 'all']).default('pending'),
+      limit: z.coerce.number().int().min(1).max(25).default(10),
+    }).optional(),
     destructive: false, requiresConfirmation: false,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'F',
@@ -21,8 +26,9 @@ const commands = [
     naturalLanguagePatterns: ['approve post {id}', 'approve that post', 'mark post {id} as approved'],
     method: 'POST', endpoint: '/api/admin/content/moderate',
     inputSchema: z.object({
-      postId: z.number().int().positive(),
-      action: z.literal('approve'),
+      postId: positiveInt,
+      action: z.literal('approve').default('approve'),
+      notifyUser: z.boolean().default(false),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['admin'],
@@ -34,9 +40,10 @@ const commands = [
     naturalLanguagePatterns: ['reject post {id}', 'reject post {id} for {reason}'],
     method: 'POST', endpoint: '/api/admin/content/moderate',
     inputSchema: z.object({
-      postId: z.number().int().positive(),
-      action: z.literal('reject'),
+      postId: positiveInt,
+      action: z.literal('reject').default('reject'),
       reason: z.string().min(1).max(500),
+      notifyUser: z.boolean().default(false),
     }),
     destructive: false, requiresConfirmation: true,
     roleRequired: ['admin'],
@@ -70,7 +77,11 @@ const commands = [
     description: 'Delete a social media post',
     naturalLanguagePatterns: ['delete post {id}', 'remove post {id}'],
     method: 'DELETE', endpoint: '/api/admin/content/posts/:postId',
-    inputSchema: z.object({ postId: z.number().int().positive() }),
+    inputSchema: z.object({
+      postId: positiveInt,
+      reason: z.string().min(1).max(500).optional(),
+      notifyUser: z.boolean().default(false),
+    }),
     destructive: true, requiresConfirmation: true,
     roleRequired: ['admin'],
     requiresClientRef: false, category: 'F',

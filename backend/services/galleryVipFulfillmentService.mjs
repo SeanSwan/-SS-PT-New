@@ -3,6 +3,7 @@ import User from '../models/User.mjs';
 import SessionPackage from '../models/SessionPackage.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
 
 const VIP_PACKAGE_NAME = 'VIP Gallery Package - PT Session + Complimentary Orientation';
 
@@ -68,8 +69,17 @@ export async function fulfillGalleryVipSession({
       await user.increment('availableSessions', { by: 1, transaction });
     }
 
-    if (user.role === 'user') {
-      await user.update({ role: 'client', updatedAt: new Date() }, { transaction });
+    const userVipUpdate = {
+      ...(!alreadyVipForUser && NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)
+        ? { clientSource: 'swanstudios' }
+        : {}),
+      ...(user.role === 'user'
+        ? { role: 'client', updatedAt: new Date() }
+        : {}),
+    };
+
+    if (Object.keys(userVipUpdate).length > 0) {
+      await user.update(userVipUpdate, { transaction });
     }
 
     return {

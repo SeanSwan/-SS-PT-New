@@ -39,6 +39,17 @@ const client = {
   lastName: 'Lovelace',
   email: 'ada@example.test',
   availableSessions: 4,
+  clientSource: 'swanstudios',
+  createdAt: '2026-05-23T12:00:00.000Z',
+};
+
+const moveFitnessClient = {
+  id: 10,
+  firstName: 'Mia',
+  lastName: 'Move',
+  email: 'mia@example.test',
+  availableSessions: 0,
+  clientSource: 'move_fitness',
   createdAt: '2026-05-23T12:00:00.000Z',
 };
 
@@ -107,7 +118,42 @@ describe('SessionAllocationManager active admin contract', () => {
     ));
   });
 
+  it('shows Move Fitness clients as free tracking and blocks manual paid-session allocation', async () => {
+    mockSessionService.getClients.mockResolvedValue([moveFitnessClient]);
+    mockSessionService.getUserSessionSummary.mockResolvedValue({
+      userId: 10,
+      available: 0,
+      scheduled: 0,
+      completed: 2,
+      cancelled: 0,
+      total: 2,
+    });
+
+    render(<SessionAllocationManager />);
+
+    expect(await screen.findByText('Mia Move')).toBeInTheDocument();
+    expect(screen.getByText('free tracking')).toBeInTheDocument();
+    expect(screen.getByText('no deduction')).toBeInTheDocument();
+    expect(screen.queryByText('No Sessions')).not.toBeInTheDocument();
+
+    const addButton = screen.getByRole('button', {
+      name: /paid sessions are disabled for mia move because this is free tracking/i,
+    });
+    expect(addButton).toBeDisabled();
+    fireEvent.click(addButton);
+
+    expect(screen.queryByLabelText(/number of sessions/i)).not.toBeInTheDocument();
+    expect(mockSessionService.addSessionsToClient).not.toHaveBeenCalled();
+  });
+
   it('keeps source guards against stale direct auth fetches on the active surface', () => {
+    expect(source).toContain("import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';");
+    expect(source).toContain('clientSource?: string;');
+    expect(source).toContain("clientSource: client.clientSource || 'swanstudios'");
+    expect(source).toContain('const sessionSignal = getClientSessionSignal(client);');
+    expect(source).toContain('const isFreeTrackingClient = isNonDeductingClientSource(client.clientSource);');
+    expect(source).not.toContain('totalAvailableSessions: clients.reduce((sum, client) => sum + client.availableSessions, 0)');
+    expect(source).not.toContain('clientsNeedingSessions: clients.filter(client => client.availableSessions === 0).length');
     expect(source).toContain('sessionService.getUserSessionSummary(client.id)');
     expect(source).toContain('sessionService.addSessionsToClient(');
     expect(source).not.toContain("localStorage.getItem('token')");

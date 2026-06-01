@@ -20,6 +20,7 @@
 
 import { getModel, getUser } from '../models/index.mjs';
 import { calculateCommissionSplit, isEligibleForLoyaltyBump } from '../utils/commissionCalculator.mjs';
+import { countCompletedPaidTrainingSessions } from './creditGrantLoyaltyService.mjs';
 import logger from '../utils/logger.mjs';
 
 // ─────────────────────────────────────────────────────────────
@@ -54,6 +55,8 @@ export async function createCommissionForPurchase({
     const User = getUser();
     const TrainerCommission = getModel('TrainerCommission');
     const ClientTrainerAssignment = getModel('ClientTrainerAssignment');
+    const Session = getModel('Session');
+    const DailyWorkoutForm = getModel('DailyWorkoutForm');
 
     if (!TrainerCommission || !ClientTrainerAssignment) {
       logger.warn('[CommissionService] TrainerCommission or ClientTrainerAssignment model not available');
@@ -88,13 +91,13 @@ export async function createCommissionForPurchase({
 
     const trainerType = trainer.trainerType || 'hired'; // Default to hired if not set
 
-    // Check loyalty eligibility (client has completed >100 sessions)
-    const client = await User.findByPk(userId, {
-      attributes: ['id', 'availableSessions'],
-    });
-    // Use a rough proxy: if they've purchased many sessions before, they're loyal
+    // Check loyalty eligibility from actual deducted/completed training evidence.
+    const completedPaidSessions = await countCompletedPaidTrainingSessions(
+      userId,
+      { Session, DailyWorkoutForm }
+    );
     const applyLoyaltyBump = isEligibleForLoyaltyBump(
-      (client?.availableSessions || 0) + sessionsGranted, // cumulative
+      completedPaidSessions,
       sessionsGranted
     );
 

@@ -78,7 +78,7 @@ function defaultAlternatives(exercise: RolodexLikeExercise): AlternativeSet {
   if (includesAny(name, ['jump', 'hop', 'bound', 'burpee', 'sprint']) || includesAny(type, ['plyo', 'cardio'])) {
     return {
       easyVariation: 'Step-through tempo version',
-      mediumVariation: 'Controlled low-hop version',
+      mediumVariation: 'Controlled step-out tempo version',
       hardVariation: `${exercise.name} with timed intervals`,
       kneeMod: 'Step-out version with soft knees and no rebound',
       shoulderMod: 'Keep arms below shoulder height during the low-impact pattern',

@@ -1,30 +1,10 @@
 /**
- * ============================================================================
- * FILE: VisitorWorldMap.tsx
- * PURPOSE: Dark-themed SVG world map showing visitor locations with glowing
- *          markers and an all-time visitor counter
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-27
- * AI VILLAGE VALIDATED: 2026-03-27
- * ============================================================================
+ * VisitorWorldMap
  *
- * WHAT THIS FILE DOES: Renders a react-simple-maps world map in the Crystalline
- * Swan dark theme, plots visitor locations as pulsing dots, and displays an
- * all-time visitor counter overlay.
- *
- * HOW IT FITS IN THE APP: AdminOverviewPanel → VisitorWorldMap (full-width bento)
- * KEY DECISIONS: react-simple-maps for SVG (no tile server, no API key, dark-first)
- *
- * ┌─── SUB-COMPONENT: VisitorWorldMap ─────────────────────────┐
- * │ PARENT: AdminOverviewPanel                                   │
- * │ PURPOSE: Geographic visitor visualization with all-time count│
- * │ Props: None (fetches own data via authAxios)                 │
- * │ CLICK-OUTCOMES:                                              │
- * │ [Marker dot] → Tooltip with visitor city/country             │
- * │ [Refresh btn] → Re-fetch visitor geo data                    │
- * └──────────────────────────────────────────────────────────────┘
+ * Active surface: AdminOverviewPanel full-width visitor intelligence bento.
+ * Data comes from mounted admin dashboard visitor geo/history endpoints.
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import styled, { keyframes } from 'styled-components';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ComposableMap,
   Geographies,
@@ -32,12 +12,33 @@ import {
   Marker,
   ZoomableGroup,
 } from 'react-simple-maps';
-import { Globe, Users, MapPin, RefreshCw, Eye, Plus, Minus } from 'lucide-react';
+import { Eye, Globe, MapPin, Minus, Plus, RefreshCw, Users } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import {
+  EmptyOverlay,
+  ErrorOverlay,
+  GlobeIcon,
+  HeaderLeft,
+  HeaderRight,
+  InlineNotice,
+  MapContainer,
+  MapHeader,
+  MapSubtitle,
+  MapTitle,
+  MapWrapper,
+  RefreshBtn,
+  StatLabel,
+  StatPill,
+  StatsBar,
+  StatValue,
+  Tooltip,
+  TooltipCity,
+  TooltipCount,
+  TooltipCountry,
+  ZoomBtn,
+  ZoomControls,
+} from './VisitorWorldMap.styles';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
 interface CityPoint {
   city: string;
   country: string;
@@ -54,18 +55,9 @@ interface MapData {
   byCity: CityPoint[];
 }
 
-// Natural Earth TopoJSON — free, no API key needed
-// 50m resolution for sharper country borders
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
-// US states overlay (10m resolution — shows all 50 states)
 const US_STATES_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json';
-// NOTE: Canadian provinces overlay removed — countries-50m.json only has country outlines,
-// not province boundaries. Province-level data requires a dedicated source (e.g., StatsCan).
-// The main world map already renders Canada's country border.
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 const VisitorWorldMap: React.FC = () => {
   const { authAxios } = useAuth();
   const [mapData, setMapData] = useState<MapData | null>(null);
@@ -78,8 +70,8 @@ const VisitorWorldMap: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState<[number, number]>([0, 20]);
 
-  const handleZoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.5, 8)), []);
-  const handleZoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.5, 1)), []);
+  const handleZoomIn = useCallback(() => setZoom((value) => Math.min(value * 1.5, 8)), []);
+  const handleZoomOut = useCallback(() => setZoom((value) => Math.max(value / 1.5, 1)), []);
 
   const fetchMapData = useCallback(async () => {
     try {
@@ -100,7 +92,7 @@ const VisitorWorldMap: React.FC = () => {
           totalVisitors: d.totalVisitors ?? 0,
           uniqueCountries: d.uniqueCountries ?? 0,
           uniqueCities: d.uniqueCities ?? 0,
-          byCity: (d.byCity ?? []).filter((c: any) => c.lat != null && c.lon != null),
+          byCity: (d.byCity ?? []).filter((c: CityPoint) => c.lat != null && c.lon != null),
         });
       } else {
         console.error('Failed to fetch map visitor geo:', geoRes);
@@ -128,21 +120,19 @@ const VisitorWorldMap: React.FC = () => {
     fetchMapData();
   }, [fetchMapData]);
 
-  // Scale marker radius by visitor count
   const maxCount = useMemo(() => {
     if (!mapData?.byCity.length) return 1;
-    return Math.max(...mapData.byCity.map((c) => c.count));
+    return Math.max(...mapData.byCity.map((city) => city.count));
   }, [mapData]);
 
   const markerRadius = (count: number) => {
     const min = 1;
-    const max = 3;
+    const max = 4;
     return min + ((count / maxCount) * (max - min));
   };
 
   return (
     <MapWrapper>
-      {/* Header */}
       <MapHeader>
         <HeaderLeft>
           <GlobeIcon><Globe size={22} /></GlobeIcon>
@@ -158,129 +148,54 @@ const VisitorWorldMap: React.FC = () => {
         </HeaderRight>
       </MapHeader>
 
-      {/* Stats Bar */}
       <StatsBar>
-        <StatPill>
-          <Eye size={14} />
-          <StatValue>{allTimeTotal.toLocaleString()}</StatValue>
-          <StatLabel>All-Time Visitors</StatLabel>
-        </StatPill>
-        <StatPill>
-          <Users size={14} />
-          <StatValue>{mapData?.totalVisitors ?? 0}</StatValue>
-          <StatLabel>Tracked Users</StatLabel>
-        </StatPill>
-        <StatPill>
-          <Globe size={14} />
-          <StatValue>{mapData?.uniqueCountries ?? 0}</StatValue>
-          <StatLabel>Countries</StatLabel>
-        </StatPill>
-        <StatPill>
-          <MapPin size={14} />
-          <StatValue>{mapData?.uniqueCities ?? 0}</StatValue>
-          <StatLabel>Cities</StatLabel>
-        </StatPill>
+        <StatPill><Eye size={14} /><StatValue>{allTimeTotal.toLocaleString()}</StatValue><StatLabel>All-Time Visitors</StatLabel></StatPill>
+        <StatPill><Users size={14} /><StatValue>{mapData?.totalVisitors ?? 0}</StatValue><StatLabel>Tracked Users</StatLabel></StatPill>
+        <StatPill><Globe size={14} /><StatValue>{mapData?.uniqueCountries ?? 0}</StatValue><StatLabel>Countries</StatLabel></StatPill>
+        <StatPill><MapPin size={14} /><StatValue>{mapData?.uniqueCities ?? 0}</StatValue><StatLabel>Cities</StatLabel></StatPill>
       </StatsBar>
-      {historyError && (
-        <InlineNotice role="status">{historyError}</InlineNotice>
-      )}
+      {historyError && <InlineNotice role="status">{historyError}</InlineNotice>}
 
-      {/* Map */}
       <MapContainer>
         <ComposableMap
+          className="visitor-map-svg"
           projectionConfig={{ rotate: [-10, 0, 0], scale: 147 }}
           width={800}
           height={400}
-          style={{ width: '100%', height: 'auto' }}
         >
           <ZoomableGroup
             center={center}
             zoom={zoom}
-            onMoveEnd={({ coordinates, zoom: z }) => { setCenter(coordinates); setZoom(z); }}
-            filterZoomEvent={(evt) => {
-              // Block scroll/wheel zoom — only allow programmatic zoom via buttons
-              if ('type' in evt && (evt as unknown as Event).type === 'wheel') return false;
-              return true;
+            onMoveEnd={({ coordinates, zoom: nextZoom }) => {
+              setCenter(coordinates);
+              setZoom(nextZoom);
             }}
+            filterZoomEvent={(evt) => !(('type' in evt) && (evt as unknown as Event).type === 'wheel')}
           >
             <Geographies geography={GEO_URL}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill="var(--bg-surface, #1A1A24)"
-                    stroke="var(--border-soft, rgba(96,192,240,0.12))"
-                    strokeWidth={0.5}
-                    style={{
-                      default: { outline: 'none' },
-                      hover: { fill: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, var(--bg-surface, #1A1A24))', outline: 'none' },
-                      pressed: { outline: 'none' },
-                    }}
-                  />
-                ))
-              }
+              {({ geographies }) => geographies.map((geo) => (
+                <Geography key={geo.rsmKey} geography={geo} className="country-geography" />
+              ))}
             </Geographies>
-
-            {/* US state boundaries overlay */}
             <Geographies geography={US_STATES_URL}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill="transparent"
-                    stroke="var(--border-soft, rgba(96,192,240,0.08))"
-                    strokeWidth={0.3}
-                    style={{
-                      default: { outline: 'none' },
-                      hover: { outline: 'none' },
-                      pressed: { outline: 'none' },
-                    }}
-                  />
-                ))
-              }
+              {({ geographies }) => geographies.map((geo) => (
+                <Geography key={geo.rsmKey} geography={geo} className="state-geography" />
+              ))}
             </Geographies>
-
-            {/* Visitor markers */}
-            {mapData?.byCity.map((city, i) => (
+            {mapData?.byCity.map((city, index) => (
               <Marker
-                key={`${city.city}-${city.country}-${i}`}
+                key={`${city.city}-${city.country}-${index}`}
                 coordinates={[city.lon, city.lat]}
-                onMouseEnter={(e) => {
+                onMouseEnter={(event: React.MouseEvent<SVGGElement>) => {
                   setHoveredCity(city);
-                  setTooltipPos({ x: e.clientX, y: e.clientY });
+                  setTooltipPos({ x: event.clientX, y: event.clientY });
                 }}
                 onMouseLeave={() => setHoveredCity(null)}
               >
-                {/* Outer glow ring */}
-                <circle
-                  r={markerRadius(city.count) + 1}
-                  fill="rgba(96, 192, 240, 0.15)"
-                  className="pulse-ring"
-                />
-                {/* Inner dot */}
-                <circle
-                  r={markerRadius(city.count)}
-                  fill="var(--accent-primary, #60C0F0)"
-                  fillOpacity={0.85}
-                  stroke="var(--accent-secondary, #8B5CF6)"
-                  strokeWidth={0.5}
-                  style={{ cursor: 'pointer' }}
-                />
-                {/* Count label for large markers */}
-                {city.count > 1 && markerRadius(city.count) >= 4 && (
-                  <text
-                    textAnchor="middle"
-                    y={1.5}
-                    style={{
-                      fontFamily: "'Fira Code', monospace",
-                      fontSize: '4px',
-                      fontWeight: 700,
-                      fill: '#fff',
-                      pointerEvents: 'none',
-                    }}
-                  >
+                <circle r={markerRadius(city.count) + 1} className="marker-glow" />
+                <circle r={markerRadius(city.count)} className="marker-dot" />
+                {city.count > 1 && markerRadius(city.count) >= 3.2 && (
+                  <text textAnchor="middle" y={1.5} className="marker-count-label">
                     {city.count}
                   </text>
                 )}
@@ -289,20 +204,16 @@ const VisitorWorldMap: React.FC = () => {
           </ZoomableGroup>
         </ComposableMap>
 
-        {/* Tooltip */}
         {hoveredCity && (
-          <Tooltip style={{ left: tooltipPos.x + 12, top: tooltipPos.y - 40 }}>
+          <Tooltip $left={tooltipPos.x + 12} $top={tooltipPos.y - 40}>
             <TooltipCity>{hoveredCity.city}</TooltipCity>
             <TooltipCountry>{hoveredCity.country}</TooltipCountry>
             <TooltipCount>{hoveredCity.count} visitor{hoveredCity.count !== 1 ? 's' : ''}</TooltipCount>
           </Tooltip>
         )}
 
-        {/* Zoom controls */}
         <ZoomControls>
-          <ZoomBtn onClick={handleZoomIn} aria-label="Zoom in" title="Zoom in">
-            <Plus size={16} />
-          </ZoomBtn>
+          <ZoomBtn onClick={handleZoomIn} aria-label="Zoom in" title="Zoom in"><Plus size={16} /></ZoomBtn>
           <ZoomBtn onClick={handleZoomOut} aria-label="Zoom out" title="Zoom out" disabled={zoom <= 1}>
             <Minus size={16} />
           </ZoomBtn>
@@ -314,12 +225,10 @@ const VisitorWorldMap: React.FC = () => {
             <span>Map data unavailable. Refresh before treating geo traffic as empty.</span>
           </ErrorOverlay>
         )}
-
-        {/* Empty state */}
-        {!loadError && !loading && (!mapData?.byCity.length) && (
+        {!loadError && !loading && !mapData?.byCity.length && (
           <EmptyOverlay>
             <Globe size={32} />
-            <span>No geo data yet — visitors will appear as they connect</span>
+            <span>No geo data yet - visitors will appear as they connect</span>
           </EmptyOverlay>
         )}
       </MapContainer>
@@ -328,278 +237,3 @@ const VisitorWorldMap: React.FC = () => {
 };
 
 export default VisitorWorldMap;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Animations
-// ─────────────────────────────────────────────────────────────
-const pulse = keyframes`
-  0% { opacity: 0.4; }
-  50% { opacity: 0.15; }
-  100% { opacity: 0.4; }
-`;
-
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Styled Components
-// ─────────────────────────────────────────────────────────────
-const MapWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
-  border-radius: 16px;
-  overflow: hidden;
-`;
-
-const MapHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.08));
-`;
-
-const HeaderLeft = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const GlobeIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-  color: var(--accent-primary, #60C0F0);
-  flex-shrink: 0;
-`;
-
-const MapTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-  margin: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-`;
-
-const MapSubtitle = styled.p`
-  font-size: 0.75rem;
-  color: var(--text-muted, rgba(224,236,244,0.4));
-  margin: 2px 0 0;
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  gap: 8px;
-`;
-
-const RefreshBtn = styled.button`
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  min-width: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
-  background: transparent;
-  color: var(--text-muted, rgba(224,236,244,0.4));
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 200ms;
-
-  &:hover {
-    color: var(--accent-primary, #60C0F0);
-    border-color: var(--accent-primary, #60C0F0);
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-secondary, #8B5CF6);
-    outline-offset: 2px;
-  }
-
-  .spinning {
-    animation: ${spin} 1s linear infinite;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const StatsBar = styled.div`
-  display: flex;
-  gap: 4px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.06));
-  overflow-x: auto;
-  scrollbar-width: thin;
-
-  @media (max-width: 768px) {
-    padding: 10px 16px;
-  }
-`;
-
-const InlineNotice = styled.div`
-  padding: 8px 20px;
-  color: var(--warning, #E5C76B);
-  font-size: 0.78rem;
-  border-bottom: 1px solid var(--border-soft, rgba(96,192,240,0.06));
-`;
-
-const StatPill = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  white-space: nowrap;
-  flex-shrink: 0;
-  color: var(--text-muted, rgba(224,236,244,0.5));
-
-  svg {
-    flex-shrink: 0;
-    color: var(--accent-primary, #60C0F0);
-  }
-`;
-
-const StatValue = styled.span`
-  font-family: 'Fira Code', monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const StatLabel = styled.span`
-  font-size: 0.7rem;
-  color: var(--text-muted, rgba(224,236,244,0.4));
-`;
-
-const MapContainer = styled.div`
-  position: relative;
-  background: var(--bg-base, #0A0A0F);
-  min-height: 280px;
-
-  /* Pulse animation on marker glow rings */
-  .pulse-ring {
-    animation: ${pulse} 3s ease-in-out infinite;
-    transform-origin: center;
-  }
-
-  /* SVG map styling */
-  svg {
-    display: block;
-  }
-
-  @media (max-width: 768px) {
-    min-height: 200px;
-  }
-`;
-
-const Tooltip = styled.div`
-  position: fixed;
-  z-index: 1000;
-  padding: 8px 14px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--accent-primary, #60C0F0);
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(96, 192, 240, 0.15);
-  pointer-events: none;
-`;
-
-const TooltipCity = styled.div`
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-`;
-
-const TooltipCountry = styled.div`
-  font-size: 0.7rem;
-  color: var(--text-muted, rgba(224,236,244,0.5));
-`;
-
-const TooltipCount = styled.div`
-  font-size: 0.75rem;
-  font-family: 'Fira Code', monospace;
-  color: var(--accent-primary, #60C0F0);
-  margin-top: 2px;
-`;
-
-const ZoomControls = styled.div`
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 10;
-`;
-
-const ZoomBtn = styled.button`
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  min-width: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96,192,240,0.15));
-  background: var(--bg-elevated, #141419);
-  color: var(--text-secondary, rgba(224,236,244,0.7));
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 200ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-
-  &:hover:not(:disabled) {
-    color: var(--accent-primary, #60C0F0);
-    border-color: var(--accent-primary, #60C0F0);
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, var(--bg-elevated, #141419));
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-secondary, #8B5CF6);
-    outline-offset: 2px;
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const EmptyOverlay = styled.div`
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  color: var(--text-muted, rgba(224,236,244,0.3));
-  font-size: 0.85rem;
-
-  svg {
-    opacity: 0.4;
-  }
-`;
-
-const ErrorOverlay = styled(EmptyOverlay)`
-  color: var(--warning, #E5C76B);
-
-  svg {
-    opacity: 0.75;
-  }
-`;

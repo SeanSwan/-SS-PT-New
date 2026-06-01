@@ -55,6 +55,7 @@ import Badge from '../../../ui-kit/Badge';
 import EmptyState, { LoadingState } from '../../../ui-kit/EmptyState';
 import { PageContainer as UIPageContainer, ContentContainer } from '../../../ui-kit/Container';
 import ClientProgressCharts from '../../../ClientProgressCharts/ClientProgressCharts';
+import { parseAdminProgressClientId } from './admin-client-progress-view.V2.logic';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Frost Shimmer Skeleton
@@ -423,12 +424,6 @@ const AdminClientProgressView: React.FC = () => {
     fetchLeaderboard();
   }, [fetchClients, fetchLeaderboard]);
 
-  useEffect(() => {
-    if (selectedClientId) {
-      fetchClientProgress(selectedClientId);
-    }
-  }, [selectedClientId, fetchClientProgress]);
-
   const filteredClients = clients.filter(client => {
     const fullName = `${client.firstName} ${client.lastName}`.toLowerCase();
     const username = client.username.toLowerCase();
@@ -437,6 +432,15 @@ const AdminClientProgressView: React.FC = () => {
   });
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
+  const selectedClientChartId = parseAdminProgressClientId(selectedClientId);
+
+  useEffect(() => {
+    if (selectedClientChartId) {
+      fetchClientProgress(String(selectedClientChartId));
+    } else {
+      setClientProgress(null);
+    }
+  }, [selectedClientChartId, fetchClientProgress]);
 
   if (loading) {
     return (
@@ -552,7 +556,7 @@ const AdminClientProgressView: React.FC = () => {
 
             {/* Progress Details + Victory Charts */}
             <MainColumn>
-              {clientProgress && selectedClient ? (
+              {clientProgress && selectedClient && selectedClientChartId ? (
                 <div>
                   {/* Stats Cards */}
                   <Card>
@@ -615,7 +619,7 @@ const AdminClientProgressView: React.FC = () => {
                   <ChartsSection>
                     <Suspense fallback={<ChartSkeleton role="status" aria-live="polite" aria-label="Loading charts" />}>
                       <ClientProgressCharts
-                        clientId={Number(selectedClientId)}
+                        clientId={selectedClientChartId}
                         isTrainerView={true}
                         showControls={true}
                         defaultTimeRange="30d"

@@ -105,6 +105,7 @@ const InstallButton = styled.button`
   transition: all 0.2s ease;
   backdrop-filter: blur(10px);
   flex: 1;
+  min-height: 44px;
   
   &:hover {
     background: rgba(255, 255, 255, 0.3);
@@ -133,6 +134,8 @@ const DismissButton = styled(InstallButton)`
 `;
 
 const CloseButton = styled.button`
+  min-width: 44px;
+  min-height: 44px;
   background: none;
   border: none;
   color: white;
@@ -153,11 +156,33 @@ const CloseButton = styled.button`
   }
 `;
 
+const ManualInstructions = styled.div`
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-elevated, rgba(10, 10, 15, 0.35));
+  border: 1px solid var(--border-soft, rgba(255, 255, 255, 0.22));
+`;
+
+const ManualTitle = styled.div`
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+`;
+
+const ManualList = styled.ol`
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+`;
+
 const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [manualInstructions, setManualInstructions] = useState<string[] | null>(null);
 
   useEffect(() => {
     // Check if app is already installed
@@ -251,12 +276,18 @@ const PWAInstallPrompt: React.FC = () => {
       instructions = 'To install Swan Studios:\n\n1. Look for the install icon in your browser\'s address bar\n2. Click it to install the app\n3. Or use the browser menu to "Install Swan Studios"';
     }
     
-    alert(instructions);
-    setShowPrompt(false);
+    setManualInstructions(
+      instructions
+        .split('\n')
+        .map((line) => line.replace(/^\d+\.\s*/, '').trim())
+        .filter((line) => line && !line.startsWith('To install'))
+    );
+    setShowPrompt(true);
   };
 
   const handleDismiss = () => {
     setShowPrompt(false);
+    setManualInstructions(null);
     localStorage.setItem('pwa-install-dismissed', 'true');
     
     // Allow showing again after 7 days
@@ -267,6 +298,7 @@ const PWAInstallPrompt: React.FC = () => {
 
   const handleClose = () => {
     setShowPrompt(false);
+    setManualInstructions(null);
   };
 
   // Don't show if already installed or in standalone mode
@@ -286,10 +318,21 @@ const PWAInstallPrompt: React.FC = () => {
           ×
         </CloseButton>
       </InstallHeader>
+
+      {manualInstructions && (
+        <ManualInstructions>
+          <ManualTitle>Manual install</ManualTitle>
+          <ManualList>
+            {manualInstructions.map((instruction) => (
+              <li key={instruction}>{instruction}</li>
+            ))}
+          </ManualList>
+        </ManualInstructions>
+      )}
       
       <ButtonContainer>
-        <InstallButton onClick={handleInstallClick}>
-          Install App
+        <InstallButton onClick={manualInstructions ? handleClose : handleInstallClick}>
+          {manualInstructions ? 'Done' : 'Install App'}
         </InstallButton>
         <DismissButton onClick={handleDismiss}>
           Not Now
