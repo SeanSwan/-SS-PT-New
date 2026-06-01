@@ -8,10 +8,16 @@
 
 export const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
 
+export const normalizePaidSessionCount = (value) => {
+  const sessions = Number(value ?? 0);
+  if (!Number.isFinite(sessions)) return 0;
+  return Math.max(0, Math.floor(sessions));
+};
+
 export function buildWorkoutSessionBillingDecision(client, options = {}) {
   const source = typeof client?.clientSource === 'string' ? client.clientSource : 'swanstudios';
   const shouldDeduct = !NON_DEDUCTING_CLIENT_SOURCES.has(source);
-  const availableSessions = Number(client?.availableSessions || 0);
+  const availableSessions = normalizePaidSessionCount(client?.availableSessions);
 
   if (!shouldDeduct) {
     return {
@@ -31,7 +37,7 @@ export function buildWorkoutSessionBillingDecision(client, options = {}) {
     };
   }
 
-  if (availableSessions <= 0) {
+  if (availableSessions < 1) {
     return {
       shouldDeduct: true,
       canLogWorkout: false,

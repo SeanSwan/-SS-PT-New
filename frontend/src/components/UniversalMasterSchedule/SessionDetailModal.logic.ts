@@ -55,9 +55,21 @@ export const buildScheduleWorkoutsRoute = (
   return `/dashboard/trainer/client-progress?${params.toString()}`;
 };
 
+const isPositiveInteger = (value: unknown) => {
+  if (typeof value !== 'number') return false;
+  return Number.isSafeInteger(value) && value > 0;
+};
+
+const isUsableSessionDate = (value: unknown) => {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  return !Number.isNaN(new Date(value).getTime());
+};
+
 export const canSessionOpenWorkoutLogger = (session: SessionDetail | null) =>
   Boolean(
-    session?.userId
+    isPositiveInteger(session?.id)
+    && isPositiveInteger(session?.userId)
+    && isUsableSessionDate(session?.sessionDate)
     && session.status !== 'cancelled'
     && session.status !== 'blocked'
     && !session.isBlocked

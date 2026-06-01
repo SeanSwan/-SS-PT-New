@@ -790,6 +790,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
     if (linkedScheduledSession) {
       const scheduledSessionCompletionDate = new Date();
+      const shouldStampScheduledSessionDeduction = billingDecision.shouldDeduct && billingDecision.sessionDeducted;
       const scheduledSessionAttendanceRecorderId = userRole === 'client'
         ? (linkedScheduledSession.markedPresentBy || null)
         : trainerId;
@@ -801,7 +802,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || scheduledSessionCompletionDate,
         noShowReason: null,
         sessionDeducted: billingDecision.sessionDeducted,
-        deductionDate: billingDecision.sessionDeducted ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate
+        deductionDate: shouldStampScheduledSessionDeduction ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate
       }, { transaction });
     }
 

@@ -38,6 +38,7 @@ import GlowButton from '../../ui/buttons/GlowButton';
 import {
   getClientSessionSignal,
   isNonDeductingClientSource,
+  normalizeAvailableSessions,
 } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import SearchableSelect from '../ui/SearchableSelect';
 import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';
@@ -97,7 +98,7 @@ interface ScheduleModalsProps {
   bookingLoading: boolean;
   bookingError: string | null;
   creditsDisplay: string | number;
-  sessionsRemaining: number | undefined;
+  sessionsRemaining: number | string | null | undefined;
   clientSource?: string | null;
   availableSessions: any[];
   
@@ -186,7 +187,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 }) => {
   const navigate = useNavigate();
   const [preselectedPaymentClientId, setPreselectedPaymentClientId] = useState<number | null>(null);
-  const hasNoCredits = typeof sessionsRemaining === 'number' && sessionsRemaining <= 0;
+  const normalizedSessionsRemaining = sessionsRemaining == null
+    ? undefined
+    : normalizeAvailableSessions(sessionsRemaining);
+  const hasNoCredits = normalizedSessionsRemaining != null && normalizedSessionsRemaining <= 0;
   const isFreeTrackingBooking = mode === 'client' && isNonDeductingClientSource(clientSource);
   const isPaidCreditLocked = mode === 'client' && !isFreeTrackingBooking && hasNoCredits;
   const isBookingLocked = isFreeTrackingBooking || isPaidCreditLocked;
@@ -676,9 +680,9 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   <PrimaryHeading style={{ fontSize: '1.75rem' }}>
                     {creditsDisplay}
                   </PrimaryHeading>
-                  {typeof sessionsRemaining === 'number' && (
+                  {normalizedSessionsRemaining != null && (
                     <HelperText>
-                      After booking: {Math.max(0, sessionsRemaining - 1)}
+                      After booking: {Math.max(0, normalizedSessionsRemaining - 1)}
                     </HelperText>
                   )}
                 </CreditCard>
@@ -707,7 +711,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
           onClose={() => setShowClientRecurringDialog(false)}
           onSuccess={fetchSessions}
           availableSessions={availableSessions}
-          userCredits={sessionsRemaining || 0}
+          userCredits={normalizedSessionsRemaining ?? 0}
         />
       )}
 

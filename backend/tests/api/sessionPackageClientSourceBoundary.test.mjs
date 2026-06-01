@@ -28,11 +28,13 @@ describe('session package clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(adminClientControllerSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(adminClientControllerSource).toContain('normalizePaidSessionCount');
     expect(source).toContain("attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'clientSource']");
     expect(source).toContain('const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);');
+    expect(source).toContain('const sessionsRemaining = normalizePaidSessionCount(client.availableSessions);');
     expect(source).toContain('clientSource: client.clientSource');
-    expect(source).toContain('sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0)');
+    expect(source).toContain('sessionsRemaining: isNonDeductingClient ? 0 : sessionsRemaining');
+    expect(source).not.toContain('sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0)');
   });
 
   it('blocks production test-session grants for non-deducting client sources', () => {

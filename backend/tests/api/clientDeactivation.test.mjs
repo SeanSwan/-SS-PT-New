@@ -61,6 +61,7 @@ describe('Client Deactivation', () => {
     expect(deleteClientSource).not.toMatch(/availableSessions\s*:\s*0/);
     expect(deleteClientSource).toMatch(/6 months/i);
     expect(deleteClientSource).toContain('preservedAvailableSessions');
+    expect(deleteClientSource).toContain('normalizePaidSessionCount(client.availableSessions)');
     expect(deleteClientSource).toContain('retainedUntil');
   });
 

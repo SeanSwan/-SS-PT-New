@@ -17,6 +17,7 @@ const baseProps = {
   showNoShowReason: false,
   canComplete: true,
   canOpenWorkoutLogger: true,
+  canViewWorkouts: true,
   mode: 'admin' as const,
   onClose: vi.fn(),
   onCancelClick: vi.fn(),
@@ -85,6 +86,15 @@ describe('SessionDetailFooterActions', () => {
 
   it('keeps workout logging admin/trainer only while keeping workout history available', () => {
     const props = { ...baseProps, mode: 'client' as const };
+
+    render(<SessionDetailFooterActions {...props} />);
+
+    expect(screen.queryByRole('button', { name: /log workout/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /view workouts/i })).toBeInTheDocument();
+  });
+
+  it('keeps workout history visible when schedule-origin logging is not allowed', () => {
+    const props = { ...baseProps, canOpenWorkoutLogger: false, canViewWorkouts: true };
 
     render(<SessionDetailFooterActions {...props} />);
 

@@ -1,4 +1,7 @@
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from '../services/sessionBillingPolicy.mjs';
 
 export function buildAtRiskComplianceQuery({ user, limit = 50 } = {}) {
   const safeLimit = Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 50));
@@ -49,9 +52,9 @@ export function buildAtRiskComplianceClient(c, nowMs = Date.now()) {
   const w30d = Number(c.workouts30d || 0);
   const compliance7d = Math.min(100, Math.round((w7d / 3) * 100));
   const compliance30d = Math.min(100, Math.round((w30d / 12) * 100));
-  const sessions = Number(c.availableSessions || 0);
   const clientSource = c.clientSource || 'swanstudios';
   const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
+  const sessions = isFreeTracking ? 0 : normalizePaidSessionCount(c.availableSessions);
 
   let riskLevel = 'watch';
   let reason = '';

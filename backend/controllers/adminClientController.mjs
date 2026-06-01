@@ -272,6 +272,7 @@ import { getMeasurementStatus } from '../services/measurementScheduleService.mjs
 import { generateClaimToken } from '../services/claimTokenService.mjs';
 import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
@@ -1032,7 +1033,7 @@ class AdminClientController {
       const accountDeactivatedAt = new Date();
       const retainedUntil = new Date(accountDeactivatedAt);
       retainedUntil.setMonth(retainedUntil.getMonth() + 6);
-      const preservedAvailableSessions = Number(client.availableSessions || 0);
+      const preservedAvailableSessions = normalizePaidSessionCount(client.availableSessions);
       let cancelledCount = [0];
 
       if (softDelete) {
@@ -1370,6 +1371,7 @@ class AdminClientController {
         });
       }
       const isNonDeductingClient = NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);
+      const sessionsRemaining = normalizePaidSessionCount(client.availableSessions);
 
       // Get last completed order (most recent purchase)
       // Use completedAt for ordering since it exists on base orders table
@@ -1438,7 +1440,7 @@ class AdminClientController {
             email: client.email,
             clientSource: client.clientSource
           },
-          sessionsRemaining: isNonDeductingClient ? 0 : (client.availableSessions || 0),
+          sessionsRemaining: isNonDeductingClient ? 0 : sessionsRemaining,
           lastPurchase: lastPurchase ? {
             id: lastPurchase.id,
             packageName: lastPurchase.orderNumber || 'Session Package',  // Use orderNumber as fallback

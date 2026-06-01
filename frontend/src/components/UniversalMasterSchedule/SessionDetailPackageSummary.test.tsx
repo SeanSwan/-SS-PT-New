@@ -39,6 +39,22 @@ describe('SessionDetailPackageSummary', () => {
     expect(screen.getByText('Unlimited')).toBeInTheDocument();
   });
 
+  it('normalizes malformed remaining counts before rendering paid package usage', () => {
+    render(
+      <SessionDetailPackageSummary
+        packageInfo={{
+          name: 'Founders 10 Pack',
+          sessionsTotal: 10,
+          sessionsRemaining: 'unknown' as any,
+        }}
+      />
+    );
+
+    expect(screen.getByText('10 of 10')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
+  });
+
   it('keeps package summary JSX out of the modal shell', () => {
     const modalSource = read('SessionDetailModal.tsx');
     const bodySource = read('SessionDetailBodyPanels.tsx');

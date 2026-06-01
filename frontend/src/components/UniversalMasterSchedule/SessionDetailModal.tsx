@@ -56,6 +56,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     canRecordAttendance,
     hasAttendanceRecorded,
     canOpenWorkoutLogger,
+    canViewWorkouts,
   } = useSessionDetailPermissions({
     open,
     mode,
@@ -209,6 +210,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           showNoShowReason={showNoShowReason}
           canComplete={canComplete}
           canOpenWorkoutLogger={canOpenWorkoutLogger}
+          canViewWorkouts={canViewWorkouts}
           mode={mode}
           onClose={onClose}
           onCancelClick={handleCancelClick}

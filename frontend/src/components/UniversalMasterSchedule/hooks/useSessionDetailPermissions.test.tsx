@@ -63,6 +63,29 @@ describe('useSessionDetailPermissions', () => {
     expect(result.current.canRecordAttendance).toBe(false);
     expect(result.current.canCancel).toBe(true);
     expect(result.current.canManageSeries).toBe(false);
+    expect(result.current.canOpenWorkoutLogger).toBe(false);
+    expect(result.current.canViewWorkouts).toBe(true);
+  });
+
+  it('blocks unassigned trainers from opening schedule-origin workout logging', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ id: 13 }));
+
+    const { result } = renderHook(() =>
+      useSessionDetailPermissions({
+        open: true,
+        mode: 'trainer',
+        session: baseSession,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.currentUserId).toBe(13);
+    });
+
+    expect(result.current.isTrainerAssigned).toBe(false);
+    expect(result.current.canRecordAttendance).toBe(false);
+    expect(result.current.canOpenWorkoutLogger).toBe(false);
+    expect(result.current.canViewWorkouts).toBe(true);
   });
 
   it('blocks workout logging and paid-session debt for blocked free-tracking sessions', () => {

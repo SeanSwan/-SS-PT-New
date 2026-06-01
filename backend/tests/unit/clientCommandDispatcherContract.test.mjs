@@ -282,7 +282,7 @@ describe('Swan Coach client command dispatchers', () => {
       firstName: 'Ava',
       lastName: 'Strong',
       email: 'ava@example.test',
-      availableSessions: 12,
+      availableSessions: 12.9,
       clientSource: 'swanstudios',
     };
     const lastOrder = {
@@ -406,7 +406,7 @@ describe('Swan Coach client command dispatchers', () => {
       id: 42,
       firstName: 'Zoe',
       email: 'zoe@example.test',
-      availableSessions: 7,
+      availableSessions: 7.9,
       update: vi.fn(async () => {}),
     };
     const transaction = {

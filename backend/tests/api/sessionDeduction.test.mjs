@@ -875,6 +875,26 @@ describe('SessionDeductionService', () => {
       expect(session.sessionDeducted).toBeFalsy();
     });
 
+    it('treats malformed batch deduction balances as no usable credits', async () => {
+      const client = makeClient(4, { availableSessions: 'unknown' });
+      const session = makeSession(3, {
+        sessionDate: new Date(Date.now() - 86400000),
+        client,
+      });
+      mockSessionModel.findAll.mockResolvedValue([session]);
+      mockUserModel.findByPk.mockResolvedValue(client);
+
+      const result = await processSessionDeductions();
+
+      expect(result.processed).toBe(1);
+      expect(result.deducted).toBe(0);
+      expect(result.noCredits).toHaveLength(1);
+      expect(result.noCredits[0].sessionId).toBe(3);
+      expect(session.status).toBe('completed');
+      expect(session.sessionDeducted).toBeFalsy();
+      expect(client.decrement).not.toHaveBeenCalled();
+    });
+
     it('completes Move Fitness sessions without paid-credit deduction or no-credit debt', async () => {
       const client = makeClient(6, {
         availableSessions: 0,

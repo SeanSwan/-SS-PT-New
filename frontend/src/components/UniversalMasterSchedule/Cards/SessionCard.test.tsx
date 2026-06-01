@@ -69,4 +69,18 @@ describe('SessionCard', () => {
     expect(screen.queryByText(/Legacy 10 Pack/)).not.toBeInTheDocument();
     expect(screen.queryByText(/7 left/)).not.toBeInTheDocument();
   });
+
+  it('normalizes malformed paid-session balances before rendering the badge', () => {
+    render(
+      <SessionCard
+        session={{
+          ...mockSession,
+          clientAvailableSessions: 'unknown' as any,
+        }}
+      />
+    );
+
+    expect(screen.getByTitle('0 sessions remaining')).toBeInTheDocument();
+    expect(screen.queryByText('unknown')).not.toBeInTheDocument();
+  });
 });

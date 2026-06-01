@@ -69,6 +69,7 @@ import {
   Apple
 } from 'lucide-react';
 import NutritionSummaryWidget from './NutritionSummaryWidget';
+import { normalizeAvailableSessions } from '../../../workspaces/clients-team/clientSessionSignal';
 
 // Services
 import { adminClientService, CLIENT_SOURCE_LABELS, type ClientSource } from '../../../../services/adminClientService';
@@ -675,7 +676,7 @@ interface Client {
   trainingExperience?: string;
   healthConcerns?: string;
   emergencyContact?: string;
-  availableSessions: number;
+  availableSessions: number | string | null;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   isActive: boolean;
   // L5 (2026-05-02): per-client opt-in for self-service workout plan
@@ -738,6 +739,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   const [payments, setPayments] = useState([]);
   const [progress, setProgress] = useState([]);
   const [notes, setNotes] = useState([]);
+  const availableSessions = normalizeAvailableSessions(client.availableSessions);
 
   // Data fetching
   const fetchClientData = useCallback(async () => {
@@ -805,7 +807,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   const handleAddSessions = async (sessionCount: number) => {
     try {
       await adminClientService.addSessions(client.id, sessionCount);
-      const updatedClient = { ...client, availableSessions: client.availableSessions + sessionCount };
+      const updatedClient = { ...client, availableSessions: availableSessions + sessionCount };
       onUpdate(updatedClient);
       toast({
         title: 'Success',
@@ -1087,8 +1089,8 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
       <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
         <SectionTitle style={{ marginBottom: 0 }}>Session Management</SectionTitle>
         <FlexRow $gap={12} $align="center">
-          <StatusChip $status={client.availableSessions > 0 ? 'success' : 'error'}>
-            {client.availableSessions} Available
+          <StatusChip $status={availableSessions > 0 ? 'success' : 'error'}>
+            {availableSessions} Available
           </StatusChip>
           <ActionButton
             $variant="contained"

@@ -22,6 +22,7 @@ export interface SessionDetailFooterActionsProps {
   showNoShowReason: boolean;
   canComplete: boolean;
   canOpenWorkoutLogger: boolean;
+  canViewWorkouts: boolean;
   mode: SessionDetailModalMode;
   onClose: () => void;
   onCancelClick: () => void;
@@ -45,6 +46,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   showNoShowReason,
   canComplete,
   canOpenWorkoutLogger,
+  canViewWorkouts,
   mode,
   onClose,
   onCancelClick,
@@ -110,6 +112,10 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
             Log Workout
           </GlowButton>
         )}
+      </>
+    )}
+    {canViewWorkouts && (
+      <>
         <GlowButton variant="cosmic" size="medium" onClick={onViewWorkouts}>
           View Workouts
         </GlowButton>

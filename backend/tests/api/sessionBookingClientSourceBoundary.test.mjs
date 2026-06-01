@@ -63,6 +63,20 @@ describe('session booking clientSource boundary', () => {
     expect(unifiedRouteSource).toContain("normalizedMessage.includes('booking access')");
   });
 
+  it('normalizes client session balance before unified booking credit checks', () => {
+    const start = unifiedServiceSource.indexOf('async bookSession(sessionId, user, bookingData = {})');
+    const end = unifiedServiceSource.indexOf('async cancelSession', start);
+    const source = unifiedServiceSource.slice(start, end);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(source).toContain('const rawAvailableSessions = Number(client.availableSessions ?? 0);');
+    expect(source).toContain('const availableSessionCount = Number.isFinite(rawAvailableSessions) ? rawAvailableSessions : 0;');
+    expect(source).toContain('availableSessionCount < creditsRequired');
+    expect(source).toContain('have ${availableSessionCount}');
+    expect(source).not.toContain('!client.availableSessions || client.availableSessions < creditsRequired');
+  });
+
   it('serves the active SessionContext user-id booking route from the unified router', () => {
     const start = unifiedRouteSource.indexOf('router.post("/book/:userId", protect');
     const end = unifiedRouteSource.indexOf('router.post("/:id/book"', start);
@@ -154,6 +168,32 @@ describe('session booking clientSource boundary', () => {
     });
     expect(client.availableSessions).toBe(9);
     expect(session.sessionDeducted).toBe(true);
+  });
+
+  it('self-defends processSessionDeduction against malformed paid-session balances', async () => {
+    const session = {
+      sessionDeducted: false,
+      save: async () => {
+        throw new Error('session should not be marked deducted without usable credits');
+      },
+    };
+    const client = {
+      clientSource: 'swanstudios',
+      availableSessions: 'unknown',
+      save: async () => {
+        throw new Error('malformed balances must not be saved as NaN');
+      },
+    };
+
+    const result = await processSessionDeduction(session, client);
+
+    expect(result).toMatchObject({
+      success: false,
+      deducted: false,
+      message: 'Insufficient session credits (need 1, have 0)',
+    });
+    expect(client.availableSessions).toBe('unknown');
+    expect(session.sessionDeducted).toBe(false);
   });
 
   it('does not deduct late-reschedule credits from every non-booking client source', () => {

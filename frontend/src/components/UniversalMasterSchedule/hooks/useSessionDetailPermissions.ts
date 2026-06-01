@@ -105,6 +105,17 @@ export const useSessionDetailPermissions = ({
       && !session?.attendanceStatus
       && (session?.status === 'scheduled' || session?.status === 'confirmed')
     );
+    const canViewWorkouts = Boolean(
+      isVisible
+      && Number.isSafeInteger(Number(session?.userId))
+      && Number(session?.userId) > 0
+    );
+    const canOpenWorkoutLogger = Boolean(
+      isVisible
+      && canManage
+      && isTrainerAssigned
+      && canSessionOpenWorkoutLogger(session)
+    );
 
     return {
       currentUserId,
@@ -119,7 +130,8 @@ export const useSessionDetailPermissions = ({
       canCancel,
       canRecordAttendance,
       hasAttendanceRecorded: Boolean(session?.attendanceStatus),
-      canOpenWorkoutLogger: Boolean(isVisible && canSessionOpenWorkoutLogger(session)),
+      canOpenWorkoutLogger,
+      canViewWorkouts,
     };
   }, [currentUserId, mode, open, session]);
 };

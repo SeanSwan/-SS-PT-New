@@ -143,7 +143,8 @@ export async function processSessionDeductions() {
           continue;
         }
 
-        const currentCredits = client.availableSessions || 0;
+        const rawCurrentCredits = Number(client.availableSessions ?? 0);
+        const currentCredits = Number.isFinite(rawCurrentCredits) ? Math.max(0, Math.floor(rawCurrentCredits)) : 0;
         const totalSessions = group.sessions.length;
         const deductible = Math.min(totalSessions, currentCredits);
 

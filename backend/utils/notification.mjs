@@ -520,12 +520,15 @@ export const processSessionDeduction = async (session, client, transaction = nul
       };
     }
 
+    const rawAvailableSessions = Number(client.availableSessions ?? 0);
+    const availableSessionCount = Number.isFinite(rawAvailableSessions) ? rawAvailableSessions : 0;
+
     // Check if client has enough available sessions
-    if (!client.availableSessions || client.availableSessions < creditsToDeduct) {
+    if (availableSessionCount < creditsToDeduct) {
       return {
         success: false,
         deducted: false,
-        message: `Insufficient session credits (need ${creditsToDeduct}, have ${client.availableSessions || 0})`
+        message: `Insufficient session credits (need ${creditsToDeduct}, have ${availableSessionCount})`
       };
     }
 
@@ -541,7 +544,7 @@ export const processSessionDeduction = async (session, client, transaction = nul
     // Deduct session credits from client's available sessions
       const saveOptions = transaction ? { transaction } : {};
 
-      client.availableSessions -= creditsToDeduct;
+      client.availableSessions = availableSessionCount - creditsToDeduct;
       await client.save(saveOptions);
     
     // Mark session as deducted

@@ -30,4 +30,21 @@ describe('user credits clientSource boundary', () => {
       availableSessions: 12,
     })).toBe(12);
   });
+
+  it('normalizes malformed paid-credit balances to non-negative whole sessions', () => {
+    expect(getSourceAwareSessionsRemaining({
+      clientSource: 'swanstudios',
+      availableSessions: 'unknown',
+    })).toBe(0);
+
+    expect(getSourceAwareSessionsRemaining({
+      clientSource: 'swanstudios',
+      availableSessions: -3,
+    })).toBe(0);
+
+    expect(getSourceAwareSessionsRemaining({
+      clientSource: 'swanstudios',
+      availableSessions: 7.8,
+    })).toBe(7);
+  });
 });

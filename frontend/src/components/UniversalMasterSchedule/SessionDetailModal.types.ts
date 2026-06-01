@@ -20,13 +20,13 @@ export interface SessionDetail {
   recurringGroupId?: string | null;
   packageInfo?: {
     name: string;
-    sessionsRemaining?: number;
+    sessionsRemaining?: number | string | null;
     sessionsTotal?: number | null;
     purchasedAt?: string | Date | null;
   };
   clientEmail?: string;
   clientPhone?: string;
-  clientAvailableSessions?: number;
+  clientAvailableSessions?: number | string | null;
   clientSource?: string;
   sessionDeducted?: boolean;
   attendanceStatus?: 'present' | 'no_show' | 'late' | null;

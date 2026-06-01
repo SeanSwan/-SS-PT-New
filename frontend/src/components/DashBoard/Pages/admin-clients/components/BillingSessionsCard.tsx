@@ -31,7 +31,10 @@ import { useClientBillingOverview } from '../../../../../hooks/useClientBillingO
 import BookSessionDialog from './BookSessionDialog';
 import AddSessionsDialog from './AddSessionsDialog';
 import ApplyPaymentDialog from './ApplyPaymentDialog';
-import { isNonDeductingClientSource } from '../../../workspaces/clients-team/clientSessionSignal';
+import {
+  isNonDeductingClientSource,
+  normalizeAvailableSessions
+} from '../../../workspaces/clients-team/clientSessionSignal';
 
 /* ------------------------------------------------------------------ */
 /*  Styled Components                                                  */
@@ -417,6 +420,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
 }) => {
   const { data, isLoading, error, refetch } = useClientBillingOverview(clientId);
   const isNonDeductingClient = isNonDeductingClientSource(data?.client?.clientSource);
+  const sessionsRemaining = normalizeAvailableSessions(data?.sessionsRemaining);
 
   // Dialog states
   const [bookSessionOpen, setBookSessionOpen] = useState(false);
@@ -501,10 +505,10 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
           </Header>
 
           <GridContainer>
-            {/* Sessions Remaining - Prominent Display */}
+              {/* Sessions Remaining - Prominent Display */}
             <SessionsBox>
               <SessionCount>
-                {isNonDeductingClient ? 'Log' : (data?.sessionsRemaining ?? 0)}
+                {isNonDeductingClient ? 'Log' : sessionsRemaining}
               </SessionCount>
               <SessionLabel>
                 {isNonDeductingClient ? 'Workout Logger Tracking' : 'Sessions Remaining'}
@@ -513,7 +517,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
                 <Chip $variant="info">
                   No deduction
                 </Chip>
-              ) : data?.sessionsRemaining === 0 && (
+              ) : sessionsRemaining === 0 && (
                 <Chip $variant="error">
                   <AlertTriangle size={14} />
                   No Credits
@@ -613,7 +617,7 @@ const BillingSessionsCard: React.FC<BillingSessionsCardProps> = ({
             <ActionButton
               $variant="blue"
               onClick={() => setBookSessionOpen(true)}
-              disabled={isNonDeductingClient || !data?.sessionsRemaining || data.sessionsRemaining === 0}
+              disabled={isNonDeductingClient || sessionsRemaining <= 0}
               style={{ minWidth: 150 }}
             >
               <CalendarCheck size={18} />

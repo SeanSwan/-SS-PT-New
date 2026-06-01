@@ -322,7 +322,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const sessionsRemaining = credits?.sessionsRemaining;
   const clientSource = credits?.clientSource ?? user?.clientSource ?? null;
   const canUseClientRecurringBooking = mode === 'client' && !isNonDeductingClientSource(clientSource);
-  const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
+  const lowCredits = sessionsRemaining != null && sessionsRemaining < 3;
 
   // Initialization
   useEffect(() => {
@@ -715,7 +715,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const creditsDisplay = creditsLoading
     ? '...'
-    : (typeof sessionsRemaining === 'number' ? sessionsRemaining : '--');
+    : (sessionsRemaining ?? '--');
 
   const seriesSessions = activeSeriesGroupId
     ? sessions.filter((session) => session.recurringGroupId === activeSeriesGroupId)

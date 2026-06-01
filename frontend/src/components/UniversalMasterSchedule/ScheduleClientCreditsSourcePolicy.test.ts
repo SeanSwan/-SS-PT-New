@@ -13,7 +13,9 @@ describe('schedule client credits source policy wiring', () => {
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
 
     expect(hookSource).toContain("clientSource?: 'swanstudios' | 'move_fitness' | 'external' | string | null;");
-    expect(hookSource).toContain('clientSource: null');
+    expect(hookSource).toContain('normalizeSessionCreditsPayload');
+    expect(hookSource).toContain('sessionsRemaining: normalizeAvailableSessions(payload?.sessionsRemaining)');
+    expect(hookSource).toContain('clientSource: payload?.clientSource ?? null');
     expect(scheduleSource).toContain('const clientSource = credits?.clientSource ?? user?.clientSource ?? null;');
     expect(scheduleSource).toContain('sessionsRemaining={sessionsRemaining}');
     expect(scheduleSource).toContain('clientSource={clientSource}');
@@ -27,5 +29,13 @@ describe('schedule client credits source policy wiring', () => {
     expect(scheduleSource).toContain("const canUseClientRecurringBooking = mode === 'client' && !isNonDeductingClientSource(clientSource);");
     expect(scheduleSource).toContain('onOpenClientRecurring={canUseClientRecurringBooking ? () => setShowClientRecurringDialog(true) : undefined}');
     expect(modalsSource).toContain("{mode === 'client' && !isFreeTrackingBooking && (");
+  });
+
+  it('keeps the schedule shell on normalized credit counts without raw type guards', () => {
+    const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
+
+    expect(scheduleSource).toContain('const lowCredits = sessionsRemaining != null && sessionsRemaining < 3;');
+    expect(scheduleSource).toContain(": (sessionsRemaining ?? '--');");
+    expect(scheduleSource).not.toContain("typeof sessionsRemaining === 'number'");
   });
 });

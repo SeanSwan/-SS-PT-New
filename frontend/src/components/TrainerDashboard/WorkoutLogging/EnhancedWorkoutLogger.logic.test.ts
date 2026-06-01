@@ -13,6 +13,12 @@ describe('EnhancedWorkoutLogger return path normalization', () => {
     expect(normalizeDashboardReturnTo('//evil.example/dashboard/admin')).toBeNull();
     expect(normalizeDashboardReturnTo('/marketing')).toBeNull();
   });
+
+  it('rejects dashboard-looking paths with control characters or backslashes', () => {
+    expect(normalizeDashboardReturnTo('/dashboard/admin/client-management\n?clientId=61')).toBeNull();
+    expect(normalizeDashboardReturnTo('/dashboard/admin/client-management\t?clientId=61')).toBeNull();
+    expect(normalizeDashboardReturnTo('/dashboard\\admin\\client-management')).toBeNull();
+  });
 });
 
 describe('EnhancedWorkoutLogger client identity parsing', () => {

@@ -35,6 +35,11 @@ describe('client onboard route clientSource boundary', () => {
       clientSource: 'swanstudios',
       availableSessions: 5,
     })).toBe(5);
+
+    expect(getClientOnboardAvailableSessions({
+      clientSource: 'swanstudios',
+      availableSessions: 5.9,
+    })).toBe(5);
   });
 
   it('accepts every supported client source at validation before billing policy applies', () => {
@@ -112,5 +117,21 @@ describe('admin compliance client-source boundary', () => {
     expect(row.reason).toBe('No workouts in 999 days, only 1 session remaining');
     expect(row.sessionsRemaining).toBe(1);
     expect(row.isFreeTracking).toBe(false);
+  });
+
+  it('normalizes SwanStudios paid-session counts before building compliance reasons', () => {
+    const row = buildAtRiskComplianceClient({
+      id: 93,
+      firstName: 'Fractional',
+      lastName: 'Client',
+      availableSessions: 1.8,
+      clientSource: 'swanstudios',
+      lastWorkoutDate: null,
+      workouts7d: 0,
+      workouts30d: 0,
+    });
+
+    expect(row.reason).toBe('No workouts in 999 days, only 1 session remaining');
+    expect(row.sessionsRemaining).toBe(1);
   });
 });

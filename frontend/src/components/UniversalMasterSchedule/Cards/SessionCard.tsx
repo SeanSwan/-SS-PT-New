@@ -1,6 +1,9 @@
 import React, { memo } from 'react';
 import { schedulePerf } from '../../../utils/schedulePerformance';
-import { isNonDeductingClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import {
+  isNonDeductingClientSource,
+  normalizeAvailableSessions,
+} from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import {
   CardBody,
   CardContainer,
@@ -27,10 +30,10 @@ export interface SessionCardData {
   trainerName?: string;
   clientSource?: string | null;
   isBlocked?: boolean;
-  clientAvailableSessions?: number;
+  clientAvailableSessions?: number | string | null;
   packageInfo?: {
     name: string;
-    sessionsRemaining?: number;
+    sessionsRemaining?: number | string | null;
     sessionsTotal?: number | null;
     purchasedAt?: string | Date | null;
   };
@@ -72,9 +75,11 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
     );
   }
 
-  const sessionsLeft = isFreeTrackingClient
+  const rawSessionsLeft = isFreeTrackingClient
     ? null
     : session.packageInfo?.sessionsRemaining ?? session.clientAvailableSessions;
+  const sessionsLeft = rawSessionsLeft == null ? null : normalizeAvailableSessions(rawSessionsLeft);
+  const packageSessionsRemaining = normalizeAvailableSessions(session.packageInfo?.sessionsRemaining);
 
   return (
     <CardContainer
@@ -127,7 +132,7 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
           <PackageInfo>
             {session.packageInfo.name}
             {session.packageInfo.sessionsTotal != null
-              ? ` (${Math.max(0, session.packageInfo.sessionsRemaining ?? 0)} left)`
+              ? ` (${packageSessionsRemaining} left)`
               : ' (Unlimited)'}
           </PackageInfo>
         )}

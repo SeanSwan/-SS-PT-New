@@ -127,6 +127,14 @@ describe('Swan Coach prompt contract', () => {
       clientSource: 'swanstudios',
       availableSessions: 7,
     })).toBe('7 sessions');
+    expect(getCoachRosterClientSessionsLabel({
+      clientSource: 'swanstudios',
+      availableSessions: 7.8,
+    })).toBe('7 sessions');
+    expect(getCoachRosterClientSessionsLabel({
+      clientSource: 'swanstudios',
+      availableSessions: 'unknown',
+    })).toBe('0 sessions');
   });
 
   it('keeps selected external client profiles out of paid session context', () => {
@@ -137,5 +145,16 @@ describe('Swan Coach prompt contract', () => {
       clientSource: 'external',
       availableSessions: 11,
     })).toBe('Free tracking/no paid-session deduction');
+  });
+
+  it('normalizes SwanStudios selected-client session inventory before injecting Coach context', () => {
+    expect(getCoachClientProfileSessionsLabel({
+      clientSource: 'swanstudios',
+      availableSessions: 9.6,
+    })).toBe('9');
+    expect(getCoachClientProfileSessionsLabel({
+      clientSource: 'swanstudios',
+      availableSessions: 'unknown',
+    })).toBe('0');
   });
 });

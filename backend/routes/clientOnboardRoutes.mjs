@@ -30,7 +30,10 @@ import crypto from 'crypto';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import { getUser, getClientProgress } from '../models/index.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from '../services/sessionBillingPolicy.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -42,8 +45,7 @@ export const isAllowedClientOnboardSource = (clientSource) =>
 
 export const getClientOnboardAvailableSessions = ({ clientSource, availableSessions }) => {
   if (NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)) return 0;
-  const sessions = Number(availableSessions || 0);
-  return Number.isFinite(sessions) && sessions > 0 ? sessions : 0;
+  return normalizePaidSessionCount(availableSessions);
 };
 
 export const getClientOnboardSuccessMessage = (clientSource) => {

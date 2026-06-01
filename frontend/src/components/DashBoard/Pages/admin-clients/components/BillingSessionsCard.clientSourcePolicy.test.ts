@@ -11,10 +11,15 @@ const serviceSource = readFileSync(resolve(__dirname, '../../../../../services/a
 describe('BillingSessionsCard client source policy', () => {
   it('self-defends against paid-credit actions for free-tracking clients', () => {
     expect(serviceSource).toContain('clientSource?: ClientSource;');
-    expect(source).toContain('isNonDeductingClientSource');
+    expect(source).toContain('isNonDeductingClientSource,');
+    expect(source).toContain('normalizeAvailableSessions');
+    expect(source).toContain('const sessionsRemaining = normalizeAvailableSessions(data?.sessionsRemaining);');
     expect(source).toContain('const isNonDeductingClient = isNonDeductingClientSource(data?.client?.clientSource);');
     expect(source).toContain('Workout Logger Tracking');
     expect(source).toContain('{!isNonDeductingClient && (');
-    expect(source).toContain('disabled={isNonDeductingClient || !data?.sessionsRemaining || data.sessionsRemaining === 0}');
+    expect(source).toContain("disabled={isNonDeductingClient || sessionsRemaining <= 0}");
+    expect(source).not.toContain('(data?.sessionsRemaining ?? 0)');
+    expect(source).not.toContain('data?.sessionsRemaining === 0');
+    expect(source).not.toContain('!data?.sessionsRemaining || data.sessionsRemaining === 0');
   });
 });

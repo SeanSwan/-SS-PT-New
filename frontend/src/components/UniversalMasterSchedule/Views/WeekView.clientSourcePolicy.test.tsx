@@ -27,4 +27,27 @@ describe('WeekView client source session badge policy', () => {
     expect(screen.queryByTitle(/17 left/)).not.toBeInTheDocument();
     expect(screen.queryByText('17')).not.toBeInTheDocument();
   });
+
+  it('normalizes malformed paid-session counts in week cards', () => {
+    const sessionDate = new Date(2026, 4, 26, 9, 0, 0);
+
+    render(
+      <WeekView
+        date={sessionDate}
+        sessions={[
+          {
+            id: 'paid-session-malformed-balance',
+            sessionDate,
+            duration: 60,
+            status: 'scheduled',
+            clientName: 'Paid Client',
+            clientAvailableSessions: 'unknown',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByTitle(/0 left/)).toBeInTheDocument();
+    expect(screen.queryByTitle(/unknown left/)).not.toBeInTheDocument();
+  });
 });

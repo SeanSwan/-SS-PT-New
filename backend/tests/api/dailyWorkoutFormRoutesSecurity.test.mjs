@@ -136,6 +136,20 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('attendanceRecordedAt: linkedScheduledSession.attendanceRecordedAt || scheduledSessionCompletionDate');
     expect(submitRoute).toContain('noShowReason: null');
     expect(submitRoute).toContain('sessionDeducted: billingDecision.sessionDeducted');
-    expect(submitRoute).toContain('deductionDate: billingDecision.sessionDeducted ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate');
+    expect(submitRoute).toContain('deductionDate: shouldStampScheduledSessionDeduction ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate');
+  });
+
+  it('preserves an already-deducted scheduled session deductionDate when logging the workout later', () => {
+    const submitRoute = routeSource.slice(
+      routeSource.indexOf("router.post('/', protect, checkTrainerClientRelationship"),
+      routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly")
+    );
+
+    expect(submitRoute).toContain(
+      'const shouldStampScheduledSessionDeduction = billingDecision.shouldDeduct && billingDecision.sessionDeducted;'
+    );
+    expect(submitRoute).toContain(
+      'deductionDate: shouldStampScheduledSessionDeduction ? scheduledSessionCompletionDate : linkedScheduledSession.deductionDate'
+    );
   });
 });

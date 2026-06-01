@@ -13,13 +13,15 @@
  * - packageName/expiresAt are optional; return null when unknown.
  */
 import User from '../models/User.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from '../services/sessionBillingPolicy.mjs';
 import logger from '../utils/logger.mjs';
 
 export const getSourceAwareSessionsRemaining = (user) => {
   if (NON_DEDUCTING_CLIENT_SOURCES.has(user?.clientSource)) return 0;
-  const sessions = Number(user?.availableSessions || 0);
-  return Number.isFinite(sessions) && sessions > 0 ? sessions : 0;
+  return normalizePaidSessionCount(user?.availableSessions);
 };
 
 export const getUserCredits = async (req, res) => {

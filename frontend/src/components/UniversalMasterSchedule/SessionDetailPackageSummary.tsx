@@ -9,6 +9,7 @@ import {
   ProgressFill,
   SessionsProgress,
 } from './SessionDetailModal.lateCancelStyles';
+import { normalizeAvailableSessions } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type { SessionDetail } from './SessionDetailModal.types';
 
 interface SessionDetailPackageSummaryProps {
@@ -18,10 +19,11 @@ interface SessionDetailPackageSummaryProps {
 const SessionDetailPackageSummary: React.FC<SessionDetailPackageSummaryProps> = ({
   packageInfo,
 }) => {
-  const sessionsRemaining = Math.max(0, packageInfo.sessionsRemaining ?? 0);
+  const rawSessionsRemaining = Number(packageInfo.sessionsRemaining ?? 0);
+  const sessionsRemaining = normalizeAvailableSessions(packageInfo.sessionsRemaining);
   const sessionsUsed = Math.max(
     0,
-    (packageInfo.sessionsTotal ?? 0) - (packageInfo.sessionsRemaining ?? 0),
+    (packageInfo.sessionsTotal ?? 0) - (Number.isFinite(rawSessionsRemaining) ? rawSessionsRemaining : 0),
   );
   const progressPercent = packageInfo.sessionsTotal && packageInfo.sessionsTotal > 0
     ? Math.min(100, (sessionsUsed / packageInfo.sessionsTotal) * 100)

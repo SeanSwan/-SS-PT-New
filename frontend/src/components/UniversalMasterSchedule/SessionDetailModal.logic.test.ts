@@ -56,6 +56,13 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(canSessionOpenWorkoutLogger({ ...baseSession, userId: undefined })).toBe(false);
   });
 
+  it('blocks schedule-origin logging when the session identity or date is not usable', () => {
+    expect(canSessionOpenWorkoutLogger({ ...baseSession, id: 0 })).toBe(false);
+    expect(canSessionOpenWorkoutLogger({ ...baseSession, id: Number.NaN })).toBe(false);
+    expect(canSessionOpenWorkoutLogger({ ...baseSession, sessionDate: '' })).toBe(false);
+    expect(canSessionOpenWorkoutLogger({ ...baseSession, sessionDate: 'not-a-date' })).toBe(false);
+  });
+
   it('uses token-backed status tones instead of local raw hex constants', () => {
     expect(getStatusTone('confirmed')).toMatch(/^var\(--schedule-status-confirmed,/);
     expect(getStatusTone('unknown')).toBe(getStatusTone('available'));

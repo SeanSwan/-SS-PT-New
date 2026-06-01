@@ -32,6 +32,19 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
     });
   });
 
+  it('fails closed when a paid client session balance is malformed or below one full session', () => {
+    for (const availableSessions of ['unknown', Number.NaN, 0.5]) {
+      expect(buildWorkoutSessionBillingDecision({
+        clientSource: 'swanstudios',
+        availableSessions,
+      })).toMatchObject({
+        shouldDeduct: true,
+        canLogWorkout: false,
+        sessionDeducted: false,
+      });
+    }
+  });
+
   it('deducts one session for paid SwanStudios clients with a positive balance', () => {
     expect(buildWorkoutSessionBillingDecision({
       clientSource: 'swanstudios',

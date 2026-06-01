@@ -1,5 +1,8 @@
 import type { KeyboardEvent } from 'react';
-import { isNonDeductingClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import {
+  isNonDeductingClientSource,
+  normalizeAvailableSessions,
+} from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 export const HOURS = Array.from({ length: 18 }, (_, index) => 5 + index);
 export const PIXELS_PER_HOUR = 64;
@@ -124,11 +127,12 @@ export function getWeekSessionDisplay(session: any) {
       ? `${session.trainer.firstName || ''} ${session.trainer.lastName || ''}`.trim()
       : '');
   const clientSource = session.clientSource ?? session.client?.clientSource;
-  const sessionsLeft = isNonDeductingClientSource(clientSource)
+  const rawSessionsLeft = isNonDeductingClientSource(clientSource)
     ? null
     : session.packageInfo?.sessionsRemaining ??
       session.clientAvailableSessions ??
       session.client?.availableSessions;
+  const sessionsLeft = rawSessionsLeft == null ? null : normalizeAvailableSessions(rawSessionsLeft);
 
   return {
     status,

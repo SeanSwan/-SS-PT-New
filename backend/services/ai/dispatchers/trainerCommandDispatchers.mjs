@@ -12,6 +12,10 @@
 import { Op } from 'sequelize';
 import { getAllModels } from '../../../models/index.mjs';
 import { CRITICAL_PERMISSIONS, PERMISSION_TYPES } from '../../../models/TrainerPermissions.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from '../../sessionBillingPolicy.mjs';
 
 const sourceCounts = (clients) => clients.reduce((counts, client) => {
   const source = client?.clientSource || 'external';
@@ -26,6 +30,11 @@ const sourceCounts = (clients) => clients.reduce((counts, client) => {
 });
 
 const toRecord = (row) => (row?.toJSON ? row.toJSON() : row);
+
+const paidSessionCount = (client) => {
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(client?.clientSource)) return 0;
+  return normalizePaidSessionCount(client?.availableSessions);
+};
 
 const averageRating = (trainers) => {
   const ratings = trainers
@@ -158,7 +167,7 @@ export async function dispatchViewTrainerClients(params) {
     activeAccountCount: clients.filter((client) => client.accountStatus === 'active').length,
     stubAccountCount: clients.filter((client) => client.accountStatus === 'stub').length,
     availableSessionTotal: clients.reduce(
-      (sum, client) => sum + (Number(client.availableSessions) || 0),
+      (sum, client) => sum + paidSessionCount(client),
       0,
     ),
   };

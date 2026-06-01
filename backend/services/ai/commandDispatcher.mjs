@@ -61,7 +61,10 @@ import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import workoutService from '../workoutService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from '../sessionBillingPolicy.mjs';
 import { createNotification } from '../../controllers/notificationController.mjs';
 import defaultSequelize from '../../database.mjs';
 import { getAllModels } from '../../models/index.mjs';
@@ -775,7 +778,7 @@ const dispatchClientBillingOverview = async (params, ctx) => {
     found: true,
     clientSource,
     deductsSessions,
-    sessionsRemaining: deductsSessions ? Number(data.availableSessions || 0) : 0,
+    sessionsRemaining: deductsSessions ? normalizePaidSessionCount(data.availableSessions) : 0,
     hasLastPurchase: Boolean(lastPurchase),
     lastPurchaseAmount: lastPurchase ? Number(lastPurchase.totalAmount || 0) : null,
     lastPurchaseDate: toDateOnly(lastPurchase?.completedAt),
@@ -999,7 +1002,7 @@ const dispatchDeactivateClient = async (params, ctx) => {
     const accountDeactivatedAt = new Date();
     const accountRetentionUntil = new Date(accountDeactivatedAt);
     accountRetentionUntil.setMonth(accountRetentionUntil.getMonth() + 6);
-    const preservedAvailableSessions = Number(client.availableSessions || 0);
+    const preservedAvailableSessions = normalizePaidSessionCount(client.availableSessions);
 
     const cancelledCount = await Session.update(
       {

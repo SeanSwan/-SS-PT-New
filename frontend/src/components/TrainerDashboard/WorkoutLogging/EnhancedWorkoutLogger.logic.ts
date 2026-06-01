@@ -1,7 +1,8 @@
 export const normalizeDashboardReturnTo = (raw: string | null): string | null => {
   const isProtocolRelative = Boolean(raw && raw[0] === '/' && raw[1] === '/');
+  const hasUnsafeCharacters = Boolean(raw && /[\r\n\t\\]/.test(raw));
 
-  if (!raw || isProtocolRelative || !raw.startsWith('/dashboard/')) {
+  if (!raw || isProtocolRelative || hasUnsafeCharacters || !raw.startsWith('/dashboard/')) {
     return null;
   }
 

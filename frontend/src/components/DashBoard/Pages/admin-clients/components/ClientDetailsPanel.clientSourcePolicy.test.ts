@@ -21,4 +21,13 @@ describe('ClientDetailsPanel client source policy', () => {
     expect(SOURCE).toContain('isNonDeductingClient ? renderNonDeductingWorkouts() : renderSessions()');
     expect(SOURCE).toContain('${clientSourceLabel} Client');
   });
+
+  it('normalizes available-session counts before rendering session status chips', () => {
+    expect(SOURCE).toContain('normalizeAvailableSessions');
+    expect(SOURCE).toContain('const availableSessions = normalizeAvailableSessions(client.availableSessions);');
+    expect(SOURCE).toContain("$status={availableSessions > 0 ? 'success' : 'error'}");
+    expect(SOURCE).toContain('{availableSessions} Available');
+    expect(SOURCE).not.toContain('client.availableSessions > 0');
+    expect(SOURCE).not.toContain('{client.availableSessions} Available');
+  });
 });

@@ -26,4 +26,14 @@ describe('ScheduleModals client source policy', () => {
     expect(SOURCE).toContain('This account is tracked through Workout Logger. SwanStudios booking credits do not apply.');
     expect(SOURCE).not.toContain('title={hasNoCredits && mode === \'client\' ? \'Session Locked\' : \'Confirm Booking\'}');
   });
+
+  it('normalizes booking credit counts before lock and recurring-booking decisions', () => {
+    expect(SOURCE).toContain('normalizeAvailableSessions');
+    expect(SOURCE).toContain('const normalizedSessionsRemaining = sessionsRemaining == null');
+    expect(SOURCE).toContain('const hasNoCredits = normalizedSessionsRemaining != null && normalizedSessionsRemaining <= 0;');
+    expect(SOURCE).toContain('After booking: {Math.max(0, normalizedSessionsRemaining - 1)}');
+    expect(SOURCE).toContain('userCredits={normalizedSessionsRemaining ?? 0}');
+    expect(SOURCE).not.toContain('const hasNoCredits = typeof sessionsRemaining === \'number\' && sessionsRemaining <= 0;');
+    expect(SOURCE).not.toContain('userCredits={sessionsRemaining || 0}');
+  });
 });

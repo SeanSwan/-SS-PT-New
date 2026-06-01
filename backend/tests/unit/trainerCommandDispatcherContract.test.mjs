@@ -68,7 +68,7 @@ describe('trainer command dispatchers', () => {
           clientId: 42,
           client: {
             id: 42,
-            availableSessions: 3,
+            availableSessions: 3.8,
             clientSource: 'swanstudios',
             accountStatus: 'active',
             firstName: 'Hidden',
@@ -80,7 +80,7 @@ describe('trainer command dispatchers', () => {
           clientId: 43,
           client: {
             id: 43,
-            availableSessions: 0,
+            availableSessions: 12,
             clientSource: 'move_fitness',
             accountStatus: 'stub',
             firstName: 'Also Hidden',

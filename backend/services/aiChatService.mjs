@@ -14,7 +14,10 @@
 import logger from '../utils/logger.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import {
+  NON_DEDUCTING_CLIENT_SOURCES,
+  normalizePaidSessionCount,
+} from './sessionBillingPolicy.mjs';
 import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mjs';
 
 export function getCoachRosterClientSourceLabel(clientSource) {
@@ -27,8 +30,8 @@ export function getCoachRosterClientSessionsLabel(client = {}) {
   if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
     return 'free tracking/no paid-session deduction';
   }
-  const sessions = Number(client.availableSessions);
-  return Number.isFinite(sessions) ? `${sessions} sessions` : 'unknown sessions';
+  const sessions = normalizePaidSessionCount(client.availableSessions);
+  return `${sessions} sessions`;
 }
 
 export function getCoachClientProfileSourceLabel(clientSource) {
@@ -45,8 +48,7 @@ export function getCoachClientProfileSessionsLabel(client = {}) {
   if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
     return 'Free tracking/no paid-session deduction';
   }
-  const sessions = Number(client.availableSessions);
-  return Number.isFinite(sessions) ? String(sessions) : 'Unknown';
+  return String(normalizePaidSessionCount(client.availableSessions));
 }
 
 // ─── NASM OPT Model Reference (embedded in prompts) ───

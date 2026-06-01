@@ -1487,8 +1487,10 @@ class UnifiedSessionService {
           }
         }
 
-        if (shouldDeduct && creditsRequired > 0 && (!client.availableSessions || client.availableSessions < creditsRequired)) {
-          throw new Error(`Insufficient session credits (need ${creditsRequired}, have ${client.availableSessions || 0})`);
+        const rawAvailableSessions = Number(client.availableSessions ?? 0);
+        const availableSessionCount = Number.isFinite(rawAvailableSessions) ? rawAvailableSessions : 0;
+        if (shouldDeduct && creditsRequired > 0 && availableSessionCount < creditsRequired) {
+          throw new Error(`Insufficient session credits (need ${creditsRequired}, have ${availableSessionCount})`);
         }
 
         // Prevent double-booking for trainer or client

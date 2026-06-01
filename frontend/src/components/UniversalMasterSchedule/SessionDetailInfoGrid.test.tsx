@@ -76,6 +76,25 @@ describe('SessionDetailInfoGrid', () => {
     expect(screen.getByText('free tracking')).toBeInTheDocument();
   });
 
+  it('shows admin payment recovery when a paid client balance normalizes to zero', () => {
+    render(
+      <SessionDetailInfoGrid
+        session={{ ...baseSession, clientAvailableSessions: 'unknown' as any }}
+        sessionDate={new Date(baseSession.sessionDate)}
+        statusTone="var(--schedule-status-confirmed, #60C0F0)"
+        hasAttendanceRecorded={false}
+        canManage={true}
+        mode="admin"
+        isNonDeductingClient={false}
+        sessionSignal={{ label: '0 paid sessions', note: 'refill soon', tone: 'warning' }}
+        onApplyPayment={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('0 paid sessions')).toBeInTheDocument();
+    expect(screen.getByText('Client has no remaining session credits')).toBeInTheDocument();
+  });
+
   it('keeps read-only session detail grid markup out of the modal shell', () => {
     const modalSource = read('SessionDetailModal.tsx');
     const bodySource = read('SessionDetailBodyPanels.tsx');
