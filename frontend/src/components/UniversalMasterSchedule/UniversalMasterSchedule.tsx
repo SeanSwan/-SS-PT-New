@@ -34,6 +34,7 @@ import { useSessionTemplates } from './hooks/useSessionTemplates';
 import { normalizeScheduleOptionalId, parseScheduleUserId } from './UniversalMasterSchedule.logic';
 import { buildScheduleTrainerScope } from './utils/trainerScope';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { buildScheduleSlotDate } from './utils/scheduleTimeSlots';
 
 // Redux: Layout & Density state
 import { useDispatch, useSelector } from 'react-redux';
@@ -549,12 +550,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     sessionId: string | number,
     newDate: Date,
     newHour: number,
+    newMinute = 0,
     trainerId?: string | number
   ) => {
     const session = sessions.find((item) => String(item.id) === String(sessionId));
     const duration = session?.duration ?? 60;
-    const startTime = new Date(newDate);
-    startTime.setHours(newHour, 0, 0, 0);
+    const startTime = buildScheduleSlotDate(newDate, newHour, newMinute);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     return universalMasterScheduleService.checkConflicts({
@@ -572,8 +573,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   ) => {
     const session = sessions.find((item) => String(item.id) === String(drop.sessionId));
     const duration = session?.duration ?? 60;
-    const startTime = new Date(drop.newDate);
-    startTime.setHours(drop.newHour, 0, 0, 0);
+    const startTime = buildScheduleSlotDate(drop.newDate, drop.newHour, drop.newMinute ?? 0);
     const endTime = new Date(startTime.getTime() + duration * 60000);
 
     try {
@@ -602,11 +602,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   }, [sessions, refreshData]);
 
   const handleSelectSlot = useCallback(
-    ({ date, hour, trainerId }: { date?: Date; hour: number; trainerId?: string | number }) => {
+    ({ date, hour, minute = 0, trainerId }: { date?: Date; hour: number; minute?: number; trainerId?: string | number }) => {
       if (!canCreateSessions) return;
 
-      const slotDate = new Date(date ?? currentDate);
-      slotDate.setHours(hour, 0, 0, 0);
+      const slotDate = buildScheduleSlotDate(date ?? currentDate, hour, minute);
 
       // Prevent creating sessions in the past (admin can bypass this check)
       const now = new Date();
@@ -639,10 +638,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   // "Swan Glide" Quick-Book: admin/trainer clicks slot -> drawer opens -> pick client -> confirm
   const handleQuickBookSlot = useCallback(
-    ({ date, hour, trainerId }: { date?: Date; hour: number; trainerId?: string | number }) => {
+    ({ date, hour, minute = 0, trainerId }: { date?: Date; hour: number; minute?: number; trainerId?: string | number }) => {
       if (!canCreateSessions) return;
-      const slotDate = new Date(date ?? currentDate);
-      slotDate.setHours(hour, 0, 0, 0);
+      const slotDate = buildScheduleSlotDate(date ?? currentDate, hour, minute);
       const trainer = trainers.find((t: any) => String(t.id) === String(trainerId));
       const trainerName = trainer ? `${trainer.firstName} ${trainer.lastName}` : undefined;
       setQuickBookSlot({ date: slotDate, duration: 60, location: 'Main Studio', trainerId, trainerName });

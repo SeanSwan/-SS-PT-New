@@ -473,8 +473,9 @@ export async function getLatestMeasurement(req, res) {
     });
 
     if (!measurement) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
+        data: null,
         message: 'No measurements found for user'
       });
     }

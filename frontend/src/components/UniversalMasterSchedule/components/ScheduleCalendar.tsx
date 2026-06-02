@@ -31,7 +31,7 @@ interface ScheduleCalendarProps {
   onSelectSession: (session: any) => void;
   onSelectSlot: (slot: any) => void;
   onBookingDialog: (session: any) => void;
-  checkConflicts: (sessionId: any, newDate: Date, newHour: number, trainerId?: any) => Promise<any>;
+  checkConflicts: (sessionId: any, newDate: Date, newHour: number, newMinute?: number, trainerId?: any) => Promise<any>;
   handleReschedule: (drop: any, options?: any) => Promise<void>;
   openConflictPanel: (conflicts: any[], alternatives: any[], drop: any) => void;
   // Stacked view props
@@ -289,7 +289,6 @@ const CalendarContainer = styled.div`
     border-radius: 20px;
   }
 `;
-
 
 
 

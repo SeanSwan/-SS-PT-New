@@ -189,14 +189,17 @@ describe('unified sessions route ownership guards', () => {
     expect(updateRouteIndex).toBeLessThan(createRouteIndex);
 
     const updateRoute = routeSource.slice(updateRouteIndex, createRouteIndex);
-    expect(updateRoute).toContain('const sessionId = parseStrictPositiveInteger(req.params.id);');
+    expect(updateRoute).toContain('const sessionId = parseEditableSessionId(req.params.id);');
     expect(updateRoute).toContain('const session = await Session.findByPk(sessionId);');
     expect(updateRoute).toContain('canAccessSessionRecord(req.user, session, { allowClient: true, allowTrainer: true })');
     expect(updateRoute).toContain("if (req.body?.status === 'completed')");
     expect(updateRoute).toContain('unifiedSessionService.completeSession(sessionId, req.user, {');
     expect(updateRoute).toContain('const allowedStatusUpdates = new Set');
     expect(updateRoute).toContain("!['admin', 'trainer'].includes(req.user.role)");
-    expect(updateRoute).toContain('session.notes = trimmedNotes;');
+    expect(updateRoute).toContain('const editableUpdate = buildEditableSessionUpdate(req.body || {}, session);');
+    expect(updateRoute).toContain('if (hasEditableScheduleFields(editableUpdate))');
+    expect(updateRoute).toContain('ConflictService.checkConflicts({');
+    expect(updateRoute).toContain('session.set(editableUpdate);');
     expect(updateRoute).toContain('await session.save();');
   });
 

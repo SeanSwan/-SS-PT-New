@@ -36,6 +36,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onUpdated,
   onManageSeries,
   onApplyPayment,
+  onEditSession,
   seriesCount
 }) => {
   const navigate = useNavigate();
@@ -209,6 +210,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           canRecordAttendance={canRecordAttendance}
           showNoShowReason={showNoShowReason}
           canComplete={canComplete}
+          canEdit={canManage && Boolean(onEditSession) && session.status !== 'cancelled' && session.status !== 'completed'}
           canOpenWorkoutLogger={canOpenWorkoutLogger}
           canViewWorkouts={canViewWorkouts}
           mode={mode}
@@ -219,6 +221,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           onRecordAttendance={handleRecordAttendance}
           onBackFromNoShowReason={handleBackFromNoShowReason}
           onComplete={handleComplete}
+          onEdit={onEditSession || (() => undefined)}
           onLogWorkout={handleOpenWorkoutLogger}
           onViewWorkouts={handleViewWorkouts}
         />

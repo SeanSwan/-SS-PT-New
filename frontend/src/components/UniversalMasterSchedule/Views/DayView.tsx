@@ -6,6 +6,10 @@ import BufferZone from '../Cards/BufferZone';
 import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
 import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
+import {
+  formatScheduleSlotTime,
+  getScheduleSlotMinuteFromOffset,
+} from '../utils/scheduleTimeSlots';
 
 export interface DayViewTrainer {
   id: number | string;
@@ -27,7 +31,7 @@ export interface DayViewProps {
   enableDrag?: boolean;
   isAdmin?: boolean; // Allow admin to schedule in past slots
   onSelectSession?: (session: DayViewSession) => void;
-  onSelectSlot?: (payload: { date: Date; hour: number; trainerId?: number | string }) => void;
+  onSelectSlot?: (payload: { date: Date; hour: number; minute?: number; trainerId?: number | string }) => void;
 }
 
 const HOURS = Array.from({ length: 18 }, (_, index) => 5 + index); // 5am to 10pm
@@ -38,10 +42,10 @@ const isSameDay = (left: Date, right: Date) =>
   && left.getMonth() === right.getMonth()
   && left.getDate() === right.getDate();
 
-const isPastTime = (date: Date, hour: number) => {
+const isPastTime = (date: Date, hour: number, minute = 0) => {
   const now = new Date();
   const slotDate = new Date(date);
-  slotDate.setHours(hour, 0, 0, 0);
+  slotDate.setHours(hour, minute, 0, 0);
   return slotDate < now;
 };
 
@@ -234,10 +238,11 @@ const DayViewComponent: React.FC<DayViewProps> = ({
                 date={date}
                 hour={hour}
                 trainerId={trainer.id === 'unassigned' ? undefined : trainer.id}
-                onClick={() =>
+                onClick={(event) =>
                   onSelectSlot?.({
                     date,
                     hour,
+                    minute: getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight),
                     trainerId: trainer.id === 'unassigned' ? undefined : trainer.id
                   })
                 }
@@ -259,6 +264,7 @@ const DayViewComponent: React.FC<DayViewProps> = ({
                 onSelectSlot?.({
                   date,
                   hour,
+                  minute: 0,
                   trainerId: trainer.id === 'unassigned' ? undefined : trainer.id
                 })
               }}
@@ -293,11 +299,7 @@ const DayView = memo(DayViewComponent, (prevProps, nextProps) => {
 
 export default DayView;
 
-const formatHour = (hour: number) => {
-  const date = new Date();
-  date.setHours(hour, 0, 0, 0);
-  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-};
+const formatHour = (hour: number) => formatScheduleSlotTime(hour, 0);
 
 const DayViewWrapper = styled.div`
   width: 100%;
@@ -541,4 +543,3 @@ const AvailableSlot = styled.div<{ $isPast?: boolean; $isAdminPast?: boolean }>`
   text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
-

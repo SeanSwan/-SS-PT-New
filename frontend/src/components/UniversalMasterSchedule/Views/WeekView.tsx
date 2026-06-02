@@ -43,6 +43,7 @@ import {
   WeekSessionCard,
   WeekSessionsBadge,
 } from './WeekView.sessionStyles';
+import { getScheduleSlotMinuteFromOffset } from '../utils/scheduleTimeSlots';
 
 const WeekViewComponent: React.FC<WeekViewProps> = ({
   date,
@@ -122,8 +123,8 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
   }, [visibleCount]);
 
   const handleSlotClick = useCallback(
-    (day: Date, hour: number) => {
-      onSelectSlot?.({ date: day, hour });
+    (day: Date, hour: number, minute = 0) => {
+      onSelectSlot?.(minute ? { date: day, hour, minute } : { date: day, hour });
     },
     [onSelectSlot]
   );
@@ -227,7 +228,11 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                     <HourSlot
                       key={hour}
                       style={{ height: PIXELS_PER_HOUR }}
-                      onClick={() => handleSlotClick(day, hour)}
+                      onClick={(event) => handleSlotClick(
+                        day,
+                        hour,
+                        getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight),
+                      )}
                       onKeyDown={(event) => handleSlotKeyDown(day, hour, event)}
                       role="button"
                       tabIndex={0}

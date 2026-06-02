@@ -38,6 +38,11 @@ import { createNotification } from '../controllers/notificationController.mjs';
 import { getClientPackagePricing, computeCancellationCharge } from '../utils/cancellationPricing.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { processSessionDeduction, sendDeductionNotification } from '../utils/notification.mjs';
+import {
+  buildEditableSessionUpdate,
+  hasEditableScheduleFields,
+  parseEditableSessionId
+} from './sessionEditableUpdate.mjs';
 
 const router = express.Router();
 const MAX_MANUAL_SESSION_ADD = 50;
@@ -1514,7 +1519,7 @@ router.get("/:id", protect, async (req, res) => {
  */
 router.put("/:id", protect, async (req, res) => {
   try {
-    const sessionId = parseStrictPositiveInteger(req.params.id);
+    const sessionId = parseEditableSessionId(req.params.id);
     if (!sessionId) {
       return res.status(400).json({ success: false, message: 'Invalid session id' });
     }
@@ -1549,9 +1554,58 @@ router.put("/:id", protect, async (req, res) => {
       session.status = req.body.status;
     }
 
-    const trimmedNotes = typeof req.body?.notes === 'string' ? req.body.notes.trim() : null;
-    if (trimmedNotes) {
-      session.notes = trimmedNotes;
+    const editableUpdate = buildEditableSessionUpdate(req.body || {}, session);
+    const editableKeys = Object.keys(editableUpdate);
+
+    if (req.user.role === 'client') {
+      const clientAllowedFields = new Set(['notes']);
+      const blockedField = editableKeys.find((key) => !clientAllowedFields.has(key));
+      if (blockedField) {
+        return res.status(403).json({
+          success: false,
+          message: 'Client schedule changes must be handled through cancellation or rescheduling support'
+        });
+      }
+    }
+
+    if (hasEditableScheduleFields(editableUpdate)) {
+      const startTime = editableUpdate.sessionDate || session.sessionDate;
+      const endTime = editableUpdate.endDate
+        || new Date(new Date(startTime).getTime() + Number(editableUpdate.duration ?? session.duration ?? 60) * 60000);
+      const trainerId = Object.prototype.hasOwnProperty.call(editableUpdate, 'trainerId')
+        ? editableUpdate.trainerId
+        : session.trainerId;
+      const clientId = Object.prototype.hasOwnProperty.call(editableUpdate, 'userId')
+        ? editableUpdate.userId
+        : session.userId;
+
+      const conflicts = await ConflictService.checkConflicts({
+        startTime,
+        endTime,
+        trainerId,
+        clientId,
+        excludeSessionId: sessionId
+      });
+      const hasHardConflicts = conflicts.some((conflict) => conflict.type === 'hard');
+      const allowOverride = req.body?.conflictOverride === true && req.user.role === 'admin';
+
+      if (hasHardConflicts && !allowOverride) {
+        const alternatives = await ConflictService.findAlternatives({
+          date: startTime,
+          trainerId,
+          duration: Number(editableUpdate.duration ?? session.duration ?? 60)
+        });
+        return res.status(409).json({
+          success: false,
+          message: 'Scheduling conflict detected',
+          conflicts,
+          alternatives
+        });
+      }
+    }
+
+    if (editableKeys.length > 0) {
+      session.set(editableUpdate);
     }
 
     await session.save();

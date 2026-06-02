@@ -21,6 +21,7 @@ export interface SessionDetailFooterActionsProps {
   canRecordAttendance: boolean;
   showNoShowReason: boolean;
   canComplete: boolean;
+  canEdit: boolean;
   canOpenWorkoutLogger: boolean;
   canViewWorkouts: boolean;
   mode: SessionDetailModalMode;
@@ -31,6 +32,7 @@ export interface SessionDetailFooterActionsProps {
   onRecordAttendance: (status: AttendanceAction) => void;
   onBackFromNoShowReason: () => void;
   onComplete: () => void;
+  onEdit: () => void;
   onLogWorkout: () => void;
   onViewWorkouts: () => void;
 }
@@ -45,6 +47,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   canRecordAttendance,
   showNoShowReason,
   canComplete,
+  canEdit,
   canOpenWorkoutLogger,
   canViewWorkouts,
   mode,
@@ -55,6 +58,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   onRecordAttendance,
   onBackFromNoShowReason,
   onComplete,
+  onEdit,
   onLogWorkout,
   onViewWorkouts,
 }) => {
@@ -106,6 +110,11 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
       {canComplete && !isFocusedFlow && (
         <GlowButton variant="emerald" size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
           Mark Complete
+        </GlowButton>
+      )}
+      {canEdit && !isFocusedFlow && (
+        <GlowButton variant="cosmic" size="medium" onClick={onEdit} disabled={loading}>
+          Edit Session
         </GlowButton>
       )}
       {canOpenWorkoutLogger && !isFocusedFlow && (mode === 'admin' || mode === 'trainer') && (

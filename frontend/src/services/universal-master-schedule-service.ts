@@ -362,9 +362,34 @@ class UniversalMasterScheduleService {
    */
   async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
     try {
-      // For now, we'll handle specific updates through dedicated methods
-      // This could be extended to support more generic updates if needed
-      
+      const editableKeys = [
+        'sessionDate',
+        'duration',
+        'location',
+        'notes',
+        'notifyClient',
+        'trainerId',
+        'userId',
+        'sessionTypeId',
+      ] as const;
+      const editablePayload = editableKeys.reduce<Record<string, unknown>>((payload, key) => {
+        if (Object.prototype.hasOwnProperty.call(updates, key)) {
+          payload[key] = updates[key];
+        }
+        return payload;
+      }, {});
+
+      if (Object.keys(editablePayload).length > 0) {
+        const response: AxiosResponse<{ success: boolean; session: Session; message?: string }> =
+          await this.api.put(`/api/sessions/${sessionId}`, editablePayload);
+
+        if (response.data?.success && response.data.session) {
+          return response.data.session;
+        }
+
+        throw new Error(response.data?.message || 'Session update failed');
+      }
+
       if (updates.trainerId) {
         const result = await this.assignTrainer(sessionId, updates.trainerId);
         return result.session;

@@ -18,6 +18,10 @@ import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 import { DENSITY_SPECS } from '../types';
 import type { DensityMode } from '../types';
 import type { DayViewSession, DayViewTrainer } from './DayView';
+import {
+  formatScheduleSlotTime,
+  getScheduleSlotMinuteFromOffset,
+} from '../utils/scheduleTimeSlots';
 
 // ==================== PROPS ====================
 
@@ -31,7 +35,7 @@ export interface DayViewStackedProps {
   expandedTrainerIds: (string | number)[];
   onToggleTrainerExpand: (trainerId: string | number) => void;
   onSelectSession?: (session: DayViewSession) => void;
-  onSelectSlot?: (payload: { date: Date; hour: number; trainerId?: number | string }) => void;
+  onSelectSlot?: (payload: { date: Date; hour: number; minute?: number; trainerId?: number | string }) => void;
 }
 
 // ==================== CONSTANTS ====================
@@ -46,10 +50,10 @@ const isSameDay = (left: Date, right: Date) =>
   left.getMonth() === right.getMonth() &&
   left.getDate() === right.getDate();
 
-const isPastTime = (date: Date, hour: number) => {
+const isPastTime = (date: Date, hour: number, minute = 0) => {
   const now = new Date();
   const slotDate = new Date(date);
-  slotDate.setHours(hour, 0, 0, 0);
+  slotDate.setHours(hour, minute, 0, 0);
   return slotDate < now;
 };
 
@@ -57,9 +61,7 @@ const isScheduledSession = (session: DayViewSession) =>
   session.status !== 'available' && session.status !== 'cancelled';
 
 const formatHour = (hour: number) => {
-  const d = new Date();
-  d.setHours(hour, 0, 0, 0);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return formatScheduleSlotTime(hour, 0);
 };
 
 const getInitials = (name: string | undefined | null) => {
@@ -254,10 +256,11 @@ const DayViewStackedComponent: React.FC<DayViewStackedProps> = ({
                             date={date}
                             hour={hour}
                             trainerId={trainer.id === 'unassigned' ? undefined : trainer.id}
-                            onClick={() =>
+                            onClick={(event) =>
                               onSelectSlot?.({
                                 date,
                                 hour,
+                                minute: getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight),
                                 trainerId:
                                   trainer.id === 'unassigned' ? undefined : trainer.id,
                               })
@@ -273,6 +276,7 @@ const DayViewStackedComponent: React.FC<DayViewStackedProps> = ({
                               onSelectSlot?.({
                                 date,
                                 hour,
+                                minute: 0,
                                 trainerId:
                                   trainer.id === 'unassigned' ? undefined : trainer.id,
                               })

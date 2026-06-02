@@ -20,6 +20,7 @@ export interface DragDropResult {
   sessionId: string | number;
   newDate: Date;
   newHour: number;
+  newMinute?: number;
   trainerId?: string | number;
 }
 
@@ -35,6 +36,7 @@ interface DragDropManagerProps {
     sessionId: string | number,
     newDate: Date,
     newHour: number,
+    newMinute?: number,
     trainerId?: string | number
   ) => Promise<ConflictCheckResult>;
   onConflict?: (payload: {
@@ -98,10 +100,11 @@ const DragDropManager: React.FC<DragDropManagerProps> = ({
       sessionId: activeSession.id,
       newDate: dropData.date as Date,
       newHour: dropData.hour as number,
+      newMinute: dropData.minute as number | undefined,
       trainerId: dropData.trainerId as string | number | undefined
     };
 
-    const nextKey = `${drop.sessionId}-${drop.newDate.toISOString()}-${drop.newHour}-${drop.trainerId ?? 'none'}`;
+    const nextKey = `${drop.sessionId}-${drop.newDate.toISOString()}-${drop.newHour}-${drop.newMinute ?? 0}-${drop.trainerId ?? 'none'}`;
     if (nextKey === lastCheckKey) {
       return;
     }
@@ -109,7 +112,7 @@ const DragDropManager: React.FC<DragDropManagerProps> = ({
     setLastCheckKey(nextKey);
     setLastDrop(drop);
 
-    const result = await checkConflicts(drop.sessionId, drop.newDate, drop.newHour, drop.trainerId);
+    const result = await checkConflicts(drop.sessionId, drop.newDate, drop.newHour, drop.newMinute, drop.trainerId);
     const hardConflicts = result.conflicts.filter((conflict) => conflict.type === 'hard');
 
     setConflicts(result.conflicts);

@@ -18,9 +18,10 @@ interface DroppableSlotProps {
   id: string;
   date: Date;
   hour: number;
+  minute?: number;
   trainerId?: string | number;
   children?: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   disabled?: boolean;
 }
 
@@ -28,6 +29,7 @@ const DroppableSlot: React.FC<DroppableSlotProps> = ({
   id,
   date,
   hour,
+  minute = 0,
   trainerId,
   children,
   onClick,
@@ -35,7 +37,7 @@ const DroppableSlot: React.FC<DroppableSlotProps> = ({
 }) => {
   const { isOver, setNodeRef } = useDroppable({
     id,
-    data: { date, hour, trainerId },
+    data: { date, hour, minute, trainerId },
     disabled
   });
 

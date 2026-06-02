@@ -6,6 +6,7 @@ import RecurringSessionModal from '../RecurringSessionModal';
 import BlockedTimeModal from '../BlockedTimeModal';
 import NotificationPreferencesModal from '../NotificationPreferencesModal';
 import SessionDetailModal from '../SessionDetailModal';
+import SessionEditModal from '../SessionEditModal';
 import RecurringSeriesModal from '../RecurringSeriesModal';
 import ClientRecurringBookingModal from '../ClientRecurringBookingModal';
 import AvailabilityEditor from '../Availability/AvailabilityEditor';
@@ -42,6 +43,10 @@ import {
 } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import SearchableSelect from '../ui/SearchableSelect';
 import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';
+import {
+  SESSION_DURATION_OPTIONS,
+  SESSION_LOCATION_OPTIONS,
+} from '../utils/sessionOptions';
 
 interface ScheduleModalsProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -187,6 +192,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 }) => {
   const navigate = useNavigate();
   const [preselectedPaymentClientId, setPreselectedPaymentClientId] = useState<number | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const normalizedSessionsRemaining = sessionsRemaining == null
     ? undefined
     : normalizeAvailableSessions(sessionsRemaining);
@@ -195,13 +201,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   const isPaidCreditLocked = mode === 'client' && !isFreeTrackingBooking && hasNoCredits;
   const isBookingLocked = isFreeTrackingBooking || isPaidCreditLocked;
 
-  const locationOptions = [
-    { value: 'Main Studio', label: 'Main Studio' },
-    { value: 'Gym Floor', label: 'Gym Floor' },
-    { value: 'Private Room', label: 'Private Room' },
-    { value: 'Online', label: 'Online Session' },
-    { value: '__custom__', label: 'Other (Custom)' }
-  ];
+  const locationOptions = [...SESSION_LOCATION_OPTIONS];
   const [customLocation, setCustomLocation] = useState('');
 
   const [showTemplateNameInput, setShowTemplateNameInput] = useState(false);
@@ -373,35 +373,34 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 
             <FormField>
               <Label htmlFor="sessionDate" required>Session Date & Time</Label>
-              {isSlotSelected ? (
-                <BodyText style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                  {formData.sessionDate ? new Date(formData.sessionDate).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No date selected'}
-                </BodyText>
-              ) : (
-                <FlexBox gap="0.75rem" style={{ flexDirection: 'column' }}>
-                  <StyledInput
-                    id="sessionDate"
-                    type="date"
-                    value={sessionDateStr}
-                    onChange={(e) => handleDateChange(e.target.value)}
-                  />
-                  <TimeWheelPicker
-                    value={sessionTimeStr}
-                    onChange={handleTimeChange}
-                    minTime={computedMinTime}
-                    step={15}
-                    disabled={!sessionDateStr}
-                    label="Session Time"
-                    timezone={getTimezoneAbbr()}
-                    data-testid="session-time-picker"
-                  />
-                  {computedMinTime === null && isToday && (
-                    <HelperText style={{ color: '#f59e0b' }}>
-                      No times available today. Select a future date.
-                    </HelperText>
-                  )}
-                </FlexBox>
-              )}
+              <FlexBox gap="0.75rem" style={{ flexDirection: 'column' }}>
+                <StyledInput
+                  id="sessionDate"
+                  type="date"
+                  value={sessionDateStr}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                />
+                <TimeWheelPicker
+                  value={sessionTimeStr}
+                  onChange={handleTimeChange}
+                  minTime={computedMinTime}
+                  step={15}
+                  disabled={!sessionDateStr}
+                  label="Session Time"
+                  timezone={getTimezoneAbbr()}
+                  data-testid="session-time-picker"
+                />
+                {isSlotSelected && (
+                  <HelperText>
+                    Slot prefilled from the calendar. Adjust date or time here before saving.
+                  </HelperText>
+                )}
+                {computedMinTime === null && isToday && (
+                  <HelperText style={{ color: '#f59e0b' }}>
+                    No times available today. Select a future date.
+                  </HelperText>
+                )}
+              </FlexBox>
               {effectiveBlock && (
                 <HelperText>
                   Effective block: {effectiveBlock.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {effectiveBlock.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -525,13 +524,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               <CustomSelect
                 value={String(formData.duration || 60)}
                 onChange={(value) => setFormData({ ...formData, duration: Number(value) })}
-                options={[
-                  { value: '30', label: '30 minutes' },
-                  { value: '45', label: '45 minutes' },
-                  { value: '60', label: '60 minutes (1 hour)' },
-                  { value: '90', label: '90 minutes (1.5 hours)' },
-                  { value: '120', label: '120 minutes (2 hours)' },
-                ]}
+                options={[...SESSION_DURATION_OPTIONS]}
                 aria-label="Session duration"
               />
             </FormField>
@@ -727,6 +720,10 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         mode={mode}
         onClose={() => setShowDetailDialog(false)}
         onUpdated={fetchSessions}
+        onEditSession={mode === 'admin' || mode === 'trainer' ? () => {
+          setShowDetailDialog(false);
+          setShowEditDialog(true);
+        } : undefined}
         onManageSeries={openSeriesDialog}
         onApplyPayment={mode === 'admin' ? (clientId: number) => {
           setShowDetailDialog(false);
@@ -736,6 +733,15 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         seriesCount={detailSession?.recurringGroupId
           ? seriesSessions.length
           : undefined}
+      />
+
+      <SessionEditModal
+        open={showEditDialog}
+        session={detailSession}
+        trainers={dbTrainers}
+        clients={dbClients}
+        onClose={() => setShowEditDialog(false)}
+        onSaved={fetchSessions}
       />
 
       <RecurringSeriesModal

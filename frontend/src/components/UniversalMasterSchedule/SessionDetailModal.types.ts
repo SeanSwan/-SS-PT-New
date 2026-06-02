@@ -7,6 +7,7 @@ export interface SessionDetail {
   status: string;
   location?: string;
   notes?: string;
+  notifyClient?: boolean;
   reason?: string;
   trainerId?: number;
   userId?: number;
@@ -44,5 +45,6 @@ export interface SessionDetailModalProps {
   onUpdated: () => void;
   onManageSeries?: (groupId: string) => void;
   onApplyPayment?: (clientId: number) => void;
+  onEditSession?: () => void;
   seriesCount?: number;
 }

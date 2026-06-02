@@ -39,7 +39,7 @@ export interface WeekViewProps {
   canQuickBook?: boolean;
   isAdmin?: boolean;
   onSelectSession?: (session: any) => void;
-  onSelectSlot?: (slot: { date: Date; hour: number }) => void;
+  onSelectSlot?: (slot: { date: Date; hour: number; minute?: number }) => void;
   onDrillDown?: (day: Date) => void;
   onBookingDialog?: (session: any) => void;
 }
