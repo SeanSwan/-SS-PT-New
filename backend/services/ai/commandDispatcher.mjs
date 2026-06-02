@@ -534,7 +534,7 @@ const dispatchSubmitOnboarding = async (params, ctx) => {
 
 const dispatchViewClientProfile = async (params, ctx) => {
   const { User, ClientProgress, Session, WorkoutSession, Order } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const include = [
     { model: ClientProgress, as: 'clientProgress', required: false },
     { model: Session, as: 'clientSessions', required: false },
@@ -725,7 +725,7 @@ const dispatchAtRiskClients = async (params, ctx) => {
 
 const dispatchClientBillingOverview = async (params, ctx) => {
   const { User, Order, Session } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const client = await User.findOne({
     where: { id: clientId, role: 'client' },
     attributes: ['id', 'availableSessions', 'clientSource'],
@@ -795,7 +795,7 @@ const dispatchClientBillingOverview = async (params, ctx) => {
 
 const dispatchNotifyClient = async (params, ctx) => {
   const { User } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const client = await User.findOne({
     where: { id: clientId, role: 'client' },
     attributes: ['id'],
@@ -832,7 +832,7 @@ const dispatchNotifyClient = async (params, ctx) => {
 
 const dispatchLockClient = async (params, ctx) => {
   const { User } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
   const transaction = await sequelize.transaction();
 
@@ -871,7 +871,7 @@ const dispatchLockClient = async (params, ctx) => {
 
 const dispatchAssignTrainer = async (params, ctx) => {
   const { User, ClientTrainerAssignment } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const trainerId = Number(params.trainerId);
   const assignedBy = Number(ctx.user?.id);
   const notes = String(params.notes || 'Assigned via Swan Coach command center').trim()
@@ -981,7 +981,7 @@ const dispatchAssignTrainer = async (params, ctx) => {
 
 const dispatchDeactivateClient = async (params, ctx) => {
   const { User, Session } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
   const transaction = await sequelize.transaction();
 
