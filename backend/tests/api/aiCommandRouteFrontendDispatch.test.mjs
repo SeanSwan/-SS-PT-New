@@ -194,7 +194,7 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     );
   });
 
-  it('drops malformed selected-client ids before command execution', async () => {
+  it('rejects malformed selected-client ids instead of letting stale client refs take over', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,
       intent: { intent: 'chat', params: {} },
@@ -202,16 +202,16 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
       result: null,
     });
 
-    await request(makeApp())
+    const response = await request(makeApp())
       .post('/api/ai-command/execute')
       .send({ message: 'log today workout', selectedClientId: '42junk' })
-      .expect(200);
+      .expect(400);
 
-    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
-      'log today workout',
-      expect.objectContaining({ id: 7, role: 'admin' }),
-      expect.objectContaining({ selectedClientId: null }),
-    );
+    expect(response.body).toMatchObject({
+      success: false,
+      code: 'COMMAND_SELECTED_CLIENT_ID_INVALID',
+    });
+    expect(mockExecuteCommandPipeline).not.toHaveBeenCalled();
   });
 
   it('lists command execution lanes so the UI can separate ready actions from manual workflows', async () => {

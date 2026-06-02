@@ -74,14 +74,27 @@ router.post('/execute', protect, async (req, res) => {
       });
     }
 
+    const normalizedSelectedClientId = normalizeSelectedClientId(selectedClientId);
+    const hasSelectedClientId = Object.prototype.hasOwnProperty.call(req.body, 'selectedClientId');
+    if (
+      hasSelectedClientId
+      && selectedClientId !== null
+      && selectedClientId !== undefined
+      && normalizedSelectedClientId === null
+    ) {
+      return res.status(400).json({
+        success: false,
+        code: 'COMMAND_SELECTED_CLIENT_ID_INVALID',
+        error: 'selectedClientId must be a positive integer when provided',
+      });
+    }
+
     const user = {
       id: req.user.id,
       role: req.user.role,
       firstName: req.user.firstName,
       lastName: req.user.lastName,
     };
-
-    const normalizedSelectedClientId = normalizeSelectedClientId(selectedClientId);
 
     // Get Sequelize instance from app
     const ctx = await executeCommandPipeline(message, user, {
