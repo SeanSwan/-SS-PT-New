@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening push.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening and Client Hub return-flow pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -31,9 +31,10 @@ Protocol:
 - Victory only for new charts.
 - Zero PII to LLMs; client IDs only.
 
-Latest pushed commit:
+Latest pushed commits:
+- `87881f7758a842cf24dfa5ca2a5a8989d46d05e0` - `fix(training): return client logs to history`
 - `5a50667ea4006289c88fb856c049ddfac33a8dbc` - `fix(training): normalize session credit boundaries`
-- Pushed to `origin/main` for Render auto-deploy on 2026-06-01.
+- Both pushed to `origin/main` for Render auto-deploy on 2026-06-01.
 
 Verified work just completed in the prior session:
 - Normalized paid session-credit boundaries across backend and frontend so Move Fitness clients remain non-deducting/free while SwanStudios clients use whole non-negative paid session counts.
@@ -60,31 +61,43 @@ Verified work just completed in the prior session:
   - `frontend && npm run build` passed with Vite production build.
   - `git diff --check` and `git diff --cached --check` passed with only LF-to-CRLF warnings.
   - `bash scripts/scan-secrets.sh --staged` scanned 51 staged files with 0 hits.
-  - Rule 42 backend pre-push audit passed: no untracked backend files and no backend diff left after commit.
+- Rule 42 backend pre-push audit passed: no untracked backend files and no backend diff left after commit.
+- Client Hub full-page workout logging return flow was hardened:
+  - `/dashboard/admin/log-workout?clientId=...&source=clients-team&returnTo=...` still backs/cancels to the selected Client Hub route.
+  - Successful full-page logs now return to `/dashboard/admin/client-management?clientId=...&tab=training&trainingSection=history`.
+  - `TrainingTabContent` can open directly on Workout History from the safe `trainingSection=history` query.
+  - Unknown `trainingSection` values are rejected before reaching the Client Hub.
+- A Universal Master Schedule TypeScript nullability issue was fixed in `canSessionOpenWorkoutLogger`; null sessions now return `false` with an explicit guard.
+- Additional verification passed after the Client Hub return-flow slice:
+  - Frontend targeted: 9 files / 53 tests passed across Client Hub, Training tab, full-page logger, planner/overview source locks, and Session Detail modal logic.
+  - `frontend && npx tsc --noEmit --pretty false` passed when run with `NODE_OPTIONS=--max-old-space-size=8192`.
+  - `frontend && npm run build` passed after the final schedule nullability fix.
+  - `bash scripts/scan-secrets.sh --staged` scanned 13 staged files with 0 hits.
+  - Rule 42 backend pre-push audit passed again: no untracked backend files and no backend diff.
+  - Production smoke after Render deploy passed on retry: 56 passed, 2 skipped against `https://sswanstudios.com`.
+  - First production smoke attempt failed during deploy asset churn on an old lazy chunk 404 for `SwanCoachAssistantPage.*.js`; the retry passed and no code change was needed for that transient result.
 - Known local warning:
   - Several backend tests still print `VITE_STRIPE_PUBLISHABLE_KEY is missing`. The tests passed; Render has production env values and this warning is not the current failure.
 
 Highest-value next slice candidates:
-1. Production smoke after Render deploy:
-   - Verify live `sswanstudios.com` after Render finishes deploying commit `5a50667ea`.
-   - Prioritize login, Admin Clients, Universal Master Schedule, selected-client Workout Logger, and Swan Coach command-lane paths.
-   - Watch for Stripe/env warnings, API 500s, auth redirects, and schedule/session-credit regressions.
-2. Continue Client Hub daily-use audit:
+1. Continue Client Hub daily-use audit:
    - ClientsWorkspace -> ClientDetailView -> TrainingTabContent -> WorkoutLogger -> WorkoutHistoryPanel -> charts.
    - Confirm every "log today", "plan next", "view progress", "dictate AI" path lands on a live canonical surface and preserves selected client ID.
-3. Schedule-to-workout/session deduction live workflow audit:
+   - Log Workout completion return is done; Plan Next and Dictate AI should be checked next for selected-client preservation through real save/approval paths.
+2. Schedule-to-workout/session deduction live workflow audit:
    - Universal Master Schedule should link directly into WorkoutLogger for the selected client/session.
    - SwanStudios paid clients deduct sessions when appropriate.
    - Move Fitness clients remain non-deducting/free but still retain workout data.
    - Late cancel/no-show/admin discretion must be explicit and tested.
-4. Coach Command Center/Swan Coach command lane:
+3. Coach Command Center/Swan Coach command lane:
    - Confirm selected-client voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
-5. Workout/progress data truth:
+   - Current code passes `selectedClientId` into `/api/ai-command/execute` and target user id into chat fallback; next check should prove backend command results stay scoped to that selected client.
+4. Workout/progress data truth:
    - Verify latest workout history and chart widgets read real workout logs/sessions.
    - Replace any mock progress data still mounted on canonical routes.
-6. Broad polish is parked:
+5. Broad polish is parked:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `5a50667ea`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `87881f775`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
 ```
