@@ -1035,15 +1035,9 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       return res.status(404).json({ success: false, message: "Client not found" });
     }
 
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
-      await transaction.rollback();
-      return res.status(403).json({
-        success: false,
-        message: "This client account does not have session booking. They track training via the Workout Logger."
-      });
-    }
+    const shouldDeductPaidCredit = !NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);
 
-    if (!client.availableSessions || client.availableSessions <= 0) {
+    if (shouldDeductPaidCredit && (!client.availableSessions || client.availableSessions <= 0)) {
       await transaction.rollback();
       return res.status(400).json({
         success: false,
@@ -1135,13 +1129,16 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
       sessionDeducted: false
     }, { transaction });
 
-    const deductionResult = await processSessionDeduction(session, client, transaction);
-    if (!deductionResult?.success) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: deductionResult?.message || 'Failed to deduct session credits'
-      });
+    let deductionResult = null;
+    if (shouldDeductPaidCredit) {
+      deductionResult = await processSessionDeduction(session, client, transaction);
+      if (!deductionResult?.success) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: deductionResult?.message || 'Failed to deduct session credits'
+        });
+      }
     }
 
     await transaction.commit();

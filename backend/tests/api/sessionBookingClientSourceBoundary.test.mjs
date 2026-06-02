@@ -220,16 +220,21 @@ describe('session booking clientSource boundary', () => {
     expect(source).toContain('NON_BOOKING_CLIENT_SOURCES.has(client.clientSource)');
   });
 
-  it('serves admin-created paid bookings from the unified router before legacy fallback', () => {
+  it('serves admin-created schedule bookings while only deducting paid SwanStudios clients', () => {
     const { start, end, source } = unifiedRouteSlice('router.post("/admin/book"', 'router.get("/admin/cancelled"');
     const dynamicRoute = unifiedRouteSource.indexOf('router.get("/:id"');
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     expect(start).toBeLessThan(dynamicRoute);
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)');
+    expect(source).toContain('const shouldDeductPaidCredit = !NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource);');
+    expect(source).not.toContain('This client account does not have session booking. They track training via the Workout Logger.');
+    expect(source).toContain('if (shouldDeductPaidCredit && (!client.availableSessions || client.availableSessions <= 0))');
+    expect(source).toContain('let deductionResult = null;');
+    expect(source).toContain('if (shouldDeductPaidCredit) {');
     expect(source).toContain('processSessionDeduction(session, client, transaction)');
     expect(source).toContain('unifiedSessionService.sendBookingNotifications(session, client).catch');
+    expect(source).toContain('if (deductionResult?.creditsDeducted > 0)');
     expect(source).toContain('sendDeductionNotification(session, client)');
     expect(source).not.toContain('error: error.message');
   });
