@@ -49,7 +49,12 @@ These items are no longer broad-redesign backlog items because they were handled
 - Nutrition theme-token bridge is now handled for the active Nutrition workspace children audited in this lane:
   - Food log/search, Restaurant actions, Meal Plan controls, and Supplements style modules are locked by `frontend/src/components/FoodTracker/FoodTrackerThemeBridge.contract.test.ts`.
   - `QuickAddFood` remains dormant in the current route tree and was intentionally not patched in this production slice.
-- Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`.
+- Store/Revenue, Bootcamp Builder, and Client Hub theme-token bridge slices landed after the first backlog draft:
+  - Store/Revenue order summary theme-token bridge: `bdfb5880d`.
+  - Bootcamp Builder panel/button theme-token bridge: `8c3c70bbb`.
+  - Client Hub list card, master/detail shell, selector, Training tab glow, and lifecycle confirmation dialog token bridges: `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
+  - Client Hub coverage now includes targeted style/contract tests for the patched selector, shell, cards, Training tab, and lifecycle dialog.
+- Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
@@ -103,7 +108,37 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management plus the audited active Nutrition children are token-bridged and covered by targeted contracts. Continue scanning Store/Revenue, Bootcamp, Client Hub, Trainer Dashboard, Client Dashboard, and User Dashboard before calling theme synchronization complete.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, and several canonical Client Hub surfaces are token-bridged and covered by targeted contracts.
+- Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Dashboard shell, Universal Master Schedule, and remaining admin widgets.
+
+### 5A. Evidence-Backed Theme / Redesign Churn Still Parked
+
+These are scan-backed candidates, not permission to patch everything at once. Each next slice still needs a Canonical Surface Receipt, a narrow failing contract or visual QA criterion, a surgical patch, and a hostile review.
+
+- Trainer Client Progress:
+  - `frontend/src/components/TrainerDashboard/ClientProgress/EnhancedClientProgressView.tsx` still has hardcoded light text, hardcoded tab borders, and raw shadow colors.
+  - This is high value because trainer progress review is directly tied to the core workout-progress loop.
+- Trainer Analytics:
+  - `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/InjuryRiskAssessment.tsx`, `GoalProgressTracker.tsx`, and `ComparisonAnalytics.tsx` still show raw colors/shadows in scans.
+  - Patch only after confirming which analytics panels are mounted in the current Trainer Dashboard route.
+- Workout Logger:
+  - `frontend/src/components/WorkoutLogger/WorkoutLoggerTheme.ts`, `WorkoutLoggerConfirmDialog.tsx`, `WorkoutLoggerCS.ts`, and `NASMProtocolSection.tsx` still show raw gradient, shadow, and accent literals.
+  - Treat this as daily-use polish plus regression protection because Workout Logger is the execution surface.
+- Universal Dashboard shell:
+  - `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx` and `AdminLayout.styles.ts` still show raw shadows, white text, and glow colors in scans.
+  - This has broad blast radius and should be sliced only after route/shell ownership is re-proven.
+- Admin widgets:
+  - `PaymentSettingsPanel.tsx`, `UsersManagementSection.tsx`, `TopTrainersWidget.tsx`, and `WidgetSkeleton.tsx` still show raw colors/gradients/shadows.
+  - Keep payment/session correctness ahead of visual-only widget polish.
+- Universal Master Schedule:
+  - Schedule theme bridge tests already exist in the schedule area, but Sean has specifically reported schedule theme drift.
+  - Next schedule pass should inspect `frontend/src/components/UniversalMasterSchedule` before patching.
+- Legacy admin-client surfaces:
+  - `frontend/src/components/DashBoard/Pages/admin-clients/*` still contains older hardcoded colors and legacy workout modal code.
+  - Do not patch these as canonical Client Hub work unless the route tree proves they are mounted.
+- Mock/data-truth candidates:
+  - `frontend/src/components/WorkoutManagement/ClientSelection.tsx` still has comments and fixtures referencing mock clients.
+  - Any mock cleanup is a data-truth slice, not a visual-polish slice, and needs API ownership evidence before code changes.
 
 ### 6. User Dashboard Media / Header System
 

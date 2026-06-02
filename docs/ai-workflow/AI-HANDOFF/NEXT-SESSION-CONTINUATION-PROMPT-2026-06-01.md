@@ -32,6 +32,14 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `051f84415` - `fix(client-hub): bridge lifecycle dialog shadow token`
+- `91dfcc145` - `fix(client-hub): bridge training tab glow tokens`
+- `e06c37012` - `fix(client-hub): bridge selector theme tokens`
+- `7e9e75622` - `fix(client-hub): bridge shell theme tokens`
+- `22db47283` - `fix(client-hub): bridge list card theme tokens`
+- `8c3c70bbb` - `fix(bootcamp): bridge builder theme tokens`
+- `bdfb5880d` - `fix(store): bridge revenue order theme tokens`
+- `3e7473316` - `docs(handoff): refresh theme bridge continuation`
 - `3b2a70096` - `fix(nutrition): bridge meal plan theme controls`
 - `380a7f5ee` - `fix(nutrition): bridge restaurant tab theme actions`
 - `da231e3f8` - `fix(nutrition): bridge food tracker theme tokens`
@@ -72,6 +80,12 @@ Latest pushed commits:
 - All listed commits were pushed to `origin/main` for Render auto-deploy.
 
 Verified work just completed in the prior session:
+- Store/Revenue, Bootcamp Builder, and Client Hub theme-token bridge slices landed after the first broad-polish backlog draft:
+  - Store/Revenue order summary now uses active theme tokens instead of fixed bright revenue styling.
+  - Bootcamp Builder controls now bridge to dashboard theme tokens.
+  - Client Hub list card, master/detail shell, selector, Training tab glow, and lifecycle confirmation dialog are token-bridged and covered by targeted style/contract tests.
+  - Targeted verification passed for each slice, `frontend && npm run build` passed, staged secret scans passed, and all listed commits through `051f84415` were pushed to `origin/main` for Render auto-deploy.
+  - Residual Browser risk remains: protected dashboard pages were not visually inspected in a local Browser session because the session lacks an auth token and redirects to login. Treat these as source/test/build verified until Sean validates them live or a local auth path is available.
 - Workout Management and Nutrition theme bridge slices landed:
   - Workout Management canonical route evidence:
     - Admin/trainer `UniversalDashboardLayout` mounts `/workout-management`.
@@ -276,9 +290,16 @@ Verified work just completed in the prior session:
 
 Highest-value next slice candidates:
 0. Continue theme synchronization from the live audited backlog:
-   - Workout Management and active Nutrition children are now token-bridged.
-   - Continue with Store/Revenue, Bootcamp Builder, Client Hub, Trainer Dashboard, Client Dashboard, and User Dashboard.
+   - Workout Management, active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, and several canonical Client Hub surfaces are now token-bridged.
+   - Continue with Trainer Dashboard Client Progress, Universal Master Schedule, Workout Logger theme remnants, Universal Dashboard shell, Client Dashboard, User Dashboard, and remaining admin widgets.
    - Use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` for the remaining visual polish boundary, but keep production workflow bugs ahead of cosmetic work.
+   - Scan-backed first choices:
+     - `frontend/src/components/TrainerDashboard/ClientProgress/EnhancedClientProgressView.tsx`
+     - `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/*`
+     - `frontend/src/components/WorkoutLogger/WorkoutLoggerTheme.ts`
+     - `frontend/src/components/WorkoutLogger/WorkoutLoggerConfirmDialog.tsx`
+     - `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx`
+     - `frontend/src/components/UniversalMasterSchedule`
 1. Continue Client Hub daily-use audit:
    - ClientsWorkspace -> ClientDetailView -> TrainingTabContent -> WorkoutLogger -> WorkoutHistoryPanel -> charts.
    - Confirm every "log today", "plan next", "view progress", "dictate AI" path lands on a live canonical surface and preserves selected client ID.
@@ -304,5 +325,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `3b2a70096`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice. If Sean asks for broad polish, use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md`; otherwise keep production workflow gaps ahead of visual redesign.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed the current `origin/main` head, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice. If Sean asks for broad polish, use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md`; otherwise keep production workflow gaps ahead of visual redesign.
 ```
