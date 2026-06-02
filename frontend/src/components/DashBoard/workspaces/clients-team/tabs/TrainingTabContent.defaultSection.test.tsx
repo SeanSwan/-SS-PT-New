@@ -34,6 +34,10 @@ vi.mock('../../../../WorkoutManagement/WorkoutPlanBuilder', () => ({
   default: () => <div data-testid="workout-plan-builder" />,
 }));
 
+vi.mock('./ClientWorkoutPlansPanel', () => ({
+  default: () => <div data-testid="client-workout-plans-panel" />,
+}));
+
 vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({ onComplete }: { onComplete: (formData: unknown) => void }) => (
     <button type="button" data-testid="workout-logger" onClick={() => onComplete({ id: 'fixture-form' })}>
@@ -92,6 +96,16 @@ describe('TrainingTabContent daily workflow default', () => {
 
     expect(await screen.findByTestId('workout-history-panel')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /workout history/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('can open directly on saved Plans after returning from a saved full-page planner', async () => {
+    render(<TrainingTabContent clientId={424242} clientName="Fixture Client" initialSection={'plans' as never} />);
+
+    expect(await screen.findByTestId('client-workout-plans-panel')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /plans/i })).toHaveAttribute(
       'aria-selected',
       'true'
     );

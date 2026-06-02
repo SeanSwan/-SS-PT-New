@@ -11,6 +11,8 @@ import {
 const CLIENT_ID = 'fixture client/42';
 const VALID_CLIENT_ID = 42;
 const ENCODED_RETURN_TO = '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42';
+const ENCODED_PLANS_RETURN_TO =
+  '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans';
 
 describe('client daily training routes', () => {
   it('keeps the selected client encoded in the Client Hub return route', () => {
@@ -39,7 +41,7 @@ describe('client daily training routes', () => {
 
   it('opens the workout planner with source and returnTo context', () => {
     expect(buildClientWorkoutPlannerRoute(VALID_CLIENT_ID)).toBe(
-      `/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=${ENCODED_RETURN_TO}`
+      `/dashboard/admin/workout-planner?clientId=42&source=clients-team&returnTo=${ENCODED_PLANS_RETURN_TO}`
     );
   });
 

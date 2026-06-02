@@ -1,10 +1,11 @@
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
-export type ClientTrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
+export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
 
 const CLIENT_TRAINING_SECTIONS = new Set<ClientTrainingSection>([
   'architect',
+  'plans',
   'logger',
   'plaud',
   'copilot',

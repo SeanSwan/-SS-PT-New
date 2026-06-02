@@ -19,7 +19,7 @@
  */
 
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
-import { Archive, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
+import { Archive, ClipboardList, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
 import {
   ContentArea,
@@ -33,6 +33,10 @@ import { getNumericClientId } from './clientTabId';
 
 const WorkoutPlanBuilder = React.lazy(
   () => import('../../../../WorkoutManagement/WorkoutPlanBuilder')
+);
+
+const ClientWorkoutPlansPanel = React.lazy(
+  () => import('./ClientWorkoutPlansPanel')
 );
 
 const WorkoutLogger = React.lazy(
@@ -52,7 +56,7 @@ const WorkoutHistoryPanel = React.lazy(
   () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')
 );
 
-export type TrainingSection = 'architect' | 'logger' | 'plaud' | 'copilot' | 'history';
+export type TrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
 
 interface TrainingTabContentProps {
   clientId: number | string;
@@ -67,6 +71,7 @@ const SECTIONS: {
   icon: React.ReactNode;
 }[] = [
   { id: 'architect', label: 'Program Architect', shortLabel: 'Architect', icon: <Wand2 size={18} /> },
+  { id: 'plans', label: 'Training Plans', shortLabel: 'Plans', icon: <ClipboardList size={18} /> },
   { id: 'logger', label: 'Workout Logger', shortLabel: 'Logger', icon: <Play size={18} /> },
   { id: 'plaud', label: 'PLAUD Uploads', shortLabel: 'PLAUD', icon: <FileAudio size={18} /> },
   { id: 'copilot', label: 'Swan Coach Copilot', shortLabel: 'Copilot', icon: <Sparkles size={18} /> },
@@ -118,6 +123,15 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
           <Suspense fallback={<SuspenseFallback />}>
             <WorkoutPlanBuilder
               clientId={String(safeClientId)}
+              clientName={clientName}
+            />
+          </Suspense>
+        );
+      case 'plans':
+        return (
+          <Suspense fallback={<SuspenseFallback />}>
+            <ClientWorkoutPlansPanel
+              clientId={safeClientId}
               clientName={clientName}
             />
           </Suspense>

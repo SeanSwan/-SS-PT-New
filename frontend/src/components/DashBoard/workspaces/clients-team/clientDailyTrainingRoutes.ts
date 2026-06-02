@@ -1,4 +1,5 @@
 export type ClientDailyIntent = 'log_workout' | 'plan_next';
+type ClientDailyReturnSection = 'plans' | 'history';
 
 const CLIENT_MANAGEMENT_BASE = '/dashboard/admin/client-management';
 
@@ -14,22 +15,36 @@ export const parseClientDailyRouteClientId = (clientId: number | string): number
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
-export const buildClientManagementReturnTo = (clientId: number | string) => {
-  const parsedClientId = parseClientDailyRouteClientId(clientId);
-  return parsedClientId ? `${CLIENT_MANAGEMENT_BASE}?clientId=${parsedClientId}` : null;
-};
-
-const buildClientDailyParams = (
+export const buildClientManagementReturnTo = (
   clientId: number | string,
-  extraParams: Record<string, string> = {}
+  trainingSection?: ClientDailyReturnSection,
 ) => {
   const parsedClientId = parseClientDailyRouteClientId(clientId);
   if (!parsedClientId) return null;
 
+  const params = new URLSearchParams({ clientId: String(parsedClientId) });
+  if (trainingSection) {
+    params.set('tab', 'training');
+    params.set('trainingSection', trainingSection);
+  }
+
+  return `${CLIENT_MANAGEMENT_BASE}?${params.toString()}`;
+};
+
+const buildClientDailyParams = (
+  clientId: number | string,
+  extraParams: Record<string, string> = {},
+  returnSection?: ClientDailyReturnSection,
+) => {
+  const parsedClientId = parseClientDailyRouteClientId(clientId);
+  if (!parsedClientId) return null;
+  const returnTo = buildClientManagementReturnTo(parsedClientId, returnSection);
+  if (!returnTo) return null;
+
   const params = new URLSearchParams({
     clientId: String(parsedClientId),
     source: 'clients-team',
-    returnTo: `${CLIENT_MANAGEMENT_BASE}?clientId=${parsedClientId}`,
+    returnTo,
     ...extraParams,
   });
 
@@ -60,6 +75,6 @@ export const buildClientWorkoutLoggerRoute = (clientId: number | string) => {
 };
 
 export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {
-  const params = buildClientDailyParams(clientId);
+  const params = buildClientDailyParams(clientId, {}, 'plans');
   return params ? `/dashboard/admin/workout-planner?${params}` : null;
 };
