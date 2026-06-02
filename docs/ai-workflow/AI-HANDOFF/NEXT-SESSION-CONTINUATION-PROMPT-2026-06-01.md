@@ -32,6 +32,10 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `9dc04652c` - `fix(coach): harden proposal summary client ids`
+- `46b9084ae` - `fix(coach): harden ai bff client summary ids`
+- `592328a75` - `fix(coach): align proposal client id parsing`
+- `0c9f25abb` - `docs(handoff): add coach hardening continuation state`
 - `ea1ed1154` - `fix(coach): validate split plan client ids`
 - `63609bc35` - `fix(auth): enforce strict client access ids`
 - `780994701` - `fix(coach): validate proposal approval client ids`
@@ -109,6 +113,15 @@ Verified work just completed in the prior session:
     - proposal approval/source guards: 3 files / 20 tests after split-plan hardening
     - shared client access: 3 files / 34 tests after strict ID parsing
   - Production smoke after `63609bc35` and `ea1ed1154` passed 56, skipped 2.
+- Follow-up Coach proposal/client-summary hardening was added:
+  - `coachActionProposalApprovalService` now rejects whitespace-padded proposal IDs before RBAC or writes for both workout-log and client-data-update approvals.
+  - AI BFF client summary route now rejects malformed path IDs like `42junk` before cache lookup or internal fetch aggregation.
+  - Coach proposal detail and stored summaries no longer coerce malformed IDs into legitimate-looking client IDs.
+  - Targeted verification passed:
+    - approval/parser alignment: 3 files / 15 tests
+    - AI BFF client-summary strict route IDs: 2 files / 6 tests
+    - proposal detail/summary read-side hardening: 4 files / 23 tests
+  - Production smoke after `592328a75`, `46b9084ae`, and `9dc04652c` passed 56, skipped 2.
 - Additional verification passed after the Client Hub return-flow slice:
   - Frontend targeted: 9 files / 53 tests passed across Client Hub, Training tab, full-page logger, planner/overview source locks, and Session Detail modal logic.
   - `frontend && npx tsc --noEmit --pretty false` passed when run with `NODE_OPTIONS=--max-old-space-size=8192`.
@@ -134,6 +147,7 @@ Highest-value next slice candidates:
    - Late cancel/no-show/admin discretion must be explicit and tested.
 3. Coach Command Center/Swan Coach command lane:
    - Selected-client command intake and resolver boundaries are now hardened.
+   - Coach proposal approval, split-plan child proposal creation, proposal summaries/details, shared client access, and AI BFF client summary route ID parsing are now hardened against malformed selected-client IDs.
    - Continue proving voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
    - Next check should prove backend command results and proposal side effects stay scoped to the selected client through the full write/result path, not only at input normalization.
 4. Workout/progress data truth:
