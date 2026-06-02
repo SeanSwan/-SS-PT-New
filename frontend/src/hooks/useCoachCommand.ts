@@ -71,6 +71,13 @@ const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: s
   return 'No active workout surface was open. No form was changed.';
 };
 
+const commandRequestErrorReceipt = (error: unknown, fallback: string): string => {
+  const data = (error as { response?: { data?: { error?: unknown; message?: unknown } } })?.response?.data;
+  const serverError = typeof data?.error === 'string' ? data.error.trim() : '';
+  const serverMessage = typeof data?.message === 'string' ? data.message.trim() : '';
+  return serverError || serverMessage || fallback;
+};
+
 // ── Hook ────────────────────────────────────────────────────────────────────
 
 export function useCoachCommand() {
@@ -145,8 +152,14 @@ export function useCoachCommand() {
 
       // chat / clarification_needed — both are chat fallbacks
       return { type: 'fallback_to_chat' };
-    } catch {
-      return { type: 'error', error: 'Network error. Falling back to chat.' };
+    } catch (error) {
+      return {
+        type: 'error',
+        error: commandRequestErrorReceipt(
+          error,
+          'Command request failed. Please check your connection and try again.'
+        ),
+      };
     } finally {
       setExecutingCommand(false);
     }
@@ -179,8 +192,13 @@ export function useCoachCommand() {
         result: data.result ?? null,
         command: data.command ?? undefined,
       };
-    } catch {
-      return { success: false, type: 'error', message: 'Confirm request failed.', result: null };
+    } catch (error) {
+      return {
+        success: false,
+        type: 'error',
+        message: commandRequestErrorReceipt(error, 'Confirm request failed.'),
+        result: null,
+      };
     }
   }, []);
 

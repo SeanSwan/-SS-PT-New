@@ -80,6 +80,33 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     });
   });
 
+  it('preserves backend command validation errors instead of labeling them chat fallback', async () => {
+    vi.mocked(apiService.post).mockRejectedValue({
+      response: {
+        data: {
+          success: false,
+          code: 'COMMAND_SELECTED_CLIENT_ID_INVALID',
+          error: 'selectedClientId must be a positive integer when provided',
+        },
+      },
+    });
+
+    const { result } = renderHook(() => useCoachCommand());
+    let response: Awaited<ReturnType<typeof result.current.executeCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.executeCommand('log today workout', {
+        selectedClientId: 42,
+      });
+    });
+
+    expect(response).toMatchObject({
+      type: 'error',
+      error: 'selectedClientId must be a positive integer when provided',
+    });
+    expect(JSON.stringify(response)).not.toMatch(/falling back to chat/i);
+  });
+
   it('preserves not-wired receipts returned by confirmed commands', async () => {
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
