@@ -81,6 +81,7 @@ import {
   viewNutritionLog,
   viewMacroTrends,
 } from './dispatchers/nutritionDispatchers.mjs';
+import { resolveCommandClientId } from './dispatchers/clientScope.mjs';
 import { viewActivePain, addPainEntry, dispatchResolvePainEntry, dispatchUpdatePainEntry } from './dispatchers/painDispatchers.mjs';
 import { viewLatestMeasurements, dispatchLogWeighIn, dispatchLogMeasurements, viewMeasurementTrends } from './dispatchers/measurementDispatchers.mjs';
 import { dispatchCancelSession, dispatchViewTodaySchedule, dispatchViewWeekSchedule } from './dispatchers/sessionDispatchers.mjs';
@@ -198,7 +199,7 @@ import { transformQuestionnaireToMasterPrompt } from '../../controllers/onboardi
  */
 const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
   const { WorkoutSession, WorkoutLog } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const limit = Math.min(20, Math.max(1, Number(params.limit) || defaultLimit));
   const rows = await WorkoutSession.findAll({
     where: { userId: clientId },
@@ -1044,7 +1045,7 @@ const dispatchDeactivateClient = async (params, ctx) => {
 
 const dispatchViewWorkoutStatistics = async (params, ctx) => {
   const { WorkoutSession, WorkoutLog } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const rows = await WorkoutSession.findAll({
     where: { userId: clientId, status: 'completed' },
     include: [{ model: WorkoutLog, as: 'logs' }],
@@ -1096,7 +1097,7 @@ const dispatchViewWorkoutStatistics = async (params, ctx) => {
 };
 
 const dispatchViewExerciseRecommendations = async (params, ctx) => {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const limit = Math.min(10, Math.max(1, Number(params.limit) || 5));
   const exercises = await workoutService.getExerciseRecommendations(clientId, {
     goal: params.goal || 'general',
