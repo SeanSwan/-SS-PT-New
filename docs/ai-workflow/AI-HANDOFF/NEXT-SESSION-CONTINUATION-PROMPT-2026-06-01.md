@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, and Planner return-action pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, and Coach proposal approval hardening pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,6 +32,12 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `ea1ed1154` - `fix(coach): validate split plan client ids`
+- `63609bc35` - `fix(auth): enforce strict client access ids`
+- `780994701` - `fix(coach): validate proposal approval client ids`
+- `bee10b34a` - `fix(coach): harden selected client resolver`
+- `0776325ed` - `fix(coach): normalize command selected client`
+- `f406ac7ac` - `docs(handoff): refresh continuation and polish backlog`
 - `4e3fedff915938820b9ac2263f6655230619ecd7` - `fix(training): add planner client hub return action`
 - `4a699a193497d6ef9973043589877d5b7b4a4e44` - `fix(coach): harden command center return links`
 - `c84cfd808abc6e06cfe09fdcce1d28f435335e95` - `docs(handoff): record client hub return slice`
@@ -89,6 +95,20 @@ Verified work just completed in the prior session:
   - `frontend && npm run build` passed after each runtime slice.
   - Production smoke after `4a699a193`: 56 passed, 2 skipped.
   - Production smoke after `4e3fedff9`: first full run had one transient desktop Marketing app-boundary failure during deploy churn; isolated Marketing rerun passed; second full run passed 56, skipped 2.
+- Coach selected-client command execution was hardened:
+  - Frontend-selected `clientId` from Clients & Team now reaches `/api/ai-command/execute` as a strict positive integer or `null`.
+  - `selectedClientName` is stripped before backend command execution to preserve the zero-PII-to-LLM boundary.
+  - Service-level command execution now normalizes `selectedClientId` again before resolver use, so direct service callers cannot bypass the route guard.
+  - Targeted verification passed: `aiCommandRouteFrontendDispatch.test.mjs` 6 tests and `commandExecutorClientRefValidation.test.mjs` 13 tests.
+  - Production smoke after `0776325ed`, `bee10b34a`, and `780994701` passed 56, skipped 2.
+- Coach proposal approval client-ID hardening was added:
+  - Workout proposal approval rejects malformed client IDs with `PROPOSAL_INVALID_CLIENT_ID` before `ensureClientAccess` or workout writes.
+  - Shared `ensureClientAccess` now rejects ambiguous client/requester IDs such as booleans, whitespace-padded strings, leading-zero strings, decimals, and scientific notation before model lookup.
+  - Split-plan child workout proposals now skip explicit malformed split client IDs before access checks or child proposal creation.
+  - Targeted verification passed:
+    - proposal approval/source guards: 3 files / 20 tests after split-plan hardening
+    - shared client access: 3 files / 34 tests after strict ID parsing
+  - Production smoke after `63609bc35` and `ea1ed1154` passed 56, skipped 2.
 - Additional verification passed after the Client Hub return-flow slice:
   - Frontend targeted: 9 files / 53 tests passed across Client Hub, Training tab, full-page logger, planner/overview source locks, and Session Detail modal logic.
   - `frontend && npx tsc --noEmit --pretty false` passed when run with `NODE_OPTIONS=--max-old-space-size=8192`.
@@ -113,8 +133,9 @@ Highest-value next slice candidates:
    - Move Fitness clients remain non-deducting/free but still retain workout data.
    - Late cancel/no-show/admin discretion must be explicit and tested.
 3. Coach Command Center/Swan Coach command lane:
-   - Confirm selected-client voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
-   - Current code passes `selectedClientId` into `/api/ai-command/execute` and target user id into chat fallback; next check should prove backend command results stay scoped to that selected client.
+   - Selected-client command intake and resolver boundaries are now hardened.
+   - Continue proving voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
+   - Next check should prove backend command results and proposal side effects stay scoped to the selected client through the full write/result path, not only at input normalization.
 4. Workout/progress data truth:
    - Verify latest workout history and chart widgets read real workout logs/sessions.
    - Replace any mock progress data still mounted on canonical routes.
