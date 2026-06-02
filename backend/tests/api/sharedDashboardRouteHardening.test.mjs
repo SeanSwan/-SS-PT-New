@@ -18,7 +18,8 @@ describe('shared dashboard route hardening', () => {
       expect(result).toMatchObject({ allowed: false, status: 400 });
     }
 
-    expect(clientAccessSource).toContain('Number.isInteger(id) && id > 0 ? id : null');
+    expect(clientAccessSource).toContain("typeof value === 'string' && /^[1-9]\\d*$/.test(value)");
+    expect(clientAccessSource).toContain('Number.isSafeInteger(id)');
   });
 
   it('caps photo and note pagination limits', () => {

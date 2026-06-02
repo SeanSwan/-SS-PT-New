@@ -1,8 +1,16 @@
 import { getAllModels } from '../models/index.mjs';
 
 const parseId = (value) => {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+    const id = Number(value);
+    return Number.isSafeInteger(id) ? id : null;
+  }
+
+  return null;
 };
 
 const isTrainerAssigned = async (models, clientId, trainerId) => {
