@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, Client Hub saved-plans receipt, selected-client command scope, schedule-to-workout guard, schedule confirmation-focus, malformed selected-client fail-closed, and Coach command error-receipt pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, Client Hub saved-plans receipt, selected-client command scope, schedule-to-workout guard, schedule confirmation-focus, malformed selected-client fail-closed, Coach command error-receipt, Workout Management theme bridge, and Nutrition theme bridge pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,6 +32,11 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `3b2a70096` - `fix(nutrition): bridge meal plan theme controls`
+- `380a7f5ee` - `fix(nutrition): bridge restaurant tab theme actions`
+- `da231e3f8` - `fix(nutrition): bridge food tracker theme tokens`
+- `9f8d507e1` - `fix(workouts): bridge workout management theme tokens`
+- `43a864934` - `docs(handoff): refresh broad polish backlog`
 - `9dbc7b4d1` - `fix(coach): preserve selected client for client admin commands`
 - `61499600b` - `fix(coach): preserve selected client for onboarding commands`
 - `2a273ce85` - `fix(coach): preserve selected client for legacy workout reads`
@@ -64,9 +69,30 @@ Latest pushed commits:
 - `c84cfd808abc6e06cfe09fdcce1d28f435335e95` - `docs(handoff): record client hub return slice`
 - `87881f7758a842cf24dfa5ca2a5a8989d46d05e0` - `fix(training): return client logs to history`
 - `5a50667ea4006289c88fb856c049ddfac33a8dbc` - `fix(training): normalize session credit boundaries`
-- All listed commits were pushed to `origin/main` for Render auto-deploy on 2026-06-01.
+- All listed commits were pushed to `origin/main` for Render auto-deploy.
 
 Verified work just completed in the prior session:
+- Workout Management and Nutrition theme bridge slices landed:
+  - Workout Management canonical route evidence:
+    - Admin/trainer `UniversalDashboardLayout` mounts `/workout-management`.
+    - The active surface is `frontend/src/components/WorkoutManagement/WorkoutPlanBuilder.tsx`, with `ClientSelection`, `ExerciseLibrary`, and `WorkoutPlanBuilderStyles`.
+    - `ExerciseLibrary` calls `/api/workout/recommendations`, backed by the workout route mount.
+  - Workout Management patch:
+    - `ClientSelection.tsx`, `ExerciseLibrary.tsx`, and `WorkoutPlanBuilderStyles.ts` now use universal theme CSS variables and `color-mix` instead of fixed bright cyan/purple/blue islands.
+    - Regression contract: `WorkoutManagementThemeBridge.contract.test.ts`.
+  - Nutrition canonical route evidence:
+    - `UniversalDashboardLayout` mounts `/meal-planner` to `NutritionWorkspace`.
+    - `NutritionWorkspace` renders `FoodIntakeForm`, `FoodSearchPanel`, `RestaurantTab`, `SupplementsTab`, and `MealPlanTab`.
+    - `FoodIntakeForm` posts `/api/macros`; `RestaurantTab` uses `/api/restaurant/search` and `/api/restaurant/food/:id`; `MealPlanTab` uses `/api/meal-plans/generate`, `/api/meal-plans/analyze-photo`, and `/api/meal-plans/golf-presets`.
+  - Nutrition patch:
+    - `FoodIntakeForm`, `FoodSearchPanel`, `RestaurantTab`, and `MealPlanTab` now avoid the fixed theme literals caught in this lane.
+    - Supplements style modules were classified as active and tokenized; `QuickAddFood` remains dormant and was intentionally left untouched.
+    - Regression contract: `FoodTrackerThemeBridge.contract.test.ts`.
+  - Targeted frontend verification passed after the final Nutrition slice:
+    - `FoodTrackerThemeBridge.contract.test.ts`: 1 file / 1 test.
+    - Nutrition adjacent set: 3 files / 7 tests.
+    - `frontend && npm run build` passed with Vite production build.
+    - Hostile scans found no remaining patched literals in `RestaurantTab` or `MealPlanTab`.
 - Normalized paid session-credit boundaries across backend and frontend so Move Fitness clients remain non-deducting/free while SwanStudios clients use whole non-negative paid session counts.
 - Centralized backend paid-session count normalization in `backend/services/sessionBillingPolicy.mjs`.
 - Patched backend callers and AI receipts:
@@ -249,6 +275,10 @@ Verified work just completed in the prior session:
   - Several backend tests still print `VITE_STRIPE_PUBLISHABLE_KEY is missing`. The tests passed; Render has production env values and this warning is not the current failure.
 
 Highest-value next slice candidates:
+0. Continue theme synchronization from the live audited backlog:
+   - Workout Management and active Nutrition children are now token-bridged.
+   - Continue with Store/Revenue, Bootcamp Builder, Client Hub, Trainer Dashboard, Client Dashboard, and User Dashboard.
+   - Use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` for the remaining visual polish boundary, but keep production workflow bugs ahead of cosmetic work.
 1. Continue Client Hub daily-use audit:
    - ClientsWorkspace -> ClientDetailView -> TrainingTabContent -> WorkoutLogger -> WorkoutHistoryPanel -> charts.
    - Confirm every "log today", "plan next", "view progress", "dictate AI" path lands on a live canonical surface and preserves selected client ID.
@@ -274,5 +304,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `9dbc7b4d1`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice. If Sean asks for broad polish, use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md`; otherwise keep production workflow gaps ahead of visual redesign.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `3b2a70096`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice. If Sean asks for broad polish, use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md`; otherwise keep production workflow gaps ahead of visual redesign.
 ```

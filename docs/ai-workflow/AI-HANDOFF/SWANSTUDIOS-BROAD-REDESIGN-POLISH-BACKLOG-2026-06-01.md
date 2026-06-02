@@ -43,7 +43,13 @@ These items are no longer broad-redesign backlog items because they were handled
   - dispatcher slices now prefer `ctx.resolvedClient.id` over stale `params.clientId` for goal/nutrition, measurement/pain, client update/credentials, progress reads, legacy workout reads, legacy onboarding, and legacy client-admin commands.
   - The stale pattern scan across `backend/services/ai` now returns no matches for `params.clientId ?? ctx.resolvedClient?.id` or `params.clientId || ctx.resolvedClient?.id`.
   - Latest pushed Coach selected-client commits: `6ae3d9d53`, `9dfa1f260`, `f63797716`, `b721d1eba`, `2a273ce85`, `61499600b`, `9dbc7b4d1`.
-- Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`.
+- Workout Management theme-token bridge is now handled for the canonical workout management surface:
+  - `ClientSelection`, `ExerciseLibrary`, and `WorkoutPlanBuilderStyles` now use universal dashboard theme variables instead of fixed blue/purple islands.
+  - Contract coverage lives in `frontend/src/components/WorkoutManagement/WorkoutManagementThemeBridge.contract.test.ts`.
+- Nutrition theme-token bridge is now handled for the active Nutrition workspace children audited in this lane:
+  - Food log/search, Restaurant actions, Meal Plan controls, and Supplements style modules are locked by `frontend/src/components/FoodTracker/FoodTrackerThemeBridge.contract.test.ts`.
+  - `QuickAddFood` remains dormant in the current route tree and was intentionally not patched in this production slice.
+- Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
@@ -97,6 +103,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
+- Current status: Workout Management plus the audited active Nutrition children are token-bridged and covered by targeted contracts. Continue scanning Store/Revenue, Bootcamp, Client Hub, Trainer Dashboard, Client Dashboard, and User Dashboard before calling theme synchronization complete.
 
 ### 6. User Dashboard Media / Header System
 
