@@ -109,7 +109,7 @@ export function getAdminActivationCta(row: ClientActivationQueueRow): { label: s
     },
     schedule_first_session: {
       label: 'Schedule Session',
-      route: `/dashboard/admin/admin-sessions?clientId=${clientId}`,
+      route: `/dashboard/admin-sessions?clientId=${clientId}`,
     },
     dashboard: {
       label: 'View Client',
