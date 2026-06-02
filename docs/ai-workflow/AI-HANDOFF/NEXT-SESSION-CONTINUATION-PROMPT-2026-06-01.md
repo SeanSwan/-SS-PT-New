@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, Client Hub saved-plans receipt, selected-client command scope, and schedule-to-workout guard pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, Client Hub saved-plans receipt, selected-client command scope, schedule-to-workout guard, schedule confirmation-focus, malformed selected-client fail-closed, and Coach command error-receipt pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,6 +32,10 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `64eebd1eb` - `fix(coach): preserve command route errors`
+- `09c180708` - `fix(coach): reject malformed selected client commands`
+- `1ef9d4828` - `fix(schedule): focus session confirmation actions`
+- `1a451003c` - `docs(handoff): refresh continuation after schedule guard`
 - `32b2551a6` - `fix(schedule): block future workout logging`
 - `06b8f7912` - `fix(coach): preserve selected client command scope`
 - `0b5a1a3d6` - `docs(handoff): refresh continuation after plans receipt`
@@ -167,6 +171,43 @@ Verified work just completed in the prior session:
   - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`; default Node heap OOM is expected on this repo and is not a type failure.
   - `frontend && npm run build` passed.
   - Production smoke after `32b2551a6` passed 56, skipped 2.
+- Schedule confirmation subflows were tightened:
+  - Canonical route receipt:
+    - `UniversalDashboardLayout.tsx` mounts admin `/master-schedule` and trainer/client `/schedule`.
+    - `ScheduleModals.tsx` renders `SessionDetailModal`.
+    - `SessionDetailModal.tsx` renders `SessionDetailFooterActions` and `SessionDetailBodyPanels`.
+    - `SessionDetailBodyPanels.tsx` renders `SessionDetailNoShowReasonPanel`.
+    - `useSessionAttendance.ts` posts `/api/sessions/${session.id}/attendance`.
+    - Backend canonical route is `backend/core/routes.mjs` -> `backend/routes/sessions.mjs` `PATCH /:id/attendance`.
+  - Cancel, late-cancel, and no-show confirmation states now focus the modal footer on Close + Back + Confirm instead of leaving unrelated Mark Complete / Cancel / Log Workout actions visible during the confirmation decision.
+  - The stale future-date fixture in `useSessionDetailPermissions.test.tsx` was corrected to a relative past date so permission tests do not age into false failures.
+  - Targeted frontend verification passed:
+    - `SessionDetailFooterActions.test.tsx`: 6 tests.
+    - wider Universal Master Schedule suite: 6 files / 27 tests.
+    - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
+    - `frontend && npm run build` passed.
+  - Production smoke after `1ef9d4828` passed 56, skipped 2.
+- Coach selected-client malformed-input handling was hardened:
+  - Canonical route receipt:
+    - Admin `/coach-assistant` mounts `CoachCommandCenterPage`.
+    - Client Hub Training renders `ClientTrainingCommandBar`.
+    - `ClientTrainingCommandBar` calls `useCoachCommand`.
+    - `useCoachCommand` posts `/api/ai-command/execute`.
+    - Backend mounts `/api/ai-command` to `backend/routes/aiCommandRoutes.mjs`.
+    - `executeCommandPipeline` reaches `commandExecutor.mjs`, where selected-client authority is applied.
+  - Backend `/api/ai-command/execute` now rejects a present-but-malformed `selectedClientId` with `400 COMMAND_SELECTED_CLIENT_ID_INVALID` instead of silently normalizing it to `null` and allowing stale classifier/clientRef data to take over.
+  - Targeted backend verification passed:
+    - `aiCommandRouteFrontendDispatch.test.mjs`: 6 tests.
+    - selected-client route + executor suite: 2 files / 20 tests.
+  - Production smoke after `09c180708` passed 56, skipped 2.
+- Coach frontend command error receipts were aligned with the backend fail-closed route:
+  - `useCoachCommand` now preserves backend `error` / `message` text for command and confirm request failures instead of labeling every thrown request as "Network error. Falling back to chat."
+  - Targeted frontend verification passed:
+    - `useCoachCommand.frontendDispatch.test.tsx`: 6 tests.
+    - wider command UI suite: 6 files / 46 tests.
+    - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
+    - `frontend && npm run build` passed.
+  - Production smoke after `64eebd1eb` passed 56, skipped 2.
 - Schedule/session route ownership hostile finding:
   - `backend/core/routes.mjs` mounts canonical `/api/sessions` to `backend/routes/sessions.mjs`.
   - The older `backend/routes/sessionRoutes.mjs` is not the primary `/api/sessions` mount, but it is still reachable through the later `/api` compatibility router in `backend/routes/api.mjs`.
@@ -190,6 +231,7 @@ Highest-value next slice candidates:
    - Future-day schedule sessions are now blocked from opening the workout logger; continue with cancellation/no-show UX clarity and route-compatibility proof.
 3. Coach Command Center/Swan Coach command lane:
    - Selected-client command intake and resolver boundaries are now hardened.
+   - Present-but-malformed selected-client command IDs now fail closed on the backend route, and the frontend preserves the backend validation receipt.
    - Coach proposal approval, split-plan child proposal creation, proposal summaries/details, shared client access, and AI BFF client summary route ID parsing are now hardened against malformed selected-client IDs.
    - Continue proving voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
    - Next check should prove backend command results and proposal side effects stay scoped to the selected client through the full write/result path, not only at input normalization.
@@ -200,5 +242,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `32b2551a6`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `64eebd1eb`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
 ```

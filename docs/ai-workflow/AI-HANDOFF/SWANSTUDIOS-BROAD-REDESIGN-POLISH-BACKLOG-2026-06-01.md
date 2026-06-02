@@ -33,6 +33,8 @@ These items are no longer broad-redesign backlog items because they were handled
 - Client Hub Plan Next now returns to Training > Plans, where the selected client's saved plans load from `/api/workout/plans?clientId=...`.
 - Clients & Team selected-client Coach commands now keep the selected client authoritative through backend execution instead of trusting stale classifier/clientRef output.
 - Universal Master Schedule now blocks future-day sessions from opening the workout logger before the session day while preserving same-day gym-floor logging.
+- Universal Master Schedule confirmation states now focus the modal on the active decision instead of showing unrelated Mark Complete / Cancel / Log Workout actions while cancel/no-show confirmations are open.
+- Coach command malformed selected-client IDs now fail closed on the backend route, and the frontend preserves the route's validation message instead of masking it as a generic chat fallback.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
