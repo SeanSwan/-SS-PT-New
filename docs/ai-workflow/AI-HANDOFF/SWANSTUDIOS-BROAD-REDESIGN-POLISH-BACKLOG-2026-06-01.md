@@ -35,6 +35,10 @@ These items are no longer broad-redesign backlog items because they were handled
 - Universal Master Schedule now blocks future-day sessions from opening the workout logger before the session day while preserving same-day gym-floor logging.
 - Universal Master Schedule confirmation states now focus the modal on the active decision instead of showing unrelated Mark Complete / Cancel / Log Workout actions while cancel/no-show confirmations are open.
 - Coach command malformed selected-client IDs now fail closed on the backend route, and the frontend preserves the route's validation message instead of masking it as a generic chat fallback.
+- Swan Coach selected-client backend execution is now hardened across the stale-param bug family:
+  - dispatcher slices now prefer `ctx.resolvedClient.id` over stale `params.clientId` for goal/nutrition, measurement/pain, client update/credentials, progress reads, legacy workout reads, legacy onboarding, and legacy client-admin commands.
+  - The stale pattern scan across `backend/services/ai` now returns no matches for `params.clientId ?? ctx.resolvedClient?.id` or `params.clientId || ctx.resolvedClient?.id`.
+  - Latest pushed Coach selected-client commits: `6ae3d9d53`, `9dfa1f260`, `f63797716`, `b721d1eba`, `2a273ce85`, `61499600b`, `9dbc7b4d1`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
@@ -122,6 +126,15 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 
 - Premium achievement theater, milestone reels, stronger XP/streak presentation, creator-style progress diaries, and future "world" concepts belong after the core workout/session/business loop is stable.
 - Do not let later gamification work obscure the trainer-led personal training product.
+
+### 11. Backend / Command-Lane Technical Debt To Keep Separate
+
+- `backend/services/ai/commandDispatcher.mjs` remains a large legacy dispatcher file. Do not mix broad UI polish with extraction work.
+- If Sean asks to clean it up, run a dedicated extraction slice:
+  - start with command registry and dispatcher ownership evidence.
+  - move one cohesive command family at a time into `backend/services/ai/dispatchers/`.
+  - preserve existing tests, add focused contract tests, and run backend full test before push.
+- Do not treat extraction as visual redesign; it is production hardening and maintainability work.
 
 ---
 

@@ -3,7 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-06-01 (recursive slice continuation + broad polish backlog)
+**Last updated:** 2026-06-02 (Coach selected-client stale-param closure + continuation refresh)
 
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
@@ -34,8 +34,8 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `USER-DASHBOARD-SYSTEM-STATUS-2026-05-13.md` - canonical user-dashboard runtime map, current feature inventory, wiring gaps, and future-AI rules
 - `SWANSTUDIOS-FUNNEL-ACTIVATION-SURFACE-MAP-2026-05-20.md` - canonical acquisition-to-client-dashboard funnel map with active/dormant route ownership and backend mount notes
 - `oracle-requests/ADMIN-CLIENT-TRAINING-FLOW-ORACLE-PACKET-2026-05-25.md` - GPT Pro/Oracle packet and working vision for the admin client-first training flow across Coach Command Center, Clients & Team, and Workouts
-- `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` - parked broad redesign/polish backlog for dashboards, media header, social feed, theme sync, Bootcamp, and workout UX
-- `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the current push
+- `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` - parked broad redesign/polish backlog for dashboards, media header, social feed, theme sync, Bootcamp, workout UX, and separate command-dispatcher extraction debt
+- `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the latest Coach selected-client command push
 
 - `SWANSTUDIOS-WHATS-NEXT-PRODUCT-PLAN-2026-05-09.md` - next product-depth roadmap prompt for client onboarding, Stripe/session purchases, PLAUD Intake playback, teaching-first UX, and 1440p/4K QA
 

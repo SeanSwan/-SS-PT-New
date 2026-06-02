@@ -32,6 +32,14 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `9dbc7b4d1` - `fix(coach): preserve selected client for client admin commands`
+- `61499600b` - `fix(coach): preserve selected client for onboarding commands`
+- `2a273ce85` - `fix(coach): preserve selected client for legacy workout reads`
+- `ae5903529` - `fix(schedule): enable editable precise sessions`
+- `b721d1eba` - `fix(coach): preserve selected client for progress reads`
+- `f63797716` - `fix(coach): preserve selected client for client writes`
+- `9dfa1f260` - `fix(coach): preserve selected client for health commands`
+- `6ae3d9d53` - `fix(coach): prefer selected client in dispatchers`
 - `64eebd1eb` - `fix(coach): preserve command route errors`
 - `09c180708` - `fix(coach): reject malformed selected client commands`
 - `1ef9d4828` - `fix(schedule): focus session confirmation actions`
@@ -208,6 +216,30 @@ Verified work just completed in the prior session:
     - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
     - `frontend && npm run build` passed.
   - Production smoke after `64eebd1eb` passed 56, skipped 2.
+- Swan Coach selected-client stale-param family was closed across backend command dispatch:
+  - Prior slices hardened goal/nutrition, measurement/pain, client update/credentials, progress reads, and legacy workout reads.
+  - `61499600b` hardened legacy onboarding commands:
+    - `fill_baseline_measurements`
+    - `view_onboarding_status`
+    - `start_onboarding`
+    - `submit_onboarding`
+  - `9dbc7b4d1` hardened legacy client-admin commands:
+    - `view_client_profile`
+    - `client_billing_overview`
+    - `notify_client`
+    - `lock_client`
+    - `assign_trainer`
+    - `deactivate_client`
+  - RED tests proved stale `params.clientId:999` could outrank selected `ctx.resolvedClient.id:42`; patches route all affected handlers through `resolveCommandClientId`.
+  - Targeted backend verification passed:
+    - onboarding slice: 2 files / 10 tests.
+    - client-admin slice: 3 files / 16 tests.
+  - Full backend verification passed after each final slice:
+    - after onboarding: 435 files / 3,788 tests.
+    - after client-admin: 436 files / 3,794 tests.
+  - Stale pattern inventory after `9dbc7b4d1` returned no matches across `backend/services/ai` for `params.clientId ?? ctx.resolvedClient?.id` or `params.clientId || ctx.resolvedClient?.id`.
+  - Production smoke after `61499600b` and `9dbc7b4d1` passed 56, skipped 2.
+  - Residual technical debt: `backend/services/ai/commandDispatcher.mjs` is still a large legacy file and should be extracted by command family in a separate maintainability slice, not mixed with UI polish.
 - Schedule/session route ownership hostile finding:
   - `backend/core/routes.mjs` mounts canonical `/api/sessions` to `backend/routes/sessions.mjs`.
   - The older `backend/routes/sessionRoutes.mjs` is not the primary `/api/sessions` mount, but it is still reachable through the later `/api` compatibility router in `backend/routes/api.mjs`.
@@ -230,11 +262,11 @@ Highest-value next slice candidates:
    - Late cancel/no-show/admin discretion must be explicit and tested.
    - Future-day schedule sessions are now blocked from opening the workout logger; continue with cancellation/no-show UX clarity and route-compatibility proof.
 3. Coach Command Center/Swan Coach command lane:
-   - Selected-client command intake and resolver boundaries are now hardened.
+   - Selected-client command intake, resolver boundaries, and stale backend dispatcher fallbacks are now hardened.
    - Present-but-malformed selected-client command IDs now fail closed on the backend route, and the frontend preserves the backend validation receipt.
    - Coach proposal approval, split-plan child proposal creation, proposal summaries/details, shared client access, and AI BFF client summary route ID parsing are now hardened against malformed selected-client IDs.
-   - Continue proving voice/text onboarding, workout logging, progress reads, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
-   - Next check should prove backend command results and proposal side effects stay scoped to the selected client through the full write/result path, not only at input normalization.
+   - Continue proving voice/text onboarding, workout logging, schedule commands, and proposal approval paths are backed by real routes or honest not-wired receipts.
+   - Next command-lane work should be maintainability extraction or a live workflow audit, not another stale-param search unless new evidence appears.
 4. Workout/progress data truth:
    - Verify latest workout history and chart widgets read real workout logs/sessions.
    - Replace any mock progress data still mounted on canonical routes.
@@ -242,5 +274,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `64eebd1eb`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `9dbc7b4d1`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice. If Sean asks for broad polish, use `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md`; otherwise keep production workflow gaps ahead of visual redesign.
 ```
