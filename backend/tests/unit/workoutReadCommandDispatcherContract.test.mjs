@@ -225,6 +225,32 @@ describe('Swan Coach workout read command dispatchers', () => {
     expect(Object.keys(result)).not.toContain('email');
   });
 
+  it('prefers the selected client over stale NASM command params', async () => {
+    const { dispatch, movementProfileFindOne, baselineFindOne, questionnaireFindOne } = await loadDispatcher([], [], {
+      movementProfile: {
+        nasmPhaseRecommendation: 3,
+        totalAnalyses: 7,
+        lastAnalysisAt: new Date('2026-05-21T13:00:00.000Z'),
+      },
+    });
+
+    const result = await dispatch('view_nasm_phase', { clientId: 999 }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(movementProfileFindOne).toHaveBeenCalledWith({
+      where: { userId: 42 },
+    });
+    expect(baselineFindOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42 },
+    }));
+    expect(questionnaireFindOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42 },
+    }));
+    expect(result.clientId).toBe(42);
+  });
+
   it('falls back to latest NASM baseline score when movement profile has no phase', async () => {
     const { dispatch, baselineFindOne, questionnaireFindOne, selectOPTPhase } = await loadDispatcher([], [], {
       movementProfile: null,

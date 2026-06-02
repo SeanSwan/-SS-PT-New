@@ -150,6 +150,31 @@ describe('goal gamification command dispatchers', () => {
     expect(JSON.stringify(result)).not.toContain('Private');
   });
 
+  it('prefers the selected client over stale XP command params', async () => {
+    const { dispatch, findByPkUser, findAllStreaks } = await loadDispatcher({
+      user: {
+        id: 42,
+        points: 900,
+        level: 4,
+        tier: 'bronze_forge',
+        streakDays: 6,
+        totalWorkouts: 12,
+        totalExercises: 80,
+      },
+    });
+
+    const result = await dispatch('view_xp_streaks', { clientId: 999 }, {
+      user: { id: 1, role: 'admin' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(findByPkUser).toHaveBeenCalledWith(42, expect.any(Object));
+    expect(findAllStreaks).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: 42, isActive: true },
+    }));
+    expect(result.clientId).toBe(42);
+  });
+
   it('awards UUID achievements with a PII-safe receipt and point transaction', async () => {
     const user = {
       id: 42,
@@ -204,5 +229,33 @@ describe('goal gamification command dispatchers', () => {
       newTier: 'bronze_forge',
     });
     expect(JSON.stringify(result)).not.toContain('Private badge');
+  });
+
+  it('prefers the selected client over stale award command params', async () => {
+    const user = {
+      id: 42,
+      points: 100,
+      update: vi.fn(async () => undefined),
+    };
+    const { dispatch, createUserAchievement, createPointTransaction } = await loadDispatcher({
+      user,
+      achievement: { id: 'achievement-uuid-1', xpReward: 100 },
+    });
+
+    const result = await dispatch('award_badge', {
+      clientId: 999,
+      achievementId: 'achievement-uuid-1',
+    }, {
+      user: { id: 1, role: 'admin' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(createUserAchievement).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+    }), expect.any(Object));
+    expect(createPointTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 42,
+    }), expect.any(Object));
+    expect(result.clientId).toBe(42);
   });
 });

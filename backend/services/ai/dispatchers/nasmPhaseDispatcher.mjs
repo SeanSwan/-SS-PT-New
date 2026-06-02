@@ -12,6 +12,7 @@
  */
 
 import { getAllModels } from '../../../models/index.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const PHASE_NAMES = {
   1: 'Stabilization Endurance',
@@ -54,7 +55,7 @@ export async function dispatchViewNasmPhase(params, ctx) {
     ClientOnboardingQuestionnaire,
     MovementProfile,
   } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
 
   const [movementProfile, baseline, questionnaire] = await Promise.all([
     MovementProfile.findOne({ where: { userId: clientId } }),

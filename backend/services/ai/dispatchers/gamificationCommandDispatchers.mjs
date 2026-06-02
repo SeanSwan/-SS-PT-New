@@ -6,6 +6,7 @@
  */
 import { getAllModels } from '../../../models/index.mjs';
 import { calculateLevel, getTier } from '../../../utils/levelingAlgorithm.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -13,7 +14,7 @@ const toNumber = (value) => {
 };
 
 const asPlain = (row) => (row?.toJSON ? row.toJSON() : row);
-const resolveClientId = (params, ctx) => params.clientId ?? ctx.resolvedClient?.id;
+const resolveClientId = resolveCommandClientId;
 
 const withOptionalTransaction = async (ctx, callback) => {
   const sequelize = ctx.options?.sequelize || ctx.sequelize;
