@@ -33,25 +33,27 @@ interface ExerciseLibraryProps {
    ─────────────────────────────────────────── */
 
 const theme = {
-  bg: 'rgba(15, 23, 42, 0.95)',
-  bgCard: 'rgba(15, 23, 42, 0.85)',
-  bgHover: 'rgba(14, 165, 233, 0.08)',
-  bgOverlay: 'rgba(0, 0, 0, 0.6)',
-  border: 'rgba(14, 165, 233, 0.2)',
-  borderActive: 'rgba(14, 165, 233, 0.5)',
-  text: '#e2e8f0',
-  textMuted: '#94a3b8',
-  accent: '#0ea5e9',
-  accentHover: '#38bdf8',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#0ea5e9',
-  secondary: '#a78bfa',
+  bg: 'color-mix(in srgb, var(--bg-base, #0A0A0F) 95%, transparent)',
+  bgCard: 'color-mix(in srgb, var(--bg-elevated, #141419) 85%, transparent)',
+  bgInput: 'color-mix(in srgb, var(--bg-surface, #1A1A24) 72%, transparent)',
+  bgHover: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)',
+  bgOverlay: 'color-mix(in srgb, var(--bg-base, #0A0A0F) 68%, transparent)',
+  border: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
+  borderActive: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textMuted: 'var(--text-muted, #94a3b8)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentHover: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 82%, white)',
+  accentTint: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)',
+  success: 'var(--success, #22c55e)',
+  warning: 'var(--warning, #f59e0b)',
+  error: 'var(--danger, #ef4444)',
+  info: 'var(--accent-primary, #60C0F0)',
+  secondary: 'var(--accent-secondary, #8B5CF6)',
   radius: '12px',
   radiusSm: '8px',
-  shadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
-  shadowHover: '0 8px 32px rgba(14, 165, 233, 0.15)',
+  shadow: '0 4px 24px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)',
+  shadowHover: '0 8px 32px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
   glass: 'backdrop-filter: blur(12px);',
   transition: 'all 0.3s ease',
 };
@@ -130,7 +132,7 @@ const StyledInput = styled.input`
   width: 100%;
   min-height: 44px;
   padding: 10px 14px 10px 42px;
-  background: rgba(15, 23, 42, 0.7);
+  background: ${theme.bgInput};
   border: 1px solid ${theme.border};
   border-radius: ${theme.radiusSm};
   color: ${theme.text};
@@ -145,7 +147,7 @@ const StyledInput = styled.input`
 
   &:focus {
     border-color: ${theme.accent};
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   }
 `;
 
@@ -167,7 +169,7 @@ const StyledSelect = styled.select`
   width: 100%;
   min-height: 44px;
   padding: 10px 14px;
-  background: rgba(15, 23, 42, 0.7);
+  background: ${theme.bgInput};
   border: 1px solid ${theme.border};
   border-radius: ${theme.radiusSm};
   color: ${theme.text};
@@ -182,11 +184,11 @@ const StyledSelect = styled.select`
 
   &:focus {
     border-color: ${theme.accent};
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   }
 
   option {
-    background: #0f172a;
+    background: var(--bg-surface, #1A1A24);
     color: ${theme.text};
   }
 `;
@@ -309,7 +311,7 @@ const AlertBox = styled.div<{ $severity?: 'warning' | 'info' | 'error' | 'succes
       case 'info':
       default:
         return css`
-          background: rgba(14, 165, 233, 0.1);
+          background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
           border-left-color: ${theme.info};
         `;
     }
@@ -444,8 +446,8 @@ const Chip = styled.span<ChipProps>`
       `;
     }
     return css`
-      background: ${c}22;
-      border: 1px solid ${c}44;
+      background: color-mix(in srgb, ${c} 14%, transparent);
+      border: 1px solid color-mix(in srgb, ${c} 44%, transparent);
       color: ${c};
     `;
   }}
@@ -500,12 +502,12 @@ const ButtonBase = styled.button`
 `;
 
 const PrimaryButton = styled(ButtonBase)`
-  background: linear-gradient(135deg, ${theme.accent}, #7c3aed);
+  background: linear-gradient(135deg, ${theme.accent}, ${theme.secondary});
   border: none;
   color: #fff;
 
   &:hover {
-    box-shadow: 0 0 16px rgba(14, 165, 233, 0.3);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
     transform: translateY(-1px);
   }
 
@@ -525,7 +527,7 @@ const GhostButton = styled(ButtonBase)`
 `;
 
 const OutlineButton = styled(ButtonBase)<{ $active?: boolean }>`
-  background: ${({ $active }) => ($active ? `${theme.accent}22` : 'transparent')};
+  background: ${({ $active }) => ($active ? theme.accentTint : 'transparent')};
   border: 1px solid ${({ $active }) => ($active ? theme.accent : theme.border)};
   color: ${({ $active }) => ($active ? theme.accent : theme.text)};
 
@@ -613,7 +615,7 @@ const StyledList = styled.ul`
 
 const StyledListItem = styled.li`
   padding: 8px 0;
-  border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
 
   &:last-child {
     border-bottom: none;

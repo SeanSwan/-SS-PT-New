@@ -23,21 +23,21 @@ import styled, { css } from 'styled-components';
 // PURPOSE: Single source of truth for all colour/spacing values
 // ─────────────────────────────────────────────────────────────
 export const TOKENS = {
-  bg: 'rgba(0,32,96,0.95)',
-  bgSolid: '#002060',
-  border: 'rgba(96,192,240,0.2)',
-  borderHover: 'rgba(96,192,240,0.45)',
-  text: '#E0ECF4',
-  muted: '#94a3b8',
-  accent: '#60C0F0',
-  accentHover: '#8B5CF6',
-  danger: '#ef4444',
-  dangerHover: '#f87171',
-  surface: 'rgba(0,48,128,0.92)',
-  glass: 'rgba(0,48,128,0.55)',
+  bg: 'color-mix(in srgb, var(--bg-elevated, #141419) 92%, transparent)',
+  bgSolid: 'var(--bg-base, #0A0A0F)',
+  border: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
+  borderHover: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent)',
+  text: 'var(--text-primary, #E0ECF4)',
+  muted: 'var(--text-muted, #94a3b8)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentHover: 'var(--accent-secondary, #8B5CF6)',
+  danger: 'var(--danger, #ef4444)',
+  dangerHover: 'color-mix(in srgb, var(--danger, #ef4444) 85%, white)',
+  surface: 'color-mix(in srgb, var(--bg-surface, #1A1A24) 92%, transparent)',
+  glass: 'color-mix(in srgb, var(--bg-elevated, #141419) 55%, transparent)',
   radius: '12px',
   radiusSm: '8px',
-  shadow: '0 4px 24px rgba(0,0,0,0.35)',
+  shadow: '0 4px 24px color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, transparent)',
   minTouch: '44px',
 } as const;
 
@@ -59,7 +59,7 @@ export const inputStyles = css`
 
   &:focus {
     border-color: ${TOKENS.accent};
-    box-shadow: 0 0 0 2px rgba(14,165,233,0.15);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   }
 
   &::placeholder {
@@ -246,7 +246,7 @@ export const OutlineButton = styled.button`
   transition: background 0.2s, color 0.2s;
 
   &:hover:not(:disabled) {
-    background: rgba(14,165,233,0.1);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   }
 
   &:disabled {
@@ -334,12 +334,12 @@ export const StepCircle = styled.div<{ $active?: boolean; $completed?: boolean }
       return css`
         background: ${TOKENS.accent};
         color: #fff;
-        box-shadow: 0 0 12px rgba(14,165,233,0.4);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
       `;
     }
     if ($completed) {
       return css`
-        background: rgba(14,165,233,0.25);
+        background: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
         color: ${TOKENS.accent};
       `;
     }
@@ -405,7 +405,7 @@ export const AlertBox = styled.div<{ $severity?: 'error' | 'warning' | 'info' | 
         `;
       default:
         return css`
-          background: rgba(14,165,233,0.08);
+          background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
           border-left-color: ${TOKENS.accent};
           color: ${TOKENS.text};
         `;
@@ -463,7 +463,7 @@ export const ChipTag = styled.span`
   font-size: 0.813rem;
   font-weight: 500;
   color: ${TOKENS.accent};
-  background: rgba(14,165,233,0.1);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
   border: 1px solid ${TOKENS.border};
   border-radius: 999px;
   white-space: nowrap;
@@ -494,7 +494,7 @@ export const StyledTable = styled.table`
 `;
 
 export const StyledThead = styled.thead`
-  background: rgba(14,165,233,0.06);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);
 `;
 
 export const StyledTh = styled.th`

@@ -17,27 +17,29 @@ import { useAuth } from '../../context/AuthContext';
    Crystalline Swan Theme Tokens
    ───────────────────────────────────────────── */
 const T = {
-  bg: 'rgba(15, 23, 42, 0.95)',
-  bgCard: 'rgba(15, 23, 42, 0.85)',
-  bgCardHover: 'rgba(20, 30, 55, 0.95)',
-  bgInput: 'rgba(15, 23, 42, 0.7)',
-  border: 'rgba(14, 165, 233, 0.2)',
-  borderSelected: '#0ea5e9',
-  text: '#e2e8f0',
-  textMuted: '#94a3b8',
-  accent: '#0ea5e9',
-  accentPurple: '#8B5CF6',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  overlay: 'rgba(0, 0, 0, 0.65)',
+  bg: 'color-mix(in srgb, var(--bg-base, #0A0A0F) 95%, transparent)',
+  bgCard: 'color-mix(in srgb, var(--bg-elevated, #141419) 85%, transparent)',
+  bgCardHover: 'color-mix(in srgb, var(--bg-elevated, #141419) 95%, var(--accent-primary, #60C0F0) 5%)',
+  bgInput: 'color-mix(in srgb, var(--bg-surface, #1A1A24) 72%, transparent)',
+  border: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
+  borderSelected: 'var(--accent-primary, #60C0F0)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textMuted: 'var(--text-muted, #94a3b8)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentPurple: 'var(--accent-secondary, #8B5CF6)',
+  accentWash: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)',
+  accentFaint: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)',
+  success: 'var(--success, #22c55e)',
+  warning: 'var(--warning, #f59e0b)',
+  error: 'var(--danger, #ef4444)',
+  overlay: 'color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)',
   radius: '12px',
   radiusSm: '8px',
   radiusXs: '6px',
-  shadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
-  shadowHover: '0 8px 32px rgba(14, 165, 233, 0.15)',
-  glassBg: 'rgba(15, 23, 42, 0.6)',
-  glassBorder: 'rgba(14, 165, 233, 0.15)',
+  shadow: '0 4px 24px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)',
+  shadowHover: '0 8px 32px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
+  glassBg: 'color-mix(in srgb, var(--bg-elevated, #141419) 60%, transparent)',
+  glassBorder: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
 };
 
 /* ─────────────────────────────────────────────
@@ -326,7 +328,7 @@ const AvatarCircle = styled.div<{ $size?: number }>`
   height: ${({ $size }) => $size || 56}px;
   min-width: ${({ $size }) => $size || 56}px;
   border-radius: 50%;
-  background: linear-gradient(135deg, ${T.accent}44, ${T.accentPurple}44);
+  background: linear-gradient(135deg, ${T.accentWash}, color-mix(in srgb, ${T.accentPurple} 18%, transparent));
   border: 2px solid ${T.border};
   display: flex;
   align-items: center;
@@ -479,7 +481,7 @@ const BtnGhost = styled.button`
   transition: background 0.2s, border-color 0.2s;
 
   &:hover {
-    background: ${T.accent}11;
+    background: ${T.accentFaint};
     border-color: ${T.accent};
   }
 `;
@@ -615,7 +617,7 @@ const InfoListAvatar = styled.div`
   height: 40px;
   min-width: 40px;
   border-radius: 50%;
-  background: ${T.accent}22;
+  background: ${T.accentWash};
   display: flex;
   align-items: center;
   justify-content: center;
