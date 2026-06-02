@@ -30,6 +30,19 @@ function setCache(key, data) {
   cache.set(key, { data, fetchedAt: Date.now() });
 }
 
+function parsePositiveId(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+    const id = Number(value);
+    return Number.isSafeInteger(id) ? id : null;
+  }
+
+  return null;
+}
+
 // ── Internal Fetcher ────────────────────────────────────────────────────────
 
 /**
@@ -169,8 +182,8 @@ router.get('/command-center', protect, adminOnly, async (req, res) => {
  */
 router.get('/client-summary/:clientId', protect, async (req, res) => {
   try {
-    const clientId = parseInt(req.params.clientId);
-    if (!clientId || isNaN(clientId)) {
+    const clientId = parsePositiveId(req.params.clientId);
+    if (!clientId) {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
 
