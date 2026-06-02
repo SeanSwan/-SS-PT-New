@@ -10,11 +10,17 @@ describe('FoodTracker nutrition theme bridge', () => {
     const intakeForm = readSource('src/components/FoodTracker/FoodIntakeForm.tsx');
     const searchPanel = readSource('src/components/FoodTracker/FoodSearchPanel.tsx');
     const restaurantTab = readSource('src/components/FoodTracker/RestaurantTab.tsx');
+    const mealPlanTab = readSource('src/components/FoodTracker/MealPlanTab.tsx');
+    const supplementStyles = readSource('src/components/FoodTracker/SupplementsTab.styles.ts');
+    const supplementCatalogStyles = readSource('src/components/FoodTracker/SupplementsTab.catalog.styles.ts');
     const combined = `${intakeForm}\n${searchPanel}`;
 
     expect(intakeForm).toContain('var(--bg-elevated');
     expect(searchPanel).toContain('var(--bg-elevated');
     expect(restaurantTab).toContain('var(--bg-elevated');
+    expect(mealPlanTab).toContain('var(--bg-elevated');
+    expect(supplementStyles).toContain('var(--bg-elevated');
+    expect(supplementCatalogStyles).toContain('var(--bg-elevated');
     expect(combined).toContain('color-mix(in srgb, var(--accent-primary, #60C0F0)');
     expect(combined).toContain('var(--accent-secondary, #8B5CF6)');
 
@@ -37,5 +43,8 @@ describe('FoodTracker nutrition theme bridge', () => {
     expect(restaurantTab).not.toContain('box-shadow: 0 0 12px rgba(96, 192, 240, 0.35)');
     expect(restaurantTab).not.toContain('box-shadow: 0 0 24px rgba(96, 192, 240, 0.55)');
     expect(restaurantTab).not.toContain('box-shadow: 0 0 16px rgba(96, 192, 240, 0.2)');
+
+    expect(mealPlanTab).not.toContain('background: rgba(0, 0, 0, 0.7)');
+    expect(mealPlanTab).not.toContain('color: #fff');
   });
 });

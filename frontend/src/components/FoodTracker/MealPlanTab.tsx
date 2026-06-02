@@ -613,7 +613,7 @@ const GenerateBtn = styled(motion.button)`
   gap: 8px;
   padding: 14px 24px;
   background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
-  color: #fff;
+  color: var(--color-on-accent, #fff);
   border: none;
   border-radius: 10px;
   font-size: 14px;
@@ -902,9 +902,9 @@ const ClearBtn = styled.button`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.7);
+  background: color-mix(in srgb, var(--bg-base, #030712) 70%, transparent);
   border: none;
-  color: #fff;
+  color: var(--color-on-accent, #fff);
   cursor: pointer;
   display: flex;
   align-items: center;
