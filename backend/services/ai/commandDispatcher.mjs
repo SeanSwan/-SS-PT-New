@@ -249,7 +249,7 @@ const formatBloodPressure = (systolic, diastolic) => (
 
 const dispatchFillBaselineMeasurements = async (params, ctx) => {
   const { ClientBaselineMeasurements } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const parsedBloodPressure = parseBloodPressure(params.bloodPressure);
   const bloodPressureSystolic = toFiniteNumberOrNull(
     params.bloodPressureSystolic ?? parsedBloodPressure.systolic
@@ -287,7 +287,7 @@ const dispatchFillBaselineMeasurements = async (params, ctx) => {
 
 const dispatchViewOnboardingStatus = async (params, ctx) => {
   const { ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const [questionnaire, baseline] = await Promise.all([
     ClientOnboardingQuestionnaire.findOne({
       where: { userId: clientId },
@@ -408,7 +408,7 @@ const dispatchViewOrientationQueue = async (params = {}) => {
 
 const dispatchStartOnboarding = async (params, ctx) => {
   const { ClientOnboardingQuestionnaire } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const existingQuestionnaire = await ClientOnboardingQuestionnaire.findOne({
     where: { userId: clientId },
     order: [['createdAt', 'DESC']],
@@ -443,7 +443,7 @@ const dispatchStartOnboarding = async (params, ctx) => {
 
 const dispatchSubmitOnboarding = async (params, ctx) => {
   const { ClientOnboardingQuestionnaire, User } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const questionnaire = await ClientOnboardingQuestionnaire.findOne({
     where: { userId: clientId },
     order: [['createdAt', 'DESC']],
