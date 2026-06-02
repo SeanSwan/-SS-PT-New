@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, and Coach proposal approval hardening pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, and Client Hub saved-plans receipt pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,6 +32,8 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `4de8662ba` - `fix(clients): return planner saves to client plans`
+- `a6ee1ecd4` - `docs(handoff): refresh coach hardening state`
 - `9dc04652c` - `fix(coach): harden proposal summary client ids`
 - `46b9084ae` - `fix(coach): harden ai bff client summary ids`
 - `592328a75` - `fix(coach): align proposal client id parsing`
@@ -122,6 +124,15 @@ Verified work just completed in the prior session:
     - AI BFF client-summary strict route IDs: 2 files / 6 tests
     - proposal detail/summary read-side hardening: 4 files / 23 tests
   - Production smoke after `592328a75`, `46b9084ae`, and `9dc04652c` passed 56, skipped 2.
+- Client Hub saved-plan receipt was added after the Planner return-action slice:
+  - Plan Next from Clients & Team now returns to `/dashboard/admin/client-management?clientId=...&tab=training&trainingSection=plans` after the trainer uses the full-page Workout Planner.
+  - `TrainingTabContent` now has a `Training Plans` tab that loads the selected client's saved plans from the canonical `/api/workout/plans?clientId=...` API.
+  - Malformed `clientId` values are blocked before the saved-plans panel calls the API.
+  - Frontend targeted verification passed: 6 files / 37 tests across Client Hub route state, Plan Next routes, Workout Planner return contract, Training tab direct-open behavior, and the new saved-plans panel.
+  - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
+  - `frontend && npm run build` passed.
+  - Commit `4de8662ba` was pushed to `origin/main` for Render auto-deploy.
+  - Production smoke immediately after deploy first failed on dynamic chunk 404s for the trainer My Clients surface during Render asset churn; after deploy settle, narrowed trainer My Clients smoke passed 4/4 and the full production smoke passed 56, skipped 2. No code change was needed for the transient chunk result.
 - Additional verification passed after the Client Hub return-flow slice:
   - Frontend targeted: 9 files / 53 tests passed across Client Hub, Training tab, full-page logger, planner/overview source locks, and Session Detail modal logic.
   - `frontend && npx tsc --noEmit --pretty false` passed when run with `NODE_OPTIONS=--max-old-space-size=8192`.
@@ -138,7 +149,7 @@ Highest-value next slice candidates:
    - ClientsWorkspace -> ClientDetailView -> TrainingTabContent -> WorkoutLogger -> WorkoutHistoryPanel -> charts.
    - Confirm every "log today", "plan next", "view progress", "dictate AI" path lands on a live canonical surface and preserves selected client ID.
    - Log Workout completion return is done.
-   - Plan Next now has a post-save return action; next check should prove the saved plan appears in the selected client's history/plan state after returning.
+   - Plan Next saved-plan return is done; the selected client's Training > Plans tab now shows saved plans from `/api/workout/plans`.
    - Dictate AI should be checked next for selected-client preservation through backend command execution and proposal approval paths.
 2. Schedule-to-workout/session deduction live workflow audit:
    - Universal Master Schedule should link directly into WorkoutLogger for the selected client/session.
@@ -157,5 +168,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `4e3fedff9`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `4de8662ba`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
 ```

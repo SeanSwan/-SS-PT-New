@@ -30,6 +30,7 @@ These items are no longer broad-redesign backlog items because they were handled
 - Client Hub full-page workout logging now returns completed logs to the selected client's Training > History view.
 - Coach Command Center Client Hub return links reject unsafe return-path characters before rendering a back action.
 - Workout Planner opened from Client Hub now offers a success-banner `Return to Client Hub` action after safe successful saves/activations.
+- Client Hub Plan Next now returns to Training > Plans, where the selected client's saved plans load from `/api/workout/plans?clientId=...`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
@@ -49,6 +50,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 
 - Client card should become an at-a-glance command object: source, paid/free status, session balance, last workout, next session, risk/stale status, quick log, quick progress, quick schedule.
 - Clients & Team should make "select client -> log workout -> view charts/history" obvious in one or two clicks.
+- Training > Plans is now wired as a saved-plan receipt; future polish can improve plan-card hierarchy, active-plan actions, and mobile density without changing the canonical API boundary.
 - Dictation and manual form should be equal citizens: voice-first for speed, manual-first for corrections.
 - Teach Mode should explain the active surface in plain steps without becoming a documentation dump.
 - Any surface too complex for Teach Mode is a candidate for IA simplification.
