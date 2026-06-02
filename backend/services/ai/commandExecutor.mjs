@@ -243,10 +243,10 @@ async function stepResolveClient(ctx) {
 
   if (!ctx.command.requiresClientRef) return ctx;
 
-  // Use explicitly selected client from UI, or extract from intent
-  const clientRef = ctx.intent.clientRef || ctx.options.selectedClientName;
   const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
-  const clientId = ctx.intent.params?.clientId || selectedClientId;
+  const paramsClientId = toPositiveInteger(ctx.intent.params?.clientId);
+  const clientId = selectedClientId || paramsClientId;
+  const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
 
   if (clientId) {
     // Direct ID provided — use it

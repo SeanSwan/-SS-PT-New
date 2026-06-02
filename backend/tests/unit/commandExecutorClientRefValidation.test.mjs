@@ -103,6 +103,28 @@ describe('command executor client reference validation', () => {
     expect(ctx.result.message).toMatch(/no data was changed/i);
   });
 
+  it('keeps the selected client authoritative when classifier output carries stale client identity', async () => {
+    const { executeCommandPipeline, resolveClient } = await loadPipeline({
+      intent: {
+        intent: 'view_workout_history',
+        clientRef: 'Wrong Client',
+        params: { clientId: 999, limit: 3 },
+        confidence: 0.99,
+      },
+    });
+
+    const ctx = await executeCommandPipeline('show workout history', adminUser, {
+      selectedClientId: 42,
+      sequelize: {},
+    });
+
+    expect(ctx.error).toBeNull();
+    expect(resolveClient).toHaveBeenCalledWith('#42', {}, expect.any(Object));
+    expect(ctx.intent.params.clientId).toBe(42);
+    expect(ctx.result).toMatchObject({ type: 'not_wired' });
+    expect(ctx.result.message).toMatch(/no data was changed/i);
+  });
+
   it('prepares a real confirmation before sending a client password reset link', async () => {
     const { executeCommandPipeline, resolveClient } = await loadPipeline({
       intent: {
