@@ -152,6 +152,46 @@ describe('coachActionProposalService', () => {
     expect(serialized).toContain('trainer_approval_required');
   });
 
+  it('does not coerce malformed proposal client IDs into stored summaries', async () => {
+    const db = fakeSequelize();
+    const content = [
+      'Structured proposals prepared.',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'workout_log',
+        payload: {
+          clientId: ' 42',
+          date: '2026-05-05',
+          exercises: [{ name: 'Split squat' }],
+        },
+      }),
+      '```',
+      '```json',
+      JSON.stringify({
+        action: 'coach_action_proposal',
+        schema_version: '2026-05-07',
+        proposal_type: 'client_data_update',
+        payload: {
+          updates: [{ field: 'trainingNotes', value: 'Keep current plan.' }],
+        },
+      }),
+      '```',
+    ].join('\n');
+
+    const result = await createCoachActionProposalsFromAiResponse({
+      content,
+      user: { id: 7, role: 'trainer' },
+      conversation: { id: 71, targetUserId: ' 42' },
+      sequelizeOverride: db,
+    });
+
+    expect(result.proposals).toHaveLength(2);
+    expect(result.proposals[0].summary.clientId).toBeNull();
+    expect(result.proposals[1].summary.clientId).toBeNull();
+  });
+
   it('links schema-bound proposal drafts back to the matching Coach intake item', async () => {
     const db = fakeSequelize();
     const intakeId = '77777777-7777-4777-9777-777777777777';

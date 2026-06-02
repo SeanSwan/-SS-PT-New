@@ -45,6 +45,25 @@ function withApprovalGate(proposal, detail) {
   };
 }
 
+function parseDetailClientId(...candidates) {
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+
+    if (typeof value === 'number') {
+      return Number.isSafeInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+      const id = Number(value);
+      return Number.isSafeInteger(id) ? id : null;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 export function decryptProposalPayload(row) {
   return decryptPayload({
     cipher: row.proposal_cipher,
@@ -70,7 +89,7 @@ export function sanitizeProposalDetail({ row, proposal }) {
   if (row.proposal_type === COACH_PROPOSAL_TYPE.WORKOUT_LOG) {
     return withApprovalGate(proposal, {
       workout: {
-        clientId: Number(payload.clientId || proposal.targetUserId || 0) || null,
+        clientId: parseDetailClientId(payload.clientId, proposal.targetUserId),
         date: payload.date || null,
         title: payload.title || null,
         notes: payload.notes || null,
@@ -83,7 +102,7 @@ export function sanitizeProposalDetail({ row, proposal }) {
   if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
     return withApprovalGate(proposal, {
       clientDataUpdate: {
-        clientId: Number(payload.targetUserId || proposal.targetUserId || 0) || null,
+        clientId: parseDetailClientId(payload.targetUserId, proposal.targetUserId),
         updateCount: Array.isArray(payload.updates) ? payload.updates.length : 0,
         updates: Array.isArray(payload.updates) ? payload.updates : [],
       },

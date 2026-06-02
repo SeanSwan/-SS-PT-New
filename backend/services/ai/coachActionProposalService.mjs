@@ -56,6 +56,25 @@ function proposalTitle(type) {
   return titles[type] || 'Review Coach proposal';
 }
 
+function parseSummaryClientId(...candidates) {
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+
+    if (typeof value === 'number') {
+      return Number.isSafeInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+      const id = Number(value);
+      return Number.isSafeInteger(id) ? id : null;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 function summarizeProposal(type, payload, conversation) {
   const meta = payload.proposalMeta || {};
   const base = {
@@ -69,7 +88,7 @@ function summarizeProposal(type, payload, conversation) {
     const exercises = Array.isArray(payload.exercises) ? payload.exercises : [];
     return {
       ...base,
-      clientId: Number(payload.clientId || conversation?.targetUserId || 0) || null,
+      clientId: parseSummaryClientId(payload.clientId, conversation?.targetUserId),
       date: payload.date || null,
       exerciseCount: exercises.length,
     };
@@ -86,7 +105,7 @@ function summarizeProposal(type, payload, conversation) {
   if (type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
     return {
       ...base,
-      clientId: Number(conversation?.targetUserId || 0) || null,
+      clientId: parseSummaryClientId(payload.targetUserId, conversation?.targetUserId),
       updateCount: Array.isArray(payload.updates) ? payload.updates.length : 0,
     };
   }
