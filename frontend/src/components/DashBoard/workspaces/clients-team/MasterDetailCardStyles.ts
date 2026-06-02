@@ -15,7 +15,7 @@ export const ClientList = styled.div`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(96, 192, 240, 0.15);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
     border-radius: 4px;
   }
 `;
@@ -24,9 +24,9 @@ export const ClientCardButton = styled.button<{ $isSelected: boolean }>`
   width: 100%;
   min-height: 72px;
   padding: 12px 16px;
-  background-color: ${({ $isSelected }) => ($isSelected ? '#1A1A24' : 'transparent')};
+  background-color: ${({ $isSelected }) => ($isSelected ? 'var(--bg-elevated, #1A1A24)' : 'transparent')};
   border: none;
-  border-left: 3px solid ${({ $isSelected }) => ($isSelected ? '#8B5CF6' : 'transparent')};
+  border-left: 3px solid ${({ $isSelected }) => ($isSelected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -41,15 +41,15 @@ export const ClientCardButton = styled.button<{ $isSelected: boolean }>`
 
   /* Dual-Glow: Wing Purple border + Ice Wing inner glow */
   ${({ $isSelected }) => $isSelected && css`
-    box-shadow: inset 12px 0 24px -12px rgba(96, 192, 240, 0.15);
+    box-shadow: inset 12px 0 24px -12px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   `}
 
   &:hover {
-    background-color: #1A1A24;
+    background-color: var(--bg-elevated, #1A1A24);
   }
 
   &:focus-visible {
-    outline: 2px solid #8B5CF6;
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
     outline-offset: -2px;
   }
 `;
@@ -68,9 +68,9 @@ export const ClientAvatar = styled.div<{ $tier?: string }>`
   color: var(--text-primary, #E0ECF4);
   background: ${({ $tier }) => {
     switch ($tier) {
-      case 'premium': return 'linear-gradient(135deg, #C6A84B, #8B5CF6)';
-      case 'elite': return 'linear-gradient(135deg, #8B5CF6, #60C0F0)';
-      default: return 'linear-gradient(135deg, #002060, #003080)';
+      case 'premium': return 'linear-gradient(135deg, var(--accent-gold, #C6A84B), var(--accent-secondary, #8B5CF6))';
+      case 'elite': return 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))';
+      default: return 'linear-gradient(135deg, var(--primary, #002060), var(--surface, #003080))';
     }
   }};
 `;
@@ -106,10 +106,10 @@ export const StatusDot = styled.span<{ $status: 'active' | 'inactive' | 'pending
   border-radius: 50%;
   background: ${({ $status }) => {
     switch ($status) {
-      case 'active': return '#60C0F0';
-      case 'pending': return '#C6A84B';
-      case 'inactive': return '#64748b';
-      default: return '#64748b';
+      case 'active': return 'var(--accent-primary, #60C0F0)';
+      case 'pending': return 'var(--accent-gold, #C6A84B)';
+      case 'inactive': return 'var(--text-disabled, #64748B)';
+      default: return 'var(--text-disabled, #64748B)';
     }
   }};
 `;
@@ -127,7 +127,7 @@ export const QuickActionBtn = styled.button<{ $alert?: boolean }>`
   min-width: 44px;
   border-radius: 8px;
   border: none;
-  background: rgba(96, 192, 240, 0.05);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent);
   color: var(--text-secondary, #4070C0);
   cursor: pointer;
   display: flex;
@@ -137,12 +137,12 @@ export const QuickActionBtn = styled.button<{ $alert?: boolean }>`
   transition: all 200ms ease;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.15);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
     color: var(--accent-primary, #60C0F0);
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 
@@ -156,8 +156,8 @@ export const QuickActionBtn = styled.button<{ $alert?: boolean }>`
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #C6A84B;
-      border: 2px solid #141419;
+      background: var(--accent-gold, #C6A84B);
+      border: 2px solid var(--bg-surface, #141419);
     }
   `}
 `;
@@ -175,8 +175,8 @@ export const EngagementTrack = styled.div`
 export const EngagementFill = styled.div<{ $progress: number }>`
   height: 100%;
   width: ${({ $progress }) => Math.min(Math.max($progress, 0), 100)}%;
-  background: linear-gradient(90deg, #8B5CF6 0%, #60C0F0 100%);
+  background: linear-gradient(90deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
   border-radius: 2px;
   transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 6px rgba(96, 192, 240, 0.3);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
 `;
