@@ -69,9 +69,10 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
     order.push('workout-write');
     return { id: 'workout-1' };
   });
+  const ensureClientAccess = vi.fn(async () => ({ allowed: true, clientId: 42 }));
   vi.doMock('../../database.mjs', () => ({ default: {} }));
   vi.doMock('../../utils/clientAccess.mjs', () => ({
-    ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
+    ensureClientAccess,
   }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
     decryptPayload: vi.fn(() => decryptedProposal || ({
@@ -91,7 +92,7 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
     processAIDataUpdates: vi.fn(),
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, logWorkoutForClient };
+  return { ...service, ensureClientAccess, logWorkoutForClient };
 }
 
 beforeEach(() => {
@@ -162,6 +163,40 @@ describe('coachActionProposalApprovalService', () => {
     expect(approved.status).toBe(200);
     expect(logWorkoutForClient).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['claim', 'workout-write']);
+  });
+
+  it('rejects malformed workout proposal client ids before access or write', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order });
+    const {
+      approveCoachActionProposal,
+      ensureClientAccess,
+      getCoachActionProposal,
+      logWorkoutForClient,
+    } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        payload: { clientId: true, date: '2026-05-05', exercises: [{ name: 'Squat' }] },
+        targetUserId: null,
+      },
+    });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('PROPOSAL_INVALID_CLIENT_ID');
+    expect(ensureClientAccess).not.toHaveBeenCalled();
+    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
   });
 
   it('scopes prepared proposal detail reads to the authenticated user', async () => {

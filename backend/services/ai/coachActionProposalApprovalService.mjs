@@ -30,6 +30,38 @@ function normalizeClarificationAnswer(answer) {
   return typeof answer === 'string' ? answer.trim() : '';
 }
 
+function parseProposalClientId(...candidates) {
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+
+    if (typeof value === 'number') {
+      return Number.isSafeInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value !== 'string') return null;
+
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function invalidProposalClientId() {
+  return {
+    status: 400,
+    body: {
+      success: false,
+      code: 'PROPOSAL_INVALID_CLIENT_ID',
+      error: 'Coach proposal client ID is invalid. Prepare a new draft review.',
+    },
+  };
+}
+
 function getClarificationOptions(proposal) {
   const options = proposal?.payload?.options;
   return Array.isArray(options)
@@ -106,7 +138,8 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
 
   if (row.proposal_type === COACH_PROPOSAL_TYPE.CLIENT_DATA_UPDATE) {
     const payload = proposal.payload || {};
-    const clientId = Number(payload.targetUserId || proposal.targetUserId || payload.clientId || 0);
+    const clientId = parseProposalClientId(payload.targetUserId, proposal.targetUserId, payload.clientId);
+    if (!clientId) return invalidProposalClientId();
     const access = await ensureClientAccess(req, clientId);
     if (!access.allowed) {
       return { status: access.status, body: { success: false, code: 'CLIENT_ACCESS_DENIED', error: access.message } };
@@ -175,7 +208,8 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
   }
 
   const payload = proposal.payload || {};
-  const clientId = Number(payload.clientId || proposal.targetUserId || 0);
+  const clientId = parseProposalClientId(payload.clientId, proposal.targetUserId);
+  if (!clientId) return invalidProposalClientId();
   const access = await ensureClientAccess(req, clientId);
   if (!access.allowed) {
     return { status: access.status, body: { success: false, code: 'CLIENT_ACCESS_DENIED', error: access.message } };
