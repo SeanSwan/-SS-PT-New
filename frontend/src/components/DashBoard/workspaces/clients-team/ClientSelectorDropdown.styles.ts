@@ -38,17 +38,17 @@ export const Avatar = styled.div<{ $source?: string }>`
   border-radius: 10px;
   background: ${({ $source }) =>
     $source === 'move_fitness'
-      ? 'var(--client-source-move-bg, linear-gradient(135deg, #C6A84B 0%, #8B5CF6 100%))'
+      ? 'var(--client-source-move-bg, linear-gradient(135deg, var(--accent-gold, #C6A84B) 0%, var(--accent-secondary, #8B5CF6) 100%))'
       : $source === 'external'
-        ? 'var(--client-source-external-bg, linear-gradient(135deg, #1A1A24 0%, #4070C0 100%))'
-      : 'var(--client-source-swan-bg, linear-gradient(135deg, #002060 0%, #60C0F0 100%))'};
+        ? 'var(--client-source-external-bg, linear-gradient(135deg, var(--bg-elevated, #1A1A24) 0%, var(--tertiary, #4070C0) 100%))'
+      : 'var(--client-source-swan-bg, linear-gradient(135deg, var(--primary, #002060) 0%, var(--accent-primary, #60C0F0) 100%))'};
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Sora', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  color: var(--avatar-text, #fff);
+  color: var(--button-text, #FFFFFF);
   flex-shrink: 0;
 `;
 

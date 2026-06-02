@@ -25,4 +25,15 @@ describe('ClientSelectorDropdown style extraction', () => {
     expect(styles).toMatch(/ClearSearchButton[\s\S]*?min-height:\s*44px/);
     expect(styles).toMatch(/ClearSearchButton[\s\S]*?&:focus-visible/);
   });
+
+  it('bridges selector source identity styling to theme variables', () => {
+    expect(styles).toContain('linear-gradient(135deg, var(--accent-gold, #C6A84B)');
+    expect(styles).toContain('linear-gradient(135deg, var(--bg-elevated, #1A1A24)');
+    expect(styles).toContain('linear-gradient(135deg, var(--primary, #002060)');
+    expect(styles).toContain('var(--button-text, #FFFFFF)');
+    expect(styles).not.toContain('linear-gradient(135deg, #C6A84B');
+    expect(styles).not.toContain('linear-gradient(135deg, #1A1A24');
+    expect(styles).not.toContain('linear-gradient(135deg, #002060');
+    expect(styles).not.toContain('var(--avatar-text, #fff)');
+  });
 });
