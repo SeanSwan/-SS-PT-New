@@ -35,10 +35,15 @@ These items are no longer broad-redesign backlog items because they were handled
 - Universal Master Schedule now blocks future-day sessions from opening the workout logger before the session day while preserving same-day gym-floor logging.
 - Universal Master Schedule confirmation states now focus the modal on the active decision instead of showing unrelated Mark Complete / Cancel / Log Workout actions while cancel/no-show confirmations are open.
 - Coach command malformed selected-client IDs now fail closed on the backend route, and the frontend preserves the route's validation message instead of masking it as a generic chat fallback.
+- Admin activation queue now routes through the canonical `/api/sessions/admin/activation-queue` surface instead of the legacy sessions router.
+- Universal Master Schedule admin bookings now allow Move Fitness/external/free-tracking clients to be scheduled without requiring or deducting SwanStudios paid credits.
+- Schedule-to-Workout Logger handoff is verified through the canonical route chain: schedule opens the logger with `clientId`, `sessionId`, `sessionDate`, `source=master-schedule`, and a safe `returnTo`; the logger submits `scheduledSessionId`; the backend reconciles the linked scheduled session and only deducts when billing policy says to deduct.
+- Workout Logger PDF export, duplicate-save summary unlock, Move Fitness zero-paid-session submit, and unsaved-cancel confirmation are covered by targeted tests, including the `jspdf-autotable` function-export guard that prevents the old production `doc.autoTable` crash.
 - Swan Coach selected-client backend execution is now hardened across the stale-param bug family:
   - dispatcher slices now prefer `ctx.resolvedClient.id` over stale `params.clientId` for goal/nutrition, measurement/pain, client update/credentials, progress reads, legacy workout reads, legacy onboarding, and legacy client-admin commands.
   - The stale pattern scan across `backend/services/ai` now returns no matches for `params.clientId ?? ctx.resolvedClient?.id` or `params.clientId || ctx.resolvedClient?.id`.
   - Latest pushed Coach selected-client commits: `6ae3d9d53`, `9dfa1f260`, `f63797716`, `b721d1eba`, `2a273ce85`, `61499600b`, `9dbc7b4d1`.
+- Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
