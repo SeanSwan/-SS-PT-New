@@ -34,6 +34,20 @@ import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
 
+const normalizeSelectedClientId = (value) => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
 // Initialize command registry on first import
 initializeRegistry();
 
@@ -41,7 +55,7 @@ initializeRegistry();
 
 router.post('/execute', protect, async (req, res) => {
   try {
-    const { message, selectedClientName, selectedClientId, previousContext } = req.body;
+    const { message, selectedClientId, previousContext } = req.body;
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
@@ -67,10 +81,12 @@ router.post('/execute', protect, async (req, res) => {
       lastName: req.user.lastName,
     };
 
+    const normalizedSelectedClientId = normalizeSelectedClientId(selectedClientId);
+
     // Get Sequelize instance from app
     const ctx = await executeCommandPipeline(message, user, {
-      selectedClientName,
-      selectedClientId,
+      selectedClientName: null,
+      selectedClientId: normalizedSelectedClientId,
       previousContext,
       sequelize,
     });

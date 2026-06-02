@@ -167,6 +167,53 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     expect(response.body.message).toContain('No data was changed.');
   });
 
+  it('normalizes selected-client context before passing it to the command pipeline', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'log today workout',
+        selectedClientId: '42',
+        selectedClientName: 'Private Client Name',
+      })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
+      'log today workout',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({
+        selectedClientId: 42,
+        selectedClientName: null,
+      }),
+    );
+  });
+
+  it('drops malformed selected-client ids before command execution', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({ message: 'log today workout', selectedClientId: '42junk' })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
+      'log today workout',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({ selectedClientId: null }),
+    );
+  });
+
   it('lists command execution lanes so the UI can separate ready actions from manual workflows', async () => {
     const response = await request(makeApp())
       .get('/api/ai-command/commands')
