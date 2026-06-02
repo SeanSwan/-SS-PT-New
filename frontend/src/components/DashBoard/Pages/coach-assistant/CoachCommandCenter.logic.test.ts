@@ -23,6 +23,9 @@ describe('CoachCommandCenter return route normalization', () => {
       .toBe('/dashboard/admin/client-management?clientId=424242');
     expect(normalizeCommandCenterReturnTo('//evil.example/dashboard/admin')).toBeNull();
     expect(normalizeCommandCenterReturnTo('https://evil.example/dashboard/admin')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management\n?clientId=424242')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin/client-management\t?clientId=424242')).toBeNull();
+    expect(normalizeCommandCenterReturnTo('/dashboard/admin\\client-management')).toBeNull();
     expect(normalizeCommandCenterReturnTo('/store')).toBeNull();
     expect(normalizeCommandCenterReturnTo(null)).toBeNull();
   });

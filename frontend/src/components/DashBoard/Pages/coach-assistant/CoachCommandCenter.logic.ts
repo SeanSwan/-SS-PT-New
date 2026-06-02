@@ -46,7 +46,13 @@ export function parseRouteClientId(rawClientId: string | null): number | null {
 }
 
 export function normalizeCommandCenterReturnTo(rawReturnTo: string | null): string | null {
-  if (!rawReturnTo || rawReturnTo.startsWith('//') || !rawReturnTo.startsWith('/dashboard/')) {
+  const hasUnsafeCharacters = Boolean(rawReturnTo && /[\r\n\t\\]/.test(rawReturnTo));
+  if (
+    !rawReturnTo
+    || rawReturnTo.startsWith('//')
+    || hasUnsafeCharacters
+    || !rawReturnTo.startsWith('/dashboard/')
+  ) {
     return null;
   }
 
