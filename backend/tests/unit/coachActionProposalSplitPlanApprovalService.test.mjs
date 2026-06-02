@@ -52,16 +52,47 @@ function fakeSplitApprovalDb({ order = [] } = {}) {
   };
 }
 
-async function loadApprovalService({ order = [] } = {}) {
+const defaultSplitProposal = {
+  payload: {
+    proposalMeta: {
+      intakeId: '77777777-7777-4777-9777-777777777777',
+      evidenceRefs: ['parent_clip_meta'],
+      safetyFlags: ['multi_session_split'],
+    },
+    splits: [
+      {
+        title: 'Morning lower body',
+        date: '2026-05-05',
+        recordedAtStart: '2026-05-05T09:00:00.000Z',
+        reason: 'Clip one mentions squats and lunges.',
+        evidenceRefs: ['clip_1_meta', 'client sean phone 555-0101'],
+        exercises: [{ name: 'Squat', sets: [{ reps: 10, weight: 135 }] }],
+        notes: 'Lower-body session from clip one.',
+        rawTranscript: 'do not echo raw transcript into approval result',
+      },
+      {
+        title: 'Evening upper body',
+        date: '2026-05-05',
+        reason: 'Clip two starts a separate upper-body session.',
+        evidenceRefs: ['clip_2_meta'],
+        exercises: [{ name: 'Bench press', sets: [{ reps: 8, weight: 185 }] }],
+      },
+    ],
+  },
+  targetUserId: 42,
+};
+
+async function loadApprovalService({ order = [], decryptedProposal = defaultSplitProposal } = {}) {
   vi.resetModules();
   const encryptedPayloads = [];
+  const ensureClientAccess = vi.fn(async () => ({ allowed: true, clientId: 42 }));
   const logWorkoutForClient = vi.fn(async () => {
     order.push('workout-write');
     return { id: 'workout-1' };
   });
   vi.doMock('../../database.mjs', () => ({ default: {} }));
   vi.doMock('../../utils/clientAccess.mjs', () => ({
-    ensureClientAccess: vi.fn(async () => ({ allowed: true, clientId: 42 })),
+    ensureClientAccess,
   }));
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
     encryptPayload: vi.fn((payload) => {
@@ -73,35 +104,7 @@ async function loadApprovalService({ order = [] } = {}) {
       keyId: 'VTEST',
       });
     }),
-    decryptPayload: vi.fn(() => ({
-      payload: {
-        proposalMeta: {
-          intakeId: '77777777-7777-4777-9777-777777777777',
-          evidenceRefs: ['parent_clip_meta'],
-          safetyFlags: ['multi_session_split'],
-        },
-        splits: [
-          {
-            title: 'Morning lower body',
-            date: '2026-05-05',
-            recordedAtStart: '2026-05-05T09:00:00.000Z',
-            reason: 'Clip one mentions squats and lunges.',
-            evidenceRefs: ['clip_1_meta', 'client sean phone 555-0101'],
-            exercises: [{ name: 'Squat', sets: [{ reps: 10, weight: 135 }] }],
-            notes: 'Lower-body session from clip one.',
-            rawTranscript: 'do not echo raw transcript into approval result',
-          },
-          {
-            title: 'Evening upper body',
-            date: '2026-05-05',
-            reason: 'Clip two starts a separate upper-body session.',
-            evidenceRefs: ['clip_2_meta'],
-            exercises: [{ name: 'Bench press', sets: [{ reps: 8, weight: 185 }] }],
-          },
-        ],
-      },
-      targetUserId: 42,
-    })),
+    decryptPayload: vi.fn(() => decryptedProposal),
   }));
   vi.doMock('../../services/workout/workoutLogService.mjs', () => ({
     logWorkoutForClient,
@@ -115,7 +118,7 @@ async function loadApprovalService({ order = [] } = {}) {
     processAIDataUpdates: vi.fn(),
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, encryptedPayloads, logWorkoutForClient };
+  return { ...service, encryptedPayloads, ensureClientAccess, logWorkoutForClient };
 }
 
 afterEach(() => {
@@ -189,5 +192,54 @@ describe('split-plan Coach proposal approval', () => {
     });
     expect(logWorkoutForClient).not.toHaveBeenCalled();
     expect(order).toEqual(['claim', 'insert:workout_log', 'insert:workout_log']);
+  });
+
+  it('skips malformed split client IDs before access checks or child proposal creation', async () => {
+    const order = [];
+    const db = fakeSplitApprovalDb({ order });
+    const {
+      approveCoachActionProposal,
+      getCoachActionProposal,
+      ensureClientAccess,
+    } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        payload: {
+          splits: [
+            {
+              clientId: true,
+              title: 'Bad client boundary',
+              date: '2026-05-05',
+              exercises: [{ name: 'Squat', sets: [{ reps: 10 }] }],
+            },
+          ],
+        },
+        targetUserId: 42,
+      },
+    });
+
+    const detailResult = await getCoachActionProposal({
+      id: splitPlanRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    const result = await approveCoachActionProposal({
+      id: splitPlanRow.id,
+      req: {
+        user: { id: 7, role: 'trainer' },
+        body: { reviewToken: detailResult.body.proposal.reviewToken },
+      },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.splitPlan).toMatchObject({
+      splitCount: 1,
+      workoutProposalCount: 0,
+      skippedWorkoutProposalCount: 1,
+    });
+    expect(ensureClientAccess).not.toHaveBeenCalled();
+    expect(order).toEqual(['claim']);
   });
 });

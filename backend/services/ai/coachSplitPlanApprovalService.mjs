@@ -40,6 +40,25 @@ function validExercises(value) {
     .slice(0, 80);
 }
 
+function parseSplitClientId(...candidates) {
+  for (const value of candidates) {
+    if (value === null || value === undefined || value === '') continue;
+
+    if (typeof value === 'number') {
+      return Number.isSafeInteger(value) && value > 0 ? value : null;
+    }
+
+    if (typeof value === 'string' && /^[1-9]\d*$/.test(value)) {
+      const id = Number(value);
+      return Number.isSafeInteger(id) ? id : null;
+    }
+
+    return null;
+  }
+
+  return null;
+}
+
 export function sanitizeSplitCandidate(split, index) {
   const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
   const evidence = safeRefs(source.evidenceRefs);
@@ -56,7 +75,7 @@ export function sanitizeSplitCandidate(split, index) {
 
 function workoutPayloadFromSplit(split, proposal, row) {
   const source = split && typeof split === 'object' && !Array.isArray(split) ? split : {};
-  const clientId = Number(source.clientId || proposal?.payload?.clientId || proposal?.targetUserId || 0) || null;
+  const clientId = parseSplitClientId(source.clientId, proposal?.payload?.clientId, proposal?.targetUserId);
   const date = optionalText(source.date, 32);
   const exercises = validExercises(source.exercises);
   if (!clientId || !date || exercises.length === 0) return null;
