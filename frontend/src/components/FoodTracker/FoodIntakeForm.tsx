@@ -12,7 +12,6 @@ import styled, { keyframes, css } from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import useMcpIntegration from '../../hooks/useMcpIntegration';
 import apiService from '../../services/api.service';
-import { theme } from '../../theme/tokens';
 
 // Icons (lucide-react replacements for MUI icons)
 import {
@@ -65,6 +64,37 @@ const FOOD_QUALITY = [
   { value: 'high', label: 'High Quality (Whole Foods)' }
 ];
 
+const nutritionTheme = {
+  panel: 'color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent)',
+  panelBorder: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)',
+  input: 'color-mix(in srgb, var(--bg-elevated, #141419) 56%, transparent)',
+  inputBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent)',
+  inputBorderSoft: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)',
+  inputWash: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent)',
+  inputWashSoft: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 3%, transparent)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentSecondary: 'var(--accent-secondary, #8B5CF6)',
+  accentGlow: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)',
+  accentGlowStrong: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent)',
+  secondaryWash: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent)',
+  secondaryBorder: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)',
+  secondaryFocus: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)',
+  danger: 'var(--accent-error, #C92A54)',
+  dangerWash: 'color-mix(in srgb, var(--accent-error, #C92A54) 15%, transparent)',
+  dangerWashStrong: 'color-mix(in srgb, var(--accent-error, #C92A54) 30%, transparent)',
+  dangerBorder: 'color-mix(in srgb, var(--accent-error, #C92A54) 40%, transparent)',
+  dangerGlow: 'color-mix(in srgb, var(--accent-error, #C92A54) 25%, transparent)',
+  success: 'var(--accent-success, #22C55E)',
+  successWash: 'color-mix(in srgb, var(--accent-success, #22C55E) 15%, transparent)',
+  successWashStrong: 'color-mix(in srgb, var(--accent-success, #22C55E) 20%, transparent)',
+  successBorder: 'color-mix(in srgb, var(--accent-success, #22C55E) 40%, transparent)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textSoft: 'var(--text-secondary, rgba(224, 236, 244, 0.7))',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.5))',
+  surface: 'var(--bg-surface, #1A1A24)',
+  shadow: '0 8px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)'
+} as const;
+
 // ─── Keyframes ───────────────────────────────────────────────────────────────
 
 const spin = keyframes`
@@ -105,16 +135,16 @@ const errorShake = keyframes`
 const FormWrapper = styled.div`
   padding: 24px;
   border-radius: 12px;
-  background: rgba(0, 32, 96, 0.75);
-  border: 1px solid rgba(96, 192, 240, 0.12);
+  background: ${nutritionTheme.panel};
+  border: 1px solid ${nutritionTheme.panelBorder};
   backdrop-filter: blur(16px);
-  color: ${theme.colors.text.primary};
+  color: ${nutritionTheme.text};
 `;
 
 const Title = styled.h2`
   font-size: 1.5rem;
   font-weight: 600;
-  color: ${theme.colors.text.frost};
+  color: ${nutritionTheme.text};
   margin: 0 0 16px 0;
   display: flex;
   align-items: center;
@@ -137,11 +167,11 @@ const Chip = styled.span<{ $active?: boolean }>`
   font-size: 0.8rem;
   font-weight: 500;
   background: ${({ $active }) =>
-    $active ? `rgba(34, 197, 94, 0.15)` : 'rgba(255, 255, 255, 0.08)'};
+    $active ? nutritionTheme.successWash : nutritionTheme.inputWash};
   color: ${({ $active }) =>
-    $active ? theme.colors.semantic.success : theme.colors.text.disabled};
+    $active ? nutritionTheme.success : nutritionTheme.textMuted};
   border: 1px solid ${({ $active }) =>
-    $active ? `rgba(34, 197, 94, 0.3)` : 'rgba(255, 255, 255, 0.1)'};
+    $active ? nutritionTheme.successBorder : nutritionTheme.inputBorderSoft};
 
   svg {
     width: 14px;
@@ -150,12 +180,12 @@ const Chip = styled.span<{ $active?: boolean }>`
 `;
 
 const ErrorAlert = styled.div`
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: ${nutritionTheme.dangerWash};
+  border: 1px solid ${nutritionTheme.dangerBorder};
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  color: ${theme.colors.semantic.error};
+  color: ${nutritionTheme.danger};
   font-size: 0.9rem;
 `;
 
@@ -174,16 +204,16 @@ const FieldGroup = styled.div`
 const Label = styled.label`
   font-size: 0.85rem;
   font-weight: 500;
-  color: ${theme.colors.text.secondary};
+  color: ${nutritionTheme.textSoft};
 `;
 
 const StyledSelect = styled.select`
   width: 100%;
   padding: 12px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.05);
-  color: ${theme.colors.text.primary};
+  border: 1px solid ${nutritionTheme.inputBorder};
+  background: ${nutritionTheme.input};
+  color: ${nutritionTheme.text};
   font-size: 0.95rem;
   outline: none;
   appearance: auto;
@@ -191,21 +221,21 @@ const StyledSelect = styled.select`
   transition: border-color 0.2s ease;
 
   &:focus {
-    border-color: ${theme.colors.brand.purple};
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${nutritionTheme.accentSecondary};
+    box-shadow: 0 0 0 2px ${nutritionTheme.secondaryFocus};
   }
 
   option {
-    background: ${theme.colors.surface.abyssalNavy};
-    color: ${theme.colors.text.primary};
+    background: ${nutritionTheme.surface};
+    color: ${nutritionTheme.text};
   }
 `;
 
 const FoodCard = styled.div`
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid ${nutritionTheme.inputBorderSoft};
   border-radius: 12px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: ${nutritionTheme.inputWashSoft};
 `;
 
 const FoodCardHeader = styled.div`
@@ -218,7 +248,7 @@ const FoodCardHeader = styled.div`
 const FoodCardTitle = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
-  color: ${theme.colors.text.frost};
+  color: ${nutritionTheme.text};
 `;
 
 const IconBtn = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
@@ -232,15 +262,15 @@ const IconBtn = styled.button<{ $danger?: boolean; $disabled?: boolean }>`
   border-radius: 50%;
   border: none;
   background: ${({ $danger }) =>
-    $danger ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255, 255, 255, 0.08)'};
-  color: ${({ $danger }) => ($danger ? theme.colors.semantic.error : theme.colors.text.secondary)};
+    $danger ? nutritionTheme.dangerWash : nutritionTheme.inputWash};
+  color: ${({ $danger }) => ($danger ? nutritionTheme.danger : nutritionTheme.textSoft)};
   cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
   opacity: ${({ $disabled }) => ($disabled ? 0.35 : 1)};
   transition: background 0.2s ease, color 0.2s ease;
 
   &:hover:not(:disabled) {
     background: ${({ $danger }) =>
-      $danger ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255, 255, 255, 0.15)'};
+      $danger ? nutritionTheme.dangerWashStrong : nutritionTheme.inputBorder};
   }
 
   svg {
@@ -279,7 +309,7 @@ const UnitSuffix = styled.span`
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: ${theme.colors.text.secondary};
+  color: ${nutritionTheme.textSoft};
   font-size: 0.85rem;
   pointer-events: none;
 `;
@@ -289,9 +319,9 @@ const StyledInput = styled.input<{ $hasUnit?: boolean; $hasError?: boolean }>`
   padding: 12px 14px;
   padding-right: ${({ $hasUnit }) => ($hasUnit ? '48px' : '14px')};
   border-radius: 8px;
-  border: 1px solid ${({ $hasError }) => $hasError ? theme.colors.semantic.error : 'rgba(255, 255, 255, 0.15)'};
-  background: rgba(255, 255, 255, 0.05);
-  color: ${theme.colors.text.primary};
+  border: 1px solid ${({ $hasError }) => $hasError ? nutritionTheme.danger : nutritionTheme.inputBorder};
+  background: ${nutritionTheme.input};
+  color: ${nutritionTheme.text};
   font-size: 0.95rem;
   outline: none;
   min-height: 44px;
@@ -299,17 +329,17 @@ const StyledInput = styled.input<{ $hasUnit?: boolean; $hasError?: boolean }>`
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    border-color: ${theme.colors.brand.purple};
-    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+    border-color: ${nutritionTheme.accentSecondary};
+    box-shadow: 0 0 0 2px ${nutritionTheme.secondaryFocus};
   }
 
   &::placeholder {
-    color: ${theme.colors.text.secondary};
+    color: ${nutritionTheme.textSoft};
   }
 
   &[aria-invalid="true"] {
-    border-color: ${theme.colors.semantic.error};
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+    border-color: ${nutritionTheme.danger};
+    box-shadow: 0 0 8px ${nutritionTheme.dangerGlow};
     animation: ${errorShake} 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   }
 
@@ -326,14 +356,14 @@ const StyledInput = styled.input<{ $hasUnit?: boolean; $hasError?: boolean }>`
 
 const HelperText = styled.small`
   font-size: 0.78rem;
-  color: ${theme.colors.text.secondary};
+  color: ${nutritionTheme.textSoft};
   margin-top: 2px;
 `;
 
 const FieldError = styled.span`
   display: block;
   font-size: 0.78rem;
-  color: ${theme.colors.semantic.error};
+  color: ${nutritionTheme.danger};
   margin-top: 2px;
   min-height: 0;
 `;
@@ -347,17 +377,17 @@ const AddButton = styled.button`
   min-height: 44px;
   padding: 10px 16px;
   border-radius: 8px;
-  border: 1px dashed rgba(139, 92, 246, 0.4);
+  border: 1px dashed ${nutritionTheme.secondaryBorder};
   background: transparent;
-  color: ${theme.colors.brand.purple};
+  color: ${nutritionTheme.accentSecondary};
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background: rgba(139, 92, 246, 0.06);
-    border-color: ${theme.colors.brand.purple};
+    background: ${nutritionTheme.secondaryWash};
+    border-color: ${nutritionTheme.accentSecondary};
   }
 
   svg {
@@ -369,7 +399,7 @@ const AddButton = styled.button`
 const SummaryHeading = styled.h3`
   font-size: 1.15rem;
   font-weight: 600;
-  color: ${theme.colors.text.frost};
+  color: ${nutritionTheme.text};
   margin: 0 0 12px 0;
 `;
 
@@ -386,16 +416,16 @@ const SummaryGrid = styled.div`
 const SummaryCard = styled.div`
   text-align: center;
   padding: 12px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid ${nutritionTheme.inputBorderSoft};
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: ${nutritionTheme.inputWashSoft};
 `;
 
 const SummaryLabel = styled.span`
   display: block;
   font-size: 0.8rem;
   font-weight: 500;
-  color: ${theme.colors.text.disabled};
+  color: ${nutritionTheme.textMuted};
   margin-bottom: 4px;
 `;
 
@@ -403,7 +433,7 @@ const SummaryValue = styled.span`
   display: block;
   font-size: 1.15rem;
   font-weight: 700;
-  color: ${theme.colors.text.primary};
+  color: ${nutritionTheme.text};
 `;
 
 const SubmitButton = styled.button<{ $loading?: boolean }>`
@@ -416,19 +446,19 @@ const SubmitButton = styled.button<{ $loading?: boolean }>`
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  background: ${theme.colors.brand.purple};
-  color: ${theme.colors.text.primary};
+  background: linear-gradient(135deg, ${nutritionTheme.accentSecondary}, ${nutritionTheme.accent});
+  color: var(--text-inverse, #0F172A);
   font-size: 1rem;
   font-weight: 600;
   cursor: ${({ $loading }) => ($loading ? 'wait' : 'pointer')};
   opacity: ${({ $loading }) => ($loading ? 0.75 : 1)};
   pointer-events: ${({ $loading }) => ($loading ? 'none' : 'auto')};
   transition: opacity 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 0 12px rgba(96, 192, 240, 0.3);
+  box-shadow: 0 0 12px ${nutritionTheme.accentGlow};
 
   &:hover:not(:disabled) {
     opacity: 0.9;
-    box-shadow: 0 0 20px rgba(96, 192, 240, 0.5);
+    box-shadow: 0 0 20px ${nutritionTheme.accentGlowStrong};
   }
 
   &:active:not(:disabled) {
@@ -451,8 +481,8 @@ const Spinner = styled.span`
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: ${theme.colors.text.primary};
+  border: 2px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent);
+  border-top-color: ${nutritionTheme.text};
   border-radius: 50%;
   animation: ${spin} 0.6s linear infinite;
 `;
@@ -473,27 +503,27 @@ const ToastContent = styled.div`
   gap: 10px;
   padding: 14px 24px;
   border-radius: 10px;
-  background: rgba(34, 197, 94, 0.2);
-  border: 1px solid rgba(34, 197, 94, 0.4);
-  color: ${theme.colors.semantic.success};
+  background: ${nutritionTheme.successWashStrong};
+  border: 1px solid ${nutritionTheme.successBorder};
+  color: ${nutritionTheme.success};
   font-size: 0.9rem;
   font-weight: 500;
   backdrop-filter: blur(16px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: ${nutritionTheme.shadow};
   white-space: nowrap;
 `;
 
 const ToastCloseBtn = styled.button`
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: ${nutritionTheme.textMuted};
   cursor: pointer;
   padding: 2px;
   line-height: 1;
   font-size: 1.1rem;
 
   &:hover {
-    color: white;
+    color: ${nutritionTheme.text};
   }
 `;
 

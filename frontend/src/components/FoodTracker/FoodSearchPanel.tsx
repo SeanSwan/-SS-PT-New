@@ -80,6 +80,27 @@ const CATEGORIES = [
   'Dairy', 'Snacks', 'Beverages', 'International',
 ] as const;
 
+const foodTheme = {
+  panel: 'color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent)',
+  panelDeep: 'color-mix(in srgb, var(--bg-base, #0A0A0F) 60%, transparent)',
+  input: 'color-mix(in srgb, var(--bg-elevated, #141419) 58%, transparent)',
+  border: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)',
+  borderSoft: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent)',
+  borderHover: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentSecondary: 'var(--accent-secondary, #8B5CF6)',
+  gold: 'var(--accent-gold, #C6A84B)',
+  danger: 'var(--accent-error, #C92A54)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textSoft: 'var(--text-secondary, rgba(224, 236, 244, 0.7))',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.5))',
+  textDisabled: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
+  inverse: 'var(--text-inverse, #0F172A)',
+  focus: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent)',
+  glow: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent)',
+  shadow: '0 8px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent)',
+} as const;
+
 /**
  * Maps category chip to keywords used for client-side filtering.
  * Matched against the food name + category fields (case-insensitive).
@@ -212,20 +233,20 @@ async function fetchOFF(query: string): Promise<FoodResult[]> {
 // ─────────────────────────────────────────────────────────────
 
 const healthBorderColor = (rating?: 'good' | 'okay' | 'bad'): string => {
-  if (rating === 'good') return '#60C0F0'; // Ice Wing
-  if (rating === 'okay') return '#C6A84B'; // Gilded Fern
-  if (rating === 'bad') return '#C92A54';  // Crimson Frost
+  if (rating === 'good') return foodTheme.accent;
+  if (rating === 'okay') return foodTheme.gold;
+  if (rating === 'bad') return foodTheme.danger;
   return 'transparent';
 };
 
 interface BadgeProps { group?: '1' | '2A' | '2B'; isEUBanned?: boolean; isGMO?: boolean }
 const IngredientBadge: React.FC<BadgeProps> = ({ group, isEUBanned, isGMO }) => (
   <>
-    {group === '1' && <SafetyPill $color="#C92A54">IARC-1</SafetyPill>}
-    {group === '2A' && <SafetyPill $color="#C6A84B">IARC-2A</SafetyPill>}
-    {group === '2B' && <SafetyPill $color="#C6A84B" $dim>IARC-2B</SafetyPill>}
-    {isEUBanned && <SafetyPill $color="#C92A54">EU Banned</SafetyPill>}
-    {isGMO && <SafetyPill $color="#C6A84B">GMO</SafetyPill>}
+    {group === '1' && <SafetyPill $color={foodTheme.danger}>IARC-1</SafetyPill>}
+    {group === '2A' && <SafetyPill $color={foodTheme.gold}>IARC-2A</SafetyPill>}
+    {group === '2B' && <SafetyPill $color={foodTheme.gold} $dim>IARC-2B</SafetyPill>}
+    {isEUBanned && <SafetyPill $color={foodTheme.danger}>EU Banned</SafetyPill>}
+    {isGMO && <SafetyPill $color={foodTheme.gold}>GMO</SafetyPill>}
   </>
 );
 
@@ -244,31 +265,31 @@ const Wrap = styled.div`
 const SearchBar = styled.div`position: relative; margin-bottom: ${theme.spacing.lg};`;
 const SIcon = styled(Search)`
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-  color: ${theme.colors.text.secondary}; pointer-events: none;
+  color: ${foodTheme.textSoft}; pointer-events: none;
 `;
 const SInput = styled.input`
   width: 100%; height: 48px; padding: 0 ${theme.spacing.md} 0 44px;
-  background: rgba(0,32,96,0.5); border: 1px solid rgba(96,192,240,0.15);
-  border-radius: 12px; color: ${theme.colors.text.primary};
+  background: ${foodTheme.input}; border: 1px solid ${foodTheme.border};
+  border-radius: 12px; color: ${foodTheme.text};
   font-family: 'Sora', sans-serif; font-size: ${theme.typography.scale.base}; outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
-  &::placeholder { color: ${theme.colors.text.disabled}; }
-  &:focus { border-color: ${theme.colors.brand.purple}; box-shadow: 0 0 0 3px rgba(139,92,246,0.25); }
+  &::placeholder { color: ${foodTheme.textDisabled}; }
+  &:focus { border-color: ${foodTheme.accentSecondary}; box-shadow: 0 0 0 3px ${foodTheme.focus}; }
 `;
 const Filters = styled.div`
   display: flex; gap: ${theme.spacing.sm}; margin-bottom: ${theme.spacing.lg};
   overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch;
   &::-webkit-scrollbar { height: 4px; }
-  &::-webkit-scrollbar-thumb { background: rgba(96,192,240,0.2); border-radius: 2px; }
+  &::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent); border-radius: 2px; }
 `;
 const Chip = styled.button<{ $on: boolean }>`
   min-height: 44px; padding: 0 ${theme.spacing.md}; border-radius: 22px;
-  border: 1px solid ${({ $on }) => $on ? theme.colors.brand.purple : 'rgba(96,192,240,0.15)'};
-  background: ${({ $on }) => $on ? 'rgba(139,92,246,0.25)' : 'rgba(0,32,96,0.4)'};
-  color: ${({ $on }) => $on ? theme.colors.text.frost : theme.colors.text.secondary};
+  border: 1px solid ${({ $on }) => $on ? foodTheme.accentSecondary : foodTheme.border};
+  background: ${({ $on }) => $on ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 25%, transparent)' : foodTheme.input};
+  color: ${({ $on }) => $on ? foodTheme.text : foodTheme.textSoft};
   font: ${theme.typography.weight.medium} ${theme.typography.scale.sm} 'Sora', sans-serif;
   cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.2s;
-  &:hover { border-color: ${theme.colors.brand.purple}; }
+  &:hover { border-color: ${foodTheme.accentSecondary}; }
 `;
 const Grid = styled.div`
   display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -276,13 +297,13 @@ const Grid = styled.div`
   @media (max-width: 375px) { grid-template-columns: 1fr; }
 `;
 const Card = styled.div<{ $healthRating?: 'good' | 'okay' | 'bad' }>`
-  background: rgba(0,32,96,0.6); backdrop-filter: blur(16px);
-  border: 1px solid rgba(96,192,240,0.12); border-radius: 16px;
+  background: ${foodTheme.panel}; backdrop-filter: blur(16px);
+  border: 1px solid ${foodTheme.borderSoft}; border-radius: 16px;
   border-left: 3px solid ${({ $healthRating }) => healthBorderColor($healthRating)};
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4); padding: ${theme.spacing.lg};
+  box-shadow: ${foodTheme.shadow}; padding: ${theme.spacing.lg};
   animation: ${fadeUp} 0.3s ease-out both; transition: transform 0.2s, border-color 0.2s;
   will-change: transform;
-  &:hover { transform: translateY(-2px); border-color: rgba(139,92,246,0.4); }
+  &:hover { transform: translateY(-2px); border-color: ${foodTheme.borderHover}; }
 `;
 const Header = styled.div`
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -291,10 +312,10 @@ const Header = styled.div`
 const Name = styled.h3`
   margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: ${theme.typography.scale.lg}; font-weight: ${theme.typography.weight.semibold};
-  color: ${theme.colors.text.frost}; line-height: 1.3;
+  color: ${foodTheme.text}; line-height: 1.3;
 `;
 const Meta = styled.span`
-  font-size: ${theme.typography.scale.xs}; color: rgba(224,236,244,0.7);
+  font-size: ${theme.typography.scale.xs}; color: ${foodTheme.textSoft};
   font-family: 'Sora', sans-serif;
 `;
 
@@ -304,32 +325,32 @@ const SourceBadge = styled.span<{ $src: 'USDA' | 'OFF' }>`
   border-radius: 6px; font-size: 0.65rem; font-weight: ${theme.typography.weight.semibold};
   font-family: 'Fira Code', monospace; letter-spacing: 0.5px; flex-shrink: 0;
   background: ${({ $src }) =>
-    $src === 'USDA' ? 'rgba(96,192,240,0.15)' : 'rgba(198,168,75,0.15)'};
+    $src === 'USDA' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)' : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 15%, transparent)'};
   color: ${({ $src }) =>
-    $src === 'USDA' ? '#60C0F0' : '#C6A84B'};
+    $src === 'USDA' ? foodTheme.accent : foodTheme.gold};
   border: 1px solid ${({ $src }) =>
-    $src === 'USDA' ? 'rgba(96,192,240,0.3)' : 'rgba(198,168,75,0.3)'};
+    $src === 'USDA' ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)' : 'color-mix(in srgb, var(--accent-gold, #C6A84B) 30%, transparent)'};
 `;
 
 const Kcal = styled.div`
   font-family: 'Fira Code', monospace; font-size: ${theme.typography.scale.xl};
-  font-weight: ${theme.typography.weight.bold}; color: ${theme.colors.text.frost};
+  font-weight: ${theme.typography.weight.bold}; color: ${foodTheme.text};
   margin-bottom: ${theme.spacing.md};
-  span { font-size: ${theme.typography.scale.sm}; color: ${theme.colors.text.secondary}; }
+  span { font-size: ${theme.typography.scale.sm}; color: ${foodTheme.textSoft}; }
 `;
 const Macros = styled.div`display: flex; gap: ${theme.spacing.md}; margin-bottom: ${theme.spacing.md};`;
 const Macro = styled.div<{ $c: string }>`
   flex: 1; text-align: center; padding: ${theme.spacing.sm}; border-radius: 8px;
-  background: rgba(0,24,64,0.5);
+  background: ${foodTheme.panelDeep};
   .v { font: ${theme.typography.weight.semibold} ${theme.typography.scale.base} 'Fira Code', monospace; color: ${({ $c }) => $c}; }
-  .l { font-size: ${theme.typography.scale.xs}; color: rgba(224,236,244,0.7); margin-top: 2px; }
+  .l { font-size: ${theme.typography.scale.xs}; color: ${foodTheme.textSoft}; margin-top: 2px; }
 `;
 const AddBtn = styled.button`
   width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: center;
-  gap: ${theme.spacing.sm}; background: ${theme.buttons.accent.bg}; border: none; border-radius: 10px;
-  color: #fff; font: ${theme.typography.weight.semibold} ${theme.typography.scale.sm} 'Sora', sans-serif;
+  gap: ${theme.spacing.sm}; background: linear-gradient(135deg, ${foodTheme.accentSecondary}, ${foodTheme.accent}); border: none; border-radius: 10px;
+  color: ${foodTheme.inverse}; font: ${theme.typography.weight.semibold} ${theme.typography.scale.sm} 'Sora', sans-serif;
   cursor: pointer; transition: box-shadow 0.2s, transform 0.15s;
-  &:hover { box-shadow: 0 0 16px rgba(96,192,240,0.4); transform: translateY(-1px); }
+  &:hover { box-shadow: 0 0 16px ${foodTheme.glow}; transform: translateY(-1px); }
   &:active { transform: translateY(0); }
 `;
 const Spin = styled(Loader2)`animation: ${spin} 0.8s linear infinite;`;
@@ -341,11 +362,11 @@ const SafetyPill = styled.span<{ $color: string; $dim?: boolean }>`
   text-transform: uppercase; letter-spacing: 0.05em;
   border: 1px solid ${({ $color }) => $color};
   color: ${({ $color }) => $color};
-  background: ${({ $color, $dim }) => `${$color}${$dim ? '0F' : '1A'}`};
+  background: ${({ $color, $dim }) => `color-mix(in srgb, ${$color} ${$dim ? '6%' : '10%'}, transparent)`};
 `;
 const Empty = styled.div`
   text-align: center; padding: ${theme.spacing['2xl']} ${theme.spacing.lg};
-  color: ${theme.colors.text.secondary}; font-family: 'Sora', sans-serif;
+  color: ${foodTheme.textSoft}; font-family: 'Sora', sans-serif;
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -418,7 +439,7 @@ const FoodSearchPanel: React.FC = () => {
       </SearchBar>
 
       <Filters>
-        <Filter size={16} style={{ flexShrink: 0, alignSelf: 'center', color: theme.colors.text.secondary }} />
+        <Filter size={16} style={{ flexShrink: 0, alignSelf: 'center', color: foodTheme.textSoft }} />
         {CATEGORIES.map((c) => (
           <Chip key={c} $on={category === c} onClick={() => setCategory(c)}>{c}</Chip>
         ))}
@@ -450,9 +471,9 @@ const FoodSearchPanel: React.FC = () => {
               </Header>
               <Kcal>{f.calories} <span>kcal</span></Kcal>
               <Macros>
-                <Macro $c="#60C0F0"><div className="v">{f.protein}g</div><div className="l">Protein</div></Macro>
-                <Macro $c="#8B5CF6"><div className="v">{f.carbs}g</div><div className="l">Carbs</div></Macro>
-                <Macro $c="#C6A84B"><div className="v">{f.fat}g</div><div className="l">Fat</div></Macro>
+                <Macro $c={foodTheme.accent}><div className="v">{f.protein}g</div><div className="l">Protein</div></Macro>
+                <Macro $c={foodTheme.accentSecondary}><div className="v">{f.carbs}g</div><div className="l">Carbs</div></Macro>
+                <Macro $c={foodTheme.gold}><div className="v">{f.fat}g</div><div className="l">Fat</div></Macro>
               </Macros>
               <AddBtn onClick={() => addToLog(f)}><Plus size={18} /> Add to Log</AddBtn>
             </Card>
