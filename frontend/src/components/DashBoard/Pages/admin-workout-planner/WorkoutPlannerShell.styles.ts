@@ -156,6 +156,8 @@ export const StatusBanner = styled.div<{ $type: 'success' | 'error' }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   padding: 10px 16px;
   margin-bottom: 12px;
   border-radius: 8px;
@@ -167,7 +169,10 @@ export const StatusBanner = styled.div<{ $type: 'success' | 'error' }>`
   border-left: 4px solid ${({ $type }) => $type === 'error' ? 'var(--danger, #C92A54)' : 'var(--accent-gold, #C6A84B)'};
   color: var(--text-primary, #E0ECF4);
 
-  button {
+  .planner-status-text { flex: 1 1 220px; }
+  .planner-status-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+  > button {
     background: none;
     border: none;
     color: var(--text-secondary, #94a3b8);

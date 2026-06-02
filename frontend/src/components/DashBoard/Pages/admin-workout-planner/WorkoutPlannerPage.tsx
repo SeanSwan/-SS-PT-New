@@ -1,43 +1,12 @@
 /**
- * ============================================================================
- * FILE: WorkoutPlannerPage.tsx
- * PURPOSE: NASM Workout Planner with exercise rolodex, builder, teach mode, and AI generation
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-28
- * AI VILLAGE VALIDATED: 2026-03-28
- * ============================================================================
+ * COMPONENT: WorkoutPlannerPage
+ * PURPOSE: Admin/trainer NASM OPT workout planning with rolodex, builder,
+ * teach mode, AI generation, saved plans, and Client Hub return flows.
  *
- * WHAT THIS FILE DOES: Admin/Trainer workout planning page. Three-panel layout:
- *   Left: Exercise Rolodex (840+ exercises with search/filter)
- *   Center: Workout Builder (selected exercises with NASM parameters)
- *   Right: Teach Mode sidebar (educational content per selected exercise)
- * HOW IT FITS IN THE APP: Admin Dashboard → Workouts → Workout Planner
- *
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: WorkoutPlannerPage                               ║
- * ║  PURPOSE: NASM OPT-based workout planning with Coach AI      ║
- * ║  OWNER: Claude Opus 4.6                                      ║
- * ║  LAST VALIDATED: 2026-03-28                                   ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────────────────────────────────────────┐
- * │ NASM Workout Planner  [Client▾] [Phase▾] [Category▾]     │
- * │                       [AI Generate] [Teach Mode]          │
- * ├──────────┬────────────────────────┬───────────────────────┤
- * │ Rolodex  │  Workout Builder       │  Teach Mode           │
- * │ [Search] │  Phase 2: Str. Endur.  │  "Why This Exercise?" │
- * │ [Chips]  │  1. Bench Press 4x8-12 │  [Wisdom text...]     │
- * │ ● Bench  │  2. DB Rows    4x8-12  │  ────────────────     │
- * │ ○ Squat  │  3. Squats     4x8-12  │  Exercise Data Card   │
- * │ ○ Rows   │  [+ Add Exercise]      │  OPT Phase Info       │
- * └──────────┴────────────────────────┴───────────────────────┘
- *
- * DATA FLOW:
- * Props In:  none (page-level)
- * State:     { clients, selectedClient, exercises, phase, planExercises, teachMode }
- * API Calls: GET /api/auth/clients, GET /api/exercises/all,
- *            POST /api/workout-builder/generate, POST /api/workout-builder/plan
- * Children:  TeachModeSidebar
+ * Runtime flow: dashboard route -> selected client -> AI/manual plan build ->
+ * save/activate -> saved-plan library -> optional return to Client Hub.
+ * Keep this page behavior-focused; extract styles/helpers/components when it
+ * approaches the file cap.
  */
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
@@ -1214,7 +1183,15 @@ const WorkoutPlannerPage: React.FC = () => {
       {/* Status Message */}
       {statusMsg && (
         <StatusBanner $type={statusMsg.type} role="alert">
-          {statusMsg.text}
+          <span className="planner-status-text">{statusMsg.text}</span>
+          {plannerReturnTo && statusMsg.type === 'success' && (
+            <span className="planner-status-actions">
+              <TeachToggle type="button" onClick={() => navigate(plannerReturnTo)}>
+                <ArrowLeft size={16} />
+                Return to Client Hub
+              </TeachToggle>
+            </span>
+          )}
           <button type="button" onClick={() => setStatusMsg(null)} aria-label="Dismiss">&times;</button>
         </StatusBanner>
       )}

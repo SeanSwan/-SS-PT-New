@@ -13,6 +13,12 @@ describe('WorkoutPlannerPage returnTo contract', () => {
     expect(source).toContain('Back to Client Hub');
   });
 
+  it('offers a contextual return action after successful client-hub saves', () => {
+    expect(source).toContain("statusMsg.type === 'success'");
+    expect(source).toContain('planner-status-actions');
+    expect(source).toContain('Return to Client Hub');
+  });
+
   it('rejects mixed or unsafe clientId query values before selecting a client', () => {
     expect(source).toContain("parseWorkoutPlannerClientId(searchParams.get('clientId'))");
     expect(source).not.toContain('Number.parseInt(rawClientId, 10)');
