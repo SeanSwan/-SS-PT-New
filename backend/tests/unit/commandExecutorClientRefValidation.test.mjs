@@ -64,6 +64,24 @@ describe('command executor client reference validation', () => {
     expect(ctx.result.message).toMatch(/no data was changed/i);
   });
 
+  it('does not resolve malformed selected-client ids from service callers', async () => {
+    const { executeCommandPipeline, resolveClient } = await loadPipeline({
+      intent: {
+        intent: 'start_onboarding',
+        params: {},
+        confidence: 0.99,
+      },
+    });
+
+    const ctx = await executeCommandPipeline('start onboarding', adminUser, {
+      selectedClientId: '42junk',
+      sequelize: {},
+    });
+
+    expect(resolveClient).not.toHaveBeenCalled();
+    expect(String(ctx.error ?? '')).toMatch(/which client/i);
+  });
+
   it('does not require a numeric clientId before resolving a spoken client name', async () => {
     const { executeCommandPipeline, resolveClient } = await loadPipeline({
       intent: {

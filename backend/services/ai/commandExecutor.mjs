@@ -88,8 +88,17 @@ function createContext(rawInput, user, options = {}) {
 const CLIENT_ID_VALIDATION_SENTINEL = 1;
 
 const toPositiveInteger = (value) => {
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
 const buildParamsForValidation = (ctx, command) => {
@@ -236,7 +245,8 @@ async function stepResolveClient(ctx) {
 
   // Use explicitly selected client from UI, or extract from intent
   const clientRef = ctx.intent.clientRef || ctx.options.selectedClientName;
-  const clientId = ctx.intent.params?.clientId || ctx.options.selectedClientId;
+  const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
+  const clientId = ctx.intent.params?.clientId || selectedClientId;
 
   if (clientId) {
     // Direct ID provided — use it
