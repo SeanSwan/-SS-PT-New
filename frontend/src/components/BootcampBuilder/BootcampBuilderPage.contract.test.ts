@@ -13,6 +13,8 @@ describe('BootcampBuilderPage workflow contract', () => {
   ].join('\n');
   const sidePanelsSource = read('./BootcampBuilderSidePanels.tsx');
   const constantsSource = read('./BootcampBuilderPage.constants.ts');
+  const stylesSource = read('./BootcampBuilderStyles.ts');
+  const modeStylesSource = read('./BootcampModeStyles.ts');
   const teachMeSource = constantsSource.match(/const BOOTCAMP_TEACH_ME_CONTENT = \[([\s\S]*?)\]\.join\(''\);/)?.[1] ?? '';
 
   it('sends every visible generation control to the bootcamp API', () => {
@@ -64,5 +66,19 @@ describe('BootcampBuilderPage workflow contract', () => {
     const rolodexSurfaces = Array.from(sidePanelsSource.matchAll(/<ExerciseRolodexPanel[\s\S]*?\/>/g)).map(match => match[0]);
     expect(rolodexSurfaces).toHaveLength(2);
     expect(rolodexSurfaces.every(surface => surface.includes('equipmentProfileId={equipmentProfileId}'))).toBe(true);
+  });
+
+  it('keeps Bootcamp Builder styling on theme variables instead of fixed neon drift', () => {
+    expect(stylesSource).toContain('var(--bg-base, #0A0A0F)');
+    expect(stylesSource).toContain('var(--accent-gold, #C6A84B)');
+    expect(stylesSource).not.toContain('background: #000');
+    expect(stylesSource).not.toContain('#FF6B35');
+    expect(stylesSource).not.toContain('#00FF88');
+    expect(stylesSource).not.toContain('rgba(0,255,136');
+    expect(stylesSource).not.toContain('rgba(0, 255, 136');
+    expect(stylesSource).not.toContain('rgba(255, 184, 0');
+    expect(stylesSource).not.toContain('color: white;');
+    expect(modeStylesSource).not.toContain('rgba(201, 42, 84');
+    expect(modeStylesSource).not.toContain('color: #C92A54');
   });
 });

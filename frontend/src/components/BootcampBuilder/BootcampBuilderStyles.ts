@@ -11,7 +11,7 @@ export const PageWrapper = styled.div<{ $floorMode?: boolean }>`
   min-height: 100vh;
   padding: 20px;
   ${({ $floorMode }) => $floorMode
-    ? css`background: #000; color: #F8F9FA;`
+    ? css`background: var(--bg-base, #0A0A0F); color: var(--text-primary, #F8F9FA);`
     : css`background: var(--bg-base, #0A0A0F); color: var(--text-primary, #e0ecf4);`
   }
 
@@ -60,9 +60,9 @@ export const FloorModeToggle = styled.button<{ $active?: boolean }>`
   min-height: 44px;
   padding: 8px 20px;
   border-radius: 8px;
-  border: 2px solid ${({ $active }) => $active ? '#FF6B35' : 'rgba(96,192,240,0.3)'};
-  background: ${({ $active }) => $active ? 'rgba(255,107,53,0.2)' : 'transparent'};
-  color: ${({ $active }) => $active ? '#FF6B35' : 'var(--accent-primary, #60c0f0)'};
+  border: 2px solid ${({ $active }) => $active ? 'var(--accent-gold, #C6A84B)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent)'};
+  background: ${({ $active }) => $active ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)' : 'transparent'};
+  color: ${({ $active }) => $active ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60c0f0)'};
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -118,7 +118,7 @@ export const Select = styled.select`
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.2));
   border-radius: 6px;
   color: var(--text-primary, #e0ecf4);
@@ -135,7 +135,7 @@ export const Input = styled.input`
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
-  background: rgba(0, 16, 64, 0.5);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 72%, transparent);
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.2));
   border-radius: 6px;
   color: var(--text-primary, #e0ecf4);
@@ -155,7 +155,7 @@ export const PrimaryButton = styled.button<{ $floorMode?: boolean }>`
   background: linear-gradient(135deg, var(--accent-primary, #60c0f0) 0%, var(--accent-secondary, #8B5CF6) 100%);
   border: none;
   border-radius: 8px;
-  color: white;
+  color: var(--text-inverse, #030712);
   font-weight: 600;
   font-size: ${({ $floorMode }) => $floorMode ? '18px' : '14px'};
   cursor: pointer;
@@ -163,13 +163,13 @@ export const PrimaryButton = styled.button<{ $floorMode?: boolean }>`
 `;
 
 export const ErrorBanner = styled.div`
-  background: rgba(201, 42, 84, 0.1);
-  border: 1px solid rgba(201, 42, 84, 0.3);
+  background: color-mix(in srgb, var(--danger, #C92A54) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger, #C92A54) 30%, transparent);
   border-radius: 8px;
   padding: 10px 14px;
   color: var(--text-primary, #E0ECF4);
   font-size: 13px;
-  border-left: 4px solid #C92A54;
+  border-left: 4px solid var(--danger, #C92A54);
 `;
 
 export const SectionDivider = styled.div`
@@ -217,7 +217,7 @@ export const ExerciseRow = styled.button<{ $isCardio?: boolean }>`
   cursor: pointer;
   transition: all 0.2s ease;
   ${({ $isCardio }) => $isCardio && css`
-    color: #00FF88;
+    color: var(--success, #60C0F0);
     font-style: italic;
   `}
 
@@ -246,8 +246,8 @@ export const DifficultyChip = styled.span<{ $tier: string }>`
   font-weight: 600;
   ${({ $tier }) => {
     switch ($tier) {
-      case 'easy': return css`background: rgba(0,255,136,0.1); color: #00FF88;`;
-      case 'hard': return css`background: rgba(201,42,84,0.1); color: #C92A54;`;
+      case 'easy': return css`background: color-mix(in srgb, var(--success, #60C0F0) 10%, transparent); color: var(--success, #60C0F0);`;
+      case 'hard': return css`background: color-mix(in srgb, var(--danger, #C92A54) 10%, transparent); color: var(--danger, #C92A54);`;
       default: return css`background: rgba(96,192,240,0.1); color: var(--text-primary, #E0ECF4);`;
     }
   }}
@@ -265,15 +265,15 @@ export const TimingBadge = styled.span`
 export const InsightCard = styled.div<{ $type?: string }>`
   background: ${({ $type }) => {
     switch ($type) {
-      case 'overflow': return 'rgba(255, 184, 0, 0.08)';
-      case 'freshness': return 'rgba(0, 255, 136, 0.06)';
+      case 'overflow': return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 8%, transparent)';
+      case 'freshness': return 'color-mix(in srgb, var(--success, #60C0F0) 6%, transparent)';
       default: return 'rgba(96, 192, 240, 0.06)';
     }
   }};
   border: 1px solid ${({ $type }) => {
     switch ($type) {
-      case 'overflow': return 'rgba(255, 184, 0, 0.2)';
-      case 'freshness': return 'rgba(0, 255, 136, 0.2)';
+      case 'overflow': return 'color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)';
+      case 'freshness': return 'color-mix(in srgb, var(--success, #60C0F0) 20%, transparent)';
       default: return 'rgba(96, 192, 240, 0.15)';
     }
   }};

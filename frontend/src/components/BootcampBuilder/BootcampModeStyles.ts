@@ -55,9 +55,9 @@ export const TimingAlert = styled.div<{ $over: boolean }>`
   font-family: 'Fira Code', monospace;
   font-size: 12px;
   margin-left: auto;
-  background: ${({ $over }) => $over ? 'rgba(201, 42, 84, 0.1)' : 'rgba(96, 192, 240, 0.06)'};
-  color: ${({ $over }) => $over ? '#C92A54' : 'var(--text-muted, rgba(224, 236, 244, 0.5))'};
-  border: 1px solid ${({ $over }) => $over ? 'rgba(201, 42, 84, 0.2)' : 'transparent'};
+  background: ${({ $over }) => $over ? 'color-mix(in srgb, var(--danger, #C92A54) 10%, transparent)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)'};
+  color: ${({ $over }) => $over ? 'var(--danger, #C92A54)' : 'var(--text-muted, rgba(224, 236, 244, 0.5))'};
+  border: 1px solid ${({ $over }) => $over ? 'color-mix(in srgb, var(--danger, #C92A54) 20%, transparent)' : 'transparent'};
 
   @media (max-width: 430px) {
     font-size: 10px;
