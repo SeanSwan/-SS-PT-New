@@ -70,7 +70,9 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
   background: ${({ $active }) =>
     $active ? 'var(--bg-active-sidebar, #003080)' : 'transparent'};
   text-shadow: ${({ $active }) =>
-    $active ? '0 0 12px rgba(96, 192, 240, 0.5)' : 'none'};
+    $active
+      ? '0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent)'
+      : 'none'};
 
   ${({ $active }) =>
     $active &&
@@ -98,7 +100,7 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent);
   }
 
   @media (min-width: 768px) and (max-width: 1023px) {

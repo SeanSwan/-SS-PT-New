@@ -28,8 +28,11 @@ describe('TrainingTabContent style extraction', () => {
   it('keeps active and focus accents theme-tokened for dashboard theme sync', () => {
     expect(stylesSource).toContain('var(--accent-secondary, #8B5CF6)');
     expect(stylesSource).toContain('var(--accent-primary, #60C0F0)');
+    expect(stylesSource).toContain('color-mix(in srgb, var(--accent-primary, #60C0F0)');
     expect(stylesSource).not.toContain('background: #8B5CF6');
     expect(stylesSource).not.toContain('outline: 2px solid #60C0F0');
+    expect(stylesSource).not.toContain('rgba(96, 192, 240, 0.5)');
+    expect(stylesSource).not.toContain('rgba(96, 192, 240, 0.4)');
   });
 
   it('keeps mobile training tabs at the project 44px minimum touch target', () => {
