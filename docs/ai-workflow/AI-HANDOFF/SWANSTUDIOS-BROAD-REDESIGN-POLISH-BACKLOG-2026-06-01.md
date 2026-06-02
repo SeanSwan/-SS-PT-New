@@ -23,6 +23,18 @@ Broad polish should improve that loop. It should not bury it under decorative UI
 
 ---
 
+## Recently Moved Out Of Broad Polish
+
+These items are no longer broad-redesign backlog items because they were handled in the production-fix lane:
+
+- Client Hub full-page workout logging now returns completed logs to the selected client's Training > History view.
+- Coach Command Center Client Hub return links reject unsafe return-path characters before rendering a back action.
+- Workout Planner opened from Client Hub now offers a success-banner `Return to Client Hub` action after safe successful saves/activations.
+
+Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
+
+---
+
 ## Backlog Buckets
 
 ### 1. Dashboard Information Architecture

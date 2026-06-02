@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening and Client Hub return-flow pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, and Planner return-action pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,9 +32,12 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `4e3fedff915938820b9ac2263f6655230619ecd7` - `fix(training): add planner client hub return action`
+- `4a699a193497d6ef9973043589877d5b7b4a4e44` - `fix(coach): harden command center return links`
+- `c84cfd808abc6e06cfe09fdcce1d28f435335e95` - `docs(handoff): record client hub return slice`
 - `87881f7758a842cf24dfa5ca2a5a8989d46d05e0` - `fix(training): return client logs to history`
 - `5a50667ea4006289c88fb856c049ddfac33a8dbc` - `fix(training): normalize session credit boundaries`
-- Both pushed to `origin/main` for Render auto-deploy on 2026-06-01.
+- All listed commits were pushed to `origin/main` for Render auto-deploy on 2026-06-01.
 
 Verified work just completed in the prior session:
 - Normalized paid session-credit boundaries across backend and frontend so Move Fitness clients remain non-deducting/free while SwanStudios clients use whole non-negative paid session counts.
@@ -68,6 +71,24 @@ Verified work just completed in the prior session:
   - `TrainingTabContent` can open directly on Workout History from the safe `trainingSection=history` query.
   - Unknown `trainingSection` values are rejected before reaching the Client Hub.
 - A Universal Master Schedule TypeScript nullability issue was fixed in `canSessionOpenWorkoutLogger`; null sessions now return `false` with an explicit guard.
+- Coach Command Center return links were hardened:
+  - `normalizeCommandCenterReturnTo` now rejects CR, LF, tab, and backslash characters in addition to non-dashboard/external exits.
+  - Targeted Coach Command Center tests passed: 2 files / 21 tests.
+  - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
+  - `frontend && npm run build` passed.
+- Workout Planner Client Hub return action was added:
+  - `/dashboard/admin/workout-planner?clientId=...&source=clients-team&returnTo=...` already had a safe header back action.
+  - Successful saves/activations now expose a contextual `Return to Client Hub` button in the success banner when a safe `plannerReturnTo` exists.
+  - Standalone Planner behavior stays unchanged because the action is gated by `plannerReturnTo && statusMsg.type === 'success'`.
+  - `WorkoutPlannerPage.tsx` was reduced under its style-extraction guard: 1,741 lines, with `WorkoutPlannerShell.styles.ts` at 296 lines.
+- Additional verification after the Coach/Planner slices:
+  - Coach return tests: 2 files / 21 tests passed.
+  - Planner return contract: 1 file / 4 tests passed, including the red/green success-banner return assertion.
+  - Planner style/line-cap guards: 2 files / 4 tests passed.
+  - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`.
+  - `frontend && npm run build` passed after each runtime slice.
+  - Production smoke after `4a699a193`: 56 passed, 2 skipped.
+  - Production smoke after `4e3fedff9`: first full run had one transient desktop Marketing app-boundary failure during deploy churn; isolated Marketing rerun passed; second full run passed 56, skipped 2.
 - Additional verification passed after the Client Hub return-flow slice:
   - Frontend targeted: 9 files / 53 tests passed across Client Hub, Training tab, full-page logger, planner/overview source locks, and Session Detail modal logic.
   - `frontend && npx tsc --noEmit --pretty false` passed when run with `NODE_OPTIONS=--max-old-space-size=8192`.
@@ -83,7 +104,9 @@ Highest-value next slice candidates:
 1. Continue Client Hub daily-use audit:
    - ClientsWorkspace -> ClientDetailView -> TrainingTabContent -> WorkoutLogger -> WorkoutHistoryPanel -> charts.
    - Confirm every "log today", "plan next", "view progress", "dictate AI" path lands on a live canonical surface and preserves selected client ID.
-   - Log Workout completion return is done; Plan Next and Dictate AI should be checked next for selected-client preservation through real save/approval paths.
+   - Log Workout completion return is done.
+   - Plan Next now has a post-save return action; next check should prove the saved plan appears in the selected client's history/plan state after returning.
+   - Dictate AI should be checked next for selected-client preservation through backend command execution and proposal approval paths.
 2. Schedule-to-workout/session deduction live workflow audit:
    - Universal Master Schedule should link directly into WorkoutLogger for the selected client/session.
    - SwanStudios paid clients deduct sessions when appropriate.
@@ -99,5 +122,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `87881f775`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `4e3fedff9`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
 ```
