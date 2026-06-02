@@ -127,7 +127,12 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
             surface: 'client-training-command-bar',
           },
         });
-        if (commandResult.type !== 'fallback_to_chat' && commandResult.type !== 'error') {
+        if (commandResult.type === 'error') {
+          setStatusTone('error');
+          setStatus(commandResult.error || 'Swan command lane failed. No data was changed.');
+          return;
+        }
+        if (commandResult.type !== 'fallback_to_chat') {
           setPendingConfirmation(commandLaneConfirmation(commandResult) ?? null);
           setCommand('');
           setStatusTone('success');

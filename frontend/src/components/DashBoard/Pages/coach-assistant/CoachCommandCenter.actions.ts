@@ -6,6 +6,7 @@ import {
 } from '../../../../services/coachCommandClientService';
 import {
   commandCancelledBody,
+  commandLaneErrorBody,
   commandConfirmationResultBody,
   commandLaneConfirmation,
   commandLaneLogAttachments,
@@ -174,7 +175,17 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           intent: props.routeIntent,
         },
       });
-      if (commandResult.type !== 'fallback_to_chat' && commandResult.type !== 'error') {
+      if (commandResult.type === 'error') {
+        addLog({
+          actor: 'system',
+          label: 'command lane failed',
+          body: commandLaneErrorBody(commandResult),
+          attachments: ['command lane error', 'No data was changed'],
+        });
+        props.setSelectedStatus('Command lane failed');
+        return;
+      }
+      if (commandResult.type !== 'fallback_to_chat') {
         addLog({
           actor: 'system',
           label: commandResult.type === 'confirmation_required' ? 'approval required' : 'command lane result',

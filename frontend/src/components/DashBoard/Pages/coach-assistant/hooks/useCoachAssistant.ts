@@ -17,6 +17,7 @@ import type { CoachContext, ResponseStyle, CoachMessageData } from '../SwanCoach
 import type { CoachRouteContext } from '../CoachRouteContext';
 import { safeCommandConfirmationFailure } from '../CoachIntakeOperationalText.logic';
 import { commandResultSummary } from '../utils/coachCommandResultSummary';
+import { buildCommandErrorMessages } from './useCoachAssistantCommandError';
 import { useCoachAssistantFoodMessages } from './useCoachAssistantFoodMessages';
 import { useCoachAssistantTranscriptMessages } from './useCoachAssistantTranscriptMessages';
 
@@ -94,9 +95,13 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       cmdResult = { type: 'fallback_to_chat' };
     }
 
-    if (cmdResult.type === 'fallback_to_chat' || cmdResult.type === 'error') {
-      // The old mapping rewrote 'balanced' → 'both' which forced the
-      // backend's dual-mode "🎓 THE SCIENCE" / "💯 KEEPING IT 100"
+    if (cmdResult.type === 'error') {
+      setCommandMessages(prev => [...prev, ...buildCommandErrorMessages(trimmedText, cmdResult.error)]);
+      setLocalMessages([]);
+      return cmdResult;
+    }
+
+    if (cmdResult.type === 'fallback_to_chat') {
       const backendStyle = responseStyle;
       const chatResult = await chat.sendMessageWithConversation(
         trimmedText,
@@ -109,7 +114,6 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
       return chatResult;
     }
 
-    // Command lane handled — inject messages into commandMessages
     const userMsg: CoachMessageData = {
       id: `cmd-user-${Date.now()}`,
       role: 'user',
@@ -250,9 +254,8 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     appendAudioIntakeReceipt,
   } = useCoachAssistantTranscriptMessages(setCommandMessages);
 
-  // ── Send message with structured food context ──
   const { sendMessageWithFood } = useCoachAssistantFoodMessages({ chat, responseStyle, targetClientId, setLocalMessages });
-  // ── Switch context ──
+
   const switchContext = useCallback((newContext: CoachContext) => {
     setContext(newContext);
     if (chat.activeConversation) {
@@ -262,7 +265,6 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     }
   }, [chat]);
 
-  // ── Clear conversation ──
   const clearConversation = useCallback(() => {
     chat.newChat();
     setLocalMessages([]);
@@ -287,8 +289,7 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
     clearConversation,
     clearError: chat.clearError,
     messagesEndRef,
-    // Swan-first transcript intake helpers — used by SwanCoachAssistantPage
-    // to inject review/result cards into the existing message stream.
+    // Swan-first transcript intake helpers for SwanCoachAssistantPage.
     appendTranscriptReview,
     updateTranscriptReview,
     transcriptReviewToResult,

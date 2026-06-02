@@ -121,6 +121,27 @@ describe('useCoachAssistant command summaries', () => {
     expect(sendMessageWithConversation).not.toHaveBeenCalled();
   });
 
+  it('keeps command-lane errors out of chat fallback', async () => {
+    executeCommand.mockResolvedValue({
+      type: 'error',
+      error: 'selectedClientId must be a positive integer when provided',
+    });
+
+    const { result } = renderHook(() => useCoachAssistant());
+
+    await act(async () => {
+      await result.current.sendMessage('log selected client workout');
+    });
+
+    const assistantMessages = result.current.messages
+      .filter((message) => message.role === 'assistant')
+      .map((message) => message.content)
+      .join(' ');
+
+    expect(assistantMessages).toContain('selectedClientId must be a positive integer when provided');
+    expect(sendMessageWithConversation).not.toHaveBeenCalled();
+  });
+
   it('describes command-created onboarding proposals as review drafts, not created clients', async () => {
     executeCommand.mockResolvedValue({
       type: 'executed',

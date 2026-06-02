@@ -18,6 +18,10 @@ export type CommandConfirmationResult = { success: boolean; error?: string };
 
 type CommandLaneHandledResponse = Exclude<CommandResponse, { type: 'fallback_to_chat' } | { type: 'error' }>;
 
+export function commandLaneErrorBody(result: Extract<CommandResponse, { type: 'error' }>): string {
+  return result.error || 'Swan Coach command lane failed. No data was changed.';
+}
+
 export function shouldRouteToCommandLane(message: string): boolean {
   return isCommandLaneCandidate(message);
 }
