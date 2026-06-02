@@ -30,7 +30,7 @@ export const MasterPane = styled.aside<{ $isCollapsed: boolean }>`
   width: ${({ $isCollapsed }) => ($isCollapsed ? '64px' : '320px')};
   min-width: ${({ $isCollapsed }) => ($isCollapsed ? '64px' : '320px')};
   background-color: var(--bg-surface, #141419);
-  border-right: 1px solid rgba(224, 236, 244, 0.05);
+  border-right: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.05));
   transition: width 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
               min-width 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
@@ -70,16 +70,16 @@ export const DetailPane = styled.main<{ $isOpenOnMobile: boolean }>`
 export const MasterHeader = styled.header`
   position: sticky;
   top: 0;
-  background: rgba(20, 20, 25, 0.85);
+  background: color-mix(in srgb, var(--bg-surface, #141419) 85%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 5;
   padding: 16px;
-  border-bottom: 1px solid rgba(224, 236, 244, 0.05);
+  border-bottom: 1px solid var(--border-subtle, rgba(224, 236, 244, 0.05));
 
   @supports not (backdrop-filter: blur(12px)) {
-    background: #141419;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    background: var(--bg-surface, #141419);
+    box-shadow: 0 2px 8px var(--shadow-ambient, rgba(0, 0, 0, 0.3));
   }
 `;
 
@@ -98,12 +98,12 @@ export const CollapseButton = styled.button`
   transition: all 200ms ease;
 
   &:hover {
-    background: rgba(96, 192, 240, 0.1);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
     color: var(--accent-primary, #60C0F0);
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 `;
@@ -140,7 +140,7 @@ export const StatBlock = styled.div`
 
 export const AttentionStat = styled(StatBlock)`
   strong {
-    color: #C6A84B;
+    color: var(--accent-gold, #C6A84B);
   }
 `;
 
@@ -156,7 +156,7 @@ export const SearchInput = styled.div`
   align-items: center;
   gap: 8px;
   background: var(--bg-base, #0A0A0F);
-  border: 1px solid rgba(224, 236, 244, 0.08);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.08));
   border-radius: 8px;
   padding: 0 12px;
   height: 44px;
@@ -164,7 +164,7 @@ export const SearchInput = styled.div`
 
   &:focus-within {
     border-color: var(--accent-primary, #60C0F0);
-    box-shadow: 0 0 0 2px rgba(96, 192, 240, 0.15);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   }
 
   svg {
@@ -182,7 +182,7 @@ export const SearchInput = styled.div`
     outline: none;
 
     &::placeholder {
-      color: rgba(224, 236, 244, 0.4);
+      color: var(--text-subtle, rgba(224, 236, 244, 0.4));
     }
   }
 `;
@@ -192,7 +192,7 @@ export const FilterButton = styled.button`
   height: 44px;
   min-width: 44px;
   background: var(--bg-base, #0A0A0F);
-  border: 1px solid rgba(224, 236, 244, 0.08);
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.08));
   border-radius: 8px;
   color: var(--text-secondary, #4070C0);
   cursor: pointer;
@@ -207,7 +207,7 @@ export const FilterButton = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 `;
@@ -243,16 +243,16 @@ export const PillarButton = styled.button<{ $active: boolean }>`
   overflow: hidden;
 
   ${({ $active }) => $active && css`
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 8px var(--shadow-ambient, rgba(0, 0, 0, 0.4));
   `}
 
   &:hover:not(:disabled) {
     color: var(--text-primary, #E0ECF4);
-    background: ${({ $active }) => ($active ? 'var(--bg-elevated, #1A1A24)' : 'rgba(96, 192, 240, 0.05)')};
+    background: ${({ $active }) => ($active ? 'var(--bg-elevated, #1A1A24)' : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent)')};
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
   }
 
