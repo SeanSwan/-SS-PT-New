@@ -62,6 +62,9 @@ describe('SessionDetailFooterActions', () => {
 
     expect(screen.queryByRole('button', { name: /cancel session/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^present$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /mark complete/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /log workout/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /view workouts/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }));
     fireEvent.click(screen.getByRole('button', { name: /confirm cancellation/i }));
@@ -75,7 +78,10 @@ describe('SessionDetailFooterActions', () => {
 
     render(<SessionDetailFooterActions {...props} />);
 
+    expect(screen.queryByRole('button', { name: /cancel session/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /mark complete/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /log workout/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /view workouts/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^back$/i }));
     fireEvent.click(screen.getByRole('button', { name: /confirm no-show/i }));

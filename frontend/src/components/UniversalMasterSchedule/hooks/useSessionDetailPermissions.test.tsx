@@ -4,7 +4,7 @@ import { useSessionDetailPermissions } from './useSessionDetailPermissions';
 
 const baseSession = {
   id: 5,
-  sessionDate: '2026-06-12T10:00:00.000Z',
+  sessionDate: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
   duration: 60,
   status: 'scheduled',
   trainerId: 9,
@@ -41,6 +41,30 @@ describe('useSessionDetailPermissions', () => {
     expect(result.current.canRecordAttendance).toBe(true);
     expect(result.current.canOpenWorkoutLogger).toBe(true);
     expect(result.current.sessionSignal.label).toBe('4 paid sessions');
+  });
+
+  it('blocks assigned trainers from opening the logger before the session day', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ id: 9 }));
+
+    const { result } = renderHook(() =>
+      useSessionDetailPermissions({
+        open: true,
+        mode: 'trainer',
+        session: {
+          ...baseSession,
+          sessionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.currentUserId).toBe(9);
+    });
+
+    expect(result.current.isTrainerAssigned).toBe(true);
+    expect(result.current.canComplete).toBe(true);
+    expect(result.current.canOpenWorkoutLogger).toBe(false);
+    expect(result.current.canViewWorkouts).toBe(true);
   });
 
   it('keeps clients out of manager actions while allowing their own cancellable session', async () => {

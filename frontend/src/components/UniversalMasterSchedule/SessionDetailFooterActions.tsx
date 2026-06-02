@@ -57,71 +57,69 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   onComplete,
   onLogWorkout,
   onViewWorkouts,
-}) => (
-  <>
-    <OutlinedButton onClick={onClose} disabled={loading}>
-      Close
-    </OutlinedButton>
-    {canCancel && !showCancelOptions && !showLateCancelWarning && (
-      <GlowButton variant="ruby" size="medium" onClick={onCancelClick} disabled={loading || lateCancelLoading} isLoading={lateCancelLoading}>
-        {lateCancelLoading ? 'Checking...' : 'Cancel Session'}
-      </GlowButton>
-    )}
-    {showCancelOptions && (
-      <>
-        <OutlinedButton onClick={onHideCancelOptions} disabled={loading}>
-          Back
-        </OutlinedButton>
-        <GlowButton variant="ruby" size="medium" onClick={onCancel} disabled={loading}>
-          Confirm Cancellation
+}) => {
+  const isFocusedFlow = showCancelOptions || showLateCancelWarning || showNoShowReason;
+
+  return (
+    <>
+      <OutlinedButton onClick={onClose} disabled={loading}>
+        Close
+      </OutlinedButton>
+      {canCancel && !isFocusedFlow && (
+        <GlowButton variant="ruby" size="medium" onClick={onCancelClick} disabled={loading || lateCancelLoading} isLoading={lateCancelLoading}>
+          {lateCancelLoading ? 'Checking...' : 'Cancel Session'}
         </GlowButton>
-      </>
-    )}
-    {canRecordAttendance && !showCancelOptions && !showNoShowReason && (
-      <>
-        <GlowButton variant="emerald" size="medium" onClick={() => onRecordAttendance('present')} disabled={attendanceLoading} isLoading={attendanceLoading}>
-          {attendanceLoading ? 'Recording...' : 'Present'}
-        </GlowButton>
-        <GlowButton variant="neonBlue" size="medium" onClick={() => onRecordAttendance('late')} disabled={attendanceLoading}>
-          Late
-        </GlowButton>
-        <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading}>
-          No-Show
-        </GlowButton>
-      </>
-    )}
-    {showNoShowReason && (
-      <>
-        <OutlinedButton onClick={onBackFromNoShowReason} disabled={attendanceLoading}>
-          Back
-        </OutlinedButton>
-        <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading} isLoading={attendanceLoading}>
-          {attendanceLoading ? 'Recording...' : 'Confirm No-Show'}
-        </GlowButton>
-      </>
-    )}
-    {canComplete && !showNoShowReason && (
-      <GlowButton variant="emerald" size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
-        Mark Complete
-      </GlowButton>
-    )}
-    {canOpenWorkoutLogger && (
-      <>
-        {(mode === 'admin' || mode === 'trainer') && (
-          <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
-            Log Workout
+      )}
+      {showCancelOptions && (
+        <>
+          <OutlinedButton onClick={onHideCancelOptions} disabled={loading}>
+            Back
+          </OutlinedButton>
+          <GlowButton variant="ruby" size="medium" onClick={onCancel} disabled={loading}>
+            Confirm Cancellation
           </GlowButton>
-        )}
-      </>
-    )}
-    {canViewWorkouts && (
-      <>
+        </>
+      )}
+      {canRecordAttendance && !isFocusedFlow && (
+        <>
+          <GlowButton variant="emerald" size="medium" onClick={() => onRecordAttendance('present')} disabled={attendanceLoading} isLoading={attendanceLoading}>
+            {attendanceLoading ? 'Recording...' : 'Present'}
+          </GlowButton>
+          <GlowButton variant="neonBlue" size="medium" onClick={() => onRecordAttendance('late')} disabled={attendanceLoading}>
+            Late
+          </GlowButton>
+          <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading}>
+            No-Show
+          </GlowButton>
+        </>
+      )}
+      {showNoShowReason && (
+        <>
+          <OutlinedButton onClick={onBackFromNoShowReason} disabled={attendanceLoading}>
+            Back
+          </OutlinedButton>
+          <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading} isLoading={attendanceLoading}>
+            {attendanceLoading ? 'Recording...' : 'Confirm No-Show'}
+          </GlowButton>
+        </>
+      )}
+      {canComplete && !isFocusedFlow && (
+        <GlowButton variant="emerald" size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
+          Mark Complete
+        </GlowButton>
+      )}
+      {canOpenWorkoutLogger && !isFocusedFlow && (mode === 'admin' || mode === 'trainer') && (
+        <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
+          Log Workout
+        </GlowButton>
+      )}
+      {canViewWorkouts && !isFocusedFlow && (
         <GlowButton variant="cosmic" size="medium" onClick={onViewWorkouts}>
           View Workouts
         </GlowButton>
-      </>
-    )}
-  </>
-);
+      )}
+    </>
+  );
+};
 
 export default SessionDetailFooterActions;
