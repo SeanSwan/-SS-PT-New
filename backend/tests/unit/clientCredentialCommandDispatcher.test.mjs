@@ -61,4 +61,17 @@ describe('client credential command dispatchers', () => {
     await expect(dispatchSendClientPasswordReset({ clientId: 42 }, { user: adminUser }))
       .rejects.toThrow(/client not found/i);
   });
+
+  it('sends reset links to the selected client when params contain stale client identity', async () => {
+    const { dispatchSendClientPasswordReset, findOne, sendPasswordResetEmailForUser } = await loadDispatcher();
+
+    const result = await dispatchSendClientPasswordReset({ clientId: 999 }, {
+      user: adminUser,
+      resolvedClient: { id: 42 },
+    });
+
+    expect(findOne).toHaveBeenCalledWith({ where: { id: 42, role: 'client' } });
+    expect(sendPasswordResetEmailForUser).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }));
+    expect(result).toMatchObject({ clientId: 42, credentialAction: 'reset_email_sent' });
+  });
 });

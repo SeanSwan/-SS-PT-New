@@ -6,18 +6,14 @@
  */
 import { getAllModels } from '../../../models/index.mjs';
 import { sendPasswordResetEmailForUser } from '../../auth/passwordResetEmailService.mjs';
-
-function toSafeId(value) {
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
-}
+import { resolveCommandClientId } from './clientScope.mjs';
 
 export async function dispatchSendClientPasswordReset(params = {}, ctx = {}) {
   if (ctx.user?.role !== 'admin') {
     throw new Error('Only admins can send password reset links.');
   }
 
-  const clientId = toSafeId(params.clientId || ctx.resolvedClient?.id);
+  const clientId = resolveCommandClientId(params, ctx);
   if (!clientId) {
     throw new Error('A resolved client is required before sending a reset link.');
   }

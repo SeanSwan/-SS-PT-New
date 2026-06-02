@@ -5,6 +5,7 @@
  * Results stay PII-safe; caller UI already knows the client identity.
  */
 import { getAllModels } from '../../../models/index.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const CLIENT_UPDATE_FIELDS = [
   'firstName',
@@ -48,7 +49,7 @@ function normalizeClientUpdates(params) {
 
 export async function dispatchUpdateClient(params, ctx = {}) {
   const { User } = getAllModels();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const sequelize = ctx.options?.sequelize || ctx.sequelize || null;
   const transaction = sequelize ? await sequelize.transaction() : null;
   const options = transaction ? { transaction } : {};

@@ -120,4 +120,24 @@ describe('client update command dispatcher', () => {
     expect(transaction.rollback).toHaveBeenCalled();
     expect(findOne).toHaveBeenCalled();
   });
+
+  it('updates the selected client when params contain stale client identity', async () => {
+    const { dispatch, findOne, update } = await loadDispatcher({
+      clientRecord: { id: 42, role: 'client' },
+    });
+
+    const result = await dispatch('update_client', {
+      clientId: 999,
+      phone: '555-0142',
+    }, {
+      user: { id: 1, role: 'admin' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(findOne).toHaveBeenCalledWith({
+      where: { id: 42, role: 'client' },
+    });
+    expect(update).toHaveBeenCalledWith({ phone: '555-0142' }, {});
+    expect(result).toMatchObject({ clientId: 42, found: true, updated: true });
+  });
 });
