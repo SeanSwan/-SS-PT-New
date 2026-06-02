@@ -181,4 +181,21 @@ describe('Swan Coach nutrition command dispatchers', () => {
     expect(JSON.stringify(result)).not.toContain('trainer@example.com');
     expect(JSON.stringify(result)).not.toContain('Private');
   });
+
+  it('uses selected-client sodium scope when params contain stale client identity', async () => {
+    const { dispatch, DailyMacroLog } = await loadDispatcher();
+
+    const result = await dispatch('flag_sodium_intake', {
+      clientId: 999,
+      date: '2026-05-31',
+    }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(DailyMacroLog.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: 42 }),
+    }));
+    expect(result.clientId).toBe(42);
+  });
 });

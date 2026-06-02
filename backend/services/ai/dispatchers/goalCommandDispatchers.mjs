@@ -7,6 +7,7 @@
  */
 import { Op } from 'sequelize';
 import { getAllModels } from '../../../models/index.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 const GOAL_STATUSES = ['draft', 'active', 'completed', 'paused', 'cancelled', 'failed'];
 
@@ -37,11 +38,9 @@ const isOverdue = (goal) => {
   return !Number.isNaN(deadline.getTime()) && deadline < new Date();
 };
 
-const resolveClientId = (params, ctx) => params.clientId ?? ctx.resolvedClient?.id;
-
 export const dispatchViewGoals = async (params, ctx) => {
   const { Goal } = getAllModels();
-  const clientId = resolveClientId(params, ctx);
+  const clientId = resolveCommandClientId(params, ctx);
   const goals = await Goal.findAll({
     where: {
       userId: clientId,
@@ -73,7 +72,7 @@ export const dispatchViewGoals = async (params, ctx) => {
 
 export const dispatchCreateGoal = async (params, ctx) => {
   const { Goal } = getAllModels();
-  const clientId = resolveClientId(params, ctx);
+  const clientId = resolveCommandClientId(params, ctx);
   const targetValue = toGoalNumber(params.targetValue);
   const currentValue = Math.max(0, toGoalNumber(params.currentValue));
   const progressPercentage = goalPercent(currentValue, targetValue);
@@ -115,7 +114,7 @@ export const dispatchCreateGoal = async (params, ctx) => {
 
 export const dispatchUpdateGoalProgress = async (params, ctx) => {
   const { Goal } = getAllModels();
-  const clientId = resolveClientId(params, ctx);
+  const clientId = resolveCommandClientId(params, ctx);
   const goalId = String(params.goalId);
   const goal = await Goal.findOne({ where: { userId: clientId, id: goalId } });
 

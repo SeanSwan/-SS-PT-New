@@ -120,6 +120,27 @@ describe('goal command dispatchers', () => {
     expect(JSON.stringify(result)).not.toContain('Private note');
   });
 
+  it('creates selected-client goals even when params contain stale client identity', async () => {
+    const { dispatch, create } = await loadDispatcher({
+      createdGoal: { id: 'goal-selected', progressPercentage: 20, status: 'active' },
+    });
+
+    const result = await dispatch('create_goal', {
+      clientId: 999,
+      title: 'Selected client pushups',
+      targetValue: 50,
+      currentValue: 10,
+      unit: 'reps',
+      deadline: '2026-07-01T00:00:00.000Z',
+    }, {
+      user: { id: 1, role: 'admin' },
+      resolvedClient: { id: 42 },
+    });
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ userId: 42 }));
+    expect(result).toMatchObject({ clientId: 42, goalId: 'goal-selected' });
+  });
+
   it('updates progress percentage by deriving currentValue from the existing target', async () => {
     const goal = {
       id: 'goal-1',

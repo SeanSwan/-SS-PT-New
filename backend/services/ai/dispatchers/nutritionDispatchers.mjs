@@ -30,6 +30,7 @@ import { createMacroEntries } from '../../nutrition/macroLogService.mjs';
 import foodScannerService from '../../foodScannerService.mjs';
 import DailyMacroLog from '../../../models/DailyMacroLog.mjs';
 import logger from '../../../utils/logger.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 // ── E03: log_meals ────────────────────────────────────────────────────────────
 
@@ -44,7 +45,7 @@ import logger from '../../../utils/logger.mjs';
  * @returns {Promise<{ mealsLogged, totalCalories, totalProtein, date }>}
  */
 export async function logMeals(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   // createMacroEntries handles: atomic transaction, source normalization to 'ai_chat',
   // per-row date assignment, number sanitization, and the missing-table error path.
   return createMacroEntries(params.meals, {
@@ -64,7 +65,7 @@ export async function logMeals(params, ctx) {
  * @returns {Promise<{ date, mealCount, totalCalories, totalProtein, totalCarbs, totalFat }>}
  */
 export async function viewNutritionLog(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const today = new Date().toISOString().slice(0, 10);
   const empty = { date: today, mealCount: 0, totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 };
   try {
@@ -103,7 +104,7 @@ export async function viewNutritionLog(params, ctx) {
  * @returns {Promise<{ daysLogged, avgCalories, avgProtein, avgCarbs, avgFat, startDate, endDate }>}
  */
 export async function viewMacroTrends(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const endDate   = new Date().toISOString().slice(0, 10);
   const startD    = new Date();
   startD.setDate(startD.getDate() - 6);          // last 7 days inclusive
@@ -209,7 +210,7 @@ const emptySodiumSummary = (clientId, date, sodiumLimit, mealSodiumLimit) => ({
 });
 
 export async function dispatchFlagSodiumIntake(params = {}, ctx = {}) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const date = params.date || todayDate();
   const sodiumLimit = toWholeNumber(params.sodiumLimit) || 2300;
   const mealSodiumLimit = toWholeNumber(params.mealSodiumLimit) || 800;
