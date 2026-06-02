@@ -70,7 +70,7 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
 
   it('honors any dashboard-local returnTo after validation', () => {
     expect(SOURCE).toMatch(
-      /import \{ normalizeDashboardReturnTo, parseLoggerClientId, parseLoggerSessionId \} from '\.\/EnhancedWorkoutLogger\.logic'/
+      /import\s*\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s*from '\.\/EnhancedWorkoutLogger\.logic'/
     );
     expect(LOGIC_SOURCE).toMatch(/export const normalizeDashboardReturnTo =/);
     expect(LOGIC_SOURCE).toMatch(/raw\.startsWith\('\/dashboard\/'\)/);
