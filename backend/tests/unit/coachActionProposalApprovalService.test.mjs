@@ -70,6 +70,7 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
     return { id: 'workout-1' };
   });
   const ensureClientAccess = vi.fn(async () => ({ allowed: true, clientId: 42 }));
+  const processAIDataUpdates = vi.fn(async () => ({ successful: 1, errors: [] }));
   vi.doMock('../../database.mjs', () => ({ default: {} }));
   vi.doMock('../../utils/clientAccess.mjs', () => ({
     ensureClientAccess,
@@ -89,10 +90,10 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
     summarizeOnboardingDraftForReview: vi.fn(),
   }));
   vi.doMock('../../services/aiDataWriteService.mjs', () => ({
-    processAIDataUpdates: vi.fn(),
+    processAIDataUpdates,
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, ensureClientAccess, logWorkoutForClient };
+  return { ...service, ensureClientAccess, logWorkoutForClient, processAIDataUpdates };
 }
 
 beforeEach(() => {
@@ -177,6 +178,40 @@ describe('coachActionProposalApprovalService', () => {
       order,
       decryptedProposal: {
         payload: { clientId: true, date: '2026-05-05', exercises: [{ name: 'Squat' }] },
+        targetUserId: null,
+      },
+    });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('PROPOSAL_INVALID_CLIENT_ID');
+    expect(ensureClientAccess).not.toHaveBeenCalled();
+    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
+  });
+
+  it('rejects whitespace-padded workout proposal client ids before access or write', async () => {
+    const order = [];
+    const db = fakeApprovalDb({ order });
+    const {
+      approveCoachActionProposal,
+      ensureClientAccess,
+      getCoachActionProposal,
+      logWorkoutForClient,
+    } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        payload: { clientId: ' 42', date: '2026-05-05', exercises: [{ name: 'Squat' }] },
         targetUserId: null,
       },
     });
@@ -314,6 +349,50 @@ describe('coachActionProposalApprovalService', () => {
     expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
     expect(order).toEqual(['claim']);
     expect(db.calls.some((call) => call.options.replacements?.status === 'FAILED')).toBe(false);
+  });
+
+  it('rejects whitespace-padded client data update ids before access or writes', async () => {
+    const order = [];
+    const db = fakeApprovalDb({
+      order,
+      row: {
+        ...pendingWorkoutRow,
+        proposal_type: 'client_data_update',
+        summary_json: { title: 'Review client data update' },
+      },
+    });
+    const {
+      approveCoachActionProposal,
+      ensureClientAccess,
+      getCoachActionProposal,
+      processAIDataUpdates,
+    } = await loadApprovalService({
+      order,
+      decryptedProposal: {
+        payload: {
+          targetUserId: ' 42',
+          updates: [{ field: 'trainingNotes', value: 'Keep current plan.' }],
+        },
+        targetUserId: null,
+      },
+    });
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('PROPOSAL_INVALID_CLIENT_ID');
+    expect(ensureClientAccess).not.toHaveBeenCalled();
+    expect(processAIDataUpdates).not.toHaveBeenCalled();
+    expect(order).toEqual([]);
   });
 
   it('returns sanitized approval evidence metadata on proposal detail reads', async () => {

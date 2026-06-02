@@ -40,11 +40,9 @@ function parseProposalClientId(...candidates) {
 
     if (typeof value !== 'string') return null;
 
-    const trimmed = value.trim();
-    if (!trimmed) continue;
-    if (!/^[1-9]\d*$/.test(trimmed)) return null;
+    if (!/^[1-9]\d*$/.test(value)) return null;
 
-    const parsed = Number(trimmed);
+    const parsed = Number(value);
     return Number.isSafeInteger(parsed) ? parsed : null;
   }
 
