@@ -606,17 +606,17 @@ const AddBtn = styled.button`
   padding: 12px 16px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  color: #030712;
+  background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
+  color: var(--text-inverse, #0F172A);
   font-weight: 700;
   font-size: 0.9rem;
   font-family: 'Sora', sans-serif;
   cursor: pointer;
   transition: opacity 0.2s, box-shadow 0.2s;
-  box-shadow: 0 0 12px rgba(96, 192, 240, 0.35);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
 
   &:hover {
-    box-shadow: 0 0 24px rgba(96, 192, 240, 0.55);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--accent-primary, #60C0F0) 55%, transparent);
     opacity: 0.92;
   }
 `;
@@ -629,9 +629,9 @@ const AskCoachBtn = styled.button`
   width: 100%;
   min-height: 48px;
   padding: 12px 16px;
-  border: 1px solid rgba(96, 192, 240, 0.35);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
   border-radius: 12px;
-  background: rgba(0, 32, 96, 0.5);
+  background: color-mix(in srgb, var(--bg-elevated, #141419) 50%, transparent);
   color: var(--accent-primary, #60C0F0);
   font-weight: 600;
   font-size: 0.9rem;
@@ -640,9 +640,9 @@ const AskCoachBtn = styled.button`
   transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 
   &:hover {
-    background: rgba(0, 32, 96, 0.75);
-    border-color: rgba(96, 192, 240, 0.65);
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.2);
+    background: color-mix(in srgb, var(--bg-elevated, #141419) 75%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 65%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   }
 
   &:focus-visible {
