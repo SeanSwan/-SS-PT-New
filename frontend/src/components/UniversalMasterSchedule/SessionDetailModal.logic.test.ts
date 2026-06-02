@@ -64,6 +64,13 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(canSessionOpenWorkoutLogger({ ...baseSession, sessionDate: 'not-a-date' })).toBe(false);
   });
 
+  it('blocks future scheduled sessions from opening the workout logger before the session day', () => {
+    expect(canSessionOpenWorkoutLogger({
+      ...baseSession,
+      sessionDate: '2099-01-01T16:00:00.000Z',
+    })).toBe(false);
+  });
+
   it('uses token-backed status tones instead of local raw hex constants', () => {
     expect(getStatusTone('confirmed')).toMatch(/^var\(--schedule-status-confirmed,/);
     expect(getStatusTone('unknown')).toBe(getStatusTone('available'));

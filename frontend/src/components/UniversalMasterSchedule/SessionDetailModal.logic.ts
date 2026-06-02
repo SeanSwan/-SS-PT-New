@@ -62,7 +62,12 @@ const isPositiveInteger = (value: unknown) => {
 
 const isUsableSessionDate = (value: unknown) => {
   if (typeof value !== 'string' || !value.trim()) return false;
-  return !Number.isNaN(new Date(value).getTime());
+  const sessionDate = new Date(value);
+  if (Number.isNaN(sessionDate.getTime())) return false;
+
+  const latestLoggableDate = new Date();
+  latestLoggableDate.setHours(23, 59, 59, 999);
+  return sessionDate <= latestLoggableDate;
 };
 
 export const canSessionOpenWorkoutLogger = (session: SessionDetail | null) => {
