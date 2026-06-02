@@ -22,6 +22,7 @@
 
 import { getBodyMeasurement } from '../../../models/index.mjs';
 import { logWeighIn, logMeasurements } from '../../measurementWriteService.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 // ── Shared helper ────────────────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ const toDate = (v) => {
  * @returns {{ userId, measurementDate, weight, weightUnit, bodyFatPercentage }}
  */
 export async function viewLatestMeasurements(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const BodyMeasurement = getBodyMeasurement();
   const row = await BodyMeasurement.findOne({
     where:      { userId: clientId },
@@ -68,7 +69,7 @@ export async function viewLatestMeasurements(params, ctx) {
  * @returns {{ measurementId, userId, weight, weightUnit, measurementDate }}
  */
 export async function dispatchLogWeighIn(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   return logWeighIn(
     { weight: params.weight, weightUnit: 'lbs' },
     { clientId, trainerId: ctx.user.id },
@@ -90,7 +91,7 @@ export async function dispatchLogWeighIn(params, ctx) {
  * @returns {{ measurementId, userId, measurementDate, weight, weightUnit, bodyFatPercentage, fieldsLogged }}
  */
 export async function dispatchLogMeasurements(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   return logMeasurements(
     {
       weight:  params.weight  ?? null,
@@ -125,7 +126,7 @@ export async function dispatchLogMeasurements(params, ctx) {
  * }}
  */
 export async function viewMeasurementTrends(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   const BodyMeasurement = getBodyMeasurement();
 
   const [first, latest, totalMeasurements] = await Promise.all([

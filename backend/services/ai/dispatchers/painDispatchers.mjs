@@ -23,6 +23,7 @@
 import { getClientPainEntry } from '../../../models/index.mjs';
 import { createPainEntry } from '../painWriteService.mjs';
 import { resolvePainEntry, updatePainEntryByRegion } from '../painFollowUpService.mjs';
+import { resolveCommandClientId } from './clientScope.mjs';
 
 /**
  * view_active_pain
@@ -33,7 +34,7 @@ import { resolvePainEntry, updatePainEntryByRegion } from '../painFollowUpServic
  */
 export async function viewActivePain(params, ctx) {
   const ClientPainEntry = getClientPainEntry();
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
 
   const rows = await ClientPainEntry.findAll({
     where:      { userId: clientId, isActive: true },
@@ -62,7 +63,7 @@ export async function viewActivePain(params, ctx) {
  * @returns {{ entryId, userId, bodyRegion, painLevel, isActive }}
  */
 export async function addPainEntry(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   return createPainEntry(
     { bodyRegion: params.bodyRegion, painLevel: params.painLevel, notes: params.notes },
     { clientId, trainerId: ctx.user.id },
@@ -78,7 +79,7 @@ export async function addPainEntry(params, ctx) {
  * @returns {{ entryId, userId, bodyRegion, isActive, resolvedAt }}
  */
 export async function dispatchResolvePainEntry(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   return resolvePainEntry(
     { bodyRegion: params.bodyRegion },
     { clientId, trainerId: ctx.user.id },
@@ -94,7 +95,7 @@ export async function dispatchResolvePainEntry(params, ctx) {
  * @returns {{ entryId, userId, bodyRegion, painLevel, isActive }}
  */
 export async function dispatchUpdatePainEntry(params, ctx) {
-  const clientId = params.clientId ?? ctx.resolvedClient?.id;
+  const clientId = resolveCommandClientId(params, ctx);
   return updatePainEntryByRegion(
     { bodyRegion: params.bodyRegion, painLevel: params.painLevel, notes: params.notes },
     { clientId, trainerId: ctx.user.id },
