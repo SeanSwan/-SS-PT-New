@@ -203,13 +203,18 @@ export function preparePendingConfirmation({ commandType, params, clientId, user
   }
 
   const opId = crypto.randomUUID();
+  const resolvedClientId = Number(clientId);
+  const confirmedParams = params && typeof params === 'object' && !Array.isArray(params) ? { ...params } : {};
+  const scopedClientId = Number.isSafeInteger(resolvedClientId) && resolvedClientId > 0 ? resolvedClientId : null;
+  if (scopedClientId) confirmedParams.clientId = scopedClientId;
+
   const operation = {
     id: opId,
     kind: 'pending_confirmed',  // distinguishes from HMAC-signed destructive ops
     commandType,
-    params,
+    params: confirmedParams,
     frontendEvent,
-    clientId: clientId ?? null,
+    clientId: scopedClientId,
     createdBy: userId,
     description,
     createdAt: new Date().toISOString(),

@@ -78,4 +78,34 @@ describe('command executor confirmed operation guard', () => {
       client: { id: 42 },
     });
   });
+
+  it('uses the stored resolved client when confirmed params contain stale client identity', async () => {
+    const { preparePendingConfirmation, executeConfirmedOperation, dispatch } =
+      await loadConfirmedOperationHarness({
+        hasDispatcher: true,
+        dispatchResult: { write: 'queued' },
+      });
+
+    const pending = preparePendingConfirmation({
+      commandType: 'log_workout',
+      params: { clientId: 999, title: 'Upper body', exercises: [{ name: 'Push Up' }] },
+      clientId: 42,
+      userId: adminUser.id,
+      description: 'Log workout for Client #42',
+    });
+
+    const result = await executeConfirmedOperation(pending.operationId, adminUser, {});
+
+    expect(result).toMatchObject({
+      success: true,
+      type: 'executed',
+      command: 'log_workout',
+      client: { id: 42 },
+    });
+    expect(dispatch).toHaveBeenCalledWith(
+      'log_workout',
+      expect.objectContaining({ clientId: 42, title: 'Upper body' }),
+      expect.objectContaining({ resolvedClient: { id: 42 } }),
+    );
+  });
 });
