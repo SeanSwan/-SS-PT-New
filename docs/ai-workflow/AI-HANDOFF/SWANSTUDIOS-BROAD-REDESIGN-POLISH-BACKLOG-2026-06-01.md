@@ -31,6 +31,8 @@ These items are no longer broad-redesign backlog items because they were handled
 - Coach Command Center Client Hub return links reject unsafe return-path characters before rendering a back action.
 - Workout Planner opened from Client Hub now offers a success-banner `Return to Client Hub` action after safe successful saves/activations.
 - Client Hub Plan Next now returns to Training > Plans, where the selected client's saved plans load from `/api/workout/plans?clientId=...`.
+- Clients & Team selected-client Coach commands now keep the selected client authoritative through backend execution instead of trusting stale classifier/clientRef output.
+- Universal Master Schedule now blocks future-day sessions from opening the workout logger before the session day while preserving same-day gym-floor logging.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
 
@@ -62,6 +64,13 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - Shared components should exist for exercise search, exercise cards, NASM phase context, recommendations, and equipment profile selection.
 - Avoid two competing "exercise Rolodex" experiences unless each has a distinct job.
 - Keep cancel confirmation, PDF export, summary generation, AI command events, and schedule-linked session deduction wired to the canonical logger.
+
+### 3A. Route / Workflow Hygiene Boundary
+
+- Canonical `/api/sessions` is mounted to `backend/routes/sessions.mjs`.
+- The older `backend/routes/sessionRoutes.mjs` still exists behind the later `/api` compatibility router in `backend/routes/api.mjs`.
+- Do not treat legacy route retirement as visual polish. If Sean asks to clean this up, run a separate route-migration slice with mount-order evidence, endpoint inventory, compatibility tests, and Sean approval before deleting or archiving anything.
+- Until that migration exists, broad UI work should use the canonical route receipts already proven for the live surface and avoid touching legacy route files for cosmetic reasons.
 
 ### 4. Bootcamp / Group Class Builder
 

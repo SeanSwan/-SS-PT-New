@@ -1,6 +1,6 @@
 # Next Session Continuation Prompt - 2026-06-01
 
-Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, and Client Hub saved-plans receipt pushes.
+Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 session-credit hardening, Client Hub return-flow, Coach return-link, Planner return-action, selected-client command, Coach proposal approval hardening, Client Hub saved-plans receipt, selected-client command scope, and schedule-to-workout guard pushes.
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
@@ -32,6 +32,9 @@ Protocol:
 - Zero PII to LLMs; client IDs only.
 
 Latest pushed commits:
+- `32b2551a6` - `fix(schedule): block future workout logging`
+- `06b8f7912` - `fix(coach): preserve selected client command scope`
+- `0b5a1a3d6` - `docs(handoff): refresh continuation after plans receipt`
 - `4de8662ba` - `fix(clients): return planner saves to client plans`
 - `a6ee1ecd4` - `docs(handoff): refresh coach hardening state`
 - `9dc04652c` - `fix(coach): harden proposal summary client ids`
@@ -141,6 +144,34 @@ Verified work just completed in the prior session:
   - Rule 42 backend pre-push audit passed again: no untracked backend files and no backend diff.
   - Production smoke after Render deploy passed on retry: 56 passed, 2 skipped against `https://sswanstudios.com`.
   - First production smoke attempt failed during deploy asset churn on an old lazy chunk 404 for `SwanCoachAssistantPage.*.js`; the retry passed and no code change was needed for that transient result.
+- Selected-client Coach command scope was hardened:
+  - Clients & Team selected client is now authoritative for backend command execution.
+  - `commandExecutor.mjs` prefers normalized `selectedClientId` over stale classifier/clientRef output and only falls back to clientRef/name when no selected client exists.
+  - Regression proved stale classifier output could previously resolve the wrong client; patched path now keeps the selected client authoritative.
+  - Targeted backend verification passed: `commandExecutorClientRefValidation.test.mjs` and `aiCommandRouteFrontendDispatch.test.mjs` together passed 20 tests.
+  - Targeted frontend verification passed: `useCoachCommand.frontendDispatch`, `ClientTrainingCommandBar`, voice input, and command summary tests passed 24 tests.
+  - Full backend `npm test` passed 431 files / 3,766 tests.
+  - Production smoke after `06b8f7912` passed 56, skipped 2.
+- Schedule-to-workout future-session guard was added:
+  - Canonical route receipt:
+    - `UniversalDashboardLayout.tsx` mounts admin `/master-schedule` and trainer/client `/schedule` to `UniversalSchedule`.
+    - `ScheduleModals.tsx` renders `SessionDetailModal`.
+    - `SessionDetailModal.tsx` renders `SessionDetailFooterActions` and uses `buildScheduleWorkoutLoggerRoute`.
+    - `SessionDetailModal.logic.ts` owns `canSessionOpenWorkoutLogger`.
+    - `/dashboard/{role}/log-workout` mounts to `EnhancedWorkoutLogger`, which passes `scheduledSessionId` and `scheduledSessionDate` to `WorkoutLogger`.
+    - `WorkoutLogger` submits through `/api/workout-forms`, mounted at `backend/core/routes.mjs`.
+  - Regression proved a future session date could previously open the workout logger even though backend workout-form submission rejects future dates.
+  - `isUsableSessionDate` now rejects session dates after the current local day while still allowing same-day gym-floor logging.
+  - Targeted frontend verification passed: 7 files / 87 tests across schedule modal, footer actions, enhanced logger, and workout logger submit/return flows.
+  - Targeted backend verification passed: 3 files / 21 tests across session deduction access guard, billing policy, and daily workout form security.
+  - `frontend && npx tsc --noEmit --pretty false` passed with `NODE_OPTIONS=--max-old-space-size=8192`; default Node heap OOM is expected on this repo and is not a type failure.
+  - `frontend && npm run build` passed.
+  - Production smoke after `32b2551a6` passed 56, skipped 2.
+- Schedule/session route ownership hostile finding:
+  - `backend/core/routes.mjs` mounts canonical `/api/sessions` to `backend/routes/sessions.mjs`.
+  - The older `backend/routes/sessionRoutes.mjs` is not the primary `/api/sessions` mount, but it is still reachable through the later `/api` compatibility router in `backend/routes/api.mjs`.
+  - Do not delete, archive, or replace that legacy fallback casually. Treat it as a route-migration/hygiene slice requiring a full mount-order receipt and compatibility audit.
+  - Focused canonical tests passed: `sessionsRoutesOwnershipGuard.test.mjs` and `unifiedSessionCompleteAttendance.test.mjs` passed 16 tests.
 - Known local warning:
   - Several backend tests still print `VITE_STRIPE_PUBLISHABLE_KEY is missing`. The tests passed; Render has production env values and this warning is not the current failure.
 
@@ -156,6 +187,7 @@ Highest-value next slice candidates:
    - SwanStudios paid clients deduct sessions when appropriate.
    - Move Fitness clients remain non-deducting/free but still retain workout data.
    - Late cancel/no-show/admin discretion must be explicit and tested.
+   - Future-day schedule sessions are now blocked from opening the workout logger; continue with cancellation/no-show UX clarity and route-compatibility proof.
 3. Coach Command Center/Swan Coach command lane:
    - Selected-client command intake and resolver boundaries are now hardened.
    - Coach proposal approval, split-plan child proposal creation, proposal summaries/details, shared client access, and AI BFF client summary route ID parsing are now hardened against malformed selected-client IDs.
@@ -168,5 +200,5 @@ Highest-value next slice candidates:
    - Use SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md only when Sean asks for broad redesign/polish.
 
 Immediate start:
-Run git status, inspect the latest commit/push state, confirm whether Render has deployed `4de8662ba`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
+Run git status, inspect the latest commit/push state, confirm whether Render has deployed `32b2551a6`, then pick the next highest-risk live workflow gap. Do not assume the previous session completed every possible slice.
 ```
