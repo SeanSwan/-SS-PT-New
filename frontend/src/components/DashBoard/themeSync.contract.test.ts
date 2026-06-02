@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 const readSource = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8');
+const lineCount = (source: string) => source.split(/\r?\n/).length;
 
 describe('dashboard theme synchronization contract', () => {
   it('locks the canonical dashboard routes for the themed surfaces', () => {
@@ -11,10 +12,12 @@ describe('dashboard theme synchronization contract', () => {
     expect(layout).toContain("import UniversalSchedule from '../Schedule/UniversalSchedule'");
     expect(layout).toContain("const AdminPackagesView = React.lazy(() => import('./Pages/admin-packages/admin-packages-view'))");
     expect(layout).toContain("const RevenueAnalyticsPanel = React.lazy(() => import('./Pages/admin-dashboard/components/RevenueAnalyticsPanel'))");
+    expect(layout).toContain("const PendingOrdersAdminPanel = React.lazy(() => import('./Pages/admin-dashboard/components/PendingOrdersAdminPanel'))");
     expect(layout).toContain("const NutritionWorkspaceLazy = React.lazy(() => import('./workspaces/NutritionWorkspace'))");
     expect(layout).toContain("{ path: '/master-schedule', component: UniversalSchedule");
     expect(layout).toContain("{ path: '/admin-packages', component: AdminPackagesView");
     expect(layout).toContain("{ path: '/revenue', component: RevenueAnalyticsPanel");
+    expect(layout).toContain("{ path: '/pending-orders', component: PendingOrdersAdminPanel");
     expect(layout).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
   });
 
@@ -36,12 +39,33 @@ describe('dashboard theme synchronization contract', () => {
     const adminSessionsTheme = readSource('src/components/DashBoard/Pages/admin-sessions/AdminSessionsTheme.styles.ts');
     const adminPackages = readSource('src/components/DashBoard/Pages/admin-packages/admin-packages-view.tsx');
     const revenuePanel = readSource('src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.styles.ts');
+    const storeDesignSystem = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.tsx');
+    const storeTokens = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.tokens.ts');
+    const storeLayout = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.layout.tsx');
+    const storeControls = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.controls.tsx');
+    const storeFeedback = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.feedback.tsx');
+    const pendingOrders = readSource('src/components/DashBoard/Pages/admin-dashboard/components/PendingOrdersAdminPanel.tsx');
 
     expect(adminSessionsTheme).toContain("deepSpace: 'var(--bg-base, #0A0A0F)'");
     expect(adminSessionsStyles).toContain('linear-gradient(180deg, ${executiveTheme.deepSpace} 0%, ${executiveTheme.commandNavy} 100%)');
     expect(adminPackages).toContain('var(--accent-primary, #60C0F0)');
     expect(revenuePanel).toContain('color-mix(in srgb, var(--bg-base, #0A0A0F) 94%, transparent)');
     expect(revenuePanel).not.toContain('rgba(0, 32, 96, 0.95)');
+    expect(storeTokens).toContain("completed: 'var(--accent-primary, #60C0F0)'");
+    expect(storeTokens).toContain("pending: 'var(--accent-gold, #C6A84B)'");
+    expect(storeTokens).toContain("inactive: 'var(--danger, #C92A54)'");
+    expect(storeDesignSystem).toContain("export * from './StoreDesignSystem.tokens'");
+    expect(storeDesignSystem).toContain("export * from './StoreDesignSystem.layout'");
+    expect(storeDesignSystem).toContain("export * from './StoreDesignSystem.controls'");
+    expect(storeDesignSystem).toContain("export * from './StoreDesignSystem.feedback'");
+    expect(storeDesignSystem).not.toContain('rgba(0,255,136');
+    expect(storeDesignSystem).not.toContain('linear-gradient(135deg, #60C0F0, #8B5CF6)');
+    [storeDesignSystem, storeTokens, storeLayout, storeControls, storeFeedback].forEach((source) => {
+      expect(lineCount(source)).toBeLessThanOrEqual(300);
+    });
+    expect(pendingOrders).toContain('var(--bg-elevated, #141419)');
+    expect(pendingOrders).not.toContain('background: #120d26');
+    expect(pendingOrders).not.toContain('rgba(0,255,136');
   });
 
   it('keeps the hydration controls theme-responsive', () => {

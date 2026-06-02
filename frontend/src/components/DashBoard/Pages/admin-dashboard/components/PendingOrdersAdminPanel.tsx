@@ -53,10 +53,10 @@ const ControlsRow = styled.div`
 `;
 
 const FilterSelect = styled.select`
-  background: rgba(255,255,255,0.03);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 78%, transparent);
   border: 1px solid ${STORE_TOKENS.border.glass};
   border-radius: ${STORE_TOKENS.radius.button};
-  color: white;
+  color: var(--text-primary, #E0ECF4);
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   min-height: 44px;
@@ -68,8 +68,8 @@ const FilterSelect = styled.select`
   }
 
   option {
-    background: #120d26;
-    color: white;
+    background: var(--bg-elevated, #141419);
+    color: var(--text-primary, #E0ECF4);
   }
 `;
 
@@ -139,7 +139,7 @@ const TaxBadge = styled.span`
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 0.7rem;
-  background: rgba(255,107,107,0.15);
+  background: color-mix(in srgb, ${STORE_TOKENS.color.tax} 15%, transparent);
   color: ${STORE_TOKENS.color.tax};
   font-weight: 600;
 `;
@@ -156,13 +156,13 @@ const InfoItem = styled.div`
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.7);
+  color: var(--text-secondary, #B6C2CC);
 
   svg { color: ${STORE_TOKENS.color.muted}; flex-shrink: 0; }
 `;
 
 const OrderItemsBox = styled.div`
-  background: rgba(0,0,0,0.15);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 64%, transparent);
   border-radius: ${STORE_TOKENS.radius.button};
   padding: 1rem;
   margin-top: 0.5rem;
@@ -173,7 +173,7 @@ const OrderItemRow = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent);
   font-size: 0.875rem;
 
   &:last-child { border-bottom: none; }
@@ -185,7 +185,7 @@ const EmptyOrders = styled.div`
   color: ${STORE_TOKENS.color.muted};
 
   svg { margin-bottom: 1rem; opacity: 0.3; }
-  h3 { color: white; margin-bottom: 0.5rem; }
+  h3 { color: var(--text-primary, #E0ECF4); margin-bottom: 0.5rem; }
 `;
 
 // ── Types ───────────────────────────────────────────────
@@ -427,19 +427,19 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
       {/* KPI Summary Row */}
       <KPIGrid>
-        <KPICard $accent="rgba(0,255,136,0.15)">
+        <KPICard $accent="color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)">
           <KPILabel>Total Revenue</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.revenue}>{formatCurrency(totalRevenue)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(255,107,107,0.15)">
+        <KPICard $accent="color-mix(in srgb, var(--danger, #C92A54) 15%, transparent)">
           <KPILabel>CA Tax Liability</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.tax}>{formatCurrency(totalRevenue * CA_TAX_RATE)}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(139,92,246,0.15)">
+        <KPICard $accent="color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)">
           <KPILabel>Total Orders</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.purple}>{orders.length}</KPIValue>
         </KPICard>
-        <KPICard $accent="rgba(255,184,0,0.15)">
+        <KPICard $accent="color-mix(in srgb, var(--accent-gold, #C6A84B) 15%, transparent)">
           <KPILabel>Pending Payment</KPILabel>
           <KPIValue $color={STORE_TOKENS.color.pending}>{pendingCount}</KPIValue>
         </KPICard>
@@ -480,7 +480,7 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
         <StoreButton
           onClick={() => setAutoRefresh(!autoRefresh)}
-          style={autoRefresh ? { borderColor: 'rgba(0,255,136,0.3)' } : undefined}
+          style={autoRefresh ? { borderColor: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)' } : undefined}
         >
           {autoRefresh ? <Eye size={16} /> : <EyeOff size={16} />}
           {autoRefresh ? 'Live' : 'Manual'}
@@ -535,8 +535,8 @@ const PendingOrdersAdminPanel: React.FC = () => {
 
                   {order.status === 'pending_manual_payment' && (
                     <StoreButton onClick={() => markAsPaid(order.id)} style={{
-                      background: 'linear-gradient(135deg, rgba(0,255,136,0.15), rgba(139, 92, 246,0.1))',
-                      borderColor: 'rgba(0,255,136,0.3)',
+                      background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent), color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent))',
+                      borderColor: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 36%, transparent)',
                     }}>
                       <CheckCircle size={16} /> Mark Paid
                     </StoreButton>
