@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrainerPermissionsManager from './TrainerPermissionsManager';
@@ -34,6 +34,10 @@ const layoutSource = readFileSync(
 const coreRoutes = readFileSync(resolve(repoRoot, 'backend/core/routes.mjs'), 'utf8');
 const trainerPermissionsRoutes = readFileSync(
   resolve(repoRoot, 'backend/routes/trainerPermissionsRoutes.mjs'),
+  'utf8',
+);
+const trainerPermissionsManagerSource = readFileSync(
+  resolve(repoRoot, 'frontend/src/components/Admin/TrainerPermissionsManager.tsx'),
   'utf8',
 );
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
@@ -227,5 +231,39 @@ describe('TrainerPermissionsManager active admin contract', () => {
     expect(
       mockTrainerPermissionService.grantPermission.mock.invocationCallOrder[0]
     ).toBeLessThan(mockTrainerPermissionService.revokePermission.mock.invocationCallOrder[0]);
+  });
+
+  it('keeps the mounted trainer permissions manager split below project file caps', () => {
+    const expectedFiles = [
+      'TrainerPermissionsManager.tsx',
+      'TrainerPermissionsManager.types.ts',
+      'TrainerPermissionsManager.logic.ts',
+      'TrainerPermissionsManager.operations.ts',
+      'TrainerPermissionsManager.controller.ts',
+      'TrainerPermissionsManager.styles.ts',
+      'TrainerPermissionsManager.trainerStyles.ts',
+      'TrainerPermissionsManager.requestStyles.ts',
+      'TrainerPermissionsManager.searchStyles.ts',
+      'TrainerPermissionsManager.bulkStyles.ts',
+      'TrainerPermissionsManager.Header.tsx',
+      'TrainerPermissionsManager.RequestsPanel.tsx',
+      'TrainerPermissionsManager.SearchBar.tsx',
+      'TrainerPermissionsManager.TrainersGrid.tsx',
+      'TrainerPermissionsManager.BulkActionBar.tsx',
+    ];
+
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.controller'");
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.Header'");
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.RequestsPanel'");
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.SearchBar'");
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.TrainersGrid'");
+    expect(trainerPermissionsManagerSource).toContain("from './TrainerPermissionsManager.BulkActionBar'");
+
+    expectedFiles.forEach((fileName) => {
+      const filePath = resolve(repoRoot, 'frontend/src/components/Admin', fileName);
+      expect(existsSync(filePath), `${fileName} should exist`).toBe(true);
+      const lineCount = readFileSync(filePath, 'utf8').split(/\r?\n/).length;
+      expect(lineCount, `${fileName} line count`).toBeLessThanOrEqual(300);
+    });
   });
 });
