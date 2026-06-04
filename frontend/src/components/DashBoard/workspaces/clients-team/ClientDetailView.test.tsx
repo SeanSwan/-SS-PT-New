@@ -48,6 +48,24 @@ const ADMIN_GRID_SOURCE = readFileSync(
   resolve(__dirname, './tabs/AdminProgressChartsGrid.tsx'),
   'utf8',
 );
+const ADMIN_GRID_DECK_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/AdminProgressChartsGrid.cards.tsx'),
+  'utf8',
+);
+const ADMIN_GRID_PRIMARY_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/AdminProgressChartsGrid.primaryCards.tsx'),
+  'utf8',
+);
+const ADMIN_GRID_DETAIL_SOURCE = readFileSync(
+  resolve(__dirname, './tabs/AdminProgressChartsGrid.detailCards.tsx'),
+  'utf8',
+);
+const ADMIN_GRID_BUNDLE_SOURCE = [
+  ADMIN_GRID_SOURCE,
+  ADMIN_GRID_DECK_SOURCE,
+  ADMIN_GRID_PRIMARY_SOURCE,
+  ADMIN_GRID_DETAIL_SOURCE,
+].join('\n');
 const TRAINING_TAB_SOURCE = readFileSync(
   resolve(__dirname, './tabs/TrainingTabContent.tsx'),
   'utf8',
@@ -175,22 +193,22 @@ describe('Phase 15.3 — AdminProgressChartsGrid truthfulness', () => {
       'admin-chart-recovery',
     ];
     for (const id of EXPECTED_TESTIDS) {
-      expect(ADMIN_GRID_SOURCE).toContain(`data-testid="${id}"`);
+      expect(ADMIN_GRID_BUNDLE_SOURCE).toContain(`data-testid="${id}"`);
     }
   });
 
   it('does NOT reference ClientProgressDashboard or Preview Mode', () => {
-    expect(ADMIN_GRID_SOURCE).not.toMatch(/ClientProgressDashboard/);
-    expect(ADMIN_GRID_SOURCE).not.toMatch(/Preview Mode/i);
-    expect(ADMIN_GRID_SOURCE).not.toMatch(/DEMO_DATA/);
-    expect(ADMIN_GRID_SOURCE).not.toMatch(/sample data/i);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).not.toMatch(/ClientProgressDashboard/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).not.toMatch(/Preview Mode/i);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).not.toMatch(/DEMO_DATA/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).not.toMatch(/sample data/i);
   });
 
   it('uses truthful empty states, not fake chart fallbacks', () => {
-    expect(ADMIN_GRID_SOURCE).toMatch(/No completed workouts yet/);
-    expect(ADMIN_GRID_SOURCE).toMatch(/No attendance data yet/);
-    expect(ADMIN_GRID_SOURCE).toMatch(/No logged lifts yet/);
-    expect(ADMIN_GRID_SOURCE).toMatch(/No recovery flags/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).toMatch(/No completed workouts yet/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).toMatch(/No attendance data yet/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).toMatch(/No logged lifts yet/);
+    expect(ADMIN_GRID_BUNDLE_SOURCE).toMatch(/No recovery flags/);
   });
 });
 
