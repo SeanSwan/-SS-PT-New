@@ -9,35 +9,9 @@
  * - SkeletonGrid: Grid of skeleton cards
  */
 
-import styled, { keyframes, css } from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
-
-// Shimmer animation for skeleton loading effect
-const shimmer = keyframes`
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-`;
-
-// Reduced motion: Disable animation
-const shimmerStyles = css`
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.03) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 100%
-  );
-  background-size: 200% 100%;
-  animation: ${shimmer} 1.5s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    background: rgba(255, 255, 255, 0.05);
-  }
-`;
+import React from 'react';
+import styled from 'styled-components';
+import { shimmerStyles, SCHEDULE_SKELETON_THEME } from './Skeleton.theme';
 
 // Base skeleton element
 export const Skeleton = styled.div<{
@@ -66,7 +40,7 @@ export const Skeleton = styled.div<{
 export const SkeletonCard = styled.div`
   ${shimmerStyles}
   border-radius: 12px;
-  border: 1px solid ${galaxySwanTheme.borders.subtle};
+  border: 1px solid ${SCHEDULE_SKELETON_THEME.border};
   padding: 0.75rem;
   min-height: 80px;
   display: flex;
@@ -179,7 +153,7 @@ export const SkeletonSlotCell = styled.div`
   ${shimmerStyles}
   min-height: 80px;
   border-radius: 12px;
-  border: 1px dashed ${galaxySwanTheme.borders.subtle};
+  border: 1px dashed ${SCHEDULE_SKELETON_THEME.border};
 
   @media (max-width: 768px) {
     min-height: 70px;
@@ -220,7 +194,7 @@ export const SkeletonDayCell = styled.div`
   aspect-ratio: 1;
   min-height: 100px;
   border-radius: 12px;
-  border: 1px solid ${galaxySwanTheme.borders.subtle};
+  border: 1px solid ${SCHEDULE_SKELETON_THEME.border};
 
   @media (max-width: 768px) {
     min-height: 80px;
@@ -294,7 +268,7 @@ const AgendaSkeletonItem = styled.div`
   gap: 1rem;
   padding: 0.9rem 1rem;
   border-radius: 14px;
-  border: 1px solid ${galaxySwanTheme.borders.subtle};
+  border: 1px solid ${SCHEDULE_SKELETON_THEME.border};
   min-height: 60px;
 
   @media (max-width: 768px) {
@@ -304,8 +278,5 @@ const AgendaSkeletonItem = styled.div`
     border-radius: 12px;
   }
 `;
-
-// React import for FC types
-import React from 'react';
 
 export default Skeleton;
