@@ -21,4 +21,9 @@ describe('WorkoutLogger cancel confirmation contract', () => {
     expect(dialogSource).toMatch(/min-height:\s*44px/);
     expect(dialogSource).toMatch(/min-width:\s*44px/);
   });
+
+  it('keeps the confirmation dialog shadow connected to theme tokens', () => {
+    expect(dialogSource).toContain('var(--shadow-strong');
+    expect(dialogSource).not.toContain('box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52)');
+  });
 });

@@ -47,7 +47,7 @@ const Dialog = styled.div`
       transparent 42%
     ),
     var(--bg-surface, #141419);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.52);
+  box-shadow: var(--shadow-strong, 0 24px 70px rgba(0, 0, 0, 0.52));
   color: var(--text-primary, #E0ECF4);
   padding: 18px;
 `;
