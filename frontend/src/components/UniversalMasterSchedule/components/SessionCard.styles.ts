@@ -2,7 +2,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 
 export const SESSION_CARD_TOKENS = {
-  elevatedGlass: 'var(--surface-elevated, rgba(30, 30, 50, 0.7))',
+  elevatedGlass: 'var(--bg-elevated, rgba(30, 30, 50, 0.7))',
   swanCyan: 'var(--accent-primary, #60C0F0)',
   cosmicPurple: 'var(--accent-secondary, #8B5CF6)',
   deepSpace: 'var(--bg-base, #0A0A0F)',
@@ -12,6 +12,8 @@ export const SESSION_CARD_TOKENS = {
   dangerRed: 'var(--danger, #ef4444)',
   warningAmber: 'var(--warning, #f59e0b)',
   purpleStroke: 'var(--border-accent, rgba(139, 92, 246, 0.3))',
+  strongShadow: 'var(--shadow-strong, 0 8px 32px rgba(0, 0, 0, 0.5))',
+  softShadow: 'var(--shadow-soft, 0 4px 16px rgba(0, 0, 0, 0.3))',
 };
 
 const translucent = (color: string, amount: number) =>
@@ -41,7 +43,7 @@ export const CardWrapper = styled(motion.button)<{
   font: inherit;
   text-align: left;
   transition: border-color 0.2s;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: ${SESSION_CARD_TOKENS.strongShadow};
 
   ${p => p.$isSoon && css`
     animation: ${pulseGlow} 2s ease-in-out infinite;
@@ -54,7 +56,7 @@ export const CardWrapper = styled(motion.button)<{
 
   ${p => p.$variant === 'compact' && css`
     border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: ${SESSION_CARD_TOKENS.softShadow};
   `}
 `;
 

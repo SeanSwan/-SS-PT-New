@@ -24,4 +24,15 @@ describe('UniversalMasterSchedule timeline SessionCard style extraction', () => 
     expect(stylesSource).toContain('styled(motion.button)');
     expect(stylesSource).toContain('keyframes`');
   });
+
+  it('keeps the timeline SessionCard bridged to dashboard surface and shadow tokens', () => {
+    const stylesSource = readSource(stylesPath);
+
+    expect(stylesSource).toContain('var(--bg-elevated');
+    expect(stylesSource).toContain('var(--shadow-strong');
+    expect(stylesSource).toContain('var(--shadow-soft');
+    expect(stylesSource).not.toContain('var(--surface-elevated');
+    expect(stylesSource).not.toContain('box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5)');
+    expect(stylesSource).not.toContain('box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3)');
+  });
 });
