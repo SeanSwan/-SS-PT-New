@@ -5,39 +5,27 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
 import { useParams } from 'react-router-dom';
-import { Plus, Save, Sparkles, Trash2 } from 'lucide-react';
-import {
-  PageTitle,
-  SectionTitle,
-  BodyText,
-  SmallText,
-  ErrorText,
-  HelperText,
-  Label,
-  FormField,
-  StyledInput,
-  StyledTextarea,
-  PrimaryButton,
-  OutlinedButton,
-  SecondaryButton,
-  Card,
-  CardHeader,
-  CardBody,
-  GridContainer,
-  FlexBox
-} from '../UniversalMasterSchedule/ui';
+import { ErrorText } from '../UniversalMasterSchedule/ui';
 import { useNutritionPlan } from '../../hooks/useNutritionPlan';
 import apiService from '../../services/api.service';
-
-type MealDraft = {
-  name: string;
-  time: string;
-  items: string;
-};
-
-const defaultMeal: MealDraft = { name: '', time: '', items: '' };
+import {
+  buildNutritionPayload,
+  defaultMeal,
+  generateGroceryListText,
+  mapExistingPlanMeals,
+} from './NutritionPlanBuilder.logic';
+import {
+  BuilderHeader,
+  ClientSelectionCard,
+  GroceryListCard,
+  MealsCard,
+  NotesCard,
+  NutritionSubmitFooter,
+  PlanOverviewCard,
+} from './NutritionPlanBuilder.sections';
+import { PageWrapper } from './NutritionPlanBuilder.styles';
+import type { MealDraft } from './NutritionPlanBuilder.types';
 
 const NutritionPlanBuilder: React.FC = () => {
   const { clientId: clientIdParam } = useParams();
@@ -64,9 +52,7 @@ const NutritionPlanBuilder: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!existingPlan) {
-      return;
-    }
+    if (!existingPlan) return;
 
     setPlanName(existingPlan.name || '');
     setDailyCalories(existingPlan.dailyCalories ? String(existingPlan.dailyCalories) : '');
@@ -77,20 +63,9 @@ const NutritionPlanBuilder: React.FC = () => {
     setStartDate(existingPlan.startDate ? existingPlan.startDate.split('T')[0] : '');
     setEndDate(existingPlan.endDate ? existingPlan.endDate.split('T')[0] : '');
 
-    if (Array.isArray(existingPlan.meals) && existingPlan.meals.length > 0) {
-      const mappedMeals = existingPlan.meals.map((meal) => ({
-        name: meal.name || '',
-        time: meal.time || '',
-        items: Array.isArray(meal.foods)
-          ? meal.foods.map((food) => food.name).join('\n')
-          : ''
-      }));
-      setMeals(mappedMeals);
-    }
-
-    if (Array.isArray(existingPlan.groceryList)) {
-      setGroceryListText(existingPlan.groceryList.join('\n'));
-    }
+    const mappedMeals = mapExistingPlanMeals(existingPlan.meals);
+    if (mappedMeals.length > 0) setMeals(mappedMeals);
+    if (Array.isArray(existingPlan.groceryList)) setGroceryListText(existingPlan.groceryList.join('\n'));
   }, [existingPlan]);
 
   const handleAddMeal = () => {
@@ -109,26 +84,8 @@ const NutritionPlanBuilder: React.FC = () => {
     });
   };
 
-  const parseList = (value: string) => value
-    .split(/\r?\n|,/g)
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const buildMealsPayload = () => meals
-    .filter((meal) => meal.name.trim())
-    .map((meal) => ({
-      name: meal.name.trim(),
-      time: meal.time.trim(),
-      foods: parseList(meal.items).map((item) => ({
-        name: item,
-        portion: '1 serving'
-      }))
-    }));
-
   const handleGenerateGroceryList = () => {
-    const items = meals.flatMap((meal) => parseList(meal.items));
-    const uniqueItems = Array.from(new Set(items));
-    setGroceryListText(uniqueItems.join('\n'));
+    setGroceryListText(generateGroceryListText(meals));
   };
 
   const handleSubmit = async () => {
@@ -153,18 +110,18 @@ const NutritionPlanBuilder: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const payload = {
-        planName: planName.trim(),
-        dailyCalories: Number(dailyCalories),
-        proteinGrams: Number(proteinGrams) || 0,
-        carbsGrams: Number(carbsGrams) || 0,
-        fatGrams: Number(fatGrams) || 0,
-        mealsJson: buildMealsPayload(),
-        groceryListJson: parseList(groceryListText),
-        notes: notes.trim(),
-        startDate: startDate || new Date().toISOString().split('T')[0],
-        endDate: endDate || null
-      };
+      const payload = buildNutritionPayload({
+        carbsGrams,
+        dailyCalories,
+        endDate,
+        fatGrams,
+        groceryListText,
+        meals,
+        notes,
+        planName,
+        proteinGrams,
+        startDate,
+      });
 
       const response = await apiService.post(`/api/nutrition/${numericClientId}`, payload);
       const result = response.data;
@@ -186,266 +143,51 @@ const NutritionPlanBuilder: React.FC = () => {
 
   return (
     <PageWrapper>
-      <HeaderRow>
-        <div>
-          <PageTitle>Nutrition Plan Builder</PageTitle>
-          <BodyText secondary>
-            Create structured nutrition plans with macros, meals, and grocery lists.
-          </BodyText>
-        </div>
-      </HeaderRow>
-
-      <Card>
-        <CardHeader>
-          <SectionTitle>Client Selection</SectionTitle>
-        </CardHeader>
-        <CardBody>
-          <FormField>
-            <Label htmlFor="nutrition-client-id" required>Client ID</Label>
-            <StyledInput
-              id="nutrition-client-id"
-              type="number"
-              value={clientIdInput}
-              onChange={(event) => setClientIdInput(event.target.value)}
-              placeholder="Enter client user ID"
-              hasError={!numericClientId && clientIdInput.length > 0}
-            />
-            <HelperText>Use the numeric user ID from the client profile.</HelperText>
-          </FormField>
-          {loadError && <ErrorText>{loadError}</ErrorText>}
-          {isLoading && <SmallText secondary>Loading existing plan...</SmallText>}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <SectionTitle>Plan Overview</SectionTitle>
-        </CardHeader>
-        <CardBody>
-          <GridContainer columns={2} gap="1.5rem">
-            <FormField>
-              <Label htmlFor="plan-name" required>Plan Name</Label>
-              <StyledInput
-                id="plan-name"
-                value={planName}
-                onChange={(event) => setPlanName(event.target.value)}
-                placeholder="Custom Nutrition Plan"
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="daily-calories" required>Daily Calories</Label>
-              <StyledInput
-                id="daily-calories"
-                type="number"
-                min={0}
-                value={dailyCalories}
-                onChange={(event) => setDailyCalories(event.target.value)}
-                placeholder="2200"
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="protein-grams">Protein (g)</Label>
-              <StyledInput
-                id="protein-grams"
-                type="number"
-                min={0}
-                value={proteinGrams}
-                onChange={(event) => setProteinGrams(event.target.value)}
-                placeholder="150"
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="carbs-grams">Carbs (g)</Label>
-              <StyledInput
-                id="carbs-grams"
-                type="number"
-                min={0}
-                value={carbsGrams}
-                onChange={(event) => setCarbsGrams(event.target.value)}
-                placeholder="200"
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="fat-grams">Fat (g)</Label>
-              <StyledInput
-                id="fat-grams"
-                type="number"
-                min={0}
-                value={fatGrams}
-                onChange={(event) => setFatGrams(event.target.value)}
-                placeholder="70"
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="nutrition-start-date">Start Date</Label>
-              <StyledInput
-                id="nutrition-start-date"
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-              />
-            </FormField>
-            <FormField>
-              <Label htmlFor="nutrition-end-date">End Date</Label>
-              <StyledInput
-                id="nutrition-end-date"
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-              />
-            </FormField>
-          </GridContainer>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <SectionTitle>Meals</SectionTitle>
-          <SecondaryButton type="button" onClick={handleAddMeal}>
-            <Plus size={16} /> Add Meal
-          </SecondaryButton>
-        </CardHeader>
-        <CardBody>
-          {meals.map((meal, index) => (
-            <MealCard key={`meal-${index}`}>
-              <MealHeader>
-                <Subheading>Meal {index + 1}</Subheading>
-                <OutlinedButton type="button" onClick={() => handleRemoveMeal(index)}>
-                  <Trash2 size={16} /> Remove
-                </OutlinedButton>
-              </MealHeader>
-              <GridContainer columns={2} gap="1rem">
-                <FormField>
-                  <Label htmlFor={`meal-name-${index}`}>Meal Name</Label>
-                  <StyledInput
-                    id={`meal-name-${index}`}
-                    value={meal.name}
-                    onChange={(event) => handleMealChange(index, 'name', event.target.value)}
-                    placeholder="Breakfast"
-                  />
-                </FormField>
-                <FormField>
-                  <Label htmlFor={`meal-time-${index}`}>Time</Label>
-                  <StyledInput
-                    id={`meal-time-${index}`}
-                    value={meal.time}
-                    onChange={(event) => handleMealChange(index, 'time', event.target.value)}
-                    placeholder="7:00 AM"
-                  />
-                </FormField>
-              </GridContainer>
-              <FormField>
-                <Label htmlFor={`meal-items-${index}`}>Ingredients</Label>
-                <StyledTextarea
-                  id={`meal-items-${index}`}
-                  value={meal.items}
-                  onChange={(event) => handleMealChange(index, 'items', event.target.value)}
-                  placeholder="Oats, blueberries, almond butter"
-                  rows={3}
-                />
-                <HelperText>Separate ingredients with commas or new lines.</HelperText>
-              </FormField>
-            </MealCard>
-          ))}
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <SectionTitle>Grocery List</SectionTitle>
-          <SecondaryButton type="button" onClick={handleGenerateGroceryList}>
-            <Sparkles size={16} /> Generate from Meals
-          </SecondaryButton>
-        </CardHeader>
-        <CardBody>
-          <FormField>
-            <Label htmlFor="grocery-list">Grocery List</Label>
-            <StyledTextarea
-              id="grocery-list"
-              value={groceryListText}
-              onChange={(event) => setGroceryListText(event.target.value)}
-              placeholder="List each item on a new line"
-              rows={6}
-            />
-          </FormField>
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <SectionTitle>Notes</SectionTitle>
-        </CardHeader>
-        <CardBody>
-          <FormField>
-            <Label htmlFor="nutrition-notes">Plan Notes</Label>
-            <StyledTextarea
-              id="nutrition-notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Add client-specific guidance, compliance tips, or nutrition coaching notes."
-              rows={4}
-            />
-          </FormField>
-        </CardBody>
-      </Card>
+      <BuilderHeader />
+      <ClientSelectionCard
+        clientIdInput={clientIdInput}
+        isLoading={isLoading}
+        loadError={loadError}
+        numericClientId={numericClientId}
+        onClientIdChange={setClientIdInput}
+      />
+      <PlanOverviewCard
+        carbsGrams={carbsGrams}
+        dailyCalories={dailyCalories}
+        endDate={endDate}
+        fatGrams={fatGrams}
+        planName={planName}
+        proteinGrams={proteinGrams}
+        setCarbsGrams={setCarbsGrams}
+        setDailyCalories={setDailyCalories}
+        setEndDate={setEndDate}
+        setFatGrams={setFatGrams}
+        setPlanName={setPlanName}
+        setProteinGrams={setProteinGrams}
+        setStartDate={setStartDate}
+        startDate={startDate}
+      />
+      <MealsCard
+        meals={meals}
+        onAddMeal={handleAddMeal}
+        onMealChange={handleMealChange}
+        onRemoveMeal={handleRemoveMeal}
+      />
+      <GroceryListCard
+        groceryListText={groceryListText}
+        onGenerate={handleGenerateGroceryList}
+        onGroceryListChange={setGroceryListText}
+      />
+      <NotesCard notes={notes} onNotesChange={setNotes} />
 
       {formError && <ErrorText>{formError}</ErrorText>}
-      {successMessage && <SuccessText>{successMessage}</SuccessText>}
-
-      <ActionRow>
-        <PrimaryButton type="button" onClick={handleSubmit} disabled={isSubmitting}>
-          <Save size={16} />
-          {isSubmitting ? 'Saving...' : 'Save Nutrition Plan'}
-        </PrimaryButton>
-      </ActionRow>
+      <NutritionSubmitFooter
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        successMessage={successMessage}
+      />
     </PageWrapper>
   );
 };
 
 export default NutritionPlanBuilder;
-
-const PageWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  flex-wrap: wrap;
-`;
-
-const Subheading = styled.h4`
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-`;
-
-const MealCard = styled(Card)`
-  padding: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const MealHeader = styled(FlexBox)`
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  gap: 0.75rem;
-`;
-
-const ActionRow = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 1rem;
-`;
-
-const SuccessText = styled.span`
-  display: block;
-  font-size: 0.875rem;
-  color: #10b981;
-`;
