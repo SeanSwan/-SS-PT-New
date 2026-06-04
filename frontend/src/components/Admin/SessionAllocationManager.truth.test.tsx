@@ -147,17 +147,50 @@ describe('SessionAllocationManager active admin contract', () => {
   });
 
   it('keeps source guards against stale direct auth fetches on the active surface', () => {
-    expect(source).toContain("import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';");
-    expect(source).toContain('clientSource?: string;');
-    expect(source).toContain("clientSource: client.clientSource || 'swanstudios'");
-    expect(source).toContain('const sessionSignal = getClientSessionSignal(client);');
-    expect(source).toContain('const isFreeTrackingClient = isNonDeductingClientSource(client.clientSource);');
-    expect(source).not.toContain('totalAvailableSessions: clients.reduce((sum, client) => sum + client.availableSessions, 0)');
-    expect(source).not.toContain('clientsNeedingSessions: clients.filter(client => client.availableSessions === 0).length');
-    expect(source).toContain('sessionService.getUserSessionSummary(client.id)');
-    expect(source).toContain('sessionService.addSessionsToClient(');
-    expect(source).not.toContain("localStorage.getItem('token')");
-    expect(source).not.toContain('fetch(`/api/sessions/user-summary/${client.id}`');
-    expect(source).not.toContain("fetch('/api/sessions/add-to-user'");
+    const controllerSource = readFileSync(resolve(__dirname, './SessionAllocationManager.controller.ts'), 'utf8');
+    const logicSource = readFileSync(resolve(__dirname, './SessionAllocationManager.logic.ts'), 'utf8');
+    const tableSource = readFileSync(resolve(__dirname, './SessionAllocationManager.ClientsTable.tsx'), 'utf8');
+    const typesSource = readFileSync(resolve(__dirname, './SessionAllocationManager.types.ts'), 'utf8');
+    const combinedSource = [source, controllerSource, logicSource, tableSource, typesSource].join('\n');
+
+    expect(logicSource).toContain("import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';");
+    expect(typesSource).toContain('clientSource?: string;');
+    expect(logicSource).toContain("clientSource: client.clientSource || 'swanstudios'");
+    expect(logicSource).toContain('const sessionSignal = getClientSessionSignal(client);');
+    expect(tableSource).toContain('const isFreeTrackingClient = isNonDeductingClientSource(client.clientSource);');
+    expect(combinedSource).not.toContain('totalAvailableSessions: clients.reduce((sum, client) => sum + client.availableSessions, 0)');
+    expect(combinedSource).not.toContain('clientsNeedingSessions: clients.filter(client => client.availableSessions === 0).length');
+    expect(controllerSource).toContain('sessionService.getUserSessionSummary(client.id)');
+    expect(controllerSource).toContain('sessionService.addSessionsToClient(');
+    expect(combinedSource).not.toContain("localStorage.getItem('token')");
+    expect(combinedSource).not.toContain('fetch(`/api/sessions/user-summary/${client.id}`');
+    expect(combinedSource).not.toContain("fetch('/api/sessions/add-to-user'");
+  });
+
+  it('keeps the mounted admin allocation manager split below project file caps', () => {
+    const extractedFiles = [
+      'SessionAllocationManager.types.ts',
+      'SessionAllocationManager.logic.ts',
+      'SessionAllocationManager.controller.ts',
+      'SessionAllocationManager.layoutStyles.ts',
+      'SessionAllocationManager.tableStyles.ts',
+      'SessionAllocationManager.modalStyles.ts',
+      'SessionAllocationManager.StatsGrid.tsx',
+      'SessionAllocationManager.ClientsTable.tsx',
+      'SessionAllocationManager.AddSessionsModal.tsx',
+    ];
+
+    expect(source).toContain("from './SessionAllocationManager.controller'");
+    expect(source).toContain("from './SessionAllocationManager.StatsGrid'");
+    expect(source).toContain("from './SessionAllocationManager.ClientsTable'");
+    expect(source).toContain("from './SessionAllocationManager.AddSessionsModal'");
+    expect(source).not.toContain("import styled");
+    expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+
+    extractedFiles.forEach((fileName) => {
+      const fileSource = readFileSync(resolve(__dirname, `./${fileName}`), 'utf8');
+      expect(fileSource).toContain('export ');
+      expect(fileSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+    });
   });
 });
