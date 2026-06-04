@@ -31,9 +31,12 @@ describe('EnhancedClientProgressView list identity locks', () => {
 
   it('does not key comparison insight rows by array index', () => {
     const source = readSource('./Analytics/ComparisonAnalytics.tsx');
+    const viewSource = readSource('./Analytics/ComparisonAnalyticsView.tsx');
+    const logicSource = readSource('./Analytics/ComparisonAnalytics.logic.ts');
+    const combinedSource = [source, viewSource, logicSource].join('\n');
 
-    expect(source).not.toMatch(/key=\{index\}/);
-    expect(source).toContain('comparisonInsightKey');
+    expect(combinedSource).not.toMatch(/key=\{index\}/);
+    expect(combinedSource).toContain('comparisonInsightKey');
   });
 
   it('does not key injury assessment dynamic rows by array index', () => {
