@@ -5,7 +5,26 @@
  */
 
 import styled, { css } from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+
+const SCHEDULE_BUTTON_THEME = {
+  focus: 'var(--accent-primary, #60C0F0)',
+  tapHighlight: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)',
+  primaryGradient: 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0))',
+  primaryText: 'var(--text-primary, #E0ECF4)',
+  textPrimary: 'var(--text-primary, #E0ECF4)',
+  subtleBackground: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent)',
+  subtleHoverBackground: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent)',
+  subtleActiveBackground: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent)',
+  subtleBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 14%, transparent)',
+  subtleHoverBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 28%, transparent)',
+  primaryGlow: 'var(--shadow-glow-primary, 0 0 18px color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent))',
+  danger: 'var(--danger, #EF4444)',
+  dangerHover: 'var(--danger-hover, #DC2626)',
+  dangerShadow: 'var(--shadow-danger, 0 4px 12px color-mix(in srgb, var(--danger, #EF4444) 32%, transparent))',
+  success: 'var(--success, #10B981)',
+  successHover: 'var(--success-hover, #059669)',
+  successShadow: 'var(--shadow-success, 0 4px 12px color-mix(in srgb, var(--success, #10B981) 32%, transparent))',
+} as const;
 
 // Base button styles
 const baseButtonStyles = css`
@@ -28,12 +47,12 @@ const baseButtonStyles = css`
   min-width: 44px;
 
   /* P1-4: Mobile touch feedback */
-  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+  -webkit-tap-highlight-color: ${SCHEDULE_BUTTON_THEME.tapHighlight};
   touch-action: manipulation; /* Remove 300ms tap delay */
 
   /* Accessibility: Clear focus indicator */
   &:focus-visible {
-    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline: 2px solid ${SCHEDULE_BUTTON_THEME.focus};
     outline-offset: 2px;
   }
 
@@ -53,13 +72,13 @@ const baseButtonStyles = css`
 // Primary button (filled)
 export const PrimaryButton = styled.button`
   ${baseButtonStyles}
-  background: ${galaxySwanTheme.gradients.primaryCosmic};
-  color: ${galaxySwanTheme.text.primary};
+  background: ${SCHEDULE_BUTTON_THEME.primaryGradient};
+  color: ${SCHEDULE_BUTTON_THEME.primaryText};
 
   &:hover:not(:disabled) {
     filter: brightness(1.1);
     transform: translateY(-1px);
-    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+    box-shadow: ${SCHEDULE_BUTTON_THEME.primaryGlow};
   }
   
   &:active:not(:disabled) {
@@ -71,29 +90,29 @@ export const PrimaryButton = styled.button`
 export const OutlinedButton = styled.button`
   ${baseButtonStyles}
   background: transparent;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: ${SCHEDULE_BUTTON_THEME.textPrimary};
+  border: 1px solid ${SCHEDULE_BUTTON_THEME.subtleHoverBorder};
   
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: ${SCHEDULE_BUTTON_THEME.subtleBackground};
+    border-color: ${SCHEDULE_BUTTON_THEME.focus};
   }
   
   &:active:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
+    background: ${SCHEDULE_BUTTON_THEME.subtleActiveBackground};
   }
 `;
 
 // Secondary button (subtle)
 export const SecondaryButton = styled.button`
   ${baseButtonStyles}
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${SCHEDULE_BUTTON_THEME.subtleBackground};
+  color: ${SCHEDULE_BUTTON_THEME.textPrimary};
+  border: 1px solid ${SCHEDULE_BUTTON_THEME.subtleBorder};
   
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: ${SCHEDULE_BUTTON_THEME.subtleHoverBackground};
+    border-color: ${SCHEDULE_BUTTON_THEME.subtleHoverBorder};
   }
 `;
 
@@ -104,21 +123,21 @@ export const IconButton = styled.button<{
 }>`
   ${baseButtonStyles}
   background: transparent;
-  color: #ffffff;
+  color: ${SCHEDULE_BUTTON_THEME.textPrimary};
   padding: ${props => 
     props.size === 'small' ? '0.375rem' :
     props.size === 'large' ? '0.75rem' :
     '0.5rem'
   };
   border-radius: 50%;
-  min-width: auto;
+  min-width: 44px;
   
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
+    background: ${SCHEDULE_BUTTON_THEME.subtleHoverBackground};
   }
   
   &:active:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
+    background: ${SCHEDULE_BUTTON_THEME.subtleActiveBackground};
   }
   
   /* Ensure icon is centered */
@@ -130,26 +149,26 @@ export const IconButton = styled.button<{
 // Danger button
 export const DangerButton = styled.button`
   ${baseButtonStyles}
-  background: #ef4444;
-  color: #ffffff;
+  background: ${SCHEDULE_BUTTON_THEME.danger};
+  color: ${SCHEDULE_BUTTON_THEME.textPrimary};
   
   &:hover:not(:disabled) {
-    background: #dc2626;
+    background: ${SCHEDULE_BUTTON_THEME.dangerHover};
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: ${SCHEDULE_BUTTON_THEME.dangerShadow};
   }
 `;
 
 // Success button
 export const SuccessButton = styled.button`
   ${baseButtonStyles}
-  background: #10b981;
-  color: #ffffff;
+  background: ${SCHEDULE_BUTTON_THEME.success};
+  color: ${SCHEDULE_BUTTON_THEME.textPrimary};
   
   &:hover:not(:disabled) {
-    background: #059669;
+    background: ${SCHEDULE_BUTTON_THEME.successHover};
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: ${SCHEDULE_BUTTON_THEME.successShadow};
   }
 `;
 
