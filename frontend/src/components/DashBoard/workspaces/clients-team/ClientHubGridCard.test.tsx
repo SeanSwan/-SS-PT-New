@@ -101,6 +101,31 @@ describe('ClientHubGridCard', () => {
     expect(onSelect).toHaveBeenCalledWith(fixtureClient);
   });
 
+  it('offers one-tap daily actions without selecting the client first', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const onQuickAction = vi.fn();
+
+    render(
+      <ClientHubGridCard
+        client={fixtureClient}
+        onSelect={onSelect}
+        onQuickAction={onQuickAction}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /log fixture client workout/i }));
+    await user.click(screen.getByRole('button', { name: /plan fixture client workout/i }));
+    await user.click(screen.getByRole('button', { name: /view fixture client progress/i }));
+    await user.click(screen.getByRole('button', { name: /open swan coach for fixture client/i }));
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onQuickAction).toHaveBeenNthCalledWith(1, fixtureClient, 'log');
+    expect(onQuickAction).toHaveBeenNthCalledWith(2, fixtureClient, 'plan');
+    expect(onQuickAction).toHaveBeenNthCalledWith(3, fixtureClient, 'progress');
+    expect(onQuickAction).toHaveBeenNthCalledWith(4, fixtureClient, 'coach');
+  });
+
   it('falls back to email identity when client names are not captured yet', () => {
     render(
       <ClientHubGridCard

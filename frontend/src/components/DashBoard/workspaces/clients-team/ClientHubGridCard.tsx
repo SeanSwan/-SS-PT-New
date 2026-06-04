@@ -19,16 +19,17 @@ import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
 import { getClientSourceLabel } from './clientSourceDisplay';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
+import ClientHubGridCardActions, { type ClientHubQuickAction } from './ClientHubGridCardActions';
 
 interface ClientHubGridCardProps {
   client: ClientOption;
   onSelect: (client: ClientOption) => void;
+  onQuickAction?: (client: ClientOption, action: ClientHubQuickAction) => void;
 }
 
-const CardButton = styled.button`
+const CardShell = styled.article`
   position: relative;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
   gap: 14px;
   min-height: 168px;
   padding: 16px;
@@ -44,7 +45,6 @@ const CardButton = styled.button`
       color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, var(--accent-secondary, #8B5CF6) 12%));
   color: var(--text-primary, #E0ECF4);
   text-align: left;
-  cursor: pointer;
   box-shadow: 0 16px 34px var(--shadow-ambient, rgba(0, 0, 0, 0.32));
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -68,13 +68,7 @@ const CardButton = styled.button`
     transform: translateX(120%);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 3px;
-  }
-
   @media (max-width: 430px) {
-    grid-template-columns: 48px minmax(0, 1fr);
     min-height: 156px;
     padding: 14px;
   }
@@ -89,6 +83,31 @@ const CardButton = styled.button`
     &::after {
       transition: none;
     }
+  }
+`;
+
+const CardButton = styled.button`
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 430px) {
+    grid-template-columns: 48px minmax(0, 1fr);
   }
 `;
 
@@ -217,7 +236,7 @@ const MetricNote = styled.span`
 const sourceLabel = (client: ClientOption) =>
   getClientSourceLabel(client.clientSource);
 
-const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect }) => {
+const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect, onQuickAction }) => {
   const fullName = getClientDisplayName(client);
   const experience = client.trainingExperience?.trim() || 'experience pending';
   const goal = client.fitnessGoal?.trim() || 'Goal not captured';
@@ -229,44 +248,52 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect 
     : onboardingPct >= 100 ? 'intake complete' : 'intake progress';
 
   return (
-    <CardButton type="button" onClick={() => onSelect(client)} aria-label={`Open ${fullName}`}>
-      <Avatar $source={client.clientSource}>{getClientInitials(client)}</Avatar>
-      <CardBody>
-        <TopLine>
-          <Name>{fullName}</Name>
-          <Pill>
-            <UserRound size={12} />
-            {sourceLabel(client)}
-          </Pill>
-          <Pill>{experience}</Pill>
-        </TopLine>
-        <GoalLine>{goal}</GoalLine>
-        <MetricGrid>
-          <Metric>
-            <Dumbbell size={14} />
-            {client.workoutCount || 0} workouts
-          </Metric>
-          <Metric $tone={sessionSignal.tone}>
-            <Activity size={14} />
-            <MetricStack>
-              <span>{sessionSignal.label}</span>
-              <MetricNote>{sessionSignal.note}</MetricNote>
-            </MetricStack>
-          </Metric>
-          <Metric>
-            <Target size={14} />
-            {client.isActive === false ? 'inactive' : 'active'}
-          </Metric>
-          <Metric $tone={onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'}>
-            <ClipboardCheck size={14} />
-            <MetricStack>
-              <span>{onboardingLabel}</span>
-              <MetricNote>{onboardingNote}</MetricNote>
-            </MetricStack>
-          </Metric>
-        </MetricGrid>
-      </CardBody>
-    </CardButton>
+    <CardShell>
+      <CardButton type="button" onClick={() => onSelect(client)} aria-label={`Open ${fullName}`}>
+        <Avatar $source={client.clientSource}>{getClientInitials(client)}</Avatar>
+        <CardBody>
+          <TopLine>
+            <Name>{fullName}</Name>
+            <Pill>
+              <UserRound size={12} />
+              {sourceLabel(client)}
+            </Pill>
+            <Pill>{experience}</Pill>
+          </TopLine>
+          <GoalLine>{goal}</GoalLine>
+          <MetricGrid>
+            <Metric>
+              <Dumbbell size={14} />
+              {client.workoutCount || 0} workouts
+            </Metric>
+            <Metric $tone={sessionSignal.tone}>
+              <Activity size={14} />
+              <MetricStack>
+                <span>{sessionSignal.label}</span>
+                <MetricNote>{sessionSignal.note}</MetricNote>
+              </MetricStack>
+            </Metric>
+            <Metric>
+              <Target size={14} />
+              {client.isActive === false ? 'inactive' : 'active'}
+            </Metric>
+            <Metric $tone={onboardingPct !== undefined && onboardingPct < 100 ? 'warning' : 'default'}>
+              <ClipboardCheck size={14} />
+              <MetricStack>
+                <span>{onboardingLabel}</span>
+                <MetricNote>{onboardingNote}</MetricNote>
+              </MetricStack>
+            </Metric>
+          </MetricGrid>
+        </CardBody>
+      </CardButton>
+      {onQuickAction && (
+        <ClientHubGridCardActions
+          clientName={fullName}
+          onAction={(action) => onQuickAction(client, action)}
+        />
+      )}
+    </CardShell>
   );
 };
 

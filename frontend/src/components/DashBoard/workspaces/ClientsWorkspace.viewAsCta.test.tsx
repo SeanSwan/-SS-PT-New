@@ -233,6 +233,28 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     );
   });
 
+  it('opens the workout logger from a client grid quick action without selecting first', async () => {
+    const user = userEvent.setup();
+    renderWorkspace('/dashboard/admin/client-management');
+
+    await user.click(await screen.findByRole('button', { name: /log fixture client workout/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
+    );
+    expect(screen.queryByTestId('mock-client-detail-tab')).not.toBeInTheDocument();
+  });
+
+  it('opens the progress tab from a client grid quick action without extra clicks', async () => {
+    const user = userEvent.setup();
+    renderWorkspace('/dashboard/admin/client-management');
+
+    await user.click(await screen.findByRole('button', { name: /view fixture client progress/i }));
+
+    expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('progress');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('does not render the View As button when no client is selected', async () => {
     renderWorkspace('/dashboard/admin/client-management');
 

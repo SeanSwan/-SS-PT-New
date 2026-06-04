@@ -42,6 +42,8 @@ import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import { useClientAccountLifecycle } from './clients-team/useClientAccountLifecycle';
 import { useManualClientCreation } from './clients-team/useManualClientCreation';
 import ClientLifecycleConfirmDialog from './clients-team/ClientLifecycleConfirmDialog';
+import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
+import { buildClientCardQuickActionRoute } from './clients-team/clientCardQuickActions';
 
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
@@ -72,7 +74,6 @@ const ClientsWorkspace: React.FC = () => {
     navigate(route);
     return true;
   }, [navigate, toast]);
-
   const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {
     if (intent === 'log_workout') {
       return navigateClientDailyRoute(buildClientWorkoutLoggerRoute(client.id));
@@ -118,7 +119,6 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [authAxios]);
 
-  // Fetch all clients on mount
   useEffect(() => {
     const fetchClients = async () => {
       const mapped = await loadClients();
@@ -131,7 +131,6 @@ const ClientsWorkspace: React.FC = () => {
     };
     fetchClients();
   }, [loadClients, loadClientById]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const handleSelectClient = useCallback((client: ClientOption) => {
     if (runClientHubIntent(client, clientHubIntent)) return;
 
@@ -173,6 +172,14 @@ const ClientsWorkspace: React.FC = () => {
       navigate(`/dashboard/admin/client-management/view-as/${selectedClient.id}`);
     }
   }, [navigate, selectedClient]);
+
+  const handleClientCardQuickAction = useCallback((client: ClientOption, action: ClientHubQuickAction) => {
+    const route = buildClientCardQuickActionRoute(client.id, action);
+    if (route) return navigateClientDailyRoute(route);
+    setSelectedClient(client);
+    setDetailTab('progress');
+    setSearchParams({ clientId: String(client.id) });
+  }, [navigateClientDailyRoute, setSearchParams]);
 
   const {
     handleDeactivateClient,
@@ -280,7 +287,7 @@ const ClientsWorkspace: React.FC = () => {
         ) : (
           <CardGrid>
             {clients.map(c => (
-              <ClientHubGridCard key={c.id} client={c} onSelect={handleSelectClient} />
+              <ClientHubGridCard key={c.id} client={c} onSelect={handleSelectClient} onQuickAction={handleClientCardQuickAction} />
             ))}
           </CardGrid>
         )}
