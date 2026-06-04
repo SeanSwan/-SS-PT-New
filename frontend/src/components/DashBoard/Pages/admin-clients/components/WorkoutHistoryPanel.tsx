@@ -59,6 +59,10 @@ import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
 import { buildWorkoutHistoryExerciseTableState } from './workoutHistoryExerciseTableState';
 import {
+  buildPersonalRecordShareSession,
+  buildWorkoutHistoryShareModalState,
+} from './workoutHistorySharing';
+import {
   appendWorkoutEditRow,
   removeWorkoutEditRow,
   updateWorkoutEditField,
@@ -698,6 +702,10 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     () => sortPersonalRecords(data?.personalRecords ?? []),
     [data?.personalRecords],
   );
+  const shareModalState = useMemo(
+    () => buildWorkoutHistoryShareModalState(clientName, shareSession),
+    [clientName, shareSession],
+  );
 
   const toggleSession = (id: string) => {
     // Collapsing a session mid-edit discards the edit — matches the old
@@ -1307,18 +1315,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                       <ShareIconBtn
                         type="button"
                         aria-label={`Share ${pr.exercise} personal record`}
-                        onClick={() => setShareSession({
-                          id: `pr-${pr.exercise}`,
-                          title: pr.exercise,
-                          date: pr.date,
-                          duration: 0,
-                          intensity: 0,
-                          status: 'completed',
-                          totalSets: 0,
-                          totalReps: pr.reps,
-                          totalWeight: pr.weight,
-                          logs: [],
-                        } as WorkoutSession)}>
+                        onClick={() => setShareSession(buildPersonalRecordShareSession(pr))}>
                         <Share2 size={12} /> Share
                       </ShareIconBtn>
                     </PRActionRow>
@@ -1335,14 +1332,9 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       <ShareToFeedModal
         open={!!shareSession}
         onClose={() => setShareSession(null)}
-        postType={shareSession?.id.startsWith('pr-') ? 'achievement' : 'workout'}
-        workoutSessionId={shareSession && !shareSession.id.startsWith('pr-') ? shareSession.id : undefined}
-        prefilledContent={shareSession
-          ? shareSession.id.startsWith('pr-')
-            ? `New Personal Record! ${clientName} hit ${shareSession.totalWeight} lbs x ${shareSession.totalReps} reps on ${shareSession.title}!`
-            : `${clientName} crushed a ${shareSession.title} workout! ${shareSession.logs.length} exercises, ${Math.round(shareSession.totalWeight).toLocaleString()} lbs total volume.`
-          : ''
-        }
+        postType={shareModalState.postType}
+        workoutSessionId={shareModalState.workoutSessionId}
+        prefilledContent={shareModalState.prefilledContent}
       />
     </>
   );
