@@ -12,12 +12,26 @@
  *
  * ARIA: role="combobox", aria-expanded, aria-activedescendant
  * Touch targets: 44px minimum on all interactive elements
- * Theme: Crystalline Swan (#002060 background, #00CED1 cyan accents, glass borders)
+ * Theme: Crystalline Swan CSS variables with dark-first fallbacks
  */
 
 import React, { useState, useRef, useEffect, useCallback, useId, useMemo } from 'react';
-import styled from 'styled-components';
 import { Search, ChevronDown, X } from 'lucide-react';
+import {
+  ChevronIcon,
+  ClearButton,
+  Container,
+  Dropdown,
+  InputWrapper,
+  Label,
+  Listbox,
+  NoResults,
+  Option,
+  OptionLabel,
+  OptionSubLabel,
+  SearchIcon,
+  StyledInput,
+} from './SearchableSelect.styles';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -281,192 +295,3 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 };
 
 export default SearchableSelect;
-
-// ─── Styled Components — Crystalline Swan Theme ───────────────────────────────────
-
-const Container = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #cbd5e1;
-  margin-bottom: 6px;
-`;
-
-const InputWrapper = styled.div<{ $isOpen: boolean; $disabled: boolean }>`
-  display: flex;
-  align-items: center;
-  background: rgba(0, 32, 96, 0.8);
-  border: 1px solid ${({ $isOpen }) => ($isOpen ? 'rgba(0, 206, 209, 0.6)' : 'rgba(0, 206, 209, 0.3)')};
-  border-radius: 12px;
-  min-height: 44px;
-  padding: 0 12px;
-  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
-  transition: border-color 200ms ease, box-shadow 200ms ease;
-
-  &:hover {
-    border-color: ${({ $disabled }) => ($disabled ? 'rgba(0, 206, 209, 0.3)' : 'rgba(0, 206, 209, 0.5)')};
-  }
-
-  ${({ $isOpen }) =>
-    $isOpen &&
-    `
-    box-shadow: 0 0 0 3px rgba(0, 206, 209, 0.15);
-  `}
-`;
-
-const SearchIcon = styled.span<{ $disabled: boolean }>`
-  display: flex;
-  align-items: center;
-  color: ${({ $disabled }) => ($disabled ? '#475569' : '#00CED1')};
-  flex-shrink: 0;
-  margin-right: 8px;
-`;
-
-const StyledInput = styled.input`
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  font-family: inherit;
-  padding: 10px 0;
-  min-width: 0;
-
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-  }
-`;
-
-const ClearButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  min-width: 44px;
-  min-height: 44px;
-  flex-shrink: 0;
-  transition: color 150ms ease, background 150ms ease;
-
-  &:hover {
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  &:focus-visible {
-    outline: 2px solid #00CED1;
-    outline-offset: 2px;
-  }
-`;
-
-const ChevronIcon = styled.span<{ $isOpen: boolean; $disabled: boolean }>`
-  display: flex;
-  align-items: center;
-  color: ${({ $disabled }) => ($disabled ? '#475569' : '#94a3b8')};
-  flex-shrink: 0;
-  margin-left: 4px;
-  transition: transform 200ms ease;
-  transform: ${({ $isOpen }) => ($isOpen ? 'rotate(180deg)' : 'rotate(0)')};
-`;
-
-const Dropdown = styled.div`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: rgba(0, 32, 96, 0.95);
-  border: 1px solid rgba(0, 206, 209, 0.3);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-`;
-
-const Listbox = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-  max-height: 240px;
-  overflow-y: auto;
-
-  /* Scrollbar styling */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, 0.4);
-    border-radius: 3px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.5);
-  }
-`;
-
-const Option = styled.li<{ $highlighted: boolean; $selected: boolean }>`
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  min-height: 44px;
-  cursor: pointer;
-  transition: background 100ms ease;
-  border-left: 3px solid transparent;
-
-  ${({ $highlighted }) =>
-    $highlighted &&
-    `
-    background: rgba(0, 206, 209, 0.15);
-    border-left: 3px solid #00CED1;
-  `}
-
-  ${({ $selected, $highlighted }) =>
-    $selected &&
-    !$highlighted &&
-    `
-    background: rgba(0, 206, 209, 0.08);
-  `}
-
-  &:hover {
-    background: rgba(0, 206, 209, 0.1);
-  }
-`;
-
-const OptionLabel = styled.span`
-  color: #e2e8f0;
-  font-size: 0.9rem;
-`;
-
-const OptionSubLabel = styled.span`
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 0.85rem;
-  margin-left: 8px;
-`;
-
-const NoResults = styled.li`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  min-height: 44px;
-  color: #94a3b8;
-  font-size: 0.85rem;
-  font-style: italic;
-`;
