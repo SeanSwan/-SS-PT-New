@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { APPLY_PAYMENT_THEME, translucent } from './ApplyPaymentModal.theme';
 import { BodyText, Caption, FormField } from './ui';
 
 export const LastPackageBanner = styled.div`
@@ -7,8 +8,8 @@ export const LastPackageBanner = styled.div`
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 12)};
+  border: 1px solid ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 30)};
   margin-bottom: 0.75rem;
 `;
 
@@ -33,15 +34,18 @@ export const PackageCard = styled.button<{ $selected: boolean; $isLast?: boolean
   flex-direction: column;
   gap: 0.25rem;
 
-  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
+  background: ${({ $selected }) =>
+    $selected
+      ? translucent(APPLY_PAYMENT_THEME.accentSecondary, 15)
+      : translucent(APPLY_PAYMENT_THEME.textPrimary, 4)};
   border: 2px solid ${({ $selected, $isLast }) =>
-    $selected ? '#60C0F0'
-    : $isLast ? 'rgba(139, 92, 246, 0.5)'
-    : 'rgba(255, 255, 255, 0.08)'};
+    $selected ? APPLY_PAYMENT_THEME.accentPrimary
+    : $isLast ? translucent(APPLY_PAYMENT_THEME.accentSecondary, 50)
+    : translucent(APPLY_PAYMENT_THEME.textPrimary, 8)};
 
   &:hover {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.4);
+    background: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 10)};
+    border-color: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 40)};
   }
 `;
 
@@ -50,7 +54,7 @@ export const SpacedFormField = styled(FormField)`
 `;
 
 export const ValidationCaption = styled(Caption)`
-  color: #ef4444;
+  color: ${APPLY_PAYMENT_THEME.danger};
   margin-top: 0.25rem;
 `;
 
@@ -68,26 +72,26 @@ export const LastBadge = styled.span`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(139, 92, 246, 0.8);
-  color: white;
+  background: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 80)};
+  color: ${APPLY_PAYMENT_THEME.textPrimary};
 `;
 
 export const PackageName = styled.div`
   font-weight: 600;
   font-size: 0.85rem;
-  color: white;
+  color: ${APPLY_PAYMENT_THEME.textPrimary};
 `;
 
 export const PackageSessions = styled.div`
   font-size: 1.1rem;
   font-weight: 700;
-  color: #60C0F0;
+  color: ${APPLY_PAYMENT_THEME.accentPrimary};
 `;
 
 export const PackagePrice = styled.div`
   font-size: 0.9rem;
   font-weight: 600;
-  color: #10b981;
+  color: ${APPLY_PAYMENT_THEME.success};
 `;
 
 export const PaymentMethodGrid = styled.div`
@@ -105,13 +109,22 @@ export const PaymentMethodButton = styled.button<{ $selected: boolean }>`
   font-size: 0.85rem;
   white-space: nowrap;
   transition: all 150ms ease;
-  border: 2px solid ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.15)'};
-  background: ${({ $selected }) => $selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.04)'};
-  color: ${({ $selected }) => $selected ? '#60C0F0' : 'rgba(255, 255, 255, 0.7)'};
+  border: 2px solid ${({ $selected }) =>
+    $selected
+      ? APPLY_PAYMENT_THEME.accentPrimary
+      : translucent(APPLY_PAYMENT_THEME.textPrimary, 15)};
+  background: ${({ $selected }) =>
+    $selected
+      ? translucent(APPLY_PAYMENT_THEME.accentSecondary, 15)
+      : translucent(APPLY_PAYMENT_THEME.textPrimary, 4)};
+  color: ${({ $selected }) =>
+    $selected
+      ? APPLY_PAYMENT_THEME.accentPrimary
+      : translucent(APPLY_PAYMENT_THEME.textPrimary, 70)};
 
   &:hover {
-    border-color: rgba(139, 92, 246, 0.4);
-    background: rgba(139, 92, 246, 0.08);
+    border-color: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 40)};
+    background: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 8)};
   }
 
   @media (max-width: 375px) {
@@ -124,8 +137,8 @@ export const SummaryCard = styled.div`
   margin-top: 1rem;
   padding: 1rem;
   border-radius: 10px;
-  background: rgba(139, 92, 246, 0.06);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background: ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 6)};
+  border: 1px solid ${translucent(APPLY_PAYMENT_THEME.accentSecondary, 20)};
 `;
 
 export const SummaryRow = styled.div`
@@ -135,7 +148,7 @@ export const SummaryRow = styled.div`
   padding: 0.35rem 0;
 
   & + & {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid ${translucent(APPLY_PAYMENT_THEME.textPrimary, 6)};
   }
 `;
 
@@ -144,6 +157,6 @@ export const CapitalizedBodyText = styled(BodyText)`
 `;
 
 export const PositiveBodyText = styled(BodyText)`
-  color: #00FF88;
+  color: ${APPLY_PAYMENT_THEME.success};
   font-weight: 700;
 `;
