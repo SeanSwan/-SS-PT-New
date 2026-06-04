@@ -40,33 +40,39 @@ describe('ApplyPaymentModal auth pipeline', () => {
 
   it('keeps payment and deduction calls on apiService without breaking duplicate-payment 409 handling', () => {
     const modalSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.tsx');
+    const apiSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.api.ts');
+    const controllerSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.controller.ts');
+    const combinedPaymentSource = [modalSource, apiSource, controllerSource].join('\n');
 
-    expect(modalSource).toContain("import apiService from '../../services/api.service';");
-    expect(modalSource).toContain("apiService.get('/api/sessions/deductions/clients-needing-payment')");
-    expect(modalSource).toContain("apiService.get('/api/storefront')");
-    expect(modalSource).toContain("apiService.get(`/api/sessions/deductions/client-last-package/${clientId}`)");
-    expect(modalSource).toContain("apiService.get(`/api/admin/charge-card/payment-methods/${clientId}`)");
-    expect(modalSource).toContain("apiService.post('/api/sessions/deductions/apply-payment', {");
-    expect(modalSource).toContain("apiService.post('/api/sessions/deductions/apply-package-payment', payload, {");
-    expect(modalSource).toContain("apiService.post('/api/admin/charge-card/charge', payload, {");
-    expect(modalSource).toContain("apiService.post('/api/admin/charge-card/test-card', {");
-    expect(modalSource).toContain("apiService.post('/api/sessions/deductions/process')");
-    expect(modalSource).toContain('validateStatus: (status) => status < 500');
+    expect(apiSource).toContain("import apiService from '../../services/api.service';");
+    expect(apiSource).toContain("apiService.get('/api/sessions/deductions/clients-needing-payment')");
+    expect(apiSource).toContain("apiService.get('/api/storefront')");
+    expect(apiSource).toContain("apiService.get(`/api/sessions/deductions/client-last-package/${clientId}`)");
+    expect(apiSource).toContain("apiService.get(`/api/admin/charge-card/payment-methods/${clientId}`)");
+    expect(apiSource).toContain("apiService.post('/api/sessions/deductions/apply-payment', {");
+    expect(apiSource).toContain("apiService.post('/api/sessions/deductions/apply-package-payment', payload, {");
+    expect(apiSource).toContain("apiService.post('/api/admin/charge-card/charge', payload, {");
+    expect(apiSource).toContain("apiService.post('/api/admin/charge-card/test-card', {");
+    expect(apiSource).toContain("apiService.post('/api/sessions/deductions/process')");
+    expect(apiSource).toContain('validateStatus: (status) => status < 500');
+    expect(controllerSource).toContain('response.status === 409');
 
-    expect(modalSource).not.toContain("localStorage.getItem('token')");
-    expect(modalSource).not.toContain('Authorization');
-    expect(modalSource).not.toContain('fetch(');
+    expect(combinedPaymentSource).not.toContain("localStorage.getItem('token')");
+    expect(combinedPaymentSource).not.toContain('Authorization');
+    expect(combinedPaymentSource).not.toContain('fetch(');
   });
 
   it('defensively filters non-deducting client sources out of payment recovery UI', () => {
-    const modalSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.tsx');
+    const apiSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.api.ts');
+    const controllerSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.controller.ts');
+    const typesSource = readSource('frontend/src/components/UniversalMasterSchedule/ApplyPaymentModal.types.ts');
     const deductionServiceSource = readSource('backend/services/sessionDeductionService.mjs');
 
     expect(deductionServiceSource).toContain('clientSource: { [Op.notIn]: Array.from(NON_DEDUCTING_CLIENT_SOURCES) }');
-    expect(modalSource).toContain('clientSource?: string;');
-    expect(modalSource).toContain('isNonDeductingClientSource');
-    expect(modalSource).toContain('const paymentEligibleClients = (result.data || []).filter');
-    expect(modalSource).toContain('!isNonDeductingClientSource(client.clientSource)');
-    expect(modalSource).toContain('setClients(paymentEligibleClients);');
+    expect(typesSource).toContain('clientSource?: string;');
+    expect(apiSource).toContain('isNonDeductingClientSource');
+    expect(apiSource).toContain('return (result.data || []).filter');
+    expect(apiSource).toContain('!isNonDeductingClientSource(client.clientSource)');
+    expect(controllerSource).toContain('setClients(await fetchPaymentRecoveryClients())');
   });
 });
