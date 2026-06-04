@@ -4,17 +4,32 @@
  * Accessible form input components with proper label associations
  */
 
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { Label, ErrorText, HelperText } from './Typography';
 
+export const SCHEDULE_INPUT_THEME = {
+  surface: 'var(--input-bg, rgba(224, 236, 244, 0.05))',
+  surfaceHover: 'var(--input-bg-hover, rgba(224, 236, 244, 0.08))',
+  surfaceFocus: 'var(--input-bg-focus, rgba(224, 236, 244, 0.10))',
+  border: 'var(--input-border, rgba(96, 192, 240, 0.20))',
+  borderHover: 'var(--input-border-hover, rgba(96, 192, 240, 0.30))',
+  accent: 'var(--accent-primary, #60C0F0)',
+  accentSoft: 'var(--input-focus-ring, rgba(96, 192, 240, 0.16))',
+  danger: 'var(--danger, #EF4444)',
+  dangerSoft: 'var(--danger-ring, rgba(239, 68, 68, 0.14))',
+  textPrimary: 'var(--text-primary, #E0ECF4)',
+  textSecondary: 'var(--text-secondary, rgba(224, 236, 244, 0.72))',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.50))',
+} as const;
+
 // Base input styles - P1-3 Fix: 16px font-size on mobile prevents iOS auto-zoom
-const baseInputStyles = `
+const baseInputStyles = css`
   width: 100%;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: ${SCHEDULE_INPUT_THEME.surface};
+  border: 1px solid ${SCHEDULE_INPUT_THEME.border};
   border-radius: 6px;
-  color: #ffffff;
+  color: ${SCHEDULE_INPUT_THEME.textPrimary};
   font-size: 1rem; /* P1-3: 16px minimum prevents iOS auto-zoom */
   font-family: inherit;
   transition: all 0.2s ease;
@@ -22,18 +37,18 @@ const baseInputStyles = `
   min-height: 44px; /* P1-2: WCAG touch target */
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: ${SCHEDULE_INPUT_THEME.textMuted};
   }
 
   &:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: ${SCHEDULE_INPUT_THEME.borderHover};
+    background: ${SCHEDULE_INPUT_THEME.surfaceHover};
   }
 
   &:focus {
-    border-color: #3b82f6;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: ${SCHEDULE_INPUT_THEME.accent};
+    background: ${SCHEDULE_INPUT_THEME.surfaceFocus};
+    box-shadow: 0 0 0 3px ${SCHEDULE_INPUT_THEME.accentSoft};
   }
 
   &:disabled {
@@ -42,18 +57,20 @@ const baseInputStyles = `
   }
 `;
 
+const errorInputStyles = css`
+  border-color: ${SCHEDULE_INPUT_THEME.danger};
+
+  &:focus {
+    border-color: ${SCHEDULE_INPUT_THEME.danger};
+    box-shadow: 0 0 0 3px ${SCHEDULE_INPUT_THEME.dangerSoft};
+  }
+`;
+
 // Text input
 export const StyledInput = styled.input<{ hasError?: boolean }>`
   ${baseInputStyles}
-  
-  ${props => props.hasError && `
-    border-color: #ef4444;
-    
-    &:focus {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
-  `}
+
+  ${props => props.hasError && errorInputStyles}
 `;
 
 // Textarea
@@ -62,15 +79,8 @@ export const StyledTextarea = styled.textarea<{ hasError?: boolean }>`
   resize: vertical;
   min-height: 100px;
   font-family: inherit;
-  
-  ${props => props.hasError && `
-    border-color: #ef4444;
-    
-    &:focus {
-      border-color: #ef4444;
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-    }
-  `}
+
+  ${props => props.hasError && errorInputStyles}
 `;
 
 // Form field wrapper (groups label, input, error/helper text)
@@ -99,7 +109,7 @@ export const InputWithIcon = styled.div`
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(255, 255, 255, 0.5);
+    color: ${SCHEDULE_INPUT_THEME.textMuted};
     pointer-events: none;
   }
   
@@ -121,16 +131,16 @@ export const CheckboxWrapper = styled.label`
     width: 1.25rem;
     height: 1.25rem;
     cursor: pointer;
-    accent-color: #3b82f6;
+    accent-color: ${SCHEDULE_INPUT_THEME.accent};
     
     &:focus-visible {
-      outline: 2px solid #3b82f6;
+      outline: 2px solid ${SCHEDULE_INPUT_THEME.accent};
       outline-offset: 2px;
     }
   }
   
   span {
-    color: #e2e8f0;
+    color: ${SCHEDULE_INPUT_THEME.textPrimary};
     font-size: 0.875rem;
   }
 `;
@@ -160,16 +170,16 @@ export const NumberInput = styled.div`
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: ${SCHEDULE_INPUT_THEME.surface};
+    border: 1px solid ${SCHEDULE_INPUT_THEME.border};
     border-radius: 4px;
-    color: #ffffff;
+    color: ${SCHEDULE_INPUT_THEME.textPrimary};
     cursor: pointer;
     transition: all 0.2s ease;
     
     &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: ${SCHEDULE_INPUT_THEME.surfaceHover};
+      border-color: ${SCHEDULE_INPUT_THEME.borderHover};
     }
     
     &:disabled {
