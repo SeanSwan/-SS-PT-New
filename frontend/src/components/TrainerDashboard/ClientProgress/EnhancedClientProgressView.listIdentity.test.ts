@@ -27,6 +27,7 @@ describe('EnhancedClientProgressView list identity locks', () => {
     expect(viewSource).toContain('<EnhancedClientProgressViewShell');
     expect(shellSource).toContain('<ComparisonAnalytics');
     expect(shellSource).toContain('<InjuryRiskAssessment');
+    expect(shellSource).toContain('<GoalProgressTracker');
   });
 
   it('does not key comparison insight rows by array index', () => {
@@ -51,5 +52,16 @@ describe('EnhancedClientProgressView list identity locks', () => {
     expect(combinedSource).toContain('findingRowKey');
     expect(combinedSource).toContain('correctiveProtocolItemKey');
     expect(combinedSource).toContain('recommendationItemKey');
+  });
+
+  it('does not key goal tracker dynamic rows by array index', () => {
+    const listSource = readSource('./Analytics/GoalProgressTrackerGoalList.tsx');
+    const detailSource = readSource('./Analytics/GoalProgressTrackerGoalDetails.tsx');
+    const logicSource = readSource('./Analytics/GoalProgressTracker.logic.ts');
+    const combinedSource = [listSource, detailSource, logicSource].join('\n');
+
+    expect(combinedSource).not.toMatch(/key=\{index\}/);
+    expect(combinedSource).toContain('goalRowKey');
+    expect(combinedSource).toContain('milestoneKey');
   });
 });

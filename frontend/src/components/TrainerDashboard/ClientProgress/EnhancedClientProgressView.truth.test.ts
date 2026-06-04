@@ -28,6 +28,19 @@ const GOAL_TRACKER_SOURCE = readFileSync(
   resolve(__dirname, './Analytics/GoalProgressTracker.tsx'),
   'utf8',
 );
+const GOAL_TRACKER_LOGIC_SOURCE = readFileSync(
+  resolve(__dirname, './Analytics/GoalProgressTracker.logic.ts'),
+  'utf8',
+);
+const GOAL_TRACKER_DETAILS_SOURCE = readFileSync(
+  resolve(__dirname, './Analytics/GoalProgressTrackerGoalDetails.tsx'),
+  'utf8',
+);
+const GOAL_TRACKER_COMBINED_SOURCE = [
+  GOAL_TRACKER_SOURCE,
+  GOAL_TRACKER_LOGIC_SOURCE,
+  GOAL_TRACKER_DETAILS_SOURCE,
+].join('\n');
 const INJURY_RISK_SOURCE = readFileSync(
   resolve(__dirname, './Analytics/InjuryRiskAssessment.tsx'),
   'utf8',
@@ -97,10 +110,10 @@ describe('EnhancedClientProgressView truth locks', () => {
   });
 
   it('does not manufacture goal insight dates or likelihood from missing API evidence', () => {
-    expect(GOAL_TRACKER_SOURCE).not.toMatch(/predictedCompletion\s*\?\?\s*Date\.now\(\)/);
-    expect(GOAL_TRACKER_SOURCE).toContain('formatPredictedCompletion');
-    expect(GOAL_TRACKER_SOURCE).toContain('formatSuccessLikelihood');
-    expect(GOAL_TRACKER_SOURCE).toContain('Not enough evidence yet');
+    expect(GOAL_TRACKER_COMBINED_SOURCE).not.toMatch(/predictedCompletion\s*\?\?\s*Date\.now\(\)/);
+    expect(GOAL_TRACKER_COMBINED_SOURCE).toContain('formatPredictedCompletion');
+    expect(GOAL_TRACKER_COMBINED_SOURCE).toContain('formatSuccessLikelihood');
+    expect(GOAL_TRACKER_COMBINED_SOURCE).toContain('Not enough evidence yet');
   });
 
   it('does not manufacture injury risk assessment findings from hardcoded stories', () => {
