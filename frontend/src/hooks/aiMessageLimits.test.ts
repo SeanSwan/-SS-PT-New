@@ -37,6 +37,12 @@ describe('AI message limit policy', () => {
     expect(isCommandLaneCandidate('please inspect pending PLAUD audio pieces')).toBe(true);
   });
 
+  it('routes short natural workout dictation through the command lane', () => {
+    expect(isCommandLaneCandidate('we did bench press 3 sets of 10 at 135')).toBe(true);
+    expect(isCommandLaneCandidate('today we did squats, rows, and planks')).toBe(true);
+    expect(isCommandLaneCandidate('we did paperwork before the session')).toBe(false);
+  });
+
   it('allows long onboarding prompts through the chat lane before the chat cap', () => {
     expect(AI_CHAT_MESSAGE_MAX_CHARS).toBeGreaterThan(AI_COMMAND_MESSAGE_MAX_CHARS);
     expect(isChatMessageTooLong('x'.repeat(AI_CHAT_MESSAGE_MAX_CHARS))).toBe(false);

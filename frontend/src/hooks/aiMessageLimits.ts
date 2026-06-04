@@ -12,6 +12,14 @@ const NON_RETRYABLE_AI_ERROR_CODES = new Set([
   'AI_GLOBAL_RATE_LIMITED',
 ]);
 
+const WORKOUT_DICTATION_START = /^(we did|we completed|we finished|today we did|today we completed|client did|he did|she did|they did)\b/;
+const WORKOUT_DICTATION_SIGNAL = /\b(workout|exercise|set|sets|rep|reps|rpe|weight|tempo|warmup|cooldown|bench|squat|squats|deadlift|row|rows|push|pull|curl|press|lunge|plank|burpee|cardio|treadmill|bike|elliptical)\b/;
+
+export function isNaturalWorkoutDictationCandidate(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  return WORKOUT_DICTATION_START.test(normalized) && WORKOUT_DICTATION_SIGNAL.test(normalized);
+}
+
 export function isCommandLaneCandidate(message: string): boolean {
   const trimmed = message.trim();
   if (!trimmed || trimmed.length > AI_COMMAND_MESSAGE_MAX_CHARS) return false;
@@ -25,7 +33,8 @@ export function isCommandLaneCandidate(message: string): boolean {
 
   return commandStart.test(normalized)
     || politeCommandStart.test(normalized)
-    || knownCommandPhrase.test(normalized);
+    || knownCommandPhrase.test(normalized)
+    || isNaturalWorkoutDictationCandidate(normalized);
 }
 
 export function isChatMessageTooLong(message: string): boolean {

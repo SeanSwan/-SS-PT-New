@@ -159,6 +159,27 @@ describe('TrainingTabContent daily workflow default', () => {
     expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
   });
 
+  it('re-opens the logger for natural trainer dictation from history', async () => {
+    const user = userEvent.setup();
+
+    render(<TrainingTabContent clientId={424242} clientName="Fixture Client" />);
+
+    await user.click(screen.getByRole('tab', { name: /workout history/i }));
+    expect(await screen.findByTestId('workout-history-panel')).toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText(/tell swan about fixture client/i),
+      'We did bench press 3 sets of 10 at 135'
+    );
+    await user.click(screen.getByRole('button', { name: /send to swan/i }));
+
+    await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
   it('does not leave history for non-workout command-lane text', async () => {
     const user = userEvent.setup();
     commandMock.executeCommand.mockResolvedValueOnce({ type: 'fallback_to_chat' });

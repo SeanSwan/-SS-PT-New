@@ -20,6 +20,7 @@
 
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { Archive, ClipboardList, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
+import { isNaturalWorkoutDictationCandidate } from '../../../../../hooks/aiMessageLimits';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
 import {
   ContentArea,
@@ -85,7 +86,8 @@ function shouldOpenLoggerForCommand(message: string): boolean {
   const workoutSignal =
     /\b(workout|exercise|session|set|sets|rep|reps|rpe|weight|tempo|warmup|cooldown|balance|core|phase|template|bench|squat|deadlift|row|rows|push|pull|curl|press|lunge|plank|burpee|cardio|treadmill|bike|elliptical)\b/;
   const submitPhrase = /^(complete and save|done with the session|finish workout|save the workout|submit this workout)\b/;
-  return formVerb.test(normalized) && (workoutSignal.test(normalized) || submitPhrase.test(normalized));
+  return isNaturalWorkoutDictationCandidate(normalized)
+    || (formVerb.test(normalized) && (workoutSignal.test(normalized) || submitPhrase.test(normalized)));
 }
 
 const SuspenseFallback: React.FC = () => (
