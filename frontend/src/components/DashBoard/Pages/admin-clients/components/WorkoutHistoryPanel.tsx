@@ -55,6 +55,7 @@ import {
   groupSessionLogs,
   sortPersonalRecords,
 } from './workoutHistoryPanelData';
+import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -858,49 +859,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       setSaving(true);
       setSaveError(null);
       try {
-        // Group logs by exercise name, preserving tempo/rest/RPE/notes.
-        // setNumber is renumbered sequentially so deletions don't leave
-        // holes in the sequence. `undefined` fields are dropped so the
-        // backend treats them as "unchanged" rather than "set to zero".
-        const exerciseMap = new Map<string, WorkoutLogEntry[]>();
-        for (const l of editLogs) {
-          if (!exerciseMap.has(l.exerciseName)) exerciseMap.set(l.exerciseName, []);
-          exerciseMap.get(l.exerciseName)!.push(l);
-        }
-        // Phase 15.0: PATCH payload carries `exerciseNote` at the
-        // exercise level, NOT encoded into set 1's notes. The backend
-        // stamps it on every row of the group so deleting any single
-        // row preserves the note on the others.
-        const exercises = Array.from(exerciseMap.entries()).map(([name, sets]) => {
-          // Resolve the group's canonical exerciseNote (prefer any row
-          // that has it set — after startEdit they should all match).
-          const groupExerciseNote = (() => {
-            for (const row of sets) {
-              if (typeof row.exerciseNote === 'string' && row.exerciseNote.trim()) {
-                return row.exerciseNote.trim();
-              }
-            }
-            return '';
-          })();
-
-          const exerciseOut: Record<string, unknown> = {
-            name,
-            sets: sets.map((s, idx) => {
-              const out: Record<string, unknown> = {
-                setNumber: idx + 1,
-                reps: typeof s.reps === 'number' ? s.reps : 0,
-                weight: typeof s.weight === 'number' ? s.weight : 0,
-              };
-              if (typeof s.tempo === 'string' && s.tempo.trim()) out.tempo = s.tempo.trim();
-              if (typeof s.rest === 'number' && s.rest > 0) out.rest = s.rest;
-              if (typeof s.rpe === 'number' && s.rpe > 0) out.rpe = s.rpe;
-              if (typeof s.notes === 'string' && s.notes.trim()) out.notes = s.notes.trim();
-              return out;
-            }),
-          };
-          if (groupExerciseNote) exerciseOut.exerciseNote = groupExerciseNote;
-          return exerciseOut;
-        });
+        const exercises = buildWorkoutEditExercises(editLogs);
 
         await authAxios.patch(
           `/api/admin/clients/${clientId}/workouts/${workoutId}`,
