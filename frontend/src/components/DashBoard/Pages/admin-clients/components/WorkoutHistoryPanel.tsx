@@ -49,7 +49,7 @@ import {
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { calcBrzycki1RM } from '../../../../../hooks/analytics/workoutAnalyticsUtils';
 import { useAuth } from '../../../../../context/AuthContext';
-import { resolveExerciseNote, splitLegacyStoredNote } from './workoutHistoryNotes';
+import { buildWorkoutHistoryNotesDisplay } from './workoutHistoryNotes';
 import {
   getPersonalRecordKey,
   groupSessionLogs,
@@ -1119,33 +1119,11 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               set note inputs update only their own row
                               without any merge/split string acrobatics. */}
                           {tableExerciseGroups.map(([exerciseName, groupSets]) => {
-                            const resolved = resolveExerciseNote(groupSets);
-                            const exerciseNoteValue = resolved.exerciseNote;
-                            const isLegacy = resolved.source === 'legacy';
-
-                            // For display, if the group is legacy-encoded we
-                            // must strip the legacy marker off each row's
-                            // visible set note so it doesn't double up with
-                            // the Coach line. For canonical rows the set
-                            // note renders verbatim — including a real
-                            // trainer note that starts with "Coach:".
-                            const perSetDisplay = groupSets.map((log) => {
-                              if (isLegacy) {
-                                const split = splitLegacyStoredNote(log.notes);
-                                return {
-                                  log,
-                                  logIndex: activeLogs.indexOf(log),
-                                  setNote: split.setNote,
-                                };
-                              }
-                              return {
-                                log,
-                                logIndex: activeLogs.indexOf(log),
-                                setNote: typeof log.notes === 'string' ? log.notes.trim() : '',
-                              };
-                            });
-                            const setNotesPresent = perSetDisplay.some((r) => r.setNote.length > 0);
-                            const anyNoteAtAll = setNotesPresent || exerciseNoteValue.length > 0;
+                            const {
+                              exerciseNoteValue,
+                              perSetDisplay,
+                              anyNoteAtAll,
+                            } = buildWorkoutHistoryNotesDisplay(groupSets, activeLogs);
 
                             return (
                               <NotesBlock

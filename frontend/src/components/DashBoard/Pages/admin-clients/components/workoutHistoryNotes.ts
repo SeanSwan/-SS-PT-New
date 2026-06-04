@@ -19,6 +19,20 @@ export type ExerciseNoteResolution = {
   source: 'canonical' | 'legacy' | 'empty';
 };
 
+export interface WorkoutHistorySetNoteDisplay {
+  log: WorkoutLogEntry;
+  logIndex: number;
+  setNote: string;
+}
+
+export interface WorkoutHistoryNotesDisplay {
+  exerciseNoteValue: string;
+  isLegacy: boolean;
+  perSetDisplay: WorkoutHistorySetNoteDisplay[];
+  setNotesPresent: boolean;
+  anyNoteAtAll: boolean;
+}
+
 export function splitLegacyStoredNote(stored: string | undefined | null): SplitNote {
   if (typeof stored !== 'string' || stored.length === 0) {
     return { setNote: '', exerciseNote: '' };
@@ -51,4 +65,39 @@ export function resolveExerciseNote(groupSets: WorkoutLogEntry[]): ExerciseNoteR
   }
 
   return { exerciseNote: '', source: 'empty' };
+}
+
+export function buildWorkoutHistoryNotesDisplay(
+  groupSets: WorkoutLogEntry[],
+  activeLogs: WorkoutLogEntry[],
+): WorkoutHistoryNotesDisplay {
+  const resolved = resolveExerciseNote(groupSets);
+  const exerciseNoteValue = resolved.exerciseNote;
+  const isLegacy = resolved.source === 'legacy';
+
+  const perSetDisplay = groupSets.map((log) => {
+    if (isLegacy) {
+      const split = splitLegacyStoredNote(log.notes);
+      return {
+        log,
+        logIndex: activeLogs.indexOf(log),
+        setNote: split.setNote,
+      };
+    }
+
+    return {
+      log,
+      logIndex: activeLogs.indexOf(log),
+      setNote: typeof log.notes === 'string' ? log.notes.trim() : '',
+    };
+  });
+  const setNotesPresent = perSetDisplay.some((row) => row.setNote.length > 0);
+
+  return {
+    exerciseNoteValue,
+    isLegacy,
+    perSetDisplay,
+    setNotesPresent,
+    anyNoteAtAll: setNotesPresent || exerciseNoteValue.length > 0,
+  };
 }
