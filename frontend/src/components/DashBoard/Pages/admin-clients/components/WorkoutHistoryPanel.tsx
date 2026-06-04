@@ -57,6 +57,12 @@ import {
 } from './workoutHistoryPanelData';
 import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
+import {
+  appendWorkoutEditRow,
+  removeWorkoutEditRow,
+  updateWorkoutEditField,
+  updateWorkoutExerciseNote,
+} from './workoutHistoryEditRows';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -754,29 +760,13 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
 
   const updateEditField = useCallback(
     (logIndex: number, field: keyof WorkoutLogEntry, value: string) => {
-      setEditLogs((prev) =>
-        prev.map((l, i) => {
-          if (i !== logIndex) return l;
-          // Strings for notes/tempo; coerced numbers for everything else.
-          // Preserve undefined when the user clears a numeric cell so the
-          // PATCH payload doesn't zero-stamp fields the user didn't touch.
-          if (field === 'notes' || field === 'tempo') {
-            return { ...l, [field]: value };
-          }
-          const trimmed = value.trim();
-          if (trimmed === '') {
-            return { ...l, [field]: undefined as unknown as number };
-          }
-          const n = Number(trimmed);
-          return { ...l, [field]: Number.isFinite(n) ? n : 0 };
-        }),
-      );
+      setEditLogs((prev) => updateWorkoutEditField(prev, logIndex, field, value));
     },
     [],
   );
 
   const removeEditRow = useCallback((logIndex: number) => {
-    setEditLogs((prev) => prev.filter((_, i) => i !== logIndex));
+    setEditLogs((prev) => removeWorkoutEditRow(prev, logIndex));
   }, []);
 
   /**
@@ -788,37 +778,16 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
    */
   const updateExerciseNoteForGroup = useCallback(
     (exerciseName: string, value: string) => {
-      const nextValue = value.trim().length > 0 ? value : undefined;
-      setEditLogs((prev) =>
-        prev.map((l) =>
-          l.exerciseName === exerciseName
-            ? { ...l, exerciseNote: nextValue }
-            : l,
-        ),
-      );
+      setEditLogs((prev) => updateWorkoutExerciseNote(prev, exerciseName, value));
     },
     [],
   );
 
   const addEditRow = useCallback((exerciseName: string) => {
     setEditLogs((prev) => {
-      const existingSets = prev.filter((l) => l.exerciseName === exerciseName);
-      const nextSetNumber = existingSets.length + 1;
       const temporaryId = nextTemporarySetIdRef.current;
       nextTemporarySetIdRef.current -= 1;
-      // Negative id marks this as a new row not yet persisted. The backend
-      // rebuilds set rows on PATCH so the id only needs to be unique
-      // client-side for React keys.
-      return [
-        ...prev,
-        {
-          id: temporaryId,
-          exerciseName,
-          setNumber: nextSetNumber,
-          reps: 0,
-          weight: 0,
-        },
-      ];
+      return appendWorkoutEditRow(prev, exerciseName, temporaryId);
     });
   }, []);
 
