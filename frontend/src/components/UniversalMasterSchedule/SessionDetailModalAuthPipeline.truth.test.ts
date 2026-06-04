@@ -10,7 +10,7 @@ const readSource = (relativePath: string) =>
 describe('SessionDetailModal auth pipeline', () => {
   it('covers the mounted schedule detail modal and unified session action APIs', () => {
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
-    const modalsSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+    const modalStackSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleConnectedModals.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const sessionsRoutesSource = readSource('backend/routes/sessions.mjs');
 
@@ -18,10 +18,10 @@ describe('SessionDetailModal auth pipeline', () => {
     expect(scheduleSource).toContain('<ScheduleModals');
     expect(scheduleSource).toContain('showDetailDialog={showDetailDialog}');
     expect(scheduleSource).toContain('detailSession={detailSession}');
-    expect(modalsSource).toContain("import SessionDetailModal from '../SessionDetailModal'");
-    expect(modalsSource).toContain('<SessionDetailModal');
-    expect(modalsSource).toContain('session={detailSession}');
-    expect(modalsSource).toContain('open={showDetailDialog}');
+    expect(modalStackSource).toContain("import SessionDetailModal from '../SessionDetailModal'");
+    expect(modalStackSource).toContain('<SessionDetailModal');
+    expect(modalStackSource).toContain('session={detailSession}');
+    expect(modalStackSource).toContain('open={showDetailDialog}');
 
     expect(coreRoutesSource).toContain("app.use('/api/sessions', sessionsRoutes)");
     expect(sessionsRoutesSource).toContain('router.patch("/:id/complete"');

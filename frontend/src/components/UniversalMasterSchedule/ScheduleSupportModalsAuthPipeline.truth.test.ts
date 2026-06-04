@@ -18,7 +18,7 @@ const supportModalPaths = [
 describe('schedule support modals auth pipeline', () => {
   it('covers mounted schedule support modals and their backend routes', () => {
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
-    const modalsSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+    const modalStackSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleConnectedModals.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const apiRoutesSource = readSource('backend/routes/api.mjs');
     const sessionsRoutesSource = readSource('backend/routes/sessions.mjs');
@@ -26,16 +26,16 @@ describe('schedule support modals auth pipeline', () => {
     const profileRoutesSource = readSource('backend/routes/profileRoutes.mjs');
 
     expect(scheduleSource).toContain('<ScheduleModals');
-    expect(modalsSource).toContain("import RecurringSessionModal from '../RecurringSessionModal'");
-    expect(modalsSource).toContain("import RecurringSeriesModal from '../RecurringSeriesModal'");
-    expect(modalsSource).toContain("import BlockedTimeModal from '../BlockedTimeModal'");
-    expect(modalsSource).toContain("import NotificationPreferencesModal from '../NotificationPreferencesModal'");
-    expect(modalsSource).toContain("import ClientRecurringBookingModal from '../ClientRecurringBookingModal'");
-    expect(modalsSource).toContain('<RecurringSessionModal');
-    expect(modalsSource).toContain('<RecurringSeriesModal');
-    expect(modalsSource).toContain('<BlockedTimeModal');
-    expect(modalsSource).toContain('<NotificationPreferencesModal');
-    expect(modalsSource).toContain('<ClientRecurringBookingModal');
+    expect(modalStackSource).toContain("import RecurringSessionModal from '../RecurringSessionModal'");
+    expect(modalStackSource).toContain("import RecurringSeriesModal from '../RecurringSeriesModal'");
+    expect(modalStackSource).toContain("import BlockedTimeModal from '../BlockedTimeModal'");
+    expect(modalStackSource).toContain("import NotificationPreferencesModal from '../NotificationPreferencesModal'");
+    expect(modalStackSource).toContain("import ClientRecurringBookingModal from '../ClientRecurringBookingModal'");
+    expect(modalStackSource).toContain('<RecurringSessionModal');
+    expect(modalStackSource).toContain('<RecurringSeriesModal');
+    expect(modalStackSource).toContain('<BlockedTimeModal');
+    expect(modalStackSource).toContain('<NotificationPreferencesModal');
+    expect(modalStackSource).toContain('<ClientRecurringBookingModal');
 
     expect(coreRoutesSource).toContain("app.use('/api/sessions', sessionsRoutes)");
     expect(coreRoutesSource).toContain("app.use('/api/profile', profileRoutes)");

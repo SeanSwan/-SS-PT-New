@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const scheduleSourcePath = resolve(process.cwd(), 'src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
 const scheduleLogicPath = resolve(process.cwd(), 'src/components/UniversalMasterSchedule/UniversalMasterSchedule.logic.ts');
-const scheduleModalsPath = resolve(process.cwd(), 'src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+const createSessionModalPath = resolve(process.cwd(), 'src/components/UniversalMasterSchedule/components/ScheduleCreateSessionModal.tsx');
+const createClientFieldPath = resolve(process.cwd(), 'src/components/UniversalMasterSchedule/components/ScheduleCreateClientField.tsx');
 
 describe('UniversalMasterSchedule user identity parsing', () => {
   it('uses a strict positive integer parser for user identity', async () => {
@@ -42,15 +43,17 @@ describe('UniversalMasterSchedule user identity parsing', () => {
 
   it('normalizes schedule create-dialog ids before form state or create-session payloads', () => {
     const scheduleSource = readFileSync(scheduleSourcePath, 'utf8');
-    const modalsSource = readFileSync(scheduleModalsPath, 'utf8');
+    const createSessionModalSource = readFileSync(createSessionModalPath, 'utf8');
+    const createClientFieldSource = readFileSync(createClientFieldPath, 'utf8');
+    const createModalSource = `${createSessionModalSource}\n${createClientFieldSource}`;
 
-    expect(modalsSource).toContain("import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';");
-    expect(modalsSource).toContain('const nextTrainerId = normalizeScheduleOptionalId(value);');
-    expect(modalsSource).toContain('const nextClientId = normalizeScheduleOptionalId(value);');
-    expect(modalsSource).toContain('const nextSessionTypeId = normalizeScheduleOptionalId(value);');
-    expect(modalsSource).not.toContain('trainerId: value ? Number(value) : undefined');
-    expect(modalsSource).not.toContain('clientId: value ? Number(value) : undefined');
-    expect(modalsSource).not.toContain('sessionTypeId: value ? Number(value) : undefined');
+    expect(createModalSource).toContain("import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';");
+    expect(createModalSource).toContain('const nextTrainerId = normalizeScheduleOptionalId(value);');
+    expect(createModalSource).toContain('const nextClientId = normalizeScheduleOptionalId(value);');
+    expect(createModalSource).toContain('const nextSessionTypeId = normalizeScheduleOptionalId(value);');
+    expect(createModalSource).not.toContain('trainerId: value ? Number(value) : undefined');
+    expect(createModalSource).not.toContain('clientId: value ? Number(value) : undefined');
+    expect(createModalSource).not.toContain('sessionTypeId: value ? Number(value) : undefined');
 
     expect(scheduleSource).toContain('const trainerIdForPayload = normalizeScheduleOptionalId(formData.trainerId);');
     expect(scheduleSource).toContain('const clientIdForPayload = normalizeScheduleOptionalId(formData.clientId);');

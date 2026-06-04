@@ -228,11 +228,7 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                     <HourSlot
                       key={hour}
                       style={{ height: PIXELS_PER_HOUR }}
-                      onClick={(event) => handleSlotClick(
-                        day,
-                        hour,
-                        getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight),
-                      )}
+                      onClick={(event) => handleSlotClick(day, hour, getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight))}
                       onKeyDown={(event) => handleSlotKeyDown(day, hour, event)}
                       role="button"
                       tabIndex={0}
@@ -243,8 +239,7 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                   {daySessions.map((session) => {
                     const display = getWeekSessionDisplay(session);
                     if (!display) return null;
-                    const { status, clientName, trainerName, sessionsLeft, top, height, timeStr } =
-                      display;
+                    const { status, clientName, trainerName, sessionsLeft, top, height, timeStr } = display;
 
                     return (
                       <WeekSessionCard
@@ -286,18 +281,16 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
   );
 };
 
-const WeekView = memo(WeekViewComponent, (prev, next) => {
-  return (
-    prev.date.getTime() === next.date.getTime() &&
-    prev.sessions === next.sessions &&
-    prev.trainers === next.trainers &&
-    prev.canQuickBook === next.canQuickBook &&
-    prev.isAdmin === next.isAdmin &&
-    prev.onSelectSession === next.onSelectSession &&
-    prev.onSelectSlot === next.onSelectSlot &&
-    prev.onDrillDown === next.onDrillDown &&
-    prev.onBookingDialog === next.onBookingDialog
-  );
-});
+const WeekView = memo(WeekViewComponent, (prev, next) => (
+  prev.date.getTime() === next.date.getTime() &&
+  prev.sessions === next.sessions &&
+  prev.trainers === next.trainers &&
+  prev.canQuickBook === next.canQuickBook &&
+  prev.isAdmin === next.isAdmin &&
+  prev.onSelectSession === next.onSelectSession &&
+  prev.onSelectSlot === next.onSelectSlot &&
+  prev.onDrillDown === next.onDrillDown &&
+  prev.onBookingDialog === next.onBookingDialog
+));
 
 export default WeekView;

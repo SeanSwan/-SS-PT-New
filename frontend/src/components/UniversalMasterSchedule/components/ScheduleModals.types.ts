@@ -1,0 +1,75 @@
+export type ScheduleMode = 'admin' | 'trainer' | 'client';
+
+export interface ScheduleTemplate {
+  id: string;
+  name: string;
+  duration: number;
+  location: string;
+  notes?: string;
+  sessionTypeId?: number;
+  trainerId?: number;
+  bufferBefore?: number;
+  bufferAfter?: number;
+  isDefault?: boolean;
+}
+
+export interface ScheduleModalsProps {
+  mode: ScheduleMode;
+  showCreateDialog: boolean;
+  setShowCreateDialog: (show: boolean) => void;
+  showRecurringDialog: boolean;
+  setShowRecurringDialog: (show: boolean) => void;
+  showBlockedDialog: boolean;
+  setShowBlockedDialog: (show: boolean) => void;
+  showNotificationDialog: boolean;
+  setShowNotificationDialog: (show: boolean) => void;
+  showBookingDialog: boolean;
+  setShowBookingDialog: (show: boolean) => void;
+  showDetailDialog: boolean;
+  setShowDetailDialog: (show: boolean) => void;
+  showSeriesDialog: boolean;
+  setShowSeriesDialog: (show: boolean) => void;
+  showAvailabilityEditor: boolean;
+  setShowAvailabilityEditor: (show: boolean) => void;
+  showOverrideModal: boolean;
+  setShowOverrideModal: (show: boolean) => void;
+  showPaymentModal: boolean;
+  setShowPaymentModal: (show: boolean) => void;
+  conflictModalOpen: boolean;
+  setConflictModalOpen: (show: boolean) => void;
+  showClientRecurringDialog: boolean;
+  setShowClientRecurringDialog: (show: boolean) => void;
+  formData: any;
+  setFormData: (data: any) => void;
+  dbTrainers: any[];
+  dbClients: any[];
+  useManualClient: boolean;
+  setUseManualClient: (use: boolean) => void;
+  templates: ScheduleTemplate[];
+  selectedTemplateId: string;
+  onTemplateChange: (templateId: string) => void;
+  onSaveTemplate: (name: string) => void;
+  onDeleteTemplate: (id: string) => void;
+  isSlotSelected: boolean;
+  bookingTarget: any;
+  bookingLoading: boolean;
+  bookingError: string | null;
+  creditsDisplay: string | number;
+  sessionsRemaining: number | string | null | undefined;
+  clientSource?: string | null;
+  availableSessions: any[];
+  detailSession: any;
+  activeSeriesGroupId: string | null;
+  seriesSessions: any[];
+  availabilityTrainerId: number | string | null;
+  conflicts: any[];
+  setConflicts: (conflicts: any[]) => void;
+  alternatives: any[];
+  canOverrideConflicts: boolean;
+  handleCreateSession: () => Promise<void>;
+  handleBookSession: () => Promise<void>;
+  handleConflictAlternative: (alt: any) => void;
+  handleConflictOverride: () => void;
+  fetchSessions: () => Promise<void>;
+  openSeriesDialog: (groupId: string) => void;
+}

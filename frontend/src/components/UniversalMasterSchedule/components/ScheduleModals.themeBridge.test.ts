@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest';
 const readComponentSource = (path: string) =>
   readFileSync(resolve(process.cwd(), `src/components/UniversalMasterSchedule/components/${path}`), 'utf8');
 
-const COMPONENT_SOURCE = readComponentSource('ScheduleModals.tsx');
+const COMPONENT_SOURCE = [
+  'ScheduleModals.tsx',
+  'ScheduleCreateClientField.tsx',
+  'ScheduleCreateSessionModal.tsx',
+  'ScheduleBookingModal.tsx',
+  'ScheduleConnectedModals.tsx',
+].map(readComponentSource).join('\n');
 const STYLE_SOURCE = readComponentSource('ScheduleModals.styles.ts');
 const THEME_SOURCE = readComponentSource('ScheduleModals.theme.ts');
 

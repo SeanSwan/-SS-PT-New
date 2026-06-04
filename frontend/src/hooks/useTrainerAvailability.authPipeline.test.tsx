@@ -10,15 +10,15 @@ const readSource = (relativePath: string) =>
 describe('useTrainerAvailability auth pipeline', () => {
   it('is consumed by the mounted master schedule availability modals', () => {
     const layoutSource = readSource('frontend/src/components/DashBoard/UniversalDashboardLayout.tsx');
-    const scheduleModalsSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+    const scheduleModalStackSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleConnectedModals.tsx');
     const editorSource = readSource('frontend/src/components/UniversalMasterSchedule/Availability/AvailabilityEditor.tsx');
     const overrideSource = readSource('frontend/src/components/UniversalMasterSchedule/Availability/AvailabilityOverrideModal.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const availabilityRoutesSource = readSource('backend/routes/availability.mjs');
 
     expect(layoutSource).toContain("{ path: '/master-schedule', component: UniversalSchedule");
-    expect(scheduleModalsSource).toContain("import AvailabilityEditor from '../Availability/AvailabilityEditor'");
-    expect(scheduleModalsSource).toContain("import AvailabilityOverrideModal from '../Availability/AvailabilityOverrideModal'");
+    expect(scheduleModalStackSource).toContain("import AvailabilityEditor from '../Availability/AvailabilityEditor'");
+    expect(scheduleModalStackSource).toContain("import AvailabilityOverrideModal from '../Availability/AvailabilityOverrideModal'");
     expect(editorSource).toContain("import { useTrainerAvailability, AvailabilityEntry } from '../../../hooks/useTrainerAvailability'");
     expect(overrideSource).toContain("import { useTrainerAvailability } from '../../../hooks/useTrainerAvailability'");
     expect(coreRoutesSource).toContain("app.use('/api/availability', availabilityRoutes)");

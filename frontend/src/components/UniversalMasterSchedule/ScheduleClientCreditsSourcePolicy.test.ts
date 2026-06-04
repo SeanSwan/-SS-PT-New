@@ -23,12 +23,12 @@ describe('schedule client credits source policy wiring', () => {
 
   it('hides recurring self-booking for free-tracking client sources before the backend rejects it', () => {
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
-    const modalsSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+    const modalStackSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleConnectedModals.tsx');
 
     expect(scheduleSource).toContain("import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';");
     expect(scheduleSource).toContain("const canUseClientRecurringBooking = mode === 'client' && !isNonDeductingClientSource(clientSource);");
     expect(scheduleSource).toContain('onOpenClientRecurring={canUseClientRecurringBooking ? () => setShowClientRecurringDialog(true) : undefined}');
-    expect(modalsSource).toContain("{mode === 'client' && !isFreeTrackingBooking && (");
+    expect(modalStackSource).toContain("{mode === 'client' && !isFreeTrackingBooking && (");
   });
 
   it('keeps the schedule shell on normalized credit counts without raw type guards', () => {

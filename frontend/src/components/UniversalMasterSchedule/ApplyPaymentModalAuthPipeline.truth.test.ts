@@ -10,17 +10,17 @@ const readSource = (relativePath: string) =>
 describe('ApplyPaymentModal auth pipeline', () => {
   it('covers the mounted schedule payment modal and backend payment routes', () => {
     const scheduleSource = readSource('frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
-    const modalsSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleModals.tsx');
+    const modalStackSource = readSource('frontend/src/components/UniversalMasterSchedule/components/ScheduleConnectedModals.tsx');
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const deductionRoutesSource = readSource('backend/routes/sessionDeductionRoutes.mjs');
     const chargeCardRoutesSource = readSource('backend/routes/adminChargeCardRoutes.mjs');
     const storefrontRoutesSource = readSource('backend/routes/storeFrontRoutes.mjs');
 
     expect(scheduleSource).toContain('showPaymentModal={showPaymentModal}');
-    expect(modalsSource).toContain("import ApplyPaymentModal from '../ApplyPaymentModal'");
-    expect(modalsSource).toContain('<ApplyPaymentModal');
-    expect(modalsSource).toContain('open={showPaymentModal}');
-    expect(modalsSource).toContain('preselectedClientId={preselectedPaymentClientId ?? undefined}');
+    expect(modalStackSource).toContain("import ApplyPaymentModal from '../ApplyPaymentModal'");
+    expect(modalStackSource).toContain('<ApplyPaymentModal');
+    expect(modalStackSource).toContain('open={showPaymentModal}');
+    expect(modalStackSource).toContain('preselectedClientId={preselectedPaymentClientId ?? undefined}');
 
     expect(coreRoutesSource).toContain("app.use('/api/sessions/deductions', sessionDeductionRoutes)");
     expect(coreRoutesSource.indexOf("app.use('/api/sessions/deductions', sessionDeductionRoutes)"))
