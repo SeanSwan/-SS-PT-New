@@ -1,185 +1,37 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Activity, Calendar, Target, TrendingUp } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
-import { useClientProgress, ProgressMeasurement } from '../../UniversalMasterSchedule/hooks/useClientProgress';
-import theme from '../../../theme/tokens';
+import { useClientProgress } from '../../UniversalMasterSchedule/hooks/useClientProgress';
 import ClientProgressCharts from '../../ClientProgressCharts/ClientProgressCharts';
 import ClientAnalyticsPanel from '../../ClientProgressCharts/ClientAnalyticsPanel';
 import { parseClientProgressId } from './ClientProgressView.logic';
-
-const Page = styled.div`
-  padding: ${theme.spacing.xl};
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.lg};
-  color: ${theme.colors.text.primary};
-`;
-
-const Header = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.sm};
-`;
-
-const Title = styled.h1`
-  margin: 0;
-  font-size: ${theme.typography.scale['2xl']};
-  font-weight: ${theme.typography.weight.bold};
-`;
-
-const Subtitle = styled.p`
-  margin: 0;
-  color: ${theme.colors.text.secondary};
-  max-width: 720px;
-  line-height: 1.6;
-`;
-
-const SelectorRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${theme.spacing.sm};
-  align-items: center;
-`;
-
-const ClientSelect = styled.select`
-  background: var(--bg-surface, #003080);
-  border: 1px solid var(--border-soft, #4070C0);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  color: var(--text-primary, #E0ECF4);
-  min-width: 280px;
-  min-height: 44px;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  appearance: none;
-
-  &:focus,
-  &:hover {
-    outline: none;
-    border-color: #8B5CF6;
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
-    background: var(--bg-base, #002060);
-  }
-
-  option {
-    background: #0A0A0F;
-    color: #E0ECF4;
-    padding: 12px;
-    font-family: 'Sora', sans-serif;
-  }
-`;
-
-const CardGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: ${theme.spacing.md};
-`;
-
-const Card = styled.div`
-  background: rgba(12, 14, 24, 0.75);
-  border: 1px solid rgba(139, 92, 246, 0.18);
-  border-radius: 16px;
-  padding: ${theme.spacing.md};
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.sm};
-`;
-
-const CardLabel = styled.div`
-  color: ${theme.colors.text.secondary};
-  font-size: ${theme.typography.scale.sm};
-`;
-
-const CardValue = styled.div`
-  font-size: ${theme.typography.scale.xl};
-  font-weight: ${theme.typography.weight.bold};
-  color: ${theme.colors.brand.cyan};
-`;
-
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.md};
-`;
-
-const SectionTitle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.sm};
-  color: ${theme.colors.brand.cyan};
-  font-weight: ${theme.typography.weight.semibold};
-`;
-
-const EmptyState = styled.div`
-  padding: ${theme.spacing.lg};
-  border-radius: 16px;
-  border: 1px dashed rgba(139, 92, 246, 0.2);
-  background: rgba(15, 23, 42, 0.5);
-  color: ${theme.colors.text.secondary};
-`;
-
-const GoalList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.sm};
-`;
-
-const GoalRow = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-`;
-
-const GoalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  color: ${theme.colors.text.secondary};
-  font-size: ${theme.typography.scale.sm};
-`;
-
-const GoalBar = styled.div`
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(139, 92, 246, 0.15);
-  overflow: hidden;
-`;
-
-const GoalFill = styled.div<{ $progress: number }>`
-  height: 100%;
-  width: ${(props) => Math.min(100, Math.max(0, props.$progress))}%;
-  background: linear-gradient(90deg, ${theme.colors.brand.cyan || '#60C0F0'}, ${theme.colors.brand.purple || '#8B5CF6'});
-`;
-
-const MeasurementList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: ${theme.spacing.sm};
-`;
-
-const MeasurementRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  background: rgba(139, 92, 246, 0.1);
-`;
-
-const MeasurementDate = styled.div`
-  color: ${theme.colors.text.secondary};
-  font-size: ${theme.typography.scale.sm};
-`;
-
-const MeasurementValue = styled.div`
-  color: ${theme.colors.brand.cyan};
-  font-weight: ${theme.typography.weight.semibold};
-`;
+import ClientProgressSparkline from './ClientProgressSparkline';
+import {
+  Card,
+  CardGrid,
+  CardLabel,
+  CardValue,
+  ClientSelect,
+  EmptyState,
+  GoalBar,
+  GoalFill,
+  GoalHeader,
+  GoalList,
+  GoalRow,
+  Header,
+  MeasurementDate,
+  MeasurementList,
+  MeasurementRow,
+  MeasurementValue,
+  Page,
+  Section,
+  SectionTitle,
+  SelectorRow,
+  Subtitle,
+  Title,
+} from './ClientProgressView.styles';
 
 const formatNumber = (value: number | null, digits = 1) => {
   if (value === null || Number.isNaN(value)) {
@@ -195,57 +47,6 @@ const formatDate = (value: string | null) => {
   return date.toLocaleDateString();
 };
 
-const buildSparklinePath = (points: number[], width: number, height: number) => {
-  if (points.length < 2) return '';
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const range = max - min || 1;
-
-  return points
-    .map((value, index) => {
-      const x = (index / (points.length - 1)) * width;
-      const y = height - ((value - min) / range) * height;
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    })
-    .join(' ');
-};
-
-const Sparkline: React.FC<{ measurements: ProgressMeasurement[] }> = ({ measurements }) => {
-  // Memoize points to prevent useless recalculations on every render
-  const points = useMemo(() =>
-    measurements
-      .map((measurement) => measurement.weight)
-      .filter((value): value is number => typeof value === 'number'),
-    [measurements]
-  );
-
-  const path = useMemo(() => buildSparklinePath(points, 240, 80), [points]);
-
-  if (points.length < 2) {
-    return <EmptyState>No weight trend data yet.</EmptyState>;
-  }
-
-  // Arctic Cyan #50A0F0 for data viz (NOT Ice Wing — that's for gaming/glow only)
-  return (
-    <svg width="100%" height="90" viewBox="0 0 240 90" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-      <defs>
-        <filter id="sparkGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#50A0F0" floodOpacity="0.3" />
-        </filter>
-      </defs>
-      <path
-        d={path}
-        fill="none"
-        stroke="#50A0F0"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        filter="url(#sparkGlow)"
-      />
-    </svg>
-  );
-};
-
 const ClientProgressView: React.FC = () => {
   const { user } = useAuth();
   const { activeClient, clientList, loadingClients, setActiveClient } = useGlobalClient();
@@ -255,8 +56,7 @@ const ClientProgressView: React.FC = () => {
     () => parseClientProgressId(initialClientId) ?? undefined
   );
 
-  // Auto-load client when global active client changes (trainer/admin selects from sidebar)
-  // Guard: only update URL if clientId actually changed (prevents history pollution)
+  // Auto-load client when global active client changes while avoiding duplicate history entries.
   useEffect(() => {
     const activeClientId = parseClientProgressId(activeClient?.id);
     if (activeClientId && user?.role !== 'client') {
@@ -285,6 +85,7 @@ const ClientProgressView: React.FC = () => {
       setSearchParams({});
       return;
     }
+
     setSelectedClientId(id);
     setSearchParams({ clientId: String(id) });
     const client = clientList.find(c => parseClientProgressId(c.id) === id);
@@ -311,7 +112,7 @@ const ClientProgressView: React.FC = () => {
             aria-label="Select a client to view progress"
           >
             <option value="">
-              {loadingClients ? 'Loading clients...' : '— Select a Client —'}
+              {loadingClients ? 'Loading clients...' : 'Select a Client'}
             </option>
             {clientList.map(client => (
               <option key={client.id} value={client.id}>
@@ -368,7 +169,7 @@ const ClientProgressView: React.FC = () => {
               <TrendingUp size={18} /> Weight Trend
             </SectionTitle>
             <Card>
-              <Sparkline measurements={data.recentMeasurements} />
+              <ClientProgressSparkline measurements={data.recentMeasurements} />
             </Card>
           </Section>
 
@@ -380,10 +181,9 @@ const ClientProgressView: React.FC = () => {
               <Card>
                 <GoalList>
                   {data.goals.map((goal) => {
-                    const progress =
-                      goal.target && goal.current
-                        ? (goal.current / goal.target) * 100
-                        : 0;
+                    const progress = goal.target && goal.current
+                      ? (goal.current / goal.target) * 100
+                      : 0;
                     return (
                       <GoalRow key={goal.name}>
                         <GoalHeader>
@@ -438,12 +238,10 @@ const ClientProgressView: React.FC = () => {
             </EmptyState>
           </Section>
 
-          {/* Analytics Panel — KPI cards + Exercise History bars */}
           {resolvedClientId && (
             <ClientAnalyticsPanel userId={resolvedClientId} />
           )}
 
-          {/* Advanced Progress Charts */}
           <ClientProgressCharts
             clientId={resolvedClientId}
             isTrainerView={true}
