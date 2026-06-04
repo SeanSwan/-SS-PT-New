@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
 import { Save, Trash2, Lock, ShoppingCart } from 'lucide-react';
 import RecurringSessionModal from '../RecurringSessionModal';
 import BlockedTimeModal from '../BlockedTimeModal';
@@ -47,6 +46,23 @@ import {
   SESSION_DURATION_OPTIONS,
   SESSION_LOCATION_OPTIONS,
 } from '../utils/sessionOptions';
+import { SCHEDULE_MODALS_THEME } from './ScheduleModals.theme';
+import {
+  BookingCard,
+  BookingRow,
+  CancelButton,
+  ConfirmButton,
+  ConfirmText,
+  CreditCard,
+  DeleteButton,
+  InlineConfirm,
+  LockDescription,
+  LockIconWrapper,
+  LockTitle,
+  ManualEntryLink,
+  PremiumLockOverlay,
+  PurchaseButton,
+} from './ScheduleModals.styles';
 
 interface ScheduleModalsProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -396,7 +412,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   </HelperText>
                 )}
                 {computedMinTime === null && isToday && (
-                  <HelperText style={{ color: '#f59e0b' }}>
+                  <HelperText style={{ color: SCHEDULE_MODALS_THEME.warning }}>
                     No times available today. Select a future date.
                   </HelperText>
                 )}
@@ -510,7 +526,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                 aria-label="Session type"
               />
               {sessionTypesError && (
-                <HelperText style={{ color: '#ef4444' }}>{sessionTypesError}</HelperText>
+                <HelperText style={{ color: SCHEDULE_MODALS_THEME.danger }}>{sessionTypesError}</HelperText>
               )}
               {selectedSessionType && (
                 <HelperText>
@@ -620,7 +636,7 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               /* Premium Lock State — Gemini 3.1 Pro Design Spec */
               <PremiumLockOverlay>
                 <LockIconWrapper>
-                  <Lock size={28} color="#8B5CF6" />
+                  <Lock size={28} color={SCHEDULE_MODALS_THEME.accentSecondary} />
                 </LockIconWrapper>
                 <LockTitle>{isFreeTrackingBooking ? 'Session Tracking Only' : 'Unlock Sessions'}</LockTitle>
                 <LockDescription>
@@ -803,184 +819,3 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
 };
 
 export default ScheduleModals;
-
-// ── Premium Lock Styles (Gemini 3.1 Pro Design Spec) ──────────────────
-const lockPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 12px rgba(139, 92, 246, 0.2); }
-  50% { box-shadow: 0 0 24px rgba(139, 92, 246, 0.45); }
-`;
-
-const PremiumLockOverlay = styled.div`
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 2rem 1.5rem;
-  background: rgba(0, 32, 96, 0.7);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-radius: 12px;
-  border: 1px solid rgba(139, 92, 246, 0.15);
-  text-align: center;
-`;
-
-const LockIconWrapper = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(139, 92, 246, 0.08);
-  border: 1px solid rgba(139, 92, 246, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: ${lockPulse} 2.5s ease-in-out infinite;
-`;
-
-const LockTitle = styled.div`
-  color: #8B5CF6;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  font-size: 12px;
-`;
-
-const LockDescription = styled.div`
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.875rem;
-  line-height: 1.5;
-  max-width: 280px;
-`;
-
-const PurchaseButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  min-height: 44px;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.2));
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  border-radius: 10px;
-  color: #8B5CF6;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.3));
-    border-color: rgba(139, 92, 246, 0.6);
-    box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
-  }
-`;
-
-const BookingCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-
-  @media (max-width: 480px) {
-    padding: 0.75rem;
-    border-radius: 8px;
-    gap: 0.375rem;
-  }
-`;
-
-const BookingRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: center;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-`;
-
-const CreditCard = styled.div`
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 10px;
-  padding: 1rem;
-  text-align: center;
-
-  @media (max-width: 480px) {
-    padding: 0.75rem;
-    border-radius: 8px;
-  }
-`;
-
-const DeleteButton = styled.button`
-  border: none;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  padding: 0.2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #ef4444;
-  }
-`;
-
-const InlineConfirm = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.7rem;
-`;
-
-const ConfirmText = styled.span`
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-const ConfirmButton = styled.button`
-  border: none;
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border-radius: 6px;
-  padding: 0.1rem 0.4rem;
-  cursor: pointer;
-  font-size: 0.65rem;
-  font-weight: 600;
-`;
-
-const CancelButton = styled.button`
-  border: none;
-  background: rgba(148, 163, 184, 0.2);
-  color: #94a3b8;
-  border-radius: 6px;
-  padding: 0.1rem 0.4rem;
-  cursor: pointer;
-  font-size: 0.65rem;
-  font-weight: 600;
-`;
-
-const ManualEntryLink = styled.button`
-  background: none;
-  border: none;
-  color: rgba(139, 92, 246, 0.7);
-  font-size: 0.75rem;
-  padding: 0.25rem 0;
-  cursor: pointer;
-  text-align: left;
-  transition: color 0.15s ease;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-
-  &:hover {
-    color: rgba(139, 92, 246, 1);
-    text-decoration: underline;
-  }
-`;
