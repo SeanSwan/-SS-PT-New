@@ -119,6 +119,23 @@ describe('TrainingTabContent daily workflow default', () => {
     });
   });
 
+  it('announces manual training sub-section changes to the parent route state', async () => {
+    const user = userEvent.setup();
+    const onSectionChange = vi.fn();
+
+    render(
+      <TrainingTabContent
+        clientId={424242}
+        clientName="Fixture Client"
+        onSectionChange={onSectionChange}
+      />
+    );
+
+    await user.click(screen.getByRole('tab', { name: /workout history/i }));
+
+    expect(onSectionChange).toHaveBeenCalledWith('history');
+  });
+
   it('moves to Workout History after a logged workout completes', async () => {
     const user = userEvent.setup();
 

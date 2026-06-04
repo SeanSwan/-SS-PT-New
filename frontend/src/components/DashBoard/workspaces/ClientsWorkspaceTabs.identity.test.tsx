@@ -1,11 +1,26 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 vi.mock('./clients-team/tabs/TrainingTabContent', () => ({
-  default: ({ clientName }: { clientName?: string }) => <div data-testid="training-name">{clientName}</div>,
+  default: ({
+    clientName,
+    onSectionChange,
+  }: {
+    clientName?: string;
+    onSectionChange?: (section: string) => void;
+  }) => (
+    <div>
+      <div data-testid="training-name">{clientName}</div>
+      <button type="button" onClick={() => onSectionChange?.('history')}>
+        Mock history section
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('./clients-team/tabs/ProgressTabContent', () => ({
@@ -47,14 +62,40 @@ const Harness = ({ client }: { client: ClientOption }) => {
   );
 };
 
+const LocationProbe = () => {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}{location.search}</div>;
+};
+
 describe('ClientsWorkspaceTabs identity fallback', () => {
   it('passes fallback identity into every selected-client tab', async () => {
-    render(<Harness client={blankNameClient} />);
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=7']}>
+        <Harness client={blankNameClient} />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByTestId('training-name')).toHaveTextContent('fallback.client@example.test');
     expect(await screen.findByTestId('progress-name')).toHaveTextContent('fallback.client@example.test');
     expect(await screen.findByTestId('biometrics-name')).toHaveTextContent('fallback.client@example.test');
     expect(await screen.findByTestId('overview-name')).toHaveTextContent('fallback.client@example.test');
     expect(await screen.findByTestId('settings-name')).toHaveTextContent('fallback.client@example.test');
+  });
+
+  it('writes selected training sub-section changes into the Client Hub URL', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=7']}>
+        <Harness client={blankNameClient} />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole('button', { name: /mock history section/i }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=history'
+    );
   });
 });

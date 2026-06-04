@@ -4,6 +4,7 @@
  */
 
 import React, { lazy, Suspense, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LoadingPulse } from './ClientsWorkspace.styles';
 import type { ClientTrainingSection } from './ClientsWorkspace.logic';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
@@ -22,15 +23,27 @@ export const useClientsWorkspaceTabRenderers = (
   selectedClient: ClientOption | null,
   initialTrainingSection: ClientTrainingSection | null = null,
 ) => {
+  const [, setSearchParams] = useSearchParams();
+
+  const writeTrainingSectionRoute = useCallback((section: ClientTrainingSection) => {
+    if (!selectedClient?.id) return;
+    setSearchParams({
+      clientId: String(selectedClient.id),
+      tab: 'training',
+      trainingSection: section,
+    });
+  }, [selectedClient?.id, setSearchParams]);
+
   const renderTraining = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading training...</LoadingPulse>}>
       <TrainingTabContent
         clientId={clientId}
         clientName={clientName(selectedClient)}
         initialSection={initialTrainingSection ?? undefined}
+        onSectionChange={writeTrainingSectionRoute}
       />
     </Suspense>
-  ), [initialTrainingSection, selectedClient]);
+  ), [initialTrainingSection, selectedClient, writeTrainingSectionRoute]);
 
   const renderProgress = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>

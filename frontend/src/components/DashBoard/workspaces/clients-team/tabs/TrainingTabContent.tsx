@@ -63,6 +63,7 @@ interface TrainingTabContentProps {
   clientId: number | string;
   clientName?: string;
   initialSection?: TrainingSection;
+  onSectionChange?: (section: TrainingSection) => void;
 }
 
 const SECTIONS: {
@@ -102,6 +103,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   clientId,
   clientName,
   initialSection,
+  onSectionChange,
 }) => {
   const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
   const numericClientId = getNumericClientId(clientId);
@@ -112,11 +114,12 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 
   const handleSectionChange = useCallback((section: TrainingSection) => {
     setActiveSection(section);
-  }, []);
+    onSectionChange?.(section);
+  }, [onSectionChange]);
 
   const handleCommandLaneStart = useCallback((message: string) => {
-    if (shouldOpenLoggerForCommand(message)) setActiveSection('logger');
-  }, []);
+    if (shouldOpenLoggerForCommand(message)) handleSectionChange('logger');
+  }, [handleSectionChange]);
 
   const renderContent = (safeClientId: number) => {
     switch (activeSection) {
@@ -144,10 +147,10 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
             <WorkoutLogger
               clientId={safeClientId}
               onComplete={() => {
-                setActiveSection('history');
+                handleSectionChange('history');
               }}
               onCancel={() => {
-                setActiveSection('history');
+                handleSectionChange('history');
               }}
             />
           </Suspense>
