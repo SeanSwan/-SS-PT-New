@@ -11,8 +11,8 @@ const StatePageWrapper = styled.div`
 `;
 
 const StatePanel = styled.div`
-  background: var(--surface-elevated, rgba(15, 23, 42, 0.95));
-  border: 1px solid var(--border-accent-soft, rgba(14, 165, 233, 0.2));
+  background: var(--bg-elevated, rgba(15, 23, 42, 0.95));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 24px;
@@ -22,13 +22,13 @@ const StatePanel = styled.div`
 const StateTitle = styled.h2`
   font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text-primary, #e2e8f0);
+  color: var(--text-primary, #E0ECF4);
   margin: 0 0 8px 0;
 `;
 
 const StateText = styled.p`
   font-size: 1rem;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #A9B7C8);
   margin: 0;
 `;
 
@@ -40,22 +40,22 @@ const StateButton = styled.button`
   min-width: 44px;
   margin-top: 16px;
   padding: 8px 14px;
-  border: 1px solid var(--border-accent-soft, rgba(14, 165, 233, 0.25));
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
   border-radius: 8px;
-  background: var(--surface-interactive, rgba(14, 165, 233, 0.08));
-  color: var(--accent-primary, #7dd3fc);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  color: var(--accent-primary, #60C0F0);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    background: var(--surface-interactive-hover, rgba(14, 165, 233, 0.15));
-    border-color: var(--border-accent-strong, rgba(14, 165, 233, 0.4));
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
   }
 
   &:focus-visible {
-    outline: 2px solid var(--accent-primary, #0ea5e9);
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 `;
