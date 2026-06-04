@@ -6,7 +6,12 @@ import { dirname, resolve } from 'node:path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SOURCE = readFileSync(resolve(__dirname, './ClientTrainerAssignments.tsx'), 'utf8');
+const SOURCE = [
+  './ClientTrainerAssignments.tsx',
+  './ClientTrainerAssignments.types.ts',
+  './ClientTrainerAssignments.logic.ts',
+  './ClientTrainerAssignments.panels.tsx',
+].map((fileName) => readFileSync(resolve(__dirname, fileName), 'utf8')).join('\n');
 
 describe('ClientTrainerAssignments client source policy', () => {
   it('uses source-aware session labels instead of raw available-session copy', () => {
