@@ -44,6 +44,15 @@ import {
   pickWorkoutPlannerClientId,
   resolveWorkoutPlannerPlanClientId,
 } from './WorkoutPlannerClientIdentity';
+import {
+  BODY_PARTS,
+  EQUIPMENT_FILTERS,
+  EXERCISE_TYPES,
+  IMPACT_LEVELS,
+  SOURCE_FILTERS,
+  getJointImpact,
+  parseEquipment,
+} from './WorkoutPlannerFilters';
 
 // AI Terminal — lazy since it's optional UI
 const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
@@ -121,58 +130,9 @@ const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 // ─────────────────────────────────────────────────────────────
 // SECTION: Body Part Filter Categories
 // ─────────────────────────────────────────────────────────────
-const BODY_PARTS = [
-  'All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs',
-  'Core', 'Full Body', 'Cardio', 'Recovery',
-];
-
-const EXERCISE_TYPES = [
-  'All Types', 'Compound', 'Isolation', 'Calisthenics',
-  'Stability', 'Flexibility', 'Core',
-];
-
-const EQUIPMENT_FILTERS = [
-  'All Equipment', 'Bodyweight', 'Dumbbell', 'Barbell', 'Machine',
-  'Cable', 'Resistance Band', 'Kettlebell', 'Sliders',
-  'Stability Ball', 'Medicine Ball', 'BOSU', 'TRX',
-];
-
-const SOURCE_FILTERS = ['All Programs', 'NASM', 'SwanStudios'] as const;
-
-// Joint impact derived from exerciseType + difficulty
-const IMPACT_LEVELS = ['All Impact', 'Low Impact', 'Medium Impact', 'High Impact'] as const;
-
 interface TrainerAssignmentResponse {
   client?: PlannerClient;
   Client?: PlannerClient;
-}
-
-function getJointImpact(ex: { exerciseType: string; difficulty: number }): string {
-  const lowTypes = ['flexibility', 'stability', 'balance'];
-  const highTypes = ['calisthenics', 'compound'];
-  if (lowTypes.includes(ex.exerciseType) || ex.difficulty <= 200) return 'Low Impact';
-  if (highTypes.includes(ex.exerciseType) && ex.difficulty >= 500) return 'High Impact';
-  return 'Medium Impact';
-}
-
-/**
- * Parse equipment field — handles JSON strings, arrays, and null/empty.
- * DB stores equipment as JSON string '["Cable Machine"]' but some records have arrays.
- */
-function parseEquipment(eq: unknown): string[] {
-  if (!eq) return [];
-  if (Array.isArray(eq)) return eq.filter(Boolean);
-  if (typeof eq === 'string') {
-    if (eq === '[]' || eq === '') return [];
-    try {
-      const parsed = JSON.parse(eq);
-      if (Array.isArray(parsed)) return parsed.filter(Boolean);
-    } catch {
-      // Not JSON — treat as single equipment name
-      return [eq];
-    }
-  }
-  return [];
 }
 
 // ─────────────────────────────────────────────────────────────
