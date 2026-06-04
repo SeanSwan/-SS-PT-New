@@ -36,6 +36,21 @@ const GRID_SOURCE = readFileSync(
   ),
   'utf8',
 );
+const PRIMARY_CARDS_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.primaryCards.tsx',
+  ),
+  'utf8',
+);
+const DETAIL_CARDS_SOURCE = readFileSync(
+  resolve(
+    __dirname,
+    '../../components/DashBoard/Pages/client-dashboard/CanonicalProgressChartsGrid.detailCards.tsx',
+  ),
+  'utf8',
+);
+const GRID_CARD_SOURCE = `${GRID_SOURCE}\n${PRIMARY_CARDS_SOURCE}\n${DETAIL_CARDS_SOURCE}`;
 const PAGE_SOURCE = readFileSync(
   resolve(
     __dirname,
@@ -204,16 +219,16 @@ describe('Phase 14 — CanonicalProgressChartsGrid source contract', () => {
       'chart-card-recoverySignal',
     ];
     for (const id of TESTIDS) {
-      expect(GRID_SOURCE).toContain(`data-testid="${id}"`);
+      expect(GRID_CARD_SOURCE).toContain(`data-testid="${id}"`);
     }
   });
 
   it('uses truthful empty-state copy instead of hiding empty charts', () => {
-    expect(GRID_SOURCE).toMatch(/No completed workouts yet/);
-    expect(GRID_SOURCE).toMatch(/No attendance data yet/);
-    expect(GRID_SOURCE).toMatch(/No logged lifts yet/);
-    expect(GRID_SOURCE).toMatch(/No PRs recorded yet/);
-    expect(GRID_SOURCE).toMatch(/No recovery flags/);
+    expect(GRID_CARD_SOURCE).toMatch(/No completed workouts yet/);
+    expect(GRID_CARD_SOURCE).toMatch(/No attendance data yet/);
+    expect(GRID_CARD_SOURCE).toMatch(/No logged lifts yet/);
+    expect(GRID_CARD_SOURCE).toMatch(/No PRs recorded yet/);
+    expect(GRID_CARD_SOURCE).toMatch(/No recovery flags/);
   });
 
   it('consumes useClientProgressCharts (not the legacy useClientAnalytics)', () => {
@@ -222,8 +237,8 @@ describe('Phase 14 — CanonicalProgressChartsGrid source contract', () => {
   });
 
   it('never references demo / preview / DEMO_DATA anywhere in the grid', () => {
-    expect(GRID_SOURCE).not.toMatch(/DEMO_DATA/);
-    expect(GRID_SOURCE).not.toMatch(/Preview/);
+    expect(GRID_CARD_SOURCE).not.toMatch(/DEMO_DATA/);
+    expect(GRID_CARD_SOURCE).not.toMatch(/Preview/);
   });
 });
 
