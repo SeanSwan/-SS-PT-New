@@ -51,6 +51,10 @@ import { calcBrzycki1RM } from '../../../../../hooks/analytics/workoutAnalyticsU
 import { useAuth } from '../../../../../context/AuthContext';
 import { buildWorkoutHistoryNotesDisplay } from './workoutHistoryNotes';
 import {
+  formatWorkoutHistoryDate,
+  formatWorkoutHistoryVolume,
+} from './workoutHistoryFormatters';
+import {
   getPersonalRecordKey,
   groupSessionLogs,
   sortPersonalRecords,
@@ -850,7 +854,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         <SummaryBar>
           <StatChip><Dumbbell size={14} /> <strong>{data.summary.totalWorkouts}</strong> workouts</StatChip>
           <StatChip><Activity size={14} /> <strong>{data.summary.totalExercises}</strong> exercises</StatChip>
-          <StatChip><Flame size={14} /> <strong>{Math.round(data.summary.totalVolume).toLocaleString()}</strong> lbs</StatChip>
+          <StatChip><Flame size={14} /> <strong>{formatWorkoutHistoryVolume(data.summary.totalVolume)}</strong></StatChip>
           {data.summary.avgIntensity > 0 && (
             <StatChip><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</StatChip>
           )}
@@ -922,7 +926,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                           <SessionTitle>{session.title}</SessionTitle>
                           <SessionMeta>
                             <MetaChip>
-                              {new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {formatWorkoutHistoryDate(session.date)}
                             </MetaChip>
                             {session.duration > 0 && (
                               <MetaChip><Clock size={12} /> {session.duration}min</MetaChip>
@@ -1214,7 +1218,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                           )}
                           <SessionTotals>
                             <TotalLabel>
-                              Vol: <TotalValue>{Math.round(session.totalWeight).toLocaleString()} lbs</TotalValue>
+                              Vol: <TotalValue>{formatWorkoutHistoryVolume(session.totalWeight)}</TotalValue>
                             </TotalLabel>
                             <TotalLabel>
                               Sets: <TotalValue>{session.totalSets}</TotalValue>
@@ -1299,7 +1303,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                         {pr.exercise}
                       </PRExerciseName>
                       <PRDateText>
-                        {pr.date ? new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                        {formatWorkoutHistoryDate(pr.date)}
                       </PRDateText>
                     </PRDetails>
                     <PRActionRow>

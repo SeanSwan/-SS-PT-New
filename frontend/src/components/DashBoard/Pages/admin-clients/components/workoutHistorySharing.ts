@@ -2,6 +2,7 @@ import type {
   PersonalRecord,
   WorkoutSession,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
+import { formatWorkoutHistoryVolume } from './workoutHistoryFormatters';
 
 export interface WorkoutHistoryShareModalState {
   postType: 'workout' | 'achievement';
@@ -49,6 +50,6 @@ export function buildWorkoutHistoryShareModalState(
   return {
     postType: 'workout',
     workoutSessionId: shareSession.id,
-    prefilledContent: `${clientName} crushed a ${shareSession.title} workout! ${shareSession.logs.length} exercises, ${Math.round(shareSession.totalWeight).toLocaleString()} lbs total volume.`,
+    prefilledContent: `${clientName} crushed a ${shareSession.title} workout! ${shareSession.logs.length} exercises, ${formatWorkoutHistoryVolume(shareSession.totalWeight)} total volume.`,
   };
 }
