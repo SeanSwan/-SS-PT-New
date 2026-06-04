@@ -10,9 +10,15 @@
  */
 
 import React, { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
-import styled from 'styled-components';
 import { Clock } from 'lucide-react';
 import TimeDropdown from './TimeDropdown';
+import {
+  PickerContainer,
+  TriggerButton,
+  TriggerContent,
+  TriggerText,
+  TzBadge,
+} from './TimeWheelPicker.styles';
 import { useTimeWheelState, getTimezoneAbbr, formatTimeDisplay } from './useTimeWheelState';
 
 // Lazy-load mobile wheel — desktop users never download this chunk
@@ -141,75 +147,3 @@ export const TimeWheelPicker: React.FC<TimeWheelPickerProps> = ({
 export default TimeWheelPicker;
 
 // ─── Styled Components ───────────────────────────────────────────────────────
-
-const PickerContainer = styled.div`
-  position: relative;
-  width: 100%;
-`;
-
-const TriggerButton = styled.button`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  min-height: 44px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: #ffffff;
-  font-size: 0.875rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 200ms ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: left;
-  outline: none;
-  touch-action: manipulation;
-
-  &:hover:not(:disabled) {
-    border-color: rgba(14, 165, 233, 0.4);
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  &:focus-visible {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &[aria-expanded="true"] {
-    border-color: rgba(14, 165, 233, 0.5);
-    background: rgba(14, 165, 233, 0.05);
-  }
-`;
-
-const TriggerContent = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: inherit;
-
-  svg {
-    color: #94a3b8;
-    flex-shrink: 0;
-  }
-`;
-
-const TriggerText = styled.span`
-  font-weight: 500;
-`;
-
-const TzBadge = styled.span`
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #94a3b8;
-  background: rgba(148, 163, 184, 0.1);
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  padding: 2px 8px;
-  border-radius: 10px;
-  flex-shrink: 0;
-`;

@@ -8,7 +8,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
+import { DropdownList, PortalContainer, TimeSlotButton } from './TimeDropdown.styles';
 import { formatTimeDisplay, isTimeInRange } from './useTimeWheelState';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -209,58 +209,3 @@ const TimeDropdown: React.FC<TimeDropdownProps> = ({
 export default TimeDropdown;
 
 // ─── Styled Components ───────────────────────────────────────────────────────
-
-const PortalContainer = styled.div<{ $top: number; $left: number; $width: number }>`
-  position: fixed;
-  top: ${p => p.$top}px;
-  left: ${p => p.$left}px;
-  width: ${p => p.$width}px;
-  z-index: var(--z-dropdown, 200);
-`;
-
-const DropdownList = styled.div<{ $direction: 'down' | 'up' }>`
-  max-height: 300px;
-  overflow-y: auto;
-  background: rgba(10, 15, 30, 0.95);
-  border: 2px solid rgba(14, 165, 233, 0.4);
-  border-radius: 8px;
-  padding: 0.25rem 0;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 12px rgba(14, 165, 233, 0.15);
-  transform-origin: ${p => p.$direction === 'up' ? 'bottom center' : 'top center'};
-  outline: none;
-
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 3px; }
-  &::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.4); border-radius: 3px; }
-  &::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
-`;
-
-const TimeSlotButton = styled.button<{
-  $isSelected: boolean;
-  $isFocused: boolean;
-  $isDisabled: boolean;
-}>`
-  display: block;
-  width: 100%;
-  padding: 0 1rem;
-  height: 44px;
-  border: none;
-  background: ${p =>
-    p.$isSelected ? 'rgba(14, 165, 233, 0.2)' :
-    p.$isFocused ? 'rgba(14, 165, 233, 0.08)' :
-    'transparent'};
-  color: ${p =>
-    p.$isDisabled ? 'rgba(100, 116, 139, 0.4)' :
-    p.$isSelected ? '#0EA5E9' :
-    '#e2e8f0'};
-  font-size: 0.9rem;
-  font-family: inherit;
-  text-align: left;
-  cursor: ${p => p.$isDisabled ? 'not-allowed' : 'pointer'};
-  transition: background 100ms ease;
-  border-left: 3px solid ${p => p.$isSelected ? '#0EA5E9' : 'transparent'};
-
-  &:hover:not([aria-disabled="true"]) {
-    background: rgba(14, 165, 233, 0.1);
-  }
-`;
