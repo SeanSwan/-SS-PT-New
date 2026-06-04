@@ -44,24 +44,17 @@ import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
 import { CenterContent, Spinner } from './copilot-shared-styles';
 import {
   useWorkoutAnalytics,
-  calcBrzycki1RM,
   type WorkoutSession,
   type WorkoutLogEntry,
-  type PersonalRecord,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
+import { calcBrzycki1RM } from '../../../../../hooks/analytics/workoutAnalyticsUtils';
 import { useAuth } from '../../../../../context/AuthContext';
 import { resolveExerciseNote, splitLegacyStoredNote } from './workoutHistoryNotes';
-
-
-const sortPersonalRecords = (records: PersonalRecord[]): PersonalRecord[] =>
-  [...records].sort((a, b) =>
-    b.weight - a.weight ||
-    b.reps - a.reps ||
-    a.exercise.localeCompare(b.exercise) ||
-    a.date.localeCompare(b.date));
-
-const getPersonalRecordKey = (pr: PersonalRecord): string =>
-  ['pr', pr.exercise, pr.date, pr.weight, pr.reps, pr.estimated1RM ?? ''].join('|');
+import {
+  getPersonalRecordKey,
+  groupSessionLogs,
+  sortPersonalRecords,
+} from './workoutHistoryPanelData';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -932,25 +925,6 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     [authAxios, clientId, editLogs, refetch],
   );
 
-  const groupLogs = useMemo(() => {
-    return (session: WorkoutSession) => {
-      const groups: Record<string, { sets: { setNumber: number; reps: number; weight: number; rpe?: number; tempo?: string; rest?: number; est1RM: number }[] }> = {};
-      for (const log of session.logs) {
-        if (!groups[log.exerciseName]) groups[log.exerciseName] = { sets: [] };
-        groups[log.exerciseName].sets.push({
-          setNumber: log.setNumber,
-          reps: log.reps,
-          weight: log.weight,
-          rpe: log.rpe,
-          tempo: log.tempo,
-          rest: log.rest,
-          est1RM: calcBrzycki1RM(log.weight, log.reps),
-        });
-      }
-      return Object.entries(groups);
-    };
-  }, []);
-
   return (
     <>
       {/* Embedded surface gets its own client header (the modal already has
@@ -1026,7 +1000,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
             ) : (
               data.sessions.map((session) => {
                 const isExpanded = expandedSessions.has(session.id);
-                  const exerciseGroups = groupLogs(session);
+                  const exerciseGroups = groupSessionLogs(session);
                   return (
                     <SessionCard key={session.id}>
                     <SessionHeader>
