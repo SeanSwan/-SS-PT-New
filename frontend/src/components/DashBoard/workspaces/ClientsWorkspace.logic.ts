@@ -1,7 +1,16 @@
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
+export type ClientDetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
 export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+
+const CLIENT_DETAIL_TABS = new Set<ClientDetailTab>([
+  'training',
+  'progress',
+  'biometrics',
+  'overview',
+  'settings',
+]);
 
 const CLIENT_TRAINING_SECTIONS = new Set<ClientTrainingSection>([
   'architect',
@@ -15,6 +24,13 @@ const CLIENT_TRAINING_SECTIONS = new Set<ClientTrainingSection>([
 export const getClientHubIntent = (searchParams: URLSearchParams): ClientHubIntent => {
   const intent = searchParams.get('intent');
   return intent === 'log_workout' || intent === 'plan_next' ? intent : null;
+};
+
+export const getClientDetailTabFromSearchParams = (
+  searchParams: URLSearchParams,
+): ClientDetailTab | null => {
+  const tab = searchParams.get('tab');
+  return CLIENT_DETAIL_TABS.has(tab as ClientDetailTab) ? tab as ClientDetailTab : null;
 };
 
 export const getClientTrainingSectionFromSearchParams = (

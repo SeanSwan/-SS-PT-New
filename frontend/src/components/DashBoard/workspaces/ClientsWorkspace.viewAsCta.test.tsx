@@ -129,6 +129,12 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('progress');
   });
 
+  it('opens the progress detail tab from a shareable Client Hub URL', async () => {
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}&tab=progress`);
+
+    expect(await screen.findByTestId('mock-client-detail-tab')).toHaveTextContent('progress');
+  });
+
   it('opens the workout planner with the selected client preloaded', async () => {
     const user = userEvent.setup();
     renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}`);

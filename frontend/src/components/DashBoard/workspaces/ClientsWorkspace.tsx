@@ -19,10 +19,12 @@ import ClientHubGridCard from './clients-team/ClientHubGridCard';
 import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
 import {
+  getClientDetailTabFromSearchParams,
   getClientHubIntent,
   getClientIdFromSearchParams,
   getClientTrainingSectionFromSearchParams,
   getClientOnboardingPct,
+  type ClientDetailTab,
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
 import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
@@ -37,7 +39,6 @@ import {
 import { mapAdminClientToClientOption, toMiniCardClient } from './clients-team/clientOptionMappers';
 import { ClientDetailView } from './clients-team';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
-import type { DetailTab } from './clients-team/ClientDetailView';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import { useClientAccountLifecycle } from './clients-team/useClientAccountLifecycle';
 import { useManualClientCreation } from './clients-team/useManualClientCreation';
@@ -45,8 +46,6 @@ import ClientLifecycleConfirmDialog from './clients-team/ClientLifecycleConfirmD
 import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
 import { buildClientCardQuickActionRoute } from './clients-team/clientCardQuickActions';
 
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
 const ClientsWorkspace: React.FC = () => {
   const { authAxios } = useAuth() as any;
   const { toast } = useToast();
@@ -55,11 +54,12 @@ const ClientsWorkspace: React.FC = () => {
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>('training');
+  const [detailTab, setDetailTab] = useState<ClientDetailTab>(() => getClientDetailTabFromSearchParams(searchParams) ?? 'training');
   const [loading, setLoading] = useState(true);
 
   const urlClientId = getClientIdFromSearchParams(searchParams);
   const clientHubIntent = getClientHubIntent(searchParams);
+  const urlDetailTab = getClientDetailTabFromSearchParams(searchParams);
 
   const navigateClientDailyRoute = useCallback((route: string | null) => {
     if (!route) {
@@ -85,6 +85,12 @@ const ClientsWorkspace: React.FC = () => {
 
     return false;
   }, [navigateClientDailyRoute]);
+
+  const showClientDetailTab = useCallback((client: ClientOption, tab: ClientDetailTab) => {
+    setSelectedClient(client);
+    setDetailTab(tab);
+    setSearchParams({ clientId: String(client.id), tab });
+  }, [setSearchParams]);
 
   const loadClients = useCallback(async (): Promise<ClientOption[]> => {
     if (!authAxios) return [];
@@ -127,6 +133,7 @@ const ClientsWorkspace: React.FC = () => {
       if (match) {
         if (runClientHubIntent(match, clientHubIntent)) return;
         setSelectedClient(match);
+        setDetailTab(urlDetailTab ?? 'training');
       }
     };
     fetchClients();
@@ -134,10 +141,8 @@ const ClientsWorkspace: React.FC = () => {
   const handleSelectClient = useCallback((client: ClientOption) => {
     if (runClientHubIntent(client, clientHubIntent)) return;
 
-    setSelectedClient(client);
-    setDetailTab('training');
-    setSearchParams({ clientId: String(client.id) });
-  }, [clientHubIntent, runClientHubIntent, setSearchParams]);
+    showClientDetailTab(client, 'training');
+  }, [clientHubIntent, runClientHubIntent, showClientDetailTab]);
 
   const handleNewClient = useCallback(() => {
     navigate(buildClientCoachOnboardingRoute());
@@ -164,8 +169,8 @@ const ClientsWorkspace: React.FC = () => {
   }, [navigateClientDailyRoute, selectedClient]);
 
   const handleViewProgress = useCallback(() => {
-    setDetailTab('progress');
-  }, []);
+    if (selectedClient) showClientDetailTab(selectedClient, 'progress');
+  }, [selectedClient, showClientDetailTab]);
 
   const handleViewAsClient = useCallback(() => {
     if (selectedClient) {
@@ -176,10 +181,8 @@ const ClientsWorkspace: React.FC = () => {
   const handleClientCardQuickAction = useCallback((client: ClientOption, action: ClientHubQuickAction) => {
     const route = buildClientCardQuickActionRoute(client.id, action);
     if (route) return navigateClientDailyRoute(route);
-    setSelectedClient(client);
-    setDetailTab('progress');
-    setSearchParams({ clientId: String(client.id) });
-  }, [navigateClientDailyRoute, setSearchParams]);
+    showClientDetailTab(client, 'progress');
+  }, [navigateClientDailyRoute, showClientDetailTab]);
 
   const {
     handleDeactivateClient,
@@ -201,9 +204,7 @@ const ClientsWorkspace: React.FC = () => {
     handleManualCreate,
   } = useManualClientCreation({ onClientsChanged: loadClients });
 
-  const handleManageAssignments = useCallback(() => {
-    navigate('/dashboard/admin/client-trainer-assignments');
-  }, [navigate]);
+  const handleManageAssignments = useCallback(() => navigate('/dashboard/admin/client-trainer-assignments'), [navigate]);
 
   const detailClient = useMemo(() => toMiniCardClient(selectedClient), [selectedClient]);
   const {
@@ -264,7 +265,7 @@ const ClientsWorkspace: React.FC = () => {
             <ClientDetailView
               client={detailClient}
               activeTab={detailTab}
-              onTabChange={setDetailTab}
+              onTabChange={(tab) => selectedClient && showClientDetailTab(selectedClient, tab)}
               onBack={() => {
                 setSelectedClient(null);
                 setDetailTab('training');
@@ -295,5 +296,4 @@ const ClientsWorkspace: React.FC = () => {
     </HubContainer>
   );
 };
-
 export default ClientsWorkspace;

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { getClientTrainingSectionFromSearchParams } from './ClientsWorkspace.logic';
+import {
+  getClientDetailTabFromSearchParams,
+  getClientTrainingSectionFromSearchParams,
+} from './ClientsWorkspace.logic';
 
 describe('ClientsWorkspace route state parsing', () => {
   it('accepts the workout-history return section after a saved full-page log', () => {
@@ -19,5 +22,17 @@ describe('ClientsWorkspace route state parsing', () => {
     const params = new URLSearchParams('clientId=61&tab=training&trainingSection=javascript:alert(1)');
 
     expect(getClientTrainingSectionFromSearchParams(params)).toBeNull();
+  });
+
+  it('accepts a shareable progress detail tab route', () => {
+    const params = new URLSearchParams('clientId=61&tab=progress');
+
+    expect(getClientDetailTabFromSearchParams(params)).toBe('progress');
+  });
+
+  it('rejects unsafe detail tab route values', () => {
+    const params = new URLSearchParams('clientId=61&tab=javascript:alert(1)');
+
+    expect(getClientDetailTabFromSearchParams(params)).toBeNull();
   });
 });
