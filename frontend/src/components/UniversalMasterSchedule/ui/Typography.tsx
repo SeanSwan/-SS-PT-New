@@ -4,15 +4,35 @@
  * Semantic, accessible text components to replace MUI Typography
  */
 
-import styled from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+import styled, { css } from 'styled-components';
+
+const SCHEDULE_TYPOGRAPHY_THEME = {
+  textPrimary: 'var(--text-primary, #E0ECF4)',
+  textSecondary: 'var(--text-secondary, rgba(224, 236, 244, 0.82))',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.65))',
+  accent: 'var(--accent-primary, #60C0F0)',
+  danger: 'var(--danger, #EF4444)',
+} as const;
+
+const secondaryTextStyleProps = new Set(['secondary']);
+
+const requiredMarkerStyles = css`
+  &::after {
+    content: ' *';
+    color: ${SCHEDULE_TYPOGRAPHY_THEME.danger};
+  }
+`;
+
+const scheduleTextColor = (secondary?: boolean) => (
+  secondary ? SCHEDULE_TYPOGRAPHY_THEME.textMuted : SCHEDULE_TYPOGRAPHY_THEME.textPrimary
+);
 
 // Page-level heading (h1)
 export const PageTitle = styled.h1`
   margin: 0;
   font-size: 2rem;
   font-weight: 400;
-  color: ${galaxySwanTheme.text.primary};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.textPrimary};
   line-height: 1.2;
 
   @media (max-width: 768px) {
@@ -33,7 +53,7 @@ export const SectionTitle = styled.h2`
   margin: 0;
   font-size: 1.5rem;
   font-weight: 500;
-  color: ${galaxySwanTheme.text.primary};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.textPrimary};
   line-height: 1.3;
 
   @media (max-width: 768px) {
@@ -54,7 +74,7 @@ export const SubsectionTitle = styled.h3`
   margin: 0;
   font-size: 1.25rem;
   font-weight: 500;
-  color: ${galaxySwanTheme.text.primary};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.textPrimary};
   line-height: 1.4;
 `;
 
@@ -63,7 +83,7 @@ export const PrimaryHeading = styled.h2`
   margin: 0;
   font-size: 2rem;
   font-weight: 600;
-  color: ${galaxySwanTheme.primary.main};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.accent};
   line-height: 1.2;
 
   @media (min-width: 2560px) {
@@ -76,11 +96,13 @@ export const PrimaryHeading = styled.h2`
 `;
 
 // Body text (regular paragraphs)
-export const BodyText = styled.p<{ secondary?: boolean }>`
+export const BodyText = styled.p.withConfig({
+  shouldForwardProp: (prop) => !secondaryTextStyleProps.has(prop)
+})<{ secondary?: boolean }>`
   margin: 0;
   font-size: 1rem;
   font-weight: 400;
-  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
+  color: ${props => scheduleTextColor(props.secondary)};
   line-height: 1.5;
 
   @media (min-width: 2560px) {
@@ -94,12 +116,12 @@ export const BodyText = styled.p<{ secondary?: boolean }>`
 
 // Small body text
 export const SmallText = styled.p.withConfig({
-  shouldForwardProp: (prop) => prop !== 'secondary'
+  shouldForwardProp: (prop) => !secondaryTextStyleProps.has(prop)
 })<{ secondary?: boolean }>`
   margin: 0;
   font-size: 0.875rem;
   font-weight: 400;
-  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
+  color: ${props => scheduleTextColor(props.secondary)};
   line-height: 1.4;
 
   @media (min-width: 2560px) {
@@ -113,11 +135,11 @@ export const SmallText = styled.p.withConfig({
 
 // Caption text (smallest)
 export const Caption = styled.span.withConfig({
-  shouldForwardProp: (prop) => prop !== 'secondary'
+  shouldForwardProp: (prop) => !secondaryTextStyleProps.has(prop)
 })<{ secondary?: boolean }>`
   font-size: 0.75rem;
   font-weight: 400;
-  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
+  color: ${props => scheduleTextColor(props.secondary)};
   line-height: 1.3;
   display: inline-block;
 
@@ -131,26 +153,23 @@ export const Caption = styled.span.withConfig({
 `;
 
 // Label text (for forms)
-export const Label = styled.label<{ required?: boolean }>`
+export const Label = styled.label.withConfig({
+  shouldForwardProp: (prop) => prop !== 'required'
+})<{ required?: boolean }>`
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: ${galaxySwanTheme.text.secondary};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.textSecondary};
   margin-bottom: 0.5rem;
   
-  ${props => props.required && `
-    &::after {
-      content: ' *';
-      color: #ef4444;
-    }
-  `}
+  ${props => props.required && requiredMarkerStyles}
 `;
 
 // Error text
 export const ErrorText = styled.span`
   display: block;
   font-size: 0.75rem;
-  color: #ef4444;
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.danger};
   margin-top: 0.25rem;
   font-weight: 500;
 `;
@@ -159,6 +178,6 @@ export const ErrorText = styled.span`
 export const HelperText = styled.span`
   display: block;
   font-size: 0.75rem;
-  color: ${galaxySwanTheme.text.muted};
+  color: ${SCHEDULE_TYPOGRAPHY_THEME.textMuted};
   margin-top: 0.25rem;
 `;
