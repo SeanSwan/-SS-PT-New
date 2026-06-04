@@ -39,4 +39,11 @@ describe('WorkoutLogger style extraction', () => {
     expect(source).toContain('withAlpha(CS.secondary');
     expect(source).toContain('withAlpha(CS.gaming');
   });
+
+  it('keeps the voice import panel bridged to dashboard surface tokens', () => {
+    const source = read('WorkoutLogger.styles.ts');
+
+    expect(source).toContain('var(--bg-elevated');
+    expect(source).not.toContain('var(--surface-elevated');
+  });
 });
