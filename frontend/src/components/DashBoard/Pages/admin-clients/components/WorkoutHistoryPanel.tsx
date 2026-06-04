@@ -57,6 +57,7 @@ import {
 } from './workoutHistoryPanelData';
 import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
+import { buildWorkoutHistoryExerciseTableState } from './workoutHistoryExerciseTableState';
 import {
   appendWorkoutEditRow,
   removeWorkoutEditRow,
@@ -943,18 +944,13 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                       // Tempo column immediately).
                       const isEditing = editingSessionId === session.id;
                       const activeLogs: WorkoutLogEntry[] = isEditing ? editLogs : session.logs;
-                      const hasTempo = activeLogs.some(l => l.tempo);
-                      const hasRest = activeLogs.some(l => l.rest && l.rest > 0);
-                      const hasRPE = activeLogs.some(l => l.rpe && l.rpe > 0);
-                      const hasWeight = activeLogs.some(l => l.weight > 0);
-                      // Group by exercise name for table rendering. This
-                      // mirrors the non-editing groupLogs output shape but
-                      // operates on whichever buffer is authoritative.
-                      const editGroups = new Map<string, WorkoutLogEntry[]>();
-                      for (const l of activeLogs) {
-                        if (!editGroups.has(l.exerciseName)) editGroups.set(l.exerciseName, []);
-                        editGroups.get(l.exerciseName)!.push(l);
-                      }
+                      const {
+                        hasTempo,
+                        hasRest,
+                        hasRPE,
+                        hasWeight,
+                        exerciseGroups: tableExerciseGroups,
+                      } = buildWorkoutHistoryExerciseTableState(activeLogs);
                       return (
                         <ExerciseTableViewport>
                           {isEditing && saveError && (
@@ -978,7 +974,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               </tr>
                             </thead>
                             <tbody>
-                              {Array.from(editGroups.entries()).map(([exerciseName, groupSets]) =>
+                              {tableExerciseGroups.map(([exerciseName, groupSets]) =>
                                 groupSets.map((log, idx) => {
                                   // logIndex is the position in the FLAT
                                   // activeLogs array — editing handlers
@@ -1122,7 +1118,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               exercise group via updateExerciseNoteForGroup;
                               set note inputs update only their own row
                               without any merge/split string acrobatics. */}
-                          {Array.from(editGroups.entries()).map(([exerciseName, groupSets]) => {
+                          {tableExerciseGroups.map(([exerciseName, groupSets]) => {
                             const resolved = resolveExerciseNote(groupSets);
                             const exerciseNoteValue = resolved.exerciseNote;
                             const isLegacy = resolved.source === 'legacy';
@@ -1217,7 +1213,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
 
                           {isEditing && (
                             <AddSetRow>
-                              {Array.from(editGroups.keys()).map((exerciseName) => (
+                              {tableExerciseGroups.map(([exerciseName]) => (
                                 <EditBtn
                                   type="button"
                                   key={`add-set-${exerciseName}`}
