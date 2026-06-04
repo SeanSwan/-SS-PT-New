@@ -4,48 +4,67 @@
  * Container components to replace MUI Card/Paper
  */
 
-import styled from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+import styled, { css } from 'styled-components';
+
+const SCHEDULE_CARD_THEME = {
+  surface: 'var(--bg-elevated, #141419)',
+  surfaceSoft: 'color-mix(in srgb, var(--bg-elevated, #141419) 84%, transparent)',
+  surfaceHover: 'color-mix(in srgb, var(--bg-elevated, #141419) 92%, var(--accent-primary, #60C0F0) 8%)',
+  panelSurface: 'color-mix(in srgb, var(--bg-surface, #1A1A24) 78%, transparent)',
+  glassSurface: 'color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent)',
+  borderSoft: 'var(--border-soft, rgba(96, 192, 240, 0.18))',
+  borderStrong: 'color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent)',
+  accent: 'var(--accent-primary, #60C0F0)',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.65))',
+  success: 'var(--success, #10B981)',
+  danger: 'var(--danger, #EF4444)',
+  shadowSoft: 'var(--shadow-soft, 0 4px 12px rgba(0, 0, 0, 0.24))',
+  shadowStrong: 'var(--shadow-strong, 0 8px 24px rgba(0, 0, 0, 0.32))',
+} as const;
+
+const elevatedCardStyles = css`
+  box-shadow: ${SCHEDULE_CARD_THEME.shadowSoft};
+`;
+
+const interactiveCardStyles = css`
+  cursor: pointer;
+
+  &:hover {
+    background: ${SCHEDULE_CARD_THEME.surfaceHover};
+    border-color: ${SCHEDULE_CARD_THEME.borderStrong};
+    transform: translateY(-2px);
+    box-shadow: ${SCHEDULE_CARD_THEME.shadowStrong};
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;
 
 // Base card (replaces MUI Paper)
 export const Card = styled.div<{ elevated?: boolean; interactive?: boolean }>`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${SCHEDULE_CARD_THEME.surfaceSoft};
+  border: 1px solid ${SCHEDULE_CARD_THEME.borderSoft};
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.3s ease;
   
-  ${props => props.elevated && `
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  `}
+  ${props => props.elevated && elevatedCardStyles}
   
-  ${props => props.interactive && `
-    cursor: pointer;
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
-  `}
+  ${props => props.interactive && interactiveCardStyles}
 `;
 
 // Card with more elevation (replaces elevated Paper)
 export const ElevatedCard = styled(Card)`
-  background: rgba(255, 255, 255, 0.08);
+  background: ${SCHEDULE_CARD_THEME.surface};
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: ${SCHEDULE_CARD_THEME.shadowStrong};
 `;
 
 // Card header
 export const CardHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid ${SCHEDULE_CARD_THEME.borderSoft};
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -59,7 +78,7 @@ export const CardBody = styled.div<{ padding?: string }>`
 // Card footer
 export const CardFooter = styled.div`
   padding: 1rem 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid ${SCHEDULE_CARD_THEME.borderSoft};
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -68,17 +87,17 @@ export const CardFooter = styled.div`
 
 // Simple panel (minimal card)
 export const Panel = styled.div`
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${SCHEDULE_CARD_THEME.panelSurface};
+  border: 1px solid ${SCHEDULE_CARD_THEME.borderSoft};
   border-radius: 8px;
   padding: 1rem;
 `;
 
 // Glass card (with blur effect)
 export const GlassCard = styled(Card)`
-  background: rgba(255, 255, 255, 0.05);
+  background: ${SCHEDULE_CARD_THEME.glassSurface};
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid ${SCHEDULE_CARD_THEME.borderStrong};
 `;
 
 // Stat card (for displaying metrics)
@@ -89,14 +108,14 @@ export const StatCard = styled(Card)`
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: ${galaxySwanTheme.primary.main};
+    color: ${SCHEDULE_CARD_THEME.accent};
     margin-bottom: 0.5rem;
     line-height: 1;
   }
 
   .stat-label {
     font-size: 0.875rem;
-    color: ${galaxySwanTheme.text.muted};
+    color: ${SCHEDULE_CARD_THEME.textMuted};
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
@@ -106,11 +125,11 @@ export const StatCard = styled(Card)`
     margin-top: 0.5rem;
 
     &.positive {
-      color: ${galaxySwanTheme.status?.success || '#10b981'};
+      color: ${SCHEDULE_CARD_THEME.success};
     }
 
     &.negative {
-      color: ${galaxySwanTheme.status?.error || '#ef4444'};
+      color: ${SCHEDULE_CARD_THEME.danger};
     }
   }
 `;
