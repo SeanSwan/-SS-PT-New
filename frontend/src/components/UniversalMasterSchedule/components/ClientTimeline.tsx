@@ -5,21 +5,21 @@
  */
 
 import React, { useMemo } from 'react';
-import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Rocket } from 'lucide-react';
 import SessionCard, { SessionCardSession } from './SessionCard';
-
-const TOKENS = {
-  surfaceGlass: 'rgba(0, 32, 96, 0.6)',
-  elevatedGlass: 'rgba(30, 30, 50, 0.7)',
-  swanCyan: '#8B5CF6',
-  cosmicPurple: '#8B5CF6',
-  deepSpace: '#0A0A0F',
-  stellarWhite: '#f0f0ff',
-  mutedText: '#8892b0',
-  glassStroke: 'rgba(139, 92, 246, 0.1)',
-};
+import { CLIENT_TIMELINE_THEME } from './ClientTimeline.theme';
+import {
+  CardList,
+  CreditsBar,
+  CreditsLabel,
+  CreditsValue,
+  EmptyState,
+  EmptyText,
+  EmptyTitle,
+  SectionLabel,
+  TimelineContainer,
+} from './ClientTimeline.styles';
 
 interface ClientTimelineProps {
   sessions: SessionCardSession[];
@@ -80,7 +80,7 @@ const ClientTimeline: React.FC<ClientTimelineProps> = ({
 
       {upcoming.length === 0 ? (
         <EmptyState>
-          <Calendar size={40} color={TOKENS.swanCyan} />
+          <Calendar size={40} color={CLIENT_TIMELINE_THEME.accentPrimary} />
           <EmptyTitle>No Upcoming Sessions</EmptyTitle>
           <EmptyText>
             Your orbit is clear. Browse available time slots to book your next session.
@@ -134,83 +134,3 @@ const ClientTimeline: React.FC<ClientTimelineProps> = ({
 };
 
 export default ClientTimeline;
-
-// ---- Styled Components ----
-
-const TimelineContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 16px;
-  max-width: 640px;
-  margin: 0 auto;
-  width: 100%;
-`;
-
-const CreditsBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: ${TOKENS.surfaceGlass};
-  backdrop-filter: blur(16px);
-  border: 1px solid ${TOKENS.glassStroke};
-  border-radius: 12px;
-`;
-
-const CreditsLabel = styled.span`
-  font-size: 14px;
-  color: ${TOKENS.mutedText};
-  font-weight: 500;
-`;
-
-const CreditsValue = styled.span`
-  font-size: 24px;
-  font-weight: 700;
-  color: ${TOKENS.swanCyan};
-  font-variant-numeric: tabular-nums;
-`;
-
-const SectionLabel = styled.h3<{ $muted?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: ${p => p.$muted ? TOKENS.mutedText : TOKENS.stellarWhite};
-  margin: 8px 0 0;
-`;
-
-const CardList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const EmptyState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 48px 24px;
-  background: ${TOKENS.surfaceGlass};
-  backdrop-filter: blur(16px);
-  border: 1px solid ${TOKENS.glassStroke};
-  border-radius: 16px;
-`;
-
-const EmptyTitle = styled.h3`
-  font-size: 18px;
-  font-weight: 600;
-  color: ${TOKENS.stellarWhite};
-  margin: 16px 0 8px;
-`;
-
-const EmptyText = styled.p`
-  font-size: 14px;
-  color: ${TOKENS.mutedText};
-  max-width: 320px;
-  line-height: 1.5;
-`;
