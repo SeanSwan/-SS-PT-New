@@ -38,12 +38,15 @@ describe('EnhancedClientProgressView list identity locks', () => {
 
   it('does not key injury assessment dynamic rows by array index', () => {
     const source = readSource('./Analytics/InjuryRiskAssessment.tsx');
+    const viewSource = readSource('./Analytics/InjuryRiskAssessmentView.tsx');
+    const logicSource = readSource('./Analytics/InjuryRiskAssessment.logic.ts');
+    const combinedSource = [source, viewSource, logicSource].join('\n');
 
-    expect(source).not.toMatch(/key=\{index\}/);
-    expect(source).not.toMatch(/key=\{itemIndex\}/);
-    expect(source).toContain('criticalAlertKey');
-    expect(source).toContain('findingRowKey');
-    expect(source).toContain('correctiveProtocolItemKey');
-    expect(source).toContain('recommendationItemKey');
+    expect(combinedSource).not.toMatch(/key=\{index\}/);
+    expect(combinedSource).not.toMatch(/key=\{itemIndex\}/);
+    expect(combinedSource).toContain('criticalAlertKey');
+    expect(combinedSource).toContain('findingRowKey');
+    expect(combinedSource).toContain('correctiveProtocolItemKey');
+    expect(combinedSource).toContain('recommendationItemKey');
   });
 });
