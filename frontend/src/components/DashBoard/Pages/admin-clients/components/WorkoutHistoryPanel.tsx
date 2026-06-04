@@ -56,6 +56,7 @@ import {
   sortPersonalRecords,
 } from './workoutHistoryPanelData';
 import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
+import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -734,36 +735,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   // the group so the in-memory buffer respects the "every row carries
   // the note" invariant even if the DB state was transitional.
   const startEdit = useCallback((session: WorkoutSession) => {
-    const migrated: WorkoutLogEntry[] = [];
-    // Group by exercise so we can lift one legacy marker into every
-    // row of the group, preserving the "exerciseNote lives on every
-    // row" invariant even during a legacy → canonical migration.
-    const groups = new Map<string, WorkoutLogEntry[]>();
-    for (const l of session.logs) {
-      if (!groups.has(l.exerciseName)) groups.set(l.exerciseName, []);
-      groups.get(l.exerciseName)!.push({ ...l });
-    }
-    for (const rows of groups.values()) {
-      const { exerciseNote, source } = resolveExerciseNote(rows);
-      if (source === 'legacy' && exerciseNote) {
-        // Strip the legacy marker off every row's `notes` field and
-        // stamp the canonical `exerciseNote` on every row. After save
-        // the backend stores the new shape.
-        for (const row of rows) {
-          const split = splitLegacyStoredNote(row.notes);
-          row.notes = split.setNote || undefined;
-          row.exerciseNote = exerciseNote;
-        }
-      } else if (source === 'canonical' && exerciseNote) {
-        // Already canonical — make sure every row in the group carries
-        // the same value even if the backend stamped only one of them
-        // during a transitional state.
-        for (const row of rows) {
-          row.exerciseNote = exerciseNote;
-        }
-      }
-      migrated.push(...rows);
-    }
+    const migrated = buildEditableWorkoutLogs(session);
     setEditingSessionId(session.id);
     setEditLogs(migrated);
     setSaveError(null);
