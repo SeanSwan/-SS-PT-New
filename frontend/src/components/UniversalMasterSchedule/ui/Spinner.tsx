@@ -7,7 +7,12 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+
+const SCHEDULE_SPINNER_THEME = {
+  accent: 'var(--accent-primary, #60C0F0)',
+  text: 'var(--text-primary, #E0ECF4)',
+  fullscreenBackground: 'linear-gradient(135deg, var(--bg-base, #0A0A0F) 0%, var(--bg-surface, #1A1A24) 100%)',
+} as const;
 
 // Spin animation
 const spin = keyframes`
@@ -20,14 +25,16 @@ const spin = keyframes`
 `;
 
 // Spinner container
-const SpinnerContainer = styled.div<{ size?: number }>`
+const SpinnerContainer = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'size'
+})<{ size?: number }>`
   display: inline-flex;
   animation: ${spin} 1s linear infinite;
   
   svg {
     width: ${props => props.size || 24}px;
     height: ${props => props.size || 24}px;
-    color: ${galaxySwanTheme.primary.main};
+    color: ${SCHEDULE_SPINNER_THEME.accent};
   }
 `;
 
@@ -42,14 +49,14 @@ export const LoadingContainer = styled.div`
   
   &.fullscreen {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    background: ${SCHEDULE_SPINNER_THEME.fullscreenBackground};
   }
 `;
 
 // Loading text
 const LoadingText = styled.p`
   margin: 0;
-  color: #e2e8f0;
+  color: ${SCHEDULE_SPINNER_THEME.text};
   font-size: 1rem;
   font-weight: 500;
 `;
