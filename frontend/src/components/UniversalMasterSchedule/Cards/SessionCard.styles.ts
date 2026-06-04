@@ -1,10 +1,47 @@
 import styled, { css } from 'styled-components';
-import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+
+const scheduleCardTheme = {
+  background: 'var(--schedule-card-bg, color-mix(in srgb, var(--bg-elevated, #141419) 84%, var(--accent-secondary, #8B5CF6) 8%))',
+  pastBackground: 'var(--schedule-card-past-bg, color-mix(in srgb, var(--bg-surface, #1A1A24) 82%, transparent))',
+  border: 'var(--schedule-card-border, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent))',
+  pastBorder: 'var(--schedule-card-past-border, color-mix(in srgb, var(--text-primary, #E0ECF4) 12%, transparent))',
+  blockedBorder: 'var(--schedule-card-blocked-border, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent))',
+  blockedBackground: 'var(--schedule-card-blocked-bg, color-mix(in srgb, var(--bg-elevated, #141419) 74%, var(--accent-secondary, #8B5CF6) 12%))',
+  blockedStripe: 'var(--schedule-card-blocked-stripe, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 28%, transparent))',
+  blockedStripeBase: 'var(--schedule-card-blocked-stripe-base, color-mix(in srgb, var(--brand-primary, #002060) 24%, transparent))',
+  hoverShadow: 'var(--schedule-card-hover-shadow, 0 0 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent))',
+  primary: 'var(--accent-primary, #60C0F0)',
+  secondary: 'var(--accent-secondary, #8B5CF6)',
+  secondarySoft: 'var(--accent-secondary-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent))',
+  textPrimary: 'var(--text-primary, #E0ECF4)',
+  textSecondary: 'var(--text-secondary, rgba(224, 236, 244, 0.72))',
+  textMuted: 'var(--text-muted, rgba(224, 236, 244, 0.62))',
+  success: 'var(--success, #10b981)',
+  danger: 'var(--danger, #ef4444)',
+  dangerStrong: 'var(--danger-strong, color-mix(in srgb, var(--danger, #ef4444) 85%, var(--bg-base, #0A0A0F) 15%))',
+  dangerSoft: 'var(--danger-soft, color-mix(in srgb, var(--danger, #ef4444) 50%, transparent))',
+  onDanger: 'var(--text-on-danger, #fff)',
+};
+
+const statusDotColor = (status: string): string => {
+  switch (status) {
+    case 'confirmed':
+      return scheduleCardTheme.success;
+    case 'completed':
+      return scheduleCardTheme.textMuted;
+    case 'cancelled':
+      return scheduleCardTheme.danger;
+    case 'blocked':
+      return scheduleCardTheme.secondary;
+    default:
+      return scheduleCardTheme.primary;
+  }
+};
 
 export const LiteCardContainer = styled.div<{ $status: string }>`
-  background: rgba(30, 30, 60, 0.4);
+  background: ${scheduleCardTheme.background};
   border-radius: 8px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid ${scheduleCardTheme.border};
   padding: 0.5rem;
   display: flex;
   flex-direction: column;
@@ -30,9 +67,9 @@ export const mobileOptimizations = css`
 `;
 
 export const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode?: boolean }>`
-  background: ${({ $isPast }) => $isPast ? 'rgba(20, 20, 40, 0.3)' : 'rgba(30, 30, 60, 0.4)'};
+  background: ${({ $isPast }) => ($isPast ? scheduleCardTheme.pastBackground : scheduleCardTheme.background)};
   border-radius: 12px;
-  border: 1px solid ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : 'rgba(139, 92, 246, 0.2)'};
+  border: 1px solid ${({ $isPast }) => ($isPast ? scheduleCardTheme.pastBorder : scheduleCardTheme.border)};
   opacity: ${({ $isPast }) => $isPast ? 0.7 : 1};
   padding: 0.7rem 0.8rem;
   display: flex;
@@ -48,22 +85,22 @@ export const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $l
 
   ${({ $status }) =>
     $status === 'blocked' &&
-    `
-      border-color: rgba(139, 92, 246, 0.5);
-      background: rgba(30, 30, 60, 0.25);
+    css`
+      border-color: ${scheduleCardTheme.blockedBorder};
+      background: ${scheduleCardTheme.blockedBackground};
       background-image: repeating-linear-gradient(
         45deg,
-        rgba(139, 92, 246, 0.25),
-        rgba(139, 92, 246, 0.25) 6px,
-        rgba(0, 32, 96, 0.2) 6px,
-        rgba(0, 32, 96, 0.2) 12px
+        ${scheduleCardTheme.blockedStripe},
+        ${scheduleCardTheme.blockedStripe} 6px,
+        ${scheduleCardTheme.blockedStripeBase} 6px,
+        ${scheduleCardTheme.blockedStripeBase} 12px
       );
     `}
 
   &:hover {
-    ${({ $isPast, $liteMode }) => !$isPast && !$liteMode && `
+    ${({ $isPast, $liteMode }) => !$isPast && !$liteMode && css`
       transform: scale(1.02);
-      box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+      box-shadow: ${scheduleCardTheme.hoverShadow};
     `}
   }
 
@@ -72,7 +109,7 @@ export const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $l
   }
 
   &:focus-visible {
-    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline: 2px solid ${scheduleCardTheme.primary};
     outline-offset: 2px;
   }
 
@@ -116,27 +153,14 @@ export const StatusDot = styled.span<{ $status: string }>`
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: ${({ $status }) => {
-    switch ($status) {
-      case 'confirmed':
-        return '#00FF88';
-      case 'completed':
-        return 'rgba(255, 255, 255, 0.5)';
-      case 'cancelled':
-        return '#FF4757';
-      case 'blocked':
-        return galaxySwanTheme.secondary.main;
-      default:
-        return galaxySwanTheme.primary.main;
-    }
-  }};
+  background: ${({ $status }) => statusDotColor($status)};
   box-shadow: 0 0 8px currentColor;
 `;
 
 export const TimeLabel = styled.span`
   font-size: 0.85rem;
   font-weight: 600;
-  color: ${galaxySwanTheme.text.primary};
+  color: ${scheduleCardTheme.textPrimary};
   word-break: break-word;
 
   @media (max-width: 480px) {
@@ -147,7 +171,7 @@ export const TimeLabel = styled.span`
 export const DurationLabel = styled.span`
   margin-left: auto;
   font-size: 0.75rem;
-  color: ${galaxySwanTheme.text.secondary};
+  color: ${scheduleCardTheme.textSecondary};
   word-break: break-word;
 `;
 
@@ -179,7 +203,7 @@ export const CardBody = styled.div`
 export const NameText = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
-  color: ${galaxySwanTheme.text.primary};
+  color: ${scheduleCardTheme.textPrimary};
   word-break: break-word;
 
   @media (max-width: 480px) {
@@ -189,7 +213,7 @@ export const NameText = styled.span`
 
 export const MetaText = styled.span`
   font-size: 0.75rem;
-  color: ${galaxySwanTheme.text.secondary};
+  color: ${scheduleCardTheme.textSecondary};
   word-break: break-word;
 `;
 
@@ -197,9 +221,9 @@ export const SessionsBadge = styled.span<{ $low: boolean }>`
   position: absolute;
   top: 6px;
   right: 6px;
-  background: ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.85)' : 'rgba(139, 92, 246, 0.2)'};
-  color: ${({ $low }) => $low ? '#fff' : 'rgba(139, 92, 246, 0.9)'};
-  border: 1px solid ${({ $low }) => $low ? 'rgba(255, 71, 87, 0.5)' : 'rgba(139, 92, 246, 0.3)'};
+  background: ${({ $low }) => ($low ? scheduleCardTheme.dangerStrong : scheduleCardTheme.secondarySoft)};
+  color: ${({ $low }) => ($low ? scheduleCardTheme.onDanger : scheduleCardTheme.secondary)};
+  border: 1px solid ${({ $low }) => ($low ? scheduleCardTheme.dangerSoft : scheduleCardTheme.border)};
   border-radius: 8px;
   padding: 1px 6px;
   font-size: 0.65rem;
@@ -219,7 +243,7 @@ export const SessionsBadge = styled.span<{ $low: boolean }>`
 
 export const PackageInfo = styled.span`
   font-size: 0.625rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${scheduleCardTheme.textMuted};
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;

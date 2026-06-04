@@ -23,4 +23,15 @@ describe('UniversalMasterSchedule drag card style extraction', () => {
     expect(stylesSource).toContain('styled.div');
     expect(stylesSource).toContain('mobileOptimizations');
   });
+
+  it('keeps active schedule drag cards off the retired Galaxy-Swan theme', () => {
+    const stylesSource = readSource(stylesPath);
+
+    expect(stylesSource).not.toContain('galaxy-swan-theme');
+    expect(stylesSource).toContain('var(--bg-elevated');
+    expect(stylesSource).toContain('var(--accent-primary');
+    expect(stylesSource).toContain('var(--text-primary');
+    expect(stylesSource).not.toContain('#00FF88');
+    expect(stylesSource).not.toContain('#FF4757');
+  });
 });
