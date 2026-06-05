@@ -35,10 +35,6 @@ import {
   DropdownList,
   EmbeddedClientBadge,
   InputWrapper,
-  ListPrimary,
-  ListSecondary,
-  MeasurementList,
-  MeasurementListItem,
   StyledInput,
   StyledLabel,
 } from './MeasurementEntry.formStyles';
@@ -66,6 +62,7 @@ import {
 import { getMeasurementChange } from './MeasurementEntry.changeUtils';
 import MeasurementEntryProgressCharts from './MeasurementEntryProgressCharts';
 import MeasurementEntryFormPanel from './MeasurementEntryFormPanel';
+import MeasurementEntryRecentPanel from './MeasurementEntryRecentPanel';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -458,45 +455,12 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       {/* ── Recent Measurements Panel ── */}
       <AnimatePresence>
         {selectedClient && (
-          <GlassPanel
-            as={motion.div}
-            variants={itemVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-          >
-            <SubsectionTitle>
-              Recent Measurements for {selectedClient.name}
-            </SubsectionTitle>
-            {loadingRecent ? (
-              <BodyText>Loading recent measurements...</BodyText>
-            ) : recentMeasurements.length > 0 ? (
-              <MeasurementList>
-                {recentMeasurements.map((measurement) => (
-                  <MeasurementListItem
-                    key={measurement.id}
-                    type="button"
-                    onClick={() => setDetailMeasurement(measurement)}
-                  >
-                    <ListPrimary>
-                      {new Date(measurement.measurementDate).toLocaleDateString()}
-                      {measurement.weight ? ` — ${measurement.weight} lbs` : ''}
-                    </ListPrimary>
-                    <ListSecondary>
-                      {[
-                        measurement.bodyFatPercentage && `Body Fat: ${measurement.bodyFatPercentage}%`,
-                        measurement.chest && `Chest: ${measurement.chest}"`,
-                        measurement.naturalWaist && `Waist: ${measurement.naturalWaist}"`,
-                        measurement.hips && `Hips: ${measurement.hips}"`,
-                      ].filter(Boolean).join(' · ') || 'Click to view details'}
-                    </ListSecondary>
-                  </MeasurementListItem>
-                ))}
-              </MeasurementList>
-            ) : (
-              <BodyText>No recent measurements found for this client.</BodyText>
-            )}
-          </GlassPanel>
+          <MeasurementEntryRecentPanel
+            selectedClient={selectedClient}
+            loadingRecent={loadingRecent}
+            recentMeasurements={recentMeasurements}
+            onSelectMeasurement={setDetailMeasurement}
+          />
         )}
       </AnimatePresence>
 
