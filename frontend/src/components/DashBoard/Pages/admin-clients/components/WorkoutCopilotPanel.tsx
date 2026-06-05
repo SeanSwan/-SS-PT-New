@@ -66,7 +66,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { X, Sparkles, Save, RotateCcw } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
 import {
@@ -99,9 +99,6 @@ import {
   CloseButton,
   ModalBody,
   ModalFooter,
-  PrimaryButton,
-  SecondaryButton,
-  Spinner,
   InlineWrapper,
   InlinePanel,
 } from './copilot-shared-styles';
@@ -114,6 +111,7 @@ import CopilotSavedState from './CopilotSavedState';
 import LongHorizonContent from './LongHorizonContent';
 import CopilotGeneratingState from './CopilotGeneratingState';
 import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
+import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
 
 interface ApiErrorPayload {
   code?: string;
@@ -264,6 +262,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   const handleSelectLongHorizonTab = useCallback(() => {
     setActiveTab('long-horizon');
+  }, []);
+
+  const handleRegenerateSingleWorkout = useCallback(() => {
+    setState('idle');
+    setEditedPlan(null);
   }, []);
 
   // ── Generate draft ──────────────────────────────────────────
@@ -600,16 +603,12 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
         {/* Footer: only show approve button during draft review */}
         {activeTab === 'single' && (state === 'draft_review' || state === 'approving') && (
-          <ModalFooter>
-            <SecondaryButton onClick={() => { setState('idle'); setEditedPlan(null); }}>
-              <RotateCcw size={16} />
-              Regenerate
-            </SecondaryButton>
-            <PrimaryButton onClick={handleApprove} disabled={isSubmitting || state === 'approving'}>
-              {state === 'approving' ? <Spinner size={16} /> : <Save size={16} />}
-              {state === 'approving' ? 'Saving...' : 'Approve & Save'}
-            </PrimaryButton>
-          </ModalFooter>
+          <CopilotSingleWorkoutFooter
+            state={state}
+            isSubmitting={isSubmitting}
+            onApprove={handleApprove}
+            onRegenerate={handleRegenerateSingleWorkout}
+          />
         )}
 
         {activeTab === 'long-horizon' && lhFooterContent && (
