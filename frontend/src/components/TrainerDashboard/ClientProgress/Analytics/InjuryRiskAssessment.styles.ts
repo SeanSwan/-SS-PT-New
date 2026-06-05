@@ -8,12 +8,12 @@ export const Container = styled.div`
 
 export const GlassPanel = styled.div`
   padding: 24px;
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 12px;
   margin-bottom: 24px;
   backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-strong, 0 18px 44px rgba(0, 0, 0, 0.36));
+  box-shadow: var(--shadow-strong, 0 18px 44px color-mix(in srgb, var(--bg-base, #0A0A0F) 36%, transparent));
 `;
 
 export const FlexRow = styled.div`
@@ -116,7 +116,7 @@ export const GridThreeCol = styled(GridContainer)`
 export const ProgressBarTrack = styled.div`
   width: 100%;
   height: 6px;
-  background: var(--surface-muted, rgba(255, 255, 255, 0.1));
+  background: var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent));
   border-radius: 3px;
   overflow: hidden;
 `;
@@ -138,8 +138,8 @@ export const AlertBox = styled.div`
 `;
 
 export const AccordionWrapper = styled.details`
-  background: var(--surface-soft, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
+  background: var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 8px;
   margin-bottom: 8px;
   overflow: hidden;
@@ -185,7 +185,7 @@ export const TableHead = styled.thead`
     color: var(--text-secondary, #9FB2C8);
     font-weight: 600;
     font-size: 0.8rem;
-    border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+    border-bottom: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
     white-space: nowrap;
   }
 `;
@@ -194,13 +194,13 @@ export const TableBody = styled.tbody`
   td {
     padding: 8px 12px;
     color: var(--text-primary, #E0ECF4);
-    border-bottom: 1px solid var(--border-muted, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--border-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent));
   }
 `;
 
 export const ProtocolCard = styled.div<{ $bgColor?: string }>`
-  background: ${({ $bgColor }) => $bgColor || 'var(--surface-soft, rgba(255, 255, 255, 0.05))'};
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
+  background: ${({ $bgColor }) => $bgColor || 'var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent))'};
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 10px;
   padding: 20px;
   height: 100%;
@@ -246,7 +246,7 @@ export const ListItemSecondary = styled.span`
 `;
 
 export const RecommendationCard = styled(ProtocolCard)`
-  background: var(--surface-soft, rgba(255, 255, 255, 0.05));
+  background: var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent));
 `;
 
 export const RecommendationHeading = styled.h6`
@@ -290,7 +290,7 @@ export const EmptyState = styled.div`
   justify-content: center;
   gap: 8px;
   padding: 20px;
-  border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.22));
+  border: 1px dashed var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 12px;
-  background: var(--surface-soft, rgba(255, 255, 255, 0.05));
+  background: var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent));
 `;

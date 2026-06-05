@@ -42,5 +42,8 @@ describe('InjuryRiskAssessment theme bridge', () => {
     expect(styleSource).not.toContain('color: #fff');
     expect(styleSource).not.toContain('color: #60C0F0');
     expect(styleSource).not.toContain('rgba(15, 23, 42');
+    expect(styleSource).not.toContain('rgba(255, 255, 255');
+    expect(styleSource).not.toContain('rgba(0, 0, 0');
+    expect(styleSource).not.toContain('rgba(96, 192, 240');
   });
 });
