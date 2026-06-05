@@ -195,12 +195,17 @@ export const List = styled.div`
   padding-right: 0.2rem;
 `;
 
-export const Card = styled(motion.div)<{ $dragging?: boolean }>`
+export const Card = styled.div<{ $dragging?: boolean }>`
   border: 1px solid rgba(96, 192, 240, 0.22);
   background: ${({ $dragging }) => ($dragging ? 'rgba(80, 160, 240, 0.22)' : 'rgba(0, 32, 96, 0.42)')};
   border-radius: 10px;
   padding: 0.65rem 0.75rem;
   cursor: grab;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
 `;
 
 export const NameRow = styled.div`

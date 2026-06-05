@@ -127,7 +127,6 @@ export const UnassignedClientsPanel = ({
                 setDropTrainer(null);
               }}
               $dragging={draggedClientId === client.id}
-              whileHover={{ y: -2 }}
             >
               <NameRow>
                 <Avatar $src={client.photo}>{!client.photo && initials(client.firstName, client.lastName)}</Avatar>

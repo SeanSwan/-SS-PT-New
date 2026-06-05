@@ -23,4 +23,4 @@ export interface ClientRecurringBookingModalProps {
 
 export type ClientRecurringStep = 'filter' | 'select' | 'confirm';
 
-export type RecurringSelectOption = SelectOption<string | number>;
+export type RecurringSelectOption = SelectOption;
