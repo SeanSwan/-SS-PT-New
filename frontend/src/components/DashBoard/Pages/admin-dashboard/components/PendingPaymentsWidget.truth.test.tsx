@@ -17,6 +17,11 @@ const SOURCE = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/PendingPaymentsWidget.tsx'),
   'utf8',
 );
+const LAYOUT_SOURCE = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
+const OVERVIEW_SOURCE = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
+  'utf8',
+);
 const STYLE_PATH = resolve(
   process.cwd(),
   'src/components/DashBoard/Pages/admin-dashboard/components/PendingPaymentsWidget.styles.ts',
@@ -88,6 +93,14 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
     expect(SOURCE).toContain('const [confirmError, setConfirmError]');
   });
 
+  it('is mounted by the canonical admin overview route', () => {
+    expect(LAYOUT_SOURCE).toContain("const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
+    expect(LAYOUT_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(OVERVIEW_SOURCE).toContain("import PendingPaymentsWidget from '../components/PendingPaymentsWidget'");
+    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><PendingPaymentsWidget /></BentoHalf>');
+    expect(SOURCE).toContain("authAxios.get('/api/orders'");
+  });
+
   it('splits styled components and bridges offline payment states to theme tokens', () => {
     expect(SOURCE).toContain("from './PendingPaymentsWidget.styles'");
     expect(SOURCE.split(/\r?\n/).length).toBeLessThanOrEqual(300);
@@ -98,6 +111,8 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
     expect(styleSource).toContain('color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent)');
     expect(styleSource).toContain('var(--accent-secondary, #8B5CF6)');
     expect(styleSource).toContain('var(--success, #22C55E)');
+    expect(styleSource).toContain('var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent))');
+    expect(styleSource).not.toContain('rgba(');
     expect(styleSource).not.toContain('background: rgba(0, 32, 96, 0.45);');
     expect(styleSource).not.toContain("p.$method === 'zelle' ? '#8B5CF6'");
     expect(styleSource).not.toContain('background: rgba(34, 197, 94, 0.1);');

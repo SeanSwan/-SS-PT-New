@@ -5,6 +5,9 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
+const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent))';
+const TEXT_FAINT = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 40%, transparent))';
+
 const methodStyles = {
   zelle: {
     background: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)',
@@ -75,7 +78,7 @@ export const RefreshBtn = styled.button`
   border-radius: 8px;
   background: color-mix(in srgb, var(--text-primary, #E0ECF4) 4%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
-  color: var(--text-muted, rgba(224, 236, 244, 0.5));
+  color: ${TEXT_MUTED};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -97,7 +100,7 @@ export const RefreshBtn = styled.button`
 export const EmptyState = styled.div`
   text-align: center;
   padding: 24px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: ${TEXT_FAINT};
   font-size: 0.85rem;
 `;
 
@@ -195,7 +198,7 @@ export const OrderNumber = styled.span`
 
 export const OrderMeta = styled.span`
   font-size: 0.72rem;
-  color: var(--text-muted, rgba(224, 236, 244, 0.4));
+  color: ${TEXT_FAINT};
   display: flex;
   align-items: center;
   gap: 4px;
