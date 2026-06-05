@@ -6,18 +6,17 @@
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  *
- * WHAT THIS FILE DOES: Manages the copilot's finite state machine
+ * WHAT THIS FILE DOES: Owns the copilot's finite state machine
  * (idle → pain_check → generating → draft_review/degraded/error → approving → saved)
- * and routes rendering to decomposed sub-components. All state and handler
- * logic lives here; sub-components are pure UI.
+ * and routes rendering to decomposed sub-components. Draft editing, template
+ * loading, reset behavior, and single-workout actions are delegated to hooks.
  *
  * HOW IT FITS IN THE APP: Mounted inside the admin client detail panel
  * (inline mode) or as a standalone modal (overlay mode).
  *
- * KEY DECISIONS: Decomposed from a 1,099-line monolith into 8 files per
- * the 300-line max rule. State machine + handlers stay here; JSX render
- * blocks extracted to CopilotIdleState, CopilotPainCheck, CopilotErrorStates,
- * CopilotDraftReview, CopilotSavedState.
+ * KEY DECISIONS: Decomposed from a 1,099-line monolith into focused files
+ * per the 300-line max rule. The panel keeps state ownership and rendering;
+ * hooks own reusable orchestration and JSX render blocks stay extracted.
  *
  * NASM PROTOCOL CONTEXT: Draft generation follows NASM OPT 5-phase model.
  * Pain safety check enforces NASM CES restrictions.
@@ -59,21 +58,17 @@
  *
  * DATA FLOW:
  * Props In:  WorkoutCopilotPanelProps (open, onClose, clientId, clientName, ...)
- * State:     CopilotState FSM + draft data + error data + pain entries
- * API Calls: generateDraft, approveDraft, listTemplates, getActivePain
+ * State:     Panel-owned CopilotState FSM + draft/error/pain data
+ * API Calls: Delegated through hooks/services for generate/approve/templates/pain
  * Children:  CopilotIdleState, CopilotPainCheck, CopilotErrorStates,
  *            CopilotDraftReview, CopilotSavedState, LongHorizonContent
  */
 
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
-import {
-  createAiWorkoutService,
-  isDegraded,
-  isDraftSuccess,
-} from '../../../../../services/aiWorkoutService';
+import { createAiWorkoutService } from '../../../../../services/aiWorkoutService';
 import { createPainEntryService } from '../../../../../services/painEntryService';
 
 import type {
@@ -111,28 +106,8 @@ import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
 import { getCopilotErrorFlags } from './copilot-error-flags';
 import { useCopilotDraftEditor } from './useCopilotDraftEditor';
 import { useCopilotPanelReset } from './useCopilotPanelReset';
+import { useCopilotSingleWorkoutActions } from './useCopilotSingleWorkoutActions';
 import { useCopilotTemplateCatalog } from './useCopilotTemplateCatalog';
-
-interface ApiErrorPayload {
-  code?: string;
-  message?: string;
-  errors?: ValidationError[];
-}
-
-interface ApiErrorLike {
-  message?: string;
-  response?: {
-    data?: ApiErrorPayload;
-  };
-}
-
-const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } => {
-  const apiError = err as ApiErrorLike;
-  return {
-    data: apiError.response?.data || {},
-    message: apiError.message,
-  };
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -234,23 +209,50 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setLhFooterContent,
   });
 
-  // ── Auto-generate on open (skip idle screen) ──────────────
-  const autoGenerateTriggered = useRef(false);
-  const checkPainEntriesRef = useRef<(() => Promise<void>) | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      autoGenerateTriggered.current = false;
-      return;
-    }
-    if (autoGenerate && !autoGenerateTriggered.current && state === 'idle' && !isSubmitting) {
-      autoGenerateTriggered.current = true;
-      const timer = setTimeout(() => {
-        void checkPainEntriesRef.current?.();
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [open, autoGenerate, state, isSubmitting]);
+  // ── Single workout actions ─────────────────────────────────
+  const {
+    handleGenerate,
+    handlePainAcknowledgeAndGenerate,
+    handleApprove,
+  } = useCopilotSingleWorkoutActions({
+    open,
+    autoGenerate,
+    state,
+    isSubmitting,
+    clientId,
+    clientName,
+    editedPlan,
+    auditLogId,
+    overrideReason,
+    overrideReasonRequired,
+    trainerNotes,
+    painAcknowledged,
+    service,
+    painService,
+    toast,
+    onSuccess,
+    setState,
+    setEditedPlan,
+    setExplainability,
+    setSafetyConstraints,
+    setExerciseRecs,
+    setWarnings,
+    setMissingInputs,
+    setGenerationMode,
+    setAuditLogId,
+    setOverrideReasonRequired,
+    setDegradedData,
+    setSavedPlanId,
+    setUnmatchedExercises,
+    setValidationWarnings,
+    setErrorMessage,
+    setErrorCode,
+    setApproveErrors,
+    setActivePainEntries,
+    setPainAcknowledged,
+    setExpandedDays,
+    setIsSubmitting,
+  });
 
   const handleSelectSingleTab = useCallback(() => {
     setActiveTab('single');
@@ -265,150 +267,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setState('idle');
     setEditedPlan(null);
   }, []);
-
-  // ── Generate draft ──────────────────────────────────────────
-
-  const doGenerate = useCallback(async () => {
-    setIsSubmitting(true);
-    setState('generating');
-    setErrorMessage('');
-    setErrorCode('');
-
-    try {
-      const resp = await service.generateDraft(clientId, overrideReason.trim() || undefined);
-
-      if (isDegraded(resp)) {
-        setDegradedData(resp);
-        setState('degraded');
-      } else if (isDraftSuccess(resp)) {
-        setEditedPlan(resp.plan);
-        setExplainability(resp.explainability);
-        setSafetyConstraints(resp.safetyConstraints);
-        setExerciseRecs(resp.exerciseRecommendations);
-        setWarnings(resp.warnings);
-        setMissingInputs(resp.missingInputs);
-        setGenerationMode(resp.generationMode);
-        setAuditLogId(resp.auditLogId);
-        if (resp.plan.days.length > 0) {
-          setExpandedDays(new Set([0]));
-        }
-        setState('draft_review');
-      }
-    } catch (err: unknown) {
-      const { data, message } = getApiError(err);
-      if (data.code === 'MISSING_OVERRIDE_REASON') {
-        if (overrideReasonRequired) {
-          setErrorMessage(data.message || 'Admin override requires a reason');
-          setErrorCode(data.code || '');
-          setState('error');
-          return;
-        }
-        setOverrideReasonRequired(true);
-        setState('idle');
-        return;
-      }
-      setErrorMessage(data.message || message || 'Failed to generate workout plan');
-      setErrorCode(data.code || '');
-      setState('error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [clientId, overrideReason, overrideReasonRequired, service]);
-
-  // ── Pain safety check ──────────────────────────────────────
-
-  const checkPainEntries = useCallback(async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-
-    try {
-      const resp = await painService.getActive(clientId);
-      const entries = resp.entries || [];
-
-      if (entries.length > 0 && !painAcknowledged) {
-        setActivePainEntries(entries);
-        setState('pain_check');
-      } else {
-        // No active pain entries (or already acknowledged) — proceed directly
-        await doGenerate();
-        return; // doGenerate manages isSubmitting
-      }
-    } catch {
-      // If pain check fails, proceed with generation (fail-open for UX)
-      await doGenerate();
-      return;
-    }
-
-    setIsSubmitting(false);
-  }, [clientId, isSubmitting, painAcknowledged, doGenerate, painService]);
-
-  useEffect(() => {
-    checkPainEntriesRef.current = checkPainEntries;
-  }, [checkPainEntries]);
-
-  const handleGenerate = useCallback(async () => {
-    if (isSubmitting) return;
-    await checkPainEntries();
-  }, [isSubmitting, checkPainEntries]);
-
-  const handlePainAcknowledgeAndGenerate = useCallback(() => {
-    setPainAcknowledged(true);
-    doGenerate();
-  }, [doGenerate]);
-
-  // ── Approve draft ───────────────────────────────────────────
-
-  const handleApprove = useCallback(async () => {
-    if (isSubmitting || !editedPlan) return;
-    setIsSubmitting(true);
-    setState('approving');
-    setApproveErrors([]);
-
-    try {
-      const resp = await service.approveDraft({
-        userId: clientId,
-        plan: editedPlan,
-        auditLogId,
-        overrideReason: overrideReason.trim() || undefined,
-        trainerNotes: trainerNotes.trim() || undefined,
-      });
-
-      setSavedPlanId(resp.planId);
-      setUnmatchedExercises(resp.unmatchedExercises);
-      setValidationWarnings(resp.validationWarnings);
-      setState('saved');
-
-      toast({
-        title: 'Workout Plan Approved',
-        description: `Plan saved (ID: ${resp.planId}) for ${clientName}`,
-        variant: 'default',
-      });
-
-      onSuccess?.();
-    } catch (err: unknown) {
-      const { data } = getApiError(err);
-      if (data.code === 'MISSING_OVERRIDE_REASON') {
-        if (overrideReasonRequired) {
-          setErrorMessage(data.message || 'Admin override requires a reason');
-          setErrorCode(data.code || '');
-          setState('approve_error');
-          return;
-        }
-        setOverrideReasonRequired(true);
-        setState('idle');
-        return;
-      }
-      setErrorMessage(data.message || 'Failed to approve plan');
-      setErrorCode(data.code || '');
-      setApproveErrors(data.errors || []);
-      setState('approve_error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [
-    clientId, editedPlan, auditLogId, overrideReason, overrideReasonRequired,
-    trainerNotes, isSubmitting, clientName, service, toast, onSuccess,
-  ]);
 
   // ── Error classification ────────────────────────────────────
 
