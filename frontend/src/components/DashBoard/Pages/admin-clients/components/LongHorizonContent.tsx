@@ -23,13 +23,6 @@
  * └─────────────────────────────────────────────────────────────┘
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Info,
-  Download,
-} from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import adminClientService from '../../../../../services/adminClientService';
 import {
@@ -48,34 +41,9 @@ import {
   type LongHorizonValidationError as ValidationError,
 } from './longHorizonErrors';
 import { getClientGoalsFromDetails, type ClientGoals } from './longHorizonGoals';
-import {
-  Divider,
-  FormGroup,
-  FormGrid,
-  InfoContent,
-  InfoPanel,
-  Input,
-  Label,
-  PrimaryButton,
-  SecondaryButton,
-  SectionTitle,
-  SWAN_CYAN,
-  TextArea,
-} from './copilot-shared-styles';
-import {
-  BlockCard,
-  BlockContent,
-  BlockDurationBar,
-  BlockHeader,
-  BlockTimeline,
-  BlockWeeks,
-  IconSlot,
-  NasmBadge,
-  ReadOnlyField,
-  TightActionRow,
-} from './LongHorizonContent.styles';
 import LongHorizonConfigureForm from './LongHorizonConfigureForm';
 import LongHorizonErrorState from './LongHorizonErrorState';
+import LongHorizonPlanReviewEditor from './LongHorizonPlanReviewEditor';
 import LongHorizonReviewFooter from './LongHorizonReviewFooter';
 import {
   LongHorizonDegradedState,
@@ -321,6 +289,15 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     setEditedPlan({ ...editedPlan, blocks });
   };
 
+  const handleExportPlanPdf = useCallback((plan: LongHorizonPlan, exportClientName: string) => {
+    exportLongHorizonPDF(plan, exportClientName);
+    toast({
+      title: 'PDF exported',
+      description: 'Long-horizon plan PDF is ready.',
+      variant: 'success',
+    });
+  }, [toast]);
+
   const errorFlags = useMemo(() => getLongHorizonErrorFlags(errorCode), [errorCode]);
 
   useEffect(() => {
@@ -413,181 +390,21 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
   if ((state === 'plan_review' || state === 'approving') && editedPlan) {
     return (
-      <>
-        {warnings.length > 0 && (
-          <InfoPanel $variant="warning">
-            <IconSlot><AlertTriangle size={16} /></IconSlot>
-            <InfoContent>
-              {warnings.map((warning, idx) => (
-                <div key={`${warning}-${idx}`}>{warning}</div>
-              ))}
-            </InfoContent>
-          </InfoPanel>
-        )}
-
-        {auditLogId == null && (
-          <InfoPanel $variant="warning">
-            <IconSlot><AlertTriangle size={16} /></IconSlot>
-            <InfoContent>
-              Generation incomplete — regenerate to create a valid audit link before approval.
-            </InfoContent>
-          </InfoPanel>
-        )}
-
-        <FormGrid>
-          <FormGroup $fullWidth>
-            <Label>Plan Name</Label>
-            <Input
-              value={editedPlan.planName}
-              onChange={(e) => updatePlanField('planName', e.target.value)}
-              maxLength={200}
-            />
-          </FormGroup>
-          <FormGroup>
-            <Label>Horizon</Label>
-            <ReadOnlyField>{editedPlan.horizonMonths} months</ReadOnlyField>
-          </FormGroup>
-          <FormGroup $fullWidth>
-            <Label>Summary</Label>
-            <TextArea
-              value={editedPlan.summary || ''}
-              onChange={(e) => updatePlanField('summary', e.target.value)}
-              maxLength={2000}
-            />
-          </FormGroup>
-        </FormGrid>
-
-        <Divider />
-        <SectionTitle>Mesocycle Blocks ({editedPlan.blocks.length})</SectionTitle>
-        <BlockTimeline>
-          {editedPlan.blocks.map((block, idx) => {
-            const durationPct = Math.max(10, Math.min(100, (block.durationWeeks / 16) * 100));
-            const isExpanded = expandedBlocks.has(idx);
-            return (
-              <BlockCard key={`${block.sequence}-${idx}`}>
-                <BlockHeader onClick={() => toggleBlock(idx)}>
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                  <span>
-                    Block {block.sequence}: {block.phaseName}
-                  </span>
-                  <NasmBadge $color={block.nasmFramework === 'OPT' ? SWAN_CYAN : '#a78bfa'}>
-                    {block.nasmFramework}
-                    {block.optPhase ? ` P${block.optPhase}` : ''}
-                  </NasmBadge>
-                  <BlockDurationBar $pct={durationPct} />
-                  <BlockWeeks>{block.durationWeeks}w</BlockWeeks>
-                </BlockHeader>
-
-                {isExpanded && (
-                  <BlockContent>
-                    <FormGrid>
-                      <FormGroup>
-                        <Label>Phase Name</Label>
-                        <Input
-                          value={block.phaseName}
-                          onChange={(e) => updateBlock(idx, 'phaseName', e.target.value)}
-                          maxLength={100}
-                        />
-                      </FormGroup>
-                      <FormGroup>
-                        <Label>Focus</Label>
-                        <Input
-                          value={block.focus || ''}
-                          onChange={(e) => updateBlock(idx, 'focus', e.target.value)}
-                          maxLength={200}
-                        />
-                      </FormGroup>
-                      <FormGroup>
-                        <Label>Duration (weeks)</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={16}
-                          value={block.durationWeeks}
-                          onChange={(e) => updateBlock(idx, 'durationWeeks', parseInt(e.target.value, 10) || 1)}
-                        />
-                      </FormGroup>
-                      <FormGroup>
-                        <Label>Sessions / week</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={7}
-                          value={block.sessionsPerWeek ?? ''}
-                          onChange={(e) => updateBlock(
-                            idx,
-                            'sessionsPerWeek',
-                            e.target.value ? parseInt(e.target.value, 10) : null,
-                          )}
-                        />
-                      </FormGroup>
-                      <FormGroup $fullWidth>
-                        <Label>Entry Criteria</Label>
-                        <TextArea
-                          value={block.entryCriteria || ''}
-                          onChange={(e) => updateBlock(idx, 'entryCriteria', e.target.value)}
-                          rows={2}
-                        />
-                      </FormGroup>
-                      <FormGroup $fullWidth>
-                        <Label>Exit Criteria</Label>
-                        <TextArea
-                          value={block.exitCriteria || ''}
-                          onChange={(e) => updateBlock(idx, 'exitCriteria', e.target.value)}
-                          rows={2}
-                        />
-                      </FormGroup>
-                      <FormGroup $fullWidth>
-                        <Label>Block Notes</Label>
-                        <TextArea
-                          value={block.notes || ''}
-                          onChange={(e) => updateBlock(idx, 'notes', e.target.value)}
-                          rows={2}
-                        />
-                      </FormGroup>
-                    </FormGrid>
-                  </BlockContent>
-                )}
-              </BlockCard>
-            );
-          })}
-        </BlockTimeline>
-
-        <Divider />
-        <FormGroup $fullWidth>
-          <Label>Trainer Notes (included in approval audit)</Label>
-          <TextArea
-            value={trainerNotes}
-            onChange={(e) => setTrainerNotes(e.target.value)}
-            rows={3}
-          />
-        </FormGroup>
-
-        <TightActionRow $justify="flex-end">
-          {editedPlan && (
-            <SecondaryButton
-              onClick={() => {
-                exportLongHorizonPDF(editedPlan, clientName);
-                toast({
-                  title: 'PDF exported',
-                  description: 'Long-horizon plan PDF is ready.',
-                  variant: 'success',
-                });
-              }}
-            >
-              <Download size={16} /> Export PDF
-            </SecondaryButton>
-          )}
-          {auditLogId == null && (
-            <PrimaryButton
-              onClick={() => setState('configure_plan')}
-              disabled={isSubmitting}
-            >
-              Regenerate
-            </PrimaryButton>
-          )}
-        </TightActionRow>
-      </>
+      <LongHorizonPlanReviewEditor
+        clientName={clientName}
+        plan={editedPlan}
+        warnings={warnings}
+        auditLogId={auditLogId}
+        trainerNotes={trainerNotes}
+        setTrainerNotes={setTrainerNotes}
+        expandedBlocks={expandedBlocks}
+        onToggleBlock={toggleBlock}
+        onUpdatePlanField={updatePlanField}
+        onUpdateBlock={updateBlock}
+        onExportPdf={handleExportPlanPdf}
+        onRegenerate={() => setState('configure_plan')}
+        isSubmitting={isSubmitting}
+      />
     );
   }
 
