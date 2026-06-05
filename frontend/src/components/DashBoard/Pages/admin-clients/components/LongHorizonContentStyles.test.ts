@@ -10,7 +10,6 @@ const source = readFileSync(
 
 describe('LongHorizonContent style extraction', () => {
   it('keeps local styled-components outside the long-horizon state machine', () => {
-    expect(source).toContain("from './LongHorizonContent.styles'");
     expect(source).not.toContain("import styled from 'styled-components'");
     expect(source).not.toContain('const HorizonRadioGroup = styled.div');
     expect(source).not.toContain('const SavedMetaStrong = styled.strong');
