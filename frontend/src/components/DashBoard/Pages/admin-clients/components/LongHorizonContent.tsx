@@ -49,6 +49,11 @@ import {
 } from '../../../../../services/aiWorkoutService';
 import type { Toast } from '../../../../../hooks/use-toast';
 import { exportLongHorizonPDF } from '../../../../../services/pdfExportService';
+import {
+  getLongHorizonApiError,
+  getLongHorizonErrorFlags,
+  type LongHorizonValidationError as ValidationError,
+} from './longHorizonErrors';
 import { getClientGoalsFromDetails, type ClientGoals } from './longHorizonGoals';
 import {
   CenterContent,
@@ -106,12 +111,6 @@ type LHState =
   | 'saved'
   | 'approve_error';
 
-interface ValidationError {
-  code: string;
-  field?: string;
-  message: string;
-}
-
 interface LongHorizonContentProps {
   clientId: number;
   clientName: string;
@@ -121,28 +120,6 @@ interface LongHorizonContentProps {
   onClose: () => void;
   renderFooter: (content: React.ReactNode | null) => void;
 }
-
-interface ApiErrorPayload {
-  code?: string;
-  message?: string;
-  errors?: ValidationError[];
-  warnings?: string[];
-}
-
-interface ApiErrorLike {
-  message?: string;
-  response?: {
-    data?: ApiErrorPayload;
-  };
-}
-
-const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } => {
-  const apiError = err as ApiErrorLike;
-  return {
-    data: apiError.response?.data || {},
-    message: apiError.message,
-  };
-};
 
 const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
   clientId,
@@ -241,7 +218,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       setErrorCode('UNKNOWN_RESPONSE');
       setErrorMessage('Unexpected response received from long-horizon generation');
     } catch (err: unknown) {
-      const { data, message } = getApiError(err);
+      const { data, message } = getLongHorizonApiError(err);
       const nextCode = data.code || '';
 
       if (nextCode === 'MISSING_OVERRIDE_REASON') {
@@ -302,7 +279,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
       });
       onSuccess?.();
     } catch (err: unknown) {
-      const { data, message } = getApiError(err);
+      const { data, message } = getLongHorizonApiError(err);
       const nextCode = data.code || '';
 
       if (nextCode === 'MISSING_OVERRIDE_REASON') {
@@ -365,12 +342,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     setEditedPlan({ ...editedPlan, blocks });
   };
 
-  const isConsentError = errorCode?.startsWith('AI_CONSENT') || errorCode?.startsWith('AI_WAIVER');
-  const isWaiverError = errorCode?.startsWith('AI_WAIVER');
-  const isAssignmentError = errorCode === 'AI_ASSIGNMENT_DENIED';
-  const isOverrideReasonError = errorCode === 'MISSING_OVERRIDE_REASON';
-  const isRetryable = ['AI_RATE_LIMITED', 'AI_PII_LEAK', 'AI_PARSE_ERROR', 'AI_VALIDATION_ERROR'].includes(errorCode);
-  const isApprovedDraftInvalid = errorCode === 'APPROVED_DRAFT_INVALID';
+  const errorFlags = useMemo(() => getLongHorizonErrorFlags(errorCode), [errorCode]);
 
   useEffect(() => {
     if ((state === 'plan_review' || state === 'approving') && editedPlan) {
@@ -589,7 +561,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
         </PanelTitle>
         <PanelCopy $maxWidth={560}>{errorMessage}</PanelCopy>
 
-        {isApprovedDraftInvalid && approveErrors.length > 0 && (
+        {errorFlags.isApprovedDraftInvalid && approveErrors.length > 0 && (
           <ErrorList>
             {approveErrors.map((err, idx) => (
               <InfoPanel key={`${err.code}-${idx}`} $variant="error">
@@ -613,18 +585,18 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           </InfoPanel>
         )}
 
-        {isConsentError && (
+        {errorFlags.isConsentError && (
           <InfoPanel $variant="warning">
             <IconSlot><Shield size={16} /></IconSlot>
             <InfoContent>
-              {isWaiverError
+              {errorFlags.isWaiverError
                 ? 'This client\'s waiver consent is missing or outdated. The client must sign the current waiver, or an admin override reason is required to proceed.'
                 : 'Swan Coach consent is not available for this client. Admin override reason is required if you choose to proceed without consent.'}
             </InfoContent>
           </InfoPanel>
         )}
 
-        {isAssignmentError && (
+        {errorFlags.isAssignmentError && (
           <InfoPanel $variant="warning">
             <IconSlot><Shield size={16} /></IconSlot>
             <InfoContent>
@@ -634,13 +606,13 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
         )}
 
         <ActionRow>
-          {isRetryable && (
+          {errorFlags.isRetryable && (
             <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
               <RefreshCw size={16} />
               Retry
             </PrimaryButton>
           )}
-          {isOverrideReasonError && (
+          {errorFlags.isOverrideReasonError && (
             <PrimaryButton onClick={handleRetryWithOverride}>
               Add Override Reason
             </PrimaryButton>
