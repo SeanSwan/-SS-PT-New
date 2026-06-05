@@ -12,7 +12,7 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Dumbbell, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
+  Dumbbell, Sparkles, BookOpen, Plus, X, Calendar,
   Loader2, Save, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
   ArrowLeft,
 } from 'lucide-react';
@@ -26,11 +26,9 @@ import { logApiError } from '../../../../utils/logApiError';
 // W1A-5 (2026-05-01): scope lazy-panel failures to the panel instead of
 // letting them bubble to the app-level ErrorBoundary (white-screen).
 import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
-// Plan Library slice (2026-05-01): extracted card component holds the
-// stopPropagation matrix + per-card action affordances.
-import SavedPlanCard from './SavedPlanCard';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
+import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 // AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
@@ -64,11 +62,10 @@ import {
   ExerciseMeta,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
-  SkeletonBlock, EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
+  EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
   GeneratingSkeletonWrap, SkeletonCircle, SkeletonBar,
   GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
   PlanModeBar, PlanModeLabel, SmallSelect,
-  MesocycleSection, MesocycleSectionTitle, MesocycleGrid,
   // L5 (2026-05-02): self-service status pill rendered below ControlRow.
   ClientSelfGenPill, PillHint,
 } from './WorkoutPlannerStyles';
@@ -82,9 +79,6 @@ import {
   ParamField,
   ParamLabel,
   RepsInput,
-  SavedPlansCount,
-  SavedPlansEmpty,
-  SavedPlansLoading,
   SkeletonDelayRow,
   SkeletonTextStack,
   TempoInput,
@@ -163,7 +157,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
 
-  const [savedPlans, setSavedPlans] = useState<{ id: string; name: string; status: string; createdAt: string; goal: string }[]>([]);
+  const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
   const [savedPlansLoading, setSavedPlansLoading] = useState(false);
 
   const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
@@ -1405,45 +1399,18 @@ const WorkoutPlannerPage: React.FC = () => {
         onSelectedMesoDayChange={setSelectedMesoDay}
         onPhaseNumberChange={setPhaseNumber}
       />
-      {/* Saved Plans for Selected Client */}
-      {selectedClientId && (
-        <MesocycleSection>
-          <MesocycleSectionTitle>
-            <ClipboardList size={18} />
-            Saved Plans
-            {savedPlans.length > 0 && (
-              <SavedPlansCount>
-                ({savedPlans.length} plan{savedPlans.length !== 1 ? 's' : ''})
-              </SavedPlansCount>
-            )}
-          </MesocycleSectionTitle>
-          {savedPlansLoading ? (
-            <SavedPlansLoading>
-              {Array.from({ length: 2 }, (_, i) => <SkeletonBlock key={i} />)}
-            </SavedPlansLoading>
-          ) : savedPlans.length === 0 ? (
-            <SavedPlansEmpty>
-              No saved plans for this client yet. Generate and save a workout plan above.
-            </SavedPlansEmpty>
-          ) : (
-            <MesocycleGrid>
-              {savedPlans.map(plan => (
-                <SavedPlanCard
-                  key={plan.id}
-                  plan={plan}
-                  loaded={loadedPlanId === plan.id}
-                  archiveBlocked={archiveBlockedFor(plan.status)}
-                  onLoad={handleLoadPlan}
-                  onActivate={handleCardActivate}
-                  onRename={handleCardRename}
-                  onDuplicate={handleCardDuplicate}
-                  onArchive={handleCardArchive}
-                />
-              ))}
-            </MesocycleGrid>
-          )}
-        </MesocycleSection>
-      )}
+      <WorkoutPlannerSavedPlansSection
+        selectedClientId={selectedClientId}
+        savedPlans={savedPlans}
+        savedPlansLoading={savedPlansLoading}
+        loadedPlanId={loadedPlanId}
+        archiveBlockedFor={archiveBlockedFor}
+        onLoad={handleLoadPlan}
+        onActivate={handleCardActivate}
+        onRename={handleCardRename}
+        onDuplicate={handleCardDuplicate}
+        onArchive={handleCardArchive}
+      />
       <WorkoutPlannerConfirmDialog
         request={confirmRequest}
         onClose={closeConfirmDialog}
