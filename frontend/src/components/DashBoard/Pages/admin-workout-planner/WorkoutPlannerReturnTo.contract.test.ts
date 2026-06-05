@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx'), 'utf8');
 const stripSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStatusAssistantStrip.tsx'), 'utf8');
 const commandPanelSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.tsx'), 'utf8');
+const clientStateHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts'), 'utf8');
 const loadPlanHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts'), 'utf8');
 
 describe('WorkoutPlannerPage returnTo contract', () => {
@@ -29,11 +30,12 @@ describe('WorkoutPlannerPage returnTo contract', () => {
 
   it('uses strict client identity helpers after the deep-link parser', () => {
     expect(source).toContain("from './WorkoutPlannerClientIdentity'");
-    expect(source).toContain('parseWorkoutPlannerClientId(user?.id)');
-    expect(source).toContain('pickWorkoutPlannerClientId(clients, requestedClientId)');
+    expect(clientStateHookSource).toContain('parseWorkoutPlannerClientId(user?.id)');
+    expect(clientStateHookSource).toContain('pickWorkoutPlannerClientId(clients, requestedClientId)');
     expect(loadPlanHookSource).toContain('resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)');
     expect(loadPlanHookSource).toContain('Unable to load generated plan because it is missing a valid client id.');
     expect(source).not.toContain('Number(user?.id) === Number(selectedClientId)');
+    expect(clientStateHookSource).not.toContain('Number(user?.id) === Number(selectedClientId)');
     expect(source).not.toContain('clients.some(c => Number(c.id) === requestedClientId)');
     expect(source).not.toContain('res.data.clients.some((c: PlannerClient) => Number(c.id) === requestedClientId)');
     expect(source).not.toContain('setSelectedClientId(Number(e.target.value))');

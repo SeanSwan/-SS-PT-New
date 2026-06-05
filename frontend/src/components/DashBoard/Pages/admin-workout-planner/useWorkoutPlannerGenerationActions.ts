@@ -38,7 +38,6 @@ interface GeneratedPlanResponse {
 
 interface WorkoutPlannerGenerationActionsInput {
   authAxios: PlannerAuthClient;
-  selectedClientId: number | null;
   category: WorkoutCategory;
   goal: PlanGoal;
   phaseNumber: number;
@@ -60,7 +59,6 @@ const parseRestSeconds = (rest: unknown) => {
 
 export const useWorkoutPlannerGenerationActions = ({
   authAxios,
-  selectedClientId,
   category,
   goal,
   phaseNumber,
@@ -86,7 +84,7 @@ export const useWorkoutPlannerGenerationActions = ({
     setShowExplanations(value => !value);
   }, []);
 
-  const handleAIGenerate = useCallback(async () => {
+  const handleAIGenerate = useCallback(async (selectedClientId: number | null) => {
     if (!selectedClientId) return;
     setGenerating(true);
     setDegradedIntelligence(false);
@@ -164,9 +162,9 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, selectedClientId, setGeneratedPlan, setPhaseNumber, setPlanExercises, setStatusMsg]);
+  }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, setPhaseNumber, setPlanExercises, setStatusMsg]);
 
-  const handleGeneratePlan = useCallback(async () => {
+  const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!selectedClientId || planDuration === 'single') return;
     setGeneratingPlan(true);
     setStatusMsg(null);
@@ -192,7 +190,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, goal, phaseNumber, planDuration, selectedClientId, sessionsPerWeek, setGeneratedPlan, setStatusMsg]);
+  }, [authAxios, goal, phaseNumber, planDuration, sessionsPerWeek, setGeneratedPlan, setStatusMsg]);
 
   return {
     generating,

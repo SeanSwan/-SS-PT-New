@@ -9,7 +9,7 @@
  * approaches the file cap.
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import TeachModeSidebar from './TeachModeSidebar';
@@ -21,6 +21,7 @@ import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip, {
   type WorkoutPlannerStatusMessage,
 } from './WorkoutPlannerStatusAssistantStrip';
+import { useWorkoutPlannerClientState } from './useWorkoutPlannerClientState';
 import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGenerationActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
@@ -28,27 +29,15 @@ import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanAct
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
-import {
-  normalizeWorkoutPlannerClients,
-  parseWorkoutPlannerClientId,
-  pickWorkoutPlannerClientId,
-} from './WorkoutPlannerClientIdentity';
+import { parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 
 import {
-  type PlanExercise, type PlannerClient, type WorkoutCategory,
+  type PlanExercise, type WorkoutCategory,
   type GeneratedPlan, type PlanDuration,
   OPT_PHASES,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
 import { Page, ThreePanel } from './WorkoutPlannerStyles';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Body Part Filter Categories
-// ─────────────────────────────────────────────────────────────
-interface TrainerAssignmentResponse {
-  client?: PlannerClient;
-  Client?: PlannerClient;
-}
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -66,32 +55,6 @@ const WorkoutPlannerPage: React.FC = () => {
     if (!rawReturnTo || !rawReturnTo.startsWith('/dashboard/') || /[\r\n\t\\]/.test(rawReturnTo)) return null;
     return rawReturnTo;
   }, [searchParams]);
-
-  const [clients, setClients] = useState<PlannerClient[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
-  const [clientsLoading, setClientsLoading] = useState(true);
-
-  // L5 (2026-05-02): per-client self-service flag derived from the
-  // currently-selected client. Admins / trainers stay unblocked - they
-  // generate plans for clients regardless of this flag. The flag matters
-  // only for the (currently dormant) client-self-service path: a client
-  // viewing their OWN planner with the flag off must see a disabled
-  // generate button. Today the planner is admin-only so the disable
-  // branch is defensive; the visible pill below gives admins a quick
-  // read on whether the client could self-generate if exposed.
-  const selectedClient = useMemo(
-    () => clients.find(c => c.id === selectedClientId) || null,
-    [clients, selectedClientId],
-  );
-  const clientSelfGenStatus: 'enabled' | 'disabled' | 'unknown' =
-    selectedClient
-      ? (selectedClient.canGenerateWorkoutPlans ? 'enabled' : 'disabled')
-      : 'unknown';
-  const isViewerClient = user?.role === 'client';
-  const viewerClientId = parseWorkoutPlannerClientId(user?.id);
-  const clientGenBlocked = isViewerClient
-    && viewerClientId === selectedClientId
-    && !selectedClient?.canGenerateWorkoutPlans;
 
   const [phaseNumber, setPhaseNumber] = useState(2);
   const [category, setCategory] = useState<WorkoutCategory>('full_body');
@@ -157,6 +120,57 @@ const WorkoutPlannerPage: React.FC = () => {
     planExercises,
     generatedPlan,
   });
+
+  const {
+    generating,
+    generatingPlan,
+    degradedIntelligence,
+    explanations,
+    showExplanations,
+    clearExplanations,
+    handleAIGenerate,
+    handleGeneratePlan,
+    handleToggleExplanations,
+  } = useWorkoutPlannerGenerationActions({
+    authAxios,
+    category,
+    goal,
+    phaseNumber,
+    planDuration,
+    sessionsPerWeek,
+    setPlanExercises,
+    setGeneratedPlan,
+    setPhaseNumber,
+    setStatusMsg,
+    resetLoadedPlanState,
+  });
+
+  const {
+    clients,
+    selectedClientId,
+    clientsLoading,
+    selectedClient,
+    clientSelfGenStatus,
+    isViewerClient,
+    clientGenBlocked,
+    handleClientSelectionChange,
+  } = useWorkoutPlannerClientState({
+    authAxios,
+    user,
+    requestedClientId,
+    setPlanExercises,
+    setGeneratedPlan,
+    clearExplanations,
+    resetLoadedPlanState,
+  });
+
+  const requestAIGenerateForSelectedClient = useCallback(() => {
+    void handleAIGenerate(selectedClientId);
+  }, [handleAIGenerate, selectedClientId]);
+
+  const requestPlanGenerateForSelectedClient = useCallback(() => {
+    void handleGeneratePlan(selectedClientId);
+  }, [handleGeneratePlan, selectedClientId]);
 
   const {
     savedPlans,
@@ -225,64 +239,6 @@ const WorkoutPlannerPage: React.FC = () => {
     setStatusMsg,
   });
 
-  const {
-    generating,
-    generatingPlan,
-    degradedIntelligence,
-    explanations,
-    showExplanations,
-    clearExplanations,
-    handleAIGenerate,
-    handleGeneratePlan,
-    handleToggleExplanations,
-  } = useWorkoutPlannerGenerationActions({
-    authAxios,
-    selectedClientId,
-    category,
-    goal,
-    phaseNumber,
-    planDuration,
-    sessionsPerWeek,
-    setPlanExercises,
-    setGeneratedPlan,
-    setPhaseNumber,
-    setStatusMsg,
-    resetLoadedPlanState,
-  });
-
-  // ── Fetch Clients ──
-  // 2026-05-01 role-aware fix: /api/auth/clients is adminOnly. Trainers
-  // (now landing on the workout planner with active assignments) must
-  // hit /api/client-trainer-assignments/trainer/:id instead. Admins keep
-  // the global /api/auth/clients path. Same routing pattern as
-  // GlobalClientContext provider.
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        if (user?.role === 'trainer' && user.id) {
-          const res = await authAxios.get(`/api/client-trainer-assignments/trainer/${user.id}`);
-          const assignments = res.data?.assignments || res.data?.data?.assignments || [];
-          const assignmentClients = (Array.isArray(assignments) ? assignments : []).map((a: TrainerAssignmentResponse) => a.client || a.Client);
-          const clients = normalizeWorkoutPlannerClients(assignmentClients);
-          setClients(clients);
-          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
-        } else {
-          const res = await authAxios.get('/api/auth/clients');
-          if (res.data?.success && Array.isArray(res.data.clients)) {
-            const clients = normalizeWorkoutPlannerClients(res.data.clients);
-            setClients(clients);
-            setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedClientId));
-          }
-        }
-      } catch {
-        setClients([]);
-      } finally {
-        setClientsLoading(false);
-      }
-    };
-    fetchClients();
-  }, [authAxios, requestedClientId, user?.role, user?.id]);
-
   // ── Remove Exercise ──
   const removeExercise = useCallback((id: string) => {
     setPlanExercises(prev => prev.filter(p => p.id !== id));
@@ -317,18 +273,6 @@ const WorkoutPlannerPage: React.FC = () => {
   const handleTeachModeToggle = useCallback(() => {
     setTeachModeOpen(value => !value);
   }, []);
-
-  const handleClientSelectionChange = useCallback((rawClientId: string) => {
-    const nextClientId = parseWorkoutPlannerClientId(rawClientId);
-    if (!nextClientId) return;
-    // Codex 2026-05-03 round-3 HIGH-4: switching clients is a hard
-    // reset of loaded-plan identity to prevent cross-client plan updates.
-    setSelectedClientId(nextClientId);
-    setPlanExercises([]);
-    setGeneratedPlan(null);
-    clearExplanations();
-    resetLoadedPlanState();
-  }, [clearExplanations, resetLoadedPlanState]);
 
   const handlePlanDurationChange = useCallback((nextDuration: PlanDuration) => {
     setPlanDuration(nextDuration);
@@ -372,8 +316,8 @@ const WorkoutPlannerPage: React.FC = () => {
         onGoalChange={setGoal}
         onPlanDurationChange={handlePlanDurationChange}
         onSessionsPerWeekChange={setSessionsPerWeek}
-        onGenerateSingle={handleAIGenerate}
-        onGeneratePlan={handleGeneratePlan}
+        onGenerateSingle={requestAIGenerateForSelectedClient}
+        onGeneratePlan={requestPlanGenerateForSelectedClient}
       />
 
       <WorkoutPlannerStatusAssistantStrip
