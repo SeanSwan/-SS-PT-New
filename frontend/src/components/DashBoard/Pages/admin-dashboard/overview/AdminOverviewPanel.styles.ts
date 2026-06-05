@@ -10,6 +10,9 @@ const fadeInUp = keyframes`
   to   { opacity: 1; transform: translateY(0); }
 `;
 
+const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent))';
+const SHADOW_ELEVATION = 'var(--shadow-elevation, 0 4px 24px color-mix(in srgb, var(--bg-base, #030712) 20%, transparent))';
+
 const bentoItemAnimation = css`
   animation: ${fadeInUp} 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   opacity: 0;
@@ -182,7 +185,7 @@ export const ControlsHeader = styled.div`
   backdrop-filter: blur(12px);
   border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
-  box-shadow: var(--shadow-elevation, 0 4px 24px rgba(0, 0, 0, 0.2));
+  box-shadow: ${SHADOW_ELEVATION};
 
   @media (max-width: 430px) {
     padding: 12px 16px;
@@ -223,7 +226,7 @@ export const CosmicSelect = styled.select`
 `;
 
 export const StatusText = styled.span`
-  color: var(--text-secondary, rgba(224,236,244,0.6));
+  color: ${TEXT_SECONDARY};
   font-size: 0.875rem;
 `;
 
