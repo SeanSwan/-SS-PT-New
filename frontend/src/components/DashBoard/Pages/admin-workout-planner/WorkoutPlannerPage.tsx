@@ -9,11 +9,11 @@
  * approaches the file cap.
  */
 
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Dumbbell, Sparkles, BookOpen, Plus, X, Calendar,
-  Loader2, Save, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
+  Loader2, Save, Zap, ChevronDown, ChevronUp, Info,
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -23,12 +23,12 @@ import TeachModeSidebar from './TeachModeSidebar';
 // W1A-4 (2026-05-01): replace bare console.error(err) with sanitized helper
 // that strips Axios error.config.headers (JWT) before logging.
 import { logApiError } from '../../../../utils/logApiError';
-// W1A-5 (2026-05-01): scope lazy-panel failures to the panel instead of
-// letting them bubble to the app-level ErrorBoundary (white-screen).
-import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
+import WorkoutPlannerStatusAssistantStrip, {
+  type WorkoutPlannerStatusMessage,
+} from './WorkoutPlannerStatusAssistantStrip';
 // AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
@@ -46,8 +46,6 @@ import {
   parseEquipment,
 } from './WorkoutPlannerFilters';
 
-// AI Terminal — lazy since it's optional UI
-const AITerminalPanel = lazy(() => import('../../../Shared/AITerminalPanel'));
 import {
   type PlanExercise, type PlannerClient, type WorkoutCategory,
   type GeneratedWorkout, type GeneratedPlan, type PlanDuration,
@@ -62,7 +60,7 @@ import {
   ExerciseMeta,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
-  EmptyMessage, TeachToggle, StatusBanner, DegradedBanner,
+  EmptyMessage, TeachToggle,
   GeneratingSkeletonWrap, SkeletonCircle, SkeletonBar,
   GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
   PlanModeBar, PlanModeLabel, SmallSelect,
@@ -169,7 +167,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const [degradedIntelligence, setDegradedIntelligence] = useState(false);
   const [explanations, setExplanations] = useState<{ type: string; message: string; details?: string | string[] }[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
@@ -936,6 +934,10 @@ const WorkoutPlannerPage: React.FC = () => {
     void loadPlanIntoBuilder(planId, planName);
   }, [isDirty, loadPlanIntoBuilder]);
 
+  const handleReturnToClientHub = useCallback(() => {
+    if (plannerReturnTo) navigate(plannerReturnTo);
+  }, [navigate, plannerReturnTo]);
+
   return (
     <Page>
       {/* Header */}
@@ -1103,49 +1105,15 @@ const WorkoutPlannerPage: React.FC = () => {
         )}
       </PlanModeBar>
 
-      {/* Status Message */}
-      {statusMsg && (
-        <StatusBanner $type={statusMsg.type} role="alert">
-          <span className="planner-status-text">{statusMsg.text}</span>
-          {plannerReturnTo && statusMsg.type === 'success' && (
-            <span className="planner-status-actions">
-              <TeachToggle type="button" onClick={() => navigate(plannerReturnTo)}>
-                <ArrowLeft size={16} />
-                Return to Client Hub
-              </TeachToggle>
-            </span>
-          )}
-          <button type="button" onClick={() => setStatusMsg(null)} aria-label="Dismiss">&times;</button>
-        </StatusBanner>
-      )}
-
-      {/* Degraded Intelligence Warning */}
-      {degradedIntelligence && planExercises.length > 0 && (
-        <DegradedBanner role="alert">
-          <AlertTriangle size={20} />
-          <div>
-            <strong>Limited Context Mode</strong> — Pain/injury data could not be loaded for this client.
-            This workout was generated without injury exclusions. Review each exercise carefully before assigning.
-          </div>
-        </DegradedBanner>
-      )}
-
-      {/* Embedded AI Terminal — workout generation context.
-          W1A-5: PanelErrorBoundary scopes lazy-load / runtime failures to
-          this panel only; app-level ErrorBoundary at App.tsx:224 would
-          otherwise white-screen the dashboard on any failure here. */}
-      <PanelErrorBoundary panelName="Swan Coach Assistant">
-        <Suspense fallback={null}>
-          <AITerminalPanel
-            context="workout_generation"
-            clientId={selectedClientId ?? undefined}
-            label="Workout Swan Coach Assistant"
-            placeholder="Ask me about exercise selection, periodization, NASM protocols..."
-            compact
-            defaultOpen={false}
-          />
-        </Suspense>
-      </PanelErrorBoundary>
+      <WorkoutPlannerStatusAssistantStrip
+        statusMsg={statusMsg}
+        plannerReturnTo={plannerReturnTo}
+        selectedClientId={selectedClientId}
+        degradedIntelligence={degradedIntelligence}
+        hasPlanExercises={planExercises.length > 0}
+        onReturnToClientHub={handleReturnToClientHub}
+        onDismissStatus={() => setStatusMsg(null)}
+      />
 
       {/* Three-Panel Layout */}
       <ThreePanel $teachModeOpen={teachModeOpen}>
