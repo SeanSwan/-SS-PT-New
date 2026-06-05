@@ -16,6 +16,8 @@ vi.mock('../../../../../context/AuthContext', () => ({
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const LAYOUT_SOURCE = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
+const OVERVIEW_SOURCE = readFileSync(resolve(__dirname, '../overview/AdminOverviewPanel.tsx'), 'utf8');
 const SOURCE = readFileSync(resolve(__dirname, './SessionTrackingWidget.tsx'), 'utf8');
 
 describe('SessionTrackingWidget truth handling', () => {
@@ -82,15 +84,28 @@ describe('SessionTrackingWidget truth handling', () => {
     expect(SOURCE).not.toMatch(/Client A|Client B|trainerUtilization:\s*78|avgDuration:\s*52/);
   });
 
+  it('is mounted by the canonical admin overview route', () => {
+    expect(LAYOUT_SOURCE).toContain("const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
+    expect(LAYOUT_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(OVERVIEW_SOURCE).toContain("import SessionTrackingWidget from '../components/SessionTrackingWidget'");
+    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><SessionTrackingWidget /></BentoHalf>');
+    expect(SOURCE).toContain("authAxios.get('/api/admin/analytics/statistics/workouts')");
+  });
+
   it('bridges session cards and rank fallbacks to Crystalline Swan theme tokens', () => {
-    expect(SOURCE).toContain("const sessionRankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';");
-    expect(SOURCE).toContain("const sessionRankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';");
+    expect(SOURCE).toContain("const SESSION_SECONDARY = 'var(--accent-secondary, #8B5CF6)';");
+    expect(SOURCE).toContain("const SESSION_GOLD = 'var(--accent-gold, #C6A84B)';");
+    expect(SOURCE).toContain("const sessionRankFallbackBackground = 'var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent))';");
+    expect(SOURCE).toContain("const sessionRankFallbackColor = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent))';");
     expect(SOURCE).toContain('background: color-mix(in srgb, var(--royal-depth, #003080) 30%, transparent);');
     expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);');
     expect(SOURCE).toContain('background: color-mix(in srgb, var(--warning, #F59E0B) 14%, transparent);');
     expect(SOURCE).toContain('border: 1px solid color-mix(in srgb, var(--warning, #F59E0B) 26%, transparent);');
-    expect(SOURCE).toContain('background: ${p => p.$isTop ? hexAlpha(CHART_COLORS.gildedFern, 0.2) : sessionRankFallbackBackground};');
-    expect(SOURCE).toContain('color: ${p => p.$isTop ? CHART_COLORS.gildedFern : sessionRankFallbackColor};');
+    expect(SOURCE).toContain('background: ${p => p.$isTop ? `color-mix(in srgb, ${SESSION_GOLD} 20%, transparent)` : sessionRankFallbackBackground};');
+    expect(SOURCE).toContain('color: ${p => p.$isTop ? SESSION_GOLD : sessionRankFallbackColor};');
+    expect(SOURCE).not.toContain('CHART_COLORS');
+    expect(SOURCE).not.toContain('hexAlpha');
+    expect(SOURCE).not.toContain('rgba(');
     expect(SOURCE).not.toContain('background: rgba(0, 32, 96, 0.3);');
     expect(SOURCE).not.toContain('border: 1px solid rgba(96, 192, 240, 0.08);');
     expect(SOURCE).not.toContain('background: rgba(198, 168, 75, 0.12);');

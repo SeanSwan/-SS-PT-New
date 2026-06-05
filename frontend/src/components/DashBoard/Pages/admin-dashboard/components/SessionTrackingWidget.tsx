@@ -7,7 +7,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, Dumbbell, Crown, Clock, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
 
 interface TopClient { name: string; sessions: number; }
 
@@ -28,8 +27,15 @@ const EMPTY_SESSION_DATA: SessionData = {
   avgDuration: 0,
   topClients: [],
 };
-const sessionRankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';
-const sessionRankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';
+
+const SESSION_PRIMARY = 'var(--accent-primary, #60C0F0)';
+const SESSION_SECONDARY = 'var(--accent-secondary, #8B5CF6)';
+const SESSION_TERTIARY = 'var(--accent-tertiary, #4070C0)';
+const SESSION_GOLD = 'var(--accent-gold, #C6A84B)';
+const SESSION_ARCTIC = 'var(--chart-primary, #50A0F0)';
+const SESSION_TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent))';
+const sessionRankFallbackBackground = 'var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent))';
+const sessionRankFallbackColor = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent))';
 
 const toFiniteNumber = (value: unknown): number => {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -114,13 +120,13 @@ const SessionTrackingWidget: React.FC = () => {
 
       {/* Avg Duration */}
       <AvgRow>
-        <Clock size={14} color={CHART_COLORS.textSecondary} />
+        <Clock size={14} />
         <AvgText>Avg session: {data.avgDuration} min</AvgText>
       </AvgRow>
 
       {/* Top Clients */}
       <SectionLabel>
-        <Crown size={14} color={CHART_COLORS.gildedFern} />
+        <Crown size={14} />
         Top Clients by Activity
       </SectionLabel>
       <ClientList>
@@ -158,7 +164,7 @@ export default SessionTrackingWidget;
 
 const Wrapper = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
+  border: 1px solid var(--border-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent));
   border-radius: 16px;
   padding: 20px;
 `;
@@ -170,8 +176,8 @@ const Header = styled.div`
 const IconWrap = styled.div`
   width: 36px; height: 36px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: ${hexAlpha(CHART_COLORS.wingPurple, 0.15)};
-  color: ${CHART_COLORS.wingPurple};
+  background: color-mix(in srgb, ${SESSION_SECONDARY} 15%, transparent);
+  color: ${SESSION_SECONDARY};
 `;
 
 const Title = styled.h3`
@@ -193,11 +199,11 @@ const StatCard = styled.div`
 
 const StatValue = styled.div`
   font-size: 20px; font-weight: 700; font-family: 'Fira Code', monospace;
-  color: ${CHART_COLORS.iceWing};
+  color: ${SESSION_PRIMARY};
 `;
 
 const StatLabel = styled.div`
-  font-size: 10px; color: var(--text-muted, rgba(224,236,244,0.5));
+  font-size: 10px; color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 50%, transparent));
   text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
 `;
 
@@ -205,17 +211,22 @@ const AvgRow = styled.div`
   display: flex; align-items: center; gap: 6px;
   padding: 8px 12px; margin-bottom: 16px;
   background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent); border-radius: 8px;
+  color: ${SESSION_TEXT_SECONDARY};
 `;
 
 const AvgText = styled.span`
-  font-size: 12px; color: var(--text-secondary, rgba(224,236,244,0.7));
+  font-size: 12px; color: ${SESSION_TEXT_SECONDARY};
   font-family: 'Fira Code', monospace;
 `;
 
 const SectionLabel = styled.div`
   display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 600; color: var(--text-secondary, rgba(224,236,244,0.7));
+  font-size: 12px; font-weight: 600; color: ${SESSION_TEXT_SECONDARY};
   margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+
+  svg {
+    color: ${SESSION_GOLD};
+  }
 `;
 
 const ClientList = styled.div`
@@ -246,7 +257,7 @@ const EmptyState = styled.div`
   padding: 10px 12px; border-radius: 8px;
   background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent);
   border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  color: var(--text-secondary, rgba(224,236,244,0.7));
+  color: ${SESSION_TEXT_SECONDARY};
   font-size: 12px;
 `;
 
@@ -258,8 +269,8 @@ const Rank = styled.div<{ $isTop: boolean }>`
   width: 22px; height: 22px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700; flex-shrink: 0;
-  background: ${p => p.$isTop ? hexAlpha(CHART_COLORS.gildedFern, 0.2) : sessionRankFallbackBackground};
-  color: ${p => p.$isTop ? CHART_COLORS.gildedFern : sessionRankFallbackColor};
+  background: ${p => p.$isTop ? `color-mix(in srgb, ${SESSION_GOLD} 20%, transparent)` : sessionRankFallbackBackground};
+  color: ${p => p.$isTop ? SESSION_GOLD : sessionRankFallbackColor};
 `;
 
 const ClientName = styled.span`
@@ -269,11 +280,11 @@ const ClientName = styled.span`
 `;
 
 const BarWrapper = styled.div`
-  flex: 1; height: 6px; background: var(--surface-muted, rgba(255,255,255,0.05));
+  flex: 1; height: 6px; background: var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent));
   border-radius: 3px; overflow: hidden;
 `;
 
-const barColors = [CHART_COLORS.gildedFern, CHART_COLORS.iceWing, CHART_COLORS.wingPurple, CHART_COLORS.arcticCyan, CHART_COLORS.swanLavender];
+const barColors = [SESSION_GOLD, SESSION_PRIMARY, SESSION_SECONDARY, SESSION_ARCTIC, SESSION_TERTIARY];
 
 const Bar = styled.div<{ $index: number }>`
   height: 100%; border-radius: 3px;
@@ -283,6 +294,6 @@ const Bar = styled.div<{ $index: number }>`
 
 const SessionCount = styled.span`
   font-size: 12px; font-weight: 600; font-family: 'Fira Code', monospace;
-  color: var(--text-secondary, rgba(224,236,244,0.7));
+  color: ${SESSION_TEXT_SECONDARY};
   width: 28px; text-align: right; flex-shrink: 0;
 `;
