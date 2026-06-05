@@ -52,7 +52,7 @@
 
 import React from 'react';
 import {
-  ChevronDown, ChevronRight, Plus, Trash2, Brain, AlertTriangle, Info, Shield,
+  Brain, AlertTriangle, Info, Shield,
 } from 'lucide-react';
 import type {
   WorkoutPlan, WorkoutDay, Exercise,
@@ -68,24 +68,14 @@ import {
   Label,
   Input,
   TextArea,
-  SmallInput,
   Divider,
   SectionTitle,
-  DaySection,
-  DayHeader,
-  DayContent,
-  ExerciseCard,
-  ExerciseHeader,
-  AddButton,
-  RemoveButton,
   ExplainabilityGrid,
   ExplainCard,
   ExplainLabel,
   ExplainValue,
 } from './copilot-shared-styles';
 import {
-  DayExerciseCount,
-  ExerciseLabel,
   FullWidthExplainCard,
   PanelIcon,
   RecommendationCell,
@@ -95,10 +85,7 @@ import {
   RecommendationTable,
   RecommendationTableScroll,
 } from './CopilotDraftReview.styles';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Props
-// ─────────────────────────────────────────────────────────────
+import CopilotDraftTrainingDaysEditor from './CopilotDraftTrainingDaysEditor';
 
 interface CopilotDraftReviewProps {
   editedPlan: WorkoutPlan;
@@ -123,10 +110,6 @@ interface CopilotDraftReviewProps {
   trainerNotes: string;
   setTrainerNotes: (val: string) => void;
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Component
-// ─────────────────────────────────────────────────────────────
 
 const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
   editedPlan,
@@ -219,117 +202,15 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
 
     <Divider />
 
-    {/* Days (collapsible) */}
-    <SectionTitle>Training Days ({editedPlan.days.length})</SectionTitle>
-    {editedPlan.days.map((day, dayIdx) => (
-      <DaySection key={dayIdx}>
-        <DayHeader onClick={() => toggleDay(dayIdx)}>
-          {expandedDays.has(dayIdx) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <span>Day {day.dayNumber}: {day.name}</span>
-          <DayExerciseCount>
-            {day.exercises.length} exercises
-          </DayExerciseCount>
-        </DayHeader>
-
-        {expandedDays.has(dayIdx) && (
-          <DayContent>
-            <FormGrid>
-              <FormGroup>
-                <Label>Day Name</Label>
-                <SmallInput
-                  value={day.name}
-                  onChange={(e) => updateDay(dayIdx, 'name', e.target.value)}
-                  maxLength={100}
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Focus</Label>
-                <SmallInput
-                  value={day.focus || ''}
-                  onChange={(e) => updateDay(dayIdx, 'focus', e.target.value)}
-                  placeholder="e.g. Chest, Shoulders"
-                  maxLength={200}
-                />
-              </FormGroup>
-            </FormGrid>
-
-            {/* Exercises */}
-            {day.exercises.map((ex, exIdx) => (
-              <ExerciseCard key={exIdx}>
-                <ExerciseHeader>
-                  <ExerciseLabel>
-                    Exercise {exIdx + 1}
-                  </ExerciseLabel>
-                  <RemoveButton onClick={() => removeExercise(dayIdx, exIdx)}>
-                    <Trash2 size={14} />
-                  </RemoveButton>
-                </ExerciseHeader>
-                <FormGrid>
-                  <FormGroup>
-                    <Label>Name</Label>
-                    <SmallInput
-                      value={ex.name}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'name', e.target.value)}
-                      placeholder="Exercise name"
-                      maxLength={200}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Sets x Reps</Label>
-                    <SmallInput
-                      value={ex.setScheme || ''}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'setScheme', e.target.value)}
-                      placeholder="e.g. 4x8-10"
-                      maxLength={100}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Rest (seconds)</Label>
-                    <SmallInput
-                      type="number"
-                      min={0}
-                      max={600}
-                      value={ex.restPeriod ?? ''}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'restPeriod', e.target.value ? parseInt(e.target.value) : null)}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label>Tempo</Label>
-                    <SmallInput
-                      value={ex.tempo || ''}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'tempo', e.target.value)}
-                      placeholder="e.g. 3-1-2-0"
-                      maxLength={50}
-                    />
-                  </FormGroup>
-                  <FormGroup $fullWidth>
-                    <Label>Intensity Guideline</Label>
-                    <SmallInput
-                      value={ex.intensityGuideline || ''}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'intensityGuideline', e.target.value)}
-                      placeholder="e.g. 75-80% 1RM"
-                      maxLength={500}
-                    />
-                  </FormGroup>
-                  <FormGroup $fullWidth>
-                    <Label>Notes</Label>
-                    <SmallInput
-                      value={ex.notes || ''}
-                      onChange={(e) => updateExercise(dayIdx, exIdx, 'notes', e.target.value)}
-                      placeholder="Coach notes..."
-                      maxLength={1000}
-                    />
-                  </FormGroup>
-                </FormGrid>
-              </ExerciseCard>
-            ))}
-            <AddButton onClick={() => addExercise(dayIdx)}>
-              <Plus size={14} /> Add Exercise
-            </AddButton>
-          </DayContent>
-        )}
-      </DaySection>
-    ))}
+    <CopilotDraftTrainingDaysEditor
+      days={editedPlan.days}
+      expandedDays={expandedDays}
+      toggleDay={toggleDay}
+      updateDay={updateDay}
+      updateExercise={updateExercise}
+      addExercise={addExercise}
+      removeExercise={removeExercise}
+    />
 
     <Divider />
 
