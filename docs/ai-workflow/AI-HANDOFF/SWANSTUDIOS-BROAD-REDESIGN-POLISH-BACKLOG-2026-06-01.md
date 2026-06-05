@@ -152,6 +152,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - Canonical route evidence locks `/dashboard/client/rewards` to `UniversalDashboardLayout` -> `ClientRewardsPage` with sidebar navigation from `ClientStellarSidebar`.
   - `ClientRewardsPage.tsx` now routes reward card borders, badge placeholders, achievement dividers, and loading shimmer chrome through tokenized `color-mix` fallbacks instead of raw rgba fallbacks.
   - Coverage lives in `ClientRewardsPage.truth.test.tsx`, preserving the shared `useGamificationData` -> `/api/v1/gamification/profile` boundary.
+- Admin Sessions form/dialog chrome is now theme-token bridged:
+  - Canonical route evidence locks `/dashboard/admin/admin-sessions` to `UniversalDashboardLayout` -> `EnhancedAdminSessionsView`, with create/edit/delete/add-session dialogs consuming `AdminSessionsForm.styles.ts`.
+  - `AdminSessionsForm.styles.ts` now routes labels, inputs, textareas, selects, details, notes, assignment panels, session-select rows, and search controls through `AdminSessionsForm.tokens.ts` and dashboard token fallbacks instead of raw rgba values.
+  - Coverage lives in `AdminSessions.localStyleExtraction.test.ts`, alongside the existing accessibility, row-identity, and realtime socket contracts; active session API boundaries remain `/api/sessions`, `/api/auth/clients`, and `/api/auth/trainers`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.

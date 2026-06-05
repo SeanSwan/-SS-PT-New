@@ -4,6 +4,8 @@
  */
 import styled from 'styled-components';
 import { CheckSquare } from 'lucide-react';
+import * as tokens from './AdminSessionsForm.tokens';
+
 export const FormGrid = styled.div<{ $columns?: number }>`
   display: grid;
   grid-template-columns: repeat(${p => p.$columns || 2}, 1fr);
@@ -23,15 +25,15 @@ export const FormField = styled.div<{ $fullWidth?: boolean }>`
 `;
 
 export const FormLabel = styled.label`
-  color: rgba(255, 255, 255, 0.7);
+  color: ${tokens.TEXT_SECONDARY};
   font-size: 0.85rem;
   margin-bottom: 0.25rem;
 `;
 
 export const FormInput = styled.input`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: ${tokens.TEXT_PRIMARY};
+  background: ${tokens.FIELD_SURFACE};
+  border: 1px solid ${tokens.FIELD_BORDER};
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -40,19 +42,19 @@ export const FormInput = styled.input`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: ${tokens.FOCUS_BORDER};
+    box-shadow: ${tokens.FOCUS_SHADOW};
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: ${tokens.TEXT_MUTED};
   }
 `;
 
 export const FormTextarea = styled.textarea`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: ${tokens.TEXT_PRIMARY};
+  background: ${tokens.FIELD_SURFACE};
+  border: 1px solid ${tokens.FIELD_BORDER};
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -63,19 +65,19 @@ export const FormTextarea = styled.textarea`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: ${tokens.FOCUS_BORDER};
+    box-shadow: ${tokens.FOCUS_SHADOW};
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: ${tokens.TEXT_MUTED};
   }
 `;
 
 export const FormSelect = styled.select`
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(20, 20, 40, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: ${tokens.TEXT_PRIMARY};
+  background: ${tokens.FIELD_SURFACE};
+  border: 1px solid ${tokens.FIELD_BORDER};
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   outline: none;
@@ -85,18 +87,18 @@ export const FormSelect = styled.select`
   box-sizing: border-box;
 
   &:focus {
-    border-color: rgba(139, 92, 246, 0.5);
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    border-color: ${tokens.FOCUS_BORDER};
+    box-shadow: ${tokens.FOCUS_SHADOW};
   }
 
   option {
-    background: #1a1a2e;
-    color: #e2e8f0;
+    background: ${tokens.SELECT_OPTION_SURFACE};
+    color: ${tokens.TEXT_PRIMARY};
   }
 `;
 
 export const DialogDescriptionText = styled.p`
-  color: rgba(255, 255, 255, 0.7);
+  color: ${tokens.TEXT_SECONDARY};
   font-size: 0.9rem;
   margin: 0 0 1rem 0;
 `;
@@ -107,14 +109,14 @@ export const OverlineLabel = styled.span`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${tokens.TEXT_SECONDARY};
   margin-bottom: 0.25rem;
 `;
 
 export const DetailValue = styled.span<{ $top?: string }>`
   font-size: 1rem;
   font-weight: 500;
-  color: #e2e8f0;
+  color: ${tokens.TEXT_PRIMARY};
   display: block;
   margin-top: ${p => p.$top || 0};
 `;
@@ -124,10 +126,10 @@ export const NotesBox = styled.div`
   margin-top: 0.25rem;
   border-radius: 8px;
   min-height: 60px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${tokens.NOTES_SURFACE};
+  border: 1px solid ${tokens.NOTES_BORDER};
   white-space: pre-wrap;
-  color: #e2e8f0;
+  color: ${tokens.TEXT_PRIMARY};
   font-size: 0.875rem;
 `;
 
@@ -150,8 +152,8 @@ export const DetailFullRow = styled.div<{ $top?: string }>`
 /* Trainer Assignment Section styled components */
 export const AssignmentPanel = styled.div<{ $accentColor?: string }>`
   padding: 1.5rem;
-  background: rgba(30, 30, 60, 0.4);
-  border: 1px solid ${p => p.$accentColor || 'rgba(139, 92, 246, 0.3)'};
+  background: ${tokens.PANEL_SURFACE};
+  border: 1px solid ${p => p.$accentColor || tokens.PANEL_BORDER};
   border-radius: 12px;
 `;
 
@@ -181,7 +183,7 @@ export const AssignmentStatsGrid = styled.div`
 
 export const PanelHeading = styled.h3<{ $color?: string }>`
   margin: 0 0 1rem 0;
-  color: ${p => p.$color || '#8B5CF6'};
+  color: ${p => p.$color || 'var(--accent-secondary, #8B5CF6)'};
   font-size: 1.1rem;
   font-weight: 600;
 `;
@@ -191,18 +193,18 @@ export const SessionSelectItem = styled.button<{ $selected?: boolean }>`
   align-items: center;
   width: 100%;
   padding: 0.5rem;
-  border: ${p => p.$selected ? '2px solid #8B5CF6' : '1px solid rgba(255, 255, 255, 0.2)'};
+  border: ${p => p.$selected ? tokens.SELECTED_BORDER : tokens.ITEM_BORDER};
   border-radius: 8px;
   margin: 0.5rem 0;
   cursor: pointer;
-  background: ${p => p.$selected ? 'rgba(139, 92, 246, 0.1)' : 'transparent'};
+  background: ${p => p.$selected ? tokens.SELECTED_SURFACE : 'transparent'};
   color: inherit;
   text-align: left;
   min-height: 44px;
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${p => p.$selected ? 'rgba(139, 92, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)'};
+    background: ${p => p.$selected ? tokens.SELECTED_SURFACE_HOVER : tokens.ITEM_HOVER_SURFACE};
   }
 `;
 
@@ -224,17 +226,17 @@ export const SearchInputWrapper = styled.div`
   svg {
     position: absolute;
     left: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    color: ${tokens.TEXT_MUTED};
     pointer-events: none;
   }
 `;
 
 export const SearchInputField = styled.input`
   border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
+  background: ${tokens.FIELD_SURFACE};
+  border: 1px solid ${tokens.FIELD_BORDER_SOFT};
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  color: var(--text-primary, #E0ECF4);
+  color: ${tokens.TEXT_PRIMARY};
   padding: 0.5rem 0.75rem;
   padding-left: 2.25rem;
   font-size: 0.95rem;
@@ -244,13 +246,13 @@ export const SearchInputField = styled.input`
   box-sizing: border-box;
 
   &::placeholder {
-    color: var(--text-muted, rgba(224, 236, 244, 0.55));
+    color: ${tokens.TEXT_MUTED};
   }
 
   &:hover,
   &:focus {
-    border-color: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent);
-    box-shadow: 0 0 15px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
+    border-color: ${tokens.FOCUS_BORDER};
+    box-shadow: ${tokens.FIELD_FOCUS_SHADOW};
   }
 
   @media (max-width: 600px) {
@@ -272,5 +274,5 @@ export const DateInput = styled(FormInput)`
 export const SessionSelectIcon = styled(CheckSquare)<{ $selected: boolean }>`
   margin-right: 0.5rem;
   flex-shrink: 0;
-  color: ${({ $selected }) => ($selected ? 'var(--accent-secondary, #8B5CF6)' : 'var(--text-muted, #666)')};
+  color: ${({ $selected }) => ($selected ? 'var(--accent-secondary, #8B5CF6)' : tokens.TEXT_MUTED)};
 `;
