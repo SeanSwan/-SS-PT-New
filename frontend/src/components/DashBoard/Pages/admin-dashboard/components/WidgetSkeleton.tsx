@@ -11,14 +11,25 @@ const shimmer = keyframes`
 `;
 
 const SkeletonBase = styled.div`
-  background: #2a2a3a;
-  background-image: linear-gradient(to right, #2a2a3a 0%, #3a3a4a 20%, #2a2a3a 40%, #2a2a3a 100%);
+  background: var(--skeleton-base, color-mix(in srgb, var(--bg-elevated, #141419) 86%, var(--accent-primary, #60C0F0) 14%));
+  background-image: linear-gradient(
+    to right,
+    var(--skeleton-base, color-mix(in srgb, var(--bg-elevated, #141419) 86%, var(--accent-primary, #60C0F0) 14%)) 0%,
+    var(--skeleton-highlight, color-mix(in srgb, var(--bg-elevated, #141419) 72%, var(--accent-secondary, #8B5CF6) 28%)) 20%,
+    var(--skeleton-base, color-mix(in srgb, var(--bg-elevated, #141419) 86%, var(--accent-primary, #60C0F0) 14%)) 40%,
+    var(--skeleton-base, color-mix(in srgb, var(--bg-elevated, #141419) 86%, var(--accent-primary, #60C0F0) 14%)) 100%
+  );
   background-repeat: no-repeat;
   background-size: 2000px 104px;
   display: inline-block;
   position: relative;
   animation: ${shimmer} 2s linear infinite;
   border-radius: 8px;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-size: auto;
+  }
 `;
 
 const SkeletonCircle = styled(SkeletonBase)`
@@ -45,7 +56,7 @@ const SkeletonItem = styled.div`
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+  border-bottom: 1px solid var(--border-primary-faint, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
 `;
 
 const WidgetSkeleton: React.FC<{ count?: number }> = ({ count = 3 }) => {

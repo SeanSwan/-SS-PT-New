@@ -54,6 +54,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - Bootcamp Builder panel/button theme-token bridge: `8c3c70bbb`.
   - Client Hub list card, master/detail shell, selector, Training tab glow, and lifecycle confirmation dialog token bridges: `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
   - Client Hub coverage now includes targeted style/contract tests for the patched selector, shell, cards, Training tab, and lifecycle dialog.
+- Universal Dashboard shell and active admin overview loading-state theme bridge are now handled:
+  - `UniversalDashboardLayout.tsx` and `AdminLayout.styles.ts` route shared focus rings, button text, borders, shadows, fallback text, danger action background, and OmniTerminal FAB chrome through theme variables.
+  - `WidgetSkeleton.tsx` routes the shared admin overview loading shimmer through theme variables and honors `prefers-reduced-motion`.
+  - Coverage lives in `frontend/src/components/DashBoard/themeSync.contract.test.ts` and `frontend/src/components/DashBoard/Pages/admin-dashboard/components/WidgetSkeleton.themeBridge.test.ts`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -108,8 +112,8 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, and several canonical Client Hub surfaces are token-bridged and covered by targeted contracts.
-- Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Dashboard shell, Universal Master Schedule, and remaining admin widgets.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, and active admin overview skeleton loading chrome are token-bridged and covered by targeted contracts.
+- Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked
 
@@ -124,11 +128,9 @@ These are scan-backed candidates, not permission to patch everything at once. Ea
 - Workout Logger:
   - `frontend/src/components/WorkoutLogger/WorkoutLoggerTheme.ts`, `WorkoutLoggerConfirmDialog.tsx`, `WorkoutLoggerCS.ts`, and `NASMProtocolSection.tsx` still show raw gradient, shadow, and accent literals.
   - Treat this as daily-use polish plus regression protection because Workout Logger is the execution surface.
-- Universal Dashboard shell:
-  - `frontend/src/components/DashBoard/UniversalDashboardLayout.tsx` and `AdminLayout.styles.ts` still show raw shadows, white text, and glow colors in scans.
-  - This has broad blast radius and should be sliced only after route/shell ownership is re-proven.
 - Admin widgets:
-  - `PaymentSettingsPanel.tsx`, `UsersManagementSection.tsx`, `TopTrainersWidget.tsx`, and `WidgetSkeleton.tsx` still show raw colors/gradients/shadows.
+  - `PaymentSettingsPanel.tsx`, `UsersManagementSection.tsx`, and `TopTrainersWidget.tsx` still show raw colors/gradients/shadows.
+  - `WidgetSkeleton.tsx` is handled for active admin overview loading states; do not reselect it as a broad-polish candidate.
   - Keep payment/session correctness ahead of visual-only widget polish.
 - Universal Master Schedule:
   - Schedule theme bridge tests already exist in the schedule area, but Sean has specifically reported schedule theme drift.
