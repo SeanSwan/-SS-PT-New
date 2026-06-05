@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, X, Ruler } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import {
@@ -18,23 +18,11 @@ import type {
 } from './MeasurementEntry.types';
 import {
   BodyText,
-  FlexRow,
-  GlassPanel,
   PageWrapper,
-  ResponsiveGrid,
-  SectionTitle,
   Spinner,
 } from './MeasurementEntry.baseStyles';
 import {
-  AutocompleteWrapper,
   ChangeChip,
-  ClearClientButton,
-  DropdownItem,
-  DropdownList,
-  EmbeddedClientBadge,
-  InputWrapper,
-  StyledInput,
-  StyledLabel,
 } from './MeasurementEntry.formStyles';
 import {
   buildRadarData,
@@ -47,6 +35,7 @@ import MeasurementEntryProgressCharts from './MeasurementEntryProgressCharts';
 import MeasurementEntryFormPanel from './MeasurementEntryFormPanel';
 import MeasurementEntryRecentPanel from './MeasurementEntryRecentPanel';
 import MeasurementEntryDetailModal from './MeasurementEntryDetailModal';
+import MeasurementEntryClientPanel from './MeasurementEntryClientPanel';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -302,6 +291,18 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
     }
   };
 
+  const handleClientSearchChange = (value: string) => {
+    setClientSearch(value);
+    setShowDropdown(true);
+    if (selectedClient && value !== selectedClient.name) {
+      setSelectedClient(null);
+    }
+  };
+
+  const handleMeasurementDateChange = (value: string) => {
+    setNewMeasurement((previous) => ({ ...previous, measurementDate: value }));
+  };
+
   const handleSelectClient = (client: Client) => {
     setSelectedClient(client);
     setClientSearch(client.name);
@@ -336,83 +337,21 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   return (
     <PageWrapper variants={containerVariants} initial="hidden" animate="visible">
       {/* ── Client Selection Panel ── */}
-      <GlassPanel as={motion.div} variants={itemVariants}>
-        <SectionTitle>Body Measurements Entry</SectionTitle>
-        <ResponsiveGrid>
-          {/* Client Select — read-only badge when embedded, autocomplete otherwise */}
-          {embeddedClientId ? (
-            <InputWrapper>
-              <StyledLabel>Client</StyledLabel>
-              <EmbeddedClientBadge>
-                <Ruler size={16} />
-                {selectedClient?.name || embeddedClientName || `Client #${embeddedClientId}`}
-              </EmbeddedClientBadge>
-            </InputWrapper>
-          ) : (
-            <AutocompleteWrapper ref={autocompleteRef}>
-              <InputWrapper>
-                <StyledLabel>Select Client</StyledLabel>
-                <FlexRow $gap={0} $relative>
-                  <StyledInput
-                    type="text"
-                    placeholder="Search clients..."
-                    value={clientSearch}
-                    onChange={(e) => {
-                      setClientSearch(e.target.value);
-                      setShowDropdown(true);
-                      if (selectedClient && e.target.value !== selectedClient.name) {
-                        setSelectedClient(null);
-                      }
-                    }}
-                    onFocus={() => setShowDropdown(true)}
-                    $hasAdornment={!!selectedClient}
-                  />
-                  {selectedClient && (
-                    <ClearClientButton
-                      type="button"
-                      onClick={handleClearClient}
-                      aria-label="Clear selected client"
-                    >
-                      <X size={16} />
-                    </ClearClientButton>
-                  )}
-                </FlexRow>
-              </InputWrapper>
-              {showDropdown && clientSearch.length > 0 && (
-                <DropdownList>
-                  {filteredClients.length > 0 ? (
-                    filteredClients.map((client) => (
-                      <DropdownItem
-                        key={client.id}
-                        type="button"
-                        $highlighted={selectedClient?.id === client.id}
-                        onClick={() => handleSelectClient(client)}
-                      >
-                        {client.name}
-                      </DropdownItem>
-                    ))
-                  ) : (
-                    <DropdownItem type="button" disabled>No clients found</DropdownItem>
-                  )}
-                </DropdownList>
-              )}
-            </AutocompleteWrapper>
-          )}
-
-          {/* Measurement Date */}
-          <InputWrapper>
-            <StyledLabel>Measurement Date</StyledLabel>
-            <StyledInput
-              type="date"
-              value={newMeasurement.measurementDate || ''}
-              onChange={(e) =>
-                setNewMeasurement((p) => ({ ...p, measurementDate: e.target.value }))
-              }
-              disabled={!selectedClient}
-            />
-          </InputWrapper>
-        </ResponsiveGrid>
-      </GlassPanel>
+      <MeasurementEntryClientPanel
+        embeddedClientId={embeddedClientId}
+        embeddedClientName={embeddedClientName}
+        selectedClient={selectedClient}
+        clientSearch={clientSearch}
+        showDropdown={showDropdown}
+        filteredClients={filteredClients}
+        newMeasurement={newMeasurement}
+        autocompleteRef={autocompleteRef}
+        onClientSearchChange={handleClientSearchChange}
+        onClientFocus={() => setShowDropdown(true)}
+        onClientSelect={handleSelectClient}
+        onClientClear={handleClearClient}
+        onMeasurementDateChange={handleMeasurementDateChange}
+      />
 
       {/* ── Measurement Entry Form ── */}
       {selectedClient &&
