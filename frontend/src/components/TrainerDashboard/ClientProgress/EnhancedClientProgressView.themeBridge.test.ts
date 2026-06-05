@@ -37,6 +37,8 @@ describe('EnhancedClientProgressView theme bridge', () => {
     expect(STYLE_SOURCE).not.toContain('color: #94a3b8');
     expect(STYLE_SOURCE).not.toContain("($active ? '#0ea5e9'");
     expect(STYLE_SOURCE).not.toContain('box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4)');
+    expect(STYLE_SOURCE).not.toContain('rgba(15, 23, 42');
+    expect(STYLE_SOURCE).not.toContain('rgba(0, 0, 0');
   });
 
   it('bridges no-client and loading route states to the same dashboard tokens', () => {

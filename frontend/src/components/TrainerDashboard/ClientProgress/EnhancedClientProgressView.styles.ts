@@ -12,7 +12,7 @@ export const PageWrapper = styled.div`
 `;
 
 export const GlassPanel = styled.div`
-  background: var(--bg-elevated, rgba(15, 23, 42, 0.95));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   border-radius: 16px;
   padding: 24px;
@@ -93,7 +93,7 @@ export const ToggleThumb = styled.span<{ $checked: boolean }>`
   border-radius: 50%;
   background: var(--button-text, #FFFFFF);
   transition: left 0.2s ease;
-  box-shadow: var(--shadow-subtle, 0 1px 3px rgba(0, 0, 0, 0.3));
+  box-shadow: var(--shadow-subtle, 0 1px 3px color-mix(in srgb, var(--bg-base, #0A0A0F) 30%, transparent));
 `;
 
 export const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
@@ -238,13 +238,13 @@ export const QuickActionBar = styled.div`
   bottom: 20px;
   right: 20px;
   z-index: 20;
-  background: var(--bg-elevated, rgba(15, 23, 42, 0.95));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   border-radius: 12px;
   max-width: calc(100vw - 40px);
   padding: 16px;
   backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-strong, 0 8px 32px rgba(0, 0, 0, 0.4));
+  box-shadow: var(--shadow-strong, 0 8px 32px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent));
 
   @media (max-width: 640px) {
     position: sticky;
