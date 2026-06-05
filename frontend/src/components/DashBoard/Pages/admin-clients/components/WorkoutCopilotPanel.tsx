@@ -91,7 +91,6 @@ import type {
   PainEntry,
 } from './copilot-types';
 
-import { TabBar, TabButton } from './copilot-local-styles';
 import {
   ModalOverlay,
   ModalPanel,
@@ -114,6 +113,7 @@ import CopilotDraftReview from './CopilotDraftReview';
 import CopilotSavedState from './CopilotSavedState';
 import LongHorizonContent from './LongHorizonContent';
 import CopilotGeneratingState from './CopilotGeneratingState';
+import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
 
 interface ApiErrorPayload {
   code?: string;
@@ -199,7 +199,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Double-submit guard ─────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'single' | 'long-horizon'>('single');
+  const [activeTab, setActiveTab] = useState<CopilotModeTab>('single');
   const [lhFooterContent, setLhFooterContent] = useState<React.ReactNode | null>(null);
 
   // ── Reset on open ───────────────────────────────────────────
@@ -256,6 +256,15 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       return () => clearTimeout(timer);
     }
   }, [open, autoGenerate, state, isSubmitting]);
+
+  const handleSelectSingleTab = useCallback(() => {
+    setActiveTab('single');
+    setLhFooterContent(null);
+  }, []);
+
+  const handleSelectLongHorizonTab = useCallback(() => {
+    setActiveTab('long-horizon');
+  }, []);
 
   // ── Generate draft ──────────────────────────────────────────
 
@@ -486,25 +495,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
           {!inline && <CloseButton onClick={onClose}><X size={20} /></CloseButton>}
         </ModalHeader>
 
-        <TabBar>
-          <TabButton
-            type="button"
-            $active={activeTab === 'single'}
-            onClick={() => {
-              setActiveTab('single');
-              setLhFooterContent(null);
-            }}
-          >
-            Single Workout
-          </TabButton>
-          <TabButton
-            type="button"
-            $active={activeTab === 'long-horizon'}
-            onClick={() => setActiveTab('long-horizon')}
-          >
-            Long-Horizon
-          </TabButton>
-        </TabBar>
+        <CopilotModeTabs
+          activeTab={activeTab}
+          onSelectSingle={handleSelectSingleTab}
+          onSelectLongHorizon={handleSelectLongHorizonTab}
+        />
 
         <ModalBody>
           {activeTab === 'single' && (

@@ -33,7 +33,7 @@ export const TabBar = styled.div`
 `;
 
 export const TabButton = styled.button<{ $active?: boolean }>`
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid ${({ $active }) => ($active ? SWAN_CYAN : 'rgba(255,255,255,0.15)')};
   border-bottom: none;
   border-radius: 10px 10px 0 0;

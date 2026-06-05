@@ -799,14 +799,14 @@ describe('WorkoutCopilotPanel', () => {
         expect(screen.getByText('Available NASM Templates')).toBeInTheDocument();
       });
 
-      expect(screen.getByRole('button', { name: 'Single Workout' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Long-Horizon' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Single Workout' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Long-Horizon' })).toBeInTheDocument();
     });
 
     it('switches to long-horizon idle state', async () => {
       renderPanel();
       const user = userEvent.setup();
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       expect(screen.getByText('Long-Horizon Planning')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Configure Plan' })).toBeInTheDocument();
     });
@@ -814,7 +814,7 @@ describe('WorkoutCopilotPanel', () => {
     it('loads real profile goals when entering configure state', async () => {
       renderPanel();
       const user = userEvent.setup();
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
 
       await waitFor(() => {
@@ -829,7 +829,7 @@ describe('WorkoutCopilotPanel', () => {
       mockGetClientDetails.mockRejectedValueOnce(new Error('network'));
       renderPanel();
       const user = userEvent.setup();
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
 
       await waitFor(() => {
@@ -844,7 +844,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
@@ -863,7 +863,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
@@ -894,7 +894,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
@@ -910,7 +910,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
@@ -932,7 +932,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
 
@@ -947,7 +947,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.type(
         screen.getByPlaceholderText(/Provide justification when consent override is required/i),
@@ -977,15 +977,15 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
       const user = userEvent.setup();
 
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
       await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
       await waitFor(() => {
         expect(screen.getByDisplayValue('6-Month Strength Arc')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: 'Single Workout' }));
-      await user.click(screen.getByRole('button', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('tab', { name: 'Single Workout' }));
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
 
       expect(screen.getByText('Long-Horizon Planning')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Configure Plan' })).toBeInTheDocument();
