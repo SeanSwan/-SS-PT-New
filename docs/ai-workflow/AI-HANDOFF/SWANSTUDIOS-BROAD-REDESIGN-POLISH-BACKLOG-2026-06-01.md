@@ -82,6 +82,11 @@ These items are no longer broad-redesign backlog items because they were handled
   - Canonical route evidence locks client dashboards to `UniversalDashboardLayout` -> `ClientStellarSidebar`.
   - `ClientStellarSidebar.nav.styles.ts` routes active nav glow, hover state, icon drop shadow, and collapsed tooltip chrome through `var(--accent-primary, #60C0F0)`, `var(--accent-secondary, #8B5CF6)`, and surface tokens.
   - Coverage lives in `frontend/src/components/DashBoard/Pages/client-dashboard/ClientStellarSidebar.navigation.test.ts`, which also keeps Home -> My Progress -> Log Workout as the first cluster.
+- Client progress proof page and 12-chart grid cyan translucency are now theme-token bridged:
+  - Canonical route evidence locks `/dashboard/client/progress` to `UniversalDashboardLayout` -> `ClientProgressDashboardPage` -> `CanonicalProgressChartsGrid`.
+  - `ClientProgressDashboardPage.styles.ts` routes KPI card borders, XP glow, detailed-link hover, and skeleton loading shimmer through `color-mix(... var(--accent-primary, #60C0F0) ...)`.
+  - `CanonicalProgressChartsGrid.styles.ts` routes chart-card borders, hover states, bar tracks, and default bar fill through dashboard theme tokens.
+  - Coverage lives in `ClientProgressDashboardPage.themeBridge.test.ts`, `CanonicalProgressChartsGrid.themeBridge.test.ts`, and the existing KPI truth suite.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -136,7 +141,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, the Trainer Home Swan Coach dock, the Trainer Client Progress comparison benchmark bar, the Trainer Client Progress mobile quick action dock, and the Client sidebar workout-progress-first nav chrome are covered by targeted contracts.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, the Trainer Home Swan Coach dock, the Trainer Client Progress comparison benchmark bar, the Trainer Client Progress mobile quick action dock, the Client sidebar workout-progress-first nav chrome, and the Client progress proof page/chart grid translucency are covered by targeted contracts.
 - Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked

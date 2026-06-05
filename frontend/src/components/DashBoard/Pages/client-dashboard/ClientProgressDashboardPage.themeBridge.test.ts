@@ -20,6 +20,8 @@ describe('ClientProgressDashboardPage theme bridge', () => {
     expect(source).not.toContain('keyframes`');
     expect(styleSource).toContain('var(--bg-elevated');
     expect(styleSource).toContain('var(--accent-primary');
+    expect(styleSource).toContain('color-mix(in srgb, var(--accent-primary, #60C0F0)');
+    expect(styleSource).not.toContain('rgba(96, 192, 240');
     expect(lineCount(source)).toBeLessThanOrEqual(300);
   });
 

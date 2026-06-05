@@ -51,7 +51,7 @@ export const StatsStrip = styled.div<{ $bottom?: string }>`
 
 export const StatCard = styled.div<{ $accent?: string; $delay?: number }>`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   padding: 1rem;
   display: flex;
@@ -61,7 +61,7 @@ export const StatCard = styled.div<{ $accent?: string; $delay?: number }>`
   animation-delay: ${({ $delay = 0 }) => `${$delay * 60}ms`};
 
   &:hover {
-    border-color: ${({ $accent }) => $accent || 'var(--accent-primary, rgba(96, 192, 240, 0.2))'};
+    border-color: ${({ $accent }) => $accent || 'color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent)'};
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -93,7 +93,7 @@ export const StatSub = styled.span`
 
 export const XpBarWrap = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.25rem;
@@ -132,7 +132,7 @@ export const XpBarFill = styled.div<{ $pct: number }>`
     var(--accent-secondary, #8B5CF6),
     var(--accent-primary, #60C0F0)
   );
-  box-shadow: 0 0 12px var(--glow-cyan, rgba(96, 192, 240, 0.3));
+  box-shadow: 0 0 12px var(--glow-cyan, color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent));
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 
   @media (prefers-reduced-motion: reduce) {
@@ -160,7 +160,7 @@ export const SplitRow = styled.div`
 
 export const Card = styled.div<{ $bottom?: string }>`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   padding: 1.25rem;
   margin-bottom: ${({ $bottom }) => $bottom ?? 0};
@@ -240,7 +240,7 @@ export const DetailedLink = styled.button`
   padding: 1rem;
   color: var(--accent-primary, #60C0F0);
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   cursor: pointer;
   font-family: 'Sora', sans-serif;
@@ -250,7 +250,7 @@ export const DetailedLink = styled.button`
   transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    border-color: var(--accent-primary, rgba(96, 192, 240, 0.25));
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
     transform: translateX(4px);
   }
 
@@ -270,9 +270,9 @@ export const Skeleton = styled.div<{ $w?: string; $h?: string }>`
   border-radius: 6px;
   background: linear-gradient(
     90deg,
-    var(--skeleton-start, rgba(96, 192, 240, 0.04)) 0%,
-    var(--skeleton-mid, rgba(96, 192, 240, 0.08)) 50%,
-    var(--skeleton-start, rgba(96, 192, 240, 0.04)) 100%
+    var(--skeleton-start, color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent)) 0%,
+    var(--skeleton-mid, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent)) 50%,
+    var(--skeleton-start, color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent)) 100%
   );
   background-size: 200% 100%;
   animation: ${shimmer} 1.8s ease-in-out infinite;

@@ -25,12 +25,12 @@ export const ChartCard = styled.div`
   flex-direction: column;
   padding: 1rem 1.25rem 1.25rem;
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 12px;
   transition: border-color 0.2s ease;
 
   &:hover {
-    border-color: var(--border-accent, rgba(96, 192, 240, 0.18));
+    border-color: var(--border-accent, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -144,7 +144,7 @@ export const BarTrack = styled.div`
   position: relative;
   height: 8px;
   overflow: hidden;
-  background: var(--chart-track, rgba(96, 192, 240, 0.08));
+  background: var(--chart-track, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 4px;
 `;
 
@@ -152,7 +152,7 @@ export const BarFill = styled.div<{ $pct: number; $color?: string }>`
   position: absolute;
   inset: 0 auto 0 0;
   width: ${({ $pct }) => Math.max(Math.min($pct, 100), 2)}%;
-  background: ${({ $color }) => $color || CHART_COLORS.iceWing};
+  background: ${({ $color }) => $color || 'var(--accent-primary, #60C0F0)'};
   border-radius: 4px;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 
