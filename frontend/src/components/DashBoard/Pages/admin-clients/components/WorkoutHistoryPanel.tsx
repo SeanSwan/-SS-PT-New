@@ -38,7 +38,7 @@ import styled from 'styled-components';
 import {
   Dumbbell, Clock, Target, Trophy, BarChart3,
   ChevronDown, ChevronUp, Flame, Activity, Share2,
-  Edit3, Save, X as XIcon, Plus, Trash2, AlertTriangle,
+  Edit3, Save, X as XIcon, Plus, AlertTriangle,
 } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
 import { CenterContent, Spinner } from './copilot-shared-styles';
@@ -47,7 +47,6 @@ import {
   type WorkoutSession,
   type WorkoutLogEntry,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
-import { calcBrzycki1RM } from '../../../../../hooks/analytics/workoutAnalyticsUtils';
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   formatWorkoutHistoryDate,
@@ -69,11 +68,11 @@ import {
   updateWorkoutEditField,
   updateWorkoutExerciseNote,
 } from './workoutHistoryEditRows';
+import WorkoutHistoryExerciseTable from './WorkoutHistoryExerciseTable';
 import WorkoutHistoryExerciseNotesBlock from './WorkoutHistoryExerciseNotesBlock';
 import {
   EditActionBar,
   EditBtn,
-  EditCellInput,
   EditErrorBar,
 } from './WorkoutHistoryPanel.styles';
 import {
@@ -89,12 +88,8 @@ import {
 } from './WorkoutHistoryPanel.layoutStyles';
 import {
   AddSetRow,
-  ExerciseNameCell,
-  ExerciseTable,
   ExerciseTableViewport,
   MetaChip,
-  OneRMCell,
-  RPECell,
   SessionCard,
   SessionHeader,
   SessionHeaderActions,
@@ -104,12 +99,8 @@ import {
   SessionToggleButton,
   SessionTotals,
   ShareIconBtn,
-  Td,
-  TempoCell,
-  Th,
   TotalLabel,
   TotalValue,
-  WeightCell,
 } from './WorkoutHistoryPanel.sessionStyles';
 import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
 
@@ -466,140 +457,17 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                               <span>{saveError}</span>
                             </EditErrorBar>
                           )}
-                          <ExerciseTable>
-                            <thead>
-                              <tr>
-                                <Th>Exercise</Th>
-                                <Th>Set</Th>
-                                <Th>Reps</Th>
-                                <Th>Weight</Th>
-                                {hasTempo && <Th>Tempo</Th>}
-                                {hasRest && <Th>Rest</Th>}
-                                {hasRPE && <Th>RPE</Th>}
-                                {!isEditing && hasWeight && <Th>Est. 1RM</Th>}
-                                {isEditing && <Th aria-label="Row actions">{' '}</Th>}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {tableExerciseGroups.map(([exerciseName, groupSets]) =>
-                                groupSets.map((log, idx) => {
-                                  // logIndex is the position in the FLAT
-                                  // activeLogs array — editing handlers
-                                  // address rows by flat index.
-                                  const logIndex = activeLogs.indexOf(log);
-                                  return (
-                                    <tr key={`${exerciseName}-${log.id ?? idx}-${log.setNumber}`}>
-                                      {idx === 0 && (
-                                        <ExerciseNameCell rowSpan={groupSets.length}>
-                                          {exerciseName}
-                                        </ExerciseNameCell>
-                                      )}
-                                      <Td>{idx + 1}</Td>
-                                      <Td>
-                                        {isEditing ? (
-                                          <EditCellInput
-                                            type="number"
-                                            inputMode="numeric"
-                                            min={0}
-                                            value={log.reps ?? ''}
-                                            data-testid={`edit-reps-${logIndex}`}
-                                            onChange={(e) => updateEditField(logIndex, 'reps', e.target.value)}
-                                          />
-                                        ) : (
-                                          log.reps
-                                        )}
-                                      </Td>
-                                      <Td>
-                                        {isEditing ? (
-                                          <EditCellInput
-                                            type="number"
-                                            inputMode="decimal"
-                                            min={0}
-                                            step={0.5}
-                                            value={log.weight ?? ''}
-                                            data-testid={`edit-weight-${logIndex}`}
-                                            onChange={(e) => updateEditField(logIndex, 'weight', e.target.value)}
-                                          />
-                                        ) : (
-                                          <WeightCell>{log.weight > 0 ? `${log.weight} lbs` : 'BW'}</WeightCell>
-                                        )}
-                                      </Td>
-                                      {hasTempo && (
-                                        <Td>
-                                          {isEditing ? (
-                                            <EditCellInput
-                                              type="text"
-                                              value={log.tempo ?? ''}
-                                              placeholder="1/1/0"
-                                              data-testid={`edit-tempo-${logIndex}`}
-                                              onChange={(e) => updateEditField(logIndex, 'tempo', e.target.value)}
-                                            />
-                                          ) : (
-                                            <TempoCell>{log.tempo || '—'}</TempoCell>
-                                          )}
-                                        </Td>
-                                      )}
-                                      {hasRest && (
-                                        <Td>
-                                          {isEditing ? (
-                                            <EditCellInput
-                                              type="number"
-                                              inputMode="numeric"
-                                              min={0}
-                                              value={log.rest ?? ''}
-                                              data-testid={`edit-rest-${logIndex}`}
-                                              onChange={(e) => updateEditField(logIndex, 'rest', e.target.value)}
-                                            />
-                                          ) : (
-                                            log.rest ? `${log.rest}s` : '—'
-                                          )}
-                                        </Td>
-                                      )}
-                                      {hasRPE && (
-                                        <Td>
-                                          {isEditing ? (
-                                            <EditCellInput
-                                              type="number"
-                                              inputMode="numeric"
-                                              min={0}
-                                              max={10}
-                                              value={log.rpe ?? ''}
-                                              data-testid={`edit-rpe-${logIndex}`}
-                                              onChange={(e) => updateEditField(logIndex, 'rpe', e.target.value)}
-                                            />
-                                          ) : (
-                                            log.rpe ? <RPECell $value={log.rpe}>{log.rpe}/10</RPECell> : '—'
-                                          )}
-                                        </Td>
-                                      )}
-                                      {!isEditing && hasWeight && (
-                                        <Td>
-                                          <OneRMCell>
-                                            {calcBrzycki1RM(log.weight, log.reps) > 0
-                                              ? `${calcBrzycki1RM(log.weight, log.reps)} lbs`
-                                              : '—'}
-                                          </OneRMCell>
-                                        </Td>
-                                      )}
-                                      {isEditing && (
-                                        <Td>
-                                          <EditBtn
-                                            type="button"
-                                            $variant="danger"
-                                            onClick={() => removeEditRow(logIndex)}
-                                            aria-label={`Remove set ${idx + 1} of ${exerciseName}`}
-                                            data-testid={`edit-remove-${logIndex}`}
-                                          >
-                                            <Trash2 size={12} />
-                                          </EditBtn>
-                                        </Td>
-                                      )}
-                                    </tr>
-                                  );
-                                })
-                              )}
-                            </tbody>
-                          </ExerciseTable>
+                          <WorkoutHistoryExerciseTable
+                            tableExerciseGroups={tableExerciseGroups}
+                            activeLogs={activeLogs}
+                            isEditing={isEditing}
+                            hasTempo={hasTempo}
+                            hasRest={hasRest}
+                            hasRPE={hasRPE}
+                            hasWeight={hasWeight}
+                            updateEditField={updateEditField}
+                            removeEditRow={removeEditRow}
+                          />
 
                           {tableExerciseGroups.map(([exerciseName, groupSets]) => (
                             <WorkoutHistoryExerciseNotesBlock
