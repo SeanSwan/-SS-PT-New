@@ -7,6 +7,10 @@ import {
   getClientOnboardSuccessMessage,
   isAllowedClientOnboardSource,
 } from '../../routes/clientOnboardRoutes.mjs';
+import {
+  buildClientOnboardStubEmail,
+  normalizeClientOnboardEmailInput,
+} from '../../services/clientOnboardIdentityService.mjs';
 import { buildAtRiskComplianceClient } from '../../routes/adminComplianceRoutes.mjs';
 import { buildAtRiskComplianceQuery } from '../../utils/adminComplianceHelpers.mjs';
 
@@ -18,6 +22,7 @@ describe('client onboard route clientSource boundary', () => {
   it('serves the active AI onboarding route mounted at /api/clients/onboard', () => {
     expect(routeSource).toContain('POST /api/clients/onboard');
     expect(routeSource).toContain('router.post');
+    expect(routeSource).toContain('buildClientOnboardStubEmail({');
   });
 
   it('keeps every free-tracking source out of paid session inventory', () => {
@@ -59,6 +64,20 @@ describe('client onboard route clientSource boundary', () => {
     expect(getClientOnboardSuccessMessage('swanstudios')).toBe(
       'Client onboarded successfully (SwanStudios - paid sessions)'
     );
+  });
+
+  it('sanitizes generated stub emails for names with spaces and punctuation', () => {
+    expect(buildClientOnboardStubEmail({
+      firstName: 'Mary Ann',
+      lastName: "O'Neil-Smith",
+      token: 'a1b2c3',
+    })).toBe('mary-ann.oneil-smith.a1b2c3@stub.swanstudios.com');
+  });
+
+  it('normalizes explicit onboarding emails before route uniqueness and create checks', () => {
+    expect(normalizeClientOnboardEmailInput('  Jackie.Client@Example.COM  '))
+      .toBe('jackie.client@example.com');
+    expect(normalizeClientOnboardEmailInput('   ')).toBeNull();
   });
 });
 

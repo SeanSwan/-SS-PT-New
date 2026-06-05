@@ -18,10 +18,7 @@ import { CheckCircle2, ClipboardList, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
 
-interface ClientWorkoutPlansPanelProps {
-  clientId: number | string;
-  clientName?: string;
-}
+interface ClientWorkoutPlansPanelProps { clientId: number | string; clientName?: string; }
 
 interface PlanSummary {
   id: string;
@@ -179,14 +176,20 @@ const normalizePlan = (plan: Record<string, unknown>): PlanSummary | null => {
   const metadata = plan.metadata && typeof plan.metadata === 'object'
     ? plan.metadata as Record<string, unknown>
     : {};
+  const planData = plan.planData && typeof plan.planData === 'object'
+    ? plan.planData as Record<string, unknown>
+    : {};
+  const planSummary = planData.planSummary && typeof planData.planSummary === 'object'
+    ? planData.planSummary as Record<string, unknown>
+    : {};
 
   return {
     id,
     title,
     status: String(plan.status ?? 'draft'),
-    goal: String(plan.goal ?? metadata.goal ?? 'general').replace(/_/g, ' '),
+    goal: String(plan.goal ?? metadata.goal ?? planData.goal ?? 'general').replace(/_/g, ' '),
     nasmPhase: typeof plan.nasmPhase === 'number' ? plan.nasmPhase : undefined,
-    durationWeeks: typeof plan.durationWeeks === 'number' ? plan.durationWeeks : undefined,
+    durationWeeks: typeof plan.durationWeeks === 'number' ? plan.durationWeeks : typeof planSummary.durationWeeks === 'number' ? planSummary.durationWeeks : undefined,
     updatedAt: typeof plan.updatedAt === 'string' ? plan.updatedAt : undefined,
   };
 };

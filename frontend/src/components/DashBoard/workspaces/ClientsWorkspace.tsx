@@ -8,41 +8,30 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/use-toast';
-import {
-  CardGrid,
-  ContentArea,
-  DetailScrollWrap,
-  HubContainer,
-  LoadingPulse,
-} from './ClientsWorkspace.styles';
-import ClientHubGridCard from './clients-team/ClientHubGridCard';
-import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
-import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
+import ClientsWorkspaceView from './ClientsWorkspace.view';
 import {
   getClientDetailTabFromSearchParams,
   getClientHubIntent,
   getClientIdFromSearchParams,
   getClientTrainingSectionFromSearchParams,
-  getClientOnboardingPct,
   type ClientDetailTab,
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
-import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
-import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
+import {
+  fetchActiveAdminClients,
+  fetchAdminClientById,
+  resolveInitialClientSelection,
+} from './ClientsWorkspace.data';
 import { useClientsWorkspaceTabRenderers } from './ClientsWorkspaceTabs';
 import {
   buildClientCoachDailyRoute,
   buildClientCoachOnboardingRoute,
-  buildClientWorkoutLoggerRoute,
   buildClientWorkoutPlannerRoute,
 } from './clients-team/clientDailyTrainingRoutes';
-import { mapAdminClientToClientOption, toMiniCardClient } from './clients-team/clientOptionMappers';
-import { ClientDetailView } from './clients-team';
+import { toMiniCardClient } from './clients-team/clientOptionMappers';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
-import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import { useClientAccountLifecycle } from './clients-team/useClientAccountLifecycle';
 import { useManualClientCreation } from './clients-team/useManualClientCreation';
-import ClientLifecycleConfirmDialog from './clients-team/ClientLifecycleConfirmDialog';
 import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
 import { buildClientCardQuickActionRoute } from './clients-team/clientCardQuickActions';
 
@@ -74,9 +63,20 @@ const ClientsWorkspace: React.FC = () => {
     navigate(route);
     return true;
   }, [navigate, toast]);
+
+  const showClientDetailTab = useCallback((client: ClientOption, tab: ClientDetailTab, trainingSection?: string) => {
+    setSelectedClient(client);
+    setDetailTab(tab);
+    setSearchParams({
+      clientId: String(client.id),
+      tab,
+      ...(tab === 'training' && trainingSection ? { trainingSection } : {}),
+    });
+  }, [setSearchParams]);
   const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {
     if (intent === 'log_workout') {
-      return navigateClientDailyRoute(buildClientWorkoutLoggerRoute(client.id));
+      showClientDetailTab(client, 'training', 'logger');
+      return true;
     }
 
     if (intent === 'plan_next') {
@@ -84,57 +84,35 @@ const ClientsWorkspace: React.FC = () => {
     }
 
     return false;
-  }, [navigateClientDailyRoute]);
-
-  const showClientDetailTab = useCallback((client: ClientOption, tab: ClientDetailTab) => {
-    setSelectedClient(client);
-    setDetailTab(tab);
-    setSearchParams({ clientId: String(client.id), tab });
-  }, [setSearchParams]);
+  }, [navigateClientDailyRoute, showClientDetailTab]);
 
   const loadClients = useCallback(async (): Promise<ClientOption[]> => {
-    if (!authAxios) return [];
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await authAxios.get('/api/admin/clients', {
-        params: { limit: 100, status: 'active' },
-      });
-      if (!response.data.success) return [];
-      const mapped: ClientOption[] = (response.data.data?.clients || [])
-        .map(mapAdminClientToClientOption)
-        .filter((client: ClientOption | null): client is ClientOption => client !== null);
+      const mapped = await fetchActiveAdminClients(authAxios);
       setClients(mapped);
       return mapped;
-    } catch (err) {
-      console.warn('Failed to fetch clients:', err);
-      return [];
     } finally {
       setLoading(false);
     }
   }, [authAxios]);
 
-  const loadClientById = useCallback(async (clientId: number): Promise<ClientOption | null> => {
-    if (!authAxios) return null;
-    try {
-      const response = await authAxios.get(`/api/admin/clients/${clientId}`);
-      if (!response.data?.success) return null;
-      return mapAdminClientToClientOption(response.data.data?.client);
-    } catch (err) {
-      console.warn('Failed to fetch client details:', err);
-      return null;
-    }
-  }, [authAxios]);
+  const loadClientById = useCallback((clientId: number): Promise<ClientOption | null> =>
+    fetchAdminClientById(authAxios, clientId), [authAxios]);
 
   useEffect(() => {
     const fetchClients = async () => {
       const mapped = await loadClients();
-      if (!urlClientId) return;
-      const match = mapped.find(c => c.id === urlClientId) || await loadClientById(urlClientId);
-      if (match) {
-        if (runClientHubIntent(match, clientHubIntent)) return;
-        setSelectedClient(match);
-        setDetailTab(urlDetailTab ?? 'training');
-      }
+      const selection = await resolveInitialClientSelection({
+        mappedClients: mapped,
+        urlClientId,
+        urlDetailTab,
+        loadClientById,
+      });
+      if (!selection) return;
+      if (runClientHubIntent(selection.client, clientHubIntent)) return;
+      setSelectedClient(selection.client);
+      setDetailTab(selection.detailTab);
     };
     fetchClients();
   }, [loadClients, loadClientById]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -158,9 +136,9 @@ const ClientsWorkspace: React.FC = () => {
 
   const handleLogWorkout = useCallback(() => {
     if (selectedClient) {
-      navigateClientDailyRoute(buildClientWorkoutLoggerRoute(selectedClient.id));
+      showClientDetailTab(selectedClient, 'training', 'logger');
     }
-  }, [navigateClientDailyRoute, selectedClient]);
+  }, [selectedClient, showClientDetailTab]);
 
   const handlePlanNext = useCallback(() => {
     if (selectedClient) {
@@ -178,7 +156,15 @@ const ClientsWorkspace: React.FC = () => {
     }
   }, [navigate, selectedClient]);
 
+  const handleClearSelectedClient = useCallback(() => {
+    setSelectedClient(null);
+    setDetailTab('training');
+    setSearchParams({});
+  }, [setSearchParams]);
+
   const handleClientCardQuickAction = useCallback((client: ClientOption, action: ClientHubQuickAction) => {
+    if (action === 'log') return showClientDetailTab(client, 'training', 'logger');
+
     const route = buildClientCardQuickActionRoute(client.id, action);
     if (route) return navigateClientDailyRoute(route);
     showClientDetailTab(client, 'progress');
@@ -216,84 +202,40 @@ const ClientsWorkspace: React.FC = () => {
   } = useClientsWorkspaceTabRenderers(selectedClient, getClientTrainingSectionFromSearchParams(searchParams));
 
   return (
-    <HubContainer>
-      <ClientsWorkspaceTopBar
-        clients={clients}
-        selectedClient={selectedClient}
-        loading={loading}
-        onSelectClient={handleSelectClient}
-        onNewClient={handleNewClient}
-        onOpenAI={handleOpenAI}
-        onViewAsClient={handleViewAsClient}
-        onDeactivateClient={handleDeactivateClient}
-        onReactivateClient={handleReactivateClient}
-        onSendPasswordReset={handleSendPasswordReset}
-        onManageAssignments={handleManageAssignments}
-        onManualCreateClient={openManualCreate}
-      />
-      <CreateClientModal
-        open={manualCreateOpen}
-        onClose={closeManualCreate}
-        onSubmit={handleManualCreate}
-      />
-      <ClientLifecycleConfirmDialog
-        request={deactivationConfirmation}
-        onClose={closeDeactivationConfirmation}
-      />
-      {!selectedClient && authAxios && (
-        <ClientActivationQueuePanel
-          authAxios={authAxios}
-          onSelectClient={handleSelectClient}
-          onNavigate={navigate}
-        />
-      )}
-
-      {selectedClient && (
-        <SelectedClientTrainingHeader
-          client={selectedClient}
-          onboardingPct={getClientOnboardingPct(selectedClient)}
-          onLogToday={handleLogWorkout}
-          onPlanNext={handlePlanNext}
-          onViewProgress={handleViewProgress}
-          onDictateAI={handleOpenAI}
-        />
-      )}
-
-      <ContentArea>
-        {selectedClient && detailClient ? (
-          <DetailScrollWrap>
-            <ClientDetailView
-              client={detailClient}
-              activeTab={detailTab}
-              onTabChange={(tab) => selectedClient && showClientDetailTab(selectedClient, tab)}
-              onBack={() => {
-                setSelectedClient(null);
-                setDetailTab('training');
-                setSearchParams({});
-              }}
-              renderTraining={renderTraining}
-              renderProgress={renderProgress}
-              renderBiometrics={renderBiometrics}
-              renderOverview={renderOverview}
-              renderSettings={renderSettings}
-            />
-          </DetailScrollWrap>
-        ) : loading ? (
-          <LoadingPulse>Loading clients...</LoadingPulse>
-        ) : clients.length === 0 ? (
-          <ClientsWorkspaceEmptyState
-            onNewClient={handleNewClient}
-            onManualCreate={openManualCreate}
-          />
-        ) : (
-          <CardGrid>
-            {clients.map(c => (
-              <ClientHubGridCard key={c.id} client={c} onSelect={handleSelectClient} onQuickAction={handleClientCardQuickAction} />
-            ))}
-          </CardGrid>
-        )}
-      </ContentArea>
-    </HubContainer>
+    <ClientsWorkspaceView
+      authAxios={authAxios}
+      clients={clients}
+      selectedClient={selectedClient}
+      detailClient={detailClient}
+      detailTab={detailTab}
+      loading={loading}
+      manualCreateOpen={manualCreateOpen}
+      deactivationConfirmation={deactivationConfirmation}
+      renderTraining={renderTraining}
+      renderProgress={renderProgress}
+      renderBiometrics={renderBiometrics}
+      renderOverview={renderOverview}
+      renderSettings={renderSettings}
+      onSelectClient={handleSelectClient}
+      onNewClient={handleNewClient}
+      onOpenAI={handleOpenAI}
+      onViewAsClient={handleViewAsClient}
+      onDeactivateClient={handleDeactivateClient}
+      onReactivateClient={handleReactivateClient}
+      onSendPasswordReset={handleSendPasswordReset}
+      onManageAssignments={handleManageAssignments}
+      onManualCreateClient={openManualCreate}
+      onCloseManualCreate={closeManualCreate}
+      onManualCreate={handleManualCreate}
+      onCloseDeactivationConfirmation={closeDeactivationConfirmation}
+      onLogWorkout={handleLogWorkout}
+      onPlanNext={handlePlanNext}
+      onViewProgress={handleViewProgress}
+      onNavigate={navigate}
+      onShowDetailTab={showClientDetailTab}
+      onClearSelectedClient={handleClearSelectedClient}
+      onClientCardQuickAction={handleClientCardQuickAction}
+    />
   );
 };
 export default ClientsWorkspace;

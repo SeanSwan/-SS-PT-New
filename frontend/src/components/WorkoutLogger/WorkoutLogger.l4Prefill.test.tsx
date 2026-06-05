@@ -182,6 +182,45 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     expect(successMsg).not.toContain('WRONG_FALLBACK_DAY');
   });
 
+  it('auto-loads today plan from the client start-workout route intent', async () => {
+    apiGetMock.mockImplementation((url: string) => {
+      if (url.endsWith('/current')) {
+        return Promise.resolve(buildCurrentResponse({
+          success: true,
+          currentSession: {
+            weekNumber: 4,
+            dayNumber: 1,
+            dayLabel: 'Auto Start Day',
+            exercises: [
+              { exerciseId: 'fx-auto', exerciseName: 'Auto Loaded Row', sets: 2, targetReps: '8', restTime: 75 },
+            ],
+            session: { exercises: [] },
+            totalWeeks: 12,
+            totalSessionsThisWeek: 3,
+            isLastSessionOfWeek: false,
+            isLastWeek: false,
+          },
+          plan: { id: 'plan-auto', name: 'Auto Plan', days: [] },
+          data: { id: 'plan-auto', name: 'Auto Plan', days: [] },
+        }));
+      }
+      return Promise.resolve(defaultClientInfoPayload);
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/client/log-workout?loadPlan=today']}>
+        <WorkoutLogger clientId={CLIENT_ID} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(toastMock.success).toHaveBeenCalled());
+    const successMsg = toastMock.success.mock.calls.map((c) => c[0]).join(' | ');
+    expect(successMsg).toMatch(/Week 4/);
+    expect(successMsg).toMatch(/Auto Start Day/);
+    expect(successMsg).toMatch(/1 exercises/);
+    expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
+  });
+
   it('falls back to legacy day-of-week match when currentSession is null', async () => {
     // The legacy branch resolves the day name via `new Date().getDay()`,
     // so the response fixture seeds `dayName` from whatever today's

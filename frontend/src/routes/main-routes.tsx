@@ -90,7 +90,7 @@ const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About.V3')
 );
 
-// Account Claiming (Crystalline Link Protocol — SWAN-XXXX invite codes)
+// Account Claiming (Crystalline Link Protocol — SWAN-XXXXXXXX invite codes)
 const ClaimAccountPage = lazyLoadWithErrorHandling(
   () => import('../pages/ClaimAccountPage'),
   'Claim Account Page'

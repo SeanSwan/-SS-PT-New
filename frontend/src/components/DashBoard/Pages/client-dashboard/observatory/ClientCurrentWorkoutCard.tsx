@@ -70,7 +70,7 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
         <SmallButton
           type="button"
           aria-label="Start current workout"
-          onClick={() => onNavigate('/dashboard/client/log-workout')}
+          onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}
         >
           Start
         </SmallButton>

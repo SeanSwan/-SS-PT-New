@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildClientHubWorkoutCompleteReturnPath,
+  buildLoggerCompletionResult,
+  buildLoggerRouteContext,
   normalizeDashboardReturnTo,
   parseLoggerClientId,
   parseLoggerSessionId,
+  toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
 
 describe('EnhancedWorkoutLogger return path normalization', () => {
@@ -47,14 +49,133 @@ describe('EnhancedWorkoutLogger scheduled session identity parsing', () => {
   });
 });
 
-describe('EnhancedWorkoutLogger Client Hub completion return path', () => {
-  it('returns completed Client Hub logs to training history while preserving client identity', () => {
-    expect(buildClientHubWorkoutCompleteReturnPath('/dashboard/admin/client-management?clientId=61'))
-      .toBe('/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=history');
+describe('EnhancedWorkoutLogger route context', () => {
+  it('redirects stale admin Client Hub full-page logging into the embedded logger', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: '/dashboard/admin/client-management?clientId=61',
+      routeClientId: 61,
+      scheduledSessionId: null,
+      source: 'clients-team',
+      userRole: 'admin',
+    })).toMatchObject({
+      backToClientsLabel: 'Back to Client Hub',
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+      isClientHubOrigin: true,
+      workflowReturnPath: '/dashboard/admin/client-management?clientId=61',
+    });
   });
 
-  it('does not rewrite non Client Hub dashboard return paths', () => {
-    expect(buildClientHubWorkoutCompleteReturnPath('/dashboard/admin/schedule?sessionId=314'))
-      .toBe('/dashboard/admin/schedule?sessionId=314');
+  it('redirects bare admin clientId logging URLs into the embedded Client Hub logger', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: null,
+      routeClientId: 61,
+      scheduledSessionId: null,
+      source: null,
+      userRole: 'admin',
+    })).toMatchObject({
+      backToClientsLabel: 'Back to Client Hub',
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+      isClientHubOrigin: false,
+      workflowReturnPath: '/dashboard/admin/client-management',
+    });
+  });
+
+  it('keeps scheduled-session admin logging on the full-page schedule flow', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: '/dashboard/admin/master-schedule?sessionId=314',
+      routeClientId: 61,
+      scheduledSessionId: '314',
+      source: 'master-schedule',
+      userRole: 'admin',
+    })).toMatchObject({
+      backToClientsLabel: 'Back to Schedule',
+      clientHubRedirectPath: null,
+      isClientHubOrigin: false,
+      workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
+    });
+  });
+});
+
+describe('EnhancedWorkoutLogger completion feedback', () => {
+  it('returns Client Hub completions to embedded history with a trimmed client name', () => {
+    expect(buildLoggerCompletionResult({
+      client: {
+        id: 61,
+        firstName: 'Jackie',
+        lastName: '',
+        email: '',
+        availableSessions: 12,
+        totalSessionsCompleted: 0,
+        membershipLevel: 'basic',
+      },
+      isClientHubOrigin: true,
+      workflowReturnPath: '/dashboard/admin/client-management?clientId=61',
+    })).toEqual({
+      returnPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=history',
+      navigationState: {
+        workoutCompleted: true,
+        clientName: 'Jackie',
+      },
+      toast: {
+        title: 'Workout Completed!',
+        description: 'Workout logged for Jackie. Workout saved and progress updated.',
+        variant: 'default',
+      },
+    });
+  });
+
+  it('preserves scheduled-session return paths and includes the full client name', () => {
+    expect(buildLoggerCompletionResult({
+      client: {
+        id: 61,
+        firstName: 'Jackie',
+        lastName: 'Client',
+        email: '',
+        availableSessions: 12,
+        totalSessionsCompleted: 0,
+        membershipLevel: 'basic',
+      },
+      isClientHubOrigin: false,
+      workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
+    })).toMatchObject({
+      returnPath: '/dashboard/admin/master-schedule?sessionId=314',
+      navigationState: {
+        workoutCompleted: true,
+        clientName: 'Jackie Client',
+      },
+    });
+  });
+});
+
+describe('EnhancedWorkoutLogger client info mapping', () => {
+  it('maps the canonical /info client payload into logger client state', () => {
+    expect(toLoggerClientFromInfoResponse({
+      success: true,
+      client: {
+        id: 61,
+        firstName: 'Jackie',
+        lastName: 'Client',
+        email: 'jackie@example.test',
+        phone: null,
+        availableSessions: 12,
+      },
+    }, 61)).toEqual({
+      id: 61,
+      firstName: 'Jackie',
+      lastName: 'Client',
+      email: 'jackie@example.test',
+      phone: undefined,
+      availableSessions: 12,
+      totalSessionsCompleted: 0,
+      lastSessionDate: undefined,
+      membershipLevel: 'basic',
+    });
+  });
+
+  it('rejects missing clients and identity mismatches', () => {
+    expect(() => toLoggerClientFromInfoResponse({ success: false }, 61))
+      .toThrow(/client not found/i);
+    expect(() => toLoggerClientFromInfoResponse({ success: true, client: { id: 62 } }, 61))
+      .toThrow(/identity mismatch/i);
   });
 });

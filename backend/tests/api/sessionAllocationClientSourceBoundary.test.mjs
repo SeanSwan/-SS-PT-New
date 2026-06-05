@@ -5,10 +5,26 @@ import { describe, expect, it } from 'vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const apiRoutesSource = readFileSync(resolve(__dirname, '../../routes/api.mjs'), 'utf8');
 const unifiedRouteSource = readFileSync(resolve(__dirname, '../../routes/sessions.mjs'), 'utf8');
+const legacyRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionRoutes.mjs'), 'utf8');
 const unifiedServiceSource = readFileSync(resolve(__dirname, '../../services/sessions/session.service.mjs'), 'utf8');
 
 describe('session allocation clientSource boundary', () => {
+  it('keeps manual allocation on the unified sessions router ahead of the legacy aggregate fallback', () => {
+    const unifiedMount = coreRoutesSource.indexOf("app.use('/api/sessions', sessionsRoutes)");
+    const aggregateMount = coreRoutesSource.indexOf("app.use('/api', apiRoutes)");
+    const unifiedAllocation = unifiedRouteSource.indexOf('router.post("/add-to-user", protect, adminOnly');
+    const legacyAllocation = legacyRouteSource.indexOf("router.post('/add-to-user', protect, adminOnly");
+
+    expect(unifiedMount).toBeGreaterThan(-1);
+    expect(aggregateMount).toBeGreaterThan(unifiedMount);
+    expect(apiRoutesSource).toContain("router.use('/sessions', sessionRoutes)");
+    expect(unifiedAllocation).toBeGreaterThan(-1);
+    expect(legacyAllocation).toBeGreaterThan(-1);
+  });
+
   it('blocks manual paid-session allocation for non-deducting client sources', () => {
     const start = unifiedRouteSource.indexOf('router.post("/add-to-user"');
     const end = unifiedRouteSource.indexOf('router.get("/user-summary/:userId"', start);

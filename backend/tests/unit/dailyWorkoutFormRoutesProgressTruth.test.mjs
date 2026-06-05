@@ -209,6 +209,35 @@ describe('dailyWorkoutFormRoutes — fallback auth (BLOCKER-1)', () => {
   });
 });
 
+describe('dailyWorkoutFormRoutes - paid-session deduction concurrency guard', () => {
+  const postHandlerSlice = source.slice(
+    source.indexOf("router.post('/', protect"),
+    source.indexOf("router.get('/', protect"),
+  );
+
+  it('row-locks the client before reading availableSessions for billing decisions', () => {
+    const clientLoadIdx = postHandlerSlice.indexOf('User.findByPk(parsedClientId');
+    const decisionIdx = postHandlerSlice.indexOf('buildWorkoutSessionBillingDecision(client');
+
+    expect(clientLoadIdx).toBeGreaterThan(-1);
+    expect(decisionIdx).toBeGreaterThan(clientLoadIdx);
+    expect(postHandlerSlice).toMatch(
+      /User\.findByPk\(parsedClientId,\s*\{[\s\S]{0,160}transaction[\s\S]{0,160}lock:\s*transaction\.LOCK\.UPDATE/,
+    );
+  });
+
+  it('row-locks linked scheduled sessions before reading sessionDeducted', () => {
+    const scheduledLoadIdx = postHandlerSlice.indexOf('Session.findByPk(parsedScheduledSessionId');
+    const decisionIdx = postHandlerSlice.indexOf('scheduledSessionAlreadyDeducted');
+
+    expect(scheduledLoadIdx).toBeGreaterThan(-1);
+    expect(decisionIdx).toBeGreaterThan(scheduledLoadIdx);
+    expect(postHandlerSlice).toMatch(
+      /Session\.findByPk\(parsedScheduledSessionId,\s*\{[\s\S]{0,160}transaction[\s\S]{0,160}lock:\s*transaction\.LOCK\.UPDATE/,
+    );
+  });
+});
+
 describe('dailyWorkoutFormRoutes — client self-log trainerId attribution (Phase 16.2 round 9)', () => {
   // For client self-log, the actor (req.user.id) IS the client — so
   // stamping `trainerId: userNumericId` on the DailyWorkoutForm creates

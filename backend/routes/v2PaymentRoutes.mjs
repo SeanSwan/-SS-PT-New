@@ -56,6 +56,11 @@ import {
   PaymentActivationStatusError,
   resolvePaidClientActivationStatus,
 } from '../services/paymentActivationStatusService.mjs';
+import {
+  fulfillSessionPackageCheckoutSession,
+  isSessionPackageCheckoutSession,
+  SessionPackageFulfillmentError,
+} from '../services/sessionPackageCheckoutFulfillmentService.mjs';
 
 const router = express.Router();
 
@@ -136,7 +141,7 @@ const checkStripeAvailability = (req, res, next) => {
 router.post('/create-checkout-session', protect, checkStripeAvailability, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { cartId, customerInfo, metadata } = req.body;
+    const { cartId, customerInfo } = req.body;
     const normalizedCartId = Number(cartId);
 
     if (!Number.isInteger(normalizedCartId) || normalizedCartId <= 0) {
@@ -340,8 +345,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         userId: userId.toString(),
         cartId: cart.id.toString(),
         totalSessions: totalSessions.toString(),
-        source: 'genesis_checkout',
-        ...(metadata || {})
+        source: 'genesis_checkout'
       },
       customer_update: {
         address: 'auto',
@@ -474,6 +478,37 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       });
     }
 
+    if (isSessionPackageCheckoutSession(session)) {
+      const packageUserId = Number(session.client_reference_id);
+      if (!Number.isInteger(packageUserId) || packageUserId !== userId) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found',
+          error: {
+            code: 'ORDER_NOT_FOUND',
+            details: 'No matching order found for this session'
+          }
+        });
+      }
+
+      const result = await fulfillSessionPackageCheckoutSession(session);
+
+      return res.status(200).json({
+        success: true,
+        message: result.alreadyProcessed
+          ? 'Order already verified (idempotent response)'
+          : 'Order verified and completed successfully',
+        data: {
+          sessionId: session.id,
+          amount: session.amount_total / 100,
+          sessionsAdded: result.sessionsAdded,
+          alreadyProcessed: result.alreadyProcessed,
+          customerEmail: session.customer_details?.email,
+          orderDate: new Date().toISOString()
+        }
+      });
+    }
+
     // Find the cart by checkout session ID (scoped to authenticated user)
     const ShoppingCart = getShoppingCart();
     const cart = await ShoppingCart.findOne({
@@ -524,6 +559,18 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     logger.info(`[v2 Payment] Session verified successfully: ${sessionId}, added ${result.sessionsAdded} sessions`);
 
   } catch (error) {
+    if (error instanceof SessionPackageFulfillmentError) {
+      logger.error('[v2 Payment] Error fulfilling session package checkout:', error);
+      return res.status(error.statusCode).json({
+        success: false,
+        message: 'Failed to fulfill session package checkout',
+        error: {
+          code: error.code,
+          details: error.message,
+        }
+      });
+    }
+
     const classified = classifyStripeCheckoutSessionError(error);
     logger.error('[v2 Payment] Error verifying session:', error);
     console.error('💥 [v2 Payment] Session verification failed:', error.message);

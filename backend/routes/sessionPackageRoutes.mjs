@@ -1,19 +1,44 @@
 // backend/routes/sessionPackageRoutes.mjs
 import express from 'express';
 import Stripe from 'stripe';
-import User from '../models/User.mjs';
-import Order from '../models/Order.mjs';
-import sequelize from '../database.mjs';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
+import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
+import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
+import sessionPackageManualGrantRoutes from './sessionPackageManualGrantRoutes.mjs';
 import {
-  claimIdempotentRecord,
-} from '../utils/paymentIdempotency.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
+  SESSION_PACKAGE_CHECKOUT_SOURCE,
+  fulfillSessionPackageCheckoutSession,
+  isSessionPackageCheckoutSession,
+  SessionPackageFulfillmentError,
+} from '../services/sessionPackageCheckoutFulfillmentService.mjs';
 
 const router = express.Router();
+
+function getStorefrontPackagePrice(packageRecord) {
+  const parsed = Number(packageRecord?.price ?? packageRecord?.totalCost ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function serializeStorefrontSessionPackage(packageRecord) {
+  const sessions = getStorefrontSessionCredits(packageRecord);
+  const price = getStorefrontPackagePrice(packageRecord);
+  return {
+    id: packageRecord.id,
+    name: packageRecord.name,
+    description: packageRecord.description,
+    sessions,
+    price,
+    savings: 0,
+    popular: false,
+  };
+}
+
+function isPurchasableSessionPackage(sessionPackage) {
+  return sessionPackage.sessions > 0 && sessionPackage.price > 0;
+}
 
 // --- Conditionally initialize Stripe ---
 let stripeClient = null;
@@ -39,45 +64,13 @@ if (isStripeEnabled()) {
  */
 router.get('/', async (req, res) => {
   try {
-    // Hard-coded session packages
-    const sessionPackages = [
-      {
-        id: 'single',
-        name: 'Single Session',
-        description: 'One training session with our professional trainer',
-        sessions: 1,
-        price: 85,
-        savings: 0,
-        popular: false
-      },
-      {
-        id: 'starter',
-        name: 'Starter Package',
-        description: 'Get started with 5 training sessions',
-        sessions: 5,
-        price: 400,
-        savings: 25,
-        popular: true
-      },
-      {
-        id: 'premium',
-        name: 'Premium Package',
-        description: '10 training sessions for dedicated fitness enthusiasts',
-        sessions: 10,
-        price: 750,
-        savings: 100,
-        popular: false
-      },
-      {
-        id: 'elite',
-        name: 'Elite Package',
-        description: '20 training sessions for maximum results',
-        sessions: 20,
-        price: 1400,
-        savings: 300,
-        popular: false
-      }
-    ];
+    const packages = await StorefrontItem.findAll({
+      where: { isActive: true },
+      order: [['displayOrder', 'ASC'], ['id', 'ASC']],
+    });
+    const sessionPackages = packages
+      .map(serializeStorefrontSessionPackage)
+      .filter(isPurchasableSessionPackage);
     
     res.json(sessionPackages);
   } catch (error) {
@@ -108,39 +101,21 @@ router.post('/purchase', protect, async (req, res) => {
   try {
     const { packageId } = req.body;
     const userId = req.user.id;
+    const normalizedPackageId = Number(packageId);
     
-    if (!packageId) {
+    if (!Number.isInteger(normalizedPackageId) || normalizedPackageId <= 0) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Package ID is required' 
+        message: 'Valid package ID is required'
       });
     }
-    
-    // Get package details (in a real app, these would come from the database)
-    const packages = {
-      single: { 
-        name: 'Single Session',
-        sessions: 1,
-        price: 85 
+
+    const selectedPackage = await StorefrontItem.findOne({
+      where: {
+        id: normalizedPackageId,
+        isActive: true,
       },
-      starter: { 
-        name: 'Starter Package (5 Sessions)',
-        sessions: 5,
-        price: 400 
-      },
-      premium: { 
-        name: 'Premium Package (10 Sessions)',
-        sessions: 10,
-        price: 750 
-      },
-      elite: { 
-        name: 'Elite Package (20 Sessions)',
-        sessions: 20,
-        price: 1400 
-      }
-    };
-    
-    const selectedPackage = packages[packageId];
+    });
     
     if (!selectedPackage) {
       return res.status(400).json({ 
@@ -148,15 +123,25 @@ router.post('/purchase', protect, async (req, res) => {
         message: 'Invalid package selected' 
       });
     }
+
+    const packageSessions = getStorefrontSessionCredits(selectedPackage);
+    const packagePrice = getStorefrontPackagePrice(selectedPackage);
+
+    if (packageSessions <= 0 || packagePrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Package is not available for checkout'
+      });
+    }
     
     // Determine the frontend URLs for success and cancel pages
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const idempotencyKey = buildWindowedStripeIdempotencyKey(
-      `session-package-checkout:${userId}:${packageId}`,
+      `session-package-checkout:${userId}:${normalizedPackageId}`,
       {
-        packageId,
-        sessions: selectedPackage.sessions,
-        price: selectedPackage.price
+        packageId: normalizedPackageId,
+        sessions: packageSessions,
+        price: packagePrice
       }
     );
     
@@ -169,20 +154,22 @@ router.post('/purchase', protect, async (req, res) => {
             currency: 'usd',
             product_data: {
               name: selectedPackage.name,
-              description: `Package includes ${selectedPackage.sessions} training session${selectedPackage.sessions > 1 ? 's' : ''}`,
+              description: selectedPackage.description
+                || `Package includes ${packageSessions} training session${packageSessions > 1 ? 's' : ''}`,
             },
-            unit_amount: Math.round(selectedPackage.price * 100), // Convert dollars to cents
+            unit_amount: Math.round(packagePrice * 100), // Convert dollars to cents
           },
           quantity: 1,
         }
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/sessions/purchase-success?sessions=${selectedPackage.sessions}`,
-      cancel_url: `${baseUrl}/sessions/purchase-cancel`,
+      success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/checkout/cancel?reason=session_package_cancelled`,
       client_reference_id: userId.toString(),
       metadata: {
-        packageId,
-        sessions: selectedPackage.sessions.toString()
+        source: SESSION_PACKAGE_CHECKOUT_SOURCE,
+        packageId: String(normalizedPackageId),
+        sessions: String(packageSessions)
       }
     }, {
       idempotencyKey
@@ -240,90 +227,15 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     
     try {
       // Check if this is a session package purchase
-      if (session.metadata && session.metadata.packageId && session.metadata.sessions) {
-        const userId = Number(session.client_reference_id);
-        const sessionsToAdd = parseInt(session.metadata.sessions, 10);
-
-        if (!Number.isInteger(userId) || userId <= 0 || !Number.isInteger(sessionsToAdd) || sessionsToAdd <= 0) {
-          logger.error(`Invalid session package webhook payload: user=${session.client_reference_id}, sessions=${session.metadata.sessions}`);
-          return res.send();
-        }
-
-        const fulfillmentKey = `session-package-webhook:${session.id}`;
-        const paymentIntentId = session.payment_intent || session.id;
-
-        await sequelize.transaction(async (transaction) => {
-          const existingOrder = await Order.findOne({
-            where: { idempotencyKey: fulfillmentKey },
-            transaction,
-          });
-
-          if (existingOrder) {
-            logger.info(`Session package webhook already fulfilled for ${session.id}`);
-            return;
-          }
-
-          const user = await User.findByPk(userId, {
-            transaction,
-            lock: transaction.LOCK.UPDATE,
-          });
-
-          if (!user) {
-            logger.error(`User not found for session purchase: ${userId}`);
-            return;
-          }
-
-          const { created } = await claimIdempotentRecord({
-            model: Order,
-            lookupWhere: { idempotencyKey: fulfillmentKey },
-            transaction,
-            createValues: {
-              userId,
-              cartId: null,
-              orderNumber: `SS-SP-${session.id}`,
-              totalAmount: Number(session.amount_total || 0) / 100,
-              status: 'completed',
-              paymentMethod: 'stripe',
-              paymentId: paymentIntentId,
-              paymentReference: session.id,
-              idempotencyKey: fulfillmentKey,
-              paymentAppliedAt: new Date(),
-              notes: JSON.stringify({
-                type: 'session_package_purchase',
-                packageId: session.metadata.packageId,
-                sessionsToAdd,
-                stripeCheckoutSessionId: session.id,
-                stripePaymentIntentId: paymentIntentId,
-              }),
-            },
-          });
-
-          if (!created) {
-            logger.info(`Session package webhook already fulfilled for ${session.id}`);
-            return;
-          }
-
-          await user.increment('availableSessions', {
-            by: sessionsToAdd,
-            transaction,
-          });
-
-          const userPackageUpdate = {};
-          if (user.role === 'user') {
-            userPackageUpdate.role = 'client';
-          }
-          if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
-            userPackageUpdate.clientSource = 'swanstudios';
-          }
-          if (Object.keys(userPackageUpdate).length > 0) {
-            await user.update(userPackageUpdate, { transaction });
-          }
-
-          logger.info(`Added ${sessionsToAdd} sessions to user ${userId}`);
-        });
+      if (isSessionPackageCheckoutSession(session)) {
+        await fulfillSessionPackageCheckoutSession(session);
       }
     } catch (error) {
       logger.error(`Error processing session purchase: ${error.message}`);
+      if (error instanceof SessionPackageFulfillmentError && error.statusCode < 500) {
+        return res.send();
+      }
+      return res.status(500).send('Session package webhook processing error');
     }
   }
   
@@ -331,143 +243,6 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   res.send();
 });
 
-/**
- * @route   POST /api/session-packages/add-sessions
- * @desc    Manually add sessions to a user (admin only)
- * @access  Private/Admin
- */
-router.post('/add-sessions', protect, adminOnly, async (req, res) => {
-  try {
-    const { clientId, sessions, notes } = req.body;
-    
-    if (!clientId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Client ID is required'
-      });
-    }
-    
-    if (!sessions || isNaN(sessions) || sessions <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid number of sessions is required'
-      });
-    }
-    
-    // Find the user
-    const user = await User.findByPk(clientId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
-      return res.status(409).json({
-        success: false,
-        message: 'Manual paid-session grants are disabled for free-tracking clients'
-      });
-    }
-    
-    // Add sessions to the user's account
-    const currentSessions = user.availableSessions || 0;
-    user.availableSessions = currentSessions + parseInt(sessions, 10);
-    await user.save();
-    
-    // Log the manual addition
-    logger.info(`Admin ${req.user.id} added ${sessions} sessions to user ${clientId}. Notes: ${notes || 'None'}`);
-    
-    res.status(200).json({
-      success: true,
-      message: `Successfully added ${sessions} sessions to user`,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        availableSessions: user.availableSessions
-      }
-    });
-  } catch (error) {
-    logger.error(`Error adding sessions to user: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: 'Server error adding sessions'
-    });
-  }
-});
-
-/**
- * @route   POST /api/session-packages/add-test-sessions
- * @desc    Add sessions to user account (available in both development and production)
- * @access  Private
- */
-router.post('/add-test-sessions', protect, async (req, res) => {
-  try {
-    const { sessions, packageType, amount, packageId } = req.body;
-    const userId = req.user.id;
-    
-    if (!sessions || isNaN(sessions) || sessions <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid number of sessions is required'
-      });
-    }
-    
-    // Update user's sessions
-    const user = await User.findByPk(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    if (NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)) {
-      return res.status(409).json({
-        success: false,
-        message: 'Test session grants are disabled for free-tracking clients'
-      });
-    }
-    
-    // Add sessions
-    const currentSessions = user.availableSessions || 0;
-    user.availableSessions = currentSessions + parseInt(sessions, 10);
-    
-    // If user has 'user' role, upgrade to 'client' when purchasing training sessions
-    if (user.role === 'user') {
-      user.role = 'client';
-      logger.info(`Upgraded user ${userId} from 'user' to 'client' role after purchasing sessions`);
-    }
-    
-    await user.save();
-    
-    // Log more details about the purchase
-    logger.info(`Added ${sessions} sessions to user ${userId}. Package: ${packageType || packageId || 'unknown'}, Amount: ${amount || 'N/A'}`);
-    
-    // Return more details to help with dashboard display
-    res.status(200).json({
-      success: true,
-      message: `Added ${sessions} sessions to your account`,
-      availableSessions: user.availableSessions,
-      role: user.role,
-      packageInfo: {
-        type: packageType || 'Training Package',
-        sessions: sessions,
-        amount: amount || 0,
-        purchaseDate: new Date().toISOString(),
-        validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year validity
-      }
-    });
-  } catch (error) {
-    logger.error(`Error adding sessions: ${error.message}`);
-    res.status(500).json({
-      success: false,
-      message: 'Server error adding sessions'
-    });
-  }
-});
+router.use(sessionPackageManualGrantRoutes);
 
 export default router;

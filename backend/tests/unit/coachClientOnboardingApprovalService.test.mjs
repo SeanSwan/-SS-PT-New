@@ -48,6 +48,20 @@ describe('coachClientOnboardingApprovalService', () => {
     })).toThrow(/client source/i);
   });
 
+  it('sanitizes generated stub emails for dictated names with spaces and punctuation', () => {
+    const draft = normalizeCoachOnboardingDraft({
+      payload: {
+        firstName: 'Mary Ann',
+        lastName: "O'Neil-Smith",
+        clientSource: 'move_fitness',
+      },
+    });
+
+    expect(draft.email).toMatch(
+      /^mary-ann\.oneil-smith\.[a-f0-9]{6}@stub\.swanstudios\.com$/
+    );
+  });
+
   it('keeps every free-tracking source out of paid session inventory on approval', () => {
     expect(getApprovedOnboardingAvailableSessions({
       clientSource: 'move_fitness',

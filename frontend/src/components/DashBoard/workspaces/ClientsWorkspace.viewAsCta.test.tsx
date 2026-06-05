@@ -21,6 +21,8 @@ import {
 const mockAuthAxiosGet = mockAuthAxios.get as ReturnType<typeof vi.fn>;
 const mockAuthAxiosDelete = mockAuthAxios.delete as ReturnType<typeof vi.fn>;
 const mockAuthAxiosPut = mockAuthAxios.put as ReturnType<typeof vi.fn>;
+const CLIENT_HUB_LOGGER_ROUTE =
+  `/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}&tab=training&trainingSection=logger`;
 
 describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
   beforeEach(() => {
@@ -93,6 +95,16 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     expect(screen.getByRole('button', { name: /plan next for fixture client/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /view fixture client progress/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i })).toBeInTheDocument();
+  });
+
+  it('keeps Log Today inside the selected-client Client Hub training logger', async () => {
+    const user = userEvent.setup();
+    renderWorkspace(`/dashboard/admin/client-management?clientId=${FIXTURE_CLIENT_ID}&tab=progress`);
+
+    await user.click(await screen.findByRole('button', { name: /log today for fixture client/i }));
+
+    expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('training');
+    expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/dashboard/admin/log-workout'));
   });
 
   it('preserves Move Fitness free-tracking copy in the selected-client daily cockpit', async () => {
@@ -227,28 +239,26 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     }));
   });
 
-  it('turns admin overview log-workout intent plus one client click into the logger route', async () => {
+  it('turns admin overview log-workout intent plus one client click into the embedded logger', async () => {
     const user = userEvent.setup();
     renderWorkspace('/dashboard/admin/client-management?intent=log_workout');
 
     const clientCard = await screen.findByRole('button', { name: /open fixture client/i });
     await user.click(clientCard);
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
-    );
+    expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('training');
+    expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/dashboard/admin/log-workout'));
   });
 
-  it('opens the workout logger from a client grid quick action without selecting first', async () => {
+  it('opens the embedded workout logger from a client grid quick action without leaving the Client Hub', async () => {
     const user = userEvent.setup();
     renderWorkspace('/dashboard/admin/client-management');
 
     await user.click(await screen.findByRole('button', { name: /log fixture client workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      `/dashboard/admin/log-workout?clientId=${FIXTURE_CLIENT_ID}&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D${FIXTURE_CLIENT_ID}`
-    );
-    expect(screen.queryByTestId('mock-client-detail-tab')).not.toBeInTheDocument();
+    expect(screen.getByTestId('mock-client-detail-tab')).toHaveTextContent('training');
+    expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/dashboard/admin/log-workout'));
+    expect(mockNavigate).not.toHaveBeenCalledWith(CLIENT_HUB_LOGGER_ROUTE);
   });
 
   it('opens the progress tab from a client grid quick action without extra clicks', async () => {

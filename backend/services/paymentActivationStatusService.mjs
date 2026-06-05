@@ -200,7 +200,24 @@ export async function resolvePaidClientActivationStatus({ userId, sessionId }) {
     ],
   });
 
-  if (!cart) {
+  const directPackageOrder = cart ? null : await Order.findOne({
+    where: {
+      paymentReference: scopedSessionId,
+      userId: scopedUserId,
+    },
+    attributes: [
+      'id',
+      'status',
+      'paymentAppliedAt',
+      'paymentReference',
+      'idempotencyKey',
+      'totalAmount',
+      'updatedAt',
+    ],
+    order: [['createdAt', 'DESC']],
+  });
+
+  if (!cart && !directPackageOrder) {
     throw new PaymentActivationStatusError('No activation status found for this checkout session', {
       statusCode: 404,
       code: 'ACTIVATION_STATUS_NOT_FOUND',
@@ -232,17 +249,19 @@ export async function resolvePaidClientActivationStatus({ userId, sessionId }) {
     nextSessionResult,
     scheduledSessionCountResult,
   ] = await Promise.all([
-    optionalActivationLookup('order', () => Order.findOne({
-      where: {
-        [Op.or]: [
-          { cartId: cart.id },
-          { paymentReference: scopedSessionId },
-          { idempotencyKey: `stripe-webhook-cart:${cart.id}` },
-        ],
-      },
-      attributes: ['id', 'status', 'paymentAppliedAt', 'paymentReference', 'idempotencyKey'],
-      order: [['createdAt', 'DESC']],
-    })),
+    cart
+      ? optionalActivationLookup('order', () => Order.findOne({
+        where: {
+          [Op.or]: [
+            { cartId: cart.id },
+            { paymentReference: scopedSessionId },
+            { idempotencyKey: `stripe-webhook-cart:${cart.id}` },
+          ],
+        },
+        attributes: ['id', 'status', 'paymentAppliedAt', 'paymentReference', 'idempotencyKey'],
+        order: [['createdAt', 'DESC']],
+      }))
+      : Promise.resolve({ value: directPackageOrder, error: null }),
     optionalActivationLookup('waiver', () => WaiverRecord.findOne({
       where: {
         userId: scopedUserId,
@@ -291,11 +310,13 @@ export async function resolvePaidClientActivationStatus({ userId, sessionId }) {
   ].filter(Boolean);
 
   const sessionsAvailable = toNumber(user.availableSessions);
-  const paid = isPaidCart(cart, order);
+  const paid = cart ? isPaidCart(cart, order) : directPackageOrder?.status === 'completed';
   const accountLinked = Boolean(user?.id);
   const waiverComplete = Boolean(waiverRecord);
   const onboardingComplete = isOnboardingComplete(user, questionnaire);
-  const sessionCreditsAllocated = cart.sessionsGranted === true;
+  const sessionCreditsAllocated = cart
+    ? cart.sessionsGranted === true
+    : directPackageOrder?.status === 'completed';
   const next = resolveNextStep({
     paid,
     accountLinked,
@@ -310,7 +331,7 @@ export async function resolvePaidClientActivationStatus({ userId, sessionId }) {
   return {
     sessionId: scopedSessionId,
     userId: scopedUserId,
-    cart: {
+    cart: cart ? {
       id: cart.id,
       status: cart.status,
       paymentStatus: cart.paymentStatus || null,
@@ -318,11 +339,20 @@ export async function resolvePaidClientActivationStatus({ userId, sessionId }) {
       total: toNumber(cart.total),
       completedAt: cart.completedAt || null,
       updatedAt: cart.updatedAt || null,
+    } : {
+      id: null,
+      status: directPackageOrder.status,
+      paymentStatus: directPackageOrder.status === 'completed' ? 'paid' : null,
+      sessionsGranted: directPackageOrder.status === 'completed',
+      total: toNumber(directPackageOrder.totalAmount),
+      completedAt: directPackageOrder.paymentAppliedAt || null,
+      updatedAt: directPackageOrder.updatedAt || null,
     },
     order: order ? {
       id: order.id,
       status: order.status,
       paymentAppliedAt: order.paymentAppliedAt || null,
+      ...(order.totalAmount !== undefined ? { totalAmount: toNumber(order.totalAmount) } : {}),
     } : null,
     activation: {
       paid,

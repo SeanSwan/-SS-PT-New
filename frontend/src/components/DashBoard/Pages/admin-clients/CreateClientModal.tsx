@@ -535,6 +535,8 @@ const heightPartsToInches = (feetValue: string, inchesValue: string): number | u
   return total > 0 ? total : undefined;
 };
 
+const normalizeClientEmailInput = (value: string): string => value.trim().toLowerCase();
+
 const CreateClientModal: React.FC<CreateClientModalProps> = ({
   open,
   onClose,
@@ -577,10 +579,11 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
+    const normalizedEmail = normalizeClientEmailInput(formData.email);
 
     if (!formData.firstName.trim()) errors.firstName = 'First name is required';
     if (!formData.lastName.trim()) errors.lastName = 'Last name is required';
-    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (!normalizedEmail) errors.email = 'Email is required';
     // Username/password only required for SwanStudios clients
     if (!isExternal) {
       if (!formData.username.trim()) errors.username = 'Username is required';
@@ -592,7 +595,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (formData.email && !emailRegex.test(formData.email)) {
+    if (normalizedEmail && !emailRegex.test(normalizedEmail)) {
       errors.email = 'Please enter a valid email address';
     }
 
@@ -614,6 +617,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
       // Clean up data before submission
       const cleanData: CreateClientRequest = {
         ...formData,
+        email: normalizeClientEmailInput(formData.email),
         clientSource,
         availableSessions: isExternal ? 0 : formData.availableSessions,
         weight: parseOptionalPositiveNumber(formData.weight),

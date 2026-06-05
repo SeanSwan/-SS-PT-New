@@ -34,6 +34,10 @@ const RAW_LOGIC_SOURCE = readFileSync(
   resolve(__dirname, './EnhancedWorkoutLogger.logic.ts'),
   'utf8',
 );
+const RAW_VIEW_SOURCE = readFileSync(
+  resolve(__dirname, './EnhancedWorkoutLogger.view.tsx'),
+  'utf8',
+);
 
 function stripComments(src: string): string {
   return src
@@ -43,6 +47,8 @@ function stripComments(src: string): string {
 
 const SOURCE = stripComments(RAW_SOURCE);
 const LOGIC_SOURCE = stripComments(RAW_LOGIC_SOURCE);
+const VIEW_SOURCE = stripComments(RAW_VIEW_SOURCE);
+const SURFACE_SOURCE = `${SOURCE}\n${VIEW_SOURCE}`;
 
 describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
   it('calls the canonical /api/workout-forms/client/:clientId/info endpoint', () => {
@@ -56,9 +62,11 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
   });
 
   it('derives backToClientsPath from user.role (role-aware navigation)', () => {
-    expect(SOURCE).toMatch(/user\?\.role\s*===\s*['"]admin['"]/);
-    expect(SOURCE).toMatch(/\/dashboard\/admin\/client-management/);
-    expect(SOURCE).toMatch(/\/dashboard\/trainer\/clients/);
+    expect(SOURCE).toMatch(/buildLoggerRouteContext\(\{/);
+    expect(SOURCE).toMatch(/userRole:\s*user\?\.role/);
+    expect(LOGIC_SOURCE).toMatch(/userRole\s*===\s*['"]admin['"]/);
+    expect(LOGIC_SOURCE).toMatch(/\/dashboard\/admin\/client-management/);
+    expect(LOGIC_SOURCE).toMatch(/\/dashboard\/trainer\/clients/);
   });
 
   it('does not hard-code /dashboard/trainer/clients as the sole navigation target', () => {
@@ -70,37 +78,37 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
 
   it('honors any dashboard-local returnTo after validation', () => {
     expect(SOURCE).toMatch(
-      /import\s*\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s*from '\.\/EnhancedWorkoutLogger\.logic'/
+      /import\s*\{[\s\S]*buildLoggerRouteContext[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s*from '\.\/EnhancedWorkoutLogger\.logic'/
     );
     expect(LOGIC_SOURCE).toMatch(/export const normalizeDashboardReturnTo =/);
-    expect(LOGIC_SOURCE).toMatch(/raw\.startsWith\('\/dashboard\/'\)/);
-    expect(LOGIC_SOURCE).toMatch(/raw\[0\] === '\/' && raw\[1\] === '\/'/);
+    expect(LOGIC_SOURCE).toMatch(/value\.startsWith\('\/dashboard\/'\)/);
+    expect(RAW_LOGIC_SOURCE).toMatch(/value\.startsWith\('\/\/'\)/);
     expect(SOURCE).toMatch(/const requestedReturnTo = normalizeDashboardReturnTo\(searchParams\.get\('returnTo'\)\)/);
-    expect(SOURCE).toMatch(/const workflowReturnPath = requestedReturnTo \?\? backToClientsPath/);
+    expect(LOGIC_SOURCE).toMatch(/workflowReturnPath: requestedReturnTo \?\? backToClientsPath/);
     expect(SOURCE).toMatch(/navigate\(workflowReturnPath/);
   });
 
   it('uses source only for contextual back-button copy, not for returnTo authorization', () => {
-    expect(SOURCE).toMatch(/searchParams\.get\('source'\) === 'master-schedule'/);
-    expect(SOURCE).toMatch(/searchParams\.get\('source'\) === 'clients-team'/);
-    expect(SOURCE).toMatch(/Back to Schedule/);
-    expect(SOURCE).toMatch(/Back to Client Hub/);
+    expect(SOURCE).toMatch(/source:\s*searchParams\.get\('source'\)/);
+    expect(LOGIC_SOURCE).toMatch(/'master-schedule': 'Back to Schedule'/);
+    expect(LOGIC_SOURCE).toMatch(/'clients-team': 'Back to Client Hub'/);
+    expect(LOGIC_SOURCE).toMatch(/getSourceReturnLabel\(requestedReturnTo, source\) \?\? getDefaultBackLabel/);
   });
 
   it('passes master-schedule sessionId into the real WorkoutLogger', () => {
     expect(LOGIC_SOURCE).toMatch(/export const parseLoggerSessionId =/);
     expect(SOURCE).toMatch(/const scheduledSessionId = parseLoggerSessionId\(searchParams\.get\('sessionId'\)\)/);
     expect(SOURCE).toMatch(/const scheduledSessionDate = searchParams\.get\('sessionDate'\)/);
-    expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
-    expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
+    expect(SURFACE_SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
+    expect(SURFACE_SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
   });
 
   it('passes a strictly parsed numeric client id into WorkoutLogger', () => {
     expect(LOGIC_SOURCE).toMatch(/export const parseLoggerClientId =/);
     expect(SOURCE).toMatch(/const routeClientId = parseLoggerClientId\(urlClientId\)/);
     expect(SOURCE).toMatch(/const activeClientId = parseLoggerClientId\(activeClient\?\.id\)/);
-    expect(SOURCE).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
-    expect(SOURCE).toMatch(/clientId=\{client\.id\}/);
+    expect(SURFACE_SOURCE).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
+    expect(SURFACE_SOURCE).toMatch(/clientId=\{client\.id\}/);
   });
 
   it('uses completion copy that is truthful for deducted and non-deducted clients', () => {
@@ -108,7 +116,10 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
     expect(SOURCE).not.toMatch(/Will Deduct/);
     expect(SOURCE).not.toMatch(/In real use, this would deduct a session/);
     expect(SOURCE).not.toMatch(/handleWorkoutComplete\(\{\}\)/);
-    expect(SOURCE).toMatch(/Workout saved and progress updated/);
+    expect(SOURCE).toMatch(/buildLoggerCompletionResult\(\{/);
+    expect(SOURCE).toMatch(/toast\(completion\.toast\)/);
+    expect(SOURCE).toMatch(/state:\s*completion\.navigationState/);
+    expect(LOGIC_SOURCE).toMatch(/Workout saved and progress updated/);
     expect(SOURCE).toMatch(/Client workout data could not be loaded/);
   });
 

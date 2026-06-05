@@ -156,6 +156,66 @@ describe('payment activation status resolver route', () => {
     );
   });
 
+  it('resolves direct session-package orders without requiring a shopping cart row', async () => {
+    const packageOrder = {
+      id: 77,
+      status: 'completed',
+      paymentAppliedAt: new Date('2026-05-20T12:00:00Z'),
+      paymentReference: 'cs_test_activation',
+      idempotencyKey: 'session-package-webhook:cs_test_activation',
+      totalAmount: '400.00',
+      updatedAt: new Date('2026-05-20T12:01:00Z'),
+    };
+
+    primeActivationMocks({
+      cart: null,
+      order: packageOrder,
+      user: makeUser({ availableSessions: 5, isOnboardingComplete: true }),
+      waiverRecord: { id: 7, status: 'linked', signedAt: new Date('2026-05-20T11:00:00Z') },
+      questionnaire: { id: 8, status: 'completed', completedAt: new Date('2026-05-20T11:30:00Z') },
+    });
+
+    const response = await request(buildApp())
+      .get('/api/v2/payments/activation-status?sessionId=cs_test_activation')
+      .set('x-test-user-id', '3');
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.cart).toEqual(expect.objectContaining({
+      id: null,
+      paymentStatus: 'paid',
+      sessionsGranted: true,
+      total: 400,
+    }));
+    expect(response.body.data.order).toEqual(expect.objectContaining({
+      id: 77,
+      status: 'completed',
+    }));
+    expect(response.body.data.activation).toEqual(expect.objectContaining({
+      paid: true,
+      sessionCreditsAllocated: true,
+      sessionsAvailable: 5,
+      nextStep: 'schedule_first_session',
+      nextRoute: '/dashboard/client/schedule',
+    }));
+    expect(mocks.mockShoppingCart.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          checkoutSessionId: 'cs_test_activation',
+          userId: 3,
+        }),
+      }),
+    );
+    expect(mocks.mockOrder.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          paymentReference: 'cs_test_activation',
+          userId: 3,
+        }),
+      }),
+    );
+  });
+
   it('returns 400 for a missing sessionId', async () => {
     const response = await request(buildApp())
       .get('/api/v2/payments/activation-status')
@@ -280,7 +340,7 @@ describe('payment activation status resolver route', () => {
   });
 
   it('does not expose activation status for another user checkout session', async () => {
-    primeActivationMocks({ cart: null });
+    primeActivationMocks({ cart: null, order: null });
 
     const response = await request(buildApp())
       .get('/api/v2/payments/activation-status?sessionId=cs_test_activation')

@@ -478,19 +478,22 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
     // Validate client exists and apply client-source billing policy.
     const User = getUser();
-    const client = await User.findByPk(parsedClientId, { transaction });
+    const client = await User.findByPk(parsedClientId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
     if (!client) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found'
-      });
+      return res.status(404).json({ success: false, message: 'Client not found' });
     }
 
     let linkedScheduledSession = null;
     if (parsedScheduledSessionId) {
       const Session = getSession();
-      linkedScheduledSession = await Session.findByPk(parsedScheduledSessionId, { transaction });
+      linkedScheduledSession = await Session.findByPk(parsedScheduledSessionId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
 
       if (!linkedScheduledSession) {
         await transaction.rollback();

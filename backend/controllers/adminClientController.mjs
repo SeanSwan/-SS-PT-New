@@ -274,6 +274,7 @@ import { listPaidClientActivationQueue } from '../services/adminClientActivation
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
+import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -297,6 +298,7 @@ const ensureModels = () => {
 };
 
 const INTERNAL_ERROR = 'internal_error';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function sendInternalError(res, message) {
   return res.status(500).json({
@@ -751,6 +753,15 @@ class AdminClientController {
         });
       }
 
+      const normalizedEmail = normalizeAdminClientEmailInput(email);
+      if (!normalizedEmail || !EMAIL_PATTERN.test(normalizedEmail)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid email address'
+        });
+      }
+
       // Determine password: use admin-supplied or generate a secure one
       // base64url + special char suffix ensures validators requiring special chars pass
       const passwordSource = password ? 'admin-supplied' : 'generated';
@@ -759,7 +770,7 @@ class AdminClientController {
       // Check if email/username already exists
       const existingUser = await User.findOne({
         where: {
-          [Op.or]: [{ email }, { username }]
+          [Op.or]: [{ email: { [Op.iLike]: normalizedEmail } }, { username }]
         }
       });
 
@@ -775,7 +786,7 @@ class AdminClientController {
       const newClient = await User.create({
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         username,
         password: effectivePassword,
         phone,
@@ -832,20 +843,20 @@ class AdminClientController {
       if (passwordSource === 'generated') {
         try {
           const safeFirst = String(firstName || '').replace(/[<>&"']/g, '');
-          const safeEmail = String(email).replace(/[<>&"']/g, '');
+          const safeEmail = String(normalizedEmail).replace(/[<>&"']/g, '');
           const result = await sendGridEmail({
-            to: email,
+            to: normalizedEmail,
             subject: 'Welcome to SwanStudios — Your Account is Ready',
-            text: `Hi ${firstName},\n\nYour SwanStudios account has been created.\nEmail: ${email}\nTemporary Password: ${effectivePassword}\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
+            text: `Hi ${firstName},\n\nYour SwanStudios account has been created.\nEmail: ${normalizedEmail}\nTemporary Password: ${effectivePassword}\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
             html: `<p>Hi ${safeFirst},</p><p>Your SwanStudios account has been created.</p><p><strong>Email:</strong> ${safeEmail}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>Please log in and change your password at your earliest convenience.</p><p>&mdash; SwanStudios Team</p>`,
           });
           emailSent = result?.success === true;
         } catch (emailError) {
-          logger.warn(`Welcome email failed for ${email}: ${emailError.message}`);
+          logger.warn(`Welcome email failed for ${normalizedEmail}: ${emailError.message}`);
         }
       }
 
-      logger.info(`Admin ${req.user?.id ?? 'unknown'} created client ${newClient.id} (${email}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
+      logger.info(`Admin ${req.user?.id ?? 'unknown'} created client ${newClient.id} (${normalizedEmail}), passwordSource=${passwordSource}, emailSent=${emailSent}`);
 
       return res.status(201).json({
         success: true,
@@ -1565,14 +1576,23 @@ class AdminClientController {
         });
       }
 
+      const normalizedEmail = normalizeAdminClientEmailInput(email);
+      if (!normalizedEmail || !EMAIL_PATTERN.test(normalizedEmail)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid email address'
+        });
+      }
+
       // Generate username from email prefix with high-entropy suffix to prevent collisions
-      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
+      const baseUsername = normalizedEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '_');
       const username = `${baseUsername}_${crypto.randomBytes(4).toString('hex')}`;
       const effectivePassword = password || (crypto.randomBytes(12).toString('base64url') + '!A1');
       const passwordSource = password ? 'admin-supplied' : 'generated';
 
       // Check if email already exists
-      const existingUser = await User.findOne({ where: { email } });
+      const existingUser = await User.findOne({ where: { email: { [Op.iLike]: normalizedEmail } } });
       if (existingUser) {
         await transaction.rollback();
         return res.status(400).json({
@@ -1581,13 +1601,13 @@ class AdminClientController {
         });
       }
 
-      // Generate SWAN-XXXX claim token for account claiming (Crystalline Link Protocol)
+      // Generate SWAN-XXXXXXXX claim token for account claiming (Crystalline Link Protocol)
       const { plainToken, hash: claimTokenHash, expires: claimTokenExpires } = generateClaimToken();
 
       const newClient = await User.create({
         firstName,
         lastName,
-        email,
+        email: normalizedEmail,
         username,
         password: effectivePassword,
         phone,
@@ -1629,19 +1649,19 @@ class AdminClientController {
         try {
           const sourceLabel = clientSource === 'move_fitness' ? 'Move Fitness' : 'External';
           await sendGridEmail({
-            to: email,
+            to: normalizedEmail,
             subject: `Welcome to SwanStudios Tools — ${sourceLabel} Client`,
-            text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${email}\nTemporary Password: ${effectivePassword}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
-            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${email}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>Please log in and change your password.</p><p>&mdash; SwanStudios Team</p>`,
+            text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${normalizedEmail}\nTemporary Password: ${effectivePassword}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\nPlease log in and change your password.\n\n— SwanStudios Team`,
+            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${normalizedEmail}<br/><strong>Temporary Password:</strong> ${effectivePassword}</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>Please log in and change your password.</p><p>&mdash; SwanStudios Team</p>`,
           });
         } catch (emailError) {
-          logger.warn(`Welcome email failed for external client ${email}: ${emailError.message}`);
+          logger.warn(`Welcome email failed for external client ${normalizedEmail}: ${emailError.message}`);
         }
       }
 
       const { password: _, refreshTokenHash: __, ...clientData } = newClient.toJSON();
 
-      logger.info(`External client created: ${email} (source: ${clientSource}) by admin ${req.user?.id}`);
+      logger.info(`External client created: ${normalizedEmail} (source: ${clientSource}) by admin ${req.user?.id}`);
 
       const claimUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/claim/${plainToken}`;
 

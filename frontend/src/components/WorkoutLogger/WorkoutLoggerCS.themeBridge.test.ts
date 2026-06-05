@@ -9,6 +9,7 @@ describe('WorkoutLogger shared theme bridge', () => {
   it('keeps the active dashboard logger path wired to the shared crystalline palette', () => {
     const dashboardLayout = read('../DashBoard/UniversalDashboardLayout.tsx');
     const enhancedLogger = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx');
+    const enhancedLoggerView = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx');
     const logger = read('WorkoutLogger.tsx');
     const loggerStyles = read('WorkoutLogger.styles.ts');
     const header = read('WorkoutLoggerHeader.tsx');
@@ -16,8 +17,10 @@ describe('WorkoutLogger shared theme bridge', () => {
 
     expect(dashboardLayout).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
     expect(dashboardLayout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
-    expect(enhancedLogger).toContain("import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger'");
-    expect(enhancedLogger).toContain('<WorkoutLogger');
+    expect(enhancedLogger).toContain("import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view'");
+    expect(enhancedLogger).toContain('<EnhancedWorkoutLoggerView');
+    expect(enhancedLoggerView).toContain("import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger'");
+    expect(enhancedLoggerView).toContain('<WorkoutLogger');
     expect(logger).toContain('<WorkoutLoggerHeader');
     expect(logger).toContain('<WorkoutLoggerFooter');
     expect(logger).toContain('<WorkoutLoggerConfirmDialog');

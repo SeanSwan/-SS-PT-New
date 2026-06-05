@@ -6,17 +6,25 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageRouteSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
+const packageManualGrantRouteSource = readFileSync(
+  resolve(__dirname, '../../routes/sessionPackageManualGrantRoutes.mjs'),
+  'utf8',
+);
+const packageFulfillmentSource = readFileSync(
+  resolve(__dirname, '../../services/sessionPackageCheckoutFulfillmentService.mjs'),
+  'utf8',
+);
 const adminClientControllerSource = readFileSync(resolve(__dirname, '../../controllers/adminClientController.mjs'), 'utf8');
 
 describe('session package clientSource boundary', () => {
   it('blocks manual package credit grants for non-deducting client sources', () => {
-    const start = packageRouteSource.indexOf("router.post('/add-sessions'");
-    const end = packageRouteSource.indexOf("router.post('/add-test-sessions'", start);
-    const source = packageRouteSource.slice(start, end);
+    const start = packageManualGrantRouteSource.indexOf("router.post('/add-sessions'");
+    const end = packageManualGrantRouteSource.indexOf("router.post('/add-test-sessions'", start);
+    const source = packageManualGrantRouteSource.slice(start, end);
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(packageRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(packageManualGrantRouteSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
     expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
     expect(source).toContain('Manual paid-session grants are disabled for free-tracking clients');
   });
@@ -38,27 +46,28 @@ describe('session package clientSource boundary', () => {
   });
 
   it('blocks production test-session grants for non-deducting client sources', () => {
-    const start = packageRouteSource.indexOf("router.post('/add-test-sessions'");
-    const end = packageRouteSource.indexOf('export default router', start);
-    const source = packageRouteSource.slice(start, end);
+    const start = packageManualGrantRouteSource.indexOf("router.post('/add-test-sessions'");
+    const end = packageManualGrantRouteSource.indexOf('export default router', start);
+    const source = packageManualGrantRouteSource.slice(start, end);
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
+    expect(source).toContain("router.post('/add-test-sessions', protect, adminOnly");
+    expect(source).toContain("process.env.NODE_ENV === 'production'");
     expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
     expect(source).toContain('Test session grants are disabled for free-tracking clients');
   });
 
   it('converts legacy Stripe package grants to SwanStudios paid source before future deductions', () => {
-    const start = packageRouteSource.indexOf("if (event.type === 'checkout.session.completed')");
-    const end = packageRouteSource.indexOf("router.post('/add-sessions'", start);
-    const source = packageRouteSource.slice(start, end);
-
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-    expect(source).toContain('const userPackageUpdate = {};');
-    expect(source).toContain("userPackageUpdate.role = 'client';");
-    expect(source).toContain("userPackageUpdate.clientSource = 'swanstudios';");
-    expect(source).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
-    expect(source).toContain('await user.update(userPackageUpdate, { transaction });');
+    expect(packageRouteSource).toContain('await fulfillSessionPackageCheckoutSession(session);');
+    expect(packageFulfillmentSource).toContain('const userPackageUpdate = {');
+    expect(packageFulfillmentSource).toContain('hasPurchasedBefore: true');
+    expect(packageFulfillmentSource).toContain('completedAt: fulfilledAt');
+    expect(packageFulfillmentSource).toContain('paymentAppliedAt: fulfilledAt');
+    expect(packageFulfillmentSource).toContain('lastPurchaseDate: fulfilledAt');
+    expect(packageFulfillmentSource).toContain("userPackageUpdate.role = 'client';");
+    expect(packageFulfillmentSource).toContain("userPackageUpdate.clientSource = 'swanstudios';");
+    expect(packageFulfillmentSource).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)');
+    expect(packageFulfillmentSource).toContain('await user.update(userPackageUpdate, { transaction });');
   });
 });

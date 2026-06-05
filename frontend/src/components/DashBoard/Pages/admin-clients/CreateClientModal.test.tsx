@@ -96,6 +96,31 @@ describe('CreateClientModal', () => {
     }));
   });
 
+  it('normalizes padded mixed-case emails before validation and submit', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <CreateClientModal
+        open
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Taylor' } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Reed' } });
+    fireEvent.change(screen.getByLabelText(/^email/i), { target: { value: '  Taylor@Example.COM  ' } });
+    fireEvent.change(screen.getByLabelText(/^username/i), { target: { value: 'taylor.reed' } });
+    fireEvent.change(screen.getByLabelText(/^password/i), { target: { value: 'Client123' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /create client/i }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'taylor@example.com',
+    }));
+  });
+
   it('omits hidden username and password fields for Move Fitness clients', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 

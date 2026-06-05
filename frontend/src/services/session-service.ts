@@ -29,7 +29,7 @@ export interface Session {
 }
 
 export interface SessionPackage {
-  id: string;
+  id: number;
   name: string;
   description: string;
   sessions: number;
@@ -85,7 +85,7 @@ class SessionService {
    * Purchase a session package
    * @param packageId The ID of the package to purchase
    */
-  async purchaseSessionPackage(packageId: string): Promise<SessionServiceResponse<{checkoutUrl: string}>> {
+  async purchaseSessionPackage(packageId: number | string): Promise<SessionServiceResponse<{checkoutUrl: string}>> {
     try {
       const response = await authAxiosInstance.post('/api/session-packages/purchase', { packageId });
       return {

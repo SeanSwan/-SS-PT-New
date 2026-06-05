@@ -116,15 +116,18 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     mockSearchQuery = 'clientId=61';
   });
 
-  it('admin: /info success auto-mounts the real WorkoutLogger, shows role-aware back nav, hides stale demo copy', async () => {
+  it('admin: scheduled-session /info success auto-mounts the real WorkoutLogger, shows role-aware back nav, hides stale demo copy', async () => {
     mockRole = 'admin';
+    mockSearchQuery = 'clientId=61&sessionId=314';
     mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
     const user = userEvent.setup();
 
     render(<EnhancedWorkoutLogger />);
 
     // Real logger auto-mounts — no placeholder click required.
-    expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-client-id', '61');
+    const loggerButton = await screen.findByTestId('real-workout-logger');
+    expect(loggerButton).toHaveAttribute('data-client-id', '61');
+    expect(loggerButton).toHaveAttribute('data-session-id', '314');
 
     // Role-aware back nav for admin. getByRole throws if not found,
     // so the lookup itself is the presence assertion.
@@ -143,36 +146,79 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management');
   });
 
-  it('admin: clients-team returnTo keeps the selected client loaded after backing out', async () => {
+  it('admin: clients-team returnTo redirects into the embedded Client Hub logger', async () => {
     mockRole = 'admin';
     mockSearchQuery =
       'clientId=61&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D61';
-    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
-    const user = userEvent.setup();
 
     render(<EnhancedWorkoutLogger />);
 
-    await screen.findByTestId('real-workout-logger');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        { replace: true }
+      );
+    });
 
-    const backBtn = screen.getByRole('button', { name: /back to client hub/i });
-    await user.click(backBtn);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management?clientId=61');
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });
 
-  it('admin: completed clients-team logs return to Client Hub workout history', async () => {
+  it('admin: stale clients-team full-page URLs redirect into the embedded Client Hub logger', async () => {
+    mockRole = 'admin';
+    mockSearchQuery = 'clientId=61&source=clients-team';
+
+    render(<EnhancedWorkoutLogger />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        { replace: true }
+      );
+    });
+
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
+  it('admin: bare full-page client logging URLs redirect into the embedded Client Hub logger', async () => {
+    mockRole = 'admin';
+    mockSearchQuery = 'clientId=61';
+
+    render(<EnhancedWorkoutLogger />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        { replace: true }
+      );
+    });
+
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
+  it('admin: master-schedule completion keeps the scheduled-session full-page logger flow', async () => {
     mockRole = 'admin';
     mockSearchQuery =
-      'clientId=61&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D61';
+      'clientId=61&sessionId=314&source=master-schedule&returnTo=%2Fdashboard%2Fadmin%2Fmaster-schedule%3FsessionId%3D314';
     mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
     const user = userEvent.setup();
 
     render(<EnhancedWorkoutLogger />);
 
-    await user.click(await screen.findByTestId('real-workout-logger'));
+    const loggerButton = await screen.findByTestId('real-workout-logger');
+    expect(loggerButton).toHaveAttribute('data-client-id', '61');
+    expect(loggerButton).toHaveAttribute('data-session-id', '314');
+
+    const backBtn = screen.getByRole('button', { name: /back to schedule/i });
+    await user.click(backBtn);
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/master-schedule?sessionId=314');
+
+    await user.click(loggerButton);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=history',
+      '/dashboard/admin/master-schedule?sessionId=314',
       expect.objectContaining({
         state: expect.objectContaining({ workoutCompleted: true }),
       })
@@ -223,7 +269,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
   });
 
   it('rejects malformed /info client ids before mounting the real WorkoutLogger', async () => {
-    mockRole = 'admin';
+    mockRole = 'trainer';
     mockGet.mockResolvedValueOnce({
       data: {
         success: true,

@@ -1,0 +1,176 @@
+/**
+ * sessionPackagePurchaseCatalogTruth.test.mjs
+ * ===========================================
+ * Locks direct session-package checkout creation to the active StorefrontItem
+ * catalog so this legacy-compatible API cannot sell stale hardcoded packages.
+ */
+import express from 'express';
+import request from 'supertest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  checkoutCreate: vi.fn(),
+  mockStorefrontItem: {
+    findAll: vi.fn(),
+    findOne: vi.fn(),
+  },
+}));
+
+vi.mock('stripe', () => ({
+  default: vi.fn(function MockStripe() {
+    return {
+      checkout: {
+        sessions: {
+          create: mocks.checkoutCreate,
+        },
+      },
+      webhooks: {
+        constructEvent: vi.fn(),
+      },
+    };
+  }),
+}));
+
+vi.mock('../utils/apiKeyChecker.mjs', () => ({
+  isStripeEnabled: () => true,
+}));
+
+vi.mock('../middleware/authMiddleware.mjs', () => ({
+  protect: (req, _res, next) => {
+    req.user = { id: 3, role: 'client' };
+    next();
+  },
+  adminOnly: (_req, _res, next) => next(),
+}));
+
+vi.mock('../utils/logger.mjs', () => ({
+  default: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+vi.mock('../models/User.mjs', () => ({
+  default: {},
+}));
+
+vi.mock('../models/StorefrontItem.mjs', () => ({
+  default: mocks.mockStorefrontItem,
+}));
+
+vi.mock('../services/sessionPackageCheckoutFulfillmentService.mjs', () => ({
+  SESSION_PACKAGE_CHECKOUT_SOURCE: 'session_package_checkout',
+  SessionPackageFulfillmentError: class SessionPackageFulfillmentError extends Error {},
+  isSessionPackageCheckoutSession: vi.fn(),
+  fulfillSessionPackageCheckoutSession: vi.fn(),
+}));
+
+vi.stubEnv('STRIPE_SECRET_KEY', 'sk_test_catalogtruth');
+const { default: sessionPackageRoutes } = await import('../routes/sessionPackageRoutes.mjs');
+
+function buildApp() {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/session-packages', sessionPackageRoutes);
+  return app;
+}
+
+function makeStorefrontPackage(overrides = {}) {
+  return {
+    id: 10,
+    name: 'SwanStudios 10-Pack',
+    description: '10 personal training sessions (60 min each).',
+    price: '1750.00',
+    sessions: 10,
+    totalSessions: 10,
+    ...overrides,
+  };
+}
+
+describe('direct session-package purchase catalog truth', () => {
+  afterAll(() => {
+    vi.unstubAllEnvs();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.mockStorefrontItem.findAll.mockResolvedValue([]);
+    mocks.mockStorefrontItem.findOne.mockResolvedValue(makeStorefrontPackage());
+    mocks.checkoutCreate.mockResolvedValue({
+      id: 'cs_test_catalog',
+      url: 'https://checkout.stripe.test/session',
+    });
+  });
+
+  it('lists only active storefront packages that can be purchased for paid sessions', async () => {
+    mocks.mockStorefrontItem.findAll.mockResolvedValue([
+      makeStorefrontPackage({ id: 10, name: 'SwanStudios 10-Pack' }),
+      makeStorefrontPackage({
+        id: 11,
+        name: 'Zero Session Draft',
+        sessions: 0,
+        totalSessions: 0,
+      }),
+      makeStorefrontPackage({
+        id: 12,
+        name: 'Unpriced Draft',
+        price: '0.00',
+      }),
+    ]);
+
+    const response = await request(buildApp()).get('/api/session-packages');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: 10,
+        name: 'SwanStudios 10-Pack',
+        sessions: 10,
+        price: 1750,
+      }),
+    ]);
+    expect(mocks.mockStorefrontItem.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { isActive: true },
+      order: [['displayOrder', 'ASC'], ['id', 'ASC']],
+    }));
+  });
+
+  it('creates checkout sessions from active StorefrontItem pricing and session counts', async () => {
+    const response = await request(buildApp())
+      .post('/api/session-packages/purchase')
+      .send({ packageId: 10 });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      success: true,
+      checkoutUrl: 'https://checkout.stripe.test/session',
+    });
+    expect(mocks.mockStorefrontItem.findOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        id: 10,
+        isActive: true,
+      },
+    }));
+    expect(mocks.checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({
+      line_items: [
+        expect.objectContaining({
+          price_data: expect.objectContaining({
+            unit_amount: 175000,
+            product_data: expect.objectContaining({
+              name: 'SwanStudios 10-Pack',
+            }),
+          }),
+        }),
+      ],
+      metadata: {
+        source: 'session_package_checkout',
+        packageId: '10',
+        sessions: '10',
+      },
+    }), expect.objectContaining({
+      idempotencyKey: expect.any(String),
+    }));
+  });
+});

@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
 // 2026-04-17 Codex round 2 fix: self-route default onComplete/onCancel
 // now navigate to a real client route instead of being silent no-ops.
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   dailyWorkoutFormService,
   ExerciseEntry,
@@ -131,6 +131,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const autoLoadTodayPlan = searchParams.get('loadPlan') === 'today';
+  const hasInitialExercises = Array.isArray(initialData) && initialData.length > 0;
 
   // Self-mode resolves the logged-in client route without emitting
   // `/api/workout-forms/client/undefined/info`.
@@ -178,6 +181,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [client, setClient] = useState<WorkoutLoggerClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
+  const autoLoadTodayPlanRef = useRef(false);
   const workoutLoggerLocalIdCounterRef = useRef(0);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
@@ -623,6 +627,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       setIsLoadingPlan(false);
     }
   }, [effectiveClientId, createWorkoutLoggerLocalId]);
+
+  useEffect(() => {
+    if (!autoLoadTodayPlan || autoLoadTodayPlanRef.current || hasInitialExercises) return;
+    if (typeof effectiveClientId !== 'number') return;
+
+    autoLoadTodayPlanRef.current = true;
+    void loadTodaysPlan();
+  }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodaysPlan]);
 
   // - Exercise CRUD -
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {

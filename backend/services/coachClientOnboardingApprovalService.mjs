@@ -16,6 +16,10 @@ import {
 } from '../models/index.mjs';
 import { generateClaimToken } from './claimTokenService.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import {
+  buildClientOnboardStubEmail,
+  normalizeClientOnboardEmailInput,
+} from './clientOnboardIdentityService.mjs';
 import logger from '../utils/logger.mjs';
 
 const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
@@ -53,12 +57,9 @@ function cleanText(value, maxLength = 2000) {
 }
 
 function normalizeEmail(value, firstName, lastName) {
-  const email = cleanText(value, 320);
+  const email = normalizeClientOnboardEmailInput(value);
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return email.toLowerCase();
-  const suffix = crypto.randomBytes(3).toString('hex');
-  return `${firstName}.${lastName}.${suffix}@stub.swanstudios.com`
-    .toLowerCase()
-    .replace(/[^a-z0-9@._-]/g, '');
+  return buildClientOnboardStubEmail({ firstName, lastName });
 }
 
 function createRandomPassword() {

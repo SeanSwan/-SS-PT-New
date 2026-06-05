@@ -1,21 +1,17 @@
 export type ClientDailyIntent = 'log_workout' | 'plan_next';
-type ClientDailyReturnSection = 'plans' | 'history';
+type ClientDailyReturnSection = 'logger' | 'plans' | 'history';
 
 const CLIENT_MANAGEMENT_BASE = '/dashboard/admin/client-management';
 
-export const parseClientDailyRouteClientId = (clientId: number | string): number | null => {
-  if (typeof clientId === 'number') {
-    return Number.isSafeInteger(clientId) && clientId > 0 ? clientId : null;
-  }
-
-  const trimmed = clientId.trim();
+const parseClientDailyRouteClientId = (clientId: number | string): number | null => {
+  const trimmed = String(clientId).trim();
   if (!/^[1-9]\d*$/.test(trimmed)) return null;
 
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
-export const buildClientManagementReturnTo = (
+const buildClientManagementReturnTo = (
   clientId: number | string,
   trainingSection?: ClientDailyReturnSection,
 ) => {
@@ -70,8 +66,7 @@ export const buildClientCoachOnboardingRoute = () => {
 };
 
 export const buildClientWorkoutLoggerRoute = (clientId: number | string) => {
-  const params = buildClientDailyParams(clientId);
-  return params ? `/dashboard/admin/log-workout?${params}` : null;
+  return buildClientManagementReturnTo(clientId, 'logger');
 };
 
 export const buildClientWorkoutPlannerRoute = (clientId: number | string) => {

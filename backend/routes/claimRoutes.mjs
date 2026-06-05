@@ -8,7 +8,7 @@
  *
  * WHAT THIS FILE DOES:
  *   Provides endpoints for generating invite tokens (admin) and claiming
- *   accounts (public). Move Fitness clients scan QR or enter SWAN-XXXX code
+ *   accounts (public). Move Fitness clients scan QR or enter SWAN-XXXXXXXX code
  *   to set their password and activate their account.
  *
  * HOW IT FITS IN THE APP:
@@ -25,6 +25,7 @@ import express from 'express';
 import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { generateClaimToken, hashToken, isTokenExpired } from '../services/claimTokenService.mjs';
+import { normalizeClientOnboardEmailInput } from '../services/clientOnboardIdentityService.mjs';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -186,8 +187,10 @@ router.post('/activate', async (req, res) => {
       claimTokenExpires: null,
     };
 
+    const normalizedEmail = normalizeClientOnboardEmailInput(email);
+
     // AI Village Finding 4: State-based email authorization (stub accounts only)
-    if (email && email !== matchedUser.email) {
+    if (normalizedEmail && normalizedEmail !== matchedUser.email) {
       if (matchedUser.accountStatus !== 'stub') {
         return res.status(403).json({
           success: false,
@@ -196,16 +199,16 @@ router.post('/activate', async (req, res) => {
       }
 
       // Basic email format validation
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
         return res.status(400).json({ success: false, message: 'Invalid email format' });
       }
 
       // Check email isn't taken
-      const existing = await User.findOne({ where: { email, id: { [Op.ne]: matchedUser.id } } });
+      const existing = await User.findOne({ where: { email: normalizedEmail, id: { [Op.ne]: matchedUser.id } } });
       if (existing) {
         return res.status(409).json({ success: false, message: 'Email already in use' });
       }
-      updates.email = email;
+      updates.email = normalizedEmail;
     }
 
     await matchedUser.update(updates, { individualHooks: true });

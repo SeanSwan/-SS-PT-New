@@ -12,6 +12,7 @@ const stripComments = (source: string) =>
 
 const layout = read('../DashBoard/UniversalDashboardLayout.tsx');
 const enhancedLogger = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.tsx');
+const enhancedLoggerView = read('../TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx');
 const workoutLogger = read('./WorkoutLogger.tsx');
 const ghostHookRaw = read('./useGhostPreFill.ts');
 const ghostRowRaw = read('./GhostDataRow.tsx');
@@ -27,12 +28,13 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(layout).toMatch(/const EnhancedWorkoutLogger = React\.lazy\(\(\) => import\('\.\.\/TrainerDashboard\/WorkoutLogging'\)\)/);
     expect(layout).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
     expect(layout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
-    expect(enhancedLogger).toMatch(/import WorkoutLogger from '\.\.\/\.\.\/WorkoutLogger\/WorkoutLogger'/);
+    expect(enhancedLogger).toMatch(/import EnhancedWorkoutLoggerView from '\.\/EnhancedWorkoutLogger\.view'/);
     expect(enhancedLogger).toMatch(
       /import\s+\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/,
     );
-    expect(enhancedLogger).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
-    expect(enhancedLogger).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
+    expect(enhancedLoggerView).toMatch(/import WorkoutLogger from '\.\.\/\.\.\/WorkoutLogger\/WorkoutLogger'/);
+    expect(enhancedLoggerView).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
+    expect(enhancedLoggerView).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
     expect(workoutLogger).toMatch(/useGhostPreFill\(hookClientId, \{ skip: isClientSelfMode \}\)/);
     expect(workoutLogger).toMatch(/ghostSkip=\{isClientSelfMode\}/);
     expect(backendMount).toMatch(/app\.use\('\/api\/admin', adminWorkoutLoggerRoutes\)/);

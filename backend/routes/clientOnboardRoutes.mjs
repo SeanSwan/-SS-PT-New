@@ -8,7 +8,7 @@
  *
  * WHAT THIS FILE DOES:
  *   Provides POST /api/clients/onboard — a single transactional endpoint that
- *   creates a User + ClientProgress + ClientTrainerAssignment + SWAN-XXXX claim
+ *   creates a User + ClientProgress + ClientTrainerAssignment + SWAN-XXXXXXXX claim
  *   code in one atomic database transaction. Designed to be called after the AI
  *   returns an ONBOARD_CLIENT_INTENT JSON from the chat interface.
  *
@@ -34,6 +34,10 @@ import {
   NON_DEDUCTING_CLIENT_SOURCES,
   normalizePaidSessionCount,
 } from '../services/sessionBillingPolicy.mjs';
+import {
+  buildClientOnboardStubEmail,
+  normalizeClientOnboardEmailInput,
+} from '../services/clientOnboardIdentityService.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -150,7 +154,12 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     const User = getUser();
 
     // ── Check email uniqueness (if provided) ────────────────
-    const resolvedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${crypto.randomBytes(3).toString('hex')}@stub.swanstudios.com`;
+    const normalizedEmail = normalizeClientOnboardEmailInput(email);
+    const resolvedEmail = normalizedEmail || buildClientOnboardStubEmail({
+      firstName,
+      lastName,
+      token: crypto.randomBytes(3).toString('hex'),
+    });
 
     const existingUser = await User.findOne({
       where: { email: resolvedEmail },

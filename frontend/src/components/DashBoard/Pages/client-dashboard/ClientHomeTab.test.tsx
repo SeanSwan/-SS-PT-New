@@ -233,7 +233,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     await user.click(screen.getByRole('button', { name: /start current workout/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
   it('does NOT mount any weight or body-measurement widget on canonical /overview', async () => {

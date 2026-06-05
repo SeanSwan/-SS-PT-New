@@ -1,0 +1,256 @@
+/**
+ * COMPONENT: ClientsWorkspaceView
+ * PURPOSE: Presentational shell for the canonical admin Client Hub workspace.
+ * PARENT: ClientsWorkspace owns state, API calls, and navigation commands.
+ * DATA: Receives normalized ClientOption and MiniCardClient records only.
+ */
+
+import React from 'react';
+import type { CreateClientRequest } from '../../../services/adminClientService';
+import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
+import {
+  CardGrid,
+  ContentArea,
+  DetailScrollWrap,
+  HubContainer,
+  LoadingPulse,
+} from './ClientsWorkspace.styles';
+import ClientActivationQueuePanel from './ClientActivationQueuePanel';
+import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
+import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
+import ClientLifecycleConfirmDialog, {
+  type ClientLifecycleConfirmRequest,
+} from './clients-team/ClientLifecycleConfirmDialog';
+import ClientHubGridCard from './clients-team/ClientHubGridCard';
+import type { ClientHubQuickAction } from './clients-team/ClientHubGridCardActions';
+import { ClientDetailView } from './clients-team';
+import type { MiniCardClient } from './clients-team/ClientMiniCard';
+import type { ClientOption } from './clients-team/ClientSelectorDropdown';
+import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
+import { getClientOnboardingPct, type ClientDetailTab } from './ClientsWorkspace.logic';
+
+type TabRenderer = (clientId: number | string) => React.ReactNode;
+type ContentMode = 'detail' | 'loading' | 'empty' | 'grid';
+type ContentRenderer = React.FC<ClientsWorkspaceViewProps>;
+
+interface ClientHubAxios {
+  get: (path: string, config?: { params?: Record<string, string | number> }) => Promise<unknown>;
+}
+
+interface ClientsWorkspaceViewProps {
+  authAxios: ClientHubAxios | null;
+  clients: ClientOption[];
+  selectedClient: ClientOption | null;
+  detailClient: MiniCardClient | null;
+  detailTab: ClientDetailTab;
+  loading: boolean;
+  manualCreateOpen: boolean;
+  deactivationConfirmation: ClientLifecycleConfirmRequest | null;
+  renderTraining: TabRenderer;
+  renderProgress: TabRenderer;
+  renderBiometrics: TabRenderer;
+  renderOverview: TabRenderer;
+  renderSettings: TabRenderer;
+  onSelectClient: (client: ClientOption) => void;
+  onNewClient: () => void;
+  onOpenAI: () => void;
+  onViewAsClient: () => void;
+  onDeactivateClient: () => void;
+  onReactivateClient: () => void;
+  onSendPasswordReset: () => void;
+  onManageAssignments: () => void;
+  onManualCreateClient: () => void;
+  onCloseManualCreate: () => void;
+  onManualCreate: (values: CreateClientRequest) => Promise<void>;
+  onCloseDeactivationConfirmation: () => void;
+  onLogWorkout: () => void;
+  onPlanNext: () => void;
+  onViewProgress: () => void;
+  onNavigate: (route: string) => void;
+  onShowDetailTab: (client: ClientOption, tab: ClientDetailTab) => void;
+  onClearSelectedClient: () => void;
+  onClientCardQuickAction: (client: ClientOption, action: ClientHubQuickAction) => void;
+}
+
+const hasSelectedClientDetail = (
+  selectedClient: ClientOption | null,
+  detailClient: MiniCardClient | null
+): boolean =>
+  Boolean(selectedClient && detailClient);
+
+const getLoadedClientListMode = (clients: ClientOption[]): ContentMode =>
+  clients.length === 0 ? 'empty' : 'grid';
+
+const getDirectoryContentMode = (
+  props: Pick<ClientsWorkspaceViewProps, 'loading' | 'clients'>
+): ContentMode =>
+  props.loading ? 'loading' : getLoadedClientListMode(props.clients);
+
+const getWorkspaceContentMode = (
+  props: Pick<ClientsWorkspaceViewProps, 'selectedClient' | 'detailClient' | 'loading' | 'clients'>
+): ContentMode =>
+  hasSelectedClientDetail(props.selectedClient, props.detailClient)
+    ? 'detail'
+    : getDirectoryContentMode(props);
+
+const ClientActivationQueueSlot: React.FC<{
+  authAxios: ClientHubAxios | null;
+  selectedClient: ClientOption | null;
+  onSelectClient: (client: ClientOption) => void;
+  onNavigate: (route: string) => void;
+}> = ({ authAxios, selectedClient, onSelectClient, onNavigate }) => {
+  if (selectedClient || !authAxios) return null;
+
+  return (
+    <ClientActivationQueuePanel
+      authAxios={authAxios}
+      onSelectClient={onSelectClient}
+      onNavigate={onNavigate}
+    />
+  );
+};
+
+const SelectedClientHeaderSlot: React.FC<Pick<
+  ClientsWorkspaceViewProps,
+  'selectedClient' | 'onLogWorkout' | 'onPlanNext' | 'onViewProgress' | 'onOpenAI'
+>> = ({ selectedClient, onLogWorkout, onPlanNext, onViewProgress, onOpenAI }) => {
+  if (!selectedClient) return null;
+
+  return (
+    <SelectedClientTrainingHeader
+      client={selectedClient}
+      onboardingPct={getClientOnboardingPct(selectedClient)}
+      onLogToday={onLogWorkout}
+      onPlanNext={onPlanNext}
+      onViewProgress={onViewProgress}
+      onDictateAI={onOpenAI}
+    />
+  );
+};
+
+const SelectedClientDetail: React.FC<Pick<
+  ClientsWorkspaceViewProps,
+  | 'selectedClient'
+  | 'detailClient'
+  | 'detailTab'
+  | 'renderTraining'
+  | 'renderProgress'
+  | 'renderBiometrics'
+  | 'renderOverview'
+  | 'renderSettings'
+  | 'onShowDetailTab'
+  | 'onClearSelectedClient'
+>> = ({
+  selectedClient,
+  detailClient,
+  detailTab,
+  renderTraining,
+  renderProgress,
+  renderBiometrics,
+  renderOverview,
+  renderSettings,
+  onShowDetailTab,
+  onClearSelectedClient,
+}) => {
+  if (!selectedClient || !detailClient) return null;
+
+  return (
+    <DetailScrollWrap>
+      <ClientDetailView
+        client={detailClient}
+        activeTab={detailTab}
+        onTabChange={(tab) => onShowDetailTab(selectedClient, tab)}
+        onBack={onClearSelectedClient}
+        renderTraining={renderTraining}
+        renderProgress={renderProgress}
+        renderBiometrics={renderBiometrics}
+        renderOverview={renderOverview}
+        renderSettings={renderSettings}
+      />
+    </DetailScrollWrap>
+  );
+};
+
+const ClientGrid: React.FC<Pick<
+  ClientsWorkspaceViewProps,
+  'clients' | 'onSelectClient' | 'onClientCardQuickAction'
+>> = ({ clients, onSelectClient, onClientCardQuickAction }) => (
+  <CardGrid>
+    {clients.map((client) => (
+      <ClientHubGridCard
+        key={client.id}
+        client={client}
+        onSelect={onSelectClient}
+        onQuickAction={onClientCardQuickAction}
+      />
+    ))}
+  </CardGrid>
+);
+
+const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
+const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
+const EmptyContent: ContentRenderer = (props) => (
+  <ClientsWorkspaceEmptyState
+    onNewClient={props.onNewClient}
+    onManualCreate={props.onManualCreateClient}
+  />
+);
+const GridContent: ContentRenderer = (props) => <ClientGrid {...props} />;
+
+const CONTENT_RENDERERS: Record<ContentMode, ContentRenderer> = {
+  detail: DetailContent,
+  loading: LoadingContent,
+  empty: EmptyContent,
+  grid: GridContent,
+};
+
+const ClientsWorkspaceContent: React.FC<ClientsWorkspaceViewProps> = (props) => {
+  const Content = CONTENT_RENDERERS[getWorkspaceContentMode(props)];
+  return <Content {...props} />;
+};
+
+const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
+  <HubContainer>
+    <ClientsWorkspaceTopBar
+      clients={props.clients}
+      selectedClient={props.selectedClient}
+      loading={props.loading}
+      onSelectClient={props.onSelectClient}
+      onNewClient={props.onNewClient}
+      onOpenAI={props.onOpenAI}
+      onViewAsClient={props.onViewAsClient}
+      onDeactivateClient={props.onDeactivateClient}
+      onReactivateClient={props.onReactivateClient}
+      onSendPasswordReset={props.onSendPasswordReset}
+      onManageAssignments={props.onManageAssignments}
+      onManualCreateClient={props.onManualCreateClient}
+    />
+    <CreateClientModal
+      open={props.manualCreateOpen}
+      onClose={props.onCloseManualCreate}
+      onSubmit={props.onManualCreate}
+    />
+    <ClientLifecycleConfirmDialog
+      request={props.deactivationConfirmation}
+      onClose={props.onCloseDeactivationConfirmation}
+    />
+    <ClientActivationQueueSlot
+      authAxios={props.authAxios}
+      selectedClient={props.selectedClient}
+      onSelectClient={props.onSelectClient}
+      onNavigate={props.onNavigate}
+    />
+    <SelectedClientHeaderSlot
+      selectedClient={props.selectedClient}
+      onLogWorkout={props.onLogWorkout}
+      onPlanNext={props.onPlanNext}
+      onViewProgress={props.onViewProgress}
+      onOpenAI={props.onOpenAI}
+    />
+    <ContentArea>
+      <ClientsWorkspaceContent {...props} />
+    </ContentArea>
+  </HubContainer>
+);
+
+export default ClientsWorkspaceView;

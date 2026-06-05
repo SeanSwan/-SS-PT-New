@@ -1,19 +1,19 @@
 /**
  * ============================================================================
  * FILE: ClaimAccountPage.tsx
- * PURPOSE: Public landing page for clients to claim their STUB account via SWAN-XXXX code
+ * PURPOSE: Public landing page for clients to claim their STUB account via SWAN-XXXXXXXX code
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-27
  * AI VILLAGE VALIDATED: 2026-03-27
  * ============================================================================
  *
  * WHAT THIS FILE DOES:
  *   Renders a "Claim Your Account" form where Move Fitness / external clients
- *   enter their SWAN-XXXX invite code (or arrive via QR link with token pre-filled)
+ *   enter their SWAN-XXXXXXXX invite code (or arrive via QR link with token pre-filled)
  *   and set a password to activate their account.
  *
  * HOW IT FITS IN THE APP:
- *   Admin creates STUB client → generates SWAN-XXXX token → QR code / manual code
- *   Client scans QR → /claim/SWAN-XXXX → this page → POST /api/claim/activate
+ *   Admin creates STUB client → generates SWAN-XXXXXXXX token → QR code / manual code
+ *   Client scans QR → /claim/SWAN-XXXXXXXX → this page → POST /api/claim/activate
  *
  * ARCHITECTURE:
  * graph TD
@@ -202,6 +202,8 @@ const LoginLink = styled.a`
 // ─────────────────────────────────────────────────────────────
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const CLAIM_TOKEN_PLACEHOLDER = 'SWAN-XXXXXXXX';
+const CLAIM_TOKEN_MAX_LENGTH = CLAIM_TOKEN_PLACEHOLDER.length;
 
 const ClaimAccountPage: React.FC = () => {
   const { token: urlToken } = useParams<{ token?: string }>();
@@ -344,10 +346,10 @@ const ClaimAccountPage: React.FC = () => {
                   <InputField
                     id="claim-token"
                     type="text"
-                    placeholder="SWAN-XXXX"
+                    placeholder={CLAIM_TOKEN_PLACEHOLDER}
                     value={token}
                     onChange={(e) => setToken(e.target.value.toUpperCase())}
-                    maxLength={9}
+                    maxLength={CLAIM_TOKEN_MAX_LENGTH}
                     autoFocus
                     autoComplete="off"
                   />

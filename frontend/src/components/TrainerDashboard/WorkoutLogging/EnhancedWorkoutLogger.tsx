@@ -1,63 +1,27 @@
 /**
- * Enhanced Trainer Workout Logger - Integrated with My Clients View
- * =================================================================
- *
- * Seamless workout logging interface for trainers with enhanced client integration
- * Designed to work perfectly with the My Clients view and overall trainer workflow
- *
- * CORE FEATURES:
- * ✅ URL parameter client selection from My Clients view
- * ✅ Client pre-selection and information display
- * ✅ Streamlined NASM-compliant workout logging
- * ✅ Smart navigation flow (back to My Clients)
- * ✅ Honest retry state when APIs are unavailable
- * ✅ Mobile-optimized for gym tablet use
- * ✅ Real-time session deduction tracking
- * ✅ Professional stellar purple theme
- *
- * INTEGRATION POINTS:
- * - Seamless navigation from /dashboard/trainer/clients
- * - URL pattern: /dashboard/trainer/log-workout?clientId=123
- * - Automatic client data loading and validation
- * - Session count verification and warnings
- * - Return navigation to My Clients view
+ * Blueprint: EnhancedWorkoutLogger
+ * Purpose: role-aware full-page logger for trainer and scheduled-session flows.
+ * Flow: parse route state, load canonical /info, mount WorkoutLogger.
+ * Guards: strict numeric IDs, dashboard-local returnTo, retry-only failures.
+ * Client Hub: admin clients-team deep links redirect to the embedded logger.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useGlobalClient } from '../../../context/GlobalClientContext';
 import { useToast } from '../../../hooks/use-toast';
-import GlowButton from '../../ui/buttons/GlowButton';
-import { LoadingSpinner } from '../../ui/LoadingSpinner';
-import WorkoutLogger from '../../WorkoutLogger/WorkoutLogger';
 import { logger } from '@/utils/logger';
 import {
-  buildClientHubWorkoutCompleteReturnPath,
+  buildLoggerCompletionResult,
+  buildLoggerRouteContext,
+  type LoggerClient,
   normalizeDashboardReturnTo,
   parseLoggerClientId,
   parseLoggerSessionId,
+  toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
-import {
-  ActionRow,
-  CenteredLoading,
-  ErrorContainer,
-  NavigationBar,
-  WorkoutContainer,
-} from './EnhancedWorkoutLogger.styles';
-
-interface Client {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  availableSessions: number;
-  totalSessionsCompleted: number;
-  lastSessionDate?: string;
-  membershipLevel: 'basic' | 'premium' | 'elite';
-}
+import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view';
 
 const EnhancedWorkoutLogger: React.FC = () => {
   const { user, authAxios } = useAuth();
@@ -66,7 +30,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const { toast } = useToast();
 
   // State
-  const [client, setClient] = useState<Client | null>(null);
+  const [client, setClient] = useState<LoggerClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [useOriginalLogger, setUseOriginalLogger] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,31 +44,25 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const activeClientId = parseLoggerClientId(activeClient?.id);
   const clientId = routeClientId ?? activeClientId;
 
-  // Phase 17 (2026-04-20): role-aware navigation + copy.
-  // Admin lands on ClientsWorkspace (Client Hub); trainer lands on MyClientsView.
-  // Client Progress deep-link goes to the Client Hub with the clientId pre-selected
-  // (ClientsWorkspace reads `clientId` from useSearchParams and auto-selects).
-  // `AdminClientProgressView` is intentionally NOT the admin target because it
-  // owns `selectedClientId` as internal state and does not consume a URL param.
-  const isAdmin = user?.role === 'admin';
-  const backToClientsPath = isAdmin
-    ? '/dashboard/admin/client-management'
-    : '/dashboard/trainer/clients';
-  const isMasterScheduleOrigin = searchParams.get('source') === 'master-schedule';
-  const isClientHubOrigin = searchParams.get('source') === 'clients-team';
   const requestedReturnTo = normalizeDashboardReturnTo(searchParams.get('returnTo'));
-  const workflowReturnPath = requestedReturnTo ?? backToClientsPath;
-  const backToClientsLabel = requestedReturnTo && isMasterScheduleOrigin
-    ? 'Back to Schedule'
-    : requestedReturnTo && isClientHubOrigin
-      ? 'Back to Client Hub'
-      : isAdmin ? 'Back to Client Hub' : 'Back to My Clients';
-  const noClientSelectedMessage = isAdmin
-    ? 'Please select a client from Client Hub.'
-    : 'Please select a client from My Clients view.';
+  const {
+    backToClientsLabel,
+    clientHubRedirectPath,
+    isClientHubOrigin,
+    noClientSelectedMessage,
+    workflowReturnPath,
+  } = buildLoggerRouteContext({
+    requestedReturnTo,
+    routeClientId,
+    scheduledSessionId,
+    source: searchParams.get('source'),
+    userRole: user?.role,
+  });
 
   // Load client data
   const loadClientData = useCallback(async () => {
+    if (clientHubRedirectPath) return;
+
     if (!clientId) {
       setError(`No client selected. ${noClientSelectedMessage}`);
       setLoading(false);
@@ -122,33 +80,8 @@ const EnhancedWorkoutLogger: React.FC = () => {
       // middleware the WorkoutLogger client-self-route already uses.
       const response = await authAxios.get(`/api/workout-forms/client/${clientId}/info`);
 
-      if (response.data?.success && response.data.client) {
-        const c = response.data.client;
-        const responseClientId = parseLoggerClientId(c.id);
-        if (!responseClientId || responseClientId !== clientId) {
-          throw new Error('Client identity mismatch');
-        }
-        // /info returns pure camelCase. totalSessionsCompleted, lastSessionDate
-        // and membershipLevel are not in the /info response — keep defaults so
-        // the card renders without visual gaps.
-        setClient({
-          id: responseClientId,
-          firstName: c.firstName || 'Client',
-          lastName: c.lastName || '',
-          email: c.email || '',
-          phone: c.phone || undefined,
-          availableSessions: c.availableSessions ?? 0,
-          totalSessionsCompleted: 0,
-          lastSessionDate: undefined,
-          membershipLevel: 'basic',
-        });
-        // Phase 17.1 (2026-04-20): auto-mount the real WorkoutLogger on
-        // real-client success. Pre-17.1 an admin/trainer had to click
-        // through a stale placeholder before reaching the real logger.
-        setUseOriginalLogger(true);
-      } else {
-        throw new Error('Client not found or not accessible');
-      }
+      setClient(toLoggerClientFromInfoResponse(response.data, clientId));
+      setUseOriginalLogger(true);
 
     } catch (loadError) {
       logger.warn('Workout logger client info unavailable', loadError);
@@ -164,12 +97,17 @@ const EnhancedWorkoutLogger: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [clientId, authAxios, toast, noClientSelectedMessage]);
+  }, [clientHubRedirectPath, clientId, authAxios, toast, noClientSelectedMessage]);
 
   // Initialize component
   useEffect(() => {
+    if (clientHubRedirectPath) {
+      navigate(clientHubRedirectPath, { replace: true });
+      return;
+    }
+
     loadClientData();
-  }, [loadClientData]);
+  }, [clientHubRedirectPath, loadClientData, navigate]);
 
   // Navigation handlers (Phase 17: role-aware back-target, see backToClientsPath above)
   const handleBackToClients = useCallback(() => {
@@ -177,18 +115,16 @@ const EnhancedWorkoutLogger: React.FC = () => {
   }, [navigate, workflowReturnPath]);
 
   const handleWorkoutComplete = useCallback((_formData: unknown) => {
-    toast({
-      title: 'Workout Completed!',
-      description: `Workout logged for ${client?.firstName}. Workout saved and progress updated.`,
-      variant: 'default'
+    const completion = buildLoggerCompletionResult({
+      client,
+      isClientHubOrigin,
+      workflowReturnPath,
     });
 
-    const completionReturnPath = isClientHubOrigin
-      ? buildClientHubWorkoutCompleteReturnPath(workflowReturnPath)
-      : workflowReturnPath;
+    toast(completion.toast);
 
-    navigate(completionReturnPath, {
-      state: { workoutCompleted: true, clientName: `${client?.firstName} ${client?.lastName}` }
+    navigate(completion.returnPath, {
+      state: completion.navigationState,
     });
   }, [client, isClientHubOrigin, navigate, toast, workflowReturnPath]);
 
@@ -196,108 +132,20 @@ const EnhancedWorkoutLogger: React.FC = () => {
     navigate(workflowReturnPath);
   }, [navigate, workflowReturnPath]);
 
-  // Render loading state
-  if (loading) {
-    return (
-      <WorkoutContainer>
-        <CenteredLoading>
-          <LoadingSpinner message="Loading client workout interface..." />
-        </CenteredLoading>
-      </WorkoutContainer>
-    );
-  }
-
-  // Render error state
-  if (error) {
-    return (
-      <WorkoutContainer>
-        <ErrorContainer
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <AlertTriangle size={64} className="error-icon" />
-          <h3>Workout Logging Error</h3>
-          <p>{error}</p>
-          <ActionRow $center>
-            <GlowButton
-              text={backToClientsLabel}
-              theme="purple"
-              onClick={handleBackToClients}
-              leftIcon={<ArrowLeft size={18} />}
-            />
-            <GlowButton
-              text="Try Again"
-              theme="emerald"
-              size="small"
-              onClick={loadClientData}
-              leftIcon={<RefreshCw size={18} />}
-            />
-          </ActionRow>
-        </ErrorContainer>
-      </WorkoutContainer>
-    );
-  }
-
-  // If using original logger, render it
-  if (useOriginalLogger && client) {
-    // Phase 17.1 (2026-04-20): real-client paths auto-enter this branch
-    // via loadClientData success. Those users need role-aware
-    // "Back to Client Hub" / "Back to My Clients" navigation.
-    return (
-      <WorkoutContainer>
-        <NavigationBar>
-          <GlowButton
-            text={backToClientsLabel}
-            theme="cosmic"
-            size="small"
-            onClick={handleBackToClients}
-            leftIcon={<ArrowLeft size={16} />}
-          />
-        </NavigationBar>
-
-        <WorkoutLogger
-          clientId={client.id}
-          scheduledSessionId={scheduledSessionId}
-          scheduledSessionDate={scheduledSessionDate}
-          onComplete={handleWorkoutComplete}
-          onCancel={handleWorkoutCancel}
-        />
-      </WorkoutContainer>
-    );
-  }
-
   return (
-    <WorkoutContainer
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
-      <ErrorContainer
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-      >
-        <AlertTriangle size={64} className="error-icon" />
-        <h3>Workout Logger Unavailable</h3>
-        <p>Client workout data is not ready. Retry or return to clients.</p>
-        <ActionRow $center>
-          <GlowButton
-            text={backToClientsLabel}
-            theme="purple"
-            onClick={handleBackToClients}
-            leftIcon={<ArrowLeft size={18} />}
-          />
-          <GlowButton
-            text="Try Again"
-            theme="emerald"
-            size="small"
-            onClick={loadClientData}
-            leftIcon={<RefreshCw size={18} />}
-          />
-        </ActionRow>
-      </ErrorContainer>
-    </WorkoutContainer>
+    <EnhancedWorkoutLoggerView
+      backToClientsLabel={backToClientsLabel}
+      client={client}
+      error={error}
+      loading={loading}
+      scheduledSessionDate={scheduledSessionDate}
+      scheduledSessionId={scheduledSessionId}
+      useOriginalLogger={useOriginalLogger}
+      onBackToClients={handleBackToClients}
+      onRetry={loadClientData}
+      onWorkoutCancel={handleWorkoutCancel}
+      onWorkoutComplete={handleWorkoutComplete}
+    />
   );
 };
 

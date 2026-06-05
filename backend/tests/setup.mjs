@@ -10,6 +10,9 @@ import { vi } from 'vitest';
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-for-testing-only';
 process.env.JWT_EXPIRES_IN = '1h';
+process.env.STRIPE_SECRET_KEY = 'sk_test_unit';
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_unit';
+process.env.VITE_STRIPE_PUBLISHABLE_KEY = 'pk_test_unit';
 
 // Mock logger to prevent console noise during tests.
 // Phase 5 Slice 5.5 — also re-export redactString / redactValue from the
@@ -39,29 +42,31 @@ vi.mock('../services/emailService.mjs', () => ({
 // Mock Stripe (for payment tests)
 vi.mock('stripe', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      checkout: {
-        sessions: {
-          create: vi.fn().mockResolvedValue({
-            id: 'cs_test_123',
-            url: 'https://checkout.stripe.com/test',
-            payment_status: 'unpaid',
-          }),
-          retrieve: vi.fn().mockResolvedValue({
-            id: 'cs_test_123',
-            payment_status: 'paid',
-            amount_total: 175000,
-            customer_details: { email: 'test@example.com' },
+    default: vi.fn(function MockStripe() {
+      return {
+        checkout: {
+          sessions: {
+            create: vi.fn().mockResolvedValue({
+              id: 'cs_test_123',
+              url: 'https://checkout.stripe.com/test',
+              payment_status: 'unpaid',
+            }),
+            retrieve: vi.fn().mockResolvedValue({
+              id: 'cs_test_123',
+              payment_status: 'paid',
+              amount_total: 175000,
+              customer_details: { email: 'test@example.com' },
+            }),
+          },
+        },
+        webhooks: {
+          constructEvent: vi.fn().mockReturnValue({
+            type: 'checkout.session.completed',
+            data: { object: { id: 'cs_test_123', metadata: { cartId: '1' } } },
           }),
         },
-      },
-      webhooks: {
-        constructEvent: vi.fn().mockReturnValue({
-          type: 'checkout.session.completed',
-          data: { object: { id: 'cs_test_123', metadata: { cartId: '1' } } },
-        }),
-      },
-    })),
+      };
+    }),
   };
 });
 

@@ -45,6 +45,35 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
 
+  it('shows planner-saved planData goal and duration when top-level fields are absent', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        plans: [
+          {
+            id: 88,
+            title: '12 Month Strength Arc',
+            status: 'draft',
+            nasmPhase: 3,
+            updatedAt: '2026-06-02T12:00:00.000Z',
+            planData: {
+              goal: 'strength',
+              planSummary: {
+                durationWeeks: 48,
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText('12 Month Strength Arc')).toBeInTheDocument();
+    expect(screen.getByText(/48 weeks/i)).toBeInTheDocument();
+    expect(screen.getByText(/^strength$/i)).toBeInTheDocument();
+  });
+
   it('blocks malformed client ids before calling the workout-plan API', () => {
     render(<ClientWorkoutPlansPanel clientId="fixture-424242" clientName="Fixture Client" />);
 

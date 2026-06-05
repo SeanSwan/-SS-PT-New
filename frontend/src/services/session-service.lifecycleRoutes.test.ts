@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const serviceSource = readFileSync(resolve(__dirname, './session-service.ts'), 'utf8');
 
 const axiosMocks = vi.hoisted(() => ({
   axiosInstance: {
@@ -17,6 +23,19 @@ import sessionService from './session-service';
 
 describe('legacy global session-service lifecycle routes', () => {
   beforeEach(() => {
+    axiosMocks.axiosInstance.get.mockResolvedValue({
+      data: [
+        {
+          id: 10,
+          name: 'SwanStudios 10-Pack',
+          description: '10 personal training sessions.',
+          sessions: 10,
+          price: 1750,
+          savings: 0,
+          popular: false
+        }
+      ]
+    });
     axiosMocks.authAxiosInstance.post.mockResolvedValue({
       data: {
         message: 'Session booked successfully',
@@ -48,5 +67,18 @@ describe('legacy global session-service lifecycle routes', () => {
       reason: 'Client requested cancellation'
     });
     expect(axiosMocks.authAxiosInstance.post).not.toHaveBeenCalled();
+  });
+
+  it('matches the numeric StorefrontItem contract for direct session packages', async () => {
+    expect(serviceSource).toContain('id: number;');
+    expect(serviceSource).toContain('async purchaseSessionPackage(packageId: number | string)');
+
+    const packages = await sessionService.getSessionPackages();
+
+    expect(packages.data?.[0].id).toBe(10);
+    await sessionService.purchaseSessionPackage(10);
+    expect(axiosMocks.authAxiosInstance.post).toHaveBeenCalledWith('/api/session-packages/purchase', {
+      packageId: 10
+    });
   });
 });

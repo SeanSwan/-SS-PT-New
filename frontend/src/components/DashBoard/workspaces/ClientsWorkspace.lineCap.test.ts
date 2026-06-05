@@ -12,9 +12,12 @@ describe('ClientsWorkspace decomposition', () => {
   });
 
   it('extracts the empty Client Hub state instead of growing the route component', () => {
-    const source = readWorkspaceFile('ClientsWorkspace.tsx');
+    const routeSource = readWorkspaceFile('ClientsWorkspace.tsx');
+    const viewSource = readWorkspaceFile('ClientsWorkspace.view.tsx');
 
-    expect(source).toContain("import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState'");
-    expect(source).toContain('<ClientsWorkspaceEmptyState');
+    expect(routeSource).toContain("import ClientsWorkspaceView from './ClientsWorkspace.view'");
+    expect(routeSource).toContain('<ClientsWorkspaceView');
+    expect(viewSource).toContain("import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState'");
+    expect(viewSource).toContain('<ClientsWorkspaceEmptyState');
   });
 });

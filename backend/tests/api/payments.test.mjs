@@ -133,9 +133,21 @@ describe('Payment Flow API', () => {
       expect(source).toMatch(/where:\s*\{\s*id:\s*normalizedCartId,[\s\S]*userId,[\s\S]*status:\s*'active'/);
     });
 
+    it('keeps v2 checkout Stripe session metadata server-owned', () => {
+      const source = readFileSync(resolve(__dirname, '../../routes/v2PaymentRoutes.mjs'), 'utf8');
+
+      expect(source).toContain('const { cartId, customerInfo } = req.body;');
+      expect(source).toContain("source: 'genesis_checkout'");
+      expect(source).not.toContain('...(metadata || {})');
+    });
+
     it('keeps mounted alternate checkout creators behind Stripe idempotency keys', () => {
       const cartSource = readFileSync(resolve(__dirname, '../../routes/cartRoutes.mjs'), 'utf8');
       const packageSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
+      const packageFulfillmentSource = readFileSync(
+        resolve(__dirname, '../../services/sessionPackageCheckoutFulfillmentService.mjs'),
+        'utf8',
+      );
       const subscriptionSource = readFileSync(resolve(__dirname, '../../routes/subscriptionRoutes.mjs'), 'utf8');
       const gallerySource = readFileSync(resolve(__dirname, '../../routes/galleryRoutes.mjs'), 'utf8');
       const achSource = readFileSync(resolve(__dirname, '../../routes/achPaymentRoutes.mjs'), 'utf8');
@@ -144,11 +156,12 @@ describe('Payment Flow API', () => {
       expect(cartSource).toContain('buildStripeIdempotencyKey');
       expect(cartSource).toMatch(/checkout\.sessions\.create\(sessionOptions,\s*\{\s*idempotencyKey\s*\}\)/);
       expect(packageSource).toContain('session-package-checkout');
-      expect(packageSource).toContain('session-package-webhook:${session.id}');
-      expect(packageSource).toContain('claimIdempotentRecord');
-      expect(packageSource).toMatch(/lookupWhere:\s*\{\s*idempotencyKey:\s*fulfillmentKey\s*\}/);
-      expect(packageSource).toMatch(/createValues:\s*\{[\s\S]*idempotencyKey:\s*fulfillmentKey/);
-      expect(packageSource).toMatch(/user\.increment\('availableSessions'[\s\S]*transaction/);
+      expect(packageSource).toContain('fulfillSessionPackageCheckoutSession(session)');
+      expect(packageFulfillmentSource).toContain('session-package-webhook:${sessionId}');
+      expect(packageFulfillmentSource).toContain('claimIdempotentRecord');
+      expect(packageFulfillmentSource).toMatch(/lookupWhere:\s*\{\s*idempotencyKey:\s*fulfillmentKey\s*\}/);
+      expect(packageFulfillmentSource).toMatch(/createValues:\s*\{[\s\S]*idempotencyKey:\s*fulfillmentKey/);
+      expect(packageFulfillmentSource).toMatch(/user\.increment\('availableSessions'[\s\S]*transaction/);
       expect(packageSource).toMatch(/checkout\.sessions\.create\([\s\S]*\},\s*\{\s*idempotencyKey\s*\}\s*\)/);
       expect(subscriptionSource).toContain('subscription-donation-checkout');
       expect(subscriptionSource).toContain('subscription-checkout');
@@ -164,6 +177,15 @@ describe('Payment Flow API', () => {
       expect(offlineSource).toContain('effectiveIdempotencyKey');
       expect(offlineSource).toContain('offline-payment:${userId}:${paymentMethod}');
       expect(offlineSource).toContain('Order.findOne({ where: { userId, idempotencyKey: effectiveIdempotencyKey } })');
+    });
+
+    it('returns direct session-package checkouts to the canonical checkout result routes', () => {
+      const packageSource = readFileSync(resolve(__dirname, '../../routes/sessionPackageRoutes.mjs'), 'utf8');
+
+      expect(packageSource).toContain('success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`');
+      expect(packageSource).toContain('cancel_url: `${baseUrl}/checkout/cancel?reason=session_package_cancelled`');
+      expect(packageSource).not.toContain('/sessions/purchase-success');
+      expect(packageSource).not.toContain('/sessions/purchase-cancel');
     });
   });
 

@@ -13,10 +13,29 @@ You are continuing SwanStudios in the SS-PT repo at C:\Users\BigotSmasher\Deskto
 
 Continue from the current priority: make the app useful for Sean's daily training operations. Prioritize client onboarding/account readiness, workout logging, saved workout plans, progress/chart truth, session deduction rules, and Swan Coach AI dictation flows over decorative polish. The app must support Move Fitness clients as free/internal tracked clients and SwanStudios clients as paid clients whose purchased sessions are deducted when eligible workouts/sessions are completed. Trainers/admins need mobile-first, low-tap workflows: find client, start/log session, dictate or type notes, save, show charts, and choose the next workout plan.
 
+Operate recursively. After each narrow fix is verified, do not stop at "done" if the same surface still has an obvious adjacent blocker. Re-read the verified evidence, identify the next highest-value issue in the same product loop, write or update a focused test, implement the smallest defensible fix, verify it, and hostile-review it before moving again. Never claim "100% fixed"; report exactly which caller path was verified and which risks remain.
+
 Follow all protocol rules. Before UI/data-truth code, produce a Canonical Surface Receipt. Use TDD when feasible. After each implementation slice, run verification, run hostile review, fix concrete findings, then report with plain-English and technical summaries. Use the new static intelligence gate: run npm run code-health:audit for local working-tree checks and report whether findings are clean, warn, or deferred. Do not run broad auto-fix or delete files without evidence and Sean approval. Push only with Sean's explicit permission.
 
-Recommended next slice: Client Training Operations Readiness Audit. Trace the canonical admin/trainer/client surfaces for Clients & Team, Coach Command Center, Workout tab/workout builder, Workout Logger, Universal Master Schedule, session purchase/deduction, saved plans, and progress charts. Classify canonical vs legacy/dormant surfaces. Identify the shortest implementation path so Sean can onboard clients, log workouts, persist plans/history, deduct sessions correctly, and show professional progress proof to clients. Then implement the highest-value narrow fix from that audit.
+Recommended next slice: continue the Client Training Operations Readiness Audit through the highest-value adjacent workflow, not a broad rewrite. Trace canonical admin/trainer/client surfaces for Clients & Team, Coach Command Center, Workout tab/workout builder, Workout Logger, Universal Master Schedule, session purchase/deduction, saved plans, and progress charts. Classify canonical vs legacy/dormant surfaces. Identify the shortest implementation path so Sean can onboard clients, log workouts, persist plans/history, deduct sessions correctly, and show professional progress proof to clients. Then implement the highest-value narrow fix from that audit.
 ```
+
+## Current Recursive Work Loop
+
+Sean explicitly wants Codex to keep recursively finding and fixing important functional issues after each narrow slice, instead of stopping after one green test run.
+
+Use this loop:
+
+1. Prove the current canonical surface with file:line evidence.
+2. Classify duplicate/competing/dormant routes or components for the touched workflow.
+3. Pick one issue that directly improves real training operations.
+4. Write or update a focused failing test first when production code must change.
+5. Implement the smallest fix that preserves the canonical workflow.
+6. Run targeted tests, relevant build/test, and `npm run code-health:audit`.
+7. Hostile-review the slice and fix concrete findings.
+8. Report exact verified paths and residual risks, then continue to the next adjacent issue if the same workflow still has a blocker.
+
+Do not convert this into broad cleanup, speculative redesign, dependency deletion, or mass refactor. Recursive means evidence-driven next slice, not unbounded churn.
 
 ## What Just Changed
 
@@ -25,6 +44,8 @@ Recommended next slice: Client Training Operations Readiness Audit. Trace the ca
 - `.fallowrc.json` was added with conservative ignores and warning-level startup rules.
 - `.gitignore` now ignores `.fallow/`.
 - `package-lock.json` was created at the root because Fallow is installed as a root dev dependency.
+- Current in-progress Client Hub route consolidation keeps Client Hub `Log Today`, grid-card `Log`, and `?intent=log_workout` actions inside `/dashboard/admin/client-management?clientId=:id&tab=training&trainingSection=logger` instead of navigating to `/dashboard/admin/log-workout`.
+- Next adjacent issue: audit the full-page admin/trainer `/log-workout` routes. Decide and test whether routes with `clientId` should redirect into the Client Hub embedded logger for admin client-management flows, while preserving valid trainer and no-client fallback behavior.
 
 ## New Code-Health Gate
 
@@ -168,4 +189,4 @@ Findings fixed before finalizing:
 
 ## Immediate Next Move
 
-Run the Client Training Operations Readiness Audit, then implement the first narrow P0 fix that directly helps Sean onboard clients, log workouts, persist history, deduct sessions correctly, or show progress proof.
+Continue the recursive Client Training Operations Readiness Audit. Start with the next adjacent routing issue: `/dashboard/admin/log-workout` still mounts `EnhancedWorkoutLogger` and may compete with the Client Hub embedded logger when a client context exists. Produce the Canonical Surface Receipt, classify the competing paths, write the failing route/behavior test first, then implement the narrowest fix that keeps daily client logging in the canonical Client Hub without breaking trainer/no-client logging fallbacks.
