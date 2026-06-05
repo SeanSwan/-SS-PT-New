@@ -1,39 +1,14 @@
 import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Copy, TrendingUp, TrendingDown, UploadCloud, X, Scale, Ruler, Activity } from 'lucide-react';
-import {
-  VictoryChart,
-  VictoryArea,
-  VictoryLine,
-  VictoryAxis,
-  VictoryTooltip,
-  VictoryVoronoiContainer,
-  VictoryLegend,
-  VictoryPolarAxis,
-} from 'victory';
+import { Save, Copy, TrendingUp, TrendingDown, UploadCloud, X, Ruler } from 'lucide-react';
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import GlowButton from '../../../ui/buttons/GlowButton';
 import {
-  BODY_FAT_LINE_STYLE,
-  CHART_ANIMATION,
-  CHART_AXIS_STYLE,
-  DEPENDENT_AXIS_STYLE,
-  LEGEND_STYLE,
-  RADAR_AXIS_STYLE,
-  RADAR_CURRENT_AREA_STYLE,
-  RADAR_DEPENDENT_AXIS_STYLE,
-  RADAR_FIRST_AREA_STYLE,
-  TREND_CHART_PADDING,
-  VICTORY_TOOLTIP_FLYOUT_STYLE,
-  VICTORY_TOOLTIP_STYLE,
-  WAIST_LINE_STYLE,
-  WEIGHT_AREA_STYLE,
   containerVariants,
   itemVariants,
   measurementFields,
-  victoryElement,
 } from './MeasurementEntry.config';
 import type {
   BodyMeasurement,
@@ -44,9 +19,7 @@ import type {
   RecentMeasurement,
 } from './MeasurementEntry.types';
 import {
-  AccentStat,
   BodyText,
-  CenteredStatsRow,
   ChangeCenter,
   DarkPanel,
   FieldLabel,
@@ -99,24 +72,13 @@ import {
   TightSectionTitle,
 } from './MeasurementEntry.modalStyles';
 import {
-  ChartRow,
-  ChartTitle3D,
-  ChartWrapper3D,
-  HeroMetricCard,
-  HeroMetricGrid,
-  HeroMetricIcon,
-  HeroMetricLabel,
-  HeroMetricUnit,
-  HeroMetricValue,
-  ProgressGraphSection,
-} from './MeasurementEntry.chartStyles';
-import {
   buildRadarData,
   buildTrendData,
   filterClients,
   mapRawClients,
 } from './MeasurementEntry.dataUtils';
 import { getMeasurementChange } from './MeasurementEntry.changeUtils';
+import MeasurementEntryProgressCharts from './MeasurementEntryProgressCharts';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -640,148 +602,12 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
 
       {/* ── 3D Progress Graph Section ── */}
       <AnimatePresence>
-        {selectedClient && trendData.length >= 2 && (
-          <ProgressGraphSection
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          >
-            <GlassPanel>
-              <SectionTitle>Progress at a Glance</SectionTitle>
-
-              {/* Hero Metric Cards */}
-              {stats?.totalChange && (
-                <HeroMetricGrid>
-                  {[
-                    { label: 'Weight Change', value: stats.totalChange.weight, unit: 'lbs', Icon: Scale },
-                    { label: 'Body Fat Change', value: stats.totalChange.bodyFat, unit: '%', Icon: Activity },
-                    { label: 'Waist Change', value: stats.totalChange.waist, unit: 'in', Icon: Ruler },
-                  ].map(({ label, value, unit, Icon }) => {
-                    const numVal = value !== null && value !== undefined ? Number(value) : null;
-                    const isPositiveChange = numVal !== null && numVal < 0;
-                    return (
-                      <HeroMetricCard
-                        key={label}
-                        $positive={isPositiveChange}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.4 }}
-                      >
-                        <HeroMetricIcon $positive={isPositiveChange}>
-                          <Icon size={18} />
-                        </HeroMetricIcon>
-                        <HeroMetricLabel>{label}</HeroMetricLabel>
-                        <HeroMetricValue $positive={isPositiveChange}>
-                          {numVal !== null ? (
-                            <>
-                              {numVal > 0 ? '+' : ''}{numVal.toFixed(1)}
-                              <HeroMetricUnit>{unit}</HeroMetricUnit>
-                            </>
-                          ) : '—'}
-                        </HeroMetricValue>
-                      </HeroMetricCard>
-                    );
-                  })}
-                </HeroMetricGrid>
-              )}
-
-              {/* Charts Row: Area + Radar side by side on desktop */}
-              <ChartRow>
-                {/* 3D Area Chart — Trend Over Time */}
-                <ChartWrapper3D>
-                  <div>
-                    <ChartTitle3D>Trend Over Time</ChartTitle3D>
-                    <VictoryChart
-                      height={300}
-                      padding={TREND_CHART_PADDING}
-                      animate={CHART_ANIMATION}
-                      containerComponent={
-                        <VictoryVoronoiContainer
-                          labels={({ datum }) => `${datum.date}\nWeight: ${datum.weight?.toFixed(1) ?? '—'} lbs\nBody Fat: ${datum.bodyFat?.toFixed(1) ?? '—'}%\nWaist: ${datum.waist?.toFixed(1) ?? '—'} in`}
-                          labelComponent={
-                            victoryElement(VictoryTooltip, {
-                              flyoutStyle: VICTORY_TOOLTIP_FLYOUT_STYLE,
-                              style: VICTORY_TOOLTIP_STYLE,
-                              cornerRadius: 8,
-                            })
-                          }
-                        />
-                      }
-                    >
-                      {victoryElement(VictoryAxis, { style: CHART_AXIS_STYLE })}
-                      {victoryElement(VictoryAxis, { dependentAxis: true, label: 'lbs / in', style: DEPENDENT_AXIS_STYLE })}
-                      {victoryElement(VictoryArea, { data: trendData, x: 'date', y: 'weight', style: WEIGHT_AREA_STYLE })}
-                      {victoryElement(VictoryLine, { data: trendData, x: 'date', y: 'bodyFat', style: BODY_FAT_LINE_STYLE })}
-                      {victoryElement(VictoryLine, { data: trendData, x: 'date', y: 'waist', style: WAIST_LINE_STYLE })}
-                    </VictoryChart>
-                    {victoryElement(VictoryLegend, {
-                      orientation: 'horizontal',
-                      gutter: 20,
-                      height: 30,
-                      style: LEGEND_STYLE,
-                      colorScale: ['#8B5CF6', '#8B5CF6', '#4ECDC4'],
-                      data: [
-                        { name: 'Weight (lbs)' },
-                        { name: 'Body Fat (%)' },
-                        { name: 'Waist (in)' },
-                      ],
-                    })}
-                  </div>
-                </ChartWrapper3D>
-
-                {/* Radar Chart — Body Shape Comparison */}
-                {radarData.length >= 3 && (
-                  <ChartWrapper3D>
-                    <div>
-                      <ChartTitle3D>Body Shape: First vs Now</ChartTitle3D>
-                      <VictoryChart
-                        polar
-                        height={300}
-                        animate={CHART_ANIMATION}
-                      >
-                        {victoryElement(VictoryPolarAxis, {
-                          tickValues: radarData.map((_, i) => i),
-                          tickFormat: radarData.map((d) => d.metric),
-                          style: RADAR_AXIS_STYLE,
-                        })}
-                        {victoryElement(VictoryPolarAxis, {
-                          dependentAxis: true,
-                          style: RADAR_DEPENDENT_AXIS_STYLE,
-                        })}
-                        {victoryElement(VictoryArea, {
-                          data: radarData.map((d, i) => ({ x: i, y: d.first })),
-                          style: RADAR_FIRST_AREA_STYLE,
-                        })}
-                        {victoryElement(VictoryArea, {
-                          data: radarData.map((d, i) => ({ x: i, y: d.current })),
-                          style: RADAR_CURRENT_AREA_STYLE,
-                        })}
-                      </VictoryChart>
-                      {victoryElement(VictoryLegend, {
-                        orientation: 'horizontal',
-                        gutter: 20,
-                        height: 30,
-                        style: LEGEND_STYLE,
-                        colorScale: ['#8B5CF6', '#50A0F0'],
-                        data: [{ name: 'First' }, { name: 'Current' }],
-                      })}
-                    </div>
-                  </ChartWrapper3D>
-                )}
-              </ChartRow>
-
-              {/* Summary stats */}
-              {stats && (
-                <CenteredStatsRow $gap={24} $centerWrap>
-                  <BodyText>
-                    <AccentStat>{stats.totalMeasurements}</AccentStat> measurements over{' '}
-                    <AccentStat>{stats.daysSinceStart}</AccentStat> days
-                  </BodyText>
-                </CenteredStatsRow>
-              )}
-            </GlassPanel>
-          </ProgressGraphSection>
+        {selectedClient && (
+          <MeasurementEntryProgressCharts
+            stats={stats}
+            trendData={trendData}
+            radarData={radarData}
+          />
         )}
       </AnimatePresence>
 
