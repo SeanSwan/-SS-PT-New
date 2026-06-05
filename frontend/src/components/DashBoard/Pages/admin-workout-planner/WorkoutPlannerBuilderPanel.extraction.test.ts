@@ -6,12 +6,14 @@ const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
 const pageSource = read('WorkoutPlannerPage.tsx');
+const layoutSource = read('WorkoutPlannerPageLayout.tsx');
 const panelPath = resolve(__dirname, 'WorkoutPlannerBuilderPanel.tsx');
 const panelSource = existsSync(panelPath) ? readFileSync(panelPath, 'utf8') : '';
 
 describe('WorkoutPlanner builder panel extraction', () => {
   it('keeps manual workout builder rendering outside the page shell', () => {
-    expect(pageSource).toContain("from './WorkoutPlannerBuilderPanel'");
+    expect(pageSource).toContain("from './WorkoutPlannerPageLayout'");
+    expect(layoutSource).toContain("from './WorkoutPlannerBuilderPanel'");
     expect(pageSource).not.toContain('<DegradedPanel');
     expect(pageSource).not.toContain('<BuilderRow');
     expect(pageSource).not.toContain('<ExplanationsPanel');

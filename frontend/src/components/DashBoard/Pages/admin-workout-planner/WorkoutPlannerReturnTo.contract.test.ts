@@ -6,6 +6,7 @@ const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pag
 const stripSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStatusAssistantStrip.tsx'), 'utf8');
 const commandPanelSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.tsx'), 'utf8');
 const clientStateHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts'), 'utf8');
+const pageActionsHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPageActions.ts'), 'utf8');
 const loadPlanHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts'), 'utf8');
 
 describe('WorkoutPlannerPage returnTo contract', () => {
@@ -13,7 +14,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
     expect(source).toContain("useNavigate");
     expect(source).toContain("searchParams.get('returnTo')");
     expect(source).toContain("rawReturnTo.startsWith('/dashboard/')");
-    expect(source).toContain("navigate(plannerReturnTo)");
+    expect(pageActionsHookSource).toContain('navigate(plannerReturnTo)');
     expect(commandPanelSource).toContain('Back to Client Hub');
   });
 

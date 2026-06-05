@@ -8,9 +8,11 @@ const read = (fileName: string) =>
 describe('WorkoutPlannerPage local style extraction', () => {
   it('keeps the canonical planner page focused on planning behavior', () => {
     const source = read('WorkoutPlannerPage.tsx');
+    const layoutSource = read('WorkoutPlannerPageLayout.tsx');
     const builderSource = read('WorkoutPlannerBuilderPanel.tsx');
 
-    expect(source).toContain("from './WorkoutPlannerBuilderPanel'");
+    expect(source).toContain("from './WorkoutPlannerPageLayout'");
+    expect(layoutSource).toContain("from './WorkoutPlannerBuilderPanel'");
     expect(source).not.toContain("from './WorkoutPlannerPage.styles'");
     expect(builderSource).toContain("from './WorkoutPlannerPage.styles'");
     expect(source).not.toContain("import styled from 'styled-components'");

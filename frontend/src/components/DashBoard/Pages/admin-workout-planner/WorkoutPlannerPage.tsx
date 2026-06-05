@@ -12,23 +12,19 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
-import TeachModeSidebar from './TeachModeSidebar';
-import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
-import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
-import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
-import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
-import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
-import WorkoutPlannerStatusAssistantStrip, {
+import WorkoutPlannerPageLayout from './WorkoutPlannerPageLayout';
+import {
   type WorkoutPlannerStatusMessage,
 } from './WorkoutPlannerStatusAssistantStrip';
 import { useWorkoutPlannerClientState } from './useWorkoutPlannerClientState';
 import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGenerationActions';
+import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
-import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
+import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import { parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 
 import {
@@ -37,7 +33,6 @@ import {
   OPT_PHASES,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
-import { Page, ThreePanel } from './WorkoutPlannerStyles';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -239,177 +234,56 @@ const WorkoutPlannerPage: React.FC = () => {
     setStatusMsg,
   });
 
-  // ── Remove Exercise ──
-  const removeExercise = useCallback((id: string) => {
-    setPlanExercises(prev => prev.filter(p => p.id !== id));
-  }, []);
+  const {
+    removeExercise,
+    updateExercise,
+    handleLoadPlan,
+    handleReturnToClientHub,
+    handleTeachModeToggle,
+    handlePlanDurationChange,
+    handleDuplicateLoadedPlan,
+    handleBrowseAddExercise,
+  } = useWorkoutPlannerPageActions({
+    plannerReturnTo,
+    navigate,
+    isDirty,
+    loadedPlanId,
+    loadedPlanName,
+    loadPlanIntoBuilder,
+    handleCardDuplicate,
+    clearSearchForBrowse,
+    setTeachModeOpen,
+    setPlanDuration,
+    setGeneratedPlan,
+    setPlanExercises,
+    setConfirmRequest,
+  });
 
-  // ── Update Exercise Params ──
-  const updateExercise = useCallback((id: string, field: keyof PlanExercise, value: unknown) => {
-    setPlanExercises(prev =>
-      prev.map(p => p.id === id ? { ...p, [field]: value } : p)
-    );
-  }, []);
-
-  const handleLoadPlan = useCallback((planId: string, planName: string) => {
-    if (isDirty) {
-      setConfirmRequest({
-        title: 'Discard unsaved builder changes?',
-        message: `Load "${planName}" and replace the exercises currently in the builder.`,
-        confirmLabel: 'Load plan',
-        tone: 'warning',
-        onConfirm: () => loadPlanIntoBuilder(planId, planName),
-      });
-      return;
-    }
-
-    void loadPlanIntoBuilder(planId, planName);
-  }, [isDirty, loadPlanIntoBuilder]);
-
-  const handleReturnToClientHub = useCallback(() => {
-    if (plannerReturnTo) navigate(plannerReturnTo);
-  }, [navigate, plannerReturnTo]);
-
-  const handleTeachModeToggle = useCallback(() => {
-    setTeachModeOpen(value => !value);
-  }, []);
-
-  const handlePlanDurationChange = useCallback((nextDuration: PlanDuration) => {
-    setPlanDuration(nextDuration);
-    setGeneratedPlan(null);
-    setPlanExercises([]);
-  }, []);
-
-  const handleDuplicateLoadedPlan = useCallback(() => {
-    if (!loadedPlanId) return;
-    handleCardDuplicate(loadedPlanId, loadedPlanName || 'plan');
-  }, [handleCardDuplicate, loadedPlanId, loadedPlanName]);
-
-  const handleBrowseAddExercise = useCallback(() => {
-    clearSearchForBrowse();
-  }, [clearSearchForBrowse]);
-
-  return (
-    <Page>
-      <WorkoutPlannerCommandPanel
-        plannerReturnTo={plannerReturnTo}
-        teachModeOpen={teachModeOpen}
-        clients={clients}
-        clientsLoading={clientsLoading}
-        selectedClientId={selectedClientId}
-        selectedClient={selectedClient}
-        phaseNumber={phaseNumber}
-        category={category}
-        goal={goal}
-        planDuration={planDuration}
-        sessionsPerWeek={sessionsPerWeek}
-        generating={generating}
-        generatingPlan={generatingPlan}
-        clientGenBlocked={clientGenBlocked}
-        clientSelfGenStatus={clientSelfGenStatus}
-        isViewerClient={isViewerClient}
-        onReturnToClientHub={handleReturnToClientHub}
-        onTeachModeToggle={handleTeachModeToggle}
-        onClientSelectionChange={handleClientSelectionChange}
-        onPhaseNumberChange={setPhaseNumber}
-        onCategoryChange={setCategory}
-        onGoalChange={setGoal}
-        onPlanDurationChange={handlePlanDurationChange}
-        onSessionsPerWeekChange={setSessionsPerWeek}
-        onGenerateSingle={requestAIGenerateForSelectedClient}
-        onGeneratePlan={requestPlanGenerateForSelectedClient}
-      />
-
-      <WorkoutPlannerStatusAssistantStrip
-        statusMsg={statusMsg}
-        plannerReturnTo={plannerReturnTo}
-        selectedClientId={selectedClientId}
-        degradedIntelligence={degradedIntelligence}
-        hasPlanExercises={planExercises.length > 0}
-        onReturnToClientHub={handleReturnToClientHub}
-        onDismissStatus={() => setStatusMsg(null)}
-      />
-
-      {/* Three-Panel Layout */}
-      <ThreePanel $teachModeOpen={teachModeOpen}>
-        <WorkoutPlannerRolodexPanel
-          filteredExerciseCount={filteredExerciseCount}
-          exercisesLoading={exercisesLoading}
-          searchQuery={searchQuery}
-          filterCategory={filterCategory}
-          sourceFilter={sourceFilter}
-          exerciseTypeFilter={exerciseTypeFilter}
-          equipmentFilter={equipmentFilter}
-          impactFilter={impactFilter}
-          exerciseRowRenderer={exerciseRowRenderer}
-          onSearchQueryChange={setSearchQuery}
-          onFilterCategoryChange={setFilterCategory}
-          onSourceFilterChange={setSourceFilter}
-          onExerciseTypeFilterChange={setExerciseTypeFilter}
-          onEquipmentFilterChange={setEquipmentFilter}
-          onImpactFilterChange={setImpactFilter}
-        />
-        {/* Center: Workout Builder */}
-        <WorkoutPlannerBuilderPanel
-          degradedIntelligence={degradedIntelligence}
-          saving={saving}
-          planExercises={planExercises}
-          hasGeneratedHorizonPlan={hasGeneratedHorizonPlan}
-          loadedPlanId={loadedPlanId}
-          savedPlans={savedPlans}
-          isDirty={isDirty}
-          generating={generating}
-          phase={phase}
-          explanations={explanations}
-          showExplanations={showExplanations}
-          onSaveDraft={handleSaveDraft}
-          onSaveAndActivate={handleSaveAndActivate}
-          onUpdateLoaded={handleUpdateLoaded}
-          onUpdateAndActivate={handleUpdateAndActivate}
-          onDuplicateLoadedPlan={handleDuplicateLoadedPlan}
-          onSelectExercise={setSelectedExercise}
-          onUpdateExercise={updateExercise}
-          onRemoveExercise={removeExercise}
-          onBrowseAddExercise={handleBrowseAddExercise}
-          onToggleExplanations={handleToggleExplanations}
-        />
-
-        {/* Right: Teach Mode (conditional) */}
-        {teachModeOpen && (
-          <TeachModeSidebar
-            exercise={selectedExercise}
-            phaseNumber={phaseNumber}
-            onPhaseChange={setPhaseNumber}
-          />
-        )}
-      </ThreePanel>
-
-      <WorkoutPlannerGeneratedPlanSection
-        generatedPlan={generatedPlan}
-        selectedMesoDay={selectedMesoDay}
-        phaseNumber={phaseNumber}
-        selectedClient={selectedClient}
-        onSelectedMesoDayChange={setSelectedMesoDay}
-        onPhaseNumberChange={setPhaseNumber}
-      />
-      <WorkoutPlannerSavedPlansSection
-        selectedClientId={selectedClientId}
-        savedPlans={savedPlans}
-        savedPlansLoading={savedPlansLoading}
-        loadedPlanId={loadedPlanId}
-        archiveBlockedFor={archiveBlockedFor}
-        onLoad={handleLoadPlan}
-        onActivate={handleCardActivate}
-        onRename={handleCardRename}
-        onDuplicate={handleCardDuplicate}
-        onArchive={handleCardArchive}
-      />
-      <WorkoutPlannerConfirmDialog
-        request={confirmRequest}
-        onClose={closeConfirmDialog}
-      />
-    </Page>
-  );
+  return <WorkoutPlannerPageLayout {...{
+    plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
+    phaseNumber, category, goal, planDuration, sessionsPerWeek, generating, generatingPlan,
+    clientGenBlocked, clientSelfGenStatus, isViewerClient, statusMsg, degradedIntelligence,
+    filteredExerciseCount, exercisesLoading, searchQuery, filterCategory, sourceFilter,
+    exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer, saving, planExercises,
+    hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
+    generatedPlan, selectedMesoDay, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
+    teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber },
+    onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
+    onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
+    onCategoryChange: setCategory, onGoalChange: setGoal, onPlanDurationChange: handlePlanDurationChange,
+    onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestAIGenerateForSelectedClient,
+    onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0,
+    onDismissStatus: () => setStatusMsg(null), onSearchQueryChange: setSearchQuery,
+    onFilterCategoryChange: setFilterCategory, onSourceFilterChange: setSourceFilter,
+    onExerciseTypeFilterChange: setExerciseTypeFilter, onEquipmentFilterChange: setEquipmentFilter,
+    onImpactFilterChange: setImpactFilter, onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
+    onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
+    onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onSelectExercise: setSelectedExercise,
+    onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
+    onToggleExplanations: handleToggleExplanations, onSelectedMesoDayChange: setSelectedMesoDay,
+    onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
+    onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onClose: closeConfirmDialog,
+  }} />;
 };
 
 export default WorkoutPlannerPage;

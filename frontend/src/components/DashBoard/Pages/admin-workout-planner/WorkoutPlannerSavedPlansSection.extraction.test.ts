@@ -6,12 +6,14 @@ const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
 const pageSource = read('WorkoutPlannerPage.tsx');
+const layoutSource = read('WorkoutPlannerPageLayout.tsx');
 const sectionPath = resolve(__dirname, 'WorkoutPlannerSavedPlansSection.tsx');
 const sectionSource = existsSync(sectionPath) ? readFileSync(sectionPath, 'utf8') : '';
 
 describe('WorkoutPlanner saved plans section extraction', () => {
   it('keeps saved-plan library rendering outside the planner page shell', () => {
-    expect(pageSource).toContain("from './WorkoutPlannerSavedPlansSection'");
+    expect(pageSource).toContain("from './WorkoutPlannerPageLayout'");
+    expect(layoutSource).toContain("from './WorkoutPlannerSavedPlansSection'");
     expect(pageSource).not.toContain('<SavedPlanCard');
     expect(pageSource).not.toContain('<SavedPlansCount');
     expect(pageSource).not.toContain('<ClipboardList');

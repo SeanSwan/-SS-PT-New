@@ -8,11 +8,13 @@ const read = (fileName: string) =>
 describe('WorkoutPlannerPage confirmation contract', () => {
   it('uses the in-app confirmation dialog instead of native browser confirms', () => {
     const pageSource = read('WorkoutPlannerPage.tsx');
+    const layoutSource = read('WorkoutPlannerPageLayout.tsx');
     const dialogSource = read('WorkoutPlannerConfirmDialog.tsx');
 
     expect(pageSource).not.toContain('window.confirm');
-    expect(pageSource).toContain("import WorkoutPlannerConfirmDialog");
-    expect(pageSource).toContain('<WorkoutPlannerConfirmDialog');
+    expect(pageSource).toContain('request: confirmRequest');
+    expect(layoutSource).toContain("import WorkoutPlannerConfirmDialog");
+    expect(layoutSource).toContain('<WorkoutPlannerConfirmDialog');
     expect(dialogSource).toContain('role="dialog"');
     expect(dialogSource).toContain('aria-modal="true"');
     expect(dialogSource).toContain('min-height: 44px');

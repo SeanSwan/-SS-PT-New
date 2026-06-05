@@ -6,12 +6,14 @@ const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
 const pageSource = read('WorkoutPlannerPage.tsx');
+const layoutSource = read('WorkoutPlannerPageLayout.tsx');
 const panelPath = resolve(__dirname, 'WorkoutPlannerCommandPanel.tsx');
 const panelSource = existsSync(panelPath) ? readFileSync(panelPath, 'utf8') : '';
 
 describe('WorkoutPlanner command panel extraction', () => {
   it('keeps header and top planner controls outside the page shell', () => {
-    expect(pageSource).toContain("from './WorkoutPlannerCommandPanel'");
+    expect(pageSource).toContain("from './WorkoutPlannerPageLayout'");
+    expect(layoutSource).toContain("from './WorkoutPlannerCommandPanel'");
     expect(pageSource).not.toContain('<Header>');
     expect(pageSource).not.toContain('<ControlRow>');
     expect(pageSource).not.toContain('<ClientSelfGenPill');
