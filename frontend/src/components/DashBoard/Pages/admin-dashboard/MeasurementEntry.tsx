@@ -33,7 +33,6 @@ import {
   containerVariants,
   itemVariants,
   measurementFields,
-  negativeIsBetter,
   victoryElement,
 } from './MeasurementEntry.config';
 import type {
@@ -117,6 +116,7 @@ import {
   filterClients,
   mapRawClients,
 } from './MeasurementEntry.dataUtils';
+import { getMeasurementChange } from './MeasurementEntry.changeUtils';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -385,25 +385,19 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   };
 
   const renderChange = (field: keyof BodyMeasurement) => {
-    const prevValue = latestMeasurement?.[field] as number | undefined;
-    const newValue = newMeasurement?.[field] as number | undefined;
-
-    if (prevValue === undefined || newValue === undefined || isNaN(prevValue) || isNaN(newValue)) {
+    const change = getMeasurementChange(field, latestMeasurement, newMeasurement);
+    if (change.kind === 'empty') {
       return <ChangeChip>N/A</ChangeChip>;
     }
 
-    const change = newValue - prevValue;
-    const isGood = negativeIsBetter.includes(field) ? change < 0 : change > 0;
-
-    if (change === 0) {
-      return <ChangeChip>&rarr; 0.0</ChangeChip>;
+    if (change.kind === 'neutral') {
+      return <ChangeChip>&rarr; {change.label}</ChangeChip>;
     }
 
     return (
-      <ChangeChip $variant={isGood ? 'success' : 'error'}>
-        {isGood ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
-        {change > 0 ? '+' : ''}
-        {change.toFixed(2)}
+      <ChangeChip $variant={change.variant}>
+        {change.variant === 'success' ? <TrendingDown size={14} /> : <TrendingUp size={14} />}
+        {change.label}
       </ChangeChip>
     );
   };
