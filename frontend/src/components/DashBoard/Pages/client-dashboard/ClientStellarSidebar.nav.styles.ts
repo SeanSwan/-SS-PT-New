@@ -35,7 +35,7 @@ export const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
     $active ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, #4070C0)'};
   background: ${({ $active }) =>
     $active
-      ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.15) 0%, transparent 100%)'
+      ? 'linear-gradient(90deg, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent) 0%, transparent 100%)'
       : 'transparent'};
   border-left: 3px solid ${({ $active }) =>
     $active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
@@ -44,14 +44,14 @@ export const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
   position: relative;
   ${({ $active }) =>
     $active &&
-    `box-shadow: inset 4px 0 12px -4px rgba(139, 92, 246, 0.4);`}
+    `box-shadow: inset 4px 0 12px -4px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);`}
   &:hover {
     background: ${({ $active }) =>
       $active
-        ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.2) 0%, transparent 100%)'
-        : 'rgba(96, 192, 240, 0.06)'};
+        ? 'linear-gradient(90deg, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent) 0%, transparent 100%)'
+        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)'};
     color: var(--text-primary, #E0ECF4);
-    border-left-color: var(--ice-wing, rgb(96, 192, 240));
+    border-left-color: var(--accent-primary, #60C0F0);
   }
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
@@ -64,7 +64,7 @@ export const NavItem = styled.button<{ $active: boolean; $collapsed: boolean }>`
     color: ${({ $active }) =>
       $active ? 'var(--accent-primary, #60C0F0)' : 'inherit'};
     filter: ${({ $active }) =>
-      $active ? 'drop-shadow(0 0 6px rgba(96, 192, 240, 0.5))' : 'none'};
+      $active ? 'drop-shadow(0 0 6px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent))' : 'none'};
     transition: all 250ms ease;
   }
 `;
@@ -101,10 +101,10 @@ export const NavTooltip = styled.div`
   z-index: 1100;
   padding: 8px 14px;
   border-radius: 8px;
-  background: rgba(26, 26, 36, 0.85);
+  background: color-mix(in srgb, var(--bg-surface, #1A1A24) 85%, transparent);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(96, 192, 240, 0.15);
-  box-shadow: 0 8px 24px rgba(10, 10, 15, 0.8);
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bg-base, #0A0A0F) 80%, transparent);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
