@@ -103,7 +103,7 @@ export const VoiceImportPanel = styled.section`
   padding: 1rem;
   border-radius: 8px;
   border: 1px solid var(--border-subtle, ${withAlpha(CS.gaming, 0.2)});
-  background: var(--bg-elevated, rgba(20, 20, 25, 0.68));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #141419) 68%, transparent));
 `;
 
 export const VoiceImportHeader = styled.div`
@@ -121,7 +121,7 @@ export const VoiceImportHeader = styled.div`
 
   p {
     margin: 0;
-    color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+    color: var(--text-secondary, #8BA8C8);
     font-size: 0.875rem;
     line-height: 1.45;
   }

@@ -44,6 +44,10 @@ describe('WorkoutLogger style extraction', () => {
     const source = read('WorkoutLogger.styles.ts');
 
     expect(source).toContain('var(--bg-elevated');
+    expect(source).toContain('color-mix(in srgb, var(--bg-surface, #141419) 68%, transparent)');
+    expect(source).toContain('var(--text-secondary, #8BA8C8)');
     expect(source).not.toContain('var(--surface-elevated');
+    expect(source).not.toContain('rgba(20, 20, 25, 0.68)');
+    expect(source).not.toContain('rgba(224, 236, 244, 0.72)');
   });
 });
