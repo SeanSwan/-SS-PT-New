@@ -49,7 +49,6 @@ import {
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { calcBrzycki1RM } from '../../../../../hooks/analytics/workoutAnalyticsUtils';
 import { useAuth } from '../../../../../context/AuthContext';
-import { buildWorkoutHistoryNotesDisplay } from './workoutHistoryNotes';
 import {
   formatWorkoutHistoryDate,
   formatWorkoutHistoryVolume,
@@ -70,16 +69,12 @@ import {
   updateWorkoutEditField,
   updateWorkoutExerciseNote,
 } from './workoutHistoryEditRows';
+import WorkoutHistoryExerciseNotesBlock from './WorkoutHistoryExerciseNotesBlock';
 import {
   EditActionBar,
   EditBtn,
   EditCellInput,
   EditErrorBar,
-  ExerciseNoteEditRow,
-  NotesBlock,
-  NotesEditRow,
-  NotesItem,
-  NotesLabel,
 } from './WorkoutHistoryPanel.styles';
 import {
   EmbeddedHeader,
@@ -606,100 +601,18 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                             </tbody>
                           </ExerciseTable>
 
-                          {/* Phase 15.0/15.1: per-exercise notes block.
-                              Reads `exerciseNote` directly from any row in
-                              the group (all rows in a group carry the same
-                              canonical value after the backend stamps them).
-
-                              Legacy fallback scope — NARROW BY DESIGN:
-                              only the ` · Coach: ` separator form of the
-                              Phase 13.2 encoding is auto-split via
-                              resolveExerciseNote. A bare `Coach: X` prefix
-                              is treated as a plain set note — classification
-                              safety requires we never promote it, because
-                              a trainer's own set note like "Coach: said
-                              this was heavy" would otherwise be misread as
-                              an exercise-level observation.
-
-                              Set notes are rendered verbatim: a trainer
-                              note that begins with `Coach:` shows that
-                              prefix in the set row, never a Coach line,
-                              unless the separator form made it unambiguous.
-
-                              Edit mode: the Coach input updates the entire
-                              exercise group via updateExerciseNoteForGroup;
-                              set note inputs update only their own row
-                              without any merge/split string acrobatics. */}
-                          {tableExerciseGroups.map(([exerciseName, groupSets]) => {
-                            const {
-                              exerciseNoteValue,
-                              perSetDisplay,
-                              anyNoteAtAll,
-                            } = buildWorkoutHistoryNotesDisplay(groupSets, activeLogs);
-
-                            return (
-                              <NotesBlock
-                                key={`notes-${session.id}-${exerciseName}`}
-                                data-testid={`notes-block-${session.id}-${exerciseName}`}
-                              >
-                                <NotesLabel>
-                                  <span>{exerciseName} — Notes</span>
-                                </NotesLabel>
-
-                                {isEditing ? (
-                                  <>
-                                    <ExerciseNoteEditRow>
-                                      <strong>Coach</strong>
-                                      <input
-                                        type="text"
-                                        placeholder="Exercise-level observation (e.g. knees caved on last set)"
-                                        value={exerciseNoteValue}
-                                        data-testid={`edit-notes-exercise-${session.id}-${exerciseName}`}
-                                        onChange={(e) =>
-                                          updateExerciseNoteForGroup(exerciseName, e.target.value)
-                                        }
-                                      />
-                                    </ExerciseNoteEditRow>
-                                    {perSetDisplay.map((row, i) => (
-                                      <NotesEditRow key={`edit-note-row-${row.logIndex}`}>
-                                        <strong>Set {i + 1}</strong>
-                                        <input
-                                          type="text"
-                                          placeholder="Set-specific note"
-                                          value={row.setNote}
-                                          data-testid={`edit-notes-set-${row.logIndex}`}
-                                          onChange={(e) =>
-                                            updateEditField(row.logIndex, 'notes', e.target.value)
-                                          }
-                                        />
-                                      </NotesEditRow>
-                                    ))}
-                                  </>
-                                ) : anyNoteAtAll ? (
-                                  <>
-                                    {exerciseNoteValue && (
-                                      <NotesItem data-testid={`notes-exercise-${session.id}-${exerciseName}`}>
-                                        <strong>Coach</strong>
-                                        <span>{exerciseNoteValue}</span>
-                                      </NotesItem>
-                                    )}
-                                    {perSetDisplay.map((row, i) =>
-                                      row.setNote ? (
-                                        <NotesItem key={`note-row-${row.logIndex}`}>
-                                          <strong>Set {i + 1}</strong>
-                                          <span>{row.setNote}</span>
-                                        </NotesItem>
-                                      ) : null,
-                                    )}
-                                  </>
-                                ) : (
-                                  <NotesItem $muted data-testid={`notes-empty-${session.id}-${exerciseName}`}>
-                                    <span>None given</span>
-                                  </NotesItem>
-                                )}
-                              </NotesBlock>
-                            );
-                          })}
+                          {tableExerciseGroups.map(([exerciseName, groupSets]) => (
+                            <WorkoutHistoryExerciseNotesBlock
+                              key={`notes-${session.id}-${exerciseName}`}
+                              sessionId={session.id}
+                              exerciseName={exerciseName}
+                              groupSets={groupSets}
+                              activeLogs={activeLogs}
+                              isEditing={isEditing}
+                              updateExerciseNoteForGroup={updateExerciseNoteForGroup}
+                              updateEditField={updateEditField}
+                            />
+                          ))}
 
                           {isEditing && (
                             <AddSetRow>
