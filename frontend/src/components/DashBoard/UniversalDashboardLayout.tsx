@@ -266,7 +266,7 @@ const UniversalGlobalStyles = createGlobalStyle`
   *:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
-    box-shadow: var(--shadow-focus, 0 0 16px rgba(96, 192, 240, 0.4)),
+    box-shadow: var(--shadow-focus, 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent)),
                 inset 0 0 0 1px var(--border-accent-subtle, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent));
   }
 
@@ -369,7 +369,7 @@ const MobileBackBtn = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: var(--shadow-subtle, 0 4px 16px rgba(0, 0, 0, 0.4));
+  box-shadow: var(--shadow-subtle, 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent));
   transition: all 200ms ease;
 
   &:hover {
@@ -840,7 +840,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           onClick={handleLogout}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          style={{ background: 'var(--danger-bg-soft, rgba(201, 42, 84, 0.2))' }} /* Crimson Frost */
+          style={{ background: 'var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent))' }} /* Crimson Frost */
         >
           Logout
         </UniversalButton>
@@ -1030,14 +1030,14 @@ const OmniTerminalFAB = styled.button`
   font-weight: 700;
   font-family: 'Sora', sans-serif;
   z-index: 1050;
-  box-shadow: var(--shadow-accent-lift, 0 4px 20px rgba(139, 92, 246, 0.3)),
-    var(--shadow-primary-soft, 0 0 12px rgba(96, 192, 240, 0.2));
+  box-shadow: var(--shadow-accent-lift, 0 4px 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)),
+    var(--shadow-primary-soft, 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent));
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     transform: scale(1.08);
-    box-shadow: var(--shadow-accent-strong, 0 6px 28px rgba(139, 92, 246, 0.5)),
-      var(--shadow-primary, 0 0 20px rgba(96, 192, 240, 0.3));
+    box-shadow: var(--shadow-accent-strong, 0 6px 28px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent)),
+      var(--shadow-primary, 0 0 20px color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent));
   }
 
   &:active {

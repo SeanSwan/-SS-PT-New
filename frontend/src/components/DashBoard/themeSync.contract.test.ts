@@ -25,11 +25,11 @@ describe('dashboard theme synchronization contract', () => {
     const universalLayout = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
     const adminLayout = readSource('src/components/DashBoard/AdminLayout.styles.ts');
 
-    expect(universalLayout).toContain('var(--shadow-focus, 0 0 16px rgba(96, 192, 240, 0.4))');
-    expect(universalLayout).toContain('var(--shadow-subtle, 0 4px 16px rgba(0, 0, 0, 0.4))');
-    expect(universalLayout).toContain('var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4))');
+    expect(universalLayout).toContain('var(--shadow-focus, 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent))');
+    expect(universalLayout).toContain('var(--shadow-subtle, 0 4px 16px color-mix(in srgb, var(--bg-base, #0A0A0F) 40%, transparent))');
+    expect(universalLayout).toContain('var(--shadow-accent-lift, 0 4px 20px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent))');
     expect(universalLayout).toContain('var(--text-on-accent, #FFFFFF)');
-    expect(universalLayout).toContain('var(--danger-bg-soft, rgba(201, 42, 84, 0.2))');
+    expect(universalLayout).toContain('var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent))');
     expect(universalLayout).toContain('var(--border-accent-soft');
     expect(universalLayout).toContain('var(--border-accent-medium');
     expect(adminLayout).toContain('var(--text-on-accent, #FFFFFF)');
@@ -43,6 +43,12 @@ describe('dashboard theme synchronization contract', () => {
       'color: #fff;',
       "color: 'rgba(255,255,255,0.7)'",
       "background: 'rgba(201, 42, 84, 0.2)'",
+      'var(--shadow-focus, 0 0 16px rgba(96, 192, 240, 0.4))',
+      'var(--shadow-subtle, 0 4px 16px rgba(0, 0, 0, 0.4))',
+      'var(--shadow-accent-lift, 0 4px 20px rgba(139, 92, 246, 0.3))',
+      'var(--shadow-accent-strong, 0 6px 28px rgba(139, 92, 246, 0.5))',
+      'var(--shadow-primary-soft, 0 0 12px rgba(96, 192, 240, 0.2))',
+      'var(--shadow-primary, 0 0 20px rgba(96, 192, 240, 0.3))',
     ].forEach((rawDeclaration) => {
       expect(universalLayout).not.toContain(rawDeclaration);
     });
