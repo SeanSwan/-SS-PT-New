@@ -47,9 +47,11 @@ describe('GoalProgressTracker theme bridge', () => {
     expect(combinedSource).toContain('var(--text-secondary');
     expect(combinedSource).toContain('var(--accent-primary');
     expect(combinedSource).toContain('var(--shadow-strong');
+    expect(combinedSource).toContain('var(--overlay-strong');
 
     expect(combinedSource).not.toMatch(/color:\s*#[0-9A-Fa-f]{3,8}/);
     expect(combinedSource).not.toMatch(/background:\s*#[0-9A-Fa-f]{3,8}/);
+    expect(combinedSource).not.toContain('background: rgba(0, 0, 0, 0.7)');
     expect(combinedSource).not.toContain('rgba(15,23,42');
     expect(combinedSource).not.toContain('rgba(255, 255, 255');
   });

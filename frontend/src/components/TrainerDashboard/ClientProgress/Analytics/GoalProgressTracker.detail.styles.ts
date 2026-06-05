@@ -98,7 +98,7 @@ export const ProgressCellFrame = styled.div`
 
 export const Overlay = styled.div`
   align-items: center;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--overlay-strong, rgba(0, 0, 0, 0.7));
   backdrop-filter: blur(4px);
   display: flex;
   inset: 0;
