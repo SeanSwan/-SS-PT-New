@@ -7,6 +7,10 @@ const panelSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel.tsx'),
   'utf8',
 );
+const sessionCardSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistorySessionCard.tsx'),
+  'utf8',
+);
 
 const tableSourcePath = resolve(
   process.cwd(),
@@ -17,8 +21,9 @@ describe('WorkoutHistoryExerciseTable extraction', () => {
   it('keeps exercise table cells outside the canonical panel shell', () => {
     const tableSource = readFileSync(tableSourcePath, 'utf8');
 
-    expect(panelSource).toContain("from './WorkoutHistoryExerciseTable'");
-    expect(panelSource).toContain('<WorkoutHistoryExerciseTable');
+    expect(panelSource).toContain("from './WorkoutHistorySessionCard'");
+    expect(sessionCardSource).toContain("from './WorkoutHistoryExerciseTable'");
+    expect(sessionCardSource).toContain('<WorkoutHistoryExerciseTable');
     expect(panelSource).not.toContain('calcBrzycki1RM(log.weight, log.reps)');
     expect(tableSource).toContain('export interface WorkoutHistoryExerciseTableProps');
     expect(tableSource).toContain('calcBrzycki1RM(log.weight, log.reps)');

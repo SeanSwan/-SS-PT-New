@@ -35,11 +35,7 @@
 
 import React, { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import styled from 'styled-components';
-import {
-  Dumbbell, Clock, Target,
-  ChevronDown, ChevronUp, Share2,
-  AlertTriangle,
-} from 'lucide-react';
+import { Dumbbell } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
 import { CenterContent, Spinner } from './copilot-shared-styles';
 import {
@@ -48,16 +44,9 @@ import {
   type WorkoutLogEntry,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { useAuth } from '../../../../../context/AuthContext';
-import {
-  formatWorkoutHistoryDate,
-} from './workoutHistoryFormatters';
-import {
-  groupSessionLogs,
-  sortPersonalRecords,
-} from './workoutHistoryPanelData';
+import { sortPersonalRecords } from './workoutHistoryPanelData';
 import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
-import { buildWorkoutHistoryExerciseTableState } from './workoutHistoryExerciseTableState';
 import {
   buildWorkoutHistoryShareModalState,
 } from './workoutHistorySharing';
@@ -67,13 +56,8 @@ import {
   updateWorkoutEditField,
   updateWorkoutExerciseNote,
 } from './workoutHistoryEditRows';
-import WorkoutHistoryExerciseTable from './WorkoutHistoryExerciseTable';
-import WorkoutHistoryExerciseNotesBlock from './WorkoutHistoryExerciseNotesBlock';
 import WorkoutHistoryPanelHeader, { type WorkoutHistoryPanelTab } from './WorkoutHistoryPanelHeader';
-import WorkoutHistorySessionFooter from './WorkoutHistorySessionFooter';
-import {
-  EditErrorBar,
-} from './WorkoutHistoryPanel.styles';
+import WorkoutHistorySessionCard from './WorkoutHistorySessionCard';
 import {
   EmbeddedHeader,
   EmptyState,
@@ -81,17 +65,6 @@ import {
   LoadingText,
   RetryButton,
 } from './WorkoutHistoryPanel.layoutStyles';
-import {
-  ExerciseTableViewport,
-  MetaChip,
-  SessionCard,
-  SessionHeader,
-  SessionHeaderActions,
-  SessionMeta,
-  SessionTitle,
-  SessionToggleButton,
-  ShareIconBtn,
-} from './WorkoutHistoryPanel.sessionStyles';
 import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
 
 /**
@@ -360,108 +333,26 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                 <p>No workouts recorded yet</p>
               </EmptyState>
             ) : (
-              data.sessions.map((session) => {
-                const isExpanded = expandedSessions.has(session.id);
-                  const exerciseGroups = groupSessionLogs(session);
-                  return (
-                    <SessionCard key={session.id}>
-                    <SessionHeader>
-                      <SessionToggleButton
-                        type="button"
-                        onClick={() => toggleSession(session.id)}
-                        aria-expanded={isExpanded}
-                      >
-                        <div>
-                          <SessionTitle>{session.title}</SessionTitle>
-                          <SessionMeta>
-                            <MetaChip>
-                              {formatWorkoutHistoryDate(session.date)}
-                            </MetaChip>
-                            {session.duration > 0 && (
-                              <MetaChip><Clock size={12} /> {session.duration}min</MetaChip>
-                            )}
-                            <MetaChip><Dumbbell size={12} /> {exerciseGroups.length} exercises</MetaChip>
-                            {session.intensity > 0 && (
-                              <MetaChip><Target size={12} /> {session.intensity}/10</MetaChip>
-                            )}
-                          </SessionMeta>
-                        </div>
-                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                      </SessionToggleButton>
-                      <SessionHeaderActions>
-                        <ShareIconBtn type="button" onClick={() => setShareSession(session)}
-                          aria-label={`Share ${session.title} to social feed`}>
-                          <Share2 size={12} /> Share
-                        </ShareIconBtn>
-                      </SessionHeaderActions>
-                    </SessionHeader>
-
-                    {isExpanded && (() => {
-                      // Phase 13.1: when this session is being edited, the
-                      // source of truth is editLogs; otherwise it's the
-                      // analytics-derived session.logs. Re-group the active
-                      // log set so column visibility flags reflect the live
-                      // edit buffer (e.g. adding a tempo value lights up the
-                      // Tempo column immediately).
-                      const isEditing = editingSessionId === session.id;
-                      const activeLogs: WorkoutLogEntry[] = isEditing ? editLogs : session.logs;
-                      const {
-                        hasTempo,
-                        hasRest,
-                        hasRPE,
-                        hasWeight,
-                        exerciseGroups: tableExerciseGroups,
-                      } = buildWorkoutHistoryExerciseTableState(activeLogs);
-                      return (
-                        <ExerciseTableViewport>
-                          {isEditing && saveError && (
-                            <EditErrorBar data-testid={`edit-error-${session.id}`}>
-                              <AlertTriangle size={14} />
-                              <span>{saveError}</span>
-                            </EditErrorBar>
-                          )}
-                          <WorkoutHistoryExerciseTable
-                            tableExerciseGroups={tableExerciseGroups}
-                            activeLogs={activeLogs}
-                            isEditing={isEditing}
-                            hasTempo={hasTempo}
-                            hasRest={hasRest}
-                            hasRPE={hasRPE}
-                            hasWeight={hasWeight}
-                            updateEditField={updateEditField}
-                            removeEditRow={removeEditRow}
-                          />
-
-                          {tableExerciseGroups.map(([exerciseName, groupSets]) => (
-                            <WorkoutHistoryExerciseNotesBlock
-                              key={`notes-${session.id}-${exerciseName}`}
-                              sessionId={session.id}
-                              exerciseName={exerciseName}
-                              groupSets={groupSets}
-                              activeLogs={activeLogs}
-                              isEditing={isEditing}
-                              updateExerciseNoteForGroup={updateExerciseNoteForGroup}
-                              updateEditField={updateEditField}
-                            />
-                          ))}
-
-                          <WorkoutHistorySessionFooter
-                            session={session}
-                            tableExerciseGroups={tableExerciseGroups}
-                            isEditing={isEditing}
-                            saving={saving}
-                            editLogsLength={editLogs.length}
-                            addEditRow={addEditRow}
-                            cancelEdit={cancelEdit}
-                            saveEdit={saveEdit}
-                            startEdit={startEdit}
-                          />
-                        </ExerciseTableViewport>
-                      );
-                    })()}
-                  </SessionCard>
-                );
-              })
+              data.sessions.map((session) => (
+                <WorkoutHistorySessionCard
+                  key={session.id}
+                  session={session}
+                  isExpanded={expandedSessions.has(session.id)}
+                  editingSessionId={editingSessionId}
+                  editLogs={editLogs}
+                  saving={saving}
+                  saveError={saveError}
+                  onToggle={toggleSession}
+                  onShareSession={setShareSession}
+                  updateEditField={updateEditField}
+                  removeEditRow={removeEditRow}
+                  updateExerciseNoteForGroup={updateExerciseNoteForGroup}
+                  addEditRow={addEditRow}
+                  cancelEdit={cancelEdit}
+                  saveEdit={saveEdit}
+                  startEdit={startEdit}
+                />
+              ))
             )}
           </>
         )}

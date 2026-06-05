@@ -7,6 +7,10 @@ const componentSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel.tsx'),
   'utf8',
 );
+const sessionCardSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistorySessionCard.tsx'),
+  'utf8',
+);
 
 const sessionStylesSourcePath = resolve(
   process.cwd(),
@@ -17,11 +21,12 @@ describe('WorkoutHistoryPanel session style extraction', () => {
   it('keeps session, table, PR, and share styles outside the runtime component', () => {
     const sessionStylesSource = readFileSync(sessionStylesSourcePath, 'utf8');
 
-    expect(componentSource).toContain("from './WorkoutHistoryPanel.sessionStyles'");
-    expect(componentSource).not.toContain('const SessionCard = styled.div');
-    expect(componentSource).not.toContain('const ExerciseTable = styled.table');
-    expect(componentSource).not.toContain('const PRBadge = styled.span');
-    expect(componentSource).not.toContain('const ShareIconBtn = styled.button');
+    expect(componentSource).toContain("from './WorkoutHistorySessionCard'");
+    expect(sessionCardSource).toContain("from './WorkoutHistoryPanel.sessionStyles'");
+    expect(componentSource + sessionCardSource).not.toContain('const SessionCard = styled.div');
+    expect(componentSource + sessionCardSource).not.toContain('const ExerciseTable = styled.table');
+    expect(componentSource + sessionCardSource).not.toContain('const PRBadge = styled.span');
+    expect(componentSource + sessionCardSource).not.toContain('const ShareIconBtn = styled.button');
     expect(sessionStylesSource).toContain('export const SessionCard');
     expect(sessionStylesSource).toContain('export const ExerciseTable');
     expect(sessionStylesSource).toContain('export const PRBadge');

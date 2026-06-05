@@ -7,6 +7,10 @@ const source = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel.tsx'),
   'utf8',
 );
+const sessionCardSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistorySessionCard.tsx'),
+  'utf8',
+);
 const trainingSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/workspaces/clients-team/tabs/TrainingTabContent.tsx'),
   'utf8',
@@ -47,8 +51,8 @@ describe('WorkoutHistoryPanel button semantics', () => {
 
   it('keeps canonical workout history click controls as explicit non-submit buttons', () => {
     expect(source).not.toMatch(/<RetryButton(?![^>]*\btype=)[^>]*\bonClick=/);
-    expect(source).not.toMatch(/<ShareIconBtn(?![^>]*\btype=)[^>]*\bonClick=/);
+    expect(sessionCardSource).not.toMatch(/<ShareIconBtn(?![^>]*\btype=)[^>]*\bonClick=/);
     expect(source).toMatch(/<RetryButton\s+type="button"[\s\S]{0,80}onClick=\{refetch\}/);
-    expect(source).toMatch(/<ShareIconBtn\s+type="button"[\s\S]{0,120}onClick=\{\(\) => setShareSession\(session\)\}/);
+    expect(sessionCardSource).toMatch(/<ShareIconBtn\s+type="button"[\s\S]{0,160}onClick=\{\(\) => onShareSession\(session\)\}/);
   });
 });
