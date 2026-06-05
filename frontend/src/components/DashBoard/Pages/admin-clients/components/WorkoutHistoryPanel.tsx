@@ -94,6 +94,37 @@ import {
   Tab,
   TabBar,
 } from './WorkoutHistoryPanel.layoutStyles';
+import {
+  AddSetRow,
+  ExerciseNameCell,
+  ExerciseTable,
+  ExerciseTableViewport,
+  MetaChip,
+  OneRMCell,
+  PRActionRow,
+  PRBadge,
+  PRCard,
+  PRDateText,
+  PRDetails,
+  PREstimate,
+  PRExerciseName,
+  RPECell,
+  SessionCard,
+  SessionHeader,
+  SessionHeaderActions,
+  SessionMeta,
+  SessionNotes,
+  SessionTitle,
+  SessionToggleButton,
+  SessionTotals,
+  ShareIconBtn,
+  Td,
+  TempoCell,
+  Th,
+  TotalLabel,
+  TotalValue,
+  WeightCell,
+} from './WorkoutHistoryPanel.sessionStyles';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -130,256 +161,8 @@ const ScrollBody = styled.div<{ $variant: 'modal' | 'embedded' }>`
     : 'overflow: visible;'}
 `;
 
-const SessionCard = styled.div`
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  margin-bottom: 12px;
-  /* Phase 15.3: overflow: visible so expanded edit controls (notes inputs,
-     add-set buttons, save/cancel bar) are never clipped by the card
-     boundary. The prior overflow: hidden was cosmetic (rounded-corner
-     clip) — border-radius alone handles that in modern browsers when
-     the content does not actually overflow horizontally. */
-  overflow: visible;
-  transition: border-color 0.2s ease;
-
-  &:hover { border-color: rgba(96, 192, 240, 0.2); }
-`;
-
-const SessionHeader = styled.div`
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  background: transparent;
-  border: none;
-  color: var(--text-primary, #E0ECF4);
-  gap: 12px;
-`;
-
-const SessionToggleButton = styled.button`
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: 0;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  min-height: 44px;
-  text-align: left;
-
-  &:focus-visible {
-    outline: 2px solid #60C0F0;
-    outline-offset: -2px;
-  }
-`;
-
-const SessionTitle = styled.span`
-  font-weight: 600;
-  font-size: 0.9375rem;
-`;
-
-const SessionMeta = styled.div`
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: center;
-`;
-
-const MetaChip = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  color: var(--text-secondary, #94a3b8);
-`;
-
-const ExerciseTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8125rem;
-`;
-
-const Th = styled.th`
-  text-align: left;
-  padding: 8px 12px;
-  color: var(--text-secondary, #8BA8C8);
-  font-weight: 600;
-  font-family: 'Sora', sans-serif;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-`;
-
-const Td = styled.td`
-  padding: 8px 12px;
-  color: var(--text-primary, #E0ECF4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-`;
-
-const ExerciseNameCell = styled(Td)`
-  font-weight: 500;
-  vertical-align: top;
-`;
-
-const SessionHeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ExerciseTableViewport = styled.div`
-  padding: 0 16px 16px;
-  overflow-x: auto;
-`;
-
-const WeightCell = styled.span`
-  color: var(--accent-primary, #60C0F0);
-  font-weight: 600;
-  font-family: 'Fira Code', monospace;
-  font-variant-numeric: tabular-nums;
-`;
-
-const TempoCell = styled.span`
-  color: var(--accent-secondary, #8B5CF6);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8em;
-`;
-
-const RPECell = styled.span<{ $value: number }>`
-  font-family: 'Fira Code', monospace;
-  font-weight: 600;
-  color: ${p => {
-    if (p.$value >= 9) return '#C92A54';
-    if (p.$value >= 7) return '#C6A84B';
-    if (p.$value >= 5) return '#60C0F0';
-    return '#4caf50';
-  }};
-`;
-
-const OneRMCell = styled.span`
-  color: var(--accent-gold, #C6A84B);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.85em;
-`;
-
-const PRBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  font-family: 'Fira Code', monospace;
-  color: #C6A84B;
-  background: #0A0A0F;
-  border: 1px solid #C6A84B;
-  transition: box-shadow 0.2s;
-  &:hover { box-shadow: 0 0 8px rgba(198, 168, 75, 0.4); }
-`;
-
-const PRCard = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: var(--bg-surface, #141419);
-  border: 1px solid rgba(198, 168, 75, 0.2);
-  border-radius: 10px;
-  margin-bottom: 8px;
-  transition: border-color 0.2s;
-  &:hover { border-color: rgba(198, 168, 75, 0.4); }
-`;
-
-const PRDetails = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-
-const PRExerciseName = styled.div`
-  font-weight: 600;
-  color: var(--text-primary, #E0ECF4);
-  margin-bottom: 4px;
-`;
-
-const PRDateText = styled.div`
-  font-size: 0.8125rem;
-  color: var(--text-secondary, #94a3b8);
-`;
-
-const PRActionRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const PREstimate = styled.span`
-  font-size: 0.6875rem;
-  color: var(--accent-gold, #C6A84B);
-  font-family: 'Fira Code', monospace;
-`;
-
-const AddSetRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-`;
-
-const SessionTotals = styled.div`
-  display: flex;
-  gap: 16px;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(96, 192, 240, 0.08);
-  font-size: 0.75rem;
-  font-family: 'Fira Code', monospace;
-`;
-
-const TotalLabel = styled.span`
-  color: var(--text-secondary, #8BA8C8);
-`;
-
-const TotalValue = styled.span`
-  color: var(--accent-primary, #60C0F0);
-`;
-
-const SessionNotes = styled.p`
-  color: var(--text-secondary, #8BA8C8);
-  font-size: 0.8125rem;
-  margin: 12px 0 0;
-  font-style: italic;
-`;
-
-const ShareIconBtn = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  min-height: 44px;
-  border-radius: 6px;
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  background: rgba(139, 92, 246, 0.12);
-  color: #E0ECF4;
-  font-size: 0.6875rem;
-  font-family: 'Sora', sans-serif;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  &:hover {
-    background: #8B5CF6;
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.4);
-  }
-`;
-
 // Layout/status styles live in WorkoutHistoryPanel.layoutStyles.ts.
+// Session, table, PR, and share styles live in WorkoutHistoryPanel.sessionStyles.ts.
 // Edit and notes styles live in WorkoutHistoryPanel.styles.ts.
 
 // ─────────────────────────────────────────────────────────────
