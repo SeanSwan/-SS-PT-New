@@ -28,6 +28,7 @@ import WorkoutPlannerStatusAssistantStrip, {
 } from './WorkoutPlannerStatusAssistantStrip';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
 import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
@@ -35,7 +36,6 @@ import {
   normalizeWorkoutPlannerClients,
   parseWorkoutPlannerClientId,
   pickWorkoutPlannerClientId,
-  resolveWorkoutPlannerPlanClientId,
 } from './WorkoutPlannerClientIdentity';
 
 import {
@@ -214,6 +214,26 @@ const WorkoutPlannerPage: React.FC = () => {
     setStatusMsg,
   });
 
+  const { loadPlanIntoBuilder } = useWorkoutPlannerLoadPlanActions({
+    authAxios,
+    selectedClientId,
+    phaseName: phase.name,
+    phaseNumber,
+    category,
+    goal,
+    buildGeneratedSnapshot,
+    buildManualSnapshot,
+    setPlanExercises,
+    setGeneratedPlan,
+    setPhaseNumber,
+    setGoal,
+    setCategory,
+    setLoadedPlanId,
+    setLoadedPlanName,
+    setSavedSnapshot,
+    setStatusMsg,
+  });
+
   // ── Fetch Clients ──
   // 2026-05-01 role-aware fix: /api/auth/clients is adminOnly. Trainers
   // (now landing on the workout planner with active assignments) must
@@ -378,138 +398,6 @@ const WorkoutPlannerPage: React.FC = () => {
       setGeneratingPlan(false);
     }
   }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal, phaseNumber]);
-
-  const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
-    try {
-      const res = await authAxios.get(`/api/workout-plans/${planId}`);
-      const plan = res.data?.plan;
-      if (!plan) {
-        setStatusMsg({ type: 'error', text: 'Plan not found or not authorized.' });
-        return;
-      }
-      // Hydrate builder state from plan.planData JSONB structure.
-      const planData = plan.planData || {};
-      const firstWeek = planData.weeks?.[0];
-      const firstDay = firstWeek?.days?.[0] || firstWeek?.sessions?.[0];
-      const exercises = firstDay?.exercises || [];
-
-      // Build PlanExercise[] from saved structure (used for the manual
-      // builder hydration AND for the manual-mode signature baseline).
-      const hydrated: PlanExercise[] = exercises.map((ex: Record<string, unknown>, i: number) => ({
-        id: `loaded-${planId}-${i}-${Date.now()}`,
-        exerciseSlim: {
-          id: String(ex.exerciseId || ''),
-          name: String(ex.exerciseName || ex.name || 'Unknown'),
-          exerciseKey: String(ex.exerciseId || ''),
-          exerciseType: 'compound',
-          bodyPartCategory: 'Full Body',
-          primaryMuscles: [],
-          difficulty: 300,
-        },
-        sets: Number(ex.sets) || 3,
-        reps: String(ex.reps || ex.repGoal || '8-12'),
-        tempo: String(ex.tempo || ''),
-        restSeconds: typeof ex.restPeriod === 'number' ? ex.restPeriod : 60,
-        intensityPercent: 70,
-        notes: String(ex.notes || ''),
-      }));
-
-      // Codex 2026-05-03 round-2 HIGH-2: a saved long-horizon plan must
-      // restore generatedPlan state on load - otherwise Update Plan
-      // would persist a flattened one-week manual-mode payload that
-      // overwrites the saved 48×6 weeks[].
-      //
-      // Codex 2026-05-03 round-3 HIGH-3: weeks.length > 1 was too strict.
-      // The 1-week trial duration ('1') generates a 1-week × N-day plan
-      // through the same /api/workout-builder/plan generator, which still
-      // emits planSummary + mesocycles + every L1 additive field. A
-      // weeks.length === 1 save was getting falsely tagged as manual on
-      // load, then collapsed to one-day on Update. The reliable "this was
-      // generated" signal is the presence of `planSummary` (manual-mode
-      // saves do NOT emit it - see planDataBuilder.ts manual branch),
-      // optionally tightened by also requiring a populated `weeks[]`.
-      const wasGenerated =
-        Array.isArray(planData.weeks)
-        && planData.weeks.length > 0
-        && (
-          planData.planSummary
-          || (Array.isArray(planData.mesocycles) && planData.mesocycles.length > 0)
-        );
-      const restoredPlanClientId = wasGenerated
-        ? resolveWorkoutPlannerPlanClientId(plan.userId, selectedClientId)
-        : null;
-
-      if (wasGenerated && restoredPlanClientId === null) {
-        setGeneratedPlan(null);
-        setStatusMsg({
-          type: 'error',
-          text: 'Unable to load generated plan because it is missing a valid client id.',
-        });
-        return;
-      }
-
-      setPlanExercises(hydrated);
-      if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
-      if (planData.goal) setGoal(planData.goal as PlanGoal);
-      if (planData.category) setCategory(planData.category as WorkoutCategory);
-      setLoadedPlanId(String(planId));
-      setLoadedPlanName(planName);
-
-      if (wasGenerated) {
-        // Reconstruct the generatedPlan shape from the saved JSONB. The
-        // JSONB carries every L1 additive field by construction (the save
-        // path uses planDataBuilder generated mode), so this is a faithful
-        // rehydration.
-        const restored: GeneratedPlan = {
-          clientId: restoredPlanClientId!,
-          clientName: planData.clientName || '',
-          planSummary: planData.planSummary || {
-            durationWeeks: planData.weeks.length,
-            sessionsPerWeek: firstWeek?.days?.length || firstWeek?.sessions?.length || 0,
-            totalSessions: 0,
-            primaryGoal: planData.goal || 'general_fitness',
-            startingPhase: plan.nasmPhase || 2,
-          },
-          mesocycles: planData.mesocycles || [],
-          weeklySchedule: planData.weeklySchedule || [],
-          recommendations: planData.recommendations || [],
-          recommendationDetails: planData.recommendationDetails,
-          rationale: planData.rationale,
-          weeks: planData.weeks,
-        };
-        setGeneratedPlan(restored);
-        // Codex 2026-05-03 round-2 MED-2: snapshot baseline must use the
-        // shared signature builder so dirty-comparison shapes match. Use
-        // the generated branch since we just restored a long-horizon plan.
-        setSavedSnapshot(buildGeneratedSnapshot(
-          restored,
-          (planData.category as WorkoutCategory) || category,
-          (planData.goal as PlanGoal) || goal,
-        ));
-      } else {
-        // Single-week / manual-mode load. Clear any stale generatedPlan
-        // so the persistence path stays in manual mode for subsequent
-        // saves.
-        setGeneratedPlan(null);
-        // MED-2: same shared-signature snapshot, manual branch.
-        setSavedSnapshot(buildManualSnapshot({
-          phaseName: phase.name,
-          phaseNumber: plan.nasmPhase || phaseNumber,
-          category: (planData.category as WorkoutCategory) || category,
-          goal: (planData.goal as PlanGoal) || goal,
-          planExercises: hydrated,
-        }));
-      }
-      setStatusMsg({ type: 'success', text: `Loaded plan: ${planName}` });
-    } catch (err: unknown) {
-      const errData = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
-      if (errData?.status === 404) {
-        setStatusMsg({ type: 'error', text: 'Plan not found or not authorized.' });
-      } else {
-        setStatusMsg({ type: 'error', text: 'Failed to load plan. Please try again.' });
-      }
-    }
-  }, [authAxios, buildGeneratedSnapshot, buildManualSnapshot, category, goal, phase.name, phaseNumber, selectedClientId]);
 
   const handleLoadPlan = useCallback((planId: string, planName: string) => {
     if (isDirty) {
