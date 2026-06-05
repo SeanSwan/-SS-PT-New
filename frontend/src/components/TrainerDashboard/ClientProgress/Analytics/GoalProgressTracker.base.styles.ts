@@ -47,10 +47,10 @@ export const StatLabel = styled.span`
 `;
 
 export const GlassPanel = styled.div`
-  background: var(--bg-elevated, #111827);
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.18));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 16px;
-  box-shadow: var(--shadow-strong, 0 18px 38px rgba(0, 0, 0, 0.32));
+  box-shadow: var(--shadow-strong, 0 18px 38px color-mix(in srgb, var(--bg-base, #0A0A0F) 32%, transparent));
   padding: 24px;
   backdrop-filter: blur(12px);
 `;
@@ -87,8 +87,8 @@ export const ControlsRow = styled.div`
 
 export const StyledSelect = styled.select`
   appearance: auto;
-  background: var(--surface-muted, rgba(96, 192, 240, 0.08));
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.22));
+  background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 8px;
   color: var(--text-primary, #e2e8f0);
   cursor: pointer;
@@ -104,7 +104,7 @@ export const StyledSelect = styled.select`
   }
 
   option {
-    background: var(--bg-elevated, #111827);
+    background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
     color: var(--text-primary, #e2e8f0);
   }
 `;
@@ -144,7 +144,7 @@ export const AccentButton = styled.button`
 export const GhostButton = styled.button`
   align-items: center;
   background: transparent;
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.22));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 8px;
   color: var(--text-secondary, #94a3b8);
   cursor: pointer;
@@ -158,7 +158,7 @@ export const GhostButton = styled.button`
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 
   &:hover {
-    background: var(--surface-muted, rgba(96, 192, 240, 0.08));
+    background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
     border-color: var(--accent-primary, #60C0F0);
     color: var(--text-primary, #e2e8f0);
   }
@@ -179,14 +179,14 @@ export const IconBtn = styled.button`
   transition: background 0.15s ease, color 0.15s ease;
 
   &:hover {
-    background: var(--surface-muted, rgba(96, 192, 240, 0.08));
+    background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
     color: var(--accent-primary, #60C0F0);
   }
 `;
 
 export const EmptyState = styled.div`
-  background: var(--surface-muted, rgba(96, 192, 240, 0.08));
-  border: 1px dashed var(--border-primary, rgba(96, 192, 240, 0.22));
+  background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
+  border: 1px dashed var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -224,8 +224,8 @@ export const FieldLabel = styled.label`
 `;
 
 export const TextInput = styled.input`
-  background: var(--surface-muted, rgba(96, 192, 240, 0.08));
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.22));
+  background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 8px;
   color: var(--text-primary, #e2e8f0);
   font-size: 0.9rem;

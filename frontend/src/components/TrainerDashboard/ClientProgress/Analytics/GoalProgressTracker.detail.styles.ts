@@ -15,7 +15,7 @@ export const Thead = styled.thead``;
 export const Tbody = styled.tbody``;
 
 export const Tr = styled.tr<{ $clickable?: boolean }>`
-  border-bottom: 1px solid var(--surface-muted, rgba(96, 192, 240, 0.08));
+  border-bottom: 1px solid var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
 
   ${({ $clickable }) =>
     $clickable &&
@@ -23,7 +23,7 @@ export const Tr = styled.tr<{ $clickable?: boolean }>`
       cursor: pointer;
 
       &:hover {
-        background: var(--surface-muted, rgba(96, 192, 240, 0.08));
+        background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
       }
     `}
 `;
@@ -65,7 +65,7 @@ export const TargetDateText = styled.span`
 
 export const Chip = styled.span<{ $bg?: string; $color?: string }>`
   align-items: center;
-  background: ${({ $bg }) => $bg || 'var(--surface-muted, rgba(96, 192, 240, 0.08))'};
+  background: ${({ $bg }) => $bg || 'var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent))'};
   border-radius: 20px;
   color: ${({ $color }) => $color || 'var(--text-primary, #e2e8f0)'};
   display: inline-flex;
@@ -76,7 +76,7 @@ export const Chip = styled.span<{ $bg?: string; $color?: string }>`
 `;
 
 export const ProgressBarOuter = styled.div<{ $full?: boolean }>`
-  background: var(--surface-muted, rgba(96, 192, 240, 0.08));
+  background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   border-radius: 3px;
   height: 6px;
   margin-bottom: 4px;
@@ -98,7 +98,7 @@ export const ProgressCellFrame = styled.div`
 
 export const Overlay = styled.div`
   align-items: center;
-  background: var(--overlay-strong, rgba(0, 0, 0, 0.7));
+  background: var(--overlay-strong, color-mix(in srgb, var(--bg-base, #0A0A0F) 70%, transparent));
   backdrop-filter: blur(4px);
   display: flex;
   inset: 0;
@@ -109,10 +109,10 @@ export const Overlay = styled.div`
 `;
 
 export const ModalPanel = styled.div`
-  background: var(--bg-elevated, #111827);
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.18));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 16px;
-  box-shadow: var(--shadow-strong, 0 18px 38px rgba(0, 0, 0, 0.32));
+  box-shadow: var(--shadow-strong, 0 18px 38px color-mix(in srgb, var(--bg-base, #0A0A0F) 32%, transparent));
   max-height: 90vh;
   max-width: 800px;
   overflow-y: auto;
@@ -122,7 +122,7 @@ export const ModalPanel = styled.div`
 
 export const ModalHeader = styled.div`
   align-items: center;
-  border-bottom: 1px solid var(--surface-muted, rgba(96, 192, 240, 0.08));
+  border-bottom: 1px solid var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   display: flex;
   justify-content: space-between;
   padding: 20px 24px;
@@ -139,7 +139,7 @@ export const ModalBody = styled.div`
 `;
 
 export const ModalFooter = styled.div`
-  border-top: 1px solid var(--surface-muted, rgba(96, 192, 240, 0.08));
+  border-top: 1px solid var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -175,11 +175,11 @@ export const AchievementCard = styled.div<{ $earned: boolean }>`
   background: ${({ $earned }) =>
     $earned
       ? 'color-mix(in srgb, var(--feedback-warning, #FFC107) 12%, transparent)'
-      : 'var(--surface-muted, rgba(96, 192, 240, 0.08))'};
+      : 'var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent))'};
   border: 1px solid ${({ $earned }) =>
     $earned
       ? 'color-mix(in srgb, var(--feedback-warning, #FFC107) 28%, transparent)'
-      : 'var(--border-primary, rgba(96, 192, 240, 0.18))'};
+      : 'var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent))'};
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -222,7 +222,7 @@ export const StepIconCol = styled.div`
 `;
 
 export const StepConnector = styled.div<{ $visible: boolean }>`
-  background: ${({ $visible }) => ($visible ? 'var(--border-primary, rgba(96, 192, 240, 0.22))' : 'transparent')};
+  background: ${({ $visible }) => ($visible ? 'var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent))' : 'transparent')};
   flex: 1;
   min-height: 16px;
   width: 2px;

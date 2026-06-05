@@ -54,5 +54,7 @@ describe('GoalProgressTracker theme bridge', () => {
     expect(combinedSource).not.toContain('background: rgba(0, 0, 0, 0.7)');
     expect(combinedSource).not.toContain('rgba(15,23,42');
     expect(combinedSource).not.toContain('rgba(255, 255, 255');
+    expect(combinedSource).not.toContain('rgba(0, 0, 0');
+    expect(combinedSource).not.toContain('rgba(96, 192, 240');
   });
 });

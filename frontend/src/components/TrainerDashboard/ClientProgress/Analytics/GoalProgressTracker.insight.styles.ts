@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
 export const InsightBox = styled.div`
-  background: var(--surface-muted, rgba(96, 192, 240, 0.08));
-  border: 1px solid var(--border-primary, rgba(96, 192, 240, 0.18));
+  background: var(--surface-muted, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
+  border: 1px solid var(--border-primary, color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent));
   border-radius: 10px;
   margin-top: 24px;
   padding: 16px;
