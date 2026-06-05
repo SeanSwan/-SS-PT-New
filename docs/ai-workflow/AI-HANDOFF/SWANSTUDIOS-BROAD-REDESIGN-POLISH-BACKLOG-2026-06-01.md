@@ -74,6 +74,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - Canonical route evidence locks `/dashboard/trainer/client-progress` to `EnhancedClientProgressView` -> `EnhancedClientProgressViewShell` -> `ComparisonAnalytics`.
   - `ComparisonAnalyticsView.tsx` routes client and benchmark progress fills through `COMPARISON_PROGRESS_TONES`, including `var(--comparison-bar-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent))`.
   - Coverage lives in `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/ComparisonAnalytics.themeBridge.test.ts`.
+- Trainer Client Progress advanced-mode quick action dock is now mobile-safe:
+  - Canonical route evidence locks `/dashboard/trainer/client-progress` to `EnhancedClientProgressView` -> `EnhancedClientProgressViewShell` -> `QuickActionBar`.
+  - `EnhancedClientProgressView.styles.ts` keeps the dock fixed on desktop, but changes it to an in-flow sticky safe-area-aware action bar under 640px so it does not cover progress content on phones.
+  - Coverage lives in `frontend/src/components/TrainerDashboard/ClientProgress/EnhancedClientProgressView.themeBridge.test.ts`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -128,7 +132,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, the Trainer Home Swan Coach dock, and the Trainer Client Progress comparison benchmark bar are token-bridged and covered by targeted contracts.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, the Trainer Home Swan Coach dock, the Trainer Client Progress comparison benchmark bar, and the Trainer Client Progress mobile quick action dock are covered by targeted contracts.
 - Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked

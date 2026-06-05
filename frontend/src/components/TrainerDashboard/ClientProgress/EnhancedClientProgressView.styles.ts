@@ -237,16 +237,36 @@ export const QuickActionBar = styled.div`
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 1000;
+  z-index: 20;
   background: var(--bg-elevated, rgba(15, 23, 42, 0.95));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   border-radius: 12px;
+  max-width: calc(100vw - 40px);
   padding: 16px;
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-strong, 0 8px 32px rgba(0, 0, 0, 0.4));
+
+  @media (max-width: 640px) {
+    position: sticky;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: auto;
+    right: auto;
+    margin-top: 16px;
+    max-width: none;
+    padding: 12px;
+    width: 100%;
+  }
 `;
 
 export const QuickActionButtons = styled.div`
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+
+  @media (max-width: 640px) {
+    ${SmallButton} {
+      flex: 1 1 92px;
+      justify-content: center;
+    }
+  }
 `;

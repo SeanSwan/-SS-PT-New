@@ -53,4 +53,13 @@ describe('EnhancedClientProgressView theme bridge', () => {
     expect(STATE_PANEL_SOURCE).not.toContain('#7dd3fc');
     expect(STATE_PANEL_SOURCE).not.toContain('#0ea5e9');
   });
+
+  it('keeps the advanced-mode quick action dock mobile-safe instead of covering progress content', () => {
+    expect(STYLE_SOURCE).toContain('export const QuickActionBar');
+    expect(STYLE_SOURCE).toContain('@media (max-width: 640px)');
+    expect(STYLE_SOURCE).toContain('bottom: calc(12px + env(safe-area-inset-bottom, 0px))');
+    expect(STYLE_SOURCE).toContain('position: sticky');
+    expect(STYLE_SOURCE).toContain('z-index: 20');
+    expect(STYLE_SOURCE).not.toContain('z-index: 1000');
+  });
 });
