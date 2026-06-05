@@ -12,9 +12,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Dumbbell, Sparkles, BookOpen, Plus, X, Calendar,
-  Loader2, Save, Zap, ChevronDown, ChevronUp, Info,
-  ArrowLeft,
+  Plus, X, Loader2, Save, Zap, ChevronDown, ChevronUp, Info,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
@@ -24,6 +22,7 @@ import TeachModeSidebar from './TeachModeSidebar';
 // that strips Axios error.config.headers (JWT) before logging.
 import { logApiError } from '../../../../utils/logApiError';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
+import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip, {
@@ -49,23 +48,19 @@ import {
 import {
   type PlanExercise, type PlannerClient, type WorkoutCategory,
   type GeneratedWorkout, type GeneratedPlan, type PlanDuration,
-  OPT_PHASES, WORKOUT_CATEGORIES, PLAN_GOALS, PLAN_DURATIONS,
+  OPT_PHASES, WORKOUT_CATEGORIES,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
 import { workoutPlannerExplanationKey } from './WorkoutPlannerRowKeys';
 import {
-  Page, Header, HeaderLeft, HeaderIcon, Title, Subtitle,
-  ControlRow, Select, ActionBtn, ThreePanel,
+  Page, ActionBtn, ThreePanel,
   PanelHeader, PanelTitle, PanelBody,
   ExerciseMeta,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
-  EmptyMessage, TeachToggle,
+  EmptyMessage,
   GeneratingSkeletonWrap, SkeletonCircle, SkeletonBar,
   GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
-  PlanModeBar, PlanModeLabel, SmallSelect,
-  // L5 (2026-05-02): self-service status pill rendered below ControlRow.
-  ClientSelfGenPill, PillHint,
 } from './WorkoutPlannerStyles';
 import {
   ActionWrap,
@@ -938,172 +933,60 @@ const WorkoutPlannerPage: React.FC = () => {
     if (plannerReturnTo) navigate(plannerReturnTo);
   }, [navigate, plannerReturnTo]);
 
+  const handleTeachModeToggle = useCallback(() => {
+    setTeachModeOpen(value => !value);
+  }, []);
+
+  const handleClientSelectionChange = useCallback((rawClientId: string) => {
+    const nextClientId = parseWorkoutPlannerClientId(rawClientId);
+    if (!nextClientId) return;
+    // Codex 2026-05-03 round-3 HIGH-4: switching clients is a hard
+    // reset of loaded-plan identity to prevent cross-client plan updates.
+    setSelectedClientId(nextClientId);
+    setPlanExercises([]);
+    setGeneratedPlan(null);
+    setExplanations([]);
+    setLoadedPlanId(null);
+    setLoadedPlanName(null);
+    setSavedSnapshot(null);
+  }, []);
+
+  const handlePlanDurationChange = useCallback((nextDuration: PlanDuration) => {
+    setPlanDuration(nextDuration);
+    setGeneratedPlan(null);
+    setPlanExercises([]);
+  }, []);
+
   return (
     <Page>
-      {/* Header */}
-      <Header>
-        <HeaderLeft>
-          <HeaderIcon><Dumbbell size={22} /></HeaderIcon>
-          <div>
-            <Title>Swan Studios Workout Planner</Title>
-            <Subtitle>Build intelligent, periodized training programs with 880+ exercises</Subtitle>
-          </div>
-        </HeaderLeft>
-        {plannerReturnTo && (
-          <TeachToggle type="button" onClick={() => navigate(plannerReturnTo)}>
-            <ArrowLeft size={16} />
-            Back to Client Hub
-          </TeachToggle>
-        )}
-        <TeachToggle type="button" $active={teachModeOpen} onClick={() => setTeachModeOpen(v => !v)}>
-          <BookOpen size={16} />
-          Teach Mode {teachModeOpen ? 'On' : 'Off'}
-        </TeachToggle>
-      </Header>
-
-      {/* Controls */}
-      <ControlRow>
-        <Select
-          value={selectedClientId ?? ''}
-          onChange={e => {
-            const nextClientId = parseWorkoutPlannerClientId(e.target.value);
-            if (!nextClientId) return;
-            // Codex 2026-05-03 round-3 HIGH-4: clearing planExercises +
-            // generatedPlan alone left `loadedPlanId` (and savedSnapshot)
-            // pointing at the PRIOR client's plan. Subsequent Update Plan
-            // would PUT the new client's data into the old client's plan
-            // id - cross-client data corruption. Switching clients is
-            // a hard reset of the loaded-plan identity.
-            setSelectedClientId(nextClientId);
-            setPlanExercises([]);
-            setGeneratedPlan(null);
-            setExplanations([]);
-            setLoadedPlanId(null);
-            setLoadedPlanName(null);
-            setSavedSnapshot(null);
-          }}
-          aria-label="Select client"
-        >
-          {clientsLoading ? (
-            <option>Loading clients...</option>
-          ) : clients.length === 0 ? (
-            <option>No clients found</option>
-          ) : (
-            clients.map(c => (
-              <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-            ))
-          )}
-        </Select>
-        <Select
-          value={phaseNumber}
-          onChange={e => setPhaseNumber(Number(e.target.value))}
-          aria-label="Select OPT phase"
-        >
-          {OPT_PHASES.map(p => (
-            <option key={p.phase} value={p.phase}>Phase {p.phase}: {p.name}</option>
-          ))}
-        </Select>
-        {/* V3a (2026-05-03) — Sean L4: multi-week plans are always full-body
-            by definition (a 12-month plan covers every body part across the
-            mesocycles). Lock the dropdown to "Full Body" for any duration
-            other than 'single'. The persistence layer (planDataBuilder
-            generated mode) ALSO normalizes to full_body so the UI lock is
-            UX-only; the backend cannot be tricked by direct API calls. */}
-        {planDuration === 'single' ? (
-          <Select
-            value={category}
-            onChange={e => setCategory(e.target.value as WorkoutCategory)}
-            aria-label="Select workout category"
-          >
-            {WORKOUT_CATEGORIES.map(c => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
-          </Select>
-        ) : (
-          <Select
-            value="full_body"
-            disabled
-            aria-label="Workout category (locked to Full Body for multi-week plans)"
-            title="Multi-week plans cover the full body across the mesocycles. Switch Plan Duration to 'Single Session' to pick a specific category."
-          >
-            <option value="full_body">Full Body (multi-week plans)</option>
-          </Select>
-        )}
-        <Select
-          value={goal}
-          onChange={e => setGoal(e.target.value as PlanGoal)}
-          aria-label="Select training goal"
-        >
-          {PLAN_GOALS.map(g => (
-            <option key={g.value} value={g.value}>{g.label}</option>
-          ))}
-        </Select>
-        <ActionBtn
-          $variant="cosmic"
-          onClick={planDuration === 'single' ? handleAIGenerate : handleGeneratePlan}
-          disabled={generating || generatingPlan || !selectedClientId || clientGenBlocked}
-          title={clientGenBlocked
-            ? 'Self-service workout plan generation is not enabled for your account. Ask your admin to turn it on.'
-            : undefined}
-        >
-          {generating || generatingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {generating || generatingPlan ? 'Generating...' : planDuration === 'single' ? 'Swan Coach Generate' : 'Generate Plan'}
-        </ActionBtn>
-      </ControlRow>
-
-      {/* L5 (2026-05-02): client self-service status pill. Visible to
-          admins/trainers as a quick read on whether the selected client
-          could self-generate if exposed to a client-facing surface.
-          The pill goes red when the viewer IS the affected client AND
-          the flag is off (dormant client-self-service guard). */}
-      {selectedClient ? (
-        <ClientSelfGenPill $status={clientGenBlocked ? 'blocked' : clientSelfGenStatus}>
-          <Sparkles size={12} />
-          <span>
-            Self-service plan generation:{' '}
-            <strong>{
-              clientGenBlocked
-                ? 'Disabled for your account'
-                : clientSelfGenStatus === 'enabled' ? 'Enabled' : 'Disabled'
-            }</strong>
-            {!isViewerClient && clientSelfGenStatus === 'disabled' ? (
-              <PillHint> · admins can flip this from the client details panel</PillHint>
-            ) : null}
-          </span>
-        </ClientSelfGenPill>
-      ) : null}
-
-      {/* Plan Duration Controls */}
-      <PlanModeBar>
-        <PlanModeLabel><Calendar size={14} /> Plan Duration</PlanModeLabel>
-        <SmallSelect
-          value={planDuration}
-          onChange={e => {
-            setPlanDuration(e.target.value as PlanDuration);
-            setGeneratedPlan(null);
-            setPlanExercises([]);
-          }}
-          aria-label="Select plan duration"
-        >
-          {PLAN_DURATIONS.map(d => (
-            <option key={d.value} value={d.value}>{d.label}</option>
-          ))}
-        </SmallSelect>
-        {planDuration !== 'single' && (
-          <>
-            <PlanModeLabel>Sessions/Week</PlanModeLabel>
-            <SmallSelect
-              value={sessionsPerWeek}
-              onChange={e => setSessionsPerWeek(Number(e.target.value))}
-              aria-label="Sessions per week"
-            >
-              {[1, 2, 3, 4, 5, 6].map(n => (
-                <option key={n} value={n}>{n}×/week</option>
-              ))}
-            </SmallSelect>
-          </>
-        )}
-      </PlanModeBar>
+      <WorkoutPlannerCommandPanel
+        plannerReturnTo={plannerReturnTo}
+        teachModeOpen={teachModeOpen}
+        clients={clients}
+        clientsLoading={clientsLoading}
+        selectedClientId={selectedClientId}
+        selectedClient={selectedClient}
+        phaseNumber={phaseNumber}
+        category={category}
+        goal={goal}
+        planDuration={planDuration}
+        sessionsPerWeek={sessionsPerWeek}
+        generating={generating}
+        generatingPlan={generatingPlan}
+        clientGenBlocked={clientGenBlocked}
+        clientSelfGenStatus={clientSelfGenStatus}
+        isViewerClient={isViewerClient}
+        onReturnToClientHub={handleReturnToClientHub}
+        onTeachModeToggle={handleTeachModeToggle}
+        onClientSelectionChange={handleClientSelectionChange}
+        onPhaseNumberChange={setPhaseNumber}
+        onCategoryChange={setCategory}
+        onGoalChange={setGoal}
+        onPlanDurationChange={handlePlanDurationChange}
+        onSessionsPerWeekChange={setSessionsPerWeek}
+        onGenerateSingle={handleAIGenerate}
+        onGeneratePlan={handleGeneratePlan}
+      />
 
       <WorkoutPlannerStatusAssistantStrip
         statusMsg={statusMsg}

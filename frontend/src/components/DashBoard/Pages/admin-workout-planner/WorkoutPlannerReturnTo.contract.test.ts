@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx'), 'utf8');
 const stripSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStatusAssistantStrip.tsx'), 'utf8');
+const commandPanelSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.tsx'), 'utf8');
 
 describe('WorkoutPlannerPage returnTo contract', () => {
   it('renders a safe Client Hub return action when opened from Clients & Team', () => {
@@ -11,7 +12,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
     expect(source).toContain("searchParams.get('returnTo')");
     expect(source).toContain("rawReturnTo.startsWith('/dashboard/')");
     expect(source).toContain("navigate(plannerReturnTo)");
-    expect(source).toContain('Back to Client Hub');
+    expect(commandPanelSource).toContain('Back to Client Hub');
   });
 
   it('offers a contextual return action after successful client-hub saves', () => {
