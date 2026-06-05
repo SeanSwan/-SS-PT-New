@@ -49,6 +49,7 @@ import {
 } from '../../../../../services/aiWorkoutService';
 import type { Toast } from '../../../../../hooks/use-toast';
 import { exportLongHorizonPDF } from '../../../../../services/pdfExportService';
+import { getClientGoalsFromDetails, type ClientGoals } from './longHorizonGoals';
 import {
   CenterContent,
   Divider,
@@ -111,12 +112,6 @@ interface ValidationError {
   message: string;
 }
 
-interface ClientGoals {
-  primaryGoal: string;
-  secondaryGoals: string[];
-  constraints: string[];
-}
-
 interface LongHorizonContentProps {
   clientId: number;
   clientName: string;
@@ -141,14 +136,6 @@ interface ApiErrorLike {
   };
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => (
-  typeof value === 'object' && value !== null
-);
-
-const toStringArray = (value: unknown): string[] => (
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
-);
-
 const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } => {
   const apiError = err as ApiErrorLike;
   return {
@@ -156,48 +143,6 @@ const getApiError = (err: unknown): { data: ApiErrorPayload; message?: string } 
     message: apiError.message,
   };
 };
-
-function parseMasterPromptJson(raw: unknown): Record<string, unknown> | null {
-  if (!raw) return null;
-  if (typeof raw === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      return isRecord(parsed) ? parsed : null;
-    } catch {
-      return null;
-    }
-  }
-  if (isRecord(raw)) return raw;
-  return null;
-}
-
-function normalizeGoals(rawGoals: Record<string, unknown>): ClientGoals {
-  const primaryRaw = rawGoals.primary || rawGoals.primaryGoal;
-  const secondaryGoalsRaw = rawGoals.secondary || rawGoals.secondaryGoals;
-
-  return {
-    primaryGoal: typeof primaryRaw === 'string' && primaryRaw.trim()
-      ? primaryRaw
-      : 'general_fitness',
-    secondaryGoals: toStringArray(secondaryGoalsRaw),
-    constraints: toStringArray(rawGoals.constraints),
-  };
-}
-
-function getClientGoalsFromDetails(detailsResp: unknown): ClientGoals | null {
-  const root = isRecord(detailsResp) ? detailsResp : {};
-  const data = isRecord(root.data) ? root.data : {};
-  const client = isRecord(data.client) ? data.client : isRecord(root.client) ? root.client : null;
-  const masterPrompt = parseMasterPromptJson(client?.masterPromptJson);
-  const masterClient = isRecord(masterPrompt?.client) ? masterPrompt.client : null;
-  const goals = isRecord(masterClient?.goals)
-    ? masterClient.goals
-    : isRecord(masterPrompt?.goals)
-      ? masterPrompt.goals
-      : null;
-  if (!goals) return null;
-  return normalizeGoals(goals);
-}
 
 const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
   clientId,
