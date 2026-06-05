@@ -28,7 +28,6 @@ import {
   ChevronDown,
   ChevronRight,
   Info,
-  Sparkles,
   Download,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -60,32 +59,22 @@ import {
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
-  Spinner,
   SWAN_CYAN,
   TextArea,
 } from './copilot-shared-styles';
 import {
-  ActionRow,
   BlockCard,
   BlockContent,
   BlockDurationBar,
   BlockHeader,
   BlockTimeline,
   BlockWeeks,
-  FlushInfoPanel,
-  GoalLoadingRow,
-  GoalLoadingSpinner,
-  GoalSummaryPanel,
-  HorizonRadioButton,
-  HorizonRadioGroup,
   IconSlot,
   NasmBadge,
-  OverrideSection,
-  OverrideTextArea,
-  ProfileBadge,
   ReadOnlyField,
   TightActionRow,
 } from './LongHorizonContent.styles';
+import LongHorizonConfigureForm from './LongHorizonConfigureForm';
 import LongHorizonErrorState from './LongHorizonErrorState';
 import LongHorizonReviewFooter from './LongHorizonReviewFooter';
 import {
@@ -94,8 +83,6 @@ import {
   LongHorizonIdleState,
   LongHorizonSavedState,
 } from './LongHorizonStatusScreens';
-import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
-import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
 type LHState =
   | 'idle'
@@ -370,123 +357,25 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
   if (state === 'configure_plan') {
     return (
-      <>
-        <SectionTitle>Long-Horizon Planning</SectionTitle>
-        <FormGrid>
-          <FormGroup $fullWidth>
-            <Label>Horizon</Label>
-            <HorizonRadioGroup>
-              {[3, 6, 12].map((option) => (
-                <HorizonRadioButton
-                  key={option}
-                  $active={horizonMonths === option}
-                  onClick={() => setHorizonMonths(option as 3 | 6 | 12)}
-                >
-                  {option} months
-                </HorizonRadioButton>
-              ))}
-            </HorizonRadioGroup>
-          </FormGroup>
-
-          <FormGroup $fullWidth>
-            <Label>
-              Client Goals <ProfileBadge><Info size={12} />From profile</ProfileBadge>
-            </Label>
-            <GoalSummaryPanel>
-              {goalsLoading && (
-                <GoalLoadingRow>
-                  <GoalLoadingSpinner />
-                  <span>Loading goals...</span>
-                </GoalLoadingRow>
-              )}
-              {!goalsLoading && goalsError && (
-                <FlushInfoPanel $variant="info">
-                  <IconSlot><Info size={16} /></IconSlot>
-                  <InfoContent>{goalsError}</InfoContent>
-                </FlushInfoPanel>
-              )}
-              {!goalsLoading && !goalsError && (
-                <>
-                  <div>
-                    <Label>Primary Goal</Label>
-                    <ReadOnlyField>{clientGoals?.primaryGoal || 'general_fitness'}</ReadOnlyField>
-                  </div>
-                  <div>
-                    <Label>Secondary Goals</Label>
-                    <ReadOnlyField>
-                      {clientGoals?.secondaryGoals.length
-                        ? clientGoals.secondaryGoals.join(', ')
-                        : 'None provided'}
-                    </ReadOnlyField>
-                  </div>
-                  <div>
-                    <Label>Constraints</Label>
-                    <ReadOnlyField>
-                      {clientGoals?.constraints.length
-                        ? clientGoals.constraints.join(', ')
-                        : 'None provided'}
-                    </ReadOnlyField>
-                  </div>
-                </>
-              )}
-            </GoalSummaryPanel>
-          </FormGroup>
-
-          <FormGroup $fullWidth>
-            <EquipmentProfilePicker
-              selectedProfileId={equipmentProfileId}
-              onSelect={setEquipmentProfileId}
-              compact
-              label="Equipment Profile"
-            />
-          </FormGroup>
-
-          <FormGroup $fullWidth>
-            <Label>Additional Notes</Label>
-            <TextArea
-              value={trainerNotes}
-              onChange={(e) => setTrainerNotes(e.target.value)}
-              placeholder="Optional context for your review process"
-              rows={3}
-            />
-          </FormGroup>
-
-          <FormGroup $fullWidth>
-            <AITerminalPanel
-              context="workout_generation"
-              clientId={clientId}
-              equipmentProfileId={equipmentProfileId}
-              placeholder="Ask Swan Coach about long-horizon planning..."
-              defaultOpen={false}
-            />
-          </FormGroup>
-
-          {(isAdmin || overrideReasonRequired) && (
-            <FormGroup $fullWidth>
-              <OverrideSection>
-                <Label>Admin Override Reason {overrideReasonRequired ? '(required)' : '(optional)'}</Label>
-                <OverrideTextArea
-                  $required={overrideReasonRequired}
-                  value={overrideReason}
-                  onChange={(e) => setOverrideReason(e.target.value)}
-                  placeholder="Provide justification when consent override is required"
-                  rows={3}
-                />
-              </OverrideSection>
-            </FormGroup>
-          )}
-        </FormGrid>
-
-        <Divider />
-
-        <ActionRow $justify="flex-end">
-          <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-          <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
-            {isSubmitting ? <Spinner size={16} /> : <Sparkles size={16} />}
-            {isSubmitting ? 'Generating...' : 'Generate Draft'}
-          </PrimaryButton>
-        </ActionRow>
-      </>
+      <LongHorizonConfigureForm
+        clientId={clientId}
+        horizonMonths={horizonMonths}
+        setHorizonMonths={setHorizonMonths}
+        clientGoals={clientGoals}
+        goalsLoading={goalsLoading}
+        goalsError={goalsError}
+        equipmentProfileId={equipmentProfileId}
+        setEquipmentProfileId={setEquipmentProfileId}
+        trainerNotes={trainerNotes}
+        setTrainerNotes={setTrainerNotes}
+        isAdmin={isAdmin}
+        overrideReasonRequired={overrideReasonRequired}
+        overrideReason={overrideReason}
+        setOverrideReason={setOverrideReason}
+        isSubmitting={isSubmitting}
+        onClose={onClose}
+        onGenerate={handleGenerate}
+      />
     );
   }
 
