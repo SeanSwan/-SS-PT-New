@@ -38,7 +38,7 @@ import styled from 'styled-components';
 import {
   Dumbbell, Clock, Target, Trophy, BarChart3,
   ChevronDown, ChevronUp, Flame, Activity, Share2,
-  Edit3, Save, X as XIcon, Plus, AlertTriangle,
+  AlertTriangle,
 } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
 import { CenterContent, Spinner } from './copilot-shared-styles';
@@ -70,9 +70,8 @@ import {
 } from './workoutHistoryEditRows';
 import WorkoutHistoryExerciseTable from './WorkoutHistoryExerciseTable';
 import WorkoutHistoryExerciseNotesBlock from './WorkoutHistoryExerciseNotesBlock';
+import WorkoutHistorySessionFooter from './WorkoutHistorySessionFooter';
 import {
-  EditActionBar,
-  EditBtn,
   EditErrorBar,
 } from './WorkoutHistoryPanel.styles';
 import {
@@ -87,20 +86,15 @@ import {
   TabBar,
 } from './WorkoutHistoryPanel.layoutStyles';
 import {
-  AddSetRow,
   ExerciseTableViewport,
   MetaChip,
   SessionCard,
   SessionHeader,
   SessionHeaderActions,
   SessionMeta,
-  SessionNotes,
   SessionTitle,
   SessionToggleButton,
-  SessionTotals,
   ShareIconBtn,
-  TotalLabel,
-  TotalValue,
 } from './WorkoutHistoryPanel.sessionStyles';
 import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
 
@@ -482,71 +476,17 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
                             />
                           ))}
 
-                          {isEditing && (
-                            <AddSetRow>
-                              {tableExerciseGroups.map(([exerciseName]) => (
-                                <EditBtn
-                                  type="button"
-                                  key={`add-set-${exerciseName}`}
-                                  $variant="addSet"
-                                  onClick={() => addEditRow(exerciseName)}
-                                  data-testid={`edit-add-set-${exerciseName}`}
-                                >
-                                  <Plus size={12} /> Add set to {exerciseName}
-                                </EditBtn>
-                              ))}
-                            </AddSetRow>
-                          )}
-                          <SessionTotals>
-                            <TotalLabel>
-                              Vol: <TotalValue>{formatWorkoutHistoryVolume(session.totalWeight)}</TotalValue>
-                            </TotalLabel>
-                            <TotalLabel>
-                              Sets: <TotalValue>{session.totalSets}</TotalValue>
-                            </TotalLabel>
-                            <TotalLabel>
-                              Reps: <TotalValue>{session.totalReps}</TotalValue>
-                            </TotalLabel>
-                          </SessionTotals>
-                          {session.notes && (
-                            <SessionNotes>
-                              {session.notes}
-                            </SessionNotes>
-                          )}
-                          <EditActionBar>
-                            {isEditing ? (
-                              <>
-                                <EditBtn
-                                  type="button"
-                                  $variant="cancel"
-                                  onClick={cancelEdit}
-                                  disabled={saving}
-                                  data-testid={`edit-cancel-${session.id}`}
-                                >
-                                  <XIcon size={14} /> Cancel
-                                </EditBtn>
-                                <EditBtn
-                                  type="button"
-                                  $variant="save"
-                                  onClick={() => saveEdit(session.id)}
-                                  disabled={saving || editLogs.length === 0}
-                                  data-testid={`edit-save-${session.id}`}
-                                >
-                                  <Save size={14} />
-                                  {saving ? 'Saving…' : 'Save changes'}
-                                </EditBtn>
-                              </>
-                            ) : (
-                              <EditBtn
-                                type="button"
-                                $variant="edit"
-                                onClick={() => startEdit(session)}
-                                data-testid={`edit-start-${session.id}`}
-                              >
-                                <Edit3 size={14} /> Edit workout
-                              </EditBtn>
-                            )}
-                          </EditActionBar>
+                          <WorkoutHistorySessionFooter
+                            session={session}
+                            tableExerciseGroups={tableExerciseGroups}
+                            isEditing={isEditing}
+                            saving={saving}
+                            editLogsLength={editLogs.length}
+                            addEditRow={addEditRow}
+                            cancelEdit={cancelEdit}
+                            saveEdit={saveEdit}
+                            startEdit={startEdit}
+                          />
                         </ExerciseTableViewport>
                       );
                     })()}
