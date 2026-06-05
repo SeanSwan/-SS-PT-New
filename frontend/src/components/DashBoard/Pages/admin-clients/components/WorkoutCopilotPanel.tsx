@@ -8,15 +8,17 @@
  *
  * WHAT THIS FILE DOES: Owns the copilot's finite state machine
  * (idle → pain_check → generating → draft_review/degraded/error → approving → saved)
- * and routes rendering to decomposed sub-components. Draft editing, template
- * loading, reset behavior, and single-workout actions are delegated to hooks.
+ * and delegates active body/footer rendering to CopilotPanelContent. Draft
+ * editing, template loading, reset behavior, and single-workout actions are
+ * delegated to hooks.
  *
  * HOW IT FITS IN THE APP: Mounted inside the admin client detail panel
  * (inline mode) or as a standalone modal (overlay mode).
  *
  * KEY DECISIONS: Decomposed from a 1,099-line monolith into focused files
- * per the 300-line max rule. The panel keeps state ownership and rendering;
- * hooks own reusable orchestration and JSX render blocks stay extracted.
+ * per the 300-line max rule. The panel keeps state ownership and top-shell
+ * rendering; CopilotPanelContent owns state-driven body/footer branches, while
+ * hooks own reusable orchestration.
  *
  * NASM PROTOCOL CONTEXT: Draft generation follows NASM OPT 5-phase model.
  * Pain safety check enforces NASM CES restrictions.
@@ -36,32 +38,27 @@
  * ├─────────┬──────────────────────────────────────────────────┤
  * │ Single  │ Long-Horizon │ (tabs)                            │
  * ├─────────┴──────────────────────────────────────────────────┤
- * │ [State-driven content area]                                │
- * │   idle → CopilotIdleState                                  │
- * │   pain_check → CopilotPainCheck                            │
- * │   generating → Spinner                                     │
- * │   error/approve_error/degraded → CopilotErrorStates        │
- * │   draft_review/approving → CopilotDraftReview              │
- * │   saved → CopilotSavedState                                │
+ * │ [CopilotPanelContent: state-driven body/footer]            │
+ * │   single workout delegates by FSM state                    │
+ * │   long horizon delegates to LongHorizonContent             │
  * ├────────────────────────────────────────────────────────────┤
  * │ [Footer: Regenerate | Approve & Save] (draft_review only)  │
  * └────────────────────────────────────────────────────────────┘
  *
  * MERMAID ARCHITECTURE:
  * graph TD
- *   A[WorkoutCopilotPanel] --> B[CopilotIdleState]
- *   A --> C[CopilotPainCheck]
- *   A --> D[CopilotErrorStates]
- *   A --> E[CopilotDraftReview]
- *   A --> F[CopilotSavedState]
- *   A --> G[LongHorizonContent]
+ *   A[WorkoutCopilotPanel] --> B[CopilotPanelContent]
+ *   B --> C[Single workout FSM content]
+ *   B --> D[LongHorizonContent]
+ *   C --> E[CopilotDraftReview]
+ *   C --> F[CopilotSingleWorkoutFooter]
  *
  * DATA FLOW:
  * Props In:  WorkoutCopilotPanelProps (open, onClose, clientId, clientName, ...)
  * State:     Panel-owned CopilotState FSM + draft/error/pain data
  * API Calls: Delegated through hooks/services for generate/approve/templates/pain
- * Children:  CopilotIdleState, CopilotPainCheck, CopilotErrorStates,
- *            CopilotDraftReview, CopilotSavedState, LongHorizonContent
+ * Children:  CopilotPanelContent, CopilotModeTabs
+ * Delegates: CopilotPanelContent owns state-specific body/footer children.
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -88,22 +85,12 @@ import {
   ModalHeader,
   ModalTitle,
   CloseButton,
-  ModalBody,
-  ModalFooter,
   InlineWrapper,
   InlinePanel,
 } from './copilot-shared-styles';
 
-import CopilotIdleState from './CopilotIdleState';
-import CopilotPainCheck from './CopilotPainCheck';
-import CopilotErrorStates from './CopilotErrorStates';
-import CopilotDraftReview from './CopilotDraftReview';
-import CopilotSavedState from './CopilotSavedState';
-import LongHorizonContent from './LongHorizonContent';
-import CopilotGeneratingState from './CopilotGeneratingState';
+import CopilotPanelContent from './CopilotPanelContent';
 import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
-import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
-import { getCopilotErrorFlags } from './copilot-error-flags';
 import { useCopilotDraftEditor } from './useCopilotDraftEditor';
 import { useCopilotPanelReset } from './useCopilotPanelReset';
 import { useCopilotSingleWorkoutActions } from './useCopilotSingleWorkoutActions';
@@ -268,10 +255,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setEditedPlan(null);
   }, []);
 
-  // ── Error classification ────────────────────────────────────
-
-  const errorFlags = useMemo(() => getCopilotErrorFlags(errorCode), [errorCode]);
-
   // ── Render ──────────────────────────────────────────────────
 
   if (!open) return null;
@@ -296,116 +279,65 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
           onSelectLongHorizon={handleSelectLongHorizonTab}
         />
 
-        <ModalBody>
-          {activeTab === 'single' && (
-            <>
-              {state === 'idle' && (
-                <CopilotIdleState
-                  clientName={clientName}
-                  isAdmin={isAdmin}
-                  overrideReasonRequired={overrideReasonRequired}
-                  overrideReason={overrideReason}
-                  setOverrideReason={setOverrideReason}
-                  handleGenerate={handleGenerate}
-                  isSubmitting={isSubmitting}
-                  templatesLoading={templatesLoading}
-                  templates={templates}
-                />
-              )}
-
-              {state === 'pain_check' && (
-                <CopilotPainCheck
-                  clientName={clientName}
-                  activePainEntries={activePainEntries}
-                  isSubmitting={isSubmitting}
-                  setState={setState}
-                  handlePainAcknowledgeAndGenerate={handlePainAcknowledgeAndGenerate}
-                />
-              )}
-
-              {state === 'generating' && (
-                <CopilotGeneratingState />
-              )}
-
-              {(state === 'error' || state === 'approve_error' || state === 'degraded') && (
-                <CopilotErrorStates
-                  state={state}
-                  errorMessage={errorMessage}
-                  approveErrors={approveErrors}
-                  degradedData={degradedData}
-                  isConsentError={errorFlags.isConsentError}
-                  isWaiverError={errorFlags.isWaiverError}
-                  isAssignmentError={errorFlags.isAssignmentError}
-                  isOverrideError={errorFlags.isOverrideError}
-                  isRetryable={errorFlags.isRetryable}
-                  handleGenerate={handleGenerate}
-                  isSubmitting={isSubmitting}
-                  onClose={onClose}
-                  setState={setState}
-                  editedPlan={editedPlan}
-                  setOverrideReasonRequired={setOverrideReasonRequired}
-                />
-              )}
-
-              {(state === 'draft_review' || state === 'approving') && editedPlan && (
-                <CopilotDraftReview
-                  editedPlan={editedPlan}
-                  explainability={explainability}
-                  safetyConstraints={safetyConstraints}
-                  exerciseRecs={exerciseRecs}
-                  warnings={warnings}
-                  missingInputs={missingInputs}
-                  generationMode={generationMode}
-                  expandedDays={expandedDays}
-                  toggleDay={toggleDay}
-                  updatePlanField={updatePlanField}
-                  updateDay={updateDay}
-                  updateExercise={updateExercise}
-                  addExercise={addExercise}
-                  removeExercise={removeExercise}
-                  trainerNotes={trainerNotes}
-                  setTrainerNotes={setTrainerNotes}
-                />
-              )}
-
-              {state === 'saved' && (
-                <CopilotSavedState
-                  savedPlanId={savedPlanId}
-                  clientName={clientName}
-                  unmatchedExercises={unmatchedExercises}
-                  validationWarnings={validationWarnings}
-                  onClose={onClose}
-                />
-              )}
-            </>
-          )}
-
-          {activeTab === 'long-horizon' && (
-            <LongHorizonContent
-              clientId={clientId}
-              clientName={clientName}
-              authAxios={authAxios}
-              toast={toast}
-              onSuccess={onSuccess}
-              onClose={onClose}
-              renderFooter={setLhFooterContent}
-            />
-          )}
-        </ModalBody>
-
-        {/* Footer: only show approve button during draft review */}
-        {activeTab === 'single' && (state === 'draft_review' || state === 'approving') && (
-          <CopilotSingleWorkoutFooter
-            state={state}
-            isSubmitting={isSubmitting}
-            onApprove={handleApprove}
-            onRegenerate={handleRegenerateSingleWorkout}
-          />
-        )}
-
-        {activeTab === 'long-horizon' && lhFooterContent && (
-          <ModalFooter>{lhFooterContent}</ModalFooter>
-        )}
+        <CopilotPanelContent
+          activeTab={activeTab}
+          singleWorkout={{
+            state,
+            clientName,
+            isAdmin,
+            overrideReasonRequired,
+            overrideReason,
+            setOverrideReason,
+            handleGenerate,
+            isSubmitting,
+            templatesLoading,
+            templates,
+            activePainEntries,
+            setState,
+            handlePainAcknowledgeAndGenerate,
+            errorMessage,
+            approveErrors,
+            degradedData,
+            errorCode,
+            onClose,
+            editedPlan,
+            setOverrideReasonRequired,
+            explainability,
+            safetyConstraints,
+            exerciseRecs,
+            warnings,
+            missingInputs,
+            generationMode,
+            expandedDays,
+            toggleDay,
+            updatePlanField,
+            updateDay,
+            updateExercise,
+            addExercise,
+            removeExercise,
+            trainerNotes,
+            setTrainerNotes,
+            savedPlanId,
+            unmatchedExercises,
+            validationWarnings,
+          }}
+          longHorizon={{
+            clientId,
+            clientName,
+            authAxios,
+            toast,
+            onSuccess,
+            onClose,
+            renderFooter: setLhFooterContent,
+          }}
+          footer={{
+            state,
+            isSubmitting,
+            lhFooterContent,
+            onApprove: handleApprove,
+            onRegenerate: handleRegenerateSingleWorkout,
+          }}
+        />
       </Panel>
     </Wrapper>
   );
