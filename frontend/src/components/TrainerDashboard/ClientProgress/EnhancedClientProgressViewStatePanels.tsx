@@ -11,7 +11,7 @@ const StatePageWrapper = styled.div`
 `;
 
 const StatePanel = styled.div`
-  background: var(--bg-elevated, rgba(15, 23, 42, 0.95));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
   border-radius: 16px;
   padding: 24px;

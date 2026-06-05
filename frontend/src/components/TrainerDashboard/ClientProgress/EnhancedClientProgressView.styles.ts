@@ -109,19 +109,19 @@ interface RiskChipProps {
 
 const riskColors: Record<string, { bg: string; text: string; border: string }> = {
   low: {
-    bg: 'var(--status-success-soft, rgba(34, 197, 94, 0.15))',
+    bg: 'var(--status-success-soft, color-mix(in srgb, var(--status-success, #4ade80) 15%, transparent))',
     text: 'var(--status-success, #4ade80)',
-    border: 'var(--status-success-border, rgba(34, 197, 94, 0.3))',
+    border: 'var(--status-success-border, color-mix(in srgb, var(--status-success, #4ade80) 30%, transparent))',
   },
   medium: {
-    bg: 'var(--status-warning-soft, rgba(234, 179, 8, 0.15))',
+    bg: 'var(--status-warning-soft, color-mix(in srgb, var(--status-warning, #facc15) 15%, transparent))',
     text: 'var(--status-warning, #facc15)',
-    border: 'var(--status-warning-border, rgba(234, 179, 8, 0.3))',
+    border: 'var(--status-warning-border, color-mix(in srgb, var(--status-warning, #facc15) 30%, transparent))',
   },
   high: {
-    bg: 'var(--status-danger-soft, rgba(239, 68, 68, 0.15))',
+    bg: 'var(--status-danger-soft, color-mix(in srgb, var(--status-danger, #f87171) 15%, transparent))',
     text: 'var(--status-danger, #f87171)',
-    border: 'var(--status-danger-border, rgba(239, 68, 68, 0.3))',
+    border: 'var(--status-danger-border, color-mix(in srgb, var(--status-danger, #f87171) 30%, transparent))',
   },
   unknown: {
     bg: 'color-mix(in srgb, var(--text-secondary, #A9B7C8) 12%, transparent)',

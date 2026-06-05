@@ -39,14 +39,17 @@ describe('EnhancedClientProgressView theme bridge', () => {
     expect(STYLE_SOURCE).not.toContain('box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4)');
     expect(STYLE_SOURCE).not.toContain('rgba(15, 23, 42');
     expect(STYLE_SOURCE).not.toContain('rgba(0, 0, 0');
+    expect(STYLE_SOURCE).not.toMatch(/rgba\((34, 197, 94|234, 179, 8|239, 68, 68)/);
   });
 
   it('bridges no-client and loading route states to the same dashboard tokens', () => {
     expect(STATE_PANEL_SOURCE).toContain('var(--bg-elevated');
+    expect(STATE_PANEL_SOURCE).toContain('color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent)');
     expect(STATE_PANEL_SOURCE).toContain('var(--text-primary');
     expect(STATE_PANEL_SOURCE).toContain('var(--text-secondary');
     expect(STATE_PANEL_SOURCE).toContain('var(--accent-primary');
 
+    expect(STATE_PANEL_SOURCE).not.toContain('rgba(15, 23, 42, 0.95)');
     expect(STATE_PANEL_SOURCE).not.toContain('var(--surface-elevated');
     expect(STATE_PANEL_SOURCE).not.toContain('var(--border-accent-soft');
     expect(STATE_PANEL_SOURCE).not.toContain('var(--surface-interactive');
