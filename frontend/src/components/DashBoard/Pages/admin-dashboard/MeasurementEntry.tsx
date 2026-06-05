@@ -7,7 +7,6 @@ import apiService from '../../../../services/api.service';
 import {
   containerVariants,
   itemVariants,
-  measurementFields,
 } from './MeasurementEntry.config';
 import type {
   BodyMeasurement,
@@ -25,7 +24,6 @@ import {
   ResponsiveGrid,
   SectionTitle,
   Spinner,
-  SubsectionTitle,
 } from './MeasurementEntry.baseStyles';
 import {
   AutocompleteWrapper,
@@ -39,21 +37,6 @@ import {
   StyledLabel,
 } from './MeasurementEntry.formStyles';
 import {
-  DetailCell,
-  DetailGrid,
-  DetailLabel,
-  DetailPhotoGrid,
-  DetailUnit,
-  DetailValue,
-  ModalCloseButton,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  ModalSection,
-  PhotoPreviewWrapper,
-  TightSectionTitle,
-} from './MeasurementEntry.modalStyles';
-import {
   buildRadarData,
   buildTrendData,
   filterClients,
@@ -63,6 +46,7 @@ import { getMeasurementChange } from './MeasurementEntry.changeUtils';
 import MeasurementEntryProgressCharts from './MeasurementEntryProgressCharts';
 import MeasurementEntryFormPanel from './MeasurementEntryFormPanel';
 import MeasurementEntryRecentPanel from './MeasurementEntryRecentPanel';
+import MeasurementEntryDetailModal from './MeasurementEntryDetailModal';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -485,82 +469,11 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       )}
 
       {/* ── Measurement Detail Modal ── */}
-      <AnimatePresence>
-        {detailMeasurement && (
-          <ModalOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <ModalContent
-              role="dialog"
-              aria-modal="true"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-            >
-              <ModalHeader>
-                <div>
-                  <TightSectionTitle>
-                    {new Date(detailMeasurement.measurementDate).toLocaleDateString('en-US', {
-                      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-                    })}
-                  </TightSectionTitle>
-                  {detailMeasurement.recorder && (
-                    <BodyText>
-                      Recorded by {detailMeasurement.recorder.firstName || detailMeasurement.recorder.username || 'Trainer'}
-                    </BodyText>
-                  )}
-                </div>
-                <ModalCloseButton onClick={() => setDetailMeasurement(null)}>
-                  <X size={18} />
-                </ModalCloseButton>
-              </ModalHeader>
+      <MeasurementEntryDetailModal
+        detailMeasurement={detailMeasurement}
+        onClose={() => setDetailMeasurement(null)}
+      />
 
-              <DetailGrid>
-                {measurementFields.map(({ key, label }) => {
-                  const value = detailMeasurement[key];
-                  if (value === undefined || value === null) return null;
-                  const unit = key === 'weight'
-                    ? detailMeasurement.weightUnit || 'lbs'
-                    : key === 'bodyFatPercentage' || key === 'muscleMassPercentage'
-                      ? '%'
-                      : detailMeasurement.circumferenceUnit || 'in';
-                  return (
-                    <DetailCell key={key}>
-                      <DetailLabel>{label}</DetailLabel>
-                      <DetailValue>
-                        {typeof value === 'number' ? value.toFixed(1) : value}
-                        <DetailUnit>{unit}</DetailUnit>
-                      </DetailValue>
-                    </DetailCell>
-                  );
-                })}
-              </DetailGrid>
-
-              {detailMeasurement.notes && (
-                <ModalSection>
-                  <SubsectionTitle>Notes</SubsectionTitle>
-                  <BodyText>{detailMeasurement.notes}</BodyText>
-                </ModalSection>
-              )}
-
-              {detailMeasurement.photoUrls && detailMeasurement.photoUrls.length > 0 && (
-                <ModalSection>
-                  <SubsectionTitle>Progress Photos</SubsectionTitle>
-                  <DetailPhotoGrid>
-                    {detailMeasurement.photoUrls.map((url, i) => (
-                      <PhotoPreviewWrapper key={i}>
-                        <img src={url} alt={`Progress ${i + 1}`} />
-                      </PhotoPreviewWrapper>
-                    ))}
-                  </DetailPhotoGrid>
-                </ModalSection>
-              )}
-            </ModalContent>
-          </ModalOverlay>
-        )}
-      </AnimatePresence>
     </PageWrapper>
   );
 };
