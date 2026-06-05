@@ -28,6 +28,7 @@ import WorkoutPlannerStatusAssistantStrip, {
 } from './WorkoutPlannerStatusAssistantStrip';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerSaveActions } from './useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import {
@@ -109,7 +110,6 @@ const WorkoutPlannerPage: React.FC = () => {
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const [degradedIntelligence, setDegradedIntelligence] = useState(false);
   const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
@@ -186,6 +186,32 @@ const WorkoutPlannerPage: React.FC = () => {
     resetLoadedPlanState,
     setStatusMsg,
     setConfirmRequest,
+  });
+
+  const {
+    saving,
+    handleSaveDraft,
+    handleSaveAndActivate,
+    handleUpdateLoaded,
+    handleUpdateAndActivate,
+  } = useWorkoutPlannerSaveActions({
+    authAxios,
+    selectedClientId,
+    planExercisesLength: planExercises.length,
+    hasGeneratedHorizonPlan,
+    loadedPlanId,
+    phaseName: phase.name,
+    phaseNumber,
+    categoryLabel,
+    goal,
+    clients,
+    buildPlanData,
+    currentExercisesSig,
+    fetchSavedPlans,
+    setSavedSnapshot,
+    setLoadedPlanId,
+    setLoadedPlanName,
+    setStatusMsg,
   });
 
   // ── Fetch Clients ──
@@ -352,120 +378,6 @@ const WorkoutPlannerPage: React.FC = () => {
       setGeneratingPlan(false);
     }
   }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal, phaseNumber]);
-
-  // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
-  // POSTs as status='draft' so the new partial unique index never trips.
-  // Trainer can promote to current later via Activate.
-  const handleSaveDraft = useCallback(async () => {
-    // AI Village CRITICAL-4 fix: a generated multi-month plan with no
-    // manual planExercises is still saveable — the generatedPlan.weeks[]
-    // is the source of truth in that mode.
-    if (!selectedClientId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
-    setSaving(true);
-    try {
-      const client = clients.find(c => c.id === selectedClientId);
-      const res = await authAxios.post('/api/workout-plans', {
-        userId: selectedClientId,
-        title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
-        description: `${categoryLabel} — ${goal}`,
-        nasmPhase: phaseNumber,
-        status: 'draft',
-        planData: buildPlanData(),
-      });
-      setStatusMsg({ type: 'success', text: 'Plan saved as draft.' });
-      setSavedSnapshot(currentExercisesSig);
-      // Capture the new id so subsequent edits become "Update Plan" mode
-      const newId = res.data?.plan?.id ? String(res.data.plan.id) : null;
-      if (newId) {
-        setLoadedPlanId(newId);
-        setLoadedPlanName(res.data?.plan?.title || null);
-      }
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Save draft failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to save plan. Please try again.' });
-    } finally {
-      setSaving(false);
-    }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, categoryLabel, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
-
-  // ── Save & Make Current ── (Plan Library §5.1, no-loaded-plan path)
-  // POSTs as draft, then activates. Two requests; backend invariant on activate
-  // ensures any existing active plan is demoted atomically.
-  const handleSaveAndActivate = useCallback(async () => {
-    // AI Village CRITICAL-4 fix: a generated multi-month plan with no
-    // manual planExercises is still saveable — the generatedPlan.weeks[]
-    // is the source of truth in that mode.
-    if (!selectedClientId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
-    setSaving(true);
-    try {
-      const client = clients.find(c => c.id === selectedClientId);
-      const res = await authAxios.post('/api/workout-plans', {
-        userId: selectedClientId,
-        title: `${client?.firstName || 'Client'}'s ${phase.name} Plan`,
-        description: `${categoryLabel} — ${goal}`,
-        nasmPhase: phaseNumber,
-        status: 'draft',
-        planData: buildPlanData(),
-      });
-      const newId = res.data?.plan?.id;
-      if (!newId) throw new Error('Backend returned no plan id');
-      await authAxios.put(`/api/workout-plans/${newId}/activate`);
-      setStatusMsg({ type: 'success', text: 'Plan saved and made current.' });
-      setSavedSnapshot(currentExercisesSig);
-      setLoadedPlanId(String(newId));
-      setLoadedPlanName(res.data?.plan?.title || null);
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Save & activate failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to save & activate plan.' });
-    } finally {
-      setSaving(false);
-    }
-  }, [authAxios, selectedClientId, planExercises.length, phase.name, categoryLabel, goal, phaseNumber, clients, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
-
-  // ── Update Loaded Plan ── (Plan Library §5.1, loaded-plan path)
-  // PUT /:id with the new planData. Does NOT change activation state.
-  const handleUpdateLoaded = useCallback(async () => {
-    if (!selectedClientId || !loadedPlanId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
-    setSaving(true);
-    try {
-      await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
-        nasmPhase: phaseNumber,
-        planData: buildPlanData(),
-      });
-      setStatusMsg({ type: 'success', text: 'Plan updated.' });
-      setSavedSnapshot(currentExercisesSig);
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Update plan failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to update plan.' });
-    } finally {
-      setSaving(false);
-    }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
-
-  // ── Update & Make Current ── (Plan Library §5.1, loaded-non-current path)
-  // PUT /:id then PUT /:id/activate.
-  const handleUpdateAndActivate = useCallback(async () => {
-    if (!selectedClientId || !loadedPlanId || (planExercises.length === 0 && !hasGeneratedHorizonPlan)) return;
-    setSaving(true);
-    try {
-      await authAxios.put(`/api/workout-plans/${loadedPlanId}`, {
-        nasmPhase: phaseNumber,
-        planData: buildPlanData(),
-      });
-      await authAxios.put(`/api/workout-plans/${loadedPlanId}/activate`);
-      setStatusMsg({ type: 'success', text: 'Plan updated and made current.' });
-      setSavedSnapshot(currentExercisesSig);
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Update & activate failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to update & activate plan.' });
-    } finally {
-      setSaving(false);
-    }
-  }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
 
   const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
     try {
