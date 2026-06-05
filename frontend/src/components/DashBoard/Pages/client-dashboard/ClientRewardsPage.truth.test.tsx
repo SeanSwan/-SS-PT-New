@@ -70,7 +70,26 @@ vi.mock('../../../../hooks/gamification/useGamificationData', () => ({
 
 import ClientRewardsPage from './ClientRewardsPage';
 
+const readSource = (relativePath: string) =>
+  readFileSync(resolve(__dirname, relativePath), 'utf-8');
+
 describe('ClientRewardsPage gamification truth', () => {
+  it('is the mounted client rewards surface backed by the v1 gamification profile hook', () => {
+    const layoutSource = readSource('../../UniversalDashboardLayout.tsx');
+    const sidebarSource = readSource('./ClientStellarSidebar.tsx');
+    const hookSource = readSource('../../../../hooks/gamification/useGamificationData.ts');
+    const routesSource = readFileSync(
+      resolve(process.cwd(), '../backend/routes/gamificationV1Routes.mjs'),
+      'utf-8'
+    );
+
+    expect(layoutSource).toContain("const ClientRewardsPage = React.lazy(() => import('./Pages/client-dashboard/ClientRewardsPage'))");
+    expect(layoutSource).toContain("{ path: '/rewards', component: ClientRewardsPage");
+    expect(sidebarSource).toContain("path: '/dashboard/client/rewards'");
+    expect(hookSource).toContain("authAxios.get('/api/v1/gamification/profile')");
+    expect(routesSource).toContain("router.get('/profile', authenticate, requireUser");
+  });
+
   it('uses the shared gamification profile for XP, achievements, and point history', async () => {
     mockAxiosGet.mockResolvedValue({ data: { data: {} } });
 
@@ -86,10 +105,12 @@ describe('ClientRewardsPage gamification truth', () => {
   });
 
   it('keeps reward tier and badge colors connected to theme tokens', () => {
-    const source = readFileSync(resolve(__dirname, './ClientRewardsPage.tsx'), 'utf-8');
+    const source = readSource('./ClientRewardsPage.tsx');
 
     expect(source).not.toMatch(/color:\s*'#[0-9A-Fa-f]{3,8}'/);
-    expect(source).not.toMatch(/'rgba\(/);
+    expect(source).not.toMatch(/rgba\(/);
+    expect(source).toContain('const BORDER_SOFT');
+    expect(source).toContain('color-mix(in srgb, var(--accent-primary, #60C0F0)');
     expect(source).toContain('var(--accent-primary');
   });
 });

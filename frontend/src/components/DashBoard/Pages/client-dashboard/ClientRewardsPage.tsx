@@ -55,6 +55,12 @@ const TIERS = [
 const getTierForLevel = (level: number) =>
   TIERS.find(t => level >= t.min && level <= t.max) || TIERS[0];
 
+const BORDER_SOFT = 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))';
+const BORDER_FAINT = 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent))';
+const BORDER_HAIRLINE = 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent))';
+const BORDER_DASHED = 'var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent))';
+const SHIMMER_HIGHLIGHT = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)';
+
 interface AchievementRecord {
   id?: string | number;
   achievement?: {
@@ -91,7 +97,7 @@ const PageWrap = styled.div`
 
 const TierCard = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.1));
+  border: 1px solid ${BORDER_SOFT};
   border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem;
 `;
 
@@ -140,7 +146,7 @@ const TwoCol = styled.div`
 
 const SectionCard = styled.div`
   background: var(--bg-surface, #1A1A24);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.08));
+  border: 1px solid ${BORDER_FAINT};
   border-radius: 12px; padding: 1.25rem;
   h3 { margin: 0 0 0.75rem; font-size: 1rem; font-family: 'Plus Jakarta Sans', sans-serif;
        display: flex; align-items: center; gap: 0.5rem; }
@@ -149,7 +155,7 @@ const SectionCard = styled.div`
 const AchievementItem = styled.div`
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
+  border-bottom: 1px solid ${BORDER_HAIRLINE};
   &:last-child { border-bottom: none; }
   font-size: 0.875rem;
 `;
@@ -192,7 +198,7 @@ const BadgeGrid = styled.div`
 const BadgePlaceholder = styled.div`
   aspect-ratio: 1; border-radius: 12px;
   background: var(--bg-elevated, #141419);
-  border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.15));
+  border: 1px dashed ${BORDER_DASHED};
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 0.375rem; font-size: 0.75rem; color: var(--text-muted, #94a3b8);
 `;
@@ -201,7 +207,7 @@ const ShimmerBlock = styled.div<{ $height?: string; $bottom?: string }>`
   height: ${({ $height }) => $height || '80px'};
   margin-bottom: ${({ $bottom }) => $bottom || 0};
   border-radius: 12px;
-  background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, rgba(96,192,240,0.06) 50%, var(--bg-elevated, #141419) 75%);
+  background: linear-gradient(90deg, var(--bg-elevated, #141419) 25%, ${SHIMMER_HIGHLIGHT} 50%, var(--bg-elevated, #141419) 75%);
   background-size: 200% 100%; animation: ${shimmer} 1.5s infinite;
 `;
 
