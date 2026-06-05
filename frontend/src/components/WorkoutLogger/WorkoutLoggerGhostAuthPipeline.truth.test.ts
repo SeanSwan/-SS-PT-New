@@ -28,7 +28,9 @@ describe('WorkoutLogger ghost history auth pipeline', () => {
     expect(layout).toMatch(/path: '\/log-workout', component: EnhancedWorkoutLogger/);
     expect(layout).toMatch(/path: '\/log-workout', component: WorkoutLogger/);
     expect(enhancedLogger).toMatch(/import WorkoutLogger from '\.\.\/\.\.\/WorkoutLogger\/WorkoutLogger'/);
-    expect(enhancedLogger).toMatch(/import \{ normalizeDashboardReturnTo, parseLoggerClientId \} from '\.\/EnhancedWorkoutLogger\.logic'/);
+    expect(enhancedLogger).toMatch(
+      /import\s+\{[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s+from '\.\/EnhancedWorkoutLogger\.logic'/,
+    );
     expect(enhancedLogger).toMatch(/<WorkoutLogger[\s\S]*?clientId=\{client\.id\}/);
     expect(enhancedLogger).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
     expect(workoutLogger).toMatch(/useGhostPreFill\(hookClientId, \{ skip: isClientSelfMode \}\)/);

@@ -1,4 +1,5 @@
 import {
+  convertAIWorkoutExercisesToEntries,
   coerceToNumericId,
   getCurrentWorkoutCursorSession,
   normalizeWorkoutDate,
@@ -59,5 +60,56 @@ describe('WorkoutLogger helpers', () => {
     expect(getCurrentWorkoutCursorSession({ currentSession: session })).toBe(session);
     expect(getCurrentWorkoutCursorSession({ data: { currentSession: session } })).toBe(session);
     expect(getCurrentWorkoutCursorSession({ plan: { currentSession: session } })).toBe(session);
+  });
+
+  it('converts AI workout exercises into null-honest logger rows', () => {
+    let nextId = 0;
+    const makeLocalId = (prefix: string) => `${prefix}-${nextId += 1}`;
+
+    const [entry] = convertAIWorkoutExercisesToEntries(
+      [{
+        exerciseName: 'AI Goblet Squat',
+        sets: 2,
+        weight: 40,
+        reps: 8,
+        tempo: '3-1-1',
+        restTime: 75,
+        notes: 'Keep chest tall',
+      }],
+      makeLocalId,
+    );
+
+    expect(entry).toMatchObject({
+      loggerExerciseId: 'exercise-1',
+      exerciseId: 'ai-2',
+      exerciseName: 'AI Goblet Squat',
+      formRating: null,
+      painLevel: 0,
+      performanceNotes: '',
+    });
+    expect(entry.sets).toEqual([
+      {
+        loggerSetId: 'set-3',
+        setNumber: 1,
+        weight: 40,
+        reps: 8,
+        rpe: null,
+        tempo: '3-1-1',
+        restTime: 75,
+        formQuality: null,
+        notes: 'Keep chest tall',
+      },
+      {
+        loggerSetId: 'set-4',
+        setNumber: 2,
+        weight: 40,
+        reps: 8,
+        rpe: null,
+        tempo: '3-1-1',
+        restTime: 75,
+        formQuality: null,
+        notes: 'Keep chest tall',
+      },
+    ]);
   });
 });

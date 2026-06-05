@@ -100,6 +100,7 @@ import type {
 } from './WorkoutLogger.localTypes';
 import {
   coerceToNumericId,
+  convertAIWorkoutExercisesToEntries,
   ensureWorkoutLoggerExerciseRowIdentity,
   ensureWorkoutLoggerSetId,
   getCurrentWorkoutCursorSession,
@@ -334,29 +335,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
   // - AI-to-Logger prefill -
   const convertAIExercises = useCallback((incoming: WorkoutExerciseTransfer[]): ExerciseEntry[] => {
-    return incoming.map(ex => {
-      const setCount = Array.isArray(ex.sets) ? ex.sets.length : (Number(ex.sets) || 3);
-      return {
-        loggerExerciseId: createWorkoutLoggerLocalId('exercise'),
-        exerciseId: createWorkoutLoggerLocalId('ai'),
-        exerciseName: ex.exerciseName,
-        sets: Array.from({ length: setCount }, (_, i) => ({
-          loggerSetId: createWorkoutLoggerLocalId('set'),
-          setNumber: i + 1,
-          weight: ex.weight || 0,
-          reps: ex.reps || 10,
-          // Phase 16: AI-prefilled sets default to null rating (not rated).
-          rpe: null,
-          tempo: ex.tempo || '',
-          restTime: ex.restTime || 60,
-          formQuality: null,
-          notes: ex.notes || '',
-        })),
-        formRating: null,
-        painLevel: 0,
-        performanceNotes: '',
-      };
-    });
+    return convertAIWorkoutExercisesToEntries(incoming, createWorkoutLoggerLocalId);
   }, [createWorkoutLoggerLocalId]);
 
   // Listen for live custom event

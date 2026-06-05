@@ -1,4 +1,5 @@
 import type { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
+import type { WorkoutExerciseTransfer } from '../../utils/parseAIWorkoutPlan';
 import type {
   CurrentWorkoutPlanResponse,
   PlannedDay,
@@ -111,6 +112,37 @@ export function plannedExerciseToEntry(
     painLevel: 0,
     performanceNotes: '',
   };
+}
+
+export function convertAIWorkoutExercisesToEntries(
+  incoming: WorkoutExerciseTransfer[],
+  createLocalId: (prefix: string) => string,
+): ExerciseEntry[] {
+  return incoming.map((exercise) => {
+    const setCount = Array.isArray(exercise.sets)
+      ? exercise.sets.length
+      : (Number(exercise.sets) || 3);
+
+    return {
+      loggerExerciseId: createLocalId('exercise'),
+      exerciseId: createLocalId('ai'),
+      exerciseName: exercise.exerciseName,
+      sets: Array.from({ length: setCount }, (_, index) => ({
+        loggerSetId: createLocalId('set'),
+        setNumber: index + 1,
+        weight: exercise.weight || 0,
+        reps: exercise.reps || 10,
+        rpe: null,
+        tempo: exercise.tempo || '',
+        restTime: exercise.restTime || 60,
+        formQuality: null,
+        notes: exercise.notes || '',
+      })),
+      formRating: null,
+      painLevel: 0,
+      performanceNotes: '',
+    };
+  });
 }
 
 export function getCurrentWorkoutCursorSession(
