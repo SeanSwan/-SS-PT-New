@@ -24,6 +24,11 @@ const SOURCE_PATH = resolve(__dirname, './BusinessKPIDashboard.tsx');
 const STYLE_PATH = resolve(__dirname, './BusinessKPIDashboard.styles.ts');
 const SOURCE = readFileSync(SOURCE_PATH, 'utf8');
 const STYLE_SOURCE = existsSync(STYLE_PATH) ? readFileSync(STYLE_PATH, 'utf8') : '';
+const LAYOUT_SOURCE = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/UniversalDashboardLayout.tsx'), 'utf8');
+const OVERVIEW_SOURCE = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
+  'utf8',
+);
 const COMBINED_SOURCE = `${SOURCE}\n${STYLE_SOURCE}`;
 const lineCount = (value: string) => value.split(/\r?\n/).length;
 
@@ -87,6 +92,14 @@ describe('BusinessKPIDashboard truth handling', () => {
     expect(lineCount(STYLE_SOURCE)).toBeLessThanOrEqual(300);
   });
 
+  it('is mounted by the canonical admin overview route', () => {
+    expect(LAYOUT_SOURCE).toContain("const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
+    expect(LAYOUT_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
+    expect(OVERVIEW_SOURCE).toContain("import BusinessKPIDashboard from '../components/BusinessKPIDashboard'");
+    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><BusinessKPIDashboard /></BentoHalf>');
+    expect(SOURCE).toContain("authAxios.get('/api/admin/analytics/business-kpis'");
+  });
+
   it('uses theme tokens for KPI colors instead of fixed widget colors', () => {
     expect(COMBINED_SOURCE).toContain("const KPI_SUCCESS = 'var(--success, #10B981)'");
     expect(COMBINED_SOURCE).toContain("const KPI_INFO = 'var(--accent-tertiary, #4070C0)'");
@@ -94,7 +107,9 @@ describe('BusinessKPIDashboard truth handling', () => {
     expect(COMBINED_SOURCE).toContain("const KPI_ERROR = 'var(--error, #EF4444)'");
     expect(COMBINED_SOURCE).toContain("const KPI_GOLD = 'var(--accent-gold, #C6A84B)'");
     expect(COMBINED_SOURCE).toContain("const KPI_PRIMARY = 'var(--accent-primary, #60C0F0)'");
+    expect(COMBINED_SOURCE).toContain("const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent))'");
     expect(COMBINED_SOURCE).toContain('color-mix(in srgb, ${p => p.$color} 22%, transparent)');
+    expect(COMBINED_SOURCE).not.toContain('rgba(');
     expect(COMBINED_SOURCE).not.toContain("color: '#10b981'");
     expect(COMBINED_SOURCE).not.toContain("color: '#3b82f6'");
     expect(COMBINED_SOURCE).not.toContain("color: '#8B5CF6'");

@@ -9,7 +9,7 @@ export const KPI_GOLD = 'var(--accent-gold, #C6A84B)';
 export const KPI_PRIMARY = 'var(--accent-primary, #60C0F0)';
 
 const TEXT_PRIMARY = 'var(--text-primary, #E0ECF4)';
-const TEXT_MUTED = 'var(--text-muted, rgba(224, 236, 244, 0.62))';
+const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 62%, transparent))';
 
 export const ErrorState = styled.div`
   align-items: center;
