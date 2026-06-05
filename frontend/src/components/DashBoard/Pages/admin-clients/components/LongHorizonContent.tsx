@@ -22,7 +22,7 @@
  * │ API: GET /api/admin/clients/:id/long-horizon               │
  * └─────────────────────────────────────────────────────────────┘
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -31,8 +31,6 @@ import {
   FileWarning,
   Info,
   RefreshCw,
-  RotateCcw,
-  Save,
   Shield,
   Sparkles,
   Download,
@@ -97,6 +95,7 @@ import {
   SavedMetaStrong,
   TightActionRow,
 } from './LongHorizonContent.styles';
+import LongHorizonReviewFooter from './LongHorizonReviewFooter';
 import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
@@ -156,7 +155,6 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
   const [clientGoals, setClientGoals] = useState<ClientGoals | null>(null);
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [goalsError, setGoalsError] = useState('');
-  const handleApproveRef = useRef<(() => Promise<void>) | null>(null);
 
   const fetchClientGoals = useCallback(async () => {
     setGoalsLoading(true);
@@ -310,10 +308,6 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     trainerNotes,
   ]);
 
-  useEffect(() => {
-    handleApproveRef.current = handleApprove;
-  }, [handleApprove]);
-
   const toggleBlock = (blockIdx: number) => {
     setExpandedBlocks((prev) => {
       const next = new Set(prev);
@@ -347,26 +341,15 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
   useEffect(() => {
     if ((state === 'plan_review' || state === 'approving') && editedPlan) {
       renderFooter(
-        <>
-          <SecondaryButton
-            onClick={() => {
-              setState('configure_plan');
-            }}
-            disabled={isSubmitting}
-          >
-            <RotateCcw size={16} />
-            Regenerate
-          </SecondaryButton>
-          <PrimaryButton
-            onClick={() => {
-              void handleApproveRef.current?.();
-            }}
-            disabled={isSubmitting || state === 'approving' || auditLogId == null}
-          >
-            {state === 'approving' ? <Spinner size={16} /> : <Save size={16} />}
-            {state === 'approving' ? 'Saving...' : 'Approve & Save'}
-          </PrimaryButton>
-        </>,
+        <LongHorizonReviewFooter
+          state={state}
+          isSubmitting={isSubmitting}
+          auditLogId={auditLogId}
+          onRegenerate={() => setState('configure_plan')}
+          onApprove={() => {
+            void handleApprove();
+          }}
+        />,
       );
     } else {
       renderFooter(null);
@@ -375,7 +358,7 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     return () => {
       renderFooter(null);
     };
-  }, [state, isSubmitting, editedPlan, auditLogId, renderFooter]);
+  }, [state, isSubmitting, editedPlan, auditLogId, handleApprove, renderFooter]);
 
   if (state === 'idle') {
     return (
