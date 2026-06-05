@@ -58,6 +58,10 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
   if (!generatedPlan) return null;
 
   const activeDay = generatedPlan.weeklySchedule.find(day => day.dayNumber === selectedMesoDay);
+  const equipmentContext = generatedPlan.equipmentContext;
+  const equipmentDescription = equipmentContext?.availableEquipment.length
+    ? equipmentContext.availableEquipment.join(', ')
+    : `Equipment profile ${equipmentContext?.profileId ?? 'selected'} constrained this plan`;
 
   return (
     <MesocycleSection>
@@ -109,12 +113,12 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
             Day {activeDay.dayNumber}: {activeDay.focus}
           </ActiveDayTitle>
           <ActiveDayMeta>
-            Category: {activeDay.category} - Click exercises in the Rolodex to populate this day
+            Category: {activeDay.category} - Review the detailed schedule before saving or assigning
           </ActiveDayMeta>
         </ActiveDayDetail>
       )}
 
-      <PlanLabelBlock>Mesocycles (4-Week Blocks)</PlanLabelBlock>
+      <PlanLabelBlock>Training Blocks</PlanLabelBlock>
       <MesocycleGrid>
         {generatedPlan.mesocycles.map(mesocycle => (
           <ClickableMesocycleCard
@@ -148,8 +152,24 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
         ))}
       </MesocycleGrid>
 
-      {Array.isArray(generatedPlan.weeks) && generatedPlan.weeks.length >= 4 && (
+      {Array.isArray(generatedPlan.weeks) && generatedPlan.weeks.length > 0 && (
         <LongHorizonScheduleView weeks={generatedPlan.weeks} />
+      )}
+
+      {equipmentContext && (
+        <>
+          <PlanLabelBlock $top>Training Environment</PlanLabelBlock>
+          <RecommendationList>
+            <RecommendationItem>
+              {equipmentDescription}
+              {equipmentContext.resistanceTypes.length > 0 ? (
+                <RecommendationSource title="equipment resistance types">
+                  ({equipmentContext.resistanceTypes.join(', ')})
+                </RecommendationSource>
+              ) : null}
+            </RecommendationItem>
+          </RecommendationList>
+        </>
       )}
 
       {generatedPlan.recommendations.length > 0 && (

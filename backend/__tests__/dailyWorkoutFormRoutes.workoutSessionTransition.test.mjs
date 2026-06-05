@@ -98,6 +98,7 @@ vi.mock('../models/TrainerPermissions.mjs', () => ({
 vi.mock('../database.mjs', () => ({
   default: {
     transaction: vi.fn(async () => ({
+      LOCK: { UPDATE: 'UPDATE' },
       commit: vi.fn().mockResolvedValue(undefined),
       rollback: vi.fn().mockResolvedValue(undefined),
     })),

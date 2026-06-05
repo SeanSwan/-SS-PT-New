@@ -75,6 +75,22 @@ export function useWorkoutPlannerRolodexState({
     return pool;
   }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
 
+  const activeFilterCount = useMemo(() => [
+    searchQuery.trim(),
+    filterCategory,
+    sourceFilter,
+    exerciseTypeFilter,
+    equipmentFilter,
+    impactFilter,
+  ].filter(Boolean).length, [
+    searchQuery,
+    filterCategory,
+    sourceFilter,
+    exerciseTypeFilter,
+    equipmentFilter,
+    impactFilter,
+  ]);
+
   const addExercise = useCallback((exercise: ExerciseSlim) => {
     setPlanExercises(prev => {
       if (prev.some(planExercise => planExercise.exerciseSlim.id === exercise.id)) return prev;
@@ -122,10 +138,20 @@ export function useWorkoutPlannerRolodexState({
     setFilterCategory(null);
   }, [setSearchQuery, setFilterCategory]);
 
+  const clearRolodexFilters = useCallback(() => {
+    setSearchQuery('');
+    setFilterCategory(null);
+    setSourceFilter(null);
+    setExerciseTypeFilter(null);
+    setEquipmentFilter(null);
+    setImpactFilter(null);
+  }, [setSearchQuery, setFilterCategory]);
+
   return {
     selectedExercise,
     setSelectedExercise,
     filteredExerciseCount: filteredExercises.length,
+    activeFilterCount,
     exercisesLoading,
     searchQuery,
     filterCategory,
@@ -141,5 +167,6 @@ export function useWorkoutPlannerRolodexState({
     setEquipmentFilter,
     setImpactFilter,
     clearSearchForBrowse,
+    clearRolodexFilters,
   };
 }

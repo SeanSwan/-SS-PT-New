@@ -21,6 +21,10 @@ export const SkeletonBlock = styled.div`
 `;
 
 export const EmptyMessage = styled.div`
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
   text-align: center;
   padding: 48px 24px;
   color: var(--text-muted, rgba(224, 236, 244, 0.4));

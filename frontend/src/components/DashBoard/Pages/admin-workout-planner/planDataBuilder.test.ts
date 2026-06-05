@@ -20,6 +20,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildPlanData, buildContentSignature } from './planDataBuilder';
 import { buildGeneratedPlan, buildManualExercise, buildPlanAtFrequency } from './planDataBuilder.testFixtures';
+import type { GeneratedPlan } from './WorkoutPlannerTypes';
 
 describe('buildPlanData - manual mode (pre-existing contract)', () => {
   it('produces the legacy one-week / one-day shape from planExercises', () => {
@@ -67,7 +68,12 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
   });
 
   it('persists every L1 additive field verbatim', () => {
-    const generatedPlan = buildGeneratedPlan();
+    const equipmentContext = {
+      profileId: 77,
+      availableEquipment: ['Dumbbell (free_weights)', 'Bench (support)'],
+      resistanceTypes: ['dumbbell'],
+    };
+    const generatedPlan = buildGeneratedPlan({ equipmentContext } as Partial<GeneratedPlan>);
     const result = buildPlanData({
       mode: 'generated',
       generatedPlan,
@@ -79,6 +85,7 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     expect(result.weeklySchedule).toEqual(generatedPlan.weeklySchedule);
     expect(result.recommendations).toEqual(generatedPlan.recommendations);
     expect(result.recommendationDetails).toEqual(generatedPlan.recommendationDetails);
+    expect(result.equipmentContext).toEqual(equipmentContext);
     expect(result.planSummary).toEqual(generatedPlan.planSummary);
     // Codex 2026-05-03 round-2: rationale[] must persist (backend emits it
     // at workoutBuilderService.mjs:721-727; was silently dropped before).

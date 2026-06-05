@@ -137,6 +137,7 @@ export interface GeneratedPlan {
     totalSessions: number;
     primaryGoal: string;
     startingPhase: number;
+    equipmentProfileId?: number | null;
   };
   mesocycles: {
     mesocycle: number;
@@ -157,6 +158,11 @@ export interface GeneratedPlan {
   // L1 additive (2026-05-01) - optional for backwards compat with pre-L1 saved plans.
   weeks?: GeneratedPlanWeek[];
   recommendationDetails?: GeneratedPlanRecommendationDetail[];
+  equipmentContext?: {
+    profileId: number | null;
+    availableEquipment: string[];
+    resistanceTypes: string[];
+  } | null;
   // Phase A (workoutBuilderService.mjs:721-727): structured rationale array
   // describing how goal+phase shaped THIS plan. Codex 2026-05-03 found
   // planDataBuilder was dropping it on save.
@@ -177,6 +183,14 @@ export interface PlannerClient {
   // generation. Optional in case a stale client object lacks the flag.
   // The backend GET /clients endpoint includes this attribute as of L5.8.
   canGenerateWorkoutPlans?: boolean;
+}
+
+export interface PlannerEquipmentProfile {
+  id: number;
+  name: string;
+  locationType: string;
+  equipmentCount: number;
+  isDefault?: boolean;
 }
 
 // L2.A (2026-05-02): annual option is 48 weeks (12 × 4-week mesocycles),

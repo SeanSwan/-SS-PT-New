@@ -22,6 +22,8 @@ describe('WorkoutPlanner command panel extraction', () => {
     expect(panelSource).toContain('<ControlRow>');
     expect(panelSource).toContain('<ClientSelfGenPill');
     expect(panelSource).toContain('<PlanModeBar>');
+    expect(panelSource).toContain('aria-label="Select equipment profile"');
+    expect(panelSource).toContain('onEquipmentProfileChange');
     expect(panelSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
 });

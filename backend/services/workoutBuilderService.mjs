@@ -144,9 +144,9 @@ const COOLDOWN_TEMPLATES = {
   general: [
     { name: 'Standing Hamstring Stretch', duration: '30s each side' },
     { name: 'Figure 4 Stretch', duration: '30s each side' },
-    { name: 'Child\'s Pose', duration: '60s' },
+    { name: 'Kneeling Lat Stretch', duration: '60s' },
     { name: 'Cat-Cow', sets: 1, reps: 10 },
-    { name: 'Diaphragmatic Breathing', duration: '60s' },
+    { name: 'Recovery Breathing Drill', duration: '60s' },
   ],
 };
 
@@ -963,7 +963,7 @@ export async function generatePlan(options) {
       // get a recovery-specific prescription instead of strength OPT
       // params. Without this override the populator emitted 70-80%
       // intensity / 8-12 reps / 2-0-2 tempo on a recovery day, which
-      // contradicts the day-type's stated mobility/SMR/breathwork intent.
+      // contradicts the day-type's stated mobility/SMR/flexibility intent.
       const recoveryOverride = recoveryDayPrescriptionOverride(cat);
       const exerciseCount = recoveryOverride?.exerciseCount ?? 6;
       const selected = selectExercises(
@@ -1040,6 +1040,13 @@ export async function generatePlan(options) {
   // with structured type + sourceCitation (SCHEMA-PATH only — rule 8).
   const buildRecommendationDetails = () => {
     const details = [];
+    if (context.criticalDataUnavailable) {
+      details.push({
+        type: 'safety_warning',
+        text: 'Pain/injury data could not be loaded. Review this plan carefully before assigning.',
+        sourceCitation: 'context.criticalFailures',
+      });
+    }
     if (equipmentItems.length > 0) {
       details.push({
         type: 'equipment',
@@ -1127,6 +1134,9 @@ export async function generatePlan(options) {
       : null,
 
     recommendations: [
+      context.criticalDataUnavailable
+        ? 'Pain/injury data could not be loaded. Review this plan carefully before assigning.'
+        : null,
       equipmentItems.length > 0
         ? `Available equipment: ${equipmentItems.map(i => i.name).join(', ')} — constrain exercises to this equipment`
         : null,

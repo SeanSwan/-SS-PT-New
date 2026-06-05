@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type {
   PlanDuration,
+  PlannerEquipmentProfile,
   PlanGoal,
   PlannerClient,
   WorkoutCategory,
@@ -54,6 +55,9 @@ interface WorkoutPlannerCommandPanelProps {
   goal: PlanGoal;
   planDuration: PlanDuration;
   sessionsPerWeek: number;
+  equipmentProfiles: PlannerEquipmentProfile[];
+  equipmentProfilesLoading: boolean;
+  selectedEquipmentProfileId: number | null;
   generating: boolean;
   generatingPlan: boolean;
   clientGenBlocked: boolean;
@@ -65,6 +69,7 @@ interface WorkoutPlannerCommandPanelProps {
   onPhaseNumberChange: (phaseNumber: number) => void;
   onCategoryChange: (category: WorkoutCategory) => void;
   onGoalChange: (goal: PlanGoal) => void;
+  onEquipmentProfileChange: (rawProfileId: string) => void;
   onPlanDurationChange: (duration: PlanDuration) => void;
   onSessionsPerWeekChange: (sessionsPerWeek: number) => void;
   onGenerateSingle: () => void;
@@ -83,6 +88,9 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   goal,
   planDuration,
   sessionsPerWeek,
+  equipmentProfiles,
+  equipmentProfilesLoading,
+  selectedEquipmentProfileId,
   generating,
   generatingPlan,
   clientGenBlocked,
@@ -94,6 +102,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
   onPhaseNumberChange,
   onCategoryChange,
   onGoalChange,
+  onEquipmentProfileChange,
   onPlanDurationChange,
   onSessionsPerWeekChange,
   onGenerateSingle,
@@ -174,6 +183,24 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
       >
         {PLAN_GOALS.map(planGoal => (
           <option key={planGoal.value} value={planGoal.value}>{planGoal.label}</option>
+        ))}
+      </Select>
+      <Select
+        value={selectedEquipmentProfileId ?? ''}
+        onChange={event => onEquipmentProfileChange(event.target.value)}
+        aria-label="Select equipment profile"
+        disabled={equipmentProfilesLoading || equipmentProfiles.length === 0}
+        title="Constrain generated workouts and plans to a real training environment."
+      >
+        <option value="">
+          {equipmentProfilesLoading
+            ? 'Loading equipment...'
+            : equipmentProfiles.length === 0 ? 'No equipment profiles' : 'Any trainer equipment'}
+        </option>
+        {equipmentProfiles.map(profile => (
+          <option key={profile.id} value={profile.id}>
+            {profile.name} - {profile.locationType.replace(/_/g, ' ')} - {profile.equipmentCount} items
+          </option>
         ))}
       </Select>
       <ActionBtn

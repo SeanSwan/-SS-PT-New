@@ -13,10 +13,9 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import WorkoutPlannerPageLayout from './WorkoutPlannerPageLayout';
-import {
-  type WorkoutPlannerStatusMessage,
-} from './WorkoutPlannerStatusAssistantStrip';
+import { type WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 import { useWorkoutPlannerClientState } from './useWorkoutPlannerClientState';
+import { useWorkoutPlannerEquipmentProfileState } from './useWorkoutPlannerEquipmentProfileState';
 import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGenerationActions';
 import { useWorkoutPlannerPageActions } from './useWorkoutPlannerPageActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
@@ -27,12 +26,7 @@ import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansS
 import { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import { parseWorkoutPlannerClientId } from './WorkoutPlannerClientIdentity';
 
-import {
-  type PlanExercise, type WorkoutCategory,
-  type GeneratedPlan, type PlanDuration,
-  OPT_PHASES,
-  type PlanGoal,
-} from './WorkoutPlannerTypes';
+import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, OPT_PHASES, type PlanGoal } from './WorkoutPlannerTypes';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -73,6 +67,7 @@ const WorkoutPlannerPage: React.FC = () => {
     selectedExercise,
     setSelectedExercise,
     filteredExerciseCount,
+    activeFilterCount,
     exercisesLoading,
     searchQuery,
     filterCategory,
@@ -87,7 +82,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setExerciseTypeFilter,
     setEquipmentFilter,
     setImpactFilter,
-    clearSearchForBrowse,
+    clearSearchForBrowse, clearRolodexFilters,
   } = useWorkoutPlannerRolodexState({
     phase,
     setPlanExercises,
@@ -117,6 +112,17 @@ const WorkoutPlannerPage: React.FC = () => {
   });
 
   const {
+    equipmentProfiles,
+    equipmentProfilesLoading,
+    selectedEquipmentProfileId,
+    handleEquipmentProfileChange,
+  } = useWorkoutPlannerEquipmentProfileState({
+    authAxios,
+    userId: user?.id,
+    userRole: user?.role,
+  });
+
+  const {
     generating,
     generatingPlan,
     degradedIntelligence,
@@ -133,6 +139,7 @@ const WorkoutPlannerPage: React.FC = () => {
     phaseNumber,
     planDuration,
     sessionsPerWeek,
+    selectedEquipmentProfileId,
     setPlanExercises,
     setGeneratedPlan,
     setPhaseNumber,
@@ -261,22 +268,25 @@ const WorkoutPlannerPage: React.FC = () => {
 
   return <WorkoutPlannerPageLayout {...{
     plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
-    phaseNumber, category, goal, planDuration, sessionsPerWeek, generating, generatingPlan,
+    phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
+    equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
     clientGenBlocked, clientSelfGenStatus, isViewerClient, statusMsg, degradedIntelligence,
-    filteredExerciseCount, exercisesLoading, searchQuery, filterCategory, sourceFilter,
+    filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery, filterCategory, sourceFilter,
     exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer, saving, planExercises,
     hasGeneratedHorizonPlan, loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations,
     generatedPlan, selectedMesoDay, savedPlansLoading, archiveBlockedFor, request: confirmRequest,
     teachModeProps: { exercise: selectedExercise, phaseNumber, onPhaseChange: setPhaseNumber },
     onReturnToClientHub: handleReturnToClientHub, onTeachModeToggle: handleTeachModeToggle,
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
-    onCategoryChange: setCategory, onGoalChange: setGoal, onPlanDurationChange: handlePlanDurationChange,
+    onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
+    onPlanDurationChange: handlePlanDurationChange,
     onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestAIGenerateForSelectedClient,
-    onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0,
+    onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan,
     onDismissStatus: () => setStatusMsg(null), onSearchQueryChange: setSearchQuery,
     onFilterCategoryChange: setFilterCategory, onSourceFilterChange: setSourceFilter,
     onExerciseTypeFilterChange: setExerciseTypeFilter, onEquipmentFilterChange: setEquipmentFilter,
-    onImpactFilterChange: setImpactFilter, onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
+    onImpactFilterChange: setImpactFilter, onClearFilters: clearRolodexFilters,
+    onSaveDraft: handleSaveDraft, onSaveAndActivate: handleSaveAndActivate,
     onUpdateLoaded: handleUpdateLoaded, onUpdateAndActivate: handleUpdateAndActivate,
     onDuplicateLoadedPlan: handleDuplicateLoadedPlan, onSelectExercise: setSelectedExercise,
     onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,

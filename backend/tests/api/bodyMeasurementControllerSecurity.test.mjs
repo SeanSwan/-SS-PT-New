@@ -13,8 +13,8 @@ describe('body measurement controller security hardening', () => {
   it('locks the live measurements API mount and frontend consumers', () => {
     const coreRoutesSource = readSource('../../core/routes.mjs');
     const routeSource = readSource('../../routes/bodyMeasurementRoutes.mjs');
-    const measurementEntrySource = readFileSync(
-      resolve(process.cwd(), '../frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx'),
+    const measurementEntryControllerSource = readFileSync(
+      resolve(process.cwd(), '../frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.controller.ts'),
       'utf8',
     );
     const upcomingChecksSource = readFileSync(
@@ -25,7 +25,7 @@ describe('body measurement controller security hardening', () => {
     expect(coreRoutesSource).toContain("app.use('/api/measurements', bodyMeasurementRoutes)");
     expect(routeSource).toContain("router.get('/user/:userId', verifyClientAccessByUserId({ paramName: 'userId' }), getUserMeasurements)");
     expect(routeSource).toContain("router.get('/schedule/upcoming', authorize(['admin']), getUpcomingChecks)");
-    expect(measurementEntrySource).toContain('apiService.get(`/api/measurements/user/${selectedClient.id}?limit=100`)');
+    expect(measurementEntryControllerSource).toContain('apiService.get(`/api/measurements/user/${selectedClient.id}?limit=100`)');
     expect(upcomingChecksSource).toContain("authAxios.get('/api/measurements/schedule/upcoming')");
   });
 

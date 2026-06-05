@@ -22,4 +22,8 @@ describe('WorkoutPlanner status assistant strip extraction', () => {
     expect(stripSource).toContain('AITerminalPanel');
     expect(stripSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
+
+  it('treats generated horizon plans as content for degraded safety banners', () => {
+    expect(pageSource).toContain('hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan');
+  });
 });

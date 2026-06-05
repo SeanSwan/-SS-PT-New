@@ -41,8 +41,8 @@ function fakeContext(overrides = {}) {
     streak: null,
     activeProgram: null,
     workouts: { sessionsLast2Weeks: 0, avgFormRating: null },
-    criticalDataUnavailable: false,
-    criticalFailures: [],
+    criticalDataUnavailable: overrides.criticalDataUnavailable ?? false,
+    criticalFailures: overrides.criticalFailures ?? [],
   };
 }
 
@@ -133,6 +133,27 @@ describe('generatePlan - goal-driven phase progression', () => {
     expect(plan.rationale.length).toBeGreaterThan(0);
     const joined = plan.rationale.join(' ').toLowerCase();
     expect(joined).toMatch(/hypertrophy|muscle/);
+  });
+
+  it('surfaces a safety recommendation when critical client context is unavailable', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      nasmPhase: 1,
+      criticalDataUnavailable: true,
+      criticalFailures: ['pain_entries'],
+    }));
+    const plan = await generatePlan({
+      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness',
+    });
+
+    expect(plan.recommendations).toContain(
+      'Pain/injury data could not be loaded. Review this plan carefully before assigning.',
+    );
+    expect(plan.recommendationDetails).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'safety_warning',
+        sourceCitation: 'context.criticalFailures',
+      }),
+    ]));
   });
 
   it('applies goal bias to mesocycle set/rep/rest targets inside NASM bounds', async () => {

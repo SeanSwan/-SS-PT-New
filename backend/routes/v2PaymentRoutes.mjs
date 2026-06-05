@@ -566,7 +566,7 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
         message: 'Failed to fulfill session package checkout',
         error: {
           code: error.code,
-          details: error.message,
+          details: 'Session package checkout could not be fulfilled',
         }
       });
     }

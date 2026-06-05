@@ -49,17 +49,21 @@
  */
 
 import React, { useState, useMemo, memo } from 'react';
-import { BookOpen, ClipboardList, TrendingUp, PlayCircle } from 'lucide-react';
+import { BookOpen, ClipboardList, TrendingUp, PlayCircle, X } from 'lucide-react';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { useExerciseTeachData } from '../../../../features/teach-mode/hooks/useExerciseTeachData';
 import { TabBar, TabButton, TabContent, SkeletonLine, EmptyDataMsg } from '../../../../features/teach-mode/styles/TeachModeStyles';
 import { Panel, PanelHeader, PanelTitle, PanelBody, EmptyMessage } from './WorkoutPlannerStyles';
 import {
+  ExerciseContextGrid,
+  ExerciseContextPill,
   ExerciseName,
   RetryButton,
   SkeletonSpacer,
+  TeachCloseButton,
   TeachErrorBox,
   TeachErrorText,
+  TeachHeaderActions,
   TeachTabLabel,
 } from './TeachModeSidebar.styles';
 import HowToPerformTab from '../../../../features/teach-mode/components/tabs/HowToPerformTab';
@@ -73,6 +77,7 @@ interface TeachModeSidebarProps {
   exercise: ExerciseSlim | null;
   phaseNumber: number;
   onPhaseChange?: (phase: number) => void;
+  onClose?: () => void;
 }
 
 type TabId = 'how-to-perform' | 'phase-progression' | 'learn-watch';
@@ -82,6 +87,17 @@ const TAB_CONFIG: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'phase-progression', label: 'Phase', icon: <TrendingUp size={14} /> },
   { id: 'learn-watch', label: 'Learn', icon: <PlayCircle size={14} /> },
 ];
+
+const formatContextValue = (value?: string | null) => (
+  value ? value.replace(/[_-]/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : 'Not tagged'
+);
+
+const formatDifficulty = (difficulty?: number | null) => {
+  if (!difficulty || difficulty <= 0) return 'Unrated';
+  if (difficulty >= 700) return 'Advanced';
+  if (difficulty >= 450) return 'Intermediate';
+  return 'Foundational';
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Loading Skeleton
@@ -102,7 +118,7 @@ const TeachModeSkeleton: React.FC = () => (
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // ─────────────────────────────────────────────────────────────
-const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumber, onPhaseChange }) => {
+const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumber, onPhaseChange, onClose }) => {
   // "how-to-perform" is default tab (AI Village CRITICAL requirement)
   const [activeTab, setActiveTab] = useState<TabId>('how-to-perform');
 
@@ -117,6 +133,17 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
     [teachData, exercise]
   );
 
+  const contextPills = useMemo(() => {
+    if (!exercise) return [];
+    const equipment = teachData?.equipmentNeeded || exercise.equipmentNeeded || exercise.equipment || [];
+    return [
+      `Focus: ${formatContextValue(teachData?.bodyPartCategory || exercise.bodyPartCategory)}`,
+      `Type: ${formatContextValue(teachData?.exerciseType || exercise.exerciseType)}`,
+      `Level: ${formatDifficulty(teachData?.difficulty ?? exercise.difficulty)}`,
+      equipment.length > 0 ? `Gear: ${equipment.slice(0, 2).join(', ')}` : 'Gear: Bodyweight',
+    ];
+  }, [teachData, exercise]);
+
   return (
     <Panel>
       <PanelHeader>
@@ -124,6 +151,13 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
           <BookOpen size={18} />
           Teach Mode
         </PanelTitle>
+        {onClose && (
+          <TeachHeaderActions>
+            <TeachCloseButton type="button" onClick={onClose} aria-label="Close Teach Mode">
+              <X size={16} aria-hidden="true" />
+            </TeachCloseButton>
+          </TeachHeaderActions>
+        )}
       </PanelHeader>
       <PanelBody>
         {exercise ? (
@@ -132,6 +166,12 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
             <ExerciseName>
               {exerciseName}
             </ExerciseName>
+
+            <ExerciseContextGrid aria-label="Selected exercise teaching context">
+              {contextPills.map(pill => (
+                <ExerciseContextPill key={pill}>{pill}</ExerciseContextPill>
+              ))}
+            </ExerciseContextGrid>
 
             {/* 3-Tab Bar */}
             <TabBar role="tablist" aria-label="Teach Mode tabs">
@@ -195,14 +235,14 @@ const TeachModeSidebar: React.FC<TeachModeSidebarProps> = ({ exercise, phaseNumb
             {/* No data yet and not loading */}
             {!teachData && !isLoading && !error && (
               <EmptyDataMsg>
-                Select an exercise to load deep instruction data.
+                Teaching data is ready to load for this exercise.
               </EmptyDataMsg>
             )}
           </>
         ) : (
           <EmptyMessage>
-            Select an exercise to see step-by-step instructions, coaching cues,
-            safety tips, biomechanics, progression paths, and OPT phase guidance.
+            Select an exercise from the Rolodex to preview coaching cues, phase fit,
+            safety flags, and teaching assets.
           </EmptyMessage>
         )}
       </PanelBody>

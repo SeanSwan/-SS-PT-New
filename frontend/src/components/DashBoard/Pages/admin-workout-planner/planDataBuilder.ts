@@ -78,6 +78,9 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     if (generatedPlan.recommendationDetails) {
       payload.recommendationDetails = generatedPlan.recommendationDetails;
     }
+    if (generatedPlan.equipmentContext !== undefined) {
+      payload.equipmentContext = generatedPlan.equipmentContext;
+    }
     return payload;
   }
 

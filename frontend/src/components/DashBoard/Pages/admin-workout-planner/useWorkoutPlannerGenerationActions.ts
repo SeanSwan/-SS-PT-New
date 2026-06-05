@@ -43,6 +43,7 @@ interface WorkoutPlannerGenerationActionsInput {
   phaseNumber: number;
   planDuration: PlanDuration;
   sessionsPerWeek: number;
+  selectedEquipmentProfileId: number | null;
   setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setPhaseNumber: Dispatch<SetStateAction<number>>;
@@ -57,6 +58,18 @@ const parseRestSeconds = (rest: unknown) => {
   return parseInt(restText.replace(/[^0-9]/g, ''), 10) || 60;
 };
 
+const getGeneratedPlanSafetyWarning = (plan: GeneratedPlan) => {
+  const structuredWarning = plan.recommendationDetails?.find(
+    detail => detail.type === 'safety_warning'
+  );
+  if (structuredWarning?.text) return structuredWarning.text;
+
+  return plan.recommendations.find(recommendation => {
+    const lower = recommendation.toLowerCase();
+    return lower.includes('pain') && lower.includes('injury') && lower.includes('could not be loaded');
+  });
+};
+
 export const useWorkoutPlannerGenerationActions = ({
   authAxios,
   category,
@@ -64,6 +77,7 @@ export const useWorkoutPlannerGenerationActions = ({
   phaseNumber,
   planDuration,
   sessionsPerWeek,
+  selectedEquipmentProfileId,
   setPlanExercises,
   setGeneratedPlan,
   setPhaseNumber,
@@ -99,6 +113,7 @@ export const useWorkoutPlannerGenerationActions = ({
         rotationPattern: 'standard',
         primaryGoal: goal,
         nasmPhase: phaseNumber,
+        ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
       });
       const data = res.data as GeneratedWorkoutResponse | undefined;
       if (data?.success && data.workout) {
@@ -162,13 +177,16 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, setPhaseNumber, setPlanExercises, setStatusMsg]);
+  }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!selectedClientId || planDuration === 'single') return;
     setGeneratingPlan(true);
+    setDegradedIntelligence(false);
     setStatusMsg(null);
     setGeneratedPlan(null);
+    setPlanExercises([]);
+    resetLoadedPlanState();
     try {
       const res = await authAxios.post('/api/workout-builder/plan', {
         clientId: selectedClientId,
@@ -176,11 +194,17 @@ export const useWorkoutPlannerGenerationActions = ({
         sessionsPerWeek,
         primaryGoal: goal,
         startingPhaseOverride: phaseNumber,
+        ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
       });
       const data = res.data as GeneratedPlanResponse | undefined;
       if (data?.success && data.plan) {
+        const safetyWarning = getGeneratedPlanSafetyWarning(data.plan);
+        const isDegraded = Boolean(safetyWarning);
+        setDegradedIntelligence(isDegraded);
         setGeneratedPlan(data.plan);
-        setStatusMsg({ type: 'success', text: `${data.plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
+        setStatusMsg(safetyWarning
+          ? { type: 'error', text: safetyWarning }
+          : { type: 'success', text: `${data.plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
       }
     } catch (err: unknown) {
       logApiError('Plan generation failed', err);
@@ -190,7 +214,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, goal, phaseNumber, planDuration, sessionsPerWeek, setGeneratedPlan, setStatusMsg]);
+  }, [authAxios, goal, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg]);
 
   return {
     generating,

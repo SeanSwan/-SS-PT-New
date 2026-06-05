@@ -270,7 +270,7 @@ describe('expandV3aDayTypeToMovementCategories - production registry compat (MED
 // ─────────────────────────────────────────────────────────────
 // V3a round-2 (Codex 2026-05-03 MEDIUM-2): active recovery days
 // must NOT receive Phase 2 strength prescriptions (70-80%, 8-12 reps,
-// 2-0-2 tempo). Recovery is duration-based mobility/SMR/breathwork.
+// 2-0-2 tempo). Recovery is duration-based mobility/SMR/flexibility work.
 // ─────────────────────────────────────────────────────────────
 
 describe('recoveryDayPrescriptionOverride (MED-2)', () => {

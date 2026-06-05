@@ -141,7 +141,6 @@ export const useWorkoutPlannerLoadPlanActions = ({
         return;
       }
 
-      setPlanExercises(hydrated);
       if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
       if (planData.goal) setGoal(planData.goal as PlanGoal);
       if (planData.category) setCategory(planData.category as WorkoutCategory);
@@ -149,6 +148,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
       setLoadedPlanName(planName);
 
       if (wasGenerated) {
+        setPlanExercises([]);
         const restored: GeneratedPlan = {
           clientId: restoredPlanClientId!,
           clientName: String(planData.clientName || ''),
@@ -163,6 +163,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
           weeklySchedule: (planData.weeklySchedule as GeneratedPlan['weeklySchedule']) || [],
           recommendations: (planData.recommendations as string[]) || [],
           recommendationDetails: planData.recommendationDetails as GeneratedPlan['recommendationDetails'],
+          equipmentContext: planData.equipmentContext as GeneratedPlan['equipmentContext'],
           rationale: planData.rationale as string[] | undefined,
           weeks,
         };
@@ -173,6 +174,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
           (planData.goal as PlanGoal) || goal,
         ));
       } else {
+        setPlanExercises(hydrated);
         setGeneratedPlan(null);
         setSavedSnapshot(buildManualSnapshot({
           phaseName,

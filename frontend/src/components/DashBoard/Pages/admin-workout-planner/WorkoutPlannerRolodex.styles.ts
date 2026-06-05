@@ -44,6 +44,56 @@ export const SearchInput = styled.input`
 // ─────────────────────────────────────────────────────────────
 // SECTION: Filter Chips
 // ─────────────────────────────────────────────────────────────
+export const RolodexStatusRail = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-elevated, #003080) 18%, transparent);
+
+  @media (max-width: 430px) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+`;
+
+export const RolodexStatusText = styled.span`
+  color: var(--text-secondary, rgba(224, 236, 244, 0.72));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
+  line-height: 1.4;
+`;
+
+export const ClearFiltersButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+
+  &:hover {
+    border-color: var(--accent-primary, #60C0F0);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+`;
+
 export const ChipRow = styled.div`
   display: flex;
   gap: 6px;

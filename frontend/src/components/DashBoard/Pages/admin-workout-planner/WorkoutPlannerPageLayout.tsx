@@ -31,14 +31,15 @@ export type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & Rolodex
 
 const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   plannerReturnTo, teachModeOpen, clients, clientsLoading, selectedClientId, selectedClient,
-  phaseNumber, category, goal, planDuration, sessionsPerWeek, generating, generatingPlan,
+  phaseNumber, category, goal, planDuration, sessionsPerWeek, equipmentProfiles,
+  equipmentProfilesLoading, selectedEquipmentProfileId, generating, generatingPlan,
   clientGenBlocked, clientSelfGenStatus, isViewerClient, onReturnToClientHub, onTeachModeToggle,
   onClientSelectionChange, onPhaseNumberChange, onCategoryChange, onGoalChange, onPlanDurationChange,
-  onSessionsPerWeekChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
-  hasPlanExercises, onDismissStatus, filteredExerciseCount, exercisesLoading, searchQuery,
+  onEquipmentProfileChange, onSessionsPerWeekChange, onGenerateSingle, onGeneratePlan, statusMsg, degradedIntelligence,
+  hasPlanExercises, onDismissStatus, filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
   filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter, exerciseRowRenderer,
   onSearchQueryChange, onFilterCategoryChange, onSourceFilterChange, onExerciseTypeFilterChange,
-  onEquipmentFilterChange, onImpactFilterChange, saving, planExercises, hasGeneratedHorizonPlan,
+  onEquipmentFilterChange, onImpactFilterChange, onClearFilters, saving, planExercises, hasGeneratedHorizonPlan,
   loadedPlanId, savedPlans, isDirty, phase, explanations, showExplanations, onSaveDraft,
   onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onSelectExercise,
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onToggleExplanations, teachModeProps,
@@ -58,6 +59,9 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       goal={goal}
       planDuration={planDuration}
       sessionsPerWeek={sessionsPerWeek}
+      equipmentProfiles={equipmentProfiles}
+      equipmentProfilesLoading={equipmentProfilesLoading}
+      selectedEquipmentProfileId={selectedEquipmentProfileId}
       generating={generating}
       generatingPlan={generatingPlan}
       clientGenBlocked={clientGenBlocked}
@@ -69,6 +73,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       onPhaseNumberChange={onPhaseNumberChange}
       onCategoryChange={onCategoryChange}
       onGoalChange={onGoalChange}
+      onEquipmentProfileChange={onEquipmentProfileChange}
       onPlanDurationChange={onPlanDurationChange}
       onSessionsPerWeekChange={onSessionsPerWeekChange}
       onGenerateSingle={onGenerateSingle}
@@ -88,6 +93,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
     <ThreePanel $teachModeOpen={teachModeOpen}>
       <WorkoutPlannerRolodexPanel
         filteredExerciseCount={filteredExerciseCount}
+        activeFilterCount={activeFilterCount}
         exercisesLoading={exercisesLoading}
         searchQuery={searchQuery}
         filterCategory={filterCategory}
@@ -102,6 +108,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onExerciseTypeFilterChange={onExerciseTypeFilterChange}
         onEquipmentFilterChange={onEquipmentFilterChange}
         onImpactFilterChange={onImpactFilterChange}
+        onClearFilters={onClearFilters}
       />
       <WorkoutPlannerBuilderPanel
         degradedIntelligence={degradedIntelligence}
@@ -126,7 +133,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
         onBrowseAddExercise={onBrowseAddExercise}
         onToggleExplanations={onToggleExplanations}
       />
-      {teachModeOpen && <TeachModeSidebar {...teachModeProps} />}
+      {teachModeOpen && <TeachModeSidebar {...teachModeProps} onClose={onTeachModeToggle} />}
     </ThreePanel>
 
     <WorkoutPlannerGeneratedPlanSection

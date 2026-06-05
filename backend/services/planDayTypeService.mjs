@@ -46,7 +46,7 @@ export const NASM_PHASE = Object.freeze({
  * NEW TYPES introduced in V3a:
  *   - full_body_stabilization — Phase 1 sessions (every day)
  *   - core_stability_balance  — dedicated 4-day or 7-day slot
- *   - active_recovery         — 6/7-day mobility/SMR/breathwork day
+ *   - active_recovery         — 6/7-day mobility/SMR/flexibility day
  *   - full_core               — 5-day abs/lower-back/obliques day
  */
 export const DAY_TYPE = Object.freeze({
@@ -76,7 +76,7 @@ export function focusForDayType(dayType) {
     case DAY_TYPE.full_body:               return 'full body';
     case DAY_TYPE.full_body_stabilization: return 'full body stabilization (proprioception priority)';
     case DAY_TYPE.core_stability_balance:  return 'core + stability + balance';
-    case DAY_TYPE.active_recovery:         return 'active recovery + mobility + stretch + breathwork';
+    case DAY_TYPE.active_recovery:         return 'active recovery + mobility + flexibility work';
     case DAY_TYPE.full_core:               return 'full core (abs + lower back + obliques)';
     default:                               return 'training';
   }
@@ -194,7 +194,7 @@ export function expandV3aDayTypeToMovementCategories(dayType) {
         'balance', 'stability', 'stabilizers',           // seeder
       ];
     case DAY_TYPE.active_recovery:
-      // Mobility, foam-roll/SMR, stretch, breathwork.
+      // Mobility, foam-roll/SMR, and flexibility work.
       // Production: `corrective` + `cardio` cover most recovery work.
       return [
         'corrective', 'cardio',                          // production
@@ -213,7 +213,7 @@ export function expandV3aDayTypeToMovementCategories(dayType) {
 /**
  * Active recovery days SHOULD NOT use Phase 2 strength-endurance OPT
  * params (sets 2-4, reps 8-12, intensity 70-80%, tempo 2-0-2). Mobility
- * + foam-roll + breathwork are duration-based, not load-based.
+ * + foam-roll + flexibility work are duration-based, not load-based.
  *
  * The populator calls this when assigning per-day OPT params; if it
  * returns non-null the populator overrides the phase defaults.
