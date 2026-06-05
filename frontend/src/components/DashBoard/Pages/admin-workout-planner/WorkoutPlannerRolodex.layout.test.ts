@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PAGE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerPage.tsx'), 'utf8');
+const ROLODEX_STATE_SOURCE = readFileSync(resolve(__dirname, './useWorkoutPlannerRolodexState.tsx'), 'utf8');
 const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
 const GENERATED_PLAN_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerGeneratedPlanSection.tsx'), 'utf8');
 const BUILDER_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerBuilderPanel.tsx'), 'utf8');
@@ -29,8 +30,8 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   });
 
   it('renders compact impact labels so High/Medium badges cannot cover exercise names', () => {
-    expect(PAGE_SOURCE).toContain("import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';");
-    expect(PAGE_SOURCE).toMatch(/const impact = getJointImpact\(ex\);/);
+    expect(ROLODEX_STATE_SOURCE).toContain("import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';");
+    expect(ROLODEX_STATE_SOURCE).toMatch(/const impact = getJointImpact\(exercise\);/);
     expect(ROW_SOURCE).toMatch(/function formatImpactLabel\(impact: string\): string/);
     expect(ROW_SOURCE).toMatch(/formatImpactLabel\(impact\)/);
     expect(PAGE_SOURCE).not.toMatch(/<MetaTag \$impact=\{getJointImpact\(ex\)\}>\{getJointImpact\(ex\)\}<\/MetaTag>/);

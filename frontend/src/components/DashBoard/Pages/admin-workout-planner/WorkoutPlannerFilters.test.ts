@@ -17,8 +17,10 @@ const read = (fileName: string) =>
 describe('WorkoutPlannerFilters', () => {
   it('keeps planner filter lists in a focused module instead of the mounted page', () => {
     const pageSource = read('WorkoutPlannerPage.tsx');
+    const rolodexStateSource = read('useWorkoutPlannerRolodexState.tsx');
 
-    expect(pageSource).toContain("from './WorkoutPlannerFilters'");
+    expect(pageSource).not.toContain("from './WorkoutPlannerFilters'");
+    expect(rolodexStateSource).toContain("from './WorkoutPlannerFilters'");
     expect(pageSource).not.toMatch(/const BODY_PARTS\s*=/);
     expect(BODY_PARTS).toContain('Full Body');
     expect(EXERCISE_TYPES).toContain('Calisthenics');

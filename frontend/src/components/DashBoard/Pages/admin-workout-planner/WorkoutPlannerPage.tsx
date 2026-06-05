@@ -12,8 +12,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
-import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
-import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import TeachModeSidebar from './TeachModeSidebar';
 // W1A-4 (2026-05-01): replace bare console.error(err) with sanitized helper
 // that strips Axios error.config.headers (JWT) before logging.
@@ -28,11 +26,11 @@ import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './Workou
 import WorkoutPlannerStatusAssistantStrip, {
   type WorkoutPlannerStatusMessage,
 } from './WorkoutPlannerStatusAssistantStrip';
+import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
 // AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
 import { buildPlanData as composePlanData, buildContentSignature } from './planDataBuilder';
-import { WorkoutPlannerExerciseRow } from './WorkoutPlannerExerciseRow';
 import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import {
   normalizeWorkoutPlannerClients,
@@ -40,10 +38,6 @@ import {
   pickWorkoutPlannerClientId,
   resolveWorkoutPlannerPlanClientId,
 } from './WorkoutPlannerClientIdentity';
-import {
-  getJointImpact,
-  parseEquipment,
-} from './WorkoutPlannerFilters';
 
 import {
   type PlanExercise, type PlannerClient, type WorkoutCategory,
@@ -110,7 +104,6 @@ const WorkoutPlannerPage: React.FC = () => {
   const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
   const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseSlim | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
@@ -118,10 +111,6 @@ const WorkoutPlannerPage: React.FC = () => {
   const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
   const [savedPlansLoading, setSavedPlansLoading] = useState(false);
 
-  const [exerciseTypeFilter, setExerciseTypeFilter] = useState<string | null>(null);
-  const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
-  const [impactFilter, setImpactFilter] = useState<string | null>(null);
-  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
 
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
@@ -132,116 +121,34 @@ const WorkoutPlannerPage: React.FC = () => {
   const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // ── Exercise Search ──
-  const {
-    results: exerciseResults,
-    isLoading: exercisesLoading,
-    setQuery: setSearchQuery,
-    setCategory: setFilterCategory,
-    query: searchQuery,
-    category: filterCategory,
-  } = useExerciseSearch();
-
   const phase = useMemo(
     () => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1],
     [phaseNumber]
   );
 
-  // ── Apply advanced filters on top of search results ──
-  const filteredExercises = useMemo(() => {
-    let pool = exerciseResults;
-    // Filter by exercise type
-    if (exerciseTypeFilter) {
-      const norm = exerciseTypeFilter.toLowerCase();
-      pool = pool.filter(ex => (ex.exerciseType || '').toLowerCase() === norm);
-    }
-    // Filter by equipment
-    if (equipmentFilter) {
-      const norm = equipmentFilter.toLowerCase();
-      if (norm === 'bodyweight') {
-        pool = pool.filter(ex => {
-          const eqArr = parseEquipment(ex.equipment);
-          return eqArr.length === 0
-            || eqArr.some(e => e.toLowerCase().includes('body') || e.toLowerCase() === 'none');
-        });
-      } else {
-        pool = pool.filter(ex => {
-          const eqArr = parseEquipment(ex.equipment);
-          return eqArr.length > 0 && eqArr.some(e => e.toLowerCase().includes(norm));
-        });
-      }
-    }
-    // Filter by source/program
-    if (sourceFilter) {
-      pool = pool.filter(ex => {
-        const src = (ex.source || 'swanstudios').toLowerCase();
-        if (sourceFilter === 'nasm') return src.startsWith('nasm');
-        if (sourceFilter === 'swanstudios') return src === 'swanstudios';
-        return true;
-      });
-    }
-    // Filter by joint impact
-    if (impactFilter) {
-      pool = pool.filter(ex => getJointImpact(ex) === impactFilter);
-    }
-    return pool;
-  }, [exerciseResults, exerciseTypeFilter, equipmentFilter, sourceFilter, impactFilter]);
-
-  // ── Add Exercise to Plan ──
-  // canonical-surface-audit 2026-04-13 (Phase 6 production hotfix):
-  // This declaration MUST live above ExerciseRowRenderer because line 262's
-  // useCallback dep array references `addExercise`. When the dep array is
-  // evaluated during the initial render, addExercise must already be
-  // initialized — otherwise it is in the Temporal Dead Zone and the entire
-  // WorkoutPlannerPage component crashes with
-  // "ReferenceError: Cannot access 'addExercise' before initialization".
-  // The crash was masked by minifier ordering before commit 8d5ab1aa
-  // forced a Vite rebundle.
-  const addExercise = useCallback((ex: ExerciseSlim) => {
-    setPlanExercises(prev => {
-      if (prev.some(p => p.exerciseSlim.id === ex.id)) return prev;
-      const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
-      // Parse rest: "3-5min" → 180s (use low end of range in seconds)
-      const restStr = phase.rest.toLowerCase();
-      let restSec = 60;
-      if (restStr.includes('min')) {
-        const minVal = parseInt(restStr) || 3;
-        restSec = minVal * 60;
-      } else {
-        restSec = parseInt(restStr.replace(/[^0-9]/g, '')) || 60;
-      }
-      return [...prev, {
-        id: `${ex.id}-${Date.now()}`,
-        exerciseSlim: ex,
-        sets: defaultSets,
-        reps: phase.reps,
-        tempo: phase.tempo,
-        restSeconds: restSec,
-        intensityPercent: parseInt(phase.intensity.split('-')[0]) || 70,
-        notes: '',
-      }];
-    });
-    setSelectedExercise(ex);
-  }, [phase]);
-
-  // ── Virtualized row renderer (react-window v2 List API) ──
-  const ExerciseRowRenderer = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const ex = filteredExercises[index];
-    if (!ex) return null;
-    const impact = getJointImpact(ex);
-    const eqArr = parseEquipment(ex.equipment);
-    return (
-      <WorkoutPlannerExerciseRow
-        exercise={ex}
-        equipmentLabel={eqArr.length > 0 ? eqArr.slice(0, 2).join(', ') : 'Bodyweight'}
-        impact={impact}
-        selected={selectedExercise?.id === ex.id}
-        style={style}
-        onAdd={addExercise}
-        onSelect={setSelectedExercise}
-      />
-    );
-  }, [filteredExercises, selectedExercise, addExercise, setSelectedExercise]);
+  const {
+    selectedExercise,
+    setSelectedExercise,
+    filteredExerciseCount,
+    exercisesLoading,
+    searchQuery,
+    filterCategory,
+    sourceFilter,
+    exerciseTypeFilter,
+    equipmentFilter,
+    impactFilter,
+    exerciseRowRenderer,
+    setSearchQuery,
+    setFilterCategory,
+    setSourceFilter,
+    setExerciseTypeFilter,
+    setEquipmentFilter,
+    setImpactFilter,
+    clearSearchForBrowse,
+  } = useWorkoutPlannerRolodexState({
+    phase,
+    setPlanExercises,
+  });
 
   // ── Fetch Clients ──
   // 2026-05-01 role-aware fix: /api/auth/clients is adminOnly. Trainers
@@ -928,9 +835,8 @@ const WorkoutPlannerPage: React.FC = () => {
   }, [handleCardDuplicate, loadedPlanId, loadedPlanName]);
 
   const handleBrowseAddExercise = useCallback(() => {
-    setSearchQuery('');
-    setFilterCategory(null);
-  }, [setSearchQuery, setFilterCategory]);
+    clearSearchForBrowse();
+  }, [clearSearchForBrowse]);
 
   const handleToggleExplanations = useCallback(() => {
     setShowExplanations(value => !value);
@@ -980,7 +886,7 @@ const WorkoutPlannerPage: React.FC = () => {
       {/* Three-Panel Layout */}
       <ThreePanel $teachModeOpen={teachModeOpen}>
         <WorkoutPlannerRolodexPanel
-          filteredExerciseCount={filteredExercises.length}
+          filteredExerciseCount={filteredExerciseCount}
           exercisesLoading={exercisesLoading}
           searchQuery={searchQuery}
           filterCategory={filterCategory}
@@ -988,7 +894,7 @@ const WorkoutPlannerPage: React.FC = () => {
           exerciseTypeFilter={exerciseTypeFilter}
           equipmentFilter={equipmentFilter}
           impactFilter={impactFilter}
-          exerciseRowRenderer={ExerciseRowRenderer}
+          exerciseRowRenderer={exerciseRowRenderer}
           onSearchQueryChange={setSearchQuery}
           onFilterCategoryChange={setFilterCategory}
           onSourceFilterChange={setSourceFilter}
