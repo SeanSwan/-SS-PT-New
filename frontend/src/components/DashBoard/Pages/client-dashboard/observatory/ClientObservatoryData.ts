@@ -98,8 +98,8 @@ export const LENS_TABS: LensTab[] = [
 
 export const QUICK_ACTIONS: QuickAction[] = [
   { label: 'Log Workout', Icon: Dumbbell, path: '/dashboard/client/log-workout' },
-  { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },
   { label: 'Progress', Icon: Flame, path: '/dashboard/client/progress' },
+  { label: 'Book Session', Icon: Trophy, path: '/dashboard/client/schedule' },
 ];
 
 export function canBookSwanStudiosSessions(clientSource: ClientSource): boolean {

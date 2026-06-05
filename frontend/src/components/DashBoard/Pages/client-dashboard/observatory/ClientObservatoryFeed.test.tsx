@@ -3,11 +3,23 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
-import { QUICK_ACTIONS } from './ClientObservatoryData';
+import { QUICK_ACTIONS, quickActionsForClientSource } from './ClientObservatoryData';
 
 const noop = vi.fn();
 
 describe('ClientObservatoryFeed XP receipt', () => {
+  it('keeps overview quick actions workout-progress-first', () => {
+    expect(QUICK_ACTIONS.map((action) => action.label)).toEqual([
+      'Log Workout',
+      'Progress',
+      'Book Session',
+    ]);
+    expect(quickActionsForClientSource('move_fitness').map((action) => action.label)).toEqual([
+      'Log Workout',
+      'Progress',
+    ]);
+  });
+
   it('shows the point award returned by Quick Post', () => {
     render(
       <ClientObservatoryFeed
