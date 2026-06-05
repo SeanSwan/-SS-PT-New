@@ -112,6 +112,7 @@ import LongHorizonContent from './LongHorizonContent';
 import CopilotGeneratingState from './CopilotGeneratingState';
 import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
 import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
+import { getCopilotErrorFlags } from './copilot-error-flags';
 
 interface ApiErrorPayload {
   code?: string;
@@ -474,11 +475,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Error classification ────────────────────────────────────
 
-  const isConsentError = errorCode?.startsWith('AI_CONSENT') || errorCode?.startsWith('AI_WAIVER');
-  const isWaiverError = errorCode?.startsWith('AI_WAIVER');
-  const isAssignmentError = errorCode === 'AI_ASSIGNMENT_DENIED';
-  const isOverrideError = errorCode === 'MISSING_OVERRIDE_REASON';
-  const isRetryable = ['AI_RATE_LIMITED', 'AI_PII_LEAK', 'AI_PARSE_ERROR', 'AI_VALIDATION_ERROR'].includes(errorCode);
+  const errorFlags = useMemo(() => getCopilotErrorFlags(errorCode), [errorCode]);
 
   // ── Render ──────────────────────────────────────────────────
 
@@ -541,11 +538,11 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
                   errorMessage={errorMessage}
                   approveErrors={approveErrors}
                   degradedData={degradedData}
-                  isConsentError={isConsentError}
-                  isWaiverError={isWaiverError}
-                  isAssignmentError={isAssignmentError}
-                  isOverrideError={isOverrideError}
-                  isRetryable={isRetryable}
+                  isConsentError={errorFlags.isConsentError}
+                  isWaiverError={errorFlags.isWaiverError}
+                  isAssignmentError={errorFlags.isAssignmentError}
+                  isOverrideError={errorFlags.isOverrideError}
+                  isRetryable={errorFlags.isRetryable}
                   handleGenerate={handleGenerate}
                   isSubmitting={isSubmitting}
                   onClose={onClose}
