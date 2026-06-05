@@ -79,9 +79,6 @@ import { createPainEntryService } from '../../../../../services/painEntryService
 import type {
   CopilotState,
   WorkoutCopilotPanelProps,
-  WorkoutPlan,
-  WorkoutDay,
-  Exercise,
   Explainability,
   SafetyConstraints,
   ExerciseRecommendation,
@@ -112,6 +109,7 @@ import CopilotGeneratingState from './CopilotGeneratingState';
 import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
 import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
 import { getCopilotErrorFlags } from './copilot-error-flags';
+import { useCopilotDraftEditor } from './useCopilotDraftEditor';
 import { useCopilotTemplateCatalog } from './useCopilotTemplateCatalog';
 
 interface ApiErrorPayload {
@@ -156,12 +154,23 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const service = useMemo(() => createAiWorkoutService(authAxios), [authAxios]);
   const painService = useMemo(() => createPainEntryService(authAxios), [authAxios]);
   const { templates, templatesLoading } = useCopilotTemplateCatalog({ open, service });
+  const {
+    editedPlan,
+    setEditedPlan,
+    expandedDays,
+    setExpandedDays,
+    updatePlanField,
+    updateDay,
+    updateExercise,
+    addExercise,
+    removeExercise,
+    toggleDay,
+  } = useCopilotDraftEditor();
 
   // ── State Machine ───────────────────────────────────────────
   const [state, setState] = useState<CopilotState>('idle');
 
   // ── Draft data ──────────────────────────────────────────────
-  const [editedPlan, setEditedPlan] = useState<WorkoutPlan | null>(null);
   const [explainability, setExplainability] = useState<Explainability | null>(null);
   const [safetyConstraints, setSafetyConstraints] = useState<SafetyConstraints | null>(null);
   const [exerciseRecs, setExerciseRecs] = useState<ExerciseRecommendation[]>([]);
@@ -185,9 +194,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [errorCode, setErrorCode] = useState('');
   const [approveErrors, setApproveErrors] = useState<ValidationError[]>([]);
-
-  // ── Expanded days ───────────────────────────────────────────
-  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
 
   // ── Pain safety check ──────────────────────────────────────
   const [activePainEntries, setActivePainEntries] = useState<PainEntry[]>([]);
@@ -404,65 +410,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     clientId, editedPlan, auditLogId, overrideReason, overrideReasonRequired,
     trainerNotes, isSubmitting, clientName, service, toast, onSuccess,
   ]);
-
-  // ── Plan editing helpers ────────────────────────────────────
-
-  const updatePlanField = <K extends keyof WorkoutPlan>(field: K, value: WorkoutPlan[K]) => {
-    setEditedPlan(prev => prev ? { ...prev, [field]: value } : null);
-  };
-
-  const updateDay = <K extends keyof WorkoutDay>(dayIdx: number, field: K, value: WorkoutDay[K]) => {
-    setEditedPlan(prev => {
-      if (!prev) return null;
-      const days = [...prev.days];
-      days[dayIdx] = { ...days[dayIdx], [field]: value };
-      return { ...prev, days };
-    });
-  };
-
-  const updateExercise = <K extends keyof Exercise>(
-    dayIdx: number,
-    exIdx: number,
-    field: K,
-    value: Exercise[K],
-  ) => {
-    setEditedPlan(prev => {
-      if (!prev) return null;
-      const days = [...prev.days];
-      const exercises = [...days[dayIdx].exercises];
-      exercises[exIdx] = { ...exercises[exIdx], [field]: value };
-      days[dayIdx] = { ...days[dayIdx], exercises };
-      return { ...prev, days };
-    });
-  };
-
-  const addExercise = (dayIdx: number) => {
-    setEditedPlan(prev => {
-      if (!prev) return null;
-      const days = [...prev.days];
-      const exercises = [...days[dayIdx].exercises, { name: '', setScheme: '', repGoal: '', restPeriod: 60 }];
-      days[dayIdx] = { ...days[dayIdx], exercises };
-      return { ...prev, days };
-    });
-  };
-
-  const removeExercise = (dayIdx: number, exIdx: number) => {
-    setEditedPlan(prev => {
-      if (!prev) return null;
-      const days = [...prev.days];
-      const exercises = days[dayIdx].exercises.filter((_, i) => i !== exIdx);
-      days[dayIdx] = { ...days[dayIdx], exercises };
-      return { ...prev, days };
-    });
-  };
-
-  const toggleDay = (dayIdx: number) => {
-    setExpandedDays((prev) => {
-      const next = new Set(prev);
-      next.has(dayIdx) ? next.delete(dayIdx) : next.add(dayIdx);
-      return next;
-    });
-  };
 
   // ── Error classification ────────────────────────────────────
 
