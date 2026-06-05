@@ -55,7 +55,6 @@ import {
   formatWorkoutHistoryVolume,
 } from './workoutHistoryFormatters';
 import {
-  getPersonalRecordKey,
   groupSessionLogs,
   sortPersonalRecords,
 } from './workoutHistoryPanelData';
@@ -63,7 +62,6 @@ import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
 import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
 import { buildWorkoutHistoryExerciseTableState } from './workoutHistoryExerciseTableState';
 import {
-  buildPersonalRecordShareSession,
   buildWorkoutHistoryShareModalState,
 } from './workoutHistorySharing';
 import {
@@ -101,13 +99,6 @@ import {
   ExerciseTableViewport,
   MetaChip,
   OneRMCell,
-  PRActionRow,
-  PRBadge,
-  PRCard,
-  PRDateText,
-  PRDetails,
-  PREstimate,
-  PRExerciseName,
   RPECell,
   SessionCard,
   SessionHeader,
@@ -125,6 +116,7 @@ import {
   TotalValue,
   WeightCell,
 } from './WorkoutHistoryPanel.sessionStyles';
+import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -796,45 +788,10 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
 
         {/* PRs TAB */}
         {!isLoading && !error && activeTab === 'prs' && data && (
-          <>
-            {sortedPersonalRecords.length === 0 ? (
-              <EmptyState>
-                <Trophy size={40} />
-                <p>No personal records yet</p>
-              </EmptyState>
-            ) : (
-              sortedPersonalRecords
-                .map((pr) => (
-                  <PRCard key={getPersonalRecordKey(pr)}>
-                    <PRDetails>
-                      <PRExerciseName>
-                        {pr.exercise}
-                      </PRExerciseName>
-                      <PRDateText>
-                        {formatWorkoutHistoryDate(pr.date)}
-                      </PRDateText>
-                    </PRDetails>
-                    <PRActionRow>
-                      <PRBadge>
-                        <Trophy size={14} />
-                        {pr.weight > 0 ? `${pr.weight} lbs` : 'BW'} × {pr.reps}
-                      </PRBadge>
-                      {pr.estimated1RM && pr.estimated1RM > 0 && (
-                        <PREstimate>
-                          Est. 1RM: {pr.estimated1RM} lbs
-                        </PREstimate>
-                      )}
-                      <ShareIconBtn
-                        type="button"
-                        aria-label={`Share ${pr.exercise} personal record`}
-                        onClick={() => setShareSession(buildPersonalRecordShareSession(pr))}>
-                        <Share2 size={12} /> Share
-                      </ShareIconBtn>
-                    </PRActionRow>
-                  </PRCard>
-                ))
-            )}
-          </>
+          <WorkoutHistoryPersonalRecordsTab
+            records={sortedPersonalRecords}
+            onShareSession={setShareSession}
+          />
         )}
       </ScrollBody>
 
