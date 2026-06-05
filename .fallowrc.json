@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "workspaces": {
+    "patterns": [
+      "frontend",
+      "backend",
+      "shared"
+    ]
+  },
+  "ignorePatterns": [
+    "archive/**",
+    ".swan/**",
+    ".understand-anything/**",
+    "AI-Village-Documentation/**",
+    "docs/**",
+    "tests/**",
+    "tmp/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/test-results/**",
+    "**/playwright-report/**",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/*.generated.*",
+    "backend/uploads/**",
+    "frontend/src/assets/user-dashboard/dashboard-export/**"
+  ],
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "private-type-leaks": "off",
+    "unused-dependencies": "warn",
+    "unused-dev-dependencies": "warn",
+    "unused-optional-dependencies": "warn",
+    "unused-enum-members": "warn",
+    "unused-class-members": "warn",
+    "unresolved-imports": "error",
+    "unlisted-dependencies": "error",
+    "duplicate-exports": "warn",
+    "circular-dependencies": "warn",
+    "re-export-cycle": "warn",
+    "boundary-violation": "warn",
+    "type-only-dependencies": "warn",
+    "test-only-dependencies": "warn",
+    "coverage-gaps": "off",
+    "stale-suppressions": "warn"
+  }
+}

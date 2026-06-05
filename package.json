@@ -14,9 +14,17 @@
     "qa:stripe-testmode-replay": "node scripts/qa/stripe-testmode-replay.mjs",
     "qa:smoke": "node scripts/qa/playwright-smoke.mjs",
     "qa:smoke:prod": "node scripts/qa/playwright-smoke.mjs --prod",
+    "code-health": "fallow --format json",
+    "code-health:audit": "fallow audit --base HEAD --gate all --format json",
+    "code-health:audit:main": "fallow audit --base main --format json",
+    "code-health:dead": "fallow dead-code --format json",
+    "code-health:dupes": "fallow dupes --format json",
+    "code-health:health": "fallow health --format json",
+    "code-health:fix-preview": "fallow fix --dry-run --format json",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"
   },
   "devDependencies": {
+    "fallow": "^2.88.3",
     "markdown-link-check": "^3.12.1"
   }
 }

@@ -115,6 +115,9 @@ jspm_packages/
 # Optional eslint cache
 .eslintcache
 
+# Fallow static-intelligence local cache/output
+.fallow/
+
 # Optional stylelint cache
 .stylelintcache
 

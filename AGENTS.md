@@ -469,6 +469,26 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
     - Use operating KPIs when prioritizing: activation, engagement, retention, commercial, and quality metrics, including workout-save success, sync freshness, coach response time, checkout failure rate, and program completion.
     - Kill or defer scope that does not improve coaching, adherence, progress proof, community belonging, revenue, or trust.
 
+63. **Static Intelligence Gate for AI Code Quality (MANDATORY for substantial code work)** - Established 2026-06-05 from the WebDev Simplified/Fallow transcript. AI-generated code must be checked for maintainability failure modes: dead files, unused exports/types/dependencies, duplicated logic, oversized or high-complexity functions, low file health, hotspots, and ranked refactor targets.
+
+    **When this triggers:**
+    - After substantial implementation, refactor, recursive slice, or broad polish pass, before the hostile-review closeout.
+    - Before pushing a code change to `main`/Render when Fallow or a configured equivalent is available.
+    - During dashboard, workout/progress, Swan Coach, onboarding, or session-flow work where code churn spans multiple files.
+    - When a touched file crosses 300 lines, gains copied blocks, grows new exported helpers, or becomes harder to test.
+
+    **Required pass:**
+    1. Prefer the project-configured Fallow command, scoped to changed files or the current branch: `npm run code-health:audit` for local working-tree checks, or `npm run code-health:audit:main` for branch/CI checks against `main`. Use `npm run code-health:dead`, `npm run code-health:dupes`, and `npm run code-health:health` for focused investigations.
+    2. If Fallow is not installed or configured, do not claim the gate is clean. Report `[UNKNOWN] static-intelligence gate unavailable`, keep the normal Tier-A verification running, and propose a separate Fallow setup/config slice when appropriate.
+    3. Configure ignores before treating findings as blockers: tests, generated files, archive/vendor/build output, fixtures, and intentional data-definition catalogs can produce expected duplication or dead-code noise.
+    4. Fix current-slice regressions first: new dead exports, duplicated new logic, oversized functions, or complexity introduced by the work. Existing broad findings become backlog unless they block the task, violate another rule, or Sean explicitly expands scope.
+    5. Never run auto-fix blindly. If `fallow fix` is used, preview or inspect the diff before staging, and do not remove public exports, route handlers, model associations, test fixtures, or integration entry points without usage evidence.
+    6. Closeout must state whether the static-intelligence pass ran, the command/scope/result, findings fixed, findings deferred with reason, and whether the result is baseline-clean or only slice-clean per Rule 56.
+
+    **Why:** AI coding tends to leave duplicated logic, dead/orphaned files, unused exports, and complicated functions that poison future agent context and make SwanStudios harder to maintain. This gate converts those risks into deterministic evidence without turning every feature slice into a full-repo cleanup project.
+
+    **Cross-references:** Rule 4 (300-line cap), Rules 32-39 (repo hygiene and cleanup approval), Rule 50 (Tier-A deterministic tooling), Rule 56 (baseline disclosure), and Rule 61 (slice-internal hostile review).
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
