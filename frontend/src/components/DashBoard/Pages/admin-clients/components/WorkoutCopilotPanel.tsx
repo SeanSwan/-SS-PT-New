@@ -91,9 +91,8 @@ import type {
   PainEntry,
 } from './copilot-types';
 
-import { GeneratingCopy, GeneratingTitle, TabBar, TabButton } from './copilot-local-styles';
+import { TabBar, TabButton } from './copilot-local-styles';
 import {
-  SWAN_CYAN,
   ModalOverlay,
   ModalPanel,
   ModalHeader,
@@ -103,7 +102,6 @@ import {
   ModalFooter,
   PrimaryButton,
   SecondaryButton,
-  CenterContent,
   Spinner,
   InlineWrapper,
   InlinePanel,
@@ -115,6 +113,7 @@ import CopilotErrorStates from './CopilotErrorStates';
 import CopilotDraftReview from './CopilotDraftReview';
 import CopilotSavedState from './CopilotSavedState';
 import LongHorizonContent from './LongHorizonContent';
+import CopilotGeneratingState from './CopilotGeneratingState';
 
 interface ApiErrorPayload {
   code?: string;
@@ -535,14 +534,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
               )}
 
               {state === 'generating' && (
-                <CenterContent>
-                  <Spinner size={48} color={SWAN_CYAN} />
-                  <GeneratingTitle>Generating Workout Plan...</GeneratingTitle>
-                  <GeneratingCopy>
-                    Analyzing client profile, training history, and NASM constraints.
-                    This may take 10-30 seconds.
-                  </GeneratingCopy>
-                </CenterContent>
+                <CopilotGeneratingState />
               )}
 
               {(state === 'error' || state === 'approve_error' || state === 'degraded') && (
