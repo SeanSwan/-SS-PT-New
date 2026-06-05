@@ -86,7 +86,6 @@ import type {
   SafetyConstraints,
   ExerciseRecommendation,
   ValidationError,
-  TemplateEntry,
   DegradedResponse,
   PainEntry,
 } from './copilot-types';
@@ -113,6 +112,7 @@ import CopilotGeneratingState from './CopilotGeneratingState';
 import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
 import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
 import { getCopilotErrorFlags } from './copilot-error-flags';
+import { useCopilotTemplateCatalog } from './useCopilotTemplateCatalog';
 
 interface ApiErrorPayload {
   code?: string;
@@ -155,6 +155,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const { toast } = useToast();
   const service = useMemo(() => createAiWorkoutService(authAxios), [authAxios]);
   const painService = useMemo(() => createPainEntryService(authAxios), [authAxios]);
+  const { templates, templatesLoading } = useCopilotTemplateCatalog({ open, service });
 
   // ── State Machine ───────────────────────────────────────────
   const [state, setState] = useState<CopilotState>('idle');
@@ -187,10 +188,6 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
 
   // ── Expanded days ───────────────────────────────────────────
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
-
-  // ── Template catalog ──────────────────────────────────────────
-  const [templates, setTemplates] = useState<TemplateEntry[]>([]);
-  const [templatesLoading, setTemplatesLoading] = useState(false);
 
   // ── Pain safety check ──────────────────────────────────────
   const [activePainEntries, setActivePainEntries] = useState<PainEntry[]>([]);
@@ -229,14 +226,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
       setIsSubmitting(false);
       setActiveTab('single');
       setLhFooterContent(null);
-      setTemplates([]);
-      setTemplatesLoading(true);
-      service.listTemplates()
-        .then((resp) => { if (resp.success) setTemplates(resp.templates); })
-        .catch(() => { /* silent -- templates are informational for coach awareness */ })
-        .finally(() => setTemplatesLoading(false));
     }
-  }, [open, service]);
+  }, [open]);
 
   // ── Auto-generate on open (skip idle screen) ──────────────
   const autoGenerateTriggered = useRef(false);
