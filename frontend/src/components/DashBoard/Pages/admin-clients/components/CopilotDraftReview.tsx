@@ -51,7 +51,6 @@
  */
 
 import React from 'react';
-import styled from 'styled-components';
 import {
   ChevronDown, ChevronRight, Plus, Trash2, Brain, AlertTriangle, Info, Shield,
 } from 'lucide-react';
@@ -60,7 +59,6 @@ import type {
   Explainability, SafetyConstraints, ExerciseRecommendation,
 } from './copilot-types';
 import {
-  SWAN_CYAN,
   BadgeRow,
   Badge,
   InfoPanel,
@@ -85,62 +83,18 @@ import {
   ExplainLabel,
   ExplainValue,
 } from './copilot-shared-styles';
-
-const PanelIcon = styled.span`
-  display: inline-flex;
-  flex-shrink: 0;
-  margin-top: 2px;
-`;
-
-const DayExerciseCount = styled.span`
-  margin-left: auto;
-  color: var(--text-muted, #64748b);
-  font-size: 0.85rem;
-`;
-
-const ExerciseLabel = styled(Label)`
-  color: ${SWAN_CYAN};
-  font-weight: 700;
-`;
-
-const FullWidthExplainCard = styled(ExplainCard)`
-  grid-column: 1 / -1;
-`;
-
-const RecommendationTableScroll = styled.div`
-  overflow-x: auto;
-`;
-
-const RecommendationTable = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-`;
-
-const RecommendationHeadRow = styled.tr`
-  border-bottom: 1px solid var(--border-soft, rgba(255, 255, 255, 0.1));
-`;
-
-const RecommendationRow = styled.tr`
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
-`;
-
-const RecommendationHeader = styled.th`
-  padding: 8px 12px;
-  color: var(--text-muted, #64748b);
-  font-weight: 600;
-  text-align: left;
-`;
-
-const RecommendationCell = styled.td<{ $accent?: boolean; $primary?: boolean }>`
-  padding: 8px 12px;
-  color: ${({ $accent, $primary }) => {
-    if ($accent) return SWAN_CYAN;
-    if ($primary) return 'var(--text-primary, #e2e8f0)';
-    return 'var(--text-secondary, #94a3b8)';
-  }};
-  font-weight: ${({ $accent }) => ($accent ? 600 : 400)};
-`;
+import {
+  DayExerciseCount,
+  ExerciseLabel,
+  FullWidthExplainCard,
+  PanelIcon,
+  RecommendationCell,
+  RecommendationHeader,
+  RecommendationHeadRow,
+  RecommendationRow,
+  RecommendationTable,
+  RecommendationTableScroll,
+} from './CopilotDraftReview.styles';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
