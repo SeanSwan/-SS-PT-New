@@ -14,15 +14,17 @@ const getRpeColor = (value: number): string => {
 };
 
 export const SessionCard = styled.div`
-  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, #141419);
+  border: 1px solid var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent));
   border-radius: 10px;
   margin-bottom: 12px;
   /* Phase 15.3: overflow: visible so expanded edit controls are not clipped. */
   overflow: visible;
   transition: border-color 0.2s ease;
 
-  &:hover { border-color: rgba(96, 192, 240, 0.2); }
+  &:hover {
+    border-color: var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent));
+  }
 `;
 
 export const SessionHeader = styled.div`
@@ -74,7 +76,7 @@ export const MetaChip = styled.span`
   align-items: center;
   gap: 4px;
   font-size: 0.75rem;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #8BA8C8);
 `;
 
 export const ExerciseTable = styled.table`
@@ -89,7 +91,7 @@ export const Th = styled.th`
   color: var(--text-secondary, #8BA8C8);
   font-weight: 600;
   font-family: 'Sora', sans-serif;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
+  border-bottom: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -98,7 +100,7 @@ export const Th = styled.th`
 export const Td = styled.td`
   padding: 8px 12px;
   color: var(--text-primary, #E0ECF4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 3%, transparent));
 `;
 
 export const ExerciseNameCell = styled(Td)`
@@ -156,7 +158,9 @@ export const PRBadge = styled.span`
   border: 1px solid var(--accent-gold, #C6A84B);
   transition: box-shadow 0.2s;
 
-  &:hover { box-shadow: 0 0 8px rgba(198, 168, 75, 0.4); }
+  &:hover {
+    box-shadow: var(--shadow-gold-soft, 0 0 8px color-mix(in srgb, var(--accent-gold, #C6A84B) 40%, transparent));
+  }
 `;
 
 export const PRCard = styled.div`
@@ -165,12 +169,14 @@ export const PRCard = styled.div`
   justify-content: space-between;
   padding: 14px 16px;
   background: var(--bg-surface, #141419);
-  border: 1px solid rgba(198, 168, 75, 0.2);
+  border: 1px solid var(--border-gold-soft, color-mix(in srgb, var(--accent-gold, #C6A84B) 20%, transparent));
   border-radius: 10px;
   margin-bottom: 8px;
   transition: border-color 0.2s;
 
-  &:hover { border-color: rgba(198, 168, 75, 0.4); }
+  &:hover {
+    border-color: var(--border-gold-medium, color-mix(in srgb, var(--accent-gold, #C6A84B) 40%, transparent));
+  }
 `;
 
 export const PRDetails = styled.div`
@@ -186,7 +192,7 @@ export const PRExerciseName = styled.div`
 
 export const PRDateText = styled.div`
   font-size: 0.8125rem;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #8BA8C8);
 `;
 
 export const PRActionRow = styled.div`
@@ -214,7 +220,7 @@ export const SessionTotals = styled.div`
   gap: 16px;
   margin-top: 12px;
   padding-top: 8px;
-  border-top: 1px solid rgba(96, 192, 240, 0.08);
+  border-top: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
   font-size: 0.75rem;
   font-family: 'Fira Code', monospace;
 `;
@@ -241,8 +247,8 @@ export const ShareIconBtn = styled.button`
   padding: 4px 10px;
   min-height: 44px;
   border-radius: 6px;
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid var(--border-secondary-strong, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent));
+  background: var(--accent-secondary-bg-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent));
   color: var(--text-primary, #E0ECF4);
   font-size: 0.6875rem;
   font-family: 'Sora', sans-serif;
@@ -252,6 +258,6 @@ export const ShareIconBtn = styled.button`
 
   &:hover {
     background: var(--accent-secondary, #8B5CF6);
-    box-shadow: 0 0 12px rgba(96, 192, 240, 0.4);
+    box-shadow: var(--shadow-accent-soft, 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent));
   }
 `;

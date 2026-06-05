@@ -39,7 +39,27 @@ describe('WorkoutHistoryPanel session style extraction', () => {
     expect(sessionStylesSource).toContain('var(--status-danger, #C92A54)');
     expect(sessionStylesSource).toContain('var(--accent-gold, #C6A84B)');
     expect(sessionStylesSource).toContain('var(--accent-secondary, #8B5CF6)');
+    expect(sessionStylesSource).toContain('var(--border-subtle');
+    expect(sessionStylesSource).toContain('var(--border-accent-soft');
+    expect(sessionStylesSource).toContain('var(--border-gold-soft');
+    expect(sessionStylesSource).toContain('var(--accent-secondary-bg-soft');
+    expect(sessionStylesSource).toContain('var(--shadow-accent-soft');
     expect(sessionStylesSource).not.toContain("return '#C92A54'");
     expect(sessionStylesSource).not.toContain('color: #E0ECF4;');
+
+    [
+      'rgba(255, 255, 255, 0.03)',
+      'rgba(255, 255, 255, 0.08)',
+      'rgba(96, 192, 240, 0.2)',
+      'rgba(96, 192, 240, 0.1)',
+      'rgba(255, 255, 255, 0.03)',
+      'rgba(198, 168, 75, 0.4)',
+      'rgba(198, 168, 75, 0.2)',
+      'rgba(139, 92, 246, 0.4)',
+      'rgba(139, 92, 246, 0.12)',
+      'rgba(96, 192, 240, 0.4)',
+    ].forEach((rawDeclaration) => {
+      expect(sessionStylesSource).not.toContain(rawDeclaration);
+    });
   });
 });
