@@ -13,19 +13,15 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import TeachModeSidebar from './TeachModeSidebar';
-// W1A-4 (2026-05-01): replace bare console.error(err) with sanitized helper
-// that strips Axios error.config.headers (JWT) before logging.
-import { logApiError } from '../../../../utils/logApiError';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
-import WorkoutPlannerBuilderPanel, {
-  type WorkoutPlannerBuilderExplanation,
-} from './WorkoutPlannerBuilderPanel';
+import WorkoutPlannerBuilderPanel from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip, {
   type WorkoutPlannerStatusMessage,
 } from './WorkoutPlannerStatusAssistantStrip';
+import { useWorkoutPlannerGenerationActions } from './useWorkoutPlannerGenerationActions';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
 import { useWorkoutPlannerLoadPlanActions } from './useWorkoutPlannerLoadPlanActions';
@@ -40,7 +36,7 @@ import {
 
 import {
   type PlanExercise, type PlannerClient, type WorkoutCategory,
-  type GeneratedWorkout, type GeneratedPlan, type PlanDuration,
+  type GeneratedPlan, type PlanDuration,
   OPT_PHASES,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
@@ -104,16 +100,11 @@ const WorkoutPlannerPage: React.FC = () => {
   const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
-  const [generatingPlan, setGeneratingPlan] = useState(false);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
 
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
-  const [degradedIntelligence, setDegradedIntelligence] = useState(false);
-  const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
-  const [showExplanations, setShowExplanations] = useState(false);
 
   const phase = useMemo(
     () => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1],
@@ -234,6 +225,31 @@ const WorkoutPlannerPage: React.FC = () => {
     setStatusMsg,
   });
 
+  const {
+    generating,
+    generatingPlan,
+    degradedIntelligence,
+    explanations,
+    showExplanations,
+    clearExplanations,
+    handleAIGenerate,
+    handleGeneratePlan,
+    handleToggleExplanations,
+  } = useWorkoutPlannerGenerationActions({
+    authAxios,
+    selectedClientId,
+    category,
+    goal,
+    phaseNumber,
+    planDuration,
+    sessionsPerWeek,
+    setPlanExercises,
+    setGeneratedPlan,
+    setPhaseNumber,
+    setStatusMsg,
+    resetLoadedPlanState,
+  });
+
   // ── Fetch Clients ──
   // 2026-05-01 role-aware fix: /api/auth/clients is adminOnly. Trainers
   // (now landing on the workout planner with active assignments) must
@@ -279,126 +295,6 @@ const WorkoutPlannerPage: React.FC = () => {
     );
   }, []);
 
-  // ── Coach AI: Generate Workout ──
-  const handleAIGenerate = useCallback(async () => {
-    if (!selectedClientId) return;
-    setGenerating(true);
-    setDegradedIntelligence(false);
-    setStatusMsg(null);
-    setExplanations([]);
-    setShowExplanations(false);
-    try {
-      const res = await authAxios.post('/api/workout-builder/generate', {
-        clientId: selectedClientId,
-        category,
-        exerciseCount: 6,
-        rotationPattern: 'standard',
-        primaryGoal: goal,
-        nasmPhase: phaseNumber,
-      });
-      if (res.data?.success && res.data.workout) {
-        const workout: GeneratedWorkout = res.data.workout;
-        // Check for degraded intelligence (pain data unavailable)
-        const isDegraded = res.data.workout.context?.criticalDataUnavailable === true;
-        setDegradedIntelligence(isDegraded);
-        if (isDegraded) {
-          const safetyWarning = workout.explanations?.find(
-            (e: { type: string; message: string }) => e.type === 'safety_warning'
-          );
-          setStatusMsg({
-            type: 'error',
-            text: safetyWarning?.message || 'Pain/injury data unavailable — review this workout carefully before assigning.',
-          });
-        }
-        // Set phase from generated workout
-        if (workout.nasmPhase) setPhaseNumber(workout.nasmPhase);
-        // Convert generated exercises to plan exercises
-        const generated: PlanExercise[] = workout.exercises.map((ex, i) => ({
-          id: `gen-${i}-${Date.now()}`,
-          exerciseSlim: {
-            id: ex.exerciseKey,
-            name: ex.exerciseName,
-            exerciseKey: ex.exerciseKey,
-            exerciseType: ex.category || 'compound',
-            bodyPartCategory: ex.muscles?.[0] || 'Full Body',
-            primaryMuscles: ex.muscles || [],
-            difficulty: 300,
-          },
-          sets: ex.sets,
-          reps: String(ex.reps),
-          tempo: ex.tempo,
-          // Parse rest: backend may return number (seconds) or string like "3-5min"
-          restSeconds: (() => {
-            if (typeof ex.rest === 'number') return ex.rest;
-            const s = String(ex.rest || '60').toLowerCase();
-            if (s.includes('min')) return (parseInt(s) || 3) * 60;
-            return parseInt(s.replace(/[^0-9]/g, '')) || 60;
-          })(),
-          intensityPercent: typeof ex.intensity === 'number' ? ex.intensity : (parseInt(String(ex.intensity).replace(/[^0-9]/g, '')) || 70),
-          notes: ex.recommendedWeightMin
-            ? `Recommended: ${ex.recommendedWeightMin}-${ex.recommendedWeightMax} lbs (based on ${ex.basedOn1RM} lb 1RM)`
-            : '',
-        }));
-        setPlanExercises(generated);
-        // W1A-2: AI-generated workouts haven't been saved yet — clear
-        // saved-snapshot AND loadedPlanId so isDirty correctly reflects
-        // "newly built, not yet saved." Prevents stale comparison against
-        // a previously-loaded plan.
-        resetLoadedPlanState();
-
-        // Store explanations from the AI reasoning pipeline
-        if (workout.explanations && workout.explanations.length > 0) {
-          setExplanations(workout.explanations);
-          setShowExplanations(true);
-        }
-      }
-    } catch (err: unknown) {
-      logApiError('AI generation failed', err);
-      // Surface specific failure reason from backend error response
-      const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
-      const specificMsg = errData?.details || errData?.error;
-      if (specificMsg?.includes('client context unavailable')) {
-        setStatusMsg({ type: 'error', text: 'Unable to generate workout: Client data could not be loaded. Verify the client has an active profile with pain entries and equipment profile.' });
-      } else if (specificMsg?.includes('equipment')) {
-        setStatusMsg({ type: 'error', text: `Unable to generate workout: ${specificMsg}. Please verify the client's equipment profile.` });
-      } else if (specificMsg) {
-        setStatusMsg({ type: 'error', text: `Workout generation failed: ${specificMsg}` });
-      } else {
-        setStatusMsg({ type: 'error', text: 'Swan Coach generation failed. Check client data and try again.' });
-      }
-    } finally {
-      setGenerating(false);
-    }
-  }, [authAxios, selectedClientId, category, goal, phaseNumber, resetLoadedPlanState]);
-
-  // ── Coach AI: Generate Multi-Week Plan ──
-  const handleGeneratePlan = useCallback(async () => {
-    if (!selectedClientId || planDuration === 'single') return;
-    setGeneratingPlan(true);
-    setStatusMsg(null);
-    setGeneratedPlan(null);
-    try {
-      const res = await authAxios.post('/api/workout-builder/plan', {
-        clientId: selectedClientId,
-        durationWeeks: Number(planDuration),
-        sessionsPerWeek,
-        primaryGoal: goal,
-        startingPhaseOverride: phaseNumber,
-      });
-      if (res.data?.success && res.data.plan) {
-        setGeneratedPlan(res.data.plan);
-        setStatusMsg({ type: 'success', text: `${res.data.plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
-      }
-    } catch (err: unknown) {
-      logApiError('Plan generation failed', err);
-      const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
-      const specificMsg = errData?.details || errData?.error;
-      setStatusMsg({ type: 'error', text: specificMsg ? `Plan generation failed: ${specificMsg}` : 'Failed to generate training plan. Check client data and try again.' });
-    } finally {
-      setGeneratingPlan(false);
-    }
-  }, [authAxios, selectedClientId, planDuration, sessionsPerWeek, goal, phaseNumber]);
-
   const handleLoadPlan = useCallback((planId: string, planName: string) => {
     if (isDirty) {
       setConfirmRequest({
@@ -430,9 +326,9 @@ const WorkoutPlannerPage: React.FC = () => {
     setSelectedClientId(nextClientId);
     setPlanExercises([]);
     setGeneratedPlan(null);
-    setExplanations([]);
+    clearExplanations();
     resetLoadedPlanState();
-  }, [resetLoadedPlanState]);
+  }, [clearExplanations, resetLoadedPlanState]);
 
   const handlePlanDurationChange = useCallback((nextDuration: PlanDuration) => {
     setPlanDuration(nextDuration);
@@ -448,10 +344,6 @@ const WorkoutPlannerPage: React.FC = () => {
   const handleBrowseAddExercise = useCallback(() => {
     clearSearchForBrowse();
   }, [clearSearchForBrowse]);
-
-  const handleToggleExplanations = useCallback(() => {
-    setShowExplanations(value => !value);
-  }, []);
 
   return (
     <Page>
