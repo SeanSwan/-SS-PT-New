@@ -16,180 +16,41 @@ import {
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
 import GlowButton from '../../../ui/buttons/GlowButton';
+import {
+  BODY_FAT_LINE_STYLE,
+  CHART_ANIMATION,
+  CHART_AXIS_STYLE,
+  DEPENDENT_AXIS_STYLE,
+  LEGEND_STYLE,
+  RADAR_AXIS_STYLE,
+  RADAR_CURRENT_AREA_STYLE,
+  RADAR_DEPENDENT_AXIS_STYLE,
+  RADAR_FIRST_AREA_STYLE,
+  RADAR_LABEL_MAP,
+  TREND_CHART_PADDING,
+  VICTORY_TOOLTIP_FLYOUT_STYLE,
+  VICTORY_TOOLTIP_STYLE,
+  WAIST_LINE_STYLE,
+  WEIGHT_AREA_STYLE,
+  containerVariants,
+  itemVariants,
+  measurementFields,
+  negativeIsBetter,
+  victoryElement,
+} from './MeasurementEntry.config';
+import type {
+  BodyMeasurement,
+  Client,
+  MeasurementEntryProps,
+  MeasurementMilestone,
+  MeasurementStats,
+  RadarDatum,
+  RadarMeasurementKey,
+  RawClient,
+  RecentMeasurement,
+} from './MeasurementEntry.types';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
-
-// ─── Interfaces (unchanged from blueprint) ─────────────────────────────────────
-interface Client { id: string; name: string; }
-interface RawClient {
-  id: string | number;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-}
-interface BodyMeasurement {
-  id?: string;
-  userId: string;
-  measurementDate: string;
-  weight?: number;
-  weightUnit?: 'lbs' | 'kg';
-  bodyFatPercentage?: number;
-  muscleMassPercentage?: number;
-  bmi?: number;
-  circumferenceUnit?: 'inches' | 'cm';
-  neck?: number;
-  shoulders?: number;
-  chest?: number;
-  rightBicep?: number;
-  leftBicep?: number;
-  rightForearm?: number;
-  leftForearm?: number;
-  naturalWaist?: number;
-  hips?: number;
-  rightThigh?: number;
-  leftThigh?: number;
-  rightCalf?: number;
-  leftCalf?: number;
-  notes?: string;
-  photoUrls?: string[];
-}
-interface RecentMeasurement extends BodyMeasurement {
-  id: string;
-  recorder?: { firstName?: string; lastName?: string; username?: string };
-}
-interface MeasurementStats {
-  totalMeasurements?: number;
-  daysSinceStart?: number;
-  totalChange?: {
-    weight?: string | number | null;
-    bodyFat?: string | number | null;
-    waist?: string | number | null;
-  };
-}
-interface MeasurementMilestone {
-  celebrationMessage?: string;
-}
-type RadarMeasurementKey =
-  | 'neck'
-  | 'shoulders'
-  | 'chest'
-  | 'rightBicep'
-  | 'naturalWaist'
-  | 'hips'
-  | 'rightThigh'
-  | 'rightCalf';
-interface RadarDatum {
-  metric: string;
-  first: number;
-  current: number;
-}
-
-// ─── Framer Motion Variants ─────────────────────────────────────────────────────
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1 },
-};
-
-// ─── Measurement Field Definitions ──────────────────────────────────────────────
-const measurementFields: { key: keyof BodyMeasurement; label: string }[] = [
-  { key: 'weight', label: 'Weight' },
-  { key: 'bodyFatPercentage', label: 'Body Fat %' },
-  { key: 'muscleMassPercentage', label: 'Muscle Mass %' },
-  { key: 'neck', label: 'Neck' },
-  { key: 'shoulders', label: 'Shoulders' },
-  { key: 'chest', label: 'Chest' },
-  { key: 'rightBicep', label: 'Right Bicep' },
-  { key: 'leftBicep', label: 'Left Bicep' },
-  { key: 'rightForearm', label: 'Right Forearm' },
-  { key: 'leftForearm', label: 'Left Forearm' },
-  { key: 'naturalWaist', label: 'Natural Waist' },
-  { key: 'hips', label: 'Hips' },
-  { key: 'rightThigh', label: 'Right Thigh' },
-  { key: 'leftThigh', label: 'Left Thigh' },
-  { key: 'rightCalf', label: 'Right Calf' },
-  { key: 'leftCalf', label: 'Left Calf' },
-];
-
-const negativeIsBetter = ['weight', 'bodyFatPercentage', 'naturalWaist', 'hips', 'neck'];
-const RADAR_LABEL_MAP: Record<RadarMeasurementKey, string> = {
-  neck: 'Neck',
-  shoulders: 'Shoulders',
-  chest: 'Chest',
-  rightBicep: 'Bicep',
-  naturalWaist: 'Waist',
-  hips: 'Hips',
-  rightThigh: 'Thigh',
-  rightCalf: 'Calf',
-};
-const TREND_CHART_PADDING = { top: 10, bottom: 50, left: 55, right: 55 };
-const CHART_ANIMATION = { duration: 800, easing: 'cubicInOut' as const };
-const CHART_AXIS_STYLE = {
-  axis: { stroke: 'rgba(96, 192, 240, 0.08)' },
-  tickLabels: { fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11, fontFamily: "'Fira Code', monospace" },
-  grid: { stroke: 'rgba(96, 192, 240, 0.08)', strokeDasharray: '4,4' },
-};
-const DEPENDENT_AXIS_STYLE = {
-  ...CHART_AXIS_STYLE,
-  axisLabel: { fill: 'rgba(255,255,255,0.3)', fontSize: 10, padding: 40 },
-};
-const RADAR_AXIS_STYLE = {
-  axis: { stroke: 'rgba(255, 255, 255, 0.1)' },
-  tickLabels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 11, fontFamily: "'Sora', sans-serif" },
-  grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
-};
-const RADAR_DEPENDENT_AXIS_STYLE = {
-  axis: { stroke: 'none' },
-  tickLabels: { fill: 'rgba(255, 255, 255, 0.3)', fontSize: 9 },
-  grid: { stroke: 'rgba(255, 255, 255, 0.1)' },
-};
-const VICTORY_TOOLTIP_STYLE = {
-  fill: 'var(--text-primary, #E0ECF4)',
-  fontFamily: "'Fira Code', monospace",
-  fontSize: 9,
-};
-const VICTORY_TOOLTIP_FLYOUT_STYLE = {
-  fill: 'var(--bg-card, #141419)',
-  stroke: 'rgba(139, 92, 246, 0.3)',
-};
-const WEIGHT_AREA_STYLE = {
-  data: {
-    fill: 'rgba(139, 92, 246, 0.15)',
-    stroke: '#8B5CF6',
-    strokeWidth: 2.5,
-  },
-};
-const BODY_FAT_LINE_STYLE = {
-  data: { stroke: '#8B5CF6', strokeWidth: 2, strokeDasharray: '6,3' },
-};
-const WAIST_LINE_STYLE = {
-  data: { stroke: '#4ECDC4', strokeWidth: 2 },
-};
-const LEGEND_STYLE = {
-  labels: { fill: 'rgba(255, 255, 255, 0.6)', fontSize: 12, fontFamily: "'Sora', sans-serif" },
-};
-const RADAR_FIRST_AREA_STYLE = {
-  data: {
-    fill: 'rgba(139, 92, 246, 0.1)',
-    stroke: '#8B5CF6',
-    strokeWidth: 2,
-  },
-};
-const RADAR_CURRENT_AREA_STYLE = {
-  data: {
-    fill: 'rgba(139, 92, 246, 0.25)',
-    stroke: '#50A0F0',
-    strokeWidth: 2,
-  },
-};
-const victoryElement = (
-  component: React.ElementType,
-  props: Record<string, unknown>,
-) => React.createElement(component, props);
 
 // ─── Keyframe Animations ────────────────────────────────────────────────────────
 const spin = keyframes`
@@ -932,12 +793,6 @@ const _CustomTooltipBox = styled.div`
 // ═════════════════════════════════════════════════════════════════════════════════
 // Component
 // ═════════════════════════════════════════════════════════════════════════════════
-
-interface MeasurementEntryProps {
-  /** When embedded in BiometricsTabContent, auto-select this client */
-  embeddedClientId?: string;
-  embeddedClientName?: string;
-}
 
 const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   embeddedClientId,
