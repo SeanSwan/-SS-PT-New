@@ -7,12 +7,12 @@ export const PageWrapper = styled.div`
 `;
 
 export const GlassPanel = styled.div`
-  background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+  background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 12px;
   padding: 24px;
   backdrop-filter: blur(12px);
-  box-shadow: var(--shadow-strong, 0 18px 44px rgba(0, 0, 0, 0.36));
+  box-shadow: var(--shadow-strong, 0 18px 44px color-mix(in srgb, var(--bg-base, #0A0A0F) 36%, transparent));
 `;
 
 export const SectionTitle = styled.h3`
@@ -68,8 +68,8 @@ export const StyledLabel = styled.label`
 
 export const StyledSelect = styled.select`
   appearance: none;
-  background: var(--surface-soft, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+  background: var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent));
+  border: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
   border-radius: 8px;
   color: var(--text-primary, #E0ECF4);
   padding: 10px 36px 10px 12px;
@@ -84,7 +84,7 @@ export const StyledSelect = styled.select`
   }
 
   & option {
-    background: var(--bg-elevated, #141419);
+    background: var(--bg-elevated, color-mix(in srgb, var(--bg-surface, #1A1A24) 95%, transparent));
     color: var(--text-primary, #E0ECF4);
   }
 `;
@@ -107,7 +107,7 @@ export const ToggleTrack = styled.span<{ $checked: boolean }>`
   height: 24px;
   border-radius: 12px;
   background: ${({ $checked }) => (
-    $checked ? 'var(--accent-primary, #60C0F0)' : 'var(--surface-muted, rgba(255, 255, 255, 0.15))'
+    $checked ? 'var(--accent-primary, #60C0F0)' : 'var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent))'
   )};
   transition: background 0.2s ease;
   flex-shrink: 0;
@@ -137,7 +137,7 @@ export const StyledTable = styled.table`
 `;
 
 export const StyledThead = styled.thead`
-  border-bottom: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
+  border-bottom: 1px solid var(--border-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
 `;
 
 export const StyledTh = styled.th<{ $align?: string }>`
@@ -156,7 +156,7 @@ export const StyledTd = styled.td<{ $align?: string }>`
   font-size: 0.875rem;
   color: var(--text-primary, #E0ECF4);
   text-align: ${({ $align }) => $align || 'left'};
-  border-bottom: 1px solid var(--border-muted, rgba(255, 255, 255, 0.06));
+  border-bottom: 1px solid var(--border-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent));
 `;
 
 export const MetricName = styled.span`
@@ -188,7 +188,7 @@ export const ProgressBarTrack = styled.div`
   width: 100%;
   height: 4px;
   border-radius: 2px;
-  background: var(--surface-muted, rgba(255, 255, 255, 0.08));
+  background: var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent));
   margin-top: 6px;
   overflow: hidden;
 `;
@@ -225,7 +225,7 @@ export const InsightsStack = styled.div`
 export const AlertBox = styled.div<{ $severity: 'success' | 'warning' | 'info' | 'error' }>`
   padding: 16px;
   border-radius: 8px;
-  background: var(--surface-soft, rgba(255, 255, 255, 0.05));
+  background: var(--surface-soft, color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent));
   border-left: 3px solid ${({ $severity }) => `var(--status-${$severity}, var(--accent-primary, #60C0F0))`};
 `;
 

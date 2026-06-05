@@ -39,6 +39,9 @@ describe('ComparisonAnalytics theme bridge', () => {
     expect(styleSource).not.toContain('background: #1d1f2b');
     expect(styleSource).not.toContain('background: #fff');
     expect(styleSource).not.toContain('rgba(15,23,42');
+    expect(styleSource).not.toContain('rgba(255, 255, 255');
+    expect(styleSource).not.toContain('rgba(0, 0, 0');
+    expect(styleSource).not.toContain('rgba(96, 192, 240');
 
     expect(shellSource).toContain('<ComparisonAnalytics clientId={clientId} clientData={clientData} />');
     expect(viewSource).toContain('COMPARISON_PROGRESS_TONES');
