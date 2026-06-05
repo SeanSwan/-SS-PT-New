@@ -2,8 +2,8 @@
  * WorkoutHistoryExerciseNotesBlock
  *
  * Renders exercise-level and set-level notes for one exercise group in the
- * canonical admin workout-history table. The parent owns edit state; this
- * component only displays the derived note model and forwards edits.
+ * canonical admin workout-history table. Edit state comes from the editor
+ * hook through the session card; this component displays notes and forwards edits.
  */
 import React from 'react';
 

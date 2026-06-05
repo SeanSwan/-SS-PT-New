@@ -2,8 +2,8 @@
  * WorkoutHistoryExerciseTable
  *
  * Renders the canonical workout-history exercise rows for one expanded
- * session. The parent owns edit state and table visibility flags; this
- * component keeps dense cell rendering out of the panel shell.
+ * session. The session card provides edit state and table visibility flags;
+ * this component keeps dense cell rendering out of the panel shell.
  */
 import React from 'react';
 import { Trash2 } from 'lucide-react';

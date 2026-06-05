@@ -1,8 +1,8 @@
 /**
  * WorkoutHistorySessionCard
  *
- * Renders one expandable workout-history session card. Parent owns edit state,
- * save behavior, and share modal state; this component owns session display.
+ * Renders one expandable workout-history session card. The editor hook owns
+ * edit/save behavior; the panel owns share modal state and expanded sessions.
  */
 import React from 'react';
 import { AlertTriangle, ChevronDown, ChevronUp, Clock, Dumbbell, Share2, Target } from 'lucide-react';

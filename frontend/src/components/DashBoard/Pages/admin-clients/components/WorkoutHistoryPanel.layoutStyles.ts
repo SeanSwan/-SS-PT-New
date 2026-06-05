@@ -1,8 +1,8 @@
 /**
  * WorkoutHistoryPanel layout styles
  *
- * Top-level chrome for the canonical workout history surface. Runtime data,
- * edit state, and save handlers stay in WorkoutHistoryPanel.tsx.
+ * Top-level chrome for the canonical workout history surface. Runtime data
+ * stays in WorkoutHistoryPanel.tsx; edit and save state lives in the editor hook.
  */
 import styled from 'styled-components';
 
