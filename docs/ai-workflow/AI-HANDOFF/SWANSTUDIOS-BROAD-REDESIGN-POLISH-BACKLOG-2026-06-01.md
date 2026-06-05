@@ -58,6 +58,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - `UniversalDashboardLayout.tsx` and `AdminLayout.styles.ts` route shared focus rings, button text, borders, shadows, fallback text, danger action background, and OmniTerminal FAB chrome through theme variables.
   - `WidgetSkeleton.tsx` routes the shared admin overview loading shimmer through theme variables and honors `prefers-reduced-motion`.
   - Coverage lives in `frontend/src/components/DashBoard/themeSync.contract.test.ts` and `frontend/src/components/DashBoard/Pages/admin-dashboard/components/WidgetSkeleton.themeBridge.test.ts`.
+- Workout Logger shared Crystalline Swan palette is now theme-token bridged:
+  - `WorkoutLoggerCS.ts` routes the shared logger colors, badge backgrounds/borders, and glow animation through dashboard theme variables while preserving fallback colors.
+  - `withAlpha()` now supports CSS variable tokens via `color-mix(...)` instead of assuming every caller passes a hex value.
+  - Coverage lives in `frontend/src/components/WorkoutLogger/WorkoutLoggerCS.themeBridge.test.ts`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -112,7 +116,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, and active admin overview skeleton loading chrome are token-bridged and covered by targeted contracts.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, and the Workout Logger shared palette are token-bridged and covered by targeted contracts.
 - Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked
@@ -126,7 +130,9 @@ These are scan-backed candidates, not permission to patch everything at once. Ea
   - `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/InjuryRiskAssessment.tsx`, `GoalProgressTracker.tsx`, and `ComparisonAnalytics.tsx` still show raw colors/shadows in scans.
   - Patch only after confirming which analytics panels are mounted in the current Trainer Dashboard route.
 - Workout Logger:
-  - `frontend/src/components/WorkoutLogger/WorkoutLoggerTheme.ts`, `WorkoutLoggerConfirmDialog.tsx`, `WorkoutLoggerCS.ts`, and `NASMProtocolSection.tsx` still show raw gradient, shadow, and accent literals.
+  - `frontend/src/components/WorkoutLogger/WorkoutLoggerCS.ts` is now handled for the active shared logger palette.
+  - `frontend/src/components/WorkoutLogger/WorkoutLoggerTheme.ts` and `NASMProtocolSection.tsx` still show raw gradient, shadow, and accent literals.
+  - `NASMProtocolSection.tsx` is not imported by the current `WorkoutLogger.tsx` route based on existing protocol-section tests; do not patch it as active daily-logger work without fresh mount proof.
   - Treat this as daily-use polish plus regression protection because Workout Logger is the execution surface.
 - Admin widgets:
   - `PaymentSettingsPanel.tsx`, `UsersManagementSection.tsx`, and `TopTrainersWidget.tsx` still show raw colors/gradients/shadows.

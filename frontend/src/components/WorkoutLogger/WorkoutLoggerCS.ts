@@ -1,66 +1,73 @@
 /**
  * WorkoutLogger Crystalline Swan Color Palette
- * Shared across all WorkoutLogger sub-components
- *
- * Derived tokens (Bg/Border variants) are computed once at module load
- * via withAlpha() — zero runtime overhead per AI Village Phase 3 consensus.
+ * Shared across all WorkoutLogger sub-components.
  */
 import { keyframes, css } from 'styled-components';
 
-/** Convert hex color to rgba string at a given opacity */
-export const withAlpha = (hex: string, opacity: number): string => {
-  const cleanHex = hex.replace('#', '');
+const clampOpacity = (opacity: number): number =>
+  Math.min(1, Math.max(0, opacity));
+
+/** Convert a color token to an alpha-safe overlay. */
+export const withAlpha = (color: string, opacity: number): string => {
+  const safeOpacity = clampOpacity(opacity);
+  const trimmedColor = color.trim();
+
+  if (color.startsWith('var(') || !trimmedColor.startsWith('#')) {
+    return `color-mix(in srgb, ${color} ${safeOpacity * 100}%, transparent)`;
+  }
+
+  const cleanHex = trimmedColor.replace('#', '');
+  if (cleanHex.length !== 6) {
+    return `color-mix(in srgb, ${color} ${safeOpacity * 100}%, transparent)`;
+  }
+
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  return `rgba(${r}, ${g}, ${b}, ${safeOpacity})`;
 };
 
 export const CS = {
-  // ── Base Semantic Colors ──
-  bg: '#141419',             // Carbon — primary dark bg (black theme)
-  surface: '#1A1A24',         // Graphite — elevated surfaces (black theme)
-  card: 'rgba(20, 20, 25, 0.75)',  // Carbon glass (black theme)
-  cardSolid: '#141419',
-  accent: '#C6A84B',          // Gilded Fern (luxury)
-  gaming: '#60C0F0',          // Ice Wing
-  glow: '#50A0F0',            // Arctic Cyan — GLOW ACCENT
-  glowLight: '#7CB8F4',       // Arctic Cyan Light (WCAG AA on dark)
-  secondary: '#8B5CF6',       // Wing Purple — secondary accent
-  secondaryLight: '#A78BFA',  // Wing Purple Light
-  tertiary: '#4070C0',        // Swan Lavender
-  text: '#E0ECF4',            // Frost White
-  textSecondary: '#c8d6e5',
-  textMuted: '#94a3b8',       // WCAG AA safe muted text on dark
-  border: 'rgba(80, 160, 240, 0.2)',
-  borderSolid: '#4a6382',
-  glassBorder: 'rgba(80, 160, 240, 0.15)',
-  success: '#10b981',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  inputBg: 'rgba(20, 20, 25, 0.7)',  // Carbon glass for inputs (black theme)
+  bg: 'var(--bg-elevated, #141419)',
+  surface: 'var(--bg-surface, #1A1A24)',
+  card: 'var(--surface-card-glass, rgba(20, 20, 25, 0.75))',
+  cardSolid: 'var(--bg-elevated, #141419)',
+  accent: 'var(--accent-gold, #C6A84B)',
+  gaming: 'var(--accent-primary, #60C0F0)',
+  glow: 'var(--chart-primary, #50A0F0)',
+  glowLight: 'var(--accent-primary-light, #7CB8F4)',
+  secondary: 'var(--accent-secondary, #8B5CF6)',
+  secondaryLight: 'var(--accent-secondary-light, #A78BFA)',
+  tertiary: 'var(--accent-tertiary, #4070C0)',
+  text: 'var(--text-primary, #E0ECF4)',
+  textSecondary: 'var(--text-secondary, #c8d6e5)',
+  textMuted: 'var(--text-muted, #94a3b8)',
+  border: 'var(--border-primary-soft, rgba(80, 160, 240, 0.2))',
+  borderSolid: 'var(--border-primary-strong, #4a6382)',
+  glassBorder: 'var(--border-primary-faint, rgba(80, 160, 240, 0.15))',
+  success: 'var(--success, #10b981)',
+  warning: 'var(--warning, #f59e0b)',
+  error: 'var(--danger, #ef4444)',
+  inputBg: 'var(--input-bg, rgba(20, 20, 25, 0.7))',
 
-  // ── Obsidian Black Palette (Primary Backgrounds) ──
-  bgDeep: '#0A0A0F',          // Obsidian Black — primary dark background
-  cardDark: '#141419',         // Carbon — card/panel backgrounds
-  surfaceDark: '#1A1A24',      // Graphite — elevated surfaces, modals
-  inputBgDark: 'rgba(20, 20, 25, 0.7)',  // Carbon glass for inputs
+  bgDeep: 'var(--bg-base, #0A0A0F)',
+  cardDark: 'var(--bg-elevated, #141419)',
+  surfaceDark: 'var(--bg-surface, #1A1A24)',
+  inputBgDark: 'var(--input-bg, rgba(20, 20, 25, 0.7))',
 
-  // ── Derived Badge Tokens (calculated once at module load) ──
-  warningBg: withAlpha('#f59e0b', 0.12),
-  successBg: withAlpha('#10b981', 0.12),
-  errorBg: withAlpha('#ef4444', 0.12),
-  infoBg: withAlpha('#50a0f0', 0.12),
+  warningBg: withAlpha('var(--warning, #f59e0b)', 0.12),
+  successBg: withAlpha('var(--success, #10b981)', 0.12),
+  errorBg: withAlpha('var(--danger, #ef4444)', 0.12),
+  infoBg: withAlpha('var(--chart-primary, #50a0f0)', 0.12),
 
-  warningBorder: withAlpha('#f59e0b', 0.35),
-  successBorder: withAlpha('#10b981', 0.35),
-  errorBorder: withAlpha('#ef4444', 0.35),
-  infoBorder: withAlpha('#50a0f0', 0.35),
+  warningBorder: withAlpha('var(--warning, #f59e0b)', 0.35),
+  successBorder: withAlpha('var(--success, #10b981)', 0.35),
+  errorBorder: withAlpha('var(--danger, #ef4444)', 0.35),
+  infoBorder: withAlpha('var(--chart-primary, #50a0f0)', 0.35),
 
-  // WCAG-safe badge text colors (high contrast on dark)
-  warningText: '#fbbf24',
-  successText: '#34d399',
-  errorText: '#f87171',
+  warningText: 'var(--warning-text, #fbbf24)',
+  successText: 'var(--success-text, #34d399)',
+  errorText: 'var(--danger-text, #f87171)',
 };
 
 /** Duration constants */
@@ -74,7 +81,7 @@ export const getErrorMessage = (error: unknown, fallback: string): string => {
   return fallback;
 };
 
-/** Reduced motion CSS mixin — wraps animations to respect prefers-reduced-motion */
+/** Reduced motion CSS mixin wraps animations to respect prefers-reduced-motion. */
 export const reducedMotionSafe = css`
   @media (prefers-reduced-motion: reduce) {
     animation: none !important;
@@ -83,9 +90,9 @@ export const reducedMotionSafe = css`
 `;
 
 export const stellarGlow = keyframes`
-  0% { box-shadow: 0 0 8px rgba(80, 160, 240, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
-  50% { box-shadow: 0 0 24px rgba(80, 160, 240, 0.5), 0 0 48px rgba(96, 192, 240, 0.1); }
-  100% { box-shadow: 0 0 8px rgba(80, 160, 240, 0.2), 0 0 0 rgba(96, 192, 240, 0); }
+  0% { box-shadow: 0 0 8px ${withAlpha(CS.glow, 0.2)}, 0 0 0 ${withAlpha(CS.gaming, 0)}; }
+  50% { box-shadow: 0 0 24px ${withAlpha(CS.glow, 0.5)}, 0 0 48px ${withAlpha(CS.gaming, 0.1)}; }
+  100% { box-shadow: 0 0 8px ${withAlpha(CS.glow, 0.2)}, 0 0 0 ${withAlpha(CS.gaming, 0)}; }
 `;
 
 export const shimmer = keyframes`
