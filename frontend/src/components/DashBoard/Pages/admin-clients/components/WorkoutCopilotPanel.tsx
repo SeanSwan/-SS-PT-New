@@ -110,6 +110,7 @@ import CopilotModeTabs, { type CopilotModeTab } from './CopilotModeTabs';
 import CopilotSingleWorkoutFooter from './CopilotSingleWorkoutFooter';
 import { getCopilotErrorFlags } from './copilot-error-flags';
 import { useCopilotDraftEditor } from './useCopilotDraftEditor';
+import { useCopilotPanelReset } from './useCopilotPanelReset';
 import { useCopilotTemplateCatalog } from './useCopilotTemplateCatalog';
 
 interface ApiErrorPayload {
@@ -204,36 +205,34 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [activeTab, setActiveTab] = useState<CopilotModeTab>('single');
   const [lhFooterContent, setLhFooterContent] = useState<React.ReactNode | null>(null);
 
-  // ── Reset on open ───────────────────────────────────────────
-  useEffect(() => {
-    if (open) {
-      setState('idle');
-      setEditedPlan(null);
-      setExplainability(null);
-      setSafetyConstraints(null);
-      setExerciseRecs([]);
-      setWarnings([]);
-      setMissingInputs([]);
-      setGenerationMode('');
-      setAuditLogId(null);
-      setTrainerNotes('');
-      setOverrideReason('');
-      setOverrideReasonRequired(false);
-      setDegradedData(null);
-      setSavedPlanId(null);
-      setUnmatchedExercises([]);
-      setValidationWarnings([]);
-      setErrorMessage('');
-      setErrorCode('');
-      setApproveErrors([]);
-      setActivePainEntries([]);
-      setPainAcknowledged(false);
-      setExpandedDays(new Set());
-      setIsSubmitting(false);
-      setActiveTab('single');
-      setLhFooterContent(null);
-    }
-  }, [open]);
+  useCopilotPanelReset({
+    open,
+    setState,
+    setEditedPlan,
+    setExplainability,
+    setSafetyConstraints,
+    setExerciseRecs,
+    setWarnings,
+    setMissingInputs,
+    setGenerationMode,
+    setAuditLogId,
+    setTrainerNotes,
+    setOverrideReason,
+    setOverrideReasonRequired,
+    setDegradedData,
+    setSavedPlanId,
+    setUnmatchedExercises,
+    setValidationWarnings,
+    setErrorMessage,
+    setErrorCode,
+    setApproveErrors,
+    setActivePainEntries,
+    setPainAcknowledged,
+    setExpandedDays,
+    setIsSubmitting,
+    setActiveTab,
+    setLhFooterContent,
+  });
 
   // ── Auto-generate on open (skip idle screen) ──────────────
   const autoGenerateTriggered = useRef(false);
