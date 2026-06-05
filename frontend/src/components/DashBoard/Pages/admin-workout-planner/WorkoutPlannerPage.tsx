@@ -10,10 +10,9 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { List } from 'react-window';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Dumbbell, Search, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
+  Dumbbell, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
   Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
   ArrowLeft,
 } from 'lucide-react';
@@ -32,6 +31,7 @@ import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 import SavedPlanCard from './SavedPlanCard';
 // L2.C (2026-05-02): drill-down for the populated long-horizon weeks[].
 import LongHorizonScheduleView from './LongHorizonScheduleView';
+import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 // AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
@@ -45,11 +45,6 @@ import {
   resolveWorkoutPlannerPlanClientId,
 } from './WorkoutPlannerClientIdentity';
 import {
-  BODY_PARTS,
-  EQUIPMENT_FILTERS,
-  EXERCISE_TYPES,
-  IMPACT_LEVELS,
-  SOURCE_FILTERS,
   getJointImpact,
   parseEquipment,
 } from './WorkoutPlannerFilters';
@@ -66,8 +61,7 @@ import { workoutPlannerExplanationKey, workoutPlannerRecommendationKey } from '.
 import {
   Page, Header, HeaderLeft, HeaderIcon, Title, Subtitle,
   ControlRow, Select, ActionBtn, ThreePanel,
-  Panel, PanelHeader, PanelTitle, PanelBody,
-  SearchWrapper, SearchInput, ChipRow, Chip,
+  PanelHeader, PanelTitle, PanelBody,
   ExerciseMeta,
   BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
   PhaseBadge, PhaseLabel, PhaseParams,
@@ -97,15 +91,12 @@ import {
   ClickableExerciseName,
   ClickableMesocycleCard,
   DegradedPanel,
-  ExerciseListPane,
   ExplanationDetails,
-  FiltersPane,
   ParamField,
   ParamLabel,
   PlanLabelBlock,
   RecommendationSource,
   RepsInput,
-  ResultsCount,
   SavedPlansCount,
   SavedPlansEmpty,
   SavedPlansLoading,
@@ -124,8 +115,6 @@ import {
 const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
   [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
 ];
-const WORKOUT_PLANNER_ROW_HEIGHT = 104;
-const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Body Part Filter Categories
@@ -968,11 +957,6 @@ const WorkoutPlannerPage: React.FC = () => {
     void loadPlanIntoBuilder(planId, planName);
   }, [isDirty, loadPlanIntoBuilder]);
 
-  // ── Filter chip handler ──
-  const handleChipClick = useCallback((bodyPart: string) => {
-    setFilterCategory(bodyPart === 'All' ? null : bodyPart);
-  }, [setFilterCategory]);
-
   return (
     <Page>
       {/* Header */}
@@ -1186,109 +1170,23 @@ const WorkoutPlannerPage: React.FC = () => {
 
       {/* Three-Panel Layout */}
       <ThreePanel $teachModeOpen={teachModeOpen}>
-        {/* Left: Exercise Rolodex */}
-        <Panel>
-          <PanelHeader>
-            <PanelTitle><Search size={16} /> Exercise Rolodex</PanelTitle>
-            <ResultsCount>
-              {filteredExercises.length} results
-            </ResultsCount>
-          </PanelHeader>
-          {/* Filters section — fixed height, does not scroll */}
-          <FiltersPane>
-            <SearchWrapper>
-              <Search size={14} />
-              <SearchInput
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search exercises..."
-                aria-label="Search exercises"
-              />
-            </SearchWrapper>
-            {/* Body Part filter */}
-            <ChipRow>
-              {BODY_PARTS.map(bp => (
-                <Chip
-                  type="button"
-                  key={bp}
-                  $active={filterCategory === null ? bp === 'All' : filterCategory === bp}
-                  onClick={() => handleChipClick(bp)}
-                >
-                  {bp}
-                </Chip>
-              ))}
-            </ChipRow>
-            {/* Program/Source filter */}
-            <ChipRow>
-              {SOURCE_FILTERS.map(sf => (
-                <Chip
-                  type="button"
-                  key={sf}
-                  $active={sourceFilter === null ? sf === 'All Programs' : sourceFilter === sf.toLowerCase()}
-                  onClick={() => setSourceFilter(sf === 'All Programs' ? null : sf.toLowerCase())}
-                >
-                  {sf}
-                </Chip>
-              ))}
-            </ChipRow>
-            {/* Exercise Type filter */}
-            <ChipRow>
-              {EXERCISE_TYPES.map(et => (
-                <Chip
-                  type="button"
-                  key={et}
-                  $active={exerciseTypeFilter === null ? et === 'All Types' : exerciseTypeFilter === et.toLowerCase()}
-                  onClick={() => setExerciseTypeFilter(et === 'All Types' ? null : et.toLowerCase())}
-                >
-                  {et}
-                </Chip>
-              ))}
-            </ChipRow>
-            {/* Equipment filter */}
-            <ChipRow>
-              {EQUIPMENT_FILTERS.map(eq => (
-                <Chip
-                  type="button"
-                  key={eq}
-                  $active={equipmentFilter === null ? eq === 'All Equipment' : equipmentFilter === eq.toLowerCase()}
-                  onClick={() => setEquipmentFilter(eq === 'All Equipment' ? null : eq.toLowerCase())}
-                >
-                  {eq}
-                </Chip>
-              ))}
-            </ChipRow>
-            {/* Joint Impact filter */}
-            <ChipRow>
-              {IMPACT_LEVELS.map(il => (
-                <Chip
-                  type="button"
-                  key={il}
-                  $active={impactFilter === null ? il === 'All Impact' : impactFilter === il}
-                  onClick={() => setImpactFilter(il === 'All Impact' ? null : il)}
-                >
-                  {il}
-                </Chip>
-              ))}
-            </ChipRow>
-          </FiltersPane>
-          {/* Exercise list — flex: 1, own scroll via FixedSizeList. No outer scroll conflict. */}
-          <ExerciseListPane>
-            {exercisesLoading ? (
-              Array.from({ length: 6 }, (_, i) => <SkeletonBlock key={i} />)
-            ) : filteredExercises.length === 0 ? (
-              <EmptyMessage>No exercises match your filters.</EmptyMessage>
-            ) : (
-              React.createElement(List, {
-                rowComponent: ExerciseRowRenderer,
-                rowCount: filteredExercises.length,
-                rowHeight: WORKOUT_PLANNER_ROW_HEIGHT,
-                rowProps: {},
-                style: VIRTUAL_LIST_STYLE,
-              })
-            )}
-          </ExerciseListPane>
-        </Panel>
-
+        <WorkoutPlannerRolodexPanel
+          filteredExerciseCount={filteredExercises.length}
+          exercisesLoading={exercisesLoading}
+          searchQuery={searchQuery}
+          filterCategory={filterCategory}
+          sourceFilter={sourceFilter}
+          exerciseTypeFilter={exerciseTypeFilter}
+          equipmentFilter={equipmentFilter}
+          impactFilter={impactFilter}
+          exerciseRowRenderer={ExerciseRowRenderer}
+          onSearchQueryChange={setSearchQuery}
+          onFilterCategoryChange={setFilterCategory}
+          onSourceFilterChange={setSourceFilter}
+          onExerciseTypeFilterChange={setExerciseTypeFilter}
+          onEquipmentFilterChange={setEquipmentFilter}
+          onImpactFilterChange={setImpactFilter}
+        />
         {/* Center: Workout Builder */}
         <DegradedPanel $degraded={degradedIntelligence}>
           <PanelHeader>

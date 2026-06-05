@@ -6,14 +6,15 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PAGE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerPage.tsx'), 'utf8');
+const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
 const EXERCISE_STYLE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExercise.styles.ts'), 'utf8');
 const ROW_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExerciseRow.tsx'), 'utf8');
 const TYPES_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerTypes.ts'), 'utf8');
 
 describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
-    expect(PAGE_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 104;');
-    expect(PAGE_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
+    expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 104;');
+    expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
     expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?display:\s*flex/);
     expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?justify-content:\s*center/);
   });
@@ -50,7 +51,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(rolodexStyles).not.toContain('min-height: 32px');
     expect(rolodexStyles).toMatch(/export const Chip = styled\.button[\s\S]*?min-height:\s*44px/);
     expect(rolodexStyles).toMatch(/&:focus-visible[\s\S]*?outline:\s*2px solid var\(--accent-primary, #60C0F0\)/);
-    expect(PAGE_SOURCE.match(/<Chip[\s\S]*?type="button"/g) ?? []).toHaveLength(5);
+    expect(ROLODEX_PANEL_SOURCE.match(/<Chip[\s\S]*?type="button"/g) ?? []).toHaveLength(5);
   });
 
   it('honors a clientId deep link from Client Hub before defaulting to the first client', () => {
