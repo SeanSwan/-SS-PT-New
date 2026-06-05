@@ -70,12 +70,12 @@ const ChartSkeleton = styled.div`
   border-radius: 16px;
   background: linear-gradient(90deg,
     var(--bg-elevated, #141419) 25%,
-    rgba(96, 192, 240, 0.05) 50%,
+    color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent) 50%,
     var(--bg-elevated, #141419) 75%
   );
   background-size: 200% 100%;
   animation: ${iceShimmer} 2.5s infinite linear;
-  border: 1px solid rgba(96, 192, 240, 0.08);
+  border: 1px solid var(--border-accent-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent));
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -86,8 +86,15 @@ const PageContainer = styled(UIPageContainer)`
 `;
 
 const HeaderCard = styled(Card)`
-  background: linear-gradient(135deg, rgba(0, 32, 96, 0.4), rgba(139, 92, 246, 0.08));
-  border-color: rgba(96, 192, 240, 0.15);
+  background: var(
+    --surface-hero-gradient,
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--primary-dark, #002060) 40%, transparent),
+      color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)
+    )
+  );
+  border-color: var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent));
   margin-bottom: 2rem;
 `;
 
@@ -96,7 +103,7 @@ const HeaderTitle = styled(PageTitle)`
 `;
 
 const MutedBodyText = styled(BodyText)`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, #8BA8C8);
 `;
 
 const SidebarColumn = styled.div`
@@ -122,7 +129,7 @@ const StrongSmallText = styled(SmallText)<{ $large?: boolean }>`
 `;
 
 const MutedCaption = styled(Caption)`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, #8BA8C8);
 `;
 
 const EmptyClientList = styled.div`
@@ -153,7 +160,7 @@ const ProgressSummaryFooter = styled.div`
 
 const LeaderboardFooter = styled.div`
   padding: 1.5rem;
-  border-top: 1px solid rgba(96, 192, 240, 0.05);
+  border-top: 1px solid var(--border-accent-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent));
 `;
 
 const RefreshIcon = styled(RefreshCw)`
@@ -166,7 +173,9 @@ const Avatar = styled.div<{ src?: string }>`
   border-radius: 50%;
   background: ${({ src }) => {
     const safe = src ? sanitizeImageUrl(src) : null;
-    return safe ? `url(${cssUrlValue(safe)})` : 'linear-gradient(135deg, #002060, #8B5CF6)';
+    return safe
+      ? `url(${cssUrlValue(safe)})`
+      : 'var(--accent-gradient-primary, linear-gradient(135deg, var(--primary-dark, #002060), var(--accent-secondary, #8B5CF6)))';
   }};
   background-size: cover;
   background-position: center;
@@ -186,7 +195,7 @@ const ProgressBarContainer = styled.div`
 const ProgressBar = styled.div`
   width: 100%;
   height: 8px;
-  background: rgba(96, 192, 240, 0.1);
+  background: var(--accent-primary-track, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
   border-radius: 4px;
   overflow: hidden;
 `;
@@ -194,13 +203,13 @@ const ProgressBar = styled.div`
 const ProgressFill = styled.div<{ value: number; color?: string }>`
   width: ${props => Math.min(props.value, 100)}%;
   height: 100%;
-  background: ${props => props.color || 'linear-gradient(90deg, #002060, #8B5CF6)'};
+  background: ${props => props.color || 'var(--accent-gradient-primary, linear-gradient(90deg, var(--primary-dark, #002060), var(--accent-secondary, #8B5CF6)))'};
   border-radius: 4px;
   transition: width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 `;
 
 const TabContainer = styled.div`
-  border-bottom: 2px solid rgba(96, 192, 240, 0.1);
+  border-bottom: 2px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
   margin-bottom: 2rem;
 `;
 
@@ -214,7 +223,7 @@ const TabButton = styled.button<{ isActive: boolean }>`
   background: transparent;
   border: none;
   border-bottom: 3px solid ${props => props.isActive ? 'var(--accent-primary, #60C0F0)' : 'transparent'};
-  color: ${props => props.isActive ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, rgba(224, 236, 244, 0.6))'};
+  color: ${props => props.isActive ? 'var(--text-primary, #E0ECF4)' : 'var(--text-secondary, #8BA8C8)'};
   font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
   font-weight: 600;
@@ -229,11 +238,11 @@ const TabButton = styled.button<{ isActive: boolean }>`
 
   &:hover {
     color: var(--text-primary, #E0ECF4);
-    background: rgba(96, 192, 240, 0.04);
+    background: var(--accent-primary-hover-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 4%, transparent));
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 4px;
   }
 
@@ -260,7 +269,7 @@ const StatValue = styled.div`
 const StatLabel = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 0.875rem;
-  color: var(--text-secondary, rgba(224, 236, 244, 0.6));
+  color: var(--text-secondary, #8BA8C8);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 `;
@@ -275,7 +284,7 @@ const SearchContainer = styled.div`
     left: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(224, 236, 244, 0.5);
+    color: var(--text-muted, #8BA8C8);
     pointer-events: none;
   }
 
@@ -294,7 +303,7 @@ const ClientListContainer = styled(Card)`
 
 const ClientListHeader = styled.div`
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.1);
+  border-bottom: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent));
 `;
 
 const ClientListScroll = styled.div`
@@ -302,9 +311,11 @@ const ClientListScroll = styled.div`
   overflow-y: auto;
 
   &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: rgba(96, 192, 240, 0.03); }
+  &::-webkit-scrollbar-track {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 3%, transparent);
+  }
   &::-webkit-scrollbar-thumb {
-    background: rgba(96, 192, 240, 0.15);
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
     border-radius: 3px;
   }
 `;
@@ -313,8 +324,8 @@ const ClientItem = styled.button<{ $isActive: boolean }>`
   width: 100%;
   padding: 1rem 1.5rem;
   border: none;
-  border-bottom: 1px solid rgba(96, 192, 240, 0.05);
-  background: ${props => props.$isActive ? 'rgba(96, 192, 240, 0.08)' : 'transparent'};
+  border-bottom: 1px solid var(--border-accent-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent));
+  background: ${props => props.$isActive ? 'var(--accent-primary-active-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent))' : 'transparent'};
   cursor: pointer;
   transition: background 0.2s ease;
   text-align: left;
@@ -323,9 +334,11 @@ const ClientItem = styled.button<{ $isActive: boolean }>`
   min-height: 44px;
   display: block;
 
-  &:hover { background: rgba(96, 192, 240, 0.06); }
+  &:hover {
+    background: var(--accent-primary-hover-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent));
+  }
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
   }
 `;
