@@ -182,9 +182,9 @@ const universalTheme = {
     stellarWhite: 'var(--text-primary, #E0ECF4)',
     platinumSilver: 'var(--text-secondary, rgba(224, 236, 244, 0.65))',
     cosmicGray: 'var(--text-muted, rgba(224, 236, 244, 0.4))',
-    voidBlack: '#000000',
-    warningAmber: '#f59e0b',
-    successGreen: '#10b981',
+    voidBlack: 'var(--bg-void, #000000)',
+    warningAmber: 'var(--warning, #f59e0b)',
+    successGreen: 'var(--success, #10b981)',
     criticalRed: 'var(--danger, #C92A54)', /* Crimson Frost */
   },
   typography: {
@@ -266,8 +266,8 @@ const UniversalGlobalStyles = createGlobalStyle`
   *:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
-    box-shadow: 0 0 16px rgba(96, 192, 240, 0.4),
-                inset 0 0 0 1px rgba(139, 92, 246, 0.2);
+    box-shadow: var(--shadow-focus, 0 0 16px rgba(96, 192, 240, 0.4)),
+                inset 0 0 0 1px var(--border-accent-subtle, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent));
   }
 
   *:focus:not(:focus-visible) {
@@ -363,18 +363,18 @@ const MobileBackBtn = styled.button`
   min-width: 44px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
   background: var(--bg-surface, #141419);
   color: var(--text-primary, #E0ECF4);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-subtle, 0 4px 16px rgba(0, 0, 0, 0.4));
   transition: all 200ms ease;
 
   &:hover {
     background: var(--bg-elevated, #1A1A24);
-    border-color: rgba(139, 92, 246, 0.5);
+    border-color: var(--border-accent-medium, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent));
   }
 
   &:active {
@@ -382,7 +382,7 @@ const MobileBackBtn = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
 
@@ -447,7 +447,7 @@ const UniversalButton = styled(motion.button)`
   background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-on-accent, #FFFFFF);
   padding: 12px 24px;
   font-weight: 500;
   cursor: pointer;
@@ -455,7 +455,7 @@ const UniversalButton = styled(motion.button)`
   min-height: 44px;
 
   &:hover {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    box-shadow: var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4));
     transform: translateY(-2px);
   }
 
@@ -674,7 +674,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/progress', component: ClientProgressDashboardPage, title: 'My Progress', description: 'Progress dashboard with stats, charts, and gamification' },
       { path: '/progress/detailed', component: ClientProgressWrapper, title: 'Detailed Analytics', description: 'NASM 14-chart analytics dashboard' },
       { path: '/ai-consent', component: () => <AiConsentScreen />, title: 'Swan Coach Privacy & Consent', description: 'Manage Swan Coach data consent' },
-      { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
+      { path: '/meal-planner', component: () => <Suspense fallback={<div style={{ color: 'var(--text-secondary, rgba(224, 236, 244, 0.7))', textAlign: 'center', padding: '2rem' }}>Loading nutrition...</div>}><NutritionWorkspaceLazy /></Suspense>, title: 'Nutrition Intelligence', description: 'Log meals, track macros, and explore food data' },
       { path: '/schedule', component: UniversalSchedule, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: ClientCommunityPage, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: MessagingPageLazy, title: 'Messages', description: 'Trainer communications' },
@@ -840,7 +840,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
           onClick={handleLogout}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          style={{ background: 'rgba(201, 42, 84, 0.2)' }} /* Crimson Frost */
+          style={{ background: 'var(--danger-bg-soft, rgba(201, 42, 84, 0.2))' }} /* Crimson Frost */
         >
           Logout
         </UniversalButton>
@@ -1017,9 +1017,9 @@ const OmniTerminalFAB = styled.button`
   width: 56px;
   height: 56px;
   border-radius: 16px;
-  border: 1px solid rgba(96, 192, 240, 0.2);
+  border: 1px solid var(--border-primary-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent));
   background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
-  color: #fff;
+  color: var(--text-on-accent, #FFFFFF);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1030,12 +1030,14 @@ const OmniTerminalFAB = styled.button`
   font-weight: 700;
   font-family: 'Sora', sans-serif;
   z-index: 1050;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3), 0 0 12px rgba(96, 192, 240, 0.2);
+  box-shadow: var(--shadow-accent-lift, 0 4px 20px rgba(139, 92, 246, 0.3)),
+    var(--shadow-primary-soft, 0 0 12px rgba(96, 192, 240, 0.2));
   transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
     transform: scale(1.08);
-    box-shadow: 0 6px 28px rgba(139, 92, 246, 0.5), 0 0 20px rgba(96, 192, 240, 0.3);
+    box-shadow: var(--shadow-accent-strong, 0 6px 28px rgba(139, 92, 246, 0.5)),
+      var(--shadow-primary, 0 0 20px rgba(96, 192, 240, 0.3));
   }
 
   &:active {

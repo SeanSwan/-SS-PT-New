@@ -21,6 +21,40 @@ describe('dashboard theme synchronization contract', () => {
     expect(layout).toContain("{ path: '/meal-planner', component: NutritionWorkspaceLazy");
   });
 
+  it('keeps shared dashboard shell controls on theme variables', () => {
+    const universalLayout = readSource('src/components/DashBoard/UniversalDashboardLayout.tsx');
+    const adminLayout = readSource('src/components/DashBoard/AdminLayout.styles.ts');
+
+    expect(universalLayout).toContain('var(--shadow-focus, 0 0 16px rgba(96, 192, 240, 0.4))');
+    expect(universalLayout).toContain('var(--shadow-subtle, 0 4px 16px rgba(0, 0, 0, 0.4))');
+    expect(universalLayout).toContain('var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4))');
+    expect(universalLayout).toContain('var(--text-on-accent, #FFFFFF)');
+    expect(universalLayout).toContain('var(--danger-bg-soft, rgba(201, 42, 84, 0.2))');
+    expect(universalLayout).toContain('var(--border-accent-soft');
+    expect(universalLayout).toContain('var(--border-accent-medium');
+    expect(adminLayout).toContain('var(--text-on-accent, #FFFFFF)');
+    expect(adminLayout).toContain('var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4))');
+
+    [
+      'border: 1px solid rgba(139, 92, 246, 0.3);',
+      'border-color: rgba(139, 92, 246, 0.5);',
+      'border: 1px solid rgba(96, 192, 240, 0.2);',
+      'outline: 2px solid #60C0F0;',
+      'color: #fff;',
+      "color: 'rgba(255,255,255,0.7)'",
+      "background: 'rgba(201, 42, 84, 0.2)'",
+    ].forEach((rawDeclaration) => {
+      expect(universalLayout).not.toContain(rawDeclaration);
+    });
+
+    [
+      'color: #fff;',
+      'box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);',
+    ].forEach((rawDeclaration) => {
+      expect(adminLayout).not.toContain(rawDeclaration);
+    });
+  });
+
   it('keeps the schedule shell connected to universal theme variables', () => {
     const masterSchedule = readSource('src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx');
     const fallbackCalendar = readSource('src/components/UniversalMasterSchedule/CalendarFallback/CalendarFallback.tsx');

@@ -120,7 +120,7 @@ export const ExecutiveButton = styled(motion.button)`
   background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6) 0%, var(--accent-primary, #60C0F0) 100%);
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, transparent);
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-on-accent, #FFFFFF);
   padding: 12px 24px;
   font-weight: 500;
   cursor: pointer;
@@ -128,7 +128,7 @@ export const ExecutiveButton = styled(motion.button)`
   min-height: 44px;
 
   &:hover {
-    box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+    box-shadow: var(--shadow-accent, 0 0 20px rgba(139, 92, 246, 0.4));
     transform: translateY(-2px);
   }
 
