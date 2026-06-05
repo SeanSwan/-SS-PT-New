@@ -33,9 +33,26 @@ import { AICommandBar } from '../../../Shared/AICommandBar';
 
 // ─── Animations ──────────────────────────────────────────────────────────────
 
+const SWAN_COACH_DOCK_THEME = {
+  surface: 'var(--bg-elevated, #141419)',
+  accent: 'var(--accent-secondary, #8B5CF6)',
+  accentPulseLow: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 8%, transparent)',
+  accentPulseHigh: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 18%, transparent)',
+  accentBorderSoft: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)',
+  accentBorder: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)',
+  accentBorderStrong: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent)',
+  accentFillLow: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 6%, transparent)',
+  accentFill: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent)',
+  accentGlow: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 15%, transparent)',
+  avatarBorder: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent)',
+  avatarGlow: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent)',
+  skeletonBorder: 'color-mix(in srgb, var(--text-primary, #E0ECF4) 5%, transparent)',
+  skeletonLow: 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 4%, transparent)'
+};
+
 const coachPulse = keyframes`
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.08); }
-  50%       { box-shadow: 0 0 30px rgba(139, 92, 246, 0.18); }
+  0%, 100% { box-shadow: 0 0 20px ${SWAN_COACH_DOCK_THEME.accentPulseLow}; }
+  50%       { box-shadow: 0 0 30px ${SWAN_COACH_DOCK_THEME.accentPulseHigh}; }
 `;
 
 const shimmerAnim = keyframes`
@@ -46,8 +63,8 @@ const shimmerAnim = keyframes`
 // ─── Styled Components ────────────────────────────────────────────────────────
 
 const DockWrap = styled.div`
-  background: var(--bg-elevated, rgba(0, 48, 128, 0.85));
-  border: 1px solid rgba(139, 92, 246, 0.12);
+  background: ${SWAN_COACH_DOCK_THEME.surface};
+  border: 1px solid ${SWAN_COACH_DOCK_THEME.accentBorderSoft};
   border-radius: 20px;
   padding: 1.25rem 1.5rem;
   animation: ${coachPulse} 5s ease-in-out infinite;
@@ -59,12 +76,12 @@ const DockWrap = styled.div`
 
 const DockSkeleton = styled.div`
   min-height: 215px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid ${SWAN_COACH_DOCK_THEME.skeletonBorder};
   border-radius: 20px;
   background: linear-gradient(90deg,
-    rgba(139, 92, 246, 0.04) 0%,
-    rgba(139, 92, 246, 0.08) 50%,
-    rgba(139, 92, 246, 0.04) 100%);
+    ${SWAN_COACH_DOCK_THEME.skeletonLow} 0%,
+    ${SWAN_COACH_DOCK_THEME.accentPulseLow} 50%,
+    ${SWAN_COACH_DOCK_THEME.skeletonLow} 100%);
   background-size: 200% 100%;
   animation: ${shimmerAnim} 1.8s ease-in-out infinite;
   @media (prefers-reduced-motion: reduce) { animation: none; opacity: 0.5; }
@@ -83,10 +100,10 @@ const CoachAvatar = styled.div`
   background: linear-gradient(135deg,
     var(--brand-primary, #002060),
     var(--accent-secondary, #8B5CF6));
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  border: 1px solid ${SWAN_COACH_DOCK_THEME.avatarBorder};
   display: flex; align-items: center; justify-content: center;
-  color: var(--accent-secondary, #8B5CF6);
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+  color: ${SWAN_COACH_DOCK_THEME.accent};
+  box-shadow: 0 0 12px ${SWAN_COACH_DOCK_THEME.avatarGlow};
 `;
 
 const CoachText = styled.div`
@@ -121,27 +138,27 @@ const Chip = styled.button`
   min-height: 44px;
   padding: 0.5rem 0.875rem;
   border-radius: 10px;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  background: rgba(139, 92, 246, 0.06);
-  color: var(--accent-secondary, #8B5CF6);
+  border: 1px solid ${SWAN_COACH_DOCK_THEME.accentBorder};
+  background: ${SWAN_COACH_DOCK_THEME.accentFillLow};
+  color: ${SWAN_COACH_DOCK_THEME.accent};
   font-family: 'Sora', sans-serif; font-size: 0.8rem; font-weight: 600;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.4);
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+    background: ${SWAN_COACH_DOCK_THEME.accentFill};
+    border-color: ${SWAN_COACH_DOCK_THEME.accentBorderStrong};
+    box-shadow: 0 0 12px ${SWAN_COACH_DOCK_THEME.accentGlow};
   }
   &:focus-visible {
-    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline: 2px solid ${SWAN_COACH_DOCK_THEME.accent};
     outline-offset: 2px;
   }
   @media (max-width: 375px) { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
 `;
 
 const CommandDivider = styled.div`
-  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  border-top: 1px solid ${SWAN_COACH_DOCK_THEME.accentPulseLow};
   margin-bottom: 0.75rem;
 `;
 
