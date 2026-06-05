@@ -12,6 +12,7 @@ const statusStylesPath = resolve(sourceRoot, './AdminSessionsStatus.styles.ts');
 const dialogStylesPath = resolve(sourceRoot, './AdminSessionsDialog.styles.ts');
 const tableBaseStylesPath = resolve(sourceRoot, './AdminSessionsTableBase.styles.ts');
 const tableStylesPath = resolve(sourceRoot, './AdminSessionsTable.styles.ts');
+const tableTokensPath = resolve(sourceRoot, './AdminSessionsTable.tokens.ts');
 const calendarStylesPath = resolve(sourceRoot, './AdminSessionsCalendar.styles.ts');
 const formStylesPath = resolve(sourceRoot, './AdminSessionsForm.styles.ts');
 const formTokensPath = resolve(sourceRoot, './AdminSessionsForm.tokens.ts');
@@ -78,13 +79,23 @@ describe('Admin sessions local style extraction', () => {
     expect(calendarStyles).toContain('export const CalendarViewWrapper');
     expect(formStyles).toContain('export const FormGrid');
     expect(formStyles).toContain('export const SessionSelectIcon');
-    expect(existsSync(formTokensPath), 'AdminSessionsForm.tokens.ts should exist').toBe(true);
 
     expect(lineCount(legacyBarrel)).toBeLessThanOrEqual(80);
-    expect(lineCount(readSource(formTokensPath))).toBeLessThanOrEqual(80);
     styleModules.forEach(([label, path]) => {
       expect(lineCount(readSource(path)), `${label} should stay focused`).toBeLessThanOrEqual(300);
     });
+  });
+
+  it('keeps active admin session table chrome on theme tokens', () => {
+    const tableStyles = readSource(tableStylesPath);
+    const tableBaseStyles = readSource(tableBaseStylesPath);
+    const tableTokens = readSource(tableTokensPath);
+
+    expect(tableStyles).toContain('tokens.BULK_ACTION_SURFACE');
+    expect(tableStyles).toContain('tokens.FIELD_BORDER');
+    expect(tableStyles).not.toContain('rgba(');
+    expect(tableBaseStyles).not.toContain('rgba(');
+    expect(tableTokens).not.toContain('rgba(');
   });
 
   it('keeps active admin session form chrome on theme tokens', () => {

@@ -28,7 +28,7 @@ export const StyledTableHeadCell = styled.th`
 `;
 
 export const StyledTableCell = styled.td`
-  color: var(--text-secondary, rgba(224, 236, 244, 0.75));
+  color: var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 75%, transparent));
   border-bottom: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 7%, transparent);
   padding: 1rem;
 `;
