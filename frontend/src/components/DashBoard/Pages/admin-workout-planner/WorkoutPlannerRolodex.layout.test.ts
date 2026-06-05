@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 const PAGE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerPage.tsx'), 'utf8');
 const ROLODEX_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerRolodexPanel.tsx'), 'utf8');
 const GENERATED_PLAN_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerGeneratedPlanSection.tsx'), 'utf8');
+const BUILDER_PANEL_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerBuilderPanel.tsx'), 'utf8');
 const EXERCISE_STYLE_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExercise.styles.ts'), 'utf8');
 const ROW_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerExerciseRow.tsx'), 'utf8');
 const TYPES_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerTypes.ts'), 'utf8');
@@ -69,9 +70,9 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
   });
 
   it('does not key generated AI reasoning or recommendation rows by array index', () => {
-    expect(PAGE_SOURCE).not.toMatch(/explanations\.map\(\(exp, i\)[\s\S]*?<ExplanationItem key=\{i\}/);
+    expect(BUILDER_PANEL_SOURCE).not.toMatch(/explanations\.map\(\(exp, i\)[\s\S]*?<ExplanationItem key=\{i\}/);
     expect(GENERATED_PLAN_SOURCE).not.toMatch(/recommendations\.map\(\(rec, i\)[\s\S]*?<RecommendationItem key=\{i\}/);
-    expect(PAGE_SOURCE).toContain('workoutPlannerExplanationKey');
+    expect(BUILDER_PANEL_SOURCE).toContain('workoutPlannerExplanationKey');
     expect(GENERATED_PLAN_SOURCE).toContain('workoutPlannerRecommendationKey');
   });
 });

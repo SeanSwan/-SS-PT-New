@@ -11,9 +11,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Plus, X, Loader2, Save, Zap, ChevronDown, ChevronUp, Info,
-} from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import { useExerciseSearch } from '../../../WorkoutLogger/useExerciseSearch';
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
@@ -23,6 +20,9 @@ import TeachModeSidebar from './TeachModeSidebar';
 import { logApiError } from '../../../../utils/logApiError';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
 import WorkoutPlannerCommandPanel from './WorkoutPlannerCommandPanel';
+import WorkoutPlannerBuilderPanel, {
+  type WorkoutPlannerBuilderExplanation,
+} from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip, {
@@ -51,42 +51,7 @@ import {
   OPT_PHASES, WORKOUT_CATEGORIES,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
-import { workoutPlannerExplanationKey } from './WorkoutPlannerRowKeys';
-import {
-  Page, ActionBtn, ThreePanel,
-  PanelHeader, PanelTitle, PanelBody,
-  ExerciseMeta,
-  BuilderRow, BuilderRowNumber, BuilderRowInfo, MiniInput, RemoveBtn,
-  PhaseBadge, PhaseLabel, PhaseParams,
-  EmptyMessage,
-  GeneratingSkeletonWrap, SkeletonCircle, SkeletonBar,
-  GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
-} from './WorkoutPlannerStyles';
-import {
-  ActionWrap,
-  BuilderActionRow,
-  BuilderParamGroup,
-  ClickableExerciseName,
-  DegradedPanel,
-  ExplanationDetails,
-  ParamField,
-  ParamLabel,
-  RepsInput,
-  SkeletonDelayRow,
-  SkeletonTextStack,
-  TempoInput,
-} from './WorkoutPlannerPage.styles';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Stable skeleton row widths (W1A-1, 2026-05-01)
-// PURPOSE: Pre-computed [bar1%, bar2%] pairs so skeleton render is stable.
-// Old code used Math.random() inline during render → re-renders re-rolled
-// the widths → jitter + DOM-write thrash. Module-level constant stays
-// stable across re-renders, with enough variance to look organic.
-// ─────────────────────────────────────────────────────────────
-const SKELETON_ROW_WIDTHS: ReadonlyArray<readonly [number, number]> = [
-  [78, 42], [65, 35], [82, 48], [70, 38], [88, 45], [72, 41],
-];
+import { Page, ThreePanel } from './WorkoutPlannerStyles';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Body Part Filter Categories
@@ -164,7 +129,7 @@ const WorkoutPlannerPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const [degradedIntelligence, setDegradedIntelligence] = useState(false);
-  const [explanations, setExplanations] = useState<{ type: string; message: string; details?: string | string[] }[]>([]);
+  const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
 
   // ── Exercise Search ──
@@ -957,6 +922,20 @@ const WorkoutPlannerPage: React.FC = () => {
     setPlanExercises([]);
   }, []);
 
+  const handleDuplicateLoadedPlan = useCallback(() => {
+    if (!loadedPlanId) return;
+    handleCardDuplicate(loadedPlanId, loadedPlanName || 'plan');
+  }, [handleCardDuplicate, loadedPlanId, loadedPlanName]);
+
+  const handleBrowseAddExercise = useCallback(() => {
+    setSearchQuery('');
+    setFilterCategory(null);
+  }, [setSearchQuery, setFilterCategory]);
+
+  const handleToggleExplanations = useCallback(() => {
+    setShowExplanations(value => !value);
+  }, []);
+
   return (
     <Page>
       <WorkoutPlannerCommandPanel
@@ -1018,219 +997,29 @@ const WorkoutPlannerPage: React.FC = () => {
           onImpactFilterChange={setImpactFilter}
         />
         {/* Center: Workout Builder */}
-        <DegradedPanel $degraded={degradedIntelligence}>
-          <PanelHeader>
-            <PanelTitle><Zap size={16} /> Workout Builder</PanelTitle>
-            {/* Plan Library save matrix — 4 modes per REV 2 §5.1.
-                State decides which buttons are enabled:
-                  - No loaded plan + exercises:    "Save Draft" + "Save & Make Current"
-                  - Loaded current plan, dirty:    "Update Plan" + "Save as Copy"
-                  - Loaded non-current, dirty:     "Update Plan" + "Update & Make Current" + "Save as Copy"
-                  - Loaded plan, clean (!isDirty): "Save as Copy" only
-                  - No exercises:                  all save buttons disabled
-                isDirty + savedSnapshot from W1A drive enable/disable.
-                Loaded-plan current detection comes from savedPlans.find(...). */}
-            <ActionWrap>
-              {(() => {
-                // AI Village CRITICAL-4 fix: a generated multi-month plan
-                // is saveable even when manual planExercises is empty.
-                const hasExercises = planExercises.length > 0 || hasGeneratedHorizonPlan;
-                const noLoaded = !loadedPlanId;
-                const loadedPlan = loadedPlanId
-                  ? savedPlans.find(p => p.id === loadedPlanId)
-                  : null;
-                const loadedIsCurrent = loadedPlan?.status === 'active';
-                return (
-                  <>
-                    {noLoaded && (
-                      <>
-                        <ActionBtn
-                          onClick={handleSaveDraft}
-                          disabled={saving || !hasExercises}
-                          aria-label="Save current builder as a new draft plan"
-                        >
-                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                          Save Draft
-                        </ActionBtn>
-                        <ActionBtn
-                          onClick={handleSaveAndActivate}
-                          disabled={saving || !hasExercises}
-                          aria-label="Save and make current"
-                        >
-                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                          Save & Make Current
-                        </ActionBtn>
-                      </>
-                    )}
-                    {loadedPlanId && (
-                      <>
-                        <ActionBtn
-                          onClick={handleUpdateLoaded}
-                          disabled={saving || !hasExercises || !isDirty}
-                          aria-label="Update the loaded plan with current builder state"
-                        >
-                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                          Update Plan
-                        </ActionBtn>
-                        {!loadedIsCurrent && (
-                          <ActionBtn
-                            onClick={handleUpdateAndActivate}
-                            disabled={saving || !hasExercises}
-                            aria-label="Update the loaded plan and make it current"
-                          >
-                            {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                            Update & Make Current
-                          </ActionBtn>
-                        )}
-                        <ActionBtn
-                          onClick={() => loadedPlanId && handleCardDuplicate(loadedPlanId, loadedPlanName || 'plan')}
-                          disabled={saving}
-                          aria-label="Save current as a new copy"
-                        >
-                          {saving ? <Loader2 size={14} /> : <Save size={14} />}
-                          Save as Copy
-                        </ActionBtn>
-                      </>
-                    )}
-                  </>
-                );
-              })()}
-            </ActionWrap>
-          </PanelHeader>
-          <PanelBody>
-            {/* OPT Phase Indicator */}
-            <PhaseBadge>
-              <PhaseLabel>Phase {phase.phase}</PhaseLabel>
-              <PhaseParams>
-                {phase.name} — {phase.sets} sets × {phase.reps} reps — {phase.tempo} — {phase.rest}
-              </PhaseParams>
-            </PhaseBadge>
-
-            {generating ? (
-              <GeneratingSkeletonWrap role="status" aria-live="polite" aria-label="Generating workout">
-                <GeneratingLabel>Swan Coach is analyzing client data and building your workout...</GeneratingLabel>
-                {/* W1A-1 (2026-05-01): use STABLE skeleton widths instead of
-                    Math.random(). The previous code recomputed widths on
-                    every render while `generating` was true, causing
-                    DOM-write thrash and visible jitter. Stable values keep
-                    the skeleton calm and React reconciliation cheap.
-                    NOT a hydration fix — this app is CSR-only (Vite, no
-                    SSR). */}
-                {SKELETON_ROW_WIDTHS.map(([w1, w2], i) => (
-                  <SkeletonDelayRow key={i} $delayMs={i * 100}>
-                    <SkeletonCircle />
-                    <SkeletonTextStack>
-                      <SkeletonBar $width={`${w1}%`} />
-                      <SkeletonBar $width={`${w2}%`} />
-                    </SkeletonTextStack>
-                  </SkeletonDelayRow>
-                ))}
-              </GeneratingSkeletonWrap>
-            ) : planExercises.length === 0 ? (
-              <EmptyMessage>
-                Click exercises in the Rolodex to add them, or use Swan Coach Generate for an intelligent program.
-              </EmptyMessage>
-            ) : (
-              planExercises.map((pe, idx) => (
-                <BuilderRow key={pe.id}>
-                  <BuilderRowNumber>{idx + 1}</BuilderRowNumber>
-                  <BuilderRowInfo>
-                    <ClickableExerciseName
-                      onClick={() => setSelectedExercise(pe.exerciseSlim)}
-                    >
-                      {pe.exerciseSlim.name}
-                    </ClickableExerciseName>
-                    <ExerciseMeta>
-                      {pe.exerciseSlim.primaryMuscles.slice(0, 2).join(', ') || pe.exerciseSlim.bodyPartCategory}
-                    </ExerciseMeta>
-                  </BuilderRowInfo>
-                  <BuilderParamGroup>
-                    <ParamField>
-                      <ParamLabel>Sets</ParamLabel>
-                      <MiniInput
-                        type="number"
-                        value={pe.sets}
-                        onChange={e => updateExercise(pe.id, 'sets', parseInt(e.target.value) || 1)}
-                        min={1}
-                        max={10}
-                      />
-                    </ParamField>
-                    <ParamField>
-                      <ParamLabel>Reps</ParamLabel>
-                      <RepsInput
-                        value={pe.reps}
-                        onChange={e => updateExercise(pe.id, 'reps', e.target.value)}
-                      />
-                    </ParamField>
-                    <ParamField>
-                      <ParamLabel>Tempo</ParamLabel>
-                      <TempoInput
-                        value={pe.tempo}
-                        onChange={e => updateExercise(pe.id, 'tempo', e.target.value)}
-                      />
-                    </ParamField>
-                    <ParamField>
-                      <ParamLabel>Rest(s)</ParamLabel>
-                      <MiniInput
-                        type="number"
-                        value={pe.restSeconds}
-                        onChange={e => updateExercise(pe.id, 'restSeconds', parseInt(e.target.value) || 0)}
-                        min={0}
-                        max={600}
-                      />
-                    </ParamField>
-                  </BuilderParamGroup>
-                  <RemoveBtn onClick={() => removeExercise(pe.id)} aria-label={`Remove ${pe.exerciseSlim.name}`}>
-                    <X size={14} />
-                  </RemoveBtn>
-                </BuilderRow>
-              ))
-            )}
-
-            {planExercises.length > 0 && (
-              <BuilderActionRow>
-                <ActionBtn
-                  onClick={() => {
-                    // Quick add prompt — clear search to browse
-                    setSearchQuery('');
-                    setFilterCategory(null);
-                  }}
-                >
-                  <Plus size={14} />
-                  Add Exercise
-                </ActionBtn>
-              </BuilderActionRow>
-            )}
-
-            {/* AI Explanations Panel — shows reasoning, pain exclusions, safety warnings */}
-            {explanations.length > 0 && (
-              <ExplanationsPanel>
-                <ExplanationsToggle onClick={() => setShowExplanations(v => !v)}>
-                  <Info size={16} />
-                  Swan Coach Reasoning ({explanations.length} insight{explanations.length !== 1 ? 's' : ''})
-                  {showExplanations ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </ExplanationsToggle>
-                {showExplanations && explanations.map((exp) => (
-                  <ExplanationItem key={workoutPlannerExplanationKey(exp)} $type={exp.type}>
-                    <ExplanationBadge $type={exp.type}>
-                      {exp.type.replace(/_/g, ' ')}
-                    </ExplanationBadge>
-                    <div>
-                      <div>{exp.message}</div>
-                      {exp.details && (
-                        <ExplanationDetails>
-                          {Array.isArray(exp.details)
-                            ? exp.details.join(' · ')
-                            : exp.details}
-                        </ExplanationDetails>
-                      )}
-                    </div>
-                  </ExplanationItem>
-                ))}
-              </ExplanationsPanel>
-            )}
-          </PanelBody>
-        </DegradedPanel>
+        <WorkoutPlannerBuilderPanel
+          degradedIntelligence={degradedIntelligence}
+          saving={saving}
+          planExercises={planExercises}
+          hasGeneratedHorizonPlan={hasGeneratedHorizonPlan}
+          loadedPlanId={loadedPlanId}
+          savedPlans={savedPlans}
+          isDirty={isDirty}
+          generating={generating}
+          phase={phase}
+          explanations={explanations}
+          showExplanations={showExplanations}
+          onSaveDraft={handleSaveDraft}
+          onSaveAndActivate={handleSaveAndActivate}
+          onUpdateLoaded={handleUpdateLoaded}
+          onUpdateAndActivate={handleUpdateAndActivate}
+          onDuplicateLoadedPlan={handleDuplicateLoadedPlan}
+          onSelectExercise={setSelectedExercise}
+          onUpdateExercise={updateExercise}
+          onRemoveExercise={removeExercise}
+          onBrowseAddExercise={handleBrowseAddExercise}
+          onToggleExplanations={handleToggleExplanations}
+        />
 
         {/* Right: Teach Mode (conditional) */}
         {teachModeOpen && (
