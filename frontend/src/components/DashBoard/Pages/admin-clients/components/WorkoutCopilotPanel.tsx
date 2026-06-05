@@ -1,64 +1,16 @@
 /**
- * ============================================================================
- * FILE: WorkoutCopilotPanel.tsx
- * PURPOSE: Slim orchestrator for the AI Workout Copilot state machine.
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-25
- * AI VILLAGE VALIDATED: 2026-03-25
- * ============================================================================
+ * WorkoutCopilotPanel
  *
- * WHAT THIS FILE DOES: Owns the copilot's finite state machine
- * (idle → pain_check → generating → draft_review/degraded/error → approving → saved)
- * and delegates active body/footer rendering to CopilotPanelContent. Draft
- * editing, template loading, reset behavior, and single-workout actions are
- * delegated to hooks.
+ * Purpose: Owns the AI Workout Copilot state machine and renders the top shell.
+ * Mounted by TrainingTabContent in the admin client workspace.
  *
- * HOW IT FITS IN THE APP: Mounted inside the admin client detail panel
- * (inline mode) or as a standalone modal (overlay mode).
+ * Runtime flow:
+ * - Template loading, draft editing, reset behavior, and generate/approve
+ *   actions are delegated to focused copilot hooks.
+ * - CopilotPanelContent renders single-workout and long-horizon body/footer UI.
  *
- * KEY DECISIONS: Decomposed from a 1,099-line monolith into focused files
- * per the 300-line max rule. The panel keeps state ownership and top-shell
- * rendering; CopilotPanelContent owns state-driven body/footer branches, while
- * hooks own reusable orchestration.
- *
- * NASM PROTOCOL CONTEXT: Draft generation follows NASM OPT 5-phase model.
- * Pain safety check enforces NASM CES restrictions.
- */
-
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║  COMPONENT: WorkoutCopilotPanel                              ║
- * ║  PURPOSE: AI workout generation + approval state machine     ║
- * ║  OWNER: Claude Opus 4.6                                      ║
- * ║  LAST VALIDATED: 2026-03-25                                  ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * WIREFRAME:
- * ┌────────────────────────────────────────────────────────────┐
- * │ [Header: Workout Intelligence — ClientName] [X]            │
- * ├─────────┬──────────────────────────────────────────────────┤
- * │ Single  │ Long-Horizon │ (tabs)                            │
- * ├─────────┴──────────────────────────────────────────────────┤
- * │ [CopilotPanelContent: state-driven body/footer]            │
- * │   single workout delegates by FSM state                    │
- * │   long horizon delegates to LongHorizonContent             │
- * ├────────────────────────────────────────────────────────────┤
- * │ [Footer: Regenerate | Approve & Save] (draft_review only)  │
- * └────────────────────────────────────────────────────────────┘
- *
- * MERMAID ARCHITECTURE:
- * graph TD
- *   A[WorkoutCopilotPanel] --> B[CopilotPanelContent]
- *   B --> C[Single workout FSM content]
- *   B --> D[LongHorizonContent]
- *   C --> E[CopilotDraftReview]
- *   C --> F[CopilotSingleWorkoutFooter]
- *
- * DATA FLOW:
- * Props In:  WorkoutCopilotPanelProps (open, onClose, clientId, clientName, ...)
- * State:     Panel-owned CopilotState FSM + draft/error/pain data
- * API Calls: Delegated through hooks/services for generate/approve/templates/pain
- * Children:  CopilotPanelContent, CopilotModeTabs
- * Delegates: CopilotPanelContent owns state-specific body/footer children.
+ * Safety: NASM pain checks and AI waiver/override errors stay enforced through
+ * the action hook and delegated content components.
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
