@@ -25,7 +25,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   FileWarning,
@@ -92,10 +91,15 @@ import {
   PanelTitle,
   ProfileBadge,
   ReadOnlyField,
-  SavedMetaStrong,
   TightActionRow,
 } from './LongHorizonContent.styles';
 import LongHorizonReviewFooter from './LongHorizonReviewFooter';
+import {
+  LongHorizonDegradedState,
+  LongHorizonGeneratingState,
+  LongHorizonIdleState,
+  LongHorizonSavedState,
+} from './LongHorizonStatusScreens';
 import EquipmentProfilePicker from '../../../../Shared/EquipmentProfilePicker';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
 
@@ -362,17 +366,11 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
   if (state === 'idle') {
     return (
-      <CenterContent>
-        <Sparkles size={48} color={SWAN_CYAN} />
-        <PanelTitle>Long-Horizon Planning</PanelTitle>
-        <PanelCopy $maxWidth={520}>
-          Generate a 3/6/12-month NASM-aligned mesocycle plan for {clientName}. Review and edit
-          before final approval.
-        </PanelCopy>
-        <PrimaryButton onClick={handleStartConfigure} disabled={isSubmitting}>
-          Configure Plan
-        </PrimaryButton>
-      </CenterContent>
+      <LongHorizonIdleState
+        clientName={clientName}
+        isSubmitting={isSubmitting}
+        onConfigure={handleStartConfigure}
+      />
     );
   }
 
@@ -499,39 +497,17 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
   }
 
   if (state === 'generating') {
-    return (
-      <CenterContent>
-        <Spinner size={48} color={SWAN_CYAN} />
-        <PanelTitle>Generating Long-Horizon Draft...</PanelTitle>
-        <PanelCopy>
-          Building a {horizonMonths}-month periodization plan using profile and training context.
-        </PanelCopy>
-      </CenterContent>
-    );
+    return <LongHorizonGeneratingState horizonMonths={horizonMonths} />;
   }
 
   if (state === 'degraded' && degradedData) {
     return (
-      <CenterContent>
-        <AlertTriangle size={48} color="#ffaa00" />
-        <PanelTitle $tone="warning">Swan Coach Temporarily Unavailable</PanelTitle>
-        <PanelCopy $maxWidth={540}>{degradedData.message}</PanelCopy>
-        <InfoPanel $variant="warning">
-          <IconSlot><Info size={16} /></IconSlot>
-          <InfoContent>
-            {degradedData.fallback.reasons.map((reason, idx) => (
-              <div key={idx}>{reason}</div>
-            ))}
-          </InfoContent>
-        </InfoPanel>
-        <ActionRow>
-          <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
-            <RefreshCw size={16} />
-            Retry
-          </PrimaryButton>
-          <SecondaryButton onClick={() => setState('configure_plan')}>Back to Configure</SecondaryButton>
-        </ActionRow>
-      </CenterContent>
+      <LongHorizonDegradedState
+        degradedData={degradedData}
+        isSubmitting={isSubmitting}
+        onRetry={handleGenerate}
+        onBackToConfigure={() => setState('configure_plan')}
+      />
     );
   }
 
@@ -789,35 +765,13 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
 
   if (state === 'saved') {
     return (
-      <CenterContent>
-        <CheckCircle2 size={48} color="#00ff64" />
-        <PanelTitle $tone="success">Long-Horizon Plan Saved</PanelTitle>
-        <PanelCopy>
-          Plan ID: <SavedMetaStrong>{savedPlanId}</SavedMetaStrong> · Blocks:{' '}
-          <SavedMetaStrong>{savedBlockCount}</SavedMetaStrong>
-        </PanelCopy>
-        {validationWarnings.length > 0 && (
-          <InfoPanel $variant="warning">
-            <IconSlot><Info size={16} /></IconSlot>
-            <InfoContent>
-              {validationWarnings.map((warning, idx) => (
-                <div key={`${warning}-${idx}`}>{warning}</div>
-              ))}
-            </InfoContent>
-          </InfoPanel>
-        )}
-        {eligibilityWarnings.length > 0 && (
-          <InfoPanel $variant="info">
-            <IconSlot><Info size={16} /></IconSlot>
-            <InfoContent>
-              {eligibilityWarnings.map((warning, idx) => (
-                <div key={`${warning}-${idx}`}>{warning}</div>
-              ))}
-            </InfoContent>
-          </InfoPanel>
-        )}
-        <SecondaryButton onClick={onClose}>Close</SecondaryButton>
-      </CenterContent>
+      <LongHorizonSavedState
+        savedPlanId={savedPlanId}
+        savedBlockCount={savedBlockCount}
+        validationWarnings={validationWarnings}
+        eligibilityWarnings={eligibilityWarnings}
+        onClose={onClose}
+      />
     );
   }
 
