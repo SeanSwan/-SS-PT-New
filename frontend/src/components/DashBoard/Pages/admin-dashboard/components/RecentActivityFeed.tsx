@@ -11,9 +11,16 @@ import {
   Shield, Clock, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import { CHART_COLORS, hexAlpha } from '../../../../Charts/chartTheme';
 
 type ActivityType = 'signup' | 'workout' | 'payment' | 'achievement' | 'session' | 'system';
+
+const ACCENT_PRIMARY = 'var(--accent-primary, #60C0F0)';
+const ACCENT_SECONDARY = 'var(--accent-secondary, #8B5CF6)';
+const ACCENT_GOLD = 'var(--accent-gold, #C6A84B)';
+const ACCENT_TERTIARY = 'var(--accent-tertiary, #4070C0)';
+const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent))';
+const TEXT_FAINT = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 40%, transparent))';
+const BORDER_SUBTLE = 'var(--border-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent))';
 
 interface ActivityItem {
   id: string;
@@ -23,13 +30,22 @@ interface ActivityItem {
   meta?: string;
 }
 
+const ACTIVITY_COLORS: Record<ActivityType, string> = {
+  signup: ACCENT_PRIMARY,
+  workout: ACCENT_SECONDARY,
+  payment: ACCENT_GOLD,
+  achievement: ACCENT_GOLD,
+  session: ACCENT_TERTIARY,
+  system: 'var(--swan-lavender, #4070C0)',
+};
+
 const ICON_MAP: Record<ActivityType, { icon: React.ReactNode; color: string }> = {
-  signup:      { icon: <UserPlus size={14} />,  color: CHART_COLORS.iceWing },
-  workout:     { icon: <Dumbbell size={14} />,  color: CHART_COLORS.wingPurple },
-  payment:     { icon: <DollarSign size={14} />, color: CHART_COLORS.gildedFern },
-  achievement: { icon: <Trophy size={14} />,    color: CHART_COLORS.gildedFern },
-  session:     { icon: <Clock size={14} />,     color: CHART_COLORS.arcticCyan },
-  system:      { icon: <Shield size={14} />,    color: CHART_COLORS.swanLavender },
+  signup:      { icon: <UserPlus size={14} />,  color: ACTIVITY_COLORS.signup },
+  workout:     { icon: <Dumbbell size={14} />,  color: ACTIVITY_COLORS.workout },
+  payment:     { icon: <DollarSign size={14} />, color: ACTIVITY_COLORS.payment },
+  achievement: { icon: <Trophy size={14} />,    color: ACTIVITY_COLORS.achievement },
+  session:     { icon: <Clock size={14} />,     color: ACTIVITY_COLORS.session },
+  system:      { icon: <Shield size={14} />,    color: ACTIVITY_COLORS.system },
 };
 
 const ACTIVITY_TYPES: ActivityType[] = ['signup', 'workout', 'payment', 'achievement', 'session', 'system'];
@@ -129,7 +145,7 @@ export default RecentActivityFeed;
 
 const Wrapper = styled.div`
   background: var(--bg-elevated, #141419);
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.12));
+  border: 1px solid ${BORDER_SUBTLE};
   border-radius: 16px;
   padding: 20px;
 `;
@@ -141,8 +157,8 @@ const Header = styled.div`
 const IconWrap = styled.div`
   width: 36px; height: 36px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: ${hexAlpha(CHART_COLORS.iceWing, 0.15)};
-  color: ${CHART_COLORS.iceWing};
+  background: color-mix(in srgb, ${ACCENT_PRIMARY} 15%, transparent);
+  color: ${ACCENT_PRIMARY};
 `;
 
 const Title = styled.h3`
@@ -152,7 +168,7 @@ const Title = styled.h3`
 
 const Subtitle = styled.p`
   font-size: 11px; margin: 2px 0 0;
-  color: var(--text-secondary, rgba(224,236,244,0.5));
+  color: ${TEXT_FAINT};
 `;
 
 const FeedList = styled.div`
@@ -183,7 +199,7 @@ const EmptyState = styled.div`
   padding: 10px 12px; border-radius: 8px;
   background: color-mix(in srgb, var(--royal-depth, #003080) 20%, transparent);
   border: 1px dashed color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent);
-  color: var(--text-secondary, rgba(224,236,244,0.7));
+  color: ${TEXT_SECONDARY};
   font-size: 12px;
 `;
 
@@ -198,7 +214,7 @@ const FeedIcon = styled.div<{ $color: string }>`
   width: 28px; height: 28px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; margin-top: 1px;
-  background: ${p => hexAlpha(p.$color, 0.12)};
+  background: color-mix(in srgb, ${p => p.$color} 12%, transparent);
   color: ${p => p.$color};
 `;
 
@@ -212,6 +228,6 @@ const FeedMessage = styled.div`
 `;
 
 const FeedTime = styled.div`
-  font-size: 11px; color: var(--text-muted, rgba(224,236,244,0.4));
+  font-size: 11px; color: ${TEXT_FAINT};
   margin-top: 2px; font-family: 'Fira Code', monospace;
 `;
