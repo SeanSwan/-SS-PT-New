@@ -67,6 +67,11 @@ interface ComparisonAnalyticsViewProps {
   onTimeframeChange: (value: string) => void;
 }
 
+const COMPARISON_PROGRESS_TONES = {
+  client: 'var(--accent-primary, #60C0F0)',
+  benchmark: 'var(--comparison-bar-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent))',
+};
+
 const renderTrendIcon = (metric: ComparisonMetric) => {
   const color = getTrendTone(metric.trend);
   if (metric.trend === 'above' || metric.trend === 'approaching') return <TrendingUp size={16} color={color} />;
@@ -145,7 +150,10 @@ const MetricsComparison: React.FC<Pick<
                   <ProgressBarWrapper>
                     <MetricScore $bold>{metric.client}</MetricScore>
                     <ProgressBarTrack>
-                      <ProgressBarFill $width={clampProgressWidth(metric.client)} $color="var(--accent-primary, #60C0F0)" />
+                      <ProgressBarFill
+                        $width={clampProgressWidth(metric.client)}
+                        $color={COMPARISON_PROGRESS_TONES.client}
+                      />
                     </ProgressBarTrack>
                   </ProgressBarWrapper>
                 </StyledTd>
@@ -153,7 +161,10 @@ const MetricsComparison: React.FC<Pick<
                   <ProgressBarWrapper>
                     <MetricScore>{metric.comparison}</MetricScore>
                     <ProgressBarTrack>
-                      <ProgressBarFill $width={clampProgressWidth(metric.comparison)} $color="var(--surface-strong, rgba(255, 255, 255, 0.3))" />
+                      <ProgressBarFill
+                        $width={clampProgressWidth(metric.comparison)}
+                        $color={COMPARISON_PROGRESS_TONES.benchmark}
+                      />
                     </ProgressBarTrack>
                   </ProgressBarWrapper>
                 </StyledTd>

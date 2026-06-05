@@ -70,6 +70,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - Canonical route evidence locks `/dashboard/trainer/overview` to `TrainerHomeTab` -> `SwanCoachDockTrainer`.
   - `SwanCoachDockTrainer.tsx` routes the pulse, skeleton, avatar, chip, and divider chrome through `var(--accent-secondary, #8B5CF6)` and `var(--text-primary, #E0ECF4)` token mixes.
   - Coverage lives in `frontend/src/components/DashBoard/Pages/trainer-dashboard/SwanCoachDockTrainer.themeBridge.test.ts`.
+- Trainer Client Progress comparison benchmark bar is now theme-token bridged:
+  - Canonical route evidence locks `/dashboard/trainer/client-progress` to `EnhancedClientProgressView` -> `EnhancedClientProgressViewShell` -> `ComparisonAnalytics`.
+  - `ComparisonAnalyticsView.tsx` routes client and benchmark progress fills through `COMPARISON_PROGRESS_TONES`, including `var(--comparison-bar-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent))`.
+  - Coverage lives in `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/ComparisonAnalytics.themeBridge.test.ts`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -124,7 +128,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, and the Trainer Home Swan Coach dock are token-bridged and covered by targeted contracts.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, the Universal Master Schedule drag preview, the Trainer Home Swan Coach dock, and the Trainer Client Progress comparison benchmark bar are token-bridged and covered by targeted contracts.
 - Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked
@@ -138,7 +142,7 @@ These are scan-backed candidates, not permission to patch everything at once. Ea
   - `SwanCoachDockTrainer.tsx` is handled for the active `/dashboard/trainer/overview` route.
   - `TrainerOverviewPage.tsx` appears legacy because `TrainerHomeTab` is the mounted overview component; do not patch it as active trainer work without fresh route proof.
 - Trainer Analytics:
-  - `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/InjuryRiskAssessment.tsx`, `GoalProgressTracker.tsx`, and `ComparisonAnalytics.tsx` still show raw colors/shadows in scans.
+  - `frontend/src/components/TrainerDashboard/ClientProgress/Analytics/InjuryRiskAssessment.tsx`, `GoalProgressTracker.tsx`, and `ComparisonAnalytics.tsx` still show raw colors/shadows in scans; the active `ComparisonAnalyticsView.tsx` benchmark bar is handled separately.
   - Patch only after confirming which analytics panels are mounted in the current Trainer Dashboard route.
 - Workout Logger:
   - `frontend/src/components/WorkoutLogger/WorkoutLoggerCS.ts` is now handled for the active shared logger palette.

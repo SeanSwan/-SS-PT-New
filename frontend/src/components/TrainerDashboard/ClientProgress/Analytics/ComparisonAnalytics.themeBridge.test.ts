@@ -25,6 +25,8 @@ describe('ComparisonAnalytics theme bridge', () => {
 
   it('bridges comparison analytics styling to dashboard theme tokens', () => {
     const styleSource = readSource('./ComparisonAnalytics.styles.ts');
+    const viewSource = readSource('./ComparisonAnalyticsView.tsx');
+    const shellSource = readSource('../EnhancedClientProgressViewShell.tsx');
 
     expect(styleSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(styleSource).toContain('var(--bg-elevated');
@@ -37,5 +39,10 @@ describe('ComparisonAnalytics theme bridge', () => {
     expect(styleSource).not.toContain('background: #1d1f2b');
     expect(styleSource).not.toContain('background: #fff');
     expect(styleSource).not.toContain('rgba(15,23,42');
+
+    expect(shellSource).toContain('<ComparisonAnalytics clientId={clientId} clientData={clientData} />');
+    expect(viewSource).toContain('COMPARISON_PROGRESS_TONES');
+    expect(viewSource).toContain('var(--comparison-bar-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 30%, transparent))');
+    expect(viewSource).not.toContain('var(--surface-strong, rgba(255, 255, 255, 0.3))');
   });
 });
