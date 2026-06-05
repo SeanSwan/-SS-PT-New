@@ -7,6 +7,10 @@ const SOURCE = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel.tsx'),
   'utf8',
 );
+const EDITOR_HOOK_SOURCE = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/useWorkoutHistoryEditor.ts'),
+  'utf8',
+);
 const PERSONAL_RECORDS_TAB_SOURCE = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPersonalRecordsTab.tsx'),
   'utf8',
@@ -14,9 +18,9 @@ const PERSONAL_RECORDS_TAB_SOURCE = readFileSync(
 
 describe('WorkoutHistoryPanel truth contract', () => {
   it('uses deterministic temporary row ids while editing workout sets', () => {
-    expect(SOURCE).not.toMatch(/Math\.random/);
-    expect(SOURCE).not.toMatch(/id: -Date\.now\(\)/);
-    expect(SOURCE).toContain('nextTemporarySetIdRef');
+    expect(SOURCE + EDITOR_HOOK_SOURCE).not.toMatch(/Math\.random/);
+    expect(SOURCE + EDITOR_HOOK_SOURCE).not.toMatch(/id: -Date\.now\(\)/);
+    expect(EDITOR_HOOK_SOURCE).toContain('nextTemporarySetIdRef');
   });
 
   it('renders personal records without mutating analytics data or keying by rank index', () => {

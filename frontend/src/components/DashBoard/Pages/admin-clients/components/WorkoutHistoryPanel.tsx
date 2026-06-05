@@ -33,7 +33,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import { Dumbbell } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
@@ -41,21 +41,12 @@ import { CenterContent, Spinner } from './copilot-shared-styles';
 import {
   useWorkoutAnalytics,
   type WorkoutSession,
-  type WorkoutLogEntry,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { useAuth } from '../../../../../context/AuthContext';
 import { sortPersonalRecords } from './workoutHistoryPanelData';
-import { buildWorkoutEditExercises } from './workoutHistoryEditPayload';
-import { buildEditableWorkoutLogs } from './workoutHistoryEditSession';
 import {
   buildWorkoutHistoryShareModalState,
 } from './workoutHistorySharing';
-import {
-  appendWorkoutEditRow,
-  removeWorkoutEditRow,
-  updateWorkoutEditField,
-  updateWorkoutExerciseNote,
-} from './workoutHistoryEditRows';
 import WorkoutHistoryPanelHeader, { type WorkoutHistoryPanelTab } from './WorkoutHistoryPanelHeader';
 import WorkoutHistorySessionCard from './WorkoutHistorySessionCard';
 import {
@@ -66,6 +57,7 @@ import {
   RetryButton,
 } from './WorkoutHistoryPanel.layoutStyles';
 import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
+import { useWorkoutHistoryEditor } from './useWorkoutHistoryEditor';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -141,16 +133,6 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   const [activeTab, setActiveTab] = useState<WorkoutHistoryPanelTab>('history');
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [shareSession, setShareSession] = useState<WorkoutSession | null>(null);
-  // ── Phase 13.1 inline edit state ──────────────────────────────
-  // Ported from the dormant `WorkoutHistoryTimeline` so the canonical
-  // consolidated surface does not silently lose edit capability. One
-  // session is editable at a time; cancelling or switching sessions
-  // discards in-memory edits without touching the server.
-  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
-  const [editLogs, setEditLogs] = useState<WorkoutLogEntry[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const nextTemporarySetIdRef = useRef(-1);
   const sortedPersonalRecords = useMemo(
     () => sortPersonalRecords(data?.personalRecords ?? []),
     [data?.personalRecords],
@@ -160,14 +142,37 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     [clientName, shareSession],
   );
 
-  const toggleSession = (id: string) => {
-    // Collapsing a session mid-edit discards the edit — matches the old
-    // timeline behavior and prevents an orphaned edit buffer from
-    // leaking into a different session.
+  const expandSession = useCallback((id: string) => {
+    setExpandedSessions(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const {
+    editingSessionId,
+    editLogs,
+    saving,
+    saveError,
+    startEdit,
+    cancelEdit,
+    updateEditField,
+    removeEditRow,
+    updateExerciseNoteForGroup,
+    addEditRow,
+    saveEdit,
+  } = useWorkoutHistoryEditor({
+    authAxios,
+    clientId,
+    refetch,
+    expandSession,
+  });
+
+  const toggleSession = useCallback((id: string) => {
     if (editingSessionId && editingSessionId !== id) {
-      setEditingSessionId(null);
-      setEditLogs([]);
-      setSaveError(null);
+      cancelEdit();
     }
     setExpandedSessions(prev => {
       const next = new Set(prev);
@@ -175,117 +180,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       else next.add(id);
       return next;
     });
-  };
-
-  // ── Phase 13.1 inline edit handlers ──────────────────────────
-  // Phase 15.0 update: when a session is loaded for edit, lazy-migrate
-  // only the UNAMBIGUOUS SEPARATOR FORM of the Phase 13.2 legacy
-  // encoding:
-  //
-  //     notes = "<set note> · Coach: <exercise note>"
-  //
-  // For rows matching that exact separator shape we lift the exercise
-  // note text into the in-memory `exerciseNote` field and strip the
-  // separator from the set note. Saving the edit then writes the
-  // canonical Phase 15 shape back to the backend in one pass.
-  //
-  // We do NOT touch rows whose `notes` happens to start with a bare
-  // `Coach: ` prefix — classification safety. A trainer note like
-  // "Coach: said this was heavy" is indistinguishable from a
-  // Phase 13.2 row whose set 1 had no own note, so auto-promoting it
-  // would reintroduce the exact misclassification bug Phase 15.0
-  // fixes. Those rows stay exactly as stored until a human cleans
-  // them up or an explicit maintenance script is run.
-  //
-  // Rows that already have `exerciseNote` populated (either fresh
-  // Phase 15 writes or rows already migrated on a prior edit) are
-  // passed through unchanged — we re-stamp the value on every row of
-  // the group so the in-memory buffer respects the "every row carries
-  // the note" invariant even if the DB state was transitional.
-  const startEdit = useCallback((session: WorkoutSession) => {
-    const migrated = buildEditableWorkoutLogs(session);
-    setEditingSessionId(session.id);
-    setEditLogs(migrated);
-    setSaveError(null);
-    setExpandedSessions((prev) => {
-      const next = new Set(prev);
-      next.add(session.id);
-      return next;
-    });
-  }, []);
-
-  const cancelEdit = useCallback(() => {
-    setEditingSessionId(null);
-    setEditLogs([]);
-    setSaveError(null);
-  }, []);
-
-  const updateEditField = useCallback(
-    (logIndex: number, field: keyof WorkoutLogEntry, value: string) => {
-      setEditLogs((prev) => updateWorkoutEditField(prev, logIndex, field, value));
-    },
-    [],
-  );
-
-  const removeEditRow = useCallback((logIndex: number) => {
-    setEditLogs((prev) => removeWorkoutEditRow(prev, logIndex));
-  }, []);
-
-  /**
-   * Phase 15.0: update the exercise-level note for an entire exercise
-   * group. Writes the same value to `exerciseNote` on every row of that
-   * group, so deleting any single row preserves the note on the rest.
-   * The group identity is `exerciseName` — Phase 15 stores the same
-   * exerciseNote on every row of the same-named group.
-   */
-  const updateExerciseNoteForGroup = useCallback(
-    (exerciseName: string, value: string) => {
-      setEditLogs((prev) => updateWorkoutExerciseNote(prev, exerciseName, value));
-    },
-    [],
-  );
-
-  const addEditRow = useCallback((exerciseName: string) => {
-    setEditLogs((prev) => {
-      const temporaryId = nextTemporarySetIdRef.current;
-      nextTemporarySetIdRef.current -= 1;
-      return appendWorkoutEditRow(prev, exerciseName, temporaryId);
-    });
-  }, []);
-
-  const saveEdit = useCallback(
-    async (workoutId: string) => {
-      if (!authAxios) {
-        setSaveError('Auth context unavailable — try reloading.');
-        return;
-      }
-      setSaving(true);
-      setSaveError(null);
-      try {
-        const exercises = buildWorkoutEditExercises(editLogs);
-
-        await authAxios.patch(
-          `/api/admin/clients/${clientId}/workouts/${workoutId}`,
-          { exercises },
-        );
-        // Refetch analytics so the summary bar, charts, PRs, and history
-        // table all reflect the edit in a single source of truth. The
-        // shared hook is the only data source — there is no local copy
-        // to re-sync manually.
-        await refetch();
-        setEditingSessionId(null);
-        setEditLogs([]);
-      } catch (err: unknown) {
-        const e = err as { message?: string; response?: { data?: { error?: string } } };
-        setSaveError(
-          e.response?.data?.error || e.message || 'Failed to save workout changes',
-        );
-      } finally {
-        setSaving(false);
-      }
-    },
-    [authAxios, clientId, editLogs, refetch],
-  );
+  }, [cancelEdit, editingSessionId]);
 
   return (
     <>
