@@ -22,12 +22,13 @@ import WorkoutPlannerBuilderPanel, {
   type WorkoutPlannerBuilderExplanation,
 } from './WorkoutPlannerBuilderPanel';
 import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
-import WorkoutPlannerSavedPlansSection, { type SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
+import WorkoutPlannerSavedPlansSection from './WorkoutPlannerSavedPlansSection';
 import WorkoutPlannerStatusAssistantStrip, {
   type WorkoutPlannerStatusMessage,
 } from './WorkoutPlannerStatusAssistantStrip';
 import { useWorkoutPlannerPlanContentState } from './useWorkoutPlannerPlanContentState';
 import { useWorkoutPlannerRolodexState } from './useWorkoutPlannerRolodexState';
+import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
 import WorkoutPlannerConfirmDialog, { type WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import {
   normalizeWorkoutPlannerClients,
@@ -105,10 +106,6 @@ const WorkoutPlannerPage: React.FC = () => {
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
 
-  const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
-  const [savedPlansLoading, setSavedPlansLoading] = useState(false);
-
-
   // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -168,6 +165,27 @@ const WorkoutPlannerPage: React.FC = () => {
     goal,
     planExercises,
     generatedPlan,
+  });
+
+  const {
+    savedPlans,
+    savedPlansLoading,
+    fetchSavedPlans,
+    archiveBlockedFor,
+    handleCardActivate,
+    handleCardRename,
+    handleCardDuplicate,
+    handleCardArchive,
+  } = useWorkoutPlannerSavedPlansState({
+    authAxios,
+    selectedClientId,
+    loadedPlanId,
+    currentExercisesSig,
+    setSavedSnapshot,
+    setLoadedPlanName,
+    resetLoadedPlanState,
+    setStatusMsg,
+    setConfirmRequest,
   });
 
   // ── Fetch Clients ──
@@ -338,30 +356,6 @@ const WorkoutPlannerPage: React.FC = () => {
   // ── Save Draft ── (Plan Library §5.1, no-loaded-plan path)
   // POSTs as status='draft' so the new partial unique index never trips.
   // Trainer can promote to current later via Activate.
-  const fetchSavedPlans = useCallback(async (clientId: number | null) => {
-    if (!clientId) { setSavedPlans([]); return; }
-    setSavedPlansLoading(true);
-    try {
-      const res = await authAxios.get(`/api/workout/plans?clientId=${clientId}`);
-      const data = res.data;
-      if (data?.success && Array.isArray(data.plans)) {
-        setSavedPlans(data.plans.map((p: Record<string, unknown>) => ({
-          id: String(p.id || ''),
-          name: String(p.title || p.name || 'Untitled Plan'),
-          status: String(p.status || 'draft'),
-          createdAt: String(p.createdAt || ''),
-          goal: String((p.planData as Record<string, unknown>)?.goal || p.goal || ''),
-        })));
-      } else {
-        setSavedPlans([]);
-      }
-    } catch {
-      setSavedPlans([]);
-    } finally {
-      setSavedPlansLoading(false);
-    }
-  }, [authAxios]);
-
   const handleSaveDraft = useCallback(async () => {
     // AI Village CRITICAL-4 fix: a generated multi-month plan with no
     // manual planExercises is still saveable — the generatedPlan.weeks[]
@@ -472,102 +466,6 @@ const WorkoutPlannerPage: React.FC = () => {
       setSaving(false);
     }
   }, [authAxios, selectedClientId, loadedPlanId, planExercises.length, phaseNumber, buildPlanData, currentExercisesSig, hasGeneratedHorizonPlan, fetchSavedPlans]);
-
-  // ── Plan Library card-action handlers (§5.2) ──
-
-  // Activate (Make Current). Backend transactionally demotes siblings.
-  const handleCardActivate = useCallback(async (planId: string, planName: string) => {
-    if (!selectedClientId) return;
-    try {
-      await authAxios.put(`/api/workout-plans/${planId}/activate`);
-      setStatusMsg({ type: 'success', text: `${planName} is now the current plan.` });
-      // If we have this plan loaded in the builder, update savedSnapshot — the
-      // builder state was identical to the activated plan's persisted state.
-      if (loadedPlanId === planId) {
-        setSavedSnapshot(currentExercisesSig);
-      }
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Activate plan failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to make plan current. Please try again.' });
-    }
-  }, [authAxios, selectedClientId, loadedPlanId, currentExercisesSig, fetchSavedPlans]);
-
-  // Rename — PUT /:id with title only; planData untouched.
-  const handleCardRename = useCallback(async (planId: string, newName: string) => {
-    if (!selectedClientId) return;
-    try {
-      await authAxios.put(`/api/workout-plans/${planId}`, { title: newName });
-      setStatusMsg({ type: 'success', text: `Renamed to "${newName}".` });
-      // If we have this plan loaded, update the displayed name
-      if (loadedPlanId === planId) {
-        setLoadedPlanName(newName);
-      }
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Rename plan failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to rename plan.' });
-    }
-  }, [authAxios, selectedClientId, loadedPlanId, fetchSavedPlans]);
-
-  // Duplicate — server-side clone via POST /:id/duplicate. Always status='draft'.
-  const handleCardDuplicate = useCallback(async (planId: string, planName: string) => {
-    if (!selectedClientId) return;
-    try {
-      await authAxios.post(`/api/workout-plans/${planId}/duplicate`, {});
-      setStatusMsg({ type: 'success', text: `Duplicated "${planName}" as draft.` });
-      fetchSavedPlans(selectedClientId);
-    } catch (err) {
-      logApiError('Duplicate plan failed', err);
-      setStatusMsg({ type: 'error', text: 'Failed to duplicate plan.' });
-    }
-  }, [authAxios, selectedClientId, fetchSavedPlans]);
-
-  // Archive — DELETE /:id (soft delete; sets status='completed').
-  const handleCardArchive = useCallback((planId: string, planName: string) => {
-    if (!selectedClientId) return;
-    setConfirmRequest({
-      title: `Archive "${planName}"?`,
-      message: 'This moves the plan to the archive while keeping client history available.',
-      confirmLabel: 'Archive plan',
-      tone: 'warning',
-      onConfirm: async () => {
-        try {
-          await authAxios.delete(`/api/workout-plans/${planId}`);
-          setStatusMsg({ type: 'success', text: `Archived "${planName}".` });
-          // If the archived plan was loaded, clear the builder's loaded reference
-          // so the next save acts as a fresh draft instead of trying to PUT a
-          // soft-deleted plan.
-          if (loadedPlanId === planId) {
-            resetLoadedPlanState();
-          }
-          fetchSavedPlans(selectedClientId);
-        } catch (err) {
-          logApiError('Archive plan failed', err);
-          setStatusMsg({ type: 'error', text: 'Failed to archive plan.' });
-        }
-      }
-    });
-  }, [authAxios, selectedClientId, loadedPlanId, fetchSavedPlans, resetLoadedPlanState]);
-
-  // Compute archive-blocked state per card. Per §5.4: block archive of the
-  // currently-active plan when it's the ONLY active plan, to avoid leaving
-  // the client with zero active plans (the strict "exactly one active" rule).
-  const activePlanCount = savedPlans.filter(p => p.status === 'active').length;
-  const archiveBlockedFor = useCallback((planStatus: string) =>
-    planStatus === 'active' && activePlanCount <= 1,
-    [activePlanCount],
-  );
-
-  // ── Fetch Saved Plans for Client ──
-  // Fetch saved plans when client changes
-  useEffect(() => {
-    fetchSavedPlans(selectedClientId);
-  }, [selectedClientId, fetchSavedPlans]);
-
-  // (loadedPlanId / loadedPlanName / savedSnapshot / currentExercisesSig /
-  // isDirty are now declared earlier in the component, before the save
-  // matrix handlers, to avoid TDZ.)
 
   const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
     try {
