@@ -10,6 +10,7 @@ const read = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
 
 const pageSource = read('./WorkoutPlannerPage.tsx');
+const generatedPlanSource = read('./WorkoutPlannerGeneratedPlanSection.tsx');
 const shellStyles = read('./WorkoutPlannerShell.styles.ts');
 const scheduleStyles = read('./WorkoutPlannerSchedule.styles.ts');
 
@@ -18,7 +19,7 @@ describe('WorkoutPlanner action controls accessibility', () => {
     expect(scheduleStyles).not.toContain('min-height: 36px');
     expect(scheduleStyles).toMatch(/ExportPdfBtn[\s\S]*?min-height:\s*44px/);
     expect(scheduleStyles).toMatch(/ExportPdfBtn[\s\S]*?&:focus-visible/);
-    expect(pageSource).toMatch(/<ExportPdfBtn[\s\S]*?type="button"/);
+    expect(generatedPlanSource).toMatch(/<ExportPdfBtn[\s\S]*?type="button"/);
     expect(pageSource).toMatch(/<button[\s\S]*?type="button"[\s\S]*?aria-label="Dismiss"/);
     expect(shellStyles).toMatch(/StatusBanner[\s\S]*?button[\s\S]*?min-width:\s*44px/);
     expect(shellStyles).toMatch(/StatusBanner[\s\S]*?button[\s\S]*?min-height:\s*44px/);

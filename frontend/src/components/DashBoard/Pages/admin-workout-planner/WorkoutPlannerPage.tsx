@@ -13,7 +13,7 @@ import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Dumbbell, Sparkles, BookOpen, Plus, X, Calendar, ClipboardList,
-  Loader2, Save, Download, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
+  Loader2, Save, Zap, AlertTriangle, ChevronDown, ChevronUp, Info,
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -29,9 +29,8 @@ import { PanelErrorBoundary } from '../../../ui/PanelErrorBoundary';
 // Plan Library slice (2026-05-01): extracted card component holds the
 // stopPropagation matrix + per-card action affordances.
 import SavedPlanCard from './SavedPlanCard';
-// L2.C (2026-05-02): drill-down for the populated long-horizon weeks[].
-import LongHorizonScheduleView from './LongHorizonScheduleView';
 import WorkoutPlannerRolodexPanel from './WorkoutPlannerRolodexPanel';
+import WorkoutPlannerGeneratedPlanSection from './WorkoutPlannerGeneratedPlanSection';
 // AI Village CRITICAL-4 fix (2026-05-02): extracted plan-data builder.
 // Persists generatedPlan.weeks[] when present instead of flattening to a
 // one-week shape, so V2 long-horizon work survives save.
@@ -57,7 +56,7 @@ import {
   OPT_PHASES, WORKOUT_CATEGORIES, PLAN_GOALS, PLAN_DURATIONS,
   type PlanGoal,
 } from './WorkoutPlannerTypes';
-import { workoutPlannerExplanationKey, workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
+import { workoutPlannerExplanationKey } from './WorkoutPlannerRowKeys';
 import {
   Page, Header, HeaderLeft, HeaderIcon, Title, Subtitle,
   ControlRow, Select, ActionBtn, ThreePanel,
@@ -70,32 +69,18 @@ import {
   GeneratingLabel, ExplanationsPanel, ExplanationsToggle, ExplanationItem, ExplanationBadge,
   PlanModeBar, PlanModeLabel, SmallSelect,
   MesocycleSection, MesocycleSectionTitle, MesocycleGrid,
-  MesocycleHeader, MesocycleTitle, MesocycleWeeks, MesocyclePhase,
-  MesocycleParams, MesocycleParam, MesocycleOverload, DeloadBadge,
-  ScheduleRow, ScheduleDayFocus,
-  RecommendationList, RecommendationItem,
   // L5 (2026-05-02): self-service status pill rendered below ControlRow.
   ClientSelfGenPill, PillHint,
-  // L3 (2026-05-02): branded PDF export trigger.
-  ExportPdfBtn,
 } from './WorkoutPlannerStyles';
 import {
   ActionWrap,
-  ActiveDayDetail,
-  ActiveDayMeta,
-  ActiveDayTitle,
-  ActiveScheduleDay,
-  ActiveScheduleDayNumber,
   BuilderActionRow,
   BuilderParamGroup,
   ClickableExerciseName,
-  ClickableMesocycleCard,
   DegradedPanel,
   ExplanationDetails,
   ParamField,
   ParamLabel,
-  PlanLabelBlock,
-  RecommendationSource,
   RepsInput,
   SavedPlansCount,
   SavedPlansEmpty,
@@ -1412,143 +1397,14 @@ const WorkoutPlannerPage: React.FC = () => {
         )}
       </ThreePanel>
 
-      {/* Mesocycle Plan Display — shown after multi-week plan generation */}
-      {generatedPlan && (
-        <MesocycleSection>
-          <MesocycleSectionTitle>
-            <Calendar size={18} />
-            {generatedPlan.planSummary.durationWeeks}-Week Periodized Plan
-            — {generatedPlan.planSummary.totalSessions} Total Sessions
-            {/* L3 (2026-05-02): branded PDF export. Available whenever a
-                plan is loaded; reads the populated weeks[] when present
-                and falls back to mesocycle/weeklySchedule summary if
-                weeks[] is missing (pre-L1 plans). */}
-            <ExportPdfBtn
-              type="button"
-              onClick={async () => {
-                const { exportPopulatedPlanPDF } = await import('../../../../services/pdfExportService');
-                exportPopulatedPlanPDF(
-                  generatedPlan as unknown as Parameters<typeof exportPopulatedPlanPDF>[0],
-                  selectedClient
-                    ? `${selectedClient.firstName} ${selectedClient.lastName}`
-                    : undefined,
-                  selectedClient?.clientSource,
-                );
-              }}
-              aria-label="Export this plan as a branded PDF"
-            >
-              <Download size={14} />
-              Export PDF
-            </ExportPdfBtn>
-          </MesocycleSectionTitle>
-
-          {/* Weekly Schedule — clickable day tabs */}
-          <PlanLabelBlock>Weekly Schedule</PlanLabelBlock>
-          <ScheduleRow>
-            {generatedPlan.weeklySchedule.map(day => (
-              <ActiveScheduleDay
-                key={day.dayNumber}
-                as="button"
-                type="button"
-                onClick={() => setSelectedMesoDay(day.dayNumber)}
-                $active={selectedMesoDay === day.dayNumber}
-              >
-                <ActiveScheduleDayNumber $active={selectedMesoDay === day.dayNumber}>
-                  Day {day.dayNumber}
-                </ActiveScheduleDayNumber>
-                <ScheduleDayFocus>{day.focus}</ScheduleDayFocus>
-              </ActiveScheduleDay>
-            ))}
-          </ScheduleRow>
-
-          {/* Active Day Detail */}
-          {(() => {
-            const activeDay = generatedPlan.weeklySchedule.find(d => d.dayNumber === selectedMesoDay);
-            if (!activeDay) return null;
-            return (
-              <ActiveDayDetail>
-                <ActiveDayTitle>
-                  Day {activeDay.dayNumber}: {activeDay.focus}
-                </ActiveDayTitle>
-                <ActiveDayMeta>
-                  Category: {activeDay.category} — Click exercises in the Rolodex to populate this day
-                </ActiveDayMeta>
-              </ActiveDayDetail>
-            );
-          })()}
-
-          {/* Mesocycle Cards — clickable to switch OPT phase */}
-          <PlanLabelBlock>Mesocycles (4-Week Blocks)</PlanLabelBlock>
-          <MesocycleGrid>
-            {generatedPlan.mesocycles.map(mc => (
-              <ClickableMesocycleCard
-                key={mc.mesocycle}
-                $phase={mc.nasmPhase}
-                $selected={mc.nasmPhase === phaseNumber}
-                as="button"
-                type="button"
-                onClick={() => setPhaseNumber(mc.nasmPhase)}
-                title={`Click to switch to Phase ${mc.nasmPhase}: ${mc.phaseName}`}
-              >
-                <MesocycleHeader>
-                  <MesocycleTitle>Block {mc.mesocycle}</MesocycleTitle>
-                  <MesocycleWeeks>Wk {mc.weeks}</MesocycleWeeks>
-                </MesocycleHeader>
-                <MesocyclePhase $phase={mc.nasmPhase}>
-                  Phase {mc.nasmPhase}: {mc.phaseName}
-                </MesocyclePhase>
-                <MesocycleParams>
-                  <MesocycleParam>Sets: <span>{mc.params.sets}</span></MesocycleParam>
-                  <MesocycleParam>Reps: <span>{mc.params.reps}</span></MesocycleParam>
-                  <MesocycleParam>Tempo: <span>{mc.params.tempo}</span></MesocycleParam>
-                  <MesocycleParam>Rest: <span>{mc.params.rest}</span></MesocycleParam>
-                  <MesocycleParam>Intensity: <span>{mc.params.intensity}</span></MesocycleParam>
-                </MesocycleParams>
-                <MesocycleOverload>
-                  {mc.overloadStrategy}
-                  {mc.deloadWeek && <DeloadBadge>Deload Wk {mc.deloadWeek}</DeloadBadge>}
-                </MesocycleOverload>
-              </ClickableMesocycleCard>
-            ))}
-          </MesocycleGrid>
-
-          {/* L2.C — Long-horizon detailed schedule (Month → Week → Day).
-              Only renders for plans with >= 4 weeks of populated data,
-              since the existing weekly summary already covers single-
-              mesocycle plans. Backwards-compat: pre-L1 saved plans
-              without `weeks[]` simply skip this section. */}
-          {Array.isArray(generatedPlan.weeks) && generatedPlan.weeks.length >= 4 && (
-            <LongHorizonScheduleView weeks={generatedPlan.weeks} />
-          )}
-
-          {/* Recommendations */}
-          {generatedPlan.recommendations.length > 0 && (
-            <>
-              <PlanLabelBlock $top>
-                AI Recommendations
-              </PlanLabelBlock>
-              <RecommendationList>
-                {generatedPlan.recommendations.map((rec, i) => {
-                  const detail = generatedPlan.recommendationDetails?.[i];
-                  return (
-                    <RecommendationItem key={workoutPlannerRecommendationKey(rec, detail)}>
-                      {rec}
-                      {detail?.sourceCitation ? (
-                        <RecommendationSource
-                          title={`source: ${detail.sourceCitation}`}
-                        >
-                          ({detail.type})
-                        </RecommendationSource>
-                      ) : null}
-                    </RecommendationItem>
-                  );
-                })}
-              </RecommendationList>
-            </>
-          )}
-        </MesocycleSection>
-      )}
-
+      <WorkoutPlannerGeneratedPlanSection
+        generatedPlan={generatedPlan}
+        selectedMesoDay={selectedMesoDay}
+        phaseNumber={phaseNumber}
+        selectedClient={selectedClient}
+        onSelectedMesoDayChange={setSelectedMesoDay}
+        onPhaseNumberChange={setPhaseNumber}
+      />
       {/* Saved Plans for Selected Client */}
       {selectedClientId && (
         <MesocycleSection>
