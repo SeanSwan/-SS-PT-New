@@ -62,6 +62,10 @@ These items are no longer broad-redesign backlog items because they were handled
   - `WorkoutLoggerCS.ts` routes the shared logger colors, badge backgrounds/borders, and glow animation through dashboard theme variables while preserving fallback colors.
   - `withAlpha()` now supports CSS variable tokens via `color-mix(...)` instead of assuming every caller passes a hex value.
   - Coverage lives in `frontend/src/components/WorkoutLogger/WorkoutLoggerCS.themeBridge.test.ts`.
+- Universal Master Schedule active drag preview glows are now theme-token bridged:
+  - Canonical route evidence locks the path from dashboard/master schedule routes to `UniversalMasterSchedule` -> `ScheduleCalendar` -> `DragDropManager`.
+  - `DragDropManager.tsx` routes valid/invalid drag overlay shadows through `var(--accent-secondary, #8B5CF6)` and `var(--danger, #ef4444)` using `color-mix(...)`.
+  - Coverage lives in `frontend/src/components/UniversalMasterSchedule/DragDrop/DragDropManager.themeBridge.test.ts`.
 - Latest pushed production-lane commits relevant to this backlog: `77b64454f`, `c8991e2d4`, `5d25ac2e6`, `9f8d507e1`, `da231e3f8`, `380a7f5ee`, `3b2a70096`, `bdfb5880d`, `8c3c70bbb`, `22db47283`, `7e9e75622`, `e06c37012`, `91dfcc145`, `051f84415`.
 
 Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and workflow clarity around those now-wired routes.
@@ -116,7 +120,7 @@ Keep the remaining polish focused on visual hierarchy, mobile ergonomics, and wo
 - No standalone bright-gradient islands unless they intentionally map to the active theme.
 - Default visual posture remains dark-first Crystalline Swan.
 - Theme QA should include desktop, 1440p/QHD, 4K, tablet, and mobile.
-- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, and the Workout Logger shared palette are token-bridged and covered by targeted contracts.
+- Current status: Workout Management, audited active Nutrition children, Store/Revenue order summary, Bootcamp Builder controls, several canonical Client Hub surfaces, Universal Dashboard shell controls, active admin overview skeleton loading chrome, the Workout Logger shared palette, and the Universal Master Schedule drag preview are token-bridged and covered by targeted contracts.
 - Do not call theme synchronization complete yet. Continue with Trainer Dashboard, Client Dashboard, User Dashboard, Universal Master Schedule, and remaining admin widgets.
 
 ### 5A. Evidence-Backed Theme / Redesign Churn Still Parked
@@ -140,7 +144,9 @@ These are scan-backed candidates, not permission to patch everything at once. Ea
   - Keep payment/session correctness ahead of visual-only widget polish.
 - Universal Master Schedule:
   - Schedule theme bridge tests already exist in the schedule area, but Sean has specifically reported schedule theme drift.
-  - Next schedule pass should inspect `frontend/src/components/UniversalMasterSchedule` before patching.
+  - The active drag preview path through `ScheduleCalendar` -> `DragDropManager` is handled.
+  - `CalendarFallback` and `UniversalMasterSchedule/SessionAllocationManager.tsx` appear non-canonical from the latest route scan; do not patch either as active schedule work without fresh mount proof.
+  - Next schedule pass should inspect active mounted cards/modals only after a Canonical Surface Receipt.
 - Legacy admin-client surfaces:
   - `frontend/src/components/DashBoard/Pages/admin-clients/*` still contains older hardcoded colors and legacy workout modal code.
   - Do not patch these as canonical Client Hub work unless the route tree proves they are mounted.

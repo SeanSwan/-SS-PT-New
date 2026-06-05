@@ -47,6 +47,11 @@ interface DragDropManagerProps {
   }) => void;
 }
 
+const DRAG_PREVIEW_THEME = {
+  validGlow: '0 0 30px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 50%, transparent)',
+  invalidGlow: '0 0 30px color-mix(in srgb, var(--danger, #ef4444) 50%, transparent)'
+};
+
 const DragDropManager: React.FC<DragDropManagerProps> = ({
   children,
   onDragEnd,
@@ -180,10 +185,7 @@ export default DragDropManager;
 const GhostCard = styled.div<{ $isValid: boolean }>`
   opacity: 0.85;
   transform: scale(1.05) rotate(2deg);
-  box-shadow: ${({ $isValid }) =>
-    $isValid
-      ? '0 0 30px rgba(139, 92, 246, 0.5)'
-      : '0 0 30px rgba(255, 71, 87, 0.5)'};
+  box-shadow: ${({ $isValid }) => ($isValid ? DRAG_PREVIEW_THEME.validGlow : DRAG_PREVIEW_THEME.invalidGlow)};
   border-radius: 12px;
   transition: box-shadow 150ms ease-out;
 `;
