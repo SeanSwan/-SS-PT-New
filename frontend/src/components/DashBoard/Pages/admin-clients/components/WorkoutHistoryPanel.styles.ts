@@ -10,44 +10,54 @@ type EditButtonVariant = 'save' | 'cancel' | 'edit' | 'danger' | 'addSet';
 
 const editButtonVariantStyles = {
   save: css`
-    background: rgba(96, 192, 240, 0.15);
-    border-color: rgba(96, 192, 240, 0.4);
+    background: var(--accent-primary-bg-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent));
+    border-color: var(--border-accent-strong, color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent));
     color: var(--accent-primary, #60C0F0);
 
-    &:hover { background: rgba(96, 192, 240, 0.25); }
+    &:hover {
+      background: var(--accent-primary-bg-hover, color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent));
+    }
   `,
   cancel: css`
-    background: rgba(224, 236, 244, 0.06);
-    border-color: rgba(224, 236, 244, 0.15);
+    background: var(--surface-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 6%, transparent));
+    border-color: var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 15%, transparent));
     color: var(--text-primary, #E0ECF4);
 
-    &:hover { background: rgba(224, 236, 244, 0.12); }
+    &:hover {
+      background: var(--surface-muted-hover, color-mix(in srgb, var(--text-primary, #E0ECF4) 12%, transparent));
+    }
   `,
   danger: css`
-    background: rgba(201, 42, 84, 0.12);
-    border-color: rgba(201, 42, 84, 0.3);
+    background: var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 12%, transparent));
+    border-color: var(--border-danger-soft, color-mix(in srgb, var(--danger, #C92A54) 30%, transparent));
     color: var(--status-danger, #ff8fa3);
     min-height: 32px;
     padding: 4px 8px;
 
-    &:hover { background: rgba(201, 42, 84, 0.2); }
+    &:hover {
+      background: var(--danger-bg-hover, color-mix(in srgb, var(--danger, #C92A54) 20%, transparent));
+    }
   `,
   addSet: css`
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.3);
+    background: var(--accent-secondary-bg-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent));
+    border-color: var(--border-secondary-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
     color: var(--accent-secondary, #C9B8FF);
     min-height: 32px;
     padding: 6px 10px;
     font-size: 11px;
 
-    &:hover { background: rgba(139, 92, 246, 0.2); }
+    &:hover {
+      background: var(--accent-secondary-bg-hover, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent));
+    }
   `,
   edit: css`
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.3);
+    background: var(--accent-secondary-bg-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 12%, transparent));
+    border-color: var(--border-secondary-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent));
     color: var(--accent-secondary, #C9B8FF);
 
-    &:hover { background: rgba(139, 92, 246, 0.2); }
+    &:hover {
+      background: var(--accent-secondary-bg-hover, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent));
+    }
   `,
 };
 
@@ -56,7 +66,7 @@ export const EditActionBar = styled.div`
   gap: 8px;
   padding: 10px 16px 14px;
   justify-content: flex-end;
-  border-top: 1px solid rgba(96, 192, 240, 0.06);
+  border-top: 1px solid var(--border-accent-subtle, color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent));
   flex-wrap: wrap;
 `;
 
@@ -86,8 +96,8 @@ export const EditCellInput = styled.input`
   max-width: 72px;
   padding: 4px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(96, 192, 240, 0.35);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-accent-medium, color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent));
+  background: var(--input-bg-subtle, color-mix(in srgb, var(--bg-base, #0A0A0F) 75%, transparent));
   color: var(--text-primary, #E0ECF4);
   font-family: 'Fira Code', monospace;
   font-size: 0.8125rem;
@@ -107,8 +117,8 @@ export const EditErrorBar = styled.div`
   margin: 0 16px 10px;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(201, 42, 84, 0.12);
-  border: 1px solid rgba(201, 42, 84, 0.3);
+  background: var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 12%, transparent));
+  border: 1px solid var(--border-danger-soft, color-mix(in srgb, var(--danger, #C92A54) 30%, transparent));
   color: var(--status-danger, #ff8fa3);
   font-family: 'Sora', sans-serif;
   font-size: 12px;
@@ -118,8 +128,8 @@ export const NotesBlock = styled.div`
   margin-top: 10px;
   padding: 10px 12px 10px 14px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 3%, rgba(0, 0, 0, 0.2));
-  border: 1px solid rgba(96, 192, 240, 0.14);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 3%, var(--bg-base, #0A0A0F));
+  border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent));
   border-left: 3px solid var(--accent-gold, #C6A84B);
   font-family: 'Sora', sans-serif;
   font-size: 0.8125rem;
@@ -140,7 +150,7 @@ export const NotesLabel = styled.div`
 
 export const NotesItem = styled.div<{ $muted?: boolean }>`
   color: ${p => p.$muted
-    ? 'var(--text-secondary, rgba(224, 236, 244, 0.55))'
+    ? 'var(--text-secondary, #8BA8C8)'
     : 'var(--text-primary, #E0ECF4)'};
   font-style: ${p => p.$muted ? 'italic' : 'normal'};
   line-height: 1.5;
@@ -178,8 +188,8 @@ export const NotesEditRow = styled.div`
     flex: 1;
     padding: 6px 10px;
     border-radius: 6px;
-    border: 1px solid rgba(96, 192, 240, 0.25);
-    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent));
+    background: var(--input-bg-subtle, color-mix(in srgb, var(--bg-base, #0A0A0F) 75%, transparent));
     color: var(--text-primary, #E0ECF4);
     font-family: 'Sora', sans-serif;
     font-size: 0.75rem;

@@ -10,8 +10,8 @@ export const SummaryBar = styled.div`
   display: flex;
   gap: 16px;
   padding: 12px 24px;
-  background: rgba(96, 192, 240, 0.05);
-  border-bottom: 1px solid rgba(139, 92, 246, 0.1);
+  background: var(--accent-primary-surface-soft, color-mix(in srgb, var(--accent-primary, #60C0F0) 5%, transparent));
+  border-bottom: 1px solid var(--border-accent-soft, color-mix(in srgb, var(--accent-secondary, #8B5CF6) 10%, transparent));
   flex-wrap: wrap;
 `;
 
@@ -33,7 +33,7 @@ export const StatChip = styled.div`
 
 export const TabBar = styled.div`
   display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-subtle, color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent));
   padding: 0 24px;
 `;
 
@@ -66,14 +66,14 @@ export const Tab = styled.button<{ $active: boolean }>`
 `;
 
 export const LoadingText = styled.p`
-  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  color: var(--text-secondary, #8BA8C8);
   margin: 0.5rem 0 0;
 `;
 
 export const ErrorPanel = styled.div`
   padding: 1rem;
-  background: rgba(201, 42, 84, 0.1);
-  border: 1px solid rgba(201, 42, 84, 0.3);
+  background: var(--danger-bg-soft, color-mix(in srgb, var(--danger, #C92A54) 12%, transparent));
+  border: 1px solid var(--border-danger-soft, color-mix(in srgb, var(--danger, #C92A54) 30%, transparent));
   border-radius: 8px;
   color: var(--text-primary, #E0ECF4);
   display: flex;
@@ -84,7 +84,7 @@ export const ErrorPanel = styled.div`
 
 export const RetryButton = styled.button`
   background: transparent;
-  border: 1px solid rgba(201, 42, 84, 0.4);
+  border: 1px solid var(--border-danger-medium, color-mix(in srgb, var(--danger, #C92A54) 40%, transparent));
   color: var(--text-primary, #E0ECF4);
   padding: 0.4rem 0.75rem;
   border-radius: 6px;
