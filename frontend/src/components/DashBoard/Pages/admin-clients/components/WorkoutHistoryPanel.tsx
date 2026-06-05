@@ -36,8 +36,8 @@
 import React, { useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import styled from 'styled-components';
 import {
-  Dumbbell, Clock, Target, Trophy, BarChart3,
-  ChevronDown, ChevronUp, Flame, Activity, Share2,
+  Dumbbell, Clock, Target,
+  ChevronDown, ChevronUp, Share2,
   AlertTriangle,
 } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
@@ -50,7 +50,6 @@ import {
 import { useAuth } from '../../../../../context/AuthContext';
 import {
   formatWorkoutHistoryDate,
-  formatWorkoutHistoryVolume,
 } from './workoutHistoryFormatters';
 import {
   groupSessionLogs,
@@ -70,6 +69,7 @@ import {
 } from './workoutHistoryEditRows';
 import WorkoutHistoryExerciseTable from './WorkoutHistoryExerciseTable';
 import WorkoutHistoryExerciseNotesBlock from './WorkoutHistoryExerciseNotesBlock';
+import WorkoutHistoryPanelHeader, { type WorkoutHistoryPanelTab } from './WorkoutHistoryPanelHeader';
 import WorkoutHistorySessionFooter from './WorkoutHistorySessionFooter';
 import {
   EditErrorBar,
@@ -80,10 +80,6 @@ import {
   ErrorPanel,
   LoadingText,
   RetryButton,
-  StatChip,
-  SummaryBar,
-  Tab,
-  TabBar,
 } from './WorkoutHistoryPanel.layoutStyles';
 import {
   ExerciseTableViewport,
@@ -169,7 +165,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
 }) => {
   const { data, isLoading, error, refetch } = useWorkoutAnalytics(active ? clientId : null);
   const { authAxios } = useAuth();
-  const [activeTab, setActiveTab] = useState<'history' | 'charts' | 'prs'>('history');
+  const [activeTab, setActiveTab] = useState<WorkoutHistoryPanelTab>('history');
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   const [shareSession, setShareSession] = useState<WorkoutSession | null>(null);
   // ── Phase 13.1 inline edit state ──────────────────────────────
@@ -330,38 +326,11 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
         </EmbeddedHeader>
       )}
 
-      {data && (
-        <SummaryBar>
-          <StatChip><Dumbbell size={14} /> <strong>{data.summary.totalWorkouts}</strong> workouts</StatChip>
-          <StatChip><Activity size={14} /> <strong>{data.summary.totalExercises}</strong> exercises</StatChip>
-          <StatChip><Flame size={14} /> <strong>{formatWorkoutHistoryVolume(data.summary.totalVolume)}</strong></StatChip>
-          {data.summary.avgIntensity > 0 && (
-            <StatChip><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</StatChip>
-          )}
-          {data.summary.avgRPE > 0 && (
-            <StatChip>RPE <strong>{data.summary.avgRPE}</strong></StatChip>
-          )}
-          <StatChip><Trophy size={14} /> <strong>{data.personalRecords.length}</strong> PRs</StatChip>
-          {data.summary.longestStreak > 1 && (
-            <StatChip>🔥 <strong>{data.summary.longestStreak}</strong> day streak</StatChip>
-          )}
-        </SummaryBar>
-      )}
-
-      <TabBar role="tablist" aria-label="Workout data views">
-        <Tab type="button" $active={activeTab === 'history'} onClick={() => setActiveTab('history')}
-          role="tab" aria-selected={activeTab === 'history'} aria-controls="tab-history">
-          <Dumbbell size={16} /> History
-        </Tab>
-        <Tab type="button" $active={activeTab === 'charts'} onClick={() => setActiveTab('charts')}
-          role="tab" aria-selected={activeTab === 'charts'} aria-controls="tab-charts">
-          <BarChart3 size={16} /> Charts
-        </Tab>
-        <Tab type="button" $active={activeTab === 'prs'} onClick={() => setActiveTab('prs')}
-          role="tab" aria-selected={activeTab === 'prs'} aria-controls="tab-prs">
-          <Trophy size={16} /> PRs
-        </Tab>
-      </TabBar>
+      <WorkoutHistoryPanelHeader
+        data={data}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       <ScrollBody $variant={variant}>
         {isLoading && (
