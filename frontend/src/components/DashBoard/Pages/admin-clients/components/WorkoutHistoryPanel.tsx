@@ -72,6 +72,17 @@ import {
   updateWorkoutEditField,
   updateWorkoutExerciseNote,
 } from './workoutHistoryEditRows';
+import {
+  EditActionBar,
+  EditBtn,
+  EditCellInput,
+  EditErrorBar,
+  ExerciseNoteEditRow,
+  NotesBlock,
+  NotesEditRow,
+  NotesItem,
+  NotesLabel,
+} from './WorkoutHistoryPanel.styles';
 
 /**
  * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
@@ -460,202 +471,7 @@ const EmbeddedHeader = styled.div`
   }
 `;
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Inline edit styles (Phase 13.1 — ported from
-// WorkoutHistoryTimeline so the canonical surface does not lose
-// set-level edit capability during the consolidation)
-// ─────────────────────────────────────────────────────────────
-
-const EditActionBar = styled.div`
-  display: flex;
-  gap: 8px;
-  padding: 10px 16px 14px;
-  justify-content: flex-end;
-  border-top: 1px solid rgba(96, 192, 240, 0.06);
-  flex-wrap: wrap;
-`;
-
-const EditBtn = styled.button<{ $variant?: 'save' | 'cancel' | 'edit' | 'danger' | 'addSet' }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  min-height: 36px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  ${({ $variant }) => {
-    switch ($variant) {
-      case 'save':
-        return `
-          background: rgba(96, 192, 240, 0.15);
-          border-color: rgba(96, 192, 240, 0.4);
-          color: #60C0F0;
-          &:hover { background: rgba(96, 192, 240, 0.25); }
-        `;
-      case 'cancel':
-        return `
-          background: rgba(224, 236, 244, 0.06);
-          border-color: rgba(224, 236, 244, 0.15);
-          color: #E0ECF4;
-          &:hover { background: rgba(224, 236, 244, 0.12); }
-        `;
-      case 'danger':
-        return `
-          background: rgba(201, 42, 84, 0.12);
-          border-color: rgba(201, 42, 84, 0.3);
-          color: #ff8fa3;
-          min-height: 32px;
-          padding: 4px 8px;
-          &:hover { background: rgba(201, 42, 84, 0.2); }
-        `;
-      case 'addSet':
-        return `
-          background: rgba(139, 92, 246, 0.12);
-          border-color: rgba(139, 92, 246, 0.3);
-          color: #C9B8FF;
-          min-height: 32px;
-          padding: 6px 10px;
-          font-size: 11px;
-          &:hover { background: rgba(139, 92, 246, 0.2); }
-        `;
-      case 'edit':
-      default:
-        return `
-          background: rgba(139, 92, 246, 0.12);
-          border-color: rgba(139, 92, 246, 0.3);
-          color: #C9B8FF;
-          &:hover { background: rgba(139, 92, 246, 0.2); }
-        `;
-    }
-  }}
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
-
-const EditCellInput = styled.input`
-  width: 100%;
-  max-width: 72px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  border: 1px solid rgba(96, 192, 240, 0.35);
-  background: rgba(0, 0, 0, 0.25);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  color-scheme: dark;
-  &:focus-visible {
-    outline: 2px solid #60C0F0;
-    outline-offset: 1px;
-  }
-`;
-
-const EditErrorBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 16px 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(201, 42, 84, 0.12);
-  border: 1px solid rgba(201, 42, 84, 0.3);
-  color: #ff8fa3;
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-`;
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Phase 13.2 notes display styles
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Notes block rendered beneath each exercise group inside an expanded
- * session card. Cinematic treatment with a soft gold left border so the
- * coaching observation reads as premium content, not generic table chrome.
- */
-const NotesBlock = styled.div`
-  margin-top: 10px;
-  padding: 10px 12px 10px 14px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 3%, rgba(0, 0, 0, 0.2));
-  border: 1px solid rgba(96, 192, 240, 0.14);
-  border-left: 3px solid var(--accent-gold, #C6A84B);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8125rem;
-  color: var(--text-primary, #E0ECF4);
-`;
-
-const NotesLabel = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent-gold, #C6A84B);
-  font-weight: 700;
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 6px;
-`;
-
-const NotesItem = styled.div<{ $muted?: boolean }>`
-  color: ${p => p.$muted
-    ? 'var(--text-secondary, rgba(224, 236, 244, 0.55))'
-    : 'var(--text-primary, #E0ECF4)'};
-  font-style: ${p => p.$muted ? 'italic' : 'normal'};
-  line-height: 1.5;
-  padding: 2px 0;
-  display: flex;
-  gap: 8px;
-  strong {
-    color: var(--accent-primary, #60C0F0);
-    font-weight: 600;
-    flex-shrink: 0;
-    min-width: 48px;
-    font-family: 'Fira Code', monospace;
-    font-size: 0.75rem;
-  }
-`;
-
-const NotesEditRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-family: 'Sora', sans-serif;
-  font-size: 0.75rem;
-  strong {
-    color: var(--accent-primary, #60C0F0);
-    font-weight: 600;
-    flex-shrink: 0;
-    min-width: 48px;
-    font-family: 'Fira Code', monospace;
-  }
-  input {
-    flex: 1;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(96, 192, 240, 0.25);
-    background: rgba(0, 0, 0, 0.25);
-    color: var(--text-primary, #E0ECF4);
-    font-family: 'Sora', sans-serif;
-    font-size: 0.75rem;
-    &:focus-visible {
-      outline: 2px solid #60C0F0;
-      outline-offset: 1px;
-    }
-  }
-`;
-
-const ExerciseNoteEditRow = styled(NotesEditRow)`
-  strong {
-    color: var(--accent-gold, #C6A84B);
-    min-width: 72px;
-  }
-`;
+// Edit and notes styles live in WorkoutHistoryPanel.styles.ts.
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Props
