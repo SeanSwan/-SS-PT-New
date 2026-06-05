@@ -1,10 +1,9 @@
 import React, { Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Copy, TrendingUp, TrendingDown, UploadCloud, X, Ruler } from 'lucide-react';
+import { TrendingUp, TrendingDown, X, Ruler } from 'lucide-react';
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
-import GlowButton from '../../../ui/buttons/GlowButton';
 import {
   containerVariants,
   itemVariants,
@@ -20,18 +19,10 @@ import type {
 } from './MeasurementEntry.types';
 import {
   BodyText,
-  ChangeCenter,
-  DarkPanel,
-  FieldLabel,
   FlexRow,
-  FlexStack,
   GlassPanel,
-  HeaderRow,
-  MeasurementGrid,
   PageWrapper,
-  PhotoGrid,
   ResponsiveGrid,
-  SaveWrapper,
   SectionTitle,
   Spinner,
   SubsectionTitle,
@@ -43,18 +34,13 @@ import {
   DropdownItem,
   DropdownList,
   EmbeddedClientBadge,
-  InputAdornmentSpan,
   InputWrapper,
   ListPrimary,
   ListSecondary,
   MeasurementList,
   MeasurementListItem,
-  OutlinedButton,
-  RemovePhotoButton,
   StyledInput,
   StyledLabel,
-  TightSubsectionTitle,
-  UploadZone,
 } from './MeasurementEntry.formStyles';
 import {
   DetailCell,
@@ -79,6 +65,7 @@ import {
 } from './MeasurementEntry.dataUtils';
 import { getMeasurementChange } from './MeasurementEntry.changeUtils';
 import MeasurementEntryProgressCharts from './MeasurementEntryProgressCharts';
+import MeasurementEntryFormPanel from './MeasurementEntryFormPanel';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -451,108 +438,21 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
         (isLoading ? (
           <Spinner />
         ) : (
-          <motion.div variants={itemVariants}>
-            {/* Measurement Fields */}
-            <GlassPanel>
-              <HeaderRow>
-                <TightSubsectionTitle>
-                  New Measurements for {selectedClient.name}
-                </TightSubsectionTitle>
-                <OutlinedButton
-                  onClick={handleCopyLast}
-                  disabled={!latestMeasurement}
-                >
-                  <Copy size={16} />
-                  Copy from Last
-                </OutlinedButton>
-              </HeaderRow>
-
-              <MeasurementGrid>
-                {measurementFields.map(({ key, label }) => (
-                  <DarkPanel key={key}>
-                    <FieldLabel>{label}</FieldLabel>
-                    <FlexStack $gap={12} $field>
-                      {/* Previous value */}
-                      <InputWrapper>
-                        <StyledLabel>Previous</StyledLabel>
-                        <StyledInput
-                          type="text"
-                          value={latestMeasurement?.[key] ?? 'N/A'}
-                          disabled
-                        />
-                      </InputWrapper>
-
-                      {/* New value */}
-                      <InputWrapper>
-                        <StyledLabel>New</StyledLabel>
-                        <StyledInput
-                          type="number"
-                          value={newMeasurement[key] ?? ''}
-                          onChange={(e) => handleInputChange(key, e.target.value)}
-                          $hasAdornment
-                        />
-                        <InputAdornmentSpan>
-                          {key === 'weight'
-                            ? newMeasurement.weightUnit
-                            : key === 'bodyFatPercentage' || key === 'muscleMassPercentage'
-                              ? '%'
-                              : newMeasurement.circumferenceUnit}
-                        </InputAdornmentSpan>
-                      </InputWrapper>
-
-                      {/* Change indicator */}
-                      <ChangeCenter>{renderChange(key)}</ChangeCenter>
-                    </FlexStack>
-                  </DarkPanel>
-                ))}
-              </MeasurementGrid>
-            </GlassPanel>
-
-            {/* Progress Photos */}
-            <GlassPanel>
-              <SubsectionTitle>Progress Photos</SubsectionTitle>
-              <PhotoGrid>
-                {savedPhotoUrls.map((url, index) => (
-                  <PhotoPreviewWrapper key={`saved-${index}`}>
-                    <img src={url} alt={`Saved ${index + 1}`} />
-                    <RemovePhotoButton onClick={() => removeSavedPhoto(index)}>
-                      <X size={16} color="white" />
-                    </RemovePhotoButton>
-                  </PhotoPreviewWrapper>
-                ))}
-                {photoPreviews.map((previewUrl, index) => (
-                  <PhotoPreviewWrapper key={`new-${index}`}>
-                    <img src={previewUrl} alt={`Preview ${index + 1}`} />
-                    <RemovePhotoButton onClick={() => removePhoto(index)}>
-                      <X size={16} color="white" />
-                    </RemovePhotoButton>
-                  </PhotoPreviewWrapper>
-                ))}
-                <UploadZone>
-                  <UploadCloud size={24} />
-                  Upload JPEG
-                  <input
-                    type="file"
-                    hidden
-                    multiple
-                    accept="image/jpeg,.jpg,.jpeg"
-                    onChange={handlePhotoChange}
-                  />
-                </UploadZone>
-              </PhotoGrid>
-            </GlassPanel>
-
-            {/* Save Button */}
-            <SaveWrapper>
-              <GlowButton
-                text="Save Measurements"
-                theme="emerald"
-                leftIcon={<Save />}
-                onClick={handleSave}
-                isLoading={isSaving}
-              />
-            </SaveWrapper>
-          </motion.div>
+          <MeasurementEntryFormPanel
+            selectedClient={selectedClient}
+            latestMeasurement={latestMeasurement}
+            newMeasurement={newMeasurement}
+            savedPhotoUrls={savedPhotoUrls}
+            photoPreviews={photoPreviews}
+            isSaving={isSaving}
+            onCopyLast={handleCopyLast}
+            onInputChange={handleInputChange}
+            onPhotoChange={handlePhotoChange}
+            onRemovePhoto={removePhoto}
+            onRemoveSavedPhoto={removeSavedPhoto}
+            onSave={handleSave}
+            renderChange={renderChange}
+          />
         ))}
 
       {/* ── Recent Measurements Panel ── */}
