@@ -25,7 +25,6 @@ import {
   RADAR_CURRENT_AREA_STYLE,
   RADAR_DEPENDENT_AXIS_STYLE,
   RADAR_FIRST_AREA_STYLE,
-  RADAR_LABEL_MAP,
   TREND_CHART_PADDING,
   VICTORY_TOOLTIP_FLYOUT_STYLE,
   VICTORY_TOOLTIP_STYLE,
@@ -43,9 +42,6 @@ import type {
   MeasurementEntryProps,
   MeasurementMilestone,
   MeasurementStats,
-  RadarDatum,
-  RadarMeasurementKey,
-  RawClient,
   RecentMeasurement,
 } from './MeasurementEntry.types';
 import {
@@ -115,6 +111,12 @@ import {
   HeroMetricValue,
   ProgressGraphSection,
 } from './MeasurementEntry.chartStyles';
+import {
+  buildRadarData,
+  buildTrendData,
+  filterClients,
+  mapRawClients,
+} from './MeasurementEntry.dataUtils';
 
 const BodyMap = React.lazy(() => import('../../../BodyMap'));
 
@@ -162,38 +164,12 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const autocompleteRef = useRef<HTMLDivElement>(null);
 
-  const filteredClients = clients.filter((c) =>
-    c.name.toLowerCase().includes(clientSearch.toLowerCase())
-  );
+  const filteredClients = filterClients(clients, clientSearch);
 
   // ─── Chart Data Memos ──────────────────────────────────────────────────────
-  const trendData = useMemo(() => {
-    if (recentMeasurements.length < 2) return [];
-    return [...recentMeasurements]
-      .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime())
-      .map(m => ({
-        date: new Date(m.measurementDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        weight: m.weight || null,
-        bodyFat: m.bodyFatPercentage || null,
-        waist: m.naturalWaist || null,
-      }));
-  }, [recentMeasurements]);
+  const trendData = useMemo(() => buildTrendData(recentMeasurements), [recentMeasurements]);
 
-  const radarData = useMemo<RadarDatum[]>(() => {
-    if (recentMeasurements.length < 2) return [];
-    const sorted = [...recentMeasurements]
-      .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime());
-    const first = sorted[0];
-    const latest = sorted[sorted.length - 1];
-    const fields: readonly RadarMeasurementKey[] = ['neck', 'shoulders', 'chest', 'rightBicep', 'naturalWaist', 'hips', 'rightThigh', 'rightCalf'];
-    return fields
-      .map(f => ({
-        metric: RADAR_LABEL_MAP[f],
-        first: first[f] || 0,
-        current: latest[f] || 0,
-      }))
-      .filter(d => d.first > 0 || d.current > 0);
-  }, [recentMeasurements]);
+  const radarData = useMemo(() => buildRadarData(recentMeasurements), [recentMeasurements]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -214,10 +190,7 @@ const MeasurementEntry: React.FC<MeasurementEntryProps> = ({
       try {
         const clientsRes = await apiService.get('/api/admin/clients');
         const rawClients = clientsRes.data?.data?.clients || clientsRes.data?.clients || clientsRes.data || [];
-        const mapped = (Array.isArray(rawClients) ? rawClients : []).map((c: RawClient) => ({
-          id: String(c.id),
-          name: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || `Client ${c.id}`,
-        }));
+        const mapped = mapRawClients(rawClients);
         setClients(mapped);
         // Auto-select client from embedded prop or route param
         if (effectiveClientId) {
