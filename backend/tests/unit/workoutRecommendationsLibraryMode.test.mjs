@@ -107,4 +107,20 @@ describe('workoutService.getExerciseRecommendations admin library mode', () => {
       expect.arrayContaining(['lower_body', 'core']),
     );
   });
+
+  it('maps rehab focus to real Exercise columns instead of stale isRehabExercise', async () => {
+    exerciseFindAll.mockResolvedValue([]);
+
+    await workoutService.getExerciseRecommendations('admin-library', {
+      rehabFocus: true,
+      libraryMode: true,
+    });
+
+    const query = exerciseFindAll.mock.calls[0][0];
+    expect(query.where).not.toHaveProperty('isRehabExercise');
+    expect(query.where[Op.or]).toEqual(expect.arrayContaining([
+      { exerciseType: { [Op.in]: ['injury_prevention', 'injury_recovery', 'flexibility', 'stability'] } },
+      { cesProtocolStep: { [Op.ne]: null } },
+    ]));
+  });
 });

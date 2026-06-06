@@ -1006,6 +1006,13 @@ const buildMuscleGroupWhere = ({ muscleGroups = [], muscleGroupNames = [], bodyR
   return filters.length > 0 ? { [Op.or]: filters } : null;
 };
 
+const REHAB_EXERCISE_TYPE_FILTER = [
+  'injury_prevention',
+  'injury_recovery',
+  'flexibility',
+  'stability',
+];
+
 async function getExerciseRecommendations(userId, options = {}) {
   const { ClientProgress, MuscleGroup, Exercise } = getAllModels();
   const {
@@ -1039,7 +1046,10 @@ async function getExerciseRecommendations(userId, options = {}) {
   
   // Filter by rehab focus
   if (rehabFocus) {
-    whereClause.isRehabExercise = true;
+    whereClause[Op.or] = [
+      { exerciseType: { [Op.in]: REHAB_EXERCISE_TYPE_FILTER } },
+      { cesProtocolStep: { [Op.ne]: null } },
+    ];
   }
   
   // Filter by OPT phase

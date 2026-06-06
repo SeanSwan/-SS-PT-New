@@ -52,16 +52,22 @@ vi.mock('jspdf', () => {
   return { jsPDF: MockJsPDF };
 });
 
-vi.mock('jspdf-autotable', () => ({
-  default: (doc: { lastAutoTable?: { finalY: number } }, opts: { head?: string[][]; body?: unknown[][] }) => {
+vi.mock('jspdf-autotable', () => {
+  const recordTable = (doc: { lastAutoTable?: { finalY: number } }, opts: { head?: string[][]; body?: unknown[][] }) => {
     autoTableCalls.push({
       head: opts.head ?? [],
       bodyRows: Array.isArray(opts.body) ? opts.body.length : 0,
     });
     if (doc.lastAutoTable) doc.lastAutoTable.finalY += 10;
     else doc.lastAutoTable = { finalY: 100 };
-  },
-}));
+  };
+
+  return {
+    default: recordTable,
+    autoTable: recordTable,
+    applyPlugin: () => undefined,
+  };
+});
 
 import { exportPopulatedPlanPDF, exportWorkoutLoggerPDF, type PDFPopulatedPlan } from './pdfExportService';
 
