@@ -27,6 +27,9 @@ export interface WorkoutHistoryEntry {
   type: string;
   duration: number;
   intensity: number;
+  exerciseCount?: number;
+  totalVolume?: number;
+  pointsEarned?: number;
   exercises?: string[];
   notes?: string;
 }

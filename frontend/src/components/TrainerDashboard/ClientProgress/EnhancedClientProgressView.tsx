@@ -88,15 +88,21 @@ const EnhancedClientProgressView: React.FC = () => {
         progressMetrics: toProgressMetrics(metrics)
       });
 
-      // Load workout history
-      if (progressInfo?.recentWorkouts) {
-        setWorkoutHistory(progressInfo.recentWorkouts.map((w: any) => ({
-          date: w.date || w.createdAt,
-          type: w.workoutType || 'Workout',
-          duration: toNonNegativeNumber(w.duration),
-          intensity: toNonNegativeNumber(w.intensity)
-        })));
-      }
+      const progressWorkoutHistory = Array.isArray(progressInfo?.progressData?.workoutHistory)
+        ? progressInfo.progressData.workoutHistory
+        : [];
+
+      setWorkoutHistory(progressWorkoutHistory.map((w: any) => ({
+        date: w.date || w.createdAt || '',
+        type: w.workoutType || w.type || 'Workout',
+        duration: toNonNegativeNumber(w.duration),
+        intensity: toNonNegativeNumber(w.intensity),
+        exerciseCount: toNonNegativeNumber(w.exerciseCount),
+        totalVolume: toNonNegativeNumber(w.totalVolume),
+        pointsEarned: toNonNegativeNumber(w.pointsEarned),
+        exercises: toStringList(w.exercises ?? w.exerciseNames),
+        notes: typeof w.notes === 'string' ? w.notes : undefined,
+      })));
     } catch (error) {
       logger.error('Failed to load client progress data:', error);
       // Fallback with client ID visible (no fake names)

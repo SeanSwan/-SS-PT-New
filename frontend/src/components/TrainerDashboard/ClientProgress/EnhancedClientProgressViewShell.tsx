@@ -38,6 +38,7 @@ import {
   ToggleThumb,
   ToggleTrack,
 } from './EnhancedClientProgressView.styles';
+import EnhancedClientProgressWorkoutHistory from './EnhancedClientProgressWorkoutHistory';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -167,6 +168,7 @@ const EnhancedClientProgressViewShell: React.FC<EnhancedClientProgressViewShellP
         </TabBar>
 
         <TabPanel value={tabValue} index={0}>
+          <EnhancedClientProgressWorkoutHistory workouts={workoutHistory} />
           <ClientProgressView />
         </TabPanel>
 
