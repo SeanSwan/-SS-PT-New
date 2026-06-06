@@ -3,6 +3,10 @@ import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
 export type ClientDetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
 export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+export interface ClientScheduleWorkoutLoggerContext {
+  scheduledSessionDate: string | null;
+  scheduledSessionId: string;
+}
 
 const CLIENT_DETAIL_TABS = new Set<ClientDetailTab>([
   'training',
@@ -50,6 +54,29 @@ export const getClientIdFromSearchParams = (searchParams: URLSearchParams): numb
 
   const parsedClientId = Number(rawClientId);
   return Number.isSafeInteger(parsedClientId) ? parsedClientId : null;
+};
+
+const isPositiveIntegerString = (value: string | null): value is string =>
+  Boolean(value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)));
+
+const safeRouteText = (value: string | null): string | null => {
+  const trimmed = value?.trim();
+  if (!trimmed || /[\r\n\t\\]/.test(trimmed)) return null;
+  return trimmed;
+};
+
+export const getClientScheduleWorkoutLoggerContextFromSearchParams = (
+  searchParams: URLSearchParams,
+): ClientScheduleWorkoutLoggerContext | null => {
+  if (getClientTrainingSectionFromSearchParams(searchParams) !== 'logger') return null;
+
+  const scheduledSessionId = searchParams.get('sessionId');
+  if (!isPositiveIntegerString(scheduledSessionId)) return null;
+
+  return {
+    scheduledSessionId,
+    scheduledSessionDate: safeRouteText(searchParams.get('sessionDate')),
+  };
 };
 
 const clampPercent = (value: unknown): number | undefined => {

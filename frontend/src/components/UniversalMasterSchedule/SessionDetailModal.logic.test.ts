@@ -33,8 +33,10 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     const route = buildScheduleWorkoutLoggerRoute('admin', baseSession);
     const url = new URL(route, 'https://sswanstudios.com');
 
-    expect(url.pathname).toBe('/dashboard/admin/log-workout');
+    expect(url.pathname).toBe('/dashboard/admin/client-management');
     expect(url.searchParams.get('clientId')).toBe('155');
+    expect(url.searchParams.get('tab')).toBe('training');
+    expect(url.searchParams.get('trainingSection')).toBe('logger');
     expect(url.searchParams.get('sessionId')).toBe('72');
     expect(url.searchParams.get('sessionDate')).toBe('2026-05-30T16:00:00.000Z');
     expect(url.searchParams.get('source')).toBe('master-schedule');

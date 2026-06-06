@@ -10,12 +10,18 @@ vi.mock('./clients-team/tabs/TrainingTabContent', () => ({
   default: ({
     clientName,
     onSectionChange,
+    scheduledSessionDate,
+    scheduledSessionId,
   }: {
     clientName?: string;
     onSectionChange?: (section: string) => void;
+    scheduledSessionDate?: string | null;
+    scheduledSessionId?: string | null;
   }) => (
     <div>
       <div data-testid="training-name">{clientName}</div>
+      <div data-testid="training-scheduled-session-id">{scheduledSessionId ?? ''}</div>
+      <div data-testid="training-scheduled-session-date">{scheduledSessionDate ?? ''}</div>
       <button type="button" onClick={() => onSectionChange?.('logger')}>
         Mock logger section
       </button>
@@ -63,6 +69,15 @@ const Harness = ({ client }: { client: ClientOption }) => {
       {renderers.renderSettings(client.id)}
     </>
   );
+};
+
+const ScheduledHarness = ({ client }: { client: ClientOption }) => {
+  const renderers = useClientsWorkspaceTabRenderers(client, 'logger', undefined, {
+    scheduledSessionId: '72',
+    scheduledSessionDate: '2026-06-07',
+  });
+
+  return <>{renderers.renderTraining(client.id)}</>;
 };
 
 const LocationProbe = () => {
@@ -120,6 +135,34 @@ describe('ClientsWorkspaceTabs identity fallback', () => {
     await user.click(screen.getByRole('button', { name: /mock history section/i }));
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=history'
+    );
+  });
+
+  it('passes scheduled session context into the embedded Client Hub logger route', async () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07']}>
+        <ScheduledHarness client={blankNameClient} />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByTestId('training-scheduled-session-id')).toHaveTextContent('72');
+    expect(await screen.findByTestId('training-scheduled-session-date')).toHaveTextContent('2026-06-07');
+  });
+
+  it('preserves scheduled session context when the logger tab rewrites route state', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07']}>
+        <ScheduledHarness client={blankNameClient} />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole('button', { name: /mock logger section/i }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&loadPlan=today&sessionId=72&sessionDate=2026-06-07'
     );
   });
 });

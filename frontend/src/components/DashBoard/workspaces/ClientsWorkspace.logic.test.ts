@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   getClientDetailTabFromSearchParams,
+  getClientScheduleWorkoutLoggerContextFromSearchParams,
   getClientTrainingSectionFromSearchParams,
 } from './ClientsWorkspace.logic';
 import {
@@ -39,6 +40,29 @@ describe('ClientsWorkspace route state parsing', () => {
     const params = new URLSearchParams('clientId=61&tab=javascript:alert(1)');
 
     expect(getClientDetailTabFromSearchParams(params)).toBeNull();
+  });
+
+  it('extracts scheduled workout logger context only for the training logger route', () => {
+    const params = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07'
+    );
+
+    expect(getClientScheduleWorkoutLoggerContextFromSearchParams(params)).toEqual({
+      scheduledSessionId: '72',
+      scheduledSessionDate: '2026-06-07',
+    });
+  });
+
+  it('rejects invalid scheduled workout logger context', () => {
+    const wrongSection = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=history&sessionId=72&sessionDate=2026-06-07'
+    );
+    const unsafeSession = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&sessionId=javascript:alert(1)&sessionDate=2026-06-07'
+    );
+
+    expect(getClientScheduleWorkoutLoggerContextFromSearchParams(wrongSection)).toBeNull();
+    expect(getClientScheduleWorkoutLoggerContextFromSearchParams(unsafeSession)).toBeNull();
   });
 });
 

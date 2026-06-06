@@ -68,6 +68,8 @@ interface TrainingTabContentProps {
   initialSection?: TrainingSection;
   onSectionChange?: (section: TrainingSection) => void;
   onOpenProgress?: () => void;
+  scheduledSessionDate?: string | null;
+  scheduledSessionId?: string | null;
 }
 
 const SECTIONS: {
@@ -109,6 +111,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   initialSection,
   onSectionChange,
   onOpenProgress,
+  scheduledSessionDate = null,
+  scheduledSessionId = null,
 }) => {
   const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
   const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
@@ -164,6 +168,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
             <WorkoutLogger
               clientId={safeClientId}
               loadTodayPlanSignal={loadTodayPlanSignal}
+              scheduledSessionDate={scheduledSessionDate}
+              scheduledSessionId={scheduledSessionId}
               onComplete={(savedWorkout) => {
                 setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
                 handleSectionChange('history');

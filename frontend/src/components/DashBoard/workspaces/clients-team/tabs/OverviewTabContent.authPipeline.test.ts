@@ -22,7 +22,7 @@ describe('OverviewTabContent auth pipeline', () => {
   it('is mounted through the canonical admin client-management workspace overview tab', () => {
     expect(layoutSource).toMatch(/path: '\/client-management', component: React\.lazy\(\(\) => import\('\.\/workspaces\/ClientsWorkspace'\)\)/);
     expect(clientsWorkspaceSource).toMatch(
-      /useClientsWorkspaceTabRenderers\(selectedClient, getClientTrainingSectionFromSearchParams\(searchParams\)\)/,
+      /useClientsWorkspaceTabRenderers\(\s*selectedClient,\s*getClientTrainingSectionFromSearchParams\(searchParams\),\s*handleViewProgress,\s*scheduleLoggerContext\s*\)/,
     );
     expect(clientsWorkspaceSource).toMatch(/renderOverview=\{renderOverview\}/);
     expect(clientsWorkspaceTabsSource).toMatch(/const OverviewTabContent = lazy\(\(\) => import\('\.\/clients-team\/tabs\/OverviewTabContent'\)\)/);

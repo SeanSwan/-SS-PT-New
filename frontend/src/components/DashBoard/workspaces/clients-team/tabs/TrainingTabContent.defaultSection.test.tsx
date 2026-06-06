@@ -49,14 +49,20 @@ vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({
     loadTodayPlanSignal,
     onComplete,
+    scheduledSessionDate,
+    scheduledSessionId,
   }: {
     loadTodayPlanSignal?: number;
     onComplete: (formData: unknown) => void;
+    scheduledSessionDate?: string | null;
+    scheduledSessionId?: string | null;
   }) => (
     <button
       type="button"
       data-testid="workout-logger"
       data-load-today-plan-signal={String(loadTodayPlanSignal ?? 0)}
+      data-scheduled-session-date={scheduledSessionDate ?? ''}
+      data-scheduled-session-id={scheduledSessionId ?? ''}
       onClick={() => onComplete({ id: 'fixture-form' })}
     >
       Complete Mock Workout
@@ -169,6 +175,26 @@ describe('TrainingTabContent daily workflow default', () => {
     expect(await screen.findByTestId('workout-logger')).toHaveAttribute(
       'data-load-today-plan-signal',
       '1'
+    );
+  });
+
+  it('forwards scheduled session context into the embedded workout logger', async () => {
+    render(
+      <TrainingTabContent
+        clientId={424242}
+        clientName="Fixture Client"
+        scheduledSessionDate="2026-06-07"
+        scheduledSessionId="72"
+      />
+    );
+
+    expect(await screen.findByTestId('workout-logger')).toHaveAttribute(
+      'data-scheduled-session-id',
+      '72'
+    );
+    expect(screen.getByTestId('workout-logger')).toHaveAttribute(
+      'data-scheduled-session-date',
+      '2026-06-07'
     );
   });
 

@@ -13,6 +13,7 @@ import {
   getClientDetailTabFromSearchParams,
   getClientHubIntent,
   getClientIdFromSearchParams,
+  getClientScheduleWorkoutLoggerContextFromSearchParams,
   getClientTrainingSectionFromSearchParams,
   type ClientDetailTab,
   type ClientHubIntent,
@@ -49,6 +50,10 @@ const ClientsWorkspace: React.FC = () => {
   const urlClientId = getClientIdFromSearchParams(searchParams);
   const clientHubIntent = getClientHubIntent(searchParams);
   const urlDetailTab = getClientDetailTabFromSearchParams(searchParams);
+  const scheduleLoggerContext = useMemo(
+    () => getClientScheduleWorkoutLoggerContextFromSearchParams(searchParams),
+    [searchParams]
+  );
 
   const navigateClientDailyRoute = useCallback((route: string | null) => {
     if (!route) {
@@ -203,7 +208,8 @@ const ClientsWorkspace: React.FC = () => {
   } = useClientsWorkspaceTabRenderers(
     selectedClient,
     getClientTrainingSectionFromSearchParams(searchParams),
-    handleViewProgress
+    handleViewProgress,
+    scheduleLoggerContext
   );
 
   return (

@@ -6,7 +6,10 @@
 import React, { lazy, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LoadingPulse } from './ClientsWorkspace.styles';
-import type { ClientTrainingSection } from './ClientsWorkspace.logic';
+import type {
+  ClientScheduleWorkoutLoggerContext,
+  ClientTrainingSection,
+} from './ClientsWorkspace.logic';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import { getClientDisplayName } from './clients-team/clientIdentity';
 
@@ -23,18 +26,28 @@ export const useClientsWorkspaceTabRenderers = (
   selectedClient: ClientOption | null,
   initialTrainingSection: ClientTrainingSection | null = null,
   onOpenProgress?: () => void,
+  scheduleLoggerContext: ClientScheduleWorkoutLoggerContext | null = null,
 ) => {
   const [, setSearchParams] = useSearchParams();
 
   const writeTrainingSectionRoute = useCallback((section: ClientTrainingSection) => {
     if (!selectedClient?.id) return;
-    setSearchParams({
+    const nextParams: Record<string, string> = {
       clientId: String(selectedClient.id),
       tab: 'training',
       trainingSection: section,
       ...(section === 'logger' ? { loadPlan: 'today' } : {}),
-    });
-  }, [selectedClient?.id, setSearchParams]);
+    };
+
+    if (section === 'logger' && scheduleLoggerContext) {
+      nextParams.sessionId = scheduleLoggerContext.scheduledSessionId;
+      if (scheduleLoggerContext.scheduledSessionDate) {
+        nextParams.sessionDate = scheduleLoggerContext.scheduledSessionDate;
+      }
+    }
+
+    setSearchParams(nextParams);
+  }, [scheduleLoggerContext, selectedClient?.id, setSearchParams]);
 
   const renderTraining = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading training...</LoadingPulse>}>
@@ -44,9 +57,11 @@ export const useClientsWorkspaceTabRenderers = (
         initialSection={initialTrainingSection ?? undefined}
         onSectionChange={writeTrainingSectionRoute}
         onOpenProgress={onOpenProgress}
+        scheduledSessionDate={scheduleLoggerContext?.scheduledSessionDate ?? null}
+        scheduledSessionId={scheduleLoggerContext?.scheduledSessionId ?? null}
       />
     </Suspense>
-  ), [initialTrainingSection, onOpenProgress, selectedClient, writeTrainingSectionRoute]);
+  ), [initialTrainingSection, onOpenProgress, scheduleLoggerContext, selectedClient, writeTrainingSectionRoute]);
 
   const renderProgress = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>

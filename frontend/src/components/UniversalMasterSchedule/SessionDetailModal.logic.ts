@@ -25,7 +25,6 @@ export const buildScheduleWorkoutLoggerRoute = (
   mode: SessionDetailModalMode,
   session: SessionDetail
 ) => {
-  const dashPath = mode === 'client' ? 'client' : mode;
   const params = new URLSearchParams();
   params.set('clientId', String(session.userId));
   params.set('sessionId', String(session.id));
@@ -34,6 +33,13 @@ export const buildScheduleWorkoutLoggerRoute = (
   params.set('returnTo', buildScheduleReturnRoute(mode));
   params.set('loadPlan', 'today');
 
+  if (mode === 'admin') {
+    params.set('tab', 'training');
+    params.set('trainingSection', 'logger');
+    return `/dashboard/admin/client-management?${params.toString()}`;
+  }
+
+  const dashPath = mode === 'client' ? 'client' : mode;
   return `/dashboard/${dashPath}/log-workout?${params.toString()}`;
 };
 
