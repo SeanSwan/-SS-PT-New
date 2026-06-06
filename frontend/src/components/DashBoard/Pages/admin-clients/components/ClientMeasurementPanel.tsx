@@ -15,9 +15,13 @@ import styled, { keyframes } from 'styled-components';
 import { X, Ruler, TrendingDown, TrendingUp, Minus, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
-import { getMeasurementColor, getCheckStatus } from '../../../../../utils/measurementStatus';
+import { getCheckStatus } from '../../../../../utils/measurementStatus';
 
-const SWAN_CYAN = '#8B5CF6';
+const SWAN_ACCENT = 'var(--accent-primary, #60C0F0)';
+const SWAN_TEXT = 'var(--text-primary, #E0ECF4)';
+const SWAN_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent))';
+const SWAN_SURFACE = 'var(--bg-elevated, #141419)';
+const SWAN_BASE = 'var(--bg-base, #0A0A0F)';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -33,20 +37,20 @@ const ModalOverlay = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, ${SWAN_BASE} 72%, transparent);
   backdrop-filter: blur(4px);
 `;
 
 const ModalPanel = styled.div`
-  background: rgba(29, 31, 43, 0.98);
+  background: color-mix(in srgb, ${SWAN_SURFACE} 96%, ${SWAN_BASE});
   border-radius: 12px;
   max-width: 720px;
   width: 95%;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent);
+  box-shadow: 0 25px 50px color-mix(in srgb, ${SWAN_BASE} 50%, transparent);
   backdrop-filter: blur(12px);
 `;
 
@@ -55,13 +59,13 @@ const ModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: #252742;
+  background: color-mix(in srgb, var(--surface-elevated, #003080) 28%, ${SWAN_SURFACE});
   border-radius: 12px 12px 0 0;
   flex-shrink: 0;
 `;
 
 const ModalTitle = styled.h2`
-  color: ${SWAN_CYAN};
+  color: ${SWAN_ACCENT};
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -79,10 +83,10 @@ const CloseButton = styled.button`
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #e2e8f0;
+  color: ${SWAN_TEXT};
   cursor: pointer;
   transition: background 0.15s ease;
-  &:hover { background: rgba(255, 255, 255, 0.1); }
+  &:hover { background: color-mix(in srgb, ${SWAN_TEXT} 10%, transparent); }
 `;
 
 const ModalBody = styled.div`
@@ -99,23 +103,31 @@ const SummaryGrid = styled.div`
 `;
 
 const SummaryCard = styled.div`
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(14, 165, 233, 0.15);
+  background: color-mix(in srgb, ${SWAN_SURFACE} 88%, ${SWAN_BASE});
+  border: 1px solid color-mix(in srgb, ${SWAN_ACCENT} 15%, transparent);
   border-radius: 10px;
   padding: 14px;
   text-align: center;
 `;
 
 const SummaryLabel = styled.div`
-  color: #94a3b8;
+  color: ${SWAN_MUTED};
   font-size: 0.75rem;
   margin-bottom: 4px;
 `;
 
 const SummaryValue = styled.div<{ $color?: string }>`
-  color: ${({ $color }) => $color || '#e2e8f0'};
+  color: ${({ $color }) => $color || SWAN_TEXT};
   font-size: 1.5rem;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const UnitLabel = styled.span`
+  color: ${SWAN_MUTED};
+  font-size: 0.75rem;
 `;
 
 const TrendIcon = styled.span<{ $color: string }>`
@@ -136,13 +148,13 @@ const HistoryItem = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, ${SWAN_SURFACE} 72%, transparent);
+  border: 1px solid color-mix(in srgb, ${SWAN_TEXT} 6%, transparent);
   border-radius: 8px;
 `;
 
 const HistoryDate = styled.div`
-  color: #e2e8f0;
+  color: ${SWAN_TEXT};
   font-weight: 600;
   font-size: 0.875rem;
 `;
@@ -150,7 +162,7 @@ const HistoryDate = styled.div`
 const HistoryMetrics = styled.div`
   display: flex;
   gap: 16px;
-  color: #94a3b8;
+  color: ${SWAN_MUTED};
   font-size: 0.8rem;
 `;
 
@@ -171,15 +183,15 @@ const StatusDot = styled.span<{ $color: string }>`
 
 const EmptyMsg = styled.div`
   text-align: center;
-  color: #94a3b8;
+  color: ${SWAN_MUTED};
   padding: 32px 0;
 `;
 
 const Spinner = styled.div`
   width: 24px;
   height: 24px;
-  border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #60C0F0;
+  border: 3px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);
+  border-top-color: ${SWAN_ACCENT};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
   margin: 32px auto;
@@ -189,7 +201,7 @@ const ActionBar = styled.div`
   display: flex;
   justify-content: flex-end;
   padding: 12px 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid color-mix(in srgb, ${SWAN_TEXT} 8%, transparent);
   flex-shrink: 0;
 `;
 
@@ -201,16 +213,16 @@ const PrimaryButton = styled.button`
   padding: 10px 20px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #60C0F0, #00c8ff);
-  color: #002060;
+  background: linear-gradient(135deg, var(--btn-primary-bg, #002060), var(--accent-secondary, #8B5CF6));
+  color: var(--text-primary, #E0ECF4);
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
   transition: all 0.2s ease;
   &:hover {
-    background: linear-gradient(135deg, #00e6ff, #00b3ff);
+    background: linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-primary, #60C0F0));
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 30%, transparent);
   }
 `;
 
@@ -274,9 +286,9 @@ const ClientMeasurementPanel: React.FC<Props> = ({ clientId, clientName, onClose
   const TrendArrow = ({ field }: { field: keyof Measurement }) => {
     const trend = getTrend(field);
     if (!trend) return null;
-    if (trend === 'down') return <TrendIcon $color="#22c55e"><TrendingDown size={14} /></TrendIcon>;
-    if (trend === 'up') return <TrendIcon $color="#ef4444"><TrendingUp size={14} /></TrendIcon>;
-    return <TrendIcon $color="#eab308"><Minus size={14} /></TrendIcon>;
+    if (trend === 'down') return <TrendIcon $color="var(--success, #22C55E)"><TrendingDown size={14} /></TrendIcon>;
+    if (trend === 'up') return <TrendIcon $color="var(--danger, #EF4444)"><TrendingUp size={14} /></TrendIcon>;
+    return <TrendIcon $color="var(--warning, #C6A84B)"><Minus size={14} /></TrendIcon>;
   };
 
   const scheduleStatus = latest
@@ -310,7 +322,7 @@ const ClientMeasurementPanel: React.FC<Props> = ({ clientId, clientName, onClose
                   <SummaryLabel>Weight</SummaryLabel>
                   <SummaryValue>
                     {latest?.weight ?? '—'}
-                    {latest?.weight && <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}> lbs</span>}
+                    {latest?.weight && <UnitLabel>lbs</UnitLabel>}
                     <TrendArrow field="weight" />
                   </SummaryValue>
                 </SummaryCard>
