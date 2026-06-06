@@ -1,12 +1,8 @@
 /**
  * COMPONENT: WorkoutPlannerPage
- * PURPOSE: Admin/trainer NASM OPT workout planning with rolodex, builder,
- * teach mode, AI generation, saved plans, and Client Hub return flows.
- *
- * Runtime flow: dashboard route -> selected client -> AI/manual plan build ->
- * save/activate -> saved-plan library -> optional return to Client Hub.
- * Keep this page behavior-focused; extract styles/helpers/components when it
- * approaches the file cap.
+ * PURPOSE: Admin/trainer workout planning orchestration.
+ * FLOW: route client -> AI/manual plan -> save/activate -> saved-plan vault.
+ * Keep rendering, styles, helpers, and network actions extracted.
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -53,15 +49,9 @@ const WorkoutPlannerPage: React.FC = () => {
   const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
   const [selectedMesoDay, setSelectedMesoDay] = useState(1);
-
-  // ── UI State ──
   const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
-
-  const phase = useMemo(
-    () => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1],
-    [phaseNumber]
-  );
+  const phase = useMemo(() => OPT_PHASES.find(p => p.phase === phaseNumber) || OPT_PHASES[1], [phaseNumber]);
 
   const {
     selectedExercise,
@@ -83,10 +73,7 @@ const WorkoutPlannerPage: React.FC = () => {
     setEquipmentFilter,
     setImpactFilter,
     clearSearchForBrowse, clearRolodexFilters,
-  } = useWorkoutPlannerRolodexState({
-    phase,
-    setPlanExercises,
-  });
+  } = useWorkoutPlannerRolodexState({ phase, setPlanExercises });
 
   const {
     loadedPlanId,
@@ -166,13 +153,8 @@ const WorkoutPlannerPage: React.FC = () => {
     resetLoadedPlanState,
   });
 
-  const requestAIGenerateForSelectedClient = useCallback(() => {
-    void handleAIGenerate(selectedClientId);
-  }, [handleAIGenerate, selectedClientId]);
-
-  const requestPlanGenerateForSelectedClient = useCallback(() => {
-    void handleGeneratePlan(selectedClientId);
-  }, [handleGeneratePlan, selectedClientId]);
+  const requestAIGenerateForSelectedClient = useCallback(() => { void handleAIGenerate(selectedClientId); }, [handleAIGenerate, selectedClientId]);
+  const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
 
   const {
     savedPlans,
@@ -216,6 +198,8 @@ const WorkoutPlannerPage: React.FC = () => {
     planExercisesLength: planExercises.length,
     hasGeneratedHorizonPlan,
     loadedPlanId,
+    planDuration,
+    userRole: user?.role,
     phaseName: phase.name,
     phaseNumber,
     categoryLabel,

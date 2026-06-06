@@ -18,7 +18,7 @@ describe('WorkoutPlanner save action extraction', () => {
     expect(pageSource).not.toContain('const handleUpdateLoaded = useCallback');
     expect(pageSource).not.toContain('const handleUpdateAndActivate = useCallback');
     expect(hookSource).toContain('/api/workout-plans');
-    expect(hookSource).toContain('/api/workout-plans/${loadedPlanId}/activate');
+    expect(hookSource).toContain('/api/workout-plans/${planId}/activate');
     expect(hookSource).toContain('setSavedSnapshot');
     expect(hookSource).toContain('fetchSavedPlans');
     expect(hookSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);

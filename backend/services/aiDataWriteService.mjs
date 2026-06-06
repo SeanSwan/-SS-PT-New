@@ -15,6 +15,26 @@
  *   - save_workout_plan: Create a multi-week workout program from AI-generated plan
  */
 import logger from '../utils/logger.mjs';
+import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
+
+const DURATION_HORIZONS = PLAN_HORIZONS.filter((slot) => slot.key !== 'one_day');
+
+function inferAiPlanHorizonKey(durationWeeks) {
+  const exact = DURATION_HORIZONS.find((slot) => slot.durationWeeks === durationWeeks);
+  if (exact) return exact.key;
+
+  return DURATION_HORIZONS.reduce((closest, slot) => {
+    const score = Math.abs(slot.durationWeeks - durationWeeks);
+    const closestScore = Math.abs(closest.durationWeeks - durationWeeks);
+    return score < closestScore ? slot : closest;
+  }, DURATION_HORIZONS[0]).key;
+}
+
+function clampPlanDurationWeeks(value, fallback = 4) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(52, parsed));
+}
 
 /**
  * Process an array of data update operations from the AI.
@@ -405,9 +425,20 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
   const title = String(data.title).slice(0, 255);
   const description = data.description ? String(data.description).slice(0, 5000) : null;
   const nasmPhase = data.nasmPhase ? Math.max(1, Math.min(5, parseInt(data.nasmPhase))) : null;
-  const durationWeeks = data.durationWeeks ? Math.max(1, Math.min(52, parseInt(data.durationWeeks))) : 4;
+  const durationWeeks = clampPlanDurationWeeks(data.durationWeeks);
   const startDate = data.startDate || null;
   const endDate = data.endDate || null;
+  const metadata = data.metadata && typeof data.metadata === 'object' && !Array.isArray(data.metadata)
+    ? { ...data.metadata }
+    : {};
+
+  if (!metadata.planHorizon && !metadata.horizonKey && !metadata.planDurationKey) {
+    const horizonKey = inferAiPlanHorizonKey(durationWeeks);
+    metadata.planHorizon = horizonKey;
+    metadata.horizonKey = horizonKey;
+    metadata.planDurationKey = horizonKey;
+  }
+  metadata.planSource = metadata.planSource || 'swan_coach_ai';
 
   // Validate planData structure if provided
   let planData = { weeks: [] };
@@ -432,15 +463,15 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     durationWeeks,
     planData: JSON.stringify(planData),
     createdBy: 'ai',
-    metadata: JSON.stringify(data.metadata || {}),
+    metadata: JSON.stringify(metadata),
   };
 
   await sequelize.query(
-    `INSERT INTO workout_plans (user_id, trainer_id, title, description,
-                                nasm_phase, start_date, end_date, duration_weeks,
+    `INSERT INTO workout_plans ("userId", trainer_id, title, description,
+                                nasm_phase, start_date, end_date, "durationWeeks",
                                 status, current_week, current_day,
                                 plan_data, progress_notes, created_by, metadata,
-                                created_at, updated_at)
+                                "createdAt", "updatedAt")
      VALUES (:clientId, :trainerId, :title, :description,
              :nasmPhase, :startDate, :endDate, :durationWeeks,
              'active', 1, 1,

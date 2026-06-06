@@ -82,10 +82,10 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
               selectedClient?.clientSource,
             );
           }}
-          aria-label="Export this plan as a branded PDF"
+          aria-label="Download a branded PDF preview of this generated plan"
         >
           <Download size={14} />
-          Export PDF
+          Download PDF Preview
         </ExportPdfBtn>
       </MesocycleSectionTitle>
 
