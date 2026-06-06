@@ -8,10 +8,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockTriggerSequence = vi.fn().mockResolvedValue({ success: true });
+const mockTransaction = {
+  LOCK: { UPDATE: 'UPDATE' },
+  commit: vi.fn().mockResolvedValue(undefined),
+  rollback: vi.fn().mockResolvedValue(undefined)
+};
 
 vi.mock('../../models/Session.mjs', () => ({ default: {} }));
 vi.mock('../../models/User.mjs', () => ({ default: {} }));
-vi.mock('../../database.mjs', () => ({ default: { transaction: vi.fn() } }));
+vi.mock('../../database.mjs', () => ({
+  default: {
+    transaction: vi.fn().mockResolvedValue(mockTransaction)
+  }
+}));
 vi.mock('../../services/automationService.mjs', () => ({
   triggerSequence: mockTriggerSequence
 }));
@@ -111,6 +120,8 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
     service = new UnifiedSessionService();
     sessionModel = { findByPk: vi.fn() };
     service._Session = sessionModel;
@@ -141,7 +152,16 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
     expect(session.attendanceRecordedAt.getTime()).toBeLessThanOrEqual(afterComplete);
     expect(session.notes).toBe('strong session');
     expect(session.rating).toBe(5);
-    expect(session.save).toHaveBeenCalledTimes(1);
+    expect(sessionModel.findByPk).toHaveBeenCalledWith(
+      77,
+      expect.objectContaining({
+        transaction: mockTransaction,
+        lock: mockTransaction.LOCK.UPDATE
+      })
+    );
+    expect(session.save).toHaveBeenCalledWith({ transaction: mockTransaction });
+    expect(mockTransaction.commit).toHaveBeenCalledTimes(1);
+    expect(mockTransaction.rollback).not.toHaveBeenCalled();
     expect(service.sendCompletionNotifications).toHaveBeenCalledWith(session);
     expect(result.session).toMatchObject({
       id: '77',

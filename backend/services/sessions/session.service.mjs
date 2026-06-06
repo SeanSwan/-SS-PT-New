@@ -1847,7 +1847,11 @@ class UnifiedSessionService {
       throw new Error('Admin or trainer privileges required to complete sessions');
     }
 
+    let transaction;
+
     try {
+      transaction = await sequelize.transaction();
+
       const normalizedData = typeof completionData === 'string'
         ? { notes: completionData }
         : (completionData || {});
@@ -1873,7 +1877,9 @@ class UnifiedSessionService {
             as: 'trainer',
             attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
           }
-        ]
+        ],
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
       
       if (!session) {
@@ -1942,7 +1948,8 @@ class UnifiedSessionService {
         session.duration = Math.round(Number(actualDuration));
       }
       
-      await session.save();
+      await session.save({ transaction });
+      await transaction.commit();
 
       // Send completion notifications (async)
       this.sendCompletionNotifications(session);
@@ -1985,6 +1992,9 @@ class UnifiedSessionService {
         session: formattedSession
       };
     } catch (error) {
+      if (transaction && !transaction.finished) {
+        await transaction.rollback();
+      }
       logger.error(`[UnifiedSessionService] Error completing session ${sessionId}:`, error);
       throw new Error(`Failed to complete session: ${error.message}`);
     }
