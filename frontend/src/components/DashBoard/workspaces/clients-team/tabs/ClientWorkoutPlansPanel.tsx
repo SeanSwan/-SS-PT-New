@@ -14,21 +14,18 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { CheckCircle2, ClipboardList, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ClipboardList, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
+import {
+  createProtectedPdfObjectUrl,
+  formatClientPlanUpdated,
+  normalizeClientWorkoutPlan,
+  type ClientPlanSummary,
+  type PlanPdfAuthClient,
+} from './ClientWorkoutPlansPanel.logic';
 
 interface ClientWorkoutPlansPanelProps { clientId: number | string; clientName?: string; }
-
-interface PlanSummary {
-  id: string;
-  title: string;
-  status: string;
-  goal: string;
-  nasmPhase?: number;
-  durationWeeks?: number;
-  updatedAt?: string;
-}
 
 const Panel = styled.section`
   display: grid;
@@ -156,6 +153,27 @@ const Meta = styled.div`
   font-size: 12px;
 `;
 
+const PdfButton = styled.button`
+  min-height: 44px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+  }
+`;
+
 const StateCard = styled.div`
   min-height: 112px;
   display: grid;
@@ -168,52 +186,21 @@ const StateCard = styled.div`
   text-align: center;
 `;
 
-const normalizePlan = (plan: Record<string, unknown>): PlanSummary | null => {
-  const rawId = plan.id;
-  const id = typeof rawId === 'number' || typeof rawId === 'string' ? String(rawId) : '';
-  const title = String(plan.title ?? plan.name ?? '').trim();
-  if (!id || !title) return null;
-  const metadata = plan.metadata && typeof plan.metadata === 'object'
-    ? plan.metadata as Record<string, unknown>
-    : {};
-  const planData = plan.planData && typeof plan.planData === 'object'
-    ? plan.planData as Record<string, unknown>
-    : {};
-  const planSummary = planData.planSummary && typeof planData.planSummary === 'object'
-    ? planData.planSummary as Record<string, unknown>
-    : {};
-
-  return {
-    id,
-    title,
-    status: String(plan.status ?? 'draft'),
-    goal: String(plan.goal ?? metadata.goal ?? planData.goal ?? 'general').replace(/_/g, ' '),
-    nasmPhase: typeof plan.nasmPhase === 'number' ? plan.nasmPhase : undefined,
-    durationWeeks: typeof plan.durationWeeks === 'number' ? plan.durationWeeks : typeof planSummary.durationWeeks === 'number' ? planSummary.durationWeeks : undefined,
-    updatedAt: typeof plan.updatedAt === 'string' ? plan.updatedAt : undefined,
-  };
-};
-
-const formatUpdated = (value?: string) => {
-  if (!value) return 'Updated date unavailable';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Updated date unavailable';
-  return `Updated ${parsed.toLocaleDateString()}`;
-};
-
 const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clientId, clientName }) => {
   const { authAxios } = useAuth() as {
     authAxios?: {
       get: (
         url: string,
-        config?: { params?: Record<string, number> },
+        config?: { params?: Record<string, number>; responseType?: 'blob' },
       ) => Promise<{ data?: { plans?: unknown[] } }>;
     };
   };
   const safeClientId = getNumericClientId(clientId);
-  const [plans, setPlans] = useState<PlanSummary[]>([]);
+  const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
 
@@ -221,6 +208,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
     if (!authAxios || safeClientId === null) return;
     setLoading(true);
     setError(null);
+    setPdfError(null);
     try {
       const response = await authAxios.get('/api/workout/plans', {
         params: { clientId: safeClientId },
@@ -229,10 +217,10 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
         ? response.data.plans
             .map((plan: unknown) => (
               plan && typeof plan === 'object'
-                ? normalizePlan(plan as Record<string, unknown>)
+                ? normalizeClientWorkoutPlan(plan as Record<string, unknown>)
                 : null
             ))
-            .filter((plan: PlanSummary | null): plan is PlanSummary => plan !== null)
+            .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null)
         : [];
       setPlans(nextPlans);
     } catch {
@@ -246,6 +234,21 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
   useEffect(() => {
     loadPlans();
   }, [loadPlans]);
+
+  const openPlanPdf = useCallback(async (plan: ClientPlanSummary) => {
+    if (!authAxios || !plan.pdfFile) return;
+    setOpeningPdfId(plan.id);
+    setPdfError(null);
+    try {
+      const objectUrl = await createProtectedPdfObjectUrl(authAxios as PlanPdfAuthClient, plan.pdfFile);
+      window.open(objectUrl, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    } catch {
+      setPdfError(`Unable to open the PDF for ${plan.name}.`);
+    } finally {
+      setOpeningPdfId(null);
+    }
+  }, [authAxios]);
 
   if (safeClientId === null) {
     return <StateCard role="alert">Select a valid client before reviewing saved plans.</StateCard>;
@@ -271,26 +274,40 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
       ) : plans.length === 0 ? (
         <StateCard>No saved plans for this client yet. Use Plan Next to create the next block.</StateCard>
       ) : (
-        <PlanGrid>
-          {plans.map((plan) => {
-            const active = plan.status === 'active';
-            return (
-              <PlanCard key={plan.id}>
-                <StatusBadge $active={active}>
-                  {active && <CheckCircle2 size={13} />}
-                  {active ? 'Current' : plan.status}
-                </StatusBadge>
-                <PlanTitle>{plan.title}</PlanTitle>
-                <Meta>
-                  {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
-                  {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
-                  <span>{formatUpdated(plan.updatedAt)}</span>
-                  <span>{plan.goal}</span>
-                </Meta>
-              </PlanCard>
-            );
-          })}
-        </PlanGrid>
+        <>
+          {pdfError && <StateCard role="alert">{pdfError}</StateCard>}
+          <PlanGrid>
+            {plans.map((plan) => {
+              const active = plan.status === 'active';
+              return (
+                <PlanCard key={plan.id}>
+                  <StatusBadge $active={active}>
+                    {active && <CheckCircle2 size={13} />}
+                    {plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status}
+                  </StatusBadge>
+                  <PlanTitle>{plan.name}</PlanTitle>
+                  <Meta>
+                    {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
+                    {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
+                    {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
+                    <span>{formatClientPlanUpdated(plan.createdAt)}</span>
+                    <span>{plan.goal}</span>
+                  </Meta>
+                  {plan.pdfFile && (
+                    <PdfButton
+                      type="button"
+                      disabled={openingPdfId === plan.id}
+                      aria-label={`Open ${plan.name} PDF`}
+                      onClick={() => { void openPlanPdf(plan); }}
+                    >
+                      <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
+                    </PdfButton>
+                  )}
+                </PlanCard>
+              );
+            })}
+          </PlanGrid>
+        </>
       )}
     </Panel>
   );

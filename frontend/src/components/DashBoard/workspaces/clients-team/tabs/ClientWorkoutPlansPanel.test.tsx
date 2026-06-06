@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientWorkoutPlansPanel from './ClientWorkoutPlansPanel';
 
 const { mockAuthAxios } = vi.hoisted(() => ({
@@ -13,8 +14,15 @@ vi.mock('../../../../../context/AuthContext', () => ({
 }));
 
 describe('ClientWorkoutPlansPanel', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fixture-plan-pdf');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    vi.spyOn(window, 'open').mockImplementation(() => null);
     mockAuthAxios.get.mockResolvedValue({
       data: {
         success: true,
@@ -43,6 +51,55 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(screen.getByText('Phase 2 Strength Plan')).toBeInTheDocument();
     expect(screen.getByText(/^current$/i)).toBeInTheDocument();
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
+  });
+
+  it('surfaces primary horizon and opens protected PDFs through authAxios', async () => {
+    const user = userEvent.setup();
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        plans: [
+          {
+            id: 99,
+            title: 'Primary Six Month Arc',
+            status: 'active',
+            durationWeeks: 26,
+            updatedAt: '2026-06-03T12:00:00.000Z',
+            planData: { goal: 'strength' },
+            metadata: {
+              isPrimaryPlan: true,
+              planHorizon: 'six_month',
+              planPdf: {
+                url: '/api/workout-plans/99/pdf/content.pdf',
+                fileName: 'Primary Six Month Arc.pdf',
+                contentType: 'application/pdf',
+                updatedAt: '2026-06-03T12:01:00.000Z',
+              },
+            },
+          },
+        ],
+      },
+    }).mockResolvedValueOnce({
+      data: new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText('Primary Six Month Arc')).toBeInTheDocument();
+    expect(screen.getByText(/primary arc/i)).toBeInTheDocument();
+    expect(screen.getByText(/6 month/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /open primary six month arc pdf/i }));
+
+    expect(mockAuthAxios.get).toHaveBeenLastCalledWith(
+      '/api/workout-plans/99/pdf/content.pdf',
+      { responseType: 'blob' },
+    );
+    expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(window.open).toHaveBeenCalledWith(
+      'blob:fixture-plan-pdf',
+      '_blank',
+      'noopener,noreferrer',
+    );
   });
 
   it('shows planner-saved planData goal and duration when top-level fields are absent', async () => {
