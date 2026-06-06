@@ -50,6 +50,7 @@ export const buildScheduleWorkoutsRoute = (
 
   if (mode === 'admin') {
     params.set('tab', 'training');
+    params.set('trainingSection', 'history');
     return `/dashboard/admin/client-management?${params.toString()}`;
   }
 

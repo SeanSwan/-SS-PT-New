@@ -45,7 +45,7 @@ describe('SessionDetailModal extracted route and permission logic', () => {
   it('routes View Workouts to the role-owned client workout surface', () => {
     expect(buildScheduleWorkoutsRoute('client', baseSession)).toBe('/dashboard/client/workouts');
     expect(buildScheduleWorkoutsRoute('trainer', baseSession)).toBe('/dashboard/trainer/client-progress?clientId=155');
-    expect(buildScheduleWorkoutsRoute('admin', baseSession)).toBe('/dashboard/admin/client-management?clientId=155&tab=training');
+    expect(buildScheduleWorkoutsRoute('admin', baseSession)).toBe('/dashboard/admin/client-management?clientId=155&tab=training&trainingSection=history');
   });
 
   it('blocks cancelled, blocked, no-show, and missing-client sessions from opening the logger', () => {

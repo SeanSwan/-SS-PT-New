@@ -129,6 +129,7 @@ describe('SessionDetailModal auth pipeline', () => {
     expect(logicSource).toContain('export const buildScheduleWorkoutsRoute =');
     expect(logicSource).toContain("params.set('clientId', String(session.userId))");
     expect(logicSource).toContain("params.set('tab', 'training')");
+    expect(logicSource).toContain("params.set('trainingSection', 'history')");
     expect(logicSource).toContain("return `/dashboard/admin/client-management?${params.toString()}`;");
     expect(logicSource).toContain("return `/dashboard/trainer/client-progress?${params.toString()}`;");
     expect(logicSource).toContain("return '/dashboard/client/workouts';");
