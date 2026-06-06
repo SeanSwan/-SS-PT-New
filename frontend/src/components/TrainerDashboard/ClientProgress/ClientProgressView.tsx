@@ -56,20 +56,25 @@ const ClientProgressView: React.FC = () => {
     () => parseClientProgressId(initialClientId) ?? undefined
   );
 
-  // Auto-load client when global active client changes while avoiding duplicate history entries.
+  // Keep deep-linked progress routes authoritative; only use global client as a fallback.
   useEffect(() => {
+    const currentClientId = parseClientProgressId(searchParams.get('clientId'));
+    if (currentClientId) {
+      setSelectedClientId(previousClientId => (
+        previousClientId === currentClientId ? previousClientId : currentClientId
+      ));
+      return;
+    }
+
     const activeClientId = parseClientProgressId(activeClient?.id);
     if (activeClientId && user?.role !== 'client') {
-      const currentClientId = searchParams.get('clientId');
       const newClientId = String(activeClientId);
-      if (currentClientId !== newClientId) {
-        setSelectedClientId(activeClientId);
-        setSearchParams(prev => {
-          const next = new URLSearchParams(prev);
-          next.set('clientId', newClientId);
-          return next;
-        }, { replace: true });
-      }
+      setSelectedClientId(activeClientId);
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.set('clientId', newClientId);
+        return next;
+      }, { replace: true });
     }
   }, [activeClient?.id, user?.role, searchParams, setSearchParams]);
 

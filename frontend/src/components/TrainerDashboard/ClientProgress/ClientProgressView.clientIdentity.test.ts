@@ -28,6 +28,9 @@ describe('trainer client progress identity parsing', () => {
 
     expect(source).toContain("import { parseClientProgressId } from './ClientProgressView.logic';");
     expect(source).toContain('parseClientProgressId(initialClientId) ?? undefined');
+    expect(source).toContain("const currentClientId = parseClientProgressId(searchParams.get('clientId'));");
+    expect(source).toContain('if (currentClientId) {');
+    expect(source).toContain('return;');
     expect(source).toContain('const activeClientId = parseClientProgressId(activeClient?.id);');
     expect(source).toContain('setSelectedClientId(activeClientId);');
     expect(source).toContain("const resolvedClientId = user?.role === 'client'");
