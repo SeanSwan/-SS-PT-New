@@ -93,6 +93,7 @@ export const IconButton = styled.button`
 export const Body = styled.div`
   min-height: 0;
   display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 14px;
   padding: 14px;
   overflow: auto;
@@ -100,11 +101,15 @@ export const Body = styled.div`
 
 export const ViewerFrame = styled.object`
   width: 100%;
-  min-height: 56vh;
+  min-height: 320px;
   height: 100%;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
   border-radius: 12px;
   background: var(--bg-base, #030712);
+
+  @media (min-width: 900px) {
+    min-height: 420px;
+  }
 `;
 
 export const FallbackLink = styled.a`
@@ -153,6 +158,8 @@ export const ActionRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  align-content: flex-start;
 `;
 
 export const Button = styled.button<{ $primary?: boolean }>`
