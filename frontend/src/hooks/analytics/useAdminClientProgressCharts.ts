@@ -69,6 +69,7 @@ interface UseAdminClientProgressChartsReturn {
   error: string | null;
   refetch: () => void;
   nonEmptyChartCount: number;
+  unavailableChartCount: number;
 }
 
 /**
@@ -85,11 +86,13 @@ export function useAdminClientProgressCharts(
   const [charts, setCharts] = useState<CanonicalProgressCharts>(EMPTY_BUNDLE);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unavailableChartCount, setUnavailableChartCount] = useState(0);
 
   const fetchAll = useCallback(async () => {
     if (!authAxios || !userId) return;
     setIsLoading(true);
     setError(null);
+    setUnavailableChartCount(0);
 
     const get = (suffix: string) =>
       authAxios
@@ -101,6 +104,7 @@ export function useAdminClientProgressCharts(
       const responses = await Promise.all(
         CANONICAL_CHART_IDS.map((id) => get(CANONICAL_CHART_ROUTES[id])),
       );
+      setUnavailableChartCount(responses.filter((response) => !response?.success).length);
       const [
         workoutFreqRes, attendanceRes, weeklyVolumeRes, setsRepsRes,
         durationRes, intensityRes, prRes, anchorLiftsRes,
@@ -147,6 +151,7 @@ export function useAdminClientProgressCharts(
       setCharts(next);
     } catch (err: any) {
       setError(err?.message || 'Failed to load progress charts');
+      setUnavailableChartCount(CANONICAL_CHART_IDS.length);
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +177,14 @@ export function useAdminClientProgressCharts(
   }, [charts]);
 
   return useMemo(
-    () => ({ charts, isLoading, error, refetch: fetchAll, nonEmptyChartCount }),
-    [charts, isLoading, error, fetchAll, nonEmptyChartCount],
+    () => ({
+      charts,
+      isLoading,
+      error,
+      refetch: fetchAll,
+      nonEmptyChartCount,
+      unavailableChartCount,
+    }),
+    [charts, isLoading, error, fetchAll, nonEmptyChartCount, unavailableChartCount],
   );
 }

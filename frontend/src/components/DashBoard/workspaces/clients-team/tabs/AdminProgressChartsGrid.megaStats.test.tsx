@@ -36,10 +36,11 @@ vi.mock('../../../../../hooks/analytics/useAdminClientProgressCharts', () => ({
     isLoading: false,
     error: null,
     nonEmptyChartCount: 3,
+    unavailableChartCount: 0,
   }),
 }));
 
-import AdminProgressChartsGrid from './AdminProgressChartsGrid';
+import AdminProgressChartsGrid, { getProgressProofStatusText } from './AdminProgressChartsGrid';
 
 describe('AdminProgressChartsGrid mega stats', () => {
   it('keeps the active admin progress grid component under the 300-line cap', () => {
@@ -61,9 +62,14 @@ describe('AdminProgressChartsGrid mega stats', () => {
     render(<AdminProgressChartsGrid clientId={424242} clientName="Fixture Client" />);
 
     const grid = screen.getByTestId('admin-progress-charts-grid');
-    expect(grid).toHaveTextContent('Fixture Client - 3 of 12 charts populated');
+    expect(grid).toHaveTextContent('Fixture Client - Progress proof building - 3 of 12 charts populated');
     expect(grid).toHaveTextContent('225lbs x 5');
     expect(grid).toHaveTextContent('1 pain / 2 redline');
     expect(grid.textContent).not.toMatch(/[ÂÃâ]/);
+  });
+  it('separates no-history proof copy from unavailable chart feeds', () => {
+    expect(getProgressProofStatusText(0, 0)).toBe('No saved workout proof yet - log a workout to populate charts');
+    expect(getProgressProofStatusText(0, 2)).toBe('0 of 12 charts populated - 2 feeds unavailable');
+    expect(getProgressProofStatusText(12, 0)).toBe('Full progress proof ready - 12 charts populated');
   });
 });

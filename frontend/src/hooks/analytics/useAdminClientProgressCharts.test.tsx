@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAdminClientProgressCharts } from './useAdminClientProgressCharts';
 
 const mockGet = vi.fn();
+const mockAuthAxios = { get: mockGet };
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({
-    authAxios: { get: mockGet },
+    authAxios: mockAuthAxios,
   }),
 }));
 
@@ -87,5 +88,27 @@ describe('useAdminClientProgressCharts', () => {
       highRpeFlags: 0,
       totalSets: 4,
     });
+  });
+
+  it('reports unavailable chart feeds separately from honest empty progress data', async () => {
+    mockGet.mockImplementation((url: string) => {
+      const suffix = url.split('/').pop() || '';
+      if (suffix === 'chart-recovery-signal') {
+        return Promise.reject(new Error('recovery feed unavailable'));
+      }
+      return Promise.resolve({ data: responsesBySuffix[suffix] || { success: true, data: [] } });
+    });
+
+    const { result } = renderHook(() => useAdminClientProgressCharts(424242));
+
+    await waitFor(() => {
+      expect(mockGet.mock.calls.length).toBeGreaterThanOrEqual(12);
+    });
+    await waitFor(() => {
+      expect(result.current.unavailableChartCount).toBe(1);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.charts.recoverySignal).toEqual([]);
   });
 });
