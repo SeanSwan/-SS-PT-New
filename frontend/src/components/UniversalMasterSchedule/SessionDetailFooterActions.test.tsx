@@ -41,7 +41,7 @@ describe('SessionDetailFooterActions', () => {
     fireEvent.click(screen.getByRole('button', { name: /^present$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^late$/i }));
     fireEvent.click(screen.getByRole('button', { name: /no-show/i }));
-    fireEvent.click(screen.getByRole('button', { name: /mark complete/i }));
+    fireEvent.click(screen.getByRole('button', { name: /complete without log/i }));
     fireEvent.click(screen.getByRole('button', { name: /log workout/i }));
     fireEvent.click(screen.getByRole('button', { name: /view workouts/i }));
 
@@ -53,6 +53,21 @@ describe('SessionDetailFooterActions', () => {
     expect(props.onComplete).toHaveBeenCalledTimes(1);
     expect(props.onLogWorkout).toHaveBeenCalledTimes(1);
     expect(props.onViewWorkouts).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes schedule-origin workout logging the primary completion path', () => {
+    const props = { ...baseProps };
+
+    render(<SessionDetailFooterActions {...props} />);
+
+    expect(screen.queryByRole('button', { name: /mark complete/i })).not.toBeInTheDocument();
+    const buttons = screen.getAllByRole('button').map((button) => button.textContent || '');
+    const logWorkoutIndex = buttons.findIndex((text) => /log workout/i.test(text));
+    const completeWithoutLogIndex = buttons.findIndex((text) => /complete without log/i.test(text));
+
+    expect(logWorkoutIndex).toBeGreaterThanOrEqual(0);
+    expect(completeWithoutLogIndex).toBeGreaterThanOrEqual(0);
+    expect(logWorkoutIndex).toBeLessThan(completeWithoutLogIndex);
   });
 
   it('switches to confirmation controls while manager cancellation options are open', () => {

@@ -43,7 +43,7 @@ describe('useSessionDetailPermissions', () => {
     expect(result.current.sessionSignal.label).toBe('4 paid sessions');
   });
 
-  it('blocks assigned trainers from opening the logger before the session day', async () => {
+  it('blocks assigned trainers from completing or opening the logger before the session day', async () => {
     window.localStorage.setItem('user', JSON.stringify({ id: 9 }));
 
     const { result } = renderHook(() =>
@@ -62,7 +62,7 @@ describe('useSessionDetailPermissions', () => {
     });
 
     expect(result.current.isTrainerAssigned).toBe(true);
-    expect(result.current.canComplete).toBe(true);
+    expect(result.current.canComplete).toBe(false);
     expect(result.current.canOpenWorkoutLogger).toBe(false);
     expect(result.current.canViewWorkouts).toBe(true);
   });

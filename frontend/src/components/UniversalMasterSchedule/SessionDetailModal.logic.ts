@@ -84,3 +84,15 @@ export const canSessionOpenWorkoutLogger = (session: SessionDetail | null) => {
     && session.attendanceStatus !== 'no_show'
   );
 };
+
+export const canSessionBeCompleted = (session: SessionDetail | null) => {
+  if (!session) return false;
+
+  return Boolean(
+    isPositiveInteger(session.id)
+    && isUsableSessionDate(session.sessionDate)
+    && (session.status === 'scheduled' || session.status === 'confirmed')
+    && !session.isBlocked
+    && session.attendanceStatus !== 'no_show'
+  );
+};

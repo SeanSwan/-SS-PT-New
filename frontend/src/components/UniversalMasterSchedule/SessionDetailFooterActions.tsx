@@ -63,6 +63,9 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   onViewWorkouts,
 }) => {
   const isFocusedFlow = showCancelOptions || showLateCancelWarning || showNoShowReason;
+  const isManagerMode = mode === 'admin' || mode === 'trainer';
+  const canLogFromSchedule = canOpenWorkoutLogger && isManagerMode;
+  const completeLabel = canLogFromSchedule ? 'Complete Without Log' : 'Mark Complete';
 
   return (
     <>
@@ -107,19 +110,19 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
           </GlowButton>
         </>
       )}
-      {canComplete && !isFocusedFlow && (
-        <GlowButton variant="emerald" size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
-          Mark Complete
-        </GlowButton>
-      )}
       {canEdit && !isFocusedFlow && (
         <GlowButton variant="cosmic" size="medium" onClick={onEdit} disabled={loading}>
           Edit Session
         </GlowButton>
       )}
-      {canOpenWorkoutLogger && !isFocusedFlow && (mode === 'admin' || mode === 'trainer') && (
+      {canLogFromSchedule && !isFocusedFlow && (
         <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
           Log Workout
+        </GlowButton>
+      )}
+      {canComplete && !isFocusedFlow && (
+        <GlowButton variant={canLogFromSchedule ? 'cosmic' : 'emerald'} size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
+          {completeLabel}
         </GlowButton>
       )}
       {canViewWorkouts && !isFocusedFlow && (

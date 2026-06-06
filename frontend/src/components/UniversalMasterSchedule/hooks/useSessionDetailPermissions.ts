@@ -4,6 +4,7 @@ import {
   isNonDeductingClientSource,
 } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import {
+  canSessionBeCompleted,
   canSessionOpenWorkoutLogger,
 } from '../SessionDetailModal.logic';
 import type {
@@ -86,7 +87,7 @@ export const useSessionDetailPermissions = ({
       && canManage
       && isTrainerAssigned
       && !isBlocked
-      && (session?.status === 'scheduled' || session?.status === 'confirmed')
+      && canSessionBeCompleted(session)
     );
 
     const canCancel = Boolean(
