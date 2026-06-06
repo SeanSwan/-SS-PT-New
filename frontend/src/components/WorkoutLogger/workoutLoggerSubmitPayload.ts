@@ -32,6 +32,41 @@ export interface WorkoutFormSubmitBody {
   sessionNotes: string;
   overallIntensity?: number;
   scheduledSessionId?: string;
+  plannedAssignment?: SanitizedPlannedAssignment;
+}
+
+export interface PlannedAssignmentInput {
+  assignmentId?: string | null;
+  assignmentKey?: string | null;
+  planId?: string | number | null;
+  assignmentType?: string | null;
+  source?: string | null;
+  isBillable?: boolean | null;
+  shouldDeductSession?: boolean | null;
+  title?: string | null;
+  scheduledDate?: string | null;
+  weekNumber?: number | string | null;
+  dayNumber?: number | string | null;
+  dayLabel?: string | null;
+  exerciseCount?: number | null;
+  firstExerciseName?: string | null;
+}
+
+interface SanitizedPlannedAssignment {
+  assignmentId: string;
+  assignmentKey: string;
+  planId: string;
+  assignmentType: string;
+  source: 'workout_plan';
+  isBillable: false;
+  shouldDeductSession: false;
+  weekNumber: number;
+  dayNumber: number;
+  title?: string;
+  scheduledDate?: string;
+  dayLabel?: string;
+  exerciseCount?: number;
+  firstExerciseName?: string;
 }
 
 interface SanitizedExercise {
@@ -54,10 +89,51 @@ interface SanitizedSet {
   formQuality?: number;
 }
 
+const compactString = (value: unknown) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+const positiveInteger = (value: unknown) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+function sanitizePlannedAssignment(value?: PlannedAssignmentInput | null): SanitizedPlannedAssignment | null {
+  if (!value) return null;
+  const assignmentKey = compactString(value.assignmentKey || value.assignmentId);
+  const planId = compactString(String(value.planId ?? ''));
+  const assignmentType = compactString(value.assignmentType)?.toLowerCase().replace(/[\s-]+/g, '_') || null;
+  const weekNumber = positiveInteger(value.weekNumber);
+  const dayNumber = positiveInteger(value.dayNumber);
+  if (!assignmentKey || !planId || !assignmentType || !weekNumber || !dayNumber) return null;
+  if (!['homework', 'active_recovery'].includes(assignmentType)) return null;
+
+  const out: SanitizedPlannedAssignment = {
+    assignmentId: assignmentKey,
+    assignmentKey,
+    planId,
+    assignmentType,
+    source: 'workout_plan',
+    isBillable: false,
+    shouldDeductSession: false,
+    weekNumber,
+    dayNumber,
+  };
+  const title = compactString(value.title);
+  const scheduledDate = compactString(value.scheduledDate);
+  const dayLabel = compactString(value.dayLabel);
+  const firstExerciseName = compactString(value.firstExerciseName);
+  const exerciseCount = positiveInteger(value.exerciseCount);
+  if (title) out.title = title;
+  if (scheduledDate) out.scheduledDate = scheduledDate;
+  if (dayLabel) out.dayLabel = dayLabel;
+  if (firstExerciseName) out.firstExerciseName = firstExerciseName;
+  if (exerciseCount) out.exerciseCount = exerciseCount;
+  return out;
+}
+
 /**
  * Strip null/undefined rating fields from an exercise array.
  * Returns a fresh array; does not mutate the input.
  */
+// fallow-ignore-next-line unused-export
 export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[] {
   return exercises.map((ex) => {
     const out: SanitizedExercise = {
@@ -97,6 +173,7 @@ export function buildWorkoutFormSubmitBody(params: {
   sessionNotes: string;
   overallIntensity: number | null | undefined;
   scheduledSessionId?: string | null;
+  plannedAssignment?: PlannedAssignmentInput | null;
 }): WorkoutFormSubmitBody {
   const body: WorkoutFormSubmitBody = {
     clientId: params.clientId,
@@ -109,6 +186,10 @@ export function buildWorkoutFormSubmitBody(params: {
   }
   if (params.scheduledSessionId) {
     body.scheduledSessionId = params.scheduledSessionId;
+  }
+  const plannedAssignment = sanitizePlannedAssignment(params.plannedAssignment);
+  if (plannedAssignment) {
+    body.plannedAssignment = plannedAssignment;
   }
   return body;
 }

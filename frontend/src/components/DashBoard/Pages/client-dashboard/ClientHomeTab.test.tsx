@@ -20,7 +20,7 @@
  *   3. Book Session CTA is present and navigates to /dashboard/client/schedule
  */
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -120,10 +120,20 @@ async function renderClientHomeSettled() {
 
 describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     mockNavigate.mockReset();
     mockCreatePostMutate.mockReset();
     mockCreatePostMutate.mockResolvedValue({ success: true });
     mockApiGet.mockReset();
+    Object.defineProperty(window.URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:swan-plan-pdf'),
+    });
+    Object.defineProperty(window.URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    vi.spyOn(window, 'open').mockImplementation(() => null);
     mockAuthUser.current = {
       id: 42,
       firstName: 'Test',
@@ -217,6 +227,63 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
               { name: 'Carry' },
             ],
           },
+          todayAssignment: {
+            assignmentType: 'homework',
+            status: 'planned',
+            sessionType: 'solo',
+            isLoggable: true,
+            isBillable: false,
+            shouldDeductSession: false,
+            title: 'Coach Homework Lower Strength',
+            weekNumber: 2,
+            dayNumber: 3,
+            dayLabel: 'Lower Strength',
+            exerciseCount: 4,
+            firstExerciseName: 'Goblet Squat',
+            ctaLabel: 'Log Assignment',
+          },
+          trainingPlanCatalog: {
+            defaultHorizonKey: 'six_month',
+            primaryPlanId: 'plan-6m',
+            slots: [
+              { horizonKey: 'one_day', label: '1 Day', isFilled: false, isPrimary: false, plan: null },
+              { horizonKey: 'one_week', label: '1 Week', isFilled: false, isPrimary: false, plan: null },
+              { horizonKey: 'one_month', label: '1 Month', isFilled: false, isPrimary: false, plan: null },
+              { horizonKey: 'three_month', label: '3 Month', isFilled: false, isPrimary: false, plan: null },
+              {
+                horizonKey: 'six_month',
+                label: '6 Month',
+                isFilled: true,
+                isPrimary: true,
+                plan: {
+                  id: 'plan-6m',
+                  title: 'Phase 1 Stabilization',
+                  pdfFile: {
+                    url: '/api/workout-plans/plan-6m/pdf/content.pdf',
+                    fileName: 'Six Month Foundation.pdf',
+                    contentType: 'application/pdf',
+                  },
+                },
+              },
+              { horizonKey: 'nine_month', label: '9 Month', isFilled: false, isPrimary: false, plan: null },
+              { horizonKey: 'twelve_month', label: '12 Month', isFilled: false, isPrimary: false, plan: null },
+            ],
+          },
+        },
+        todayAssignment: {
+          assignmentType: 'homework',
+          status: 'planned',
+          sessionType: 'solo',
+          isLoggable: true,
+          isBillable: false,
+          shouldDeductSession: false,
+          title: 'Coach Homework Lower Strength',
+          weekNumber: 2,
+          dayNumber: 3,
+          dayLabel: 'Lower Strength',
+          exerciseCount: 4,
+          firstExerciseName: 'Goblet Squat',
+          ctaLabel: 'Log Assignment',
         },
       },
     });
@@ -225,13 +292,37 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     const card = await screen.findByTestId('current-workout-card');
     expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
-    expect(card.textContent).toMatch(/current workout/i);
-    expect(card.textContent).toMatch(/phase 1 stabilization/i);
+    expect(card.textContent).toMatch(/today's assignment/i);
+    expect(card.textContent).toMatch(/coach homework lower strength/i);
+    expect(card.textContent).toMatch(/6 month/i);
     expect(card.textContent).toMatch(/week 2/i);
     expect(card.textContent).toMatch(/day 3/i);
     expect(card.textContent).toMatch(/4 exercises/i);
 
-    await user.click(screen.getByRole('button', { name: /start current workout/i }));
+    const vault = screen.getByTestId('client-plan-vault-card');
+    expect(vault.textContent).toMatch(/plan vault/i);
+    expect(vault.textContent).toMatch(/1 day/i);
+    expect(vault.textContent).toMatch(/1 week/i);
+    expect(vault.textContent).toMatch(/1 month/i);
+    expect(vault.textContent).toMatch(/3 month/i);
+    expect(vault.textContent).toMatch(/6 month/i);
+    expect(vault.textContent).toMatch(/9 month/i);
+    expect(vault.textContent).toMatch(/12 month/i);
+    expect(vault.textContent).toMatch(/6 month primary/i);
+    expect(vault.textContent).toMatch(/phase 1 stabilization/i);
+    expect(vault.textContent).toMatch(/pending/i);
+    const pdfButton = within(vault).getByRole('button', { name: /view 6 month pdf plan/i });
+    mockApiGet.mockResolvedValueOnce({
+      data: new Blob(['%PDF-1.4\n%%EOF\n'], { type: 'application/pdf' }),
+    });
+    await user.click(pdfButton);
+    expect(mockApiGet).toHaveBeenCalledWith(
+      '/api/workout-plans/plan-6m/pdf/content.pdf',
+      { responseType: 'blob' },
+    );
+    expect(window.open).toHaveBeenCalledWith('blob:swan-plan-pdf', '_blank', 'noopener,noreferrer');
+
+    await user.click(screen.getByRole('button', { name: /log today's assignment/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });

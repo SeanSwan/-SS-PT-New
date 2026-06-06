@@ -16,6 +16,7 @@ import logger from '../utils/logger.mjs';
 // clientWorkoutRoutes.current.test.mjs:28, which now imports directly from
 // the shared service.
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
+import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -77,6 +78,7 @@ const parseBoundedPositiveInteger = (value, { defaultValue, maxValue }) => {
 // Frontend consumers in this repo migrated to setsCount/exerciseCount
 // in the same commit; the alias only protects out-of-tree consumers.
 // ─────────────────────────────────────────────────────────────
+// fallow-ignore-next-line unused-export, complexity
 export const toClientWorkoutHistoryRow = (session) => {
   const raw = session?.toJSON ? session.toJSON() : session;
   const duration = Number.isFinite(raw?.duration) ? raw.duration : null;
@@ -172,6 +174,7 @@ router.get('/:userId/current', protect, async (req, res) => {
 
     // Find the most recent active workout plan for this user
     let plan = null;
+    let clientPlans = [];
 
     if (WorkoutPlan) {
       plan = await WorkoutPlan.findOne({
@@ -181,13 +184,29 @@ router.get('/:userId/current', protect, async (req, res) => {
         },
         order: [['createdAt', 'DESC']],
       });
+      if (typeof WorkoutPlan.findAll === 'function') {
+        clientPlans = await WorkoutPlan.findAll({
+          where: {
+            userId: clientId,
+            status: ['active', 'paused', 'draft'],
+          },
+          order: [['updatedAt', 'DESC']],
+          limit: 20,
+        });
+      }
     }
 
     if (!plan) {
+      const overview = buildClientTrainingOverview({
+        activePlan: null,
+        plans: clientPlans,
+      });
       return res.status(200).json({
         success: true,
         data: null,
         plan: null,
+        todayAssignment: overview.todayAssignment,
+        trainingPlanCatalog: overview.trainingPlanCatalog,
         message: 'No workout plan assigned yet. Your trainer will create one after your assessment.'
       });
     }
@@ -197,12 +216,24 @@ router.get('/:userId/current', protect, async (req, res) => {
     // (so data.currentSession AND plan.currentSession both expose it)
     // AND lifted to top level for direct access.
     const currentSession = formattedPlan.currentSession || null;
+    const overview = buildClientTrainingOverview({
+      activePlan: plan,
+      plans: clientPlans.length > 0 ? clientPlans : [plan],
+      currentSession,
+    });
+    const enrichedPlan = {
+      ...formattedPlan,
+      todayAssignment: overview.todayAssignment,
+      trainingPlanCatalog: overview.trainingPlanCatalog,
+    };
 
     return res.status(200).json({
       success: true,
-      data: formattedPlan,
-      plan: formattedPlan,
+      data: enrichedPlan,
+      plan: enrichedPlan,
       currentSession,
+      todayAssignment: overview.todayAssignment,
+      trainingPlanCatalog: overview.trainingPlanCatalog,
     });
   } catch (error) {
     logger.error('Error fetching current workout:', error);

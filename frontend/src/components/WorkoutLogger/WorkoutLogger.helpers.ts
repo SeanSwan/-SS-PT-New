@@ -3,6 +3,7 @@ import type { WorkoutExerciseTransfer } from '../../utils/parseAIWorkoutPlan';
 import type {
   CurrentWorkoutPlanResponse,
   PlannedDay,
+  PlannedAssignment,
   PlannedExercise,
   PlannedSession,
 } from './WorkoutLogger.localTypes';
@@ -33,7 +34,7 @@ export function normalizeWorkoutDate(raw: string | null, fallbackDate = new Date
     : parsed.toISOString().split('T')[0];
 }
 
-export function numberOr(value: number | string | undefined, fallback: number): number {
+function numberOr(value: number | string | undefined, fallback: number): number {
   const parsed = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -41,12 +42,12 @@ export function numberOr(value: number | string | undefined, fallback: number): 
 let workoutLoggerSetIdCounter = 0;
 let workoutLoggerExerciseIdCounter = 0;
 
-export function createWorkoutLoggerSetId(prefix = 'set'): string {
+function createWorkoutLoggerSetId(prefix = 'set'): string {
   workoutLoggerSetIdCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${workoutLoggerSetIdCounter}`;
 }
 
-export function createWorkoutLoggerExerciseId(prefix = 'exercise'): string {
+function createWorkoutLoggerExerciseId(prefix = 'exercise'): string {
   workoutLoggerExerciseIdCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${workoutLoggerExerciseIdCounter}`;
 }
@@ -58,6 +59,7 @@ export function ensureWorkoutLoggerSetId(
   return set.loggerSetId ? set : { ...set, loggerSetId: createSetId() };
 }
 
+// fallow-ignore-next-line unused-export
 export function ensureWorkoutLoggerSetIds(
   exercise: ExerciseEntry,
   createSetId: () => string = createWorkoutLoggerSetId,
@@ -151,6 +153,21 @@ export function getCurrentWorkoutCursorSession(
   return data?.currentSession
     ?? data?.data?.currentSession
     ?? data?.plan?.currentSession
+    ?? null;
+}
+
+export function getCurrentWorkoutPlanId(
+  data: CurrentWorkoutPlanResponse | null | undefined,
+): string | number | null {
+  return data?.id ?? data?.data?.id ?? data?.plan?.id ?? null;
+}
+
+export function getCurrentWorkoutTodayAssignment(
+  data: CurrentWorkoutPlanResponse | null | undefined,
+): PlannedAssignment | null {
+  return data?.todayAssignment
+    ?? data?.data?.todayAssignment
+    ?? data?.plan?.todayAssignment
     ?? null;
 }
 

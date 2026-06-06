@@ -180,9 +180,18 @@ const WorkoutPlannerPage: React.FC = () => {
     fetchSavedPlans,
     archiveBlockedFor,
     handleCardActivate,
+    handlePlanSetPrimary,
     handleCardRename,
     handleCardDuplicate,
     handleCardArchive,
+    pdfDialogPlan,
+    pdfDialogMode,
+    pdfSaving,
+    handlePlanPdfView,
+    handlePlanPdfUpdate,
+    handlePlanPdfSave,
+    handlePlanPdfUpload,
+    closePlanPdfDialog,
   } = useWorkoutPlannerSavedPlansState({
     authAxios,
     selectedClientId,
@@ -292,7 +301,11 @@ const WorkoutPlannerPage: React.FC = () => {
     onUpdateExercise: updateExercise, onRemoveExercise: removeExercise, onBrowseAddExercise: handleBrowseAddExercise,
     onToggleExplanations: handleToggleExplanations, onSelectedMesoDayChange: setSelectedMesoDay,
     onLoad: handleLoadPlan, onActivate: handleCardActivate, onRename: handleCardRename,
-    onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onClose: closeConfirmDialog,
+    onDuplicate: handleCardDuplicate, onArchive: handleCardArchive, onSetPrimary: handlePlanSetPrimary,
+    pdfDialogPlan, pdfDialogMode, pdfSaving, onViewPdf: handlePlanPdfView,
+    onUpdatePdf: handlePlanPdfUpdate, onSavePdf: handlePlanPdfSave,
+    onUploadPdf: handlePlanPdfUpload,
+    onClosePdfDialog: closePlanPdfDialog, onClose: closeConfirmDialog,
   }} />;
 };
 

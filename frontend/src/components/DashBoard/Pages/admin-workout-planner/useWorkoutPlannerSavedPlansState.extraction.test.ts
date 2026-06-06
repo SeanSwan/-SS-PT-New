@@ -21,6 +21,10 @@ describe('WorkoutPlanner saved plans state extraction', () => {
     expect(pageSource).not.toContain('const archiveBlockedFor = useCallback');
     expect(hookSource).toContain('/api/workout/plans?clientId=');
     expect(hookSource).toContain('/api/workout-plans/${planId}/activate');
+    expect(hookSource).toContain('/api/workout-plans/${planId}/primary');
+    expect(hookSource).toContain('/api/workout-plans/${planId}/pdf/upload');
+    expect(hookSource).toContain("responseType: 'blob'");
+    expect(hookSource).toContain('FormData');
     expect(hookSource).toContain('setConfirmRequest');
     expect(hookSource).toContain('archiveBlockedFor');
     expect(hookSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);

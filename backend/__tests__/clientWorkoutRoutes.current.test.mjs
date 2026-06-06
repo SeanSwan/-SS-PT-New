@@ -4,6 +4,7 @@ import express from 'express';
 
 const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
@@ -42,7 +43,7 @@ beforeEach(() => {
     allowed: true,
     clientId: 42,
     models: {
-      WorkoutPlan: { findOne: mockWorkoutPlanFindOne },
+      WorkoutPlan: { findOne: mockWorkoutPlanFindOne, findAll: mockWorkoutPlanFindAll },
       WorkoutSession: { findAll: mockWorkoutSessionFindAll },
       // These existing models are intentionally present. The current route
       // must not eager-load them because production has no declared association.
@@ -52,6 +53,7 @@ beforeEach(() => {
     },
   });
   mockWorkoutSessionFindAll.mockResolvedValue([]);
+  mockWorkoutPlanFindAll.mockResolvedValue([]);
 });
 
 describe('clientWorkoutRoutes GET /:userId/current', () => {
@@ -102,6 +104,71 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
     expect(res.body.data.days[0].dayName).toBe('Monday');
     expect(res.body.data.days[0].exercises[0].exerciseName).toBe('Goblet Squat');
     expect(res.body.plan).toEqual(res.body.data);
+  });
+
+  it('returns todayAssignment and seven training-plan horizon slots from the current plan endpoint', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      title: 'Six Month Foundation',
+      description: 'Main coaching arc',
+      durationWeeks: 26,
+      status: 'active',
+      currentWeek: 3,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [
+          { days: [{ dayNumber: 1, name: 'Week 1 Foundation', exercises: [] }] },
+          { days: [{ dayNumber: 1, name: 'Week 2 Foundation', exercises: [] }] },
+          {
+            days: [
+              { dayNumber: 1, name: 'Upper Body', exercises: [] },
+              {
+                dayNumber: 2,
+                name: 'Coach Homework Lower Body',
+                assignmentType: 'homework',
+                exercises: [
+                  { exerciseId: 'ex-1', exerciseName: 'Goblet Squat', sets: 3, targetReps: '8-10' },
+                  { exerciseId: 'ex-2', exerciseName: 'Split Squat', sets: 3, targetReps: '8' },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([
+      { id: 'plan-1m', title: 'One Month Reset', status: 'paused', durationWeeks: 4, metadata: {} },
+      activePlan,
+    ]);
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(res.body.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w3:d2:homework',
+      assignmentType: 'homework',
+      sessionType: 'solo',
+      isLoggable: true,
+      isBillable: false,
+      shouldDeductSession: false,
+      exerciseCount: 2,
+      firstExerciseName: 'Goblet Squat',
+    });
+    expect(res.body.trainingPlanCatalog).toMatchObject({
+      defaultHorizonKey: 'six_month',
+      primaryPlanId: 'plan-6m',
+    });
+    expect(res.body.trainingPlanCatalog.slots).toHaveLength(7);
+    expect(res.body.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isFilled: true,
+      isPrimary: true,
+      plan: { id: 'plan-6m', title: 'Six Month Foundation' },
+    });
   });
 
   it('keeps the no-plan empty state as 200 with data and plan set to null', async () => {

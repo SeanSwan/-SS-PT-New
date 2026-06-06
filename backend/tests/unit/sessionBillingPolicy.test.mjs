@@ -72,6 +72,21 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
     });
   });
 
+  it('allows verified non-billable workout-plan homework without consuming paid sessions', () => {
+    expect(buildWorkoutSessionBillingDecision(
+      {
+        clientSource: 'swanstudios',
+        availableSessions: 0,
+      },
+      { nonBillablePlannedAssignment: true }
+    )).toEqual({
+      shouldDeduct: false,
+      canLogWorkout: true,
+      sessionDeducted: false,
+      message: 'Workout assignment logged successfully without session deduction',
+    });
+  });
+
   it('ignores stale scheduled-session deduction state for non-deducting client sources', () => {
     expect(buildWorkoutSessionBillingDecision(
       {

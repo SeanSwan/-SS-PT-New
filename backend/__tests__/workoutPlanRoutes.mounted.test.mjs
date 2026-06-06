@@ -23,7 +23,10 @@
  *   - Trainer + assigned plan -> 200 on GET /:id
  *   - Trainer + plan owned by unassigned client -> 404 on GET /:id (existence-leak protection)
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import request from 'supertest';
 import express from 'express';
 
@@ -58,6 +61,7 @@ const mockAssignmentFindOne = vi.fn();
 const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanUpdate = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
   getModel: (name) => {
@@ -69,6 +73,7 @@ vi.mock('../models/index.mjs', () => ({
         findByPk: mockWorkoutPlanFindByPk,
         findAll: mockWorkoutPlanFindAll,
         findOne: mockWorkoutPlanFindOne,
+        update: mockWorkoutPlanUpdate,
       };
     }
     return null;
@@ -85,13 +90,26 @@ const app = express();
 app.use(express.json());
 app.use('/api/workout-plans', workoutPlanRoutes);
 
-beforeEach(() => {
+let routeUploadsRoot;
+
+beforeEach(async () => {
   vi.clearAllMocks();
+  routeUploadsRoot = await mkdtemp(path.join(os.tmpdir(), 'swan-workout-plan-route-'));
+  process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT = routeUploadsRoot;
   // Defaults: no assignment, no plan.
   mockAssignmentFindOne.mockResolvedValue(null);
   mockWorkoutPlanFindByPk.mockResolvedValue(null);
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
+  mockWorkoutPlanUpdate.mockResolvedValue([0]);
+});
+
+afterEach(async () => {
+  delete process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT;
+  if (routeUploadsRoot) {
+    await rm(routeUploadsRoot, { recursive: true, force: true });
+  }
+  routeUploadsRoot = undefined;
 });
 
 describe('workoutPlanRoutes — mounted route stack', () => {
@@ -154,13 +172,27 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
       // Handler returns the active plan (or 404 if none); 200 + plan body proves
       // the handler ran past the middleware chain.
-      mockWorkoutPlanFindOne.mockResolvedValue({
+      const activePlan = {
         id: 'plan-1',
         userId: 42,
         title: 'Active plan',
         status: 'active',
-        planData: { mesocycles: [] },
-      });
+        durationWeeks: 26,
+        currentWeek: 1,
+        currentDay: 1,
+        metadata: { planHorizon: 'six_month' },
+        planData: {
+          weeks: [{
+            days: [{
+              dayLabel: 'Coach Homework',
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat' }],
+            }],
+          }],
+        },
+      };
+      mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+      mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
       const res = await request(app)
         .get('/api/workout-plans/client/42')
         .set('x-test-user-id', '7')
@@ -171,6 +203,18 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       const where = mockAssignmentFindOne.mock.calls[0][0].where;
       expect(where).toEqual({ trainerId: 7, clientId: 42, status: 'active' });
       expect(where).not.toHaveProperty('isActive');
+      expect(res.body.todayAssignment).toMatchObject({
+        assignmentType: 'homework',
+        sessionType: 'solo',
+        isLoggable: true,
+        shouldDeductSession: false,
+        exerciseCount: 1,
+      });
+      expect(res.body.trainingPlanCatalog).toMatchObject({
+        defaultHorizonKey: 'six_month',
+        primaryPlanId: 'plan-1',
+      });
+      expect(res.body.trainingPlanCatalog.slots).toHaveLength(7);
     });
 
     it('trainer WITHOUT assignment GET /client/:userId -> 404 (existence-leak protection)', async () => {
@@ -213,6 +257,228 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .set('x-test-user-id', '7')
         .set('x-test-user-role', 'trainer');
       expect(res.status).toBe(200);
+    });
+
+    it('trainer + assigned plan PUT /:id/pdf stores sanitized PDF metadata without replacing existing metadata', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Six Month Plan',
+        status: 'active',
+        metadata: { planHorizon: 'six_month', painAware: true },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/pdf')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          pdfUrl: ' https://cdn.swanstudios.com/plans/six-month-foundation.pdf ',
+          fileName: ' Six Month Foundation.pdf ',
+        });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith({
+        metadata: {
+          planHorizon: 'six_month',
+          painAware: true,
+          planPdf: {
+            url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+            fileName: 'Six Month Foundation.pdf',
+            contentType: 'application/pdf',
+            updatedBy: 7,
+            updatedAt: expect.any(String),
+          },
+        },
+      });
+      expect(res.body.planPdf).toMatchObject({
+        url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+        fileName: 'Six Month Foundation.pdf',
+        contentType: 'application/pdf',
+      });
+    });
+
+    it('trainer + assigned plan PUT /:id/pdf rejects non-PDF, insecure, or ambiguous URLs', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        metadata: {},
+        update: vi.fn(),
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const unsafeUrls = [
+        'javascript:alert(1)',
+        'http://cdn.swanstudios.com/plans/plain-http.pdf',
+        'plans/bare-relative.pdf',
+        '//cdn.swanstudios.com/plans/protocol-relative.pdf',
+        'https://cdn.swanstudios.com/plans/not-a-pdf.txt',
+        '/uploads/workout-plans/plan-1.pdf\r\n',
+      ];
+
+      for (const pdfUrl of unsafeUrls) {
+        const res = await request(app)
+          .put('/api/workout-plans/plan-1/pdf')
+          .set('x-test-user-id', '7')
+          .set('x-test-user-role', 'trainer')
+          .send({ pdfUrl, fileName: 'Plan.pdf' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toMatch(/pdf url/i);
+      }
+    });
+
+    it('trainer + assigned plan PUT /:id/pdf allows root-relative app PDF URLs', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/pdf')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({ pdfUrl: '/uploads/workout-plans/plan-1.pdf?download=1', fileName: 'Plan 1' });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith({
+        metadata: {
+          planPdf: {
+            url: '/uploads/workout-plans/plan-1.pdf?download=1',
+            fileName: 'Plan 1.pdf',
+            contentType: 'application/pdf',
+            updatedBy: 7,
+            updatedAt: expect.any(String),
+          },
+        },
+      });
+    });
+
+    it('trainer + assigned plan POST /:id/pdf/upload stores a multipart PDF as plan metadata', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Six Month Plan',
+        metadata: { planHorizon: 'six_month', painAware: true },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .post('/api/workout-plans/plan-1/pdf/upload')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .attach(
+          'pdf',
+          Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n'),
+          { filename: 'Six Month Foundation.pdf', contentType: 'application/pdf' },
+        );
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith({
+        metadata: {
+          planHorizon: 'six_month',
+          painAware: true,
+          planPdf: expect.objectContaining({
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Six Month Foundation.pdf',
+            contentType: 'application/pdf',
+            storage: 'local',
+            storageKey: expect.stringMatching(/^workout-plans\/42\/plan-1-/),
+            size: expect.any(Number),
+            updatedBy: 7,
+            updatedAt: expect.any(String),
+          }),
+        },
+      });
+      expect(res.body.planPdf).toMatchObject({
+        url: '/api/workout-plans/plan-1/pdf/content.pdf',
+        fileName: 'Six Month Foundation.pdf',
+        contentType: 'application/pdf',
+        storage: 'local',
+      });
+    });
+
+    it('trainer + assigned plan GET /:id/pdf/content.pdf streams the stored local PDF after access checks', async () => {
+      const storageKey = 'workout-plans/42/plan-1-upload.pdf';
+      await mkdir(path.join(routeUploadsRoot, 'workout-plans', '42'), { recursive: true });
+      await writeFile(
+        path.join(routeUploadsRoot, storageKey),
+        Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n'),
+      );
+
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Six Month Plan',
+        metadata: {
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Six Month Foundation.pdf',
+            contentType: 'application/pdf',
+            storage: 'local',
+            storageKey,
+          },
+        },
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .get('/api/workout-plans/plan-1/pdf/content.pdf')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(mockAssignmentFindOne).toHaveBeenCalledOnce();
+      expect(res.headers['content-type']).toMatch(/^application\/pdf/);
+      expect(res.headers['content-disposition']).toMatch(/inline/);
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+    });
+
+    it('trainer + assigned plan PUT /:id/primary marks only that plan as the primary client arc', async () => {
+      const targetUpdate = vi.fn().mockResolvedValue(undefined);
+      const siblingUpdate = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-9m',
+        userId: 42,
+        title: 'Nine Month Plan',
+        metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, painAware: true },
+        update: targetUpdate,
+      });
+      mockWorkoutPlanFindAll.mockResolvedValue([
+        {
+          id: 'plan-6m',
+          userId: 42,
+          metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+          update: siblingUpdate,
+        },
+      ]);
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-9m/primary')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(targetUpdate).toHaveBeenCalledWith({
+        metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true },
+      });
+      expect(siblingUpdate).toHaveBeenCalledWith({
+        metadata: { planHorizon: 'six_month', isPrimaryPlan: false },
+      });
+      expect(res.body.trainingPlanCatalog).toMatchObject({
+        primaryPlanId: 'plan-9m',
+        primaryHorizonKey: 'nine_month',
+      });
     });
   });
 

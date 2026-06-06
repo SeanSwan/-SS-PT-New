@@ -94,6 +94,7 @@ import FloatingRestTimer from './FloatingRestTimer';
 import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
   CurrentWorkoutPlanResponse,
+  PlannedAssignment,
   WorkoutLoggerClient,
   WorkoutLoggerExerciseOption,
   WorkoutLoggerProps,
@@ -104,6 +105,8 @@ import {
   ensureWorkoutLoggerExerciseRowIdentity,
   ensureWorkoutLoggerSetId,
   getCurrentWorkoutCursorSession,
+  getCurrentWorkoutPlanId,
+  getCurrentWorkoutTodayAssignment,
   getExerciseEntryRowKey,
   getPlanDayForDate,
   normalizeWorkoutDate,
@@ -191,6 +194,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [, setIsLoadingClient] = useState(true);
   const [currentOPTPhase, setCurrentOPTPhase] = useState(1);
   const [isQuickLogMode, setIsQuickLogMode] = useState(false);
+  const [plannedAssignment, setPlannedAssignment] = useState<PlannedAssignment | null>(null);
 
   // Speed helpers are no-ops without a real client id; client self-mode
   // skips admin-only ghost pre-fill reads.
@@ -581,11 +585,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       // Short-circuit when the role route has no client context.
       if (typeof effectiveClientId !== 'number') {
         toast.info('No client context - cannot load a plan');
+        setPlannedAssignment(null);
         setIsLoadingPlan(false);
         return;
       }
       const response = await api.get(`/api/workouts/${effectiveClientId}/current`);
       const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
+      const todayAssignment = getCurrentWorkoutTodayAssignment(data);
+      const currentPlanId = getCurrentWorkoutPlanId(data);
 
       // Primary path: cursor-driven currentSession.exercises.
       const cursorSession = getCurrentWorkoutCursorSession(data);
@@ -595,6 +602,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
         );
         setExercises(prev => [...prev, ...prefilled]);
+        setPlannedAssignment(todayAssignment && currentPlanId
+          ? { ...todayAssignment, planId: currentPlanId }
+          : null);
         const weekNum = cursorSession.weekNumber ?? '?';
         const dayLabel = cursorSession.dayLabel || `Day ${cursorSession.dayNumber ?? '?'}`;
         toast.success(`Loaded ${prefilled.length} exercises from Week ${weekNum} — ${dayLabel}`);
@@ -603,6 +613,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
       // Fallback: legacy day-of-week match against plan.days[].
       if (!data?.plan?.days?.length) {
+        setPlannedAssignment(null);
         toast.info('No active workout plan found for this client');
         return;
       }
@@ -611,6 +622,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const dayLabel = planDay?.dayName || new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
       if (!planDay?.exercises?.length) {
+        setPlannedAssignment(null);
         toast.info(`No exercises scheduled for ${dayLabel} in the active plan`);
         return;
       }
@@ -619,6 +631,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('plan'))
       );
       setExercises(prev => [...prev, ...prefilled]);
+      setPlannedAssignment(null);
       toast.success(`Loaded ${prefilled.length} exercises from ${dayLabel}'s plan`);
     } catch (error: unknown) {
       console.error('Failed to load today\'s plan:', error);
@@ -787,6 +800,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       sessionNotes: submitSessionNotes,
       overallIntensity: submitIntensity,
       scheduledSessionId,
+      plannedAssignment,
     });
 
     // Phase 6: Offline-first - queue if offline

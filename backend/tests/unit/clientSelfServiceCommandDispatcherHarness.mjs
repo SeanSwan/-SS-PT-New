@@ -1,5 +1,7 @@
 import { vi } from 'vitest';
 
+// fallow-ignore-file unused-file
+
 export async function loadDispatcher() {
   vi.resetModules();
 
@@ -8,7 +10,9 @@ export async function loadDispatcher() {
     title: 'Private plan title',
     currentWeek: 2,
     currentDay: 1,
-    durationWeeks: 8,
+    durationWeeks: 26,
+    status: 'active',
+    metadata: { planHorizon: 'six_month' },
     planData: {
       weeks: [
         { focus: 'prep', days: [{ dayLabel: 'Day 1', exercises: [] }] },
@@ -16,6 +20,7 @@ export async function loadDispatcher() {
           focus: 'stability',
           days: [{
             dayLabel: 'Day 1',
+            assignmentType: 'homework',
             exercises: [{ exerciseName: 'Goblet Squat', sets: 3, reps: '10' }],
           }],
         },
@@ -48,7 +53,10 @@ export async function loadDispatcher() {
     badges: ['founder', 'streak_7'],
   };
 
-  const WorkoutPlan = { findOne: vi.fn(async () => activePlan) };
+  const WorkoutPlan = {
+    findOne: vi.fn(async () => activePlan),
+    findAll: vi.fn(async () => [activePlan]),
+  };
   const WorkoutSession = { findAll: vi.fn(async () => workoutRows) };
   const BodyMeasurement = { findOne: vi.fn(async () => measurement) };
   const Gamification = { findOne: vi.fn(async () => gamificationRecord) };

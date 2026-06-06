@@ -15,6 +15,9 @@ const draftPlan: SavedPlanSummary = {
   status: 'draft',
   createdAt: '2026-04-30T00:00:00Z',
   goal: 'general_fitness',
+  horizonKey: 'one_month',
+  horizonLabel: '1 Month',
+  isPrimary: false,
 };
 
 const activePlan: SavedPlanSummary = {
@@ -23,6 +26,21 @@ const activePlan: SavedPlanSummary = {
   status: 'active',
   createdAt: '2026-05-01T00:00:00Z',
   goal: 'hypertrophy',
+  horizonKey: 'six_month',
+  horizonLabel: '6 Month',
+  isPrimary: true,
+};
+
+const pdfPlan: SavedPlanSummary = {
+  ...draftPlan,
+  id: 'p-52',
+  name: 'Six Month Foundation',
+  pdfFile: {
+    url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+    fileName: 'Six Month Foundation.pdf',
+    contentType: 'application/pdf',
+    updatedAt: '2026-06-06T00:00:00.000Z',
+  },
 };
 
 const handlers = () => ({
@@ -31,6 +49,9 @@ const handlers = () => ({
   onRename: vi.fn(),
   onDuplicate: vi.fn(),
   onArchive: vi.fn(),
+  onViewPdf: vi.fn(),
+  onUpdatePdf: vi.fn(),
+  onSetPrimary: vi.fn(),
 });
 
 beforeEach(() => {
@@ -64,6 +85,24 @@ describe('SavedPlanCard — basic render', () => {
     const h = handlers();
     render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
     expect(screen.getByTestId('action-activate-p-50')).toBeInTheDocument();
+  });
+
+  it('shows plan horizon and primary-arc status without relying on status alone', () => {
+    const h = handlers();
+    render(<SavedPlanCard plan={activePlan} loaded={false} archiveBlocked={false} {...h} />);
+
+    expect(screen.getByText('6 Month')).toBeInTheDocument();
+    expect(screen.getByTestId('primary-arc-badge')).toHaveTextContent(/primary arc/i);
+  });
+
+  it('lets trainers mark a non-primary saved plan as the primary arc', () => {
+    const h = handlers();
+    render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
+
+    fireEvent.click(screen.getByTestId('action-set-primary-p-50'));
+
+    expect(h.onSetPrimary).toHaveBeenCalledWith('p-50', 'Phase 1 Plan');
+    expect(h.onLoad).not.toHaveBeenCalled();
   });
 });
 
@@ -192,6 +231,33 @@ describe('SavedPlanCard — rename flow', () => {
     fireEvent.keyDown(input, { key: 'a' });
     fireEvent.keyDown(input, { key: 'Enter' });
     // Enter triggered Save, not Load
+    expect(h.onLoad).not.toHaveBeenCalled();
+  });
+});
+
+describe('SavedPlanCard PDF plan controls', () => {
+  it('renders attached PDF metadata with view and update actions', () => {
+    const h = handlers();
+    render(<SavedPlanCard plan={pdfPlan} loaded={false} archiveBlocked={false} {...h} />);
+
+    expect(screen.getByText('Six Month Foundation.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/PDF Plan/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('action-view-pdf-p-52'));
+    expect(h.onViewPdf).toHaveBeenCalledWith(pdfPlan);
+    expect(h.onLoad).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId('action-update-pdf-p-52'));
+    expect(h.onUpdatePdf).toHaveBeenCalledWith(pdfPlan);
+    expect(h.onLoad).not.toHaveBeenCalled();
+  });
+
+  it('offers an attach PDF action when a saved plan has no PDF yet', () => {
+    const h = handlers();
+    render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
+
+    fireEvent.click(screen.getByTestId('action-update-pdf-p-50'));
+    expect(h.onUpdatePdf).toHaveBeenCalledWith(draftPlan);
     expect(h.onLoad).not.toHaveBeenCalled();
   });
 });

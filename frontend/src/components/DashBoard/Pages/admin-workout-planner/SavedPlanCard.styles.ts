@@ -94,6 +94,95 @@ export const CardMeta = styled.div`
   color: var(--text-secondary, rgba(224, 236, 244, 0.55));
 `;
 
+export const PlanArcRow = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
+export const HorizonBadge = styled.span`
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+  color: var(--accent-primary, #60C0F0);
+  font: 700 0.68rem/1 'Sora', sans-serif;
+`;
+
+export const PrimaryArcBadge = styled(HorizonBadge)`
+  border-color: color-mix(in srgb, var(--accent-gold, #C6A84B) 42%, transparent);
+  color: var(--accent-gold, #C6A84B);
+  background: color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, transparent);
+`;
+
+export const PdfPanel = styled.div<{ $hasFile: boolean }>`
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid ${({ $hasFile }) =>
+    $hasFile
+      ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 28%, transparent)'
+      : 'var(--border-soft, rgba(96, 192, 240, 0.16))'};
+  background: ${({ $hasFile }) =>
+    $hasFile
+      ? 'linear-gradient(135deg, color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent), color-mix(in srgb, var(--accent-gold, #C6A84B) 8%, transparent))'
+      : 'color-mix(in srgb, var(--bg-base, #030712) 38%, transparent)'};
+`;
+
+export const PdfIcon = styled.div`
+  width: 36px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--accent-primary, #60C0F0);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+`;
+
+export const PdfInfo = styled.div`
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+export const PdfLabel = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-gold, #C6A84B);
+`;
+
+export const PdfFileName = styled.span`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--text-primary, #E0ECF4);
+  overflow-wrap: anywhere;
+`;
+
+export const PdfEmptyText = styled.span`
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.64));
+`;
+
+export const PdfActions = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+`;
+
 export const CardActionRow = styled.div`
   display: flex;
   gap: 6px;

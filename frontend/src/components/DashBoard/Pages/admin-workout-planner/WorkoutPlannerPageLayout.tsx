@@ -24,7 +24,7 @@ type GeneratedPlanProps = React.ComponentProps<typeof WorkoutPlannerGeneratedPla
 type SavedPlansProps = React.ComponentProps<typeof WorkoutPlannerSavedPlansSection>;
 type ConfirmDialogProps = React.ComponentProps<typeof WorkoutPlannerConfirmDialog>;
 
-export type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
+type WorkoutPlannerPageLayoutProps = CommandProps & StatusProps & RolodexProps & BuilderProps &
   GeneratedPlanProps & SavedPlansProps & ConfirmDialogProps & {
     teachModeProps: TeachModeProps;
   };
@@ -44,7 +44,8 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   onSaveAndActivate, onUpdateLoaded, onUpdateAndActivate, onDuplicateLoadedPlan, onSelectExercise,
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onToggleExplanations, teachModeProps,
   generatedPlan, selectedMesoDay, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
-  onLoad, onActivate, onRename, onDuplicate, onArchive, request, onClose,
+  onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
+  pdfSaving, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
 }) => (
   <Page>
     <WorkoutPlannerCommandPanel
@@ -155,6 +156,15 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       onRename={onRename}
       onDuplicate={onDuplicate}
       onArchive={onArchive}
+      onSetPrimary={onSetPrimary}
+      pdfDialogPlan={pdfDialogPlan}
+      pdfDialogMode={pdfDialogMode}
+      pdfSaving={pdfSaving}
+      onViewPdf={onViewPdf}
+      onUpdatePdf={onUpdatePdf}
+      onSavePdf={onSavePdf}
+      onUploadPdf={onUploadPdf}
+      onClosePdfDialog={onClosePdfDialog}
     />
     <WorkoutPlannerConfirmDialog request={request} onClose={onClose} />
   </Page>

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Dumbbell } from 'lucide-react';
+import { ClipboardCheck } from 'lucide-react';
 import {
   CardInner,
   MutedText,
@@ -30,8 +30,9 @@ interface ClientCurrentWorkoutCardProps {
 }
 
 function workoutPosition(workout?: CurrentClientWorkout | null): string {
-  if (!workout) return 'No active plan';
+  if (!workout) return '6 Month plan pending';
   const parts = [
+    workout.primaryPlanLabel ? `${workout.primaryPlanLabel} Primary` : null,
     workout.weekNumber ? `Week ${workout.weekNumber}` : null,
     workout.dayNumber ? `Day ${workout.dayNumber}` : null,
     workout.dayLabel || null,
@@ -39,10 +40,19 @@ function workoutPosition(workout?: CurrentClientWorkout | null): string {
   return parts.length ? parts.join(' - ') : 'Ready now';
 }
 
+function assignmentLabel(type?: string): string {
+  if (type === 'trainer_session') return 'Trainer Session';
+  if (type === 'active_recovery') return 'Active Recovery';
+  if (type === 'rest') return 'Rest Day';
+  if (type === 'assessment') return 'Assessment';
+  return 'Coach Homework';
+}
+
 function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): string {
   if (error) return 'Refresh this page or open the workout logger directly.';
-  if (!workout) return 'Your trainer will assign the next plan after assessment.';
-  if (workout.exerciseCount <= 0) return 'Open the logger to start this session.';
+  if (!workout) return 'Your trainer will assign the default 6 Month plan after assessment.';
+  if (workout.assignmentType === 'rest') return 'Recovery guidance is visible in your main plan today.';
+  if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
   return `${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}`;
 }
@@ -58,27 +68,31 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
       <WidgetHeader>
         <div>
           <SectionKicker>
-            <Dumbbell size={14} aria-hidden="true" />
-            Current Workout
+            <ClipboardCheck size={14} aria-hidden="true" />
+            Today's Assignment
           </SectionKicker>
           <SectionTitle>
             {currentWorkoutLoading
               ? 'Loading plan'
-              : currentWorkout?.title || (currentWorkoutError ? 'Workout unavailable' : 'Plan pending')}
+              : currentWorkout?.title || (currentWorkoutError ? 'Assignment unavailable' : 'Plan pending')}
           </SectionTitle>
         </div>
         <SmallButton
           type="button"
-          aria-label="Start current workout"
-          onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}
+          aria-label={currentWorkout?.isLoggable ? 'Log today\'s assignment' : 'View training plan'}
+          onClick={() => onNavigate(
+            currentWorkout?.isLoggable
+              ? '/dashboard/client/log-workout?loadPlan=today'
+              : '/dashboard/client/workouts',
+          )}
         >
-          Start
+          {currentWorkout?.ctaLabel || 'View Plan'}
         </SmallButton>
       </WidgetHeader>
       <WidgetList>
         <WidgetRow>
           <WidgetLabel>{workoutPosition(currentWorkout)}</WidgetLabel>
-          <WidgetValue>{currentWorkout?.exerciseCount || 0}</WidgetValue>
+          <WidgetValue>{assignmentLabel(currentWorkout?.assignmentType)}</WidgetValue>
         </WidgetRow>
       </WidgetList>
       <MutedText $top="0.75rem">

@@ -14,7 +14,12 @@ import {
   iconLabel,
 } from './ClientObservatoryData';
 import ClientCurrentWorkoutCard from './ClientCurrentWorkoutCard';
-import type { CurrentClientWorkout } from './useCurrentClientWorkout';
+import ClientTrainingPlanVaultCard from './ClientTrainingPlanVaultCard';
+import type {
+  ClientTrainingPlanSlot,
+  ClientTrainingPlanVault,
+  CurrentClientWorkout,
+} from './useCurrentClientWorkout';
 import {
   CardInner,
   GhostButton,
@@ -53,6 +58,7 @@ interface ClientObservatoryWidgetsProps {
   achievements: AchievementPreview[];
   challenge?: ChallengePreview;
   currentWorkout?: CurrentClientWorkout | null;
+  planVault?: ClientTrainingPlanVault | null;
   currentWorkoutError?: boolean;
   currentWorkoutLoading?: boolean;
   canBookSessions: boolean;
@@ -62,6 +68,7 @@ interface ClientObservatoryWidgetsProps {
   streakDays: number;
   tags: string[];
   onNavigate: (path: string) => void;
+  onViewPlanPdf: (slot: ClientTrainingPlanSlot) => void;
 }
 
 function challengeProgress(challenge?: ChallengePreview): number {
@@ -84,6 +91,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
   achievements,
   challenge,
   currentWorkout,
+  planVault,
   currentWorkoutError,
   currentWorkoutLoading,
   canBookSessions,
@@ -93,6 +101,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
   streakDays,
   tags,
   onNavigate,
+  onViewPlanPdf,
 }) => {
   const challengePct = challengeProgress(challenge);
   const challengeTitle = challenge?.title || challenge?.name || 'No active challenge yet';
@@ -104,6 +113,14 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
         currentWorkoutError={currentWorkoutError}
         currentWorkoutLoading={currentWorkoutLoading}
         onNavigate={onNavigate}
+      />
+
+      <ClientTrainingPlanVaultCard
+        planVault={planVault}
+        loading={currentWorkoutLoading}
+        error={currentWorkoutError}
+        onNavigate={onNavigate}
+        onViewPdf={onViewPlanPdf}
       />
 
       {canBookSessions && (

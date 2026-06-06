@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 import { getAllModels } from '../../../models/index.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
+import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -42,6 +43,33 @@ const parseDateOnlyLocal = (value) => {
   }
 
   return parsed;
+};
+
+const summarizeTodayAssignment = (assignment = {}) => ({
+  assignmentType: assignment.assignmentType ?? 'none',
+  status: assignment.status ?? 'none',
+  sessionType: assignment.sessionType ?? 'solo',
+  isLoggable: Boolean(assignment.isLoggable),
+  isBillable: Boolean(assignment.isBillable),
+  shouldDeductSession: Boolean(assignment.shouldDeductSession),
+  title: assignment.title ?? null,
+  weekNumber: assignment.weekNumber ?? null,
+  dayNumber: assignment.dayNumber ?? null,
+  exerciseCount: toNumber(assignment.exerciseCount),
+  firstExerciseName: assignment.firstExerciseName ?? null,
+  ctaLabel: assignment.ctaLabel ?? null,
+});
+
+const summarizeTrainingPlanCatalog = (catalog = {}) => {
+  const slots = Array.isArray(catalog.slots) ? catalog.slots : [];
+  const primary = slots.find((slot) => slot.isPrimary) || null;
+  return {
+    defaultHorizonKey: catalog.defaultHorizonKey ?? 'six_month',
+    primaryPlanId: catalog.primaryPlanId ?? null,
+    primaryHorizonKey: primary?.horizonKey ?? null,
+    filledHorizonKeys: slots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey),
+    slotCount: slots.length,
+  };
 };
 
 const getGamificationRecord = async (userId) => {
@@ -94,6 +122,18 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
   const currentSession = formatted.currentSession || null;
   const exercises = Array.isArray(currentSession?.exercises) ? currentSession.exercises : [];
   const firstExercise = exercises[0] || null;
+  const relatedPlans = WorkoutPlan.findAll
+    ? await WorkoutPlan.findAll({
+      where: { userId, status: ['active', 'paused', 'draft'] },
+      order: [['updatedAt', 'DESC']],
+      limit: 20,
+    })
+    : [plan];
+  const overview = buildClientTrainingOverview({
+    activePlan: plan,
+    plans: relatedPlans,
+    currentSession,
+  });
 
   return {
     userId,
@@ -105,6 +145,8 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
     sessionLabel: currentSession?.dayLabel ?? null,
     exerciseCount: exercises.length,
     firstExerciseName: firstExercise?.exerciseName || firstExercise?.name || null,
+    todayAssignment: summarizeTodayAssignment(overview.todayAssignment),
+    trainingPlanCatalog: summarizeTrainingPlanCatalog(overview.trainingPlanCatalog),
   };
 };
 

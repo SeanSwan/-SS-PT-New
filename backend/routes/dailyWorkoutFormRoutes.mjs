@@ -23,6 +23,7 @@ import {
   getDailyWorkoutForm,
   getUser,
   getWorkoutSession,
+  getWorkoutPlan,
   getSession,
   getClientTrainerAssignment,
   getTrainerPermissions,
@@ -34,6 +35,15 @@ import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
 import { buildWorkoutSessionBillingDecision } from '../services/sessionBillingPolicy.mjs';
+import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
+import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import {
+  PlannedWorkoutAssignmentError,
+  assertPlannedAssignmentMatchesOverview,
+  buildPlannedAssignmentFormMetadata,
+  isNonBillablePlannedWorkoutAssignment,
+  normalizePlannedWorkoutAssignmentInput,
+} from '../services/plannedWorkoutAssignmentLogService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -75,11 +85,79 @@ const parseOptionalDate = (value) => {
   return { ok: true, value: date };
 };
 
+const toIsoDateOnly = (value) => {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().split('T')[0];
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const directMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})(?:$|T|\s)/);
+    if (directMatch) return directMatch[1];
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().split('T')[0];
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().split('T')[0];
+};
+
 const sendInternalError = (res, message) => res.status(500).json({
   success: false,
   message,
   code: INTERNAL_ERROR,
 });
+
+const resolvePlannedAssignmentForLog = async ({
+  rawAssignment,
+  clientId,
+  workoutDateValue,
+  hasScheduledSession,
+  transaction,
+}) => {
+  const normalized = normalizePlannedWorkoutAssignmentInput(rawAssignment);
+  if (!normalized.ok) {
+    throw new PlannedWorkoutAssignmentError(normalized.message);
+  }
+  if (!normalized.assignment) return null;
+  if (hasScheduledSession) {
+    throw new PlannedWorkoutAssignmentError('Planned assignments cannot be combined with scheduled session logs');
+  }
+
+  const WorkoutPlan = getWorkoutPlan();
+  if (!WorkoutPlan?.findOne) {
+    throw new PlannedWorkoutAssignmentError('Workout plan verification is unavailable', 503);
+  }
+
+  const plan = await WorkoutPlan.findOne({
+    where: {
+      id: normalized.assignment.planId,
+      userId: clientId,
+      status: 'active',
+    },
+    order: [['updatedAt', 'DESC']],
+    transaction,
+  });
+  if (!plan) {
+    throw new PlannedWorkoutAssignmentError('Active workout plan assignment was not found');
+  }
+
+  const formatted = toCurrentWorkoutPlanResponse(plan);
+  const currentSession = formatted.currentSession || null;
+  const overview = buildClientTrainingOverview({
+    activePlan: plan,
+    plans: [plan],
+    currentSession,
+  });
+
+  assertPlannedAssignmentMatchesOverview(normalized.assignment, overview.todayAssignment);
+  const metadata = buildPlannedAssignmentFormMetadata(normalized.assignment, overview.todayAssignment);
+  const assignmentDate = toIsoDateOnly(metadata?.scheduledDate);
+  const workoutDate = toIsoDateOnly(workoutDateValue);
+  if (assignmentDate && workoutDate && assignmentDate !== workoutDate) {
+    throw new PlannedWorkoutAssignmentError('Planned assignment date does not match the workout log date');
+  }
+  return metadata;
+};
 
 /**
  * @route   GET /api/workout-forms/my/info
@@ -387,7 +465,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { clientId, date, exercises, sessionNotes, overallIntensity, scheduledSessionId } = req.body;
+    const { clientId, date, exercises, sessionNotes, overallIntensity, scheduledSessionId, plannedAssignment } = req.body;
     // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
     // by `protect` (authMiddleware.mjs:359). Callers here need a number for
     // comparison against parsedClientId and for Sequelize trainerId
@@ -540,8 +618,29 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       }
     }
 
+    const workoutDateValue = linkedScheduledSession?.sessionDate
+      ? new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]
+      : date;
+    const workoutDateIso = toIsoDateOnly(workoutDateValue);
+    if (!workoutDateIso) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Valid workout date is required'
+      });
+    }
+
+    const plannedAssignmentMetadata = await resolvePlannedAssignmentForLog({
+      rawAssignment: plannedAssignment,
+      clientId: parsedClientId,
+      workoutDateValue: workoutDateIso,
+      hasScheduledSession: Boolean(linkedScheduledSession),
+      transaction,
+    });
+
     const billingDecision = buildWorkoutSessionBillingDecision(client, {
       scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
+      nonBillablePlannedAssignment: isNonBillablePlannedWorkoutAssignment(plannedAssignmentMetadata),
     });
     if (!billingDecision.canLogWorkout) {
       await transaction.rollback();
@@ -551,12 +650,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       });
     }
 
-    const workoutDateValue = linkedScheduledSession?.sessionDate
-      ? new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]
-      : date;
-
     // Validate date is not in the future
-    const workoutDate = new Date(workoutDateValue);
+    const workoutDate = new Date(`${workoutDateIso}T00:00:00.000Z`);
     const today = new Date();
     today.setHours(23, 59, 59, 999); // Allow today
     
@@ -768,6 +863,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     if (overallIntensity !== undefined && overallIntensity !== null) {
       formData.overallIntensity = overallIntensity;
     }
+    if (plannedAssignmentMetadata) {
+      formData.plannedAssignment = plannedAssignmentMetadata;
+    }
 
     const dailyForm = await DailyWorkoutForm.create({
       sessionId: workoutSession.id,
@@ -867,6 +965,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         totalSets,
         estimatedDuration,
         sessionDeducted: billingDecision.sessionDeducted,
+        plannedAssignment: plannedAssignmentMetadata,
         submittedAt: dailyForm.submittedAt
       },
       message: billingDecision.message
@@ -874,6 +973,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
+    if (error instanceof PlannedWorkoutAssignmentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
     logger.error('Error submitting workout form:', error);
     return sendInternalError(res, 'Failed to submit workout form');
   }

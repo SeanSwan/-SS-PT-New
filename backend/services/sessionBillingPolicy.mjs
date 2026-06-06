@@ -37,6 +37,15 @@ export function buildWorkoutSessionBillingDecision(client, options = {}) {
     };
   }
 
+  if (options.nonBillablePlannedAssignment === true) {
+    return {
+      shouldDeduct: false,
+      canLogWorkout: true,
+      sessionDeducted: false,
+      message: 'Workout assignment logged successfully without session deduction',
+    };
+  }
+
   if (availableSessions < 1) {
     return {
       shouldDeduct: true,

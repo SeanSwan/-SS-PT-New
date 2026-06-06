@@ -303,6 +303,7 @@ export const WidgetRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 58%, transparent);
   border: 1px solid color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);

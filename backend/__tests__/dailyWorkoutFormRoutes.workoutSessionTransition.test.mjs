@@ -69,6 +69,7 @@ const mockDailyWorkoutFormCreate = vi.fn();
 const mockDailyWorkoutFormUpdate = vi.fn().mockResolvedValue(undefined);
 
 const mockWorkoutSessionFindOrCreate = vi.fn();
+const mockWorkoutPlanFindOne = vi.fn();
 
 const mockClientTrainerAssignmentFindOne = vi.fn();
 const mockTrainerPermissionsFindOne = vi.fn();
@@ -81,6 +82,7 @@ vi.mock('../models/index.mjs', () => ({
     create: mockDailyWorkoutFormCreate,
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
+  getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
   getSession: () => ({ findByPk: mockSessionFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: mockClientTrainerAssignmentFindOne }),
   getTrainerPermissions: () => ({ findOne: mockTrainerPermissionsFindOne }),
@@ -138,6 +140,7 @@ function bootstrapHappyPath({
   existingSession = null,
   createdFlag = true,
   clientAvailableSessions = 10,
+  clientSource = 'swanstudios',
 } = {}) {
   // No existing form for the date (no 409).
   mockDailyWorkoutFormFindOne.mockResolvedValueOnce(null);
@@ -145,6 +148,7 @@ function bootstrapHappyPath({
   mockUserFindByPk.mockResolvedValueOnce({
     id: 11,
     availableSessions: clientAvailableSessions,
+    clientSource,
     decrement: mockUserDecrement,
   });
   // findOrCreate result.
@@ -170,11 +174,33 @@ function bootstrapHappyPath({
   });
 }
 
+function mockActiveHomeworkPlan() {
+  mockWorkoutPlanFindOne.mockResolvedValueOnce({
+    id: 'plan-6m',
+    userId: 11,
+    status: 'active',
+    currentWeek: 4,
+    currentDay: 2,
+    durationWeeks: 26,
+    planData: {
+      days: [
+        { dayLabel: 'Primer', assignmentType: 'rest', exercises: [] },
+        {
+          dayLabel: 'Coach Homework Lower Body',
+          assignmentType: 'homework',
+          exercises: [{ exerciseName: 'Goblet Squat' }],
+        },
+      ],
+    },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockUserDecrement.mockResolvedValue(undefined);
   mockDailyWorkoutFormUpdate.mockResolvedValue(undefined);
   mockSessionFindByPk.mockReset();
+  mockWorkoutPlanFindOne.mockReset();
 });
 
 // ─── Bug 1 — totalSets propagates into defaults ────────────────────
@@ -383,6 +409,38 @@ describe('Phase 1 Slice 1.2 — linked schedule attendance gate', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/no-show/i);
+    expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
+    expect(mockUserDecrement).not.toHaveBeenCalled();
+  });
+});
+
+describe('Phase 1 Slice 1.3 - planned assignment billing guard', () => {
+  it('rejects non-billable planned assignment metadata when the log date is not today', async () => {
+    bootstrapHappyPath({ clientAvailableSessions: 0 });
+    mockActiveHomeworkPlan();
+
+    const currentIso = new Date().toISOString().split('T')[0];
+    const staleDate = currentIso === '2026-05-03' ? '2026-05-04' : '2026-05-03';
+    const res = await request(app)
+      .post('/api/workout-forms')
+      .send({
+        ...VALID_PAYLOAD,
+        date: staleDate,
+        plannedAssignment: {
+          assignmentKey: 'plan-6m:w4:d2:homework',
+          planId: 'plan-6m',
+          assignmentType: 'homework',
+          source: 'workout_plan',
+          weekNumber: 4,
+          dayNumber: 2,
+          isBillable: false,
+          shouldDeductSession: false,
+        },
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/date does not match/i);
     expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
     expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
     expect(mockUserDecrement).not.toHaveBeenCalled();

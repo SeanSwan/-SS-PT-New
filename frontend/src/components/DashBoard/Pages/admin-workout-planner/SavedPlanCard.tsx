@@ -1,12 +1,13 @@
 /**
- * SavedPlanCard.tsx
- *
- * Saved workout-plan library card with guarded load, activate, rename,
- * duplicate, and archive actions.
+ * BLUEPRINT: saved workout-plan library card.
+ * Purpose: render one admin/trainer plan arc with guarded card actions.
+ * Data: SavedPlanSummary from the saved-plans hook.
+ * A11y: keyboard-loadable card plus named 44px nested controls.
  */
 
 import React, { useCallback, useState } from 'react';
-import { Play, Copy, Edit3, Archive, Check, X } from 'lucide-react';
+import { Archive, Check, Copy, Edit3, Play, Star, X } from 'lucide-react';
+import SavedPlanPdfPanel from './SavedPlanPdfPanel';
 import {
   Card,
   CardActionButton,
@@ -14,11 +15,21 @@ import {
   CardHeader,
   CardMeta,
   CardTitle,
+  HorizonBadge,
+  PlanArcRow,
+  PrimaryArcBadge,
   RenameInput,
   StatusBadge,
 } from './SavedPlanCard.styles';
 
 export type SavedPlanStatus = 'active' | 'paused' | 'completed' | 'draft';
+
+export interface SavedPlanPdfFile {
+  url: string;
+  fileName: string;
+  contentType: string;
+  updatedAt?: string | null;
+}
 
 export interface SavedPlanSummary {
   id: string;
@@ -26,9 +37,13 @@ export interface SavedPlanSummary {
   status: SavedPlanStatus | string;
   createdAt: string;
   goal: string;
+  horizonKey?: string;
+  horizonLabel?: string;
+  isPrimary?: boolean;
+  pdfFile?: SavedPlanPdfFile | null;
 }
 
-export interface SavedPlanCardProps {
+interface SavedPlanCardProps {
   plan: SavedPlanSummary;
   loaded: boolean;
   archiveBlocked: boolean;
@@ -37,6 +52,9 @@ export interface SavedPlanCardProps {
   onRename: (planId: string, newName: string) => void;
   onDuplicate: (planId: string, planName: string) => void;
   onArchive: (planId: string, planName: string) => void;
+  onSetPrimary: (planId: string, planName: string) => void;
+  onViewPdf: (plan: SavedPlanSummary) => void;
+  onUpdatePdf: (plan: SavedPlanSummary) => void;
 }
 
 const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
@@ -48,6 +66,9 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
   onRename,
   onDuplicate,
   onArchive,
+  onSetPrimary,
+  onViewPdf,
+  onUpdatePdf,
 }) => {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(plan.name);
@@ -109,6 +130,11 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
     onArchive(plan.id, plan.name);
   }, [archiveBlocked, onArchive, plan.id, plan.name]);
 
+  const handleSetPrimary = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSetPrimary(plan.id, plan.name);
+  }, [onSetPrimary, plan.id, plan.name]);
+
   const stopProp = useCallback((e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
   }, []);
@@ -152,6 +178,17 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
         </CardMeta>
       )}
 
+      <PlanArcRow>
+        <HorizonBadge>{plan.horizonLabel || '6 Month'}</HorizonBadge>
+        {plan.isPrimary && (
+          <PrimaryArcBadge data-testid="primary-arc-badge">
+            <Star size={12} /> Primary Arc
+          </PrimaryArcBadge>
+        )}
+      </PlanArcRow>
+
+      <SavedPlanPdfPanel plan={plan} onViewPdf={onViewPdf} onUpdatePdf={onUpdatePdf} />
+
       <CardActionRow>
         {renaming ? (
           <>
@@ -184,6 +221,16 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
                 data-testid={`action-activate-${plan.id}`}
               >
                 <Play size={14} /> Make Current
+              </CardActionButton>
+            )}
+            {!plan.isPrimary && (
+              <CardActionButton
+                type="button"
+                onClick={handleSetPrimary}
+                aria-label={`Make ${plan.name} the primary training arc`}
+                data-testid={`action-set-primary-${plan.id}`}
+              >
+                <Star size={14} /> Set Primary
               </CardActionButton>
             )}
             <CardActionButton

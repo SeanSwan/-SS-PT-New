@@ -5,15 +5,18 @@
  * builder orchestration.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import type { AxiosRequestConfig } from 'axios';
 import { logApiError } from '../../../../utils/logApiError';
 import type { WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog';
 import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
+import type { WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
+import { mapSavedPlan } from './workoutPlannerSavedPlanMapping';
 
 interface PlannerAuthClient {
-  get: (url: string) => Promise<{ data?: unknown }>;
+  get: (url: string, config?: AxiosRequestConfig) => Promise<{ data?: unknown }>;
   post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
   put: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
   delete: (url: string) => Promise<{ data?: unknown }>;
@@ -36,17 +39,7 @@ interface UseWorkoutPlannerSavedPlansStateInput {
   setConfirmRequest: Dispatch<SetStateAction<WorkoutPlannerConfirmRequest | null>>;
 }
 
-const mapSavedPlan = (plan: Record<string, unknown>): SavedPlanSummary => {
-  const planData = plan.planData as Record<string, unknown> | undefined;
-
-  return {
-    id: String(plan.id || ''),
-    name: String(plan.title || plan.name || 'Untitled Plan'),
-    status: String(plan.status || 'draft'),
-    createdAt: String(plan.createdAt || ''),
-    goal: String(planData?.goal || plan.goal || ''),
-  };
-};
+const isProtectedPdfUrl = (url?: string | null) => Boolean(url && url.startsWith('/api/'));
 
 export const useWorkoutPlannerSavedPlansState = ({
   authAxios,
@@ -61,6 +54,17 @@ export const useWorkoutPlannerSavedPlansState = ({
 }: UseWorkoutPlannerSavedPlansStateInput) => {
   const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
   const [savedPlansLoading, setSavedPlansLoading] = useState(false);
+  const [pdfDialogPlan, setPdfDialogPlan] = useState<SavedPlanSummary | null>(null);
+  const [pdfDialogMode, setPdfDialogMode] = useState<WorkoutPlanPdfDialogMode>('view');
+  const [pdfSaving, setPdfSaving] = useState(false);
+  const pdfObjectUrlRef = useRef<string | null>(null);
+
+  const revokePdfObjectUrl = useCallback(() => {
+    if (pdfObjectUrlRef.current && typeof URL !== 'undefined') {
+      URL.revokeObjectURL(pdfObjectUrlRef.current);
+    }
+    pdfObjectUrlRef.current = null;
+  }, []);
 
   const fetchSavedPlans = useCallback(async (clientId: number | null) => {
     if (!clientId) {
@@ -98,6 +102,18 @@ export const useWorkoutPlannerSavedPlansState = ({
       setStatusMsg({ type: 'error', text: 'Failed to make plan current. Please try again.' });
     }
   }, [authAxios, currentExercisesSig, fetchSavedPlans, loadedPlanId, selectedClientId, setSavedSnapshot, setStatusMsg]);
+
+  const handlePlanSetPrimary = useCallback(async (planId: string, planName: string) => {
+    if (!selectedClientId) return;
+    try {
+      await authAxios.put(`/api/workout-plans/${planId}/primary`);
+      setStatusMsg({ type: 'success', text: `${planName} is now the primary training arc.` });
+      fetchSavedPlans(selectedClientId);
+    } catch (err) {
+      logApiError('Set primary training arc failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to update the primary training arc.' });
+    }
+  }, [authAxios, fetchSavedPlans, selectedClientId, setStatusMsg]);
 
   const handleCardRename = useCallback(async (planId: string, newName: string) => {
     if (!selectedClientId) return;
@@ -149,6 +165,78 @@ export const useWorkoutPlannerSavedPlansState = ({
     });
   }, [authAxios, fetchSavedPlans, loadedPlanId, resetLoadedPlanState, selectedClientId, setConfirmRequest, setStatusMsg]);
 
+  const handlePlanPdfView = useCallback(async (plan: SavedPlanSummary) => {
+    revokePdfObjectUrl();
+    setPdfDialogPlan(plan);
+    setPdfDialogMode('view');
+    const pdfFile = plan.pdfFile;
+    if (!isProtectedPdfUrl(pdfFile?.url) || !pdfFile || typeof URL === 'undefined') return;
+
+    try {
+      const res = await authAxios.get(pdfFile.url, { responseType: 'blob' });
+      const blob = res.data instanceof Blob
+        ? res.data
+        : new Blob([res.data as BlobPart], { type: pdfFile.contentType || 'application/pdf' });
+      const objectUrl = URL.createObjectURL(blob);
+      pdfObjectUrlRef.current = objectUrl;
+      setPdfDialogPlan({ ...plan, pdfFile: { ...pdfFile, url: objectUrl } });
+    } catch (err) {
+      logApiError('View plan PDF failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to open the PDF plan.' });
+    }
+  }, [authAxios, revokePdfObjectUrl, setStatusMsg]);
+
+  const handlePlanPdfUpdate = useCallback((plan: SavedPlanSummary) => {
+    revokePdfObjectUrl();
+    setPdfDialogPlan(plan);
+    setPdfDialogMode('edit');
+  }, [revokePdfObjectUrl]);
+
+  const closePlanPdfDialog = useCallback(() => {
+    if (pdfSaving) return;
+    revokePdfObjectUrl();
+    setPdfDialogPlan(null);
+    setPdfDialogMode('view');
+  }, [pdfSaving, revokePdfObjectUrl]);
+
+  const handlePlanPdfSave = useCallback(async (planId: string, pdfUrl: string, fileName: string) => {
+    if (!selectedClientId) return;
+    setPdfSaving(true);
+    try {
+      await authAxios.put(`/api/workout-plans/${planId}/pdf`, { pdfUrl, fileName });
+      setStatusMsg({ type: 'success', text: 'PDF plan updated.' });
+      await fetchSavedPlans(selectedClientId);
+      revokePdfObjectUrl();
+      setPdfDialogPlan(null);
+      setPdfDialogMode('view');
+    } catch (err) {
+      logApiError('Update plan PDF failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to update the PDF plan.' });
+    } finally {
+      setPdfSaving(false);
+    }
+  }, [authAxios, fetchSavedPlans, revokePdfObjectUrl, selectedClientId, setStatusMsg]);
+
+  const handlePlanPdfUpload = useCallback(async (planId: string, file: File) => {
+    if (!selectedClientId) return;
+    const formData = new FormData();
+    formData.append('pdf', file);
+    setPdfSaving(true);
+    try {
+      await authAxios.post(`/api/workout-plans/${planId}/pdf/upload`, formData);
+      setStatusMsg({ type: 'success', text: 'PDF plan uploaded.' });
+      await fetchSavedPlans(selectedClientId);
+      revokePdfObjectUrl();
+      setPdfDialogPlan(null);
+      setPdfDialogMode('view');
+    } catch (err) {
+      logApiError('Upload plan PDF failed', err);
+      setStatusMsg({ type: 'error', text: 'Failed to upload the PDF plan.' });
+    } finally {
+      setPdfSaving(false);
+    }
+  }, [authAxios, fetchSavedPlans, revokePdfObjectUrl, selectedClientId, setStatusMsg]);
+
   const activePlanCount = useMemo(
     () => savedPlans.filter(plan => plan.status === 'active').length,
     [savedPlans],
@@ -169,8 +257,17 @@ export const useWorkoutPlannerSavedPlansState = ({
     fetchSavedPlans,
     archiveBlockedFor,
     handleCardActivate,
+    handlePlanSetPrimary,
     handleCardRename,
     handleCardDuplicate,
     handleCardArchive,
+    pdfDialogPlan,
+    pdfDialogMode,
+    pdfSaving,
+    handlePlanPdfView,
+    handlePlanPdfUpdate,
+    handlePlanPdfSave,
+    handlePlanPdfUpload,
+    closePlanPdfDialog,
   };
 };

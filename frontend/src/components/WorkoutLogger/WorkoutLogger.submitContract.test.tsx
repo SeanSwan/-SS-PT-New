@@ -245,6 +245,62 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
     expect(body.scheduledSessionId).toBe('314');
     expect('sessionId' in body).toBe(false);
   });
+
+  it('carries sanitized non-billable planned assignment metadata when loading today from a plan', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        title: 'Coach Homework Lower Body',
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'Lower Body',
+        exerciseCount: 2,
+        firstExerciseName: 'Goblet Squat',
+      },
+    });
+
+    expect(body.plannedAssignment).toEqual({
+      assignmentId: 'plan-6m:w4:d2:homework',
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      planId: 'plan-6m',
+      assignmentType: 'homework',
+      source: 'workout_plan',
+      isBillable: false,
+      shouldDeductSession: false,
+      title: 'Coach Homework Lower Body',
+      weekNumber: 4,
+      dayNumber: 2,
+      dayLabel: 'Lower Body',
+      exerciseCount: 2,
+      firstExerciseName: 'Goblet Squat',
+    });
+  });
+
+  it('drops incomplete planned assignment metadata instead of sending a bypassable no-deduction flag', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      plannedAssignment: {
+        assignmentKey: 'missing-plan-id',
+        assignmentType: 'homework',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    });
+
+    expect(body.plannedAssignment).toBeUndefined();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────

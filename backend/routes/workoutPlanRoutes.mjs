@@ -38,6 +38,13 @@ import logger from '../utils/logger.mjs';
 // workoutPlanRoutes (admin/trainer view) and clientWorkoutRoutes (logger
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
+import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
+import {
+  workoutPlanPdfUploadMiddleware,
+  handleWorkoutPlanPdfUpload,
+} from './workoutPlanPdfUploadHandler.mjs';
+import { handleWorkoutPlanPdfContent } from './workoutPlanPdfContentHandler.mjs';
 
 const router = express.Router();
 
@@ -60,6 +67,20 @@ const parseStrictPositiveInteger = (value) => {
 
   const parsed = Number(trimmed);
   return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
+
+const markPlanPrimary = (plan, isPrimary) => {
+  const raw = toPlainObject(plan) || {};
+  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
+  return {
+    ...raw,
+    metadata: {
+      ...metadata,
+      isPrimaryPlan: isPrimary,
+    },
+  };
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -151,11 +172,25 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
 
     // Extract current session info for the AI
     const currentSession = extractCurrentSession(plan);
+    const clientPlans = typeof WorkoutPlan.findAll === 'function'
+      ? await WorkoutPlan.findAll({
+        where: { userId, status: ['active', 'paused', 'draft'] },
+        order: [['updatedAt', 'DESC']],
+        limit: 20,
+      })
+      : [plan];
+    const overview = buildClientTrainingOverview({
+      activePlan: plan,
+      plans: clientPlans,
+      currentSession,
+    });
 
     res.json({
       success: true,
       plan,
-      currentSession
+      currentSession,
+      todayAssignment: overview.todayAssignment,
+      trainingPlanCatalog: overview.trainingPlanCatalog,
     });
   } catch (error) {
     logger.error('[WorkoutPlan] GET /client/:userId error: %s', error.message);
@@ -288,7 +323,118 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
   }
 });
 
+/**
+ * Attach or replace the professional PDF file reference for a saved plan.
+ * Stores URL metadata for externally hosted or already uploaded PDFs.
+ * Multipart upload lives at POST /:id/pdf/upload. RBAC is inherited from
+ * verifyClientAccessByPlanId.
+ *
+ * @route PUT /api/workout-plans/:id/pdf
+ * @access Trainer (assigned client) / Admin
+ */
+router.put('/:id/pdf', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
+  try {
+    const plan = req.workoutPlan;
+    const result = buildWorkoutPlanPdfMetadata({
+      currentMetadata: plan.metadata || {},
+      pdfUrl: req.body?.pdfUrl || req.body?.url,
+      fileName: req.body?.fileName,
+      updatedBy: req.user.id,
+    });
+
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+
+    await plan.update({ metadata: result.metadata });
+
+    logger.info('[WorkoutPlan] Updated plan PDF for plan #%s by user %d', plan.id, req.user.id);
+
+    return res.json({ success: true, plan, planPdf: result.planPdf });
+  } catch (error) {
+    logger.error('[WorkoutPlan] PUT /:id/pdf error: %s', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to update workout plan PDF' });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────
+/**
+ * Upload and attach a professional PDF file for a saved plan.
+ *
+ * @route POST /api/workout-plans/:id/pdf/upload
+ * @access Trainer (assigned client) / Admin
+ */
+router.post(
+  '/:id/pdf/upload',
+  protect,
+  trainerOrAdminOnly,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  workoutPlanPdfUploadMiddleware,
+  handleWorkoutPlanPdfUpload,
+);
+
+/**
+ * Stream the stored PDF through authenticated app delivery.
+ *
+ * @route GET /api/workout-plans/:id/pdf/content.pdf
+ * @access Client owner, assigned trainer, or admin
+ */
+router.get(
+  '/:id/pdf/content.pdf',
+  protect,
+  verifyClientAccessByPlanId({ paramName: 'id' }),
+  handleWorkoutPlanPdfContent,
+);
+
+/**
+ * Mark a saved plan as the primary client-visible training arc.
+ *
+ * @route PUT /api/workout-plans/:id/primary
+ * @access Trainer (assigned client) / Admin
+ */
+router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
+  try {
+    const WorkoutPlan = getWorkoutPlan();
+    const targetPlan = req.workoutPlan;
+    const siblings = await WorkoutPlan.findAll({
+      where: {
+        userId: targetPlan.userId,
+        id: { [Op.ne]: targetPlan.id },
+        status: ['active', 'paused', 'draft'],
+      },
+      order: [['updatedAt', 'DESC']],
+      limit: 50,
+    });
+
+    const updatedSiblings = [];
+    for (const sibling of siblings) {
+      const nextSibling = markPlanPrimary(sibling, false);
+      await sibling.update({ metadata: nextSibling.metadata });
+      updatedSiblings.push(nextSibling);
+    }
+
+    const updatedTarget = markPlanPrimary(targetPlan, true);
+    await targetPlan.update({ metadata: updatedTarget.metadata });
+
+    const overview = buildClientTrainingOverview({
+      activePlan: updatedTarget,
+      plans: [updatedTarget, ...updatedSiblings],
+    });
+
+    logger.info('[WorkoutPlan] Set primary training arc #%s for client %d by user %d',
+      targetPlan.id, targetPlan.userId, req.user.id);
+
+    return res.json({
+      success: true,
+      plan: updatedTarget,
+      trainingPlanCatalog: overview.trainingPlanCatalog,
+    });
+  } catch (error) {
+    logger.error('[WorkoutPlan] PUT /:id/primary error: %s', error.message);
+    return res.status(500).json({ success: false, message: 'Failed to update primary training arc' });
+  }
+});
+
 // SECTION: PUT /api/workout-plans/:id/activate    (Plan Library slice)
 // PURPOSE: Make this plan the canonical "active" plan for its client.
 //          Demotes any sibling active plan(s) to 'paused' atomically.

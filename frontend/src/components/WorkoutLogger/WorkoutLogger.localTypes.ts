@@ -52,18 +52,41 @@ export interface PlannedSession {
   dayNumber?: number | string;
 }
 
+export interface PlannedAssignment {
+  assignmentId?: string | null;
+  assignmentKey?: string | null;
+  planId?: string | number | null;
+  assignmentType?: string | null;
+  source?: string | null;
+  isBillable?: boolean | null;
+  shouldDeductSession?: boolean | null;
+  title?: string | null;
+  scheduledDate?: string | null;
+  weekNumber?: number | string | null;
+  dayNumber?: number | string | null;
+  dayLabel?: string | null;
+  exerciseCount?: number | null;
+  firstExerciseName?: string | null;
+}
+
 export interface PlannedDay {
   dayName?: string;
   exercises?: PlannedExercise[];
 }
 
 export interface CurrentWorkoutPlanResponse {
+  id?: string | number;
   currentSession?: PlannedSession;
+  todayAssignment?: PlannedAssignment;
   data?: {
+    id?: string | number;
     currentSession?: PlannedSession;
+    todayAssignment?: PlannedAssignment;
   };
   plan?: {
+    id?: string | number;
     currentSession?: PlannedSession;
+    todayAssignment?: PlannedAssignment;
     days?: PlannedDay[];
   };
 }

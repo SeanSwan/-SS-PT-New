@@ -48,6 +48,27 @@ describe('client self-service command dispatchers', () => {
       sessionLabel: 'Day 1',
       exerciseCount: 1,
       firstExerciseName: 'Goblet Squat',
+      todayAssignment: {
+        assignmentType: 'homework',
+        status: 'planned',
+        sessionType: 'solo',
+        isLoggable: true,
+        isBillable: false,
+        shouldDeductSession: false,
+        title: 'Day 1',
+        weekNumber: 2,
+        dayNumber: 1,
+        exerciseCount: 1,
+        firstExerciseName: 'Goblet Squat',
+        ctaLabel: 'Log Assignment',
+      },
+      trainingPlanCatalog: {
+        defaultHorizonKey: 'six_month',
+        primaryPlanId: 'plan-1',
+        primaryHorizonKey: 'six_month',
+        filledHorizonKeys: ['six_month'],
+        slotCount: 7,
+      },
     });
     expect(JSON.stringify(result)).not.toContain('client@example.com');
   });
