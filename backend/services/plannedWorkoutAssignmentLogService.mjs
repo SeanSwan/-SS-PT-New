@@ -23,74 +23,121 @@ const toPositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
+const ASSIGNMENT_TYPE_ALIASES = new Map([
+  ['solo', 'homework'],
+  ['conditioning', 'homework'],
+  ['recovery', 'active_recovery'],
+  ['flexibility', 'active_recovery'],
+]);
+
 const normalizeAssignmentType = (value) => {
   const raw = compactString(value)?.toLowerCase().replace(/[\s-]+/g, '_') || null;
-  if (raw === 'solo' || raw === 'conditioning') return 'homework';
-  if (raw === 'recovery' || raw === 'flexibility') return 'active_recovery';
-  return raw;
+  return ASSIGNMENT_TYPE_ALIASES.get(raw) || raw;
 };
 
+const isEmptyAssignmentInput = (value) => value === undefined || value === null || value === '';
+const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const buildAssignmentDraft = (value) => ({
+  assignmentKey: compactString(value.assignmentKey || value.assignmentId),
+  planId: compactString(value.planId),
+  assignmentType: normalizeAssignmentType(value.assignmentType),
+  weekNumber: toPositiveInteger(value.weekNumber),
+  dayNumber: toPositiveInteger(value.dayNumber),
+  source: compactString(value.source) || 'workout_plan',
+});
+
+const missingRequiredAssignmentField = (draft) => [
+  draft.assignmentKey,
+  draft.planId,
+  draft.assignmentType,
+  draft.weekNumber,
+  draft.dayNumber,
+].some((field) => !field);
+
+const inputValidationRules = [
+  {
+    fails: (draft) => draft.source !== 'workout_plan',
+    message: 'Planned assignment source must be workout_plan',
+  },
+  {
+    fails: (draft) => missingRequiredAssignmentField(draft),
+    message: 'Planned assignment metadata is incomplete',
+  },
+  {
+    fails: (draft) => !NON_BILLABLE_TYPES.has(draft.assignmentType),
+    message: 'Only homework or active recovery assignments can use planned assignment logging',
+  },
+  {
+    fails: (_draft, value) => value.shouldDeductSession === true || value.isBillable === true,
+    message: 'Billable assignments must be logged through scheduled session flows',
+  },
+];
+
+const firstValidationMessage = (rules, ...args) => (
+  rules.find((rule) => rule.fails(...args))?.message || null
+);
+
 export const normalizePlannedWorkoutAssignmentInput = (value) => {
-  if (value === undefined || value === null || value === '') {
+  if (isEmptyAssignmentInput(value)) {
     return { ok: true, assignment: null };
   }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  if (!isRecord(value)) {
     return { ok: false, message: 'Planned assignment metadata must be an object' };
   }
 
-  const assignmentKey = compactString(value.assignmentKey || value.assignmentId);
-  const planId = compactString(value.planId);
-  const assignmentType = normalizeAssignmentType(value.assignmentType);
-  const weekNumber = toPositiveInteger(value.weekNumber);
-  const dayNumber = toPositiveInteger(value.dayNumber);
-  const source = compactString(value.source) || 'workout_plan';
-
-  if (source !== 'workout_plan') {
-    return { ok: false, message: 'Planned assignment source must be workout_plan' };
-  }
-  if (!assignmentKey || !planId || !assignmentType || !weekNumber || !dayNumber) {
-    return { ok: false, message: 'Planned assignment metadata is incomplete' };
-  }
-  if (!NON_BILLABLE_TYPES.has(assignmentType)) {
-    return { ok: false, message: 'Only homework or active recovery assignments can use planned assignment logging' };
-  }
-  if (value.shouldDeductSession === true || value.isBillable === true) {
-    return { ok: false, message: 'Billable assignments must be logged through scheduled session flows' };
-  }
+  const draft = buildAssignmentDraft(value);
+  const validationMessage = firstValidationMessage(inputValidationRules, draft, value);
+  if (validationMessage) return { ok: false, message: validationMessage };
 
   return {
     ok: true,
     assignment: {
-      assignmentKey,
-      assignmentId: assignmentKey,
-      planId,
-      assignmentType,
-      source,
-      weekNumber,
-      dayNumber,
+      assignmentKey: draft.assignmentKey,
+      assignmentId: draft.assignmentKey,
+      planId: draft.planId,
+      assignmentType: draft.assignmentType,
+      source: draft.source,
+      weekNumber: draft.weekNumber,
+      dayNumber: draft.dayNumber,
       isBillable: false,
       shouldDeductSession: false,
     },
   };
 };
 
+const assignmentCursorMismatch = (input, overviewAssignment) => (
+  Number(overviewAssignment.weekNumber) !== input.weekNumber
+  || Number(overviewAssignment.dayNumber) !== input.dayNumber
+);
+
+const overviewMatchRules = [
+  {
+    fails: (input, overviewAssignment) => (
+      !overviewAssignment?.assignmentKey || overviewAssignment.assignmentKey !== input.assignmentKey
+    ),
+    message: 'Planned assignment does not match the active workout plan',
+  },
+  {
+    fails: (input, overviewAssignment) => overviewAssignment.assignmentType !== input.assignmentType,
+    message: 'Planned assignment type does not match the active workout plan',
+  },
+  {
+    fails: assignmentCursorMismatch,
+    message: 'Planned assignment cursor does not match the active workout plan',
+  },
+  {
+    fails: (_input, overviewAssignment) => (
+      overviewAssignment.shouldDeductSession === true || overviewAssignment.isBillable === true
+    ),
+    message: 'Billable assignments must be logged through scheduled session flows',
+  },
+];
+
 export const assertPlannedAssignmentMatchesOverview = (input, overviewAssignment = {}) => {
   if (!input) return;
-  if (!overviewAssignment?.assignmentKey || overviewAssignment.assignmentKey !== input.assignmentKey) {
-    throw new PlannedWorkoutAssignmentError('Planned assignment does not match the active workout plan');
-  }
-  if (overviewAssignment.assignmentType !== input.assignmentType) {
-    throw new PlannedWorkoutAssignmentError('Planned assignment type does not match the active workout plan');
-  }
-  if (
-    Number(overviewAssignment.weekNumber) !== input.weekNumber
-    || Number(overviewAssignment.dayNumber) !== input.dayNumber
-  ) {
-    throw new PlannedWorkoutAssignmentError('Planned assignment cursor does not match the active workout plan');
-  }
-  if (overviewAssignment.shouldDeductSession === true || overviewAssignment.isBillable === true) {
-    throw new PlannedWorkoutAssignmentError('Billable assignments must be logged through scheduled session flows');
-  }
+  const validationMessage = firstValidationMessage(overviewMatchRules, input, overviewAssignment);
+  if (validationMessage) throw new PlannedWorkoutAssignmentError(validationMessage);
 };
 
 export const buildPlannedAssignmentFormMetadata = (input, overviewAssignment = {}) => {
@@ -115,10 +162,12 @@ export const buildPlannedAssignmentFormMetadata = (input, overviewAssignment = {
   };
 };
 
-export const isNonBillablePlannedWorkoutAssignment = (assignment) => (
-  Boolean(assignment)
-  && assignment.source === 'workout_plan'
-  && NON_BILLABLE_TYPES.has(assignment.assignmentType)
-  && assignment.isBillable === false
-  && assignment.shouldDeductSession === false
-);
+export const isNonBillablePlannedWorkoutAssignment = (assignment) => {
+  if (!assignment) return false;
+  return [
+    assignment.source === 'workout_plan',
+    NON_BILLABLE_TYPES.has(assignment.assignmentType),
+    assignment.isBillable === false,
+    assignment.shouldDeductSession === false,
+  ].every(Boolean);
+};

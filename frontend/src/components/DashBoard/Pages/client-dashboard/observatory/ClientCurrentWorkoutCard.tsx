@@ -40,12 +40,15 @@ function workoutPosition(workout?: CurrentClientWorkout | null): string {
   return parts.length ? parts.join(' - ') : 'Ready now';
 }
 
+const ASSIGNMENT_LABELS: Record<string, string> = {
+  trainer_session: 'Trainer Session',
+  active_recovery: 'Active Recovery',
+  rest: 'Rest Day',
+  assessment: 'Assessment',
+};
+
 function assignmentLabel(type?: string): string {
-  if (type === 'trainer_session') return 'Trainer Session';
-  if (type === 'active_recovery') return 'Active Recovery';
-  if (type === 'rest') return 'Rest Day';
-  if (type === 'assessment') return 'Assessment';
-  return 'Coach Homework';
+  return type ? ASSIGNMENT_LABELS[type] || 'Coach Homework' : 'Coach Homework';
 }
 
 function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): string {
@@ -55,6 +58,30 @@ function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): 
   if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
   return `${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}`;
+}
+
+function workoutTitle(
+  workout?: CurrentClientWorkout | null,
+  error?: boolean,
+  loading?: boolean,
+): string {
+  if (loading) return 'Loading plan';
+  if (workout?.title) return workout.title;
+  return error ? 'Assignment unavailable' : 'Plan pending';
+}
+
+function workoutActionPath(workout?: CurrentClientWorkout | null): string {
+  return workout?.isLoggable
+    ? '/dashboard/client/log-workout?loadPlan=today'
+    : '/dashboard/client/workouts';
+}
+
+function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
+  return workout?.ctaLabel || 'View Plan';
+}
+
+function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
+  return workout?.isLoggable ? 'Log today\'s assignment' : 'View training plan';
 }
 
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
@@ -71,22 +98,14 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
             <ClipboardCheck size={14} aria-hidden="true" />
             Today's Assignment
           </SectionKicker>
-          <SectionTitle>
-            {currentWorkoutLoading
-              ? 'Loading plan'
-              : currentWorkout?.title || (currentWorkoutError ? 'Assignment unavailable' : 'Plan pending')}
-          </SectionTitle>
+          <SectionTitle>{workoutTitle(currentWorkout, currentWorkoutError, currentWorkoutLoading)}</SectionTitle>
         </div>
         <SmallButton
           type="button"
-          aria-label={currentWorkout?.isLoggable ? 'Log today\'s assignment' : 'View training plan'}
-          onClick={() => onNavigate(
-            currentWorkout?.isLoggable
-              ? '/dashboard/client/log-workout?loadPlan=today'
-              : '/dashboard/client/workouts',
-          )}
+          aria-label={workoutActionAriaLabel(currentWorkout)}
+          onClick={() => onNavigate(workoutActionPath(currentWorkout))}
         >
-          {currentWorkout?.ctaLabel || 'View Plan'}
+          {workoutActionLabel(currentWorkout)}
         </SmallButton>
       </WidgetHeader>
       <WidgetList>

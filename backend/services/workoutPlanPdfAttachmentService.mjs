@@ -52,10 +52,16 @@ const normalizePdfUrl = (value) => {
   }
 };
 
-export const extractWorkoutPlanPdfAttachment = (metadata = {}) => {
-  const raw = metadata?.planPdf || metadata?.pdfFile || null;
-  if (!raw || typeof raw !== 'object') return null;
+const normalizeMetadataObject = (value) => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+);
 
+const pdfAttachmentMetadata = (metadata = {}) => {
+  const raw = metadata?.planPdf || metadata?.pdfFile || null;
+  return normalizeMetadataObject(raw);
+};
+
+const normalizePdfAttachment = (raw = {}) => {
   const url = normalizePdfUrl(raw.url || raw.pdfUrl);
   if (!url) return null;
 
@@ -66,6 +72,10 @@ export const extractWorkoutPlanPdfAttachment = (metadata = {}) => {
     updatedAt: compactString(raw.updatedAt) || null,
   };
 };
+
+export const extractWorkoutPlanPdfAttachment = (metadata = {}) => (
+  normalizePdfAttachment(pdfAttachmentMetadata(metadata))
+);
 
 export const buildWorkoutPlanPdfMetadata = ({
   currentMetadata = {},
@@ -90,7 +100,7 @@ export const buildWorkoutPlanPdfMetadata = ({
   return {
     ok: true,
     metadata: {
-      ...(currentMetadata && typeof currentMetadata === 'object' ? currentMetadata : {}),
+      ...normalizeMetadataObject(currentMetadata),
       planPdf,
     },
     planPdf: extractWorkoutPlanPdfAttachment({ planPdf }),

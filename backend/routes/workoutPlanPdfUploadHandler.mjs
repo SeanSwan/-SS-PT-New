@@ -26,32 +26,51 @@ const uploadPlanPdf = multer({
   },
 }).single('pdf');
 
+const uploadErrorResponse = (error) => {
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return { status: 413, message: 'PDF file must be under 20MB' };
+  }
+
+  const status = error instanceof WorkoutPlanPdfValidationError ? 400 : 500;
+  return {
+    status,
+    message: status === 400 ? error.message : 'Failed to upload workout plan PDF',
+  };
+};
+
+const missingFileResponse = (req) => (
+  req.file ? null : { status: 400, message: 'A valid PDF file is required' }
+);
+
+const sendPdfUploadError = (res, error) => {
+  if (error instanceof WorkoutPlanPdfValidationError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  logger.error('[WorkoutPlan] POST /:id/pdf/upload error: %s', error.message);
+  return res.status(500).json({ success: false, message: 'Failed to upload workout plan PDF' });
+};
+
 export const workoutPlanPdfUploadMiddleware = (req, res, next) => {
   uploadPlanPdf(req, res, (error) => {
     if (!error) return next();
 
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({
-        success: false,
-        message: 'PDF file must be under 20MB',
-      });
-    }
-
-    const status = error instanceof WorkoutPlanPdfValidationError ? 400 : 500;
+    const { status, message } = uploadErrorResponse(error);
     return res.status(status).json({
       success: false,
-      message: status === 400 ? error.message : 'Failed to upload workout plan PDF',
+      message,
     });
   });
 };
 
 export const handleWorkoutPlanPdfUpload = async (req, res) => {
+  const missingFile = missingFileResponse(req);
+  if (missingFile) {
+    return res.status(missingFile.status).json({ success: false, message: missingFile.message });
+  }
+
   try {
     const plan = req.workoutPlan;
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'A valid PDF file is required' });
-    }
-
     const planPdf = await storeWorkoutPlanPdf({
       file: req.file,
       planId: plan.id,
@@ -68,11 +87,6 @@ export const handleWorkoutPlanPdfUpload = async (req, res) => {
     logger.info('[WorkoutPlan] Uploaded PDF for plan #%s by user %d', plan.id, req.user.id);
     return res.json({ success: true, plan, planPdf });
   } catch (error) {
-    if (error instanceof WorkoutPlanPdfValidationError) {
-      return res.status(400).json({ success: false, message: error.message });
-    }
-
-    logger.error('[WorkoutPlan] POST /:id/pdf/upload error: %s', error.message);
-    return res.status(500).json({ success: false, message: 'Failed to upload workout plan PDF' });
+    return sendPdfUploadError(res, error);
   }
 };
