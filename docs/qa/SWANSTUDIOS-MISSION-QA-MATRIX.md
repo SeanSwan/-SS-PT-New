@@ -45,7 +45,7 @@ QA emails should use `@swanstudios-qa.local` so cleanup can identify them. Produ
 - Write tests must be tagged `@write` and run with retries disabled.
 - Production read-only may run against `sswanstudios.com`; production writes require Sean's explicit approval and the launcher `--allow-prod-write` flag.
 - Production live read-only must use `SWAN_MISSION_QA_LIVE_API=1`, must block `POST`, `PUT`, `PATCH`, and `DELETE`, and must never store auth state in git. The `.auth/` directory is ignored for local Playwright storage states.
-- Capture local production auth state with `npm run qa:prod-auth:capture -- --role=admin`, `--role=trainer`, or `--role=client`. The helper opens a browser and saves storage state only after interactive login.
+- Capture local production auth state with `npm run qa:prod-auth:capture:admin`, `npm run qa:prod-auth:capture:trainer`, or `npm run qa:prod-auth:capture:client`. The helper opens a browser and saves storage state only after interactive login.
 - Authenticated production checks are optional until local state files exist. Supported env vars: `SWAN_PROD_AUTH_STATE` as a generic client fallback, plus `SWAN_PROD_ADMIN_AUTH_STATE`, `SWAN_PROD_TRAINER_AUTH_STATE`, and `SWAN_PROD_CLIENT_AUTH_STATE` for role-specific checks. Do not hardcode secrets or login values in specs.
 - If `DATABASE_URL` looks production-like, write mode requires `SWAN_MISSION_QA_CONFIRM_PROD_DB_WRITES=true`.
 - No live Stripe cards or live local Stripe keys in mission QA. Use Stripe test keys and disposable QA carts.

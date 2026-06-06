@@ -55,7 +55,9 @@ This artifact records the current Mission QA harness for SwanStudios' training-b
 - \`npm run qa:mission\`
 - \`npm run qa:mission:prod-readonly\`
 - \`npm run qa:mission:prod-live-readonly\`
-- \`npm run qa:prod-auth:capture -- --role=admin|trainer|client\`
+- \`npm run qa:prod-auth:capture:admin\`
+- \`npm run qa:prod-auth:capture:trainer\`
+- \`npm run qa:prod-auth:capture:client\`
 - \`npm run qa:mission:cleanup\`
 
 ## blockedWrites

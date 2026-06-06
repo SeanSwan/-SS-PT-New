@@ -52,7 +52,7 @@ Run from the repo root:
 npm run qa:mission
 npm run qa:mission:prod-readonly
 npm run qa:mission:prod-live-readonly
-npm run qa:prod-auth:capture -- --role=admin
+npm run qa:prod-auth:capture:admin
 npm run qa:mission:cleanup
 npm run qa:mission:report
 ```

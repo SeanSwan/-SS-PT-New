@@ -21,6 +21,8 @@ describe('mission QA automation guards', () => {
     expect(source).toContain('SWAN_MISSION_QA_ALLOW_WRITES');
     expect(source).toContain('SWAN_MISSION_QA_CONFIRM_PROD_DB_WRITES');
     expect(source).toContain('SWAN_MISSION_QA_LIVE_API');
+    expect(source).toContain('normalizeAuthStatePath');
+    expect(source).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
     expect(source).toContain('--prod-live-readonly');
     expect(source).toContain('--grep-invert=@prod-live-readonly');
     expect(source).toContain('--allow-prod-write');
@@ -62,6 +64,12 @@ describe('mission QA automation guards', () => {
       .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly');
     expect(rootPackage.scripts['qa:prod-auth:capture'])
       .toBe('node scripts/qa/capture-prod-auth-state.mjs');
+    expect(rootPackage.scripts['qa:prod-auth:capture:admin'])
+      .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=admin');
+    expect(rootPackage.scripts['qa:prod-auth:capture:trainer'])
+      .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=trainer');
+    expect(rootPackage.scripts['qa:prod-auth:capture:client'])
+      .toBe('node scripts/qa/capture-prod-auth-state.mjs --role=client');
     expect(rootPackage.scripts['qa:mission:cleanup'])
       .toBe('node scripts/qa/mission-qa-cleanup.mjs');
     expect(rootPackage.scripts['qa:mission:report'])
@@ -88,7 +96,21 @@ describe('mission QA automation guards', () => {
     const source = readFileSync(launcherPath, 'utf8');
     expect(source).toContain('assertInsideAuthDir');
     expect(source).toContain('context.storageState');
+    expect(source).toContain('--check-browser-driver');
+    expect(source).toContain('playwright.default?.chromium');
     expect(source).not.toMatch(/password|sk_live|pk_live|whsec_/i);
+  });
+
+  it('verifies the production auth helper can resolve a Chromium driver without opening login', () => {
+    const launcherPath = path.join(repoRoot, 'scripts/qa/capture-prod-auth-state.mjs');
+    const result = spawnSync(process.execPath, [launcherPath, '--check-browser-driver'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 5_000,
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Chromium browser driver available');
   });
 
   it('documents mission QA as opt-in and separates contract, read-only, and write modes', () => {

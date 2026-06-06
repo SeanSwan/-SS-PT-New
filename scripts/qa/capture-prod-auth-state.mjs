@@ -31,6 +31,7 @@ function argValue(name) {
 }
 
 const showHelp = args.includes('--help') || args.includes('-h');
+const checkBrowserDriver = args.includes('--check-browser-driver');
 const role = argValue('--role');
 const baseUrl = argValue('--base-url') || 'https://sswanstudios.com';
 const outputArg = argValue('--out');
@@ -47,10 +48,12 @@ Options:
   --timeout-ms=<ms>             Time allowed for interactive login. Defaults to 300000.
   --force                       Overwrite an existing state file.
   --allow-outside-auth-dir      Permit output outside .auth/ after deliberate local approval.
+  --check-browser-driver        Verify Playwright Chromium can be resolved without opening login.
   -h, --help                    Print this help without opening a browser.
 
 Examples:
-  npm run qa:prod-auth:capture -- --role=admin
+  npm run qa:prod-auth:capture:admin
+  node scripts/qa/capture-prod-auth-state.mjs --role=admin
   $env:SWAN_PROD_ADMIN_AUTH_STATE=".auth/sswan-prod-admin.json"
   $env:SWAN_PROD_TRAINER_AUTH_STATE=".auth/sswan-prod-trainer.json"
   $env:SWAN_PROD_CLIENT_AUTH_STATE=".auth/sswan-prod-client.json"
@@ -88,11 +91,21 @@ function defaultOutputPath() {
 async function loadChromium() {
   const moduleUrl = pathToFileURL(path.join(frontendDir, 'node_modules', '@playwright', 'test', 'index.js')).href;
   const playwright = await import(moduleUrl);
-  return playwright.chromium;
+  const chromium = playwright.chromium || playwright.default?.chromium;
+  if (!chromium?.launch) {
+    fail('Playwright Chromium driver could not be resolved from frontend/node_modules');
+  }
+  return chromium;
 }
 
 if (showHelp) {
   printUsage();
+  process.exit(0);
+}
+
+if (checkBrowserDriver) {
+  await loadChromium();
+  process.stdout.write('Chromium browser driver available.\n');
   process.exit(0);
 }
 

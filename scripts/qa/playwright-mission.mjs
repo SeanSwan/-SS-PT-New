@@ -102,6 +102,28 @@ function fail(message) {
   process.exit(1);
 }
 
+function normalizeAuthStatePath(value) {
+  if (!value) return undefined;
+  return path.isAbsolute(value) ? value : path.resolve(repoRoot, value);
+}
+
+function normalizedAuthStateEnv() {
+  return {
+    ...(process.env.SWAN_PROD_AUTH_STATE
+      ? { SWAN_PROD_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_AUTH_STATE) }
+      : {}),
+    ...(process.env.SWAN_PROD_ADMIN_AUTH_STATE
+      ? { SWAN_PROD_ADMIN_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_ADMIN_AUTH_STATE) }
+      : {}),
+    ...(process.env.SWAN_PROD_TRAINER_AUTH_STATE
+      ? { SWAN_PROD_TRAINER_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_TRAINER_AUTH_STATE) }
+      : {}),
+    ...(process.env.SWAN_PROD_CLIENT_AUTH_STATE
+      ? { SWAN_PROD_CLIENT_AUTH_STATE: normalizeAuthStatePath(process.env.SWAN_PROD_CLIENT_AUTH_STATE) }
+      : {}),
+  };
+}
+
 function printUsage() {
   process.stdout.write(`Usage: node scripts/qa/playwright-mission.mjs [mode] [options] [-- playwright-options]
 
@@ -212,6 +234,7 @@ const playwrightSpawnOptions = {
     SWAN_MISSION_QA_MODE: mode,
     SWAN_MISSION_QA_ALLOW_WRITES: allowWrites,
     SWAN_MISSION_QA_LIVE_API: liveApi,
+    ...normalizedAuthStateEnv(),
     ...(localFrontendPort ? { SWAN_PLAYWRIGHT_FRONTEND_PORT: String(localFrontendPort) } : {}),
     ...(skipWebServer ? { SWAN_PLAYWRIGHT_SKIP_WEBSERVER: '1' } : {}),
   },
