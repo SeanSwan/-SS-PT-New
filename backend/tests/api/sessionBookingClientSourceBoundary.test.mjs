@@ -77,6 +77,23 @@ describe('session booking clientSource boundary', () => {
     expect(source).not.toContain('!client.availableSessions || client.availableSessions < creditsRequired');
   });
 
+  it('locks the available session and paid client balance before unified booking deducts credits', () => {
+    const start = unifiedServiceSource.indexOf('async bookSession(sessionId, user, bookingData = {})');
+    const end = unifiedServiceSource.indexOf('async cancelSession', start);
+    const source = unifiedServiceSource.slice(start, end);
+    const sessionLoad = source.indexOf('const session = await this.Session.findOne({');
+    const clientLoad = source.indexOf('const client = await this.User.findByPk(user.id');
+    const deduction = source.indexOf('processSessionDeduction(session, client, transaction)');
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(sessionLoad).toBeGreaterThan(-1);
+    expect(clientLoad).toBeGreaterThan(sessionLoad);
+    expect(deduction).toBeGreaterThan(clientLoad);
+    expect(source).toMatch(/this\.Session\.findOne\(\{[\s\S]{0,300}status:\s*'available'[\s\S]{0,220}transaction,[\s\S]{0,120}lock:\s*transaction\.LOCK\.UPDATE/);
+    expect(source).toMatch(/this\.User\.findByPk\(user\.id,\s*\{[\s\S]{0,160}transaction,[\s\S]{0,120}lock:\s*transaction\.LOCK\.UPDATE/);
+  });
+
   it('serves the active SessionContext user-id booking route from the unified router', () => {
     const start = unifiedRouteSource.indexOf('router.post("/book/:userId", protect');
     const end = unifiedRouteSource.indexOf('router.post("/:id/book"', start);

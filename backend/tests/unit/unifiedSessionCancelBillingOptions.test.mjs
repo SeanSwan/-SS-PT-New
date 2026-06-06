@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockTransaction = {
+  LOCK: { UPDATE: 'UPDATE' },
   commit: vi.fn().mockResolvedValue(undefined),
   rollback: vi.fn().mockResolvedValue(undefined)
 };
@@ -125,6 +126,20 @@ describe('UnifiedSessionService.cancelSession cancellation billing choices', () 
     expect(session.sessionCreditRestored).toBe(true);
     expect(client.availableSessions).toBe(1);
     expect(client.save).toHaveBeenCalledTimes(1);
+    expect(sessionModel.findByPk).toHaveBeenCalledWith(
+      77,
+      expect.objectContaining({
+        transaction: mockTransaction,
+        lock: mockTransaction.LOCK.UPDATE
+      })
+    );
+    expect(userModel.findByPk).toHaveBeenCalledWith(
+      session.userId,
+      {
+        transaction: mockTransaction,
+        lock: mockTransaction.LOCK.UPDATE
+      }
+    );
     expect(result.data).toMatchObject({
       chargeType: 'none',
       chargeAmount: 0,

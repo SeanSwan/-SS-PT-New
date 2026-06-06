@@ -1449,7 +1449,8 @@ class UnifiedSessionService {
           id: sessionId,
           status: 'available'
         },
-        transaction
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
       if (!session) {
         throw new Error('Session is not available for booking');
@@ -1462,7 +1463,10 @@ class UnifiedSessionService {
       }
       
         // Get the client (current user) with session balance
-        const client = await this.User.findByPk(user.id, { transaction });
+        const client = await this.User.findByPk(user.id, {
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
       
       if (!client) {
         throw new Error('Client not found');
@@ -1629,7 +1633,8 @@ class UnifiedSessionService {
             attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
           }
         ],
-        transaction
+        transaction,
+        lock: transaction.LOCK.UPDATE
       });
       
       if (!session) {
@@ -1692,7 +1697,10 @@ class UnifiedSessionService {
 
       let creditRestored = false;
       if (shouldRestoreCredit) {
-        const client = await this.User.findByPk(session.userId, { transaction });
+        const client = await this.User.findByPk(session.userId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
         if (client) {
           if (NON_DEDUCTING_CLIENT_SOURCES.has(client.clientSource)) {
             logger.info(`[UnifiedSessionService] Skipped credit restore for non-deducting client source ${client.clientSource}`, {
