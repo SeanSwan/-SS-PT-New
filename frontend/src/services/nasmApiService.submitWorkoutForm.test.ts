@@ -194,4 +194,18 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
     expect(postMock).toHaveBeenCalledTimes(1);
     expect(postMock).toHaveBeenCalledWith('/api/workout-forms', basePayload);
   });
+
+  it('forwards AbortSignal to POST /api/workout-forms so callers can cancel slow saves', async () => {
+    const controller = new AbortController();
+    postMock.mockResolvedValue({
+      status: 201,
+      data: { success: true, form: { id: 'abort-aware-form' }, message: 'ok' },
+    });
+
+    await dailyWorkoutFormService.submitWorkoutForm(basePayload, { signal: controller.signal });
+
+    expect(postMock).toHaveBeenCalledWith('/api/workout-forms', basePayload, {
+      signal: controller.signal,
+    });
+  });
 });

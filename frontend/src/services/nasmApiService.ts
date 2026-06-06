@@ -585,7 +585,7 @@ export class DailyWorkoutFormService {
     // simply absent rather than serialized as `null`. Backend contract
     // accepts either shape and persists DB null.
     overallIntensity?: number | null;
-  }): Promise<ApiResponse<DailyWorkoutForm>> {
+  }, options: { signal?: AbortSignal } = {}): Promise<ApiResponse<DailyWorkoutForm>> {
     try {
       // 2026-04-18 Phase 16.2 round 13 fix — `this.api.post()` returns
       // `AxiosResponse<T>`, so the backend payload lives under `.data`,
@@ -599,11 +599,18 @@ export class DailyWorkoutFormService {
       // Unwrap `response.data` once, then map the server shape
       // `{ success, form, message }` to the frontend `ApiResponse<T>`
       // shape `{ success, data, message }`.
-      const response = await this.api.post<{
-        success: boolean;
-        form: DailyWorkoutForm;
-        message?: string;
-      }>('/api/workout-forms', data);
+      const requestConfig = options.signal ? { signal: options.signal } : undefined;
+      const response = requestConfig
+        ? await this.api.post<{
+            success: boolean;
+            form: DailyWorkoutForm;
+            message?: string;
+          }>('/api/workout-forms', data, requestConfig)
+        : await this.api.post<{
+            success: boolean;
+            form: DailyWorkoutForm;
+            message?: string;
+          }>('/api/workout-forms', data);
       const payload = response.data;
       return {
         success: payload.success,

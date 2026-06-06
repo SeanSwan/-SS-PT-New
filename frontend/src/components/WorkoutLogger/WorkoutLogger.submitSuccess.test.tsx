@@ -383,6 +383,25 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     });
   });
 
+  it('canceled save from request timeout shows timeout feedback and does not queue a duplicate retry', async () => {
+    submitWorkoutFormMock.mockRejectedValue({ name: 'CanceledError', code: 'ERR_CANCELED' });
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith('Workout submission timed out. Please try again.');
+    });
+    expect(mockQueueSubmission).not.toHaveBeenCalled();
+  });
+
   it('service returning { success: false } (4xx-with-body) shows the server message and does NOT queue', async () => {
     // Business-rule failures with a server message are terminal for
     // this submission attempt. They should tell the user what to fix

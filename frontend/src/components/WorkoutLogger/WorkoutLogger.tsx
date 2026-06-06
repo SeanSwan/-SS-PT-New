@@ -124,6 +124,14 @@ import { useRestTimer } from './useRestTimer';
 
 // ==================== MAIN COMPONENT ====================
 
+const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
+  typeof error === 'object' && error !== null ? error as { code?: unknown; name?: unknown } : {};
+
+const isWorkoutSubmitCanceled = (error: unknown): boolean => {
+  const { code, name } = getWorkoutSubmitErrorSignal(error);
+  return name === 'AbortError' || name === 'CanceledError' || code === 'ERR_CANCELED';
+};
+
 const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   clientId,
   onComplete,
@@ -816,7 +824,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     try {
       const response = await dailyWorkoutFormService.submitWorkoutForm(
-        formData as Parameters<typeof dailyWorkoutFormService.submitWorkoutForm>[0]
+        formData as Parameters<typeof dailyWorkoutFormService.submitWorkoutForm>[0],
+        { signal: controller.signal }
       );
 
       if (response.success && response.data) {
@@ -834,7 +843,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: unknown) {
       console.error('Error submitting workout form:', error);
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (isWorkoutSubmitCanceled(error)) {
         toast.error('Workout submission timed out. Please try again.');
       } else if (
         typeof error === 'object' &&
