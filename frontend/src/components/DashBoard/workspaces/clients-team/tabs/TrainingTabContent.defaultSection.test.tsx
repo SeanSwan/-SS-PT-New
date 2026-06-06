@@ -46,8 +46,19 @@ vi.mock('./ClientWorkoutPlansPanel', () => ({
 }));
 
 vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
-  default: ({ onComplete }: { onComplete: (formData: unknown) => void }) => (
-    <button type="button" data-testid="workout-logger" onClick={() => onComplete({ id: 'fixture-form' })}>
+  default: ({
+    loadTodayPlanSignal,
+    onComplete,
+  }: {
+    loadTodayPlanSignal?: number;
+    onComplete: (formData: unknown) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="workout-logger"
+      data-load-today-plan-signal={String(loadTodayPlanSignal ?? 0)}
+      onClick={() => onComplete({ id: 'fixture-form' })}
+    >
       Complete Mock Workout
     </button>
   ),
@@ -140,6 +151,25 @@ describe('TrainingTabContent daily workflow default', () => {
       'true'
     );
     expect(onSectionChange).toHaveBeenCalledWith('logger');
+  });
+
+  it('loads today from the active plan when opening the logger from a saved plan', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TrainingTabContent
+        clientId={424242}
+        clientName="Fixture Client"
+        initialSection={'plans' as never}
+      />
+    );
+
+    await user.click(await screen.findByRole('button', { name: /mock plan log today/i }));
+
+    expect(await screen.findByTestId('workout-logger')).toHaveAttribute(
+      'data-load-today-plan-signal',
+      '1'
+    );
   });
 
   it('keeps training sub-section tabs as explicit non-submit buttons', () => {

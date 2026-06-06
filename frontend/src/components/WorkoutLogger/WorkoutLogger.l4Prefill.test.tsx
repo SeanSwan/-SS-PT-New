@@ -221,6 +221,45 @@ describe('L4 — WorkoutLogger.loadTodaysPlan prefers currentSession.exercises',
     expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
   });
 
+  it('auto-loads today plan from the embedded Client Hub saved-plan signal', async () => {
+    apiGetMock.mockImplementation((url: string) => {
+      if (url.endsWith('/current')) {
+        return Promise.resolve(buildCurrentResponse({
+          success: true,
+          currentSession: {
+            weekNumber: 6,
+            dayNumber: 4,
+            dayLabel: 'Embedded Plan Day',
+            exercises: [
+              { exerciseId: 'fx-embedded', exerciseName: 'Embedded Loaded Press', sets: 3, targetReps: '10', restTime: 90 },
+            ],
+            session: { exercises: [] },
+            totalWeeks: 26,
+            totalSessionsThisWeek: 4,
+            isLastSessionOfWeek: false,
+            isLastWeek: false,
+          },
+          plan: { id: 'plan-embedded', name: 'Embedded Plan', days: [] },
+          data: { id: 'plan-embedded', name: 'Embedded Plan', days: [] },
+        }));
+      }
+      return Promise.resolve(defaultClientInfoPayload);
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=99&tab=training&trainingSection=plans']}>
+        <WorkoutLogger clientId={CLIENT_ID} loadTodayPlanSignal={1} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(toastMock.success).toHaveBeenCalled());
+    const successMsg = toastMock.success.mock.calls.map((c) => c[0]).join(' | ');
+    expect(successMsg).toMatch(/Week 6/);
+    expect(successMsg).toMatch(/Embedded Plan Day/);
+    expect(successMsg).toMatch(/1 exercises/);
+    expect(apiGetMock).toHaveBeenCalledWith(`/api/workouts/${CLIENT_ID}/current`);
+  });
+
   it('falls back to legacy day-of-week match when currentSession is null', async () => {
     // The legacy branch resolves the day name via `new Date().getDay()`,
     // so the response fixture seeds `dayName` from whatever today's

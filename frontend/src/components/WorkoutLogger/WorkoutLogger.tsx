@@ -133,6 +133,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   onComplete,
   onCancel,
   initialData = [],
+  loadTodayPlanSignal = 0,
   scheduledSessionId = null,
   scheduledSessionDate = null
 }) => {
@@ -188,7 +189,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const [client, setClient] = useState<WorkoutLoggerClient | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
-  const autoLoadTodayPlanRef = useRef(false);
+  const autoLoadTodayPlanRef = useRef<string | null>(null);
   const workoutLoggerLocalIdCounterRef = useRef(0);
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
   const [showFloatingTimer, setShowFloatingTimer] = useState(false);
@@ -644,12 +645,18 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   }, [effectiveClientId, createWorkoutLoggerLocalId]);
 
   useEffect(() => {
-    if (!autoLoadTodayPlan || autoLoadTodayPlanRef.current || hasInitialExercises) return;
+    const todayPlanLoadSignal = loadTodayPlanSignal > 0
+      ? `embedded:${loadTodayPlanSignal}`
+      : autoLoadTodayPlan
+        ? `route:${searchParams.toString()}`
+        : null;
+
+    if (!todayPlanLoadSignal || autoLoadTodayPlanRef.current === todayPlanLoadSignal || hasInitialExercises) return;
     if (typeof effectiveClientId !== 'number') return;
 
-    autoLoadTodayPlanRef.current = true;
+    autoLoadTodayPlanRef.current = todayPlanLoadSignal;
     void loadTodaysPlan();
-  }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodaysPlan]);
+  }, [autoLoadTodayPlan, effectiveClientId, hasInitialExercises, loadTodayPlanSignal, loadTodaysPlan, searchParams]);
 
   // - Exercise CRUD -
   const addExercise = useCallback((exercise: WorkoutLoggerExerciseOption | ExerciseSlim) => {

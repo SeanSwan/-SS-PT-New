@@ -112,6 +112,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
 }) => {
   const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
   const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
+  const [loadTodayPlanSignal, setLoadTodayPlanSignal] = useState(0);
   const numericClientId = getNumericClientId(clientId);
 
   useEffect(() => {
@@ -131,6 +132,11 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
     if (shouldOpenLoggerForCommand(message)) handleSectionChange('logger');
   }, [handleSectionChange]);
 
+  const handleLogTodayFromPlan = useCallback(() => {
+    setLoadTodayPlanSignal((signal) => signal + 1);
+    handleSectionChange('logger');
+  }, [handleSectionChange]);
+
   const renderContent = (safeClientId: number) => {
     switch (activeSection) {
       case 'architect':
@@ -148,7 +154,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
             <ClientWorkoutPlansPanel
               clientId={safeClientId}
               clientName={clientName}
-              onLogToday={() => handleSectionChange('logger')}
+              onLogToday={handleLogTodayFromPlan}
             />
           </Suspense>
         );
@@ -157,6 +163,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
           <Suspense fallback={<SuspenseFallback />}>
             <WorkoutLogger
               clientId={safeClientId}
+              loadTodayPlanSignal={loadTodayPlanSignal}
               onComplete={(savedWorkout) => {
                 setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
                 handleSectionChange('history');
