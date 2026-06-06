@@ -108,6 +108,7 @@ import {
   getCurrentWorkoutTodayAssignment,
   getExerciseEntryRowKey,
   getPlanDayForDate,
+  hasIncompleteWorkoutSets,
   normalizeWorkoutDate,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
@@ -787,11 +788,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
-    const hasIncompleteExercises = exercises.some(exercise =>
-      exercise.sets.length === 0 ||
-      exercise.sets.some(set => set.weight === 0 && set.reps === 0)
-    );
-    if (hasIncompleteExercises) {
+    if (hasIncompleteWorkoutSets(exercises)) {
       toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
     }
 
@@ -933,6 +930,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     sessionNotes.trim().length > 0 ||
     overallIntensity !== null
   ), [exercises.length, selectedWarmup.length, selectedBalanceCore.length, selectedCooldown.length, sessionNotes, overallIntensity]);
+
+  const summaryLockedReason = useMemo(() => {
+    if (exercises.length === 0 || submittedFormId) return undefined;
+    return hasIncompleteWorkoutSets(exercises)
+      ? 'Enter reps or weight, then save'
+      : 'Save Workout to Send Summary';
+  }, [exercises, submittedFormId]);
 
   const handleCancel = useCallback(() => {
     if (hasUnsavedWorkout && !submittedFormId) {
@@ -1234,7 +1238,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           isSubmitting={isSubmitting}
           isGeneratingSummary={isGeneratingSummary}
           showGenerateSummary={!!submittedFormId}
-          summaryLockedReason={exercises.length > 0 && !submittedFormId ? 'Save to Send Summary' : undefined}
+          summaryLockedReason={summaryLockedReason}
         />
       </WorkoutLoggerContainer>
 

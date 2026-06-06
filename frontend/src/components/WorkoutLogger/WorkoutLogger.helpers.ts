@@ -89,6 +89,13 @@ export function getExerciseEntryRowKey(exercise: ExerciseEntry): string {
   return exercise.loggerExerciseId ?? `exercise-${exercise.exerciseId || exercise.exerciseName}`;
 }
 
+export function hasIncompleteWorkoutSets(exercises: ExerciseEntry[] = []): boolean {
+  return exercises.some(exercise =>
+    exercise.sets.length === 0 ||
+    exercise.sets.some(set => set.weight === 0 && set.reps === 0)
+  );
+}
+
 export function plannedExerciseToEntry(
   exercise: PlannedExercise,
   createLocalId: () => string,

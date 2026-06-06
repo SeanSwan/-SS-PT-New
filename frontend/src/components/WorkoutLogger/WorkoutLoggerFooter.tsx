@@ -46,7 +46,7 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
   const shouldRenderSummaryAction = Boolean((showGenerateSummary || summaryLockedReason) && onGenerateSummary);
   const summaryActionLabel = showGenerateSummary
     ? 'Generate & Send Summary'
-    : summaryLockedReason ?? 'Save to Send Summary';
+    : summaryLockedReason ?? 'Save Workout to Send Summary';
 
   return (
     <ActionButtons>

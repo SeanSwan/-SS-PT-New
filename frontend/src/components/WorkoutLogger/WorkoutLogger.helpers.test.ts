@@ -2,6 +2,7 @@ import {
   convertAIWorkoutExercisesToEntries,
   coerceToNumericId,
   getCurrentWorkoutCursorSession,
+  hasIncompleteWorkoutSets,
   normalizeWorkoutDate,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
@@ -111,5 +112,33 @@ describe('WorkoutLogger helpers', () => {
         notes: 'Keep chest tall',
       },
     ]);
+  });
+
+  it('detects sets that are not ready for workout save or summary generation', () => {
+    expect(hasIncompleteWorkoutSets([])).toBe(false);
+    expect(hasIncompleteWorkoutSets([{
+      exerciseId: 'pushup',
+      exerciseName: 'Push-up',
+      sets: [],
+      formRating: null,
+      painLevel: 0,
+      performanceNotes: '',
+    }])).toBe(true);
+    expect(hasIncompleteWorkoutSets([{
+      exerciseId: 'pushup',
+      exerciseName: 'Push-up',
+      sets: [{ setNumber: 1, weight: 0, reps: 0, rpe: null, tempo: '', restTime: 60, formQuality: null, notes: '' }],
+      formRating: null,
+      painLevel: 0,
+      performanceNotes: '',
+    }])).toBe(true);
+    expect(hasIncompleteWorkoutSets([{
+      exerciseId: 'pushup',
+      exerciseName: 'Push-up',
+      sets: [{ setNumber: 1, weight: 0, reps: 12, rpe: null, tempo: '', restTime: 60, formQuality: null, notes: '' }],
+      formRating: null,
+      painLevel: 0,
+      performanceNotes: '',
+    }])).toBe(false);
   });
 });

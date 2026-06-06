@@ -28,8 +28,10 @@ describe('WorkoutLogger action button contract', () => {
     expect(footerSource).toContain('summaryLockedReason?: string');
     expect(footerSource).toContain('showGenerateSummary || summaryLockedReason');
     expect(footerSource).toContain('disabled={!showGenerateSummary || isGeneratingSummary}');
-    expect(footerSource).toContain('Save to Send Summary');
-    expect(loggerSource).toContain('summaryLockedReason={exercises.length > 0 && !submittedFormId');
+    expect(footerSource).toContain('Save Workout to Send Summary');
+    expect(loggerSource).toContain('hasIncompleteWorkoutSets');
+    expect(loggerSource).toContain('summaryLockedReason={summaryLockedReason}');
+    expect(loggerSource).toContain('Enter reps or weight, then save');
   });
 
   it('keeps inline rest timer controls explicit non-submit buttons with touch-safe sizing', () => {
