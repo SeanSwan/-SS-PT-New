@@ -4,6 +4,14 @@ const CUSTOM_DOMAIN_SOCKET_HOSTS = new Set([
   'sswanstudios.com',
   'www.sswanstudios.com',
 ]);
+const RENDER_SOCKET_HOSTS = new Set(['ss-pt-new.onrender.com']);
+
+type RealtimeSocketTransport = 'polling' | 'websocket';
+
+export interface RealtimeSocketTransportOptions {
+  transports: RealtimeSocketTransport[];
+  upgrade: boolean;
+}
 
 interface ResolveRealtimeSocketUrlOptions {
   socketUrl?: string;
@@ -24,6 +32,17 @@ const pointsToStaticCustomDomain = (value?: string) => {
 
   try {
     return CUSTOM_DOMAIN_SOCKET_HOSTS.has(new URL(normalized).hostname);
+  } catch {
+    return false;
+  }
+};
+
+const pointsToRenderSocketOrigin = (value?: string) => {
+  const normalized = normalizeOrigin(value);
+  if (!normalized) return false;
+
+  try {
+    return RENDER_SOCKET_HOSTS.has(new URL(normalized).hostname);
   } catch {
     return false;
   }
@@ -55,4 +74,20 @@ export const resolveRealtimeSocketUrl = (options: ResolveRealtimeSocketUrlOption
   }
 
   return windowOrigin || LOCAL_SOCKET_ORIGIN;
+};
+
+export const resolveRealtimeSocketTransportOptions = (
+  socketOrigin?: string,
+): RealtimeSocketTransportOptions => {
+  if (pointsToRenderSocketOrigin(socketOrigin)) {
+    return {
+      transports: ['polling'],
+      upgrade: false,
+    };
+  }
+
+  return {
+    transports: ['polling', 'websocket'],
+    upgrade: true,
+  };
 };

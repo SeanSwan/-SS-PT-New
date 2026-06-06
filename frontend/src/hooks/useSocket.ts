@@ -20,7 +20,10 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Socket } from 'socket.io-client';
-import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from '@/utils/realtimeSocketUrl';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -40,9 +43,10 @@ function getSocketUrl(): string {
 
 async function createSocket(token: string): Promise<Socket> {
   const { io } = await import('socket.io-client');
-  return io(`${getSocketUrl()}/messaging`, {
+  const socketUrl = getSocketUrl();
+  return io(`${socketUrl}/messaging`, {
     auth: { token },
-    transports: ['websocket', 'polling'],
+    ...resolveRealtimeSocketTransportOptions(socketUrl),
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 1000,

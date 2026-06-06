@@ -22,7 +22,10 @@
 import axios, { AxiosResponse } from 'axios';
 import { io, Socket } from 'socket.io-client';
 import { logger } from '@/utils/logger';
-import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from '@/utils/realtimeSocketUrl';
 
 // === TYPE DEFINITIONS ===
 interface SessionEvent {
@@ -119,6 +122,7 @@ const WEBSOCKET_URL = resolveRealtimeSocketUrl({
   isDev: !isProduction,
   windowOrigin: typeof window !== 'undefined' ? window.location.origin : '',
 });
+const WEBSOCKET_TRANSPORT_OPTIONS = resolveRealtimeSocketTransportOptions(WEBSOCKET_URL);
 
 // Debug logging for configuration verification
 logger.log('🔧 EnhancedClientDashboardService Configuration:', {
@@ -176,7 +180,7 @@ class WebSocketManager {
             token: localStorage.getItem('token') || localStorage.getItem('auth_token'),
             userId: userId,
           },
-          transports: ['websocket', 'polling'],
+          ...WEBSOCKET_TRANSPORT_OPTIONS,
           timeout: 5000, // 5 second timeout
           forceNew: true,
           reconnection: true,

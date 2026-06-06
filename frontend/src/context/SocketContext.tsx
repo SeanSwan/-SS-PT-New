@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { logger } from '@/utils/logger';
-import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from '@/utils/realtimeSocketUrl';
 import { useAuth } from './AuthContext';
 
 interface SocketContextType {
@@ -32,10 +35,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       return;
     }
 
-    const socketInstance = io(getSocketBaseUrl(), {
+    const socketUrl = getSocketBaseUrl();
+    const transportOptions = resolveRealtimeSocketTransportOptions(socketUrl);
+    const socketInstance = io(socketUrl, {
       auth: { token },
-      transports: ['websocket', 'polling'],
-      upgrade: true,
+      ...transportOptions,
       withCredentials: true,
     });
 

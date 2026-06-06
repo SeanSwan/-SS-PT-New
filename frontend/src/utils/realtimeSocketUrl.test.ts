@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { resolveRealtimeSocketUrl } from './realtimeSocketUrl';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from './realtimeSocketUrl';
 
 describe('resolveRealtimeSocketUrl', () => {
   it('uses the explicit socket origin first', () => {
@@ -30,5 +33,23 @@ describe('resolveRealtimeSocketUrl', () => {
       isDev: true,
       windowOrigin: 'http://localhost:5173',
     })).toBe('http://localhost:10000');
+  });
+
+  it('keeps Render fallback sockets on polling to avoid failed production upgrade noise', () => {
+    expect(resolveRealtimeSocketTransportOptions('https://ss-pt-new.onrender.com')).toEqual({
+      transports: ['polling'],
+      upgrade: false,
+    });
+  });
+
+  it('allows websocket upgrades for local and explicit non-Render socket origins', () => {
+    expect(resolveRealtimeSocketTransportOptions('http://localhost:10000')).toEqual({
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+    });
+    expect(resolveRealtimeSocketTransportOptions('https://sockets.example.com')).toEqual({
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+    });
   });
 });

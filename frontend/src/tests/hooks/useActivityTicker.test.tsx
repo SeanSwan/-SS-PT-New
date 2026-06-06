@@ -80,7 +80,11 @@ describe('useActivityTicker', () => {
 
       expect(ioMock).toHaveBeenCalledWith(
         'https://ss-pt-new.onrender.com',
-        expect.objectContaining({ auth: { token: 'test-token' } }),
+        expect.objectContaining({
+          auth: { token: 'test-token' },
+          transports: ['polling'],
+          upgrade: false,
+        }),
       );
     } finally {
       vi.unstubAllEnvs();

@@ -30,9 +30,12 @@ describe('header notification socket auth pipeline', () => {
 
   it('authenticates the root Socket.IO connection before notification rooms are usable', () => {
     expect(socketContextSource).toContain("import { useAuth } from './AuthContext'");
-    expect(socketContextSource).toContain("import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl'");
+    expect(socketContextSource).toContain("resolveRealtimeSocketTransportOptions");
+    expect(socketContextSource).toContain("resolveRealtimeSocketUrl");
     expect(socketContextSource).toContain('const { isAuthenticated, token } = useAuth()');
     expect(socketContextSource).toContain('resolveRealtimeSocketUrl()');
+    expect(socketContextSource).toContain('resolveRealtimeSocketTransportOptions(socketUrl)');
+    expect(socketContextSource).not.toContain("transports: ['websocket', 'polling']");
     expect(realtimeSocketUrlSource).toContain('https://ss-pt-new.onrender.com');
     expect(socketContextSource).toContain("socketInstance.emit('authenticate', { token })");
     expect(socketContextSource).toContain("socketInstance.on('authenticated'");

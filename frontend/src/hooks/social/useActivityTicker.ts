@@ -23,7 +23,10 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { resolveRealtimeSocketUrl } from '@/utils/realtimeSocketUrl';
+import {
+  resolveRealtimeSocketTransportOptions,
+  resolveRealtimeSocketUrl,
+} from '@/utils/realtimeSocketUrl';
 import { ProductionTokenManager } from '../../services/api.service';
 
 // ─────────────────────────────────────────────────────────────
@@ -75,10 +78,10 @@ export function useActivityTicker() {
 
     // The custom domain proxies /api, but Socket.IO needs a backend origin.
     const socketUrl = resolveRealtimeSocketUrl();
+    const transportOptions = resolveRealtimeSocketTransportOptions(socketUrl);
     const socket = io(socketUrl, {
       auth: { token },
-      transports: ['polling', 'websocket'],
-      upgrade: true,
+      ...transportOptions,
       reconnectionAttempts: 2,
       timeout: 5000,
     });
