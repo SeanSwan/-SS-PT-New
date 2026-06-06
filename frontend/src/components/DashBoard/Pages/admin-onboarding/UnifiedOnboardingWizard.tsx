@@ -42,14 +42,14 @@ const UnifiedOnboardingWizard: React.FC = () => {
         <Title>Unified Onboarding</Title>
         <Copy>
           The unified onboarding flow is being refactored into the Crystalline Swan
-          admin client tools. Use the Client Management dashboard to onboard
+          admin client tools. Use the Client Hub to onboard
           clients until the consolidated wizard is restored.
         </Copy>
         <Actions>
           <GlowButton
-            text="Go to Client Management"
+            text="Go to Client Hub"
             variant="cosmic"
-            onClick={() => navigate('/dashboard/admin/clients')}
+            onClick={() => navigate('/dashboard/admin/client-management')}
           />
         </Actions>
       </Card>
