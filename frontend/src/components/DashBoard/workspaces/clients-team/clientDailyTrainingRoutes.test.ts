@@ -13,7 +13,7 @@ const ENCODED_RETURN_TO = '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3
 const ENCODED_PLANS_RETURN_TO =
   '%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D42%26tab%3Dtraining%26trainingSection%3Dplans';
 const CLIENT_HUB_LOGGER_ROUTE =
-  '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger';
+  '/dashboard/admin/client-management?clientId=42&tab=training&trainingSection=logger&loadPlan=today';
 
 describe('client daily training routes', () => {
   it('opens Swan Coach with selected-client context and a Client Hub return target', () => {
@@ -28,7 +28,7 @@ describe('client daily training routes', () => {
     );
   });
 
-  it('keeps the workout logger inside the selected-client Client Hub training cockpit', () => {
+  it('keeps the workout logger inside the selected-client Client Hub training cockpit with today-plan intent', () => {
     expect(buildClientWorkoutLoggerRoute(VALID_CLIENT_ID)).toBe(CLIENT_HUB_LOGGER_ROUTE);
   });
 

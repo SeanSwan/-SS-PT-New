@@ -71,6 +71,7 @@ const ClientsWorkspace: React.FC = () => {
       clientId: String(client.id),
       tab,
       ...(tab === 'training' && trainingSection ? { trainingSection } : {}),
+      ...(tab === 'training' && trainingSection === 'logger' ? { loadPlan: 'today' } : {}),
     });
   }, [setSearchParams]);
   const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {

@@ -32,6 +32,7 @@ export const useClientsWorkspaceTabRenderers = (
       clientId: String(selectedClient.id),
       tab: 'training',
       trainingSection: section,
+      ...(section === 'logger' ? { loadPlan: 'today' } : {}),
     });
   }, [selectedClient?.id, setSearchParams]);
 

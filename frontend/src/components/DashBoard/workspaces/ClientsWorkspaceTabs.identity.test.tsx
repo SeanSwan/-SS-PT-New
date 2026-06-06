@@ -16,6 +16,9 @@ vi.mock('./clients-team/tabs/TrainingTabContent', () => ({
   }) => (
     <div>
       <div data-testid="training-name">{clientName}</div>
+      <button type="button" onClick={() => onSectionChange?.('logger')}>
+        Mock logger section
+      </button>
       <button type="button" onClick={() => onSectionChange?.('history')}>
         Mock history section
       </button>
@@ -94,6 +97,27 @@ describe('ClientsWorkspaceTabs identity fallback', () => {
 
     await user.click(await screen.findByRole('button', { name: /mock history section/i }));
 
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=history'
+    );
+  });
+
+  it('keeps the today-plan load intent only when returning to the logger section', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=history']}>
+        <Harness client={blankNameClient} />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole('button', { name: /mock logger section/i }));
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&loadPlan=today'
+    );
+
+    await user.click(screen.getByRole('button', { name: /mock history section/i }));
     expect(screen.getByTestId('location')).toHaveTextContent(
       '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=history'
     );

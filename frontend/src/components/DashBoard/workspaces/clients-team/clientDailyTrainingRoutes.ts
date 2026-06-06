@@ -22,6 +22,7 @@ const buildClientManagementReturnTo = (
   if (trainingSection) {
     params.set('tab', 'training');
     params.set('trainingSection', trainingSection);
+    if (trainingSection === 'logger') params.set('loadPlan', 'today');
   }
 
   return `${CLIENT_MANAGEMENT_BASE}?${params.toString()}`;
