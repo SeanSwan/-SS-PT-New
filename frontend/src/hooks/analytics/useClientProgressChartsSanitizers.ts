@@ -26,6 +26,11 @@ const toFiniteNumber = (value: unknown, fallback = 0): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const toPositiveNumber = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 const toLabel = (value: unknown, fallback: string): string => {
   return typeof value === 'string' && value.trim() ? value : fallback;
 };
@@ -34,16 +39,22 @@ const toSource = (value: unknown): 'rpe' | 'intensity' => {
   return value === 'rpe' || value === 'intensity' ? value : 'intensity';
 };
 
-const point = <T extends object>(raw: RawPoint, index: number, extra: RawPoint = {}): T => ({
-  ...extra,
-  x: toLabel(raw.x, `Point ${index + 1}`),
-  y: toFiniteNumber(raw.y),
-} as unknown as T);
+const point = <T extends object>(raw: RawPoint, index: number, extra: RawPoint = {}): T | null => {
+  const y = toPositiveNumber(raw.y);
+  if (y === null) return null;
+  return {
+    ...extra,
+    x: toLabel(raw.x, `Point ${index + 1}`),
+    y,
+  } as unknown as T;
+};
 
 const points = <T extends object>(
   value: unknown,
   extra?: (raw: RawPoint, index: number) => RawPoint,
-): T[] => toArray(value).map((raw, index) => point<T>(raw, index, extra?.(raw, index)));
+): T[] => toArray(value)
+  .map((raw, index) => point<T>(raw, index, extra?.(raw, index)))
+  .filter((row): row is T => row !== null);
 
 const EMPTY_ATTENDANCE = {
   data: [],
@@ -66,10 +77,12 @@ export function sanitizeClientProgressChartsBundle(raw: Partial<CanonicalProgres
       : {};
 
   const anchorData = Object.fromEntries(
-    Object.entries(rawAnchorData).map(([name, rows]) => [
-      name,
-      points<AnchorLiftPoint>(rows, (row) => ({ reps: toFiniteNumber(row.reps) })),
-    ]),
+    Object.entries(rawAnchorData)
+      .map(([name, rows]) => [
+        name,
+        points<AnchorLiftPoint>(rows, (row) => ({ reps: toFiniteNumber(row.reps) })),
+      ] as const)
+      .filter(([, rows]) => rows.length > 0),
   ) as Record<string, AnchorLiftPoint[]>;
   const anchorExercises = Array.isArray(anchor.exercises)
     ? anchor.exercises.filter((name): name is string => typeof name === 'string' && !!name.trim())
@@ -100,7 +113,7 @@ export function sanitizeClientProgressChartsBundle(raw: Partial<CanonicalProgres
     })),
     anchorLifts: {
       data: anchorData,
-      exercises: anchorExercises.filter((name) => Object.prototype.hasOwnProperty.call(anchorData, name)),
+      exercises: anchorExercises.filter((name) => anchorData[name]?.length > 0),
     },
     exerciseFrequency: points<ExerciseFrequencyPoint>(raw.exerciseFrequency, (row) => ({ sets: toFiniteNumber(row.sets) })),
     movementPatternBalance: points<MovementPatternPoint>(raw.movementPatternBalance, (row) => ({ sets: toFiniteNumber(row.sets) })),

@@ -173,7 +173,6 @@ describe('Phase 14 — hook fetch contract', () => {
     } as any);
 
     expect(bundle.workoutFrequency).toEqual([
-      { x: '05/01', y: 0 },
       { x: 'Point 2', y: 4 },
     ]);
     expect(bundle.attendanceReliability.reliabilityPercent).toBe(0);
@@ -183,15 +182,15 @@ describe('Phase 14 — hook fetch contract', () => {
       cancelled: 0,
       resolved: 4,
     });
-    expect(bundle.weeklyVolume[0]).toMatchObject({ x: '05/08', y: 0, workouts: 2 });
-    expect(bundle.setsRepsTrend.reps[0]).toEqual({ x: '05/08', y: 0 });
+    expect(bundle.weeklyVolume).toEqual([]);
+    expect(bundle.setsRepsTrend.reps).toEqual([]);
     expect(bundle.intensityRpeTrend[0]).toMatchObject({ y: 9.5, source: 'intensity' });
     expect(bundle.prTimeline[0]).toMatchObject({ y: 225, exercise: 'Unknown exercise', reps: 5 });
-    expect(bundle.anchorLifts.exercises).toEqual(['Squat', 'Broken']);
-    expect(bundle.anchorLifts.data.Broken[0]).toMatchObject({ y: 0, reps: 0 });
-    expect(bundle.movementPatternBalance[0]).toMatchObject({ y: 0, sets: 8 });
+    expect(bundle.anchorLifts.exercises).toEqual(['Squat']);
+    expect(bundle.anchorLifts.data.Broken).toBeUndefined();
+    expect(bundle.movementPatternBalance).toEqual([]);
     expect(bundle.muscleGroupBalance[0]).toMatchObject({ x: 'Point 1', y: 1250, sets: 9 });
-    expect(bundle.recoverySignal[0]).toMatchObject({ y: 0, painFlags: 1, highRpeFlags: 0, totalSets: 4 });
+    expect(bundle.recoverySignal).toEqual([]);
   });
 });
 
