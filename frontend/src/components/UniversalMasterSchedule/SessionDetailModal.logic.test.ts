@@ -39,6 +39,7 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(url.searchParams.get('sessionDate')).toBe('2026-05-30T16:00:00.000Z');
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/admin/master-schedule');
+    expect(url.searchParams.get('loadPlan')).toBe('today');
   });
 
   it('routes View Workouts to the role-owned client workout surface', () => {

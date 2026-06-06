@@ -114,6 +114,7 @@ describe('SessionDetailModal auth pipeline', () => {
     expect(logicSource).toContain("params.set('sessionDate', String(session.sessionDate))");
     expect(logicSource).toContain("params.set('source', 'master-schedule')");
     expect(logicSource).toContain("params.set('returnTo', buildScheduleReturnRoute(mode))");
+    expect(logicSource).toContain("params.set('loadPlan', 'today')");
     expect(modalSource).toContain('navigate(buildScheduleWorkoutLoggerRoute(mode, session))');
     expect(footerSource).toContain('Log Workout');
     expect(logicSource).toContain("session.attendanceStatus !== 'no_show'");

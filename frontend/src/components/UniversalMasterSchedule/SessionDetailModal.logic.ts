@@ -32,6 +32,7 @@ export const buildScheduleWorkoutLoggerRoute = (
   params.set('sessionDate', String(session.sessionDate));
   params.set('source', 'master-schedule');
   params.set('returnTo', buildScheduleReturnRoute(mode));
+  params.set('loadPlan', 'today');
 
   return `/dashboard/${dashPath}/log-workout?${params.toString()}`;
 };
