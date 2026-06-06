@@ -9,20 +9,8 @@
  * Pipeline: Component data → formatter → pdfCore → download/blob
  */
 import { jsPDF } from 'jspdf';
-import autoTable, { type UserOptions } from 'jspdf-autotable';
 import { format } from 'date-fns';
-
-// ── jsPDF autoTable interop ───────────────────────────────────────────
-type AutoTableOptions = UserOptions;
-type AutoTableDoc = jsPDF & { lastAutoTable?: { finalY?: number } };
-
-function addAutoTable(doc: jsPDF, options: AutoTableOptions) {
-  autoTable(doc, options);
-}
-
-function getLastAutoTableY(doc: jsPDF, fallbackY: number): number {
-  return (doc as AutoTableDoc).lastAutoTable?.finalY ?? fallbackY;
-}
+import { addAutoTable, getLastAutoTableY } from './pdfAutoTable';
 
 // ── Brand Colors (print-friendly Crystalline Swan) ───────────────────
 const BRAND = {
