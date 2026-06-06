@@ -44,6 +44,95 @@ interface WorkoutPlanPdfDialogProps {
   onUpload: (planId: string, file: File) => void;
 }
 
+interface PdfViewerContentProps {
+  plan: SavedPlanSummary;
+  onEdit: () => void;
+}
+
+const PdfViewerContent: React.FC<PdfViewerContentProps> = ({ plan, onEdit }) => (
+  <>
+    <ViewerFrame
+      data={plan.pdfFile?.url}
+      type="application/pdf"
+      title={`${plan.name} PDF plan`}
+    >
+      <FallbackLink href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
+        <ExternalLink size={16} /> Open PDF
+      </FallbackLink>
+    </ViewerFrame>
+    <ActionRow>
+      <Button type="button" $primary onClick={onEdit}>
+        Replace PDF
+      </Button>
+      <Button as="a" href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
+        <ExternalLink size={16} /> Open PDF
+      </Button>
+    </ActionRow>
+  </>
+);
+
+interface PdfAttachmentFormProps {
+  pdfUrl: string;
+  fileName: string;
+  selectedFile: File | null;
+  saving: boolean;
+  setPdfUrl: React.Dispatch<React.SetStateAction<string>>;
+  setFileName: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedFile: React.Dispatch<React.SetStateAction<File | null>>;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onClose: () => void;
+}
+
+const PdfAttachmentForm: React.FC<PdfAttachmentFormProps> = ({
+  pdfUrl,
+  fileName,
+  selectedFile,
+  saving,
+  setPdfUrl,
+  setFileName,
+  setSelectedFile,
+  onSubmit,
+  onClose,
+}) => (
+  <Form onSubmit={onSubmit}>
+    <Field>
+      Upload PDF plan file
+      <Input
+        type="file"
+        accept="application/pdf,.pdf"
+        onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+      />
+    </Field>
+    <Field>
+      PDF URL
+      <Input
+        value={pdfUrl}
+        onChange={(event) => setPdfUrl(event.target.value)}
+        placeholder="https://..."
+        inputMode="url"
+        required={!selectedFile}
+      />
+    </Field>
+    <Field>
+      File Name
+      <Input
+        value={fileName}
+        onChange={(event) => setFileName(event.target.value)}
+        placeholder="Six Month Plan.pdf"
+      />
+    </Field>
+    <ActionRow>
+      <Button type="submit" $primary disabled={saving}>
+        {selectedFile ? <UploadCloud size={16} /> : <Save size={16} />}
+        {saving ? 'Saving' : selectedFile ? 'Upload PDF Plan' : 'Save PDF'}
+      </Button>
+      <Button type="button" onClick={onClose}>
+        Cancel
+      </Button>
+    </ActionRow>
+  </Form>
+);
+
 const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
   plan,
   mode,
@@ -90,63 +179,19 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
 
         <Body>
           {canView ? (
-            <>
-              <ViewerFrame
-                data={plan.pdfFile?.url}
-                type="application/pdf"
-                title={`${plan.name} PDF plan`}
-              >
-                <FallbackLink href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
-                  <ExternalLink size={16} /> Open PDF
-                </FallbackLink>
-              </ViewerFrame>
-              <ActionRow>
-                <Button type="button" $primary onClick={onEdit}>
-                  Replace PDF
-                </Button>
-                <Button as="a" href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
-                  <ExternalLink size={16} /> Open PDF
-                </Button>
-              </ActionRow>
-            </>
+            <PdfViewerContent plan={plan} onEdit={onEdit} />
           ) : (
-            <Form onSubmit={submit}>
-              <Field>
-                Upload PDF plan file
-                <Input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-                />
-              </Field>
-              <Field>
-                PDF URL
-                <Input
-                  value={pdfUrl}
-                  onChange={(event) => setPdfUrl(event.target.value)}
-                  placeholder="https://..."
-                  inputMode="url"
-                  required={!selectedFile}
-                />
-              </Field>
-              <Field>
-                File Name
-                <Input
-                  value={fileName}
-                  onChange={(event) => setFileName(event.target.value)}
-                  placeholder="Six Month Plan.pdf"
-                />
-              </Field>
-              <ActionRow>
-                <Button type="submit" $primary disabled={saving}>
-                  {selectedFile ? <UploadCloud size={16} /> : <Save size={16} />}
-                  {saving ? 'Saving' : selectedFile ? 'Upload PDF Plan' : 'Save PDF'}
-                </Button>
-                <Button type="button" onClick={onClose}>
-                  Cancel
-                </Button>
-              </ActionRow>
-            </Form>
+            <PdfAttachmentForm
+              pdfUrl={pdfUrl}
+              fileName={fileName}
+              selectedFile={selectedFile}
+              saving={saving}
+              setPdfUrl={setPdfUrl}
+              setFileName={setFileName}
+              setSelectedFile={setSelectedFile}
+              onSubmit={submit}
+              onClose={onClose}
+            />
           )}
         </Body>
       </Dialog>
