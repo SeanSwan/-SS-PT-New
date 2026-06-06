@@ -1,8 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 
 import ClientDailyActionStrip from './ClientDailyActionStrip';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const source = readFileSync(resolve(__dirname, './ClientDailyActionStrip.tsx'), 'utf8');
 
 const handlers = {
   onLogToday: vi.fn(),
@@ -104,5 +111,11 @@ describe('ClientDailyActionStrip', () => {
     expect(screen.getByRole('button', { name: /plan next for fixture client/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /view fixture client progress/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /dictate to swan for fixture client/i })).toBeInTheDocument();
+  });
+
+  it('keeps phone actions compact instead of stacking into a full-screen blocker', () => {
+    expect(source).toMatch(
+      /@media \(max-width: 420px\)\s*{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/
+    );
   });
 });

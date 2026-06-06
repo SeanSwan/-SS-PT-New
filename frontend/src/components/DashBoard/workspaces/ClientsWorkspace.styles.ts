@@ -117,6 +117,12 @@ export const HeaderSection = styled.div`
   @media (max-width: 768px) {
     padding: 0 12px 8px;
   }
+
+  @media (max-width: 640px) {
+    > section + * {
+      display: none;
+    }
+  }
 `;
 
 export const ContentArea = styled.div`

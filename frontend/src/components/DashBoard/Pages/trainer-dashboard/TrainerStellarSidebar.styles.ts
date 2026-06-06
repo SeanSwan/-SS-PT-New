@@ -55,7 +55,8 @@ export const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: bool
   border-right: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   width: ${({ $collapsed }) => ($collapsed ? '64px' : '280px')};
   transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+              transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0s linear ${({ $mobileOpen }) => ($mobileOpen ? '0s' : '300ms')};
   overflow: hidden;
   overflow-y: ${({ $collapsed }) => ($collapsed ? 'visible' : 'hidden')};
   @media (max-width: 1024px) {
@@ -66,6 +67,8 @@ export const SidebarWrap = styled.aside<{ $collapsed: boolean; $mobileOpen: bool
     box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
     border-radius: 0 16px 16px 0;
     transform: translateX(${({ $mobileOpen }) => ($mobileOpen ? '0' : '-100%')});
+    pointer-events: ${({ $mobileOpen }) => ($mobileOpen ? 'auto' : 'none')};
+    visibility: ${({ $mobileOpen }) => ($mobileOpen ? 'visible' : 'hidden')};
   }
   @media (max-width: 375px) {
     width: 100vw;

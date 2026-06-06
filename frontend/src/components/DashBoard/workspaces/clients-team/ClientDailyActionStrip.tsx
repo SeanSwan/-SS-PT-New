@@ -124,7 +124,7 @@ const ActionGroup = styled.div`
   }
 
   @media (max-width: 420px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 `;
 
@@ -170,6 +170,12 @@ const CockpitButton = styled.button<{ $variant?: 'primary' }>`
     &:hover {
       transform: none;
     }
+  }
+
+  @media (max-width: 420px) {
+    gap: 6px;
+    padding: 9px 8px;
+    font-size: 12px;
   }
 `;
 
