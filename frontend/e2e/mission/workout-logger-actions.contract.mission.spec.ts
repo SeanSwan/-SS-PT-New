@@ -130,12 +130,15 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   await mockWorkoutLoggerApi(page, apiState);
   await installAdminSession(page);
 
-  await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=logger', {
+  await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=logger&sessionId=910&sessionDate=2026-06-06', {
     waitUntil: 'domcontentloaded',
   });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
   await expect(page.getByText(/SwanStudios Paid Client/i).first()).toBeVisible();
+  const loggerUrl = new URL(page.url());
+  expect(loggerUrl.searchParams.get('sessionId')).toBe('910');
+  expect(loggerUrl.searchParams.get('sessionDate')).toBe('2026-06-06');
   await page.getByRole('button', { name: /search and add exercises/i }).click();
   await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
   await page.getByRole('option', { name: /goblet squat/i }).first().click();
