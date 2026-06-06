@@ -10,6 +10,7 @@
  *   node scripts/qa/playwright-smoke.mjs
  *   node scripts/qa/playwright-smoke.mjs --prod
  *   node scripts/qa/playwright-smoke.mjs --base-url=https://sswanstudios.com
+ *   node scripts/qa/playwright-smoke.mjs --prod --workers=2
  */
 
 import { spawnSync } from 'node:child_process';
@@ -31,6 +32,7 @@ const headed = ownArgs.includes('--headed');
 const reporterArg = ownArgs.find(arg => arg.startsWith('--reporter='));
 const projectArgs = ownArgs.filter(arg => arg.startsWith('--project='));
 const baseUrlArg = ownArgs.find(arg => arg.startsWith('--base-url='));
+const workersArg = ownArgs.find(arg => arg.startsWith('--workers='));
 
 function canListenOnPort(port) {
   return new Promise(resolve => {
@@ -60,6 +62,7 @@ const baseURL = baseUrlArg
   ? baseUrlArg.slice('--base-url='.length)
   : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || `http://localhost:${localFrontendPort}`;
 const skipWebServer = prod || Boolean(baseUrlArg) || Boolean(process.env.BASE_URL) || process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
+const selectedWorkersArg = workersArg || (prod || baseUrlArg || process.env.BASE_URL ? '--workers=1' : '--workers=2');
 
 const smokeSpecs = [
   'admin-compliance-truth-smoke.spec.ts',
@@ -85,13 +88,14 @@ const playwrightArgs = [
   ...smokeSpecs,
   ...(projectArgs.length ? projectArgs : ['--project=Desktop Chrome', '--project=Mobile Chrome']),
   reporterArg || '--reporter=line',
-  '--workers=2',
+  selectedWorkersArg,
   ...(headed ? ['--headed'] : []),
   ...passthroughArgs,
 ];
 
 process.stdout.write(`SwanStudios canonical smoke\n`);
 process.stdout.write(`Base URL: ${baseURL}\n`);
+process.stdout.write(`Workers: ${selectedWorkersArg.slice('--workers='.length)}\n`);
 if (localFrontendPort) {
   process.stdout.write(`Frontend port: ${localFrontendPort}\n`);
 }
