@@ -38,6 +38,7 @@ export const ExerciseAddBtn = styled.button`
 `;
 
 export const ExerciseItem = styled.div<{ $selected?: boolean }>`
+  box-sizing: border-box;
   width: 100%;
   text-align: left;
   display: flex;
@@ -52,7 +53,7 @@ export const ExerciseItem = styled.div<{ $selected?: boolean }>`
   cursor: pointer;
   margin-bottom: 6px;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  min-height: 92px;
+  min-height: 100px;
   overflow: hidden;
   border-left: 3px solid ${({ $selected }) => $selected ? 'var(--accent-secondary, #8B5CF6)' : 'transparent'};
 

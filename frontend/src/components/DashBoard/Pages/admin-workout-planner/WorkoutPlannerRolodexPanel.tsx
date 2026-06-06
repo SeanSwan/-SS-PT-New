@@ -36,7 +36,7 @@ import {
   ResultsCount,
 } from './WorkoutPlannerPage.styles';
 
-const WORKOUT_PLANNER_ROW_HEIGHT = 104;
+const WORKOUT_PLANNER_ROW_HEIGHT = 112;
 const VIRTUAL_LIST_STYLE = { height: 420, overflowX: 'hidden' as const };
 
 type ExerciseRowRenderer = (props: {

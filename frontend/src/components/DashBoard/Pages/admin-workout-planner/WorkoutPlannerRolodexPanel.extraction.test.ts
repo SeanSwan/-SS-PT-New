@@ -18,7 +18,7 @@ describe('WorkoutPlanner rolodex panel extraction', () => {
     expect(pageSource).not.toContain('React.createElement(List');
     expect(panelSource).toContain('Exercise Rolodex');
     expect(panelSource).toContain('React.createElement(List');
-    expect(panelSource).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 104;');
+    expect(panelSource).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 112;');
     expect(panelSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
 });

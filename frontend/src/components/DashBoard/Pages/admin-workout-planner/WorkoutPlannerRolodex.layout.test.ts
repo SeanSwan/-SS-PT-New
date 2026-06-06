@@ -18,14 +18,15 @@ const TYPES_SOURCE = readFileSync(resolve(__dirname, './WorkoutPlannerTypes.ts')
 
 describe('WorkoutPlanner exercise rolodex layout', () => {
   it('uses a shared row-height constant large enough for two-line names and wrapped tags', () => {
-    expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 104;');
+    expect(ROLODEX_PANEL_SOURCE).toContain('const WORKOUT_PLANNER_ROW_HEIGHT = 112;');
     expect(ROLODEX_PANEL_SOURCE).toMatch(/rowHeight:\s*WORKOUT_PLANNER_ROW_HEIGHT/);
     expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?display:\s*flex/);
     expect(ROW_SOURCE).toMatch(/RowContent[\s\S]*?justify-content:\s*center/);
   });
 
   it('keeps exercise names and meta chips contained inside the row card', () => {
-    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*92px/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?box-sizing:\s*border-box/);
+    expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseItem[\s\S]*?min-height:\s*100px/);
     expect(EXERCISE_STYLE_SOURCE).toMatch(/ExerciseMeta[\s\S]*?max-height:\s*42px/);
     expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?line-height:\s*1\.25/);
     expect(EXERCISE_STYLE_SOURCE).toMatch(/MetaTag[\s\S]*?text-overflow:\s*ellipsis/);
