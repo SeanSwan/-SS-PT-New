@@ -111,9 +111,12 @@ class SessionService {
    */
   async getSessionsByDateRange(startDate: string, endDate: string): Promise<Session[]> {
     try {
-      const response = await this.apiService.get<Session[]>(
-        `/api/sessions/date-range?start=${startDate}&end=${endDate}`
-      );
+      const params = new URLSearchParams({
+        startDate,
+        endDate
+      });
+
+      const response = await this.apiService.get<Session[]>(`/api/sessions?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching sessions by date range:', error);
@@ -429,7 +432,7 @@ class SessionService {
    */
   async bulkDeleteSessions(sessionIds: string[]): Promise<void> {
     try {
-      await this.apiService.post('/api/sessions/bulk-delete', { sessionIds });
+      await this.apiService.delete('/api/sessions/bulk', { data: { sessionIds } });
     } catch (error) {
       console.error('Error bulk deleting sessions:', error);
       throw error;
@@ -475,10 +478,10 @@ class SessionService {
       if (filters?.customDateEnd) params.append('endDate', filters.customDateEnd);
       
       const queryString = params.toString();
-      const url = `/api/sessions/statistics${queryString ? `?${queryString}` : ''}`;
+      const url = `/api/sessions/stats${queryString ? `?${queryString}` : ''}`;
       
-      const response = await this.apiService.get<ScheduleStats>(url);
-      return response.data;
+      const response = await this.apiService.get<{ success?: boolean; stats?: ScheduleStats }>(url);
+      return response.data.stats ?? (response.data as ScheduleStats);
     } catch (error) {
       console.error('Error fetching session statistics:', error);
       throw error;
@@ -551,17 +554,15 @@ class SessionService {
     trainerId?: string
   ): Promise<boolean> {
     try {
-      const params = new URLSearchParams({
-        start: startTime.toISOString(),
-        end: endTime.toISOString()
+      const response = await this.apiService.post<{
+        hasHardConflicts?: boolean;
+      }>('/api/sessions/check-conflicts', {
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        ...(trainerId ? { trainerId } : {})
       });
-      
-      if (trainerId) params.append('trainerId', trainerId);
-      
-      const response = await this.apiService.get<{ available: boolean }>(
-        `/api/sessions/check-availability?${params.toString()}`
-      );
-      return response.data.available;
+
+      return !response.data.hasHardConflicts;
     } catch (error) {
       console.error('Error checking session availability:', error);
       return false;

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiMock = vi.hoisted(() => ({
+  get: vi.fn(),
+  post: vi.fn(),
   patch: vi.fn(),
   put: vi.fn(),
   delete: vi.fn()
@@ -14,6 +16,8 @@ import sessionService from './sessionService';
 
 describe('sessionService lifecycle route contract', () => {
   beforeEach(() => {
+    apiMock.get.mockResolvedValue({ data: [] });
+    apiMock.post.mockResolvedValue({ data: { hasHardConflicts: false } });
     apiMock.patch.mockResolvedValue({ data: { id: 42 } });
     apiMock.put.mockResolvedValue({ data: { id: 42 } });
     apiMock.delete.mockResolvedValue({ data: undefined });
@@ -62,5 +66,49 @@ describe('sessionService lifecycle route contract', () => {
       reason: 'Deleted from schedule'
     });
     expect(apiMock.delete).not.toHaveBeenCalled();
+  });
+
+  it('gets date-range sessions through canonical query params instead of a colliding named route', async () => {
+    await sessionService.getSessionsByDateRange('2026-06-01', '2026-06-07');
+
+    expect(apiMock.get).toHaveBeenCalledWith('/api/sessions?startDate=2026-06-01&endDate=2026-06-07');
+    expect(apiMock.get).not.toHaveBeenCalledWith(expect.stringContaining('/api/sessions/date-range'));
+  });
+
+  it('bulk deletes through the canonical DELETE bulk endpoint', async () => {
+    await sessionService.bulkDeleteSessions(['42', '43']);
+
+    expect(apiMock.delete).toHaveBeenCalledWith('/api/sessions/bulk', {
+      data: { sessionIds: ['42', '43'] }
+    });
+    expect(apiMock.post).not.toHaveBeenCalledWith('/api/sessions/bulk-delete', expect.anything());
+  });
+
+  it('gets session statistics through the unified stats endpoint and returns the stats payload', async () => {
+    apiMock.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        stats: { totalSessions: 3, completedSessions: 2 }
+      }
+    });
+
+    const stats = await sessionService.getSessionStatistics();
+
+    expect(apiMock.get).toHaveBeenCalledWith('/api/sessions/stats');
+    expect(stats).toEqual({ totalSessions: 3, completedSessions: 2 });
+  });
+
+  it('checks availability through the canonical conflict endpoint', async () => {
+    const start = new Date('2026-06-01T09:00:00.000Z');
+    const end = new Date('2026-06-01T10:00:00.000Z');
+
+    const available = await sessionService.checkSessionAvailability(start, end, '7');
+
+    expect(apiMock.post).toHaveBeenCalledWith('/api/sessions/check-conflicts', {
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      trainerId: '7'
+    });
+    expect(available).toBe(true);
   });
 });
