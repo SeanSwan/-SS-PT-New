@@ -13,10 +13,26 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import styled from 'styled-components';
-import { CheckCircle2, ClipboardList, ExternalLink, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
+import {
+  Eyebrow,
+  Header,
+  Hint,
+  Meta,
+  Panel,
+  PlanActionButton,
+  PlanActions,
+  PlanCard,
+  PlanGrid,
+  PlanTitle,
+  RefreshButton,
+  StateCard,
+  StatusBadge,
+  Title,
+  TitleBlock,
+} from './ClientWorkoutPlansPanel.styles';
 import {
   createProtectedPdfObjectUrl,
   formatClientPlanUpdated,
@@ -25,168 +41,13 @@ import {
   type PlanPdfAuthClient,
 } from './ClientWorkoutPlansPanel.logic';
 
-interface ClientWorkoutPlansPanelProps { clientId: number | string; clientName?: string; }
+interface ClientWorkoutPlansPanelProps {
+  clientId: number | string;
+  clientName?: string;
+  onLogToday?: () => void;
+}
 
-const Panel = styled.section`
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.14));
-  background: var(--bg-elevated, #1A1A24);
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-
-  @media (max-width: 640px) {
-    flex-direction: column;
-  }
-`;
-
-const TitleBlock = styled.div`
-  display: grid;
-  gap: 4px;
-`;
-
-const Eyebrow = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-`;
-
-const Title = styled.h3`
-  margin: 0;
-  color: var(--text-heading, #E0ECF4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 20px;
-  line-height: 1.2;
-`;
-
-const Hint = styled.p`
-  margin: 0;
-  color: var(--text-muted, rgba(224, 236, 244, 0.74));
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-`;
-
-const RefreshButton = styled.button`
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.18));
-  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 82%, var(--accent-primary, #60C0F0) 8%);
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 2px;
-  }
-`;
-
-const PlanGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
-`;
-
-const PlanCard = styled.article`
-  display: grid;
-  gap: 10px;
-  min-height: 132px;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background: var(--bg-surface, #141419);
-`;
-
-const PlanTitle = styled.h4`
-  margin: 0;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 15px;
-`;
-
-const StatusBadge = styled.span<{ $active: boolean }>`
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 4px 9px;
-  border-radius: 8px;
-  color: ${({ $active }) => ($active ? 'var(--accent-gold, #C6A84B)' : 'var(--text-muted, rgba(224,236,244,0.72))')};
-  background: ${({ $active }) =>
-    $active
-      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 14%, transparent)'
-      : 'color-mix(in srgb, var(--bg-base, #0A0A0F) 78%, var(--accent-primary, #60C0F0) 6%)'};
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-`;
-
-const Meta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  color: var(--text-muted, rgba(224, 236, 244, 0.72));
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-`;
-
-const PdfButton = styled.button`
-  min-height: 44px;
-  width: fit-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-
-  &:disabled {
-    cursor: wait;
-    opacity: 0.72;
-  }
-`;
-
-const StateCard = styled.div`
-  min-height: 112px;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  border-radius: 12px;
-  border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.16));
-  color: var(--text-muted, rgba(224, 236, 244, 0.72));
-  font-family: 'Sora', sans-serif;
-  text-align: center;
-`;
-
-const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clientId, clientName }) => {
+const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clientId, clientName, onLogToday }) => {
   const { authAxios } = useAuth() as {
     authAxios?: {
       get: (
@@ -293,16 +154,28 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
                     <span>{formatClientPlanUpdated(plan.createdAt)}</span>
                     <span>{plan.goal}</span>
                   </Meta>
-                  {plan.pdfFile && (
-                    <PdfButton
-                      type="button"
-                      disabled={openingPdfId === plan.id}
-                      aria-label={`Open ${plan.name} PDF`}
-                      onClick={() => { void openPlanPdf(plan); }}
-                    >
-                      <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
-                    </PdfButton>
-                  )}
+                  <PlanActions>
+                    {active && onLogToday && (
+                      <PlanActionButton
+                        type="button"
+                        $variant="primary"
+                        aria-label={`Log Today from ${plan.name}`}
+                        onClick={onLogToday}
+                      >
+                        <Dumbbell size={14} /> Log Today
+                      </PlanActionButton>
+                    )}
+                    {plan.pdfFile && (
+                      <PlanActionButton
+                        type="button"
+                        disabled={openingPdfId === plan.id}
+                        aria-label={`Open ${plan.name} PDF`}
+                        onClick={() => { void openPlanPdf(plan); }}
+                      >
+                        <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
+                      </PlanActionButton>
+                    )}
+                  </PlanActions>
                 </PlanCard>
               );
             })}

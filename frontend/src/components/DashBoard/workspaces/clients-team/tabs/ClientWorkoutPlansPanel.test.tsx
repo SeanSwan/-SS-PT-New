@@ -55,6 +55,7 @@ describe('ClientWorkoutPlansPanel', () => {
 
   it('surfaces primary horizon and opens protected PDFs through authAxios', async () => {
     const user = userEvent.setup();
+    const onLogToday = vi.fn();
     mockAuthAxios.get.mockResolvedValueOnce({
       data: {
         success: true,
@@ -83,7 +84,7 @@ describe('ClientWorkoutPlansPanel', () => {
       data: new Blob(['%PDF-1.4'], { type: 'application/pdf' }),
     });
 
-    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" onLogToday={onLogToday} />);
 
     expect(await screen.findByText('Primary Six Month Arc')).toBeInTheDocument();
     expect(screen.getByText(/primary arc/i)).toBeInTheDocument();
@@ -100,6 +101,9 @@ describe('ClientWorkoutPlansPanel', () => {
       '_blank',
       'noopener,noreferrer',
     );
+
+    await user.click(screen.getByRole('button', { name: /log today from primary six month arc/i }));
+    expect(onLogToday).toHaveBeenCalledTimes(1);
   });
 
   it('shows planner-saved planData goal and duration when top-level fields are absent', async () => {
@@ -129,6 +133,7 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(await screen.findByText('12 Month Strength Arc')).toBeInTheDocument();
     expect(screen.getByText(/48 weeks/i)).toBeInTheDocument();
     expect(screen.getByText(/^strength$/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /log today from 12 month strength arc/i })).toBeNull();
   });
 
   it('blocks malformed client ids before calling the workout-plan API', () => {

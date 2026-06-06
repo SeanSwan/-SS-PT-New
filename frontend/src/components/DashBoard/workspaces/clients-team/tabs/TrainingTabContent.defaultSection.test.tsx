@@ -36,7 +36,13 @@ vi.mock('../../../../WorkoutManagement/WorkoutPlanBuilder', () => ({
 }));
 
 vi.mock('./ClientWorkoutPlansPanel', () => ({
-  default: () => <div data-testid="client-workout-plans-panel" />,
+  default: ({ onLogToday }: { onLogToday?: () => void }) => (
+    <div data-testid="client-workout-plans-panel">
+      <button type="button" onClick={onLogToday}>
+        Mock plan log today
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
@@ -111,6 +117,29 @@ describe('TrainingTabContent daily workflow default', () => {
       'aria-selected',
       'true'
     );
+  });
+
+  it('opens the logger from the saved plan card action', async () => {
+    const user = userEvent.setup();
+    const onSectionChange = vi.fn();
+
+    render(
+      <TrainingTabContent
+        clientId={424242}
+        clientName="Fixture Client"
+        initialSection={'plans' as never}
+        onSectionChange={onSectionChange}
+      />
+    );
+
+    await user.click(await screen.findByRole('button', { name: /mock plan log today/i }));
+
+    expect(await screen.findByTestId('workout-logger')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /workout logger/i })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(onSectionChange).toHaveBeenCalledWith('logger');
   });
 
   it('keeps training sub-section tabs as explicit non-submit buttons', () => {

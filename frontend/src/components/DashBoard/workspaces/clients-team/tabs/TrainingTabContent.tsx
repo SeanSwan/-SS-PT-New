@@ -148,6 +148,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
             <ClientWorkoutPlansPanel
               clientId={safeClientId}
               clientName={clientName}
+              onLogToday={() => handleSectionChange('logger')}
             />
           </Suspense>
         );
