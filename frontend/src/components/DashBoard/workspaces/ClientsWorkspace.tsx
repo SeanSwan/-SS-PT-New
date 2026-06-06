@@ -199,7 +199,11 @@ const ClientsWorkspace: React.FC = () => {
     renderBiometrics,
     renderOverview,
     renderSettings,
-  } = useClientsWorkspaceTabRenderers(selectedClient, getClientTrainingSectionFromSearchParams(searchParams));
+  } = useClientsWorkspaceTabRenderers(
+    selectedClient,
+    getClientTrainingSectionFromSearchParams(searchParams),
+    handleViewProgress
+  );
 
   return (
     <ClientsWorkspaceView

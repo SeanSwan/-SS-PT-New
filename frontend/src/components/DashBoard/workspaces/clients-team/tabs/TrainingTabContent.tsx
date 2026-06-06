@@ -31,6 +31,9 @@ import {
   SidebarItem,
 } from './TrainingTabContent.styles';
 import { getNumericClientId } from './clientTabId';
+import ClientTrainingSaveReceipt, {
+  type ClientTrainingSavedWorkout,
+} from './ClientTrainingSaveReceipt';
 
 const WorkoutPlanBuilder = React.lazy(
   () => import('../../../../WorkoutManagement/WorkoutPlanBuilder')
@@ -64,6 +67,7 @@ interface TrainingTabContentProps {
   clientName?: string;
   initialSection?: TrainingSection;
   onSectionChange?: (section: TrainingSection) => void;
+  onOpenProgress?: () => void;
 }
 
 const SECTIONS: {
@@ -104,13 +108,19 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   clientName,
   initialSection,
   onSectionChange,
+  onOpenProgress,
 }) => {
   const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
+  const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
   const numericClientId = getNumericClientId(clientId);
 
   useEffect(() => {
     setActiveSection(initialSection ?? 'logger');
   }, [clientId, initialSection]);
+
+  useEffect(() => {
+    setLastSavedWorkout(null);
+  }, [clientId]);
 
   const handleSectionChange = useCallback((section: TrainingSection) => {
     setActiveSection(section);
@@ -146,7 +156,8 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
           <Suspense fallback={<SuspenseFallback />}>
             <WorkoutLogger
               clientId={safeClientId}
-              onComplete={() => {
+              onComplete={(savedWorkout) => {
+                setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
                 handleSectionChange('history');
               }}
               onCancel={() => {
@@ -179,14 +190,23 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
         );
       case 'history':
         return (
-          <Suspense fallback={<PlaceholderCard><p>Loading workout history...</p></PlaceholderCard>}>
-            <WorkoutHistoryPanel
-              clientId={safeClientId}
-              clientName={clientName || 'Client'}
-              variant="embedded"
-              active={true}
-            />
-          </Suspense>
+          <>
+            {lastSavedWorkout && (
+              <ClientTrainingSaveReceipt
+                clientName={clientName || 'Client'}
+                savedWorkout={lastSavedWorkout}
+                onOpenProgress={onOpenProgress}
+              />
+            )}
+            <Suspense fallback={<PlaceholderCard><p>Loading workout history...</p></PlaceholderCard>}>
+              <WorkoutHistoryPanel
+                clientId={safeClientId}
+                clientName={clientName || 'Client'}
+                variant="embedded"
+                active={true}
+              />
+            </Suspense>
+          </>
         );
       default:
         return null;

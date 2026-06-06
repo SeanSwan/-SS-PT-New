@@ -22,6 +22,7 @@ const clientName = (client: ClientOption | null) =>
 export const useClientsWorkspaceTabRenderers = (
   selectedClient: ClientOption | null,
   initialTrainingSection: ClientTrainingSection | null = null,
+  onOpenProgress?: () => void,
 ) => {
   const [, setSearchParams] = useSearchParams();
 
@@ -41,9 +42,10 @@ export const useClientsWorkspaceTabRenderers = (
         clientName={clientName(selectedClient)}
         initialSection={initialTrainingSection ?? undefined}
         onSectionChange={writeTrainingSectionRoute}
+        onOpenProgress={onOpenProgress}
       />
     </Suspense>
-  ), [initialTrainingSection, selectedClient, writeTrainingSectionRoute]);
+  ), [initialTrainingSection, onOpenProgress, selectedClient, writeTrainingSectionRoute]);
 
   const renderProgress = useCallback((clientId: number | string) => (
     <Suspense fallback={<LoadingPulse>Loading progress...</LoadingPulse>}>

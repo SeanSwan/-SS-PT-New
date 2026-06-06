@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const commandMock = vi.hoisted(() => ({
@@ -59,6 +60,7 @@ vi.mock('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPane
 }));
 
 import TrainingTabContent from './TrainingTabContent';
+import type { TrainingSection } from './TrainingTabContent';
 
 describe('TrainingTabContent daily workflow default', () => {
   const source = readFileSync(resolve(__dirname, 'TrainingTabContent.tsx'), 'utf8');
@@ -148,6 +150,52 @@ describe('TrainingTabContent daily workflow default', () => {
       'aria-selected',
       'true'
     );
+  });
+
+  it('shows a post-save receipt with a one-tap progress proof action', async () => {
+    const user = userEvent.setup();
+    const onOpenProgress = vi.fn();
+
+    render(
+      <TrainingTabContent
+        clientId={424242}
+        clientName="Fixture Client"
+        onOpenProgress={onOpenProgress}
+      />
+    );
+
+    await user.click(await screen.findByRole('button', { name: /complete mock workout/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/workout saved/i);
+    expect(screen.getByText(/fixture-form/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /open fixture client progress proof/i }));
+
+    expect(onOpenProgress).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the post-save receipt when parent route state syncs to history', async () => {
+    const user = userEvent.setup();
+
+    const RouteSyncedTraining = () => {
+      const [section, setSection] = useState<TrainingSection | undefined>(undefined);
+
+      return (
+        <TrainingTabContent
+          clientId={424242}
+          clientName="Fixture Client"
+          initialSection={section}
+          onSectionChange={setSection}
+        />
+      );
+    };
+
+    render(<RouteSyncedTraining />);
+
+    await user.click(await screen.findByRole('button', { name: /complete mock workout/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/workout saved/i);
+    expect(screen.getByText(/fixture-form/i)).toBeInTheDocument();
   });
 
   it('re-opens the logger before inline Swan workout-form commands dispatch', async () => {
