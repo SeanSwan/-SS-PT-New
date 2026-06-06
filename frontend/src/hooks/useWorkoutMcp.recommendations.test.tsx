@@ -22,7 +22,7 @@ describe('useWorkoutMcp.getWorkoutRecommendations', () => {
     vi.mocked(apiService.get).mockReset();
   });
 
-  it('unwraps the canonical backend successResponse data.exercises envelope', async () => {
+  it('unwraps the canonical recommendation successResponse for real client requests', async () => {
     vi.mocked(apiService.get).mockResolvedValue({
       data: {
         success: true,
@@ -41,20 +41,20 @@ describe('useWorkoutMcp.getWorkoutRecommendations', () => {
 
     await act(async () => {
       response = await result.current.getWorkoutRecommendations({
-        userId: 'admin-library',
+        userId: 'client-42',
         goal: 'general',
         limit: 50,
       });
     });
 
     expect(apiService.get).toHaveBeenCalledWith('/api/workout/recommendations', {
-      params: { userId: 'admin-library', goal: 'general', limit: 50 },
+      params: { userId: 'client-42', goal: 'general', limit: 50 },
     });
     expect(response?.exercises).toHaveLength(2);
     expect(response?.exercises[0]).toMatchObject({ id: 'exercise-1', name: 'Goblet Squat' });
   });
 
-  it('still accepts legacy top-level exercises arrays', async () => {
+  it('routes the admin exercise catalog request through the client-safe exercise library', async () => {
     vi.mocked(apiService.get).mockResolvedValue({
       data: {
         success: true,
@@ -72,6 +72,7 @@ describe('useWorkoutMcp.getWorkoutRecommendations', () => {
       });
     });
 
+    expect(apiService.get).toHaveBeenCalledWith('/api/exercises/library');
     expect(response?.exercises).toEqual([
       { id: 'legacy-1', name: 'Push Up', description: 'Push pattern' },
     ]);

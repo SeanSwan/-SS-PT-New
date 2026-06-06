@@ -181,7 +181,9 @@ export const useWorkoutMcp = () => {
     rehabFocus?: boolean;
     optPhase?: string;
   }) => withLoading('workout recommendations', async () => {
-    const response = await apiService.get('/api/workout/recommendations', { params });
+    const response = params.userId === 'admin-library'
+      ? await apiService.get('/api/exercises/library')
+      : await apiService.get('/api/workout/recommendations', { params });
     const exercises =
       response.data?.recommendedExercises ||
       response.data?.exercises ||
