@@ -24,17 +24,17 @@ export const WeekSessionCard = styled.div<{
       case 'available':
         return WEEK_VIEW_THEME.todaySurface;
       case 'scheduled':
-        return 'var(--chart-line-soft, rgba(80, 160, 240, 0.25))';
+        return 'color-mix(in srgb, var(--chart-line, #50A0F0) 24%, transparent)';
       case 'confirmed':
-        return 'var(--success-soft, rgba(16, 185, 129, 0.25))';
+        return 'color-mix(in srgb, var(--success, #10b981) 24%, transparent)';
       case 'completed':
-        return 'var(--surface-muted, rgba(100, 100, 100, 0.3))';
+        return 'color-mix(in srgb, var(--text-muted, #94A3B8) 20%, transparent)';
       case 'cancelled':
-        return 'var(--danger-soft, rgba(239, 68, 68, 0.15))';
+        return 'color-mix(in srgb, var(--danger, #ef4444) 16%, transparent)';
       case 'blocked':
-        return 'var(--warning-soft, rgba(245, 158, 11, 0.2))';
+        return 'color-mix(in srgb, var(--warning, #f59e0b) 20%, transparent)';
       default:
-        return 'var(--accent-primary-soft, rgba(96, 192, 240, 0.15))';
+        return 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent)';
     }
   }};
   border-left: 3px solid
@@ -47,7 +47,7 @@ export const WeekSessionCard = styled.div<{
         case 'confirmed':
           return WEEK_VIEW_THEME.success;
         case 'completed':
-          return 'var(--text-disabled, #666)';
+          return 'var(--text-disabled, color-mix(in srgb, var(--text-muted, #94A3B8) 72%, transparent))';
         case 'cancelled':
           return WEEK_VIEW_THEME.danger;
         case 'blocked':
@@ -110,8 +110,8 @@ export const WeekSessionsBadge = styled.span<{ $low: boolean }>`
   top: 2px;
   right: 4px;
   background: ${({ $low }) =>
-    $low ? 'var(--danger-strong, rgba(239, 68, 68, 0.85))' : WEEK_VIEW_THEME.purpleSoft};
-  color: ${({ $low }) => ($low ? 'var(--text-on-danger, #fff)' : WEEK_VIEW_THEME.purple)};
+    $low ? 'color-mix(in srgb, var(--danger, #ef4444) 86%, var(--bg-base, #0A0A0F) 14%)' : WEEK_VIEW_THEME.purpleSoft};
+  color: ${({ $low }) => ($low ? 'var(--text-on-danger, #FFFFFF)' : WEEK_VIEW_THEME.purple)};
   border-radius: 6px;
   padding: 0 4px;
   font-size: 0.55rem;

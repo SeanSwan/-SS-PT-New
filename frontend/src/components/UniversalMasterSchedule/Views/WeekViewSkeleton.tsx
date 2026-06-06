@@ -1,10 +1,9 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
+import { HOURS, PIXELS_PER_HOUR, WEEK_VIEW_THEME } from './WeekView.logic';
 
 // ─── Constants (match WeekView) ────────────────────────────────────────────────
 
-const HOURS = Array.from({ length: 18 }, (_, i) => 5 + i); // 5 AM to 10 PM
-const PIXELS_PER_HOUR = 64;
 const DAY_COUNT = 7;
 
 // Pre-defined pseudo-random skeleton block positions per column
@@ -97,8 +96,8 @@ const SkeletonWrapper = styled.div`
 `;
 
 const GridWrapper = styled.div`
-  background: rgba(0, 32, 96, 0.6);
-  border: 1px solid rgba(0, 206, 209, 0.1);
+  background: ${WEEK_VIEW_THEME.surface};
+  border: 1px solid ${WEEK_VIEW_THEME.borderAccent};
   border-radius: 12px;
   overflow: hidden;
 
@@ -114,7 +113,7 @@ const GridWrapper = styled.div`
 const HeaderRow = styled.div`
   display: grid;
   grid-template-columns: 60px repeat(${DAY_COUNT}, 1fr);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid ${WEEK_VIEW_THEME.border};
 
   @media (min-width: 1024px) {
     grid-template-columns: 70px repeat(${DAY_COUNT}, 1fr);
@@ -127,7 +126,7 @@ const HeaderRow = styled.div`
 
 const TimeHeaderCell = styled.div`
   padding: 0.5rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid ${WEEK_VIEW_THEME.borderSoft};
 `;
 
 const DayHeaderCell = styled.div`
@@ -137,7 +136,7 @@ const DayHeaderCell = styled.div`
   justify-content: center;
   padding: 0.6rem 0.25rem;
   min-height: 56px;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid ${WEEK_VIEW_THEME.borderSoft};
 
   &:last-child {
     border-right: none;
@@ -153,7 +152,7 @@ const DayNameSkeleton = styled.div`
   width: 28px;
   height: 10px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary, #E0ECF4) 10%, transparent);
   animation: ${pulse} 1.8s ease-in-out infinite;
 `;
 
@@ -161,7 +160,7 @@ const DayDateSkeleton = styled.div`
   width: 36px;
   height: 14px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary, #E0ECF4) 8%, transparent);
   margin-top: 4px;
   animation: ${pulse} 1.8s ease-in-out infinite;
   animation-delay: 0.2s;
@@ -176,7 +175,7 @@ const GridBody = styled.div`
 const TimeColumn = styled.div`
   flex-shrink: 0;
   width: 60px;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid ${WEEK_VIEW_THEME.borderSoft};
 
   @media (min-width: 1024px) {
     width: 70px;
@@ -193,8 +192,8 @@ const TimeLabel = styled.div`
   justify-content: center;
   padding-top: 2px;
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: ${WEEK_VIEW_THEME.textMuted};
+  border-bottom: 1px solid ${WEEK_VIEW_THEME.borderSoft};
   box-sizing: border-box;
 
   @media (max-width: 430px) {
@@ -211,7 +210,7 @@ const DayColumnsContainer = styled.div`
 
 const DayColumn = styled.div`
   position: relative;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 1px solid ${WEEK_VIEW_THEME.borderSoft};
 
   &:last-child {
     border-right: none;
@@ -219,7 +218,7 @@ const DayColumn = styled.div`
 `;
 
 const HourSlot = styled.div`
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid ${WEEK_VIEW_THEME.borderSoft};
   box-sizing: border-box;
 `;
 
@@ -228,8 +227,8 @@ const SkeletonBlock = styled.div`
   left: 3px;
   right: 3px;
   border-radius: 6px;
-  background: rgba(0, 206, 209, 0.08);
-  border-left: 3px solid rgba(0, 206, 209, 0.15);
+  background: ${WEEK_VIEW_THEME.surfaceSoft};
+  border-left: 3px solid ${WEEK_VIEW_THEME.borderAccent};
   animation: ${pulse} 1.8s ease-in-out infinite;
   animation-delay: ${() => `${Math.random() * 0.8}s`};
 `;
