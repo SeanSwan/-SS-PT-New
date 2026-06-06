@@ -17,6 +17,7 @@ const assignment: ClientAssignment = {
     clientSource: 'swanstudios',
     totalSessionsCompleted: 3,
     lastSessionDate: '2026-05-20T12:00:00.000Z',
+    nextSessionDate: '2026-06-12T12:00:00.000Z',
     status: 'active',
     goals: { current: 1, completed: 2 },
     progress: {
@@ -102,5 +103,34 @@ describe('TrainerClientCard accessibility', () => {
       opacity: '1',
       transform: 'none',
     });
+  });
+
+  it('surfaces paid-client readiness details before the trainer clicks into the client', () => {
+    render(<TrainerClientCard assignment={assignment} index={0} {...handlers} />);
+
+    expect(screen.getByText('SwanStudios paid')).toBeInTheDocument();
+    expect(screen.getByText('Next session: Jun 12')).toBeInTheDocument();
+    expect(screen.getAllByText('4 paid sessions').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('deducts when logged').length).toBeGreaterThan(0);
+  });
+
+  it('distinguishes Move Fitness tracking clients from paid SwanStudios session clients', () => {
+    const moveFitnessAssignment: ClientAssignment = {
+      ...assignment,
+      client: {
+        ...assignment.client,
+        id: '92',
+        clientSource: 'move_fitness',
+        availableSessions: 0,
+        nextSessionDate: undefined,
+      },
+    };
+
+    render(<TrainerClientCard assignment={moveFitnessAssignment} index={0} {...handlers} />);
+
+    expect(screen.getByText('Move Fitness tracking')).toBeInTheDocument();
+    expect(screen.getByText('Next session unavailable')).toBeInTheDocument();
+    expect(screen.getAllByText('free tracking').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('no deduction').length).toBeGreaterThan(0);
   });
 });

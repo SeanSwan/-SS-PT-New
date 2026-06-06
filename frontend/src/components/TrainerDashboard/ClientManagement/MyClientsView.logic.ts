@@ -26,6 +26,33 @@ export const formatTimeAgo = (dateString?: string | null): string | null => {
   return `${Math.floor(diffInDays / 30)} months ago`;
 };
 
+export const formatShortDate = (dateString?: string | null): string | null => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (!Number.isFinite(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+};
+
+export const getNextSessionLabel = (dateString?: string | null): string => {
+  const nextSessionDate = formatShortDate(dateString);
+  return nextSessionDate ? `Next session: ${nextSessionDate}` : 'Next session unavailable';
+};
+
+export const getClientSourceLabel = (source?: string | null): string => {
+  switch (source) {
+    case 'move_fitness':
+      return 'Move Fitness tracking';
+    case 'external':
+      return 'External tracking';
+    default:
+      return 'SwanStudios paid';
+  }
+};
+
 export const getMembershipColor = (level: string): string => {
   switch (level) {
     case 'elite':

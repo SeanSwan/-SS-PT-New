@@ -8,8 +8,11 @@ import {
   Award,
   BarChart3,
   Calendar,
+  CalendarClock,
   CheckCircle,
+  ClipboardCheck,
   Edit,
+  Layers,
   MessageSquare,
   Sparkles,
   Target,
@@ -35,10 +38,21 @@ import {
 import type { ClientAssignment } from './MyClientsView.types';
 import {
   formatTimeAgo,
+  getClientSourceLabel,
   getInitials,
   getMembershipBadgeStyle,
   getMembershipColor,
+  getNextSessionLabel,
 } from './MyClientsView.logic';
+import {
+  ClientReadinessStrip,
+  ProofHeader,
+  ProofLabel,
+  ProofSubtext,
+  ProofValue,
+  ReadinessChip,
+  WorkoutProofPanel,
+} from './MyClientsView.readinessStyles';
 
 interface TrainerClientCardProps {
   assignment: ClientAssignment;
@@ -74,6 +88,8 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
   const lastLoggedAgo = formatTimeAgo(client.lastSessionDate);
   const sessionSignal = getClientSessionSignal(client);
   const clientName = `${client.firstName} ${client.lastName}`;
+  const sourceLabel = getClientSourceLabel(client.clientSource);
+  const nextSessionLabel = getNextSessionLabel(client.nextSessionDate);
 
   return (
     <ClientCard
@@ -115,6 +131,21 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         </ClientInfo>
       </ClientHeader>
 
+      <ClientReadinessStrip aria-label={`${clientName} client readiness`}>
+        <ReadinessChip>
+          <Layers size={15} aria-hidden="true" />
+          <span>{sourceLabel}</span>
+        </ReadinessChip>
+        <ReadinessChip>
+          <CalendarClock size={15} aria-hidden="true" />
+          <span>{nextSessionLabel}</span>
+        </ReadinessChip>
+        <ReadinessChip>
+          <ClipboardCheck size={15} aria-hidden="true" />
+          <span>{sessionSignal.label}</span>
+        </ReadinessChip>
+      </ClientReadinessStrip>
+
       <ClientMetrics>
         <MetricItem>
           <Calendar size={16} className="metric-icon" />
@@ -138,37 +169,18 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
         </MetricItem>
       </ClientMetrics>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '0.5rem',
-        }}>
-          <span style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-secondary, rgba(255, 255, 255, 0.7))',
-          }}>
-            Workout Proof
-          </span>
-          <span style={{
-            fontSize: '0.85rem',
-            color: 'var(--text-primary, #ffffff)',
-            fontWeight: 600,
-          }}>
+      <WorkoutProofPanel>
+        <ProofHeader>
+          <ProofLabel>Workout Proof</ProofLabel>
+          <ProofValue>
             {hasWorkoutProof ? `${client.totalSessionsCompleted} logged` : 'No logs yet'}
-          </span>
-        </div>
-        <div style={{
-          fontSize: '0.75rem',
-          color: 'var(--text-tertiary, rgba(255, 255, 255, 0.6))',
-          textAlign: 'center',
-          marginTop: '0.25rem',
-        }}>
+          </ProofValue>
+        </ProofHeader>
+        <ProofSubtext>
           {lastLoggedAgo && <>Last logged: {lastLoggedAgo}</>}
           {!lastLoggedAgo && <>Log a workout to unlock trend proof</>}
-        </div>
-      </div>
+        </ProofSubtext>
+      </WorkoutProofPanel>
 
       <ClientActions className="client-actions">
         <ActionIconButton
