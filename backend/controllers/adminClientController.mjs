@@ -273,6 +273,7 @@ import { generateClaimToken } from '../services/claimTokenService.mjs';
 import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
+import { CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 
@@ -1058,7 +1059,7 @@ class AdminClientController {
           {
             where: {
               userId: clientId,
-              status: { [Op.in]: ['available', 'scheduled', 'confirmed'] },
+              status: { [Op.in]: CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES },
               sessionDate: { [Op.gt]: new Date() }
             },
             transaction

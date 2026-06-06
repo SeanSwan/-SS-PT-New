@@ -8,6 +8,14 @@
 
 export const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
 
+export const CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES = Object.freeze([
+  'available',
+  'assigned',
+  'requested',
+  'scheduled',
+  'confirmed',
+]);
+
 export const normalizePaidSessionCount = (value) => {
   const sessions = Number(value ?? 0);
   if (!Number.isFinite(sessions)) return 0;

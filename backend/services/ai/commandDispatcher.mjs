@@ -62,6 +62,7 @@ import * as hermesService from '../hermes/hermesService.mjs';
 import workoutService from '../workoutService.mjs';
 import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
 import {
+  CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
   NON_DEDUCTING_CLIENT_SOURCES,
   normalizePaidSessionCount,
 } from '../sessionBillingPolicy.mjs';
@@ -1013,7 +1014,7 @@ const dispatchDeactivateClient = async (params, ctx) => {
       {
         where: {
           userId: clientId,
-          status: { [Op.in]: ['available', 'scheduled', 'confirmed'] },
+          status: { [Op.in]: CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES },
           sessionDate: { [Op.gt]: new Date() },
         },
         transaction,

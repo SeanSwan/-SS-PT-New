@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 async function loadDispatcher({
@@ -450,6 +451,13 @@ describe('Swan Coach client command dispatchers', () => {
         transaction,
       }),
     );
+    expect(sessionUpdate.mock.calls[0][1].where.status[Op.in]).toEqual(expect.arrayContaining([
+      'available',
+      'assigned',
+      'requested',
+      'scheduled',
+      'confirmed',
+    ]));
     expect(clientRecord.update).toHaveBeenCalledWith(
       expect.objectContaining({
         isActive: false,

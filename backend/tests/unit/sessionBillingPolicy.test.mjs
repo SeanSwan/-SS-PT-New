@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildWorkoutSessionBillingDecision,
+  CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
   NON_DEDUCTING_CLIENT_SOURCES,
 } from '../../services/sessionBillingPolicy.mjs';
 
@@ -115,5 +116,19 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: true,
       canLogWorkout: false,
     });
+  });
+
+  it('centralizes future non-terminal session statuses for client deactivation', () => {
+    expect(CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES).toEqual([
+      'available',
+      'assigned',
+      'requested',
+      'scheduled',
+      'confirmed',
+    ]);
+    expect(CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES).not.toContain('completed');
+    expect(CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES).not.toContain('cancelled');
+    expect(CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES).not.toContain('blocked');
+    expect(Object.isFrozen(CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES)).toBe(true);
   });
 });

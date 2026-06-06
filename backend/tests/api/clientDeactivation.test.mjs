@@ -123,9 +123,9 @@ describe('Client Deactivation', () => {
     expect(pastSession.status).toBe('completed');
   });
 
-  it('only cancellable statuses are targeted', () => {
-    const cancellableStatuses = ['available', 'scheduled', 'confirmed'];
-    const nonCancellableStatuses = ['completed', 'cancelled', 'no_show'];
+  it('only future non-terminal client session statuses are targeted', () => {
+    const cancellableStatuses = ['available', 'assigned', 'requested', 'scheduled', 'confirmed'];
+    const nonCancellableStatuses = ['completed', 'cancelled', 'blocked', 'no_show'];
 
     for (const status of cancellableStatuses) {
       expect(cancellableStatuses).toContain(status);
