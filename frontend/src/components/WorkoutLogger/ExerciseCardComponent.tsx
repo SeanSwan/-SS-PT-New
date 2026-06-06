@@ -12,6 +12,7 @@ import {
   ExerciseHeader,
   ExerciseRatings,
   ExerciseTitle,
+  RatingControlRow,
   RatingGroup,
   RemoveExerciseBtn,
   SliderInput,
@@ -78,7 +79,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
       <ExerciseRatings>
         <RatingGroup>
           <label>Form Rating (1-5):</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <RatingControlRow>
             <StarRatingContainer>
               {[1, 2, 3, 4, 5].map(rating => (
                 <StarButton
@@ -94,11 +95,11 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               ))}
             </StarRatingContainer>
             <SliderValue>{exercise.formRating ?? 0}/5</SliderValue>
-          </div>
+          </RatingControlRow>
         </RatingGroup>
         <RatingGroup>
           <label>Pain Level (0-10):</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <RatingControlRow>
             <SliderInput
               type="range"
               min={0}
@@ -107,7 +108,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               onChange={event => onUpdateExercise(exerciseIndex, 'painLevel', parseInt(event.target.value))}
             />
             <SliderValue>{exercise.painLevel}/10</SliderValue>
-          </div>
+          </RatingControlRow>
         </RatingGroup>
         <RemoveExerciseBtn
           type="button"
@@ -182,7 +183,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               />
             </SetCell>
             <SetCell data-label="RPE">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <RatingControlRow>
                 <SliderInput
                   type="range"
                   min={1}
@@ -191,10 +192,10 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                   onChange={event => onUpdateSet(exerciseIndex, setIndex, 'rpe', parseInt(event.target.value))}
                 />
                 <SliderValue>{set.rpe ?? 1}</SliderValue>
-              </div>
+              </RatingControlRow>
             </SetCell>
             <SetCell data-label="Form">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <RatingControlRow>
                 <StarRatingContainer>
                   {[1, 2, 3, 4, 5].map(rating => (
                     <StarButton
@@ -209,7 +210,7 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
                     </StarButton>
                   ))}
                 </StarRatingContainer>
-              </div>
+              </RatingControlRow>
             </SetCell>
             <SetCell data-label="Rest">
               <RestTimer restSeconds={set.restTime || 60} compact />

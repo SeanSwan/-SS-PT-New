@@ -34,7 +34,6 @@ import {
 } from '../../utils/aiWorkoutEvents';
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
 
-// Sub-components
 import { getErrorMessage, MINUTES_PER_SET, MAX_WORKOUT_DURATION } from './WorkoutLoggerCS';
 import {
   AddExerciseButton,
@@ -114,15 +113,12 @@ import {
 } from './WorkoutLogger.helpers';
 import { buildWorkoutLoggerPdfPayload } from './WorkoutLogger.pdf';
 
-// Phase 6: Speed optimization imports
 import { useGhostPreFill } from './useGhostPreFill';
 import { useSessionStats } from './useSessionStats';
 import { useOfflineQueue } from './useOfflineQueue';
 import SessionStatsBar from './SessionStatsBar';
 import QuickLogMode from './QuickLogMode';
 import { useRestTimer } from './useRestTimer';
-
-// ==================== MAIN COMPONENT ====================
 
 const getWorkoutSubmitErrorSignal = (error: unknown): { code?: unknown; name?: unknown } =>
   typeof error === 'object' && error !== null ? error as { code?: unknown; name?: unknown } : {};
@@ -503,7 +499,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadPhaseTemplate, currentOPTPhase, createWorkoutLoggerLocalId]);
 
-  // Check sessionStorage on mount for pending AI plan
   useEffect(() => {
     try {
       const pending = sessionStorage.getItem(PENDING_WORKOUT_KEY);
@@ -519,7 +514,6 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } catch { /* ignore parse errors */ }
   }, [convertAIExercises]);
 
-  // - Client Data -
   const executeLoadClientData = useCallback(async () => {
     setIsLoadingClient(true);
     try {

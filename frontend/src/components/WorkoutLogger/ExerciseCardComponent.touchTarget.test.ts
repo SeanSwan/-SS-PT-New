@@ -28,6 +28,15 @@ describe('ExerciseCardComponent touch target and extraction contract', () => {
     expect(`${cardStylesSource}\n${rowStylesSource}`).toMatch(/const AddSetButton = styled\(motion\.button\)[\s\S]*min-height: 44px;/);
   });
 
+  it('prevents rating stars from overflowing or overlapping set-card controls', () => {
+    expect(componentSource).not.toContain("style={{ display: 'flex', alignItems: 'center', gap: '8px' }}");
+    expect(componentSource).toContain('<RatingControlRow>');
+    expect(cardStylesSource).toMatch(/export const RatingControlRow = styled\.div`[\s\S]*flex-wrap: wrap;[\s\S]*max-width: 100%;/);
+    expect(cardStylesSource).toMatch(/export const StarRatingContainer = styled\.div`[\s\S]*flex-wrap: wrap;[\s\S]*max-width: 100%;/);
+    expect(rowStylesSource).toMatch(/minmax\(224px, 1\.7fr\)/);
+    expect(rowStylesSource).toMatch(/@media \(max-width: 1180px\)/);
+  });
+
   it('keeps active exercise card styles on shared Crystalline Swan tokens', () => {
     expect(cardStylesSource).toContain('withAlpha');
     expect(cardStylesSource).not.toMatch(/rgba\((20, 20, 25|139, 92, 246|255, 255, 255|0, 0, 0|80, 160, 240|96, 192, 240)/);

@@ -74,8 +74,12 @@ export const ExerciseTitle = styled.div`
 export const ExerciseRatings = styled.div`
   display: flex;
   gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+
   @media (max-width: 768px) {
-    flex-direction: column;
+    width: 100%;
     gap: 1rem;
   }
 `;
@@ -84,7 +88,9 @@ export const RatingGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  min-width: 120px;
+  flex: 1 1 220px;
+  min-width: min(100%, 220px);
+  max-width: 100%;
 
   @media (max-width: 430px) {
     min-width: auto;
@@ -101,9 +107,20 @@ export const RatingGroup = styled.div`
   }
 `;
 
+export const RatingControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  max-width: 100%;
+`;
+
 export const StarRatingContainer = styled.div`
   display: flex;
   gap: 2px;
+  flex-wrap: wrap;
+  max-width: 100%;
+  row-gap: 0.125rem;
 `;
 
 export const StarButton = styled.button<{ $filled: boolean }>`

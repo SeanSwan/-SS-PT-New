@@ -12,7 +12,7 @@ export const SetsTable = styled.div`
 
 export const TableHeader = styled.div`
   display: grid;
-  grid-template-columns: 50px 90px 70px 120px 80px 100px 130px 1fr 44px;
+  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 44px;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
   background: ${withAlpha(CS.surfaceDark, 0.8)};
@@ -23,12 +23,12 @@ export const TableHeader = styled.div`
   letter-spacing: 0.1em;
   font-family: 'Sora', sans-serif;
   border-bottom: 1px solid ${CS.glassBorder};
-  @media (max-width: 768px) { display: none; }
+  @media (max-width: 1180px) { display: none; }
 `;
 
 export const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 50px 90px 70px 120px 80px 100px 130px 1fr 44px;
+  grid-template-columns: 50px minmax(80px, 0.8fr) minmax(64px, 0.6fr) minmax(110px, 1fr) minmax(120px, 1.1fr) minmax(224px, 1.7fr) minmax(110px, 1fr) minmax(140px, 1.4fr) 44px;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid ${withAlpha(CS.gaming, 0.08)};
@@ -38,7 +38,7 @@ export const SetRow = styled.div`
   &:last-child { border-bottom: none; }
   &:hover { background: ${withAlpha(CS.glow, 0.06)}; }
 
-  @media (max-width: 768px) {
+  @media (max-width: 1180px) {
     display: block;
     margin: 8px;
     border-radius: 8px;
@@ -52,7 +52,7 @@ export const SetRow = styled.div`
 export const SetCell = styled.div`
   display: contents;
 
-  @media (max-width: 768px) {
+  @media (max-width: 1180px) {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -118,7 +118,7 @@ export const NumberInput = styled.input`
     margin: 0;
   }
   &[type=number] { -moz-appearance: textfield; }
-  @media (max-width: 768px) { min-height: 48px; }
+  @media (max-width: 1180px) { min-height: 48px; }
   @media (max-width: 430px) { font-size: 16px; padding: 10px; }
 `;
 
@@ -126,7 +126,7 @@ export const WeightInputWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  @media (max-width: 768px) { flex: 1; }
+  @media (max-width: 1180px) { flex: 1; }
 `;
 
 export const TextInput = styled.input`
@@ -149,7 +149,7 @@ export const TextInput = styled.input`
   }
 
   &::placeholder { color: ${withAlpha(CS.text, 0.4)}; }
-  @media (max-width: 768px) { min-height: 48px; }
+  @media (max-width: 1180px) { min-height: 48px; }
   @media (max-width: 430px) { font-size: 16px; }
 `;
 
