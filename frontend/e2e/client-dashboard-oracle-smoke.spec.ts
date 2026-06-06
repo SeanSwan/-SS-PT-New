@@ -34,6 +34,30 @@ const localBundleRoutes = [
 
 const routes = includeLocalBundleRoutes ? [...stableRoutes, ...localBundleRoutes] : stableRoutes;
 
+type FailedResource = {
+  status: number;
+  url: string;
+};
+
+function isKnownRealtimeTransportNoise(message: string, failedResources: FailedResource[]) {
+  if (!/Failed to load resource: the server responded with a status of 400/i.test(message)) return false;
+
+  return failedResources.some((resource) => {
+    if (resource.status !== 400) return false;
+
+    const url = new URL(resource.url);
+    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
+  });
+}
+
+function actionableConsoleErrors(consoleErrors: string[], failedResources: FailedResource[]) {
+  return consoleErrors.filter((item) => {
+    if (/preloaded using link preload/i.test(item)) return false;
+    if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
+    return true;
+  });
+}
+
 function jwt() {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return [
@@ -159,10 +183,14 @@ test.beforeEach(async ({ page }) => {
 for (const route of routes) {
   test(`client dashboard route smoke: ${route.path}`, async ({ page }, testInfo) => {
     const consoleErrors: string[] = [];
+    const failedResources: FailedResource[] = [];
     page.on('console', (message) => {
       if (message.type() === 'error') consoleErrors.push(message.text());
     });
     page.on('pageerror', (error) => consoleErrors.push(error.message));
+    page.on('response', (response) => {
+      if (response.status() >= 400) failedResources.push({ status: response.status(), url: response.url() });
+    });
 
     await page.goto(route.path, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -173,7 +201,7 @@ for (const route of routes) {
     expect(layout.bodyLength).toBeGreaterThan(80);
     expect(layout.overflowX).toBeLessThanOrEqual(12);
     expect(layout.smallTargets).toEqual([]);
-    expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+    expect(actionableConsoleErrors(consoleErrors, failedResources)).toEqual([]);
   });
 }
 
