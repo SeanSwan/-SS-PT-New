@@ -87,6 +87,11 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
           </GlowButton>
         </>
       )}
+      {canLogFromSchedule && !isFocusedFlow && (
+        <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
+          Log Workout
+        </GlowButton>
+      )}
       {canRecordAttendance && !isFocusedFlow && (
         <>
           <GlowButton variant="emerald" size="medium" onClick={() => onRecordAttendance('present')} disabled={attendanceLoading} isLoading={attendanceLoading}>
@@ -113,11 +118,6 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
       {canEdit && !isFocusedFlow && (
         <GlowButton variant="cosmic" size="medium" onClick={onEdit} disabled={loading}>
           Edit Session
-        </GlowButton>
-      )}
-      {canLogFromSchedule && !isFocusedFlow && (
-        <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
-          Log Workout
         </GlowButton>
       )}
       {canComplete && !isFocusedFlow && (

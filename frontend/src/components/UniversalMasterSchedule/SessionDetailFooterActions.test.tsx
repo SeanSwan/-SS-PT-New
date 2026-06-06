@@ -16,6 +16,7 @@ const baseProps = {
   canRecordAttendance: true,
   showNoShowReason: false,
   canComplete: true,
+  canEdit: false,
   canOpenWorkoutLogger: true,
   canViewWorkouts: true,
   mode: 'admin' as const,
@@ -63,10 +64,19 @@ describe('SessionDetailFooterActions', () => {
     expect(screen.queryByRole('button', { name: /mark complete/i })).not.toBeInTheDocument();
     const buttons = screen.getAllByRole('button').map((button) => button.textContent || '');
     const logWorkoutIndex = buttons.findIndex((text) => /log workout/i.test(text));
+    const presentIndex = buttons.findIndex((text) => /^present$/i.test(text));
+    const lateIndex = buttons.findIndex((text) => /^late$/i.test(text));
+    const noShowIndex = buttons.findIndex((text) => /no-show/i.test(text));
     const completeWithoutLogIndex = buttons.findIndex((text) => /complete without log/i.test(text));
 
     expect(logWorkoutIndex).toBeGreaterThanOrEqual(0);
+    expect(presentIndex).toBeGreaterThanOrEqual(0);
+    expect(lateIndex).toBeGreaterThanOrEqual(0);
+    expect(noShowIndex).toBeGreaterThanOrEqual(0);
     expect(completeWithoutLogIndex).toBeGreaterThanOrEqual(0);
+    expect(logWorkoutIndex).toBeLessThan(presentIndex);
+    expect(logWorkoutIndex).toBeLessThan(lateIndex);
+    expect(logWorkoutIndex).toBeLessThan(noShowIndex);
     expect(logWorkoutIndex).toBeLessThan(completeWithoutLogIndex);
   });
 
