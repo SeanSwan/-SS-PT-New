@@ -10,7 +10,7 @@ import styled from 'styled-components';
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 1500;
+  z-index: 10000;
   display: flex;
   align-items: stretch;
   justify-content: center;

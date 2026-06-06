@@ -11,6 +11,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ExternalLink, Save, UploadCloud, X } from 'lucide-react';
 import type { SavedPlanSummary } from './SavedPlanCard';
 import {
@@ -74,7 +75,7 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
     onSave(plan.id, pdfUrl, fileName);
   };
 
-  return (
+  const content = (
     <Overlay role="presentation">
       <Dialog role="dialog" aria-modal="true" aria-labelledby="workout-plan-pdf-title">
         <Header>
@@ -151,6 +152,8 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
       </Dialog>
     </Overlay>
   );
+
+  return createPortal(content, document.body);
 };
 
 export default WorkoutPlanPdfDialog;
