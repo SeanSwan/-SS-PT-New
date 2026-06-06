@@ -22,6 +22,16 @@ describe('WorkoutLogger action button contract', () => {
     expect(footerSource).not.toMatch(/#(?:ffffff|f87171)/i);
   });
 
+  it('keeps the summary action visible with an explicit save-first lock state', () => {
+    const loggerSource = readFileSync(resolve(__dirname, './WorkoutLogger.tsx'), 'utf8');
+
+    expect(footerSource).toContain('summaryLockedReason?: string');
+    expect(footerSource).toContain('showGenerateSummary || summaryLockedReason');
+    expect(footerSource).toContain('disabled={!showGenerateSummary || isGeneratingSummary}');
+    expect(footerSource).toContain('Save to Send Summary');
+    expect(loggerSource).toContain('summaryLockedReason={exercises.length > 0 && !submittedFormId');
+  });
+
   it('keeps inline rest timer controls explicit non-submit buttons with touch-safe sizing', () => {
     expect(restTimerSource.match(/type="button"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);
     expect(restTimerSource).toMatch(/const TimerButton = styled\.button[\s\S]*min-height: 44px;[\s\S]*min-width: 44px;/);

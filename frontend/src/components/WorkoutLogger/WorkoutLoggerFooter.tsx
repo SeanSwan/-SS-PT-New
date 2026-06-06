@@ -10,7 +10,7 @@
  * │ Props: {                                                    │
  * │   onCancel, onExportPDF, onSubmit, onGenerateSummary?,      │
  * │   hasExercises, isSubmitting, isGeneratingSummary,           │
- * │   showGenerateSummary                                       │
+ * │   showGenerateSummary, summaryLockedReason?                 │
  * │ }                                                           │
  * └─────────────────────────────────────────────────────────────┘
  */
@@ -29,6 +29,7 @@ interface WorkoutLoggerFooterProps {
   isSubmitting: boolean;
   isGeneratingSummary: boolean;
   showGenerateSummary: boolean;
+  summaryLockedReason?: string;
 }
 
 const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
@@ -40,68 +41,76 @@ const WorkoutLoggerFooter: React.FC<WorkoutLoggerFooterProps> = React.memo(({
   isSubmitting,
   isGeneratingSummary,
   showGenerateSummary,
-}) => (
-  <ActionButtons>
-    <Button
-      type="button"
-      variant="secondary"
-      onClick={onCancel}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <ArrowLeft size={18} />
-      Cancel
-    </Button>
-    <Button
-      type="button"
-      variant="secondary"
-      onClick={onExportPDF}
-      disabled={!hasExercises}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <Download size={18} />
-      Export PDF
-    </Button>
-    <Button
-      type="button"
-      variant="primary"
-      onClick={onSubmit}
-      disabled={!hasExercises || isSubmitting}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      style={isSubmitting ? { pointerEvents: 'none' } : undefined}
-    >
-      {isSubmitting ? (
-        <Spinner />
-      ) : (
-        <>
-          <Save size={18} />
-          Complete & Save Workout
-        </>
-      )}
-    </Button>
-    {showGenerateSummary && onGenerateSummary && (
+  summaryLockedReason,
+}) => {
+  const shouldRenderSummaryAction = Boolean((showGenerateSummary || summaryLockedReason) && onGenerateSummary);
+  const summaryActionLabel = showGenerateSummary
+    ? 'Generate & Send Summary'
+    : summaryLockedReason ?? 'Save to Send Summary';
+
+  return (
+    <ActionButtons>
       <Button
         type="button"
         variant="secondary"
-        onClick={onGenerateSummary}
-        disabled={isGeneratingSummary}
+        onClick={onCancel}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {isGeneratingSummary ? (
+        <ArrowLeft size={18} />
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={onExportPDF}
+        disabled={!hasExercises}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Download size={18} />
+        Export PDF
+      </Button>
+      <Button
+        type="button"
+        variant="primary"
+        onClick={onSubmit}
+        disabled={!hasExercises || isSubmitting}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        style={isSubmitting ? { pointerEvents: 'none' } : undefined}
+      >
+        {isSubmitting ? (
           <Spinner />
         ) : (
           <>
-            <MessageSquare size={18} />
-            Generate & Send Summary
+            <Save size={18} />
+            Complete & Save Workout
           </>
         )}
       </Button>
-    )}
-  </ActionButtons>
-));
+      {shouldRenderSummaryAction && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={showGenerateSummary ? onGenerateSummary : undefined}
+          disabled={!showGenerateSummary || isGeneratingSummary}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {isGeneratingSummary ? (
+            <Spinner />
+          ) : (
+            <>
+              <MessageSquare size={18} />
+              {summaryActionLabel}
+            </>
+          )}
+        </Button>
+      )}
+    </ActionButtons>
+  );
+});
 
 WorkoutLoggerFooter.displayName = 'WorkoutLoggerFooter';
 export default WorkoutLoggerFooter;

@@ -1227,6 +1227,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           isSubmitting={isSubmitting}
           isGeneratingSummary={isGeneratingSummary}
           showGenerateSummary={!!submittedFormId}
+          summaryLockedReason={exercises.length > 0 && !submittedFormId ? 'Save to Send Summary' : undefined}
         />
       </WorkoutLoggerContainer>
 
