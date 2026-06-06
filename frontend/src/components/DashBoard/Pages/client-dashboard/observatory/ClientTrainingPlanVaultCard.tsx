@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { FileText, Layers3 } from 'lucide-react';
+import { Dumbbell, FileText, Layers3 } from 'lucide-react';
 import type { ClientTrainingPlanSlot, ClientTrainingPlanVault } from './useCurrentClientWorkout';
 import { CardInner, MutedText, SectionKicker, SectionTitle } from './ClientObservatoryShell.styles';
 import {
@@ -31,6 +31,8 @@ const FALLBACK_SLOTS: ClientTrainingPlanSlot[] = [
   },
 ];
 
+const TODAY_LOG_PATH = '/dashboard/client/log-workout?loadPlan=today';
+
 function slotStatus(slot: ClientTrainingPlanSlot): string {
   if (slot.isPrimary) return 'Primary';
   if (slot.isFilled) return slot.planStatus === 'paused' ? 'Paused' : 'Ready';
@@ -42,6 +44,10 @@ function slotDetail(slot: ClientTrainingPlanSlot): string {
   if (slot.planTitle) return slot.planTitle;
   if (slot.isDefaultHorizon) return 'Default arc pending';
   return 'Pending';
+}
+
+function canLogFromSlot(slot: ClientTrainingPlanSlot): boolean {
+  return slot.isPrimary && slot.isFilled && slot.planStatus !== 'paused';
 }
 
 const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = ({
@@ -84,6 +90,16 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
                 <WidgetLabel>{slot.isPrimary ? `${slot.label} Primary` : slot.label}</WidgetLabel>
                 <WidgetValue>{slotStatus(slot)}</WidgetValue>
                 <WidgetLabel>{slotDetail(slot)}</WidgetLabel>
+                {canLogFromSlot(slot) && (
+                  <SmallButton
+                    type="button"
+                    onClick={() => onNavigate(TODAY_LOG_PATH)}
+                    aria-label={`Log Today from ${slot.label} primary plan`}
+                  >
+                    <Dumbbell size={14} aria-hidden="true" />
+                    Log Today
+                  </SmallButton>
+                )}
                 {slot.pdfFile && (
                   <SmallButton
                     type="button"
