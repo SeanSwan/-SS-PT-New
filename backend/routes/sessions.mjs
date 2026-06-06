@@ -1535,7 +1535,8 @@ router.put("/:id", protect, async (req, res) => {
 
     if (req.body?.status === 'completed') {
       const result = await unifiedSessionService.completeSession(sessionId, req.user, {
-        notes: req.body?.notes
+        notes: req.body?.notes,
+        completeWithoutLog: req.body?.completeWithoutLog === true
       });
       return res.status(200).json(result);
     }
@@ -2502,12 +2503,13 @@ router.patch("/:id/confirm", protect, trainerOrAdminOnly, async (req, res) => {
  */
 router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const { notes, trainerRating, clientFeedback, actualDuration } = req.body;
+    const { notes, trainerRating, clientFeedback, actualDuration, completeWithoutLog } = req.body;
     const result = await unifiedSessionService.completeSession(req.params.id, req.user, {
       notes,
       trainerRating,
       clientFeedback,
-      actualDuration
+      actualDuration,
+      completeWithoutLog: completeWithoutLog === true
     });
     
     return res.status(200).json(result);

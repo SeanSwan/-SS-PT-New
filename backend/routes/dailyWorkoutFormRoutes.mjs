@@ -716,7 +716,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const existingForm = await DailyWorkoutForm.findOne({
       where: {
         clientId: parsedClientId,
-        date: workoutDateValue
+        date: workoutDateIso
       },
       transaction
     });
@@ -797,7 +797,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     const [workoutSession, created] = await WorkoutSession.findOrCreate({
       where: {
         userId: parsedClientId,
-        date: workoutDateValue
+        date: workoutDateIso
       },
       defaults: {
         // 2026-04-18 Phase 16.2 round 8 fix — was `require('crypto').randomUUID()`
@@ -807,8 +807,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         // module system.
         id: randomUUID(),
         userId: parsedClientId,
-        title: `Personal Training Session - ${workoutDateValue}`,
-        date: workoutDateValue,
+        title: `Personal Training Session - ${workoutDateIso}`,
+        date: workoutDateIso,
         // Phase 16 (2026-04-16): honor null when the logger did not record
         // an intensity rating. The previous `|| 5` fallback seeded a
         // phantom 5/10 into the canonical chart on every untouched save.
@@ -875,7 +875,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       // client self-log it's the assigned trainer or admin fallback so
       // the model's `clientTrainerDifferent` validator passes.
       trainerId: attributedTrainerId,
-      date: workoutDateValue,
+      date: workoutDateIso,
       formData,
       sessionDeducted: false,
       mcpProcessed: false
@@ -925,7 +925,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
             sets: (ex.sets || []).length,
             type: ex.exerciseType || 'strength',
           })),
-          workoutDate: workoutDateValue,
+          workoutDate: workoutDateIso,
           awardedBy: trainerId || null,
         }, xpTransaction);
         await xpTransaction.commit();
@@ -939,7 +939,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       processMCPIntegration(dailyForm.id, {
         clientId,
         trainerId,
-        date: workoutDateValue,
+        date: workoutDateIso,
         formData,
         submittedAt: dailyForm.submittedAt
       });
@@ -949,7 +949,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       formId: dailyForm.id,
       clientId,
       trainerId,
-      date: workoutDateValue,
+      date: workoutDateIso,
       totalSets,
       sessionDeducted: billingDecision.sessionDeducted,
       clientSource: client.clientSource
@@ -961,7 +961,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         id: dailyForm.id,
         clientId,
         trainerId,
-        date: workoutDateValue,
+        date: workoutDateIso,
         totalSets,
         estimatedDuration,
         sessionDeducted: billingDecision.sessionDeducted,

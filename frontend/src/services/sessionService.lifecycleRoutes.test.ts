@@ -40,7 +40,8 @@ describe('sessionService lifecycle route contract', () => {
     await sessionService.completeSession('42', 'Strong session');
 
     expect(apiMock.patch).toHaveBeenCalledWith('/api/sessions/42/complete', {
-      notes: 'Strong session'
+      notes: 'Strong session',
+      completeWithoutLog: true
     });
     expect(apiMock.put).not.toHaveBeenCalled();
   });

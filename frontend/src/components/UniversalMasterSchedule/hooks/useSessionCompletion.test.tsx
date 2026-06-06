@@ -116,6 +116,7 @@ describe('useSessionCompletion', () => {
       notes: 'Strong session',
       trainerRating: 5,
       clientFeedback: 'Great tempo work',
+      completeWithoutLog: true,
     });
     expect(setFormError).toHaveBeenCalledWith(null);
     expect(onUpdated).toHaveBeenCalledTimes(1);

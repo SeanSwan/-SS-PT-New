@@ -364,7 +364,7 @@ class SessionService {
     try {
       const response = await this.apiService.patch<Session>(
         `/api/sessions/${sessionId}/complete`,
-        { notes }
+        { notes, completeWithoutLog: true }
       );
       return response.data;
     } catch (error) {

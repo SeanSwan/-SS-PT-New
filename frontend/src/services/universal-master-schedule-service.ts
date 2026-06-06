@@ -267,7 +267,10 @@ class UniversalMasterScheduleService {
         success: boolean;
         message: string;
         session: Session;
-      }> = await this.api.patch(`/api/sessions/${sessionId}/complete`, { notes });
+      }> = await this.api.patch(`/api/sessions/${sessionId}/complete`, {
+        notes,
+        completeWithoutLog: true
+      });
       
       return response.data;
     } catch (error: any) {

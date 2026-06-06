@@ -194,6 +194,7 @@ describe('unified sessions route ownership guards', () => {
     expect(updateRoute).toContain('canAccessSessionRecord(req.user, session, { allowClient: true, allowTrainer: true })');
     expect(updateRoute).toContain("if (req.body?.status === 'completed')");
     expect(updateRoute).toContain('unifiedSessionService.completeSession(sessionId, req.user, {');
+    expect(updateRoute).toContain('completeWithoutLog: req.body?.completeWithoutLog === true');
     expect(updateRoute).toContain('const allowedStatusUpdates = new Set');
     expect(updateRoute).toContain("!['admin', 'trainer'].includes(req.user.role)");
     expect(updateRoute).toContain('const editableUpdate = buildEditableSessionUpdate(req.body || {}, session);');

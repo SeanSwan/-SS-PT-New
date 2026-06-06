@@ -23,6 +23,7 @@ describe('SessionDetailModal action helpers', () => {
       notes: 'strong closeout',
       trainerRating: 5,
       clientFeedback: 'client felt great',
+      completeWithoutLog: true,
     });
 
     expect(buildCompleteSessionPayload({
@@ -33,6 +34,7 @@ describe('SessionDetailModal action helpers', () => {
       notes: undefined,
       trainerRating: undefined,
       clientFeedback: undefined,
+      completeWithoutLog: true,
     });
   });
 

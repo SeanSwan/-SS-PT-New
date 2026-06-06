@@ -48,6 +48,7 @@ export const buildCompleteSessionPayload = ({
   notes: notes.trim() || undefined,
   trainerRating: trainerRating ? Number(trainerRating) : undefined,
   clientFeedback: clientFeedback.trim() || undefined,
+  completeWithoutLog: true,
 });
 
 export const buildAttendancePayload = (

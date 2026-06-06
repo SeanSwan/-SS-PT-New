@@ -126,7 +126,8 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
 
     const result = await service.completeSession(77, { id: '42', role: 'trainer' }, {
       notes: '  strong session  ',
-      trainerRating: 5
+      trainerRating: 5,
+      completeWithoutLog: true
     });
 
     const afterComplete = Date.now();
@@ -162,7 +163,9 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
     });
     sessionModel.findByPk.mockResolvedValue(session);
 
-    await service.completeSession(77, { id: 42, role: 'trainer' });
+    await service.completeSession(77, { id: 42, role: 'trainer' }, {
+      completeWithoutLog: true
+    });
 
     expect(session.status).toBe('completed');
     expect(session.attendanceStatus).toBe('present');
@@ -170,5 +173,19 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
     expect(session.attendanceRecordedAt).toBe(existingCheckInTime);
     expect(session.markedPresentBy).toBe(42);
     expect(session.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects direct completion when a manager did not explicitly choose the no-log fallback', async () => {
+    const session = buildSession();
+    sessionModel.findByPk.mockResolvedValue(session);
+
+    await expect(
+      service.completeSession(77, { id: '42', role: 'trainer' }, {
+        notes: 'forgot to log the workout'
+      })
+    ).rejects.toThrow(/completeWithoutLog/i);
+
+    expect(session.status).toBe('scheduled');
+    expect(session.save).not.toHaveBeenCalled();
   });
 });

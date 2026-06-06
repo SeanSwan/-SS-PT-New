@@ -1848,7 +1848,8 @@ class UnifiedSessionService {
         notes,
         trainerRating,
         clientFeedback,
-        actualDuration
+        actualDuration,
+        completeWithoutLog
       } = normalizedData;
 
       // Find the session with related data
@@ -1879,6 +1880,10 @@ class UnifiedSessionService {
       // Check if the session can be completed
       if (session.status !== 'confirmed' && session.status !== 'scheduled') {
         throw new Error('Only confirmed or scheduled sessions can be completed');
+      }
+
+      if (completeWithoutLog !== true) {
+        throw new Error('Invalid direct completion: completeWithoutLog=true is required for manager no-log completion. Use workout logging for schedule-origin sessions.');
       }
 
       if (trainerRating !== undefined) {
