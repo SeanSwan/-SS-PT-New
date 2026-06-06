@@ -196,7 +196,7 @@ const MyClientsViewWithFallback: React.FC = () => {
 
   // Navigation handlers for demo mode
   const handleLogWorkout = useCallback((clientId: string) => {
-    navigate(`/dashboard/trainer/log-workout?clientId=${clientId}`);
+    navigate(`/dashboard/trainer/log-workout?clientId=${clientId}&loadPlan=today`);
   }, [navigate]);
 
   const handleViewProgress = useCallback((clientId: string) => {

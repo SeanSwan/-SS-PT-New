@@ -112,6 +112,10 @@ describe('MyClientsView — Phase 18.A admin-view-as source-text lock', () => {
     expect(SOURCE).toMatch(/handleLogWorkout\(clientId\)/);
   });
 
+  it('trainer Log Workout routing auto-loads today assigned plan', () => {
+    expect(SOURCE).toMatch(/\/dashboard\/trainer\/log-workout\?clientId=\$\{clientId\}&loadPlan=today/);
+  });
+
   it('loadClients useCallback deps include the admin-view-as inputs', () => {
     // The deps array must include the three new admin-path dependencies so
     // stale closures don't re-use a prior clientList after role/context changes.

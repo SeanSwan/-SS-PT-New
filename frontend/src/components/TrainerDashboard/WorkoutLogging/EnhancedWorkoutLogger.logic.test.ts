@@ -59,7 +59,7 @@ describe('EnhancedWorkoutLogger route context', () => {
       userRole: 'admin',
     })).toMatchObject({
       backToClientsLabel: 'Back to Client Hub',
-      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
       isClientHubOrigin: true,
       workflowReturnPath: '/dashboard/admin/client-management?clientId=61',
     });
@@ -74,7 +74,7 @@ describe('EnhancedWorkoutLogger route context', () => {
       userRole: 'admin',
     })).toMatchObject({
       backToClientsLabel: 'Back to Client Hub',
-      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
       isClientHubOrigin: false,
       workflowReturnPath: '/dashboard/admin/client-management',
     });

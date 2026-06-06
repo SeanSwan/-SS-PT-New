@@ -30,6 +30,7 @@ const buildClientHubEmbeddedLoggerPath = (clientId: number): string => {
     clientId: String(clientId),
     tab: 'training',
     trainingSection: 'logger',
+    loadPlan: 'today',
   });
 
   return `/dashboard/admin/client-management?${params.toString()}`;

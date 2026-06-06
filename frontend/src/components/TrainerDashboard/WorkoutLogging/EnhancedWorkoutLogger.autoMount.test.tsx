@@ -155,7 +155,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
         { replace: true }
       );
     });
@@ -172,7 +172,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
         { replace: true }
       );
     });
@@ -189,7 +189,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger',
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
         { replace: true }
       );
     });
