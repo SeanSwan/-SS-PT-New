@@ -97,8 +97,9 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
 
   it('passes master-schedule sessionId into the real WorkoutLogger', () => {
     expect(LOGIC_SOURCE).toMatch(/export const parseLoggerSessionId =/);
+    expect(LOGIC_SOURCE).toMatch(/export const parseLoggerSessionDate =/);
     expect(SOURCE).toMatch(/const scheduledSessionId = parseLoggerSessionId\(searchParams\.get\('sessionId'\)\)/);
-    expect(SOURCE).toMatch(/const scheduledSessionDate = searchParams\.get\('sessionDate'\)/);
+    expect(SOURCE).toMatch(/const scheduledSessionDate = parseLoggerSessionDate\(searchParams\.get\('sessionDate'\)\)/);
     expect(SURFACE_SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
     expect(SURFACE_SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
   });

@@ -68,11 +68,13 @@ vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({
     clientId,
     scheduledSessionCreditHint,
+    scheduledSessionDate,
     scheduledSessionId,
     onComplete,
   }: {
     clientId: number;
     scheduledSessionCreditHint?: number | null;
+    scheduledSessionDate?: string | null;
     scheduledSessionId?: string | null;
     onComplete?: (formData: unknown) => void;
   }) => (
@@ -81,6 +83,7 @@ vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
       data-testid="real-workout-logger"
       data-client-id={String(clientId)}
       data-session-credits={scheduledSessionCreditHint ?? ''}
+      data-session-date={scheduledSessionDate ?? ''}
       data-session-id={scheduledSessionId ?? ''}
       onClick={() => onComplete?.({ id: 'completed-form' })}
     >
@@ -206,6 +209,24 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });
 
+  it('admin: drops unsafe master-schedule session dates before redirecting into Client Hub', async () => {
+    mockRole = 'admin';
+    mockSearchQuery =
+      'clientId=61&sessionId=314&sessionDate=2026-06-07%0Abad&sessionCredits=2&source=master-schedule';
+
+    render(<EnhancedWorkoutLogger />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionCredits=2',
+        { replace: true }
+      );
+    });
+
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
   it('trainer: /info success auto-mounts the real WorkoutLogger with "Back to My Clients" nav', async () => {
     mockRole = 'trainer';
     mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
@@ -247,6 +268,17 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-session-id', '314');
     expect(screen.getByTestId('real-workout-logger')).toHaveAttribute('data-session-credits', '2');
+  });
+
+  it('trainer: drops unsafe scheduled session dates before mounting WorkoutLogger', async () => {
+    mockRole = 'trainer';
+    mockSearchQuery = 'clientId=61&sessionId=314&sessionDate=2026-06-07%0Abad&source=master-schedule';
+    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-session-id', '314');
+    expect(screen.getByTestId('real-workout-logger')).toHaveAttribute('data-session-date', '');
   });
 
   it('rejects malformed URL client ids before hitting the client info endpoint', async () => {

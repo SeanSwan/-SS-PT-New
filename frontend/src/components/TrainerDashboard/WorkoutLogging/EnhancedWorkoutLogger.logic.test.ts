@@ -105,6 +105,34 @@ describe('EnhancedWorkoutLogger route context', () => {
       workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
     });
   });
+
+  it('drops unsafe scheduled-session dates from embedded Client Hub logger redirects', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: '/dashboard/admin/master-schedule?sessionId=314',
+      routeClientId: 61,
+      scheduledSessionDate: '2026-06-07\nbad',
+      scheduledSessionCreditHint: 0,
+      scheduledSessionId: '314',
+      source: 'master-schedule',
+      userRole: 'admin',
+    })).toMatchObject({
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionCredits=0',
+    });
+  });
+
+  it('drops invalid scheduled-session dates from embedded Client Hub logger redirects', () => {
+    expect(buildLoggerRouteContext({
+      requestedReturnTo: '/dashboard/admin/master-schedule?sessionId=314',
+      routeClientId: 61,
+      scheduledSessionDate: 'not-a-date',
+      scheduledSessionCreditHint: 2,
+      scheduledSessionId: '314',
+      source: 'master-schedule',
+      userRole: 'admin',
+    })).toMatchObject({
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionCredits=2',
+    });
+  });
 });
 
 describe('EnhancedWorkoutLogger completion feedback', () => {

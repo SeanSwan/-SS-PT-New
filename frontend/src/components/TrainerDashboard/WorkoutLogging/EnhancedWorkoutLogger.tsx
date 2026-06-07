@@ -19,6 +19,7 @@ import {
   normalizeDashboardReturnTo,
   parseLoggerClientId,
   parseLoggerSessionCreditHint,
+  parseLoggerSessionDate,
   parseLoggerSessionId,
   toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
@@ -41,7 +42,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const urlClientId = searchParams.get('clientId');
   const scheduledSessionId = parseLoggerSessionId(searchParams.get('sessionId'));
   const scheduledSessionCreditHint = parseLoggerSessionCreditHint(searchParams.get('sessionCredits'));
-  const scheduledSessionDate = searchParams.get('sessionDate');
+  const scheduledSessionDate = parseLoggerSessionDate(searchParams.get('sessionDate'));
   const routeClientId = parseLoggerClientId(urlClientId);
   const activeClientId = parseLoggerClientId(activeClient?.id);
   const clientId = routeClientId ?? activeClientId;

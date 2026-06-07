@@ -11,6 +11,23 @@ const isSafeDashboardReturnTo = (value: string): boolean =>
 export const normalizeDashboardReturnTo = (raw: string | null): string | null =>
   raw && isSafeDashboardReturnTo(raw) ? raw : null;
 
+const isSafeLoggerSessionDate = (value: string): boolean => {
+  if (UNSAFE_RETURN_TO_CHARACTERS.test(value)) {
+    return false;
+  }
+
+  return !Number.isNaN(new Date(value).getTime());
+};
+
+export const parseLoggerSessionDate = (value: string | null | undefined): string | null => {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue || !isSafeLoggerSessionDate(trimmedValue)) {
+    return null;
+  }
+
+  return trimmedValue;
+};
+
 const buildClientHubWorkoutCompleteReturnPath = (returnPath: string): string => {
   const [pathAndQuery, hash = ''] = returnPath.split('#');
   const [pathname, query = ''] = pathAndQuery.split('?');
@@ -46,8 +63,9 @@ const buildClientHubEmbeddedLoggerPath = (
     params.set('sessionId', context.scheduledSessionId);
   }
 
-  if (context.scheduledSessionDate) {
-    params.set('sessionDate', context.scheduledSessionDate);
+  const scheduledSessionDate = parseLoggerSessionDate(context.scheduledSessionDate);
+  if (scheduledSessionDate) {
+    params.set('sessionDate', scheduledSessionDate);
   }
 
   if (context.scheduledSessionCreditHint !== undefined && context.scheduledSessionCreditHint !== null) {
