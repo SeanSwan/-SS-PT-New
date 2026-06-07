@@ -1037,9 +1037,7 @@ export const generateWorkoutPlan = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: process.env.NODE_ENV === 'production'
-        ? 'Failed to generate workout plan'
-        : (error.message || 'Failed to generate workout plan'),
+      message: 'Failed to generate workout plan',
     });
   } finally {
     // Direct controller tests may call this without aiRateLimiter middleware.

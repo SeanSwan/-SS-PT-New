@@ -617,4 +617,24 @@ describe('generateWorkoutPlan — trainer assignment RBAC', () => {
       message: expect.stringContaining('not assigned'),
     }));
   });
+
+  it('33 — generic generation failures do not disclose internal service errors', async () => {
+    getAllModels.mockImplementation(() => {
+      throw new Error('private generation database host');
+    });
+
+    const req = {
+      body: { userId: 1, mode: 'draft' },
+      user: { id: 10, role: 'admin' },
+    };
+    const res = mockRes();
+    await generateWorkoutPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Failed to generate workout plan',
+    });
+    expect(JSON.stringify(res.json.mock.calls)).not.toContain('private generation');
+  });
 });
