@@ -77,6 +77,18 @@ describe('ClientsWorkspace route state parsing', () => {
       scheduledSessionCreditHint: null,
     });
   });
+
+  it('drops invalid scheduled session dates while keeping valid session identity and credit hints', () => {
+    const params = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&sessionId=72&sessionDate=not-a-date&sessionCredits=2'
+    );
+
+    expect(getClientScheduleWorkoutLoggerContextFromSearchParams(params)).toEqual({
+      scheduledSessionId: '72',
+      scheduledSessionDate: null,
+      scheduledSessionCreditHint: 2,
+    });
+  });
 });
 
 describe('ClientsWorkspace data helpers', () => {

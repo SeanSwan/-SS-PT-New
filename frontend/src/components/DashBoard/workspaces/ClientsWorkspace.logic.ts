@@ -74,6 +74,12 @@ const safeRouteText = (value: string | null): string | null => {
   return trimmed;
 };
 
+const safeRouteDateText = (value: string | null): string | null => {
+  const safeText = safeRouteText(value);
+  if (!safeText || Number.isNaN(new Date(safeText).getTime())) return null;
+  return safeText;
+};
+
 export const getClientScheduleWorkoutLoggerContextFromSearchParams = (
   searchParams: URLSearchParams,
 ): ClientScheduleWorkoutLoggerContext | null => {
@@ -84,7 +90,7 @@ export const getClientScheduleWorkoutLoggerContextFromSearchParams = (
 
   return {
     scheduledSessionId,
-    scheduledSessionDate: safeRouteText(searchParams.get('sessionDate')),
+    scheduledSessionDate: safeRouteDateText(searchParams.get('sessionDate')),
     scheduledSessionCreditHint: parseNonNegativeIntegerString(searchParams.get('sessionCredits')),
   };
 };
