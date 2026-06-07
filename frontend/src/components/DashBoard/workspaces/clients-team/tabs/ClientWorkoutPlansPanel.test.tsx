@@ -293,6 +293,21 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps plan-vault guidance opt-in and explains off-day logging semantics', async () => {
+    const user = userEvent.setup();
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
+    expect(screen.queryByText(/seven swanstudios arcs stay visible/i)).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /teach me: plan vault/i }));
+
+    expect(screen.getByText(/seven swanstudios arcs stay visible/i)).toBeInTheDocument();
+    expect(screen.getByText(/homework diary logs are off-day plan work/i)).toBeInTheDocument();
+    expect(screen.getByText(/scheduled paid session/i)).toBeInTheDocument();
+  });
+
   it('maps custom eight-week plans to the closest SwanStudios horizon instead of falling back to six months', async () => {
     mockAuthAxios.get.mockResolvedValueOnce({
       data: {
