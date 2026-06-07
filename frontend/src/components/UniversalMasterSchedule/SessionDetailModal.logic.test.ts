@@ -31,7 +31,10 @@ describe('SessionDetailModal extracted route and permission logic', () => {
   });
 
   it('routes schedule Log Workout into the logger with client, session, date, source, and return context', () => {
-    const route = buildScheduleWorkoutLoggerRoute('admin', baseSession);
+    const route = buildScheduleWorkoutLoggerRoute('admin', {
+      ...baseSession,
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    });
     const url = new URL(route, 'https://sswanstudios.com');
 
     expect(url.pathname).toBe('/dashboard/admin/client-management');
@@ -43,6 +46,7 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/admin/master-schedule');
     expect(url.searchParams.get('loadPlan')).toBe('today');
+    expect(url.searchParams.get('sessionCredits')).toBe('2');
   });
 
   it('builds a billing-aware schedule logger label from the session type', () => {
@@ -60,6 +64,23 @@ describe('SessionDetailModal extracted route and permission logic', () => {
       ...baseSession,
       sessionType: { id: 5, name: 'Fallback Training', creditsRequired: 'not-a-number' as any },
     })).toBe('Log Workout (1 credit)');
+
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      sessionType: { id: 6, name: 'Null Training', creditsRequired: null },
+    })).toBe('Log Workout (1 credit)');
+  });
+
+  it('keeps zero-credit scheduled assessments explicit', () => {
+    const session = {
+      ...baseSession,
+      sessionType: { id: 7, name: 'Assessment', creditsRequired: 0 },
+    };
+    const route = buildScheduleWorkoutLoggerRoute('admin', session);
+    const url = new URL(route, 'https://sswanstudios.com');
+
+    expect(buildScheduleLogWorkoutLabel(session)).toBe('Log Workout (no paid credit)');
+    expect(url.searchParams.get('sessionCredits')).toBe('0');
   });
 
   it('makes free-tracking and already-deducted schedule labels explicit', () => {

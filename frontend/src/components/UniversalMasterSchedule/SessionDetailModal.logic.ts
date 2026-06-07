@@ -15,8 +15,9 @@ export const getStatusTone = (status?: string | null) =>
   STATUS_TONES[status || ''] || STATUS_TONES.available;
 
 const normalizeCreditCount = (value: unknown) => {
+  if (value === null || value === '') return 1;
   const credits = typeof value === 'number' ? value : Number(value);
-  return Number.isSafeInteger(credits) && credits > 0 ? credits : 1;
+  return Number.isSafeInteger(credits) && credits >= 0 ? credits : 1;
 };
 
 const getSessionTypeCreditsRequired = (session: SessionDetail | null) => {
@@ -42,6 +43,10 @@ export const buildScheduleLogWorkoutLabel = (session: SessionDetail | null) => {
   }
 
   const credits = getSessionTypeCreditsRequired(session);
+  if (credits < 1) {
+    return 'Log Workout (no paid credit)';
+  }
+
   return `Log Workout (${credits} credit${credits === 1 ? '' : 's'})`;
 };
 
@@ -65,6 +70,7 @@ export const buildScheduleWorkoutLoggerRoute = (
   params.set('source', 'master-schedule');
   params.set('returnTo', buildScheduleReturnRoute(mode));
   params.set('loadPlan', 'today');
+  params.set('sessionCredits', String(getSessionTypeCreditsRequired(session)));
 
   if (mode === 'admin') {
     params.set('tab', 'training');
