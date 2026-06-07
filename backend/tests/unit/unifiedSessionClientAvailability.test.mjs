@@ -57,6 +57,7 @@ describe('UnifiedSessionService.getAllSessions client availability', () => {
     sessionModel = { findAll: vi.fn().mockResolvedValue([]) };
     service._Session = sessionModel;
     service._User = {};
+    service._SessionType = {};
   });
 
   it('returns a client scope of own sessions plus unassigned available slots only', async () => {
@@ -68,5 +69,18 @@ describe('UnifiedSessionService.getAllSessions client availability', () => {
       { status: 'available', userId: null }
     ]);
     expect(query.where.userId).toBeUndefined();
+  });
+
+  it('includes non-PII session type credit cost for trainer schedule logger hints', async () => {
+    await service.getAllSessions({}, { id: 77, role: 'trainer' });
+
+    const query = sessionModel.findAll.mock.calls[0][0];
+    const sessionTypeInclude = query.include.find((include) => include.as === 'sessionType');
+
+    expect(sessionTypeInclude).toEqual(expect.objectContaining({
+      model: service._SessionType,
+      as: 'sessionType',
+      attributes: ['id', 'name', 'duration', 'creditsRequired']
+    }));
   });
 });

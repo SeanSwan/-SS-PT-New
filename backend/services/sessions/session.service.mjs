@@ -693,6 +693,8 @@ class UnifiedSessionService {
         ? ['id', 'firstName', 'lastName', 'photo', 'bio', 'specialties'] // No trainer email/phone to clients
         : ['id', 'firstName', 'lastName', 'email', 'photo', 'bio', 'specialties'];
 
+      const sessionTypeModel = this.SessionType;
+
       // Fetch sessions with related user data
       const sessions = await this.Session.findAll({
         where: filter,
@@ -706,7 +708,12 @@ class UnifiedSessionService {
             model: this.User,
             as: 'trainer',
             attributes: trainerAttributes
-          }
+          },
+          ...(sessionTypeModel ? [{
+            model: sessionTypeModel,
+            as: 'sessionType',
+            attributes: ['id', 'name', 'duration', 'creditsRequired']
+          }] : [])
         ],
         order: [['sessionDate', 'ASC']]
       });
