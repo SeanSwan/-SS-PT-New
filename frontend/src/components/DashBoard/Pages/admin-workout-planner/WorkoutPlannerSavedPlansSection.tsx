@@ -1,17 +1,20 @@
 /**
- * COMPONENT: WorkoutPlannerSavedPlansSection
+ * BLUEPRINT: WorkoutPlannerSavedPlansSection
  * PURPOSE: Renders the saved workout-plan library list, loading state,
  * empty state, and card actions outside the planner page shell.
  */
 
 import React from 'react';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Star } from 'lucide-react';
 import SavedPlanCard, { type SavedPlanSummary } from './SavedPlanCard';
 import WorkoutPlanPdfDialog, { type WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import {
   MesocycleGrid,
   MesocycleSection,
   MesocycleSectionTitle,
+  PlanModeBar,
+  PlanModeLabel,
+  SmallSelect,
   SkeletonBlock,
 } from './WorkoutPlannerStyles';
 import {
@@ -67,6 +70,19 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
 }) => {
   if (!selectedClientId) return null;
 
+  const defaultSixMonthPlan = savedPlans.find(plan => (
+    plan.horizonKey === 'six_month' || plan.horizonLabel === '6 Month'
+  ));
+  const primaryPlan = savedPlans.find(plan => plan.isPrimary)
+    || savedPlans.find(plan => plan.status === 'active')
+    || defaultSixMonthPlan
+    || savedPlans[0]
+    || null;
+  const handlePrimaryArcChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const plan = savedPlans.find(item => item.id === event.target.value);
+    if (plan && plan.id !== primaryPlan?.id) onSetPrimary(plan.id, plan.name);
+  };
+
   return (
     <>
       <MesocycleSection>
@@ -89,24 +105,40 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
             No saved plans for this client yet. Generate and save a workout plan above.
           </SavedPlansEmpty>
         ) : (
-          <MesocycleGrid>
-            {savedPlans.map(plan => (
-              <SavedPlanCard
-                key={plan.id}
-                plan={plan}
-                loaded={loadedPlanId === plan.id}
-                archiveBlocked={archiveBlockedFor(plan.status)}
-                onLoad={onLoad}
-                onActivate={onActivate}
-                onRename={onRename}
-                onDuplicate={onDuplicate}
-                onArchive={onArchive}
-                onSetPrimary={onSetPrimary}
-                onViewPdf={onViewPdf}
-                onUpdatePdf={onUpdatePdf}
-              />
-            ))}
-          </MesocycleGrid>
+          <>
+            <PlanModeBar aria-label="Primary training arc control">
+              <PlanModeLabel><Star size={14} /> Primary Arc</PlanModeLabel>
+              <SmallSelect
+                value={primaryPlan?.id || ''}
+                onChange={handlePrimaryArcChange}
+                aria-label="Select primary training arc"
+              >
+                {savedPlans.map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    {(plan.horizonLabel || '6 Month')} - {plan.name}
+                  </option>
+                ))}
+              </SmallSelect>
+            </PlanModeBar>
+            <MesocycleGrid>
+              {savedPlans.map(plan => (
+                <SavedPlanCard
+                  key={plan.id}
+                  plan={plan}
+                  loaded={loadedPlanId === plan.id}
+                  archiveBlocked={archiveBlockedFor(plan.status)}
+                  onLoad={onLoad}
+                  onActivate={onActivate}
+                  onRename={onRename}
+                  onDuplicate={onDuplicate}
+                  onArchive={onArchive}
+                  onSetPrimary={onSetPrimary}
+                  onViewPdf={onViewPdf}
+                  onUpdatePdf={onUpdatePdf}
+                />
+              ))}
+            </MesocycleGrid>
+          </>
         )}
       </MesocycleSection>
       <WorkoutPlanPdfDialog

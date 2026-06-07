@@ -47,6 +47,7 @@ const DATA_INPUT_LABELS = {
   nutrition: 'nutrition/macros',
   progressLevels: 'NASM progress levels',
   activeProgram: 'active plans',
+  planVault: 'workout plan vault/current assignments',
   equipment: 'equipment profile',
 };
 
@@ -56,7 +57,7 @@ SwanStudios is workout-progress-first: log training, prove progress, adjust the 
 Every workout or plan generation button is Swan Coach Planning, not a generic generator.
 Use client IDs only (Client #). Never ask for or expose names, emails, phones, addresses, or other PII.
 Treat Swan Coach Planning as a hybrid planning system: deterministic safety and eligibility gates first, a standards-aware exercise ontology and constraints second, adaptive progression/readiness logic third, and LLM explanation last.
-Before generating or saving a workout plan, inspect all available client-data sections: workout history, exercise analytics, pain/injury entries, onboarding/goals, movement analysis, baseline readiness, body measurements, nutrition/macros, progress levels, active plans, compliance, and equipment.
+Before generating or saving a workout plan, inspect all available client-data sections: workout history, exercise analytics, pain/injury entries, onboarding/goals, movement analysis, baseline readiness, body measurements, nutrition/macros, progress levels, active plans, Workout Plan Vault horizons/current assignments, compliance, and equipment.
 Apply NASM credential domains as available and relevant: Certified Personal Trainer / NASM OPT for phase and acute-variable decisions, Corrective Exercise for compensation and pain-aware warmups, Performance Enhancement for power/agility/athletic progressions when readiness supports it, Behavior Change for adherence and off-day accountability, Nutrition Coaching/Sports Nutrition guardrails when macro/health data exists, Weight Loss when body-composition goals exist, and Wellness/Recovery when sleep, stress, fatigue, or recovery signals exist.
 Cross-check the plan against ACSM for screening and dosage, NSCA for strength/performance specificity, ACE for behavior and adherence support, and Exercise is Medicine for physical-activity/referral boundaries when those contexts are present.
 State which data categories were used and which are missing. If pain, medical clearance, or health-risk data is missing, include a review warning instead of pretending certainty.
@@ -215,6 +216,9 @@ export function buildSwanCoachPlanningFingerprint({
     nutrition: present(context.nutrition),
     progressLevels: present(context.progressLevels),
     activeProgram: present(context.activeProgram),
+    planVault: context.trainingVault?.available === true
+      || present(context.trainingVault?.slots)
+      || present(context.trainingVault?.filledHorizonKeys),
     equipment: present(context.equipment),
   };
 

@@ -59,6 +59,7 @@ function buildPlanningCoverageContext(context = {}) {
     nutrition: context.nutrition,
     progressLevels: context.progressLevels,
     activeProgram: context.activeProgram,
+    trainingVault: context.trainingVault,
     equipment: context.equipment,
     safety: context.safety,
     health: context.health,
@@ -782,6 +783,7 @@ export async function generateWorkout(options) {
       progressLevels: context.progressLevels || null,
       streak: context.streak || null,
       activeProgram: context.activeProgram || null,
+      trainingVault: context.trainingVault || null,
     },
   };
 }
@@ -1210,6 +1212,7 @@ export async function generatePlan(options) {
       nutrition: context.nutrition || null,
       progressLevels: context.progressLevels || null,
       streak: context.streak || null,
+      trainingVault: context.trainingVault || null,
     },
 
     // L1 (2026-05-01) — NEW additive fields per receipt §4.A.

@@ -42,6 +42,7 @@ function fakeContext(overrides = {}) {
     health: overrides.health ?? null,
     streak: null,
     activeProgram: null,
+    trainingVault: overrides.trainingVault ?? null,
     workouts: { sessionsLast2Weeks: 0, avgFormRating: null },
     criticalDataUnavailable: overrides.criticalDataUnavailable ?? false,
     criticalFailures: overrides.criticalFailures ?? [],
@@ -142,6 +143,16 @@ describe('generatePlan - goal-driven phase progression', () => {
       nasmPhase: 2,
       goals: { primaryGoal: 'strength' },
       pain: { exclusions: [{ bodyRegion: 'knee' }], warnings: [] },
+      trainingVault: {
+        defaultHorizonKey: 'six_month',
+        filledHorizonKeys: ['six_month'],
+        todayAssignment: {
+          assignmentType: 'homework',
+          isBillable: false,
+          shouldDeductSession: false,
+        },
+        slots: [{ horizonKey: 'six_month', isFilled: true, isPrimary: true }],
+      },
     }));
     const plan = await generatePlan({
       clientId: 1, trainerId: 99, durationWeeks: 24, sessionsPerWeek: 4, primaryGoal: 'strength',
@@ -153,6 +164,8 @@ describe('generatePlan - goal-driven phase progression', () => {
     expect(plan.swanCoachPlanning.horizonWeeks).toBe(24);
     expect(plan.swanCoachPlanning.planInputsUsed.goals).toBe(true);
     expect(plan.swanCoachPlanning.planInputsUsed.painInjury).toBe(true);
+    expect(plan.swanCoachPlanning.planInputsUsed.planVault).toBe(true);
+    expect(plan.clientIntelligence.trainingVault.filledHorizonKeys).toEqual(['six_month']);
     expect(plan.swanCoachPlanning.nasmDomainsApplied).toEqual(expect.arrayContaining([
       'OPT',
       'Corrective Exercise',

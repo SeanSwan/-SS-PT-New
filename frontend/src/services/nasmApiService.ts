@@ -113,10 +113,10 @@ export interface PlannedWorkoutAssignmentMetadata {
   assignmentId?: string;
   assignmentKey: string;
   planId: string;
-  assignmentType: 'homework' | 'active_recovery' | string;
+  assignmentType: 'homework' | 'active_recovery' | 'trainer_session' | string;
   source: 'workout_plan';
-  isBillable: false;
-  shouldDeductSession: false;
+  isBillable: boolean;
+  shouldDeductSession: boolean;
   status?: string;
   sessionType?: string;
   title?: string;

@@ -91,6 +91,47 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
     expect(WorkoutPlan.findOne).not.toHaveBeenCalled();
   });
 
+  it('advances trainer-session assignments only when scheduled-session context opts in', async () => {
+    const plan = buildPlan({
+      planData: {
+        weeks: [
+          {
+            days: [
+              { dayLabel: 'Trainer Floor Session', assignmentType: 'trainer_session', exercises: [] },
+              { dayLabel: 'Next Day', exercises: [] },
+            ],
+          },
+        ],
+      },
+    });
+    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+
+    const result = await advancePlanAfterPlannedAssignmentLog({
+      WorkoutPlan,
+      assignment: {
+        ...nonBillableAssignment,
+        assignmentType: 'trainer_session',
+        isBillable: true,
+        shouldDeductSession: true,
+      },
+      clientId: 42,
+      dailyWorkoutFormId: 'daily-form-2',
+      workoutSessionId: 'workout-session-2',
+      allowScheduledTrainerSession: true,
+    });
+
+    expect(result).toMatchObject({
+      advanced: true,
+      previous: { week: 1, day: 1 },
+      next: { week: 1, day: 2 },
+    });
+    expect(plan.update).toHaveBeenCalledWith(expect.objectContaining({
+      currentWeek: 1,
+      currentDay: 2,
+      status: 'active',
+    }), { transaction: undefined });
+  });
+
   it('marks the plan completed when the logged assignment is the final planned day', async () => {
     const plan = buildPlan({
       planData: { weeks: [{ days: [{ dayLabel: 'Final Homework', exercises: [] }] }] },

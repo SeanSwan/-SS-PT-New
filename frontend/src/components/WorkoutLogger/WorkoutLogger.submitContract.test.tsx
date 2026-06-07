@@ -306,7 +306,7 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
     });
   });
 
-  it('does not combine schedule-origin logging with planned assignment metadata', () => {
+  it('does not combine schedule-origin logging with non-billable planned assignment metadata', () => {
     const body = buildWorkoutFormSubmitBody({
       ...BASE_PARAMS,
       exercises: [makeExercise()],
@@ -326,6 +326,38 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
 
     expect(body.scheduledSessionId).toBe('314');
     expect(body.plannedAssignment).toBeUndefined();
+  });
+
+  it('carries scheduled trainer-session plan metadata for backend cursor verification', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      scheduledSessionId: '314',
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:trainer_session',
+        planId: 'plan-6m',
+        assignmentType: 'trainer_session',
+        source: 'workout_plan',
+        isBillable: true,
+        shouldDeductSession: true,
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'Trainer Floor Session',
+      },
+    });
+
+    expect(body.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:trainer_session',
+      planId: 'plan-6m',
+      assignmentType: 'trainer_session',
+      source: 'workout_plan',
+      isBillable: true,
+      shouldDeductSession: true,
+      weekNumber: 4,
+      dayNumber: 2,
+      dayLabel: 'Trainer Floor Session',
+    });
   });
 
   it('drops incomplete planned assignment metadata instead of sending a bypassable no-deduction flag', () => {

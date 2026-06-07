@@ -58,6 +58,39 @@ describe('plannedWorkoutAssignmentLogService', () => {
     });
   });
 
+  it('normalizes scheduled trainer-session plan metadata without changing billing ownership', () => {
+    expect(normalizePlannedWorkoutAssignmentInput({
+      assignmentKey: 'plan-9:w1:d1:trainer_session',
+      planId: 'plan-9',
+      assignmentType: 'trainer_session',
+      weekNumber: 1,
+      dayNumber: 1,
+      shouldDeductSession: true,
+      isBillable: true,
+    }, { hasScheduledSession: true })).toMatchObject({
+      ok: true,
+      assignment: {
+        assignmentKey: 'plan-9:w1:d1:trainer_session',
+        planId: 'plan-9',
+        assignmentType: 'trainer_session',
+        source: 'workout_plan',
+        isBillable: true,
+        shouldDeductSession: true,
+      },
+    });
+
+    expect(normalizePlannedWorkoutAssignmentInput({
+      assignmentKey: 'homework-1',
+      planId: 'plan-9',
+      assignmentType: 'homework',
+      weekNumber: 1,
+      dayNumber: 1,
+    }, { hasScheduledSession: true })).toMatchObject({
+      ok: false,
+      message: 'Scheduled session plan metadata must be a trainer session assignment',
+    });
+  });
+
   it('requires the client-sent assignment to match the active server-side plan overview', () => {
     expect(() => assertPlannedAssignmentMatchesOverview(
       {
@@ -89,6 +122,42 @@ describe('plannedWorkoutAssignmentLogService', () => {
         weekNumber: 1,
         dayNumber: 2,
       }
+    )).toThrow(PlannedWorkoutAssignmentError);
+  });
+
+  it('requires scheduled trainer-session metadata to match a trainer-session overview', () => {
+    expect(() => assertPlannedAssignmentMatchesOverview(
+      {
+        assignmentKey: 'trainer-1',
+        assignmentType: 'trainer_session',
+        weekNumber: 1,
+        dayNumber: 2,
+      },
+      {
+        assignmentKey: 'trainer-1',
+        assignmentType: 'trainer_session',
+        weekNumber: 1,
+        dayNumber: 2,
+        isBillable: true,
+        shouldDeductSession: true,
+      },
+      { hasScheduledSession: true }
+    )).not.toThrow();
+
+    expect(() => assertPlannedAssignmentMatchesOverview(
+      {
+        assignmentKey: 'trainer-1',
+        assignmentType: 'trainer_session',
+        weekNumber: 1,
+        dayNumber: 2,
+      },
+      {
+        assignmentKey: 'trainer-1',
+        assignmentType: 'homework',
+        weekNumber: 1,
+        dayNumber: 2,
+      },
+      { hasScheduledSession: true }
     )).toThrow(PlannedWorkoutAssignmentError);
   });
 

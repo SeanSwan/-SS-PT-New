@@ -2,11 +2,12 @@
  * Planned workout assignment logging helpers.
  *
  * Verifies client-sent plan assignment metadata against the server-side
- * current workout read model before a daily workout form may treat it as a
- * non-billable homework/recovery log.
+ * current workout read model before a daily workout form may treat it as
+ * homework/recovery work or scheduled trainer-session plan progress.
  */
 
 const NON_BILLABLE_TYPES = new Set(['homework', 'active_recovery']);
+const SCHEDULED_TRAINER_TYPES = new Set(['trainer_session']);
 
 export class PlannedWorkoutAssignmentError extends Error {
   constructor(message, status = 400) {
@@ -64,6 +65,9 @@ const inputValidationRules = [
     fails: (draft) => missingRequiredAssignmentField(draft),
     message: 'Planned assignment metadata is incomplete',
   },
+];
+
+const nonScheduledInputValidationRules = [
   {
     fails: (draft) => !NON_BILLABLE_TYPES.has(draft.assignmentType),
     message: 'Only homework or active recovery assignments can use planned assignment logging',
@@ -74,11 +78,20 @@ const inputValidationRules = [
   },
 ];
 
+const scheduledInputValidationRules = [
+  {
+    fails: (draft) => !SCHEDULED_TRAINER_TYPES.has(draft.assignmentType),
+    message: 'Scheduled session plan metadata must be a trainer session assignment',
+  },
+];
+
 const firstValidationMessage = (rules, ...args) => (
   rules.find((rule) => rule.fails(...args))?.message || null
 );
 
-export const normalizePlannedWorkoutAssignmentInput = (value) => {
+export const normalizePlannedWorkoutAssignmentInput = (value, {
+  hasScheduledSession = false,
+} = {}) => {
   if (isEmptyAssignmentInput(value)) {
     return { ok: true, assignment: null };
   }
@@ -87,8 +100,13 @@ export const normalizePlannedWorkoutAssignmentInput = (value) => {
   }
 
   const draft = buildAssignmentDraft(value);
-  const validationMessage = firstValidationMessage(inputValidationRules, draft, value);
+  const validationMessage = firstValidationMessage([
+    ...inputValidationRules,
+    ...(hasScheduledSession ? scheduledInputValidationRules : nonScheduledInputValidationRules),
+  ], draft, value);
   if (validationMessage) return { ok: false, message: validationMessage };
+
+  const isScheduledTrainerSession = SCHEDULED_TRAINER_TYPES.has(draft.assignmentType);
 
   return {
     ok: true,
@@ -100,8 +118,8 @@ export const normalizePlannedWorkoutAssignmentInput = (value) => {
       source: draft.source,
       weekNumber: draft.weekNumber,
       dayNumber: draft.dayNumber,
-      isBillable: false,
-      shouldDeductSession: false,
+      isBillable: isScheduledTrainerSession,
+      shouldDeductSession: isScheduledTrainerSession && value.shouldDeductSession === true,
     },
   };
 };
@@ -126,6 +144,9 @@ const overviewMatchRules = [
     fails: assignmentCursorMismatch,
     message: 'Planned assignment cursor does not match the active workout plan',
   },
+];
+
+const nonScheduledOverviewMatchRules = [
   {
     fails: (_input, overviewAssignment) => (
       overviewAssignment.shouldDeductSession === true || overviewAssignment.isBillable === true
@@ -134,14 +155,29 @@ const overviewMatchRules = [
   },
 ];
 
-export const assertPlannedAssignmentMatchesOverview = (input, overviewAssignment = {}) => {
+const scheduledOverviewMatchRules = [
+  {
+    fails: (_input, overviewAssignment) => !SCHEDULED_TRAINER_TYPES.has(overviewAssignment.assignmentType),
+    message: 'Scheduled session plan metadata must match a trainer session assignment',
+  },
+];
+
+export const assertPlannedAssignmentMatchesOverview = (
+  input,
+  overviewAssignment = {},
+  { hasScheduledSession = false } = {},
+) => {
   if (!input) return;
-  const validationMessage = firstValidationMessage(overviewMatchRules, input, overviewAssignment);
+  const validationMessage = firstValidationMessage([
+    ...overviewMatchRules,
+    ...(hasScheduledSession ? scheduledOverviewMatchRules : nonScheduledOverviewMatchRules),
+  ], input, overviewAssignment);
   if (validationMessage) throw new PlannedWorkoutAssignmentError(validationMessage);
 };
 
 export const buildPlannedAssignmentFormMetadata = (input, overviewAssignment = {}) => {
   if (!input) return null;
+  const isScheduledTrainerSession = SCHEDULED_TRAINER_TYPES.has(overviewAssignment.assignmentType || input.assignmentType);
   return {
     assignmentId: overviewAssignment.assignmentId || input.assignmentId,
     assignmentKey: overviewAssignment.assignmentKey || input.assignmentKey,
@@ -150,8 +186,8 @@ export const buildPlannedAssignmentFormMetadata = (input, overviewAssignment = {
     assignmentType: overviewAssignment.assignmentType || input.assignmentType,
     status: overviewAssignment.status || 'planned',
     sessionType: overviewAssignment.sessionType || 'solo',
-    isBillable: false,
-    shouldDeductSession: false,
+    isBillable: isScheduledTrainerSession,
+    shouldDeductSession: isScheduledTrainerSession && overviewAssignment.shouldDeductSession === true,
     title: compactString(overviewAssignment.title),
     scheduledDate: compactString(overviewAssignment.scheduledDate),
     weekNumber: toPositiveInteger(overviewAssignment.weekNumber) || input.weekNumber,

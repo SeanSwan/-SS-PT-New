@@ -216,6 +216,7 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
     expect(SERVICE_SOURCE).toContain('export interface PlannedWorkoutAssignmentMetadata');
     expect(SERVICE_SOURCE).toMatch(/plannedAssignment\?:\s*PlannedWorkoutAssignmentMetadata/);
     expect(SERVICE_SOURCE).toContain('source: \'workout_plan\'');
-    expect(SERVICE_SOURCE).toContain('shouldDeductSession: false');
+    expect(SERVICE_SOURCE).toContain('trainer_session');
+    expect(SERVICE_SOURCE).toContain('shouldDeductSession: boolean');
   });
 });

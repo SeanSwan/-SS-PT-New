@@ -183,14 +183,11 @@ const resolvePlannedAssignmentForLog = async ({
   hasScheduledSession,
   transaction,
 }) => {
-  const normalized = normalizePlannedWorkoutAssignmentInput(rawAssignment);
+  const normalized = normalizePlannedWorkoutAssignmentInput(rawAssignment, { hasScheduledSession });
   if (!normalized.ok) {
     throw new PlannedWorkoutAssignmentError(normalized.message);
   }
   if (!normalized.assignment) return null;
-  if (hasScheduledSession) {
-    throw new PlannedWorkoutAssignmentError('Planned assignments cannot be combined with scheduled session logs');
-  }
 
   const WorkoutPlan = getWorkoutPlan();
   if (!WorkoutPlan?.findOne) {
@@ -217,9 +214,14 @@ const resolvePlannedAssignmentForLog = async ({
     activePlan: plan,
     plans: [plan],
     currentSession,
+    ...(hasScheduledSession ? { today: workoutDateValue } : {}),
   });
 
-  assertPlannedAssignmentMatchesOverview(normalized.assignment, overview.todayAssignment);
+  assertPlannedAssignmentMatchesOverview(
+    normalized.assignment,
+    overview.todayAssignment,
+    { hasScheduledSession }
+  );
   const metadata = buildPlannedAssignmentFormMetadata(normalized.assignment, overview.todayAssignment);
   const assignmentDate = toIsoDateOnly(metadata?.scheduledDate);
   const workoutDate = toIsoDateOnly(workoutDateValue);
@@ -1017,6 +1019,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
           dailyWorkoutFormId: dailyForm.id,
           workoutSessionId: workoutSession.id,
           completedAt: dailyForm.submittedAt || new Date().toISOString(),
+          allowScheduledTrainerSession: Boolean(linkedScheduledSession),
           transaction,
         })
       : null;

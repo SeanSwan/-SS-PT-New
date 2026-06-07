@@ -59,8 +59,8 @@ interface SanitizedPlannedAssignment {
   planId: string;
   assignmentType: string;
   source: 'workout_plan';
-  isBillable: false;
-  shouldDeductSession: false;
+  isBillable: boolean;
+  shouldDeductSession: boolean;
   weekNumber: number;
   dayNumber: number;
   title?: string;
@@ -96,7 +96,10 @@ const positiveInteger = (value: unknown) => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
-function sanitizePlannedAssignment(value?: PlannedAssignmentInput | null): SanitizedPlannedAssignment | null {
+function sanitizePlannedAssignment(
+  value?: PlannedAssignmentInput | null,
+  options: { hasScheduledSession?: boolean } = {},
+): SanitizedPlannedAssignment | null {
   if (!value) return null;
   const assignmentKey = compactString(value.assignmentKey || value.assignmentId);
   const planId = compactString(String(value.planId ?? ''));
@@ -104,7 +107,10 @@ function sanitizePlannedAssignment(value?: PlannedAssignmentInput | null): Sanit
   const weekNumber = positiveInteger(value.weekNumber);
   const dayNumber = positiveInteger(value.dayNumber);
   if (!assignmentKey || !planId || !assignmentType || !weekNumber || !dayNumber) return null;
-  if (!['homework', 'active_recovery'].includes(assignmentType)) return null;
+  const allowedTypes = options.hasScheduledSession
+    ? ['trainer_session']
+    : ['homework', 'active_recovery'];
+  if (!allowedTypes.includes(assignmentType)) return null;
 
   const out: SanitizedPlannedAssignment = {
     assignmentId: assignmentKey,
@@ -112,8 +118,10 @@ function sanitizePlannedAssignment(value?: PlannedAssignmentInput | null): Sanit
     planId,
     assignmentType,
     source: 'workout_plan',
-    isBillable: false,
-    shouldDeductSession: false,
+    isBillable: assignmentType === 'trainer_session',
+    shouldDeductSession: assignmentType === 'trainer_session'
+      ? value.shouldDeductSession === true
+      : false,
     weekNumber,
     dayNumber,
   };
@@ -192,9 +200,9 @@ export function buildWorkoutFormSubmitBody(params: {
   if (params.equipmentProfileId !== null && params.equipmentProfileId !== undefined) {
     body.equipmentProfileId = params.equipmentProfileId;
   }
-  const plannedAssignment = params.scheduledSessionId
-    ? null
-    : sanitizePlannedAssignment(params.plannedAssignment);
+  const plannedAssignment = sanitizePlannedAssignment(params.plannedAssignment, {
+    hasScheduledSession: Boolean(params.scheduledSessionId),
+  });
   if (plannedAssignment) {
     body.plannedAssignment = plannedAssignment;
   }

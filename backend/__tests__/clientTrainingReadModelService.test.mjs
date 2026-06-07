@@ -125,7 +125,7 @@ describe('clientTrainingReadModelService', () => {
         metadata: {
           planHorizon: 'six_month',
           planPdf: {
-            url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+            url: '/api/workout-plans/plan-6m/pdf/content.pdf',
             fileName: 'Six Month Foundation.pdf',
             contentType: 'application/pdf',
             updatedAt: '2026-06-06T00:00:00.000Z',
@@ -137,7 +137,7 @@ describe('clientTrainingReadModelService', () => {
     expect(catalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
       plan: {
         pdfFile: {
-          url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+          url: '/api/workout-plans/plan-6m/pdf/content.pdf',
           fileName: 'Six Month Foundation.pdf',
           contentType: 'application/pdf',
           updatedAt: '2026-06-06T00:00:00.000Z',

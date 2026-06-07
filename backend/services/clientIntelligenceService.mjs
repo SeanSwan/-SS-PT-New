@@ -39,6 +39,7 @@ import {
 } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { buildClientTrainingVaultContext } from './clientTrainingVaultContextService.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -337,6 +338,7 @@ export async function getClientContext(clientId, trainerId) {
     nutritionPlan,
     onboardingQuestionnaire,
     workoutStreak,
+    trainingVaultContext,
   ] = await Promise.all([
     // 1. Active pain entries (SAFETY-CRITICAL: failure is tracked)
     // Issue #5 FIX: 7-day window + limit:100 prevents unbounded memory growth
@@ -488,6 +490,16 @@ export async function getClientContext(clientId, trainerId) {
       order: [['currentCount', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
       logger.warn('[ClientIntelligence] Streak fetch failed:', err.message);
+      return null;
+    }),
+
+    buildClientTrainingVaultContext({
+      clientId,
+      WorkoutPlan: safeGetModel('WorkoutPlan'),
+      Op,
+      today: now,
+    }).catch(err => {
+      logger.warn('[ClientIntelligence] Training vault context fetch failed:', err.message);
       return null;
     }),
   ]);
@@ -792,6 +804,7 @@ export async function getClientContext(clientId, trainerId) {
     progressLevels,
     streak: streakSummary,
     activeProgram: activeProgramSummary,
+    trainingVault: trainingVaultContext,
 
     constraints: {
       excludedMuscles: Array.from(excludedMuscles),

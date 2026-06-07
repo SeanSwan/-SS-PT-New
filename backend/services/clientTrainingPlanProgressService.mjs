@@ -2,11 +2,13 @@
  * Client Training Plan Progress Service
  * =====================================
  *
- * Advances an active WorkoutPlan after a verified, non-billable planned
- * assignment log is saved through the canonical DailyWorkoutForm route.
+ * Advances an active WorkoutPlan after a verified planned assignment log is
+ * saved through the canonical DailyWorkoutForm route. Non-billable homework
+ * can advance directly; trainer sessions require scheduled-session context.
  */
 
 const NON_BILLABLE_ASSIGNMENT_TYPES = new Set(['homework', 'active_recovery']);
+const SCHEDULED_TRAINER_ASSIGNMENT_TYPES = new Set(['trainer_session']);
 
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const sameId = (a, b) => String(a) === String(b);
@@ -20,6 +22,17 @@ const isNonBillablePlannedAssignment = (assignment = {}) => (
   && NON_BILLABLE_ASSIGNMENT_TYPES.has(assignment.assignmentType)
   && assignment.isBillable === false
   && assignment.shouldDeductSession === false
+);
+
+const isScheduledTrainerSessionAssignment = (assignment = {}) => (
+  assignment.source === 'workout_plan'
+  && SCHEDULED_TRAINER_ASSIGNMENT_TYPES.has(assignment.assignmentType)
+  && assignment.isBillable === true
+);
+
+const canAdvancePlanAssignment = (assignment, { allowScheduledTrainerSession = false } = {}) => (
+  isNonBillablePlannedAssignment(assignment)
+  || (allowScheduledTrainerSession && isScheduledTrainerSessionAssignment(assignment))
 );
 
 const clonePlanData = (planData) => {
@@ -62,11 +75,17 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
   dailyWorkoutFormId,
   workoutSessionId,
   completedAt = new Date().toISOString(),
+  allowScheduledTrainerSession = false,
   transaction,
 } = {}) => {
   const weekNumber = toPositiveInteger(assignment?.weekNumber);
   const dayNumber = toPositiveInteger(assignment?.dayNumber);
-  if (!WorkoutPlan?.findOne || !isNonBillablePlannedAssignment(assignment) || !weekNumber || !dayNumber) {
+  if (
+    !WorkoutPlan?.findOne
+    || !canAdvancePlanAssignment(assignment, { allowScheduledTrainerSession })
+    || !weekNumber
+    || !dayNumber
+  ) {
     return { advanced: false, reason: 'not_applicable' };
   }
 

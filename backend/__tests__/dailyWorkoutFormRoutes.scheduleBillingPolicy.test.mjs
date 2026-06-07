@@ -37,6 +37,8 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutLogDestroy = vi.fn();
 const mockWorkoutLogBulkCreate = vi.fn();
 const mockSessionFindByPk = vi.fn();
+const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanUpdate = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: mockUserFindOne }),
@@ -46,7 +48,7 @@ vi.mock('../models/index.mjs', () => ({
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
   getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
-  getWorkoutPlan: () => ({ findOne: vi.fn() }),
+  getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
   getSession: () => ({ findByPk: mockSessionFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
   getTrainerPermissions: () => ({ findOne: vi.fn() }),
@@ -98,6 +100,17 @@ const VALID_PAYLOAD = {
   sessionNotes: 'Scheduled training log',
 };
 
+const TRAINER_SESSION_ASSIGNMENT = {
+  assignmentKey: 'plan-6m:w4:d2:trainer_session',
+  planId: 'plan-6m',
+  assignmentType: 'trainer_session',
+  source: 'workout_plan',
+  isBillable: true,
+  shouldDeductSession: true,
+  weekNumber: 4,
+  dayNumber: 2,
+};
+
 function mockScheduledSession(overrides = {}) {
   const session = {
     id: 777,
@@ -146,12 +159,47 @@ function primeScheduledWorkoutLog({
   return scheduledSession;
 }
 
+function buildActiveTrainerSessionPlan() {
+  return {
+    id: 'plan-6m',
+    userId: 11,
+    title: 'Six Month Trainer Arc',
+    status: 'active',
+    currentWeek: 4,
+    currentDay: 2,
+    durationWeeks: 26,
+    metadata: { planHorizon: 'six_month' },
+    planData: {
+      weeks: [
+        { days: [] },
+        { days: [] },
+        { days: [] },
+        {
+          days: [
+            { dayLabel: 'Warmup Day', assignmentType: 'homework', exercises: [] },
+            {
+              dayLabel: 'Trainer Floor Session',
+              assignmentType: 'trainer_session',
+              shouldDeductSession: true,
+              exercises: [{ exerciseName: 'Goblet Squat' }],
+            },
+            { dayLabel: 'Next Session', assignmentType: 'trainer_session', exercises: [] },
+          ],
+        },
+      ],
+    },
+    update: mockWorkoutPlanUpdate,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockUserDecrement.mockResolvedValue(undefined);
   mockDailyWorkoutFormUpdate.mockResolvedValue(undefined);
   mockWorkoutLogDestroy.mockResolvedValue(undefined);
   mockWorkoutLogBulkCreate.mockResolvedValue([]);
+  mockWorkoutPlanFindOne.mockResolvedValue(null);
+  mockWorkoutPlanUpdate.mockResolvedValue(undefined);
 });
 
 describe('POST /api/workout-forms scheduled-session billing policy', () => {
@@ -230,5 +278,50 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
     });
     expect(res.body.form.sessionDeducted).toBe(false);
     expect(res.body.message).toMatch(/without session deduction/i);
+  });
+
+  it('advances the active trainer-session plan cursor without changing scheduled billing rules', async () => {
+    const scheduledSession = primeScheduledWorkoutLog();
+    mockWorkoutPlanFindOne.mockResolvedValue(buildActiveTrainerSessionPlan());
+
+    const res = await request(app).post('/api/workout-forms').send({
+      ...VALID_PAYLOAD,
+      plannedAssignment: TRAINER_SESSION_ASSIGNMENT,
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockUserDecrement).toHaveBeenCalledTimes(1);
+    expect(scheduledSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'completed',
+        attendanceStatus: 'present',
+        sessionDeducted: true,
+      }),
+      { transaction: expect.any(Object) },
+    );
+    expect(mockWorkoutPlanUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      currentWeek: 4,
+      currentDay: 3,
+      status: 'active',
+    }), { transaction: expect.any(Object) });
+    const planUpdate = mockWorkoutPlanUpdate.mock.calls[0][0];
+    expect(planUpdate.planData.weeks[3].days[1]).toMatchObject({
+      completed: true,
+      dailyWorkoutFormId: 'daily-form-1',
+      workoutSessionId: 'workout-session-1',
+      completionSource: 'daily_workout_form',
+    });
+    const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
+    expect(formCreate.formData.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:trainer_session',
+      assignmentType: 'trainer_session',
+      isBillable: true,
+      shouldDeductSession: true,
+    });
+    expect(res.body.form.planProgress).toMatchObject({
+      advanced: true,
+      previous: { week: 4, day: 2 },
+      next: { week: 4, day: 3 },
+    });
   });
 });
