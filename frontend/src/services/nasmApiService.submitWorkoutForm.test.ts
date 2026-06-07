@@ -20,6 +20,8 @@
  * the unwrap is correct on the happy path, the error path, and a
  * 4xx-with-success-false path.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock the axios-backed default apiService BEFORE importing the SUT.
@@ -39,6 +41,7 @@ import { dailyWorkoutFormService } from './nasmApiService';
 
 const postMock = apiService.post as unknown as ReturnType<typeof vi.fn>;
 let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+const SERVICE_SOURCE = readFileSync(resolve(__dirname, './nasmApiService.ts'), 'utf8');
 
 const basePayload = {
   clientId: 91,
@@ -207,5 +210,12 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
     expect(postMock).toHaveBeenCalledWith('/api/workout-forms', basePayload, {
       signal: controller.signal,
     });
+  });
+
+  it('declares planned-assignment metadata in the workout-form submit contract', () => {
+    expect(SERVICE_SOURCE).toContain('export interface PlannedWorkoutAssignmentMetadata');
+    expect(SERVICE_SOURCE).toMatch(/plannedAssignment\?:\s*PlannedWorkoutAssignmentMetadata/);
+    expect(SERVICE_SOURCE).toContain('source: \'workout_plan\'');
+    expect(SERVICE_SOURCE).toContain('shouldDeductSession: false');
   });
 });

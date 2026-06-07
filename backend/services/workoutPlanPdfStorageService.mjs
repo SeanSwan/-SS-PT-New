@@ -59,11 +59,13 @@ const flagEnabled = (value) => (
   ['1', 'true', 'yes', 'local'].includes(String(value || '').trim().toLowerCase())
 );
 
-const allowLocalFallbackAfterR2Failure = () => {
+const allowLocalWorkoutPlanPdfStorage = () => {
   const explicit = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
   if (explicit !== undefined && explicit !== '') return flagEnabled(explicit);
   return process.env.NODE_ENV !== 'production';
 };
+
+const allowLocalFallbackAfterR2Failure = allowLocalWorkoutPlanPdfStorage;
 
 async function ensureR2Imports() {
   if (r2Loaded) return;
@@ -154,6 +156,11 @@ export async function storeWorkoutPlanPdf({
       }
       logger.error('[WorkoutPlanPDF] R2 upload failed, falling back to local disk: %s', error.message);
     }
+  }
+
+  if (!allowLocalWorkoutPlanPdfStorage()) {
+    logger.error('[WorkoutPlanPDF] R2 is not configured and production local fallback is disabled');
+    throw new Error('Workout plan PDF durable production storage is not configured');
   }
 
   const root = path.resolve(uploadsRoot || process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT || path.join(process.cwd(), 'uploads'));

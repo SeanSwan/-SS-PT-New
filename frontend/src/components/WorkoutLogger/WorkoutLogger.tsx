@@ -841,7 +841,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     try {
       const response = await dailyWorkoutFormService.submitWorkoutForm(
-        formData as Parameters<typeof dailyWorkoutFormService.submitWorkoutForm>[0],
+        formData,
         { signal: controller.signal }
       );
 

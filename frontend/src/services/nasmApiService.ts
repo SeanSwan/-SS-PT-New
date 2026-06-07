@@ -109,6 +109,60 @@ export interface ExerciseEntry {
   performanceNotes?: string;
 }
 
+export interface PlannedWorkoutAssignmentMetadata {
+  assignmentId?: string;
+  assignmentKey: string;
+  planId: string;
+  assignmentType: 'homework' | 'active_recovery' | string;
+  source: 'workout_plan';
+  isBillable: false;
+  shouldDeductSession: false;
+  status?: string;
+  sessionType?: string;
+  title?: string;
+  scheduledDate?: string;
+  weekNumber: number;
+  dayNumber: number;
+  dayLabel?: string;
+  exerciseCount?: number;
+  firstExerciseName?: string;
+}
+
+export interface DailyWorkoutFormSubmitSet {
+  setNumber?: number;
+  weight: number;
+  reps: number;
+  tempo?: string;
+  restTime?: number;
+  notes?: string;
+  rpe?: number;
+  formQuality?: number;
+}
+
+export interface DailyWorkoutFormSubmitExercise {
+  exerciseId?: string;
+  exerciseName: string;
+  painLevel?: number;
+  performanceNotes?: string;
+  sets: DailyWorkoutFormSubmitSet[];
+  formRating?: number;
+}
+
+export interface DailyWorkoutFormSubmitPayload {
+  clientId: number;
+  date: string;
+  exercises: DailyWorkoutFormSubmitExercise[];
+  scheduledSessionId?: string;
+  equipmentProfileId?: number;
+  sessionNotes?: string;
+  // Phase 16 (2026-04-16): nullable on the wire. WorkoutLogger omits this
+  // field from the payload when the user has not rated; the key is
+  // simply absent rather than serialized as `null`. Backend contract
+  // accepts either shape and persists DB null.
+  overallIntensity?: number | null;
+  plannedAssignment?: PlannedWorkoutAssignmentMetadata;
+}
+
 export interface DailyWorkoutForm {
   id: string;
   formId?: string;
@@ -124,6 +178,7 @@ export interface DailyWorkoutForm {
     // record an overall intensity, this key is omitted from formData.
     overallIntensity?: number | null;
     equipmentProfileId?: number;
+    plannedAssignment?: PlannedWorkoutAssignmentMetadata;
     submittedBy: number;
     submittedAt: string;
     totalSets?: number;
@@ -575,19 +630,10 @@ export class DailyWorkoutFormService {
   /**
    * Submit a daily workout form
    */
-  async submitWorkoutForm(data: {
-    clientId: number;
-    date: string;
-    exercises: ExerciseEntry[];
-    scheduledSessionId?: string;
-    equipmentProfileId?: number;
-    sessionNotes?: string;
-    // Phase 16 (2026-04-16): nullable on the wire. WorkoutLogger omits this
-    // field from the payload when the user has not rated; the key is
-    // simply absent rather than serialized as `null`. Backend contract
-    // accepts either shape and persists DB null.
-    overallIntensity?: number | null;
-  }, options: { signal?: AbortSignal } = {}): Promise<ApiResponse<DailyWorkoutForm>> {
+  async submitWorkoutForm(
+    data: DailyWorkoutFormSubmitPayload,
+    options: { signal?: AbortSignal } = {}
+  ): Promise<ApiResponse<DailyWorkoutForm>> {
     try {
       // 2026-04-18 Phase 16.2 round 13 fix — `this.api.post()` returns
       // `AxiosResponse<T>`, so the backend payload lives under `.data`,

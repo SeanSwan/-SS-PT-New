@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClientWorkoutPlansPanel from './ClientWorkoutPlansPanel';
@@ -193,11 +193,23 @@ describe('ClientWorkoutPlansPanel', () => {
       { responseType: 'blob' },
     );
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(window.open).not.toHaveBeenCalled();
+    expect(await screen.findByRole('dialog', { name: /primary six month arc pdf/i })).toBeInTheDocument();
+    expect(screen.getByTitle(/primary six month arc pdf/i)).toHaveAttribute('src', 'blob:fixture-plan-pdf');
+    expect(screen.getByRole('link', { name: /download primary six month arc\.pdf/i })).toHaveAttribute(
+      'href',
+      'blob:fixture-plan-pdf',
+    );
+
+    await user.click(screen.getByRole('button', { name: /open pdf in new tab/i }));
     expect(window.open).toHaveBeenCalledWith(
       'blob:fixture-plan-pdf',
       '_blank',
       'noopener,noreferrer',
     );
+    await user.click(screen.getByRole('button', { name: /close pdf viewer/i }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /primary six month arc pdf/i })).toBeNull());
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fixture-plan-pdf');
 
     await user.click(screen.getByRole('button', { name: /log today from primary six month arc/i }));
     expect(onLogToday).toHaveBeenCalledTimes(1);

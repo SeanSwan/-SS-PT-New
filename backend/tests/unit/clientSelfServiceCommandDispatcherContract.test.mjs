@@ -11,7 +11,6 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.resetModules();
 });
-
 describe('client self-service command dispatchers', () => {
   it('wires client self-service command handlers', async () => {
     const { hasDispatcher } = await loadDispatcher();
@@ -42,7 +41,6 @@ describe('client self-service command dispatchers', () => {
       userId: 17,
       hasActivePlan: true,
       planId: 'plan-1',
-      planTitle: 'Private plan title',
       currentWeek: 2,
       currentDay: 1,
       sessionLabel: 'Day 1',
@@ -71,11 +69,25 @@ describe('client self-service command dispatchers', () => {
         defaultHorizonKey: 'six_month',
         primaryPlanId: 'plan-1',
         primaryHorizonKey: 'six_month',
+        primaryHorizonLabel: '6 Month',
         filledHorizonKeys: ['six_month'],
         slotCount: 7,
+        slots: expect.arrayContaining([
+          expect.objectContaining({
+            horizonKey: 'six_month',
+            label: '6 Month',
+            planId: 'plan-1',
+            status: 'active',
+            isFilled: true,
+            isPrimary: true,
+            hasPdf: false,
+          }),
+        ]),
       },
     });
+    expect(result).not.toHaveProperty('planTitle');
     expect(JSON.stringify(result)).not.toContain('client@example.com');
+    expect(JSON.stringify(result)).not.toContain('Private plan title');
   });
 
   it('summarizes workout and measurement progress for the authenticated client', async () => {

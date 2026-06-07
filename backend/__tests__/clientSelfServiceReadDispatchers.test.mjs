@@ -51,7 +51,7 @@ describe('clientSelfServiceReadDispatchers', () => {
     const draftPlan = {
       id: 'plan-8w-draft',
       userId: 42,
-      title: 'Eight Week Strength Ramp',
+      title: 'ClientNameMustNotLeak Eight Week Strength Ramp',
       status: 'draft',
       durationWeeks: 8,
       currentWeek: 1,
@@ -95,12 +95,25 @@ describe('clientSelfServiceReadDispatchers', () => {
         defaultHorizonKey: 'six_month',
         primaryPlanId: 'plan-8w-draft',
         primaryHorizonKey: 'three_month',
+        primaryHorizonLabel: '3 Month',
         filledHorizonKeys: ['three_month'],
         slotCount: 7,
+        slots: expect.arrayContaining([
+          expect.objectContaining({
+            horizonKey: 'three_month',
+            label: '3 Month',
+            isFilled: true,
+            isPrimary: true,
+            planId: 'plan-8w-draft',
+            status: 'draft',
+            hasPdf: false,
+          }),
+        ]),
       },
     });
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain('ClientNameMustNotLeak');
+    expect(serialized).not.toContain('Eight Week Strength Ramp');
     expect(serialized).not.toContain('client@example.test');
   });
 
@@ -108,7 +121,7 @@ describe('clientSelfServiceReadDispatchers', () => {
     const activePlan = {
       id: 'plan-6m',
       userId: 42,
-      title: 'Six Month Homework Arc',
+      title: 'ClientNameMustNotLeak Six Month Homework Arc',
       status: 'active',
       durationWeeks: 26,
       currentWeek: 4,
@@ -150,6 +163,21 @@ describe('clientSelfServiceReadDispatchers', () => {
       },
     });
 
+    expect(result).not.toHaveProperty('planTitle');
+    expect(result.trainingPlanCatalog).toMatchObject({
+      primaryHorizonKey: 'six_month',
+      primaryHorizonLabel: '6 Month',
+      slots: expect.arrayContaining([
+        expect.objectContaining({
+          horizonKey: 'six_month',
+          label: '6 Month',
+          planId: 'plan-6m',
+          status: 'active',
+          isFilled: true,
+          isPrimary: true,
+        }),
+      ]),
+    });
     expect(result.todayAssignment).toMatchObject({
       assignmentType: 'homework',
       isLoggable: true,
@@ -165,6 +193,7 @@ describe('clientSelfServiceReadDispatchers', () => {
     });
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain('ClientNameMustNotLeak');
+    expect(serialized).not.toContain('Six Month Homework Arc');
     expect(serialized).not.toContain('client@example.test');
     expect(serialized).not.toContain('should not be sent');
   });

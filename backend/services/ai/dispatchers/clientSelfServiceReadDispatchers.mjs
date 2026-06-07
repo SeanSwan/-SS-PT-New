@@ -10,6 +10,7 @@ import { getAllModels } from '../../../models/index.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
+import { summarizeTrainingPlanCatalog } from './clientTrainingCatalogSummary.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -95,18 +96,6 @@ const summarizeTodayAssignment = (assignment = {}) => ({
   ctaLabel: assignment.ctaLabel ?? null,
 });
 
-const summarizeTrainingPlanCatalog = (catalog = {}) => {
-  const slots = Array.isArray(catalog.slots) ? catalog.slots : [];
-  const primary = slots.find((slot) => slot.isPrimary) || null;
-  return {
-    defaultHorizonKey: catalog.defaultHorizonKey ?? 'six_month',
-    primaryPlanId: catalog.primaryPlanId ?? null,
-    primaryHorizonKey: primary?.horizonKey ?? null,
-    filledHorizonKeys: slots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey),
-    slotCount: slots.length,
-  };
-};
-
 const getGamificationRecord = async (userId) => {
   const { Gamification } = getAllModels();
   if (!Gamification?.findOne) return null;
@@ -158,7 +147,6 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
       userId,
       hasActivePlan: false,
       planId: null,
-      planTitle: null,
       currentWeek: null,
       currentDay: null,
       sessionLabel: null,
@@ -183,7 +171,6 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
     userId,
     hasActivePlan: true,
     planId: formatted.id ?? null,
-    planTitle: formatted.title ?? formatted.name ?? null,
     currentWeek: formatted.currentWeek ?? null,
     currentDay: formatted.currentDay ?? null,
     sessionLabel: currentSession?.dayLabel ?? null,
