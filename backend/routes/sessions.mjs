@@ -3087,8 +3087,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     logger.error('Error in POST /api/sessions/:sessionId/charge-cancellation:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error recording cancellation billing decision',
-      error: error.message
+      message: 'Server error recording cancellation billing decision'
     });
   }
 });
