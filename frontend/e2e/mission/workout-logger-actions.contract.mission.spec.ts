@@ -117,6 +117,55 @@ async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
     if (endpoint === '/api/workouts/501/current') {
       return fulfillJson(route, { data: { todayAssignment: null } });
     }
+    if (endpoint === '/api/workout-plans/client/501') {
+      return fulfillJson(route, {
+        success: true,
+        trainingPlanCatalog: {
+          primaryPlanId: 'mission-six-month',
+          primaryHorizonKey: 'six_month',
+          slots: [
+            {
+              horizonKey: 'six_month',
+              label: '6 Month',
+              durationWeeks: 26,
+              durationDays: 182,
+              isDefaultHorizon: true,
+              isFilled: true,
+              isPrimary: true,
+              plan: {
+                id: 'mission-six-month',
+                title: 'Mission Trainer-Led Arc',
+                status: 'active',
+                horizonKey: 'six_month',
+                durationWeeks: 26,
+                assignmentDefault: 'trainer_session',
+                billingIntent: 'trainer_led_scheduled_flow',
+                defaultShouldDeductSession: false,
+              },
+            },
+            {
+              horizonKey: 'one_week',
+              label: '1 Week',
+              durationWeeks: 1,
+              durationDays: 7,
+              isDefaultHorizon: false,
+              isFilled: true,
+              isPrimary: false,
+              plan: {
+                id: 'mission-homework',
+                title: 'Mission Homework Diary Arc',
+                status: 'draft',
+                horizonKey: 'one_week',
+                durationWeeks: 1,
+                assignmentDefault: 'homework',
+                billingIntent: 'non_billable_assignment',
+                defaultShouldDeductSession: false,
+              },
+            },
+          ],
+        },
+      });
+    }
 
     return fulfillJson(route, { success: true, data: [], clients: [], stats: {}, notifications: [] });
   });
@@ -160,4 +209,35 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-workout-logger-actions.png'), fullPage: false });
+});
+
+test('@mission @contract @readonly admin plan vault exposes trainer-led versus homework plan use', async ({ page }, testInfo) => {
+  expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
+
+  const apiState: MissionApiState = { blockedWrites: [] };
+  const consoleErrors = watchConsoleErrors(page);
+  await mockWorkoutLoggerApi(page, apiState);
+  await installAdminSession(page);
+
+  await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=plans', {
+    waitUntil: 'domcontentloaded',
+  });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+
+  await expect(page.getByRole('heading', { name: /training plans/i })).toBeVisible();
+  await expect(page.getByLabel(/6 month plan arc/i)).toContainText(/Trainer-led/i);
+  await expect(page.getByLabel(/1 week plan arc/i)).toContainText(/Homework diary/i);
+  await expect(page.getByText(/Mission Trainer-Led Arc/i).first()).toBeVisible();
+  await expect(page.getByText(/Mission Homework Diary Arc/i).first()).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    bodyText: document.body.innerText,
+    overflowX: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
+  }));
+  expect(layout.overflowX).toBeLessThanOrEqual(12);
+  expect(layout.bodyText).not.toMatch(/Demo Mode|Sarah Johnson|Real API integration coming soon/i);
+  expect(apiState.blockedWrites).toEqual([]);
+  expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
+
+  await page.screenshot({ path: testInfo.outputPath('admin-plan-vault-assignment-use.png'), fullPage: false });
 });
