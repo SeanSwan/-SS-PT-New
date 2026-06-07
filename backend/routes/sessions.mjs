@@ -1934,8 +1934,7 @@ router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error updating recurring series',
-      error: rawMessage || 'Unknown error'
+      message: 'Server error updating recurring series'
     });
   }
 });
@@ -1964,8 +1963,7 @@ router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error cancelling recurring series',
-      error: rawMessage || 'Unknown error'
+      message: 'Server error cancelling recurring series'
     });
   }
 });
