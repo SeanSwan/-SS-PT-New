@@ -178,6 +178,13 @@ export function getCurrentWorkoutTodayAssignment(
     ?? null;
 }
 
+export function getCurrentWorkoutTodayAssignmentExercises(
+  data: CurrentWorkoutPlanResponse | null | undefined,
+): PlannedExercise[] {
+  const assignment = getCurrentWorkoutTodayAssignment(data);
+  return Array.isArray(assignment?.exercises) ? assignment.exercises : [];
+}
+
 export function getPlanDayForDate(
   days: PlannedDay[] | undefined,
   date = new Date(),

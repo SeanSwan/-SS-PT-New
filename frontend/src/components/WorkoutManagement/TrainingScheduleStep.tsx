@@ -1,13 +1,13 @@
 /**
  * ============================================================================
  * FILE: TrainingScheduleStep.tsx
- * PURPOSE: Step 1 of WorkoutPlanBuilder — auto-generation and manual day setup
+ * PURPOSE: Step 1 of WorkoutPlanBuilder — Swan Coach planning and manual day setup
  * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-25
  * AI VILLAGE VALIDATED: 2026-03-25
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the training schedule configuration step with
- * two sections: (1) AI auto-generation controls (days/week, difficulty, focus
+ * two sections: (1) Swan Coach planning controls (days/week, difficulty, focus
  * areas, equipment) and (2) manual day creation with name/focus/duration
  * fields and inline exercise lists per day.
  *
@@ -23,9 +23,9 @@
  * │ PURPOSE: Configure training schedule and generate plans      │
  * │ WIREFRAME:                                                   │
  * │ ┌──────────────────────────────────────┐                     │
- * │ │ Auto-Generate Panel                  │                     │
+ * │ │ Swan Coach Plan Panel                │                     │
  * │ │ [Days▼] [Diff▼] [Focus chips] [Eq]  │                     │
- * │ │ [Generate Workout Plan]              │                     │
+ * │ │ [Swan Coach Plan]                    │                     │
  * │ ├──────────────────────────────────────┤                     │
  * │ │ Workout Days (N)       [+ Add Day]   │                     │
  * │ │ ┌─ Day Card ─────────────────────┐   │                     │
@@ -35,7 +35,7 @@
  * │ │ └───────────────────────────────┘   │                     │
  * │ └──────────────────────────────────────┘                     │
  * │ CLICK-OUTCOMES:                                              │
- * │ [Generate] -> handleGenerateWorkout -> API call              │
+ * │ [Swan Coach Plan] -> handleGenerateWorkout -> API call       │
  * │ [Add Day]  -> addWorkoutDay -> new empty day card            │
  * │ [Dumbbell] -> setCurrentDay + setExerciseLibraryOpen(true)   │
  * │ [Trash]    -> deleteWorkoutDay(index)                        │
@@ -114,9 +114,9 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
     <div style={{ marginTop: 16 }}>
       <SectionTitle>Training Schedule Setup</SectionTitle>
 
-      {/* Auto-Generation Options */}
+      {/* Swan Coach Planning Options */}
       <CardPanel>
-        <SectionTitle>Auto-Generate Workout Plan</SectionTitle>
+        <SectionTitle>Swan Coach Plan Setup</SectionTitle>
         <FormGrid $cols="1fr 1fr 1fr 1fr">
           <FieldGroup>
             <FieldLabel htmlFor="gen-days">Days per Week</FieldLabel>
@@ -180,7 +180,7 @@ const TrainingScheduleStep: React.FC<TrainingScheduleStepProps> = ({
             disabled={loading}
           >
             <Sparkles size={18} />
-            Generate Workout Plan
+            Swan Coach Plan
           </PrimaryButton>
         </div>
       </CardPanel>

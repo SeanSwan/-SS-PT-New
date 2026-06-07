@@ -92,4 +92,69 @@ describe('clientSelfServiceReadDispatchers', () => {
     expect(serialized).not.toContain('ClientNameMustNotLeak');
     expect(serialized).not.toContain('client@example.test');
   });
+
+  it('returns safe exercise-preview context for today homework without PII/freeform notes', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      userId: 42,
+      title: 'Six Month Homework Arc',
+      status: 'active',
+      durationWeeks: 26,
+      currentWeek: 4,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [
+          { weekNumber: 1, days: [] },
+          { weekNumber: 2, days: [] },
+          { weekNumber: 3, days: [] },
+          { weekNumber: 4, days: [
+            { dayNumber: 1, name: 'Trainer Session', assignmentType: 'trainer_session', exercises: [] },
+            {
+              dayNumber: 2,
+              name: 'Off-Day Lower Homework',
+              assignmentType: 'homework',
+              exercises: [{
+                exerciseName: 'Goblet Squat',
+                sets: 3,
+                targetReps: '10',
+                tempo: '3-1-1',
+                restTime: 60,
+                notes: 'ClientNameMustNotLeak should not be sent to Swan Coach',
+              }],
+            },
+          ]},
+        ],
+      },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+
+    const result = await dispatchMyWorkoutToday({}, {
+      user: {
+        id: 42,
+        firstName: 'ClientNameMustNotLeak',
+        email: 'client@example.test',
+        role: 'client',
+      },
+    });
+
+    expect(result.todayAssignment).toMatchObject({
+      assignmentType: 'homework',
+      isLoggable: true,
+      isBillable: false,
+      shouldDeductSession: false,
+      exercisePreview: [{
+        exerciseName: 'Goblet Squat',
+        sets: 3,
+        reps: '10',
+        tempo: '3-1-1',
+        rest: 60,
+      }],
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain('ClientNameMustNotLeak');
+    expect(serialized).not.toContain('client@example.test');
+    expect(serialized).not.toContain('should not be sent');
+  });
 });

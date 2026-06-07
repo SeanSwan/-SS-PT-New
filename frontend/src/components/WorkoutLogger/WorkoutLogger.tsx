@@ -106,6 +106,7 @@ import {
   getCurrentWorkoutCursorSession,
   getCurrentWorkoutPlanId,
   getCurrentWorkoutTodayAssignment,
+  getCurrentWorkoutTodayAssignmentExercises,
   getExerciseEntryRowKey,
   getPlanDayForDate,
   hasIncompleteWorkoutSets,
@@ -612,6 +613,23 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         const weekNum = cursorSession.weekNumber ?? '?';
         const dayLabel = cursorSession.dayLabel || `Day ${cursorSession.dayNumber ?? '?'}`;
         toast.success(`Loaded ${prefilled.length} exercises from Week ${weekNum} — ${dayLabel}`);
+        return;
+      }
+
+      // Assignment-level fallback: the shared read model can carry off-day
+      // homework exercises on todayAssignment even when currentSession is not
+      // present in an older or narrowed route shape.
+      const assignmentExercises = getCurrentWorkoutTodayAssignmentExercises(data);
+      if (todayAssignment?.isLoggable && assignmentExercises.length > 0) {
+        const prefilled = assignmentExercises.map((exercise) =>
+          plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('assignment'))
+        );
+        setExercises(prev => [...prev, ...prefilled]);
+        setPlannedAssignment(currentPlanId
+          ? { ...todayAssignment, planId: currentPlanId }
+          : todayAssignment);
+        const assignmentLabel = todayAssignment.title || todayAssignment.dayLabel || 'today assignment';
+        toast.success(`Loaded ${prefilled.length} exercises from ${assignmentLabel}`);
         return;
       }
 

@@ -59,6 +59,7 @@ export interface PlannedAssignment {
   planId?: string | number | null;
   assignmentType?: string | null;
   source?: string | null;
+  isLoggable?: boolean | null;
   isBillable?: boolean | null;
   shouldDeductSession?: boolean | null;
   title?: string | null;
@@ -68,6 +69,8 @@ export interface PlannedAssignment {
   dayLabel?: string | null;
   exerciseCount?: number | null;
   firstExerciseName?: string | null;
+  ctaLabel?: string | null;
+  exercises?: PlannedExercise[];
 }
 
 export interface PlannedDay {
