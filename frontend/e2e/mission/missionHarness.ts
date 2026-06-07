@@ -28,6 +28,7 @@ export const missionClientUser = {
 export interface MissionApiState {
   blockedWrites: string[];
   currentWorkoutAssignments?: Array<Record<string, unknown>>;
+  capturedWorkoutFormSubmissions?: Array<Record<string, unknown>>;
 }
 
 export function jwt() {

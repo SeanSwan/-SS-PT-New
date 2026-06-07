@@ -7,13 +7,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import {
-  fulfillJson,
-  isExpectedMissionConsoleNoise,
-  jwt,
-  watchConsoleErrors,
-  type MissionApiState,
-} from './missionHarness';
+import { fulfillJson, isExpectedMissionConsoleNoise, jwt, watchConsoleErrors, type MissionApiState } from './missionHarness';
 
 test.describe.configure({ retries: 0 });
 
@@ -73,12 +67,39 @@ async function blockWrite(route: Route, state: MissionApiState, endpoint: string
   await fulfillJson(route, { success: false, message: 'Mission QA read-only write blocked' }, 405);
 }
 
+function readPostJson(route: Route) {
+  try {
+    return route.request().postDataJSON() as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
   await page.route('**/health', async (route) => fulfillJson(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
     const method = request.method();
+
+    if (
+      method === 'POST' &&
+      endpoint === '/api/workout-forms' &&
+      state.capturedWorkoutFormSubmissions
+    ) {
+      const body = readPostJson(route);
+      state.capturedWorkoutFormSubmissions.push(body);
+      return fulfillJson(route, {
+        success: true,
+        form: {
+          id: 'mission-form-1',
+          clientId: body.clientId,
+          date: body.date,
+          sessionDeducted: false,
+        },
+        message: 'Mission QA simulated workout save',
+      }, 201);
+    }
 
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return blockWrite(route, state, endpoint);
 
@@ -208,6 +229,38 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   expect(consoleErrors.filter((item) => !isExpectedMissionConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-workout-logger-actions.png'), fullPage: false });
+});
+
+test('@mission @contract @readonly admin scheduled logger save keeps linked session context', async ({ page }, testInfo) => {
+  expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
+
+  const apiState: MissionApiState = { blockedWrites: [], capturedWorkoutFormSubmissions: [] };
+  const consoleErrors = watchConsoleErrors(page);
+  await mockWorkoutLoggerApi(page, apiState);
+  await installAdminSession(page);
+
+  await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=logger&sessionId=910&sessionDate=2026-06-06', {
+    waitUntil: 'domcontentloaded',
+  });
+  await page.waitForLoadState('networkidle').catch(() => undefined);
+
+  await page.getByRole('button', { name: /search and add exercises/i }).click();
+  await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
+  await page.getByRole('option', { name: /goblet squat/i }).first().click();
+  await page.getByRole('spinbutton', { name: /set 1 weight in lbs/i }).fill('40');
+  await page.getByRole('spinbutton', { name: /set 1 reps/i }).fill('10');
+  await page.getByRole('button', { name: /complete & save workout/i }).click();
+
+  await expect.poll(() => apiState.capturedWorkoutFormSubmissions?.length ?? 0).toBe(1);
+  expect(apiState.capturedWorkoutFormSubmissions?.[0]).toMatchObject({
+    clientId: 501,
+    date: '2026-06-06',
+    scheduledSessionId: '910',
+  });
+  expect(apiState.blockedWrites).toEqual([]);
+  expect(consoleErrors.filter((item) => !isExpectedMissionConsoleNoise(item))).toEqual([]);
+
+  await page.screenshot({ path: testInfo.outputPath('admin-scheduled-logger-submit-context.png'), fullPage: false });
 });
 
 test('@mission @contract @readonly admin plan vault exposes trainer-led versus homework plan use', async ({ page }, testInfo) => {
