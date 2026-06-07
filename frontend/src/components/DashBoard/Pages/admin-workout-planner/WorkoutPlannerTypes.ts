@@ -8,6 +8,7 @@
  */
 
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
+import type { SwanCoachPlanningFingerprint } from '../../../../services/aiWorkoutPlanningTypes';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: OPT Phase Definitions
@@ -53,6 +54,8 @@ export interface GeneratedWorkout {
   clientId: number;
   trainerId: number;
   clientName: string;
+  planningSystem?: 'swan_coach_planning';
+  swanCoachPlanning?: SwanCoachPlanningFingerprint;
   sessionType: 'build' | 'switch';
   category: string;
   nasmPhase: number;
@@ -131,6 +134,8 @@ export interface GeneratedPlanRecommendationDetail {
 export interface GeneratedPlan {
   clientId: number;
   clientName: string;
+  planningSystem?: 'swan_coach_planning';
+  swanCoachPlanning?: SwanCoachPlanningFingerprint;
   planSummary: {
     durationWeeks: number;
     sessionsPerWeek: number;

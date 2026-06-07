@@ -49,6 +49,7 @@ import {
   isNonBillablePlannedWorkoutAssignment,
   normalizePlannedWorkoutAssignmentInput,
 } from '../services/plannedWorkoutAssignmentLogService.mjs';
+import { advancePlanAfterPlannedAssignmentLog } from '../services/clientTrainingPlanProgressService.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -204,6 +205,7 @@ const resolvePlannedAssignmentForLog = async ({
     },
     order: [['updatedAt', 'DESC']],
     transaction,
+    ...(transaction?.LOCK?.UPDATE ? { lock: transaction.LOCK.UPDATE } : {}),
   });
   if (!plan) {
     throw new PlannedWorkoutAssignmentError('Active workout plan assignment was not found');
@@ -1007,6 +1009,18 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       await dailyForm.update({ sessionDeducted: true }, { transaction });
     }
 
+    const planProgress = plannedAssignmentMetadata
+      ? await advancePlanAfterPlannedAssignmentLog({
+          WorkoutPlan: getWorkoutPlan(),
+          assignment: plannedAssignmentMetadata,
+          clientId: parsedClientId,
+          dailyWorkoutFormId: dailyForm.id,
+          workoutSessionId: workoutSession.id,
+          completedAt: dailyForm.submittedAt || new Date().toISOString(),
+          transaction,
+        })
+      : null;
+
     if (linkedScheduledSession) {
       const scheduledSessionCompletionDate = new Date();
       const shouldStampScheduledSessionDeduction = billingDecision.shouldDeduct && billingDecision.sessionDeducted;
@@ -1084,6 +1098,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         estimatedDuration,
         sessionDeducted: billingDecision.sessionDeducted,
         plannedAssignment: plannedAssignmentMetadata,
+        planProgress: planProgress?.advanced ? planProgress : null,
         submittedAt: dailyForm.submittedAt
       },
       message: billingDecision.message

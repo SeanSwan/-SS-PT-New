@@ -54,6 +54,7 @@ export interface ClientPlanSummary {
   assignmentDefault?: string | null;
   billingIntent?: string | null;
   defaultShouldDeductSession?: boolean;
+  planningSystem?: string | null;
 }
 
 export interface ClientPlanHorizonSlot {
@@ -111,6 +112,7 @@ const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSu
       ? plan.durationWeeks
       : typeof planSummary.durationWeeks === 'number' ? planSummary.durationWeeks : undefined,
     createdAt: typeof plan.updatedAt === 'string' ? plan.updatedAt : mapped.createdAt,
+    planningSystem: typeof planData.planningSystem === 'string' ? planData.planningSystem : null,
   };
 };
 

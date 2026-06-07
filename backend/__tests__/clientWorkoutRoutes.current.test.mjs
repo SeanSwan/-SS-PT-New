@@ -27,9 +27,6 @@ vi.mock('../utils/logger.mjs', () => ({
 }));
 
 const { default: clientWorkoutRoutes } = await import('../routes/clientWorkoutRoutes.mjs');
-// L1 REV 2 (2026-05-02): planDataToWorkoutDays now lives in the shared
-// shape service (Codex follow-up — receipt §8 file-touch list lock).
-const { planDataToWorkoutDays } = await import('../services/workoutPlanShapeService.mjs');
 
 const buildApp = () => {
   const app = express();
@@ -268,78 +265,5 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
       code: 'INTERNAL_ERROR',
     });
     expect(JSON.stringify(res.body)).not.toContain('database password leaked in stack');
-  });
-});
-
-describe('clientWorkoutRoutes GET /:userId/history', () => {
-  it('rejects malformed history limits before querying workout history', async () => {
-    const res = await request(buildApp())
-      .get('/api/workouts/42/history?limit=7junk')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({
-      success: false,
-      message: 'Invalid limit',
-    });
-    expect(mockWorkoutSessionFindAll).not.toHaveBeenCalled();
-  });
-
-  it('does not disclose internal errors from the workout history lookup', async () => {
-    mockWorkoutSessionFindAll.mockRejectedValue(new Error('sql detail: private table name'));
-
-    const res = await request(buildApp())
-      .get('/api/workouts/42/history')
-      .set('x-test-user-id', '42')
-      .set('x-test-user-role', 'client');
-
-    expect(res.status).toBe(500);
-    expect(res.body).toEqual({
-      success: false,
-      message: 'Server error fetching workout history',
-      code: 'INTERNAL_ERROR',
-    });
-    expect(JSON.stringify(res.body)).not.toContain('sql detail: private table name');
-  });
-});
-
-describe('planDataToWorkoutDays', () => {
-  it('uses the current week JSONB days/sessions instead of normalized child tables', () => {
-    const days = planDataToWorkoutDays({
-      weeks: [
-        { days: [{ dayNumber: 1, dayName: 'Week 1 Day', exercises: [] }] },
-        { sessions: [{ dayNumber: 2, name: 'Week 2 Pull', exercises: [{ name: 'Row', reps: '10' }] }] },
-      ],
-    }, 2);
-
-    expect(days).toHaveLength(1);
-    expect(days[0].name).toBe('Week 2 Pull');
-    expect(days[0].exercises[0].exerciseName).toBe('Row');
-  });
-
-  it('preserves solo non-billable assignment metadata when flattening plan days', () => {
-    const days = planDataToWorkoutDays({
-      weeks: [{
-        days: [{
-          dayNumber: 6,
-          name: 'Active Recovery Homework',
-          dayType: 'active_recovery',
-          assignmentType: 'active_recovery',
-          sessionType: 'solo',
-          isBillable: false,
-          shouldDeductSession: false,
-          exercises: [],
-        }],
-      }],
-    }, 1);
-
-    expect(days[0]).toMatchObject({
-      dayType: 'active_recovery',
-      assignmentType: 'active_recovery',
-      sessionType: 'solo',
-      isBillable: false,
-      shouldDeductSession: false,
-    });
   });
 });

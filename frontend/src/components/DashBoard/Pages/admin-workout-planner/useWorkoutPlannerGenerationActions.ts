@@ -70,6 +70,16 @@ const getGeneratedPlanSafetyWarning = (plan: GeneratedPlan) => {
   });
 };
 
+const isSwanCoachPlanningPayload = (value: unknown) => {
+  if (!value || typeof value !== 'object') return false;
+  const payload = value as {
+    planningSystem?: unknown;
+    swanCoachPlanning?: { createdBy?: unknown } | null;
+  };
+  return payload.planningSystem === 'swan_coach_planning'
+    && payload.swanCoachPlanning?.createdBy === 'swan_coach_planning';
+};
+
 export const useWorkoutPlannerGenerationActions = ({
   authAxios,
   category,
@@ -118,6 +128,13 @@ export const useWorkoutPlannerGenerationActions = ({
       const data = res.data as GeneratedWorkoutResponse | undefined;
       if (data?.success && data.workout) {
         const workout = data.workout;
+        if (!isSwanCoachPlanningPayload(workout)) {
+          setStatusMsg({
+            type: 'error',
+            text: 'Swan Coach Planning did not verify this workout. Regenerate before assigning.',
+          });
+          return;
+        }
         const isDegraded = workout.context?.criticalDataUnavailable === true;
         setDegradedIntelligence(isDegraded);
         if (isDegraded) {
@@ -198,6 +215,13 @@ export const useWorkoutPlannerGenerationActions = ({
       });
       const data = res.data as GeneratedPlanResponse | undefined;
       if (data?.success && data.plan) {
+        if (!isSwanCoachPlanningPayload(data.plan)) {
+          setStatusMsg({
+            type: 'error',
+            text: 'Swan Coach Planning did not verify this plan. Regenerate before saving.',
+          });
+          return;
+        }
         const safetyWarning = getGeneratedPlanSafetyWarning(data.plan);
         const isDegraded = Boolean(safetyWarning);
         setDegradedIntelligence(isDegraded);

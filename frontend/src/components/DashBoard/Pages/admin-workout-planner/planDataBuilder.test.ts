@@ -73,7 +73,23 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
       availableEquipment: ['Dumbbell (free_weights)', 'Bench (support)'],
       resistanceTypes: ['dumbbell'],
     };
-    const generatedPlan = buildGeneratedPlan({ equipmentContext } as Partial<GeneratedPlan>);
+    const swanCoachPlanning = {
+      createdBy: 'swan_coach_planning' as const,
+      identityMode: 'client_id_only' as const,
+      horizonWeeks: 4,
+      sessionsPerWeek: 3,
+      primaryGoal: 'general_fitness',
+      nasmPhase: 2,
+      planInputsUsed: { workoutHistory: true, painInjury: true },
+      dataCategoriesUsed: ['workout history', 'pain/injury entries'],
+      missingDataCategories: ['nutrition/macros'],
+      rules: ['Use Client # only'],
+    };
+    const generatedPlan = buildGeneratedPlan({
+      equipmentContext,
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning,
+    } as Partial<GeneratedPlan>);
     const result = buildPlanData({
       mode: 'generated',
       generatedPlan,
@@ -87,6 +103,8 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     expect(result.recommendationDetails).toEqual(generatedPlan.recommendationDetails);
     expect(result.equipmentContext).toEqual(equipmentContext);
     expect(result.planSummary).toEqual(generatedPlan.planSummary);
+    expect(result.planningSystem).toBe('swan_coach_planning');
+    expect(result.swanCoachPlanning).toEqual(swanCoachPlanning);
     // Codex 2026-05-03 round-2: rationale[] must persist (backend emits it
     // at workoutBuilderService.mjs:721-727; was silently dropped before).
     expect(result.rationale).toEqual(generatedPlan.rationale);

@@ -28,6 +28,7 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutLogDestroy = vi.fn();
 const mockWorkoutLogBulkCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutPlanUpdate = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mockUserFindByPk, findOne: vi.fn() }),
@@ -93,7 +94,7 @@ const payload = {
   },
 };
 
-const activePlan = {
+const buildActivePlan = () => ({
   id: 'plan-6m',
   userId: 11,
   title: 'Six Month Foundation',
@@ -117,9 +118,11 @@ const activePlan = {
           },
         ],
       },
+      { days: [{ dayLabel: 'Next Week Start', assignmentType: 'homework', exercises: [] }] },
     ],
   },
-};
+  update: mockWorkoutPlanUpdate,
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -142,7 +145,8 @@ beforeEach(() => {
     submittedAt: '2026-06-06T12:00:00.000Z',
     update: vi.fn().mockResolvedValue(undefined),
   });
-  mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+  mockWorkoutPlanUpdate.mockResolvedValue(undefined);
+  mockWorkoutPlanFindOne.mockResolvedValue(buildActivePlan());
 });
 
 describe('POST /api/workout-forms planned assignment logging', () => {
@@ -186,6 +190,22 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       firstExerciseName: 'Goblet Squat',
     });
     expect(res.body.form.plannedAssignment.shouldDeductSession).toBe(false);
+    expect(mockWorkoutPlanUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      currentWeek: 5,
+      currentDay: 1,
+      status: 'active',
+    }), { transaction: expect.any(Object) });
+    const planUpdate = mockWorkoutPlanUpdate.mock.calls[0][0];
+    expect(planUpdate.planData.weeks[3].days[1]).toMatchObject({
+      completed: true,
+      dailyWorkoutFormId: 'daily-form-1',
+      workoutSessionId: 'workout-session-1',
+    });
+    expect(res.body.form.planProgress).toMatchObject({
+      advanced: true,
+      previous: { week: 4, day: 2 },
+      next: { week: 5, day: 1 },
+    });
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 

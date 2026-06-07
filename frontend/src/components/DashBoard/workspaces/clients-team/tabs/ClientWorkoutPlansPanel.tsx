@@ -120,6 +120,9 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
         objectUrl,
         planName: plan.name,
         fileName: plan.pdfFile.fileName || `${plan.name}.pdf`,
+        horizonLabel: plan.horizonLabel,
+        nasmPhase: plan.nasmPhase ?? null,
+        planningSystem: plan.planningSystem ?? null,
       });
     } catch {
       setPdfError(`Unable to open the PDF for ${plan.name}.`);

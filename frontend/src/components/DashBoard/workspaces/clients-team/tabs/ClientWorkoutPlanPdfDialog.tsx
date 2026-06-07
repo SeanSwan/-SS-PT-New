@@ -20,6 +20,8 @@ import {
   PdfFrameWrap,
   PdfIconButton,
   PdfKicker,
+  PdfMetaRail,
+  PdfMetaPill,
   PdfOverlay,
   PdfTitle,
   PdfTitleBlock,
@@ -29,6 +31,9 @@ export interface ClientPlanPdfViewerState {
   objectUrl: string;
   planName: string;
   fileName: string;
+  horizonLabel?: string | null;
+  nasmPhase?: number | null;
+  planningSystem?: string | null;
 }
 
 interface ClientWorkoutPlanPdfDialogProps {
@@ -54,6 +59,9 @@ const ClientWorkoutPlanPdfDialog: React.FC<ClientWorkoutPlanPdfDialogProps> = ({
   if (!viewer) return null;
 
   const title = `${viewer.planName} PDF`;
+  const planningLabel = viewer.planningSystem === 'swan_coach_planning'
+    ? 'Swan Coach Planning'
+    : null;
 
   return (
     <PdfOverlay
@@ -71,6 +79,11 @@ const ClientWorkoutPlanPdfDialog: React.FC<ClientWorkoutPlanPdfDialogProps> = ({
           <PdfTitleBlock>
             <PdfKicker>Protected Plan PDF</PdfKicker>
             <PdfTitle id="client-plan-pdf-title">{title}</PdfTitle>
+            <PdfMetaRail aria-label="PDF plan context">
+              {viewer.horizonLabel && <PdfMetaPill>{viewer.horizonLabel}</PdfMetaPill>}
+              {viewer.nasmPhase && <PdfMetaPill>NASM phase {viewer.nasmPhase}</PdfMetaPill>}
+              {planningLabel && <PdfMetaPill>{planningLabel}</PdfMetaPill>}
+            </PdfMetaRail>
           </PdfTitleBlock>
           <PdfActions>
             <PdfIconButton

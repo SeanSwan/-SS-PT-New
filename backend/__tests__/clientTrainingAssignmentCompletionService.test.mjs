@@ -34,7 +34,7 @@ describe('clientTrainingAssignmentCompletionService', () => {
       order: [['submittedAt', 'DESC'], ['updatedAt', 'DESC']],
       limit: 20,
     });
-    expect(completions).toEqual([
+    expect(completions).toMatchObject([
       {
         assignmentKey: 'plan-2:w1:d1:planned_workout',
         formId: 'form-2',

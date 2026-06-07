@@ -8,6 +8,10 @@
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
+const toPositiveInteger = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 const DAILY_FORM_COMPLETION_ATTRIBUTES = ['id', 'formData', 'submittedAt', 'updatedAt'];
 const DAILY_FORM_COMPLETION_ORDER = [['submittedAt', 'DESC'], ['updatedAt', 'DESC']];
 
@@ -34,6 +38,13 @@ const buildPlannedAssignmentCompletionFromDailyForm = (dailyForm) => {
 
   return {
     assignmentKey,
+    assignmentType: compactString(plannedAssignment?.assignmentType),
+    title: compactString(plannedAssignment?.title),
+    weekNumber: toPositiveInteger(plannedAssignment?.weekNumber),
+    dayNumber: toPositiveInteger(plannedAssignment?.dayNumber),
+    dayLabel: compactString(plannedAssignment?.dayLabel),
+    exerciseCount: toPositiveInteger(plannedAssignment?.exerciseCount) || 0,
+    firstExerciseName: compactString(plannedAssignment?.firstExerciseName),
     formId: raw.id ?? null,
     completedAt: raw.submittedAt ?? raw.updatedAt ?? raw.createdAt ?? null,
   };

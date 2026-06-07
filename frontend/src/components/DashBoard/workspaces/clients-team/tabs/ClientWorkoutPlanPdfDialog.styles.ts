@@ -82,6 +82,29 @@ export const PdfTitle = styled.h3`
   }
 `;
 
+export const PdfMetaRail = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+`;
+
+export const PdfMetaPill = styled.span`
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 68%, var(--accent-primary, #60C0F0) 8%);
+  color: var(--text-muted, rgba(224, 236, 244, 0.82));
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+`;
+
 export const PdfActions = styled.div`
   display: flex;
   align-items: center;

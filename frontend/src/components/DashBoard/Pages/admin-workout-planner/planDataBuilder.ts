@@ -75,6 +75,12 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
       goal,
       category: generatedCategory,
     };
+    if (generatedPlan.planningSystem) {
+      payload.planningSystem = generatedPlan.planningSystem;
+    }
+    if (generatedPlan.swanCoachPlanning) {
+      payload.swanCoachPlanning = generatedPlan.swanCoachPlanning;
+    }
     if (generatedPlan.recommendationDetails) {
       payload.recommendationDetails = generatedPlan.recommendationDetails;
     }

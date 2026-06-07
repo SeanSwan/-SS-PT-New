@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import { PLAN_HORIZONS } from '../services/clientTrainingPlanHorizonService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+
+const lineCount = (source) => source.split(/\r?\n/).length;
+const readModelSource = () => readFileSync(
+  resolve(import.meta.dirname, '../services/clientTrainingReadModelService.mjs'),
+  'utf8',
+);
 
 const sixMonthPlan = {
   id: 'plan-6m',
@@ -15,6 +23,10 @@ const sixMonthPlan = {
 };
 
 describe('clientTrainingReadModelService', () => {
+  it('keeps the shared training read model under the 300-line extraction cap', () => {
+    expect(lineCount(readModelSource())).toBeLessThanOrEqual(300);
+  });
+
   it('defines the seven SwanStudios plan horizons with six months as the default arc', () => {
     expect(PLAN_HORIZONS.map((slot) => slot.key)).toEqual([
       'one_day',
@@ -294,6 +306,42 @@ describe('clientTrainingReadModelService', () => {
         formId: 'daily-form-1',
         completedAt: '2026-06-06T12:00:00.000Z',
       },
+    });
+  });
+
+  it('keeps today non-loggable after a plan advances from a same-day homework log', () => {
+    const overview = buildClientTrainingOverview({
+      activePlan: { ...sixMonthPlan, currentWeek: 5, currentDay: 1 },
+      plans: [{ ...sixMonthPlan, currentWeek: 5, currentDay: 1 }],
+      currentSession: {
+        weekNumber: 5,
+        dayNumber: 1,
+        dayLabel: 'Next Week Start',
+        session: { assignmentType: 'homework' },
+        exercises: [{ exerciseName: 'Split Squat' }],
+      },
+      today: '2026-06-06',
+      assignmentCompletions: [{
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        formId: 'daily-form-1',
+        completedAt: '2026-06-06T12:00:00.000Z',
+        assignmentType: 'homework',
+        title: 'Coach Homework Lower Body',
+        weekNumber: 4,
+        dayNumber: 2,
+        exerciseCount: 1,
+        firstExerciseName: 'Goblet Squat',
+      }],
+    });
+
+    expect(overview.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      title: 'Coach Homework Lower Body',
+      weekNumber: 4,
+      dayNumber: 2,
+      status: 'completed',
+      isLoggable: false,
+      ctaLabel: 'Review Workout',
     });
   });
 });

@@ -8,16 +8,10 @@
  * same plan-catalog and today-assignment semantics.
  */
 
-import {
-  DEFAULT_PLAN_HORIZON_KEY,
-  PLAN_HORIZONS,
-  normalizePlanHorizonKey,
-} from './clientTrainingPlanHorizonService.mjs';
-import {
-  buildPlanAssignmentSemantics,
-  normalizeAssignmentType,
-} from './clientTrainingAssignmentSemanticsService.mjs';
+import { DEFAULT_PLAN_HORIZON_KEY, PLAN_HORIZONS, normalizePlanHorizonKey } from './clientTrainingPlanHorizonService.mjs';
+import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
+import { buildCompletedAssignmentFromLoggedCompletion } from './clientTrainingCompletedAssignmentReadService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
@@ -260,7 +254,7 @@ const buildTodayAssignment = ({
   const dayNumber = toPositiveInteger(currentSession?.dayNumber, rawPlan.currentDay || null);
   const assignmentKey = assignmentKeyFor({ planId: rawPlan.id, weekNumber, dayNumber, type });
 
-  return applyAssignmentCompletion({
+  const assignment = {
     assignmentId: assignmentKey,
     assignmentKey,
     assignmentType: type,
@@ -279,7 +273,11 @@ const buildTodayAssignment = ({
     firstExerciseName: firstExerciseName(exercises),
     exercises,
     ctaLabel: ctaForAssignment({ type, status, isLoggable }),
-  }, assignmentCompletions);
+  };
+  const completedAssignment = applyAssignmentCompletion(assignment, assignmentCompletions);
+  return completedAssignment !== assignment
+    ? completedAssignment
+    : buildCompletedAssignmentFromLoggedCompletion(assignmentCompletions, today) || assignment;
 };
 
 export const buildClientTrainingOverview = ({

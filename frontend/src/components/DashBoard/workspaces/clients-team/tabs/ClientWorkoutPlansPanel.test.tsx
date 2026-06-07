@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -159,9 +159,13 @@ describe('ClientWorkoutPlansPanel', () => {
             id: 99,
             title: 'Primary Six Month Arc',
             status: 'active',
+            nasmPhase: 2,
             durationWeeks: 26,
             updatedAt: '2026-06-03T12:00:00.000Z',
-            planData: { goal: 'strength' },
+            planData: {
+              goal: 'strength',
+              planningSystem: 'swan_coach_planning',
+            },
             metadata: {
               isPrimaryPlan: true,
               planHorizon: 'six_month',
@@ -186,7 +190,11 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(mockAuthAxios.get).toHaveBeenLastCalledWith('/api/workout-plans/99/pdf/content.pdf', { responseType: 'blob' });
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(window.open).not.toHaveBeenCalled();
-    expect(await screen.findByRole('dialog', { name: /primary six month arc pdf/i })).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: /primary six month arc pdf/i });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('6 Month')).toBeInTheDocument();
+    expect(within(dialog).getByText(/NASM phase 2/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Swan Coach Planning/i)).toBeInTheDocument();
     expect(screen.getByTitle(/primary six month arc pdf/i)).toHaveAttribute('src', 'blob:fixture-plan-pdf');
     expect(screen.getByRole('link', { name: /download primary six month arc\.pdf/i })).toHaveAttribute('href', 'blob:fixture-plan-pdf');
     await user.click(screen.getByRole('button', { name: /open pdf in new tab/i }));
