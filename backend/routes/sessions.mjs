@@ -1999,8 +1999,7 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error blocking time',
-      error: responseMessage || 'Unknown error'
+      message: 'Server error blocking time'
     });
   }
 });
@@ -2111,8 +2110,7 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
     logger.error(`Error in PUT /api/sessions/${req.params.id}/reschedule:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error rescheduling session',
-      error: error.message
+      message: 'Server error rescheduling session'
     });
   }
 });
