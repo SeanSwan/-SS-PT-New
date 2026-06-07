@@ -43,7 +43,7 @@ function workoutPosition(workout?: CurrentClientWorkout | null): string {
 const ASSIGNMENT_LABELS: Record<string, string> = {
   none: 'Plan Pending',
   trainer_session: 'Trainer Session',
-  homework: 'Off-Day Homework',
+  homework: 'Coach Homework',
   active_recovery: 'Active Recovery',
   rest: 'Rest Day',
   assessment: 'Assessment',
@@ -54,7 +54,6 @@ function assignmentLabel(type?: string): string {
 }
 
 function sectionKickerLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'homework') return 'Suggested Workout';
   if (workout?.assignmentType === 'trainer_session') return 'Trainer Session';
   if (workout?.assignmentType === 'rest') return 'Recovery Day';
   return 'Today\'s Assignment';
@@ -95,7 +94,6 @@ function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'homework' && workout.isLoggable) return 'Log suggested workout';
   return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
 }
 

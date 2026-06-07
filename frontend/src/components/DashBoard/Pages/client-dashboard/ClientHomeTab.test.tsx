@@ -292,9 +292,9 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     const card = await screen.findByTestId('current-workout-card');
     expect(mockApiGet).toHaveBeenCalledWith('/api/workouts/42/current');
-    expect(card.textContent).toMatch(/suggested workout/i);
+    expect(card.textContent).toMatch(/today's assignment/i);
     expect(card.textContent).toMatch(/coach homework lower strength/i);
-    expect(card.textContent).toMatch(/off-day homework/i);
+    expect(card.textContent).toMatch(/off-day plan work/i);
     expect(card.textContent).toMatch(/no paid session deduction/i);
     expect(card.textContent).toMatch(/6 month/i);
     expect(card.textContent).toMatch(/week 2/i);
@@ -327,7 +327,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(within(pdfDialog).getByText(/protected plan pdf/i)).toBeInTheDocument();
     expect(within(pdfDialog).getByText(/6 month/i)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /log suggested workout/i }));
+    await user.click(screen.getByRole('button', { name: /log today's assignment/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
