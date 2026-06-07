@@ -9,6 +9,7 @@ const pageSource = read('src/components/WorkoutBuilder/WorkoutBuilderPage.tsx');
 const stylesSource = read('src/components/WorkoutBuilder/WorkoutBuilderPage.styles.ts');
 const contextPath = 'src/components/WorkoutBuilder/WorkoutBuilderContextPanel.tsx';
 const controlsPath = 'src/components/WorkoutBuilder/WorkoutBuilderControlsPanel.tsx';
+const planModeFieldsPath = 'src/components/WorkoutBuilder/WorkoutBuilderPlanModeFields.tsx';
 const resultPath = 'src/components/WorkoutBuilder/WorkoutBuilderResults.tsx';
 const insightsPath = 'src/components/WorkoutBuilder/WorkoutBuilderInsightsPanel.tsx';
 const boundaryPath = 'src/components/WorkoutBuilder/WorkoutBuilderErrorBoundary.tsx';
@@ -29,7 +30,16 @@ describe('WorkoutBuilderPage composition contract', () => {
   });
 
   it('keeps each extracted Workout Builder module under the file cap', () => {
-    for (const path of [contextPath, controlsPath, resultPath, insightsPath, boundaryPath, constantsPath, saveLogicPath]) {
+    for (const path of [
+      contextPath,
+      controlsPath,
+      planModeFieldsPath,
+      resultPath,
+      insightsPath,
+      boundaryPath,
+      constantsPath,
+      saveLogicPath,
+    ]) {
       expect(existsSync(resolve(process.cwd(), path))).toBe(true);
       expect(lineCount(read(path))).toBeLessThanOrEqual(300);
     }
@@ -39,6 +49,7 @@ describe('WorkoutBuilderPage composition contract', () => {
   it('keeps extracted modules on shared styles without reintroducing local colors', () => {
     const contextSource = existsSync(resolve(process.cwd(), contextPath)) ? read(contextPath) : '';
     const controlsSource = existsSync(resolve(process.cwd(), controlsPath)) ? read(controlsPath) : '';
+    const planModeFieldsSource = existsSync(resolve(process.cwd(), planModeFieldsPath)) ? read(planModeFieldsPath) : '';
     const resultSource = existsSync(resolve(process.cwd(), resultPath)) ? read(resultPath) : '';
     const insightsSource = existsSync(resolve(process.cwd(), insightsPath)) ? read(insightsPath) : '';
     const boundarySource = existsSync(resolve(process.cwd(), boundaryPath)) ? read(boundaryPath) : '';
@@ -48,6 +59,7 @@ describe('WorkoutBuilderPage composition contract', () => {
       stylesSource,
       contextSource,
       controlsSource,
+      planModeFieldsSource,
       resultSource,
       insightsSource,
       boundarySource,
@@ -57,6 +69,7 @@ describe('WorkoutBuilderPage composition contract', () => {
       pageSource,
       contextSource,
       controlsSource,
+      planModeFieldsSource,
       resultSource,
       insightsSource,
       boundarySource,
@@ -72,7 +85,7 @@ describe('WorkoutBuilderPage composition contract', () => {
 
     expect(pageSource).toContain('handleSaveDraft');
     expect(pageSource).toContain('handleSaveAndActivate');
-    expect(pageSource).toContain('api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan))');
+    expect(pageSource).toContain('api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan, { assignmentDefault }))');
     expect(pageSource).toContain('api.activateWorkoutPlan(savedPlan.id)');
     expect(pageSource).toContain('planSave={{');
     expect(controlsSource).toContain('planSave: WorkoutBuilderPlanSaveState');
@@ -83,6 +96,20 @@ describe('WorkoutBuilderPage composition contract', () => {
     expect(resultSource).toContain('Plan Saved');
     expect(resultSource).toContain('disabled={actionInFlight || alreadySaved}');
     expect(resultSource).toContain('WorkoutBuilderPlanSaveAction');
+  });
+
+  it('lets coaches classify generated plans as homework or trainer-led before saving', () => {
+    const controlsSource = read(controlsPath);
+    const planModeFieldsSource = read(planModeFieldsPath);
+
+    expect(pageSource).toContain('assignmentDefault');
+    expect(pageSource).toContain('setAssignmentDefault');
+    expect(pageSource).toContain('buildWorkoutBuilderPlanSavePayload(plan, { assignmentDefault })');
+    expect(controlsSource).toContain("from './WorkoutBuilderPlanModeFields'");
+    expect(controlsSource).toContain('assignmentDefault={props.assignmentDefault}');
+    expect(planModeFieldsSource).toContain('Plan Use');
+    expect(planModeFieldsSource).toContain("value=\"homework\"");
+    expect(planModeFieldsSource).toContain("value=\"trainer_session\"");
   });
 
   it('does not key generated Workout Builder insight rows by array index', () => {

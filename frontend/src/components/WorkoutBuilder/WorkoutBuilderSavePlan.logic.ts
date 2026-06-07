@@ -6,7 +6,36 @@
  * planner's local state machine.
  */
 
-import type { GeneratedPlan, WorkoutBuilderPlanSavePayload } from '../../hooks/useWorkoutBuilderAPI';
+import type {
+  GeneratedPlan,
+  WorkoutBuilderPlanAssignmentDefault,
+  WorkoutBuilderPlanBillingIntent,
+  WorkoutBuilderPlanSavePayload,
+} from '../../hooks/useWorkoutBuilderAPI';
+
+interface WorkoutBuilderPlanSaveOptions {
+  assignmentDefault?: WorkoutBuilderPlanAssignmentDefault;
+}
+
+const normalizeAssignmentDefault = (
+  value?: WorkoutBuilderPlanAssignmentDefault,
+): WorkoutBuilderPlanAssignmentDefault => (
+  value === 'trainer_session' ? 'trainer_session' : 'homework'
+);
+
+const billingIntentFor = (
+  assignmentDefault: WorkoutBuilderPlanAssignmentDefault,
+): WorkoutBuilderPlanBillingIntent => (
+  assignmentDefault === 'trainer_session'
+    ? 'trainer_led_scheduled_flow'
+    : 'non_billable_assignment'
+);
+
+const buildAssignmentDefaults = (assignmentDefault: WorkoutBuilderPlanAssignmentDefault) => ({
+  defaultAssignmentType: assignmentDefault,
+  billingIntent: billingIntentFor(assignmentDefault),
+  shouldDeductSession: false,
+});
 
 const goalLabel = (goal: string): string =>
   goal
@@ -15,7 +44,10 @@ const goalLabel = (goal: string): string =>
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
-const buildPlanData = (plan: GeneratedPlan): Record<string, unknown> => {
+const buildPlanData = (
+  plan: GeneratedPlan,
+  assignmentDefault: WorkoutBuilderPlanAssignmentDefault,
+): Record<string, unknown> => {
   const payload: Record<string, unknown> = {
     weeks: Array.isArray(plan.weeks) ? plan.weeks : [],
     mesocycles: plan.mesocycles ?? [],
@@ -25,6 +57,7 @@ const buildPlanData = (plan: GeneratedPlan): Record<string, unknown> => {
     planSummary: plan.planSummary,
     goal: plan.planSummary.primaryGoal,
     category: 'full_body',
+    assignmentDefaults: buildAssignmentDefaults(assignmentDefault),
   };
 
   if (plan.recommendationDetails) {
@@ -37,10 +70,15 @@ const buildPlanData = (plan: GeneratedPlan): Record<string, unknown> => {
   return payload;
 };
 
-export const buildWorkoutBuilderPlanSavePayload = (plan: GeneratedPlan): WorkoutBuilderPlanSavePayload => {
+export const buildWorkoutBuilderPlanSavePayload = (
+  plan: GeneratedPlan,
+  options: WorkoutBuilderPlanSaveOptions = {},
+): WorkoutBuilderPlanSavePayload => {
   const { planSummary } = plan;
   const phase = Number.isFinite(planSummary.startingPhase) ? planSummary.startingPhase : null;
   const goal = goalLabel(planSummary.primaryGoal || 'general_fitness');
+  const assignmentDefault = normalizeAssignmentDefault(options.assignmentDefault);
+  const billingIntent = billingIntentFor(assignmentDefault);
 
   return {
     userId: plan.clientId,
@@ -49,7 +87,7 @@ export const buildWorkoutBuilderPlanSavePayload = (plan: GeneratedPlan): Workout
     nasmPhase: phase,
     durationWeeks: planSummary.durationWeeks,
     status: 'draft',
-    planData: buildPlanData(plan),
+    planData: buildPlanData(plan, assignmentDefault),
     createdBy: 'ai',
     metadata: {
       source: 'workout_builder',
@@ -60,6 +98,9 @@ export const buildWorkoutBuilderPlanSavePayload = (plan: GeneratedPlan): Workout
       totalSessions: planSummary.totalSessions,
       equipmentProfileId: planSummary.equipmentProfileId,
       generatedAt: plan.generatedAt,
+      defaultAssignmentType: assignmentDefault,
+      billingIntent,
+      defaultShouldDeductSession: false,
     },
   };
 };

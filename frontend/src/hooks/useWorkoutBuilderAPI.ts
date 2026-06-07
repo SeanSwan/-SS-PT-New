@@ -28,6 +28,8 @@ export type {
   PainWarning,
   SavedWorkoutPlan,
   WarmupExercise,
+  WorkoutBuilderPlanAssignmentDefault,
+  WorkoutBuilderPlanBillingIntent,
   WorkoutBuilderPlanSavePayload,
   WorkoutExercise,
 } from './useWorkoutBuilderAPI.types';

@@ -202,6 +202,9 @@ export interface WorkoutBuilderEquipmentContext {
   [key: string]: unknown;
 }
 
+export type WorkoutBuilderPlanAssignmentDefault = 'homework' | 'trainer_session';
+export type WorkoutBuilderPlanBillingIntent = 'non_billable_assignment' | 'trainer_led_scheduled_flow';
+
 export interface GeneratedPlan {
   clientId: number;
   trainerId: number;
@@ -246,6 +249,9 @@ export interface WorkoutBuilderPlanSavePayload {
     totalSessions: number;
     equipmentProfileId: number | null;
     generatedAt: string;
+    defaultAssignmentType: WorkoutBuilderPlanAssignmentDefault;
+    billingIntent: WorkoutBuilderPlanBillingIntent;
+    defaultShouldDeductSession: false;
   };
 }
 

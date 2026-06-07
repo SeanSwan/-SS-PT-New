@@ -32,6 +32,9 @@ describe('useWorkoutBuilderAPI type boundary', () => {
     const typeSource = readFileSync(resolve(__dirname, 'useWorkoutBuilderAPI.types.ts'), 'utf8');
 
     expect(typeSource).toContain('export interface WorkoutBuilderPlanSavePayload');
+    expect(typeSource).toContain('export type WorkoutBuilderPlanAssignmentDefault');
+    expect(typeSource).toContain('defaultAssignmentType: WorkoutBuilderPlanAssignmentDefault');
+    expect(typeSource).toContain('billingIntent: WorkoutBuilderPlanBillingIntent');
     expect(typeSource).toContain("source: 'workout_builder'");
     expect(typeSource).toContain("status: 'draft'");
     expect(typeSource).toContain('export interface SavedWorkoutPlan');

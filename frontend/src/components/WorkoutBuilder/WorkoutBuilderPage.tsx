@@ -10,6 +10,7 @@ import type {
   ClientContext,
   GeneratedPlan,
   GeneratedWorkout,
+  WorkoutBuilderPlanAssignmentDefault,
 } from '../../hooks/useWorkoutBuilderAPI';
 import WorkoutBuilderContextPanel from './WorkoutBuilderContextPanel';
 import WorkoutBuilderControlsPanel from './WorkoutBuilderControlsPanel';
@@ -49,6 +50,7 @@ const WorkoutBuilderPage: React.FC = () => {
   const [planWeeks, setPlanWeeks] = useState('12');
   const [sessionsPerWeek, setSessionsPerWeek] = useState('3');
   const [primaryGoal, setPrimaryGoal] = useState('general_fitness');
+  const [assignmentDefault, setAssignmentDefault] = useState<WorkoutBuilderPlanAssignmentDefault>('homework');
 
   useEffect(() => {
     if (!parsedClientId) {
@@ -112,7 +114,7 @@ const WorkoutBuilderPage: React.FC = () => {
     setSavingAction(activate ? 'active' : 'draft');
     setSaveStatus(null);
     try {
-      const savedPlan = await api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan));
+      const savedPlan = await api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan, { assignmentDefault }));
       savedDraft = true;
       if (activate) {
         if (!savedPlan.id) throw new Error('Saved plan returned no id.');
@@ -134,7 +136,7 @@ const WorkoutBuilderPage: React.FC = () => {
     } finally {
       setSavingAction(null);
     }
-  }, [api, plan]);
+  }, [api, assignmentDefault, plan]);
 
   const handleSaveDraft = useCallback(() => {
     void saveGeneratedPlan(false);
@@ -174,6 +176,8 @@ const WorkoutBuilderPage: React.FC = () => {
           setSessionsPerWeek={setSessionsPerWeek}
           primaryGoal={primaryGoal}
           setPrimaryGoal={setPrimaryGoal}
+          assignmentDefault={assignmentDefault}
+          setAssignmentDefault={setAssignmentDefault}
           equipmentProfileId={equipmentProfileId}
           setEquipmentProfileId={setEquipmentProfileId}
           context={context}

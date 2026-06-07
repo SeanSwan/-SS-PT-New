@@ -5,7 +5,12 @@
  */
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { ClientContext, GeneratedPlan, GeneratedWorkout } from '../../hooks/useWorkoutBuilderAPI';
+import type {
+  ClientContext,
+  GeneratedPlan,
+  GeneratedWorkout,
+  WorkoutBuilderPlanAssignmentDefault,
+} from '../../hooks/useWorkoutBuilderAPI';
 import { CATEGORIES } from './WorkoutBuilderPage.constants';
 import type { WorkoutBuilderMode } from './WorkoutBuilderPage.logic';
 import type { WorkoutBuilderPlanSaveState } from './WorkoutBuilderResults';
@@ -23,6 +28,7 @@ import {
   PrimaryButton,
   Select,
 } from './WorkoutBuilderPage.styles';
+import WorkoutBuilderPlanModeFields from './WorkoutBuilderPlanModeFields';
 import WorkoutBuilderResults from './WorkoutBuilderResults';
 
 type SetString = Dispatch<SetStateAction<string>>;
@@ -42,6 +48,8 @@ interface WorkoutBuilderControlsPanelProps {
   setSessionsPerWeek: SetString;
   primaryGoal: string;
   setPrimaryGoal: SetString;
+  assignmentDefault: WorkoutBuilderPlanAssignmentDefault;
+  setAssignmentDefault: Dispatch<SetStateAction<WorkoutBuilderPlanAssignmentDefault>>;
   equipmentProfileId: string;
   setEquipmentProfileId: SetString;
   context: ClientContext | null;
@@ -93,43 +101,6 @@ const WorkoutModeFields: React.FC<{
   </>
 );
 
-const PlanModeFields: React.FC<{
-  planWeeks: string;
-  setPlanWeeks: SetString;
-  sessionsPerWeek: string;
-  setSessionsPerWeek: SetString;
-  primaryGoal: string;
-  setPrimaryGoal: SetString;
-}> = ({
-  planWeeks,
-  setPlanWeeks,
-  sessionsPerWeek,
-  setSessionsPerWeek,
-  primaryGoal,
-  setPrimaryGoal,
-}) => (
-  <>
-    <CompactConfigField>
-      <Label>Weeks</Label>
-      <Input type="number" value={planWeeks} onChange={event => setPlanWeeks(event.target.value)} />
-    </CompactConfigField>
-    <CompactConfigField>
-      <Label>Sessions/Week</Label>
-      <Input type="number" value={sessionsPerWeek} onChange={event => setSessionsPerWeek(event.target.value)} />
-    </CompactConfigField>
-    <ConfigField>
-      <Label>Goal</Label>
-      <Select value={primaryGoal} onChange={event => setPrimaryGoal(event.target.value)}>
-        <option value="general_fitness">General Fitness</option>
-        <option value="hypertrophy">Hypertrophy</option>
-        <option value="strength">Strength</option>
-        <option value="fat_loss">Fat Loss</option>
-        <option value="athletic_performance">Athletic Performance</option>
-      </Select>
-    </ConfigField>
-  </>
-);
-
 const EquipmentProfileField: React.FC<{
   context: ClientContext | null;
   equipmentProfileId: string;
@@ -165,6 +136,8 @@ const ModeSpecificFields: React.FC<Pick<
   | 'setSessionsPerWeek'
   | 'primaryGoal'
   | 'setPrimaryGoal'
+  | 'assignmentDefault'
+  | 'setAssignmentDefault'
 >> = (props) => {
   if (props.mode === 'workout') {
     return (
@@ -180,13 +153,15 @@ const ModeSpecificFields: React.FC<Pick<
   }
 
   return (
-    <PlanModeFields
+    <WorkoutBuilderPlanModeFields
       planWeeks={props.planWeeks}
       setPlanWeeks={props.setPlanWeeks}
       sessionsPerWeek={props.sessionsPerWeek}
       setSessionsPerWeek={props.setSessionsPerWeek}
       primaryGoal={props.primaryGoal}
       setPrimaryGoal={props.setPrimaryGoal}
+      assignmentDefault={props.assignmentDefault}
+      setAssignmentDefault={props.setAssignmentDefault}
     />
   );
 };
@@ -227,6 +202,8 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
   setSessionsPerWeek,
   primaryGoal,
   setPrimaryGoal,
+  assignmentDefault,
+  setAssignmentDefault,
   equipmentProfileId,
   setEquipmentProfileId,
   context,
@@ -266,6 +243,8 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
         setSessionsPerWeek={setSessionsPerWeek}
         primaryGoal={primaryGoal}
         setPrimaryGoal={setPrimaryGoal}
+        assignmentDefault={assignmentDefault}
+        setAssignmentDefault={setAssignmentDefault}
       />
       <EquipmentProfileField
         context={context}

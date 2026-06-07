@@ -95,6 +95,9 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
       sessionsPerWeek: 3,
       totalSessions: 36,
       equipmentProfileId: 9,
+      defaultAssignmentType: 'homework',
+      billingIntent: 'non_billable_assignment',
+      defaultShouldDeductSession: false,
     });
   });
 
@@ -109,5 +112,27 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
     expect(payload.planData.rationale).toEqual(generatedPlan.rationale);
     expect(payload.planData.equipmentContext).toEqual(generatedPlan.equipmentContext);
     expect(payload.planData.category).toBe('full_body');
+    expect(payload.planData.assignmentDefaults).toEqual({
+      defaultAssignmentType: 'homework',
+      billingIntent: 'non_billable_assignment',
+      shouldDeductSession: false,
+    });
+  });
+
+  it('marks trainer-led generated plans without enabling automatic session deduction', () => {
+    const payload = buildWorkoutBuilderPlanSavePayload(generatedPlan, {
+      assignmentDefault: 'trainer_session',
+    });
+
+    expect(payload.metadata).toMatchObject({
+      defaultAssignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      defaultShouldDeductSession: false,
+    });
+    expect(payload.planData.assignmentDefaults).toEqual({
+      defaultAssignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
   });
 });
