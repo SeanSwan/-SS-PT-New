@@ -365,8 +365,7 @@ router.get("/analytics", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/analytics:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching analytics',
-      error: error.message
+      message: 'Server error fetching analytics'
     });
   }
 });
@@ -660,8 +659,7 @@ router.post("/request", protect, async (req, res) => {
     logger.error('Error in POST /api/sessions/request:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error creating session request',
-      error: error.message
+      message: 'Server error creating session request'
     });
   }
 });
@@ -803,7 +801,7 @@ router.post("/allocate-from-order", protect, adminOnly, async (req, res) => {
     logger.error('Error in POST /api/sessions/allocate-from-order:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to allocate sessions from order'
+      message: 'Failed to allocate sessions from order'
     });
   }
 });
@@ -889,7 +887,7 @@ router.post("/add-to-user", protect, adminOnly, async (req, res) => {
     logger.error('Error in POST /api/sessions/add-to-user:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to add sessions'
+      message: 'Failed to add sessions'
     });
   }
 });
@@ -945,7 +943,7 @@ router.get("/user-summary/:userId", protect, adminOnly, async (req, res) => {
     logger.error('Error in GET /api/sessions/user-summary/:userId:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get session summary'
+      message: 'Failed to get session summary'
     });
   }
 });
@@ -1315,8 +1313,7 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
     logger.error('Error in GET /api/sessions/admin/cancelled:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching cancelled sessions',
-      error: error.message
+      message: 'Server error fetching cancelled sessions'
     });
   }
 });
@@ -2623,8 +2620,7 @@ router.post("/allocate", protect, adminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error allocating sessions',
-      error: error.message
+      message: 'Server error allocating sessions'
     });
   }
 });
