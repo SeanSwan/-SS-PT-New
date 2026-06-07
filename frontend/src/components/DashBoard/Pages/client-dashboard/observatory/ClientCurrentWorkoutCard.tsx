@@ -41,6 +41,7 @@ function workoutPosition(workout?: CurrentClientWorkout | null): string {
 }
 
 const ASSIGNMENT_LABELS: Record<string, string> = {
+  none: 'Plan Pending',
   trainer_session: 'Trainer Session',
   active_recovery: 'Active Recovery',
   rest: 'Rest Day',
@@ -81,7 +82,7 @@ function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
-  return workout?.isLoggable ? 'Log today\'s assignment' : 'View training plan';
+  return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
 }
 
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({

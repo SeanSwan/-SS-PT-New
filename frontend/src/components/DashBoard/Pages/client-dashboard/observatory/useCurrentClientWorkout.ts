@@ -192,11 +192,11 @@ function primaryPlanLabel(catalog?: TrainingPlanCatalogPreview | null): string |
 
 function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null): CurrentClientWorkout | null {
   const plan = payload?.data || payload?.plan || null;
-  if (!plan) return null;
+  const assignment = payload?.todayAssignment || plan?.todayAssignment || null;
+  const catalog = payload?.trainingPlanCatalog || plan?.trainingPlanCatalog || null;
+  if (!plan && !assignment) return null;
 
-  const assignment = payload?.todayAssignment || plan.todayAssignment || null;
-  const catalog = payload?.trainingPlanCatalog || plan.trainingPlanCatalog || null;
-  const session = payload?.currentSession || plan.currentSession || null;
+  const session = payload?.currentSession || plan?.currentSession || null;
   const exercises = Array.isArray(session?.exercises)
     ? session?.exercises || []
     : Array.isArray(session?.session?.exercises)
@@ -208,14 +208,14 @@ function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null):
     : undefined;
 
   return {
-    title: assignment?.title || plan.title || plan.name || 'Today\'s Assignment',
+    title: assignment?.title || plan?.title || plan?.name || 'Today\'s Assignment',
     assignmentType: assignment?.assignmentType,
     assignmentStatus: assignment?.status,
     sessionType: assignment?.sessionType,
     isLoggable: assignment?.isLoggable ?? exercises.length > 0,
     ctaLabel: assignment?.ctaLabel || 'Start',
-    weekNumber: toPositiveInteger(assignment?.weekNumber ?? session?.weekNumber ?? plan.currentWeek),
-    dayNumber: toPositiveInteger(assignment?.dayNumber ?? session?.dayNumber ?? plan.currentDay),
+    weekNumber: toPositiveInteger(assignment?.weekNumber ?? session?.weekNumber ?? plan?.currentWeek),
+    dayNumber: toPositiveInteger(assignment?.dayNumber ?? session?.dayNumber ?? plan?.currentDay),
     dayLabel: assignment?.dayLabel || session?.dayLabel || session?.session?.dayLabel || session?.session?.name,
     exerciseCount: assignmentExerciseCount ?? exercises.length,
     firstExercise: assignmentFirstExercise || exerciseName(exercises[0]),

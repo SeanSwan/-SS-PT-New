@@ -10,13 +10,15 @@
  *   3. Periodization Expert (Nemotron) — Reviews volume/intensity progression
  */
 
+import { appendSwanCoachPlanningGuidance } from '../../swanCoachPlanningContextService.mjs';
+
 /**
  * Build the NASM Specialist prompt (Round 1 proposer).
  * @param {Object} clientContext - De-identified client data
  * @returns {string}
  */
 export function buildNASMSpecialistPrompt(clientContext) {
-  return `You are a NASM-certified personal trainer and exercise scientist specializing in the NASM Optimum Performance Training (OPT) Model. You are designing a workout plan.
+  return appendSwanCoachPlanningGuidance(`You are a NASM-certified personal trainer and exercise scientist specializing in the NASM Optimum Performance Training (OPT) Model. You are designing a workout plan.
 
 CLIENT PROFILE (de-identified):
 - Alias: ${clientContext.clientAlias}
@@ -58,7 +60,7 @@ OUTPUT FORMAT (JSON only, no markdown):
       ]
     }
   ]
-}`;
+}`, { placement: 'prepend' });
 }
 
 /**
@@ -68,7 +70,7 @@ OUTPUT FORMAT (JSON only, no markdown):
  * @returns {string}
  */
 export function buildSafetyReviewerPrompt(clientContext, previousPlan) {
-  return `You are a sports medicine and injury prevention specialist. Your job is to review workout plans for safety, contraindications, and injury risk.
+  return appendSwanCoachPlanningGuidance(`You are a sports medicine and injury prevention specialist. Your job is to review workout plans for safety, contraindications, and injury risk.
 
 CLIENT PROFILE:
 - Alias: ${clientContext.clientAlias}
@@ -103,7 +105,7 @@ OUTPUT FORMAT (JSON only):
     }
   ],
   "consensus": "agree|disagree|partial"
-}`;
+}`, { placement: 'prepend' });
 }
 
 /**
@@ -113,7 +115,7 @@ OUTPUT FORMAT (JSON only):
  * @returns {string}
  */
 export function buildPeriodizationExpertPrompt(clientContext, currentPlan) {
-  return `You are a periodization and programming expert. Review this workout plan for progressive overload, volume management, and long-term programming suitability.
+  return appendSwanCoachPlanningGuidance(`You are a periodization and programming expert. Review this workout plan for progressive overload, volume management, and long-term programming suitability.
 
 CLIENT PROFILE:
 - Alias: ${clientContext.clientAlias}
@@ -147,7 +149,7 @@ OUTPUT FORMAT (JSON only):
     }
   ],
   "consensus": "agree|disagree|partial"
-}`;
+}`, { placement: 'prepend' });
 }
 
 /**
@@ -162,7 +164,7 @@ export function buildFinalIntegrationPrompt(clientContext, previousRounds) {
     `Round ${i + 1} (${r.role}): ${r.recommendation}\nModifications: ${JSON.stringify(r.modifications || [])}\nConsensus: ${r.consensus || 'N/A'}`
   ).join('\n\n');
 
-  return `You are the lead NASM-certified trainer making the final workout plan decision. You have received feedback from a safety reviewer and periodization expert.
+  return appendSwanCoachPlanningGuidance(`You are the lead NASM-certified trainer making the final workout plan decision. You have received feedback from a safety reviewer and periodization expert.
 
 CLIENT: ${clientContext.clientAlias}
 NASM Phase: ${clientContext.nasmPhase || 1}
@@ -195,7 +197,7 @@ OUTPUT FORMAT (JSON only):
     }
   ],
   "consensus": "agree"
-}`;
+}`, { placement: 'prepend' });
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

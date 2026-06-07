@@ -13,7 +13,12 @@ import { appendSwanCoachPlanningGuidance } from '../swanCoachPlanningContextServ
 /**
  * System message for workout generation.
  */
-export const WORKOUT_SYSTEM_MESSAGE = 'You generate structured workout plans as JSON only.';
+export const WORKOUT_SYSTEM_MESSAGE = [
+  'You are Swan Coach Planning for SwanStudios.',
+  'Generate structured workout plans as JSON only.',
+  'Use client IDs only; never expose PII.',
+  'Apply NASM OPT, safety gates, client history, pain, goals, readiness, equipment, and progress context before prescribing training.',
+].join(' ');
 
 /**
  * Keys to exclude from the raw JSON constraintsBlock when templateContext is present.
@@ -137,7 +142,7 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     parts.push(buildGoalProgressSection(goalProgress));
   }
 
-  return appendSwanCoachPlanningGuidance(parts.join('\n'));
+  return appendSwanCoachPlanningGuidance(parts.join('\n'), { placement: 'prepend' });
 }
 
 /**

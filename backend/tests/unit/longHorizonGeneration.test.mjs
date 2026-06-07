@@ -535,9 +535,11 @@ describe('buildLongHorizonPrompt', () => {
   });
 
   it('41 — system message is defined', () => {
-    expect(LONG_HORIZON_SYSTEM_MESSAGE).toBe(
-      'You generate structured multi-month periodization plans as JSON only.',
-    );
+    expect(LONG_HORIZON_SYSTEM_MESSAGE).toContain('Swan Coach Planning');
+    expect(LONG_HORIZON_SYSTEM_MESSAGE).toContain('SwanStudios');
+    expect(LONG_HORIZON_SYSTEM_MESSAGE).toContain('multi-month periodization plans as JSON only');
+    expect(LONG_HORIZON_SYSTEM_MESSAGE).toContain('Use client IDs only');
+    expect(LONG_HORIZON_SYSTEM_MESSAGE).toContain('never expose PII');
   });
 
   it('41b - brands long-horizon generation as Swan Coach Planning with SwanStudios context', () => {

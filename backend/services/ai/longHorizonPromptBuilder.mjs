@@ -18,7 +18,12 @@ import { appendSwanCoachPlanningGuidance } from '../swanCoachPlanningContextServ
  * System message for long-horizon plan generation.
  */
 export const LONG_HORIZON_SYSTEM_MESSAGE =
-  'You generate structured multi-month periodization plans as JSON only.';
+  [
+    'You are Swan Coach Planning for SwanStudios.',
+    'Generate structured multi-month periodization plans as JSON only.',
+    'Use client IDs only; never expose PII.',
+    'Apply NASM OPT, safety gates, client history, pain, goals, readiness, equipment, and progress context before prescribing training.',
+  ].join(' ');
 
 /**
  * Build a long-horizon plan generation prompt.
@@ -186,7 +191,7 @@ export function buildLongHorizonPrompt({
     parts.push(buildTemplateSectionForLongHorizon(templateContext), '');
   }
 
-  return appendSwanCoachPlanningGuidance(parts.join('\n'));
+  return appendSwanCoachPlanningGuidance(parts.join('\n'), { placement: 'prepend' });
 }
 
 /**

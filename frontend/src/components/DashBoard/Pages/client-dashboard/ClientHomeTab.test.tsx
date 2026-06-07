@@ -327,6 +327,65 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
+  it('renders backend pending assignment details when the client has plan arcs but no active workout yet', async () => {
+    const user = userEvent.setup();
+    mockApiGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: null,
+        plan: null,
+        todayAssignment: {
+          assignmentType: 'none',
+          status: 'none',
+          sessionType: 'solo',
+          isLoggable: false,
+          isBillable: false,
+          shouldDeductSession: false,
+          title: 'Trainer is building your 6 Month plan',
+          exerciseCount: 0,
+          ctaLabel: 'Review Plan Vault',
+        },
+        trainingPlanCatalog: {
+          defaultHorizonKey: 'six_month',
+          primaryPlanId: 'plan-6m-draft',
+          primaryHorizonKey: 'six_month',
+          filledHorizonKeys: ['six_month'],
+          slots: [
+            { horizonKey: 'one_day', label: '1 Day', isFilled: false, isPrimary: false, plan: null },
+            { horizonKey: 'one_week', label: '1 Week', isFilled: false, isPrimary: false, plan: null },
+            { horizonKey: 'one_month', label: '1 Month', isFilled: false, isPrimary: false, plan: null },
+            { horizonKey: 'three_month', label: '3 Month', isFilled: false, isPrimary: false, plan: null },
+            {
+              horizonKey: 'six_month',
+              label: '6 Month',
+              isFilled: true,
+              isPrimary: true,
+              plan: {
+                id: 'plan-6m-draft',
+                title: 'Default Six Month Arc',
+                status: 'draft',
+              },
+            },
+            { horizonKey: 'nine_month', label: '9 Month', isFilled: false, isPrimary: false, plan: null },
+            { horizonKey: 'twelve_month', label: '12 Month', isFilled: false, isPrimary: false, plan: null },
+          ],
+        },
+      },
+    });
+
+    render(<ClientHomeTab />);
+
+    const card = await screen.findByTestId('current-workout-card');
+    expect(card.textContent).toMatch(/trainer is building your 6 month plan/i);
+    expect(card.textContent).toMatch(/6 month primary/i);
+    expect(card.textContent).toMatch(/plan pending/i);
+    expect(card.textContent).toMatch(/open your plan vault/i);
+
+    await user.click(screen.getByRole('button', { name: /review plan vault/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
+  });
+
   it('does NOT mount any weight or body-measurement widget on canonical /overview', async () => {
     // Negative assertion — /overview has zero weight/measurement widgets by design.
     // This test locks the absence so a future regression can't silently add a

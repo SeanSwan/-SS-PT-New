@@ -249,7 +249,10 @@ export function buildSwanCoachPlanningFingerprint({
   };
 }
 
-export function appendSwanCoachPlanningGuidance(prompt) {
+export function appendSwanCoachPlanningGuidance(prompt, { placement = 'append' } = {}) {
   if (!prompt || prompt.includes('SWAN COACH PLANNING OPERATING MODEL')) return prompt;
+  if (placement === 'prepend') {
+    return `${SWAN_COACH_PLANNING_GUIDANCE}\n\n${prompt}`;
+  }
   return `${prompt}\n\n${SWAN_COACH_PLANNING_GUIDANCE}`;
 }
