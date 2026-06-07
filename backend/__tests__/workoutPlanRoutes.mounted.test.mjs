@@ -62,6 +62,8 @@ const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockSequelizeTransaction = vi.fn();
+let mockTransactionInstance;
 
 vi.mock('../models/index.mjs', () => ({
   getModel: (name) => {
@@ -77,6 +79,12 @@ vi.mock('../models/index.mjs', () => ({
       };
     }
     return null;
+  },
+}));
+
+vi.mock('../database.mjs', () => ({
+  default: {
+    transaction: (...args) => mockSequelizeTransaction(...args),
   },
 }));
 
@@ -102,6 +110,12 @@ beforeEach(async () => {
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue([0]);
+  mockTransactionInstance = {
+    commit: vi.fn().mockResolvedValue(undefined),
+    rollback: vi.fn().mockResolvedValue(undefined),
+    LOCK: { UPDATE: 'UPDATE' },
+  };
+  mockSequelizeTransaction.mockResolvedValue(mockTransactionInstance);
 });
 
 afterEach(async () => {
@@ -215,6 +229,65 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         primaryPlanId: 'plan-1',
       });
       expect(res.body.trainingPlanCatalog.slots).toHaveLength(7);
+    });
+
+    it('trainer + assigned client GET /client/:userId returns plan catalog when no active plan exists', async () => {
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      const draftPlan = {
+        id: 'plan-8w-draft',
+        userId: 42,
+        title: 'Eight Week Strength Ramp',
+        status: 'draft',
+        durationWeeks: 8,
+        currentWeek: 1,
+        currentDay: 1,
+        metadata: {},
+        planData: { weeks: [] },
+      };
+      mockWorkoutPlanFindOne.mockResolvedValue(null);
+      mockWorkoutPlanFindAll.mockResolvedValue([draftPlan]);
+
+      const res = await request(app)
+        .get('/api/workout-plans/client/42')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        success: true,
+        plan: null,
+        currentSession: null,
+        todayAssignment: {
+          assignmentType: 'none',
+          sessionType: 'solo',
+          isLoggable: false,
+          shouldDeductSession: false,
+        },
+        trainingPlanCatalog: {
+          defaultHorizonKey: 'six_month',
+          primaryPlanId: 'plan-8w-draft',
+          primaryHorizonKey: 'three_month',
+          filledHorizonKeys: ['three_month'],
+        },
+      });
+      expect(res.body.trainingPlanCatalog.slots).toHaveLength(7);
+      expect(res.body.trainingPlanCatalog.slots).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            horizonKey: 'three_month',
+            isFilled: true,
+            isPrimary: true,
+            plan: expect.objectContaining({
+              id: 'plan-8w-draft',
+              horizonKey: 'three_month',
+              durationWeeks: 8,
+            }),
+          }),
+        ]),
+      );
+      expect(mockWorkoutPlanFindAll).toHaveBeenCalledWith(expect.objectContaining({
+        where: { userId: 42, status: ['active', 'paused', 'draft'] },
+      }));
     });
 
     it('trainer WITHOUT assignment GET /client/:userId -> 404 (existence-leak protection)', async () => {
@@ -469,12 +542,15 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .set('x-test-user-role', 'trainer');
 
       expect(res.status).toBe(200);
+      expect(mockSequelizeTransaction).toHaveBeenCalledOnce();
       expect(targetUpdate).toHaveBeenCalledWith({
         metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true },
-      });
+      }, { transaction: mockTransactionInstance });
       expect(siblingUpdate).toHaveBeenCalledWith({
         metadata: { planHorizon: 'six_month', isPrimaryPlan: false },
-      });
+      }, { transaction: mockTransactionInstance });
+      expect(mockTransactionInstance.commit).toHaveBeenCalledOnce();
+      expect(mockTransactionInstance.rollback).not.toHaveBeenCalled();
       expect(res.body.trainingPlanCatalog).toMatchObject({
         primaryPlanId: 'plan-9m',
         primaryHorizonKey: 'nine_month',

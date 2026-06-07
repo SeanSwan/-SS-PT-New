@@ -103,8 +103,22 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
     where: { userId, status: 'active' },
     order: [['createdAt', 'DESC']],
   });
+  const relatedPlans = WorkoutPlan.findAll
+    ? await WorkoutPlan.findAll({
+      where: { userId, status: ['active', 'paused', 'draft'] },
+      order: [['updatedAt', 'DESC']],
+      limit: 20,
+    })
+    : plan ? [plan] : [];
+  const catalogPlans = Array.isArray(relatedPlans) ? relatedPlans : [];
 
   if (!plan) {
+    const overview = buildClientTrainingOverview({
+      activePlan: null,
+      plans: catalogPlans,
+      currentSession: null,
+    });
+
     return {
       userId,
       hasActivePlan: false,
@@ -115,6 +129,8 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
       sessionLabel: null,
       exerciseCount: 0,
       firstExerciseName: null,
+      todayAssignment: summarizeTodayAssignment(overview.todayAssignment),
+      trainingPlanCatalog: summarizeTrainingPlanCatalog(overview.trainingPlanCatalog),
     };
   }
 
@@ -122,16 +138,9 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
   const currentSession = formatted.currentSession || null;
   const exercises = Array.isArray(currentSession?.exercises) ? currentSession.exercises : [];
   const firstExercise = exercises[0] || null;
-  const relatedPlans = WorkoutPlan.findAll
-    ? await WorkoutPlan.findAll({
-      where: { userId, status: ['active', 'paused', 'draft'] },
-      order: [['updatedAt', 'DESC']],
-      limit: 20,
-    })
-    : [plan];
   const overview = buildClientTrainingOverview({
     activePlan: plan,
-    plans: relatedPlans,
+    plans: catalogPlans.length ? catalogPlans : [plan],
     currentSession,
   });
 

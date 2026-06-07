@@ -140,12 +140,13 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: GET /api/workout-plans/client/:userId
-// PURPOSE: Get the active plan for a specific client
-// WHY: This is what the AI calls to answer "what's next in the workout?"
+// PURPOSE: Get the active client plan plus the visible plan-arc catalog
+// WHY: This is what the AI calls to answer "what's next?" and "what plans exist?"
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Get a client's active workout plan. Returns the most recent active plan.
+ * Get a client's active workout plan and plan-arc catalog.
+ * Returns catalog-only context when saved draft/paused arcs exist but no plan is active yet.
  * @route GET /api/workout-plans/client/:userId
  * @access Trainer/Admin
  */
@@ -163,31 +164,33 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       order: [['updatedAt', 'DESC']]
     });
 
-    if (!plan) {
-      return res.status(404).json({
-        success: false,
-        message: 'No active workout plan found for this client'
-      });
-    }
-
-    // Extract current session info for the AI
-    const currentSession = extractCurrentSession(plan);
     const clientPlans = typeof WorkoutPlan.findAll === 'function'
       ? await WorkoutPlan.findAll({
         where: { userId, status: ['active', 'paused', 'draft'] },
         order: [['updatedAt', 'DESC']],
         limit: 20,
       })
-      : [plan];
+      : plan ? [plan] : [];
+    const catalogPlans = Array.isArray(clientPlans) ? clientPlans : [];
+
+    if (!plan && catalogPlans.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No active workout plan found for this client'
+      });
+    }
+
+    // Extract current session info for the AI when a live active arc exists.
+    const currentSession = plan ? extractCurrentSession(plan) : null;
     const overview = buildClientTrainingOverview({
-      activePlan: plan,
-      plans: clientPlans,
+      activePlan: plan || null,
+      plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],
       currentSession,
     });
 
     res.json({
       success: true,
-      plan,
+      plan: plan || null,
       currentSession,
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
@@ -393,36 +396,53 @@ router.get(
  * @access Trainer (assigned client) / Admin
  */
 router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {
+  let t;
   try {
+    t = await sequelize.transaction();
     const WorkoutPlan = getWorkoutPlan();
     const targetPlan = req.workoutPlan;
+
+    await WorkoutPlan.findAll({
+      where: { userId: targetPlan.userId },
+      lock: t.LOCK.UPDATE,
+      transaction: t,
+    });
+
+    const freshTarget = await WorkoutPlan.findByPk(targetPlan.id, { transaction: t });
+    if (!freshTarget) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: 'Plan not found' });
+    }
+
     const siblings = await WorkoutPlan.findAll({
       where: {
-        userId: targetPlan.userId,
-        id: { [Op.ne]: targetPlan.id },
+        userId: freshTarget.userId,
+        id: { [Op.ne]: freshTarget.id },
         status: ['active', 'paused', 'draft'],
       },
       order: [['updatedAt', 'DESC']],
       limit: 50,
+      transaction: t,
     });
 
     const updatedSiblings = [];
     for (const sibling of siblings) {
       const nextSibling = markPlanPrimary(sibling, false);
-      await sibling.update({ metadata: nextSibling.metadata });
+      await sibling.update({ metadata: nextSibling.metadata }, { transaction: t });
       updatedSiblings.push(nextSibling);
     }
 
-    const updatedTarget = markPlanPrimary(targetPlan, true);
-    await targetPlan.update({ metadata: updatedTarget.metadata });
+    const updatedTarget = markPlanPrimary(freshTarget, true);
+    await freshTarget.update({ metadata: updatedTarget.metadata }, { transaction: t });
 
     const overview = buildClientTrainingOverview({
       activePlan: updatedTarget,
       plans: [updatedTarget, ...updatedSiblings],
     });
 
+    await t.commit();
     logger.info('[WorkoutPlan] Set primary training arc #%s for client %d by user %d',
-      targetPlan.id, targetPlan.userId, req.user.id);
+      freshTarget.id, freshTarget.userId, req.user.id);
 
     return res.json({
       success: true,
@@ -430,6 +450,9 @@ router.put('/:id/primary', protect, trainerOrAdminOnly, verifyClientAccessByPlan
       trainingPlanCatalog: overview.trainingPlanCatalog,
     });
   } catch (error) {
+    if (t) {
+      await t.rollback();
+    }
     logger.error('[WorkoutPlan] PUT /:id/primary error: %s', error.message);
     return res.status(500).json({ success: false, message: 'Failed to update primary training arc' });
   }

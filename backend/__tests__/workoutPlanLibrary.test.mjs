@@ -257,6 +257,61 @@ describe('PUT /api/workout-plans/:id/activate', () => {
 
 // ──────────────────────────── DUPLICATE ────────────────────────────
 
+describe('PUT /api/workout-plans/:id/primary', () => {
+  it('switches primary plan flags inside a single client-plan transaction', async () => {
+    const tx = {
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+      LOCK: { UPDATE: 'UPDATE' },
+    };
+    mockTransaction.mockResolvedValueOnce(tx);
+    const siblingUpdate = vi.fn().mockResolvedValue(undefined);
+    const targetUpdate = vi.fn().mockResolvedValue(undefined);
+    const targetPlan = makePlan({
+      id: 50,
+      userId: 99,
+      status: 'active',
+      metadata: { planHorizon: 'six_month', isPrimaryPlan: false },
+      update: targetUpdate,
+    });
+    const siblingPlan = makePlan({
+      id: 51,
+      userId: 99,
+      status: 'paused',
+      metadata: { planHorizon: 'three_month', isPrimaryPlan: true },
+      update: siblingUpdate,
+    });
+
+    mockFindAll
+      .mockResolvedValueOnce([targetPlan, siblingPlan])
+      .mockResolvedValueOnce([siblingPlan]);
+    mockFindByPk.mockResolvedValueOnce(targetPlan);
+
+    const res = await request(app)
+      .put('/api/workout-plans/50/primary')
+      .set('x-test-user-id', '98')
+      .set('x-test-user-role', 'trainer')
+      .set('x-test-plan', JSON.stringify(targetPlan));
+
+    expect(res.status).toBe(200);
+    expect(mockTransaction).toHaveBeenCalledOnce();
+    expect(mockFindAll).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      where: { userId: 99 },
+      lock: 'UPDATE',
+      transaction: tx,
+    }));
+    expect(mockFindByPk).toHaveBeenLastCalledWith(50, { transaction: tx });
+    expect(siblingUpdate).toHaveBeenCalledWith({
+      metadata: { planHorizon: 'three_month', isPrimaryPlan: false },
+    }, { transaction: tx });
+    expect(targetUpdate).toHaveBeenCalledWith({
+      metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+    }, { transaction: tx });
+    expect(tx.commit).toHaveBeenCalledOnce();
+    expect(tx.rollback).not.toHaveBeenCalled();
+  });
+});
+
 describe('POST /api/workout-plans/:id/duplicate', () => {
   it('clones original planData deeply and creates as status=draft', async () => {
     const res = await request(app)
