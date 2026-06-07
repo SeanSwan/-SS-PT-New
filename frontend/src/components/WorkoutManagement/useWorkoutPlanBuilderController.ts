@@ -17,7 +17,7 @@ import {
 import { logger } from '@/utils/logger';
 import type { WorkoutPlanBuilderProps } from './WorkoutPlanBuilderTypes';
 
-export const DEFAULT_PRIMARY_PLAN_WEEKS = 26;
+const DEFAULT_PRIMARY_PLAN_WEEKS = 26;
 
 const getIsoDate = (offsetWeeks = 0) =>
   new Date(Date.now() + offsetWeeks * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -54,10 +54,8 @@ export const useWorkoutPlanBuilderController = ({
   const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (clientId && clientId !== plan.clientId) {
-      setPlan(prev => ({ ...prev, clientId }));
-    }
-  }, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (clientId) setPlan(prev => clientId === prev.clientId ? prev : { ...prev, clientId });
+  }, [clientId]);
 
   useEffect(() => {
     if (existingPlan && mode === 'edit') {
