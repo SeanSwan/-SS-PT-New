@@ -3,6 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api.service';
 import { logger } from '@/utils/logger';
 import { normalizeWorkoutRecommendationExercises } from './useWorkoutMcp.normalizers';
+import {
+  buildSwanCoachPlanRequest,
+  buildWorkoutPlanSavePayload,
+  buildWorkoutPlanFromSwanCoachPlan,
+  type WorkoutPlanSaveOptions,
+  type WorkoutPlanGenerationParams,
+} from './useWorkoutMcp.planGeneration';
 
 export interface Exercise {
   id: string;
@@ -141,6 +148,8 @@ export interface WorkoutPlan {
   startDate?: string;
   endDate?: string;
   status: 'active' | 'completed' | 'archived';
+  planningSystem?: string;
+  planData?: unknown;
   days?: WorkoutPlanDay[];
 }
 
@@ -223,40 +232,35 @@ export const useWorkoutMcp = () => {
       return response.data;
     }), [withLoading]);
 
-  const generateWorkoutPlan = useCallback(async (params: {
-    trainerId: string;
-    clientId: string;
-    name: string;
-    description?: string;
-    goal?: string;
-    startDate?: string;
-    endDate?: string;
-    daysPerWeek: number;
-    focusAreas?: string[];
-    difficulty?: string;
-    optPhase?: string;
-    equipment?: string[];
-  }) => withLoading('workout plan scaffold', async () => {
-    const plan: WorkoutPlan = {
-      name: params.name,
-      description: params.description,
-      trainerId: params.trainerId || String(user?.id || ''),
-      clientId: params.clientId,
-      goal: params.goal || 'general',
-      startDate: params.startDate,
-      endDate: params.endDate,
-      status: 'active',
-      days: Array.from({ length: params.daysPerWeek }, (_, index) => ({
-        dayNumber: index + 1,
-        name: `Day ${index + 1}`,
-        focus: params.focusAreas?.[index % Math.max(params.focusAreas.length, 1)] || params.goal || 'general',
-        dayType: 'training',
-        optPhase: params.optPhase,
-        exercises: []
-      }))
-    };
-    return { plan };
-  }), [user?.id, withLoading]);
+  const generateWorkoutPlan = useCallback(async (params: WorkoutPlanGenerationParams) =>
+    withLoading('Swan Coach plan generation', async () => {
+      const request = buildSwanCoachPlanRequest(params);
+      const response = await apiService.post('/api/workout-builder/plan', request);
+      const generatedPlan = response.data?.plan;
+      if (!generatedPlan || typeof generatedPlan !== 'object') {
+        throw new Error('Swan Coach planning did not return a workout plan');
+      }
+      return {
+        plan: buildWorkoutPlanFromSwanCoachPlan(
+          params,
+          generatedPlan as Record<string, unknown>,
+          user?.id,
+        ),
+      };
+    }), [user?.id, withLoading]);
+
+  const saveWorkoutPlan = useCallback(async (
+    plan: WorkoutPlan,
+    options: WorkoutPlanSaveOptions = {},
+  ) => withLoading('save workout plan', async () => {
+    const payload = buildWorkoutPlanSavePayload(plan, { ...options, userRole: user?.role });
+    const response = await apiService.post('/api/workout-plans', payload);
+    const planId = response.data?.plan?.id;
+    if (options.activate && planId) {
+      await apiService.put(`/api/workout-plans/${encodeURIComponent(String(planId))}/activate`);
+    }
+    return response.data;
+  }), [user?.role, withLoading]);
 
   const getMcpTools = useCallback(async () => ({
     tools: [],
@@ -274,21 +278,20 @@ export const useWorkoutMcp = () => {
     getWorkoutStatistics,
     logWorkoutSession,
     generateWorkoutPlan,
+    saveWorkoutPlan,
     getMcpTools,
     checkMcpHealth,
-    loading,
-    error,
-    setError,
+    loading, error, setError,
   }), [
     getWorkoutRecommendations,
     getClientProgress,
     getWorkoutStatistics,
     logWorkoutSession,
     generateWorkoutPlan,
+    saveWorkoutPlan,
     getMcpTools,
     checkMcpHealth,
-    loading,
-    error,
+    loading, error,
   ]);
 };
 

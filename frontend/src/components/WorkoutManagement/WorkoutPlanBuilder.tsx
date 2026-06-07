@@ -53,7 +53,7 @@
  * Props In:  { clientId?, clientName?, onPlanCreated?, existingPlan?, mode? }
  * State:     { activeStep, plan, workoutDays, currentDay, exerciseLibraryOpen,
  *              selectedExercises, generationParams, openAccordions }
- * API Calls: POST /api/workout-plans/generate (via useWorkoutMcp)
+ * API Calls: POST /api/workout-builder/plan (via useWorkoutMcp)
  * Children:  PlanDetailsStep, TrainingScheduleStep, ExerciseSelectionStep,
  *            ReviewSaveStep, ExerciseLibrary (modal)
  */
@@ -101,6 +101,11 @@ import {
   ModalFooter,
 } from './WorkoutPlanBuilderStyles';
 
+const DEFAULT_PRIMARY_PLAN_WEEKS = 26;
+
+const getIsoDate = (offsetWeeks = 0) =>
+  new Date(Date.now() + offsetWeeks * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
 // PURPOSE: Orchestrates state, navigation, and step delegation
@@ -112,7 +117,7 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
   existingPlan,
   mode = 'create',
 }) => {
-  const { generateWorkoutPlan, loading, error } = useWorkoutMcp();
+  const { generateWorkoutPlan, saveWorkoutPlan, loading, error } = useWorkoutMcp();
   const [activeStep, setActiveStep] = useState(0);
   const [plan, setPlan] = useState<WorkoutPlan>({
     name: '',
@@ -120,8 +125,8 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
     trainerId: '',
     clientId: clientId || '',
     goal: 'general',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 8 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: getIsoDate(),
+    endDate: getIsoDate(DEFAULT_PRIMARY_PLAN_WEEKS),
     status: 'active',
     days: [],
   });
@@ -261,16 +266,21 @@ const WorkoutPlanBuilder: React.FC<WorkoutPlanBuilderProps> = ({
   const savePlan = async () => {
     const finalPlan = { ...plan, days: workoutDays };
     logger.log('Saving workout plan:', finalPlan);
-    if (onPlanCreated) onPlanCreated(finalPlan);
-    setPlan({
-      name: '', description: '', trainerId: '', clientId: clientId || '',
-      goal: 'general',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 8 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status: 'active', days: [],
-    });
-    setWorkoutDays([]);
-    setActiveStep(0);
+    try {
+      await saveWorkoutPlan(finalPlan, { activate: true });
+      if (onPlanCreated) onPlanCreated(finalPlan);
+      setPlan({
+        name: '', description: '', trainerId: '', clientId: clientId || '',
+        goal: 'general',
+        startDate: getIsoDate(),
+        endDate: getIsoDate(DEFAULT_PRIMARY_PLAN_WEEKS),
+        status: 'active', days: [],
+      });
+      setWorkoutDays([]);
+      setActiveStep(0);
+    } catch (err) {
+      console.error('Failed to save workout plan:', err);
+    }
   };
 
   // ─────────────────────────────────────────────────────────────
