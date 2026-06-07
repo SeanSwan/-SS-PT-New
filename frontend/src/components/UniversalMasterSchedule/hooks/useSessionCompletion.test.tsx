@@ -117,9 +117,38 @@ describe('useSessionCompletion', () => {
       trainerRating: 5,
       clientFeedback: 'Great tempo work',
       completeWithoutLog: true,
+      deductSessionCredit: true,
     });
     expect(setFormError).toHaveBeenCalledWith(null);
     expect(onUpdated).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets managers waive direct-completion deduction for paid sessions', async () => {
+    vi.mocked(apiService.patch).mockResolvedValueOnce({
+      data: { success: true },
+    });
+    const { result } = setup();
+
+    await waitFor(() => {
+      expect(result.current.canDeductCompletionSessionCredit).toBe(true);
+      expect(result.current.deductCompletionSessionCredit).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.setDeductCompletionSessionCredit(false);
+    });
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+
+    expect(apiService.patch).toHaveBeenCalledWith('/api/sessions/66/complete', {
+      notes: undefined,
+      trainerRating: undefined,
+      clientFeedback: undefined,
+      completeWithoutLog: true,
+      deductSessionCredit: false,
+    });
   });
 });

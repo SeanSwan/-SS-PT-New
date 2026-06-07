@@ -80,16 +80,17 @@ describe('EnhancedWorkoutLogger route context', () => {
     });
   });
 
-  it('keeps scheduled-session admin logging on the full-page schedule flow', () => {
+  it('redirects stale scheduled-session admin logging into the embedded Client Hub logger', () => {
     expect(buildLoggerRouteContext({
       requestedReturnTo: '/dashboard/admin/master-schedule?sessionId=314',
       routeClientId: 61,
+      scheduledSessionDate: '2026-06-07',
       scheduledSessionId: '314',
       source: 'master-schedule',
       userRole: 'admin',
     })).toMatchObject({
       backToClientsLabel: 'Back to Schedule',
-      clientHubRedirectPath: null,
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-07',
       isClientHubOrigin: false,
       workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
     });

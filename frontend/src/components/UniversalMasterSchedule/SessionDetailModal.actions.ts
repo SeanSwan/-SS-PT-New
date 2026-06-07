@@ -7,6 +7,7 @@ export interface CompleteSessionPayloadInput {
   notes: string;
   trainerRating: string;
   clientFeedback: string;
+  deductSessionCredit?: boolean;
 }
 
 export interface CancellationActionInput {
@@ -44,11 +45,13 @@ export const buildCompleteSessionPayload = ({
   notes,
   trainerRating,
   clientFeedback,
+  deductSessionCredit,
 }: CompleteSessionPayloadInput) => ({
   notes: notes.trim() || undefined,
   trainerRating: trainerRating ? Number(trainerRating) : undefined,
   clientFeedback: clientFeedback.trim() || undefined,
   completeWithoutLog: true,
+  ...(typeof deductSessionCredit === 'boolean' ? { deductSessionCredit } : {}),
 });
 
 export const buildAttendancePayload = (

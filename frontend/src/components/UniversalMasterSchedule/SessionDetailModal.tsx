@@ -67,9 +67,12 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     notes,
     trainerRating,
     clientFeedback,
+    canDeductCompletionSessionCredit,
+    deductCompletionSessionCredit,
     setNotes,
     setTrainerRating,
     setClientFeedback,
+    setDeductCompletionSessionCredit,
     handleComplete,
   } = useSessionCompletion({
     open,
@@ -255,6 +258,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         onNotesChange={setNotes}
         onTrainerRatingChange={setTrainerRating}
         onClientFeedbackChange={setClientFeedback}
+        canDeductCompletionSessionCredit={canDeductCompletionSessionCredit}
+        deductCompletionSessionCredit={deductCompletionSessionCredit}
+        onDeductCompletionSessionCreditChange={setDeductCompletionSessionCredit}
         clientRating={clientRating}
         clientComment={clientComment}
         feedbackSubmitted={feedbackSubmitted}

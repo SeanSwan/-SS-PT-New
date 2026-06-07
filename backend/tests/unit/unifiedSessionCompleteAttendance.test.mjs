@@ -8,6 +8,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockTriggerSequence = vi.fn().mockResolvedValue({ success: true });
+const mockProcessSessionDeduction = vi.fn();
 const mockTransaction = {
   LOCK: { UPDATE: 'UPDATE' },
   commit: vi.fn().mockResolvedValue(undefined),
@@ -39,7 +40,7 @@ vi.mock('../../utils/notification.mjs', () => ({
   notifySessionBooked: vi.fn(),
   notifyAdminSessionBooked: vi.fn(),
   notifySessionCancelled: vi.fn(),
-  processSessionDeduction: vi.fn(),
+  processSessionDeduction: mockProcessSessionDeduction,
   sendDeductionNotification: vi.fn(),
   notifyLowSessionsRemaining: vi.fn(),
   sendSessionReminder: vi.fn()
@@ -79,7 +80,9 @@ const buildSession = (overrides = {}) => {
       id: 301,
       firstName: 'Client',
       lastName: 'One',
-      email: 'client@example.test'
+      email: 'client@example.test',
+      availableSessions: 4,
+      clientSource: 'swanstudios'
     },
     trainer: {
       id: 42,
@@ -120,6 +123,12 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProcessSessionDeduction.mockResolvedValue({
+      success: true,
+      deducted: true,
+      creditsDeducted: 1,
+      remainingSessions: 3
+    });
     mockTransaction.commit.mockResolvedValue(undefined);
     mockTransaction.rollback.mockResolvedValue(undefined);
     service = new UnifiedSessionService();
@@ -169,6 +178,71 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
       attendanceStatus: 'present',
       markedPresentBy: 42,
       noShowReason: null
+    });
+  });
+
+  it('deducts a paid SwanStudios credit when direct no-log completion is used', async () => {
+    const session = buildSession();
+    sessionModel.findByPk.mockResolvedValue(session);
+    mockProcessSessionDeduction.mockResolvedValue({
+      success: true,
+      deducted: true,
+      creditsDeducted: 1,
+      remainingSessions: 3
+    });
+
+    const result = await service.completeSession(77, { id: 42, role: 'trainer' }, {
+      completeWithoutLog: true
+    });
+
+    expect(mockProcessSessionDeduction).toHaveBeenCalledWith(session, session.client, mockTransaction);
+    expect(result.deduction).toMatchObject({
+      deducted: true,
+      creditsDeducted: 1,
+      remainingSessions: 3
+    });
+  });
+
+  it('does not deduct a Move Fitness tracking client when direct no-log completion is used', async () => {
+    const session = buildSession({
+      client: {
+        id: 301,
+        firstName: 'Client',
+        lastName: 'One',
+        email: 'client@example.test',
+        availableSessions: 0,
+        clientSource: 'move_fitness'
+      }
+    });
+    sessionModel.findByPk.mockResolvedValue(session);
+
+    const result = await service.completeSession(77, { id: 42, role: 'trainer' }, {
+      completeWithoutLog: true
+    });
+
+    expect(mockProcessSessionDeduction).not.toHaveBeenCalled();
+    expect(result.deduction).toMatchObject({
+      deducted: false,
+      creditsDeducted: 0,
+      reason: 'non_deducting_client_source'
+    });
+  });
+
+  it('allows a manager to waive paid-credit deduction for direct no-log completion', async () => {
+    const session = buildSession();
+    sessionModel.findByPk.mockResolvedValue(session);
+
+    const result = await service.completeSession(77, { id: 42, role: 'trainer' }, {
+      completeWithoutLog: true,
+      deductSessionCredit: false
+    });
+
+    expect(mockProcessSessionDeduction).not.toHaveBeenCalled();
+    expect(result.deduction).toMatchObject({
+      deducted: false,
+      creditsDeducted: 0,
+      remainingSessions: 4,
+      reason: 'waived_by_manager'
     });
   });
 

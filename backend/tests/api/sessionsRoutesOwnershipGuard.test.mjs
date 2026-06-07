@@ -204,6 +204,26 @@ describe('unified sessions route ownership guards', () => {
     expect(updateRoute).toContain('await session.save();');
   });
 
+  it('deducts paid credits in the canonical direct-completion fallback', () => {
+    const completeRoute = routeSlice('router.patch("/:id/complete"', 'router.patch("/:id/assign"');
+    expect(completeRoute).toContain('unifiedSessionService.completeSession(req.params.id, req.user, {');
+    expect(completeRoute).toContain('completeWithoutLog: completeWithoutLog === true');
+    expect(completeRoute).toContain('deductSessionCredit');
+
+    const completeServiceIndex = serviceSource.indexOf('async completeSession(sessionId, user, completionData = {})');
+    const assignServiceIndex = serviceSource.indexOf('async assignTrainer(sessionId, trainerId, user)');
+    const completeService = serviceSource.slice(completeServiceIndex, assignServiceIndex);
+
+    expect(completeService).toContain('let deductionResult = null;');
+    expect(completeService).toContain('!session.sessionDeducted && session.userId && session.client');
+    expect(completeService).toContain('deductSessionCredit !== false');
+    expect(completeService).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(session.client.clientSource)');
+    expect(completeService).toContain("reason: 'waived_by_manager'");
+    expect(completeService).toContain("reason: 'non_deducting_client_source'");
+    expect(completeService).toContain('processSessionDeduction(session, session.client, transaction)');
+    expect(completeService).toContain('deduction: deductionResult ? {');
+  });
+
   it('serves the active admin sessions single-delete action from the unified router', () => {
     const updateRouteIndex = routeSource.indexOf('router.put("/:id", protect');
     const deleteRouteIndex = routeSource.indexOf('router.delete("/:id", protect, adminOnly');

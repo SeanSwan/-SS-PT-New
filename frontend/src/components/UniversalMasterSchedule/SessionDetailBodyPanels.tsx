@@ -13,6 +13,7 @@ import {
 import SessionDetailClientCancelReasonPanel from './SessionDetailClientCancelReasonPanel';
 import SessionDetailClientCancelWarningPanel from './SessionDetailClientCancelWarningPanel';
 import SessionDetailClientFeedbackPanel from './SessionDetailClientFeedbackPanel';
+import SessionDetailCompletionBillingPanel from './SessionDetailCompletionBillingPanel';
 import SessionDetailCancelOptionsPanel from './SessionDetailCancelOptionsPanel';
 import SessionDetailInfoGrid from './SessionDetailInfoGrid';
 import SessionDetailNoShowReasonPanel from './SessionDetailNoShowReasonPanel';
@@ -56,6 +57,9 @@ export interface SessionDetailBodyPanelsProps {
   onNotesChange: (value: string) => void;
   onTrainerRatingChange: (value: string) => void;
   onClientFeedbackChange: (value: string) => void;
+  canDeductCompletionSessionCredit: boolean;
+  deductCompletionSessionCredit: boolean;
+  onDeductCompletionSessionCreditChange: (value: boolean) => void;
   clientRating: number;
   clientComment: string;
   feedbackSubmitted: boolean;
@@ -116,6 +120,9 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
   onNotesChange,
   onTrainerRatingChange,
   onClientFeedbackChange,
+  canDeductCompletionSessionCredit,
+  deductCompletionSessionCredit,
+  onDeductCompletionSessionCreditChange,
   clientRating,
   clientComment,
   feedbackSubmitted,
@@ -193,6 +200,12 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
     {session.packageInfo && !isNonDeductingClient && (
       <SessionDetailPackageSummary packageInfo={session.packageInfo} />
     )}
+
+    <SessionDetailCompletionBillingPanel
+      show={canManage && canDeductCompletionSessionCredit}
+      deductSessionCredit={deductCompletionSessionCredit}
+      onDeductSessionCreditChange={onDeductCompletionSessionCreditChange}
+    />
 
     <SessionDetailTrainerNotesPanel
       notes={notes}

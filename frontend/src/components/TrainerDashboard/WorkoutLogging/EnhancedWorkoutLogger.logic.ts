@@ -25,13 +25,29 @@ const buildClientHubWorkoutCompleteReturnPath = (returnPath: string): string => 
   return `${pathname}${search ? `?${search}` : ''}${hash ? `#${hash}` : ''}`;
 };
 
-const buildClientHubEmbeddedLoggerPath = (clientId: number): string => {
+interface ClientHubEmbeddedLoggerContext {
+  scheduledSessionDate?: string | null;
+  scheduledSessionId?: string | null;
+}
+
+const buildClientHubEmbeddedLoggerPath = (
+  clientId: number,
+  context: ClientHubEmbeddedLoggerContext = {}
+): string => {
   const params = new URLSearchParams({
     clientId: String(clientId),
     tab: 'training',
     trainingSection: 'logger',
     loadPlan: 'today',
   });
+
+  if (context.scheduledSessionId) {
+    params.set('sessionId', context.scheduledSessionId);
+  }
+
+  if (context.scheduledSessionDate) {
+    params.set('sessionDate', context.scheduledSessionDate);
+  }
 
   return `/dashboard/admin/client-management?${params.toString()}`;
 };
@@ -61,29 +77,33 @@ const getSourceReturnLabel = (
   requestedReturnTo ? SOURCE_RETURN_LABELS[source ?? ''] : undefined;
 
 const isClientHubRedirectSource = (source: string | null): boolean =>
-  source === null || source === 'clients-team';
+  source === null || source === 'clients-team' || source === 'master-schedule';
 
 const resolveClientHubRedirectPath = (
   isAdmin: boolean,
   shouldUseClientHubLogger: boolean,
   routeClientId: number | null,
+  scheduledSessionDate: string | null,
   scheduledSessionId: string | null
 ): string | null => {
   const shouldRedirect = [
     isAdmin,
     shouldUseClientHubLogger,
     Boolean(routeClientId),
-    !scheduledSessionId,
   ].every(Boolean);
 
   return shouldRedirect && routeClientId
-    ? buildClientHubEmbeddedLoggerPath(routeClientId)
+    ? buildClientHubEmbeddedLoggerPath(routeClientId, {
+        scheduledSessionDate,
+        scheduledSessionId,
+      })
     : null;
 };
 
 export interface LoggerRouteContextInput {
   requestedReturnTo: string | null;
   routeClientId: number | null;
+  scheduledSessionDate?: string | null;
   scheduledSessionId: string | null;
   source: string | null;
   userRole: string | undefined;
@@ -101,6 +121,7 @@ export interface LoggerRouteContext {
 export const buildLoggerRouteContext = ({
   requestedReturnTo,
   routeClientId,
+  scheduledSessionDate = null,
   scheduledSessionId,
   source,
   userRole,
@@ -116,6 +137,7 @@ export const buildLoggerRouteContext = ({
       isAdmin,
       isClientHubRedirectSource(source),
       routeClientId,
+      scheduledSessionDate,
       scheduledSessionId
     ),
     isClientHubOrigin,

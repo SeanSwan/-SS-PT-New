@@ -116,34 +116,21 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     mockSearchQuery = 'clientId=61';
   });
 
-  it('admin: scheduled-session /info success auto-mounts the real WorkoutLogger, shows role-aware back nav, hides stale demo copy', async () => {
+  it('admin: scheduled-session full-page URLs redirect into the embedded Client Hub logger', async () => {
     mockRole = 'admin';
     mockSearchQuery = 'clientId=61&sessionId=314';
-    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
-    const user = userEvent.setup();
 
     render(<EnhancedWorkoutLogger />);
 
-    // Real logger auto-mounts — no placeholder click required.
-    const loggerButton = await screen.findByTestId('real-workout-logger');
-    expect(loggerButton).toHaveAttribute('data-client-id', '61');
-    expect(loggerButton).toHaveAttribute('data-session-id', '314');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314',
+        { replace: true }
+      );
+    });
 
-    // Role-aware back nav for admin. getByRole throws if not found,
-    // so the lookup itself is the presence assertion.
-    const backBtn = screen.getByRole('button', { name: /back to client hub/i });
-
-    // Stale demo copy must not render for a real client.
-    expect(screen.queryByRole('button', { name: /start demo workout/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /back to demo/i })).toBeNull();
-    expect(screen.queryByText(/workout logger ready/i)).toBeNull();
-
-    // API path verification — the exact Phase 17 URL literal.
-    expect(mockGet).toHaveBeenCalledWith('/api/workout-forms/client/61/info');
-
-    // Back nav routes to admin client hub.
-    await user.click(backBtn);
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/client-management');
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });
 
   it('admin: clients-team returnTo redirects into the embedded Client Hub logger', async () => {
@@ -198,31 +185,22 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });
 
-  it('admin: master-schedule completion keeps the scheduled-session full-page logger flow', async () => {
+  it('admin: stale master-schedule full-page URLs redirect into the embedded Client Hub logger', async () => {
     mockRole = 'admin';
     mockSearchQuery =
-      'clientId=61&sessionId=314&source=master-schedule&returnTo=%2Fdashboard%2Fadmin%2Fmaster-schedule%3FsessionId%3D314';
-    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
-    const user = userEvent.setup();
+      'clientId=61&sessionId=314&sessionDate=2026-06-07&source=master-schedule&returnTo=%2Fdashboard%2Fadmin%2Fmaster-schedule%3FsessionId%3D314';
 
     render(<EnhancedWorkoutLogger />);
 
-    const loggerButton = await screen.findByTestId('real-workout-logger');
-    expect(loggerButton).toHaveAttribute('data-client-id', '61');
-    expect(loggerButton).toHaveAttribute('data-session-id', '314');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-07',
+        { replace: true }
+      );
+    });
 
-    const backBtn = screen.getByRole('button', { name: /back to schedule/i });
-    await user.click(backBtn);
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/admin/master-schedule?sessionId=314');
-
-    await user.click(loggerButton);
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/dashboard/admin/master-schedule?sessionId=314',
-      expect.objectContaining({
-        state: expect.objectContaining({ workoutCompleted: true }),
-      })
-    );
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });
 
   it('trainer: /info success auto-mounts the real WorkoutLogger with "Back to My Clients" nav', async () => {

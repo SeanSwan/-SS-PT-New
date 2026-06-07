@@ -1861,7 +1861,8 @@ class UnifiedSessionService {
         trainerRating,
         clientFeedback,
         actualDuration,
-        completeWithoutLog
+        completeWithoutLog,
+        deductSessionCredit
       } = normalizedData;
 
       // Find the session with related data
@@ -1948,6 +1949,33 @@ class UnifiedSessionService {
         session.duration = Math.round(Number(actualDuration));
       }
       
+      const shouldDeductCompletionCredit = deductSessionCredit !== false;
+      let deductionResult = null;
+      if (!session.sessionDeducted && session.userId && session.client) {
+        if (NON_DEDUCTING_CLIENT_SOURCES.has(session.client.clientSource)) {
+          deductionResult = {
+            success: true,
+            deducted: false,
+            creditsDeducted: 0,
+            remainingSessions: session.client.availableSessions ?? null,
+            reason: 'non_deducting_client_source'
+          };
+        } else if (!shouldDeductCompletionCredit) {
+          deductionResult = {
+            success: true,
+            deducted: false,
+            creditsDeducted: 0,
+            remainingSessions: session.client.availableSessions ?? null,
+            reason: 'waived_by_manager'
+          };
+        } else {
+          deductionResult = await processSessionDeduction(session, session.client, transaction);
+          if (!deductionResult?.success) {
+            throw new Error(deductionResult?.message || 'Failed to deduct session credits');
+          }
+        }
+      }
+
       await session.save({ transaction });
       await transaction.commit();
 
@@ -1989,7 +2017,13 @@ class UnifiedSessionService {
       return {
         success: true,
         message: 'Session marked as completed',
-        session: formattedSession
+        session: formattedSession,
+        deduction: deductionResult ? {
+          deducted: Boolean(deductionResult.deducted),
+          creditsDeducted: deductionResult.creditsDeducted || 0,
+          remainingSessions: deductionResult.remainingSessions ?? null,
+          reason: deductionResult.reason
+        } : null
       };
     } catch (error) {
       if (transaction && !transaction.finished) {

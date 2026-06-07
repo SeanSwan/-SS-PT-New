@@ -54,6 +54,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
   } = buildLoggerRouteContext({
     requestedReturnTo,
     routeClientId,
+    scheduledSessionDate,
     scheduledSessionId,
     source: searchParams.get('source'),
     userRole: user?.role,

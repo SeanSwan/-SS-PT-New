@@ -60,6 +60,9 @@ const renderBody = (overrides = {}) => {
     onNotesChange: vi.fn(),
     onTrainerRatingChange: vi.fn(),
     onClientFeedbackChange: vi.fn(),
+    canDeductCompletionSessionCredit: true,
+    deductCompletionSessionCredit: true,
+    onDeductCompletionSessionCreditChange: vi.fn(),
     clientRating: 0,
     clientComment: '',
     feedbackSubmitted: false,
@@ -109,6 +112,7 @@ describe('SessionDetailBodyPanels', () => {
     expect(screen.getByText('Client Example')).toBeInTheDocument();
     expect(screen.getAllByText('Founders Pack').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Trainer Notes')).toHaveValue('sharp session');
+    expect(screen.getByLabelText(/Deduct paid session credit/)).toBeChecked();
     expect(screen.getByText('Cancel Session - Choose Charge Option')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Edit Series'));
@@ -116,6 +120,14 @@ describe('SessionDetailBodyPanels', () => {
 
     expect(props.onManageSeries).toHaveBeenCalledWith('series-44');
     expect(props.onDeleteSeries).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets managers waive completion billing when direct completion is used', () => {
+    const { props } = renderBody();
+
+    fireEvent.click(screen.getByLabelText(/Deduct paid session credit/));
+
+    expect(props.onDeductCompletionSessionCreditChange).toHaveBeenCalledWith(false);
   });
 
   it('keeps the client feedback and late-cancel branches mutually scoped', () => {

@@ -19,22 +19,26 @@ describe('SessionDetailModal action helpers', () => {
       notes: '  strong closeout  ',
       trainerRating: '5',
       clientFeedback: '  client felt great  ',
+      deductSessionCredit: true,
     })).toEqual({
       notes: 'strong closeout',
       trainerRating: 5,
       clientFeedback: 'client felt great',
       completeWithoutLog: true,
+      deductSessionCredit: true,
     });
 
     expect(buildCompleteSessionPayload({
       notes: '   ',
       trainerRating: '',
       clientFeedback: '',
+      deductSessionCredit: false,
     })).toEqual({
       notes: undefined,
       trainerRating: undefined,
       clientFeedback: undefined,
       completeWithoutLog: true,
+      deductSessionCredit: false,
     });
   });
 

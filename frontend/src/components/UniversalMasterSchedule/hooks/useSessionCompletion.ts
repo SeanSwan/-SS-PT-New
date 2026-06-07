@@ -6,6 +6,7 @@ import {
   isValidTrainerRating,
 } from '../SessionDetailModal.actions';
 import type { SessionDetail } from '../SessionDetailModal.types';
+import { isNonDeductingClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 interface UseSessionCompletionInput {
   open: boolean;
@@ -27,12 +28,19 @@ export const useSessionCompletion = ({
   const [notes, setNotes] = useState('');
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
+  const [deductCompletionSessionCredit, setDeductCompletionSessionCredit] = useState(false);
+  const canDeductCompletionSessionCredit = Boolean(
+    session?.userId
+      && session?.sessionDeducted !== true
+      && !isNonDeductingClientSource(session?.clientSource)
+  );
 
   useEffect(() => {
     if (!open || !session) {
       setNotes('');
       setTrainerRating('');
       setClientFeedback('');
+      setDeductCompletionSessionCredit(false);
       return;
     }
 
@@ -40,7 +48,8 @@ export const useSessionCompletion = ({
     setNotes(session.notes || '');
     setTrainerRating(!hasSubmittedClientFeedback && session.rating ? String(session.rating) : '');
     setClientFeedback(!hasSubmittedClientFeedback ? session.feedback || '' : '');
-  }, [open, session]);
+    setDeductCompletionSessionCredit(canDeductCompletionSessionCredit);
+  }, [canDeductCompletionSessionCredit, open, session]);
 
   const handleComplete = useCallback(async () => {
     if (!session) {
@@ -61,6 +70,9 @@ export const useSessionCompletion = ({
         notes,
         trainerRating,
         clientFeedback,
+        deductSessionCredit: canDeductCompletionSessionCredit
+          ? deductCompletionSessionCredit
+          : undefined,
       }));
       const result = response.data;
       if (result?.success === false) {
@@ -76,15 +88,29 @@ export const useSessionCompletion = ({
     } finally {
       setLoading(false);
     }
-  }, [clientFeedback, notes, onClose, onUpdated, session, setFormError, setLoading, trainerRating]);
+  }, [
+    canDeductCompletionSessionCredit,
+    clientFeedback,
+    deductCompletionSessionCredit,
+    notes,
+    onClose,
+    onUpdated,
+    session,
+    setFormError,
+    setLoading,
+    trainerRating,
+  ]);
 
   return {
     notes,
     trainerRating,
     clientFeedback,
+    canDeductCompletionSessionCredit,
+    deductCompletionSessionCredit,
     setNotes,
     setTrainerRating,
     setClientFeedback,
+    setDeductCompletionSessionCredit,
     handleComplete,
   };
 };
