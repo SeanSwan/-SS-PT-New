@@ -717,8 +717,7 @@ router.get("/upcoming/:userId", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/upcoming/:userId:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching upcoming sessions',
-      error: error.message
+      message: 'Server error fetching upcoming sessions'
     });
   }
 });
@@ -771,8 +770,7 @@ router.get("/history/:userId", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/history/:userId:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching session history',
-      error: error.message
+      message: 'Server error fetching session history'
     });
   }
 });

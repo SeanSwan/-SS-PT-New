@@ -17,6 +17,7 @@ const {
   getScheduleStats,
   getTrainers,
   getClients,
+  sessionFindAll,
   userIncrement,
   userReload,
   sessionCount,
@@ -28,6 +29,7 @@ const {
   getScheduleStats: vi.fn(),
   getTrainers: vi.fn(),
   getClients: vi.fn(),
+  sessionFindAll: vi.fn(),
   userIncrement: vi.fn(),
   userReload: vi.fn(),
   sessionCount: vi.fn(),
@@ -51,6 +53,17 @@ vi.mock('../models/User.mjs', () => ({
 vi.mock('../models/Session.mjs', () => ({
   default: {
     count: sessionCount,
+    findAll: sessionFindAll,
+    sequelize: {
+      Sequelize: {
+        Op: {
+          gt: '$gt',
+          lte: '$lte',
+          notIn: '$notIn',
+          or: '$or',
+        },
+      },
+    },
   },
 }));
 
@@ -108,6 +121,7 @@ describe('mounted sessions allocation compatibility routes', () => {
     getScheduleStats.mockReset();
     getTrainers.mockReset();
     getClients.mockReset();
+    sessionFindAll.mockReset();
     userIncrement.mockReset();
     userReload.mockReset();
     sessionCount.mockReset();
@@ -191,6 +205,32 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error fetching clients',
     });
     expect(JSON.stringify(response.body)).not.toContain('private client directory');
+  });
+
+  it('GET /api/sessions/upcoming/:userId does not disclose internal client-card errors', async () => {
+    sessionFindAll.mockRejectedValueOnce(new Error('private upcoming sessions shard detail'));
+
+    const response = await request(app).get('/api/sessions/upcoming/42?limit=3');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching upcoming sessions',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private upcoming sessions');
+  });
+
+  it('GET /api/sessions/history/:userId does not disclose internal client-card errors', async () => {
+    sessionFindAll.mockRejectedValueOnce(new Error('private history sessions schema detail'));
+
+    const response = await request(app).get('/api/sessions/history/42?limit=5');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching session history',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private history sessions');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {
