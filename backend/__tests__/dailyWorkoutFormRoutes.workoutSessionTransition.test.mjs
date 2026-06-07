@@ -70,6 +70,8 @@ const mockDailyWorkoutFormUpdate = vi.fn().mockResolvedValue(undefined);
 
 const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
+const mockWorkoutLogDestroy = vi.fn();
+const mockWorkoutLogBulkCreate = vi.fn();
 
 const mockClientTrainerAssignmentFindOne = vi.fn();
 const mockTrainerPermissionsFindOne = vi.fn();
@@ -82,6 +84,7 @@ vi.mock('../models/index.mjs', () => ({
     create: mockDailyWorkoutFormCreate,
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
+  getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
   getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
   getSession: () => ({ findByPk: mockSessionFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: mockClientTrainerAssignmentFindOne }),
@@ -201,6 +204,10 @@ beforeEach(() => {
   mockDailyWorkoutFormUpdate.mockResolvedValue(undefined);
   mockSessionFindByPk.mockReset();
   mockWorkoutPlanFindOne.mockReset();
+  mockWorkoutLogDestroy.mockReset();
+  mockWorkoutLogBulkCreate.mockReset();
+  mockWorkoutLogDestroy.mockResolvedValue(undefined);
+  mockWorkoutLogBulkCreate.mockResolvedValue([]);
 });
 
 // ─── Bug 1 — totalSets propagates into defaults ────────────────────
@@ -373,6 +380,64 @@ describe('Phase 1 Slice 1.1 — completionFields contract is consistent between 
         expect(updateArgs[key]).toEqual(createDefaults[key]);
       }
     }
+  });
+});
+
+describe('Phase 1 Slice 1.4 — canonical form logs create detailed WorkoutLog rows', () => {
+  it('mirrors accepted WorkoutLogger exercises into WorkoutLog rows and aggregate totals', async () => {
+    bootstrapHappyPath({ existingSession: null, createdFlag: true });
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+
+    expect(res.status).toBe(201);
+    expect(mockWorkoutLogDestroy).toHaveBeenCalledWith({
+      where: { sessionId: 'new-session-uuid' },
+      transaction: expect.any(Object),
+    });
+    expect(mockWorkoutLogBulkCreate).toHaveBeenCalledTimes(1);
+    expect(mockWorkoutLogBulkCreate.mock.calls[0][0]).toEqual([
+      expect.objectContaining({ sessionId: 'new-session-uuid', exerciseName: 'Squat', setNumber: 1, reps: 5, weight: 100 }),
+      expect.objectContaining({ sessionId: 'new-session-uuid', exerciseName: 'Squat', setNumber: 2, reps: 5, weight: 100 }),
+      expect.objectContaining({ sessionId: 'new-session-uuid', exerciseName: 'Bench', setNumber: 1, reps: 8, weight: 80 }),
+      expect.objectContaining({ sessionId: 'new-session-uuid', exerciseName: 'Bench', setNumber: 2, reps: 8, weight: 80 }),
+      expect.objectContaining({ sessionId: 'new-session-uuid', exerciseName: 'Bench', setNumber: 3, reps: 6, weight: 80 }),
+    ]);
+    expect(mockWorkoutLogBulkCreate.mock.calls[0][1]).toMatchObject({
+      transaction: expect.any(Object),
+      validate: true,
+    });
+
+    const defaults = mockWorkoutSessionFindOrCreate.mock.calls[0][0].defaults;
+    expect(defaults.totalReps).toBe(32);
+    expect(defaults.totalWeight).toBe(2760);
+  });
+
+  it('normalizes WorkoutLog text fields to the real schema before bulk insert', async () => {
+    bootstrapHappyPath({ existingSession: null, createdFlag: true });
+
+    const res = await request(app).post('/api/workout-forms').send({
+      ...VALID_PAYLOAD,
+      exercises: [{
+        exerciseName: 'A'.repeat(300),
+        exerciseNote: { invalid: true },
+        sets: [{
+          reps: 12,
+          weight: 30,
+          tempo: '3-1-1-0 controlled eccentric tempo cue',
+          notes: { invalid: true },
+        }],
+      }],
+    });
+
+    expect(res.status).toBe(201);
+    expect(mockWorkoutLogBulkCreate.mock.calls[0][0]).toEqual([
+      expect.objectContaining({
+        exerciseName: 'A'.repeat(255),
+        tempo: '3-1-1-0 controlled eccentric tempo cue'.slice(0, 20),
+        notes: null,
+        exerciseNote: null,
+      }),
+    ]);
   });
 });
 

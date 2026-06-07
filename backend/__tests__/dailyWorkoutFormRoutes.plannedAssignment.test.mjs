@@ -25,6 +25,8 @@ const mockUserFindByPk = vi.fn();
 const mockDailyWorkoutFormFindOne = vi.fn();
 const mockDailyWorkoutFormCreate = vi.fn();
 const mockWorkoutSessionFindOrCreate = vi.fn();
+const mockWorkoutLogDestroy = vi.fn();
+const mockWorkoutLogBulkCreate = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
@@ -34,6 +36,7 @@ vi.mock('../models/index.mjs', () => ({
     create: mockDailyWorkoutFormCreate,
   }),
   getWorkoutSession: () => ({ findOrCreate: mockWorkoutSessionFindOrCreate }),
+  getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
   getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
   getSession: () => ({ findByPk: vi.fn() }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
@@ -128,6 +131,8 @@ beforeEach(() => {
     decrement: mockUserDecrement,
   });
   mockDailyWorkoutFormFindOne.mockResolvedValue(null);
+  mockWorkoutLogDestroy.mockResolvedValue(undefined);
+  mockWorkoutLogBulkCreate.mockResolvedValue([]);
   mockWorkoutSessionFindOrCreate.mockResolvedValue([
     { id: 'workout-session-1', update: vi.fn().mockResolvedValue(undefined) },
     true,
@@ -150,6 +155,22 @@ describe('POST /api/workout-forms planned assignment logging', () => {
       where: { id: 'plan-6m', userId: 11, status: 'active' },
     }));
     const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
+    expect(mockWorkoutLogDestroy).toHaveBeenCalledWith({
+      where: { sessionId: 'workout-session-1' },
+      transaction: expect.any(Object),
+    });
+    expect(mockWorkoutLogBulkCreate).toHaveBeenCalledWith([
+      expect.objectContaining({
+        sessionId: 'workout-session-1',
+        exerciseName: 'Goblet Squat',
+        setNumber: 1,
+        reps: 10,
+        weight: 40,
+      }),
+    ], expect.objectContaining({
+      transaction: expect.any(Object),
+      validate: true,
+    }));
     expect(formCreate.sessionDeducted).toBe(false);
     expect(formCreate.formData.plannedAssignment).toMatchObject({
       assignmentKey: 'plan-6m:w4:d2:homework',

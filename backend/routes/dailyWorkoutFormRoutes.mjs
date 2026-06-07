@@ -22,6 +22,7 @@ import { protect, trainerOrAdminOnly, adminOnly, checkTrainerClientRelationship 
 import {
   getDailyWorkoutForm,
   getUser,
+  getWorkoutLog,
   getWorkoutSession,
   getWorkoutPlan,
   getSession,
@@ -70,6 +71,69 @@ const parseOptionalPositiveInteger = (value) => {
 };
 
 const sameId = (a, b) => String(a) === String(b);
+
+const toNonNegativeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+};
+
+const toNonNegativeInteger = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : fallback;
+};
+
+const normalizeWorkoutLogRpe = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed < 1 || parsed > 10) return null;
+  return Math.trunc(parsed);
+};
+
+const normalizeWorkoutLogRest = (set = {}) => {
+  const value = set.rest ?? set.restTime ?? set.restSeconds;
+  if (value === undefined || value === null || value === '') return null;
+  return toNonNegativeInteger(value, 0);
+};
+
+const compactWorkoutLogString = (value, maxLength = null) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return maxLength ? trimmed.slice(0, maxLength) : trimmed;
+};
+
+const buildWorkoutLogRowsFromFormExercises = (exercises = [], sessionId) => {
+  const rows = [];
+
+  exercises.forEach((exercise = {}, exerciseIndex) => {
+    const exerciseName = compactWorkoutLogString(exercise.exerciseName, 255)
+      || compactWorkoutLogString(exercise.name, 255)
+      || `Exercise ${exerciseIndex + 1}`;
+    const exerciseNote = compactWorkoutLogString(exercise.exerciseNote)
+      || compactWorkoutLogString(exercise.performanceNotes)
+      || null;
+    const sets = Array.isArray(exercise.sets) ? exercise.sets : [];
+
+    sets.forEach((set = {}, setIndex) => {
+      const explicitSetNumber = parseStrictPositiveInteger(set.setNumber);
+      rows.push({
+        sessionId,
+        exerciseName,
+        setNumber: explicitSetNumber || setIndex + 1,
+        reps: toNonNegativeInteger(set.reps, 0),
+        weight: toNonNegativeNumber(set.weight, 0),
+        tempo: compactWorkoutLogString(set.tempo, 20),
+        rest: normalizeWorkoutLogRest(set),
+        rpe: normalizeWorkoutLogRpe(set.rpe),
+        notes: compactWorkoutLogString(set.notes),
+        exerciseNote,
+      });
+    });
+  });
+
+  return rows;
+};
 
 const parseOptionalBoolean = (value) => {
   if (value === undefined) return { ok: true, value: undefined };
@@ -737,7 +801,13 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     }
 
     // Calculate workout statistics
-    const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets ? ex.sets.length : 0), 0);
+    const pendingWorkoutLogRows = buildWorkoutLogRowsFromFormExercises(exercises, null);
+    const totalSets = pendingWorkoutLogRows.length;
+    const totalReps = pendingWorkoutLogRows.reduce((sum, row) => sum + (row.reps || 0), 0);
+    const totalWeight = pendingWorkoutLogRows.reduce(
+      (sum, row) => sum + ((row.reps || 0) * (row.weight || 0)),
+      0
+    );
     const estimatedDuration = Math.min(totalSets * 3, 120); // 3 minutes per set, cap at 2 hours
 
     const scheduledSessionWorkoutFields = linkedScheduledSession
@@ -786,6 +856,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       completedAt: new Date(),
       duration: estimatedDuration,
       totalSets,
+      totalReps,
+      totalWeight,
       intensity: (overallIntensity === undefined || overallIntensity === null)
         ? null
         : overallIntensity,
@@ -844,6 +916,22 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     // already-completed-but-stale path is the edge case Codex caught.
     if (!created) {
       await workoutSession.update(completionFields, { transaction });
+    }
+
+    const WorkoutLog = getWorkoutLog();
+    if (!WorkoutLog?.destroy || !WorkoutLog?.bulkCreate) {
+      throw new Error('WorkoutLog model is unavailable for canonical workout form persistence');
+    }
+    const workoutLogRows = pendingWorkoutLogRows.map((row) => ({
+      ...row,
+      sessionId: workoutSession.id,
+    }));
+    await WorkoutLog.destroy({
+      where: { sessionId: workoutSession.id },
+      transaction,
+    });
+    if (workoutLogRows.length > 0) {
+      await WorkoutLog.bulkCreate(workoutLogRows, { transaction, validate: true });
     }
 
     // Create daily workout form.

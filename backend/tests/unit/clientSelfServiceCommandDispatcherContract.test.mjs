@@ -60,6 +60,11 @@ describe('client self-service command dispatchers', () => {
         dayNumber: 1,
         exerciseCount: 1,
         firstExerciseName: 'Goblet Squat',
+        exercisePreview: [{
+          exerciseName: 'Goblet Squat',
+          sets: 3,
+          reps: '10',
+        }],
         ctaLabel: 'Log Assignment',
       },
       trainingPlanCatalog: {
@@ -82,7 +87,7 @@ describe('client self-service command dispatchers', () => {
 
     expect(WorkoutSession.findAll).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ userId: 17, status: 'completed' }),
-      attributes: ['id', 'duration', 'totalSets', 'totalReps', 'completedAt', 'date'],
+      attributes: ['id', 'duration', 'totalSets', 'totalReps', 'totalWeight', 'completedAt', 'date'],
     }));
     expect(BodyMeasurement.findOne).toHaveBeenCalledWith(expect.objectContaining({
       where: { userId: 17 },
@@ -94,6 +99,7 @@ describe('client self-service command dispatchers', () => {
       workoutCount: 2,
       totalSets: 20,
       totalReps: 200,
+      totalVolume: 8600,
       totalMinutes: 75,
       latestMeasurementDate: '2026-05-20',
       latestWeight: 185.5,

@@ -31,8 +31,8 @@ export async function loadDispatcher() {
     },
   };
   const workoutRows = [
-    { totalSets: 12, totalReps: 120, duration: 45, completedAt: new Date('2026-05-30T12:00:00Z') },
-    { totalSets: 8, totalReps: 80, duration: 30, completedAt: new Date('2026-05-28T12:00:00Z') },
+    { totalSets: 12, totalReps: 120, totalWeight: 5400, duration: 45, completedAt: new Date('2026-05-30T12:00:00Z') },
+    { totalSets: 8, totalReps: 80, totalWeight: 3200, duration: 30, completedAt: new Date('2026-05-28T12:00:00Z') },
   ];
   const measurement = {
     measurementDate: new Date('2026-05-20T12:00:00Z'),
