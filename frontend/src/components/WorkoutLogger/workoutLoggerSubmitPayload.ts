@@ -192,7 +192,9 @@ export function buildWorkoutFormSubmitBody(params: {
   if (params.equipmentProfileId !== null && params.equipmentProfileId !== undefined) {
     body.equipmentProfileId = params.equipmentProfileId;
   }
-  const plannedAssignment = sanitizePlannedAssignment(params.plannedAssignment);
+  const plannedAssignment = params.scheduledSessionId
+    ? null
+    : sanitizePlannedAssignment(params.plannedAssignment);
   if (plannedAssignment) {
     body.plannedAssignment = plannedAssignment;
   }

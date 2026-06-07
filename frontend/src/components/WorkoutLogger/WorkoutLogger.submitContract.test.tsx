@@ -306,6 +306,28 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
     });
   });
 
+  it('does not combine schedule-origin logging with planned assignment metadata', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      scheduledSessionId: '314',
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    });
+
+    expect(body.scheduledSessionId).toBe('314');
+    expect(body.plannedAssignment).toBeUndefined();
+  });
+
   it('drops incomplete planned assignment metadata instead of sending a bypassable no-deduction flag', () => {
     const body = buildWorkoutFormSubmitBody({
       ...BASE_PARAMS,
