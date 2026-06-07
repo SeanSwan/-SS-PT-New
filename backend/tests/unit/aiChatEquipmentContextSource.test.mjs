@@ -25,4 +25,11 @@ describe('AI chat selected equipment profile request context', () => {
     expect(serviceSource).toContain('`#${e.id} ${e.name}');
     expect(serviceSource).toContain('`  #${ep.id} ${ep.name}');
   });
+
+  it('uses EquipmentItem model fields for general equipment enrichment', () => {
+    expect(serviceSource).not.toContain('"isAvailable"');
+    expect(serviceSource).toMatch(/equipment_items\s+ei[\s\S]*ei\."isActive"\s+=\s+true/);
+    expect(serviceSource).toMatch(/equipment_items\s+ei[\s\S]*ei\."approvalStatus"\s+=\s+'approved'/);
+    expect(serviceSource).toContain("'resistanceType', ei.\"resistanceType\"");
+  });
 });

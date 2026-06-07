@@ -1140,8 +1140,16 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
       safeQuery(
         `SELECT ep.id, ep.name, ep."locationType", ep.description,
                 COALESCE(
-                  (SELECT json_agg(json_build_object('name', ei.name, 'category', ei.category, 'quantity', ei.quantity))
-                   FROM equipment_items ei WHERE ei."profileId" = ep.id AND ei."isAvailable" = true),
+                  (SELECT json_agg(json_build_object(
+                    'name', ei.name,
+                    'category', ei.category,
+                    'quantity', ei.quantity,
+                    'resistanceType', ei."resistanceType"
+                  ) ORDER BY ei.category, ei.name)
+                   FROM equipment_items ei
+                   WHERE ei."profileId" = ep.id
+                     AND ei."isActive" = true
+                     AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')),
                   '[]'
                 ) as items
          FROM equipment_profiles ep
