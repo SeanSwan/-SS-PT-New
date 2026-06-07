@@ -401,7 +401,7 @@ router.post('/assign-trainer', protect, adminOnly, async (req, res) => {
     logger.error('Error in POST /api/sessions/assign-trainer:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to assign trainer'
+      message: 'Failed to assign trainer'
     });
   }
 });
@@ -433,7 +433,7 @@ router.post('/remove-trainer-assignment', protect, adminOnly, async (req, res) =
     logger.error('Error in POST /api/sessions/remove-trainer-assignment:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to remove trainer assignment'
+      message: 'Failed to remove trainer assignment'
     });
   }
 });
@@ -474,7 +474,7 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
     logger.error('Error in GET /api/sessions/trainer-assignment-health:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get trainer assignment health'
+      message: 'Failed to get trainer assignment health'
     });
   }
 });
@@ -511,7 +511,7 @@ router.get('/trainer-assignments/:trainerId', protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/trainer-assignments/:trainerId:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get trainer assignments'
+      message: 'Failed to get trainer assignments'
     });
   }
 });
@@ -548,7 +548,7 @@ router.get('/client-assignments/:clientId', protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/client-assignments/:clientId:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get client assignments'
+      message: 'Failed to get client assignments'
     });
   }
 });
