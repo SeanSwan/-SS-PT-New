@@ -119,6 +119,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
         planVault={planVault}
         loading={currentWorkoutLoading}
         error={currentWorkoutError}
+        canLogToday={currentWorkout?.isLoggable === true}
         onNavigate={onNavigate}
         onViewPdf={onViewPlanPdf}
       />

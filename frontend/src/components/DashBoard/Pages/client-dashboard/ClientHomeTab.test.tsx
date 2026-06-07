@@ -327,6 +327,65 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 
+  it('routes completed planned homework to workout history instead of another log attempt', async () => {
+    const user = userEvent.setup();
+    mockApiGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          title: 'Coach Homework Lower Strength',
+          todayAssignment: {
+            assignmentType: 'homework',
+            status: 'completed',
+            sessionType: 'solo',
+            isLoggable: false,
+            isBillable: false,
+            shouldDeductSession: false,
+            title: 'Coach Homework Lower Strength',
+            weekNumber: 2,
+            dayNumber: 3,
+            dayLabel: 'Lower Strength',
+            exerciseCount: 4,
+            firstExerciseName: 'Goblet Squat',
+            ctaLabel: 'Review Workout',
+          },
+          trainingPlanCatalog: {
+            defaultHorizonKey: 'six_month',
+            primaryPlanId: 'plan-6m',
+            slots: [
+              { horizonKey: 'six_month', label: '6 Month', isFilled: true, isPrimary: true, plan: { id: 'plan-6m', title: 'Phase 1 Stabilization' } },
+            ],
+          },
+        },
+        todayAssignment: {
+          assignmentType: 'homework',
+          status: 'completed',
+          sessionType: 'solo',
+          isLoggable: false,
+          isBillable: false,
+          shouldDeductSession: false,
+          title: 'Coach Homework Lower Strength',
+          weekNumber: 2,
+          dayNumber: 3,
+          dayLabel: 'Lower Strength',
+          exerciseCount: 4,
+          firstExerciseName: 'Goblet Squat',
+          ctaLabel: 'Review Workout',
+        },
+      },
+    });
+
+    render(<ClientHomeTab />);
+
+    const card = await screen.findByTestId('current-workout-card');
+    expect(card.textContent).toMatch(/completed today/i);
+
+    await user.click(screen.getByRole('button', { name: /review workout/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
+    expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
+  });
+
   it('renders backend pending assignment details when the client has plan arcs but no active workout yet', async () => {
     const user = userEvent.setup();
     mockApiGet.mockResolvedValueOnce({

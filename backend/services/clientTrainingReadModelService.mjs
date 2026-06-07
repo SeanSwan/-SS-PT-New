@@ -17,6 +17,7 @@ import {
   buildPlanAssignmentSemantics,
   normalizeAssignmentType,
 } from './clientTrainingAssignmentSemanticsService.mjs';
+import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
@@ -239,7 +240,12 @@ const assignmentKeyFor = ({ planId, weekNumber, dayNumber, type }) => (
   planId ? `${planId}:w${weekNumber || 1}:d${dayNumber || 1}:${type}` : null
 );
 
-const buildTodayAssignment = ({ plan = null, currentSession = null, today = null } = {}) => {
+const buildTodayAssignment = ({
+  plan = null,
+  currentSession = null,
+  today = null,
+  assignmentCompletions = [],
+} = {}) => {
   const rawPlan = toPlainObject(plan) || null;
   if (!rawPlan) return pendingTodayAssignment(today);
 
@@ -254,7 +260,7 @@ const buildTodayAssignment = ({ plan = null, currentSession = null, today = null
   const dayNumber = toPositiveInteger(currentSession?.dayNumber, rawPlan.currentDay || null);
   const assignmentKey = assignmentKeyFor({ planId: rawPlan.id, weekNumber, dayNumber, type });
 
-  return {
+  return applyAssignmentCompletion({
     assignmentId: assignmentKey,
     assignmentKey,
     assignmentType: type,
@@ -273,7 +279,7 @@ const buildTodayAssignment = ({ plan = null, currentSession = null, today = null
     firstExerciseName: firstExerciseName(exercises),
     exercises,
     ctaLabel: ctaForAssignment({ type, status, isLoggable }),
-  };
+  }, assignmentCompletions);
 };
 
 export const buildClientTrainingOverview = ({
@@ -281,7 +287,13 @@ export const buildClientTrainingOverview = ({
   plans = [],
   currentSession = null,
   today = null,
+  assignmentCompletions = [],
 } = {}) => ({
-  todayAssignment: buildTodayAssignment({ plan: activePlan, currentSession, today }),
+  todayAssignment: buildTodayAssignment({
+    plan: activePlan,
+    currentSession,
+    today,
+    assignmentCompletions,
+  }),
   trainingPlanCatalog: buildTrainingPlanCatalog(plans.length ? plans : activePlan ? [activePlan] : []),
 });

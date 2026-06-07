@@ -81,7 +81,9 @@ export interface PlanPdfAuthClient {
   ) => Promise<{ data?: Blob | BlobPart }>;
 }
 
-export const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
+export interface ClientWorkoutPlansResponseSummary { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown }
+
+const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
   const rawId = plan.id;
   const id = typeof rawId === 'number' || typeof rawId === 'string' ? String(rawId) : '';
   const mapped = mapSavedPlan(plan);
@@ -212,7 +214,7 @@ const normalizeServerCatalogSlot = (value: unknown): ClientPlanHorizonSlot | nul
   };
 };
 
-export const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | null => {
+const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | null => {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
   const rawSlots = Array.isArray(raw.slots) ? raw.slots : [];
@@ -247,11 +249,41 @@ export const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSum
   };
 };
 
+const rawPlansFromResponse = (responseData: ClientWorkoutPlansResponseSummary) => (
+  Array.isArray(responseData.plans)
+    ? responseData.plans
+    : responseData.plan && typeof responseData.plan === 'object' ? [responseData.plan] : []
+);
+
+const normalizeRawPlans = (rawPlans: unknown[]) => rawPlans
+  .map((plan: unknown) => (
+    plan && typeof plan === 'object'
+      ? normalizeClientWorkoutPlan(plan as Record<string, unknown>)
+      : null
+  ))
+  .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null);
+
+export const normalizeClientWorkoutPlansResponse = (
+  data?: ClientWorkoutPlansResponseSummary,
+) => {
+  const responseData = data ?? {};
+  const serverPlanVault = normalizeTrainingPlanCatalog(responseData.trainingPlanCatalog);
+  const canonicalPlans = serverPlanVault
+    ? serverPlanVault.slots
+        .map((slot) => slot.plan)
+        .filter((plan): plan is ClientPlanSummary => plan !== null)
+    : null;
+
+  return {
+    plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
+    serverPlanVault,
+  };
+};
+
 export const formatClientPlanUpdated = (value?: string) => {
   if (!value) return 'Updated date unavailable';
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Updated date unavailable';
-  return `Updated ${parsed.toLocaleDateString()}`;
+  return Number.isNaN(parsed.getTime()) ? 'Updated date unavailable' : `Updated ${parsed.toLocaleDateString()}`;
 };
 
 export const createProtectedPdfObjectUrl = async (
@@ -260,9 +292,9 @@ export const createProtectedPdfObjectUrl = async (
 ) => {
   const response = await authAxios.get(pdfFile.url, { responseType: 'blob' });
   const data = response.data;
-  const blob = data instanceof Blob
-    ? data
-    : new Blob(data === undefined ? [] : [data], { type: pdfFile.contentType || 'application/pdf' });
-
+  const blob = data instanceof Blob ? data : new Blob(
+    data === undefined ? [] : [data],
+    { type: pdfFile.contentType || 'application/pdf' },
+  );
   return URL.createObjectURL(blob);
 };

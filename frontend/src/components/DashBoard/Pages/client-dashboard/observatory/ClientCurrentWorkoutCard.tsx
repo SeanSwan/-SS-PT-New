@@ -55,6 +55,7 @@ function assignmentLabel(type?: string): string {
 function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): string {
   if (error) return 'Refresh this page or open the workout logger directly.';
   if (!workout) return 'Your trainer will assign the default 6 Month plan after assessment.';
+  if (workout.assignmentStatus === 'completed') return 'Completed today - review your workout history and progress.';
   if (workout.assignmentType === 'rest') return 'Recovery guidance is visible in your main plan today.';
   if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';

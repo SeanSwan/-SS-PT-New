@@ -73,4 +73,19 @@ describe('ClientTrainingPlanVaultCard', () => {
       screen.queryByRole('button', { name: /log today from 1 day primary plan/i })
     ).toBeNull();
   });
+
+  it('does not offer a duplicate log action when today assignment is already completed', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={PLAN_VAULT}
+        canLogToday={false}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /log today from 6 month primary plan/i })
+    ).toBeNull();
+  });
 });

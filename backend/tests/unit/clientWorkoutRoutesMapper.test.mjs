@@ -18,7 +18,7 @@
  *     DailyWorkoutForm.formData.exercises.length, null when not joined
  */
 import { describe, expect, it } from 'vitest';
-import { toClientWorkoutHistoryRow } from '../../routes/clientWorkoutRoutes.mjs';
+import { toClientWorkoutHistoryRow } from '../../services/clientWorkoutHistoryRowService.mjs';
 
 describe('toClientWorkoutHistoryRow', () => {
   it('maps a real trainer-logged WorkoutSession row to the UI shape', () => {

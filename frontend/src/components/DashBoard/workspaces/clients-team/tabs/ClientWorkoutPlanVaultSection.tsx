@@ -1,0 +1,57 @@
+/**
+ * Client Hub training-plan vault section.
+ * ======================================
+ *
+ * Renders all seven SwanStudios plan-horizon slots for the selected client.
+ * The parent owns loading and mutations; this component only presents the
+ * read model and forwards PDF / primary-arc actions.
+ */
+
+import React from 'react';
+import { Layers3 } from 'lucide-react';
+import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
+import type { ClientPlanSummary, ClientPlanVaultSummary } from './ClientWorkoutPlansPanel.logic';
+import {
+  VaultGrid,
+  VaultHeader,
+  VaultMeta,
+  VaultSection,
+  VaultTitle,
+} from './ClientWorkoutPlansPanel.styles';
+
+interface ClientWorkoutPlanVaultSectionProps {
+  openingPdfId: string | null;
+  planVault: ClientPlanVaultSummary;
+  primaryUpdatingId: string | null;
+  onMakePrimary: (plan: ClientPlanSummary) => void;
+  onOpenPdf: (plan: ClientPlanSummary) => void;
+}
+
+const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps> = ({
+  openingPdfId,
+  planVault,
+  primaryUpdatingId,
+  onMakePrimary,
+  onOpenPdf,
+}) => (
+  <VaultSection aria-label="Plan Arc Vault">
+    <VaultHeader>
+      <VaultTitle><Layers3 size={16} /> Plan Arc Vault</VaultTitle>
+      <VaultMeta>{planVault.filledCount} of 7 arcs filled</VaultMeta>
+    </VaultHeader>
+    <VaultGrid>
+      {planVault.slots.map((slot) => (
+        <ClientWorkoutPlanVaultSlot
+          key={slot.horizonKey}
+          slot={slot}
+          openingPdfId={openingPdfId}
+          primaryUpdatingId={primaryUpdatingId}
+          onOpenPdf={onOpenPdf}
+          onMakePrimary={onMakePrimary}
+        />
+      ))}
+    </VaultGrid>
+  </VaultSection>
+);
+
+export default ClientWorkoutPlanVaultSection;

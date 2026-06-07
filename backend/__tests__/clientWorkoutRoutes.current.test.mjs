@@ -6,6 +6,7 @@ const mockEnsureClientAccess = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
+const mockDailyWorkoutFormFindOne = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -45,6 +46,7 @@ beforeEach(() => {
     models: {
       WorkoutPlan: { findOne: mockWorkoutPlanFindOne, findAll: mockWorkoutPlanFindAll },
       WorkoutSession: { findAll: mockWorkoutSessionFindAll },
+      DailyWorkoutForm: { findOne: mockDailyWorkoutFormFindOne },
       // These existing models are intentionally present. The current route
       // must not eager-load them because production has no declared association.
       WorkoutPlanDay: {},
@@ -54,6 +56,7 @@ beforeEach(() => {
   });
   mockWorkoutSessionFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindAll.mockResolvedValue([]);
+  mockDailyWorkoutFormFindOne.mockResolvedValue(null);
 });
 
 describe('clientWorkoutRoutes GET /:userId/current', () => {
@@ -168,6 +171,71 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
       isFilled: true,
       isPrimary: true,
       plan: { id: 'plan-6m', title: 'Six Month Foundation' },
+    });
+  });
+
+  it('marks current homework completed when today has a matching planned-assignment log', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      title: 'Six Month Foundation',
+      durationWeeks: 26,
+      status: 'active',
+      currentWeek: 3,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [
+          { days: [] },
+          { days: [] },
+          {
+            days: [
+              { dayNumber: 1, name: 'Upper Body', exercises: [] },
+              {
+                dayNumber: 2,
+                name: 'Coach Homework Lower Body',
+                assignmentType: 'homework',
+                exercises: [{ exerciseId: 'ex-1', exerciseName: 'Goblet Squat' }],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const today = new Date().toISOString().slice(0, 10);
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockDailyWorkoutFormFindOne.mockResolvedValue({
+      id: 'daily-form-1',
+      submittedAt: '2026-06-06T12:00:00.000Z',
+      updatedAt: '2026-06-06T12:01:00.000Z',
+      formData: {
+        plannedAssignment: {
+          assignmentKey: 'plan-6m:w3:d2:homework',
+          planId: 'plan-6m',
+          assignmentType: 'homework',
+        },
+      },
+    });
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(mockDailyWorkoutFormFindOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { clientId: 42, date: today },
+      attributes: ['id', 'formData', 'submittedAt', 'updatedAt'],
+    }));
+    expect(res.body.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w3:d2:homework',
+      status: 'completed',
+      isLoggable: false,
+      ctaLabel: 'Review Workout',
+      completion: {
+        source: 'daily_workout_form',
+        formId: 'daily-form-1',
+      },
     });
   });
 

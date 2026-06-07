@@ -1,0 +1,116 @@
+/**
+ * Client Hub saved-plan card list.
+ * =================================
+ *
+ * BLUEPRINT: Saved workout-plan cards for Client Hub Plan Vault.
+ * Parent: ClientWorkoutPlansPanel. Children: repeated plan cards with log/PDF
+ * actions. Data is already normalized by ClientWorkoutPlansPanel.logic.
+ *
+ * Presents the selected client's saved workout-plan rows below the seven-slot
+ * vault. Logging stays opt-in and only appears for active plans.
+ */
+
+import React from 'react';
+import { CheckCircle2, Dumbbell, ExternalLink } from 'lucide-react';
+import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
+import {
+  formatClientPlanUpdated,
+  type ClientPlanSummary,
+} from './ClientWorkoutPlansPanel.logic';
+import {
+  Meta,
+  PlanActionButton,
+  PlanActions,
+  PlanCard,
+  PlanGrid,
+  PlanTitle,
+  StateCard,
+  StatusBadge,
+} from './ClientWorkoutPlansPanel.styles';
+
+interface ClientWorkoutPlanCardsProps {
+  openingPdfId: string | null;
+  plans: ClientPlanSummary[];
+  onLogToday?: () => void;
+  onOpenPdf: (plan: ClientPlanSummary) => void;
+}
+
+const statusText = (plan: ClientPlanSummary, active: boolean) => (
+  plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status
+);
+
+const ClientWorkoutPlanCard: React.FC<{
+  openingPdfId: string | null;
+  plan: ClientPlanSummary;
+  onLogToday?: () => void;
+  onOpenPdf: (plan: ClientPlanSummary) => void;
+}> = ({ openingPdfId, plan, onLogToday, onOpenPdf }) => {
+  const active = plan.status === 'active';
+
+  return (
+    <PlanCard>
+      <StatusBadge $active={active}>
+        {active && <CheckCircle2 size={13} />}
+        {statusText(plan, active)}
+      </StatusBadge>
+      <PlanTitle>{plan.name}</PlanTitle>
+      <Meta>
+        {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
+        {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
+        {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
+        <span>{formatClientPlanUpdated(plan.createdAt)}</span>
+        <span>{formatPlanUseLabel(plan.assignmentDefault)}</span>
+        <span>{plan.goal}</span>
+      </Meta>
+      <PlanActions>
+        {active && onLogToday && (
+          <PlanActionButton
+            type="button"
+            $variant="primary"
+            aria-label={`Log Today from ${plan.name}`}
+            onClick={onLogToday}
+          >
+            <Dumbbell size={14} /> Log Today
+          </PlanActionButton>
+        )}
+        {plan.pdfFile && (
+          <PlanActionButton
+            type="button"
+            disabled={openingPdfId === plan.id}
+            aria-label={`Open ${plan.name} PDF`}
+            onClick={() => onOpenPdf(plan)}
+          >
+            <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
+          </PlanActionButton>
+        )}
+      </PlanActions>
+    </PlanCard>
+  );
+};
+
+const ClientWorkoutPlanCards: React.FC<ClientWorkoutPlanCardsProps> = ({
+  openingPdfId,
+  plans,
+  onLogToday,
+  onOpenPdf,
+}) => {
+  if (plans.length === 0) {
+    return <StateCard>No saved plans for this client yet. Use Plan Next to create the next block.</StateCard>;
+  }
+
+  return (
+    <PlanGrid>
+      {plans.map((plan) => (
+        <ClientWorkoutPlanCard
+          key={plan.id}
+          openingPdfId={openingPdfId}
+          plan={plan}
+          onLogToday={onLogToday}
+          onOpenPdf={onOpenPdf}
+        />
+      ))}
+    </PlanGrid>
+  );
+};
+
+export default ClientWorkoutPlanCards;

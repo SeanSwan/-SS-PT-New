@@ -13,6 +13,7 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
 const mockBodyMeasurementFindOne = vi.fn();
+const mockDailyWorkoutFormFindOne = vi.fn();
 
 vi.mock('../models/index.mjs', () => ({
   getAllModels: () => ({
@@ -25,6 +26,9 @@ vi.mock('../models/index.mjs', () => ({
     },
     BodyMeasurement: {
       findOne: mockBodyMeasurementFindOne,
+    },
+    DailyWorkoutForm: {
+      findOne: mockDailyWorkoutFormFindOne,
     },
   }),
 }));
@@ -45,6 +49,7 @@ describe('clientSelfServiceReadDispatchers', () => {
     mockWorkoutPlanFindAll.mockResolvedValue([]);
     mockWorkoutSessionFindAll.mockResolvedValue([]);
     mockBodyMeasurementFindOne.mockResolvedValue(null);
+    mockDailyWorkoutFormFindOne.mockResolvedValue(null);
   });
 
   it('returns safe plan-catalog context when Swan Coach finds no active plan', async () => {
@@ -196,6 +201,105 @@ describe('clientSelfServiceReadDispatchers', () => {
     expect(serialized).not.toContain('Six Month Homework Arc');
     expect(serialized).not.toContain('client@example.test');
     expect(serialized).not.toContain('should not be sent');
+  });
+
+  it('returns completed/non-loggable homework context after the client logs today assignment', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      userId: 42,
+      title: 'ClientNameMustNotLeak Six Month Homework Arc',
+      status: 'active',
+      durationWeeks: 26,
+      currentWeek: 4,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [
+          { days: [] },
+          { days: [] },
+          { days: [] },
+          { days: [
+            { dayNumber: 1, name: 'Trainer Session', assignmentType: 'trainer_session', exercises: [] },
+            {
+              dayNumber: 2,
+              name: 'Off-Day Lower Homework',
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat', notes: 'ClientNameMustNotLeak note' }],
+            },
+          ]},
+        ],
+      },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockDailyWorkoutFormFindOne.mockResolvedValue({
+      id: 'daily-form-1',
+      submittedAt: '2026-06-06T12:00:00.000Z',
+      formData: {
+        plannedAssignment: {
+          assignmentKey: 'plan-6m:w4:d2:homework',
+          planId: 'plan-6m',
+          assignmentType: 'homework',
+        },
+      },
+    });
+
+    const result = await dispatchMyWorkoutToday({}, {
+      user: {
+        id: 42,
+        firstName: 'ClientNameMustNotLeak',
+        email: 'client@example.test',
+        role: 'client',
+      },
+    });
+
+    expect(result.todayAssignment).toMatchObject({
+      assignmentType: 'homework',
+      status: 'completed',
+      isLoggable: false,
+      isBillable: false,
+      shouldDeductSession: false,
+      ctaLabel: 'Review Workout',
+      completion: {
+        source: 'daily_workout_form',
+        formId: 'daily-form-1',
+      },
+    });
+    const serialized = JSON.stringify(result);
+    expect(serialized).not.toContain('ClientNameMustNotLeak');
+    expect(serialized).not.toContain('client@example.test');
+    expect(serialized).not.toContain('note');
+  });
+
+  it('keeps Swan Coach workout context available if assignment-completion lookup fails', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      userId: 42,
+      title: 'Six Month Homework Arc',
+      status: 'active',
+      durationWeeks: 26,
+      currentWeek: 4,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [{ days: [] }, { days: [] }, { days: [] }, { days: [
+          { dayNumber: 1, name: 'Trainer Session', assignmentType: 'trainer_session', exercises: [] },
+          { dayNumber: 2, name: 'Off-Day Lower Homework', assignmentType: 'homework', exercises: [{ exerciseName: 'Goblet Squat' }] },
+        ] }],
+      },
+    };
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockDailyWorkoutFormFindOne.mockRejectedValue(new Error('database unavailable'));
+
+    const result = await dispatchMyWorkoutToday({}, { user: { id: 42, role: 'client' } });
+
+    expect(result.todayAssignment).toMatchObject({
+      assignmentType: 'homework',
+      status: 'planned',
+      isLoggable: true,
+      ctaLabel: 'Log Assignment',
+    });
   });
 
   it('returns safe workout volume aggregates from completed sessions for Swan Coach progress context', async () => {

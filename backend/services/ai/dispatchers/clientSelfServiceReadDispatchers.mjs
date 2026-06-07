@@ -10,6 +10,7 @@ import { getAllModels } from '../../../models/index.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
+import { findPlannedAssignmentCompletionsForDate } from '../../clientTrainingAssignmentCompletionService.mjs';
 import { summarizeTrainingPlanCatalog } from './clientTrainingCatalogSummary.mjs';
 
 const toNumber = (value) => {
@@ -27,6 +28,7 @@ const toDateOnly = (value) => {
   const date = value instanceof Date ? value : new Date(value);
   return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 };
+const todayDateOnly = () => new Date().toISOString().slice(0, 10);
 
 const selfUserId = (ctx = {}) => toNumber(ctx.user?.id);
 
@@ -94,6 +96,13 @@ const summarizeTodayAssignment = (assignment = {}) => ({
   firstExerciseName: assignment.firstExerciseName ?? null,
   exercisePreview: summarizeAssignmentExercises(assignment.exercises),
   ctaLabel: assignment.ctaLabel ?? null,
+  ...(assignment.completion ? {
+    completion: {
+      source: assignment.completion.source ?? null,
+      formId: assignment.completion.formId ?? null,
+      completedAt: toDateOnly(assignment.completion.completedAt),
+    },
+  } : {}),
 });
 
 const getGamificationRecord = async (userId) => {
@@ -117,8 +126,9 @@ const getGamificationRecord = async (userId) => {
 };
 
 export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
-  const { WorkoutPlan } = getAllModels();
+  const { WorkoutPlan, DailyWorkoutForm } = getAllModels();
   const userId = selfUserId(ctx);
+  const today = todayDateOnly();
   if (!WorkoutPlan?.findOne) {
     return { userId, hasActivePlan: false, planId: null };
   }
@@ -141,6 +151,7 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
       activePlan: null,
       plans: catalogPlans,
       currentSession: null,
+      today,
     });
 
     return {
@@ -161,10 +172,16 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
   const currentSession = formatted.currentSession || null;
   const exercises = Array.isArray(currentSession?.exercises) ? currentSession.exercises : [];
   const firstExercise = exercises[0] || null;
+  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
+    DailyWorkoutForm,
+    { clientId: userId, date: today },
+  );
   const overview = buildClientTrainingOverview({
     activePlan: plan,
     plans: catalogPlans.length ? catalogPlans : [plan],
     currentSession,
+    today,
+    assignmentCompletions,
   });
 
   return {

@@ -21,6 +21,7 @@ interface ClientTrainingPlanVaultCardProps {
   planVault?: ClientTrainingPlanVault | null;
   loading?: boolean;
   error?: boolean;
+  canLogToday?: boolean;
   onNavigate: (path: string) => void;
   onViewPdf: (slot: ClientTrainingPlanSlot) => void;
 }
@@ -46,14 +47,15 @@ function slotDetail(slot: ClientTrainingPlanSlot): string {
   return 'Pending';
 }
 
-function canLogFromSlot(slot: ClientTrainingPlanSlot): boolean {
-  return slot.isPrimary && slot.isFilled && slot.planStatus !== 'paused';
+function canLogFromSlot(slot: ClientTrainingPlanSlot, canLogToday: boolean): boolean {
+  return canLogToday && slot.isPrimary && slot.isFilled && slot.planStatus !== 'paused';
 }
 
 const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = ({
   planVault,
   loading = false,
   error = false,
+  canLogToday = true,
   onNavigate,
   onViewPdf,
 }) => {
@@ -90,7 +92,7 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
                 <WidgetLabel>{slot.isPrimary ? `${slot.label} Primary` : slot.label}</WidgetLabel>
                 <WidgetValue>{slotStatus(slot)}</WidgetValue>
                 <WidgetLabel>{slotDetail(slot)}</WidgetLabel>
-                {canLogFromSlot(slot) && (
+                {canLogFromSlot(slot, canLogToday) && (
                   <SmallButton
                     type="button"
                     onClick={() => onNavigate(TODAY_LOG_PATH)}

@@ -261,4 +261,39 @@ describe('clientTrainingReadModelService', () => {
     expect(overview.trainingPlanCatalog.slots).toHaveLength(7);
     expect(overview.trainingPlanCatalog.primaryPlanId).toBe('plan-6m');
   });
+
+  it('marks today homework completed from a matching logged planned assignment', () => {
+    const overview = buildClientTrainingOverview({
+      activePlan: sixMonthPlan,
+      plans: [sixMonthPlan],
+      currentSession: {
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'Coach Homework Lower Body',
+        session: { assignmentType: 'homework' },
+        exercises: [{ exerciseName: 'Goblet Squat' }],
+      },
+      today: '2026-06-06',
+      assignmentCompletions: [{
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        formId: 'daily-form-1',
+        completedAt: '2026-06-06T12:00:00.000Z',
+      }],
+    });
+
+    expect(overview.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'homework',
+      status: 'completed',
+      isLoggable: false,
+      isBillable: false,
+      shouldDeductSession: false,
+      ctaLabel: 'Review Workout',
+      completion: {
+        source: 'daily_workout_form',
+        formId: 'daily-form-1',
+        completedAt: '2026-06-06T12:00:00.000Z',
+      },
+    });
+  });
 });

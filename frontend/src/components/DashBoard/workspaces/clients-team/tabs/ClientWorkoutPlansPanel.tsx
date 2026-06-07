@@ -13,43 +13,30 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, Layers3, RefreshCw } from 'lucide-react';
+import { ClipboardList, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
+import ClientWorkoutPlanCards from './ClientWorkoutPlanCards';
 import ClientWorkoutPlansTeachMe from './ClientWorkoutPlansTeachMe';
 import ClientWorkoutPlanPdfDialog, { type ClientPlanPdfViewerState } from './ClientWorkoutPlanPdfDialog';
-import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
-import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
+import ClientWorkoutPlanVaultSection from './ClientWorkoutPlanVaultSection';
 import {
   Eyebrow,
   Header,
   Hint,
-  Meta,
   Panel,
-  PlanActionButton,
-  PlanActions,
-  PlanCard,
-  PlanGrid,
-  PlanTitle,
   RefreshButton,
   StateCard,
-  StatusBadge,
   Title,
   TitleBlock,
-  VaultGrid,
-  VaultHeader,
-  VaultMeta,
-  VaultSection,
-  VaultTitle,
 } from './ClientWorkoutPlansPanel.styles';
 import {
   buildClientPlanVault,
   createProtectedPdfObjectUrl,
-  formatClientPlanUpdated,
-  normalizeClientWorkoutPlan,
-  normalizeTrainingPlanCatalog,
+  normalizeClientWorkoutPlansResponse,
   type ClientPlanSummary,
   type ClientPlanVaultSummary,
+  type ClientWorkoutPlansResponseSummary,
   type PlanPdfAuthClient,
 } from './ClientWorkoutPlansPanel.logic';
 
@@ -57,15 +44,21 @@ interface ClientWorkoutPlansPanelProps {
   clientId: number | string;
   clientName?: string;
   onLogToday?: () => void;
+  refreshSignal?: number;
 }
 
-const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clientId, clientName, onLogToday }) => {
+const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
+  clientId,
+  clientName,
+  onLogToday,
+  refreshSignal = 0,
+}) => {
   const { authAxios } = useAuth() as {
     authAxios?: {
       get: (
         url: string,
         config?: { params?: Record<string, number>; responseType?: 'blob' },
-      ) => Promise<{ data?: { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown } }>;
+      ) => Promise<{ data?: ClientWorkoutPlansResponseSummary }>;
       put: (url: string) => Promise<unknown>;
     };
   };
@@ -91,28 +84,9 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
     setActionError(null);
     try {
       const response = await authAxios.get(`/api/workout-plans/client/${safeClientId}`);
-      const responseData: { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown } = response.data ?? {};
-      const canonicalVault = normalizeTrainingPlanCatalog(responseData.trainingPlanCatalog);
-      const canonicalPlans = canonicalVault
-        ? canonicalVault.slots
-            .map((slot) => slot.plan)
-            .filter((plan): plan is ClientPlanSummary => plan !== null)
-        : null;
-      const rawPlans = Array.isArray(responseData.plans)
-        ? responseData.plans
-        : responseData.plan && typeof responseData.plan === 'object'
-          ? [responseData.plan]
-          : [];
-      const normalizedRawPlans = rawPlans
-        .map((plan: unknown) => (
-          plan && typeof plan === 'object'
-            ? normalizeClientWorkoutPlan(plan as Record<string, unknown>)
-            : null
-        ))
-        .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null);
-      const nextPlans = canonicalPlans ?? normalizedRawPlans;
-      setServerPlanVault(canonicalVault);
-      setPlans(nextPlans);
+      const nextState = normalizeClientWorkoutPlansResponse(response.data);
+      setServerPlanVault(nextState.serverPlanVault);
+      setPlans(nextState.plans);
     } catch (caught) {
       const status = (caught as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
@@ -130,7 +104,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
 
   useEffect(() => {
     loadPlans();
-  }, [loadPlans]);
+  }, [loadPlans, refreshSignal]);
 
   useEffect(() => () => {
     if (pdfViewer?.objectUrl) URL.revokeObjectURL(pdfViewer.objectUrl);
@@ -202,73 +176,19 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
         <>
           {actionError && <StateCard role="alert">{actionError}</StateCard>}
           {pdfError && <StateCard role="alert">{pdfError}</StateCard>}
-          <VaultSection aria-label="Plan Arc Vault">
-            <VaultHeader>
-              <VaultTitle><Layers3 size={16} /> Plan Arc Vault</VaultTitle>
-              <VaultMeta>{planVault.filledCount} of 7 arcs filled</VaultMeta>
-            </VaultHeader>
-            <VaultGrid>
-              {planVault.slots.map((slot) => (
-                <ClientWorkoutPlanVaultSlot
-                  key={slot.horizonKey}
-                  slot={slot}
-                  openingPdfId={openingPdfId}
-                  primaryUpdatingId={primaryUpdatingId}
-                  onOpenPdf={openPlanPdf}
-                  onMakePrimary={makePrimaryPlan}
-                />
-              ))}
-            </VaultGrid>
-          </VaultSection>
-
-          {plans.length === 0 ? (
-            <StateCard>No saved plans for this client yet. Use Plan Next to create the next block.</StateCard>
-          ) : (
-            <PlanGrid>
-              {plans.map((plan) => {
-                const active = plan.status === 'active';
-                return (
-                  <PlanCard key={plan.id}>
-                    <StatusBadge $active={active}>
-                      {active && <CheckCircle2 size={13} />}
-                      {plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status}
-                    </StatusBadge>
-                    <PlanTitle>{plan.name}</PlanTitle>
-                    <Meta>
-                      {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
-                      {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
-                      {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
-                      <span>{formatClientPlanUpdated(plan.createdAt)}</span>
-                      {plan.assignmentDefault && <span>{formatPlanUseLabel(plan.assignmentDefault)}</span>}
-                      <span>{plan.goal}</span>
-                    </Meta>
-                    <PlanActions>
-                      {active && onLogToday && (
-                        <PlanActionButton
-                          type="button"
-                          $variant="primary"
-                          aria-label={`Log Today from ${plan.name}`}
-                          onClick={onLogToday}
-                        >
-                          <Dumbbell size={14} /> Log Today
-                        </PlanActionButton>
-                      )}
-                      {plan.pdfFile && (
-                        <PlanActionButton
-                          type="button"
-                          disabled={openingPdfId === plan.id}
-                          aria-label={`Open ${plan.name} PDF`}
-                          onClick={() => { void openPlanPdf(plan); }}
-                        >
-                          <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
-                        </PlanActionButton>
-                      )}
-                    </PlanActions>
-                  </PlanCard>
-                );
-              })}
-            </PlanGrid>
-          )}
+          <ClientWorkoutPlanVaultSection
+            planVault={planVault}
+            openingPdfId={openingPdfId}
+            primaryUpdatingId={primaryUpdatingId}
+            onOpenPdf={openPlanPdf}
+            onMakePrimary={makePrimaryPlan}
+          />
+          <ClientWorkoutPlanCards
+            plans={plans}
+            openingPdfId={openingPdfId}
+            onLogToday={onLogToday}
+            onOpenPdf={openPlanPdf}
+          />
           <ClientWorkoutPlanPdfDialog
             viewer={pdfViewer}
             onClose={closePlanPdf}

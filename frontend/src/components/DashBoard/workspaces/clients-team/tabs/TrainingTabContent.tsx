@@ -18,7 +18,7 @@
  * Children: ClientTrainingCommandBar plus lazy training workflow panels.
  */
 
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Archive, ClipboardList, FileAudio, Play, Sparkles, Wand2 } from 'lucide-react';
 import { isNaturalWorkoutDictationCandidate } from '../../../../../hooks/aiMessageLimits';
 import ClientTrainingCommandBar from '../ClientTrainingCommandBar';
@@ -26,41 +26,12 @@ import {
   ContentArea,
   LayoutWrapper,
   PlaceholderCard,
-  ShimmerLoader,
   Sidebar,
   SidebarItem,
 } from './TrainingTabContent.styles';
 import { getNumericClientId } from './clientTabId';
-import ClientTrainingSaveReceipt, {
-  type ClientTrainingSavedWorkout,
-} from './ClientTrainingSaveReceipt';
-
-const WorkoutPlanBuilder = React.lazy(
-  () => import('../../../../WorkoutManagement/WorkoutPlanBuilder')
-);
-
-const ClientWorkoutPlansPanel = React.lazy(
-  () => import('./ClientWorkoutPlansPanel')
-);
-
-const WorkoutLogger = React.lazy(
-  () => import('../../../../WorkoutLogger/WorkoutLogger')
-);
-
-const PlaudMergeWorkspace = React.lazy(
-  () => import('../../../../PlaudClipMerge/PlaudMergeWorkspace')
-    .then((m) => ({ default: m.PlaudMergeWorkspace }))
-);
-
-const WorkoutCopilotPanel = React.lazy(
-  () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel')
-);
-
-const WorkoutHistoryPanel = React.lazy(
-  () => import('../../../../DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel')
-);
-
-export type TrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
+import TrainingTabSectionContent, { type TrainingSection } from './TrainingTabSectionContent';
+import type { ClientTrainingSavedWorkout } from './ClientTrainingSaveReceipt';
 
 interface TrainingTabContentProps {
   clientId: number | string;
@@ -97,14 +68,6 @@ function shouldOpenLoggerForCommand(message: string): boolean {
     || (formVerb.test(normalized) && (workoutSignal.test(normalized) || submitPhrase.test(normalized)));
 }
 
-const SuspenseFallback: React.FC = () => (
-  <ShimmerLoader role="status" aria-live="polite" aria-label="Loading content">
-    <div />
-    <div />
-    <div />
-  </ShimmerLoader>
-);
-
 const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   clientId,
   clientName,
@@ -117,6 +80,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   const [activeSection, setActiveSection] = useState<TrainingSection>(initialSection ?? 'logger');
   const [lastSavedWorkout, setLastSavedWorkout] = useState<ClientTrainingSavedWorkout | null>(null);
   const [loadTodayPlanSignal, setLoadTodayPlanSignal] = useState(0);
+  const [planVaultRefreshSignal, setPlanVaultRefreshSignal] = useState(0);
   const numericClientId = getNumericClientId(clientId);
 
   useEffect(() => {
@@ -141,91 +105,19 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
     handleSectionChange('logger');
   }, [handleSectionChange]);
 
-  const renderContent = (safeClientId: number) => {
-    switch (activeSection) {
-      case 'architect':
-        return (
-          <Suspense fallback={<SuspenseFallback />}>
-            <WorkoutPlanBuilder
-              clientId={String(safeClientId)}
-              clientName={clientName}
-            />
-          </Suspense>
-        );
-      case 'plans':
-        return (
-          <Suspense fallback={<SuspenseFallback />}>
-            <ClientWorkoutPlansPanel
-              clientId={safeClientId}
-              clientName={clientName}
-              onLogToday={handleLogTodayFromPlan}
-            />
-          </Suspense>
-        );
-      case 'logger':
-        return (
-          <Suspense fallback={<SuspenseFallback />}>
-            <WorkoutLogger
-              clientId={safeClientId}
-              loadTodayPlanSignal={loadTodayPlanSignal}
-              scheduledSessionDate={scheduledSessionDate}
-              scheduledSessionId={scheduledSessionId}
-              onComplete={(savedWorkout) => {
-                setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
-                handleSectionChange('history');
-              }}
-              onCancel={() => {
-                handleSectionChange('history');
-              }}
-            />
-          </Suspense>
-        );
-      case 'plaud':
-        return (
-          <Suspense fallback={<SuspenseFallback />}>
-            <PlaudMergeWorkspace
-              initialClientId={safeClientId}
-              initialClientName={clientName}
-              embedded={true}
-            />
-          </Suspense>
-        );
-      case 'copilot':
-        return (
-          <Suspense fallback={<SuspenseFallback />}>
-            <WorkoutCopilotPanel
-              inline={true}
-              open={true}
-              onClose={() => undefined}
-              clientId={safeClientId}
-              clientName={clientName || 'Client'}
-            />
-          </Suspense>
-        );
-      case 'history':
-        return (
-          <>
-            {lastSavedWorkout && (
-              <ClientTrainingSaveReceipt
-                clientName={clientName || 'Client'}
-                savedWorkout={lastSavedWorkout}
-                onOpenProgress={onOpenProgress}
-              />
-            )}
-            <Suspense fallback={<PlaceholderCard><p>Loading workout history...</p></PlaceholderCard>}>
-              <WorkoutHistoryPanel
-                clientId={safeClientId}
-                clientName={clientName || 'Client'}
-                variant="embedded"
-                active={true}
-              />
-            </Suspense>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
+  const handlePlanCreated = useCallback(() => {
+    setPlanVaultRefreshSignal((signal) => signal + 1);
+    handleSectionChange('plans');
+  }, [handleSectionChange]);
+
+  const handleWorkoutComplete = useCallback((savedWorkout: unknown) => {
+    setLastSavedWorkout((savedWorkout ?? {}) as ClientTrainingSavedWorkout);
+    handleSectionChange('history');
+  }, [handleSectionChange]);
+
+  const handleWorkoutCancel = useCallback(() => {
+    handleSectionChange('history');
+  }, [handleSectionChange]);
 
   return (
     <LayoutWrapper>
@@ -264,7 +156,21 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
               clientName={clientName}
               onCommandLaneStart={handleCommandLaneStart}
             />
-            {renderContent(numericClientId)}
+            <TrainingTabSectionContent
+              activeSection={activeSection}
+              clientName={clientName}
+              lastSavedWorkout={lastSavedWorkout}
+              loadTodayPlanSignal={loadTodayPlanSignal}
+              planVaultRefreshSignal={planVaultRefreshSignal}
+              safeClientId={numericClientId}
+              scheduledSessionDate={scheduledSessionDate}
+              scheduledSessionId={scheduledSessionId}
+              onArchitectPlanCreated={handlePlanCreated}
+              onLogTodayFromPlan={handleLogTodayFromPlan}
+              onOpenProgress={onOpenProgress}
+              onWorkoutCancel={handleWorkoutCancel}
+              onWorkoutComplete={handleWorkoutComplete}
+            />
           </>
         )}
       </ContentArea>
