@@ -1138,7 +1138,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          FROM "Users" WHERE id = :userId LIMIT 1`, { userId }),
       // 2. Equipment profiles
       safeQuery(
-        `SELECT ep.name, ep."locationType", ep.description,
+        `SELECT ep.id, ep.name, ep."locationType", ep.description,
                 COALESCE(
                   (SELECT json_agg(json_build_object('name', ei.name, 'category', ei.category, 'quantity', ei.quantity))
                    FROM equipment_items ei WHERE ei."profileId" = ep.id AND ei."isAvailable" = true),
@@ -1472,7 +1472,7 @@ Use their Client #ID for all data operations. You can log workouts, check progre
               const itemList = items.length > 0
                 ? items.map(i => `${i.name} (${i.category}${i.quantity > 1 ? ` x${i.quantity}` : ''})`).join(', ')
                 : 'No items';
-              return `  ${ep.name} [${ep.locationType}]: ${itemList}`;
+              return `  #${ep.id} ${ep.name} [${ep.locationType}]: ${itemList}`;
             });
             bootcampParts.push(`Equipment Profiles (plan classes using ONLY this equipment when a profile is selected):\n${profileLines.join('\n')}\nIf no specific profile is mentioned, plan with all available exercises. When a profile IS mentioned, restrict exercises to those achievable with the listed equipment.`);
           }
@@ -1552,7 +1552,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
         const lines = equipment.map(e => {
           const items = typeof e.items === 'string' ? JSON.parse(e.items) : e.items;
           const itemNames = (items || []).map(i => `${i.name}${i.quantity > 1 ? ` (x${i.quantity})` : ''}`).join(', ');
-          return `${e.name} (${e.locationType}): ${itemNames || 'No equipment listed'}`;
+          return `#${e.id} ${e.name} (${e.locationType}): ${itemNames || 'No equipment listed'}`;
         });
         dataParts.push(`\n--- AVAILABLE EQUIPMENT BY LOCATION ---\n${lines.join('\n')}`);
       }

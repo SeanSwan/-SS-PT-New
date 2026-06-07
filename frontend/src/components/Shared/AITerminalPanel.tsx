@@ -88,41 +88,63 @@ const AITerminalPanel: React.FC<AITerminalPanelProps> = ({
     };
   }, [messages, tts]);
 
-  const enrichMessage = useCallback((text: string) => {
-    let enrichedMessage = text;
-    if (clientId) {
-      enrichedMessage += `\n[Context: clientId=${clientId}]`;
-    }
-    if (equipmentProfileId) {
-      enrichedMessage += `\n[Context: equipmentProfileId=${equipmentProfileId}]`;
-    }
-    return enrichedMessage;
-  }, [clientId, equipmentProfileId]);
+  const buildRequestContext = useCallback(() => {
+    if (!equipmentProfileId || equipmentProfileId <= 0) return null;
+    return { equipmentProfileId };
+  }, [equipmentProfileId]);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
     if (!text || sending) return;
 
     setInputValue('');
+    const requestContext = buildRequestContext();
+    if (requestContext) {
+      await sendMessageWithConversation(
+        text,
+        context,
+        `${displayLabel} â€” ${context}`,
+        clientId || null,
+        'both',
+        null,
+        requestContext,
+      );
+      return;
+    }
+
     await sendMessageWithConversation(
-      enrichMessage(text),
+      text,
       context,
       `${displayLabel} — ${context}`,
       clientId || null,
     );
-  }, [clientId, context, displayLabel, enrichMessage, inputValue, sendMessageWithConversation, sending]);
+  }, [buildRequestContext, clientId, context, displayLabel, inputValue, sendMessageWithConversation, sending]);
 
   const handleVoiceAutoSend = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
 
+    const requestContext = buildRequestContext();
+    if (requestContext) {
+      await sendMessageWithConversation(
+        trimmed,
+        context,
+        `${displayLabel} â€” ${context}`,
+        clientId || null,
+        'both',
+        null,
+        requestContext,
+      );
+      return;
+    }
+
     await sendMessageWithConversation(
-      enrichMessage(trimmed),
+      trimmed,
       context,
       `${displayLabel} — ${context}`,
       clientId || null,
     );
-  }, [clientId, context, displayLabel, enrichMessage, sendMessageWithConversation, sending]);
+  }, [buildRequestContext, clientId, context, displayLabel, sendMessageWithConversation, sending]);
 
   const handleVoiceTranscript = useCallback((text: string) => {
     setInputValue((prev) => (prev ? `${prev} ${text}` : text));

@@ -59,6 +59,9 @@ interface ConversationSummary {
 
 type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' | 'workout_suggestions' | 'workout_generation' | 'client_review' | 'data_management' | 'scheduling' | 'progress_analysis' | 'exercise_library' | 'gamification' | 'client_onboarding';
 type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
+interface AIRequestContext {
+  equipmentProfileId?: number | null;
+}
 
 type FrontendAction = { event?: string; payload?: unknown };
 const BLOCKED_FRONTEND_EVENTS = new Set(['AI_SUBMIT_WORKOUT']);
@@ -75,6 +78,12 @@ function activeConversationMatchesRequest(
 ): conversation is Conversation {
   if (!conversation || conversation.context !== context) return false;
   return normalizeTargetUserId(conversation.targetUserId) === normalizeTargetUserId(targetUserId);
+}
+
+function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContext | null {
+  const equipmentProfileId = Number(raw?.equipmentProfileId);
+  if (!Number.isSafeInteger(equipmentProfileId) || equipmentProfileId <= 0) return null;
+  return { equipmentProfileId };
 }
 
 type AxiosLikeError = Error & {
@@ -356,6 +365,7 @@ export function useAIChat() {
     targetUserId?: number | string | null,
     responseStyle: ResponseStyle = 'both',
     foodContext?: Record<string, unknown> | null,
+    requestContext?: AIRequestContext | null,
   ) => {
     if (isChatMessageTooLong(message)) {
       const msg = buildChatMessageTooLongError(message.length);
@@ -399,11 +409,13 @@ export function useAIChat() {
       setActiveConversation(prev => prev ? { ...prev, messages: [...prev.messages, optimisticUserMsg] } : prev);
 
       // Step 3: Send message using the conversation ID we have (not from state)
+      const safeRequestContext = buildSafeRequestContext(requestContext);
       const res = await apiService.post(
         `/api/ai-chat/conversations/${convId}/messages`,
         {
           message,
           ...(foodContext ? { foodContext } : {}),
+          ...(safeRequestContext ? { requestContext: safeRequestContext } : {}),
         },
         { signal: abortRef.current.signal },
       );
@@ -518,4 +530,4 @@ export function useAIChat() {
   };
 }
 
-export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle };
+export type { Message, Conversation, ConversationSummary, AIContext, ResponseStyle, AIRequestContext };

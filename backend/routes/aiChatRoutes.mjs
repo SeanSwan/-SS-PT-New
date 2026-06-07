@@ -87,6 +87,90 @@ const audioUpload = multer({
 
 const router = express.Router();
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
+const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
+  'coach_assistant',
+  'exercise_library',
+  'workout_generation',
+  'workout_suggestions',
+]);
+
+function parseOptionalPositiveInteger(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function hasEquipmentProfileRequest(raw) {
+  return raw
+    && typeof raw === 'object'
+    && !Array.isArray(raw)
+    && Object.prototype.hasOwnProperty.call(raw, 'equipmentProfileId');
+}
+
+function sanitizePromptLine(value, maxLength = 160) {
+  return String(value ?? '')
+    .replace(/[\r\n\t`\\]/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+async function buildSelectedEquipmentProfilePromptBlock({
+  context,
+  equipmentProfileId,
+  requesterId,
+  requesterRole,
+}) {
+  if (!equipmentProfileId || !AI_CHAT_EQUIPMENT_CONTEXTS.has(context)) return '';
+
+  try {
+    const profiles = await sequelize.query(
+      `SELECT ep.id, ep."locationType",
+              COALESCE(
+                (SELECT json_agg(json_build_object(
+                  'name', ei.name,
+                  'category', ei.category,
+                  'quantity', ei.quantity,
+                  'resistanceType', ei."resistanceType"
+                ) ORDER BY ei.category, ei.name)
+                 FROM equipment_items ei
+                 WHERE ei."profileId" = ep.id
+                   AND ei."isActive" = true
+                   AND (ei."approvalStatus" = 'approved' OR ei."approvalStatus" = 'manual')),
+                '[]'
+              ) AS items
+       FROM equipment_profiles ep
+       WHERE ep.id = :equipmentProfileId
+         AND ep."isActive" = true
+         AND (:isAdmin = true OR ep."trainerId" = :requesterId)
+       LIMIT 1`,
+      {
+        replacements: {
+          equipmentProfileId,
+          requesterId,
+          isAdmin: requesterRole === 'admin',
+        },
+        type: sequelize.QueryTypes.SELECT,
+      },
+    );
+    const profile = profiles[0];
+    if (!profile) {
+      return `\n--- SELECTED EQUIPMENT PROFILE ---\nSelected Profile ID: ${equipmentProfileId}\nProfile details are unavailable to this account. Ask for a visible equipment profile before planning instead of inventing equipment.\n--- END SELECTED EQUIPMENT PROFILE ---`;
+    }
+
+    const rawItems = typeof profile.items === 'string' ? JSON.parse(profile.items) : profile.items;
+    const itemLines = (rawItems || []).map((item) => {
+      const quantity = Number(item.quantity);
+      const count = Number.isFinite(quantity) && quantity > 1 ? ` x${quantity}` : '';
+      const resistance = item.resistanceType ? `, ${sanitizePromptLine(item.resistanceType, 40)}` : '';
+      return `- ${sanitizePromptLine(item.name)} (${sanitizePromptLine(item.category, 50)}${count}${resistance})`;
+    });
+
+    return `\n--- SELECTED EQUIPMENT PROFILE ---\nSelected Profile: #${profile.id} (${sanitizePromptLine(profile.locationType, 40) || 'custom'})\nAvailable Equipment:\n${itemLines.length ? itemLines.join('\n') : '- No equipment listed'}\nInstruction: build plans only with the selected profile equipment above. If the equipment is insufficient, ask one brief clarification or offer bodyweight-safe alternatives.\n--- END SELECTED EQUIPMENT PROFILE ---`;
+  } catch (err) {
+    logger.warn('[AIChatRoutes] Selected equipment profile context failed:', err.message);
+    return `\n--- SELECTED EQUIPMENT PROFILE ---\nSelected Profile ID: ${equipmentProfileId}\nProfile details could not be loaded. Ask for a visible equipment profile before planning instead of inventing equipment.\n--- END SELECTED EQUIPMENT PROFILE ---`;
+  }
+}
 
 const buildTranscriptionErrorResponse = (err) => {
   const isConfigError = err?.message?.includes('not configured');
@@ -286,7 +370,7 @@ router.get('/conversations/:id', async (req, res) => {
  */
 router.post('/conversations/:id/messages', requireSubscription('pro', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
   try {
-    const { message, foodContext } = req.body;
+    const { message, foodContext, requestContext } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       return res.status(400).json({
@@ -302,6 +386,18 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         code: 'MESSAGE_TOO_LONG',
         error: `Message too long (max ${AI_CHAT_MESSAGE_MAX_CHARS} characters)`,
         maxChars: AI_CHAT_MESSAGE_MAX_CHARS,
+      });
+    }
+
+    const hasEquipmentContext = hasEquipmentProfileRequest(requestContext);
+    const selectedEquipmentProfileId = hasEquipmentContext
+      ? parseOptionalPositiveInteger(requestContext.equipmentProfileId)
+      : null;
+    if (hasEquipmentContext && !selectedEquipmentProfileId) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_EQUIPMENT_PROFILE_ID_REQUIRED',
+        error: 'Valid equipment profile ID is required',
       });
     }
 
@@ -445,6 +541,12 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         systemPrompt += userDataContext;
       }
     }
+    systemPrompt += await buildSelectedEquipmentProfilePromptBlock({
+      context: conversation.context,
+      equipmentProfileId: selectedEquipmentProfileId,
+      requesterId: req.user.id,
+      requesterRole: conversation.role,
+    });
     // Use sanitized message (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
 

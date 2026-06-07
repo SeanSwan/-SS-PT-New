@@ -64,4 +64,29 @@ describe('AITerminalPanel Deep Research branding', () => {
       null,
     );
   });
+
+  it('sends selected equipment profile as structured request context', () => {
+    render(
+      <AITerminalPanel
+        context="workout_generation"
+        clientId={424242}
+        equipmentProfileId={77}
+        defaultOpen
+      />
+    );
+
+    const input = screen.getByPlaceholderText(/Ask Deep Research.*Workout Intelligence/i);
+    fireEvent.change(input, { target: { value: 'build a joint friendly session' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+
+    expect(mocks.sendMessageWithConversation).toHaveBeenCalledWith(
+      'build a joint friendly session',
+      'workout_generation',
+      expect.stringContaining('Workout Intelligence'),
+      424242,
+      'both',
+      null,
+      { equipmentProfileId: 77 },
+    );
+  });
 });

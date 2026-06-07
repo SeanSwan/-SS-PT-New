@@ -95,4 +95,29 @@ describe('useAIChat conversation target isolation', () => {
       expect.any(Object)
     );
   });
+
+  it('posts selected equipment profile as structured message context', async () => {
+    const { result } = renderHook(() => useAIChat());
+
+    await act(async () => {
+      await result.current.sendMessageWithConversation(
+        'Generate today with the selected gym setup',
+        'workout_generation',
+        'Client #424242 daily training',
+        424242,
+        'both',
+        null,
+        { equipmentProfileId: 77 }
+      );
+    });
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/ai-chat/conversations/701/messages',
+      {
+        message: 'Generate today with the selected gym setup',
+        requestContext: { equipmentProfileId: 77 },
+      },
+      expect.any(Object)
+    );
+  });
 });
