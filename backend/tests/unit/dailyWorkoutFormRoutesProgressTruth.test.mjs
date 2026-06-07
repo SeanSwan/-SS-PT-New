@@ -486,4 +486,16 @@ describe('dailyWorkoutFormRoutes - progress-detailed access guard (Slice 232)', 
     expect(progressDetailedSlice).toContain('if (!Number.isInteger(requestingUserId) || requestingUserId <= 0)');
     expect(source).toContain("if (typeof value !== 'string' || !/^\\d+$/.test(value.trim())) {");
   });
+
+  it('merges canonical WorkoutLog rows before legacy formData drives chart reducers', () => {
+    expect(source).toContain('fetchCanonicalProgressWorkoutSessions');
+    expect(progressDetailedSlice).toContain("attributes: ['id', 'sessionId', 'date', 'formData'");
+    expect(progressDetailedSlice).toContain(
+      'forms = buildProgressDetailedAnalysisRows({ forms, workoutSessions: canonicalWorkoutSessions });'
+    );
+    const mergeIdx = progressDetailedSlice.indexOf('buildProgressDetailedAnalysisRows');
+    const volumeIdx = progressDetailedSlice.indexOf('const volumeProgression = forms.map');
+    expect(mergeIdx).toBeGreaterThan(-1);
+    expect(volumeIdx).toBeGreaterThan(mergeIdx);
+  });
 });

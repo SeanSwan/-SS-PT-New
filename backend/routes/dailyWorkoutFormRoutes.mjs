@@ -39,6 +39,10 @@ import { buildWorkoutSessionBillingDecision } from '../services/sessionBillingPo
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 import {
+  buildProgressDetailedAnalysisRows,
+  fetchCanonicalProgressWorkoutSessions,
+} from '../services/workoutProgressDetailReadModelService.mjs';
+import {
   PlannedWorkoutAssignmentError,
   assertPlannedAssignmentMatchesOverview,
   buildPlannedAssignmentFormMetadata,
@@ -1590,7 +1594,7 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
           date: { [Op.gte]: startDate }
         },
         order: [['date', 'ASC']],
-        attributes: ['id', 'date', 'formData', 'totalPointsEarned', 'submittedAt', 'createdAt']
+        attributes: ['id', 'sessionId', 'date', 'formData', 'totalPointsEarned', 'submittedAt', 'createdAt']
       });
     } catch (queryErr) {
       // Fallback: if specific attributes fail (column may not exist in prod), query without attribute filter
@@ -1608,6 +1612,16 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
         forms = [];
       }
     }
+
+    let canonicalWorkoutSessions = [];
+    try {
+      canonicalWorkoutSessions = await fetchCanonicalProgressWorkoutSessions(parsedClientId, startDate);
+    } catch (canonicalErr) {
+      logger.warn('Canonical WorkoutLog progress query failed; using legacy formData fallback:', canonicalErr.message);
+    }
+
+    const legacyFormsCount = forms.length;
+    forms = buildProgressDetailedAnalysisRows({ forms, workoutSessions: canonicalWorkoutSessions });
 
     // ========== Helper: Epley 1RM ==========
     const calcEpley1RM = (weight, reps) => {
@@ -1978,7 +1992,9 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     logger.info(`Retrieved detailed progress data for client ${parsedClientId}`, {
       requestingUserId,
       timeRange,
-      totalForms: forms.length
+      totalForms: forms.length,
+      legacyFormsCount,
+      canonicalWorkoutSessions: canonicalWorkoutSessions.length
     });
 
     res.json({
