@@ -107,6 +107,7 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     );
 
     expect(routeSource).toContain('getSession,');
+    expect(routeSource).toContain('getSessionType,');
     expect(submitRoute).toContain('scheduledSessionId');
     expect(submitRoute).toContain('const parsedScheduledSessionId = parseOptionalPositiveInteger(scheduledSessionId);');
     expect(submitRoute).toContain("message: 'Valid scheduled session ID is required'");
@@ -126,9 +127,13 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('await linkedScheduledSession.update({');
     expect(submitRoute).toContain("status: 'completed'");
     expect(submitRoute).toContain("attendanceStatus: 'present'");
+    expect(submitRoute).toContain('const SessionType = getSessionType();');
+    expect(submitRoute).toContain("attributes: ['id', 'creditsRequired']");
+    expect(submitRoute).toContain('scheduledSessionCreditsRequired = sessionType.creditsRequired;');
     expect(submitRoute).toContain('scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true');
-    expect(submitRoute).toContain('if (billingDecision.shouldDeduct)');
-    expect(submitRoute).toContain("await client.decrement('availableSessions'");
+    expect(submitRoute).toContain('creditsRequired: scheduledSessionCreditsRequired');
+    expect(submitRoute).toContain('if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0)');
+    expect(submitRoute).toContain("await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct");
     expect(submitRoute).toContain('if (billingDecision.sessionDeducted)');
     expect(submitRoute).toContain('await dailyForm.update({ sessionDeducted: true }');
     expect(submitRoute).toContain('checkInTime: linkedScheduledSession.checkInTime || scheduledSessionCompletionDate');

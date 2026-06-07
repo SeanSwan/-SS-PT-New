@@ -26,6 +26,7 @@ import {
   getWorkoutSession,
   getWorkoutPlan,
   getSession,
+  getSessionType,
   getClientTrainerAssignment,
   getTrainerPermissions,
   getBodyMeasurement
@@ -733,9 +734,22 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       transaction,
     });
 
+    let scheduledSessionCreditsRequired;
+    if (linkedScheduledSession?.sessionTypeId) {
+      const SessionType = getSessionType();
+      const sessionType = await SessionType.findByPk(linkedScheduledSession.sessionTypeId, {
+        attributes: ['id', 'creditsRequired'],
+        transaction,
+      });
+      if (sessionType && sessionType.creditsRequired !== undefined) {
+        scheduledSessionCreditsRequired = sessionType.creditsRequired;
+      }
+    }
+
     const billingDecision = buildWorkoutSessionBillingDecision(client, {
       scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
       nonBillablePlannedAssignment: isNonBillablePlannedWorkoutAssignment(plannedAssignmentMetadata),
+      creditsRequired: scheduledSessionCreditsRequired,
     });
     if (!billingDecision.canLogWorkout) {
       await transaction.rollback();
@@ -1003,8 +1017,8 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       mcpProcessed: false
     }, { transaction });
 
-    if (billingDecision.shouldDeduct) {
-      await client.decrement('availableSessions', { by: 1, transaction });
+    if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0) {
+      await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct, transaction });
     }
 
     if (billingDecision.sessionDeducted) {

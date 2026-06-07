@@ -37,6 +37,7 @@ const mockWorkoutSessionFindOrCreate = vi.fn();
 const mockWorkoutLogDestroy = vi.fn();
 const mockWorkoutLogBulkCreate = vi.fn();
 const mockSessionFindByPk = vi.fn();
+const mockSessionTypeFindByPk = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
 
@@ -50,6 +51,7 @@ vi.mock('../models/index.mjs', () => ({
   getWorkoutLog: () => ({ destroy: mockWorkoutLogDestroy, bulkCreate: mockWorkoutLogBulkCreate }),
   getWorkoutPlan: () => ({ findOne: mockWorkoutPlanFindOne }),
   getSession: () => ({ findByPk: mockSessionFindByPk }),
+  getSessionType: () => ({ findByPk: mockSessionTypeFindByPk }),
   getClientTrainerAssignment: () => ({ findOne: vi.fn() }),
   getTrainerPermissions: () => ({ findOne: vi.fn() }),
   getBodyMeasurement: () => ({ findOne: vi.fn() }),
@@ -200,6 +202,7 @@ beforeEach(() => {
   mockWorkoutLogBulkCreate.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue(undefined);
+  mockSessionTypeFindByPk.mockResolvedValue(null);
 });
 
 describe('POST /api/workout-forms scheduled-session billing policy', () => {
@@ -230,6 +233,71 @@ describe('POST /api/workout-forms scheduled-session billing policy', () => {
     expect(scheduledSession.update.mock.calls[0][0].deductionDate).toBeInstanceOf(Date);
     expect(res.body.form.sessionDeducted).toBe(true);
     expect(res.body.message).toMatch(/session deducted/i);
+  });
+
+  it('deducts the scheduled session type credit count for extended SwanStudios sessions', async () => {
+    const scheduledSession = primeScheduledWorkoutLog({
+      availableSessions: 3,
+      scheduledSessionOverrides: { sessionTypeId: 22 },
+    });
+    mockSessionTypeFindByPk.mockResolvedValueOnce({ id: 22, creditsRequired: 2 });
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+
+    expect(res.status).toBe(201);
+    expect(mockSessionTypeFindByPk).toHaveBeenCalledWith(22, {
+      attributes: ['id', 'creditsRequired'],
+      transaction: expect.any(Object),
+    });
+    expect(mockUserDecrement).toHaveBeenCalledWith('availableSessions', {
+      by: 2,
+      transaction: expect.any(Object),
+    });
+    expect(scheduledSession.update.mock.calls[0][0]).toMatchObject({
+      status: 'completed',
+      attendanceStatus: 'present',
+      sessionDeducted: true,
+    });
+    expect(res.body.form.sessionDeducted).toBe(true);
+  });
+
+  it('rejects extended SwanStudios scheduled logs when the client lacks required credits', async () => {
+    const scheduledSession = primeScheduledWorkoutLog({
+      availableSessions: 1,
+      scheduledSessionOverrides: { sessionTypeId: 22 },
+    });
+    mockSessionTypeFindByPk.mockResolvedValueOnce({ id: 22, creditsRequired: 2 });
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/needs 2 available session credits/i);
+    expect(mockUserDecrement).not.toHaveBeenCalled();
+    expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
+    expect(scheduledSession.update).not.toHaveBeenCalled();
+  });
+
+  it('logs zero-credit assessment sessions without deducting paid credits', async () => {
+    const scheduledSession = primeScheduledWorkoutLog({
+      availableSessions: 0,
+      scheduledSessionOverrides: { sessionTypeId: 23 },
+    });
+    mockSessionTypeFindByPk.mockResolvedValueOnce({ id: 23, creditsRequired: 0 });
+
+    const res = await request(app).post('/api/workout-forms').send(VALID_PAYLOAD);
+
+    expect(res.status).toBe(201);
+    expect(mockUserDecrement).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormUpdate).not.toHaveBeenCalled();
+    expect(scheduledSession.update.mock.calls[0][0]).toMatchObject({
+      status: 'completed',
+      attendanceStatus: 'present',
+      sessionDeducted: false,
+      deductionDate: null,
+    });
+    expect(res.body.form.sessionDeducted).toBe(false);
+    expect(res.body.message).toMatch(/without session deduction/i);
   });
 
   it('does not double-deduct a SwanStudios scheduled session that was already deducted', async () => {

@@ -406,6 +406,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
     const trainerIdForPayload = normalizeScheduleOptionalId(formData.trainerId);
     const clientIdForPayload = normalizeScheduleOptionalId(formData.clientId);
+    const sessionTypeIdForPayload = normalizeScheduleOptionalId(formData.sessionTypeId);
 
     if (trainerIdForPayload === null) {
       warning('Select a valid trainer before creating this session.');
@@ -414,6 +415,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
     if (!useManualClient && clientIdForPayload === null) {
       warning('Select a valid client or switch to manual client entry.');
+      return;
+    }
+
+    if (sessionTypeIdForPayload === null) {
+      warning('Select a valid session type before creating this session.');
       return;
     }
 
@@ -429,6 +435,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         clientName: useManualClient ? formData.manualClientName : undefined,
         location: formData.location,
         notes: formData.notes,
+        sessionTypeId: sessionTypeIdForPayload,
         notifyClient: formData.notifyClient
       }]);
 

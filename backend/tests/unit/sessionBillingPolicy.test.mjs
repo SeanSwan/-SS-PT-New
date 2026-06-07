@@ -17,6 +17,7 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: false,
       canLogWorkout: true,
       sessionDeducted: false,
+      creditsToDeduct: 0,
       message: 'Workout logged successfully without session deduction',
     });
   });
@@ -29,6 +30,7 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: true,
       canLogWorkout: false,
       sessionDeducted: false,
+      creditsToDeduct: 0,
       message: 'Client has no available sessions remaining',
     });
   });
@@ -54,7 +56,54 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: true,
       canLogWorkout: true,
       sessionDeducted: true,
+      creditsToDeduct: 1,
       message: 'Workout logged successfully and session deducted',
+    });
+  });
+
+  it('requires enough credits for extended scheduled sessions', () => {
+    expect(buildWorkoutSessionBillingDecision(
+      {
+        clientSource: 'swanstudios',
+        availableSessions: 1,
+      },
+      { creditsRequired: 2 }
+    )).toEqual({
+      shouldDeduct: true,
+      canLogWorkout: false,
+      sessionDeducted: false,
+      creditsToDeduct: 0,
+      message: 'Client needs 2 available session credits',
+    });
+
+    expect(buildWorkoutSessionBillingDecision(
+      {
+        clientSource: 'swanstudios',
+        availableSessions: 3,
+      },
+      { creditsRequired: 2 }
+    )).toEqual({
+      shouldDeduct: true,
+      canLogWorkout: true,
+      sessionDeducted: true,
+      creditsToDeduct: 2,
+      message: 'Workout logged successfully and session deducted',
+    });
+  });
+
+  it('allows zero-credit assessment sessions without consuming paid credits', () => {
+    expect(buildWorkoutSessionBillingDecision(
+      {
+        clientSource: 'swanstudios',
+        availableSessions: 0,
+      },
+      { creditsRequired: 0 }
+    )).toEqual({
+      shouldDeduct: false,
+      canLogWorkout: true,
+      sessionDeducted: false,
+      creditsToDeduct: 0,
+      message: 'Workout logged successfully without session deduction',
     });
   });
 
@@ -69,6 +118,7 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: false,
       canLogWorkout: true,
       sessionDeducted: true,
+      creditsToDeduct: 0,
       message: 'Workout logged successfully using the previously deducted scheduled session',
     });
   });
@@ -84,6 +134,7 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: false,
       canLogWorkout: true,
       sessionDeducted: false,
+      creditsToDeduct: 0,
       message: 'Workout assignment logged successfully without session deduction',
     });
   });
@@ -99,6 +150,7 @@ describe('sessionBillingPolicy — workout logging client source rules', () => {
       shouldDeduct: false,
       canLogWorkout: true,
       sessionDeducted: false,
+      creditsToDeduct: 0,
       message: 'Workout logged successfully without session deduction',
     });
   });
