@@ -14,6 +14,7 @@ const {
   checkConflicts,
   findAlternatives,
   getAllSessions,
+  getSessionById,
   getScheduleStats,
   getTrainers,
   getClients,
@@ -26,6 +27,7 @@ const {
   checkConflicts: vi.fn(),
   findAlternatives: vi.fn(),
   getAllSessions: vi.fn(),
+  getSessionById: vi.fn(),
   getScheduleStats: vi.fn(),
   getTrainers: vi.fn(),
   getClients: vi.fn(),
@@ -70,6 +72,7 @@ vi.mock('../models/Session.mjs', () => ({
 vi.mock('../services/sessions/session.service.mjs', () => ({
   default: {
     getAllSessions,
+    getSessionById,
     getSessions: vi.fn(),
     getScheduleStats,
     checkConflicts: vi.fn(),
@@ -118,6 +121,7 @@ describe('mounted sessions allocation compatibility routes', () => {
     checkConflicts.mockReset();
     findAlternatives.mockReset();
     getAllSessions.mockReset();
+    getSessionById.mockReset();
     getScheduleStats.mockReset();
     getTrainers.mockReset();
     getClients.mockReset();
@@ -231,6 +235,21 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error fetching session history',
     });
     expect(JSON.stringify(response.body)).not.toContain('private history sessions');
+  });
+
+  it('GET /api/sessions/:id does not disclose internal detail errors', async () => {
+    unifiedSessionService.getSessionById.mockRejectedValueOnce(
+      new Error('private session detail lookup host')
+    );
+
+    const response = await request(app).get('/api/sessions/42');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private session detail');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {

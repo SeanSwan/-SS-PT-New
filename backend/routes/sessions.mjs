@@ -1497,8 +1497,7 @@ router.get("/:id", protect, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching session',
-      error: error.message
+      message: 'Server error fetching session'
     });
   }
 });
