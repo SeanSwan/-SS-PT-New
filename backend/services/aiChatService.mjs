@@ -22,6 +22,7 @@ import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mj
 import {
   appendSwanCoachPlanningGuidance,
   formatActiveWorkoutPlanContext,
+  safePlanId,
 } from './swanCoachPlanningContextService.mjs';
 
 export function getCoachRosterClientSourceLabel(clientSource) {
@@ -1332,7 +1333,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
       // HYBRID column naming: original 2025 cols are camelCase, 2026 migration cols are snake_case
       // camelCase cols MUST be double-quoted in PostgreSQL to preserve case
       safeQuery(
-        `SELECT id, title, description, nasm_phase, status,
+        `SELECT id, nasm_phase, status,
                 current_week, current_day, "durationWeeks",
                 plan_data, progress_notes, created_by,
                 start_date, end_date, "createdAt"
@@ -1348,7 +1349,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
     if (context === 'coach_assistant' && isAdminOrTrainer) {
       try {
         const assignedClients = await safeQuery(
-          `SELECT u.id, u."firstName", u."lastName", u."availableSessions",
+          `SELECT u.id, u."availableSessions",
                   u."fitnessGoal", u."clientSource", u."accountStatus",
                   cta.status AS "assignmentStatus",
                   (SELECT COUNT(*) FROM workout_sessions ws WHERE ws."userId" = u.id) AS "totalWorkouts",
@@ -1356,7 +1357,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
            FROM client_trainer_assignments cta
            JOIN "Users" u ON cta."clientId" = u.id
            WHERE cta."trainerId" = :trainerId AND cta.status = 'active'
-           ORDER BY u."firstName"`,
+           ORDER BY u.id`,
           { trainerId: userId }
         );
 
@@ -1365,13 +1366,14 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
             const source = getCoachRosterClientSourceLabel(c.clientSource);
             const sessions = getCoachRosterClientSessionsLabel(c);
             const lastWorkout = c.lastWorkoutDate ? new Date(c.lastWorkoutDate).toLocaleDateString() : 'never';
-            return `  ${i + 1}. Client #${c.id}: ${c.firstName} ${c.lastName}${source} | ${sessions} available | ${c.totalWorkouts || 0} workouts | Last: ${lastWorkout} | Goal: ${c.fitnessGoal || 'not set'}`;
+            return `  ${i + 1}. Client #${c.id}${source} | ${sessions} available | ${c.totalWorkouts || 0} workouts | Last: ${lastWorkout} | Goal: ${c.fitnessGoal || 'not set'}`;
           });
           dataParts.push(`\n--- YOUR ASSIGNED CLIENTS (${assignedClients.length}) ---
 ${clientLines.join('\n')}
 --- END CLIENT ROSTER ---
-IMPORTANT: When the trainer mentions a client by name, match to the client roster above.
-Use their Client #ID for all data operations. You can log workouts, check progress, and manage plans for ANY of these clients.`);
+IMPORTANT: Use Client #ID only for all roster operations.
+If a person is referenced by name, ask for or resolve the approved Client #ID before acting; do not infer identity from names in the prompt.
+You can log workouts, check progress, and manage plans for ANY of these clients.`);
         } else {
           dataParts.push(`\n--- YOUR ASSIGNED CLIENTS (0) ---\nNo clients currently assigned. Ask your administrator to assign clients via the Client-Trainer Assignments page.`);
         }
@@ -1796,7 +1798,7 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
           const createdBy = plan.created_by || plan.createdBy;
           const createdAt = plan.created_at || plan.createdAt;
 
-          return `Plan: "${plan.title}" [${plan.status.toUpperCase()}]
+          return `Plan ID: ${safePlanId(plan)} [${String(plan.status || 'active').toUpperCase()}]
 NASM Phase: ${nasmPhase} | Duration: ${durWeeks} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${totalSessions}
 Created: ${createdAt ? new Date(createdAt).toLocaleDateString() : '?'} by ${createdBy || 'unknown'}

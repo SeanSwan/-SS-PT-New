@@ -6,12 +6,52 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  enrichWithUserData,
   getCoachClientProfileSessionsLabel,
   getCoachClientProfileSourceLabel,
   getCoachRosterClientSessionsLabel,
   getCoachRosterClientSourceLabel,
   getSystemPrompt,
 } from '../../services/aiChatService.mjs';
+import { readFileSync } from 'node:fs';
+
+function createPromptSequelize({ roster = [], workoutPlans = [] } = {}) {
+  return {
+    QueryTypes: { SELECT: 'SELECT' },
+    async query(sql) {
+      if (sql.includes('FROM client_trainer_assignments cta') && sql.includes('JOIN "Users" u')) {
+        return roster;
+      }
+      if (sql.includes('FROM workout_plans')) {
+        return workoutPlans;
+      }
+      if (sql.includes('SELECT "firstName", "lastName", email, phone FROM "Users"')) {
+        return [{
+          firstName: 'Jane',
+          lastName: 'Doe',
+          email: 'jane@example.com',
+          phone: '555-111-2222',
+        }];
+      }
+      if (sql.includes('FROM "Users" WHERE id = :userId LIMIT 1')) {
+        return [{
+          role: 'client',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          fitnessGoal: 'Build strength',
+          weight: 180,
+          height: '5ft 10in',
+          dateOfBirth: '1990-01-01',
+          gender: 'Not specified',
+          trainingExperience: 'intermediate',
+          availableSessions: 6,
+          clientSource: 'swanstudios',
+          accountStatus: 'active',
+        }];
+      }
+      return [];
+    },
+  };
+}
 
 describe('Swan Coach prompt contract', () => {
   it('teaches admin Coach to emit structured approval proposals', () => {
@@ -160,5 +200,40 @@ describe('Swan Coach prompt contract', () => {
       clientSource: 'swanstudios',
       availableSessions: 'unknown',
     })).toBe('0');
+  });
+
+  it('keeps trainer assigned-client roster identity-blind in Coach enrichment', async () => {
+    const context = await enrichWithUserData(
+      7,
+      'trainer',
+      'coach_assistant',
+      createPromptSequelize({
+        roster: [{
+          id: 42,
+          firstName: 'Jane',
+          lastName: 'Doe',
+          availableSessions: 8,
+          fitnessGoal: 'Build strength',
+          clientSource: 'move_fitness',
+          accountStatus: 'active',
+          assignmentStatus: 'active',
+          totalWorkouts: 12,
+          lastWorkoutDate: '2026-06-01T00:00:00.000Z',
+        }],
+      })
+    );
+
+    expect(context).toContain('Client #42');
+    expect(context).toContain('Move Fitness - FREE TRACKING');
+    expect(context).toContain('Use Client #ID');
+    expect(context).not.toContain('Jane');
+    expect(context).not.toContain('Doe');
+    expect(context).not.toContain('match to the client roster above');
+  });
+
+  it('does not retain the legacy active-plan title fallback in Coach enrichment source', () => {
+    const source = readFileSync(new URL('../../services/aiChatService.mjs', import.meta.url), 'utf8');
+
+    expect(source).not.toContain('Plan: "${plan.title}"');
   });
 });

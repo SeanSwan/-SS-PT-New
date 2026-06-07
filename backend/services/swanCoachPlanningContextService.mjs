@@ -90,7 +90,7 @@ function firstPresent(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
 }
 
-function safePlanId(plan) {
+export function safePlanId(plan) {
   const raw = firstPresent(plan.id, plan.planId, plan.uuid);
   if (raw === undefined || raw === null || raw === '') return 'unavailable';
   const normalized = String(raw).trim().slice(0, 80);
