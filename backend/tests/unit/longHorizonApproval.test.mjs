@@ -612,6 +612,25 @@ describe('Section C: approveLongHorizonPlan — auth/RBAC/eligibility', () => {
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
+  it('20b - generic approval failures do not disclose internal service errors', async () => {
+    getAllModels.mockReturnValue(makeMockModels({
+      User: { findByPk: vi.fn().mockRejectedValue(new Error('private long-horizon approval host')) },
+    }));
+    const req = {
+      user: { id: 10, role: 'admin' },
+      body: { userId: 1, plan: makeValidPlan(), horizonMonths: 6, auditLogId: 50 },
+    };
+    const res = mockRes();
+    await approveLongHorizonPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Internal server error during plan approval',
+    });
+    expect(JSON.stringify(res.json.mock.calls)).not.toContain('private long-horizon');
+  });
+
   it('21 — 403 + AI_ASSIGNMENT_DENIED for unassigned trainer', async () => {
     getAllModels.mockReturnValue(makeMockModels({
       ClientTrainerAssignment: { findOne: vi.fn().mockResolvedValue(null) },
@@ -1208,9 +1227,9 @@ describe('Section E: generateLongHorizonPlan — behavioral', () => {
     expect(releaseConcurrent).toHaveBeenCalledWith(10);
   });
 
-  it('40 — exception path: returns 500 + releases lock', async () => {
+  it('40 — exception path returns 500 without disclosing internals and releases lock', async () => {
     const models = makeMockModels({
-      User: { findByPk: vi.fn().mockRejectedValue(new Error('DB connection failed')) },
+      User: { findByPk: vi.fn().mockRejectedValue(new Error('private long-horizon generation host')) },
     });
     getAllModels.mockReturnValue(models);
 
@@ -1222,6 +1241,11 @@ describe('Section E: generateLongHorizonPlan — behavioral', () => {
     await generateLongHorizonPlan(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Internal server error during plan generation',
+    });
+    expect(JSON.stringify(res.json.mock.calls)).not.toContain('private long-horizon');
     expect(releaseConcurrent).toHaveBeenCalledWith(10);
   });
 });

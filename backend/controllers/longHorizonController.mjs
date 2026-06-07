@@ -555,7 +555,7 @@ export const generateLongHorizonPlan = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: err.message || 'Internal server error during plan generation',
+      message: 'Internal server error during plan generation',
     });
   } finally {
     // Direct controller tests may call this without aiRateLimiter middleware.
@@ -947,7 +947,7 @@ export const approveLongHorizonPlan = async (req, res) => {
     logger.error('[LH-Approve] Unhandled error:', err);
     return res.status(500).json({
       success: false,
-      message: err.message || 'Internal server error during plan approval',
+      message: 'Internal server error during plan approval',
     });
   }
 };
