@@ -177,7 +177,13 @@ vi.mock('./WorkoutLoggerFooter', () => ({
 }));
 
 vi.mock('../Shared/AITerminalPanel', () => ({ default: () => null }));
-vi.mock('../Shared/EquipmentProfilePicker', () => ({ default: () => null }));
+vi.mock('../Shared/EquipmentProfilePicker', () => ({
+  default: (props: any) => (
+    <button data-testid="mock-equipment-profile-select" onClick={() => props.onSelect(77)}>
+      Select training location
+    </button>
+  ),
+}));
 
 // ─────────────────────────────────────────────────────────────
 // SUT + RTL
@@ -357,6 +363,51 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     });
     expect(toastErrorMock).not.toHaveBeenCalledWith('Client has no available sessions remaining');
     expect(toastSuccessMock).toHaveBeenCalledWith('Workout logged successfully without session deduction');
+  });
+
+  it('submits the selected training-location equipment profile when the picker is rendered', async () => {
+    apiGetMock.mockResolvedValueOnce({
+      data: {
+        success: true,
+        client: {
+          id: 77,
+          firstName: 'Training',
+          lastName: 'Client',
+          email: 'training@example.com',
+          availableSessions: 10,
+          clientSource: 'swanstudios',
+        },
+      },
+    });
+    submitWorkoutFormMock.mockResolvedValue({
+      success: true,
+      data: {
+        id: 'form-with-equipment-profile',
+        clientId: 77,
+        trainerId: 5,
+        date: '2026-06-06',
+      },
+      message: 'Workout logged successfully and session deducted',
+    });
+
+    render(
+      <MemoryRouter>
+        <WorkoutLogger clientId={77} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId('mock-equipment-profile-select'));
+    fireEvent.click(await screen.findByText(/Add Your First Exercise/i));
+    fireEvent.click(await screen.findByTestId('mock-rolodex-select'));
+    fireEvent.click(await screen.findByTestId('mock-footer-submit'));
+
+    await waitFor(() => {
+      expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
+    });
+    expect(submitWorkoutFormMock.mock.calls[0][0]).toMatchObject({
+      clientId: 77,
+      equipmentProfileId: 77,
+    });
   });
 
   it('rejected save DOES call queueSubmission (preserve offline-first behavior)', async () => {

@@ -123,6 +123,7 @@ export interface DailyWorkoutForm {
     // Phase 16 (2026-04-16): nullable / optional. When the logger did not
     // record an overall intensity, this key is omitted from formData.
     overallIntensity?: number | null;
+    equipmentProfileId?: number;
     submittedBy: number;
     submittedAt: string;
     totalSets?: number;
@@ -579,6 +580,7 @@ export class DailyWorkoutFormService {
     date: string;
     exercises: ExerciseEntry[];
     scheduledSessionId?: string;
+    equipmentProfileId?: number;
     sessionNotes?: string;
     // Phase 16 (2026-04-16): nullable on the wire. WorkoutLogger omits this
     // field from the payload when the user has not rated; the key is

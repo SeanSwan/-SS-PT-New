@@ -246,6 +246,28 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
     expect('sessionId' in body).toBe(false);
   });
 
+  it('carries the selected training-location equipment profile when one is chosen', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      equipmentProfileId: 77,
+    });
+
+    expect(body.equipmentProfileId).toBe(77);
+  });
+
+  it('omits training-location equipment profile when none is chosen', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise()],
+      overallIntensity: null,
+      equipmentProfileId: null,
+    });
+
+    expect('equipmentProfileId' in body).toBe(false);
+  });
+
   it('carries sanitized non-billable planned assignment metadata when loading today from a plan', () => {
     const body = buildWorkoutFormSubmitBody({
       ...BASE_PARAMS,

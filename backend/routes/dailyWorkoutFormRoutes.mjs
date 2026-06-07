@@ -533,7 +533,16 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { clientId, date, exercises, sessionNotes, overallIntensity, scheduledSessionId, plannedAssignment } = req.body;
+    const {
+      clientId,
+      date,
+      exercises,
+      sessionNotes,
+      overallIntensity,
+      scheduledSessionId,
+      equipmentProfileId,
+      plannedAssignment
+    } = req.body;
     // 2026-04-18 Phase 16.2 round 5 fix — req.user.id is stored as a string
     // by `protect` (authMiddleware.mjs:359). Callers here need a number for
     // comparison against parsedClientId and for Sequelize trainerId
@@ -579,6 +588,20 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Valid scheduled session ID is required'
+      });
+    }
+
+    const parsedEquipmentProfileId = parseOptionalPositiveInteger(equipmentProfileId);
+    if (
+      equipmentProfileId !== undefined &&
+      equipmentProfileId !== null &&
+      equipmentProfileId !== '' &&
+      !parsedEquipmentProfileId
+    ) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Valid equipment profile ID is required'
       });
     }
 
@@ -954,6 +977,9 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
     };
     if (overallIntensity !== undefined && overallIntensity !== null) {
       formData.overallIntensity = overallIntensity;
+    }
+    if (parsedEquipmentProfileId) {
+      formData.equipmentProfileId = parsedEquipmentProfileId;
     }
     if (plannedAssignmentMetadata) {
       formData.plannedAssignment = plannedAssignmentMetadata;

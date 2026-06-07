@@ -824,6 +824,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       sessionNotes: submitSessionNotes,
       overallIntensity: submitIntensity,
       scheduledSessionId,
+      equipmentProfileId,
       plannedAssignment,
     });
 

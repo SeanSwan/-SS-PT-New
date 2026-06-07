@@ -189,6 +189,28 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(res.body.message).toMatch(/without session deduction/i);
   });
 
+  it('stores selected training-location equipment profile metadata in the daily form JSON', async () => {
+    const res = await request(app)
+      .post('/api/workout-forms')
+      .send({ ...payload, equipmentProfileId: 77 });
+
+    expect(res.status).toBe(201);
+    const formCreate = mockDailyWorkoutFormCreate.mock.calls[0][0];
+    expect(formCreate.formData.equipmentProfileId).toBe(77);
+  });
+
+  it('rejects invalid equipment profile ids before writing workout data', async () => {
+    const res = await request(app)
+      .post('/api/workout-forms')
+      .send({ ...payload, equipmentProfileId: 'not-a-profile-id' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/equipment profile/i);
+    expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
+    expect(mockUserDecrement).not.toHaveBeenCalled();
+  });
+
   it('rejects stale or forged assignment keys before writing workout data', async () => {
     const res = await request(app).post('/api/workout-forms').send({
       ...payload,

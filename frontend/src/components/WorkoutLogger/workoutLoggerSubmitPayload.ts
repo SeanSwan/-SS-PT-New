@@ -32,6 +32,7 @@ export interface WorkoutFormSubmitBody {
   sessionNotes: string;
   overallIntensity?: number;
   scheduledSessionId?: string;
+  equipmentProfileId?: number;
   plannedAssignment?: SanitizedPlannedAssignment;
 }
 
@@ -173,6 +174,7 @@ export function buildWorkoutFormSubmitBody(params: {
   sessionNotes: string;
   overallIntensity: number | null | undefined;
   scheduledSessionId?: string | null;
+  equipmentProfileId?: number | null;
   plannedAssignment?: PlannedAssignmentInput | null;
 }): WorkoutFormSubmitBody {
   const body: WorkoutFormSubmitBody = {
@@ -186,6 +188,9 @@ export function buildWorkoutFormSubmitBody(params: {
   }
   if (params.scheduledSessionId) {
     body.scheduledSessionId = params.scheduledSessionId;
+  }
+  if (params.equipmentProfileId !== null && params.equipmentProfileId !== undefined) {
+    body.equipmentProfileId = params.equipmentProfileId;
   }
   const plannedAssignment = sanitizePlannedAssignment(params.plannedAssignment);
   if (plannedAssignment) {
