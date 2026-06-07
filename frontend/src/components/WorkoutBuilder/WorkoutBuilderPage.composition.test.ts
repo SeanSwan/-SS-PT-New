@@ -7,6 +7,8 @@ const lineCount = (source: string) => source.split(/\r?\n/).length;
 
 const pageSource = read('src/components/WorkoutBuilder/WorkoutBuilderPage.tsx');
 const stylesSource = read('src/components/WorkoutBuilder/WorkoutBuilderPage.styles.ts');
+const contextPath = 'src/components/WorkoutBuilder/WorkoutBuilderContextPanel.tsx';
+const controlsPath = 'src/components/WorkoutBuilder/WorkoutBuilderControlsPanel.tsx';
 const resultPath = 'src/components/WorkoutBuilder/WorkoutBuilderResults.tsx';
 const insightsPath = 'src/components/WorkoutBuilder/WorkoutBuilderInsightsPanel.tsx';
 const boundaryPath = 'src/components/WorkoutBuilder/WorkoutBuilderErrorBoundary.tsx';
@@ -14,15 +16,18 @@ const constantsPath = 'src/components/WorkoutBuilder/WorkoutBuilderPage.constant
 
 describe('WorkoutBuilderPage composition contract', () => {
   it('keeps the active page thin by extracting result, insight, and boundary sections', () => {
-    expect(pageSource).toContain("from './WorkoutBuilderResults'");
+    const controlsSource = read(controlsPath);
+    expect(pageSource).toContain("from './WorkoutBuilderContextPanel'");
+    expect(pageSource).toContain("from './WorkoutBuilderControlsPanel'");
     expect(pageSource).toContain("from './WorkoutBuilderInsightsPanel'");
     expect(pageSource).toContain("from './WorkoutBuilderErrorBoundary'");
-    expect(pageSource).toContain("from './WorkoutBuilderPage.constants'");
+    expect(controlsSource).toContain("from './WorkoutBuilderResults'");
+    expect(controlsSource).toContain("from './WorkoutBuilderPage.constants'");
     expect(lineCount(pageSource)).toBeLessThanOrEqual(300);
   });
 
   it('keeps each extracted Workout Builder module under the file cap', () => {
-    for (const path of [resultPath, insightsPath, boundaryPath, constantsPath]) {
+    for (const path of [contextPath, controlsPath, resultPath, insightsPath, boundaryPath, constantsPath]) {
       expect(existsSync(resolve(process.cwd(), path))).toBe(true);
       expect(lineCount(read(path))).toBeLessThanOrEqual(300);
     }
@@ -30,11 +35,28 @@ describe('WorkoutBuilderPage composition contract', () => {
   });
 
   it('keeps extracted modules on shared styles without reintroducing local colors', () => {
+    const contextSource = existsSync(resolve(process.cwd(), contextPath)) ? read(contextPath) : '';
+    const controlsSource = existsSync(resolve(process.cwd(), controlsPath)) ? read(controlsPath) : '';
     const resultSource = existsSync(resolve(process.cwd(), resultPath)) ? read(resultPath) : '';
     const insightsSource = existsSync(resolve(process.cwd(), insightsPath)) ? read(insightsPath) : '';
     const boundarySource = existsSync(resolve(process.cwd(), boundaryPath)) ? read(boundaryPath) : '';
-    const combined = [pageSource, stylesSource, resultSource, insightsSource, boundarySource].join('\n');
-    const runtimeModules = [pageSource, resultSource, insightsSource, boundarySource].join('\n');
+    const combined = [
+      pageSource,
+      stylesSource,
+      contextSource,
+      controlsSource,
+      resultSource,
+      insightsSource,
+      boundarySource,
+    ].join('\n');
+    const runtimeModules = [
+      pageSource,
+      contextSource,
+      controlsSource,
+      resultSource,
+      insightsSource,
+      boundarySource,
+    ].join('\n');
     expect(combined).not.toMatch(/rgba\(/);
     expect(combined).not.toMatch(/#[0-9A-Fa-f]{3,8}/);
     expect(runtimeModules).not.toMatch(/import\s+styled/);

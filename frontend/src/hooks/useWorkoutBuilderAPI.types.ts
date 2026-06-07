@@ -1,3 +1,5 @@
+import type { SwanCoachPlanningFingerprint } from '../services/aiWorkoutPlanningTypes';
+
 export interface PainExclusion {
   bodyRegion: string;
   painLevel: number;
@@ -110,6 +112,8 @@ export interface GeneratedWorkout {
   trainerId: number;
   clientName: string;
   generatedAt: string;
+  planningSystem: 'swan_coach_planning';
+  swanCoachPlanning: SwanCoachPlanningFingerprint;
   sessionType: 'build' | 'switch';
   category: string;
   nasmPhase: number;
@@ -157,6 +161,8 @@ export interface GeneratedPlan {
   trainerId: number;
   clientName: string;
   generatedAt: string;
+  planningSystem: 'swan_coach_planning';
+  swanCoachPlanning: SwanCoachPlanningFingerprint;
   planSummary: {
     durationWeeks: number;
     sessionsPerWeek: number;

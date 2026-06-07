@@ -14,4 +14,12 @@ describe('useWorkoutBuilderAPI type boundary', () => {
     expect(source).toContain('GeneratedPlan');
     expect(source.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
+
+  it('types workout-builder generation as Swan Coach planning output', () => {
+    const source = readFileSync(resolve(__dirname, 'useWorkoutBuilderAPI.types.ts'), 'utf8');
+
+    expect(source).toContain("import type { SwanCoachPlanningFingerprint }");
+    expect(source).toMatch(/planningSystem:\s*'swan_coach_planning'/);
+    expect(source).toContain('swanCoachPlanning: SwanCoachPlanningFingerprint');
+  });
 });
