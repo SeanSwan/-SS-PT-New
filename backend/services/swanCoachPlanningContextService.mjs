@@ -5,9 +5,8 @@
  * outputs so every generation path uses the same planning identity.
  */
 
-import { buildClientTrainingOverview } from './clientTrainingReadModelService.mjs';
+import { formatAssignmentContext } from './swanCoachPlanningAssignmentContextService.mjs';
 import { buildSwanCoachPlanningSafetyGate } from './swanCoachPlanningSafetyGateService.mjs';
-import { extractCurrentSession } from './workoutPlanShapeService.mjs';
 
 const NASM_DOMAINS = [
   'OPT',
@@ -163,47 +162,6 @@ function formatCurrentSession(planData, weekNumber, dayNumber) {
   const title = firstPresent(session.name, session.title, `Day ${dayNumber}`);
   const focus = session.focus ? ` (${session.focus})` : '';
   return `${title}${focus}\n${exercises || '  No exercises listed'}`;
-}
-
-function formatAssignmentContext(plan, planData, weekNumber, dayNumber) {
-  const weeks = asArray(planData?.weeks);
-  const entries = getWeekDaysOrSessions(findWeek(weeks, weekNumber));
-  const session = findDayOrSession(entries, dayNumber);
-  const overviewPlan = {
-    id: firstPresent(plan.id, plan.plan_id),
-    title: plan.title,
-    status: plan.status || 'active',
-    durationWeeks: firstPresent(plan.duration_weeks, plan.durationWeeks),
-    currentWeek: weekNumber,
-    currentDay: dayNumber,
-    nasmPhase: firstPresent(plan.nasm_phase, plan.nasmPhase),
-    createdBy: firstPresent(plan.created_by, plan.createdBy),
-    metadata: tryParse(plan.metadata) || {},
-    planData,
-  };
-  const sparseCurrentSession = session ? {
-    weekNumber,
-    dayNumber,
-    dayLabel: firstPresent(session.dayLabel, session.name, session.title, `Day ${dayNumber}`),
-    session,
-    exercises: asArray(session.exercises),
-  } : null;
-  const { todayAssignment } = buildClientTrainingOverview({
-    activePlan: overviewPlan,
-    plans: [overviewPlan],
-    currentSession: sparseCurrentSession || extractCurrentSession(overviewPlan),
-  });
-  if (!todayAssignment || todayAssignment.assignmentType === 'none') return '';
-
-  return [
-    '--- ASSIGNMENT SEMANTICS ---',
-    `Assignment Type: ${todayAssignment.assignmentType}`,
-    `Session Type: ${todayAssignment.sessionType}`,
-    `Loggable: ${todayAssignment.isLoggable ? 'yes' : 'no'}`,
-    `Billing: ${todayAssignment.isBillable ? 'billable' : 'non-billable'}`,
-    `Deduct Paid Session: ${todayAssignment.shouldDeductSession ? 'yes' : 'no'}`,
-    todayAssignment.assignmentKey ? `Assignment Key: ${todayAssignment.assignmentKey}` : null,
-  ].filter(Boolean).join('\n');
 }
 
 export function formatActiveWorkoutPlanContext(workoutPlans = []) {
