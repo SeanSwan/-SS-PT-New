@@ -70,4 +70,20 @@ describe('AI BFF client summary path truth contracts', () => {
     expect(response.body).toEqual({ error: 'Invalid client ID' });
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
+
+  it('does not embed internal upstream errors in aggregated client summary cards', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new Error('private ai-bff upstream host');
+    }));
+
+    const response = await request(makeApp())
+      .get('/api/admin/ai-bff/client-summary/42')
+      .expect(200);
+
+    expect(JSON.stringify(response.body)).not.toContain('private ai-bff');
+    expect(response.body.profile).toEqual({ error: 'unavailable', status: 500 });
+    expect(response.body.activePain).toEqual({ error: 'unavailable', status: 500 });
+    expect(response.body.latestMeasurements).toEqual({ error: 'unavailable', status: 500 });
+    expect(response.body.recentWorkouts).toEqual({ error: 'unavailable', status: 500 });
+  });
 });

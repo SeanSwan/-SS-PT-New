@@ -84,7 +84,8 @@ async function fetchInternal(path, req, timeoutMs = 5000) {
     if (err.name === 'AbortError') {
       return { error: 'timeout', status: 408 };
     }
-    return { error: err.message, status: 500 };
+    logger.warn('[AI-BFF] Internal fetch failed', { path, error: err.message });
+    return { error: 'unavailable', status: 500 };
   }
 }
 
