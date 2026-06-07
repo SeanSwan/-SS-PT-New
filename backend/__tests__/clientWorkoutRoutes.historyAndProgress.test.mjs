@@ -60,7 +60,7 @@ beforeEach(() => {
   mockDailyWorkoutFormFindOne.mockResolvedValue(null);
 });
 
-describe('clientWorkoutRoutes progress/history regressions', () => {
+describe('clientWorkoutRoutes completed plan progress regressions', () => {
   it('keeps current workout read non-loggable after homework logging advances the plan cursor', async () => {
     const advancedPlan = {
       id: 'plan-6m',
@@ -110,7 +110,6 @@ describe('clientWorkoutRoutes progress/history regressions', () => {
       isLoggable: false,
     });
   });
-
 });
 
 describe('planDataToWorkoutDays', () => {

@@ -76,10 +76,7 @@ export interface ClientPlanVaultSummary {
 }
 
 export interface PlanPdfAuthClient {
-  get: (
-    url: string,
-    config?: { responseType?: 'blob' },
-  ) => Promise<{ data?: Blob | BlobPart }>;
+  get: (url: string, config?: { responseType?: 'blob' }) => Promise<{ data?: Blob | BlobPart }>;
 }
 
 export interface ClientWorkoutPlansResponseSummary { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown }
