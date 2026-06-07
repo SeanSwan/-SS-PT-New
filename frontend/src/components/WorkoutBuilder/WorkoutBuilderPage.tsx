@@ -41,7 +41,7 @@ const WorkoutBuilderPage: React.FC = () => {
   const [workout, setWorkout] = useState<GeneratedWorkout | null>(null);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [loading, setLoading] = useState(false);
-  const [savingPlan, setSavingPlan] = useState(false);
+  const [savingAction, setSavingAction] = useState<'draft' | 'active' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mode, setMode] = useState<WorkoutBuilderMode>('workout');
@@ -106,25 +106,43 @@ const WorkoutBuilderPage: React.FC = () => {
     primaryGoal,
   ]);
 
-  const handleSaveGeneratedPlan = useCallback(async () => {
+  const saveGeneratedPlan = useCallback(async (activate: boolean) => {
     if (!plan) return;
-    setSavingPlan(true);
+    let savedDraft = false;
+    setSavingAction(activate ? 'active' : 'draft');
     setSaveStatus(null);
     try {
       const savedPlan = await api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan));
+      savedDraft = true;
+      if (activate) {
+        if (!savedPlan.id) throw new Error('Saved plan returned no id.');
+        await api.activateWorkoutPlan(savedPlan.id);
+      }
       setSaveStatus({
         type: 'success',
-        text: `Saved ${savedPlan.title || 'plan'} to the client plan vault.`,
+        text: activate
+          ? `${savedPlan.title || 'Plan'} is saved and current.`
+          : `Saved ${savedPlan.title || 'plan'} to the client plan vault.`,
       });
-    } catch (err) {
+    } catch {
       setSaveStatus({
         type: 'error',
-        text: err instanceof Error ? err.message : 'Failed to save plan.',
+        text: activate && savedDraft
+          ? 'Plan saved as draft, but activation failed. Make it current from Saved Plans.'
+          : activate ? 'Failed to save and activate plan.' : 'Failed to save plan.',
       });
     } finally {
-      setSavingPlan(false);
+      setSavingAction(null);
     }
   }, [api, plan]);
+
+  const handleSaveDraft = useCallback(() => {
+    void saveGeneratedPlan(false);
+  }, [saveGeneratedPlan]);
+
+  const handleSaveAndActivate = useCallback(() => {
+    void saveGeneratedPlan(true);
+  }, [saveGeneratedPlan]);
 
   return (
     <PageWrapper>
@@ -165,9 +183,10 @@ const WorkoutBuilderPage: React.FC = () => {
           workout={workout}
           plan={plan}
           planSave={{
-            saving: savingPlan,
+            savingAction,
             status: saveStatus,
-            onSave: handleSaveGeneratedPlan,
+            onSaveDraft: handleSaveDraft,
+            onSaveAndActivate: handleSaveAndActivate,
           }}
           onGenerate={handleGenerate}
         />

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { GeneratedPlan, GeneratedWorkout } from '../../hooks/useWorkoutBuilderAPI';
 import {
   AiBadge,
+  ConfigRow,
   ContextCard,
   ContextLabel,
   ContextMeta,
@@ -24,9 +25,10 @@ import {
 } from './WorkoutBuilderPage.styles';
 
 export interface WorkoutBuilderPlanSaveState {
-  saving: boolean;
+  savingAction: 'draft' | 'active' | null;
   status: { type: 'success' | 'error'; text: string } | null;
-  onSave: () => void;
+  onSaveDraft: () => void;
+  onSaveAndActivate: () => void;
 }
 
 interface WorkoutBuilderResultsProps {
@@ -65,12 +67,20 @@ const WorkoutBuilderPlanSaveAction: React.FC<{ planSave?: WorkoutBuilderPlanSave
   if (!planSave) return null;
 
   const alreadySaved = planSave.status?.type === 'success';
+  const savingDraft = planSave.savingAction === 'draft';
+  const savingActive = planSave.savingAction === 'active';
+  const actionInFlight = planSave.savingAction !== null;
 
   return (
     <>
-      <PrimaryButton onClick={planSave.onSave} disabled={planSave.saving || alreadySaved}>
-        {planSave.saving ? 'Saving Plan...' : alreadySaved ? 'Plan Saved' : 'Save Plan to Client Vault'}
-      </PrimaryButton>
+      <ConfigRow>
+        <PrimaryButton $auto onClick={planSave.onSaveAndActivate} disabled={actionInFlight || alreadySaved}>
+          {savingActive ? 'Saving Current Plan...' : alreadySaved ? 'Plan Saved' : 'Save & Make Current'}
+        </PrimaryButton>
+        <PrimaryButton $auto onClick={planSave.onSaveDraft} disabled={actionInFlight || alreadySaved}>
+          {savingDraft ? 'Saving Draft...' : 'Save Draft'}
+        </PrimaryButton>
+      </ConfigRow>
       {planSave.status?.type === 'success' && (
         <SuccessBanner $bottom={12}>{planSave.status.text}</SuccessBanner>
       )}

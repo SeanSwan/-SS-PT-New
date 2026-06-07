@@ -70,14 +70,18 @@ describe('WorkoutBuilderPage composition contract', () => {
     const resultSource = read(resultPath);
     const controlsSource = read(controlsPath);
 
-    expect(pageSource).toContain('handleSaveGeneratedPlan');
+    expect(pageSource).toContain('handleSaveDraft');
+    expect(pageSource).toContain('handleSaveAndActivate');
     expect(pageSource).toContain('api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan))');
+    expect(pageSource).toContain('api.activateWorkoutPlan(savedPlan.id)');
     expect(pageSource).toContain('planSave={{');
     expect(controlsSource).toContain('planSave: WorkoutBuilderPlanSaveState');
     expect(controlsSource).toContain('planSave={planSave}');
-    expect(resultSource).toContain('Save Plan to Client Vault');
+    expect(resultSource).toContain('Save & Make Current');
+    expect(resultSource).toContain('Save Draft');
+    expect(resultSource).toContain('<ConfigRow>');
     expect(resultSource).toContain('Plan Saved');
-    expect(resultSource).toContain('disabled={planSave.saving || alreadySaved}');
+    expect(resultSource).toContain('disabled={actionInFlight || alreadySaved}');
     expect(resultSource).toContain('WorkoutBuilderPlanSaveAction');
   });
 

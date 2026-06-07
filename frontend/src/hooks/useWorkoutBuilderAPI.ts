@@ -129,11 +129,27 @@ export function useWorkoutBuilderAPI() {
     return data.plan;
   }, []);
 
+  const activateWorkoutPlan = useCallback(async (planId: string | number): Promise<SavedWorkoutPlan> => {
+    const data = await apiFetch<{ success: boolean; plan: SavedWorkoutPlan }>(
+      `/api/workout-plans/${encodeURIComponent(String(planId))}/activate`,
+      { method: 'PUT' }
+    );
+    return data.plan;
+  }, []);
+
   return useMemo(() => ({
     getClientContext,
     getAdminOverview,
     generateWorkout,
     generatePlan,
     saveGeneratedPlan,
-  }), [getClientContext, getAdminOverview, generateWorkout, generatePlan, saveGeneratedPlan]);
+    activateWorkoutPlan,
+  }), [
+    getClientContext,
+    getAdminOverview,
+    generateWorkout,
+    generatePlan,
+    saveGeneratedPlan,
+    activateWorkoutPlan,
+  ]);
 }
