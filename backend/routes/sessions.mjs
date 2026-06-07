@@ -2181,8 +2181,7 @@ router.post("/book/:userId", protect, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error booking session',
-      error: responseMessage
+      message: 'Server error booking session'
     });
   }
 });
@@ -2332,8 +2331,7 @@ router.post("/book-recurring", protect, async (req, res) => {
     logger.error('Error in POST /api/sessions/book-recurring:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error booking recurring sessions.',
-      error: error.message
+      message: 'Server error booking recurring sessions.'
     });
   }
 });
@@ -2379,8 +2377,7 @@ router.post("/book-recurring", protect, async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        message: 'Server error booking session',
-        error: responseMessage
+        message: 'Server error booking session'
       });
     }
   });
