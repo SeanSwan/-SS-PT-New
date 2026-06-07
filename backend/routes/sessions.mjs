@@ -2430,8 +2430,7 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error cancelling session',
-      error: error.message
+      message: 'Server error cancelling session'
     });
   }
 });
@@ -2472,8 +2471,7 @@ router.patch("/:id/confirm", protect, trainerOrAdminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error confirming session',
-      error: error.message
+      message: 'Server error confirming session'
     });
   }
 });
@@ -2538,8 +2536,7 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error completing session',
-      error: error.message
+      message: 'Server error completing session'
     });
   }
 });
@@ -2589,8 +2586,7 @@ router.patch("/:id/assign", protect, adminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error assigning trainer',
-      error: error.message
+      message: 'Server error assigning trainer'
     });
   }
 });
