@@ -43,15 +43,53 @@ describe('ClientWorkoutPlansPanel', () => {
     });
   });
 
-  it('loads selected-client plans from the canonical workout-plan list API', async () => {
+  it('loads selected-client plans from the canonical client plan overview API', async () => {
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
-    expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/workout/plans', {
-      params: { clientId: 424242 },
-    });
+    expect(mockAuthAxios.get).toHaveBeenCalledWith('/api/workout-plans/client/424242');
     expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
     expect(screen.getAllByText('Phase 2 Strength Plan').length).toBeGreaterThan(0);
     expect(screen.getByText(/^current$/i)).toBeInTheDocument();
+    expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
+  });
+
+  it('prefers the server trainingPlanCatalog when the client overview returns no raw plans list', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        plan: { id: 'plan-server-6m' },
+        trainingPlanCatalog: {
+          primaryPlanId: 'plan-server-6m',
+          primaryHorizonKey: 'six_month',
+          slots: [
+            {
+              horizonKey: 'six_month',
+              label: '6 Month',
+              durationWeeks: 26,
+              durationDays: 182,
+              isDefaultHorizon: true,
+              isFilled: true,
+              isPrimary: true,
+              plan: {
+                id: 'plan-server-6m',
+                title: 'Server Canonical Six Month Arc',
+                status: 'active',
+                horizonKey: 'six_month',
+                durationWeeks: 26,
+                nasmPhase: 2,
+                isPrimary: true,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect((await screen.findAllByText('Server Canonical Six Month Arc')).length).toBeGreaterThan(0);
+    expect(screen.getByText('1 of 7 arcs filled')).toBeInTheDocument();
+    expect(screen.getByLabelText(/6 month plan arc/i)).toHaveTextContent('Primary');
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
 

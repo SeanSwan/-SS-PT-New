@@ -44,7 +44,9 @@ import {
   createProtectedPdfObjectUrl,
   formatClientPlanUpdated,
   normalizeClientWorkoutPlan,
+  normalizeTrainingPlanCatalog,
   type ClientPlanSummary,
+  type ClientPlanVaultSummary,
   type PlanPdfAuthClient,
 } from './ClientWorkoutPlansPanel.logic';
 
@@ -60,12 +62,13 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
       get: (
         url: string,
         config?: { params?: Record<string, number>; responseType?: 'blob' },
-      ) => Promise<{ data?: { plans?: unknown[] } }>;
+      ) => Promise<{ data?: { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown } }>;
       put: (url: string) => Promise<unknown>;
     };
   };
   const safeClientId = getNumericClientId(clientId);
   const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
+  const [serverPlanVault, setServerPlanVault] = useState<ClientPlanVaultSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
   const [primaryUpdatingId, setPrimaryUpdatingId] = useState<string | null>(null);
@@ -74,7 +77,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
   const [actionError, setActionError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
-  const planVault = useMemo(() => buildClientPlanVault(plans), [plans]);
+  const planVault = useMemo(() => serverPlanVault || buildClientPlanVault(plans), [plans, serverPlanVault]);
 
   const loadPlans = useCallback(async () => {
     if (!authAxios || safeClientId === null) return;
@@ -83,22 +86,39 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
     setPdfError(null);
     setActionError(null);
     try {
-      const response = await authAxios.get('/api/workout/plans', {
-        params: { clientId: safeClientId },
-      });
-      const nextPlans = Array.isArray(response.data?.plans)
-        ? response.data.plans
-            .map((plan: unknown) => (
-              plan && typeof plan === 'object'
-                ? normalizeClientWorkoutPlan(plan as Record<string, unknown>)
-                : null
-            ))
-            .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null)
-        : [];
+      const response = await authAxios.get(`/api/workout-plans/client/${safeClientId}`);
+      const responseData: { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown } = response.data ?? {};
+      const canonicalVault = normalizeTrainingPlanCatalog(responseData.trainingPlanCatalog);
+      const canonicalPlans = canonicalVault
+        ? canonicalVault.slots
+            .map((slot) => slot.plan)
+            .filter((plan): plan is ClientPlanSummary => plan !== null)
+        : null;
+      const rawPlans = Array.isArray(responseData.plans)
+        ? responseData.plans
+        : responseData.plan && typeof responseData.plan === 'object'
+          ? [responseData.plan]
+          : [];
+      const normalizedRawPlans = rawPlans
+        .map((plan: unknown) => (
+          plan && typeof plan === 'object'
+            ? normalizeClientWorkoutPlan(plan as Record<string, unknown>)
+            : null
+        ))
+        .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null);
+      const nextPlans = canonicalPlans ?? normalizedRawPlans;
+      setServerPlanVault(canonicalVault);
       setPlans(nextPlans);
-    } catch {
+    } catch (caught) {
+      const status = (caught as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
+        setPlans([]);
+        setServerPlanVault(null);
+        return;
+      }
       setError('Unable to load saved plans for this client.');
       setPlans([]);
+      setServerPlanVault(null);
     } finally {
       setLoading(false);
     }

@@ -24,6 +24,12 @@ const PLAN_HORIZON_SLOTS: Array<{
   { key: 'nine_month', label: '9 Month', durationWeeks: 39, durationDays: 273, isDefault: false },
   { key: 'twelve_month', label: '12 Month', durationWeeks: 52, durationDays: 365, isDefault: false },
 ];
+const PLAN_HORIZON_KEYS = new Set<HorizonKey>(PLAN_HORIZON_SLOTS.map((slot) => slot.key));
+
+const normalizeCatalogHorizonKey = (value: unknown): HorizonKey | null => {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
+  return PLAN_HORIZON_KEYS.has(raw as HorizonKey) ? raw as HorizonKey : null;
+};
 
 export interface ClientPlanPdfFile {
   url: string;
@@ -83,10 +89,15 @@ export const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): Clien
   const planSummary = planData.planSummary && typeof planData.planSummary === 'object'
     ? planData.planSummary as Record<string, unknown>
     : {};
+  const directHorizonKey = normalizeCatalogHorizonKey(plan.horizonKey);
 
   return {
     ...mapped,
-    horizonKey: (mapped.horizonKey || 'six_month') as HorizonKey,
+    horizonKey: directHorizonKey || (mapped.horizonKey || 'six_month') as HorizonKey,
+    horizonLabel: directHorizonKey
+      ? PLAN_HORIZON_SLOTS.find((slot) => slot.key === directHorizonKey)?.label
+      : mapped.horizonLabel,
+    isPrimary: plan.isPrimary === true || mapped.isPrimary,
     pdfFile: mapped.pdfFile ? { ...mapped.pdfFile, updatedAt: mapped.pdfFile.updatedAt ?? null } : null,
     nasmPhase: typeof plan.nasmPhase === 'number' ? plan.nasmPhase : undefined,
     durationWeeks: typeof plan.durationWeeks === 'number'
@@ -154,6 +165,79 @@ export const buildClientPlanVault = (plans: ClientPlanSummary[]): ClientPlanVaul
     filledCount: slots.filter((slot) => slot.isFilled).length,
     primaryPlanId,
     primaryHorizonKey: (primaryPlan?.horizonKey as HorizonKey | undefined) || null,
+    slots,
+  };
+};
+
+const numberOrFallback = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizeServerCatalogSlot = (value: unknown): ClientPlanHorizonSlot | null => {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const horizonKey = normalizeCatalogHorizonKey(raw.horizonKey);
+  if (!horizonKey) return null;
+
+  const fallback = PLAN_HORIZON_SLOTS.find((slot) => slot.key === horizonKey);
+  if (!fallback) return null;
+
+  const rawPlan = raw.plan && typeof raw.plan === 'object'
+    ? raw.plan as Record<string, unknown>
+    : null;
+  const plan = rawPlan
+    ? normalizeClientWorkoutPlan({
+        ...rawPlan,
+        horizonKey,
+        isPrimary: raw.isPrimary === true || rawPlan.isPrimary === true,
+      })
+    : null;
+  const isPrimary = raw.isPrimary === true || plan?.isPrimary === true;
+
+  return {
+    horizonKey,
+    label: typeof raw.label === 'string' && raw.label.trim() ? raw.label : fallback.label,
+    durationWeeks: numberOrFallback(raw.durationWeeks, fallback.durationWeeks),
+    durationDays: numberOrFallback(raw.durationDays, fallback.durationDays),
+    isDefaultHorizon: raw.isDefaultHorizon === true || fallback.isDefault,
+    isFilled: raw.isFilled === true || Boolean(plan),
+    isPrimary,
+    plan: plan ? { ...plan, isPrimary } : null,
+  };
+};
+
+export const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | null => {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  const rawSlots = Array.isArray(raw.slots) ? raw.slots : [];
+  const serverSlots = rawSlots
+    .map(normalizeServerCatalogSlot)
+    .filter((slot): slot is ClientPlanHorizonSlot => Boolean(slot));
+
+  if (serverSlots.length === 0) return null;
+
+  const slots = PLAN_HORIZON_SLOTS.map((horizon) => (
+    serverSlots.find((slot) => slot.horizonKey === horizon.key) || {
+      horizonKey: horizon.key,
+      label: horizon.label,
+      durationWeeks: horizon.durationWeeks,
+      durationDays: horizon.durationDays,
+      isDefaultHorizon: horizon.isDefault,
+      isFilled: false,
+      isPrimary: false,
+      plan: null,
+    }
+  ));
+  const primarySlot = slots.find((slot) => slot.isPrimary && slot.plan);
+  const primaryPlanId = typeof raw.primaryPlanId === 'number' || typeof raw.primaryPlanId === 'string'
+    ? String(raw.primaryPlanId)
+    : primarySlot?.plan?.id || null;
+
+  return {
+    filledCount: slots.filter((slot) => slot.isFilled).length,
+    primaryPlanId,
+    primaryHorizonKey: normalizeCatalogHorizonKey(raw.primaryHorizonKey) || primarySlot?.horizonKey || null,
     slots,
   };
 };
