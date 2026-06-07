@@ -89,8 +89,11 @@ function workoutActionPath(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'homework' && workout.isLoggable) return 'Log Workout';
-  return workout?.ctaLabel || 'View Plan';
+  if (workout?.ctaLabel) return workout.ctaLabel;
+  if (workout?.isLoggable) {
+    return workout.assignmentType === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
+  }
+  return 'View Plan';
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {

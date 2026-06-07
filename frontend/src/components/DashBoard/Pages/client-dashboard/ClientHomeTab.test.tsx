@@ -300,6 +300,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(card.textContent).toMatch(/week 2/i);
     expect(card.textContent).toMatch(/day 3/i);
     expect(card.textContent).toMatch(/4 exercises/i);
+    expect(screen.getByRole('button', { name: /log today's assignment/i })).toHaveTextContent(/log assignment/i);
 
     const vault = screen.getByTestId('client-plan-vault-card');
     expect(vault.textContent).toMatch(/plan vault/i);
