@@ -104,6 +104,15 @@ export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
     const dayNumber = toPositiveInteger(day.dayNumber ?? day.day ?? index + 1, index + 1);
     const dayName = day.dayName || day.dayLabel || day.name || `Day ${dayNumber}`;
     const exercises = Array.isArray(day.exercises) ? day.exercises : [];
+    const assignmentMetadata = {
+      ...(day.dayType ? { dayType: day.dayType } : {}),
+      ...(day.assignmentType ? { assignmentType: day.assignmentType } : {}),
+      ...(day.sessionType ? { sessionType: day.sessionType } : {}),
+      ...(typeof day.isBillable === 'boolean' ? { isBillable: day.isBillable } : {}),
+      ...(typeof day.shouldDeductSession === 'boolean'
+        ? { shouldDeductSession: day.shouldDeductSession }
+        : {}),
+    };
 
     return {
       id: day.id || `plan-day-${dayNumber}`,
@@ -111,6 +120,7 @@ export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
       dayName,
       name: day.name || dayName,
       focus: day.focus || day.category || null,
+      ...assignmentMetadata,
       exercises: exercises.map(toCurrentPlanExercise),
     };
   });

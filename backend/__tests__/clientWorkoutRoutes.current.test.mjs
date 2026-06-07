@@ -249,4 +249,29 @@ describe('planDataToWorkoutDays', () => {
     expect(days[0].name).toBe('Week 2 Pull');
     expect(days[0].exercises[0].exerciseName).toBe('Row');
   });
+
+  it('preserves solo non-billable assignment metadata when flattening plan days', () => {
+    const days = planDataToWorkoutDays({
+      weeks: [{
+        days: [{
+          dayNumber: 6,
+          name: 'Active Recovery Homework',
+          dayType: 'active_recovery',
+          assignmentType: 'active_recovery',
+          sessionType: 'solo',
+          isBillable: false,
+          shouldDeductSession: false,
+          exercises: [],
+        }],
+      }],
+    }, 1);
+
+    expect(days[0]).toMatchObject({
+      dayType: 'active_recovery',
+      assignmentType: 'active_recovery',
+      sessionType: 'solo',
+      isBillable: false,
+      shouldDeductSession: false,
+    });
+  });
 });

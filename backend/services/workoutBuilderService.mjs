@@ -1041,16 +1041,21 @@ export async function generatePlan(options) {
         recentExerciseKeys.push(ex.key);
       }
 
-      // V3a round-2 (Codex MEDIUM-2): mark active-recovery days with
-      // dayType='recovery' so the frontend / PDF / logger can render
-      // them with a recovery-specific affordance.
+      // Assignment metadata feeds the client dashboard, logger, PDFs, and
+      // Swan Coach read context without touching paid-session billing.
       const isRecoveryDay = cat === DAY_TYPE.active_recovery;
+      const isRecoveryAssignment = isDeloadWeek || isRecoveryDay;
+      const assignmentType = isRecoveryAssignment ? 'active_recovery' : 'homework';
       days.push({
         dayNumber,
         dayInPlan,
         name: `Day ${dayNumber}: ${focus}`,
         focus,
-        dayType: isDeloadWeek ? 'deload' : (isRecoveryDay ? 'recovery' : 'training'),
+        dayType: isRecoveryAssignment ? 'active_recovery' : 'training',
+        assignmentType,
+        sessionType: 'solo',
+        isBillable: false,
+        shouldDeductSession: false,
         optPhase: OPT_PHASE_PARAMS[phase].name.toLowerCase().replace(/\s+/g, '_'),
         exercises,
       });

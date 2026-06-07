@@ -5,7 +5,9 @@
  * outputs so every generation path uses the same planning identity.
  */
 
+import { buildClientTrainingOverview } from './clientTrainingReadModelService.mjs';
 import { buildSwanCoachPlanningSafetyGate } from './swanCoachPlanningSafetyGateService.mjs';
+import { extractCurrentSession } from './workoutPlanShapeService.mjs';
 
 const NASM_DOMAINS = [
   'OPT',
@@ -163,6 +165,47 @@ function formatCurrentSession(planData, weekNumber, dayNumber) {
   return `${title}${focus}\n${exercises || '  No exercises listed'}`;
 }
 
+function formatAssignmentContext(plan, planData, weekNumber, dayNumber) {
+  const weeks = asArray(planData?.weeks);
+  const entries = getWeekDaysOrSessions(findWeek(weeks, weekNumber));
+  const session = findDayOrSession(entries, dayNumber);
+  const overviewPlan = {
+    id: firstPresent(plan.id, plan.plan_id),
+    title: plan.title,
+    status: plan.status || 'active',
+    durationWeeks: firstPresent(plan.duration_weeks, plan.durationWeeks),
+    currentWeek: weekNumber,
+    currentDay: dayNumber,
+    nasmPhase: firstPresent(plan.nasm_phase, plan.nasmPhase),
+    createdBy: firstPresent(plan.created_by, plan.createdBy),
+    metadata: tryParse(plan.metadata) || {},
+    planData,
+  };
+  const sparseCurrentSession = session ? {
+    weekNumber,
+    dayNumber,
+    dayLabel: firstPresent(session.dayLabel, session.name, session.title, `Day ${dayNumber}`),
+    session,
+    exercises: asArray(session.exercises),
+  } : null;
+  const { todayAssignment } = buildClientTrainingOverview({
+    activePlan: overviewPlan,
+    plans: [overviewPlan],
+    currentSession: sparseCurrentSession || extractCurrentSession(overviewPlan),
+  });
+  if (!todayAssignment || todayAssignment.assignmentType === 'none') return '';
+
+  return [
+    '--- ASSIGNMENT SEMANTICS ---',
+    `Assignment Type: ${todayAssignment.assignmentType}`,
+    `Session Type: ${todayAssignment.sessionType}`,
+    `Loggable: ${todayAssignment.isLoggable ? 'yes' : 'no'}`,
+    `Billing: ${todayAssignment.isBillable ? 'billable' : 'non-billable'}`,
+    `Deduct Paid Session: ${todayAssignment.shouldDeductSession ? 'yes' : 'no'}`,
+    todayAssignment.assignmentKey ? `Assignment Key: ${todayAssignment.assignmentKey}` : null,
+  ].filter(Boolean).join('\n');
+}
+
 export function formatActiveWorkoutPlanContext(workoutPlans = []) {
   if (!Array.isArray(workoutPlans) || workoutPlans.length === 0) return '';
 
@@ -178,12 +221,14 @@ export function formatActiveWorkoutPlanContext(workoutPlans = []) {
     const createdBy = firstPresent(plan.created_by, plan.createdBy, 'unknown');
     const createdAt = firstPresent(plan.created_at, plan.createdAt, plan.createdAt);
     const createdDate = createdAt ? new Date(createdAt).toLocaleDateString() : '?';
+    const assignmentContext = formatAssignmentContext(plan, planData, week, day);
 
     return `Plan: "${plan.title || 'Untitled Plan'}" [${String(plan.status || 'active').toUpperCase()}]
 Planning System: Swan Coach Planning
 NASM Phase: ${nasmPhase} | Duration: ${duration} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${totalSessions}
 Created: ${createdDate} by ${createdBy}
+${assignmentContext ? `${assignmentContext}` : ''}
 --- CURRENT SESSION (Week ${week}, Day ${day}) ---
 ${formatCurrentSession(planData, week, day)}`;
   });

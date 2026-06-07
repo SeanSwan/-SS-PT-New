@@ -72,6 +72,37 @@ describe('swanCoachPlanningContextService', () => {
     expect(context).toContain('Sessions Completed: 0/1');
   });
 
+  it('includes read-safe off-day assignment semantics for Swan Coach logging guidance', () => {
+    const context = formatActiveWorkoutPlanContext([{
+      id: 'plan-6m',
+      title: 'Six Month Homework Arc',
+      status: 'active',
+      current_week: 4,
+      current_day: 2,
+      durationWeeks: 26,
+      plan_data: {
+        weeks: [
+          { weekNumber: 4, days: [
+            { dayNumber: 1, name: 'Trainer Session', assignmentType: 'trainer_session', exercises: [] },
+            {
+              dayNumber: 2,
+              name: 'Off-Day Lower Homework',
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat', sets: 3, reps: '10', restPeriod: 60 }],
+            },
+          ]},
+        ],
+      },
+    }]);
+
+    expect(context).toContain('Assignment Type: homework');
+    expect(context).toContain('Session Type: solo');
+    expect(context).toContain('Loggable: yes');
+    expect(context).toContain('Billing: non-billable');
+    expect(context).toContain('Deduct Paid Session: no');
+    expect(context).toContain('Assignment Key: plan-6m:w4:d2:homework');
+  });
+
   it('defines Swan Coach planning as data-informed NASM planning, not a generic generator', () => {
     const guidance = appendSwanCoachPlanningGuidance('BASE PROMPT');
 
