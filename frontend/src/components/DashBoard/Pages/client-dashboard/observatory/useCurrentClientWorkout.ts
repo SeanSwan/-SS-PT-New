@@ -156,20 +156,20 @@ function exerciseName(exercise?: PlannedExercisePreview): string | undefined {
   return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
 }
 
+const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
+
 function normalizePlanPdfFile(raw?: ClientPlanPdfPreview | null): ClientTrainingPlanSlot['pdfFile'] {
   const rawUrl = typeof raw?.url === 'string' ? raw.url : '';
   if (!rawUrl.trim() || /[\r\n\t]/.test(rawUrl)) return null;
   const url = rawUrl.trim();
-  const isRootRelative = url.startsWith('/') && !url.startsWith('//');
-  const isHttpsAbsolute = /^https:\/\//i.test(url);
-  if (!isRootRelative && !isHttpsAbsolute) return null;
+  if (!url.startsWith('/') || url.startsWith('//')) return null;
 
   try {
     const parsed = new URL(url, 'https://swanstudios.local');
-    if (isHttpsAbsolute && parsed.protocol !== 'https:') return null;
-    if (parsed.username || parsed.password || !/\.pdf$/i.test(parsed.pathname)) return null;
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null;
+    if (!PROTECTED_PDF_PATH.test(parsed.pathname)) return null;
     return {
-      url: isRootRelative ? `${parsed.pathname}${parsed.search}${parsed.hash}` : parsed.toString(),
+      url: parsed.pathname,
       fileName: typeof raw?.fileName === 'string' && raw.fileName.trim()
         ? raw.fileName.trim()
         : 'Workout Plan.pdf',

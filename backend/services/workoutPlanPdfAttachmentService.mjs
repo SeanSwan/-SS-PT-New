@@ -2,13 +2,18 @@
  * Workout Plan PDF Attachment Service
  * ===================================
  *
- * Framework-free helpers for storing and exposing a workout plan's PDF file
- * reference inside WorkoutPlan.metadata.planPdf. This avoids a migration for
- * the first trainer/admin viewer slice while keeping validation centralized.
+ * Framework-free helpers for exposing workout-plan PDF references inside
+ * WorkoutPlan.metadata.planPdf. Public/external URLs are intentionally not
+ * accepted here; durable PDFs must resolve through the authenticated app
+ * endpoint backed by local persistent disk or private R2 object storage.
  */
+
+import { buildProtectedWorkoutPlanPdfUrl } from './workoutPlanPdfContentService.mjs';
 
 const PDF_CONTENT_TYPE = 'application/pdf';
 const MAX_FILE_NAME_LENGTH = 160;
+const WORKOUT_PLAN_PREFIX = 'workout-plans/';
+const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/([^/]+)\/pdf\/content\.pdf$/;
 
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 
@@ -23,6 +28,14 @@ const stripUnsafeFileName = (value) => {
   return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
 };
 
+const decodeSegment = (value) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 const fileNameFromUrl = (url) => {
   try {
     const parsed = new URL(url, 'https://swanstudios.local');
@@ -33,20 +46,37 @@ const fileNameFromUrl = (url) => {
   }
 };
 
-const normalizePdfUrl = (value) => {
+const normalizeStorageKey = (value) => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const key = value.trim().replace(/^\/+/, '');
+  if (
+    !key.startsWith(WORKOUT_PLAN_PREFIX)
+    || !/\.pdf$/i.test(key)
+    || key.includes('\\')
+    || key.includes('\0')
+    || key.split('/').some((part) => part === '..' || part === '')
+  ) {
+    return null;
+  }
+  return key;
+};
+
+const normalizeStorage = (value) => (value === 'local' ? 'local' : 'r2');
+
+const normalizeProtectedPdfUrl = (value, planId = null) => {
   const raw = typeof value === 'string' ? value : '';
   if (!raw.trim() || /[\r\n\t]/.test(raw)) return null;
   const pdfUrl = raw.trim();
-  const isRootRelative = pdfUrl.startsWith('/') && !pdfUrl.startsWith('//');
-  const isHttpsAbsolute = /^https:\/\//i.test(pdfUrl);
-  if (!isRootRelative && !isHttpsAbsolute) return null;
+  if (!pdfUrl.startsWith('/') || pdfUrl.startsWith('//')) return null;
 
   try {
     const parsed = new URL(pdfUrl, 'https://swanstudios.local');
-    if (isHttpsAbsolute && parsed.protocol !== 'https:') return null;
     if (parsed.username || parsed.password) return null;
-    if (!/\.pdf$/i.test(parsed.pathname)) return null;
-    return isRootRelative ? `${parsed.pathname}${parsed.search}${parsed.hash}` : parsed.toString();
+    if (parsed.search || parsed.hash) return null;
+    const match = parsed.pathname.match(PROTECTED_PDF_PATH);
+    if (!match) return null;
+    if (planId && decodeSegment(match[1]) !== String(planId)) return null;
+    return parsed.pathname;
   } catch {
     return null;
   }
@@ -62,7 +92,7 @@ const pdfAttachmentMetadata = (metadata = {}) => {
 };
 
 const normalizePdfAttachment = (raw = {}) => {
-  const url = normalizePdfUrl(raw.url || raw.pdfUrl);
+  const url = normalizeProtectedPdfUrl(raw.url || raw.pdfUrl);
   if (!url) return null;
 
   return {
@@ -79,20 +109,35 @@ export const extractWorkoutPlanPdfAttachment = (metadata = {}) => (
 
 export const buildWorkoutPlanPdfMetadata = ({
   currentMetadata = {},
+  planId,
   pdfUrl,
   fileName,
+  storage,
+  storageKey,
   updatedBy,
   updatedAt = new Date().toISOString(),
 } = {}) => {
-  const url = normalizePdfUrl(pdfUrl);
+  const current = pdfAttachmentMetadata(currentMetadata);
+  const url = normalizeProtectedPdfUrl(pdfUrl || buildProtectedWorkoutPlanPdfUrl(planId), planId);
   if (!url) {
-    return { ok: false, message: 'A valid PDF URL ending in .pdf is required' };
+    return { ok: false, message: 'A protected app PDF URL for this plan is required' };
+  }
+
+  const providedStorageKey = normalizeStorageKey(storageKey);
+  const normalizedStorageKey = providedStorageKey || normalizeStorageKey(current.storageKey);
+  if (!normalizedStorageKey) {
+    return { ok: false, message: 'Upload a PDF file or provide an existing protected PDF storage key' };
   }
 
   const planPdf = {
     url,
-    fileName: stripUnsafeFileName(fileName || fileNameFromUrl(url)),
+    fileName: stripUnsafeFileName(fileName || current.fileName || fileNameFromUrl(url)),
     contentType: PDF_CONTENT_TYPE,
+    storage: normalizeStorage(storage || current.storage),
+    storageKey: normalizedStorageKey,
+    ...(!providedStorageKey && Number.isFinite(Number(current.size)) && Number(current.size) > 0
+      ? { size: Number(current.size) }
+      : {}),
     updatedBy,
     updatedAt,
   };

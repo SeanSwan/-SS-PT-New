@@ -104,11 +104,11 @@ const PdfAttachmentForm: React.FC<PdfAttachmentFormProps> = ({
       />
     </Field>
     <Field>
-      PDF URL
+      Protected PDF URL
       <Input
         value={pdfUrl}
         onChange={(event) => setPdfUrl(event.target.value)}
-        placeholder="https://..."
+        placeholder="/api/workout-plans/.../pdf/content.pdf"
         inputMode="url"
         required={!selectedFile}
       />

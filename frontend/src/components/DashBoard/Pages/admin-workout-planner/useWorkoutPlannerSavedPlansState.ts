@@ -39,7 +39,9 @@ interface UseWorkoutPlannerSavedPlansStateInput {
   setConfirmRequest: Dispatch<SetStateAction<WorkoutPlannerConfirmRequest | null>>;
 }
 
-const isProtectedPdfUrl = (url?: string | null) => Boolean(url && url.startsWith('/api/'));
+const isProtectedPdfUrl = (url?: string | null) => (
+  Boolean(url && /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/.test(url))
+);
 
 export const useWorkoutPlannerSavedPlansState = ({
   authAxios,

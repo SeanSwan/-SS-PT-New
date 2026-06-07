@@ -48,6 +48,18 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
                 },
               },
             },
+            {
+              id: 'public-plan',
+              title: 'Public Plan',
+              status: 'draft',
+              planData: { goal: 'strength' },
+              metadata: {
+                planPdf: {
+                  url: 'https://cdn.swanstudios.com/plans/public-plan.pdf',
+                  fileName: 'Public Plan.pdf',
+                },
+              },
+            },
           ],
         },
       }),
@@ -58,7 +70,7 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
 
     const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
 
-    await waitFor(() => expect(result.current.savedPlans).toHaveLength(2));
+    await waitFor(() => expect(result.current.savedPlans).toHaveLength(3));
 
     expect(result.current.savedPlans[0].pdfFile?.url).toBe(
       '/api/workout-plans/safe-plan/pdf/content.pdf',
@@ -69,6 +81,7 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
       isPrimary: true,
     });
     expect(result.current.savedPlans[1].pdfFile).toBeNull();
+    expect(result.current.savedPlans[2].pdfFile).toBeNull();
   });
 
   it('sets a saved plan as the primary arc through the dedicated endpoint', async () => {

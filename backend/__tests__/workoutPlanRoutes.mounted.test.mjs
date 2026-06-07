@@ -332,14 +332,25 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.status).toBe(200);
     });
 
-    it('trainer + assigned plan PUT /:id/pdf stores sanitized PDF metadata without replacing existing metadata', async () => {
+    it('trainer + assigned plan PUT /:id/pdf renames an existing protected PDF without replacing existing metadata', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
         id: 'plan-1',
         userId: 42,
         title: 'Six Month Plan',
         status: 'active',
-        metadata: { planHorizon: 'six_month', painAware: true },
+        metadata: {
+          planHorizon: 'six_month',
+          painAware: true,
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Old Plan.pdf',
+            contentType: 'application/pdf',
+            storage: 'r2',
+            storageKey: 'workout-plans/42/plan-1-existing.pdf',
+            size: 123,
+          },
+        },
         update,
       });
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
@@ -349,7 +360,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .set('x-test-user-id', '7')
         .set('x-test-user-role', 'trainer')
         .send({
-          pdfUrl: ' https://cdn.swanstudios.com/plans/six-month-foundation.pdf ',
+          pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
           fileName: ' Six Month Foundation.pdf ',
         });
 
@@ -359,16 +370,19 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           planHorizon: 'six_month',
           painAware: true,
           planPdf: {
-            url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
             fileName: 'Six Month Foundation.pdf',
             contentType: 'application/pdf',
+            storage: 'r2',
+            storageKey: 'workout-plans/42/plan-1-existing.pdf',
+            size: 123,
             updatedBy: 7,
             updatedAt: expect.any(String),
           },
         },
       });
       expect(res.body.planPdf).toMatchObject({
-        url: 'https://cdn.swanstudios.com/plans/six-month-foundation.pdf',
+        url: '/api/workout-plans/plan-1/pdf/content.pdf',
         fileName: 'Six Month Foundation.pdf',
         contentType: 'application/pdf',
       });
@@ -386,10 +400,14 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       const unsafeUrls = [
         'javascript:alert(1)',
         'http://cdn.swanstudios.com/plans/plain-http.pdf',
+        'https://cdn.swanstudios.com/plans/public-plan.pdf',
         'plans/bare-relative.pdf',
         '//cdn.swanstudios.com/plans/protocol-relative.pdf',
         'https://cdn.swanstudios.com/plans/not-a-pdf.txt',
+        '/uploads/workout-plans/plan-1.pdf',
         '/uploads/workout-plans/plan-1.pdf\r\n',
+        '/api/workout-plans/other-plan/pdf/content.pdf',
+        '/api/workout-plans/plan-1/pdf/content.pdf?download=1',
       ];
 
       for (const pdfUrl of unsafeUrls) {
@@ -400,11 +418,11 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           .send({ pdfUrl, fileName: 'Plan.pdf' });
 
         expect(res.status).toBe(400);
-        expect(res.body.message).toMatch(/pdf url/i);
+        expect(res.body.message).toMatch(/protected app pdf url|storage key/i);
       }
     });
 
-    it('trainer + assigned plan PUT /:id/pdf allows root-relative app PDF URLs', async () => {
+    it('trainer + assigned plan PUT /:id/pdf attaches an existing private R2 key behind the app proxy', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({
         id: 'plan-1',
@@ -418,15 +436,22 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         .put('/api/workout-plans/plan-1/pdf')
         .set('x-test-user-id', '7')
         .set('x-test-user-role', 'trainer')
-        .send({ pdfUrl: '/uploads/workout-plans/plan-1.pdf?download=1', fileName: 'Plan 1' });
+        .send({
+          pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
+          fileName: 'Plan 1',
+          storage: 'r2',
+          storageKey: 'workout-plans/42/imported-plan.pdf',
+        });
 
       expect(res.status).toBe(200);
       expect(update).toHaveBeenCalledWith({
         metadata: {
           planPdf: {
-            url: '/uploads/workout-plans/plan-1.pdf?download=1',
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
             fileName: 'Plan 1.pdf',
             contentType: 'application/pdf',
+            storage: 'r2',
+            storageKey: 'workout-plans/42/imported-plan.pdf',
             updatedBy: 7,
             updatedAt: expect.any(String),
           },

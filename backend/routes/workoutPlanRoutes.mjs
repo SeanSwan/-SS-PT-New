@@ -328,7 +328,7 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
 
 /**
  * Attach or replace the professional PDF file reference for a saved plan.
- * Stores URL metadata for externally hosted or already uploaded PDFs.
+ * Stores protected app URL metadata for already uploaded private PDFs.
  * Multipart upload lives at POST /:id/pdf/upload. RBAC is inherited from
  * verifyClientAccessByPlanId.
  *
@@ -340,8 +340,11 @@ router.put('/:id/pdf', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({
     const plan = req.workoutPlan;
     const result = buildWorkoutPlanPdfMetadata({
       currentMetadata: plan.metadata || {},
+      planId: plan.id,
       pdfUrl: req.body?.pdfUrl || req.body?.url,
       fileName: req.body?.fileName,
+      storage: req.body?.storage,
+      storageKey: req.body?.storageKey,
       updatedBy: req.user.id,
     });
 

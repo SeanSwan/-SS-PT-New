@@ -1,14 +1,7 @@
 import { mapSavedPlan } from '../../../Pages/admin-workout-planner/workoutPlannerSavedPlanMapping';
 import { normalizeClientPlanUse } from './ClientWorkoutPlanUse.logic';
 
-type HorizonKey =
-  | 'one_day'
-  | 'one_week'
-  | 'one_month'
-  | 'three_month'
-  | 'six_month'
-  | 'nine_month'
-  | 'twelve_month';
+type HorizonKey = 'one_day' | 'one_week' | 'one_month' | 'three_month' | 'six_month' | 'nine_month' | 'twelve_month';
 
 const PLAN_HORIZON_SLOTS: Array<{
   key: HorizonKey;
@@ -31,6 +24,7 @@ const normalizeCatalogHorizonKey = (value: unknown): HorizonKey | null => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
   return PLAN_HORIZON_KEYS.has(raw as HorizonKey) ? raw as HorizonKey : null;
 };
+const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
 
 export interface ClientPlanPdfFile {
   url: string;
@@ -289,6 +283,9 @@ export const createProtectedPdfObjectUrl = async (
   authAxios: PlanPdfAuthClient,
   pdfFile: ClientPlanPdfFile,
 ) => {
+  if (!PROTECTED_PDF_PATH.test(pdfFile.url)) {
+    throw new Error('Protected workout plan PDF URL required');
+  }
   const response = await authAxios.get(pdfFile.url, { responseType: 'blob' });
   const data = response.data;
   const blob = data instanceof Blob ? data : new Blob(
