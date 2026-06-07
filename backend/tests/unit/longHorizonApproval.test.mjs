@@ -143,6 +143,18 @@ const makeMockModels = (overrides = {}) => ({
   ...overrides,
 });
 
+const makeReviewRequiredPlanning = () => ({
+  createdBy: 'swan_coach_planning',
+  identityMode: 'client_id_only',
+  safetyGate: {
+    mode: 'deterministic_review_gate',
+    status: 'review_required',
+    reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+    missingCriticalData: ['baseline/readiness context'],
+    reviewMessage: 'Deterministic safety gate requires coach review before assignment.',
+  },
+});
+
 const setupTransaction = () => {
   const tx = { commit: vi.fn(), rollback: vi.fn() };
   sequelize.transaction.mockResolvedValue(tx);
@@ -917,6 +929,99 @@ describe('Section D: approveLongHorizonPlan — validation + persistence', () =>
       expect.stringContaining('status invalid'),
       expect.any(Object),
     );
+  });
+
+  it('33b - blocks review-required Swan Coach long-horizon drafts until acknowledged', async () => {
+    const models = makeMockModels({
+      AiInteractionLog: {
+        findByPk: vi.fn().mockResolvedValue({
+          id: 50,
+          userId: 1,
+          requestType: 'long_horizon_generation',
+          status: 'draft',
+          tokenUsage: {
+            validatedPlanHash: 'stored-hash',
+            swanCoachPlanning: makeReviewRequiredPlanning(),
+          },
+          update: vi.fn(),
+        }),
+        create: vi.fn(),
+      },
+    });
+    getAllModels.mockReturnValue(models);
+
+    const req = {
+      user: { id: 10, role: 'trainer' },
+      body: { userId: 1, plan: makeValidPlan(), horizonMonths: 6, auditLogId: 50 },
+    };
+    const res = mockRes();
+    await approveLongHorizonPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'SWAN_COACH_REVIEW_REQUIRED',
+      reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+    }));
+    expect(models.LongTermProgramPlan.create).not.toHaveBeenCalled();
+  });
+
+  it('33c - records Swan Coach planning acknowledgement on long-horizon approval', async () => {
+    const auditUpdate = vi.fn().mockResolvedValue({});
+    const models = makeMockModels({
+      AiInteractionLog: {
+        findByPk: vi.fn().mockResolvedValue({
+          id: 50,
+          userId: 1,
+          requestType: 'long_horizon_generation',
+          status: 'draft',
+          tokenUsage: {
+            validatedPlanHash: 'stored-hash',
+            swanCoachPlanning: makeReviewRequiredPlanning(),
+          },
+          update: auditUpdate,
+        }),
+        create: vi.fn(),
+      },
+    });
+    getAllModels.mockReturnValue(models);
+
+    const req = {
+      user: { id: 10, role: 'trainer' },
+      body: {
+        userId: 1,
+        plan: makeValidPlan(),
+        horizonMonths: 6,
+        auditLogId: 50,
+        planningReviewAcknowledged: true,
+      },
+    };
+    const res = mockRes();
+    await approveLongHorizonPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(models.LongTermProgramPlan.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          swanCoachPlanningReview: expect.objectContaining({
+            required: true,
+            acknowledged: true,
+            acknowledgedByUserId: 10,
+            reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+          }),
+        }),
+      }),
+      expect.any(Object),
+    );
+    expect(auditUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      tokenUsage: expect.objectContaining({
+        approval: expect.objectContaining({
+          swanCoachPlanningReview: expect.objectContaining({
+            required: true,
+            acknowledged: true,
+          }),
+        }),
+      }),
+    }));
   });
 
   it('34 — goalProfile is server-derived from masterPromptJson, not from request body', async () => {

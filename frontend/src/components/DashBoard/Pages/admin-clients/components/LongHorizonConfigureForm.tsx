@@ -189,7 +189,7 @@ const LongHorizonConfigureForm: React.FC<LongHorizonConfigureFormProps> = ({
       <SecondaryButton onClick={onClose}>Close</SecondaryButton>
       <PrimaryButton onClick={onGenerate} disabled={isSubmitting}>
         {isSubmitting ? <Spinner size={16} /> : <Sparkles size={16} />}
-        {isSubmitting ? 'Generating...' : 'Generate Draft'}
+        {isSubmitting ? 'Planning...' : 'Swan Coach Draft'}
       </PrimaryButton>
     </ActionRow>
   </>

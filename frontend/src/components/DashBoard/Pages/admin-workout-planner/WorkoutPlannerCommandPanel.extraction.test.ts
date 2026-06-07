@@ -26,4 +26,11 @@ describe('WorkoutPlanner command panel extraction', () => {
     expect(panelSource).toContain('onEquipmentProfileChange');
     expect(panelSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
   });
+
+  it('labels every planner generation CTA as Swan Coach planning', () => {
+    expect(panelSource).toContain('Swan Coach Generate');
+    expect(panelSource).toContain('Swan Coach Plan');
+    expect(panelSource).not.toContain("'Generate Plan'");
+    expect(panelSource).not.toContain("? 'Generate Plan'");
+  });
 });

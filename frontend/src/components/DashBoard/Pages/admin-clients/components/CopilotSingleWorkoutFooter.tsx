@@ -18,6 +18,7 @@ import {
 interface CopilotSingleWorkoutFooterProps {
   state: Extract<CopilotState, 'draft_review' | 'approving'>;
   isSubmitting: boolean;
+  approvalDisabled?: boolean;
   onApprove: () => void;
   onRegenerate: () => void;
 }
@@ -25,19 +26,27 @@ interface CopilotSingleWorkoutFooterProps {
 const CopilotSingleWorkoutFooter: React.FC<CopilotSingleWorkoutFooterProps> = ({
   state,
   isSubmitting,
+  approvalDisabled = false,
   onApprove,
   onRegenerate,
-}) => (
-  <ModalFooter>
-    <SecondaryButton onClick={onRegenerate}>
-      <RotateCcw size={16} />
-      Regenerate
-    </SecondaryButton>
-    <PrimaryButton onClick={onApprove} disabled={isSubmitting || state === 'approving'}>
-      {state === 'approving' ? <Spinner size={16} /> : <Save size={16} />}
-      {state === 'approving' ? 'Saving...' : 'Approve & Save'}
-    </PrimaryButton>
-  </ModalFooter>
-);
+}) => {
+  const isApproving = state === 'approving';
+  const isApprovalLocked = [isSubmitting, isApproving, approvalDisabled].some(Boolean);
+  const approveIcon = isApproving ? <Spinner size={16} /> : <Save size={16} />;
+  const approveLabel = isApproving ? 'Saving...' : 'Approve & Save';
+
+  return (
+    <ModalFooter>
+      <SecondaryButton onClick={onRegenerate} disabled={isSubmitting || isApproving}>
+        <RotateCcw size={16} />
+        Regenerate
+      </SecondaryButton>
+      <PrimaryButton onClick={onApprove} disabled={isApprovalLocked}>
+        {approveIcon}
+        {approveLabel}
+      </PrimaryButton>
+    </ModalFooter>
+  );
+};
 
 export default React.memo(CopilotSingleWorkoutFooter);

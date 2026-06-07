@@ -15,6 +15,7 @@ import type {
   Explainability,
   PainEntry,
   SafetyConstraints,
+  SwanCoachPlanningFingerprint,
   ValidationError,
   WorkoutPlan,
 } from './copilot-types';
@@ -29,6 +30,8 @@ interface UseCopilotPanelResetOptions {
   setWarnings: Dispatch<SetStateAction<string[]>>;
   setMissingInputs: Dispatch<SetStateAction<string[]>>;
   setGenerationMode: Dispatch<SetStateAction<string>>;
+  setSwanCoachPlanning: Dispatch<SetStateAction<SwanCoachPlanningFingerprint | null>>;
+  setPlanningReviewAcknowledged: Dispatch<SetStateAction<boolean>>;
   setAuditLogId: Dispatch<SetStateAction<number | null>>;
   setTrainerNotes: Dispatch<SetStateAction<string>>;
   setOverrideReason: Dispatch<SetStateAction<string>>;
@@ -58,6 +61,8 @@ export const useCopilotPanelReset = ({
   setWarnings,
   setMissingInputs,
   setGenerationMode,
+  setSwanCoachPlanning,
+  setPlanningReviewAcknowledged,
   setAuditLogId,
   setTrainerNotes,
   setOverrideReason,
@@ -87,6 +92,8 @@ export const useCopilotPanelReset = ({
     setWarnings([]);
     setMissingInputs([]);
     setGenerationMode('');
+    setSwanCoachPlanning(null);
+    setPlanningReviewAcknowledged(false);
     setAuditLogId(null);
     setTrainerNotes('');
     setOverrideReason('');
@@ -121,12 +128,14 @@ export const useCopilotPanelReset = ({
     setIsSubmitting,
     setLhFooterContent,
     setMissingInputs,
+    setPlanningReviewAcknowledged,
     setOverrideReason,
     setOverrideReasonRequired,
     setPainAcknowledged,
     setSafetyConstraints,
     setSavedPlanId,
     setState,
+    setSwanCoachPlanning,
     setTrainerNotes,
     setUnmatchedExercises,
     setValidationWarnings,

@@ -110,6 +110,18 @@ const makeUser = () => ({
   spiritName: 'Spirit',
 });
 
+const makeReviewRequiredPlanning = () => ({
+  createdBy: 'swan_coach_planning',
+  identityMode: 'client_id_only',
+  safetyGate: {
+    mode: 'deterministic_review_gate',
+    status: 'review_required',
+    reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+    missingCriticalData: ['baseline/readiness context'],
+    reviewMessage: 'Deterministic safety gate requires coach review before assignment.',
+  },
+});
+
 const buildModels = () => {
   const draftAuditLog = {
     id: 501,
@@ -118,6 +130,9 @@ const buildModels = () => {
   };
   const approvalAuditLog = {
     id: 777,
+    userId: 100,
+    requestType: 'workout_generation',
+    status: 'draft',
     tokenUsage: {},
     update: vi.fn().mockResolvedValue({}),
   };
@@ -257,6 +272,52 @@ describe('workout controller eligibility integration', () => {
       success: true,
       draft: true,
     }));
+  });
+
+  it('4b - marks draft responses as Swan Coach Planning', async () => {
+    getAllModels.mockReturnValue(buildModels());
+    checkAiEligibility.mockResolvedValue({ decision: 'allow', reasonCode: null, warnings: [] });
+
+    const req = { user: { id: 10, role: 'trainer' }, body: { userId: 100, mode: 'draft' } };
+    const res = makeRes();
+    await generateWorkoutPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning: expect.objectContaining({
+        createdBy: 'swan_coach_planning',
+        identityMode: 'client_id_only',
+        dataCategoriesUsed: expect.any(Array),
+        missingDataCategories: expect.any(Array),
+      }),
+    }));
+  });
+
+  it('4c - carries safe health-screening review signals into draft metadata', async () => {
+    getAllModels.mockReturnValue(buildModels());
+    checkAiEligibility.mockResolvedValue({ decision: 'allow', reasonCode: null, warnings: [] });
+    deIdentify.mockReturnValueOnce({
+      deIdentified: {
+        client: { goals: { primary: 'strength' } },
+        baselineReadiness: { medicalClearanceRequired: true },
+        safety: { referralRecommended: true },
+        health: { specialPopulationFlags: ['older_adult'] },
+      },
+      strippedFields: [],
+    });
+
+    const req = { user: { id: 10, role: 'trainer' }, body: { userId: 100, mode: 'draft' } };
+    const res = makeRes();
+    await generateWorkoutPlan(req, res);
+
+    const body = res.json.mock.calls.at(-1)[0];
+    expect(body.swanCoachPlanning.safetyGate.reviewRequiredSignals).toEqual(expect.arrayContaining([
+      'medical_clearance_required',
+      'special_population_review_required',
+      'referral_review_recommended',
+    ]));
+    expect(JSON.stringify(body.swanCoachPlanning.safetyGate)).not.toMatch(/older_adult/i);
   });
 
   it('5 - includes eligibilityOverride in generate audit log', async () => {
@@ -433,6 +494,84 @@ describe('workout controller eligibility integration', () => {
   });
 
   // ── 5W-F: Waiver-specific error codes ──
+
+  it('11b - blocks review-required Swan Coach drafts until planning review is acknowledged', async () => {
+    const models = buildModels();
+    models._approvalAuditLog.tokenUsage = {
+      swanCoachPlanning: makeReviewRequiredPlanning(),
+    };
+    getAllModels.mockReturnValue(models);
+    checkAiEligibility.mockResolvedValue({ decision: 'allow', reasonCode: null, warnings: [] });
+
+    const req = {
+      user: { id: 10, role: 'trainer' },
+      body: { userId: 100, plan: makeDraftPlan(), auditLogId: 777 },
+    };
+    const res = makeRes();
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'SWAN_COACH_REVIEW_REQUIRED',
+      reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+    }));
+    expect(models.WorkoutPlan.create).not.toHaveBeenCalled();
+  });
+
+  it('11c - records Swan Coach planning acknowledgement on approved draft audit log', async () => {
+    const models = buildModels();
+    models._approvalAuditLog.tokenUsage = {
+      swanCoachPlanning: makeReviewRequiredPlanning(),
+    };
+    getAllModels.mockReturnValue(models);
+    checkAiEligibility.mockResolvedValue({ decision: 'allow', reasonCode: null, warnings: [] });
+
+    const req = {
+      user: { id: 10, role: 'trainer' },
+      body: {
+        userId: 100,
+        plan: makeDraftPlan(),
+        auditLogId: 777,
+        planningReviewAcknowledged: true,
+      },
+    };
+    const res = makeRes();
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(models._approvalAuditLog.update).toHaveBeenCalledWith(expect.objectContaining({
+      tokenUsage: expect.objectContaining({
+        approval: expect.objectContaining({
+          swanCoachPlanningReview: expect.objectContaining({
+            required: true,
+            acknowledged: true,
+            acknowledgedByUserId: 10,
+            reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+          }),
+        }),
+      }),
+    }));
+  });
+
+  it('11d - ignores mismatched approval audit logs before planning gate or update', async () => {
+    const models = buildModels();
+    models._approvalAuditLog.userId = 404;
+    models._approvalAuditLog.tokenUsage = {
+      swanCoachPlanning: makeReviewRequiredPlanning(),
+    };
+    getAllModels.mockReturnValue(models);
+    checkAiEligibility.mockResolvedValue({ decision: 'allow', reasonCode: null, warnings: [] });
+
+    const req = {
+      user: { id: 10, role: 'trainer' },
+      body: { userId: 100, plan: makeDraftPlan(), auditLogId: 777 },
+    };
+    const res = makeRes();
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(models._approvalAuditLog.update).not.toHaveBeenCalled();
+  });
 
   it('12a - returns 403 with AI_WAIVER_MISSING on generate', async () => {
     getAllModels.mockReturnValue(buildModels());

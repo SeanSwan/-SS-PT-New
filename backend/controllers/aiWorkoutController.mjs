@@ -57,6 +57,19 @@ import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs'
 import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
 import { buildMeasurementContext } from '../services/ai/measurementContextBuilder.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
+import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
+import { buildWorkoutGenerationPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
+import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
+import {
+  ALLOWED_DAY_TYPES,
+  ALLOWED_OPT_PHASES,
+  OPT_PHASE_KEY_BY_NUMBER,
+  normalizeDayType,
+  normalizeOptPhase,
+  toOptPhaseKey,
+  preflightValidatePlan,
+  persistWorkoutPlan,
+} from '../utils/workoutPlanPersistence.mjs';
 
 /**
  * fetchOptionalContext — DRY helper for non-blocking context fetches.
@@ -73,20 +86,35 @@ const fetchOptionalContext = async (model, fetchFn, contextName) => {
 };
 
 // Shared workout plan utilities (DRY — used by both generate and approve flows)
-import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
-import {
-  ALLOWED_DAY_TYPES,
-  ALLOWED_OPT_PHASES,
-  OPT_PHASE_KEY_BY_NUMBER,
-  normalizeDayType,
-  normalizeOptPhase,
-  toOptPhaseKey,
-  preflightValidatePlan,
-  persistWorkoutPlan,
-} from '../utils/workoutPlanPersistence.mjs';
-
 const isPlainObject = (value) => {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+const isValidWorkoutApprovalAuditLog = ({ auditLog, targetUserId, auditLogId }) => {
+  if (!auditLog) return false;
+  if (Number(auditLog.userId) !== Number(targetUserId)) {
+    logger.warn('Workout approval audit log userId mismatch, skipping linkage', {
+      auditLogId,
+      targetUserId,
+      auditLogUserId: auditLog.userId,
+    });
+    return false;
+  }
+  if (auditLog.requestType !== 'workout_generation') {
+    logger.warn('Workout approval audit log requestType mismatch, skipping linkage', {
+      auditLogId,
+      requestType: auditLog.requestType,
+    });
+    return false;
+  }
+  if (auditLog.status && !['draft', 'success'].includes(auditLog.status)) {
+    logger.warn('Workout approval audit log status invalid, skipping linkage', {
+      auditLogId,
+      status: auditLog.status,
+    });
+    return false;
+  }
+  return true;
 };
 
 // normalizeDayType, normalizeOptPhase, toOptPhaseKey imported from workoutPlanPersistence.mjs
@@ -848,6 +876,16 @@ export const generateWorkoutPlan = async (req, res) => {
     }
 
     const aiPlan = validation.data;
+    const swanCoachPlanning = buildWorkoutGenerationPlanningFingerprint({
+      aiPlan,
+      safePayload,
+      unifiedContext,
+      progressContext,
+      measurementContext,
+      nutritionContext,
+      nasmConstraints,
+      equipmentContext,
+    });
 
     // --- Phase 5A: Draft mode — return plan for coach review without persisting ---
     if (isDraftMode) {
@@ -859,6 +897,7 @@ export const generateWorkoutPlan = async (req, res) => {
         durationMs: routerDurationMs,
         tokenUsage: {
           ...(providerResult.tokenUsage || {}),
+          swanCoachPlanning,
           ...(eligibilityOverride ? { eligibilityOverride } : {}),
         },
         promptVersion: PROMPT_VERSION,
@@ -871,6 +910,8 @@ export const generateWorkoutPlan = async (req, res) => {
       return res.status(200).json({
         success: true,
         draft: true,
+        planningSystem: 'swan_coach_planning',
+        swanCoachPlanning,
         plan: aiPlan,
         generationMode: unifiedContext.generationMode,
         explainability: unifiedContext.explainability,
@@ -921,6 +962,7 @@ export const generateWorkoutPlan = async (req, res) => {
         durationMs: routerDurationMs,
         tokenUsage: {
           ...(providerResult.tokenUsage || {}),
+          swanCoachPlanning,
           ...(eligibilityOverride ? { eligibilityOverride } : {}),
           ...(templateContext ? {
             templateRefs: templateContext.templateRefs,
@@ -948,6 +990,8 @@ export const generateWorkoutPlan = async (req, res) => {
       return res.status(200).json({
         success: true,
         draft: false,
+        planningSystem: 'swan_coach_planning',
+        swanCoachPlanning,
         planId: workoutPlan.id,
         summary: aiPlan.summary || 'Workout plan generated',
         workouts,
@@ -1017,7 +1061,13 @@ export const generateWorkoutPlan = async (req, res) => {
  */
 export const approveDraftPlan = async (req, res) => {
   try {
-    const { userId: rawUserId, plan, auditLogId, trainerNotes } = req.body || {};
+    const {
+      userId: rawUserId,
+      plan,
+      auditLogId,
+      trainerNotes,
+      planningReviewAcknowledged,
+    } = req.body || {};
     const requesterId = req.user?.id;
     const requesterRole = req.user?.role;
 
@@ -1053,6 +1103,7 @@ export const approveDraftPlan = async (req, res) => {
       WorkoutPlanDayExercise,
       ClientTrainerAssignment,
       AiConsentLog,
+      AiInteractionLog,
     } = models;
 
     // --- 4. Target user existence check ---
@@ -1129,6 +1180,36 @@ export const approveDraftPlan = async (req, res) => {
       });
     }
 
+    let approvalAuditLog = null;
+    if (auditLogId && AiInteractionLog) {
+      try {
+        const auditLogRecord = await AiInteractionLog.findByPk(auditLogId);
+        approvalAuditLog = isValidWorkoutApprovalAuditLog({
+          auditLog: auditLogRecord,
+          targetUserId: parsedUserId,
+          auditLogId,
+        }) ? auditLogRecord : null;
+      } catch (logErr) {
+        logger.warn('Failed to fetch audit log before approval gate:', logErr.message);
+      }
+    }
+
+    const planningApprovalGate = buildSwanCoachPlanningApprovalGate({
+      swanCoachPlanning: approvalAuditLog?.tokenUsage?.swanCoachPlanning,
+      planningReviewAcknowledged,
+      reviewerUserId: requesterId,
+    });
+
+    if (!planningApprovalGate.allowed) {
+      return res.status(planningApprovalGate.error.status).json({
+        success: false,
+        code: planningApprovalGate.error.code,
+        message: planningApprovalGate.error.message,
+        reviewRequiredSignals: planningApprovalGate.error.reviewRequiredSignals,
+        missingCriticalData: planningApprovalGate.error.missingCriticalData,
+      });
+    }
+
     // --- 7. Validate edited draft (AFTER authz + consent) ---
     const draftValidation = validateApprovedDraftPlan({ draft: plan });
     if (!draftValidation.valid) {
@@ -1166,32 +1247,30 @@ export const approveDraftPlan = async (req, res) => {
       await transaction.commit();
 
       // --- Phase 5A Hardening: Update audit log via tokenUsage merge (no metadata field) ---
-      if (auditLogId) {
-        const { AiInteractionLog } = models;
-        if (AiInteractionLog) {
-          try {
-            const existingLog = await AiInteractionLog.findByPk(auditLogId);
-            if (existingLog) {
-              const existingTokenUsage = existingLog.tokenUsage || {};
-              await existingLog.update({
-                status: 'approved',
-                tokenUsage: {
-                  ...existingTokenUsage,
-                  approval: {
-                    approvedAt: new Date().toISOString(),
-                    approvedByUserId: requesterId,
-                    sourceType: 'coach_approved',
-                    trainerNotes: trainerNotes || null,
-                    validationPassed: true,
-                    warningsCount: draftValidation.warnings.length,
-                    ...(eligibilityOverride ? { eligibilityOverride } : {}),
-                  },
-                },
-              });
-            }
-          } catch (logErr) {
-            logger.warn('Failed to update audit log on approval:', logErr.message);
-          }
+      if (approvalAuditLog) {
+        try {
+          const existingTokenUsage = approvalAuditLog.tokenUsage || {};
+          const swanCoachPlanningReview = planningApprovalGate.hasSwanCoachPlanning
+            ? { swanCoachPlanningReview: planningApprovalGate.auditRecord }
+            : {};
+          await approvalAuditLog.update({
+            status: 'approved',
+            tokenUsage: {
+              ...existingTokenUsage,
+              approval: {
+                approvedAt: new Date().toISOString(),
+                approvedByUserId: requesterId,
+                sourceType: 'coach_approved',
+                trainerNotes: trainerNotes || null,
+                validationPassed: true,
+                warningsCount: draftValidation.warnings.length,
+                ...swanCoachPlanningReview,
+                ...(eligibilityOverride ? { eligibilityOverride } : {}),
+              },
+            },
+          });
+        } catch (logErr) {
+          logger.warn('Failed to update audit log on approval:', logErr.message);
         }
       }
 

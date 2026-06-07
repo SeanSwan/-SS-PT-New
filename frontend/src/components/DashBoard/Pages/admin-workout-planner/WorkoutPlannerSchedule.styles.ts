@@ -109,7 +109,7 @@ export const PillHint = styled.span`
 
 // L3 (2026-05-02): Export PDF button rendered next to the
 // MesocycleSectionTitle. Compact, non-cosmic styling so it does not
-// compete with the primary "Generate Plan" CTA in the control row.
+// compete with the primary "Swan Coach Plan" CTA in the control row.
 export const ExportPdfBtn = styled.button`
   margin-left: auto;
   display: inline-flex;

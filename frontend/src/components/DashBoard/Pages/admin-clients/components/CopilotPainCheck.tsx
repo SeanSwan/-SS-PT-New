@@ -26,12 +26,12 @@
  * │ │  ⚠ Active Pain Entries Detected        │                  │
  * │ │  ┌─ Lower Back (Left) — SEVERE 8/10 ─┐│                  │
  * │ │  ┌─ Right Knee — MODERATE 5/10 ──────┐│                  │
- * │ │  [Cancel]  [Acknowledge & Generate]    │                  │
+ * │ │  [Cancel]  [Acknowledge & Coach Plan]    │                  │
  * │ └────────────────────────────────────────┘                  │
  * │ Props: { clientName, activePainEntries, isSubmitting, ... } │
  * │ CLICK-OUTCOMES:                                             │
  * │ [Cancel] → setState('idle')                                 │
- * │ [Acknowledge & Generate] → handlePainAcknowledgeAndGenerate │
+ * │ [Acknowledge & Coach Plan] → handlePainAcknowledgeAndGenerate │
  * └─────────────────────────────────────────────────────────────┘
  */
 
@@ -195,7 +195,7 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
       </SecondaryButton>
       <PrimaryButton onClick={handlePainAcknowledgeAndGenerate} disabled={isSubmitting}>
         <Shield size={16} />
-        Acknowledge &amp; Generate
+        Acknowledge &amp; Coach Plan
       </PrimaryButton>
     </ActionRow>
   </CenterContent>

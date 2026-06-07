@@ -20,16 +20,7 @@ import { useToast } from '../../../../../hooks/use-toast';
 import { createAiWorkoutService } from '../../../../../services/aiWorkoutService';
 import { createPainEntryService } from '../../../../../services/painEntryService';
 
-import type {
-  CopilotState,
-  WorkoutCopilotPanelProps,
-  Explainability,
-  SafetyConstraints,
-  ExerciseRecommendation,
-  ValidationError,
-  DegradedResponse,
-  PainEntry,
-} from './copilot-types';
+import type { CopilotState, WorkoutCopilotPanelProps, Explainability, SafetyConstraints, ExerciseRecommendation, ValidationError, DegradedResponse, PainEntry, SwanCoachPlanningFingerprint } from './copilot-types';
 
 import {
   ModalOverlay,
@@ -92,6 +83,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
   const [warnings, setWarnings] = useState<string[]>([]);
   const [missingInputs, setMissingInputs] = useState<string[]>([]);
   const [generationMode, setGenerationMode] = useState<string>('');
+  const [swanCoachPlanning, setSwanCoachPlanning] = useState<SwanCoachPlanningFingerprint | null>(null);
+  const [planningReviewAcknowledged, setPlanningReviewAcknowledged] = useState(false);
   const [auditLogId, setAuditLogId] = useState<number | null>(null);
   const [trainerNotes, setTrainerNotes] = useState('');
   const [overrideReason, setOverrideReason] = useState('');
@@ -129,6 +122,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setWarnings,
     setMissingInputs,
     setGenerationMode,
+    setSwanCoachPlanning,
+    setPlanningReviewAcknowledged,
     setAuditLogId,
     setTrainerNotes,
     setOverrideReason,
@@ -165,6 +160,7 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     overrideReason,
     overrideReasonRequired,
     trainerNotes,
+    planningReviewAcknowledged,
     painAcknowledged,
     service,
     painService,
@@ -178,6 +174,8 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
     setWarnings,
     setMissingInputs,
     setGenerationMode,
+    setSwanCoachPlanning,
+    setPlanningReviewAcknowledged,
     setAuditLogId,
     setOverrideReasonRequired,
     setDegradedData,
@@ -259,6 +257,9 @@ const WorkoutCopilotPanel: React.FC<WorkoutCopilotPanelProps> = ({
             exerciseRecs,
             warnings,
             missingInputs,
+            swanCoachPlanning,
+            planningReviewAcknowledged,
+            setPlanningReviewAcknowledged,
             generationMode,
             expandedDays,
             toggleDay,

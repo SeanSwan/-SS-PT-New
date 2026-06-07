@@ -212,7 +212,7 @@ const WorkoutPlannerCommandPanel: React.FC<WorkoutPlannerCommandPanelProps> = ({
           : undefined}
       >
         {generating || generatingPlan ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-        {generating || generatingPlan ? 'Generating...' : planDuration === 'single' ? 'Swan Coach Generate' : 'Generate Plan'}
+        {generating || generatingPlan ? 'Planning...' : planDuration === 'single' ? 'Swan Coach Generate' : 'Swan Coach Plan'}
       </ActionBtn>
     </ControlRow>
 

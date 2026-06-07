@@ -7,6 +7,7 @@ import type {
   DraftSuccessResponse,
   DegradedResponse,
   ApproveSuccessResponse,
+  SwanCoachPlanningFingerprint,
   TemplateEntry,
 } from '../../../../../services/aiWorkoutService';
 
@@ -37,7 +38,6 @@ vi.mock('../../../../../services/aiWorkoutService', async () => {
     }),
   };
 });
-
 vi.mock('../../../../../services/adminClientService', () => ({
   __esModule: true,
   default: {
@@ -87,9 +87,40 @@ const TEMPLATES: TemplateEntry[] = [
   },
 ];
 
+const PLANNING_FINGERPRINT: SwanCoachPlanningFingerprint = {
+  createdBy: 'swan_coach_planning',
+  identityMode: 'client_id_only',
+  horizonWeeks: 4,
+  sessionsPerWeek: 3,
+  primaryGoal: 'strength',
+  nasmPhase: 'hypertrophy',
+  nasmDomainsApplied: ['OPT', 'Corrective Exercise', 'Performance Enhancement'],
+  planInputsUsed: {
+    workoutHistory: true,
+    painInjury: true,
+    movementCompensations: true,
+  },
+  dataCategoriesUsed: ['workout history', 'pain/injury entries', 'movement analysis'],
+  missingDataCategories: ['nutrition/macros'],
+  rules: ['Use Client # only', 'Never deduct or change paid-session balances'],
+};
+
+const REVIEW_REQUIRED_PLANNING_FINGERPRINT: SwanCoachPlanningFingerprint = {
+  ...PLANNING_FINGERPRINT,
+  safetyGate: {
+    mode: 'deterministic_review_gate',
+    status: 'review_required',
+    reviewRequiredSignals: ['medical_clearance_required', 'source_data_unavailable'],
+    missingCriticalData: ['baseline/readiness context'],
+    reviewMessage: 'Deterministic safety gate requires coach review before assignment.',
+  },
+};
+
 const DRAFT_RESPONSE: DraftSuccessResponse = {
   success: true,
   draft: true,
+  planningSystem: 'swan_coach_planning',
+  swanCoachPlanning: PLANNING_FINGERPRINT,
   plan: {
     planName: 'Test Plan Alpha',
     durationWeeks: 4,
@@ -154,6 +185,12 @@ const APPROVE_RESPONSE: ApproveSuccessResponse = {
 const LONG_HORIZON_DRAFT = {
   success: true as const,
   draft: true as const,
+  planningSystem: 'swan_coach_planning' as const,
+  swanCoachPlanning: {
+    ...PLANNING_FINGERPRINT,
+    horizonWeeks: 24,
+    sessionsPerWeek: 3.5,
+  },
   horizonMonths: 6 as const,
   warnings: ['Total block duration is short for a 6-month horizon'],
   provider: 'openai',
@@ -268,7 +305,7 @@ describe('WorkoutCopilotPanel', () => {
       });
 
       expect(screen.getByText(/Workout Intelligence/)).toBeInTheDocument();
-      expect(screen.getByText('Generate Draft')).toBeInTheDocument();
+      expect(screen.getByText('Swan Coach Draft')).toBeInTheDocument();
     });
 
     it('loads and renders the template catalog', async () => {
@@ -298,7 +335,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       // Plan name is in an editable <input>, not plain text
       await waitFor(() => {
@@ -330,7 +367,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText(/Day 1: Upper Body/)).toBeInTheDocument();
@@ -348,7 +385,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Swan Coach Temporarily Unavailable')).toBeInTheDocument();
@@ -387,7 +424,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -419,7 +456,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -447,7 +484,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -474,7 +511,7 @@ describe('WorkoutCopilotPanel', () => {
       const user = userEvent.setup();
 
       // Generate
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => {
         expect(screen.getByText('Approve & Save')).toBeInTheDocument();
       });
@@ -509,7 +546,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => expect(screen.getByText('Approve & Save')).toBeInTheDocument());
 
       await user.click(screen.getByText('Approve & Save'));
@@ -521,12 +558,46 @@ describe('WorkoutCopilotPanel', () => {
       expect(screen.getByText(/Unmatched exercises/)).toBeInTheDocument();
       expect(screen.getByText(/Day 1: Cable Flyes/)).toBeInTheDocument();
     });
+
+    it('requires Swan Coach planning acknowledgement before approving review-required drafts', async () => {
+      mockGenerateDraft.mockResolvedValue({
+        ...DRAFT_RESPONSE,
+        swanCoachPlanning: REVIEW_REQUIRED_PLANNING_FINGERPRINT,
+      });
+      mockApproveDraft.mockResolvedValue(APPROVE_RESPONSE);
+      renderPanel();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByText('Swan Coach Draft'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Swan Coach Data Coverage')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Coach review required/i)).toBeInTheDocument();
+      expect(screen.getByText(/baseline\/readiness context/i)).toBeInTheDocument();
+      const approveButton = screen.getByRole('button', { name: /approve & save/i });
+      expect(approveButton).toBeDisabled();
+
+      await user.click(screen.getByRole('checkbox', {
+        name: /I reviewed the Swan Coach planning signals/i,
+      }));
+
+      expect(approveButton).toBeEnabled();
+      await user.click(approveButton);
+
+      await waitFor(() => {
+        expect(mockApproveDraft).toHaveBeenCalledWith(expect.objectContaining({
+          planningReviewAcknowledged: true,
+        }));
+      });
+    });
   });
 
   // ── 6. Double-submit prevention ───────────────────────────────────────
 
   describe('Double-submit prevention', () => {
-    it('disables Generate Draft button during generation', async () => {
+    it('disables Swan Coach Draft button during generation', async () => {
       // Make generateDraft hang (never resolve) to test the disabled state
       let resolveGenerate: (value: DraftSuccessResponse) => void;
       mockGenerateDraft.mockReturnValue(
@@ -537,7 +608,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      const generateBtn = screen.getByText('Generate Draft');
+      const generateBtn = screen.getByText('Swan Coach Draft');
       await user.click(generateBtn);
 
       // While generating, the IDLE state is gone — generating state shows spinner text
@@ -565,7 +636,7 @@ describe('WorkoutCopilotPanel', () => {
       const user = userEvent.setup();
 
       // Generate first
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => expect(screen.getByText('Approve & Save')).toBeInTheDocument());
 
       // Click approve
@@ -594,7 +665,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      const generateBtn = screen.getByText('Generate Draft');
+      const generateBtn = screen.getByText('Swan Coach Draft');
 
       // Click twice rapidly
       await user.click(generateBtn);
@@ -626,7 +697,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -652,7 +723,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -680,7 +751,7 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText('Generation Failed')).toBeInTheDocument();
@@ -723,12 +794,12 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(screen.getByText(/Admin Override Reason \(required\)/i)).toBeInTheDocument();
       });
-      expect(screen.getByText('Generate Draft')).toBeInTheDocument();
+      expect(screen.getByText('Swan Coach Draft')).toBeInTheDocument();
     });
 
     it('passes override reason to generateDraft', async () => {
@@ -740,7 +811,7 @@ describe('WorkoutCopilotPanel', () => {
         screen.getByPlaceholderText(/Provide justification when consent override is required/i),
         '  Override reason for session  ',
       );
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
 
       await waitFor(() => {
         expect(mockGenerateDraft).toHaveBeenCalledWith(56, 'Override reason for session');
@@ -757,7 +828,7 @@ describe('WorkoutCopilotPanel', () => {
         screen.getByPlaceholderText(/Provide justification when consent override is required/i),
         'Supervisor override',
       );
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => {
         expect(screen.getByText('Approve & Save')).toBeInTheDocument();
       });
@@ -778,12 +849,12 @@ describe('WorkoutCopilotPanel', () => {
       renderPanel();
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => {
         expect(screen.getByText(/Admin Override Reason \(required\)/i)).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText('Generate Draft'));
+      await user.click(screen.getByText('Swan Coach Draft'));
       await waitFor(() => {
         expect(screen.getByText('Provide Override Reason')).toBeInTheDocument();
       });
@@ -836,7 +907,7 @@ describe('WorkoutCopilotPanel', () => {
         expect(screen.getByText('Goal data unavailable')).toBeInTheDocument();
       });
 
-      expect(screen.getByRole('button', { name: 'Generate Draft' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Swan Coach Draft' })).toBeEnabled();
     });
 
     it('generates draft and renders plan review blocks', async () => {
@@ -846,7 +917,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByDisplayValue('6-Month Strength Arc')).toBeInTheDocument();
@@ -857,6 +928,39 @@ describe('WorkoutCopilotPanel', () => {
       expect(screen.getByText('Approve & Save')).toBeInTheDocument();
     });
 
+    it('requires Swan Coach planning acknowledgement before approving review-required long-horizon drafts', async () => {
+      mockGenerateLongHorizonDraft.mockResolvedValue({
+        ...LONG_HORIZON_DRAFT,
+        swanCoachPlanning: REVIEW_REQUIRED_PLANNING_FINGERPRINT,
+      });
+      mockApproveLongHorizonDraft.mockResolvedValue(LONG_HORIZON_APPROVE);
+      renderPanel();
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
+      await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
+
+      await waitFor(() => {
+        expect(screen.getByText('Swan Coach Data Coverage')).toBeInTheDocument();
+      });
+
+      const approveButton = screen.getByRole('button', { name: /approve & save/i });
+      expect(approveButton).toBeDisabled();
+
+      await user.click(screen.getByRole('checkbox', {
+        name: /I reviewed the Swan Coach planning signals/i,
+      }));
+      expect(approveButton).toBeEnabled();
+
+      await user.click(approveButton);
+      await waitFor(() => {
+        expect(mockApproveLongHorizonDraft).toHaveBeenCalledWith(expect.objectContaining({
+          planningReviewAcknowledged: true,
+        }));
+      });
+    });
+
     it('lh-approve-flow', async () => {
       mockGenerateLongHorizonDraft.mockResolvedValue(LONG_HORIZON_DRAFT);
       mockApproveLongHorizonDraft.mockResolvedValue(LONG_HORIZON_APPROVE);
@@ -865,7 +969,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByText('Approve & Save')).toBeInTheDocument();
@@ -896,7 +1000,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByText(/Generation incomplete — regenerate/i)).toBeInTheDocument();
@@ -912,7 +1016,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByText('Swan Coach Temporarily Unavailable')).toBeInTheDocument();
@@ -934,7 +1038,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByText(/Admin Override Reason/i)).toBeInTheDocument();
@@ -953,7 +1057,7 @@ describe('WorkoutCopilotPanel', () => {
         screen.getByPlaceholderText(/Provide justification when consent override is required/i),
         'Manual override for in-person session',
       );
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
 
       await waitFor(() => {
         expect(screen.getByText('Approve & Save')).toBeInTheDocument();
@@ -979,7 +1083,7 @@ describe('WorkoutCopilotPanel', () => {
 
       await user.click(screen.getByRole('tab', { name: 'Long-Horizon' }));
       await user.click(screen.getByRole('button', { name: 'Configure Plan' }));
-      await user.click(screen.getByRole('button', { name: 'Generate Draft' }));
+      await user.click(screen.getByRole('button', { name: 'Swan Coach Draft' }));
       await waitFor(() => {
         expect(screen.getByDisplayValue('6-Month Strength Arc')).toBeInTheDocument();
       });

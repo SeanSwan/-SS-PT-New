@@ -42,9 +42,31 @@ import {
   buildGoalPhaseSequence,
   getGoalOptBias,
 } from './workoutBuilderGoalConfig.mjs';
+import { buildSwanCoachPlanningFingerprint } from './swanCoachPlanningContextService.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
+
+function buildPlanningCoverageContext(context = {}) {
+  return {
+    workouts: context.workouts,
+    constraints: context.constraints,
+    pain: context.pain,
+    movement: context.movement,
+    goals: context.goals,
+    body: context.body,
+    baseline: context.baseline,
+    nutrition: context.nutrition,
+    progressLevels: context.progressLevels,
+    activeProgram: context.activeProgram,
+    equipment: context.equipment,
+    safety: context.safety,
+    health: context.health,
+    specialPopulation: context.specialPopulation,
+    criticalDataUnavailable: context.criticalDataUnavailable,
+    criticalFailures: context.criticalFailures,
+  };
+}
 
 // Category → movement type mapping
 const CATEGORY_MOVEMENT_MAP = {
@@ -598,6 +620,13 @@ export async function generateWorkout(options) {
 
   const phaseParams = OPT_PHASE_PARAMS[nasmPhase] || OPT_PHASE_PARAMS[2];
   const goalLabel = GOAL_CONFIG[primaryGoal]?.label || 'General Fitness';
+  const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
+    context: buildPlanningCoverageContext(context),
+    horizonWeeks: 1,
+    sessionsPerWeek: 1,
+    nasmPhase,
+    primaryGoal,
+  });
 
   // Step 8: Build explanations
   const explanations = [];
@@ -709,6 +738,8 @@ export async function generateWorkout(options) {
 
     sessionType,
     category,
+    planningSystem: 'swan_coach_planning',
+    swanCoachPlanning,
     nasmPhase,
     primaryGoal,
     goalBias,
@@ -1099,12 +1130,21 @@ export async function generatePlan(options) {
     }
     return details;
   };
+  const swanCoachPlanning = buildSwanCoachPlanningFingerprint({
+    context: buildPlanningCoverageContext(context),
+    horizonWeeks: durationWeeks,
+    sessionsPerWeek,
+    nasmPhase: startingPhase,
+    primaryGoal,
+  });
 
   return {
     clientId,
     trainerId,
     clientName: context.clientName,
     generatedAt: new Date().toISOString(),
+    planningSystem: 'swan_coach_planning',
+    swanCoachPlanning,
 
     planSummary: {
       durationWeeks,

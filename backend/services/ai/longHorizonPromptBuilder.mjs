@@ -12,6 +12,8 @@
  * Phase 5C — Long-Horizon Planning Engine
  */
 
+import { appendSwanCoachPlanningGuidance } from '../swanCoachPlanningContextService.mjs';
+
 /**
  * System message for long-horizon plan generation.
  */
@@ -184,7 +186,7 @@ export function buildLongHorizonPrompt({
     parts.push(buildTemplateSectionForLongHorizon(templateContext), '');
   }
 
-  return parts.join('\n');
+  return appendSwanCoachPlanningGuidance(parts.join('\n'));
 }
 
 /**

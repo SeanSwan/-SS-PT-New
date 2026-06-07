@@ -10,11 +10,15 @@ const panelSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutCopilotPanel.tsx'),
   'utf8',
 );
+const contentSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/CopilotPanelContent.tsx'),
+  'utf8',
+);
 
 describe('CopilotSingleWorkoutFooter', () => {
   it('keeps single-workout footer actions outside the copilot state-machine shell', () => {
-    expect(panelSource).toContain("from './CopilotSingleWorkoutFooter'");
-    expect(panelSource).toContain('<CopilotSingleWorkoutFooter');
+    expect(contentSource).toContain("from './CopilotSingleWorkoutFooter'");
+    expect(contentSource).toContain('<CopilotSingleWorkoutFooter');
     expect(panelSource).not.toContain('<PrimaryButton onClick={handleApprove}');
     expect(panelSource).not.toContain('<SecondaryButton onClick={() => { setState');
   });
@@ -41,15 +45,20 @@ describe('CopilotSingleWorkoutFooter', () => {
   });
 
   it('locks approval while saving', () => {
+    const onRegenerate = vi.fn();
+
     render(
       <CopilotSingleWorkoutFooter
         state="approving"
         isSubmitting
         onApprove={vi.fn()}
-        onRegenerate={vi.fn()}
+        onRegenerate={onRegenerate}
       />,
     );
 
     expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled();
+
+    const regenerateButton = screen.getByRole('button', { name: /regenerate/i });
+    expect(regenerateButton).toBeDisabled();
   });
 });

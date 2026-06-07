@@ -43,4 +43,25 @@ describe('LongHorizonReviewFooter', () => {
     fireEvent.click(approveButton);
     expect(onApprove).not.toHaveBeenCalled();
   });
+
+  it('blocks approval when the Swan Coach planning review has not been acknowledged', () => {
+    const onApprove = vi.fn();
+
+    render(
+      <LongHorizonReviewFooter
+        state="plan_review"
+        isSubmitting={false}
+        auditLogId={42}
+        approvalDisabled
+        onRegenerate={vi.fn()}
+        onApprove={onApprove}
+      />,
+    );
+
+    const approveButton = screen.getByRole('button', { name: /approve & save/i });
+
+    expect(approveButton).toBeDisabled();
+    fireEvent.click(approveButton);
+    expect(onApprove).not.toHaveBeenCalled();
+  });
 });

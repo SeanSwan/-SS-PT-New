@@ -29,15 +29,17 @@ function fakeContext(overrides = {}) {
       recentlyUsedExercises: [],
       estimated1RMs: null,
     },
-    pain: { exclusions: [], warnings: [] },
-    movement: { compensations: [] },
+    pain: overrides.pain ?? { exclusions: [], warnings: [] },
+    movement: overrides.movement ?? { compensations: [] },
     variation: { lastSessionType: null, currentPattern: 'BUILD/SWITCH' },
-    equipment: [],
+    equipment: overrides.equipment ?? [],
     goals: overrides.goals ?? null,
-    body: null,
-    baseline: null,
-    nutrition: null,
-    progressLevels: null,
+    body: overrides.body ?? null,
+    baseline: overrides.baseline ?? null,
+    nutrition: overrides.nutrition ?? null,
+    progressLevels: overrides.progressLevels ?? null,
+    safety: overrides.safety ?? null,
+    health: overrides.health ?? null,
     streak: null,
     activeProgram: null,
     workouts: { sessionsLast2Weeks: 0, avgFormRating: null },
@@ -135,6 +137,30 @@ describe('generatePlan - goal-driven phase progression', () => {
     expect(joined).toMatch(/hypertrophy|muscle/);
   });
 
+  it('marks generated plans as Swan Coach planning with data coverage', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      nasmPhase: 2,
+      goals: { primaryGoal: 'strength' },
+      pain: { exclusions: [{ bodyRegion: 'knee' }], warnings: [] },
+    }));
+    const plan = await generatePlan({
+      clientId: 1, trainerId: 99, durationWeeks: 24, sessionsPerWeek: 4, primaryGoal: 'strength',
+    });
+
+    expect(plan.planningSystem).toBe('swan_coach_planning');
+    expect(plan.swanCoachPlanning.createdBy).toBe('swan_coach_planning');
+    expect(plan.swanCoachPlanning.identityMode).toBe('client_id_only');
+    expect(plan.swanCoachPlanning.horizonWeeks).toBe(24);
+    expect(plan.swanCoachPlanning.planInputsUsed.goals).toBe(true);
+    expect(plan.swanCoachPlanning.planInputsUsed.painInjury).toBe(true);
+    expect(plan.swanCoachPlanning.nasmDomainsApplied).toEqual(expect.arrayContaining([
+      'OPT',
+      'Corrective Exercise',
+      'Performance Enhancement',
+      'Behavior Change',
+    ]));
+  });
+
   it('surfaces a safety recommendation when critical client context is unavailable', async () => {
     getClientContext.mockResolvedValueOnce(fakeContext({
       nasmPhase: 1,
@@ -154,6 +180,29 @@ describe('generatePlan - goal-driven phase progression', () => {
         sourceCitation: 'context.criticalFailures',
       }),
     ]));
+    expect(plan.swanCoachPlanning.safetyGate.reviewRequiredSignals).toContain('source_data_unavailable');
+  });
+
+  it('carries medical and special-population review signals into plan output', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      nasmPhase: 1,
+      baseline: { medicalClearanceRequired: true },
+      safety: { referralRecommended: true },
+      health: { specialPopulationFlags: ['older_adult'] },
+    }));
+    const plan = await generatePlan({
+      clientId: 1, trainerId: 99, durationWeeks: 12, sessionsPerWeek: 3, primaryGoal: 'general_fitness',
+    });
+
+    expect(plan.swanCoachPlanning.safetyGate).toEqual(expect.objectContaining({
+      status: 'review_required',
+      reviewRequiredSignals: expect.arrayContaining([
+        'medical_clearance_required',
+        'special_population_review_required',
+        'referral_review_recommended',
+      ]),
+    }));
+    expect(JSON.stringify(plan.swanCoachPlanning.safetyGate)).not.toMatch(/older_adult/i);
   });
 
   it('applies goal bias to mesocycle set/rep/rest targets inside NASM bounds', async () => {
@@ -290,6 +339,25 @@ describe('generateWorkout - goal-aware single workout', () => {
     });
     expect(Array.isArray(workout.rationale)).toBe(true);
     expect(workout.rationale.length).toBeGreaterThan(0);
+  });
+
+  it('marks single workouts as Swan Coach planning with data coverage', async () => {
+    getClientContext.mockResolvedValueOnce(fakeContext({
+      nasmPhase: 2,
+      goals: { primaryGoal: 'fat_loss' },
+      baseline: { nasmAssessmentScore: 61 },
+    }));
+    const workout = await generateWorkout({
+      clientId: 1, trainerId: 99, category: 'full_body',
+      primaryGoal: 'fat_loss',
+    });
+
+    expect(workout.planningSystem).toBe('swan_coach_planning');
+    expect(workout.swanCoachPlanning.createdBy).toBe('swan_coach_planning');
+    expect(workout.swanCoachPlanning.identityMode).toBe('client_id_only');
+    expect(workout.swanCoachPlanning.horizonWeeks).toBe(1);
+    expect(workout.swanCoachPlanning.planInputsUsed.goals).toBe(true);
+    expect(workout.swanCoachPlanning.planInputsUsed.baselineReadiness).toBe(true);
   });
 });
 

@@ -19,6 +19,10 @@ import {
   normalizePaidSessionCount,
 } from './sessionBillingPolicy.mjs';
 import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mjs';
+import {
+  appendSwanCoachPlanningGuidance,
+  formatActiveWorkoutPlanContext,
+} from './swanCoachPlanningContextService.mjs';
 
 export function getCoachRosterClientSourceLabel(clientSource) {
   if (clientSource === 'move_fitness') return ' [Move Fitness - FREE TRACKING]';
@@ -1074,7 +1078,8 @@ export function getSystemPrompt(role, context, responseStyle = 'both') {
   const rolePrompts = SYSTEM_PROMPTS[role] || SYSTEM_PROMPTS.client;
   const basePrompt = rolePrompts[context] || rolePrompts.general;
   const proposalAwarePrompt = appendCoachActionProposalContract(basePrompt, { role, context });
-  return buildStyledPrompt(proposalAwarePrompt, responseStyle);
+  const planningAwarePrompt = appendSwanCoachPlanningGuidance(proposalAwarePrompt);
+  return buildStyledPrompt(planningAwarePrompt, responseStyle);
 }
 
 /**
@@ -1748,7 +1753,10 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     // ── 20. ACTIVE WORKOUT PLANS (enables "what's next?" voice queries) ──
     // NOTE: Raw SQL returns snake_case column names (plan_data, current_week, etc.)
     try {
-      if (workoutPlans.length > 0) {
+      const activePlanContext = formatActiveWorkoutPlanContext(workoutPlans);
+      if (activePlanContext) {
+        dataParts.push(activePlanContext);
+      } else if (workoutPlans.length > 0) {
         const planLines = workoutPlans.map(plan => {
           const rawPd = plan.plan_data || plan.planData;
           const pd = typeof rawPd === 'string' ? JSON.parse(rawPd) : rawPd;

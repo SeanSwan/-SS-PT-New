@@ -16,6 +16,7 @@ import {
   type DegradedResponse,
   type LongHorizonPlan,
   type MesocycleBlock,
+  type SwanCoachPlanningFingerprint,
 } from '../../../../../services/aiWorkoutService';
 import { exportLongHorizonPDF } from '../../../../../services/pdfExportService';
 import {
@@ -24,16 +25,7 @@ import {
   type LongHorizonValidationError as ValidationError,
 } from './longHorizonErrors';
 import { getClientGoalsFromDetails, type ClientGoals } from './longHorizonGoals';
-export type LHState =
-  | 'idle'
-  | 'configure_plan'
-  | 'generating'
-  | 'plan_review'
-  | 'degraded'
-  | 'error'
-  | 'approving'
-  | 'saved'
-  | 'approve_error';
+export type LHState = 'idle' | 'configure_plan' | 'generating' | 'plan_review' | 'degraded' | 'error' | 'approving' | 'saved' | 'approve_error';
 
 interface UseLongHorizonWorkflowParams {
   clientId: number;
@@ -61,6 +53,8 @@ export const useLongHorizonWorkflow = ({
   const [overrideReasonRequired, setOverrideReasonRequired] = useState(false);
   const [editedPlan, setEditedPlan] = useState<LongHorizonPlan | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [swanCoachPlanning, setSwanCoachPlanning] = useState<SwanCoachPlanningFingerprint | null>(null);
+  const [planningReviewAcknowledged, setPlanningReviewAcknowledged] = useState(false);
   const [auditLogId, setAuditLogId] = useState<number | null>(null);
   const [degradedData, setDegradedData] = useState<DegradedResponse | null>(null);
   const [savedPlanId, setSavedPlanId] = useState<number | null>(null);
@@ -91,11 +85,15 @@ export const useLongHorizonWorkflow = ({
   }, [clientId]);
 
   const handleStartConfigure = useCallback(() => {
+    setSwanCoachPlanning(null);
+    setPlanningReviewAcknowledged(false);
     setState('configure_plan');
     void fetchClientGoals();
   }, [fetchClientGoals]);
 
   const handleRetryWithOverride = useCallback(() => {
+    setSwanCoachPlanning(null);
+    setPlanningReviewAcknowledged(false);
     setOverrideReasonRequired(true);
     setState('configure_plan');
     void fetchClientGoals();
@@ -123,6 +121,8 @@ export const useLongHorizonWorkflow = ({
       if (isLongHorizonDraft(resp)) {
         setEditedPlan(resp.plan);
         setWarnings(resp.warnings || []);
+        setSwanCoachPlanning(resp.swanCoachPlanning);
+        setPlanningReviewAcknowledged(false);
         setAuditLogId(resp.auditLogId);
         setExpandedBlocks(resp.plan.blocks.length > 0 ? new Set([0]) : new Set());
         setState('plan_review');
@@ -173,6 +173,7 @@ export const useLongHorizonWorkflow = ({
         auditLogId,
         overrideReason: overrideReason.trim() || undefined,
         trainerNotes: trainerNotes.trim() || undefined,
+        planningReviewAcknowledged,
       });
       setSavedPlanId(resp.planId);
       setSavedBlockCount(resp.blockCount);
@@ -211,6 +212,7 @@ export const useLongHorizonWorkflow = ({
     isSubmitting,
     onSuccess,
     overrideReason,
+    planningReviewAcknowledged,
     service,
     toast,
     trainerNotes,
@@ -252,7 +254,6 @@ export const useLongHorizonWorkflow = ({
       variant: 'success',
     });
   }, [toast]);
-
   const errorFlags = useMemo(() => getLongHorizonErrorFlags(errorCode), [errorCode]);
 
   return {
@@ -269,6 +270,9 @@ export const useLongHorizonWorkflow = ({
     setOverrideReason,
     overrideReasonRequired,
     editedPlan,
+    swanCoachPlanning,
+    planningReviewAcknowledged,
+    setPlanningReviewAcknowledged,
     warnings,
     auditLogId,
     degradedData,

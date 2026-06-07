@@ -27,11 +27,13 @@ import type {
   Explainability,
   PainEntry,
   SafetyConstraints,
+  SwanCoachPlanningFingerprint,
   TemplateEntry,
   ValidationError,
   WorkoutDay,
   WorkoutPlan,
 } from './copilot-types';
+import { requiresSwanCoachPlanningReview } from './swanCoachPlanningReviewUtils';
 
 type ToastFn = (opts: Omit<Toast, 'id'>) => void;
 
@@ -61,6 +63,9 @@ interface SingleWorkoutContentProps {
   exerciseRecs: ExerciseRecommendation[];
   warnings: string[];
   missingInputs: string[];
+  swanCoachPlanning: SwanCoachPlanningFingerprint | null;
+  planningReviewAcknowledged: boolean;
+  setPlanningReviewAcknowledged: (value: boolean) => void;
   generationMode: string;
   expandedDays: Set<number>;
   toggleDay: (dayIdx: number) => void;
@@ -165,6 +170,9 @@ const SingleWorkoutContent: React.FC<SingleWorkoutContentProps> = (props) => {
           exerciseRecs={props.exerciseRecs}
           warnings={props.warnings}
           missingInputs={props.missingInputs}
+          swanCoachPlanning={props.swanCoachPlanning}
+          planningReviewAcknowledged={props.planningReviewAcknowledged}
+          setPlanningReviewAcknowledged={props.setPlanningReviewAcknowledged}
           generationMode={props.generationMode}
           expandedDays={props.expandedDays}
           toggleDay={props.toggleDay}
@@ -218,6 +226,10 @@ const CopilotPanelContent: React.FC<CopilotPanelContentProps> = ({
       <CopilotSingleWorkoutFooter
         state={footer.state}
         isSubmitting={footer.isSubmitting}
+        approvalDisabled={
+          requiresSwanCoachPlanningReview(singleWorkout.swanCoachPlanning)
+          && !singleWorkout.planningReviewAcknowledged
+        }
         onApprove={footer.onApprove}
         onRegenerate={footer.onRegenerate}
       />

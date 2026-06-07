@@ -8,11 +8,13 @@
 import React from 'react';
 import {
   AlertTriangle,
-  ChevronDown,
-  ChevronRight,
   Download,
 } from 'lucide-react';
-import type { LongHorizonPlan, MesocycleBlock } from '../../../../../services/aiWorkoutService';
+import type {
+  LongHorizonPlan,
+  MesocycleBlock,
+  SwanCoachPlanningFingerprint,
+} from '../../../../../services/aiWorkoutService';
 import {
   Divider,
   FormGroup,
@@ -24,27 +26,25 @@ import {
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
-  SWAN_CYAN,
   TextArea,
 } from './copilot-shared-styles';
 import {
-  BlockCard,
-  BlockContent,
-  BlockDurationBar,
-  BlockHeader,
   BlockTimeline,
-  BlockWeeks,
   IconSlot,
-  NasmBadge,
   ReadOnlyField,
   TightActionRow,
 } from './LongHorizonContent.styles';
+import LongHorizonBlockEditor from './LongHorizonBlockEditor';
+import SwanCoachPlanningReviewPanel from './SwanCoachPlanningReviewPanel';
 
 interface LongHorizonPlanReviewEditorProps {
   clientName: string;
   plan: LongHorizonPlan;
   warnings: string[];
   auditLogId: number | null;
+  swanCoachPlanning: SwanCoachPlanningFingerprint | null;
+  planningReviewAcknowledged: boolean;
+  setPlanningReviewAcknowledged: (value: boolean) => void;
   trainerNotes: string;
   setTrainerNotes: (value: string) => void;
   expandedBlocks: Set<number>;
@@ -65,6 +65,9 @@ const LongHorizonPlanReviewEditor: React.FC<LongHorizonPlanReviewEditorProps> = 
   plan,
   warnings,
   auditLogId,
+  swanCoachPlanning,
+  planningReviewAcknowledged,
+  setPlanningReviewAcknowledged,
   trainerNotes,
   setTrainerNotes,
   expandedBlocks,
@@ -96,6 +99,12 @@ const LongHorizonPlanReviewEditor: React.FC<LongHorizonPlanReviewEditorProps> = 
       </InfoPanel>
     )}
 
+    <SwanCoachPlanningReviewPanel
+      planning={swanCoachPlanning}
+      acknowledged={planningReviewAcknowledged}
+      onAcknowledgedChange={setPlanningReviewAcknowledged}
+    />
+
     <FormGrid>
       <FormGroup $fullWidth>
         <Label htmlFor="long-horizon-plan-name">Plan Name</Label>
@@ -124,104 +133,16 @@ const LongHorizonPlanReviewEditor: React.FC<LongHorizonPlanReviewEditorProps> = 
     <Divider />
     <SectionTitle>Mesocycle Blocks ({plan.blocks.length})</SectionTitle>
     <BlockTimeline>
-      {plan.blocks.map((block, idx) => {
-        const durationPct = Math.max(10, Math.min(100, (block.durationWeeks / 16) * 100));
-        const isExpanded = expandedBlocks.has(idx);
-        return (
-          <BlockCard key={`${block.sequence}-${idx}`}>
-            <BlockHeader onClick={() => onToggleBlock(idx)}>
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              <span>
-                Block {block.sequence}: {block.phaseName}
-              </span>
-              <NasmBadge $color={block.nasmFramework === 'OPT' ? SWAN_CYAN : 'var(--accent-tertiary, #8B5CF6)'}>
-                {block.nasmFramework}
-                {block.optPhase ? ` P${block.optPhase}` : ''}
-              </NasmBadge>
-              <BlockDurationBar $pct={durationPct} />
-              <BlockWeeks>{block.durationWeeks}w</BlockWeeks>
-            </BlockHeader>
-
-            {isExpanded && (
-              <BlockContent>
-                <FormGrid>
-                  <FormGroup>
-                    <Label htmlFor={`long-horizon-phase-${idx}`}>Phase Name</Label>
-                    <Input
-                      id={`long-horizon-phase-${idx}`}
-                      value={block.phaseName}
-                      onChange={(e) => onUpdateBlock(idx, 'phaseName', e.target.value)}
-                      maxLength={100}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label htmlFor={`long-horizon-focus-${idx}`}>Focus</Label>
-                    <Input
-                      id={`long-horizon-focus-${idx}`}
-                      value={block.focus || ''}
-                      onChange={(e) => onUpdateBlock(idx, 'focus', e.target.value)}
-                      maxLength={200}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label htmlFor={`long-horizon-duration-${idx}`}>Duration (weeks)</Label>
-                    <Input
-                      id={`long-horizon-duration-${idx}`}
-                      type="number"
-                      min={1}
-                      max={16}
-                      value={block.durationWeeks}
-                      onChange={(e) => onUpdateBlock(idx, 'durationWeeks', parseInt(e.target.value, 10) || 1)}
-                    />
-                  </FormGroup>
-                  <FormGroup>
-                    <Label htmlFor={`long-horizon-sessions-${idx}`}>Sessions / week</Label>
-                    <Input
-                      id={`long-horizon-sessions-${idx}`}
-                      type="number"
-                      min={1}
-                      max={7}
-                      value={block.sessionsPerWeek ?? ''}
-                      onChange={(e) => onUpdateBlock(
-                        idx,
-                        'sessionsPerWeek',
-                        e.target.value ? parseInt(e.target.value, 10) : null,
-                      )}
-                    />
-                  </FormGroup>
-                  <FormGroup $fullWidth>
-                    <Label htmlFor={`long-horizon-entry-${idx}`}>Entry Criteria</Label>
-                    <TextArea
-                      id={`long-horizon-entry-${idx}`}
-                      value={block.entryCriteria || ''}
-                      onChange={(e) => onUpdateBlock(idx, 'entryCriteria', e.target.value)}
-                      rows={2}
-                    />
-                  </FormGroup>
-                  <FormGroup $fullWidth>
-                    <Label htmlFor={`long-horizon-exit-${idx}`}>Exit Criteria</Label>
-                    <TextArea
-                      id={`long-horizon-exit-${idx}`}
-                      value={block.exitCriteria || ''}
-                      onChange={(e) => onUpdateBlock(idx, 'exitCriteria', e.target.value)}
-                      rows={2}
-                    />
-                  </FormGroup>
-                  <FormGroup $fullWidth>
-                    <Label htmlFor={`long-horizon-notes-${idx}`}>Block Notes</Label>
-                    <TextArea
-                      id={`long-horizon-notes-${idx}`}
-                      value={block.notes || ''}
-                      onChange={(e) => onUpdateBlock(idx, 'notes', e.target.value)}
-                      rows={2}
-                    />
-                  </FormGroup>
-                </FormGrid>
-              </BlockContent>
-            )}
-          </BlockCard>
-        );
-      })}
+      {plan.blocks.map((block, idx) => (
+        <LongHorizonBlockEditor
+          key={`${block.sequence}-${idx}`}
+          block={block}
+          blockIdx={idx}
+          isExpanded={expandedBlocks.has(idx)}
+          onToggleBlock={onToggleBlock}
+          onUpdateBlock={onUpdateBlock}
+        />
+      ))}
     </BlockTimeline>
 
     <Divider />

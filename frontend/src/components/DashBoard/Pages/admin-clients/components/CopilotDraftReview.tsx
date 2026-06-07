@@ -51,12 +51,10 @@
  */
 
 import React from 'react';
-import {
-  Brain, AlertTriangle, Info, Shield,
-} from 'lucide-react';
+import { Brain, AlertTriangle, Info, Shield } from 'lucide-react';
 import type {
-  WorkoutPlan, WorkoutDay, Exercise,
-  Explainability, SafetyConstraints, ExerciseRecommendation,
+  WorkoutPlan, WorkoutDay, Exercise, Explainability,
+  SafetyConstraints, ExerciseRecommendation, SwanCoachPlanningFingerprint,
 } from './copilot-types';
 import {
   BadgeRow,
@@ -86,6 +84,7 @@ import {
   RecommendationTableScroll,
 } from './CopilotDraftReview.styles';
 import CopilotDraftTrainingDaysEditor from './CopilotDraftTrainingDaysEditor';
+import SwanCoachPlanningReviewPanel from './SwanCoachPlanningReviewPanel';
 
 interface CopilotDraftReviewProps {
   editedPlan: WorkoutPlan;
@@ -94,6 +93,9 @@ interface CopilotDraftReviewProps {
   exerciseRecs: ExerciseRecommendation[];
   warnings: string[];
   missingInputs: string[];
+  swanCoachPlanning: SwanCoachPlanningFingerprint | null;
+  planningReviewAcknowledged: boolean;
+  setPlanningReviewAcknowledged: (value: boolean) => void;
   generationMode: string;
   expandedDays: Set<number>;
   toggleDay: (dayIdx: number) => void;
@@ -118,6 +120,9 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
   exerciseRecs,
   warnings,
   missingInputs,
+  swanCoachPlanning,
+  planningReviewAcknowledged,
+  setPlanningReviewAcknowledged,
   generationMode,
   expandedDays,
   toggleDay,
@@ -130,7 +135,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
   setTrainerNotes,
 }) => (
   <>
-    {/* Safety constraints */}
     {safetyConstraints && (
       <BadgeRow>
         {safetyConstraints.medicalClearanceRequired && (
@@ -148,7 +152,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
       </BadgeRow>
     )}
 
-    {/* Warnings */}
     {warnings.length > 0 && (
       <InfoPanel $variant="warning">
         <PanelIcon><AlertTriangle size={16} /></PanelIcon>
@@ -158,7 +161,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
       </InfoPanel>
     )}
 
-    {/* Missing inputs */}
     {missingInputs.length > 0 && (
       <InfoPanel $variant="info">
         <PanelIcon><Info size={16} /></PanelIcon>
@@ -168,7 +170,12 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
       </InfoPanel>
     )}
 
-    {/* Plan header (editable) */}
+    <SwanCoachPlanningReviewPanel
+      planning={swanCoachPlanning}
+      acknowledged={planningReviewAcknowledged}
+      onAcknowledgedChange={setPlanningReviewAcknowledged}
+    />
+
     <FormGrid>
       <FormGroup $fullWidth>
         <Label>Plan Name</Label>
@@ -214,7 +221,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
 
     <Divider />
 
-    {/* Explainability panel (read-only) */}
     {explainability && (
       <>
         <SectionTitle><Brain size={16} /> AI Explainability</SectionTitle>
@@ -243,7 +249,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
       </>
     )}
 
-    {/* Exercise recommendations (read-only) */}
     {exerciseRecs.length > 0 && (
       <>
         <Divider />
@@ -279,7 +284,6 @@ const CopilotDraftReview: React.FC<CopilotDraftReviewProps> = ({
 
     <Divider />
 
-    {/* Trainer notes */}
     <FormGroup $fullWidth>
       <Label>Coach Notes (optional)</Label>
       <TextArea

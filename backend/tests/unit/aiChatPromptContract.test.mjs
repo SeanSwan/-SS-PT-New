@@ -45,13 +45,17 @@ describe('Swan Coach prompt contract', () => {
     expect(prompt).toContain('Final writes belong to deterministic backend services');
   });
 
-  it('anchors proposal drafting to NASM OPT instead of ACSM assumptions', () => {
+  it('anchors proposal drafting to NASM OPT while allowing standards cross-checks', () => {
     const prompt = getSystemPrompt('admin', 'coach_assistant', 'concise');
 
     expect(prompt).toContain('NASM');
     expect(prompt).toContain('OPT');
     expect(prompt).toContain('Never invent NASM OPT phases');
-    expect(prompt).not.toContain('ACSM');
+    expect(prompt).toContain('Apply NASM credential domains');
+    expect(prompt).toContain('Cross-check the plan against ACSM');
+    expect(prompt.indexOf('Apply NASM credential domains')).toBeLessThan(
+      prompt.indexOf('Cross-check the plan against ACSM')
+    );
     expect(prompt).not.toContain('American College of Sports Medicine');
   });
 

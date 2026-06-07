@@ -6,70 +6,12 @@
  */
 
 import { useCallback, useEffect, useRef } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
-import type { Toast } from '../../../../../hooks/use-toast';
 import {
-  createAiWorkoutService,
   isDegraded,
   isDraftSuccess,
 } from '../../../../../services/aiWorkoutService';
-import { createPainEntryService } from '../../../../../services/painEntryService';
-import type {
-  CopilotState,
-  DegradedResponse,
-  ExerciseRecommendation,
-  Explainability,
-  PainEntry,
-  SafetyConstraints,
-  ValidationError,
-  WorkoutPlan,
-} from './copilot-types';
 import { getCopilotApiError } from './copilot-api-error';
-
-type Setter<T> = Dispatch<SetStateAction<T>>;
-type AiWorkoutService = Pick<ReturnType<typeof createAiWorkoutService>, 'generateDraft' | 'approveDraft'>;
-type PainEntryService = Pick<ReturnType<typeof createPainEntryService>, 'getActive'>;
-type ToastFn = (toast: Omit<Toast, 'id'>) => void;
-
-interface UseCopilotSingleWorkoutActionsOptions {
-  open: boolean;
-  autoGenerate: boolean;
-  state: CopilotState;
-  isSubmitting: boolean;
-  clientId: number;
-  clientName: string;
-  editedPlan: WorkoutPlan | null;
-  auditLogId: number | null;
-  overrideReason: string;
-  overrideReasonRequired: boolean;
-  trainerNotes: string;
-  painAcknowledged: boolean;
-  service: AiWorkoutService;
-  painService: PainEntryService;
-  toast: ToastFn;
-  onSuccess?: () => void;
-  setState: Setter<CopilotState>;
-  setEditedPlan: Setter<WorkoutPlan | null>;
-  setExplainability: Setter<Explainability | null>;
-  setSafetyConstraints: Setter<SafetyConstraints | null>;
-  setExerciseRecs: Setter<ExerciseRecommendation[]>;
-  setWarnings: Setter<string[]>;
-  setMissingInputs: Setter<string[]>;
-  setGenerationMode: Setter<string>;
-  setAuditLogId: Setter<number | null>;
-  setOverrideReasonRequired: Setter<boolean>;
-  setDegradedData: Setter<DegradedResponse | null>;
-  setSavedPlanId: Setter<number | null>;
-  setUnmatchedExercises: Setter<Array<{ dayNumber: number; name: string }>>;
-  setValidationWarnings: Setter<ValidationError[]>;
-  setErrorMessage: Setter<string>;
-  setErrorCode: Setter<string>;
-  setApproveErrors: Setter<ValidationError[]>;
-  setActivePainEntries: Setter<PainEntry[]>;
-  setPainAcknowledged: Setter<boolean>;
-  setExpandedDays: Setter<Set<number>>;
-  setIsSubmitting: Setter<boolean>;
-}
+import type { UseCopilotSingleWorkoutActionsOptions } from './useCopilotSingleWorkoutActions.types';
 
 export const useCopilotSingleWorkoutActions = ({
   open,
@@ -83,6 +25,7 @@ export const useCopilotSingleWorkoutActions = ({
   overrideReason,
   overrideReasonRequired,
   trainerNotes,
+  planningReviewAcknowledged,
   painAcknowledged,
   service,
   painService,
@@ -96,6 +39,8 @@ export const useCopilotSingleWorkoutActions = ({
   setWarnings,
   setMissingInputs,
   setGenerationMode,
+  setSwanCoachPlanning,
+  setPlanningReviewAcknowledged,
   setAuditLogId,
   setOverrideReasonRequired,
   setDegradedData,
@@ -133,6 +78,8 @@ export const useCopilotSingleWorkoutActions = ({
         setWarnings(resp.warnings);
         setMissingInputs(resp.missingInputs);
         setGenerationMode(resp.generationMode);
+        setSwanCoachPlanning(resp.swanCoachPlanning);
+        setPlanningReviewAcknowledged(false);
         setAuditLogId(resp.auditLogId);
         if (resp.plan.days.length > 0) {
           setExpandedDays(new Set([0]));
@@ -175,8 +122,10 @@ export const useCopilotSingleWorkoutActions = ({
     setIsSubmitting,
     setMissingInputs,
     setOverrideReasonRequired,
+    setPlanningReviewAcknowledged,
     setSafetyConstraints,
     setState,
+    setSwanCoachPlanning,
     setWarnings,
   ]);
 
@@ -253,6 +202,7 @@ export const useCopilotSingleWorkoutActions = ({
         auditLogId,
         overrideReason: overrideReason.trim() || undefined,
         trainerNotes: trainerNotes.trim() || undefined,
+        planningReviewAcknowledged,
       });
 
       setSavedPlanId(resp.planId);
@@ -296,6 +246,7 @@ export const useCopilotSingleWorkoutActions = ({
     onSuccess,
     overrideReason,
     overrideReasonRequired,
+    planningReviewAcknowledged,
     service,
     setApproveErrors,
     setErrorCode,

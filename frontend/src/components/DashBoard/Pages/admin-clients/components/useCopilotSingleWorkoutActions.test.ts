@@ -3,7 +3,10 @@ import { resolve } from 'node:path';
 
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { ApproveSuccessResponse } from '../../../../../services/aiWorkoutService';
+import type {
+  ApproveSuccessResponse,
+  SwanCoachPlanningFingerprint,
+} from '../../../../../services/aiWorkoutService';
 import type {
   DraftSuccessResponse,
   PainEntry,
@@ -30,9 +33,29 @@ const PLAN: WorkoutPlan = {
   ],
 };
 
+const PLANNING_FINGERPRINT: SwanCoachPlanningFingerprint = {
+  createdBy: 'swan_coach_planning',
+  identityMode: 'client_id_only',
+  horizonWeeks: 4,
+  sessionsPerWeek: 3,
+  primaryGoal: 'strength',
+  nasmPhase: 'hypertrophy',
+  nasmDomainsApplied: ['OPT', 'Corrective Exercise', 'Performance Enhancement'],
+  planInputsUsed: {
+    workoutHistory: true,
+    painInjury: true,
+    movementCompensations: true,
+  },
+  dataCategoriesUsed: ['workout history', 'pain/injury entries', 'movement analysis'],
+  missingDataCategories: ['nutrition/macros'],
+  rules: ['Use Client # only', 'Never deduct or change paid-session balances'],
+};
+
 const DRAFT_RESPONSE: DraftSuccessResponse = {
   success: true,
   draft: true,
+  planningSystem: 'swan_coach_planning',
+  swanCoachPlanning: PLANNING_FINGERPRINT,
   plan: PLAN,
   generationMode: 'ai_full',
   explainability: {
@@ -94,6 +117,8 @@ const createSetters = () => ({
   setWarnings: vi.fn(),
   setMissingInputs: vi.fn(),
   setGenerationMode: vi.fn(),
+  setSwanCoachPlanning: vi.fn(),
+  setPlanningReviewAcknowledged: vi.fn(),
   setAuditLogId: vi.fn(),
   setOverrideReasonRequired: vi.fn(),
   setDegradedData: vi.fn(),
@@ -133,6 +158,7 @@ const createOptions = (overrides = {}) => {
     overrideReason: '  approved override  ',
     overrideReasonRequired: false,
     trainerNotes: '  strong session  ',
+    planningReviewAcknowledged: false,
     painAcknowledged: false,
     service,
     painService,
@@ -173,6 +199,8 @@ describe('useCopilotSingleWorkoutActions', () => {
     expect(setters.setEditedPlan).toHaveBeenCalledWith(PLAN);
     expect(setters.setExplainability).toHaveBeenCalledWith(DRAFT_RESPONSE.explainability);
     expect(setters.setSafetyConstraints).toHaveBeenCalledWith(DRAFT_RESPONSE.safetyConstraints);
+    expect(setters.setSwanCoachPlanning).toHaveBeenCalledWith(PLANNING_FINGERPRINT);
+    expect(setters.setPlanningReviewAcknowledged).toHaveBeenCalledWith(false);
     expect(setters.setExpandedDays).toHaveBeenCalledWith(new Set([0]));
     expect(setters.setState).toHaveBeenCalledWith('draft_review');
   });
@@ -211,6 +239,7 @@ describe('useCopilotSingleWorkoutActions', () => {
       auditLogId: 42,
       overrideReason: 'approved override',
       trainerNotes: 'strong session',
+      planningReviewAcknowledged: false,
     });
     expect(setters.setSavedPlanId).toHaveBeenCalledWith(101);
     expect(setters.setState).toHaveBeenCalledWith('saved');

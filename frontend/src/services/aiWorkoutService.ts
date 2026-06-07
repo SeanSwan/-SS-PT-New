@@ -7,6 +7,10 @@
  * Phase 5B -- Frontend Integration
  */
 
+import type { SwanCoachPlanningFingerprint } from './aiWorkoutPlanningTypes';
+
+export type { SwanCoachPlanningFingerprint } from './aiWorkoutPlanningTypes';
+
 // ── Types (aligned with Phase 5B contract + live backend shapes) ──────────
 
 export interface Exercise {
@@ -116,6 +120,8 @@ export interface TemplateEntry {
 export interface DraftSuccessResponse {
   success: true;
   draft: true;
+  planningSystem: 'swan_coach_planning';
+  swanCoachPlanning: SwanCoachPlanningFingerprint;
   plan: WorkoutPlan;
   generationMode: string;
   explainability: Explainability;
@@ -143,6 +149,8 @@ export interface DegradedResponse {
 export interface LongHorizonDraftResponse {
   success: true;
   draft: true;
+  planningSystem: 'swan_coach_planning';
+  swanCoachPlanning: SwanCoachPlanningFingerprint;
   plan: LongHorizonPlan;
   horizonMonths: 3 | 6 | 12;
   warnings: string[];
@@ -231,6 +239,7 @@ export function createAiWorkoutService(authAxios: any) {
       auditLogId?: number | null;
       overrideReason?: string;
       trainerNotes?: string;
+      planningReviewAcknowledged?: boolean;
     }): Promise<ApproveSuccessResponse> {
       const { data } = await authAxios.post(
         `${BASE}/workout-generation/approve`,
@@ -240,6 +249,7 @@ export function createAiWorkoutService(authAxios: any) {
           auditLogId: params.auditLogId ?? undefined,
           overrideReason: params.overrideReason?.trim() || undefined,
           trainerNotes: params.trainerNotes || undefined,
+          planningReviewAcknowledged: params.planningReviewAcknowledged || undefined,
         },
       );
       return data;
@@ -269,6 +279,7 @@ export function createAiWorkoutService(authAxios: any) {
       auditLogId: number;
       overrideReason?: string;
       trainerNotes?: string;
+      planningReviewAcknowledged?: boolean;
     }): Promise<LongHorizonApproveResponse> {
       const { data } = await authAxios.post(`${BASE}/long-horizon/approve`, {
         userId: params.userId,
@@ -277,6 +288,7 @@ export function createAiWorkoutService(authAxios: any) {
         auditLogId: params.auditLogId,
         overrideReason: params.overrideReason?.trim() || undefined,
         trainerNotes: params.trainerNotes?.trim() || undefined,
+        planningReviewAcknowledged: params.planningReviewAcknowledged || undefined,
       });
       return data;
     },

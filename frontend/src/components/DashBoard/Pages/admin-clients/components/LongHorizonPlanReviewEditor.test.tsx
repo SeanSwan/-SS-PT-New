@@ -1,6 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { LongHorizonPlan, MesocycleBlock } from '../../../../../services/aiWorkoutService';
+import type {
+  LongHorizonPlan,
+  MesocycleBlock,
+  SwanCoachPlanningFingerprint,
+} from '../../../../../services/aiWorkoutService';
 import LongHorizonPlanReviewEditor from './LongHorizonPlanReviewEditor';
 
 const draftPlan: LongHorizonPlan = {
@@ -23,6 +27,29 @@ const draftPlan: LongHorizonPlan = {
   ],
 };
 
+const reviewRequiredPlanning: SwanCoachPlanningFingerprint = {
+  createdBy: 'swan_coach_planning',
+  identityMode: 'client_id_only',
+  horizonWeeks: 24,
+  sessionsPerWeek: 3,
+  primaryGoal: 'strength',
+  nasmPhase: 'strength',
+  nasmDomainsApplied: ['OPT', 'Corrective Exercise', 'Performance Enhancement'],
+  planInputsUsed: {
+    workoutHistory: true,
+    painInjury: true,
+    movementCompensations: false,
+  },
+  dataCategoriesUsed: ['workout history', 'pain/injury entries'],
+  missingDataCategories: ['movement assessment'],
+  rules: ['Never send names to the planning model'],
+  safetyGate: {
+    status: 'review_required',
+    reviewRequiredSignals: ['missing_movement_screen'],
+    missingCriticalData: ['movement assessment'],
+  },
+};
+
 describe('LongHorizonPlanReviewEditor', () => {
   it('keeps review edits, export, and regenerate actions wired', () => {
     const onUpdatePlanField = vi.fn();
@@ -37,6 +64,9 @@ describe('LongHorizonPlanReviewEditor', () => {
         plan={draftPlan}
         warnings={['Progress data is limited.']}
         auditLogId={null}
+        swanCoachPlanning={null}
+        planningReviewAcknowledged={false}
+        setPlanningReviewAcknowledged={vi.fn()}
         trainerNotes="Initial coaching note"
         setTrainerNotes={onSetTrainerNotes}
         expandedBlocks={new Set([0])}
@@ -83,6 +113,9 @@ describe('LongHorizonPlanReviewEditor', () => {
         plan={draftPlan}
         warnings={[]}
         auditLogId={31}
+        swanCoachPlanning={null}
+        planningReviewAcknowledged={false}
+        setPlanningReviewAcknowledged={vi.fn()}
         trainerNotes=""
         setTrainerNotes={vi.fn()}
         expandedBlocks={new Set()}
@@ -101,5 +134,35 @@ describe('LongHorizonPlanReviewEditor', () => {
     expect(screen.queryByLabelText(/phase name/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /block 1/i }));
     expect(onToggleBlock).toHaveBeenCalledWith(0);
+  });
+
+  it('shows Swan Coach planning coverage and records acknowledgement', () => {
+    const setAcknowledged = vi.fn();
+
+    render(
+      <LongHorizonPlanReviewEditor
+        clientName="Sean Swan"
+        plan={draftPlan}
+        warnings={[]}
+        auditLogId={31}
+        swanCoachPlanning={reviewRequiredPlanning}
+        planningReviewAcknowledged={false}
+        setPlanningReviewAcknowledged={setAcknowledged}
+        trainerNotes=""
+        setTrainerNotes={vi.fn()}
+        expandedBlocks={new Set()}
+        onToggleBlock={vi.fn()}
+        onUpdatePlanField={vi.fn()}
+        onUpdateBlock={vi.fn()}
+        onExportPdf={vi.fn()}
+        onRegenerate={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByText('Swan Coach Data Coverage')).toBeInTheDocument();
+    expect(screen.getByText('Coach review required')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /reviewed the swan coach planning signals/i }));
+    expect(setAcknowledged).toHaveBeenCalledWith(true);
   });
 });

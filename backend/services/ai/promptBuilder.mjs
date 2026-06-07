@@ -8,6 +8,8 @@
  * Phase 4A — Template prompt section (structured NASM guidance replaces raw NASM JSON)
  */
 
+import { appendSwanCoachPlanningGuidance } from '../swanCoachPlanningContextService.mjs';
+
 /**
  * System message for workout generation.
  */
@@ -135,7 +137,7 @@ export function buildWorkoutPrompt(deidentifiedPayload, serverConstraints) {
     parts.push(buildGoalProgressSection(goalProgress));
   }
 
-  return parts.join('\n');
+  return appendSwanCoachPlanningGuidance(parts.join('\n'));
 }
 
 /**
@@ -277,6 +279,13 @@ export function buildMeasurementTrendsSection(trends) {
 export function buildPainConstraintsSection(painConstraints) {
   if (!painConstraints || painConstraints.totalActive === 0) return '';
 
+  const severeAreas = Array.isArray(painConstraints.severeAreas) ? painConstraints.severeAreas : [];
+  const moderateAreas = Array.isArray(painConstraints.moderateAreas) ? painConstraints.moderateAreas : [];
+  const mildAreas = Array.isArray(painConstraints.mildAreas) ? painConstraints.mildAreas : [];
+  const posturalSyndromes = Array.isArray(painConstraints.posturalSyndromes)
+    ? painConstraints.posturalSyndromes
+    : [];
+
   const lines = [];
   lines.push('--- Client Pain & Injury Constraints (SAFETY CRITICAL) ---');
   lines.push('Protocol: NASM CES 4-Phase (Inhibit → Lengthen → Activate → Integrate)');
@@ -284,9 +293,9 @@ export function buildPainConstraintsSection(painConstraints) {
   lines.push('');
 
   // Severe areas (7-10): HARD AVOID
-  if (painConstraints.severeAreas.length > 0) {
+  if (severeAreas.length > 0) {
     lines.push('SEVERE INJURIES (7-10/10) — HARD RESTRICTIONS:');
-    for (const entry of painConstraints.severeAreas) {
+    for (const entry of severeAreas) {
       lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
       if (entry.description) {
         lines.push(`    Client reports: "${entry.description}"`);
@@ -307,9 +316,9 @@ export function buildPainConstraintsSection(painConstraints) {
   }
 
   // Moderate areas (4-6): MODIFY
-  if (painConstraints.moderateAreas.length > 0) {
+  if (moderateAreas.length > 0) {
     lines.push('MODERATE PAIN (4-6/10) — MODIFY & REDUCE LOAD:');
-    for (const entry of painConstraints.moderateAreas) {
+    for (const entry of moderateAreas) {
       lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
       if (entry.description) {
         lines.push(`    Client reports: "${entry.description}"`);
@@ -326,9 +335,9 @@ export function buildPainConstraintsSection(painConstraints) {
   }
 
   // Mild areas (1-3): INCLUDE WITH CAUTION
-  if (painConstraints.mildAreas.length > 0) {
+  if (mildAreas.length > 0) {
     lines.push('MILD DISCOMFORT (1-3/10) — INCLUDE WITH CORRECTIVE WARM-UP:');
-    for (const entry of painConstraints.mildAreas) {
+    for (const entry of mildAreas) {
       lines.push(`  • ${formatBodyRegion(entry.bodyRegion)} (${entry.side}): severity ${entry.painLevel}/10, type: ${entry.painType || 'unspecified'}`);
       if (entry.aiNotes) {
         lines.push(`    Trainer guidance: "${entry.aiNotes}"`);
@@ -339,9 +348,9 @@ export function buildPainConstraintsSection(painConstraints) {
   }
 
   // Postural syndromes
-  if (painConstraints.posturalSyndromes.length > 0) {
+  if (posturalSyndromes.length > 0) {
     lines.push('POSTURAL SYNDROMES DETECTED — CES 4-Phase Corrective Strategy:');
-    for (const syndrome of painConstraints.posturalSyndromes) {
+    for (const syndrome of posturalSyndromes) {
       if (syndrome === 'upper_crossed') {
         lines.push('  Upper Crossed Syndrome (UCS):');
         lines.push('    Tight/overactive: upper traps, levator scapulae, pectorals, SCM');

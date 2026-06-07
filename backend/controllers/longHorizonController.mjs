@@ -27,6 +27,8 @@ import { updateMetrics } from '../routes/aiMonitoringRoutes.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
 import { validateLongHorizonApproval } from '../services/ai/longHorizonApprovalValidator.mjs';
 import { stableStringify } from '../services/ai/stableStringify.mjs';
+import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
+import { buildLongHorizonPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 
 // ── Allowed horizons ────────────────────────────────────────────────
 const VALID_HORIZONS = new Set([3, 6, 12]);
@@ -499,6 +501,13 @@ export const generateLongHorizonPlan = async (req, res) => {
     }
 
     const aiPlan = validation.data;
+    const swanCoachPlanning = buildLongHorizonPlanningFingerprint({
+      aiPlan,
+      safePayload,
+      longHorizonContext,
+      nasmConstraints,
+      horizonMonths,
+    });
 
     // ── Step 18: Draft response ─────────────────────────────────
     // Persist validatedPlanHash for 5C-D sourceType comparison
@@ -512,6 +521,7 @@ export const generateLongHorizonPlan = async (req, res) => {
       tokenUsage: {
         ...(providerResult.tokenUsage || {}),
         validatedPlanHash,
+        swanCoachPlanning,
         ...(eligibilityOverride ? { eligibilityOverride } : {}),
       },
       promptVersion: PROMPT_VERSION,
@@ -524,6 +534,8 @@ export const generateLongHorizonPlan = async (req, res) => {
     return res.status(200).json({
       success: true,
       draft: true,
+      planningSystem: 'swan_coach_planning',
+      swanCoachPlanning,
       plan: aiPlan,
       horizonMonths,
       warnings: validation.warnings,
@@ -599,6 +611,7 @@ export const approveLongHorizonPlan = async (req, res) => {
       auditLogId: rawAuditLogId,
       overrideReason,
       trainerNotes,
+      planningReviewAcknowledged,
     } = req.body || {};
 
     const targetUserId = Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : null;
@@ -817,6 +830,22 @@ export const approveLongHorizonPlan = async (req, res) => {
     }
 
     // ── Step 8: Transactional persistence ─────────────────────────
+    const planningApprovalGate = buildSwanCoachPlanningApprovalGate({
+      swanCoachPlanning: validatedAuditLog?.tokenUsage?.swanCoachPlanning,
+      planningReviewAcknowledged,
+      reviewerUserId: requesterId,
+    });
+
+    if (!planningApprovalGate.allowed) {
+      return res.status(planningApprovalGate.error.status).json({
+        success: false,
+        code: planningApprovalGate.error.code,
+        message: planningApprovalGate.error.message,
+        reviewRequiredSignals: planningApprovalGate.error.reviewRequiredSignals,
+        missingCriticalData: planningApprovalGate.error.missingCriticalData,
+      });
+    }
+
     const transaction = await sequelize.transaction();
     let createdPlan;
 
@@ -837,6 +866,9 @@ export const approveLongHorizonPlan = async (req, res) => {
           metadata: {
             warnings: approvalValidation.warnings,
             promptVersion: PROMPT_VERSION,
+            ...(planningApprovalGate.hasSwanCoachPlanning
+              ? { swanCoachPlanningReview: planningApprovalGate.auditRecord }
+              : {}),
             ...(eligibilityOverride ? { eligibilityOverride } : {}),
           },
         },
@@ -884,6 +916,9 @@ export const approveLongHorizonPlan = async (req, res) => {
           trainerNotes: trainerNotes || null,
           validationPassed: true,
           warningsCount: approvalValidation.warnings.length,
+          ...(planningApprovalGate.hasSwanCoachPlanning
+            ? { swanCoachPlanningReview: planningApprovalGate.auditRecord }
+            : {}),
           ...(eligibilityOverride ? { eligibilityOverride } : {}),
         };
         await validatedAuditLog.update({

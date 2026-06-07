@@ -55,6 +55,16 @@ const slugify = (value, fallback) => {
   return slug || fallback;
 };
 
+const flagEnabled = (value) => (
+  ['1', 'true', 'yes', 'local'].includes(String(value || '').trim().toLowerCase())
+);
+
+const allowLocalFallbackAfterR2Failure = () => {
+  const explicit = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+  if (explicit !== undefined && explicit !== '') return flagEnabled(explicit);
+  return process.env.NODE_ENV !== 'production';
+};
+
 async function ensureR2Imports() {
   if (r2Loaded) return;
   r2Loaded = true;
@@ -138,6 +148,10 @@ export async function storeWorkoutPlanPdf({
         updatedAt,
       };
     } catch (error) {
+      if (!allowLocalFallbackAfterR2Failure()) {
+        logger.error('[WorkoutPlanPDF] R2 upload failed and local fallback is disabled: %s', error.message);
+        throw new Error('Workout plan PDF R2 upload failed and local fallback is disabled');
+      }
       logger.error('[WorkoutPlanPDF] R2 upload failed, falling back to local disk: %s', error.message);
     }
   }

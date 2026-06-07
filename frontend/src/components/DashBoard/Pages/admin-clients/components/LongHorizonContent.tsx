@@ -36,6 +36,7 @@ import {
   LongHorizonSavedState,
 } from './LongHorizonStatusScreens';
 import { useLongHorizonWorkflow } from './useLongHorizonWorkflow';
+import { requiresSwanCoachPlanningReview } from './swanCoachPlanningReviewUtils';
 
 interface LongHorizonContentProps {
   clientId: number;
@@ -71,6 +72,10 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
           state={workflow.state}
           isSubmitting={workflow.isSubmitting}
           auditLogId={workflow.auditLogId}
+          approvalDisabled={
+            requiresSwanCoachPlanningReview(workflow.swanCoachPlanning)
+            && !workflow.planningReviewAcknowledged
+          }
           onRegenerate={() => workflow.setState('configure_plan')}
           onApprove={() => {
             void workflow.handleApprove();
@@ -90,6 +95,8 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
     workflow.editedPlan,
     workflow.auditLogId,
     workflow.handleApprove,
+    workflow.planningReviewAcknowledged,
+    workflow.swanCoachPlanning,
     workflow.setState,
     renderFooter,
   ]);
@@ -166,6 +173,9 @@ const LongHorizonContent: React.FC<LongHorizonContentProps> = ({
         clientName={clientName}
         plan={workflow.editedPlan}
         warnings={workflow.warnings}
+        swanCoachPlanning={workflow.swanCoachPlanning}
+        planningReviewAcknowledged={workflow.planningReviewAcknowledged}
+        setPlanningReviewAcknowledged={workflow.setPlanningReviewAcknowledged}
         auditLogId={workflow.auditLogId}
         trainerNotes={workflow.trainerNotes}
         setTrainerNotes={workflow.setTrainerNotes}

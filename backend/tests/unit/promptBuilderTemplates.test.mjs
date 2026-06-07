@@ -157,4 +157,19 @@ describe('buildWorkoutPrompt template integration', () => {
     expect(prompt).toContain('Additional constraints:');
     expect(prompt).toContain('{}');
   });
+
+  it('brands single-workout generation as Swan Coach Planning with SwanStudios context', () => {
+    const prompt = buildWorkoutPrompt(SAMPLE_PAYLOAD, {
+      clientSource: { source: 'move_fitness', isFreeTracking: true },
+      progressContext: { recentSessionCount: 8 },
+      painConstraints: { totalActive: 1 },
+    });
+
+    expect(prompt).toContain('SWAN COACH PLANNING OPERATING MODEL');
+    expect(prompt).toContain('SwanStudios is workout-progress-first');
+    expect(prompt).toContain('Every workout or plan generation button is Swan Coach Planning');
+    expect(prompt).toContain('Apply NASM credential domains');
+    expect(prompt).toContain('Move Fitness/external free-tracking semantics');
+    expect(prompt).toContain('Never deduct or change paid-session balances');
+  });
 });

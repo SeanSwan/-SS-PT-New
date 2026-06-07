@@ -26,14 +26,14 @@
  * │ │  ✨ Generate AI Workout Plan           │                  │
  * │ │  [description text]                    │                  │
  * │ │  [Override Reason (admin only)]        │                  │
- * │ │  [Generate Draft] button               │                  │
+ * │ │  [Swan Coach Draft] button               │                  │
  * │ │  Available NASM Templates:             │                  │
  * │ │  ┌─ template 1 ─┐                     │                  │
  * │ │  ┌─ template 2 ─┐                     │                  │
  * │ └────────────────────────────────────────┘                  │
  * │ Props: { clientName, isAdmin, overrideReasonRequired, ... } │
  * │ CLICK-OUTCOMES:                                             │
- * │ [Generate Draft] → handleGenerate → pain check → generate  │
+ * │ [Swan Coach Draft] → handleGenerate → pain check → generate  │
  * └─────────────────────────────────────────────────────────────┘
  */
 
@@ -106,7 +106,7 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 
     <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
       <Sparkles size={16} />
-      Generate Draft
+      Swan Coach Draft
     </PrimaryButton>
 
     {/* Template catalog (informational -- backend auto-selects from NASM constraints) */}

@@ -539,6 +539,36 @@ describe('buildLongHorizonPrompt', () => {
       'You generate structured multi-month periodization plans as JSON only.',
     );
   });
+
+  it('41b - brands long-horizon generation as Swan Coach Planning with SwanStudios context', () => {
+    const prompt = buildLongHorizonPrompt({
+      deidentifiedPayload: basePayload,
+      horizonMonths: 6,
+      longHorizonContext: {
+        progressSummary: {
+          recentSessionCount: 10,
+          avgSessionsPerWeek: 2.5,
+          volumeTrend: 'stable',
+          rpeTrend: 'stable',
+          adherenceTrend: 'consistent',
+        },
+        adherence: { completedSessions: 10, scheduledSessions: 12, adherenceRate: 0.83, consistencyFlags: ['consistent'] },
+        fatigueTrends: { avgRpe4w: 7, avgRpe8w: 6.8, trend: 'stable' },
+        progressionTrends: { period: '8w', metrics: [] },
+        goalProgress: { primaryGoal: 'muscle_gain', milestones: [] },
+        injuryRestrictions: { active: [], resolved: [] },
+        bodyComposition: { trend: 'stable' },
+      },
+      nasmConstraints: { optPhase: 'strength_endurance' },
+      templateContext: null,
+    });
+
+    expect(prompt).toContain('SWAN COACH PLANNING OPERATING MODEL');
+    expect(prompt).toContain('SwanStudios is workout-progress-first');
+    expect(prompt).toContain('Apply NASM credential domains');
+    expect(prompt).toContain('Plans must support the seven SwanStudios horizons');
+    expect(prompt).toContain('Never deduct or change paid-session balances');
+  });
 });
 
 // ── Controller Export Verification ──────────────────────────────────
@@ -717,6 +747,38 @@ describe('Security: controller structure', () => {
     );
     expect(content).toContain("requestType: 'long_horizon_generation'");
     expect(content).not.toContain("requestType: 'workout_generation'");
+  });
+
+  it('56b - marks draft responses as Swan Coach Planning', async () => {
+    const fs = await import('fs');
+    const content = fs.readFileSync(
+      new URL('../../controllers/longHorizonController.mjs', import.meta.url),
+      'utf-8',
+    );
+
+    expect(content).toContain('buildLongHorizonPlanningFingerprint');
+    expect(content).toContain("planningSystem: 'swan_coach_planning'");
+    expect(content).toContain('swanCoachPlanning');
+  });
+
+  it('56c - passes safe health and safety fields into the planning review gate', async () => {
+    const fs = await import('fs');
+    const controllerContent = fs.readFileSync(
+      new URL('../../controllers/longHorizonController.mjs', import.meta.url),
+      'utf-8',
+    );
+    const fingerprintServiceContent = fs.readFileSync(
+      new URL('../../services/swanCoachPlanningGenerationFingerprintService.mjs', import.meta.url),
+      'utf-8',
+    );
+
+    expect(controllerContent).toContain('buildLongHorizonPlanningFingerprint');
+    expect(controllerContent).toContain('safePayload');
+    expect(fingerprintServiceContent).toContain('safePayload?.safety');
+    expect(fingerprintServiceContent).toContain('safePayload?.healthScreening');
+    expect(fingerprintServiceContent).toContain('safePayload?.healthProfile');
+    expect(fingerprintServiceContent).toContain('criticalDataUnavailable');
+    expect(fingerprintServiceContent).toContain('criticalFailures');
   });
 });
 

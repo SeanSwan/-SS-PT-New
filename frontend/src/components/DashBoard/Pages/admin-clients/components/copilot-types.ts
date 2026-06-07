@@ -30,6 +30,7 @@ export type {
   DegradedResponse,
   Explainability,
   SafetyConstraints,
+  SwanCoachPlanningFingerprint,
   ExerciseRecommendation,
   ValidationError,
   TemplateSuggestion,

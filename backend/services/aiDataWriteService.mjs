@@ -16,6 +16,10 @@
  */
 import logger from '../utils/logger.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
+import {
+  attachGeneratedWorkoutPlanPdf,
+  extractInsertedWorkoutPlanId,
+} from './workoutPlanAiPdfAttachmentService.mjs';
 
 const DURATION_HORIZONS = PLAN_HORIZONS.filter((slot) => slot.key !== 'one_day');
 
@@ -466,7 +470,7 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     metadata: JSON.stringify(metadata),
   };
 
-  await sequelize.query(
+  const insertResult = await sequelize.query(
     `INSERT INTO workout_plans ("userId", trainer_id, title, description,
                                 nasm_phase, start_date, end_date, "durationWeeks",
                                 status, current_week, current_day,
@@ -476,9 +480,23 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
              :nasmPhase, :startDate, :endDate, :durationWeeks,
              'active', 1, 1,
              :planData::jsonb, '[]'::jsonb, :createdBy, :metadata::jsonb,
-             NOW(), NOW())`,
+             NOW(), NOW())
+     RETURNING id`,
     { replacements, type: sequelize.QueryTypes.INSERT }
   );
+
+  await attachGeneratedWorkoutPlanPdf({
+    sequelize,
+    planId: extractInsertedWorkoutPlanId(insertResult),
+    clientId,
+    trainerId,
+    title,
+    description,
+    durationWeeks,
+    nasmPhase,
+    planData,
+    metadata,
+  });
 
   logger.info('[AIDataWrite] Workout plan created for client %d by trainer %d: %s (%d weeks, phase %s)',
     clientId, trainerId, title, durationWeeks, nasmPhase || 'unset');
