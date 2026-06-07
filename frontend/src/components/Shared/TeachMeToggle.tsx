@@ -61,8 +61,7 @@ const ToggleBtn = styled.button<{ $active: boolean }>`
   }
 `;
 
-const Panel = styled.div<{ $open: boolean }>`
-  display: ${({ $open }) => $open ? 'block' : 'none'};
+const Panel = styled.div`
   margin-top: 8px;
   padding: 16px;
   border-radius: 12px;
@@ -203,32 +202,34 @@ const TeachMeToggle: React.FC<TeachMeToggleProps> = ({
         {isFirstTime && !open && <FirstTimeBadge>New</FirstTimeBadge>}
       </ToggleBtn>
 
-      <Panel $open={open}>
-        <PanelHeader>
-          <PanelTitle>
-            <HelpCircle size={16} />
-            {title}
-          </PanelTitle>
-          <CloseBtn onClick={close} aria-label="Close teach me panel">
-            <X size={14} />
-          </CloseBtn>
-        </PanelHeader>
+      {open && (
+        <Panel>
+          <PanelHeader>
+            <PanelTitle>
+              <HelpCircle size={16} />
+              {title}
+            </PanelTitle>
+            <CloseBtn onClick={close} aria-label="Close teach me panel">
+              <X size={14} />
+            </CloseBtn>
+          </PanelHeader>
 
-        <PanelContent>
-          {typeof content === 'string' ? (
-            <div>{content}</div>
-          ) : (
-            content
+          <PanelContent>
+            {typeof content === 'string' ? (
+              <div>{content}</div>
+            ) : (
+              content
+            )}
+          </PanelContent>
+
+          {onAskAI && (
+            <AskAIBtn onClick={onAskAI}>
+              <MessageCircle size={14} />
+              Ask Swan Coach for help
+            </AskAIBtn>
           )}
-        </PanelContent>
-
-        {onAskAI && (
-          <AskAIBtn onClick={onAskAI}>
-            <MessageCircle size={14} />
-            Ask Swan Coach for help
-          </AskAIBtn>
-        )}
-      </Panel>
+        </Panel>
+      )}
     </>
   );
 };

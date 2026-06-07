@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, Layers3, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
+import ClientWorkoutPlansTeachMe from './ClientWorkoutPlansTeachMe';
 import ClientWorkoutPlanPdfDialog, { type ClientPlanPdfViewerState } from './ClientWorkoutPlanPdfDialog';
 import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
 import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
@@ -191,6 +192,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
           <RefreshCw size={15} /> Refresh
         </RefreshButton>
       </Header>
+      <ClientWorkoutPlansTeachMe />
 
       {loading ? (
         <StateCard role="status">Loading saved plans...</StateCard>
