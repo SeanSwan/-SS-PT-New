@@ -49,6 +49,7 @@ import {
 } from './workoutHistorySharing';
 import WorkoutHistoryPanelHeader, { type WorkoutHistoryPanelTab } from './WorkoutHistoryPanelHeader';
 import WorkoutHistorySessionCard from './WorkoutHistorySessionCard';
+import WorkoutHistoryExerciseLedgerTab from './WorkoutHistoryExerciseLedgerTab';
 import {
   EmbeddedHeader,
   EmptyState,
@@ -260,6 +261,10 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
           <Suspense fallback={<CenterContent><Spinner /><LoadingText>Loading charts...</LoadingText></CenterContent>}>
             <AdminProgressChartsGrid clientId={clientId} clientName={clientName} />
           </Suspense>
+        )}
+
+        {!isLoading && !error && activeTab === 'exercises' && data && (
+          <WorkoutHistoryExerciseLedgerTab sessions={data.sessions} />
         )}
 
         {/* PRs TAB */}

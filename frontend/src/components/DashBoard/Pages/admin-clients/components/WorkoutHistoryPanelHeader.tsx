@@ -5,13 +5,13 @@
  * canonical workout-history panel. Fetching and save behavior stay in parent.
  */
 import React from 'react';
-import { Activity, BarChart3, Dumbbell, Flame, Target, Trophy } from 'lucide-react';
+import { Activity, BarChart3, Dumbbell, Flame, ListChecks, Target, Trophy } from 'lucide-react';
 
 import type { AnalyticsData } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { formatWorkoutHistoryVolume } from './workoutHistoryFormatters';
 import { StatChip, SummaryBar, Tab, TabBar } from './WorkoutHistoryPanel.layoutStyles';
 
-export type WorkoutHistoryPanelTab = 'history' | 'charts' | 'prs';
+export type WorkoutHistoryPanelTab = 'history' | 'charts' | 'exercises' | 'prs';
 
 interface WorkoutHistoryPanelHeaderProps {
   data: AnalyticsData | null;
@@ -26,6 +26,7 @@ const tabs: Array<{
 }> = [
   { id: 'history', label: 'History', icon: <Dumbbell size={16} /> },
   { id: 'charts', label: 'Charts', icon: <BarChart3 size={16} /> },
+  { id: 'exercises', label: 'Exercises', icon: <ListChecks size={16} /> },
   { id: 'prs', label: 'PRs', icon: <Trophy size={16} /> },
 ];
 

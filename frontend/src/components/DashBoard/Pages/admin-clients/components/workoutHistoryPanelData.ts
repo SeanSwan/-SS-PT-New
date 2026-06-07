@@ -22,6 +22,16 @@ export interface GroupedWorkoutSet {
 
 export type GroupedWorkoutLogs = Array<[string, { sets: GroupedWorkoutSet[] }]>;
 
+export interface ExerciseLedgerRow {
+  exerciseName: string;
+  sessionCount: number;
+  setCount: number;
+  totalReps: number;
+  totalVolume: number;
+  maxWeight: number;
+  lastDate: string;
+}
+
 export function sortPersonalRecords(records: PersonalRecord[]): PersonalRecord[] {
   return [...records].sort((a, b) =>
     b.weight - a.weight ||
@@ -54,4 +64,56 @@ export function groupSessionLogs(session: Pick<WorkoutSession, 'logs'>): Grouped
   }
 
   return Object.entries(groups);
+}
+
+export function buildExerciseLedger(sessions: WorkoutSession[]): ExerciseLedgerRow[] {
+  const rows = new Map<string, {
+    sessionIds: Set<string>;
+    setCount: number;
+    totalReps: number;
+    totalVolume: number;
+    maxWeight: number;
+    lastDate: string;
+  }>();
+
+  for (const session of sessions) {
+    for (const log of session.logs) {
+      const exerciseName = log.exerciseName?.trim();
+      if (!exerciseName) continue;
+
+      const existing = rows.get(exerciseName) || {
+        sessionIds: new Set<string>(),
+        setCount: 0,
+        totalReps: 0,
+        totalVolume: 0,
+        maxWeight: 0,
+        lastDate: '',
+      };
+      existing.sessionIds.add(session.id);
+      existing.setCount += 1;
+      existing.totalReps += Number(log.reps) || 0;
+      existing.totalVolume += (Number(log.weight) || 0) * (Number(log.reps) || 0);
+      existing.maxWeight = Math.max(existing.maxWeight, Number(log.weight) || 0);
+      if (!existing.lastDate || new Date(session.date).getTime() > new Date(existing.lastDate).getTime()) {
+        existing.lastDate = session.date;
+      }
+      rows.set(exerciseName, existing);
+    }
+  }
+
+  return Array.from(rows.entries())
+    .map(([exerciseName, row]) => ({
+      exerciseName,
+      sessionCount: row.sessionIds.size,
+      setCount: row.setCount,
+      totalReps: row.totalReps,
+      totalVolume: row.totalVolume,
+      maxWeight: row.maxWeight,
+      lastDate: row.lastDate,
+    }))
+    .sort((a, b) =>
+      b.sessionCount - a.sessionCount ||
+      b.setCount - a.setCount ||
+      b.totalVolume - a.totalVolume ||
+      a.exerciseName.localeCompare(b.exerciseName));
 }

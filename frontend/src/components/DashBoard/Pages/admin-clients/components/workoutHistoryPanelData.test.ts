@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildExerciseLedger,
   getPersonalRecordKey,
   groupSessionLogs,
   sortPersonalRecords,
@@ -56,5 +57,43 @@ describe('workoutHistoryPanelData', () => {
         ],
       }],
     ]);
+  });
+
+  it('builds a complete exercise ledger from real logged sets without top-N truncation', () => {
+    const result = buildExerciseLedger([
+      {
+        id: 'session-1',
+        date: '2026-05-02',
+        logs: [
+          { id: 1, exerciseName: 'Pull Up', setNumber: 1, reps: 5, weight: 0 },
+          { id: 2, exerciseName: 'Pull Up', setNumber: 2, reps: 4, weight: 0 },
+          { id: 3, exerciseName: 'Squat', setNumber: 1, reps: 8, weight: 135 },
+        ],
+      },
+      {
+        id: 'session-2',
+        date: '2026-05-01',
+        logs: [
+          { id: 4, exerciseName: 'Squat', setNumber: 1, reps: 6, weight: 155 },
+          { id: 5, exerciseName: 'Walkout Pushup', setNumber: 1, reps: 10, weight: 0 },
+        ],
+      },
+    ] as any);
+
+    expect(result.map(row => row.exerciseName)).toEqual([
+      'Squat',
+      'Pull Up',
+      'Walkout Pushup',
+    ]);
+    expect(result[0]).toMatchObject({
+      exerciseName: 'Squat',
+      sessionCount: 2,
+      setCount: 2,
+      totalReps: 14,
+      totalVolume: 2010,
+      maxWeight: 155,
+      lastDate: '2026-05-02',
+    });
+    expect(result).toHaveLength(3);
   });
 });
