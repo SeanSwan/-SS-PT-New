@@ -2738,8 +2738,7 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/attendance:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error recording attendance',
-      error: error.message
+      message: 'Server error recording attendance'
     });
   }
 });
@@ -2800,8 +2799,7 @@ router.post("/:id/feedback", protect, async (req, res) => {
     logger.error(`Error in POST /api/sessions/${req.params.id}/feedback:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error submitting feedback',
-      error: error.message
+      message: 'Server error submitting feedback'
     });
   }
 });
@@ -2854,8 +2852,7 @@ router.get("/:id/cancel-warning", protect, async (req, res) => {
     logger.error(`Error in GET /api/sessions/${req.params.id}/cancel-warning:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error checking cancellation policy',
-      error: error.message
+      message: 'Server error checking cancellation policy'
     });
   }
 });
@@ -2900,8 +2897,7 @@ router.get("/:id/client-package-price", protect, trainerOrAdminOnly, async (req,
     logger.error(`Error in GET /api/sessions/${req.params.id}/client-package-price:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching package price',
-      error: error.message
+      message: 'Server error fetching package price'
     });
   }
 });
