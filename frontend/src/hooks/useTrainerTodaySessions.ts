@@ -91,6 +91,7 @@ export function buildTrainerSessionLogRoute(
     clientId,
     source: 'master-schedule',
     returnTo,
+    loadPlan: 'today',
   });
   params.set('sessionId', sessionId);
 

@@ -50,5 +50,6 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
     expect(url.searchParams.get('sessionDate')).toBe('2026-05-31T16:00:00.000Z');
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
+    expect(url.searchParams.get('loadPlan')).toBe('today');
   });
 });
