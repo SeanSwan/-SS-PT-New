@@ -1428,8 +1428,7 @@ router.get("/users/trainers", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/users/trainers:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching trainers',
-      error: error.message
+      message: 'Server error fetching trainers'
     });
   }
 });
@@ -1455,8 +1454,7 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching clients',
-      error: error.message
+      message: 'Server error fetching clients'
     });
   }
 });

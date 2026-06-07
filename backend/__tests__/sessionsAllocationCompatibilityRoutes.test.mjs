@@ -15,6 +15,8 @@ const {
   findAlternatives,
   getAllSessions,
   getScheduleStats,
+  getTrainers,
+  getClients,
   userIncrement,
   userReload,
   sessionCount,
@@ -24,6 +26,8 @@ const {
   findAlternatives: vi.fn(),
   getAllSessions: vi.fn(),
   getScheduleStats: vi.fn(),
+  getTrainers: vi.fn(),
+  getClients: vi.fn(),
   userIncrement: vi.fn(),
   userReload: vi.fn(),
   sessionCount: vi.fn(),
@@ -57,8 +61,8 @@ vi.mock('../services/sessions/session.service.mjs', () => ({
     getScheduleStats,
     checkConflicts: vi.fn(),
     allocateSessionsFromOrder: vi.fn(),
-    getTrainers: vi.fn(),
-    getClients: vi.fn(),
+    getTrainers,
+    getClients,
     healthCheck: vi.fn(),
   },
 }));
@@ -102,6 +106,8 @@ describe('mounted sessions allocation compatibility routes', () => {
     findAlternatives.mockReset();
     getAllSessions.mockReset();
     getScheduleStats.mockReset();
+    getTrainers.mockReset();
+    getClients.mockReset();
     userIncrement.mockReset();
     userReload.mockReset();
     sessionCount.mockReset();
@@ -155,6 +161,36 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error checking conflicts',
     });
     expect(JSON.stringify(response.body)).not.toContain('private conflict engine');
+  });
+
+  it('GET /api/sessions/users/trainers does not disclose internal dropdown errors', async () => {
+    unifiedSessionService.getTrainers.mockRejectedValueOnce(
+      new Error('private trainer directory host detail')
+    );
+
+    const response = await request(app).get('/api/sessions/users/trainers');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching trainers',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private trainer directory');
+  });
+
+  it('GET /api/sessions/users/clients does not disclose internal dropdown errors', async () => {
+    unifiedSessionService.getClients.mockRejectedValueOnce(
+      new Error('private client directory schema detail')
+    );
+
+    const response = await request(app).get('/api/sessions/users/clients');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching clients',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private client directory');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {
