@@ -20,6 +20,7 @@ import {
   runWorkoutBuilderGeneration,
   type WorkoutBuilderMode,
 } from './WorkoutBuilderPage.logic';
+import { buildWorkoutBuilderPlanSavePayload } from './WorkoutBuilderSavePlan.logic';
 import { PageWrapper, Subtitle, ThreePane, Title, TopBar } from './WorkoutBuilderPage.styles';
 
 const WorkoutBuilderPage: React.FC = () => {
@@ -40,7 +41,9 @@ const WorkoutBuilderPage: React.FC = () => {
   const [workout, setWorkout] = useState<GeneratedWorkout | null>(null);
   const [plan, setPlan] = useState<GeneratedPlan | null>(null);
   const [loading, setLoading] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [mode, setMode] = useState<WorkoutBuilderMode>('workout');
 
   const [planWeeks, setPlanWeeks] = useState('12');
@@ -66,6 +69,7 @@ const WorkoutBuilderPage: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setSaveStatus(null);
     setWorkout(null);
     setPlan(null);
 
@@ -101,6 +105,26 @@ const WorkoutBuilderPage: React.FC = () => {
     sessionsPerWeek,
     primaryGoal,
   ]);
+
+  const handleSaveGeneratedPlan = useCallback(async () => {
+    if (!plan) return;
+    setSavingPlan(true);
+    setSaveStatus(null);
+    try {
+      const savedPlan = await api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan));
+      setSaveStatus({
+        type: 'success',
+        text: `Saved ${savedPlan.title || 'plan'} to the client plan vault.`,
+      });
+    } catch (err) {
+      setSaveStatus({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Failed to save plan.',
+      });
+    } finally {
+      setSavingPlan(false);
+    }
+  }, [api, plan]);
 
   return (
     <PageWrapper>
@@ -140,6 +164,11 @@ const WorkoutBuilderPage: React.FC = () => {
           error={error}
           workout={workout}
           plan={plan}
+          planSave={{
+            saving: savingPlan,
+            status: saveStatus,
+            onSave: handleSaveGeneratedPlan,
+          }}
           onGenerate={handleGenerate}
         />
 

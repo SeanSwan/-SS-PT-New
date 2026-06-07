@@ -8,6 +8,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { ClientContext, GeneratedPlan, GeneratedWorkout } from '../../hooks/useWorkoutBuilderAPI';
 import { CATEGORIES } from './WorkoutBuilderPage.constants';
 import type { WorkoutBuilderMode } from './WorkoutBuilderPage.logic';
+import type { WorkoutBuilderPlanSaveState } from './WorkoutBuilderResults';
 import {
   CompactConfigField,
   ConfigField,
@@ -49,6 +50,7 @@ interface WorkoutBuilderControlsPanelProps {
   error: string | null;
   workout: GeneratedWorkout | null;
   plan: GeneratedPlan | null;
+  planSave: WorkoutBuilderPlanSaveState;
   onGenerate: () => void;
 }
 
@@ -233,6 +235,7 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
   error,
   workout,
   plan,
+  planSave,
   onGenerate,
 }) => (
   <Panel>
@@ -280,7 +283,7 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
 
     <GenerationErrorBanner error={error} />
 
-    <WorkoutBuilderResults workout={workout} plan={plan} />
+    <WorkoutBuilderResults workout={workout} plan={plan} planSave={planSave} />
   </Panel>
 );
 

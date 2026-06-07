@@ -13,6 +13,7 @@ const resultPath = 'src/components/WorkoutBuilder/WorkoutBuilderResults.tsx';
 const insightsPath = 'src/components/WorkoutBuilder/WorkoutBuilderInsightsPanel.tsx';
 const boundaryPath = 'src/components/WorkoutBuilder/WorkoutBuilderErrorBoundary.tsx';
 const constantsPath = 'src/components/WorkoutBuilder/WorkoutBuilderPage.constants.ts';
+const saveLogicPath = 'src/components/WorkoutBuilder/WorkoutBuilderSavePlan.logic.ts';
 
 describe('WorkoutBuilderPage composition contract', () => {
   it('keeps the active page thin by extracting result, insight, and boundary sections', () => {
@@ -23,11 +24,12 @@ describe('WorkoutBuilderPage composition contract', () => {
     expect(pageSource).toContain("from './WorkoutBuilderErrorBoundary'");
     expect(controlsSource).toContain("from './WorkoutBuilderResults'");
     expect(controlsSource).toContain("from './WorkoutBuilderPage.constants'");
+    expect(pageSource).toContain("from './WorkoutBuilderSavePlan.logic'");
     expect(lineCount(pageSource)).toBeLessThanOrEqual(300);
   });
 
   it('keeps each extracted Workout Builder module under the file cap', () => {
-    for (const path of [contextPath, controlsPath, resultPath, insightsPath, boundaryPath, constantsPath]) {
+    for (const path of [contextPath, controlsPath, resultPath, insightsPath, boundaryPath, constantsPath, saveLogicPath]) {
       expect(existsSync(resolve(process.cwd(), path))).toBe(true);
       expect(lineCount(read(path))).toBeLessThanOrEqual(300);
     }
@@ -40,6 +42,7 @@ describe('WorkoutBuilderPage composition contract', () => {
     const resultSource = existsSync(resolve(process.cwd(), resultPath)) ? read(resultPath) : '';
     const insightsSource = existsSync(resolve(process.cwd(), insightsPath)) ? read(insightsPath) : '';
     const boundarySource = existsSync(resolve(process.cwd(), boundaryPath)) ? read(boundaryPath) : '';
+    const saveLogicSource = existsSync(resolve(process.cwd(), saveLogicPath)) ? read(saveLogicPath) : '';
     const combined = [
       pageSource,
       stylesSource,
@@ -48,6 +51,7 @@ describe('WorkoutBuilderPage composition contract', () => {
       resultSource,
       insightsSource,
       boundarySource,
+      saveLogicSource,
     ].join('\n');
     const runtimeModules = [
       pageSource,
@@ -60,6 +64,21 @@ describe('WorkoutBuilderPage composition contract', () => {
     expect(combined).not.toMatch(/rgba\(/);
     expect(combined).not.toMatch(/#[0-9A-Fa-f]{3,8}/);
     expect(runtimeModules).not.toMatch(/import\s+styled/);
+  });
+
+  it('wires generated plans to a visible save action instead of render-only output', () => {
+    const resultSource = read(resultPath);
+    const controlsSource = read(controlsPath);
+
+    expect(pageSource).toContain('handleSaveGeneratedPlan');
+    expect(pageSource).toContain('api.saveGeneratedPlan(buildWorkoutBuilderPlanSavePayload(plan))');
+    expect(pageSource).toContain('planSave={{');
+    expect(controlsSource).toContain('planSave: WorkoutBuilderPlanSaveState');
+    expect(controlsSource).toContain('planSave={planSave}');
+    expect(resultSource).toContain('Save Plan to Client Vault');
+    expect(resultSource).toContain('Plan Saved');
+    expect(resultSource).toContain('disabled={planSave.saving || alreadySaved}');
+    expect(resultSource).toContain('WorkoutBuilderPlanSaveAction');
   });
 
   it('does not key generated Workout Builder insight rows by array index', () => {

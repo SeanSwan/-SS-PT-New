@@ -11,6 +11,8 @@ import type {
   ClientContext,
   GeneratedPlan,
   GeneratedWorkout,
+  SavedWorkoutPlan,
+  WorkoutBuilderPlanSavePayload,
 } from './useWorkoutBuilderAPI.types';
 
 export type {
@@ -24,7 +26,9 @@ export type {
   Mesocycle,
   PainExclusion,
   PainWarning,
+  SavedWorkoutPlan,
   WarmupExercise,
+  WorkoutBuilderPlanSavePayload,
   WorkoutExercise,
 } from './useWorkoutBuilderAPI.types';
 
@@ -115,10 +119,21 @@ export function useWorkoutBuilderAPI() {
     return data.plan;
   }, []);
 
+  const saveGeneratedPlan = useCallback(async (
+    payload: WorkoutBuilderPlanSavePayload,
+  ): Promise<SavedWorkoutPlan> => {
+    const data = await apiFetch<{ success: boolean; plan: SavedWorkoutPlan }>(
+      '/api/workout-plans',
+      { method: 'POST', body: JSON.stringify(payload) }
+    );
+    return data.plan;
+  }, []);
+
   return useMemo(() => ({
     getClientContext,
     getAdminOverview,
     generateWorkout,
     generatePlan,
-  }), [getClientContext, getAdminOverview, generateWorkout, generatePlan]);
+    saveGeneratedPlan,
+  }), [getClientContext, getAdminOverview, generateWorkout, generatePlan, saveGeneratedPlan]);
 }

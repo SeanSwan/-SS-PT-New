@@ -17,13 +17,22 @@ import {
   MuscleTags,
   ParamChip,
   PhaseName,
+  PrimaryButton,
   SectionDivider,
+  ErrorBanner,
   SuccessBanner,
 } from './WorkoutBuilderPage.styles';
+
+export interface WorkoutBuilderPlanSaveState {
+  saving: boolean;
+  status: { type: 'success' | 'error'; text: string } | null;
+  onSave: () => void;
+}
 
 interface WorkoutBuilderResultsProps {
   workout: GeneratedWorkout | null;
   plan: GeneratedPlan | null;
+  planSave?: WorkoutBuilderPlanSaveState;
 }
 
 type WorkoutBuilderWarmupRow = GeneratedWorkout['warmup'][number];
@@ -52,7 +61,27 @@ const workoutBuilderCooldownKey = (exercise: WorkoutBuilderCooldownRow): string 
 const workoutBuilderRecommendationKey = (recommendation: string): string =>
   `recommendation|${recommendation}`;
 
-const WorkoutBuilderResults: React.FC<WorkoutBuilderResultsProps> = ({ workout, plan }) => (
+const WorkoutBuilderPlanSaveAction: React.FC<{ planSave?: WorkoutBuilderPlanSaveState }> = ({ planSave }) => {
+  if (!planSave) return null;
+
+  const alreadySaved = planSave.status?.type === 'success';
+
+  return (
+    <>
+      <PrimaryButton onClick={planSave.onSave} disabled={planSave.saving || alreadySaved}>
+        {planSave.saving ? 'Saving Plan...' : alreadySaved ? 'Plan Saved' : 'Save Plan to Client Vault'}
+      </PrimaryButton>
+      {planSave.status?.type === 'success' && (
+        <SuccessBanner $bottom={12}>{planSave.status.text}</SuccessBanner>
+      )}
+      {planSave.status?.type === 'error' && (
+        <ErrorBanner $top={12}>{planSave.status.text}</ErrorBanner>
+      )}
+    </>
+  );
+};
+
+const WorkoutBuilderResults: React.FC<WorkoutBuilderResultsProps> = ({ workout, plan, planSave }) => (
   <>
     <AnimatePresence>
       {workout && (
@@ -124,6 +153,7 @@ const WorkoutBuilderResults: React.FC<WorkoutBuilderResultsProps> = ({ workout, 
           <SuccessBanner $bottom={12}>
             {plan.recommendations.length} AI recommendations applied
           </SuccessBanner>
+          <WorkoutBuilderPlanSaveAction planSave={planSave} />
           {plan.mesocycles.map(mc => (
             <ExerciseCard key={mc.mesocycle}>
               <ExerciseHeader>

@@ -156,6 +156,52 @@ export interface Mesocycle {
   deloadWeek: number | null;
 }
 
+export interface WorkoutBuilderPlanExercise {
+  exerciseId?: string | number;
+  exerciseName?: string;
+  sets?: string | number;
+  reps?: string | number;
+  targetReps?: string | number;
+  tempo?: string;
+  rest?: string;
+  restPeriod?: string | number;
+  [key: string]: unknown;
+}
+
+export interface WorkoutBuilderPlanDay {
+  dayNumber?: number;
+  dayName?: string;
+  name?: string;
+  focus?: string;
+  category?: string;
+  exercises?: WorkoutBuilderPlanExercise[];
+  [key: string]: unknown;
+}
+
+export interface WorkoutBuilderPlanWeek {
+  weekNumber: number;
+  focus?: string;
+  mesocycle?: number;
+  nasmPhase?: number;
+  days?: WorkoutBuilderPlanDay[];
+  sessions?: WorkoutBuilderPlanDay[];
+  [key: string]: unknown;
+}
+
+export interface WorkoutBuilderRecommendationDetail {
+  type: string;
+  text: string;
+  sourceCitation?: string;
+  [key: string]: unknown;
+}
+
+export interface WorkoutBuilderEquipmentContext {
+  profileId: number | null;
+  availableEquipment: string[];
+  resistanceTypes: string[];
+  [key: string]: unknown;
+}
+
 export interface GeneratedPlan {
   clientId: number;
   trainerId: number;
@@ -173,9 +219,43 @@ export interface GeneratedPlan {
   };
   mesocycles: Mesocycle[];
   weeklySchedule: { dayNumber: number; focus: string; category: string }[];
+  weeks?: WorkoutBuilderPlanWeek[];
   constraints: ClientContext['constraints'];
   compensations: { type: string; trend: string }[];
   recommendations: string[];
+  recommendationDetails?: WorkoutBuilderRecommendationDetail[];
+  rationale?: string[];
+  equipmentContext?: WorkoutBuilderEquipmentContext | null;
+}
+
+export interface WorkoutBuilderPlanSavePayload {
+  userId: number;
+  title: string;
+  description: string;
+  nasmPhase: number | null;
+  durationWeeks: number;
+  status: 'draft';
+  planData: Record<string, unknown>;
+  createdBy: 'ai';
+  metadata: {
+    source: 'workout_builder';
+    planningSystem: 'swan_coach_planning';
+    swanCoachPlanning: SwanCoachPlanningFingerprint;
+    primaryGoal: string;
+    sessionsPerWeek: number;
+    totalSessions: number;
+    equipmentProfileId: number | null;
+    generatedAt: string;
+  };
+}
+
+export interface SavedWorkoutPlan {
+  id?: string | number;
+  title?: string;
+  status?: string;
+  planData?: unknown;
+  metadata?: unknown;
+  [key: string]: unknown;
 }
 
 export interface AdminOverview {

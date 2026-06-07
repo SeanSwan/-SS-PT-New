@@ -16,8 +16,10 @@ describe('WorkoutBuilderPage client deep-link contract', () => {
     expect(pageSource).toContain("searchParams.get('clientId')");
     expect(pageSource).toContain('parsePositiveClientId,');
     expect(pageSource).toContain('runWorkoutBuilderGeneration,');
+    expect(pageSource).toContain('buildWorkoutBuilderPlanSavePayload');
     expect(pageSource).toContain('parsePositiveClientId(searchParams.get');
     expect(pageSource).toContain('runWorkoutBuilderGeneration({');
+    expect(pageSource).toContain('api.saveGeneratedPlan');
     expect(logicSource).toContain('export const parsePositiveClientId');
     expect(logicSource).toContain('export const runWorkoutBuilderGeneration');
     expect(logicSource).toContain("/^[1-9]\\d*$/.test(rawClientId)");
