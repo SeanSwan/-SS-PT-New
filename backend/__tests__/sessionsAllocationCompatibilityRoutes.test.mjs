@@ -11,6 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   findUserByPk,
+  checkConflicts,
+  findAlternatives,
   getAllSessions,
   getScheduleStats,
   userIncrement,
@@ -18,6 +20,8 @@ const {
   sessionCount,
 } = vi.hoisted(() => ({
   findUserByPk: vi.fn(),
+  checkConflicts: vi.fn(),
+  findAlternatives: vi.fn(),
   getAllSessions: vi.fn(),
   getScheduleStats: vi.fn(),
   userIncrement: vi.fn(),
@@ -60,7 +64,10 @@ vi.mock('../services/sessions/session.service.mjs', () => ({
 }));
 
 vi.mock('../services/conflictService.mjs', () => ({
-  default: {},
+  default: {
+    checkConflicts,
+    findAlternatives,
+  },
 }));
 
 vi.mock('../services/TrainerAssignmentService.mjs', () => ({
@@ -91,6 +98,8 @@ app.use('/api/sessions', sessionsRouter);
 describe('mounted sessions allocation compatibility routes', () => {
   beforeEach(() => {
     findUserByPk.mockReset();
+    checkConflicts.mockReset();
+    findAlternatives.mockReset();
     getAllSessions.mockReset();
     getScheduleStats.mockReset();
     userIncrement.mockReset();
@@ -126,6 +135,26 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error fetching statistics',
     });
     expect(JSON.stringify(response.body)).not.toContain('private schedule');
+  });
+
+  it('POST /api/sessions/check-conflicts does not disclose internal conflict errors', async () => {
+    checkConflicts.mockRejectedValueOnce(new Error('private conflict engine host detail'));
+
+    const response = await request(app)
+      .post('/api/sessions/check-conflicts')
+      .send({
+        startTime: '2026-06-07T14:00:00.000Z',
+        endTime: '2026-06-07T15:00:00.000Z',
+        trainerId: 7,
+        clientId: 42,
+      });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error checking conflicts',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private conflict engine');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {

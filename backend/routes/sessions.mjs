@@ -208,8 +208,7 @@ router.post("/check-conflicts", protect, trainerOrAdminOnly, async (req, res) =>
     logger.error('Error in POST /api/sessions/check-conflicts:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error checking conflicts',
-      error: error.message
+      message: 'Server error checking conflicts'
     });
   }
 });
