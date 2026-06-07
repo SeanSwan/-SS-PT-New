@@ -1863,8 +1863,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error creating sessions',
-      error: error.message
+      message: 'Server error creating sessions'
     });
   }
 });
@@ -1903,8 +1902,7 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
     
     return res.status(500).json({
       success: false,
-      message: 'Server error creating recurring sessions',
-      error: responseMessage || 'Unknown error'
+      message: 'Server error creating recurring sessions'
     });
   }
 });
