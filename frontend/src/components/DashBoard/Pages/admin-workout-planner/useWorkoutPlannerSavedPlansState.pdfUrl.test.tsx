@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
+import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 
 const makeHookInput = (authAxios: any) => ({
   authAxios,
@@ -13,6 +14,10 @@ const makeHookInput = (authAxios: any) => ({
   resetLoadedPlanState: vi.fn(),
   setStatusMsg: vi.fn(),
   setConfirmRequest: vi.fn(),
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
@@ -107,5 +112,48 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
       type: 'success',
       text: 'Nine Month Arc is now the primary training arc.',
     });
+  });
+
+  it('opens protected saved-plan PDFs through the authenticated blob proxy', async () => {
+    const createObjectURL = vi.fn(() => 'blob:planner-plan-pdf');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+
+    const authAxios = {
+      get: vi.fn((url: string) => {
+        if (url === '/api/workout-plans/protected-plan/pdf/content.pdf') {
+          return Promise.resolve({ data: new Blob(['%PDF-1.4'], { type: 'application/pdf' }) });
+        }
+        return Promise.resolve({ data: { success: true, plans: [] } });
+      }),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const plan: SavedPlanSummary = {
+      id: 'protected-plan',
+      name: 'Protected Six Month Arc',
+      status: 'active',
+      createdAt: '2026-06-07T12:00:00.000Z',
+      goal: 'strength',
+      pdfFile: {
+        url: '/api/workout-plans/protected-plan/pdf/content.pdf',
+        fileName: 'Protected Six Month Arc.pdf',
+        contentType: 'application/pdf',
+      },
+    };
+
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    await act(async () => {
+      await result.current.handlePlanPdfView(plan);
+    });
+
+    expect(authAxios.get).toHaveBeenCalledWith(
+      '/api/workout-plans/protected-plan/pdf/content.pdf',
+      { responseType: 'blob' },
+    );
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(result.current.pdfDialogPlan?.pdfFile?.url).toBe('blob:planner-plan-pdf');
   });
 });

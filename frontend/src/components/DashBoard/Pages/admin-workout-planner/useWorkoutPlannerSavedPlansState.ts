@@ -13,6 +13,10 @@ import type { WorkoutPlannerConfirmRequest } from './WorkoutPlannerConfirmDialog
 import type { SavedPlanSummary } from './WorkoutPlannerSavedPlansSection';
 import type { WorkoutPlanPdfDialogMode } from './WorkoutPlanPdfDialog';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
+import {
+  createProtectedPlanPdfObjectUrl,
+  type ProtectedPlanPdfAuthClient,
+} from '../../shared/plan-pdf/useProtectedPlanPdfViewer';
 import { mapSavedPlan } from './workoutPlannerSavedPlanMapping';
 
 interface PlannerAuthClient {
@@ -38,10 +42,6 @@ interface UseWorkoutPlannerSavedPlansStateInput {
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
   setConfirmRequest: Dispatch<SetStateAction<WorkoutPlannerConfirmRequest | null>>;
 }
-
-const isProtectedPdfUrl = (url?: string | null) => (
-  Boolean(url && /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/.test(url))
-);
 
 export const useWorkoutPlannerSavedPlansState = ({
   authAxios,
@@ -172,14 +172,13 @@ export const useWorkoutPlannerSavedPlansState = ({
     setPdfDialogPlan(plan);
     setPdfDialogMode('view');
     const pdfFile = plan.pdfFile;
-    if (!isProtectedPdfUrl(pdfFile?.url) || !pdfFile || typeof URL === 'undefined') return;
+    if (!pdfFile) return;
 
     try {
-      const res = await authAxios.get(pdfFile.url, { responseType: 'blob' });
-      const blob = res.data instanceof Blob
-        ? res.data
-        : new Blob([res.data as BlobPart], { type: pdfFile.contentType || 'application/pdf' });
-      const objectUrl = URL.createObjectURL(blob);
+      const objectUrl = await createProtectedPlanPdfObjectUrl(
+        authAxios as ProtectedPlanPdfAuthClient,
+        pdfFile,
+      );
       pdfObjectUrlRef.current = objectUrl;
       setPdfDialogPlan({ ...plan, pdfFile: { ...pdfFile, url: objectUrl } });
     } catch (err) {

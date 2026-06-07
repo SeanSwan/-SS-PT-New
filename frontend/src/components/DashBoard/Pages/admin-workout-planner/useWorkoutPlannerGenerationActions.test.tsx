@@ -95,7 +95,7 @@ describe('useWorkoutPlannerGenerationActions', () => {
     const { hook, setters } = renderGenerationHook({ authAxios, planDuration: 'single' });
 
     await act(async () => {
-      await hook.result.current.handleAIGenerate(91);
+      await hook.result.current.handleSwanCoachWorkoutGenerate(91);
     });
 
     expect(setters.setPlanExercises).not.toHaveBeenCalled();

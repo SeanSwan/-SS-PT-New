@@ -90,6 +90,15 @@ function firstPresent(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
 }
 
+function safePlanId(plan) {
+  const raw = firstPresent(plan.id, plan.planId, plan.uuid);
+  if (raw === undefined || raw === null || raw === '') return 'unavailable';
+  const normalized = String(raw).trim().slice(0, 80);
+  const isNumericId = /^\d+$/.test(normalized);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized);
+  return isNumericId || isUuid ? normalized : 'unavailable';
+}
+
 function getPlanData(plan) {
   return tryParse(firstPresent(plan.plan_data, plan.planData));
 }
@@ -182,7 +191,7 @@ export function formatActiveWorkoutPlanContext(workoutPlans = []) {
     const createdDate = createdAt ? new Date(createdAt).toLocaleDateString() : '?';
     const assignmentContext = formatAssignmentContext(plan, planData, week, day);
 
-    return `Plan: "${plan.title || 'Untitled Plan'}" [${String(plan.status || 'active').toUpperCase()}]
+    return `Plan ID: ${safePlanId(plan)} [${String(plan.status || 'active').toUpperCase()}]
 Planning System: Swan Coach Planning
 NASM Phase: ${nasmPhase} | Duration: ${duration} weeks | Progress: Week ${week}, Day ${day}
 Sessions Completed: ${completedSessions}/${totalSessions}

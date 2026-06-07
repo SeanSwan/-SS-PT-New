@@ -16,6 +16,7 @@ import {
 describe('swanCoachPlanningContextService', () => {
   it('formats generated weeks.days plans for Coach "what is next" context', () => {
     const context = formatActiveWorkoutPlanContext([{
+      id: '11111111-1111-4111-8111-111111111111',
       title: 'Six Month Strength Arc',
       status: 'active',
       nasm_phase: 2,
@@ -42,7 +43,8 @@ describe('swanCoachPlanningContextService', () => {
     }]);
 
     expect(context).toContain('--- ACTIVE WORKOUT PLANS ---');
-    expect(context).toContain('Six Month Strength Arc');
+    expect(context).toContain('Plan ID: 11111111-1111-4111-8111-111111111111');
+    expect(context).not.toContain('Six Month Strength Arc');
     expect(context).toContain('Sessions Completed: 1/2');
     expect(context).toContain('Day 3: Lower Strength');
     expect(context).toContain('Bulgarian Split Squat: 3x8-10 tempo:2-0-2 rest:75s');
@@ -51,6 +53,7 @@ describe('swanCoachPlanningContextService', () => {
 
   it('keeps legacy weeks.sessions plans readable', () => {
     const context = formatActiveWorkoutPlanContext([{
+      id: 77,
       title: 'Legacy Plan',
       status: 'paused',
       currentWeek: 1,
@@ -67,7 +70,8 @@ describe('swanCoachPlanningContextService', () => {
       },
     }]);
 
-    expect(context).toContain('Legacy Plan');
+    expect(context).toContain('Plan ID: 77');
+    expect(context).not.toContain('Legacy Plan');
     expect(context).toContain('Cable Row: 4x12 rest:60s');
     expect(context).toContain('Sessions Completed: 0/1');
   });
@@ -101,6 +105,31 @@ describe('swanCoachPlanningContextService', () => {
     expect(context).toContain('Billing: non-billable');
     expect(context).toContain('Deduct Paid Session: no');
     expect(context).toContain('Assignment Key: plan-6m:w4:d2:homework');
+  });
+
+  it('does not expose plan titles that can contain client PII in active-plan LLM context', () => {
+    const context = formatActiveWorkoutPlanContext([{
+      id: 'Jane-Private-6-Month',
+      title: 'Jane Private - 6 Month Transformation',
+      status: 'active',
+      currentWeek: 1,
+      currentDay: 1,
+      planData: {
+        weeks: [{
+          weekNumber: 1,
+          days: [{
+            dayNumber: 1,
+            name: 'Lower Strength',
+            exercises: [{ name: 'Goblet Squat', sets: 3, reps: 10 }],
+          }],
+        }],
+      },
+    }]);
+
+    expect(context).toContain('Plan ID: unavailable');
+    expect(context).toContain('Lower Strength');
+    expect(context).toContain('Goblet Squat');
+    expect(context).not.toMatch(/Jane Private|Transformation/);
   });
 
   it('defines Swan Coach planning as data-informed NASM planning, not a generic generator', () => {

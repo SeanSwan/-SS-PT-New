@@ -97,14 +97,14 @@ export const buildWorkoutPlanSaveFields = ({
 
   return {
     durationWeeks,
-    createdBy: hasGeneratedHorizonPlan ? 'ai' : creatorRole,
+    createdBy: hasGeneratedHorizonPlan ? 'swan_coach_planning' : creatorRole,
     metadata: {
       planHorizon: horizonKey,
       horizonKey,
       planDurationKey: horizonKey,
       durationPreset: planDuration,
       durationWeeks,
-      planSource: hasGeneratedHorizonPlan ? 'swan_coach_ai' : 'manual_builder',
+      planSource: hasGeneratedHorizonPlan ? 'swan_coach_planning' : 'manual_builder',
       createdByRole: creatorRole,
     },
   };

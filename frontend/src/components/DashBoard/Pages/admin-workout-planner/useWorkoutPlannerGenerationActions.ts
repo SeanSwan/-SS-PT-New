@@ -108,7 +108,7 @@ export const useWorkoutPlannerGenerationActions = ({
     setShowExplanations(value => !value);
   }, []);
 
-  const handleAIGenerate = useCallback(async (selectedClientId: number | null) => {
+  const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null) => {
     if (!selectedClientId) return;
     setGenerating(true);
     setDegradedIntelligence(false);
@@ -179,7 +179,7 @@ export const useWorkoutPlannerGenerationActions = ({
         }
       }
     } catch (err: unknown) {
-      logApiError('AI generation failed', err);
+      logApiError('Swan Coach workout generation failed', err);
       const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
       const specificMsg = errData?.details || errData?.error;
       if (specificMsg?.includes('client context unavailable')) {
@@ -247,7 +247,7 @@ export const useWorkoutPlannerGenerationActions = ({
     explanations,
     showExplanations,
     clearExplanations,
-    handleAIGenerate,
+    handleSwanCoachWorkoutGenerate,
     handleGeneratePlan,
     handleToggleExplanations,
   };

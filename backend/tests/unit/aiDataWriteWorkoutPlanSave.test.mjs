@@ -59,7 +59,7 @@ describe('aiDataWriteService save_workout_plan', () => {
     mockStoreWorkoutPlanPdf.mockClear();
   });
 
-  it('uses WorkoutPlan model column names and stamps horizon metadata for AI-created plans', async () => {
+  it('uses WorkoutPlan model column names and stamps horizon metadata for Swan Coach-created plans', async () => {
     const sequelize = makeFakeSequelize(capture);
 
     const result = await processAIDataUpdates(42, [{
@@ -89,13 +89,13 @@ describe('aiDataWriteService save_workout_plan', () => {
       clientId: 42,
       trainerId: 7,
       durationWeeks: 24,
-      createdBy: 'ai',
+      createdBy: 'swan_coach_planning',
     });
     expect(JSON.parse(capture.replacements.metadata)).toMatchObject({
       planHorizon: 'six_month',
       horizonKey: 'six_month',
       planDurationKey: 'six_month',
-      planSource: 'swan_coach_ai',
+      planSource: 'swan_coach_planning',
     });
     expect(JSON.parse(capture.replacements.planData).weeks).toHaveLength(24);
   });
@@ -157,7 +157,7 @@ describe('aiDataWriteService save_workout_plan', () => {
       planHorizon: 'six_month',
       horizonKey: 'six_month',
       planDurationKey: 'six_month',
-      planSource: 'swan_coach_ai',
+      planSource: 'swan_coach_planning',
       planPdf: {
         url: '/api/workout-plans/plan-ai-1/pdf/content.pdf',
         fileName: 'SwanStudios-Workout-Plan-Six-Month-Strength-Arc.pdf',

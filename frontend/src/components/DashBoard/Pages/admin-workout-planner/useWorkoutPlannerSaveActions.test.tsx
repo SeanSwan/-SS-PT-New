@@ -77,13 +77,13 @@ describe('useWorkoutPlannerSaveActions', () => {
 
     expect(authAxios.post).toHaveBeenNthCalledWith(1, '/api/workout-plans', expect.objectContaining({
       durationWeeks: 24,
-      createdBy: 'ai',
+      createdBy: 'swan_coach_planning',
       planData,
       metadata: expect.objectContaining({
         planHorizon: 'six_month',
         planDurationKey: 'six_month',
         durationPreset: '24',
-        planSource: 'swan_coach_ai',
+        planSource: 'swan_coach_planning',
       }),
     }));
     expect(authAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-24/activate');

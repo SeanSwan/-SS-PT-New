@@ -13,17 +13,18 @@ import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useGamificationData } from '../../../../../hooks/gamification/useGamificationData';
-import apiService from '../../../../../services/api.service';
 import {
   useCreatePost,
   useLeaderboard,
   useSocialChallenges,
   useSocialFeed,
 } from '../../../../../hooks/useDashboardQueries';
+import ProtectedPlanPdfDialog from '../../../shared/plan-pdf/ProtectedPlanPdfDialog';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
 import ClientObservatoryHero from './ClientObservatoryHero';
 import ClientObservatoryWidgets from './ClientObservatoryWidgets';
-import { useCurrentClientWorkout, type ClientTrainingPlanSlot } from './useCurrentClientWorkout';
+import { useCurrentClientWorkout } from './useCurrentClientWorkout';
+import { useClientPlanPdfViewer } from './useClientPlanPdfViewer';
 import {
   ChallengePreview,
   FeedPostPreview,
@@ -68,6 +69,7 @@ const ClientObservatoryHome: React.FC = () => {
   const leaderboardQuery = useLeaderboard({ limit: 5 });
   const createPost = useCreatePost();
   const currentWorkout = useCurrentClientWorkout(user?.id);
+  const planPdfViewer = useClientPlanPdfViewer();
   const clientSource = (user as { clientSource?: string } | null | undefined)?.clientSource;
 
   const [activeLens, setActiveLens] = useState<LensId>(() => lensFromRoute(tab));
@@ -108,23 +110,6 @@ const ClientObservatoryHome: React.FC = () => {
   const handleNavigate = useCallback((path: string) => {
     navigate(path);
   }, [navigate]);
-
-  const handleViewPlanPdf = useCallback(async (slot: ClientTrainingPlanSlot) => {
-    const url = slot.pdfFile?.url;
-    if (!url || typeof URL === 'undefined') return;
-
-    try {
-      const response = await apiService.get(url, { responseType: 'blob' });
-      const blob = response.data instanceof Blob
-        ? response.data
-        : new Blob([response.data as BlobPart], { type: slot.pdfFile?.contentType || 'application/pdf' });
-      const objectUrl = URL.createObjectURL(blob);
-      window.open(objectUrl, '_blank', 'noopener,noreferrer');
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-    } catch (error) {
-      console.error('[ClientPlanVault] Failed to open PDF plan', error);
-    }
-  }, []);
 
   const handleLensSelect = useCallback((id: LensId, path: string) => {
     setActiveLens(id);
@@ -268,10 +253,22 @@ const ClientObservatoryHome: React.FC = () => {
             streakDays={streakDays}
             tags={tags}
             onNavigate={handleNavigate}
-            onViewPlanPdf={handleViewPlanPdf}
+            onViewPlanPdf={planPdfViewer.openPlanPdf}
           />
+          {planPdfViewer.error && (
+            <ObservatoryCard role="alert">
+              <CardInner>
+                <MutedText>{planPdfViewer.error}</MutedText>
+              </CardInner>
+            </ObservatoryCard>
+          )}
         </SideColumn>
       </MainGrid>
+      <ProtectedPlanPdfDialog
+        viewer={planPdfViewer.viewer}
+        onClose={planPdfViewer.closePlanPdf}
+        onOpenExternal={planPdfViewer.openPlanPdfExternal}
+      />
     </PageShell>
   );
 };

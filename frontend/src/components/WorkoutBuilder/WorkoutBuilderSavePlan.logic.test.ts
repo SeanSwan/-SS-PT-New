@@ -76,7 +76,7 @@ const generatedPlan = {
 } satisfies GeneratedPlan;
 
 describe('buildWorkoutBuilderPlanSavePayload', () => {
-  it('targets the canonical workout-plans save contract as a draft AI plan', () => {
+  it('targets the canonical workout-plans save contract as a draft Swan Coach plan', () => {
     const payload = buildWorkoutBuilderPlanSavePayload(generatedPlan);
 
     expect(payload).toMatchObject({
@@ -85,11 +85,12 @@ describe('buildWorkoutBuilderPlanSavePayload', () => {
       nasmPhase: 2,
       durationWeeks: 12,
       status: 'draft',
-      createdBy: 'ai',
+      createdBy: 'swan_coach_planning',
     });
     expect(payload.description).toContain('Strength plan');
     expect(payload.metadata).toMatchObject({
       source: 'workout_builder',
+      planSource: 'swan_coach_planning',
       planningSystem: 'swan_coach_planning',
       primaryGoal: 'strength',
       sessionsPerWeek: 3,

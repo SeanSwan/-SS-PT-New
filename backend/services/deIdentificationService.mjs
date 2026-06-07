@@ -38,6 +38,15 @@ const DIRECT_IDENTIFIER_PATHS = [
   'client.dob',
   'client.insuranceId',
   'client.contact',         // entire contact block as fallback
+  'clientProfile.firstName',
+  'clientProfile.lastName',
+  'clientProfile.fullName',
+  'clientProfile.dateOfBirth',
+  'clientProfile.dob',
+  'clientProfile.contact.email',
+  'clientProfile.contact.phone',
+  'clientProfile.contact.address',
+  'clientProfile.contact',
   'lifestyle.occupation',
   'lifestyle.employer',
   'lifestyle.workplace',
@@ -186,6 +195,18 @@ export function deIdentify(masterPromptJson, options = {}) {
     strippedFields.push('client.preferredName');
   }
 
+  const originalClientProfileName = getNestedValue(payload, 'clientProfile.name');
+  if (originalClientProfileName !== undefined) {
+    setNestedValue(payload, 'clientProfile.name', anonymousLabel);
+    strippedFields.push('clientProfile.name');
+  }
+
+  const originalClientProfilePreferred = getNestedValue(payload, 'clientProfile.preferredName');
+  if (originalClientProfilePreferred !== undefined) {
+    setNestedValue(payload, 'clientProfile.preferredName', anonymousLabel);
+    strippedFields.push('clientProfile.preferredName');
+  }
+
   if (getNestedValue(payload, 'client.alias') !== aliasLabel) {
     setNestedValue(payload, 'client.alias', aliasLabel);
   }
@@ -193,7 +214,12 @@ export function deIdentify(masterPromptJson, options = {}) {
   // 2. Strip direct identifiers
   for (const path of DIRECT_IDENTIFIER_PATHS) {
     // Skip name fields — already handled above
-    if (path === 'client.name' || path === 'client.preferredName') continue;
+    if (
+      path === 'client.name'
+      || path === 'client.preferredName'
+      || path === 'clientProfile.name'
+      || path === 'clientProfile.preferredName'
+    ) continue;
 
     if (deleteNestedKey(payload, path)) {
       strippedFields.push(path);
@@ -218,6 +244,10 @@ export function deIdentify(masterPromptJson, options = {}) {
   const hasTrainingContext =
     getNestedValue(payload, 'training') !== undefined ||
     getNestedValue(payload, 'client.goals') !== undefined ||
+    getNestedValue(payload, 'goals') !== undefined ||
+    getNestedValue(payload, 'fitnessBackground') !== undefined ||
+    getNestedValue(payload, 'trainingHistory') !== undefined ||
+    getNestedValue(payload, 'painAndInjuries') !== undefined ||
     getNestedValue(payload, 'measurements') !== undefined ||
     getNestedValue(payload, 'baseline') !== undefined;
 

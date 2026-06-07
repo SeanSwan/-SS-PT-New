@@ -43,6 +43,7 @@ function workoutPosition(workout?: CurrentClientWorkout | null): string {
 const ASSIGNMENT_LABELS: Record<string, string> = {
   none: 'Plan Pending',
   trainer_session: 'Trainer Session',
+  homework: 'Off-Day Homework',
   active_recovery: 'Active Recovery',
   rest: 'Rest Day',
   assessment: 'Assessment',
@@ -52,6 +53,13 @@ function assignmentLabel(type?: string): string {
   return type ? ASSIGNMENT_LABELS[type] || 'Coach Homework' : 'Coach Homework';
 }
 
+function sectionKickerLabel(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'homework') return 'Suggested Workout';
+  if (workout?.assignmentType === 'trainer_session') return 'Trainer Session';
+  if (workout?.assignmentType === 'rest') return 'Recovery Day';
+  return 'Today\'s Assignment';
+}
+
 function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): string {
   if (error) return 'Refresh this page or open the workout logger directly.';
   if (!workout) return 'Your trainer will assign the default 6 Month plan after assessment.';
@@ -59,6 +67,9 @@ function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): 
   if (workout.assignmentType === 'rest') return 'Recovery guidance is visible in your main plan today.';
   if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
+  if (workout.assignmentType === 'homework') {
+    return `Off-day plan work - ${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}. No paid session deduction.`;
+  }
   return `${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}`;
 }
 
@@ -79,10 +90,12 @@ function workoutActionPath(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'homework' && workout.isLoggable) return 'Log Workout';
   return workout?.ctaLabel || 'View Plan';
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'homework' && workout.isLoggable) return 'Log suggested workout';
   return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
 }
 
@@ -98,7 +111,7 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
         <div>
           <SectionKicker>
             <ClipboardCheck size={14} aria-hidden="true" />
-            Today's Assignment
+            {sectionKickerLabel(currentWorkout)}
           </SectionKicker>
           <SectionTitle>{workoutTitle(currentWorkout, currentWorkoutError, currentWorkoutLoading)}</SectionTitle>
         </div>

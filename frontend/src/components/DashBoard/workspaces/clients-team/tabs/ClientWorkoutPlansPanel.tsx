@@ -15,10 +15,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardList, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
+import ProtectedPlanPdfDialog from '../../../shared/plan-pdf/ProtectedPlanPdfDialog';
+import {
+  useProtectedPlanPdfViewer,
+  type ProtectedPlanPdfAuthClient,
+} from '../../../shared/plan-pdf/useProtectedPlanPdfViewer';
 import { getNumericClientId } from './clientTabId';
 import ClientWorkoutPlanCards from './ClientWorkoutPlanCards';
 import ClientWorkoutPlansTeachMe from './ClientWorkoutPlansTeachMe';
-import ClientWorkoutPlanPdfDialog, { type ClientPlanPdfViewerState } from './ClientWorkoutPlanPdfDialog';
 import ClientWorkoutPlanVaultSection from './ClientWorkoutPlanVaultSection';
 import {
   Eyebrow,
@@ -32,12 +36,10 @@ import {
 } from './ClientWorkoutPlansPanel.styles';
 import {
   buildClientPlanVault,
-  createProtectedPdfObjectUrl,
   normalizeClientWorkoutPlansResponse,
   type ClientPlanSummary,
   type ClientPlanVaultSummary,
   type ClientWorkoutPlansResponseSummary,
-  type PlanPdfAuthClient,
 } from './ClientWorkoutPlansPanel.logic';
 
 interface ClientWorkoutPlansPanelProps {
@@ -65,13 +67,18 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   const safeClientId = getNumericClientId(clientId);
   const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
   const [serverPlanVault, setServerPlanVault] = useState<ClientPlanVaultSummary | null>(null);
-  const [pdfViewer, setPdfViewer] = useState<ClientPlanPdfViewerState | null>(null);
   const [loading, setLoading] = useState(false);
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
   const [primaryUpdatingId, setPrimaryUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const {
+    viewer: pdfViewer,
+    openPlanPdf: openProtectedPlanPdf,
+    closePlanPdf,
+    openPlanPdfExternal,
+  } = useProtectedPlanPdfViewer(authAxios as ProtectedPlanPdfAuthClient | undefined);
 
   const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
   const planVault = useMemo(() => serverPlanVault || buildClientPlanVault(plans), [plans, serverPlanVault]);
@@ -106,30 +113,23 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
     loadPlans();
   }, [loadPlans, refreshSignal]);
 
-  useEffect(() => () => {
-    if (pdfViewer?.objectUrl) URL.revokeObjectURL(pdfViewer.objectUrl);
-  }, [pdfViewer?.objectUrl]);
-
   const openPlanPdf = useCallback(async (plan: ClientPlanSummary) => {
     if (!authAxios || !plan.pdfFile) return;
     setOpeningPdfId(plan.id);
     setPdfError(null);
-    try {
-      const objectUrl = await createProtectedPdfObjectUrl(authAxios as PlanPdfAuthClient, plan.pdfFile);
-      setPdfViewer({
-        objectUrl,
-        planName: plan.name,
-        fileName: plan.pdfFile.fileName || `${plan.name}.pdf`,
-        horizonLabel: plan.horizonLabel,
-        nasmPhase: plan.nasmPhase ?? null,
-        planningSystem: plan.planningSystem ?? null,
-      });
-    } catch {
+    const opened = await openProtectedPlanPdf({
+      pdfFile: plan.pdfFile,
+      planName: plan.name,
+      fileName: plan.pdfFile.fileName || `${plan.name}.pdf`,
+      horizonLabel: plan.horizonLabel,
+      nasmPhase: plan.nasmPhase ?? null,
+      planningSystem: plan.planningSystem ?? null,
+    });
+    if (!opened) {
       setPdfError(`Unable to open the PDF for ${plan.name}.`);
-    } finally {
-      setOpeningPdfId(null);
     }
-  }, [authAxios]);
+    setOpeningPdfId(null);
+  }, [authAxios, openProtectedPlanPdf]);
 
   const makePrimaryPlan = useCallback(async (plan: ClientPlanSummary) => {
     if (!authAxios || !plan.id) return;
@@ -144,14 +144,6 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
       setPrimaryUpdatingId(null);
     }
   }, [authAxios, loadPlans]);
-
-  const closePlanPdf = useCallback(() => {
-    setPdfViewer(null);
-  }, []);
-
-  const openPlanPdfExternal = useCallback((objectUrl: string) => {
-    window.open(objectUrl, '_blank', 'noopener,noreferrer');
-  }, []);
 
   if (safeClientId === null) {
     return <StateCard role="alert">Select a valid client before reviewing saved plans.</StateCard>;
@@ -192,7 +184,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
             onLogToday={onLogToday}
             onOpenPdf={openPlanPdf}
           />
-          <ClientWorkoutPlanPdfDialog
+          <ProtectedPlanPdfDialog
             viewer={pdfViewer}
             onClose={closePlanPdf}
             onOpenExternal={openPlanPdfExternal}

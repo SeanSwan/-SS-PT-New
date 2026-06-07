@@ -239,9 +239,10 @@ export interface WorkoutBuilderPlanSavePayload {
   durationWeeks: number;
   status: 'draft';
   planData: Record<string, unknown>;
-  createdBy: 'ai';
+  createdBy: 'swan_coach_planning';
   metadata: {
     source: 'workout_builder';
+    planSource: 'swan_coach_planning';
     planningSystem: 'swan_coach_planning';
     swanCoachPlanning: SwanCoachPlanningFingerprint;
     primaryGoal: string;

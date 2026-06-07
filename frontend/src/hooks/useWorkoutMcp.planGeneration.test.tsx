@@ -195,11 +195,11 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
       nasmPhase: 2,
       durationWeeks: 26,
       status: 'draft',
-      createdBy: 'ai',
+      createdBy: 'swan_coach_planning',
       metadata: expect.objectContaining({
         planHorizon: 'six_month',
         horizonKey: 'six_month',
-        planSource: 'swan_coach_ai',
+        planSource: 'swan_coach_planning',
         createdByRole: 'admin',
       }),
     }));

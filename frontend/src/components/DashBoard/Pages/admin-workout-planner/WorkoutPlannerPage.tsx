@@ -116,7 +116,7 @@ const WorkoutPlannerPage: React.FC = () => {
     explanations,
     showExplanations,
     clearExplanations,
-    handleAIGenerate,
+    handleSwanCoachWorkoutGenerate,
     handleGeneratePlan,
     handleToggleExplanations,
   } = useWorkoutPlannerGenerationActions({
@@ -153,7 +153,9 @@ const WorkoutPlannerPage: React.FC = () => {
     resetLoadedPlanState,
   });
 
-  const requestAIGenerateForSelectedClient = useCallback(() => { void handleAIGenerate(selectedClientId); }, [handleAIGenerate, selectedClientId]);
+  const requestSwanCoachWorkoutForSelectedClient = useCallback(() => {
+    void handleSwanCoachWorkoutGenerate(selectedClientId);
+  }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
 
   const {
@@ -273,7 +275,7 @@ const WorkoutPlannerPage: React.FC = () => {
     onClientSelectionChange: handleClientSelectionChange, onPhaseNumberChange: setPhaseNumber,
     onCategoryChange: setCategory, onGoalChange: setGoal, onEquipmentProfileChange: handleEquipmentProfileChange,
     onPlanDurationChange: handlePlanDurationChange,
-    onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestAIGenerateForSelectedClient,
+    onSessionsPerWeekChange: setSessionsPerWeek, onGenerateSingle: requestSwanCoachWorkoutForSelectedClient,
     onGeneratePlan: requestPlanGenerateForSelectedClient, hasPlanExercises: planExercises.length > 0 || hasGeneratedHorizonPlan,
     onDismissStatus: () => setStatusMsg(null), onSearchQueryChange: setSearchQuery,
     onFilterCategoryChange: setFilterCategory, onSourceFilterChange: setSourceFilter,

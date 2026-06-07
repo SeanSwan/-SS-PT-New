@@ -23,7 +23,8 @@ describe('WorkoutPlanner saved plans state extraction', () => {
     expect(hookSource).toContain('/api/workout-plans/${planId}/activate');
     expect(hookSource).toContain('/api/workout-plans/${planId}/primary');
     expect(hookSource).toContain('/api/workout-plans/${planId}/pdf/upload');
-    expect(hookSource).toContain("responseType: 'blob'");
+    expect(hookSource).toContain('createProtectedPlanPdfObjectUrl');
+    expect(hookSource).not.toContain("responseType: 'blob'");
     expect(hookSource).toContain('FormData');
     expect(hookSource).toContain('setConfirmRequest');
     expect(hookSource).toContain('archiveBlockedFor');

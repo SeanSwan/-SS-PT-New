@@ -26,12 +26,12 @@ describe('workout planner save payload metadata', () => {
       userRole: 'trainer',
     })).toMatchObject({
       durationWeeks: 24,
-      createdBy: 'ai',
+      createdBy: 'swan_coach_planning',
       metadata: {
         planHorizon: 'six_month',
         planDurationKey: 'six_month',
         durationPreset: '24',
-        planSource: 'swan_coach_ai',
+        planSource: 'swan_coach_planning',
         createdByRole: 'trainer',
       },
     });

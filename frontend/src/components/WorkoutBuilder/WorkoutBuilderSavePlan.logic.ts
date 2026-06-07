@@ -88,9 +88,10 @@ export const buildWorkoutBuilderPlanSavePayload = (
     durationWeeks: planSummary.durationWeeks,
     status: 'draft',
     planData: buildPlanData(plan, assignmentDefault),
-    createdBy: 'ai',
+    createdBy: 'swan_coach_planning',
     metadata: {
       source: 'workout_builder',
+      planSource: 'swan_coach_planning',
       planningSystem: plan.planningSystem,
       swanCoachPlanning: plan.swanCoachPlanning,
       primaryGoal: planSummary.primaryGoal,

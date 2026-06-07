@@ -277,6 +277,34 @@ describe('De-Identification Service', () => {
       expect(result.deIdentified.training.fitnessLevel).toBe('beginner');
     });
 
+    it('should de-identify controller fallback clientProfile payloads without losing training intent', () => {
+      const input = {
+        clientProfile: {
+          name: 'Jane Private',
+          dateOfBirth: '1988-03-01',
+          gender: 'female',
+          weight: 165,
+          height: 66,
+        },
+        goals: { primary: 'strength', secondary: [] },
+        fitnessBackground: { experienceLevel: 'beginner' },
+        trainingHistory: { totalSessions: 0 },
+      };
+
+      const result = deIdentify(input, { clientId: 42 });
+
+      expect(result).not.toBeNull();
+      expect(result.deIdentified.clientProfile.name).toBe('Client #42');
+      expect(result.deIdentified.clientProfile.dateOfBirth).toBeUndefined();
+      expect(result.deIdentified.clientProfile.gender).toBe('female');
+      expect(result.deIdentified.goals.primary).toBe('strength');
+      expect(JSON.stringify(result.deIdentified)).not.toMatch(/Jane Private|1988-03-01/);
+      expect(result.strippedFields).toEqual(expect.arrayContaining([
+        'clientProfile.name',
+        'clientProfile.dateOfBirth',
+      ]));
+    });
+
     it('should return list of all stripped fields', () => {
       const input = createMasterPromptFixture();
       const result = deIdentify(input);

@@ -442,7 +442,7 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     metadata.horizonKey = horizonKey;
     metadata.planDurationKey = horizonKey;
   }
-  metadata.planSource = metadata.planSource || 'swan_coach_ai';
+  metadata.planSource = metadata.planSource || 'swan_coach_planning';
 
   // Validate planData structure if provided
   let planData = { weeks: [] };
@@ -466,7 +466,7 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     endDate,
     durationWeeks,
     planData: JSON.stringify(planData),
-    createdBy: 'ai',
+    createdBy: 'swan_coach_planning',
     metadata: JSON.stringify(metadata),
   };
 
