@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkoutSessions } from '../../../../hooks/useDashboardQueries';
+import ClientWorkoutPlanVaultPanel from './ClientWorkoutPlanVaultPanel';
 import ClientMyWorkoutsPagination from './ClientMyWorkoutsPagination';
 import {
   PageContainer, Header, Title, LogBtn, StatsRow, StatCard, StatValue, StatLabel,
@@ -135,6 +136,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
           <Dumbbell size={16} /> Log Workout
         </LogBtn>
       </Header>
+      <ClientWorkoutPlanVaultPanel />
 
       {workouts.length === 0 ? (
         // Empty branch splits by page to avoid the "empty-page trap" where

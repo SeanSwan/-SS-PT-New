@@ -24,6 +24,7 @@ interface ClientTrainingPlanVaultCardProps {
   canLogToday?: boolean;
   onNavigate: (path: string) => void;
   onViewPdf: (slot: ClientTrainingPlanSlot) => void;
+  showOpenButton?: boolean;
 }
 
 const FALLBACK_SLOTS: ClientTrainingPlanSlot[] = [
@@ -58,6 +59,7 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
   canLogToday = true,
   onNavigate,
   onViewPdf,
+  showOpenButton = true,
 }) => {
   const slots = planVault?.slots?.length ? planVault.slots : FALLBACK_SLOTS;
   const filledCount = planVault?.filledCount || 0;
@@ -75,13 +77,15 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
               {loading ? 'Loading plan arcs' : `${filledCount} of 7 arcs ready`}
             </SectionTitle>
           </div>
-          <SmallButton
-            type="button"
-            aria-label="Open workout plan vault"
-            onClick={() => onNavigate('/dashboard/client/workouts')}
-          >
-            Open
-          </SmallButton>
+          {showOpenButton && (
+            <SmallButton
+              type="button"
+              aria-label="Open workout plan vault"
+              onClick={() => onNavigate('/dashboard/client/workouts')}
+            >
+              Open
+            </SmallButton>
+          )}
         </WidgetHeader>
         {error ? (
           <MutedText>Plan arcs are unavailable. Open My Workouts or refresh the dashboard.</MutedText>
