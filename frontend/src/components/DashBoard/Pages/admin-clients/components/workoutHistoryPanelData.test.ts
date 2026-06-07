@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  addStringToSet,
   buildExerciseLedger,
   getPersonalRecordKey,
   groupSessionLogs,
   sortPersonalRecords,
+  toggleStringSet,
 } from './workoutHistoryPanelData';
 
 describe('workoutHistoryPanelData', () => {
@@ -33,6 +35,18 @@ describe('workoutHistoryPanelData', () => {
       date: '2026-05-01',
       estimated1RM: 125,
     })).toBe('pr|Bench|2026-05-01|100|8|125');
+  });
+
+  it('updates expanded session sets without duplicating local toggle logic', () => {
+    const existing = new Set(['session-1']);
+    expect(addStringToSet(existing, 'session-1')).toBe(existing);
+
+    const added = addStringToSet(existing, 'session-2');
+    expect([...added]).toEqual(['session-1', 'session-2']);
+    expect([...existing]).toEqual(['session-1']);
+
+    expect([...toggleStringSet(added, 'session-1')]).toEqual(['session-2']);
+    expect([...toggleStringSet(existing, 'session-3')]).toEqual(['session-1', 'session-3']);
   });
 
   it('groups session logs by exercise and includes estimated one-rep max per set', () => {

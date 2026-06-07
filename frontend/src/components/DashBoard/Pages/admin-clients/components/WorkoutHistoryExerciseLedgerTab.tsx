@@ -15,7 +15,7 @@ import { formatWorkoutHistoryDate, formatWorkoutHistoryVolume } from './workoutH
 import { buildExerciseLedger } from './workoutHistoryPanelData';
 import { EmptyState } from './WorkoutHistoryPanel.layoutStyles';
 
-export interface WorkoutHistoryExerciseLedgerTabProps {
+interface WorkoutHistoryExerciseLedgerTabProps {
   sessions: WorkoutSession[];
 }
 

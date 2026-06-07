@@ -30,6 +30,34 @@ const tabs: Array<{
   { id: 'prs', label: 'PRs', icon: <Trophy size={16} /> },
 ];
 
+const buildSummaryChips = (data: AnalyticsData): Array<{
+  key: string;
+  content: React.ReactNode;
+}> => {
+  const chips = [
+    { key: 'workouts', content: <><Dumbbell size={14} /> <strong>{data.summary.totalWorkouts}</strong> workouts</> },
+    { key: 'exercises', content: <><Activity size={14} /> <strong>{data.summary.totalExercises}</strong> exercises</> },
+    { key: 'volume', content: <><Flame size={14} /> <strong>{formatWorkoutHistoryVolume(data.summary.totalVolume)}</strong></> },
+    { key: 'prs', content: <><Trophy size={14} /> <strong>{data.personalRecords.length}</strong> PRs</> },
+  ];
+  if (data.summary.avgIntensity > 0) {
+    chips.push({
+      key: 'intensity',
+      content: <><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</>,
+    });
+  }
+  if (data.summary.avgRPE > 0) {
+    chips.push({ key: 'rpe', content: <>RPE <strong>{data.summary.avgRPE}</strong></> });
+  }
+  if (data.summary.longestStreak > 1) {
+    chips.push({
+      key: 'streak',
+      content: <><Flame size={14} /> <strong>{data.summary.longestStreak}</strong> day streak</>,
+    });
+  }
+  return chips;
+};
+
 const WorkoutHistoryPanelHeader: React.FC<WorkoutHistoryPanelHeaderProps> = ({
   data,
   activeTab,
@@ -38,19 +66,11 @@ const WorkoutHistoryPanelHeader: React.FC<WorkoutHistoryPanelHeaderProps> = ({
   <>
     {data && (
       <SummaryBar>
-        <StatChip><Dumbbell size={14} /> <strong>{data.summary.totalWorkouts}</strong> workouts</StatChip>
-        <StatChip><Activity size={14} /> <strong>{data.summary.totalExercises}</strong> exercises</StatChip>
-        <StatChip><Flame size={14} /> <strong>{formatWorkoutHistoryVolume(data.summary.totalVolume)}</strong></StatChip>
-        {data.summary.avgIntensity > 0 && (
-          <StatChip><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</StatChip>
-        )}
-        {data.summary.avgRPE > 0 && (
-          <StatChip>RPE <strong>{data.summary.avgRPE}</strong></StatChip>
-        )}
-        <StatChip><Trophy size={14} /> <strong>{data.personalRecords.length}</strong> PRs</StatChip>
-        {data.summary.longestStreak > 1 && (
-          <StatChip>{'\uD83D\uDD25'} <strong>{data.summary.longestStreak}</strong> day streak</StatChip>
-        )}
+        {buildSummaryChips(data).map((chip) => (
+          <StatChip key={chip.key}>
+            {chip.content}
+          </StatChip>
+        ))}
       </SummaryBar>
     )}
 

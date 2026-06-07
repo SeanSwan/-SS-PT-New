@@ -33,44 +33,29 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { Dumbbell } from 'lucide-react';
 import ShareToFeedModal from '../../../../Shared/ShareToFeedModal';
-import { CenterContent, Spinner } from './copilot-shared-styles';
 import {
   useWorkoutAnalytics,
   type WorkoutSession,
 } from '../../../../../hooks/analytics/useWorkoutAnalytics';
 import { useAuth } from '../../../../../context/AuthContext';
-import { sortPersonalRecords } from './workoutHistoryPanelData';
+import {
+  addStringToSet,
+  sortPersonalRecords,
+  toggleStringSet,
+} from './workoutHistoryPanelData';
 import {
   buildWorkoutHistoryShareModalState,
 } from './workoutHistorySharing';
 import WorkoutHistoryPanelHeader, { type WorkoutHistoryPanelTab } from './WorkoutHistoryPanelHeader';
-import WorkoutHistorySessionCard from './WorkoutHistorySessionCard';
-import WorkoutHistoryExerciseLedgerTab from './WorkoutHistoryExerciseLedgerTab';
 import {
   EmbeddedHeader,
-  EmptyState,
-  ErrorPanel,
-  LoadingText,
-  RetryButton,
 } from './WorkoutHistoryPanel.layoutStyles';
-import WorkoutHistoryPersonalRecordsTab from './WorkoutHistoryPersonalRecordsTab';
+import WorkoutHistoryPanelContent from './WorkoutHistoryPanelContent';
 import { useWorkoutHistoryEditor } from './useWorkoutHistoryEditor';
-
-/**
- * Charts tab now mounts the canonical 12-chart Victory grid scoped to the
- * admin-selected client (same component the ClientDetailView "Progress" tab
- * uses). This replaced the older `WorkoutChartsTab`, which rendered an
- * ad-hoc Weekly-Training-Volume + mixed-chart layout off the legacy
- * `useWorkoutAnalytics` shape and did not match the canonical Phase 14
- * 12-chart contract that the client-side dashboard already uses.
- */
-const AdminProgressChartsGrid = lazy(
-  () => import('../../../workspaces/clients-team/tabs/AdminProgressChartsGrid'),
-);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Styled Components (extracted verbatim from the modal)
@@ -144,12 +129,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   );
 
   const expandSession = useCallback((id: string) => {
-    setExpandedSessions(prev => {
-      if (prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
+    setExpandedSessions(prev => addStringToSet(prev, id));
   }, []);
 
   const {
@@ -175,12 +155,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     if (editingSessionId && editingSessionId !== id) {
       cancelEdit();
     }
-    setExpandedSessions(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setExpandedSessions(prev => toggleStringSet(prev, id));
   }, [cancelEdit, editingSessionId]);
 
   return (
@@ -202,78 +177,30 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       />
 
       <ScrollBody $variant={variant}>
-        {isLoading && (
-          <CenterContent>
-            <Spinner />
-            <LoadingText>
-              Loading workout data...
-            </LoadingText>
-          </CenterContent>
-        )}
-
-        {error && (
-          <ErrorPanel>
-            <span>{error}</span>
-            <RetryButton type="button" onClick={refetch}>
-              Retry
-            </RetryButton>
-          </ErrorPanel>
-        )}
-
-        {/* HISTORY TAB */}
-        {!isLoading && !error && activeTab === 'history' && data && (
-          <>
-            {data.sessions.length === 0 ? (
-              <EmptyState>
-                <Dumbbell size={40} />
-                <p>No workouts recorded yet</p>
-              </EmptyState>
-            ) : (
-              data.sessions.map((session) => (
-                <WorkoutHistorySessionCard
-                  key={session.id}
-                  session={session}
-                  isExpanded={expandedSessions.has(session.id)}
-                  editingSessionId={editingSessionId}
-                  editLogs={editLogs}
-                  saving={saving}
-                  saveError={saveError}
-                  onToggle={toggleSession}
-                  onShareSession={setShareSession}
-                  updateEditField={updateEditField}
-                  removeEditRow={removeEditRow}
-                  updateExerciseNoteForGroup={updateExerciseNoteForGroup}
-                  addEditRow={addEditRow}
-                  cancelEdit={cancelEdit}
-                  saveEdit={saveEdit}
-                  startEdit={startEdit}
-                />
-              ))
-            )}
-          </>
-        )}
-
-        {/* CHARTS TAB — canonical 12-chart Victory grid (admin-scoped).
-            AdminProgressChartsGrid owns its own data fetch via
-            useAdminClientProgressCharts(clientId), so we don't gate on the
-            local `data` shape from useWorkoutAnalytics. */}
-        {activeTab === 'charts' && (
-          <Suspense fallback={<CenterContent><Spinner /><LoadingText>Loading charts...</LoadingText></CenterContent>}>
-            <AdminProgressChartsGrid clientId={clientId} clientName={clientName} />
-          </Suspense>
-        )}
-
-        {!isLoading && !error && activeTab === 'exercises' && data && (
-          <WorkoutHistoryExerciseLedgerTab sessions={data.sessions} />
-        )}
-
-        {/* PRs TAB */}
-        {!isLoading && !error && activeTab === 'prs' && data && (
-          <WorkoutHistoryPersonalRecordsTab
-            records={sortedPersonalRecords}
-            onShareSession={setShareSession}
-          />
-        )}
+        <WorkoutHistoryPanelContent
+          activeTab={activeTab}
+          clientId={clientId}
+          clientName={clientName}
+          data={data}
+          editLogs={editLogs}
+          editingSessionId={editingSessionId}
+          error={error}
+          expandedSessions={expandedSessions}
+          isLoading={isLoading}
+          records={sortedPersonalRecords}
+          saving={saving}
+          saveError={saveError}
+          addEditRow={addEditRow}
+          cancelEdit={cancelEdit}
+          onRetry={refetch}
+          onShareSession={setShareSession}
+          onToggleSession={toggleSession}
+          removeEditRow={removeEditRow}
+          saveEdit={saveEdit}
+          startEdit={startEdit}
+          updateEditField={updateEditField}
+          updateExerciseNoteForGroup={updateExerciseNoteForGroup}
+        />
       </ScrollBody>
 
       {/* Share to Social Feed — rendered as a sibling (NOT nested inside a
