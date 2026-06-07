@@ -1730,8 +1730,7 @@ router.delete("/bulk", protect, adminOnly, async (req, res) => {
     logger.error('Error in DELETE /api/sessions/bulk:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error deleting sessions',
-      error: error.message
+      message: 'Server error deleting sessions'
     });
   }
 });
@@ -1801,8 +1800,7 @@ router.delete("/:id", protect, adminOnly, async (req, res) => {
     logger.error(`Error in DELETE /api/sessions/${req.params.id}:`, error);
     return res.status(500).json({
       success: false,
-      message: 'Server error deleting session',
-      error: error.message
+      message: 'Server error deleting session'
     });
   }
 });
