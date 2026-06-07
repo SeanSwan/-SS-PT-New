@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const source = readFileSync(resolve(__dirname, './WorkoutPlanBuilder.tsx'), 'utf8');
+const source = readFileSync(resolve(__dirname, './useWorkoutPlanBuilderController.ts'), 'utf8');
 
 describe('WorkoutPlanBuilder default horizon contract', () => {
   it('defaults new Program Architect plans to the SwanStudios six-month primary arc', () => {

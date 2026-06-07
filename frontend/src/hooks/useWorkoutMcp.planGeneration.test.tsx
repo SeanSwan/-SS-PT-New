@@ -2,6 +2,15 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import apiService from '../services/api.service';
 import { useWorkoutMcp } from './useWorkoutMcp';
+import { buildWorkoutPlanSavePayload } from './useWorkoutMcp.planGeneration';
+
+const mocks = vi.hoisted(() => ({
+  buildPlanPdfFileFromPlanData: vi.fn(),
+}));
+
+vi.mock('../components/DashBoard/Pages/admin-workout-planner/workoutPlannerPlanPdfAdapter', () => ({
+  buildPlanPdfFileFromPlanData: mocks.buildPlanPdfFileFromPlanData,
+}));
 
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 7, role: 'admin' } }),
@@ -21,8 +30,12 @@ vi.mock('@/utils/logger', () => ({
 
 describe('useWorkoutMcp.generateWorkoutPlan', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(apiService.post).mockReset();
     vi.mocked(apiService.put).mockReset();
+    mocks.buildPlanPdfFileFromPlanData.mockResolvedValue(
+      new File(['%PDF-1.4'], 'SwanStudios-Plan.pdf', { type: 'application/pdf' }),
+    );
   });
 
   it('routes Program Architect generation through Swan Coach planning', async () => {
@@ -140,16 +153,19 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
     }));
   });
 
-  it('persists generated Swan Coach plans into the Plan Vault save route', async () => {
-    vi.mocked(apiService.post).mockResolvedValue({
-      data: { success: true, plan: { id: 99, title: 'Primary Six Month Arc' } },
-    });
+  it('persists generated Swan Coach plans into the Plan Vault save route and attaches the PDF artifact', async () => {
+    vi.mocked(apiService.post).mockImplementation((url: string) => (
+      url === '/api/workout-plans'
+        ? Promise.resolve({ data: { success: true, plan: { id: 99, title: 'Primary Six Month Arc' } } })
+        : Promise.resolve({ data: { success: true } })
+    ) as never);
     vi.mocked(apiService.put).mockResolvedValue({ data: { success: true } });
 
     const { result } = renderHook(() => useWorkoutMcp());
+    let response: unknown;
 
     await act(async () => {
-      await (result.current as any).saveWorkoutPlan({
+      response = await (result.current as any).saveWorkoutPlan({
         name: 'Primary Six Month Arc',
         description: 'Strength block',
         trainerId: '7',
@@ -169,7 +185,7 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
           weeks: [],
         },
         days: [],
-      }, { activate: true });
+      }, { activate: true, attachPdf: true, clientName: 'Fixture Client' });
     });
 
     expect(apiService.post).toHaveBeenCalledWith('/api/workout-plans', expect.objectContaining({
@@ -188,5 +204,50 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
       }),
     }));
     expect(apiService.put).toHaveBeenCalledWith('/api/workout-plans/99/activate');
+    expect(mocks.buildPlanPdfFileFromPlanData).toHaveBeenCalledWith(expect.objectContaining({
+      selectedClient: expect.objectContaining({
+        firstName: 'Fixture',
+        lastName: 'Client',
+      }),
+      goal: 'strength',
+      nasmPhase: 2,
+      durationWeeks: 26,
+    }));
+    expect(apiService.post).toHaveBeenCalledWith(
+      '/api/workout-plans/99/pdf/upload',
+      expect.any(FormData),
+    );
+    expect(response).toEqual(expect.objectContaining({ pdfAttachment: 'attached' }));
+  });
+});
+
+describe('buildWorkoutPlanSavePayload', () => {
+  it('falls back to reviewed builder days when planData contains an empty weeks array', () => {
+    const reviewedDay = {
+      dayNumber: 1,
+      name: 'Day 1',
+      focus: 'full_body',
+      dayType: 'training',
+      exercises: [{ exerciseId: 'split-squat', exerciseName: 'Split Squat' }],
+    };
+
+    const payload = buildWorkoutPlanSavePayload({
+      name: 'Reviewed Manual Arc',
+      trainerId: '7',
+      clientId: '42',
+      goal: 'strength',
+      startDate: '2026-06-07',
+      endDate: '2026-12-06',
+      status: 'active',
+      planData: {
+        planSummary: { durationWeeks: 26, startingPhase: 2 },
+        weeks: [],
+      },
+      days: [reviewedDay],
+    });
+
+    expect(payload.planData).toEqual(expect.objectContaining({
+      weeks: [{ weekNumber: 1, days: [reviewedDay] }],
+    }));
   });
 });

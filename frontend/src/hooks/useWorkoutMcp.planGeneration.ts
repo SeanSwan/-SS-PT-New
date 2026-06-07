@@ -7,7 +7,7 @@
  * returning the existing WorkoutPlan shape expected by WorkoutPlanBuilder.
  */
 
-import type { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } from './useWorkoutMcp';
+import type { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } from './useWorkoutMcp.types';
 
 export interface WorkoutPlanGenerationParams {
   trainerId: string;
@@ -34,6 +34,8 @@ export interface SwanCoachPlanRequest {
 
 export interface WorkoutPlanSaveOptions {
   activate?: boolean;
+  attachPdf?: boolean;
+  clientName?: string;
   status?: 'draft' | 'active';
   userRole?: string;
 }
@@ -121,9 +123,12 @@ const buildPersistablePlanData = (plan: WorkoutPlan) => {
   const fallbackWeeks = plan.days?.length
     ? [{ weekNumber: 1, days: plan.days }]
     : [];
+  const existingWeeks = Array.isArray(existing.weeks) && existing.weeks.length > 0
+    ? existing.weeks
+    : fallbackWeeks;
   return {
     ...existing,
-    weeks: Array.isArray(existing.weeks) ? existing.weeks : fallbackWeeks,
+    weeks: existingWeeks,
     goal: existing.goal || plan.goal || 'general',
     assignmentDefaults: {
       ...toRecord(existing.assignmentDefaults),

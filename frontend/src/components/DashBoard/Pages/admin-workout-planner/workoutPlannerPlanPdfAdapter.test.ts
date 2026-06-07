@@ -105,6 +105,46 @@ describe('workout planner PDF source adapter', () => {
     ]));
   });
 
+  it('prints safe Swan Coach planning signals without raw fingerprint identity fields', async () => {
+    await buildPlanPdfFileFromPlanData({
+      selectedClient,
+      goal: 'strength',
+      nasmPhase: 2,
+      durationWeeks: 24,
+      planData: {
+        planSummary: {
+          durationWeeks: 24,
+          sessionsPerWeek: 3,
+          totalSessions: 72,
+          primaryGoal: 'strength',
+          startingPhase: 2,
+        },
+        weeks: [{ weekNumber: 1, days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Cable Row' }] }] }],
+        swanCoachPlanning: {
+          dataCategoriesUsed: ['workout history', 'pain/injury entries', 'movement analysis'],
+          missingDataCategories: ['nutrition/macros'],
+          nasmDomainsApplied: ['OPT', 'Corrective Exercise', 'Behavior Change'],
+          safetyGate: {
+            status: 'review_required',
+            reviewMessage: 'Coach review required before assignment.',
+          },
+          clientName: 'Private Person',
+          email: 'private@example.test',
+        },
+      },
+    });
+
+    expect(mocks.pdfText).toEqual(expect.arrayContaining([
+      'Swan Coach Planning Signals',
+      'Data used: workout history, pain/injury entries, movement analysis',
+      'Missing data: nutrition/macros',
+      'NASM domains: OPT, Corrective Exercise, Behavior Change',
+      'Review gate: review_required',
+      'Coach review required before assignment.',
+    ]));
+    expect(mocks.pdfText.join('\n')).not.toMatch(/Private Person|private@example\.test/i);
+  });
+
   it('returns null when saved planData has no printable weeks', async () => {
     await expect(buildPlanPdfFileFromPlanData({
       selectedClient,

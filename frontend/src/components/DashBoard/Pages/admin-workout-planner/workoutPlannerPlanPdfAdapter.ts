@@ -8,6 +8,7 @@
 
 import type { jsPDF as PdfDoc } from 'jspdf';
 import type { PlannerClient } from './WorkoutPlannerTypes';
+import { buildPlanningSignalLines, renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
 
 interface PdfPlanFallbacks {
   goal: string;
@@ -56,6 +57,7 @@ interface PrintablePlan {
   };
   weeks: PrintableWeek[];
   recommendations: string[];
+  planningSignalLines: string[];
 }
 
 const BRAND = {
@@ -138,6 +140,7 @@ const buildPdfPlanFromPlanData = (
     },
     weeks: weeks as PrintableWeek[],
     recommendations: toStringArray(raw.recommendations),
+    planningSignalLines: buildPlanningSignalLines(raw),
   };
 };
 
@@ -218,6 +221,10 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
     `Starting NASM phase: Phase ${plan.planSummary.startingPhase}`,
   ].forEach((line) => {
     y = addWrappedText(doc, line, 16, y, pageW - 32);
+  });
+
+  y = renderPlanningSignalLines({
+    doc, lines: plan.planningSignalLines, y, pageW, ink: BRAND.ink, addSectionTitle, addWrappedText,
   });
 
   if (plan.recommendations.length > 0) {
