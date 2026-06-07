@@ -76,4 +76,29 @@ describe('WorkoutPlannerGeneratedPlanSection', () => {
     expect(screen.getByText(/Review the detailed schedule before saving or assigning/i)).toBeInTheDocument();
     expect(screen.queryByText(/Click exercises in the Rolodex/i)).not.toBeInTheDocument();
   });
+
+  it('surfaces coach review guardrails before a weak generated plan is saved', () => {
+    cleanup();
+    render(
+      <WorkoutPlannerGeneratedPlanSection
+        generatedPlan={{
+          ...oneWeekGeneratedPlan,
+          recommendations: [],
+          recommendationDetails: [],
+          rationale: [],
+          weeks: [],
+        }}
+        selectedMesoDay={1}
+        phaseNumber={2}
+        selectedClient={null}
+        onSelectedMesoDayChange={vi.fn()}
+        onPhaseNumberChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Coach Review Guardrails')).toBeInTheDocument();
+    expect(screen.getByText('Warmup/prep cue missing')).toBeInTheDocument();
+    expect(screen.getByText('Cooldown/recovery cue missing')).toBeInTheDocument();
+    expect(screen.getByText('Rationale missing')).toBeInTheDocument();
+  });
 });

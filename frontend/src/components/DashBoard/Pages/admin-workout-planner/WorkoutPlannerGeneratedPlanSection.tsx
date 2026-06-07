@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { Calendar, Download } from 'lucide-react';
+import { AlertTriangle, Calendar, Download } from 'lucide-react';
 import LongHorizonScheduleView from './LongHorizonScheduleView';
 import type { GeneratedPlan, PlannerClient } from './WorkoutPlannerTypes';
 import { workoutPlannerRecommendationKey } from './WorkoutPlannerRowKeys';
+import { getGeneratedPlanQualityWarnings } from './workoutPlannerQualityWarnings';
 import {
   DeloadBadge,
   ExportPdfBtn,
@@ -59,6 +60,7 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
 
   const activeDay = generatedPlan.weeklySchedule.find(day => day.dayNumber === selectedMesoDay);
   const equipmentContext = generatedPlan.equipmentContext;
+  const qualityWarnings = getGeneratedPlanQualityWarnings(generatedPlan);
   const equipmentDescription = equipmentContext?.availableEquipment.length
     ? equipmentContext.availableEquipment.join(', ')
     : `Equipment profile ${equipmentContext?.profileId ?? 'selected'} constrained this plan`;
@@ -88,6 +90,22 @@ const WorkoutPlannerGeneratedPlanSection: React.FC<WorkoutPlannerGeneratedPlanSe
           Download PDF Preview
         </ExportPdfBtn>
       </MesocycleSectionTitle>
+
+      {qualityWarnings.length > 0 && (
+        <>
+          <PlanLabelBlock $top>
+            <AlertTriangle size={14} aria-hidden="true" /> Coach Review Guardrails
+          </PlanLabelBlock>
+          <RecommendationList aria-label="Generated plan review warnings">
+            {qualityWarnings.map((warning) => (
+              <RecommendationItem key={warning.id}>
+                {warning.label}
+                <RecommendationSource>{warning.detail}</RecommendationSource>
+              </RecommendationItem>
+            ))}
+          </RecommendationList>
+        </>
+      )}
 
       <PlanLabelBlock>Weekly Schedule</PlanLabelBlock>
       <ScheduleRow>
