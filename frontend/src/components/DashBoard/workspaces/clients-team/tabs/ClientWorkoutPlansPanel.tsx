@@ -17,6 +17,7 @@ import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, Layers3, RefreshCw
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
 import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
+import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
   Eyebrow,
   Header,
@@ -219,6 +220,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
                       {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
                       {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
                       <span>{formatClientPlanUpdated(plan.createdAt)}</span>
+                      {plan.assignmentDefault && <span>{formatPlanUseLabel(plan.assignmentDefault)}</span>}
                       <span>{plan.goal}</span>
                     </Meta>
                     <PlanActions>

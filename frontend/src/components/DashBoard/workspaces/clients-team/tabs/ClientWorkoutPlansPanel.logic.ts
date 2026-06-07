@@ -1,4 +1,5 @@
 import { mapSavedPlan } from '../../../Pages/admin-workout-planner/workoutPlannerSavedPlanMapping';
+import { normalizeClientPlanUse } from './ClientWorkoutPlanUse.logic';
 
 type HorizonKey =
   | 'one_day'
@@ -50,6 +51,9 @@ export interface ClientPlanSummary {
   nasmPhase?: number;
   durationWeeks?: number;
   createdAt?: string;
+  assignmentDefault?: string | null;
+  billingIntent?: string | null;
+  defaultShouldDeductSession?: boolean;
 }
 
 export interface ClientPlanHorizonSlot {
@@ -93,6 +97,7 @@ export const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): Clien
 
   return {
     ...mapped,
+    ...normalizeClientPlanUse(plan),
     horizonKey: directHorizonKey || (mapped.horizonKey || 'six_month') as HorizonKey,
     horizonLabel: directHorizonKey
       ? PLAN_HORIZON_SLOTS.find((slot) => slot.key === directHorizonKey)?.label

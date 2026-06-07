@@ -171,6 +171,53 @@ describe('clientTrainingReadModelService', () => {
     });
   });
 
+  it('carries generated-plan assignment defaults into the catalog and today assignment without auto-deducting', () => {
+    const trainerLedPlan = {
+      ...sixMonthPlan,
+      id: 'plan-trainer-led',
+      title: 'Trainer Led Generated Arc',
+      planData: {
+        assignmentDefaults: {
+          defaultAssignmentType: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          shouldDeductSession: false,
+        },
+      },
+      metadata: { planHorizon: 'six_month' },
+    };
+
+    const overview = buildClientTrainingOverview({
+      activePlan: trainerLedPlan,
+      plans: [trainerLedPlan],
+      currentSession: {
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'Coach Floor Session',
+        session: {
+          exercises: [{ exerciseName: 'Trap Bar Deadlift' }],
+        },
+        exercises: [{ exerciseName: 'Trap Bar Deadlift' }],
+      },
+      today: '2026-06-06',
+    });
+
+    expect(overview.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-trainer-led:w4:d2:trainer_session',
+      assignmentType: 'trainer_session',
+      sessionType: 'trainer-led',
+      isBillable: true,
+      shouldDeductSession: false,
+      ctaLabel: 'Log Workout',
+    });
+    expect(overview.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      plan: {
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      },
+    });
+  });
+
   it('keeps rest days visible but not loggable', () => {
     const restPlan = { ...sixMonthPlan, currentDay: 3 };
     const assignment = buildClientTrainingOverview({

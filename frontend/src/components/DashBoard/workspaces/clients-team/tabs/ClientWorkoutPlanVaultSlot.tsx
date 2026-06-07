@@ -16,6 +16,7 @@
 import React from 'react';
 import { Crown, ExternalLink } from 'lucide-react';
 import type { ClientPlanHorizonSlot, ClientPlanSummary } from './ClientWorkoutPlansPanel.logic';
+import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
   PlanActionButton,
   PlanActions,
@@ -43,7 +44,7 @@ function vaultSlotStatus(slot: ClientPlanHorizonSlot) {
 }
 
 function vaultSlotDetail(slot: ClientPlanHorizonSlot) {
-  if (slot.plan) return `${slot.durationWeeks} weeks - ${slot.plan.status}`;
+  if (slot.plan) return `${slot.durationWeeks} weeks - ${slot.plan.status} - ${formatPlanUseLabel(slot.plan.assignmentDefault)}`;
   if (slot.isDefaultHorizon) return 'Default six-month arc pending';
   return 'No plan saved yet';
 }

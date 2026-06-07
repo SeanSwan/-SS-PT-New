@@ -13,6 +13,10 @@ import {
   PLAN_HORIZONS,
   normalizePlanHorizonKey,
 } from './clientTrainingPlanHorizonService.mjs';
+import {
+  buildPlanAssignmentSemantics,
+  normalizeAssignmentType,
+} from './clientTrainingAssignmentSemanticsService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
@@ -91,6 +95,7 @@ const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
 const planSummary = (plan, horizonKey, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = toPlainObject(raw.metadata) || {};
+  const assignmentSemantics = buildPlanAssignmentSemantics(raw);
   return {
     id: raw.id ?? null,
     title: firstCompactString(raw.title, raw.name) ?? 'Training Plan',
@@ -105,6 +110,9 @@ const planSummary = (plan, horizonKey, isPrimary) => {
     createdBy: raw.createdBy ?? null,
     isPrimary,
     pdfFile: extractWorkoutPlanPdfAttachment(metadata),
+    assignmentDefault: assignmentSemantics.defaultAssignmentType,
+    billingIntent: assignmentSemantics.billingIntent,
+    defaultShouldDeductSession: assignmentSemantics.shouldDeductSession,
   };
 };
 
@@ -152,29 +160,6 @@ const buildTrainingPlanCatalog = (plans = [], options = {}) => {
     filledHorizonKeys: slots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey),
     slots,
   };
-};
-
-const ASSIGNMENT_TYPE_ALIASES = new Map([
-  ['trainer_session', 'trainer_session'],
-  ['trainer_led', 'trainer_session'],
-  ['trainer', 'trainer_session'],
-  ['in_person', 'trainer_session'],
-  ['active_recovery', 'active_recovery'],
-  ['recovery', 'active_recovery'],
-  ['mobility', 'active_recovery'],
-  ['flexibility', 'active_recovery'],
-  ['rest', 'rest'],
-  ['rest_day', 'rest'],
-  ['assessment', 'assessment'],
-  ['screen', 'assessment'],
-  ['homework', 'homework'],
-  ['solo', 'homework'],
-  ['conditioning', 'homework'],
-]);
-
-const normalizeAssignmentType = (value, exerciseCount) => {
-  const raw = compactString(value)?.toLowerCase().replace(/[\s-]+/g, '_') || null;
-  return ASSIGNMENT_TYPE_ALIASES.get(raw) || (exerciseCount > 0 ? 'homework' : 'rest');
 };
 
 const firstExerciseName = (exercises) => {
@@ -243,7 +228,7 @@ const assignmentTypeSource = (rawPlan, currentSession, session) => (
   || session.dayType
   || session.type
   || session.category
-  || toPlainObject(rawPlan.metadata)?.defaultAssignmentType
+  || buildPlanAssignmentSemantics(rawPlan).defaultAssignmentType
 );
 
 const isAssignmentLoggable = ({ exerciseCount, status, type }) => (

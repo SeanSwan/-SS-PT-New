@@ -93,6 +93,63 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
 
+  it('shows whether a vault arc is homework diary work or trainer-led scheduled work', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        trainingPlanCatalog: {
+          primaryPlanId: 'plan-server-6m',
+          primaryHorizonKey: 'six_month',
+          slots: [
+            {
+              horizonKey: 'six_month',
+              label: '6 Month',
+              durationWeeks: 26,
+              durationDays: 182,
+              isDefaultHorizon: true,
+              isFilled: true,
+              isPrimary: true,
+              plan: {
+                id: 'plan-server-6m',
+                title: 'Trainer Led Generated Arc',
+                status: 'active',
+                horizonKey: 'six_month',
+                durationWeeks: 26,
+                assignmentDefault: 'trainer_session',
+                billingIntent: 'trainer_led_scheduled_flow',
+                defaultShouldDeductSession: false,
+              },
+            },
+            {
+              horizonKey: 'one_week',
+              label: '1 Week',
+              durationWeeks: 1,
+              durationDays: 7,
+              isDefaultHorizon: false,
+              isFilled: true,
+              isPrimary: false,
+              plan: {
+                id: 'plan-homework',
+                title: 'Homework Diary Arc',
+                status: 'draft',
+                horizonKey: 'one_week',
+                durationWeeks: 1,
+                assignmentDefault: 'homework',
+                billingIntent: 'non_billable_assignment',
+                defaultShouldDeductSession: false,
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByLabelText(/6 month plan arc/i)).toHaveTextContent('Trainer-led');
+    expect(screen.getByLabelText(/1 week plan arc/i)).toHaveTextContent('Homework diary');
+  });
+
   it('surfaces primary horizon and opens protected PDFs through authAxios', async () => {
     const user = userEvent.setup();
     const onLogToday = vi.fn();
