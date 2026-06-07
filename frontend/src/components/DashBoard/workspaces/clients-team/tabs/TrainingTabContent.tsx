@@ -39,6 +39,7 @@ interface TrainingTabContentProps {
   initialSection?: TrainingSection;
   onSectionChange?: (section: TrainingSection) => void;
   onOpenProgress?: () => void;
+  scheduledSessionCreditHint?: number | null;
   scheduledSessionDate?: string | null;
   scheduledSessionId?: string | null;
 }
@@ -74,6 +75,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
   initialSection,
   onSectionChange,
   onOpenProgress,
+  scheduledSessionCreditHint = null,
   scheduledSessionDate = null,
   scheduledSessionId = null,
 }) => {
@@ -163,6 +165,7 @@ const TrainingTabContent: React.FC<TrainingTabContentProps> = ({
               loadTodayPlanSignal={loadTodayPlanSignal}
               planVaultRefreshSignal={planVaultRefreshSignal}
               safeClientId={numericClientId}
+              scheduledSessionCreditHint={scheduledSessionCreditHint}
               scheduledSessionDate={scheduledSessionDate}
               scheduledSessionId={scheduledSessionId}
               onArchitectPlanCreated={handlePlanCreated}

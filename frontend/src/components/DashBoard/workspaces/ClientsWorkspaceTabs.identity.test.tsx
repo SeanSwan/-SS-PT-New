@@ -10,11 +10,13 @@ vi.mock('./clients-team/tabs/TrainingTabContent', () => ({
   default: ({
     clientName,
     onSectionChange,
+    scheduledSessionCreditHint,
     scheduledSessionDate,
     scheduledSessionId,
   }: {
     clientName?: string;
     onSectionChange?: (section: string) => void;
+    scheduledSessionCreditHint?: number | null;
     scheduledSessionDate?: string | null;
     scheduledSessionId?: string | null;
   }) => (
@@ -22,6 +24,7 @@ vi.mock('./clients-team/tabs/TrainingTabContent', () => ({
       <div data-testid="training-name">{clientName}</div>
       <div data-testid="training-scheduled-session-id">{scheduledSessionId ?? ''}</div>
       <div data-testid="training-scheduled-session-date">{scheduledSessionDate ?? ''}</div>
+      <div data-testid="training-scheduled-session-credit-hint">{scheduledSessionCreditHint ?? ''}</div>
       <button type="button" onClick={() => onSectionChange?.('logger')}>
         Mock logger section
       </button>
@@ -75,6 +78,7 @@ const ScheduledHarness = ({ client }: { client: ClientOption }) => {
   const renderers = useClientsWorkspaceTabRenderers(client, 'logger', undefined, {
     scheduledSessionId: '72',
     scheduledSessionDate: '2026-06-07',
+    scheduledSessionCreditHint: 2,
   });
 
   return <>{renderers.renderTraining(client.id)}</>;
@@ -147,6 +151,7 @@ describe('ClientsWorkspaceTabs identity fallback', () => {
 
     expect(await screen.findByTestId('training-scheduled-session-id')).toHaveTextContent('72');
     expect(await screen.findByTestId('training-scheduled-session-date')).toHaveTextContent('2026-06-07');
+    expect(await screen.findByTestId('training-scheduled-session-credit-hint')).toHaveTextContent('2');
   });
 
   it('preserves scheduled session context when the logger tab rewrites route state', async () => {
@@ -162,7 +167,7 @@ describe('ClientsWorkspaceTabs identity fallback', () => {
     await user.click(await screen.findByRole('button', { name: /mock logger section/i }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(
-      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&loadPlan=today&sessionId=72&sessionDate=2026-06-07'
+      '/dashboard/admin/client-management?clientId=7&tab=training&trainingSection=logger&loadPlan=today&sessionId=72&sessionDate=2026-06-07&sessionCredits=2'
     );
   });
 });

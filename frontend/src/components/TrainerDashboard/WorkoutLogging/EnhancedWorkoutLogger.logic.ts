@@ -26,6 +26,7 @@ const buildClientHubWorkoutCompleteReturnPath = (returnPath: string): string => 
 };
 
 interface ClientHubEmbeddedLoggerContext {
+  scheduledSessionCreditHint?: number | null;
   scheduledSessionDate?: string | null;
   scheduledSessionId?: string | null;
 }
@@ -47,6 +48,10 @@ const buildClientHubEmbeddedLoggerPath = (
 
   if (context.scheduledSessionDate) {
     params.set('sessionDate', context.scheduledSessionDate);
+  }
+
+  if (context.scheduledSessionCreditHint !== undefined && context.scheduledSessionCreditHint !== null) {
+    params.set('sessionCredits', String(context.scheduledSessionCreditHint));
   }
 
   return `/dashboard/admin/client-management?${params.toString()}`;
@@ -83,6 +88,7 @@ const resolveClientHubRedirectPath = (
   isAdmin: boolean,
   shouldUseClientHubLogger: boolean,
   routeClientId: number | null,
+  scheduledSessionCreditHint: number | null,
   scheduledSessionDate: string | null,
   scheduledSessionId: string | null
 ): string | null => {
@@ -94,6 +100,7 @@ const resolveClientHubRedirectPath = (
 
   return shouldRedirect && routeClientId
     ? buildClientHubEmbeddedLoggerPath(routeClientId, {
+        scheduledSessionCreditHint,
         scheduledSessionDate,
         scheduledSessionId,
       })
@@ -103,6 +110,7 @@ const resolveClientHubRedirectPath = (
 export interface LoggerRouteContextInput {
   requestedReturnTo: string | null;
   routeClientId: number | null;
+  scheduledSessionCreditHint?: number | null;
   scheduledSessionDate?: string | null;
   scheduledSessionId: string | null;
   source: string | null;
@@ -121,6 +129,7 @@ export interface LoggerRouteContext {
 export const buildLoggerRouteContext = ({
   requestedReturnTo,
   routeClientId,
+  scheduledSessionCreditHint = null,
   scheduledSessionDate = null,
   scheduledSessionId,
   source,
@@ -137,6 +146,7 @@ export const buildLoggerRouteContext = ({
       isAdmin,
       isClientHubRedirectSource(source),
       routeClientId,
+      scheduledSessionCreditHint,
       scheduledSessionDate,
       scheduledSessionId
     ),
@@ -149,6 +159,9 @@ export const buildLoggerRouteContext = ({
 const parsePositiveLoggerNumber = (value: number): number | null =>
   Number.isSafeInteger(value) && value > 0 ? value : null;
 
+const parseNonNegativeLoggerNumber = (value: number): number | null =>
+  Number.isSafeInteger(value) && value >= 0 ? value : null;
+
 const parsePositiveLoggerString = (value: string | null | undefined): number | null => {
   const trimmedValue = value?.trim();
   if (!trimmedValue || !POSITIVE_INTEGER_PATTERN.test(trimmedValue)) {
@@ -156,6 +169,15 @@ const parsePositiveLoggerString = (value: string | null | undefined): number | n
   }
 
   return parsePositiveLoggerNumber(Number(trimmedValue));
+};
+
+const parseNonNegativeLoggerString = (value: string | null | undefined): number | null => {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue || !/^(0|[1-9]\d*)$/.test(trimmedValue)) {
+    return null;
+  }
+
+  return parseNonNegativeLoggerNumber(Number(trimmedValue));
 };
 
 export const parseLoggerClientId = (value: string | number | null | undefined): number | null => {
@@ -170,6 +192,9 @@ export const parseLoggerSessionId = (value: string | null | undefined): string |
   const parsedValue = parseLoggerClientId(value);
   return parsedValue ? String(parsedValue) : null;
 };
+
+export const parseLoggerSessionCreditHint = (value: string | null | undefined): number | null =>
+  parseNonNegativeLoggerString(value);
 
 export interface LoggerClient {
   id: number;

@@ -52,4 +52,26 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
     expect(url.searchParams.get('loadPlan')).toBe('today');
   });
+
+  it('adds a display-only session credit hint when the schedule exposes session type cost', () => {
+    const route = buildTrainerSessionLogRoute({
+      ...apiSession,
+      sessionType: { creditsRequired: 2 },
+    } as TrainerSession);
+    expect(route).not.toBeNull();
+
+    const url = new URL(route ?? '', 'https://sswanstudios.test');
+    expect(url.searchParams.get('sessionCredits')).toBe('2');
+  });
+
+  it('omits unsafe session credit hints from workout logger routes', () => {
+    const route = buildTrainerSessionLogRoute({
+      ...apiSession,
+      sessionType: { creditsRequired: '2junk' },
+    } as TrainerSession);
+    expect(route).not.toBeNull();
+
+    const url = new URL(route ?? '', 'https://sswanstudios.test');
+    expect(url.searchParams.get('sessionCredits')).toBeNull();
+  });
 });

@@ -6,7 +6,7 @@
 
 import express from "express";
 import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
-import { getSession, getUser, getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
+import { getSession, getUser, getSessionType, getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import sequelize, { Op } from "../database.mjs";
 import moment from "moment";
 import rrulePkg from "rrule";
@@ -572,6 +572,7 @@ router.get("/", protect, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
+    const SessionType = getSessionType();
     const { startDate, endDate, status, trainerId, clientId, userId } = req.query;
     
     const filter = {};
@@ -622,6 +623,12 @@ router.get("/", protect, async (req, res) => {
           model: User,
           as: 'trainer',
           attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'specialties'],
+          required: false
+        },
+        {
+          model: SessionType,
+          as: 'sessionType',
+          attributes: ['id', 'name', 'duration', 'creditsRequired'],
           required: false
         }
       ],

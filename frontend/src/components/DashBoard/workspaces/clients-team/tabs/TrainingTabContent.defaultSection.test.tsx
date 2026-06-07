@@ -49,11 +49,13 @@ vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({
     loadTodayPlanSignal,
     onComplete,
+    scheduledSessionCreditHint,
     scheduledSessionDate,
     scheduledSessionId,
   }: {
     loadTodayPlanSignal?: number;
     onComplete: (formData: unknown) => void;
+    scheduledSessionCreditHint?: number | null;
     scheduledSessionDate?: string | null;
     scheduledSessionId?: string | null;
   }) => (
@@ -61,6 +63,7 @@ vi.mock('../../../../WorkoutLogger/WorkoutLogger', () => ({
       type="button"
       data-testid="workout-logger"
       data-load-today-plan-signal={String(loadTodayPlanSignal ?? 0)}
+      data-scheduled-session-credit-hint={scheduledSessionCreditHint ?? ''}
       data-scheduled-session-date={scheduledSessionDate ?? ''}
       data-scheduled-session-id={scheduledSessionId ?? ''}
       onClick={() => onComplete({ id: 'fixture-form' })}
@@ -163,7 +166,11 @@ describe('TrainingTabContent daily workflow default', () => {
     expect(onSectionChange).toHaveBeenCalledWith('plans');
   });
   it('forwards scheduled session context into the embedded workout logger', async () => {
-    renderTraining({ scheduledSessionDate: '2026-06-07', scheduledSessionId: '72' });
+    renderTraining({
+      scheduledSessionCreditHint: 2,
+      scheduledSessionDate: '2026-06-07',
+      scheduledSessionId: '72',
+    });
     expect(await screen.findByTestId('workout-logger')).toHaveAttribute(
       'data-scheduled-session-id',
       '72'
@@ -171,6 +178,10 @@ describe('TrainingTabContent daily workflow default', () => {
     expect(screen.getByTestId('workout-logger')).toHaveAttribute(
       'data-scheduled-session-date',
       '2026-06-07'
+    );
+    expect(screen.getByTestId('workout-logger')).toHaveAttribute(
+      'data-scheduled-session-credit-hint',
+      '2'
     );
   });
   it('keeps training sub-section tabs as explicit non-submit buttons', () => {

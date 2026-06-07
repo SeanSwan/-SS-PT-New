@@ -9,6 +9,7 @@ export interface WorkoutLoggerProps {
   onCancel?: () => void;
   initialData?: Partial<ExerciseEntry[]>;
   loadTodayPlanSignal?: number;
+  scheduledSessionCreditHint?: number | null;
   scheduledSessionId?: string | null;
   scheduledSessionDate?: string | null;
 }

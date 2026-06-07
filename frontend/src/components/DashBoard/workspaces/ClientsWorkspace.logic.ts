@@ -4,6 +4,7 @@ export type ClientHubIntent = 'log_workout' | 'plan_next' | null;
 export type ClientDetailTab = 'training' | 'progress' | 'biometrics' | 'overview' | 'settings';
 export type ClientTrainingSection = 'architect' | 'plans' | 'logger' | 'plaud' | 'copilot' | 'history';
 export interface ClientScheduleWorkoutLoggerContext {
+  scheduledSessionCreditHint: number | null;
   scheduledSessionDate: string | null;
   scheduledSessionId: string;
 }
@@ -59,6 +60,14 @@ export const getClientIdFromSearchParams = (searchParams: URLSearchParams): numb
 const isPositiveIntegerString = (value: string | null): value is string =>
   Boolean(value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value)));
 
+const parseNonNegativeIntegerString = (value: string | null): number | null => {
+  const trimmed = value?.trim();
+  if (!trimmed || !/^(0|[1-9]\d*)$/.test(trimmed)) return null;
+
+  const parsedValue = Number(trimmed);
+  return Number.isSafeInteger(parsedValue) ? parsedValue : null;
+};
+
 const safeRouteText = (value: string | null): string | null => {
   const trimmed = value?.trim();
   if (!trimmed || /[\r\n\t\\]/.test(trimmed)) return null;
@@ -76,6 +85,7 @@ export const getClientScheduleWorkoutLoggerContextFromSearchParams = (
   return {
     scheduledSessionId,
     scheduledSessionDate: safeRouteText(searchParams.get('sessionDate')),
+    scheduledSessionCreditHint: parseNonNegativeIntegerString(searchParams.get('sessionCredits')),
   };
 };
 

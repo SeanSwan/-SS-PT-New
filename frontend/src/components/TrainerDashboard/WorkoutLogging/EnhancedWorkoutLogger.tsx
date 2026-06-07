@@ -18,6 +18,7 @@ import {
   type LoggerClient,
   normalizeDashboardReturnTo,
   parseLoggerClientId,
+  parseLoggerSessionCreditHint,
   parseLoggerSessionId,
   toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
@@ -39,6 +40,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const { activeClient } = useGlobalClient();
   const urlClientId = searchParams.get('clientId');
   const scheduledSessionId = parseLoggerSessionId(searchParams.get('sessionId'));
+  const scheduledSessionCreditHint = parseLoggerSessionCreditHint(searchParams.get('sessionCredits'));
   const scheduledSessionDate = searchParams.get('sessionDate');
   const routeClientId = parseLoggerClientId(urlClientId);
   const activeClientId = parseLoggerClientId(activeClient?.id);
@@ -54,6 +56,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
   } = buildLoggerRouteContext({
     requestedReturnTo,
     routeClientId,
+    scheduledSessionCreditHint,
     scheduledSessionDate,
     scheduledSessionId,
     source: searchParams.get('source'),
@@ -139,6 +142,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
       client={client}
       error={error}
       loading={loading}
+      scheduledSessionCreditHint={scheduledSessionCreditHint}
       scheduledSessionDate={scheduledSessionDate}
       scheduledSessionId={scheduledSessionId}
       useOriginalLogger={useOriginalLogger}

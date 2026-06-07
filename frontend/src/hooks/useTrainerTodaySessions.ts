@@ -23,6 +23,11 @@ export interface TrainerSession {
   startTime?: string;
   endTime?: string;
   duration?: number | string | null;
+  creditsRequired?: number | string | null;
+  sessionCredits?: number | string | null;
+  sessionType?: {
+    creditsRequired?: number | string | null;
+  } | null;
   status?: string;
 }
 
@@ -54,8 +59,28 @@ const parsePositiveId = (value: number | string | null | undefined): string | nu
   return Number.isSafeInteger(parsedValue) ? String(parsedValue) : null;
 };
 
+const parseNonNegativeInteger = (value: number | string | null | undefined): number | null => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  const trimmedValue = value?.trim();
+  if (!trimmedValue || !/^(0|[1-9]\d*)$/.test(trimmedValue)) {
+    return null;
+  }
+
+  const parsedValue = Number(trimmedValue);
+  return Number.isSafeInteger(parsedValue) ? parsedValue : null;
+};
+
 export function getSessionClientId(s: TrainerSession): string | null {
   return parsePositiveId(s.userId) ?? parsePositiveId(s.client?.id);
+}
+
+export function getSessionCreditHint(s: TrainerSession): number | null {
+  return parseNonNegativeInteger(
+    s.sessionType?.creditsRequired ?? s.creditsRequired ?? s.sessionCredits
+  );
 }
 
 const parseSessionDate = (raw?: string | null): Date | null => {
@@ -97,6 +122,11 @@ export function buildTrainerSessionLogRoute(
 
   const start = getSessionStartDate(session);
   if (start) params.set('sessionDate', start.toISOString());
+
+  const sessionCreditHint = getSessionCreditHint(session);
+  if (sessionCreditHint !== null) {
+    params.set('sessionCredits', String(sessionCreditHint));
+  }
 
   return `/dashboard/trainer/log-workout?${params.toString()}`;
 }

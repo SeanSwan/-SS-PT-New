@@ -28,7 +28,36 @@ interface SessionSummaryFormProps {
   totalSets: number;
   estimatedDuration: number;
   clientSource?: string | null;
+  scheduledSessionCreditHint?: number | null;
 }
+
+const isNonDeductingClientSource = (clientSource: string | null | undefined): boolean =>
+  clientSource === 'move_fitness' || clientSource === 'external';
+
+const getSafeSessionCredits = (scheduledSessionCreditHint: number | null | undefined): number => {
+  if (typeof scheduledSessionCreditHint !== 'number') return 1;
+  if (!Number.isSafeInteger(scheduledSessionCreditHint)) return 1;
+  return Math.max(0, scheduledSessionCreditHint);
+};
+
+export const getSessionDeductionSummary = (
+  clientSource: string | null | undefined,
+  scheduledSessionCreditHint: number | null | undefined,
+): { label: string; isDeducting: boolean } => {
+  if (isNonDeductingClientSource(clientSource)) {
+    return { label: 'No Paid Session Deduction', isDeducting: false };
+  }
+
+  const credits = getSafeSessionCredits(scheduledSessionCreditHint);
+  if (credits < 1) {
+    return { label: 'No Paid Session Deduction', isDeducting: false };
+  }
+
+  return {
+    label: credits === 1 ? 'Will Deduct 1 Session Credit' : `Will Deduct ${credits} Session Credits`,
+    isDeducting: true,
+  };
+};
 
 const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
   overallIntensity,
@@ -39,12 +68,12 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
   totalSets,
   estimatedDuration,
   clientSource,
+  scheduledSessionCreditHint,
 }) => {
   const isRated = overallIntensity !== null && overallIntensity !== undefined;
   const sliderValue = isRated ? (overallIntensity as number) : 5;
-  const isNonDeductingClient = clientSource === 'move_fitness' || clientSource === 'external';
-  const DeductionIcon = isNonDeductingClient ? CheckCircle : AlertTriangle;
-  const deductionLabel = isNonDeductingClient ? 'No Paid Session Deduction' : 'Will Deduct 1 Session';
+  const deductionSummary = getSessionDeductionSummary(clientSource, scheduledSessionCreditHint);
+  const DeductionIcon = deductionSummary.isDeducting ? AlertTriangle : CheckCircle;
 
   return (
     <SummaryContainer>
@@ -103,9 +132,9 @@ const SessionSummaryForm: React.FC<SessionSummaryFormProps> = React.memo(({
           <Clock size={16} />
           Est. Duration: {estimatedDuration} min
         </InfoBadge>
-        <InfoBadge type={isNonDeductingClient ? 'success' : 'warning'}>
+        <InfoBadge type={deductionSummary.isDeducting ? 'warning' : 'success'}>
           <DeductionIcon size={16} />
-          {deductionLabel}
+          {deductionSummary.label}
         </InfoBadge>
       </StatsGrid>
     </SummaryContainer>

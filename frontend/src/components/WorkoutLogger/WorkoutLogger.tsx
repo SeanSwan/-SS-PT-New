@@ -136,6 +136,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   onCancel,
   initialData = [],
   loadTodayPlanSignal = 0,
+  scheduledSessionCreditHint = null,
   scheduledSessionId = null,
   scheduledSessionDate = null
 }) => {
@@ -1239,6 +1240,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             totalSets={totalSets}
             estimatedDuration={estimatedDuration}
             clientSource={client?.clientSource}
+            scheduledSessionCreditHint={scheduledSessionCreditHint}
           />
         )}
 

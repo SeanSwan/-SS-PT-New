@@ -44,12 +44,13 @@ describe('ClientsWorkspace route state parsing', () => {
 
   it('extracts scheduled workout logger context only for the training logger route', () => {
     const params = new URLSearchParams(
-      'clientId=61&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07'
+      'clientId=61&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07&sessionCredits=2'
     );
 
     expect(getClientScheduleWorkoutLoggerContextFromSearchParams(params)).toEqual({
       scheduledSessionId: '72',
       scheduledSessionDate: '2026-06-07',
+      scheduledSessionCreditHint: 2,
     });
   });
 
@@ -63,6 +64,18 @@ describe('ClientsWorkspace route state parsing', () => {
 
     expect(getClientScheduleWorkoutLoggerContextFromSearchParams(wrongSection)).toBeNull();
     expect(getClientScheduleWorkoutLoggerContextFromSearchParams(unsafeSession)).toBeNull();
+  });
+
+  it('drops unsafe scheduled session credit hints while keeping valid scheduled session context', () => {
+    const params = new URLSearchParams(
+      'clientId=61&tab=training&trainingSection=logger&sessionId=72&sessionDate=2026-06-07&sessionCredits=2junk'
+    );
+
+    expect(getClientScheduleWorkoutLoggerContextFromSearchParams(params)).toEqual({
+      scheduledSessionId: '72',
+      scheduledSessionDate: '2026-06-07',
+      scheduledSessionCreditHint: null,
+    });
   });
 });
 

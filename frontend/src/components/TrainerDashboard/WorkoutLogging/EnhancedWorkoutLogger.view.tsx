@@ -99,6 +99,7 @@ const LoggerProblemState: React.FC<LoggerProblemStateProps> = ({
 interface LoggerReadyStateProps {
   backToClientsLabel: string;
   client: LoggerClient;
+  scheduledSessionCreditHint: number | null;
   scheduledSessionDate: string | null;
   scheduledSessionId: string | null;
   onBackToClients: VoidHandler;
@@ -109,6 +110,7 @@ interface LoggerReadyStateProps {
 const LoggerReadyState: React.FC<LoggerReadyStateProps> = ({
   backToClientsLabel,
   client,
+  scheduledSessionCreditHint,
   scheduledSessionDate,
   scheduledSessionId,
   onBackToClients,
@@ -128,6 +130,7 @@ const LoggerReadyState: React.FC<LoggerReadyStateProps> = ({
 
     <WorkoutLogger
       clientId={client.id}
+      scheduledSessionCreditHint={scheduledSessionCreditHint}
       scheduledSessionId={scheduledSessionId}
       scheduledSessionDate={scheduledSessionDate}
       onComplete={onWorkoutComplete}
@@ -141,6 +144,7 @@ interface EnhancedWorkoutLoggerViewProps {
   client: LoggerClient | null;
   error: string | null;
   loading: boolean;
+  scheduledSessionCreditHint: number | null;
   scheduledSessionDate: string | null;
   scheduledSessionId: string | null;
   useOriginalLogger: boolean;
@@ -162,6 +166,7 @@ const EnhancedWorkoutLoggerView: React.FC<EnhancedWorkoutLoggerViewProps> = ({
   client,
   error,
   loading,
+  scheduledSessionCreditHint,
   scheduledSessionDate,
   scheduledSessionId,
   useOriginalLogger,
@@ -177,6 +182,7 @@ const EnhancedWorkoutLoggerView: React.FC<EnhancedWorkoutLoggerViewProps> = ({
       <LoggerReadyState
         backToClientsLabel={backToClientsLabel}
         client={client}
+        scheduledSessionCreditHint={scheduledSessionCreditHint}
         scheduledSessionDate={scheduledSessionDate}
         scheduledSessionId={scheduledSessionId}
         onBackToClients={onBackToClients}

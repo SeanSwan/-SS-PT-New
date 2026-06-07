@@ -44,6 +44,9 @@ export const useClientsWorkspaceTabRenderers = (
       if (scheduleLoggerContext.scheduledSessionDate) {
         nextParams.sessionDate = scheduleLoggerContext.scheduledSessionDate;
       }
+      if (scheduleLoggerContext.scheduledSessionCreditHint !== null) {
+        nextParams.sessionCredits = String(scheduleLoggerContext.scheduledSessionCreditHint);
+      }
     }
 
     setSearchParams(nextParams);
@@ -57,6 +60,7 @@ export const useClientsWorkspaceTabRenderers = (
         initialSection={initialTrainingSection ?? undefined}
         onSectionChange={writeTrainingSectionRoute}
         onOpenProgress={onOpenProgress}
+        scheduledSessionCreditHint={scheduleLoggerContext?.scheduledSessionCreditHint ?? null}
         scheduledSessionDate={scheduleLoggerContext?.scheduledSessionDate ?? null}
         scheduledSessionId={scheduleLoggerContext?.scheduledSessionId ?? null}
       />

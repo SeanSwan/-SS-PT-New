@@ -67,10 +67,12 @@ vi.mock('@/utils/logger', () => ({
 vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
   default: ({
     clientId,
+    scheduledSessionCreditHint,
     scheduledSessionId,
     onComplete,
   }: {
     clientId: number;
+    scheduledSessionCreditHint?: number | null;
     scheduledSessionId?: string | null;
     onComplete?: (formData: unknown) => void;
   }) => (
@@ -78,6 +80,7 @@ vi.mock('../../WorkoutLogger/WorkoutLogger', () => ({
       type="button"
       data-testid="real-workout-logger"
       data-client-id={String(clientId)}
+      data-session-credits={scheduledSessionCreditHint ?? ''}
       data-session-id={scheduledSessionId ?? ''}
       onClick={() => onComplete?.({ id: 'completed-form' })}
     >
@@ -233,6 +236,17 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
 
     expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-session-id', '');
     expect(mockGet).toHaveBeenCalledWith('/api/workout-forms/client/61/info');
+  });
+
+  it('trainer: passes sanitized scheduled session credit hints into WorkoutLogger display state', async () => {
+    mockRole = 'trainer';
+    mockSearchQuery = 'clientId=61&sessionId=314&sessionCredits=2&source=master-schedule';
+    mockGet.mockResolvedValueOnce(REAL_CLIENT_INFO_RESPONSE);
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByTestId('real-workout-logger')).toHaveAttribute('data-session-id', '314');
+    expect(screen.getByTestId('real-workout-logger')).toHaveAttribute('data-session-credits', '2');
   });
 
   it('rejects malformed URL client ids before hitting the client info endpoint', async () => {

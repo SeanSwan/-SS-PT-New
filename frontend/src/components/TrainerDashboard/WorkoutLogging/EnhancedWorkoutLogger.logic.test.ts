@@ -4,6 +4,7 @@ import {
   buildLoggerRouteContext,
   normalizeDashboardReturnTo,
   parseLoggerClientId,
+  parseLoggerSessionCreditHint,
   parseLoggerSessionId,
   toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
@@ -47,6 +48,14 @@ describe('EnhancedWorkoutLogger scheduled session identity parsing', () => {
     expect(parseLoggerSessionId('0')).toBeNull();
     expect(parseLoggerSessionId(null)).toBeNull();
   });
+
+  it('keeps only complete non-negative integer session credit hints', () => {
+    expect(parseLoggerSessionCreditHint('2')).toBe(2);
+    expect(parseLoggerSessionCreditHint(' 0 ')).toBe(0);
+    expect(parseLoggerSessionCreditHint('2junk')).toBeNull();
+    expect(parseLoggerSessionCreditHint('-1')).toBeNull();
+    expect(parseLoggerSessionCreditHint(null)).toBeNull();
+  });
 });
 
 describe('EnhancedWorkoutLogger route context', () => {
@@ -85,12 +94,13 @@ describe('EnhancedWorkoutLogger route context', () => {
       requestedReturnTo: '/dashboard/admin/master-schedule?sessionId=314',
       routeClientId: 61,
       scheduledSessionDate: '2026-06-07',
+      scheduledSessionCreditHint: 2,
       scheduledSessionId: '314',
       source: 'master-schedule',
       userRole: 'admin',
     })).toMatchObject({
       backToClientsLabel: 'Back to Schedule',
-      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-07',
+      clientHubRedirectPath: '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today&sessionId=314&sessionDate=2026-06-07&sessionCredits=2',
       isClientHubOrigin: false,
       workflowReturnPath: '/dashboard/admin/master-schedule?sessionId=314',
     });

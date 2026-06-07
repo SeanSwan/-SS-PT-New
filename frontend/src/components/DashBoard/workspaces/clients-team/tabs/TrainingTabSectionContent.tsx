@@ -51,6 +51,7 @@ interface TrainingSectionContentProps {
   loadTodayPlanSignal: number;
   planVaultRefreshSignal: number;
   safeClientId: number;
+  scheduledSessionCreditHint: number | null;
   scheduledSessionDate: string | null;
   scheduledSessionId: string | null;
   onArchitectPlanCreated: () => void;
@@ -93,12 +94,14 @@ const sectionRenderers: Record<TrainingSection, (props: TrainingSectionContentPr
     onWorkoutCancel,
     onWorkoutComplete,
     safeClientId,
+    scheduledSessionCreditHint,
     scheduledSessionDate,
     scheduledSessionId,
   }) => (
     <WorkoutLogger
       clientId={safeClientId}
       loadTodayPlanSignal={loadTodayPlanSignal}
+      scheduledSessionCreditHint={scheduledSessionCreditHint}
       scheduledSessionDate={scheduledSessionDate}
       scheduledSessionId={scheduledSessionId}
       onComplete={onWorkoutComplete}
