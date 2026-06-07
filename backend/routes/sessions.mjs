@@ -1627,8 +1627,7 @@ router.put("/:id", protect, async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Server error updating session',
-      error: rawMessage
+      message: 'Server error updating session'
     });
   }
 });

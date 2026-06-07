@@ -19,6 +19,7 @@ const {
   getTrainers,
   getClients,
   sessionFindAll,
+  sessionFindByPk,
   userIncrement,
   userReload,
   sessionCount,
@@ -32,6 +33,7 @@ const {
   getTrainers: vi.fn(),
   getClients: vi.fn(),
   sessionFindAll: vi.fn(),
+  sessionFindByPk: vi.fn(),
   userIncrement: vi.fn(),
   userReload: vi.fn(),
   sessionCount: vi.fn(),
@@ -56,6 +58,7 @@ vi.mock('../models/Session.mjs', () => ({
   default: {
     count: sessionCount,
     findAll: sessionFindAll,
+    findByPk: sessionFindByPk,
     sequelize: {
       Sequelize: {
         Op: {
@@ -126,6 +129,7 @@ describe('mounted sessions allocation compatibility routes', () => {
     getTrainers.mockReset();
     getClients.mockReset();
     sessionFindAll.mockReset();
+    sessionFindByPk.mockReset();
     userIncrement.mockReset();
     userReload.mockReset();
     sessionCount.mockReset();
@@ -250,6 +254,21 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error fetching session',
     });
     expect(JSON.stringify(response.body)).not.toContain('private session detail');
+  });
+
+  it('PUT /api/sessions/:id does not disclose internal update errors', async () => {
+    sessionFindByPk.mockRejectedValueOnce(new Error('private session update storage host'));
+
+    const response = await request(app)
+      .put('/api/sessions/42')
+      .send({ notes: 'Update notes' });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error updating session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private session update');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {
