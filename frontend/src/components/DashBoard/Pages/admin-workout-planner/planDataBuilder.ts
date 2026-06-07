@@ -23,6 +23,11 @@
  */
 
 import type { GeneratedPlan, PlanExercise, PlanGoal, WorkoutCategory } from './WorkoutPlannerTypes';
+import {
+  TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
+  withTrainerSessionDaySemantics,
+  withTrainerSessionPlanWeeks,
+} from '../../../../utils/workoutPlanAssignmentSemantics';
 
 interface ManualBuildInputs {
   mode: 'manual';
@@ -63,7 +68,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
     // it. Optional fields are included only when present so V1 / pre-L1
     // plan loaders that don't recognize them are unaffected.
     const payload: Record<string, unknown> = {
-      weeks: Array.isArray(generatedPlan.weeks) ? generatedPlan.weeks : [],
+      weeks: withTrainerSessionPlanWeeks(generatedPlan.weeks),
       mesocycles: generatedPlan.mesocycles ?? [],
       weeklySchedule: generatedPlan.weeklySchedule ?? [],
       recommendations: generatedPlan.recommendations ?? [],
@@ -74,6 +79,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
       planSummary: generatedPlan.planSummary,
       goal,
       category: generatedCategory,
+      assignmentDefaults: TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
     };
     if (generatedPlan.planningSystem) {
       payload.planningSystem = generatedPlan.planningSystem;
@@ -99,7 +105,7 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
   return {
     weeks: [{
       weekNumber: 1,
-      days: [{
+      days: [withTrainerSessionDaySemantics({
         dayNumber: 1,
         name: `${phaseName} Workout`,
         focus: categoryLabel,
@@ -120,10 +126,11 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
           intensityGuideline: `${p.intensityPercent}% 1RM`,
           notes: p.notes || '',
         })),
-      }],
+      })],
     }],
     goal,
     category,
+    assignmentDefaults: TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
   };
 }
 

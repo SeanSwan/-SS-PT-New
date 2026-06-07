@@ -124,6 +124,9 @@ export interface WorkoutPlanDay {
   name: string;
   focus?: string;
   dayType: string;
+  assignmentType?: string;
+  billingIntent?: string;
+  shouldDeductSession?: boolean;
   optPhase?: string;
   notes?: string;
   warmupInstructions?: string;

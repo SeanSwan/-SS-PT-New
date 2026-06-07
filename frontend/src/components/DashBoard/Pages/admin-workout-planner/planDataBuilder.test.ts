@@ -41,6 +41,16 @@ describe('buildPlanData - manual mode (pre-existing contract)', () => {
     expect(weeks).toHaveLength(1);
     expect(weeks[0].days).toHaveLength(1);
     expect(weeks[0].days[0].exercises).toHaveLength(2);
+    expect(weeks[0].days[0]).toMatchObject({
+      assignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
+    expect(result.assignmentDefaults).toEqual({
+      defaultAssignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
     expect(result.goal).toBe('general_fitness');
     expect(result.category).toBe('full_body');
   });
@@ -65,6 +75,46 @@ describe('buildPlanData - generated mode (AI Village CRITICAL-4 fix)', () => {
     // Exercise keys round-trip — no flattening to a single day.
     const firstDay = (weeks[0] as { days: Array<{ exercises: Array<{ exerciseId: string }> }> }).days[0];
     expect(firstDay.exercises[0].exerciseId).toBe('ex-0-0-1');
+    expect(firstDay).toMatchObject({
+      assignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
+    expect(result.assignmentDefaults).toEqual({
+      defaultAssignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
+  });
+
+  it('preserves explicit non-billable homework days from generated plans', () => {
+    const generatedPlan = buildGeneratedPlan({
+      weeks: [{
+        weekNumber: 1,
+        days: [{
+          dayNumber: 1,
+          name: 'Off-Day Homework',
+          focus: 'mobility',
+          assignmentType: 'homework',
+          billingIntent: 'non_billable_assignment',
+          shouldDeductSession: false,
+          exercises: [{ exerciseId: 'hip-flow', exerciseName: 'Hip Flow' }],
+        } as NonNullable<NonNullable<GeneratedPlan['weeks']>[number]['days']>[number]],
+      }],
+    });
+    const result = buildPlanData({
+      mode: 'generated',
+      generatedPlan,
+      category: 'full_body',
+      goal: 'general_fitness',
+    });
+
+    const day = ((result.weeks as Array<{ days: Array<Record<string, unknown>> }>)[0].days[0]);
+    expect(day).toMatchObject({
+      assignmentType: 'homework',
+      billingIntent: 'non_billable_assignment',
+      shouldDeductSession: false,
+    });
   });
 
   it('persists every L1 additive field verbatim', () => {

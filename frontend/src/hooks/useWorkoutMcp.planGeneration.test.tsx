@@ -108,6 +108,9 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
       name: 'Week 1 - Day 1: Push',
       focus: 'push',
       dayType: 'training',
+      assignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
       optPhase: 'strength_endurance',
       sortOrder: 1,
       exercises: [{
@@ -201,6 +204,16 @@ describe('useWorkoutMcp.generateWorkoutPlan', () => {
         horizonKey: 'six_month',
         planSource: 'swan_coach_planning',
         createdByRole: 'admin',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      }),
+      planData: expect.objectContaining({
+        assignmentDefaults: {
+          defaultAssignmentType: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          shouldDeductSession: false,
+        },
       }),
     }));
     expect(apiService.put).toHaveBeenCalledWith('/api/workout-plans/99/activate');
@@ -247,7 +260,20 @@ describe('buildWorkoutPlanSavePayload', () => {
     });
 
     expect(payload.planData).toEqual(expect.objectContaining({
-      weeks: [{ weekNumber: 1, days: [reviewedDay] }],
+      weeks: [{
+        weekNumber: 1,
+        days: [expect.objectContaining({
+          ...reviewedDay,
+          assignmentType: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          shouldDeductSession: false,
+        })],
+      }],
+      assignmentDefaults: {
+        defaultAssignmentType: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        shouldDeductSession: false,
+      },
     }));
   });
 });

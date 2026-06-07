@@ -8,6 +8,12 @@
  */
 
 import type { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } from './useWorkoutMcp.types';
+import {
+  TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
+  TRAINER_SESSION_METADATA,
+  withTrainerSessionDaySemantics,
+  withTrainerSessionPlanWeeks,
+} from '../utils/workoutPlanAssignmentSemantics';
 
 export interface WorkoutPlanGenerationParams {
   trainerId: string;
@@ -128,13 +134,11 @@ const buildPersistablePlanData = (plan: WorkoutPlan) => {
     : fallbackWeeks;
   return {
     ...existing,
-    weeks: existingWeeks,
+    weeks: withTrainerSessionPlanWeeks(existingWeeks),
     goal: existing.goal || plan.goal || 'general',
     assignmentDefaults: {
       ...toRecord(existing.assignmentDefaults),
-      defaultAssignmentType: 'homework',
-      billingIntent: 'non_billable_assignment',
-      shouldDeductSession: false,
+      ...TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
     },
   };
 };
@@ -167,7 +171,7 @@ const normalizeGeneratedDays = (generatedPlan: Record<string, unknown>): Workout
       const dayRecord = day as Record<string, unknown>;
       const exercises = Array.isArray(dayRecord.exercises) ? dayRecord.exercises : [];
       const sortOrder = days.length + 1;
-      days.push({
+      days.push(withTrainerSessionDaySemantics({
         dayNumber: sortOrder,
         name: `Week ${weekNumber} - ${firstString(dayRecord.name) || `Day ${sortOrder}`}`,
         focus: firstString(dayRecord.focus) || 'full_body',
@@ -177,7 +181,7 @@ const normalizeGeneratedDays = (generatedPlan: Record<string, unknown>): Workout
         exercises: exercises
           .filter((exercise): exercise is Record<string, unknown> => Boolean(exercise && typeof exercise === 'object'))
           .map(normalizeExercise),
-      });
+      }));
     }
   }
   return days;
@@ -252,9 +256,7 @@ export const buildWorkoutPlanSavePayload = (
       durationWeeks,
       planSource: isCoachPlan ? 'swan_coach_planning' : 'manual_builder',
       createdByRole: creatorRole,
-      assignmentDefault: 'homework',
-      billingIntent: 'non_billable_assignment',
-      defaultShouldDeductSession: false,
+      ...TRAINER_SESSION_METADATA,
     },
   };
 };

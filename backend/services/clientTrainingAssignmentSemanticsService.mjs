@@ -15,6 +15,7 @@ const ASSIGNMENT_TYPE_ALIASES = new Map([
   ['trainer_led', 'trainer_session'],
   ['trainer', 'trainer_session'],
   ['in_person', 'trainer_session'],
+  ['training', 'trainer_session'],
   ['active_recovery', 'active_recovery'],
   ['recovery', 'active_recovery'],
   ['mobility', 'active_recovery'],

@@ -7,6 +7,7 @@
  */
 
 import type { PlanDuration } from './WorkoutPlannerTypes';
+import { TRAINER_SESSION_METADATA } from '../../../../utils/workoutPlanAssignmentSemantics';
 
 type SwanPlanHorizonKey =
   | 'one_day'
@@ -106,6 +107,7 @@ export const buildWorkoutPlanSaveFields = ({
       durationWeeks,
       planSource: hasGeneratedHorizonPlan ? 'swan_coach_planning' : 'manual_builder',
       createdByRole: creatorRole,
+      ...TRAINER_SESSION_METADATA,
     },
   };
 };

@@ -33,6 +33,9 @@ describe('workout planner save payload metadata', () => {
         durationPreset: '24',
         planSource: 'swan_coach_planning',
         createdByRole: 'trainer',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
       },
     });
   });
@@ -54,6 +57,9 @@ describe('workout planner save payload metadata', () => {
         planHorizon: 'one_day',
         planSource: 'manual_builder',
         createdByRole: 'admin',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
       },
     });
   });

@@ -15,6 +15,7 @@ import {
   type WorkoutPlanDayExercise,
 } from '../../hooks/useWorkoutMcp';
 import { logger } from '@/utils/logger';
+import { withTrainerSessionDaySemantics } from '../../utils/workoutPlanAssignmentSemantics';
 import type { WorkoutPlanBuilderProps } from './WorkoutPlanBuilderTypes';
 
 const DEFAULT_PRIMARY_PLAN_WEEKS = 26;
@@ -111,14 +112,14 @@ export const useWorkoutPlanBuilderController = ({
 
   const addWorkoutDay = () => {
     const nextDayNumber = workoutDays.length + 1;
-    setWorkoutDays([...workoutDays, {
+    setWorkoutDays([...workoutDays, withTrainerSessionDaySemantics({
       dayNumber: nextDayNumber,
       name: `Day ${nextDayNumber}`,
       focus: 'full_body',
       dayType: 'training',
       sortOrder: nextDayNumber,
       exercises: [],
-    }]);
+    })]);
   };
 
   const updateWorkoutDay = (dayIndex: number, updatedDay: WorkoutPlanDay) => {

@@ -93,6 +93,36 @@ describe('clientTrainingReadModelService assignment context', () => {
     });
   });
 
+  it('treats legacy generated dayType training as trainer-led without auto-deducting', () => {
+    const legacyTrainingPlan = {
+      ...sixMonthPlan,
+      id: 'plan-legacy-training',
+      title: 'Legacy Training Arc',
+    };
+
+    const overview = buildClientTrainingOverview({
+      activePlan: legacyTrainingPlan,
+      plans: [legacyTrainingPlan],
+      currentSession: {
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'Coach Strength Session',
+        session: { dayType: 'training', exercises: [{ exerciseName: 'Cable Row' }] },
+        exercises: [{ exerciseName: 'Cable Row' }],
+      },
+      today: '2026-06-06',
+    });
+
+    expect(overview.todayAssignment).toMatchObject({
+      assignmentKey: 'plan-legacy-training:w4:d2:trainer_session',
+      assignmentType: 'trainer_session',
+      sessionType: 'trainer-led',
+      isBillable: true,
+      shouldDeductSession: false,
+      ctaLabel: 'Log Workout',
+    });
+  });
+
   it('keeps rest days visible but not loggable', () => {
     const restPlan = { ...sixMonthPlan, currentDay: 3 };
     const assignment = buildClientTrainingOverview({
