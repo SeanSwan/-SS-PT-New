@@ -7,6 +7,7 @@
 
 import { expect, test } from '@playwright/test';
 import {
+  isExpectedMissionConsoleNoise,
   installMissionUser,
   mockClientProgressMissionApi,
   watchConsoleErrors,
@@ -14,13 +15,6 @@ import {
 } from './missionHarness';
 
 test.describe.configure({ retries: 0 });
-
-function missionExpectedConsoleNoise(message: string) {
-  if (/preloaded using link preload/i.test(message)) return true;
-
-  return process.env.SWAN_MISSION_QA_MODE === 'contract'
-    && /WebSocket connection to 'ws:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\//i.test(message);
-}
 
 test('@mission @contract @readonly client sees assignment, log CTA, and progress proof charts', async ({ page }, testInfo) => {
   expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
@@ -66,7 +60,7 @@ test('@mission @contract @readonly client sees assignment, log CTA, and progress
     shouldDeductSession: false,
   }));
   expect(apiState.blockedWrites).toEqual([]);
-  expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isExpectedMissionConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('client-proof-loop.png'), fullPage: false });
 });

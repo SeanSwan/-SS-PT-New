@@ -7,7 +7,13 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
-import { fulfillJson, jwt, watchConsoleErrors, type MissionApiState } from './missionHarness';
+import {
+  fulfillJson,
+  isExpectedMissionConsoleNoise,
+  jwt,
+  watchConsoleErrors,
+  type MissionApiState,
+} from './missionHarness';
 
 test.describe.configure({ retries: 0 });
 
@@ -60,13 +66,6 @@ async function installAdminSession(page: Page) {
     },
     { token: jwt(), currentUser: adminUser },
   );
-}
-
-function missionExpectedConsoleNoise(message: string) {
-  if (/preloaded using link preload/i.test(message)) return true;
-
-  return process.env.SWAN_MISSION_QA_MODE === 'contract'
-    && /WebSocket connection to 'ws:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\//i.test(message);
 }
 
 async function blockWrite(route: Route, state: MissionApiState, endpoint: string) {
@@ -206,7 +205,7 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   await page.getByRole('button', { name: /keep logging/i }).click();
 
   expect(apiState.blockedWrites).toEqual([]);
-  expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isExpectedMissionConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-workout-logger-actions.png'), fullPage: false });
 });
@@ -237,7 +236,7 @@ test('@mission @contract @readonly admin plan vault exposes trainer-led versus h
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   expect(layout.bodyText).not.toMatch(/Demo Mode|Sarah Johnson|Real API integration coming soon/i);
   expect(apiState.blockedWrites).toEqual([]);
-  expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isExpectedMissionConsoleNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-plan-vault-assignment-use.png'), fullPage: false });
 });

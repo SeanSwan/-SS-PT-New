@@ -67,6 +67,28 @@ export function watchConsoleErrors(page: Page) {
   return consoleErrors;
 }
 
+export function isExpectedMissionConsoleNoise(message: string) {
+  if (/preloaded using link preload/i.test(message)) return true;
+
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'contract'
+    && /WebSocket connection to 'ws:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\//i.test(message)
+  ) {
+    return true;
+  }
+
+  // In production read-only smoke, Chromium reports Socket.IO polling cleanup
+  // as a generic resource 400 without the URL in the console message.
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'prod-readonly'
+    && /^Failed to load resource: the server responded with a status of 400 \(\)$/i.test(message)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 const point = (x: string, y: number) => ({ x, y });
 
 const chartResponses: Record<string, () => unknown> = {
