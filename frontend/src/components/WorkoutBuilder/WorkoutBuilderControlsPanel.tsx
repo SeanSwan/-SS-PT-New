@@ -148,6 +148,68 @@ const EquipmentProfileField: React.FC<{
   );
 };
 
+const ModeSpecificFields: React.FC<Pick<
+  WorkoutBuilderControlsPanelProps,
+  | 'mode'
+  | 'category'
+  | 'setCategory'
+  | 'exerciseCount'
+  | 'setExerciseCount'
+  | 'rotationPattern'
+  | 'setRotationPattern'
+  | 'planWeeks'
+  | 'setPlanWeeks'
+  | 'sessionsPerWeek'
+  | 'setSessionsPerWeek'
+  | 'primaryGoal'
+  | 'setPrimaryGoal'
+>> = (props) => {
+  if (props.mode === 'workout') {
+    return (
+      <WorkoutModeFields
+        category={props.category}
+        setCategory={props.setCategory}
+        exerciseCount={props.exerciseCount}
+        setExerciseCount={props.setExerciseCount}
+        rotationPattern={props.rotationPattern}
+        setRotationPattern={props.setRotationPattern}
+      />
+    );
+  }
+
+  return (
+    <PlanModeFields
+      planWeeks={props.planWeeks}
+      setPlanWeeks={props.setPlanWeeks}
+      sessionsPerWeek={props.sessionsPerWeek}
+      setSessionsPerWeek={props.setSessionsPerWeek}
+      primaryGoal={props.primaryGoal}
+      setPrimaryGoal={props.setPrimaryGoal}
+    />
+  );
+};
+
+const getGenerateButtonLabel = (loading: boolean, mode: WorkoutBuilderMode): string => {
+  if (loading) return 'Planning...';
+  return mode === 'workout' ? 'Swan Coach Workout' : 'Swan Coach Plan';
+};
+
+const GenerateButton: React.FC<{
+  loading: boolean;
+  mode: WorkoutBuilderMode;
+  parsedClientId: number | null;
+  onGenerate: () => void;
+}> = ({ loading, mode, parsedClientId, onGenerate }) => (
+  <PrimaryButton onClick={onGenerate} disabled={loading || !parsedClientId}>
+    {getGenerateButtonLabel(loading, mode)}
+  </PrimaryButton>
+);
+
+const GenerationErrorBanner: React.FC<{ error: string | null }> = ({ error }) => {
+  if (!error) return null;
+  return <ErrorBanner $top={12}>{error}</ErrorBanner>;
+};
+
 const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = ({
   mode,
   setMode,
@@ -187,26 +249,21 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
     </PanelTitle>
 
     <ConfigRow>
-      {mode === 'workout' ? (
-        <WorkoutModeFields
-          category={category}
-          setCategory={setCategory}
-          exerciseCount={exerciseCount}
-          setExerciseCount={setExerciseCount}
-          rotationPattern={rotationPattern}
-          setRotationPattern={setRotationPattern}
-        />
-      ) : (
-        <PlanModeFields
-          planWeeks={planWeeks}
-          setPlanWeeks={setPlanWeeks}
-          sessionsPerWeek={sessionsPerWeek}
-          setSessionsPerWeek={setSessionsPerWeek}
-          primaryGoal={primaryGoal}
-          setPrimaryGoal={setPrimaryGoal}
-        />
-      )}
-
+      <ModeSpecificFields
+        mode={mode}
+        category={category}
+        setCategory={setCategory}
+        exerciseCount={exerciseCount}
+        setExerciseCount={setExerciseCount}
+        rotationPattern={rotationPattern}
+        setRotationPattern={setRotationPattern}
+        planWeeks={planWeeks}
+        setPlanWeeks={setPlanWeeks}
+        sessionsPerWeek={sessionsPerWeek}
+        setSessionsPerWeek={setSessionsPerWeek}
+        primaryGoal={primaryGoal}
+        setPrimaryGoal={setPrimaryGoal}
+      />
       <EquipmentProfileField
         context={context}
         equipmentProfileId={equipmentProfileId}
@@ -214,11 +271,14 @@ const WorkoutBuilderControlsPanel: React.FC<WorkoutBuilderControlsPanelProps> = 
       />
     </ConfigRow>
 
-    <PrimaryButton onClick={onGenerate} disabled={loading || !parsedClientId}>
-      {loading ? 'Planning...' : mode === 'workout' ? 'Swan Coach Workout' : 'Swan Coach Plan'}
-    </PrimaryButton>
+    <GenerateButton
+      loading={loading}
+      mode={mode}
+      parsedClientId={parsedClientId}
+      onGenerate={onGenerate}
+    />
 
-    {error && <ErrorBanner $top={12}>{error}</ErrorBanner>}
+    <GenerationErrorBanner error={error} />
 
     <WorkoutBuilderResults workout={workout} plan={plan} />
   </Panel>
