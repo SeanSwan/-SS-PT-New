@@ -240,6 +240,15 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
         clientId: 91,
         trainerId: 5,
         date: '2026-04-17',
+        sessionDeducted: true,
+        billing: {
+          status: 'deducted',
+          shouldDeduct: true,
+          sessionDeducted: true,
+          creditsDeducted: 2,
+          creditsRequired: 2,
+          remainingSessions: 4,
+        },
       },
       message: 'Workout logged successfully and session deducted',
     });
@@ -270,6 +279,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
     await waitFor(() => {
       expect(mockQueueSubmission).not.toHaveBeenCalled();
     });
+    expect(toastSuccessMock).toHaveBeenCalledWith('Workout saved. 2 credits deducted; 4 remaining.');
   });
 
   it('409 duplicate-form response unlocks Generate Summary with the existing form id', async () => {
@@ -338,6 +348,14 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
         trainerId: 5,
         date: '2026-05-26',
         sessionDeducted: false,
+        billing: {
+          status: 'not_deducted',
+          shouldDeduct: false,
+          sessionDeducted: false,
+          creditsDeducted: 0,
+          creditsRequired: 0,
+          remainingSessions: 0,
+        },
       },
       message: 'Workout logged successfully without session deduction',
     });
@@ -362,7 +380,7 @@ describe('Phase 16.2 round 13 — successful save does NOT call offlineQueue.que
       expect(submitWorkoutFormMock).toHaveBeenCalledTimes(1);
     });
     expect(toastErrorMock).not.toHaveBeenCalledWith('Client has no available sessions remaining');
-    expect(toastSuccessMock).toHaveBeenCalledWith('Workout logged successfully without session deduction');
+    expect(toastSuccessMock).toHaveBeenCalledWith('Workout saved. No paid session deducted.');
   });
 
   it('submits the selected training-location equipment profile when the picker is rendered', async () => {

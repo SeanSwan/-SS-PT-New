@@ -136,6 +136,12 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain("await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct");
     expect(submitRoute).toContain('if (billingDecision.sessionDeducted)');
     expect(submitRoute).toContain('await dailyForm.update({ sessionDeducted: true }');
+    expect(submitRoute).toContain('const billingReceipt = {');
+    expect(submitRoute).toContain('const billingReceiptCreditsRequired = billingDecision.creditsToDeduct > 0');
+    expect(submitRoute).toContain('creditsDeducted: billingDecision.creditsToDeduct');
+    expect(submitRoute).toContain('creditsRequired: billingReceiptCreditsRequired');
+    expect(submitRoute).toContain('remainingSessions: billingReceiptRemainingSessions');
+    expect(submitRoute).toContain('billing: billingReceipt');
     expect(submitRoute).toContain('checkInTime: linkedScheduledSession.checkInTime || scheduledSessionCompletionDate');
     expect(submitRoute).toContain("const scheduledSessionAttendanceRecorderId = userRole === 'client'");
     expect(submitRoute).toContain('markedPresentBy: scheduledSessionAttendanceRecorderId');

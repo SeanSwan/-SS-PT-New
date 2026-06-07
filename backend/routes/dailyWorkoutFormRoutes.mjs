@@ -36,7 +36,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
 import { awardWorkoutXP } from '../services/awardWorkoutXP.mjs';
-import { buildWorkoutSessionBillingDecision } from '../services/sessionBillingPolicy.mjs';
+import { buildWorkoutSessionBillingDecision, normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
 import {
@@ -660,6 +660,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Client not found' });
     }
+    const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
 
     let linkedScheduledSession = null;
     if (parsedScheduledSessionId) {
@@ -1025,6 +1026,29 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       await dailyForm.update({ sessionDeducted: true }, { transaction });
     }
 
+    const billingReceiptRemainingSessions = Math.max(
+      0,
+      availableSessionsBeforeSave - billingDecision.creditsToDeduct
+    );
+    const billingReceiptStatus = billingDecision.sessionDeducted
+      ? (billingDecision.creditsToDeduct > 0 ? 'deducted' : 'previously_deducted')
+      : 'not_deducted';
+    const billingReceiptCreditsRequired = billingDecision.creditsToDeduct > 0
+      ? billingDecision.creditsToDeduct
+      : (
+          scheduledSessionCreditsRequired === undefined
+            ? 1
+            : normalizePaidSessionCount(scheduledSessionCreditsRequired)
+        );
+    const billingReceipt = {
+      status: billingReceiptStatus,
+      shouldDeduct: billingDecision.shouldDeduct,
+      sessionDeducted: billingDecision.sessionDeducted,
+      creditsDeducted: billingDecision.creditsToDeduct,
+      creditsRequired: billingReceiptCreditsRequired,
+      remainingSessions: billingReceiptRemainingSessions
+    };
+
     const planProgress = plannedAssignmentMetadata
       ? await advancePlanAfterPlannedAssignmentLog({
           WorkoutPlan: getWorkoutPlan(),
@@ -1114,6 +1138,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         totalSets,
         estimatedDuration,
         sessionDeducted: billingDecision.sessionDeducted,
+        billing: billingReceipt,
         plannedAssignment: plannedAssignmentMetadata,
         planProgress: planProgress?.advanced ? planProgress : null,
         submittedAt: dailyForm.submittedAt

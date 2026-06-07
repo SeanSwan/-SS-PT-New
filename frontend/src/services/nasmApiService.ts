@@ -163,6 +163,15 @@ export interface DailyWorkoutFormSubmitPayload {
   plannedAssignment?: PlannedWorkoutAssignmentMetadata;
 }
 
+export interface WorkoutSessionBillingReceipt {
+  status: 'deducted' | 'not_deducted' | 'previously_deducted' | string;
+  shouldDeduct: boolean;
+  sessionDeducted: boolean;
+  creditsDeducted: number;
+  creditsRequired: number;
+  remainingSessions: number | null;
+}
+
 export interface DailyWorkoutForm {
   id: string;
   formId?: string;
@@ -186,6 +195,7 @@ export interface DailyWorkoutForm {
   };
   totalPointsEarned: number;
   mcpProcessed: boolean;
+  billing?: WorkoutSessionBillingReceipt;
   submittedAt: string;
   mcpProcessedAt?: string;
   processingErrors?: any;

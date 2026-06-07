@@ -62,6 +62,7 @@ import {
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
+import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
 import WorkoutLoggerConfirmDialog, { type WorkoutLoggerConfirmRequest } from './WorkoutLoggerConfirmDialog';
@@ -847,7 +848,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       );
 
       if (response.success && response.data) {
-        toast.success(response.message || 'Workout logged successfully! Progress updated.');
+        toast.success(buildWorkoutSubmitSuccessMessage(response.data, response.message));
         setSubmittedFormId(response.data.id || response.data.formId || null);
         resolvedOnComplete(response.data);
       } else {

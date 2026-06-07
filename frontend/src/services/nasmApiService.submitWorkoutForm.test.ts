@@ -74,7 +74,19 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
       config: {},
       data: {
         success: true,
-        form: { id: 'form-uuid-1', clientId: 91, trainerId: 5 },
+        form: {
+          id: 'form-uuid-1',
+          clientId: 91,
+          trainerId: 5,
+          billing: {
+            status: 'deducted',
+            shouldDeduct: true,
+            sessionDeducted: true,
+            creditsDeducted: 2,
+            creditsRequired: 2,
+            remainingSessions: 4,
+          },
+        },
         message: 'Workout logged successfully and session deducted',
       },
     });
@@ -88,6 +100,14 @@ describe('dailyWorkoutFormService.submitWorkoutForm — AxiosResponse unwrap (ro
       id: 'form-uuid-1',
       clientId: 91,
       trainerId: 5,
+      billing: {
+        status: 'deducted',
+        shouldDeduct: true,
+        sessionDeducted: true,
+        creditsDeducted: 2,
+        creditsRequired: 2,
+        remainingSessions: 4,
+      },
     });
     expect(result.message).toBe('Workout logged successfully and session deducted');
   });
