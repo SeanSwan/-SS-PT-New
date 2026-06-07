@@ -27,6 +27,7 @@ export const missionClientUser = {
 
 export interface MissionApiState {
   blockedWrites: string[];
+  currentWorkoutAssignments?: Array<Record<string, unknown>>;
 }
 
 export function jwt() {
@@ -120,32 +121,42 @@ function chartData(endpoint: string) {
 }
 
 function currentWorkoutResponse() {
+  const todayAssignment = {
+    assignmentType: 'homework',
+    sessionType: 'solo',
+    status: 'ready',
+    isLoggable: true,
+    isBillable: false,
+    shouldDeductSession: false,
+    assignmentKey: 'six-month-strength-arc-w2-d3-homework',
+    title: 'Lower Body Strength',
+    weekNumber: 2,
+    dayNumber: 3,
+    exerciseCount: 5,
+    firstExerciseName: 'Goblet Squat',
+    ctaLabel: 'Log Assignment',
+  };
+
   return {
     data: {
       title: 'Six Month Strength Arc',
       currentWeek: 2,
       currentDay: 3,
       currentSession: { dayLabel: 'Lower Body Strength', exercises: [{ name: 'Goblet Squat' }] },
-      todayAssignment: {
-        assignmentType: 'workout',
-        status: 'ready',
-        isLoggable: true,
-        title: 'Lower Body Strength',
-        weekNumber: 2,
-        dayNumber: 3,
-        exerciseCount: 5,
-        firstExerciseName: 'Goblet Squat',
-        ctaLabel: 'Log Today',
-      },
+      todayAssignment,
       trainingPlanCatalog: { defaultHorizonKey: 'six_month', filledHorizonKeys: ['six_month'], slots: [] },
     },
   };
 }
 
-function readOnlyApiResponse(endpoint: string) {
+function readOnlyApiResponse(endpoint: string, state?: MissionApiState) {
   if (staticApiResponses[endpoint]) return staticApiResponses[endpoint];
   if (endpoint.startsWith('/api/client/analytics/chart-')) return chartData(endpoint);
-  if (endpoint === '/api/workouts/101/current') return currentWorkoutResponse();
+  if (endpoint === '/api/workouts/101/current') {
+    const response = currentWorkoutResponse();
+    state?.currentWorkoutAssignments?.push(response.data.todayAssignment);
+    return response;
+  }
   return { success: true, data: [], posts: [], achievements: [], rewards: [], leaderboard: [] };
 }
 
@@ -161,6 +172,6 @@ export async function mockClientProgressMissionApi(page: Page, state: MissionApi
       return fulfillJson(route, { success: false, message: 'Mission QA read-only write blocked' }, 405);
     }
 
-    return fulfillJson(route, readOnlyApiResponse(endpoint));
+    return fulfillJson(route, readOnlyApiResponse(endpoint, state));
   });
 }

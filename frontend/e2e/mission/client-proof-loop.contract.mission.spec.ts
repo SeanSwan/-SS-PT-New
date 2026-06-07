@@ -25,7 +25,7 @@ function missionExpectedConsoleNoise(message: string) {
 test('@mission @contract @readonly client sees assignment, log CTA, and progress proof charts', async ({ page }, testInfo) => {
   expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
 
-  const apiState: MissionApiState = { blockedWrites: [] };
+  const apiState: MissionApiState = { blockedWrites: [], currentWorkoutAssignments: [] };
   const consoleErrors = watchConsoleErrors(page);
   await mockClientProgressMissionApi(page, apiState);
   await installMissionUser(page);
@@ -33,10 +33,14 @@ test('@mission @contract @readonly client sees assignment, log CTA, and progress
   await page.goto('/dashboard/client/overview', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
 
-  await expect(page.getByTestId('current-workout-card')).toBeVisible();
+  const currentWorkoutCard = page.getByTestId('current-workout-card');
+  await expect(currentWorkoutCard).toBeVisible();
   await expect(page.getByText(/current workout|today's assignment/i)).toBeVisible();
   await expect(page.getByText(/lower body strength/i).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /log today's assignment|log today|start current workout/i })).toBeVisible();
+  await expect(page.getByText(/coach homework/i)).toBeVisible();
+  const logAssignmentButton = currentWorkoutCard.getByRole('button', { name: /log today's assignment/i });
+  await expect(logAssignmentButton).toBeVisible();
+  await expect(logAssignmentButton).toHaveText(/log assignment/i);
 
   await page.goto('/dashboard/client/progress', { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle').catch(() => undefined);
@@ -55,6 +59,12 @@ test('@mission @contract @readonly client sees assignment, log CTA, and progress
 
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   expect(layout.bodyText).not.toMatch(/demo mode|Sarah Johnson|Starter Fitness Package/i);
+  expect(apiState.currentWorkoutAssignments).toContainEqual(expect.objectContaining({
+    assignmentType: 'homework',
+    sessionType: 'solo',
+    isBillable: false,
+    shouldDeductSession: false,
+  }));
   expect(apiState.blockedWrites).toEqual([]);
   expect(consoleErrors.filter((item) => !missionExpectedConsoleNoise(item))).toEqual([]);
 

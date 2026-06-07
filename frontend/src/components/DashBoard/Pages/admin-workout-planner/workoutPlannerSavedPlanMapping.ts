@@ -18,13 +18,13 @@ const HORIZON_LABELS: Record<string, string> = {
   twelve_month: '12 Month',
 };
 
-const WEEKS_TO_HORIZON: Array<[number, keyof typeof HORIZON_LABELS]> = [
-  [1, 'one_week'],
-  [4, 'one_month'],
-  [13, 'three_month'],
-  [26, 'six_month'],
-  [39, 'nine_month'],
-  [52, 'twelve_month'],
+const WEEKS_TO_HORIZON: Array<{ weeks: number; key: keyof typeof HORIZON_LABELS }> = [
+  { weeks: 1, key: 'one_week' },
+  { weeks: 4, key: 'one_month' },
+  { weeks: 12, key: 'three_month' },
+  { weeks: 26, key: 'six_month' },
+  { weeks: 39, key: 'nine_month' },
+  { weeks: 52, key: 'twelve_month' },
 ];
 
 const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => {
@@ -35,12 +35,13 @@ const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => 
 
   const weeks = Number(durationWeeks);
   if (!Number.isFinite(weeks) || weeks <= 0) return 'six_month';
-  return WEEKS_TO_HORIZON.reduce(
-    (closest, candidate) => (
-      Math.abs(candidate[0] - weeks) < Math.abs(closest[0] - weeks) ? candidate : closest
-    ),
-    WEEKS_TO_HORIZON[0],
-  )[1];
+  return WEEKS_TO_HORIZON.reduce((closest, candidate) => {
+    const candidateDistance = Math.abs(candidate.weeks - weeks);
+    const closestDistance = Math.abs(closest.weeks - weeks);
+    if (candidateDistance < closestDistance) return candidate;
+    if (candidateDistance === closestDistance && candidate.weeks > closest.weeks) return candidate;
+    return closest;
+  }, WEEKS_TO_HORIZON[0]).key;
 };
 
 const normalizeWorkoutPlannerPdfUrl = (value: unknown) => {

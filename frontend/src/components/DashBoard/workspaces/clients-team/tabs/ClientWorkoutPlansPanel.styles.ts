@@ -143,6 +143,112 @@ export const PlanActions = styled.div`
   gap: 8px;
 `;
 
+export const VaultSection = styled.div`
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, var(--bg-elevated, #1A1A24) 28%);
+`;
+
+export const VaultHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+`;
+
+export const VaultTitle = styled.h4`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.2;
+`;
+
+export const VaultMeta = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  font-family: 'Fira Code', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const VaultGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 8px;
+`;
+
+export const VaultSlot = styled.article<{ $filled: boolean; $primary: boolean }>`
+  display: grid;
+  gap: 7px;
+  min-height: 126px;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid ${({ $primary, $filled }) =>
+    $primary
+      ? 'var(--accent-gold, #C6A84B)'
+      : $filled
+        ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent)'
+        : 'var(--border-soft, rgba(224, 236, 244, 0.08))'};
+  background: ${({ $primary, $filled }) =>
+    $primary
+      ? 'color-mix(in srgb, var(--accent-gold, #C6A84B) 10%, var(--bg-surface, #141419))'
+      : $filled
+        ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, var(--bg-surface, #141419))'
+        : 'var(--bg-surface, #141419)'};
+`;
+
+export const VaultSlotTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+`;
+
+export const VaultSlotLabel = styled.strong`
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+`;
+
+export const VaultSlotStatus = styled.span<{ $primary?: boolean }>`
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: ${({ $primary }) => ($primary ? 'var(--accent-gold, #C6A84B)' : 'var(--text-muted, rgba(224,236,244,0.72))')};
+  background: color-mix(in srgb, var(--bg-base, #0A0A0F) 72%, var(--accent-primary, #60C0F0) 6%);
+  font-family: 'Fira Code', monospace;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+`;
+
+export const VaultSlotPlanName = styled.span`
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.3;
+`;
+
+export const VaultSlotDetail = styled.span`
+  color: var(--text-muted, rgba(224, 236, 244, 0.72));
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+`;
+
 export const PlanActionButton = styled.button<{ $variant?: 'primary' }>`
   min-height: 44px;
   width: fit-content;

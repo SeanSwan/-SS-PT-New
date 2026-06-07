@@ -13,9 +13,10 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Dumbbell, ExternalLink, Layers3, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { getNumericClientId } from './clientTabId';
+import ClientWorkoutPlanVaultSlot from './ClientWorkoutPlanVaultSlot';
 import {
   Eyebrow,
   Header,
@@ -32,8 +33,14 @@ import {
   StatusBadge,
   Title,
   TitleBlock,
+  VaultGrid,
+  VaultHeader,
+  VaultMeta,
+  VaultSection,
+  VaultTitle,
 } from './ClientWorkoutPlansPanel.styles';
 import {
+  buildClientPlanVault,
   createProtectedPdfObjectUrl,
   formatClientPlanUpdated,
   normalizeClientWorkoutPlan,
@@ -54,22 +61,27 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
         url: string,
         config?: { params?: Record<string, number>; responseType?: 'blob' },
       ) => Promise<{ data?: { plans?: unknown[] } }>;
+      put: (url: string) => Promise<unknown>;
     };
   };
   const safeClientId = getNumericClientId(clientId);
   const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
+  const [primaryUpdatingId, setPrimaryUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const activeCount = useMemo(() => plans.filter((plan) => plan.status === 'active').length, [plans]);
+  const planVault = useMemo(() => buildClientPlanVault(plans), [plans]);
 
   const loadPlans = useCallback(async () => {
     if (!authAxios || safeClientId === null) return;
     setLoading(true);
     setError(null);
     setPdfError(null);
+    setActionError(null);
     try {
       const response = await authAxios.get('/api/workout/plans', {
         params: { clientId: safeClientId },
@@ -111,6 +123,20 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
     }
   }, [authAxios]);
 
+  const makePrimaryPlan = useCallback(async (plan: ClientPlanSummary) => {
+    if (!authAxios || !plan.id) return;
+    setPrimaryUpdatingId(plan.id);
+    setActionError(null);
+    try {
+      await authAxios.put(`/api/workout-plans/${encodeURIComponent(plan.id)}/primary`);
+      await loadPlans();
+    } catch {
+      setActionError(`Unable to make ${plan.name} the primary arc.`);
+    } finally {
+      setPrimaryUpdatingId(null);
+    }
+  }, [authAxios, loadPlans]);
+
   if (safeClientId === null) {
     return <StateCard role="alert">Select a valid client before reviewing saved plans.</StateCard>;
   }
@@ -132,54 +158,76 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({ clien
         <StateCard role="status">Loading saved plans...</StateCard>
       ) : error ? (
         <StateCard role="alert">{error}</StateCard>
-      ) : plans.length === 0 ? (
-        <StateCard>No saved plans for this client yet. Use Plan Next to create the next block.</StateCard>
       ) : (
         <>
+          {actionError && <StateCard role="alert">{actionError}</StateCard>}
           {pdfError && <StateCard role="alert">{pdfError}</StateCard>}
-          <PlanGrid>
-            {plans.map((plan) => {
-              const active = plan.status === 'active';
-              return (
-                <PlanCard key={plan.id}>
-                  <StatusBadge $active={active}>
-                    {active && <CheckCircle2 size={13} />}
-                    {plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status}
-                  </StatusBadge>
-                  <PlanTitle>{plan.name}</PlanTitle>
-                  <Meta>
-                    {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
-                    {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
-                    {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
-                    <span>{formatClientPlanUpdated(plan.createdAt)}</span>
-                    <span>{plan.goal}</span>
-                  </Meta>
-                  <PlanActions>
-                    {active && onLogToday && (
-                      <PlanActionButton
-                        type="button"
-                        $variant="primary"
-                        aria-label={`Log Today from ${plan.name}`}
-                        onClick={onLogToday}
-                      >
-                        <Dumbbell size={14} /> Log Today
-                      </PlanActionButton>
-                    )}
-                    {plan.pdfFile && (
-                      <PlanActionButton
-                        type="button"
-                        disabled={openingPdfId === plan.id}
-                        aria-label={`Open ${plan.name} PDF`}
-                        onClick={() => { void openPlanPdf(plan); }}
-                      >
-                        <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
-                      </PlanActionButton>
-                    )}
-                  </PlanActions>
-                </PlanCard>
-              );
-            })}
-          </PlanGrid>
+          <VaultSection aria-label="Plan Arc Vault">
+            <VaultHeader>
+              <VaultTitle><Layers3 size={16} /> Plan Arc Vault</VaultTitle>
+              <VaultMeta>{planVault.filledCount} of 7 arcs filled</VaultMeta>
+            </VaultHeader>
+            <VaultGrid>
+              {planVault.slots.map((slot) => (
+                <ClientWorkoutPlanVaultSlot
+                  key={slot.horizonKey}
+                  slot={slot}
+                  openingPdfId={openingPdfId}
+                  primaryUpdatingId={primaryUpdatingId}
+                  onOpenPdf={openPlanPdf}
+                  onMakePrimary={makePrimaryPlan}
+                />
+              ))}
+            </VaultGrid>
+          </VaultSection>
+
+          {plans.length === 0 ? (
+            <StateCard>No saved plans for this client yet. Use Plan Next to create the next block.</StateCard>
+          ) : (
+            <PlanGrid>
+              {plans.map((plan) => {
+                const active = plan.status === 'active';
+                return (
+                  <PlanCard key={plan.id}>
+                    <StatusBadge $active={active}>
+                      {active && <CheckCircle2 size={13} />}
+                      {plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status}
+                    </StatusBadge>
+                    <PlanTitle>{plan.name}</PlanTitle>
+                    <Meta>
+                      {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
+                      {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
+                      {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
+                      <span>{formatClientPlanUpdated(plan.createdAt)}</span>
+                      <span>{plan.goal}</span>
+                    </Meta>
+                    <PlanActions>
+                      {active && onLogToday && (
+                        <PlanActionButton
+                          type="button"
+                          $variant="primary"
+                          aria-label={`Log Today from ${plan.name}`}
+                          onClick={onLogToday}
+                        >
+                          <Dumbbell size={14} /> Log Today
+                        </PlanActionButton>
+                      )}
+                      {plan.pdfFile && (
+                        <PlanActionButton
+                          type="button"
+                          disabled={openingPdfId === plan.id}
+                          aria-label={`Open ${plan.name} PDF`}
+                          onClick={() => { void openPlanPdf(plan); }}
+                        >
+                          <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
+                        </PlanActionButton>
+                      )}
+                    </PlanActions>
+                  </PlanCard>
+                );
+              })}
+            </PlanGrid>
+          )}
         </>
       )}
     </Panel>

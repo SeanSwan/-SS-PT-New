@@ -6,6 +6,7 @@ import ClientWorkoutPlansPanel from './ClientWorkoutPlansPanel';
 const { mockAuthAxios } = vi.hoisted(() => ({
   mockAuthAxios: {
     get: vi.fn(),
+    put: vi.fn(),
   },
 }));
 
@@ -23,6 +24,7 @@ describe('ClientWorkoutPlansPanel', () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fixture-plan-pdf');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     vi.spyOn(window, 'open').mockImplementation(() => null);
+    mockAuthAxios.put.mockResolvedValue({ data: { success: true } });
     mockAuthAxios.get.mockResolvedValue({
       data: {
         success: true,
@@ -48,7 +50,7 @@ describe('ClientWorkoutPlansPanel', () => {
       params: { clientId: 424242 },
     });
     expect(await screen.findByRole('heading', { name: /training plans/i })).toBeInTheDocument();
-    expect(screen.getByText('Phase 2 Strength Plan')).toBeInTheDocument();
+    expect(screen.getAllByText('Phase 2 Strength Plan').length).toBeGreaterThan(0);
     expect(screen.getByText(/^current$/i)).toBeInTheDocument();
     expect(screen.getByText(/nasm phase 2/i)).toBeInTheDocument();
   });
@@ -86,9 +88,9 @@ describe('ClientWorkoutPlansPanel', () => {
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" onLogToday={onLogToday} />);
 
-    expect(await screen.findByText('Primary Six Month Arc')).toBeInTheDocument();
+    expect((await screen.findAllByText('Primary Six Month Arc')).length).toBeGreaterThan(0);
     expect(screen.getByText(/primary arc/i)).toBeInTheDocument();
-    expect(screen.getByText(/6 month/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/6 month/i).length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: /open primary six month arc pdf/i }));
 
     expect(mockAuthAxios.get).toHaveBeenLastCalledWith(
@@ -130,7 +132,7 @@ describe('ClientWorkoutPlansPanel', () => {
 
     render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
 
-    expect(await screen.findByText('12 Month Strength Arc')).toBeInTheDocument();
+    expect((await screen.findAllByText('12 Month Strength Arc')).length).toBeGreaterThan(0);
     expect(screen.getByText(/48 weeks/i)).toBeInTheDocument();
     expect(screen.getByText(/^strength$/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /log today from 12 month strength arc/i })).toBeNull();
@@ -141,5 +143,69 @@ describe('ClientWorkoutPlansPanel', () => {
 
     expect(mockAuthAxios.get).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent(/valid client/i);
+  });
+
+  it('renders the seven trainer-facing horizon slots and promotes a chosen arc to primary', async () => {
+    const user = userEvent.setup();
+    mockAuthAxios.get.mockResolvedValue({
+      data: {
+        success: true,
+        plans: [
+          {
+            id: 'plan-6m',
+            title: 'Primary Six Month Arc',
+            status: 'active',
+            durationWeeks: 26,
+            updatedAt: '2026-06-03T12:00:00.000Z',
+            metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+          },
+          {
+            id: 'plan-9m',
+            title: 'Move Fitness Nine Month Arc',
+            status: 'draft',
+            durationWeeks: 39,
+            updatedAt: '2026-06-04T12:00:00.000Z',
+            metadata: { planHorizon: 'nine_month' },
+          },
+        ],
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect(await screen.findByText('Plan Arc Vault')).toBeInTheDocument();
+    for (const label of ['1 Day', '1 Week', '1 Month', '3 Month', '6 Month', '9 Month', '12 Month']) {
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+    }
+    expect(screen.getAllByText('Primary Six Month Arc').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Move Fitness Nine Month Arc').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /make 9 month primary arc/i }));
+
+    expect(mockAuthAxios.put).toHaveBeenCalledWith('/api/workout-plans/plan-9m/primary');
+    expect(mockAuthAxios.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('maps custom eight-week plans to the closest SwanStudios horizon instead of falling back to six months', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        plans: [
+          {
+            id: 'plan-8w',
+            title: 'Eight Week Legacy Block',
+            status: 'active',
+            durationWeeks: 8,
+            updatedAt: '2026-06-04T12:00:00.000Z',
+          },
+        ],
+      },
+    });
+
+    render(<ClientWorkoutPlansPanel clientId={424242} clientName="Fixture Client" />);
+
+    expect((await screen.findAllByText('Eight Week Legacy Block')).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/3 month plan arc/i)).toHaveTextContent('Eight Week Legacy Block');
+    expect(screen.getByLabelText(/6 month plan arc/i)).toHaveTextContent('Pending');
   });
 });
