@@ -209,11 +209,18 @@ class AdminClientService {
   }
   
   /**
-   * Generate workout plan for client
+   * Generate workout plan for client through Swan Coach planning.
    */
   async generateWorkoutPlan(clientId, planData) {
     try {
-      const response = await this.api.post(`/admin/clients/${clientId}/generate-workout-plan`, planData);
+      const targetClientId = Number(clientId);
+      if (!Number.isSafeInteger(targetClientId) || targetClientId <= 0) {
+        throw new Error('Valid client id required for Swan Coach planning');
+      }
+      const response = await this.api.post('/workout-builder/plan', {
+        ...planData,
+        clientId: targetClientId,
+      });
       return response.data;
     } catch (error) {
       console.error('Error generating workout plan:', error);

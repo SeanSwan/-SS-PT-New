@@ -9,8 +9,41 @@ const STATUS_TONES: Record<string, string> = {
   blocked: 'var(--schedule-status-blocked, #f59e0b)',
 };
 
+const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
+
 export const getStatusTone = (status?: string | null) =>
   STATUS_TONES[status || ''] || STATUS_TONES.available;
+
+const normalizeCreditCount = (value: unknown) => {
+  const credits = typeof value === 'number' ? value : Number(value);
+  return Number.isSafeInteger(credits) && credits > 0 ? credits : 1;
+};
+
+const getSessionTypeCreditsRequired = (session: SessionDetail | null) => {
+  if (!session || !session.sessionType || typeof session.sessionType === 'string') {
+    return 1;
+  }
+
+  return normalizeCreditCount(session.sessionType.creditsRequired);
+};
+
+export const buildScheduleLogWorkoutLabel = (session: SessionDetail | null) => {
+  if (!session) {
+    return 'Log Workout';
+  }
+
+  const clientSource = String(session.clientSource || '').toLowerCase();
+  if (NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)) {
+    return 'Log Workout (no paid credit)';
+  }
+
+  if (session.sessionDeducted) {
+    return 'Log Workout (deducted)';
+  }
+
+  const credits = getSessionTypeCreditsRequired(session);
+  return `Log Workout (${credits} credit${credits === 1 ? '' : 's'})`;
+};
 
 export const buildScheduleReturnRoute = (mode: SessionDetailModalMode) => {
   if (mode === 'admin') {

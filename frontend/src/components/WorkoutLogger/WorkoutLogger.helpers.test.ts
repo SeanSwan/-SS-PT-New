@@ -3,6 +3,7 @@ import {
   coerceToNumericId,
   getCurrentWorkoutCursorSession,
   hasIncompleteWorkoutSets,
+  isCurrentWorkoutAssignmentLoggable,
   normalizeWorkoutDate,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
@@ -61,6 +62,13 @@ describe('WorkoutLogger helpers', () => {
     expect(getCurrentWorkoutCursorSession({ currentSession: session })).toBe(session);
     expect(getCurrentWorkoutCursorSession({ data: { currentSession: session } })).toBe(session);
     expect(getCurrentWorkoutCursorSession({ plan: { currentSession: session } })).toBe(session);
+  });
+
+  it('blocks current-workout prefill for completed or non-loggable assignments', () => {
+    expect(isCurrentWorkoutAssignmentLoggable(null)).toBe(true);
+    expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'homework', isLoggable: true })).toBe(true);
+    expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'homework', status: 'completed', isLoggable: false })).toBe(false);
+    expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'rest', isLoggable: false })).toBe(false);
   });
 
   it('converts AI workout exercises into null-honest logger rows', () => {

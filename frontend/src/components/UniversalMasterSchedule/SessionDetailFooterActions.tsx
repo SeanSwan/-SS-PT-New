@@ -24,6 +24,7 @@ export interface SessionDetailFooterActionsProps {
   canEdit: boolean;
   canOpenWorkoutLogger: boolean;
   canViewWorkouts: boolean;
+  logWorkoutLabel?: string;
   mode: SessionDetailModalMode;
   onClose: () => void;
   onCancelClick: () => void;
@@ -50,6 +51,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   canEdit,
   canOpenWorkoutLogger,
   canViewWorkouts,
+  logWorkoutLabel,
   mode,
   onClose,
   onCancelClick,
@@ -66,6 +68,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   const isManagerMode = mode === 'admin' || mode === 'trainer';
   const canLogFromSchedule = canOpenWorkoutLogger && isManagerMode;
   const completeLabel = canLogFromSchedule ? 'Complete Without Log' : 'Mark Complete';
+  const scheduleLogWorkoutLabel = logWorkoutLabel || 'Log Workout';
 
   return (
     <>
@@ -89,7 +92,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
       )}
       {canLogFromSchedule && !isFocusedFlow && (
         <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
-          Log Workout
+          {scheduleLogWorkoutLabel}
         </GlowButton>
       )}
       {canRecordAttendance && !isFocusedFlow && (

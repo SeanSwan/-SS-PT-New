@@ -137,6 +137,13 @@ const overviewMatchRules = [
     message: 'Planned assignment does not match the active workout plan',
   },
   {
+    fails: (_input, overviewAssignment) => (
+      overviewAssignment?.isLoggable === false
+      || compactString(overviewAssignment?.status)?.toLowerCase() === 'completed'
+    ),
+    message: 'Planned assignment is not loggable',
+  },
+  {
     fails: (input, overviewAssignment) => overviewAssignment.assignmentType !== input.assignmentType,
     message: 'Planned assignment type does not match the active workout plan',
   },

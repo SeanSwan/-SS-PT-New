@@ -54,6 +54,7 @@ describe('WorkoutPlanner exercise rolodex layout', () => {
     expect(ROLODEX_STYLE_SOURCE).not.toContain('min-height: 36px');
     expect(ROLODEX_STYLE_SOURCE).not.toContain('min-height: 32px');
     expect(ROLODEX_STYLE_SOURCE).toMatch(/export const Chip = styled\.button[\s\S]*?min-height:\s*44px/);
+    expect(ROLODEX_STYLE_SOURCE).toMatch(/export const Chip = styled\.button[\s\S]*?min-width:\s*44px/);
     expect(ROLODEX_STYLE_SOURCE).toMatch(/&:focus-visible[\s\S]*?outline:\s*2px solid var\(--accent-primary, #60C0F0\)/);
     expect(ROLODEX_PANEL_SOURCE.match(/<Chip[\s\S]*?type="button"/g) ?? []).toHaveLength(5);
   });

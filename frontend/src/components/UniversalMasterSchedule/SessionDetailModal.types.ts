@@ -1,5 +1,12 @@
 export type SessionDetailModalMode = 'admin' | 'trainer' | 'client';
 
+export interface SessionDetailSessionType {
+  id?: number | string;
+  name?: string | null;
+  duration?: number | string | null;
+  creditsRequired?: number | string | null;
+}
+
 export interface SessionDetail {
   id: number;
   sessionDate: string;
@@ -11,6 +18,7 @@ export interface SessionDetail {
   reason?: string;
   trainerId?: number;
   userId?: number;
+  sessionType?: SessionDetailSessionType | string | null;
   rating?: number | null;
   feedback?: string | null;
   feedbackProvided?: boolean;

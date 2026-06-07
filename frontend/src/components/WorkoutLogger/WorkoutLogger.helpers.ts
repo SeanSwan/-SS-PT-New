@@ -185,6 +185,13 @@ export function getCurrentWorkoutTodayAssignmentExercises(
   return Array.isArray(assignment?.exercises) ? assignment.exercises : [];
 }
 
+export function isCurrentWorkoutAssignmentLoggable(
+  assignment: PlannedAssignment | null | undefined,
+): boolean {
+  if (!assignment) return true;
+  return assignment.isLoggable !== false && assignment.status?.toLowerCase() !== 'completed';
+}
+
 export function getPlanDayForDate(
   days: PlannedDay[] | undefined,
   date = new Date(),

@@ -111,6 +111,7 @@ import {
   getExerciseEntryRowKey,
   getPlanDayForDate,
   hasIncompleteWorkoutSets,
+  isCurrentWorkoutAssignmentLoggable,
   normalizeWorkoutDate,
   plannedExerciseToEntry,
 } from './WorkoutLogger.helpers';
@@ -600,6 +601,12 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
       const todayAssignment = getCurrentWorkoutTodayAssignment(data);
       const currentPlanId = getCurrentWorkoutPlanId(data);
+      if (!isCurrentWorkoutAssignmentLoggable(todayAssignment)) {
+        const assignmentLabel = todayAssignment?.title || todayAssignment?.dayLabel || 'Today\'s assignment';
+        setPlannedAssignment(null);
+        toast.info(`${assignmentLabel} is not loggable right now. Review your workout history or plan vault.`);
+        return;
+      }
 
       // Primary path: cursor-driven currentSession.exercises.
       const cursorSession = getCurrentWorkoutCursorSession(data);

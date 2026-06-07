@@ -80,6 +80,14 @@ describe('SessionDetailFooterActions', () => {
     expect(logWorkoutIndex).toBeLessThan(completeWithoutLogIndex);
   });
 
+  it('renders the billing-aware schedule-origin workout label when provided', () => {
+    const props = { ...baseProps, logWorkoutLabel: 'Log Workout (2 credits)' };
+
+    render(<SessionDetailFooterActions {...props} />);
+
+    expect(screen.getByRole('button', { name: /log workout \(2 credits\)/i })).toBeInTheDocument();
+  });
+
   it('switches to confirmation controls while manager cancellation options are open', () => {
     const props = { ...baseProps, showCancelOptions: true };
 

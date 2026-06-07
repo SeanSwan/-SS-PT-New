@@ -88,4 +88,18 @@ describe('ClientTrainingPlanVaultCard', () => {
       screen.queryByRole('button', { name: /log today from 6 month primary plan/i })
     ).toBeNull();
   });
+
+  it('uses clear visible copy for protected PDF plan access', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={PLAN_VAULT}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', { name: /view 6 month pdf plan/i })
+    ).toHaveTextContent(/open pdf/i);
+  });
 });

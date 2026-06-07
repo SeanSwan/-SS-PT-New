@@ -22,7 +22,12 @@ export interface Session {
   userId: string | null;
   trainerId: string | null;
   sessionTypeId?: string | number | null;
-  sessionType?: string | null;
+  sessionType?: string | {
+    id?: string | number;
+    name?: string | null;
+    duration?: number | string | null;
+    creditsRequired?: number | string | null;
+  } | null;
   bufferBefore?: number | null;
   bufferAfter?: number | null;
   location?: string;

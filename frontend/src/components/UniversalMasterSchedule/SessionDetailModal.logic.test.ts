@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildScheduleReturnRoute,
+  buildScheduleLogWorkoutLabel,
   buildScheduleWorkoutLoggerRoute,
   buildScheduleWorkoutsRoute,
   canSessionOpenWorkoutLogger,
@@ -42,6 +43,37 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(url.searchParams.get('source')).toBe('master-schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/admin/master-schedule');
     expect(url.searchParams.get('loadPlan')).toBe('today');
+  });
+
+  it('builds a billing-aware schedule logger label from the session type', () => {
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    })).toBe('Log Workout (2 credits)');
+
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      sessionType: { id: 4, name: 'Standard Training', creditsRequired: 1 },
+    })).toBe('Log Workout (1 credit)');
+
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      sessionType: { id: 5, name: 'Fallback Training', creditsRequired: 'not-a-number' as any },
+    })).toBe('Log Workout (1 credit)');
+  });
+
+  it('makes free-tracking and already-deducted schedule labels explicit', () => {
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      clientSource: 'move_fitness',
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    })).toBe('Log Workout (no paid credit)');
+
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
+      sessionDeducted: true,
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    })).toBe('Log Workout (deducted)');
   });
 
   it('routes View Workouts to the role-owned client workout surface', () => {

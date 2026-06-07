@@ -184,6 +184,9 @@ describe('ClientWorkoutPlansPanel', () => {
     expect((await screen.findAllByText('Primary Six Month Arc')).length).toBeGreaterThan(0);
     expect(screen.getByText(/primary arc/i)).toBeInTheDocument();
     expect(screen.getAllByText(/6 month/i).length).toBeGreaterThan(0);
+    expect(
+      within(screen.getByLabelText(/6 month plan arc/i)).getByRole('button', { name: /open 6 month pdf plan/i })
+    ).toHaveTextContent(/open pdf/i);
     await user.click(screen.getByRole('button', { name: /open primary six month arc pdf/i }));
     expect(mockAuthAxios.get).toHaveBeenLastCalledWith('/api/workout-plans/99/pdf/content.pdf', { responseType: 'blob' });
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));

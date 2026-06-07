@@ -92,7 +92,7 @@ const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
             onClick={() => onOpenPdf(slot.plan as ClientPlanSummary)}
           >
             <ExternalLink size={14} aria-hidden="true" />
-            {openingPdfId === slot.plan.id ? 'Opening PDF' : 'PDF'}
+            {openingPdfId === slot.plan.id ? 'Opening PDF' : 'Open PDF'}
           </PlanActionButton>
         )}
       </PlanActions>

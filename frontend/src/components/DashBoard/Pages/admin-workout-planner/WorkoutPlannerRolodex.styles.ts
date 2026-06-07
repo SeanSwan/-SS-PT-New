@@ -119,6 +119,7 @@ export const Chip = styled.button<{ $active?: boolean }>`
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
+  min-width: 44px;
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   ${({ $active }) => $active ? 'box-shadow: 0 0 12px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 20%, transparent);' : ''}

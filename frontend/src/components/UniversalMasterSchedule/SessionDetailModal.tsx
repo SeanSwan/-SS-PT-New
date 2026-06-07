@@ -23,6 +23,7 @@ import { useSessionSeriesActions } from './hooks/useSessionSeriesActions';
 import type { SessionDetailModalProps } from './SessionDetailModal.types';
 import { getSessionDate } from './SessionDetailModal.actions';
 import {
+  buildScheduleLogWorkoutLabel,
   buildScheduleWorkoutLoggerRoute,
   buildScheduleWorkoutsRoute,
   getStatusTone,
@@ -186,6 +187,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
   const sessionDate = getSessionDate(session);
   const statusTone = getStatusTone(session.status);
+  const logWorkoutLabel = buildScheduleLogWorkoutLabel(session);
   const handleOpenWorkoutLogger = () => {
     onClose();
     navigate(buildScheduleWorkoutLoggerRoute(mode, session));
@@ -216,6 +218,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           canEdit={canManage && Boolean(onEditSession) && session.status !== 'cancelled' && session.status !== 'completed'}
           canOpenWorkoutLogger={canOpenWorkoutLogger}
           canViewWorkouts={canViewWorkouts}
+          logWorkoutLabel={logWorkoutLabel}
           mode={mode}
           onClose={onClose}
           onCancelClick={handleCancelClick}

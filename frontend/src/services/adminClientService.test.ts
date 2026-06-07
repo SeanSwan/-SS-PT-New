@@ -95,3 +95,39 @@ describe('adminClientService sendClientPasswordReset', () => {
     expect(enhancedSource).toMatch(/sendClientPasswordReset\(client\.id\)/);
   });
 });
+
+describe('adminClientService generateWorkoutPlan', () => {
+  it('routes legacy callers through the canonical Swan Coach planning endpoint', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        plan: { planningSystem: 'swan_coach_planning' },
+      },
+    });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get: vi.fn(),
+      post,
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+
+    await service.generateWorkoutPlan('42', {
+      durationWeeks: 26,
+      sessionsPerWeek: 3,
+      primaryGoal: 'strength',
+    });
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/workout-builder/plan',
+      {
+        clientId: 42,
+        durationWeeks: 26,
+        sessionsPerWeek: 3,
+        primaryGoal: 'strength',
+      },
+      undefined,
+    );
+  });
+});

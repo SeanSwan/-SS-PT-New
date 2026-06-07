@@ -63,6 +63,7 @@ export interface PlannedAssignment {
   isLoggable?: boolean | null;
   isBillable?: boolean | null;
   shouldDeductSession?: boolean | null;
+  status?: string | null;
   title?: string | null;
   scheduledDate?: string | null;
   weekNumber?: number | string | null;

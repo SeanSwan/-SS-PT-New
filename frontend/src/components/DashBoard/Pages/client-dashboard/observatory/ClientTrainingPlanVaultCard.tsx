@@ -111,11 +111,11 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
                     type="button"
                     onClick={() => onViewPdf(slot)}
                     aria-label={`View ${slot.label} PDF plan`}
-                  >
-                    <FileText size={14} aria-hidden="true" />
-                    PDF
-                  </SmallButton>
-                )}
+                >
+                  <FileText size={14} aria-hidden="true" />
+                  Open PDF
+                </SmallButton>
+              )}
               </WidgetRow>
             ))}
           </WidgetList>

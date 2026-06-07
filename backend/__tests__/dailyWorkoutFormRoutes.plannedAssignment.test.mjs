@@ -246,4 +246,18 @@ describe('POST /api/workout-forms planned assignment logging', () => {
     expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
     expect(mockUserDecrement).not.toHaveBeenCalled();
   });
+
+  it('rejects completed active-plan assignments before writing workout data', async () => {
+    const completedPlan = buildActivePlan();
+    completedPlan.planData.weeks[3].days[1].completed = true;
+    mockWorkoutPlanFindOne.mockResolvedValue(completedPlan);
+
+    const res = await request(app).post('/api/workout-forms').send(payload);
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/not loggable/i);
+    expect(mockWorkoutSessionFindOrCreate).not.toHaveBeenCalled();
+    expect(mockDailyWorkoutFormCreate).not.toHaveBeenCalled();
+    expect(mockUserDecrement).not.toHaveBeenCalled();
+  });
 });
