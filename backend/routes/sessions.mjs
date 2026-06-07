@@ -141,8 +141,7 @@ router.get("/", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching sessions',
-      error: error.message
+      message: 'Server error fetching sessions'
     });
   }
 });
@@ -160,8 +159,7 @@ router.get("/stats", protect, async (req, res) => {
     logger.error('Error in GET /api/sessions/stats:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching statistics',
-      error: error.message
+      message: 'Server error fetching statistics'
     });
   }
 });

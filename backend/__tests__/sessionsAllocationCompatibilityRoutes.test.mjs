@@ -11,11 +11,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   findUserByPk,
+  getAllSessions,
+  getScheduleStats,
   userIncrement,
   userReload,
   sessionCount,
 } = vi.hoisted(() => ({
   findUserByPk: vi.fn(),
+  getAllSessions: vi.fn(),
+  getScheduleStats: vi.fn(),
   userIncrement: vi.fn(),
   userReload: vi.fn(),
   sessionCount: vi.fn(),
@@ -44,8 +48,9 @@ vi.mock('../models/Session.mjs', () => ({
 
 vi.mock('../services/sessions/session.service.mjs', () => ({
   default: {
+    getAllSessions,
     getSessions: vi.fn(),
-    getScheduleStats: vi.fn(),
+    getScheduleStats,
     checkConflicts: vi.fn(),
     allocateSessionsFromOrder: vi.fn(),
     getTrainers: vi.fn(),
@@ -77,6 +82,7 @@ vi.mock('../utils/logger.mjs', () => ({
 }));
 
 const sessionsRouter = (await import('../routes/sessions.mjs')).default;
+const unifiedSessionService = (await import('../services/sessions/session.service.mjs')).default;
 
 const app = express();
 app.use(express.json());
@@ -85,9 +91,41 @@ app.use('/api/sessions', sessionsRouter);
 describe('mounted sessions allocation compatibility routes', () => {
   beforeEach(() => {
     findUserByPk.mockReset();
+    getAllSessions.mockReset();
+    getScheduleStats.mockReset();
     userIncrement.mockReset();
     userReload.mockReset();
     sessionCount.mockReset();
+  });
+
+  it('GET /api/sessions does not disclose internal list errors', async () => {
+    unifiedSessionService.getAllSessions.mockRejectedValueOnce(
+      new Error('database hostname and schema detail')
+    );
+
+    const response = await request(app).get('/api/sessions');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching sessions',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('database hostname');
+  });
+
+  it('GET /api/sessions/stats does not disclose internal stats errors', async () => {
+    unifiedSessionService.getScheduleStats.mockRejectedValueOnce(
+      new Error('private schedule statistics stack')
+    );
+
+    const response = await request(app).get('/api/sessions/stats');
+
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Server error fetching statistics',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private schedule');
   });
 
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {
