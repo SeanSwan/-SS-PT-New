@@ -329,6 +329,28 @@ describe('approveDraftPlan — target user existence', () => {
       message: expect.stringContaining('not found'),
     }));
   });
+
+  it('21b — generic approval failures do not disclose internal service errors', async () => {
+    getAllModels.mockReturnValue(makeMockModels({
+      User: {
+        findByPk: vi.fn().mockRejectedValue(new Error('private approval database host')),
+      },
+    }));
+
+    const req = {
+      body: { userId: 1, plan: makeValidDraft() },
+      user: { id: 10, role: 'admin' },
+    };
+    const res = mockRes();
+    await approveDraftPlan(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({
+      success: false,
+      message: 'Failed to approve workout plan',
+    });
+    expect(JSON.stringify(res.json.mock.calls)).not.toContain('private approval');
+  });
 });
 
 describe('approveDraftPlan — trainer assignment RBAC', () => {

@@ -1309,7 +1309,7 @@ export const approveDraftPlan = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to approve workout plan',
+      message: 'Failed to approve workout plan',
     });
   }
 };
