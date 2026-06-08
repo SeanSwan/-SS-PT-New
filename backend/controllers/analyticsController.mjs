@@ -10,6 +10,25 @@ import {
   getExerciseVarietyFromLogs,
 } from '../services/analyticsExerciseHistoryService.mjs';
 import { updateClientProgress, getPhaseRecommendations } from '../services/nasmProgressionService.mjs';
+import logger from '../utils/logger.mjs';
+
+const ANALYTICS_INTERNAL_ERROR = 'analytics_internal_error';
+
+function sendAnalyticsError(res, message) {
+  return res.status(500).json({
+    success: false,
+    message,
+    error: ANALYTICS_INTERNAL_ERROR,
+  });
+}
+
+function logAnalyticsError(message, error, req) {
+  logger.error(message, {
+    userId: req.params?.userId,
+    errorName: error.name,
+    errorCode: error.code || ANALYTICS_INTERNAL_ERROR,
+  });
+}
 
 /**
  * Analytics Controller
@@ -81,12 +100,8 @@ export async function getStrengthProfile(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting strength profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get strength profile',
-      error: error.message
-    });
+    logAnalyticsError('Error getting strength profile', error, req);
+    return sendAnalyticsError(res, 'Failed to get strength profile');
   }
 }
 
@@ -111,12 +126,8 @@ export async function getVolumeProgression(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting volume progression:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get volume progression',
-      error: error.message
-    });
+    logAnalyticsError('Error getting volume progression', error, req);
+    return sendAnalyticsError(res, 'Failed to get volume progression');
   }
 }
 
@@ -141,12 +152,8 @@ export async function getSessionUsage(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting session usage:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get session usage',
-      error: error.message
-    });
+    logAnalyticsError('Error getting session usage', error, req);
+    return sendAnalyticsError(res, 'Failed to get session usage');
   }
 }
 
@@ -166,12 +173,8 @@ export async function getClientPersonalRecords(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting personal records:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get personal records',
-      error: error.message
-    });
+    logAnalyticsError('Error getting personal records', error, req);
+    return sendAnalyticsError(res, 'Failed to get personal records');
   }
 }
 
@@ -192,12 +195,8 @@ export async function getFrequencyStats(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting frequency stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get frequency stats',
-      error: error.message
-    });
+    logAnalyticsError('Error getting frequency stats', error, req);
+    return sendAnalyticsError(res, 'Failed to get frequency stats');
   }
 }
 
@@ -225,12 +224,8 @@ export async function getNASMProgress(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting NASM progress:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get NASM progress',
-      error: error.message
-    });
+    logAnalyticsError('Error getting NASM progress', error, req);
+    return sendAnalyticsError(res, 'Failed to get NASM progress');
   }
 }
 
@@ -250,12 +245,8 @@ export async function getNASMRecommendations(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting NASM recommendations:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get NASM recommendations',
-      error: error.message
-    });
+    logAnalyticsError('Error getting NASM recommendations', error, req);
+    return sendAnalyticsError(res, 'Failed to get NASM recommendations');
   }
 }
 
@@ -287,12 +278,8 @@ export async function getAnalyticsDashboard(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting analytics dashboard:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get analytics dashboard',
-      error: error.message
-    });
+    logAnalyticsError('Error getting analytics dashboard', error, req);
+    return sendAnalyticsError(res, 'Failed to get analytics dashboard');
   }
 }
 
@@ -326,12 +313,8 @@ export async function getExerciseHistory(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting exercise history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get exercise history',
-      error: error.message,
-    });
+    logAnalyticsError('Error getting exercise history', error, req);
+    return sendAnalyticsError(res, 'Failed to get exercise history');
   }
 }
 
@@ -352,7 +335,7 @@ export async function getExerciseVariety(req, res) {
     });
 
   } catch (error) {
-    console.error('Error getting exercise variety:', error);
-    res.status(500).json({ success: false, message: 'Failed to get variety stats' });
+    logAnalyticsError('Error getting exercise variety', error, req);
+    return sendAnalyticsError(res, 'Failed to get variety stats');
   }
 }
