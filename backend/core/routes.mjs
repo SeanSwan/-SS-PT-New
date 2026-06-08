@@ -25,7 +25,6 @@ import userRoutes from '../routes/userRoutes.mjs';
 
 // ===================== USER MANAGEMENT =====================
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
-import sessionRoutes from '../routes/sessionRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
 import packageRoutes from '../routes/packageRoutes.mjs';
 // Temporarily disabled for deployment hotfix - will re-enable after verification

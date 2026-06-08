@@ -17,6 +17,7 @@ describe('GET /api/sessions session type read model', () => {
   it('anchors the check to the mounted unified sessions surface', () => {
     expect(coreRoutesSource).toContain("app.use('/api/sessions', sessionsRoutes)");
     expect(coreRoutesSource).toContain("REMOVED: app.use('/api/sessions', sessionRoutes)");
+    expect(coreRoutesSource).not.toContain("import sessionRoutes from '../routes/sessionRoutes.mjs';");
   });
 
   it('exposes non-PII session type credit cost for schedule-to-logger display hints', () => {

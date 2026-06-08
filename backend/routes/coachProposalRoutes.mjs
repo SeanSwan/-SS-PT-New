@@ -11,6 +11,7 @@ import {
   getCoachActionProposal,
   rejectCoachActionProposal,
 } from '../services/ai/coachActionProposalApprovalService.mjs';
+import { buildCoachProposalRouteErrorBody } from '../services/ai/coachActionProposalErrorPresenter.mjs';
 
 const router = express.Router();
 
@@ -21,12 +22,8 @@ router.get('/:id', async (req, res) => {
   try {
     const result = await getCoachActionProposal({ id: req.params.id, req });
     return res.status(result.status).json(result.body);
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      code: 'PROPOSAL_DETAIL_FAILED',
-      error: err.message || 'Proposal detail failed',
-    });
+  } catch (_err) {
+    return res.status(500).json(buildCoachProposalRouteErrorBody('PROPOSAL_DETAIL_FAILED'));
   }
 });
 
@@ -34,12 +31,8 @@ router.post('/:id/approve', async (req, res) => {
   try {
     const result = await approveCoachActionProposal({ id: req.params.id, req });
     return res.status(result.status).json(result.body);
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      code: 'PROPOSAL_APPROVAL_FAILED',
-      error: err.message || 'Proposal approval failed',
-    });
+  } catch (_err) {
+    return res.status(500).json(buildCoachProposalRouteErrorBody('PROPOSAL_APPROVAL_FAILED'));
   }
 });
 
@@ -51,12 +44,8 @@ router.post('/:id/clarification-answer', async (req, res) => {
       req,
     });
     return res.status(result.status).json(result.body);
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      code: 'PROPOSAL_CLARIFICATION_ANSWER_FAILED',
-      error: err.message || 'Proposal clarification answer failed',
-    });
+  } catch (_err) {
+    return res.status(500).json(buildCoachProposalRouteErrorBody('PROPOSAL_CLARIFICATION_ANSWER_FAILED'));
   }
 });
 
@@ -64,12 +53,8 @@ router.post('/:id/reject', async (req, res) => {
   try {
     const result = await rejectCoachActionProposal({ id: req.params.id, req });
     return res.status(result.status).json(result.body);
-  } catch (err) {
-    return res.status(500).json({
-      success: false,
-      code: 'PROPOSAL_REJECTION_FAILED',
-      error: err.message || 'Proposal rejection failed',
-    });
+  } catch (_err) {
+    return res.status(500).json(buildCoachProposalRouteErrorBody('PROPOSAL_REJECTION_FAILED'));
   }
 });
 

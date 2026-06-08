@@ -25,6 +25,7 @@ import {
   createProposalReviewToken,
   verifyProposalReviewToken,
 } from './coachProposalReviewTokenService.mjs';
+import { buildCoachProposalApplyErrorBody } from './coachActionProposalErrorPresenter.mjs';
 
 function normalizeClarificationAnswer(answer) {
   return typeof answer === 'string' ? answer.trim() : '';
@@ -130,7 +131,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     } catch (err) {
       const code = err.code || 'ONBOARDING_APPLY_FAILED';
       await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
-      return { status: 400, body: { success: false, code, error: err.message } };
+      return { status: 400, body: buildCoachProposalApplyErrorBody({ kind: 'onboarding', code }) };
     }
   }
 
@@ -236,7 +237,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
   } catch (err) {
     const code = err instanceof WorkoutLogError ? err.code : 'WORKOUT_APPLY_FAILED';
     await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
-    return { status: 400, body: { success: false, code, error: err.message } };
+    return { status: 400, body: buildCoachProposalApplyErrorBody({ kind: 'workout', code }) };
   }
 }
 
