@@ -31,6 +31,9 @@ import { checkErrorLoop, recordAction } from './errorLoopPrevention.mjs';
 import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
 
+const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
+const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+
 // ── Command Context (flows through pipeline) ────────────────────────────────
 
 /**
@@ -499,7 +502,7 @@ export async function executeCommandPipeline(rawInput, user, options = {}) {
         return ctx;
       }
     } catch (err) {
-      ctx.error = `Internal error during ${ctx.stage}: ${err.message}`;
+      ctx.error = COMMAND_PIPELINE_FAILED_MESSAGE;
       ctx.metadata.timing.end = Date.now();
       ctx.metadata.timing.totalMs = ctx.metadata.timing.end - ctx.metadata.timing.start;
       logger.error('[CommandExecutor] Pipeline exception', {
@@ -645,7 +648,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       return {
         success: false,
         type: 'error',
-        message: err.message || 'Execution failed. Please try again.',
+        message: COMMAND_CONFIRM_FAILED_MESSAGE,
       };
     }
   }
@@ -686,7 +689,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       return {
         success: false,
         type: 'error',
-        message: err.message || 'Execution failed.',
+        message: COMMAND_CONFIRM_FAILED_MESSAGE,
       };
     }
   }
