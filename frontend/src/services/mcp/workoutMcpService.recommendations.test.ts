@@ -15,7 +15,7 @@ describe('workoutMcpService recommendation compatibility adapter', () => {
     vi.mocked(apiService.post).mockReset();
   });
 
-  it('uses the canonical GET /api/workout/recommendations route and unwraps data.exercises', async () => {
+  it('routes the admin catalog sentinel through the client-safe exercise library', async () => {
     vi.mocked(apiService.get).mockResolvedValue({
       data: {
         success: true,
@@ -32,9 +32,7 @@ describe('workoutMcpService recommendation compatibility adapter', () => {
     });
 
     expect(apiService.post).not.toHaveBeenCalled();
-    expect(apiService.get).toHaveBeenCalledWith('/api/workout/recommendations', {
-      params: { userId: 'admin-library', goal: 'general', limit: 50 },
-    });
+    expect(apiService.get).toHaveBeenCalledWith('/api/exercises/library');
     expect(result.data.recommendations).toEqual([
       { id: 'exercise-1', name: 'Goblet Squat' },
     ]);
