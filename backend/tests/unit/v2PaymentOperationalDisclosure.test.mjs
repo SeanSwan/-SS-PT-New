@@ -18,6 +18,7 @@ describe('v2 payment operational disclosure guard', () => {
   it('does not return checkout debug internals in client error responses', () => {
     expect(source).not.toContain('debugInfo:');
     expect(source).not.toContain('details: error.message');
+    expect(source).not.toContain("code: error.code || 'CHECKOUT_CREATION_FAILED'");
     expect(source).not.toContain("details: process.env.NODE_ENV === 'development' ? error.message");
     expect(source).not.toContain("details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'");
     expect(source).toContain("details: 'Stripe service could not be initialized'");

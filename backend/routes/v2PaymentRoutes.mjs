@@ -63,6 +63,7 @@ import {
 } from '../services/sessionPackageCheckoutFulfillmentService.mjs';
 
 const router = express.Router();
+const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
 
 export function buildCheckoutSessionIdempotencyKey(userId, cart) {
   const itemFingerprint = buildCartItemsStripeFingerprint(
@@ -426,7 +427,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       success: false,
       message: 'Failed to create checkout session',
       error: {
-        code: error.code || 'CHECKOUT_CREATION_FAILED',
+        code: CHECKOUT_CREATION_FAILED_CODE,
         details: 'Internal server error',
       }
     });
