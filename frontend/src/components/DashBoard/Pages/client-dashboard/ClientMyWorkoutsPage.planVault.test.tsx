@@ -101,4 +101,18 @@ describe('ClientMyWorkoutsPage plan vault target', () => {
     expect(screen.getByRole('button', { name: /log today from 6 month primary plan/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /open workout plan vault/i })).not.toBeInTheDocument();
   });
+
+  it('keeps the plan vault visible while workout history is loading', () => {
+    mocks.useWorkoutSessions.mockReturnValue({
+      data: [],
+      isLoading: true,
+      error: null,
+      refetch: vi.fn(),
+    });
+
+    render(<ClientMyWorkoutsPage />);
+
+    expect(screen.getByTestId('client-plan-vault-card')).toHaveTextContent(/plan vault/i);
+    expect(screen.getByRole('button', { name: /log today from 6 month primary plan/i })).toBeInTheDocument();
+  });
 });

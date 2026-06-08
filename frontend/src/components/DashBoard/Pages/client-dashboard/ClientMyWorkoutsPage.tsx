@@ -109,9 +109,20 @@ const ClientMyWorkoutsPage: React.FC = () => {
     return { totalWorkouts: total, thisWeek: week, totalVolume: volume };
   }, [workouts]);
 
+  const pageHeader = (
+    <Header>
+      <Title><AccentIconSlot><Dumbbell size={22} /></AccentIconSlot> My Workouts</Title>
+      <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
+        <Dumbbell size={16} /> Log Workout
+      </LogBtn>
+    </Header>
+  );
+
   if (isLoading) {
     return (
       <PageContainer>
+        {pageHeader}
+        <ClientWorkoutPlanVaultPanel />
         <ShimmerCard /><ShimmerCard /><ShimmerCard />
       </PageContainer>
     );
@@ -130,12 +141,7 @@ const ClientMyWorkoutsPage: React.FC = () => {
 
   return (
     <PageContainer>
-      <Header>
-        <Title><AccentIconSlot><Dumbbell size={22} /></AccentIconSlot> My Workouts</Title>
-        <LogBtn onClick={() => navigate('/dashboard/client/log-workout')}>
-          <Dumbbell size={16} /> Log Workout
-        </LogBtn>
-      </Header>
+      {pageHeader}
       <ClientWorkoutPlanVaultPanel />
 
       {workouts.length === 0 ? (
