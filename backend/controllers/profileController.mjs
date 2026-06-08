@@ -97,7 +97,7 @@ export const uploadProfilePhoto = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to upload profile photo: ' + error.message
+      message: 'Failed to upload profile photo'
     });
   }
 };
@@ -139,7 +139,7 @@ export const getUserProfile = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to get profile: ' + error.message
+      message: 'Failed to get profile'
     });
   }
 };
@@ -482,7 +482,7 @@ export const updateUserProfile = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to update profile: ' + error.message
+      message: 'Failed to update profile'
     });
   }
 };
@@ -579,7 +579,7 @@ export const updateClientProfile = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to update client profile: ' + error.message
+      message: 'Failed to update client profile'
     });
   }
 };
@@ -652,7 +652,7 @@ export const getUserStats = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to get stats: ' + error.message
+      message: 'Failed to get stats'
     });
   }
 };
@@ -733,7 +733,7 @@ export const getUserPosts = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to get posts: ' + error.message
+      message: 'Failed to get posts'
     });
   }
 };
@@ -810,7 +810,7 @@ export const getUserAchievements = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to get achievements: ' + error.message
+      message: 'Failed to get achievements'
     });
   }
 };
@@ -902,7 +902,7 @@ export const getUserFollowStats = async (req, res) => {
     });
     return res.status(500).json({
       success: false,
-      message: 'Failed to get follow stats: ' + error.message
+      message: 'Failed to get follow stats'
     });
   }
 };
