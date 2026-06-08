@@ -43,9 +43,10 @@ import { updateClientProfile } from '../controllers/profileController.mjs';
 
 const router = express.Router();
 
-const isUuid = (value) =>
-  typeof value === 'string' &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const parsePositiveUserId = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 /**
  * @route   GET /api/client/progress
@@ -117,7 +118,7 @@ router.get('/achievements', protect, async (req, res) => {
  */
 router.get('/challenges', protect, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = parsePositiveUserId(req.user?.id);
     if (!userId) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
@@ -126,7 +127,7 @@ router.get('/challenges', protect, async (req, res) => {
     const ChallengeParticipant = models.ChallengeParticipant;
     const Challenge = models.Challenge;
 
-    if (!ChallengeParticipant || !Challenge || !isUuid(String(userId))) {
+    if (!ChallengeParticipant || !Challenge) {
       return res.status(200).json({ success: true, challenges: [] });
     }
 
