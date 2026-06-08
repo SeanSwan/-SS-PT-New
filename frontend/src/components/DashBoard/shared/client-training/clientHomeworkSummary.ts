@@ -22,6 +22,8 @@ export interface ClientHomeworkSummary {
   todayIsCompleted: boolean;
   todayIsLoggable: boolean;
   todayShouldDeductSession: boolean;
+  todayWeekNumber: number | null;
+  todayDayNumber: number | null;
   todayExerciseCount: number;
   todayFirstExerciseName: string | null;
   recentCompletedCount: number;
@@ -69,6 +71,8 @@ export const normalizeClientHomeworkSummary = (value: unknown): ClientHomeworkSu
     todayIsCompleted: value.todayIsCompleted === true,
     todayIsLoggable: value.todayIsLoggable === true,
     todayShouldDeductSession: value.todayShouldDeductSession === true,
+    todayWeekNumber: positiveIntegerOrNull(value.todayWeekNumber),
+    todayDayNumber: positiveIntegerOrNull(value.todayDayNumber),
     todayExerciseCount: positiveIntegerOrFallback(value.todayExerciseCount, 0),
     todayFirstExerciseName: stringOrNull(value.todayFirstExerciseName),
     recentCompletedCount: positiveIntegerOrFallback(value.recentCompletedCount, 0),

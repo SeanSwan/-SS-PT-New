@@ -1,16 +1,27 @@
 /**
- * ============================================================================
- * FILE: ClientWorkoutHomeworkSummary.tsx
- * PURPOSE: Trainer/admin read-only off-day homework status panel.
- * ============================================================================
+ * COMPONENT: ClientWorkoutHomeworkSummary
+ * PURPOSE: Show trainer/admin read-only off-day homework status.
+ * OWNER: Codex
+ * LAST VALIDATED: 2026-06-08
  *
- * WHAT THIS FILE DOES:
- * Shows today's homework assignment state plus recent homework completion
- * history from the shared client training read model.
+ * WIREFRAME:
+ * +--------------------------------------------------------------+
+ * | Off-day homework title + recent log count                    |
+ * | today assignment: week/day, status, exercise count, billing  |
+ * | recent homework history rows                                |
+ * +--------------------------------------------------------------+
  *
- * HOW IT FITS IN THE APP:
- * ClientWorkoutPlansPanel renders this beside plan-vault arcs so trainers and
- * admins can quickly see whether assigned off-day work is visible and complete.
+ * DATA FLOW:
+ * Props In:  { homeworkSummary }
+ * State:     none
+ * API Calls: none
+ * Events:    none
+ * Children:  none
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   ClientWorkoutPlansPanel --> ClientWorkoutHomeworkSummary
+ *   ClientWorkoutHomeworkSummary --> SharedHomeworkSummaryModel
  */
 
 import React from 'react';
@@ -56,14 +67,27 @@ const recentLogLabel = (summary: ClientHomeworkSummary) => (
 );
 
 const deductionLabel = (summary: ClientHomeworkSummary) => (
-  summary.todayShouldDeductSession ? 'Paid session deduction flagged' : 'No paid session deduction'
+  summary.assignmentType === 'homework'
+    ? 'Homework is non-billable. Session balance unchanged.'
+    : summary.todayShouldDeductSession ? 'Paid session deduction flagged' : 'No paid session deduction'
 );
+
+const todayPositionLabel = (summary: ClientHomeworkSummary) => {
+  const parts = [
+    summary.todayWeekNumber ? `Week ${summary.todayWeekNumber}` : null,
+    summary.todayDayNumber ? `Day ${summary.todayDayNumber}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' - ') : 'Today';
+};
 
 const ClientWorkoutHomeworkSummary: React.FC<ClientWorkoutHomeworkSummaryProps> = ({
   homeworkSummary,
 }) => {
   if (!homeworkSummary) return null;
   const recentCompletions = homeworkSummary.recentCompletions.slice(0, 3);
+  const hasTodayHomework = homeworkSummary.assignmentType === 'homework';
+  const hasRecentHomework = recentCompletions.length > 0;
+  if (!hasTodayHomework && !hasRecentHomework) return null;
 
   return (
     <VaultSection aria-label="Off-day homework summary">
@@ -71,18 +95,24 @@ const ClientWorkoutHomeworkSummary: React.FC<ClientWorkoutHomeworkSummaryProps> 
         <VaultTitle><ClipboardCheck size={16} /> Off-Day Homework</VaultTitle>
         <VaultMeta>{recentLogLabel(homeworkSummary)}</VaultMeta>
       </VaultHeader>
-      <VaultGrid>
-        <VaultSlot $filled $primary={homeworkSummary.todayIsCompleted}>
-          <VaultSlotTop>
-            <VaultSlotLabel>Today</VaultSlotLabel>
-            <VaultSlotStatus $primary={homeworkSummary.todayIsCompleted}>
-              {todayStatusLabel(homeworkSummary)}
-            </VaultSlotStatus>
-          </VaultSlotTop>
-          <VaultSlotPlanName>{todayExerciseLabel(homeworkSummary)}</VaultSlotPlanName>
-          <VaultSlotDetail>{deductionLabel(homeworkSummary)}</VaultSlotDetail>
-        </VaultSlot>
-      </VaultGrid>
+      {hasTodayHomework && (
+        <VaultGrid>
+          <VaultSlot
+            aria-label="Today homework assignment"
+            $filled
+            $primary={homeworkSummary.todayIsCompleted}
+          >
+            <VaultSlotTop>
+              <VaultSlotLabel>{todayPositionLabel(homeworkSummary)}</VaultSlotLabel>
+              <VaultSlotStatus $primary={homeworkSummary.todayIsCompleted}>
+                {todayStatusLabel(homeworkSummary)}
+              </VaultSlotStatus>
+            </VaultSlotTop>
+            <VaultSlotPlanName>{todayExerciseLabel(homeworkSummary)}</VaultSlotPlanName>
+            <VaultSlotDetail>{deductionLabel(homeworkSummary)}</VaultSlotDetail>
+          </VaultSlot>
+        </VaultGrid>
+      )}
       {recentCompletions.length > 0 && (
         <>
           <VaultHeader>

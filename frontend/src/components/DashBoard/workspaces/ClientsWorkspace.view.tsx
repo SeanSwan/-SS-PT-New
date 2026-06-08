@@ -1,6 +1,31 @@
 /**
  * COMPONENT: ClientsWorkspaceView
  * PURPOSE: Presentational shell for the canonical admin Client Hub workspace.
+ * OWNER: Codex
+ * LAST VALIDATED: 2026-06-08
+ *
+ * WIREFRAME:
+ * +----------------------------------------------------------------+
+ * | top bar                                                        |
+ * +----------------------------------------------------------------+
+ * | optional creation handoff / lifecycle confirmation             |
+ * +--------------------------+-------------------------------------+
+ * | grid, loading, or empty  | selected client detail tabs         |
+ * +--------------------------+-------------------------------------+
+ *
+ * DATA FLOW:
+ * Props In:  normalized client state and event handlers
+ * State:     none
+ * API Calls: none
+ * Events:    forwards user commands to ClientsWorkspace
+ * Children:  ClientCreationHandoffPanel, ClientHubGridCard, ClientDetailView
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   ClientsWorkspace --> ClientsWorkspaceView
+ *   ClientsWorkspaceView --> ClientCreationHandoffPanel
+ *   ClientsWorkspaceView --> ClientDetailView
+ *
  * PARENT: ClientsWorkspace owns state, API calls, and navigation commands.
  * DATA: Receives normalized ClientOption and MiniCardClient records only.
  */
@@ -16,6 +41,7 @@ import {
   LoadingPulse,
 } from './ClientsWorkspace.styles';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
+import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
 import ClientsWorkspaceEmptyState from './ClientsWorkspaceEmptyState';
 import ClientsWorkspaceTopBar from './ClientsWorkspaceTopBar';
 import ClientLifecycleConfirmDialog, {
@@ -28,6 +54,7 @@ import type { MiniCardClient } from './clients-team/ClientMiniCard';
 import type { ClientOption } from './clients-team/ClientSelectorDropdown';
 import SelectedClientTrainingHeader from './clients-team/SelectedClientTrainingHeader';
 import { getClientOnboardingPct, type ClientDetailTab } from './ClientsWorkspace.logic';
+import type { ManualClientCreationHandoff } from './clients-team/manualClientCreationHandoff';
 
 type TabRenderer = (clientId: number | string) => React.ReactNode;
 type ContentMode = 'detail' | 'loading' | 'empty' | 'grid';
@@ -46,6 +73,7 @@ interface ClientsWorkspaceViewProps {
   loading: boolean;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
+  creationHandoff: ManualClientCreationHandoff | null;
   deactivationConfirmation: ClientLifecycleConfirmRequest | null;
   renderTraining: TabRenderer;
   renderProgress: TabRenderer;
@@ -63,6 +91,8 @@ interface ClientsWorkspaceViewProps {
   onManualCreateClient: () => void;
   onCloseManualCreate: () => void;
   onManualCreate: (values: CreateClientRequest) => Promise<void>;
+  onDismissCreationHandoff: () => void;
+  onCopyCreationHandoff: (value: string, label: string) => void;
   onCloseDeactivationConfirmation: () => void;
   onLogWorkout: () => void;
   onPlanNext: () => void;
@@ -231,6 +261,11 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       onClose={props.onCloseManualCreate}
       onSubmit={props.onManualCreate}
       trainers={props.manualCreateTrainers}
+    />
+    <ClientCreationHandoffPanel
+      handoff={props.creationHandoff}
+      onDismiss={props.onDismissCreationHandoff}
+      onCopy={props.onCopyCreationHandoff}
     />
     <ClientLifecycleConfirmDialog
       request={props.deactivationConfirmation}

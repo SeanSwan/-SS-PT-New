@@ -233,15 +233,25 @@ const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | 
     }
   ));
   const primarySlot = slots.find((slot) => slot.isPrimary && slot.plan);
-  const primaryPlanId = typeof raw.primaryPlanId === 'number' || typeof raw.primaryPlanId === 'string'
+  const declaredPrimaryHorizon = normalizeCatalogHorizonKey(raw.primaryHorizonKey);
+  const rawPrimaryPlanId = typeof raw.primaryPlanId === 'number' || typeof raw.primaryPlanId === 'string'
     ? String(raw.primaryPlanId)
-    : primarySlot?.plan?.id || null;
+    : null;
+  const declaredPrimaryPlan = slots.find((slot) => slot.plan?.id === rawPrimaryPlanId)?.plan;
+  const horizonPrimaryPlan = slots.find((slot) => slot.horizonKey === declaredPrimaryHorizon && slot.plan)?.plan;
+  const primaryPlanId = declaredPrimaryPlan?.id || primarySlot?.plan?.id || horizonPrimaryPlan?.id || null;
+  const reconciledSlots = primaryPlanId
+    ? slots.map((slot) => {
+        const isPrimary = slot.plan?.id === primaryPlanId;
+        return { ...slot, isPrimary, plan: slot.plan ? { ...slot.plan, isPrimary } : null };
+      })
+    : slots;
 
   return {
-    filledCount: slots.filter((slot) => slot.isFilled).length,
+    filledCount: reconciledSlots.filter((slot) => slot.isFilled).length,
     primaryPlanId,
-    primaryHorizonKey: normalizeCatalogHorizonKey(raw.primaryHorizonKey) || primarySlot?.horizonKey || null,
-    slots,
+    primaryHorizonKey: reconciledSlots.find((slot) => slot.isPrimary)?.horizonKey || declaredPrimaryHorizon || null,
+    slots: reconciledSlots,
   };
 };
 

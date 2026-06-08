@@ -133,7 +133,18 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       if (url === '/api/admin/trainers') return Promise.resolve(TRAINERS_RESPONSE);
       return Promise.resolve(CLIENTS_RESPONSE);
     });
-    mockAuthAxiosPost.mockResolvedValue(CREATED_CLIENT_RESPONSE);
+    mockAuthAxiosPost.mockImplementation((url: string) => {
+      if (url === '/api/admin/clients/5150/send-password-reset') {
+        return Promise.resolve({
+          data: {
+            success: true,
+            message: 'Password reset email sent.',
+            data: { credentialAction: 'reset_email_sent', resetEmailSent: true },
+          },
+        });
+      }
+      return Promise.resolve(CREATED_CLIENT_RESPONSE);
+    });
   });
 
   afterEach(() => {
@@ -158,7 +169,7 @@ describe('ClientsWorkspace manual client creation fallback', () => {
 
     await user.click(screen.getByRole('button', { name: /create client/i }));
 
-    await waitFor(() => expect(mockAuthAxiosPost).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAuthAxiosPost).toHaveBeenCalledTimes(2));
     const [path, payload] = mockAuthAxiosPost.mock.calls[0];
     expect(path).toBe('/api/admin/clients');
     expect(payload).toEqual(expect.objectContaining({
@@ -170,14 +181,20 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       role: 'client',
       isActive: true,
     }));
+    expect(mockAuthAxiosPost).toHaveBeenCalledWith(
+      '/api/admin/clients/5150/send-password-reset',
+      {},
+      undefined,
+    );
     await waitFor(() => {
       const clientListCalls = mockAuthAxiosGet.mock.calls.filter(([url]) => url === '/api/admin/clients');
       expect(clientListCalls.length).toBeGreaterThanOrEqual(2);
     });
     expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Client created',
-      description: expect.stringContaining('Manual Client'),
+      description: expect.stringMatching(/Manual Client.*secure login link/i),
     }));
+    expect(screen.getByRole('region', { name: /client access handoff/i })).toHaveTextContent(/secure login link sent/i);
   });
 
   it('loads assignable trainers into the canonical manual client form', async () => {

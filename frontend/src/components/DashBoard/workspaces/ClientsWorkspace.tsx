@@ -2,6 +2,29 @@
  * COMPONENT: ClientsWorkspace (Client Hub)
  * PURPOSE: Canonical admin client management surface with selector, daily
  * training cockpit, and selected-client detail tabs.
+ * OWNER: Codex
+ * LAST VALIDATED: 2026-06-08
+ *
+ * WIREFRAME:
+ * +----------------------------------------------------------------+
+ * | top bar: selector, quick actions, client creation               |
+ * +----------------------+-----------------------------------------+
+ * | client grid/detail   | selected-client tabs and training view  |
+ * | create handoff panel | lifecycle confirmation dialog           |
+ * +----------------------+-----------------------------------------+
+ *
+ * DATA FLOW:
+ * Props In:  none
+ * State:     clients, selectedClient, detailTab, creationHandoff
+ * API Calls: admin client list/details through ClientsWorkspace.data
+ * Events:    client select, create client, lifecycle actions, tab changes
+ * Children:  ClientsWorkspaceView, client tab renderers
+ *
+ * ARCHITECTURE:
+ * graph TD
+ *   UniversalDashboardLayout --> ClientsWorkspace
+ *   ClientsWorkspace --> ClientsWorkspaceView
+ *   ClientsWorkspace --> useManualClientCreation
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
@@ -10,6 +33,10 @@ import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../hooks/use-toast';
 import ClientsWorkspaceView from './ClientsWorkspace.view';
 import {
+  buildClientDetailSearchParams,
+  buildCreationHandoffCopyToast,
+  copyTextToClipboard,
+  getBrowserClipboard,
   getClientDetailTabFromSearchParams,
   getClientHubIntent,
   getClientIdFromSearchParams,
@@ -72,12 +99,7 @@ const ClientsWorkspace: React.FC = () => {
   const showClientDetailTab = useCallback((client: ClientOption, tab: ClientDetailTab, trainingSection?: string) => {
     setSelectedClient(client);
     setDetailTab(tab);
-    setSearchParams({
-      clientId: String(client.id),
-      tab,
-      ...(tab === 'training' && trainingSection ? { trainingSection } : {}),
-      ...(tab === 'training' && trainingSection === 'logger' ? { loadPlan: 'today' } : {}),
-    });
+    setSearchParams(buildClientDetailSearchParams(client, tab, trainingSection));
   }, [setSearchParams]);
   const runClientHubIntent = useCallback((client: ClientOption, intent: ClientHubIntent) => {
     if (intent === 'log_workout') {
@@ -192,10 +214,17 @@ const ClientsWorkspace: React.FC = () => {
   const {
     manualCreateOpen,
     manualCreateTrainers,
+    creationHandoff,
     openManualCreate,
     closeManualCreate,
+    clearCreationHandoff,
     handleManualCreate,
   } = useManualClientCreation({ onClientsChanged: loadClients });
+
+  const handleCopyCreationHandoff = useCallback(async (value: string, label: string) => {
+    const copied = await copyTextToClipboard(getBrowserClipboard(), value);
+    toast(buildCreationHandoffCopyToast(label, copied));
+  }, [toast]);
 
   const handleManageAssignments = useCallback(() => navigate('/dashboard/admin/client-trainer-assignments'), [navigate]);
 
@@ -223,6 +252,7 @@ const ClientsWorkspace: React.FC = () => {
       loading={loading}
       manualCreateOpen={manualCreateOpen}
       manualCreateTrainers={manualCreateTrainers}
+      creationHandoff={creationHandoff}
       deactivationConfirmation={deactivationConfirmation}
       renderTraining={renderTraining}
       renderProgress={renderProgress}
@@ -240,6 +270,8 @@ const ClientsWorkspace: React.FC = () => {
       onManualCreateClient={openManualCreate}
       onCloseManualCreate={closeManualCreate}
       onManualCreate={handleManualCreate}
+      onDismissCreationHandoff={clearCreationHandoff}
+      onCopyCreationHandoff={handleCopyCreationHandoff}
       onCloseDeactivationConfirmation={closeDeactivationConfirmation}
       onLogWorkout={handleLogWorkout}
       onPlanNext={handlePlanNext}

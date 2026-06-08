@@ -57,3 +57,81 @@ describe('ClientWorkoutPlansPanel.logic PDF safety', () => {
     expect(authAxios.get).not.toHaveBeenCalled();
   });
 });
+
+describe('ClientWorkoutPlansPanel.logic plan vault primary reconciliation', () => {
+  it('reconciles a stale server primaryPlanId to the primary filled slot', () => {
+    const { serverPlanVault } = normalizeClientWorkoutPlansResponse({
+      trainingPlanCatalog: {
+        primaryPlanId: 'deleted-primary-plan',
+        primaryHorizonKey: 'six_month',
+        slots: [
+          {
+            horizonKey: 'six_month',
+            label: '6 Month',
+            durationWeeks: 26,
+            durationDays: 182,
+            isDefaultHorizon: true,
+            isFilled: true,
+            isPrimary: true,
+            plan: {
+              id: 'plan-6m',
+              title: 'Current Six Month Arc',
+              status: 'active',
+              durationWeeks: 26,
+            },
+          },
+          {
+            horizonKey: 'nine_month',
+            label: '9 Month',
+            durationWeeks: 39,
+            durationDays: 273,
+            isDefaultHorizon: false,
+            isFilled: true,
+            isPrimary: false,
+            plan: {
+              id: 'plan-9m',
+              title: 'Nine Month Future Arc',
+              status: 'draft',
+              durationWeeks: 39,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(serverPlanVault?.primaryPlanId).toBe('plan-6m');
+    expect(serverPlanVault?.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
+      isPrimary: true,
+      plan: { id: 'plan-6m', isPrimary: true },
+    });
+  });
+
+  it('reconciles a stale server primaryHorizonKey to the resolved primary slot', () => {
+    const { serverPlanVault } = normalizeClientWorkoutPlansResponse({
+      trainingPlanCatalog: {
+        primaryPlanId: 'deleted-primary-plan',
+        primaryHorizonKey: 'twelve_month',
+        slots: [
+          {
+            horizonKey: 'six_month',
+            label: '6 Month',
+            durationWeeks: 26,
+            durationDays: 182,
+            isDefaultHorizon: true,
+            isFilled: true,
+            isPrimary: true,
+            plan: {
+              id: 'plan-6m',
+              title: 'Current Six Month Arc',
+              status: 'active',
+              durationWeeks: 26,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(serverPlanVault?.primaryPlanId).toBe('plan-6m');
+    expect(serverPlanVault?.primaryHorizonKey).toBe('six_month');
+  });
+});

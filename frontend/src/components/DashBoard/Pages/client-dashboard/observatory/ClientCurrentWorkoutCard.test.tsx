@@ -25,6 +25,8 @@ describe('ClientCurrentWorkoutCard', () => {
         todayIsCompleted: false,
         todayIsLoggable: true,
         todayShouldDeductSession: false,
+        todayWeekNumber: 2,
+        todayDayNumber: 3,
         todayExerciseCount: 4,
         todayFirstExerciseName: 'Goblet Squat',
         recentCompletedCount: 2,

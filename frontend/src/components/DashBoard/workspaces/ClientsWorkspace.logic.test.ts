@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  buildClientDetailSearchParams,
+  buildCreationHandoffCopyToast,
+  copyTextToClipboard,
   getClientDetailTabFromSearchParams,
+  getClientOnboardingPct,
   getClientScheduleWorkoutLoggerContextFromSearchParams,
   getClientTrainingSectionFromSearchParams,
 } from './ClientsWorkspace.logic';
@@ -12,6 +16,21 @@ import {
 } from './ClientsWorkspace.data';
 
 describe('ClientsWorkspace route state parsing', () => {
+  it('builds canonical detail routes for trainer/client training sections', () => {
+    const client = { id: 61 };
+
+    expect(buildClientDetailSearchParams(client, 'training', 'logger')).toEqual({
+      clientId: '61',
+      tab: 'training',
+      trainingSection: 'logger',
+      loadPlan: 'today',
+    });
+    expect(buildClientDetailSearchParams(client, 'progress', 'logger')).toEqual({
+      clientId: '61',
+      tab: 'progress',
+    });
+  });
+
   it('accepts the workout-history return section after a saved full-page log', () => {
     const params = new URLSearchParams('clientId=61&tab=training&trainingSection=history');
 
@@ -88,6 +107,36 @@ describe('ClientsWorkspace route state parsing', () => {
       scheduledSessionDate: null,
       scheduledSessionCreditHint: 2,
     });
+  });
+});
+
+describe('ClientsWorkspace UI helper logic', () => {
+  it('copies handoff text only when a clipboard writer is available', async () => {
+    const writeText = vi.fn(async () => undefined);
+
+    await expect(copyTextToClipboard({ writeText }, 'claim-link')).resolves.toBe(true);
+    await expect(copyTextToClipboard(null, 'claim-link')).resolves.toBe(false);
+    expect(writeText).toHaveBeenCalledWith('claim-link');
+  });
+
+  it('builds copy toast copy for success and manual fallback states', () => {
+    expect(buildCreationHandoffCopyToast('Claim link', true)).toEqual({
+      title: 'Claim link copied',
+      description: 'Send it through your normal client handoff channel.',
+      variant: 'default',
+    });
+    expect(buildCreationHandoffCopyToast('Claim code', false)).toEqual({
+      title: 'Claim code not copied',
+      description: 'Select the text and copy it manually.',
+      variant: 'destructive',
+    });
+  });
+
+  it('resolves onboarding percentage from explicit API fields before complete flags', () => {
+    expect(getClientOnboardingPct(null)).toBeUndefined();
+    expect(getClientOnboardingPct({ onboardingPct: 42.4 } as any)).toBe(42);
+    expect(getClientOnboardingPct({ completionPercentage: 200 } as any)).toBe(100);
+    expect(getClientOnboardingPct({ isOnboardingComplete: true } as any)).toBe(100);
   });
 });
 

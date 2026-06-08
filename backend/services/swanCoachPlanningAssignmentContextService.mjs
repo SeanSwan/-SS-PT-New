@@ -35,6 +35,38 @@ function safeScalar(value) {
   return String(value).slice(0, 80);
 }
 
+function positiveInteger(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function homeworkPosition(summary) {
+  const parts = [
+    positiveInteger(summary?.todayWeekNumber) ? `Week ${positiveInteger(summary.todayWeekNumber)}` : null,
+    positiveInteger(summary?.todayDayNumber) ? `Day ${positiveInteger(summary.todayDayNumber)}` : null,
+  ].filter(Boolean);
+  return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
+function formatHomeworkSummaryContext(summary) {
+  if (!summary) return '';
+  const hasTodayHomework = summary.assignmentType === 'homework';
+  const recentCount = positiveInteger(summary.recentCompletedCount) || 0;
+  if (!hasTodayHomework && recentCount === 0) return '';
+
+  const todayStatus = compactString(summary.todayStatus) || 'planned';
+  const exerciseCount = positiveInteger(summary.todayExerciseCount) || 0;
+  const lastCompletedAt = safeScalar(summary.lastCompletedAt);
+
+  return [
+    '--- HOMEWORK SUMMARY ---',
+    hasTodayHomework ? `Today Homework: ${todayStatus}${homeworkPosition(summary)}` : null,
+    hasTodayHomework ? `Today Homework Exercises: ${exerciseCount}` : null,
+    `Recent Homework Logs: ${recentCount}`,
+    lastCompletedAt ? `Last Homework Log: ${lastCompletedAt}` : null,
+  ].filter(Boolean).join('\n');
+}
+
 function getWeekDaysOrSessions(week) {
   if (!week || typeof week !== 'object') return [];
   const days = Array.isArray(week.days) ? week.days : [];
@@ -94,7 +126,7 @@ export function formatAssignmentContext(
   const overviewPlan = buildOverviewPlan(plan, planData, weekNumber, dayNumber);
   const currentSession = buildSparseCurrentSession(planData, weekNumber, dayNumber)
     || extractCurrentSession(overviewPlan);
-  const { todayAssignment } = buildClientTrainingOverview({
+  const { todayAssignment, homeworkSummary } = buildClientTrainingOverview({
     activePlan: overviewPlan,
     plans: [overviewPlan],
     currentSession,
@@ -105,6 +137,7 @@ export function formatAssignmentContext(
   const status = compactString(todayAssignment.status);
   const ctaLabel = compactString(todayAssignment.ctaLabel);
   const completedFormId = safeScalar(todayAssignment.completion?.formId);
+  const homeworkContext = formatHomeworkSummaryContext(homeworkSummary);
 
   return [
     '--- ASSIGNMENT SEMANTICS ---',
@@ -117,5 +150,6 @@ export function formatAssignmentContext(
     ctaLabel ? `CTA: ${ctaLabel}` : null,
     completedFormId ? `Completed Form: ${completedFormId}` : null,
     todayAssignment.assignmentKey ? `Assignment Key: ${todayAssignment.assignmentKey}` : null,
+    homeworkContext,
   ].filter(Boolean).join('\n');
 }

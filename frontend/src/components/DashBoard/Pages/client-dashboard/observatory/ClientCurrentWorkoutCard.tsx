@@ -32,11 +32,7 @@ import {
   WidgetRow,
   WidgetValue,
 } from './ClientObservatoryFeed.styles';
-import {
-  formatHomeworkCompletionDate,
-  formatHomeworkCompletionExerciseLabel,
-  formatHomeworkCompletionPosition,
-} from '../../../shared/client-training/clientHomeworkSummary';
+import { buildClientCurrentWorkoutViewModel } from './ClientCurrentWorkoutCard.viewModel';
 import type { CurrentClientWorkout } from './useCurrentClientWorkout';
 
 interface ClientCurrentWorkoutCardProps {
@@ -46,115 +42,17 @@ interface ClientCurrentWorkoutCardProps {
   onNavigate: (path: string) => void;
 }
 
-function workoutPosition(workout?: CurrentClientWorkout | null): string {
-  if (!workout) return '6 Month plan pending';
-  const parts = [
-    workout.primaryPlanLabel ? `${workout.primaryPlanLabel} Primary` : null,
-    workout.weekNumber ? `Week ${workout.weekNumber}` : null,
-    workout.dayNumber ? `Day ${workout.dayNumber}` : null,
-    workout.dayLabel || null,
-  ].filter(Boolean);
-  return parts.length ? parts.join(' - ') : 'Ready now';
-}
-
-const ASSIGNMENT_LABELS: Record<string, string> = {
-  none: 'Plan Pending',
-  trainer_session: 'Trainer Session',
-  homework: 'Coach Homework',
-  active_recovery: 'Active Recovery',
-  rest: 'Rest Day',
-  assessment: 'Assessment',
-};
-
-function assignmentLabel(type?: string): string {
-  return type ? ASSIGNMENT_LABELS[type] || 'Coach Homework' : 'Coach Homework';
-}
-
-function sectionKickerLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'trainer_session') return 'Trainer Session';
-  if (workout?.assignmentType === 'homework') return 'Suggested Off-Day Workout';
-  if (workout?.assignmentType === 'rest') return 'Recovery Day';
-  return 'Today\'s Assignment';
-}
-
-function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): string {
-  if (error) return 'Refresh this page or open the workout logger directly.';
-  if (!workout) return 'Your trainer will assign the default 6 Month plan after assessment.';
-  if (workout.assignmentStatus === 'completed') return 'Completed today - review your workout history and progress.';
-  if (workout.assignmentType === 'rest') return 'Recovery guidance is visible in your main plan today.';
-  if (workout.assignmentType === 'trainer_session') {
-    return 'Trainer-led sessions are logged by your coach from the schedule so progress and paid-session credits stay tied to the appointment.';
-  }
-  if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
-  const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
-  if (workout.assignmentType === 'homework') {
-    return `Today's assignment - off-day plan work - ${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}. No paid session deduction.`;
-  }
-  return `${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}`;
-}
-
-function workoutTitle(
-  workout?: CurrentClientWorkout | null,
-  error?: boolean,
-  loading?: boolean,
-): string {
-  return loading
-    ? 'Loading plan'
-    : workout?.title || (error ? 'Assignment unavailable' : 'Plan pending');
-}
-
-function workoutActionPath(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
-    return '/dashboard/client/schedule';
-  }
-  if (!workout?.isLoggable) return '/dashboard/client/workouts';
-
-  const params = new URLSearchParams({ loadPlan: 'today' });
-  if (workout.assignmentKey) params.set('assignmentKey', workout.assignmentKey);
-  if (workout.assignmentType) params.set('assignmentType', workout.assignmentType);
-  return `/dashboard/client/log-workout?${params.toString()}`;
-}
-
-function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
-    return 'View Schedule';
-  }
-  if (workout?.ctaLabel) return workout.ctaLabel;
-  if (workout?.isLoggable) {
-    return workout.assignmentType === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
-  }
-  return 'View Plan';
-}
-
-function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
-    return 'View schedule for trainer-led session';
-  }
-  return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
-}
-
-function homeworkLogValue(workout?: CurrentClientWorkout | null): string {
-  const count = workout?.homeworkSummary?.recentCompletedCount || 0;
-  return count === 1 ? '1 completed' : `${count} completed`;
-}
-
-function homeworkLogLabel(workout?: CurrentClientWorkout | null): string {
-  const summary = workout?.homeworkSummary;
-  const suffix = summary?.todayIsCompleted ? ' - completed today' : summary?.todayIsLoggable ? ' - ready' : '';
-  return `Off-day logs${suffix}`;
-}
-
-const homeworkHistoryEntries = (workout?: CurrentClientWorkout | null) => (
-  workout?.homeworkSummary?.recentCompletions.slice(0, 3) || []
-);
-
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
   currentWorkout,
   currentWorkoutError,
   currentWorkoutLoading,
   onNavigate,
 }) => {
-  const recentHomework = homeworkHistoryEntries(currentWorkout);
+  const viewModel = buildClientCurrentWorkoutViewModel({
+    workout: currentWorkout,
+    error: currentWorkoutError,
+    loading: currentWorkoutLoading,
+  });
 
   return (
     <WidgetCard data-testid="current-workout-card">
@@ -163,48 +61,28 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
           <div>
             <SectionKicker>
               <ClipboardCheck size={14} aria-hidden="true" />
-              {sectionKickerLabel(currentWorkout)}
+              {viewModel.kicker}
             </SectionKicker>
-            <SectionTitle>{workoutTitle(currentWorkout, currentWorkoutError, currentWorkoutLoading)}</SectionTitle>
+            <SectionTitle>{viewModel.title}</SectionTitle>
           </div>
           <SmallButton
             type="button"
-            aria-label={workoutActionAriaLabel(currentWorkout)}
-            onClick={() => onNavigate(workoutActionPath(currentWorkout))}
+            aria-label={viewModel.action.ariaLabel}
+            onClick={() => onNavigate(viewModel.action.path)}
           >
-            {workoutActionLabel(currentWorkout)}
+            {viewModel.action.label}
           </SmallButton>
         </WidgetHeader>
         <WidgetList>
-          <WidgetRow>
-            <WidgetLabel>{workoutPosition(currentWorkout)}</WidgetLabel>
-            <WidgetValue>{assignmentLabel(currentWorkout?.assignmentType)}</WidgetValue>
-          </WidgetRow>
-          {currentWorkout?.homeworkSummary && (
-            <WidgetRow>
-              <WidgetLabel>{homeworkLogLabel(currentWorkout)}</WidgetLabel>
-              <WidgetValue>{homeworkLogValue(currentWorkout)}</WidgetValue>
-            </WidgetRow>
-          )}
-          {recentHomework.length > 0 && (
-            <WidgetRow>
-              <WidgetLabel>Recent Homework History</WidgetLabel>
-              <WidgetValue>Last {recentHomework.length}</WidgetValue>
-            </WidgetRow>
-          )}
-          {recentHomework.map((completion) => (
-            <WidgetRow key={`${completion.completedAt || completion.scheduledDate}-${completion.weekNumber}-${completion.dayNumber}`}>
-              <WidgetLabel>
-                {formatHomeworkCompletionPosition(completion, ' ')}
-                {' - '}
-                {formatHomeworkCompletionDate(completion)}
-              </WidgetLabel>
-              <WidgetValue>{formatHomeworkCompletionExerciseLabel(completion)}</WidgetValue>
+          {viewModel.rows.map((row) => (
+            <WidgetRow key={`${row.label}:${row.value}`}>
+              <WidgetLabel>{row.label}</WidgetLabel>
+              <WidgetValue>{row.value}</WidgetValue>
             </WidgetRow>
           ))}
         </WidgetList>
         <MutedText $top="0.75rem">
-          {workoutDetail(currentWorkout, currentWorkoutError)}
+          {viewModel.detail}
         </MutedText>
       </CardInner>
     </WidgetCard>
