@@ -68,6 +68,23 @@ const PLAN_HORIZONS: Array<{ key: string; durationWeeks: number }> = [
   { key: 'twelve_month', durationWeeks: 52 },
 ];
 
+const PLAN_DATA_IDENTITY_KEYS = new Set([
+  'address',
+  'client',
+  'clientemail',
+  'clientname',
+  'clientprofile',
+  'dateofbirth',
+  'email',
+  'firstname',
+  'lastname',
+  'phone',
+  'phonenumber',
+  'selectedclient',
+]);
+
+const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+
 const toPositiveInteger = (value: unknown, fallback: number) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
@@ -99,6 +116,18 @@ const firstString = (...values: unknown[]) => {
 const toRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 
+const sanitizePlanDataForPersistence = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(sanitizePlanDataForPersistence);
+  if (typeof value === 'string') return value.replace(EMAIL_PATTERN, '[redacted]');
+  if (!value || typeof value !== 'object') return value;
+
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>((cleaned, [key, child]) => {
+    if (PLAN_DATA_IDENTITY_KEYS.has(key.replace(/[_-]/g, '').toLowerCase())) return cleaned;
+    cleaned[key] = sanitizePlanDataForPersistence(child);
+    return cleaned;
+  }, {});
+};
+
 const closestHorizonKey = (durationWeeks: number) =>
   PLAN_HORIZONS.reduce((closest, horizon) => (
     Math.abs(horizon.durationWeeks - durationWeeks) < Math.abs(closest.durationWeeks - durationWeeks)
@@ -125,7 +154,7 @@ const inferPlanNasmPhase = (plan: WorkoutPlan) => {
 };
 
 const buildPersistablePlanData = (plan: WorkoutPlan) => {
-  const existing = toRecord(plan.planData);
+  const existing = toRecord(sanitizePlanDataForPersistence(plan.planData));
   const fallbackWeeks = plan.days?.length
     ? [{ weekNumber: 1, days: plan.days }]
     : [];
