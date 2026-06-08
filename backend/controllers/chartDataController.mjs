@@ -32,7 +32,7 @@
  *    6. chart-intensity-rpe-trend         — avg(wl.rpe) precedence, fallback ws.intensity
  *    7. chart-pr-timeline                 — running-max best set per exercise
  *    8. chart-anchor-lifts                — top-3 most-frequent exercises, max weight over time
- *    9. chart-exercise-frequency          — top-10 exercises by session count from workout_logs
+ *    9. chart-exercise-frequency          — all-time exercises by session count from workout_logs
  *   10. chart-movement-pattern-balance    — volume aggregated into NASM movement patterns
  *   11. chart-muscle-group-balance        — volume aggregated into NASM muscle groups
  *   12. chart-recovery-signal             — per-exercise pain-note and high-RPE clustering
@@ -474,12 +474,11 @@ export async function getAnchorLiftsChart(req, res) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: 9. Exercise Frequency — top-10 most-trained (90 days)
+// SECTION: 9. Exercise Frequency — all-time most-trained diary
 //
 // CANONICAL SOURCE: workout_logs.exerciseName JOIN workout_sessions.
-// Returns the top 10 exercises by distinct session count, with total
-// sets as a secondary sort key. Clear snapshot of what the client is
-// actually doing.
+// Returns every exercise by distinct session count, with total sets as a
+// secondary sort key. This powers the client-facing exercise diary board.
 // ─────────────────────────────────────────────────────────────
 
 export async function getExerciseFrequencyChart(req, res) {
@@ -495,10 +494,8 @@ export async function getExerciseFrequencyChart(req, res) {
        FROM workout_logs wl
        JOIN workout_sessions ws ON wl."sessionId" = ws.id
        WHERE ws."userId" = :userId AND ws.status = 'completed'
-         AND ws.date >= NOW() - INTERVAL '90 days'
        GROUP BY wl."exerciseName"
-       ORDER BY sessions DESC, sets DESC
-       LIMIT 10`,
+       ORDER BY sessions DESC, sets DESC, wl."exerciseName" ASC`,
       { userId }, 'getExerciseFrequencyChart');
 
     res.json({
