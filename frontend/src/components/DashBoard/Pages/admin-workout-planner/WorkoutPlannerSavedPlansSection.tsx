@@ -40,6 +40,7 @@ interface WorkoutPlannerSavedPlansSectionProps {
   pdfDialogPlan: SavedPlanSummary | null;
   pdfDialogMode: WorkoutPlanPdfDialogMode;
   pdfSaving: boolean;
+  pdfOpening: boolean;
   onViewPdf: (plan: SavedPlanSummary) => void;
   onUpdatePdf: (plan: SavedPlanSummary) => void;
   onSavePdf: (planId: string, pdfUrl: string, fileName: string) => void;
@@ -62,6 +63,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
   pdfDialogPlan,
   pdfDialogMode,
   pdfSaving,
+  pdfOpening,
   onViewPdf,
   onUpdatePdf,
   onSavePdf,
@@ -145,6 +147,7 @@ const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionP
         plan={pdfDialogPlan}
         mode={pdfDialogMode}
         saving={pdfSaving}
+        opening={pdfOpening}
         onClose={onClosePdfDialog}
         onEdit={() => pdfDialogPlan && onUpdatePdf(pdfDialogPlan)}
         onSave={onSavePdf}

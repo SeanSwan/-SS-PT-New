@@ -45,7 +45,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
   onUpdateExercise, onRemoveExercise, onBrowseAddExercise, onToggleExplanations, teachModeProps,
   generatedPlan, selectedMesoDay, onSelectedMesoDayChange, savedPlansLoading, archiveBlockedFor,
   onLoad, onActivate, onRename, onDuplicate, onArchive, onSetPrimary, pdfDialogPlan, pdfDialogMode,
-  pdfSaving, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
+  pdfSaving, pdfOpening, onViewPdf, onUpdatePdf, onSavePdf, onUploadPdf, onClosePdfDialog, request, onClose,
 }) => (
   <Page>
     <WorkoutPlannerCommandPanel
@@ -160,6 +160,7 @@ const WorkoutPlannerPageLayout: React.FC<WorkoutPlannerPageLayoutProps> = ({
       pdfDialogPlan={pdfDialogPlan}
       pdfDialogMode={pdfDialogMode}
       pdfSaving={pdfSaving}
+      pdfOpening={pdfOpening}
       onViewPdf={onViewPdf}
       onUpdatePdf={onUpdatePdf}
       onSavePdf={onSavePdf}

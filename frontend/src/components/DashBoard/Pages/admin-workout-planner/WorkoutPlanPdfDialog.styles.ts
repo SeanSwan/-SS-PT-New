@@ -112,6 +112,25 @@ export const ViewerFrame = styled.object`
   }
 `;
 
+export const ViewerStatus = styled.div`
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px dashed var(--border-soft, rgba(96, 192, 240, 0.22));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-base, #030712) 80%, transparent);
+  color: var(--text-secondary, rgba(224, 236, 244, 0.76));
+  font-family: 'Sora', sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: center;
+
+  @media (min-width: 900px) {
+    min-height: 420px;
+  }
+`;
+
 export const FallbackLink = styled.a`
   min-height: 44px;
   display: inline-flex;

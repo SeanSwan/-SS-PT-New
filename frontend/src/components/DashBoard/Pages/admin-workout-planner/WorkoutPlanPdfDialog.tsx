@@ -30,6 +30,7 @@ import {
   Title,
   TitleGroup,
   ViewerFrame,
+  ViewerStatus,
 } from './WorkoutPlanPdfDialog.styles';
 
 export type WorkoutPlanPdfDialogMode = 'view' | 'edit';
@@ -38,6 +39,7 @@ interface WorkoutPlanPdfDialogProps {
   plan: SavedPlanSummary | null;
   mode: WorkoutPlanPdfDialogMode;
   saving: boolean;
+  opening?: boolean;
   onClose: () => void;
   onEdit: () => void;
   onSave: (planId: string, pdfUrl: string, fileName: string) => void;
@@ -46,30 +48,62 @@ interface WorkoutPlanPdfDialogProps {
 
 interface PdfViewerContentProps {
   plan: SavedPlanSummary;
+  opening: boolean;
   onEdit: () => void;
 }
 
-const PdfViewerContent: React.FC<PdfViewerContentProps> = ({ plan, onEdit }) => (
-  <>
-    <ViewerFrame
-      data={plan.pdfFile?.url}
-      type="application/pdf"
-      title={`${plan.name} PDF plan`}
-    >
-      <FallbackLink href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
-        <ExternalLink size={16} /> Open PDF
-      </FallbackLink>
-    </ViewerFrame>
-    <ActionRow>
-      <Button type="button" $primary onClick={onEdit}>
-        Replace PDF
-      </Button>
-      <Button as="a" href={plan.pdfFile?.url} target="_blank" rel="noreferrer">
-        <ExternalLink size={16} /> Open PDF
-      </Button>
-    </ActionRow>
-  </>
-);
+const PdfViewerContent: React.FC<PdfViewerContentProps> = ({ plan, opening, onEdit }) => {
+  const pdfUrl = plan.pdfFile?.url || '';
+  const canRenderPdf = pdfUrl.startsWith('blob:');
+
+  if (opening) {
+    return (
+      <>
+        <ViewerStatus role="status">Opening protected PDF preview...</ViewerStatus>
+        <ActionRow>
+          <Button type="button" onClick={onEdit}>
+            Replace PDF
+          </Button>
+        </ActionRow>
+      </>
+    );
+  }
+
+  if (!canRenderPdf) {
+    return (
+      <>
+        <ViewerStatus role="alert">Protected PDF preview is not ready.</ViewerStatus>
+        <ActionRow>
+          <Button type="button" $primary onClick={onEdit}>
+            Replace PDF
+          </Button>
+        </ActionRow>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ViewerFrame
+        data={pdfUrl}
+        type="application/pdf"
+        title={`${plan.name} PDF plan`}
+      >
+        <FallbackLink href={pdfUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} /> Open PDF
+        </FallbackLink>
+      </ViewerFrame>
+      <ActionRow>
+        <Button type="button" $primary onClick={onEdit}>
+          Replace PDF
+        </Button>
+        <Button as="a" href={pdfUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={16} /> Open PDF
+        </Button>
+      </ActionRow>
+    </>
+  );
+};
 
 interface PdfAttachmentFormProps {
   pdfUrl: string;
@@ -137,6 +171,7 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
   plan,
   mode,
   saving,
+  opening = false,
   onClose,
   onEdit,
   onSave,
@@ -154,7 +189,7 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
 
   if (!plan) return null;
 
-  const canView = mode === 'view' && Boolean(plan.pdfFile?.url);
+  const canView = mode === 'view';
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (selectedFile) {
@@ -179,7 +214,7 @@ const WorkoutPlanPdfDialog: React.FC<WorkoutPlanPdfDialogProps> = ({
 
         <Body>
           {canView ? (
-            <PdfViewerContent plan={plan} onEdit={onEdit} />
+            <PdfViewerContent plan={plan} opening={opening} onEdit={onEdit} />
           ) : (
             <PdfAttachmentForm
               pdfUrl={pdfUrl}

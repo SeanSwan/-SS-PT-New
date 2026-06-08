@@ -39,6 +39,7 @@ const props = {
   pdfDialogPlan: null,
   pdfDialogMode: 'view' as const,
   pdfSaving: false,
+  pdfOpening: false,
   onViewPdf: vi.fn(),
   onUpdatePdf: vi.fn(),
   onSavePdf: vi.fn(),

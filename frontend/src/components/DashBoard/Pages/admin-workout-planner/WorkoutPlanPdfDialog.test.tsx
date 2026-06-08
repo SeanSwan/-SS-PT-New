@@ -16,6 +16,31 @@ const plan: SavedPlanSummary = {
 };
 
 describe('WorkoutPlanPdfDialog', () => {
+  it('does not render direct protected API PDF URLs in view mode', () => {
+    render(
+      <WorkoutPlanPdfDialog
+        plan={{
+          ...plan,
+          pdfFile: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Six Month Foundation.pdf',
+            contentType: 'application/pdf',
+          },
+        }}
+        mode="view"
+        saving={false}
+        onClose={vi.fn()}
+        onEdit={vi.fn()}
+        onSave={vi.fn()}
+        onUpload={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/protected pdf preview/i);
+    expect(screen.queryByTitle(/six month foundation pdf plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /open pdf/i })).not.toBeInTheDocument();
+  });
+
   it('lets trainers upload a PDF file instead of pasting a URL', async () => {
     const user = userEvent.setup();
     const onUpload = vi.fn();

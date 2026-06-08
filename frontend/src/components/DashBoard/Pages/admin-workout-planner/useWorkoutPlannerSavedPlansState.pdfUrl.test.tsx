@@ -156,4 +156,56 @@ describe('useWorkoutPlannerSavedPlansState PDF URL mapping', () => {
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(result.current.pdfDialogPlan?.pdfFile?.url).toBe('blob:planner-plan-pdf');
   });
+
+  it('does not expose the protected PDF API URL in dialog state while blob loading is pending', async () => {
+    let resolvePdf: ((value: { data: Blob }) => void) | null = null;
+    const pdfPromise = new Promise<{ data: Blob }>((resolve) => {
+      resolvePdf = resolve;
+    });
+    const createObjectURL = vi.fn(() => 'blob:planner-delayed-pdf');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { createObjectURL, revokeObjectURL });
+
+    const authAxios = {
+      get: vi.fn((url: string) => {
+        if (url === '/api/workout-plans/protected-plan/pdf/content.pdf') {
+          return pdfPromise;
+        }
+        return Promise.resolve({ data: { success: true, plans: [] } });
+      }),
+      post: vi.fn(),
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const plan: SavedPlanSummary = {
+      id: 'protected-plan',
+      name: 'Protected Six Month Arc',
+      status: 'active',
+      createdAt: '2026-06-07T12:00:00.000Z',
+      goal: 'strength',
+      pdfFile: {
+        url: '/api/workout-plans/protected-plan/pdf/content.pdf',
+        fileName: 'Protected Six Month Arc.pdf',
+        contentType: 'application/pdf',
+      },
+    };
+
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    let viewPromise: Promise<void>;
+    await act(async () => {
+      viewPromise = result.current.handlePlanPdfView(plan);
+    });
+
+    expect(result.current.pdfOpening).toBe(true);
+    expect(result.current.pdfDialogPlan?.pdfFile).toBeNull();
+
+    await act(async () => {
+      resolvePdf?.({ data: new Blob(['%PDF-1.4'], { type: 'application/pdf' }) });
+      await viewPromise;
+    });
+
+    expect(result.current.pdfOpening).toBe(false);
+    expect(result.current.pdfDialogPlan?.pdfFile?.url).toBe('blob:planner-delayed-pdf');
+  });
 });

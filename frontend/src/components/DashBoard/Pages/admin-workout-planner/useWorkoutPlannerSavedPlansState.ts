@@ -59,7 +59,9 @@ export const useWorkoutPlannerSavedPlansState = ({
   const [pdfDialogPlan, setPdfDialogPlan] = useState<SavedPlanSummary | null>(null);
   const [pdfDialogMode, setPdfDialogMode] = useState<WorkoutPlanPdfDialogMode>('view');
   const [pdfSaving, setPdfSaving] = useState(false);
+  const [pdfOpening, setPdfOpening] = useState(false);
   const pdfObjectUrlRef = useRef<string | null>(null);
+  const pdfViewRequestRef = useRef(0);
 
   const revokePdfObjectUrl = useCallback(() => {
     if (pdfObjectUrlRef.current && typeof URL !== 'undefined') {
@@ -168,22 +170,37 @@ export const useWorkoutPlannerSavedPlansState = ({
   }, [authAxios, fetchSavedPlans, loadedPlanId, resetLoadedPlanState, selectedClientId, setConfirmRequest, setStatusMsg]);
 
   const handlePlanPdfView = useCallback(async (plan: SavedPlanSummary) => {
+    const requestId = pdfViewRequestRef.current + 1;
+    pdfViewRequestRef.current = requestId;
     revokePdfObjectUrl();
-    setPdfDialogPlan(plan);
+    setPdfDialogPlan({ ...plan, pdfFile: null });
     setPdfDialogMode('view');
     const pdfFile = plan.pdfFile;
-    if (!pdfFile) return;
+    if (!pdfFile) {
+      setPdfOpening(false);
+      setStatusMsg({ type: 'error', text: 'No PDF plan is attached yet.' });
+      return;
+    }
 
+    setPdfOpening(true);
     try {
       const objectUrl = await createProtectedPlanPdfObjectUrl(
         authAxios as ProtectedPlanPdfAuthClient,
         pdfFile,
       );
+      if (pdfViewRequestRef.current !== requestId) {
+        if (typeof URL !== 'undefined') URL.revokeObjectURL(objectUrl);
+        return;
+      }
       pdfObjectUrlRef.current = objectUrl;
       setPdfDialogPlan({ ...plan, pdfFile: { ...pdfFile, url: objectUrl } });
     } catch (err) {
+      if (pdfViewRequestRef.current !== requestId) return;
       logApiError('View plan PDF failed', err);
+      setPdfDialogPlan(null);
       setStatusMsg({ type: 'error', text: 'Failed to open the PDF plan.' });
+    } finally {
+      if (pdfViewRequestRef.current === requestId) setPdfOpening(false);
     }
   }, [authAxios, revokePdfObjectUrl, setStatusMsg]);
 
@@ -195,6 +212,8 @@ export const useWorkoutPlannerSavedPlansState = ({
 
   const closePlanPdfDialog = useCallback(() => {
     if (pdfSaving) return;
+    pdfViewRequestRef.current += 1;
+    setPdfOpening(false);
     revokePdfObjectUrl();
     setPdfDialogPlan(null);
     setPdfDialogMode('view');
@@ -265,6 +284,7 @@ export const useWorkoutPlannerSavedPlansState = ({
     pdfDialogPlan,
     pdfDialogMode,
     pdfSaving,
+    pdfOpening,
     handlePlanPdfView,
     handlePlanPdfUpdate,
     handlePlanPdfSave,
