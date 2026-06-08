@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const adminRoutesSource = readFileSync(resolve(__dirname, '../../routes/adminRoutes.mjs'), 'utf8');
 
 const { mockFindAll } = vi.hoisted(() => ({
   mockFindAll: vi.fn()
@@ -82,5 +89,13 @@ describe('admin contact diagnostic routes', () => {
     });
     expect(response.body).not.toHaveProperty('error');
     expect(response.body).not.toHaveProperty('errorType');
+  });
+
+  it('does not log raw inline admin route exception messages', () => {
+    expect(adminRoutesSource).toContain('const logAdminRouteError =');
+    expect(adminRoutesSource).not.toContain('console.error');
+    expect(adminRoutesSource).not.toContain('error.message');
+    expect(adminRoutesSource).not.toContain('error.stack');
+    expect(adminRoutesSource).not.toContain('stack:');
   });
 });

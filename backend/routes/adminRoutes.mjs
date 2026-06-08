@@ -5,8 +5,26 @@ import { Op } from 'sequelize';
 import { authenticateToken, authorizeAdmin } from '../middleware/auth.mjs';
 import userManagementController from '../controllers/userManagementController.mjs';
 import Contact from '../models/contact.mjs';
+import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+const toAdminRouteErrorMetadata = (error) => {
+  const metadata = {
+    name: error?.name || 'UnknownError'
+  };
+
+  if (error?.code) metadata.code = error.code;
+  if (error?.statusCode || error?.status) metadata.statusCode = error.statusCode || error.status;
+  if (error?.parent?.code) metadata.parentCode = error.parent.code;
+  if (error?.original?.code) metadata.originalCode = error.original.code;
+
+  return metadata;
+};
+
+const logAdminRouteError = (eventName, error) => {
+  logger.error(eventName, toAdminRouteErrorMetadata(error));
+};
 
 // Protect all admin routes
 router.use(authenticateToken);
@@ -40,7 +58,7 @@ router.get('/trainers', async (req, res) => {
       trainers
     });
   } catch (error) {
-    console.error('Error fetching trainers:', error.message);
+    logAdminRouteError('Error fetching trainers', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch trainers'
@@ -69,7 +87,7 @@ router.get('/contacts', async (req, res) => {
       contacts
     });
   } catch (error) {
-    console.error('Error fetching contacts:', error.message);
+    logAdminRouteError('Error fetching contacts', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch contacts'
@@ -104,7 +122,7 @@ router.get('/contacts/recent', async (req, res) => {
       since: oneDayAgo.toISOString()
     });
   } catch (error) {
-    console.error('Error fetching recent contacts:', error.message);
+    logAdminRouteError('Error fetching recent contacts', error);
 
     res.status(500).json({
       success: false,
@@ -135,7 +153,7 @@ router.patch('/contacts/:id/viewed', async (req, res) => {
       message: 'Contact marked as viewed'
     });
   } catch (error) {
-    console.error('Error marking contact as viewed:', error.message);
+    logAdminRouteError('Error marking contact as viewed', error);
     res.status(500).json({
       success: false,
       message: 'Failed to mark contact as viewed'
