@@ -1443,7 +1443,7 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
     if (error.message.includes('privileges required')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Trainer or admin privileges required'
       });
     }
 
@@ -1488,7 +1488,7 @@ router.get("/:id", protect, async (req, res) => {
     if (error.message.includes('permission')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Not authorized to view this session'
       });
     }
 
@@ -2400,28 +2400,28 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     if (error.message.includes('permission')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Not authorized to cancel this session'
       });
     }
     
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
-        message: error.message
+        message: 'Session not found'
       });
     }
     
     if (error.message.includes('Cannot cancel')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: 'Cannot cancel this session'
       });
     }
 
     if (error.message.toLowerCase().includes('invalid')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: 'Invalid cancellation request'
       });
     }
     
@@ -2448,21 +2448,21 @@ router.patch("/:id/confirm", protect, trainerOrAdminOnly, async (req, res) => {
     if (error.message.includes('privileges required') || error.message.includes('can only confirm')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Not authorized to confirm this session'
       });
     }
     
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
-        message: error.message
+        message: 'Session not found'
       });
     }
     
     if (error.message.includes('Only scheduled')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: 'Only scheduled sessions can be confirmed'
       });
     }
     
@@ -2504,14 +2504,14 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
     if (error.message.includes('privileges required') || error.message.includes('can only complete')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Not authorized to complete this session'
       });
     }
     
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
-        message: error.message
+        message: 'Session not found'
       });
     }
     
@@ -2520,14 +2520,14 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
     if (normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
       return res.status(400).json({
         success: false,
-        message: rawMessage || error.message
+        message: 'Only scheduled or confirmed sessions can be completed'
       });
     }
 
     if (normalizedMessage.includes('invalid')) {
       return res.status(400).json({
         success: false,
-        message: rawMessage || error.message
+        message: 'Invalid completion request'
       });
     }
     
@@ -2563,21 +2563,21 @@ router.patch("/:id/assign", protect, adminOnly, async (req, res) => {
     if (error.message.includes('Admin privileges required')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Admin privileges required'
       });
     }
     
     if (error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
-        message: error.message
+        message: 'Session not found'
       });
     }
     
     if (error.message.includes('required')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: 'Required assignment field missing'
       });
     }
     
@@ -2614,7 +2614,7 @@ router.post("/allocate", protect, adminOnly, async (req, res) => {
     if (error.message.includes('not found') || error.message.includes('not completed')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: 'Order not found or not completed'
       });
     }
     

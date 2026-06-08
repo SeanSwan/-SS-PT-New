@@ -147,4 +147,62 @@ describe('mounted sessions lifecycle disclosure routes', () => {
     });
     expect(JSON.stringify(response.body)).not.toContain('private trainer assignment');
   });
+
+  it('PATCH /api/sessions/:id/cancel does not disclose substring-matched private errors', async () => {
+    cancelSession.mockRejectedValueOnce(new Error('private permission storage host'));
+
+    const response = await request(app)
+      .patch('/api/sessions/42/cancel')
+      .send({ reason: 'Client requested cancellation' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to cancel this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private permission');
+  });
+
+  it('PATCH /api/sessions/:id/confirm does not disclose substring-matched private errors', async () => {
+    confirmSession.mockRejectedValueOnce(new Error('private privileges required storage host'));
+
+    const response = await request(app).patch('/api/sessions/42/confirm').send({});
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to confirm this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private privileges');
+  });
+
+  it('PATCH /api/sessions/:id/complete does not disclose substring-matched private errors', async () => {
+    completeSession.mockRejectedValueOnce(new Error('private only confirmed storage host'));
+
+    const response = await request(app)
+      .patch('/api/sessions/42/complete')
+      .send({ notes: 'Completed without workout log' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Only scheduled or confirmed sessions can be completed',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private only confirmed');
+  });
+
+  it('PATCH /api/sessions/:id/assign does not disclose substring-matched private errors', async () => {
+    assignTrainer.mockRejectedValueOnce(new Error('private required trainer storage host'));
+
+    const response = await request(app)
+      .patch('/api/sessions/42/assign')
+      .send({ trainerId: 9 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Required assignment field missing',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private required');
+  });
 });

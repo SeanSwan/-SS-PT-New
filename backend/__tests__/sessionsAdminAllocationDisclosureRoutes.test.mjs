@@ -209,4 +209,19 @@ describe('mounted sessions admin/request/allocation disclosure routes', () => {
     });
     expect(JSON.stringify(response.body)).not.toContain('private legacy allocation');
   });
+
+  it('POST /api/sessions/allocate does not disclose substring-matched order errors', async () => {
+    allocateSessionsFromOrder.mockRejectedValueOnce(new Error('private order not completed storage host'));
+
+    const response = await request(app)
+      .post('/api/sessions/allocate')
+      .send({ orderId: 10, userId: 7 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Order not found or not completed',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private order');
+  });
 });

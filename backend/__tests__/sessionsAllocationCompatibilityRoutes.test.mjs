@@ -215,6 +215,21 @@ describe('mounted sessions allocation compatibility routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private client directory');
   });
 
+  it('GET /api/sessions/users/clients does not disclose substring-matched privilege errors', async () => {
+    unifiedSessionService.getClients.mockRejectedValueOnce(
+      new Error('private privileges required storage host')
+    );
+
+    const response = await request(app).get('/api/sessions/users/clients');
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Trainer or admin privileges required',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private privileges');
+  });
+
   it('GET /api/sessions/upcoming/:userId does not disclose internal client-card errors', async () => {
     sessionFindAll.mockRejectedValueOnce(new Error('private upcoming sessions shard detail'));
 
@@ -254,6 +269,21 @@ describe('mounted sessions allocation compatibility routes', () => {
       message: 'Server error fetching session',
     });
     expect(JSON.stringify(response.body)).not.toContain('private session detail');
+  });
+
+  it('GET /api/sessions/:id does not disclose substring-matched permission errors', async () => {
+    unifiedSessionService.getSessionById.mockRejectedValueOnce(
+      new Error('private permission lookup host')
+    );
+
+    const response = await request(app).get('/api/sessions/42');
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to view this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private permission');
   });
 
   it('PUT /api/sessions/:id does not disclose internal update errors', async () => {
