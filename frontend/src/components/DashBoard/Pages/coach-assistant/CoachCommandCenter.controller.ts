@@ -151,6 +151,7 @@ export function useCoachCommandCenterController() {
     quickClientSource,
     routeClientId,
     routeClientLabel,
+    routeContextPrompt: routeContext.prompt,
     routeIntent,
     setActiveThreadId,
     setCommandText,

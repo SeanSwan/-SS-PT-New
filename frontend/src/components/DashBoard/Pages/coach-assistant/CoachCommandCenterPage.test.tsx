@@ -433,6 +433,37 @@ describe('CoachCommandCenterPage', () => {
     });
   });
 
+  it('preserves selected-client daily context when a coach replaces the prefilled prompt', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+    );
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('Client #424242');
+    });
+
+    fireEvent.change(composer, {
+      target: { value: 'Bench press 3 sets of 10 at 135, RPE 7.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        expect.stringContaining('Client #424242 daily workout log'),
+        'coach_assistant',
+        expect.stringContaining('Client #424242'),
+        424242,
+        'both',
+      );
+    });
+    const [message] = sendMessageWithConversationMock.mock.calls[0];
+    expect(message).toContain('Prepare a review-gated workout_log proposal');
+    expect(message).toContain('Operator command:');
+    expect(message).toContain('Bench press 3 sets of 10 at 135, RPE 7.');
+  });
+
   it('offers a one-click return to the selected Client Hub route from Clients & Team', async () => {
     renderPage(
       '/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',

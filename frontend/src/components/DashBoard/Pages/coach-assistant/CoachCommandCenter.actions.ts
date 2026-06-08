@@ -20,7 +20,7 @@ import {
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
-import { getConversationTitle } from './CoachCommandCenter.logic';
+import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { DrawerSide } from './CoachCommandCenter.types';
 
 type CoachCommandChat = Pick<
@@ -47,6 +47,7 @@ type CoachCommandActionProps = {
   routeClientId: number | null;
   routeClientLabel: string | null;
   routeIntent: string | null;
+  routeContextPrompt: string | null;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
   setCommandText: Dispatch<SetStateAction<string>>;
   setDrawer: Dispatch<SetStateAction<DrawerSide | null>>;
@@ -198,8 +199,9 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         return;
       }
     }
+    const chatPrompt = buildRouteScopedCoachPrompt(trimmed, props.routeContextPrompt);
     const response = await props.chat.sendMessageWithConversation(
-      trimmed,
+      chatPrompt,
       'coach_assistant',
       commandTitle,
       props.routeClientId,

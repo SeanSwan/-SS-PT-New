@@ -36,6 +36,7 @@ describe('CoachCommandCenter actions command errors', () => {
       quickClientSource: 'swanstudios',
       routeClientId: null,
       routeClientLabel: null,
+      routeContextPrompt: null,
       routeIntent: null,
       setActiveThreadId: vi.fn(),
       setCommandText: vi.fn(),

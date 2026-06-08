@@ -88,6 +88,17 @@ export function buildRouteContext(routeIntent: string | null, routeClientLabel: 
   return { prompt: null, status: null };
 }
 
+export function buildRouteScopedCoachPrompt(command: string, routePrompt?: string | null): string {
+  const trimmedCommand = command.trim();
+  const trimmedRoutePrompt = routePrompt?.trim();
+  if (!trimmedRoutePrompt) return trimmedCommand;
+  if (trimmedCommand.toLowerCase().includes(trimmedRoutePrompt.toLowerCase())) {
+    return trimmedCommand;
+  }
+
+  return `${trimmedRoutePrompt}\n\nOperator command:\n${trimmedCommand}`;
+}
+
 export function buildQueueSummary(queueSummary: Partial<CoachQueueSummaryView> | undefined): CoachQueueSummaryView {
   const source = queueSummary || {};
   const read = (key: keyof CoachQueueSummaryView) => {
