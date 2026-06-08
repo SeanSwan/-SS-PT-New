@@ -46,6 +46,10 @@ vi.mock('../models/StorefrontItem.mjs', () => ({
   },
 }));
 
+vi.mock('../services/SessionGrantService.mjs', () => ({
+  getStorefrontSessionCredits: vi.fn(() => 0),
+}));
+
 vi.mock('../services/sessionPackageCheckoutFulfillmentService.mjs', () => ({
   SessionPackageFulfillmentError: class SessionPackageFulfillmentError extends Error {},
   isSessionPackageCheckoutSession: vi.fn(),

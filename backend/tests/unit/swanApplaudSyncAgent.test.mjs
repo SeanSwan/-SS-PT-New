@@ -1,12 +1,25 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { execFile } from 'node:child_process';
 import { mkdir, rm, stat, utimes, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import {
-  scanAudioFiles,
-  syncOnce,
-} from '../../../scripts/applaud-sync/swan-applaud-sync.mjs';
+import { dirname, join } from 'node:path';
+import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(__dirname, '..', '..', '..');
+const syncScriptUrl = pathToFileURL(join(repoRoot, 'scripts', 'applaud-sync', 'swan-applaud-sync.mjs')).href;
 const tmpRoot = join(process.cwd(), 'tmp', 'swan-applaud-sync-agent-test');
+const execNode = promisify(execFile);
+
+async function runApplaudSnippet(source) {
+  const { stdout } = await execNode(process.execPath, ['--input-type=module', '-e', source], {
+    cwd: repoRoot,
+    env: { ...process.env, NODE_ENV: 'test' },
+    maxBuffer: 1024 * 1024,
+  });
+  return stdout.trim();
+}
 
 async function touchOld(path, ageMs) {
   const when = new Date(Date.now() - ageMs);
@@ -37,13 +50,17 @@ describe('Swan APPLAUD local sync agent', () => {
     await touchOld(stableAudio, 20_000);
     await touchOld(notes, 20_000);
 
-    const candidates = await scanAudioFiles(tmpRoot, {
-      nowMs: Date.now(),
-      stableMs: 10_000,
-      lookbackHours: 24,
-    });
+    const output = await runApplaudSnippet(`
+      import { scanAudioFiles } from ${JSON.stringify(syncScriptUrl)};
+      const candidates = await scanAudioFiles(${JSON.stringify(tmpRoot)}, {
+        nowMs: ${Date.now()},
+        stableMs: 10_000,
+        lookbackHours: 24,
+      });
+      console.log(JSON.stringify(candidates.map((item) => item.filePath)));
+    `);
 
-    expect(candidates.map((item) => item.filePath)).toEqual([stableAudio]);
+    expect(JSON.parse(output)).toEqual([stableAudio]);
     await expect(stat(notes)).resolves.toBeTruthy();
   });
 
@@ -54,48 +71,60 @@ describe('Swan APPLAUD local sync agent', () => {
     const nowMs = recordedAt.getTime() + 20_000;
     await writeFile(audio, Buffer.from('same recorder bytes'));
     await touchAt(audio, recordedAt);
-    const fetchImpl = vi.fn(async (url, init) => {
-      expect(url).toBe('https://sswanstudios.com/api/plaud/clips/upload');
-      expect(init.method).toBe('POST');
-      expect(init.headers.Authorization).toBe('Bearer test-token');
-      expect(init.body.get('clipSource')).toBe('applaud_local_sync');
-      expect(init.body.get('recordedAt')).toBe(recordedAt.toISOString());
-      return new Response(JSON.stringify({
-        success: true,
-        clips: [{ clipId: '11111111-2222-3333-4444-555555555555', filename: 'today-client.m4a' }],
-        rejected: [],
-      }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
+    const output = await runApplaudSnippet(`
+      import { syncOnce } from ${JSON.stringify(syncScriptUrl)};
+      let calls = 0;
+      const fetchImpl = async (url, init) => {
+        calls += 1;
+        if (url !== 'https://sswanstudios.com/api/plaud/clips/upload') throw new Error('unexpected upload URL');
+        if (init.method !== 'POST') throw new Error('unexpected upload method');
+        if (init.headers.Authorization !== 'Bearer test-token') throw new Error('missing auth token');
+        if (init.body.get('clipSource') !== 'applaud_local_sync') throw new Error('missing clip source');
+        if (init.body.get('recordedAt') !== ${JSON.stringify(recordedAt.toISOString())}) throw new Error('missing recordedAt');
+        return new Response(JSON.stringify({
+          success: true,
+          clips: [{ clipId: '11111111-2222-3333-4444-555555555555', filename: 'today-client.m4a' }],
+          rejected: [],
+        }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      };
+      const logger = { info() {}, warn() {}, error() {} };
+      const first = await syncOnce({
+        watchDir: ${JSON.stringify(tmpRoot)},
+        statePath: ${JSON.stringify(statePath)},
+        apiBaseUrl: 'https://sswanstudios.com',
+        authToken: 'test-token',
+        stableMs: 10_000,
+        lookbackHours: 24,
+        nowMs: ${nowMs},
+        fetchImpl,
+        logger,
       });
-    });
+      const second = await syncOnce({
+        watchDir: ${JSON.stringify(tmpRoot)},
+        statePath: ${JSON.stringify(statePath)},
+        apiBaseUrl: 'https://sswanstudios.com',
+        authToken: 'test-token',
+        stableMs: 10_000,
+        lookbackHours: 24,
+        nowMs: ${nowMs},
+        fetchImpl,
+        logger,
+      });
+      console.log(JSON.stringify({
+        firstUploaded: first.uploaded.length,
+        secondUploaded: second.uploaded.length,
+        secondAlreadySkipped: second.skipped.some((item) => item.reason === 'already_uploaded'),
+        calls,
+      }));
+    `);
+    const result = JSON.parse(output);
 
-    const first = await syncOnce({
-      watchDir: tmpRoot,
-      statePath,
-      apiBaseUrl: 'https://sswanstudios.com',
-      authToken: 'test-token',
-      stableMs: 10_000,
-      lookbackHours: 24,
-      nowMs,
-      fetchImpl,
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    });
-    const second = await syncOnce({
-      watchDir: tmpRoot,
-      statePath,
-      apiBaseUrl: 'https://sswanstudios.com',
-      authToken: 'test-token',
-      stableMs: 10_000,
-      lookbackHours: 24,
-      nowMs,
-      fetchImpl,
-      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
-    });
-
-    expect(first.uploaded).toHaveLength(1);
-    expect(second.uploaded).toHaveLength(0);
-    expect(second.skipped.some((item) => item.reason === 'already_uploaded')).toBe(true);
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(result.firstUploaded).toBe(1);
+    expect(result.secondUploaded).toBe(0);
+    expect(result.secondAlreadySkipped).toBe(true);
+    expect(result.calls).toBe(1);
   });
 });

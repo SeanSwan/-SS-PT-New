@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const routeSource = readFileSync(resolve(__dirname, '../../routes/clientNoteRoutes.mjs'), 'utf8');
+const normalizeSource = (source) => source.replace(/\r\n/g, '\n');
+const routeSource = normalizeSource(readFileSync(resolve(__dirname, '../../routes/clientNoteRoutes.mjs'), 'utf8'));
 const modelSource = readFileSync(resolve(__dirname, '../../models/ClientNote.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 

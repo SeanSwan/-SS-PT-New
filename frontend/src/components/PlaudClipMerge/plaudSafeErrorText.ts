@@ -24,6 +24,7 @@ const SAFE_CODES = new Set([
   'RATE_LIMITED',
   'TOO_FEW_CLIPS',
   'TOO_MANY_FILES',
+  'UNSUPPORTED_AUDIO_TYPE',
   'UNSUPPORTED_MIMETYPE',
   'UPLOAD_TOO_LARGE',
 ]);
@@ -33,6 +34,7 @@ const UPLOAD_MESSAGES: Record<string, string> = {
   PLAUD_DISABLED: 'PLAUD intake is disabled right now.',
   RATE_LIMITED: 'Too many upload attempts. Wait briefly and retry.',
   TOO_MANY_FILES: 'At most 5 files can be uploaded at once.',
+  UNSUPPORTED_AUDIO_TYPE: 'File type is not supported.',
   UNSUPPORTED_MIMETYPE: 'File type is not supported.',
   UPLOAD_TOO_LARGE: 'File is over the upload size limit.',
 };

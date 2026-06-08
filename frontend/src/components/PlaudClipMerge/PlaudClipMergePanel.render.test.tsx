@@ -101,7 +101,7 @@ describe('PlaudClipMergePanel render safety', () => {
       rejectedClips: [
         {
           filename: 'Marcus-private@example.com.mp3',
-          code: 'UNSUPPORTED_MIMETYPE',
+          code: 'UNSUPPORTED_AUDIO_TYPE',
           message: 'do-not-render-private-detail',
         },
       ],
@@ -111,7 +111,7 @@ describe('PlaudClipMergePanel render safety', () => {
 
     await waitFor(() => expect(listPlaudClipGroupsMock).toHaveBeenCalled());
     expect(screen.getByText(/Rejected file 1/i)).toBeInTheDocument();
-    expect(screen.getByText(/UNSUPPORTED_MIMETYPE/i)).toBeInTheDocument();
+    expect(screen.getByText(/UNSUPPORTED_AUDIO_TYPE/i)).toBeInTheDocument();
     expect(screen.getByText(/File type is not supported/i)).toBeInTheDocument();
     expect(container.innerHTML).not.toContain('private@example.com');
     expect(container.innerHTML).not.toContain('Marcus');
