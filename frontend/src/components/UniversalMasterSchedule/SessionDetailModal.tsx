@@ -6,7 +6,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Modal } from './ui';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../hooks/use-toast';
 import ScheduleConfirmDialog, {
   type ScheduleConfirmRequest,
@@ -18,14 +17,13 @@ import { useSessionCancellation } from './hooks/useSessionCancellation';
 import { useSessionCompletion } from './hooks/useSessionCompletion';
 import { useSessionClientFeedback } from './hooks/useSessionClientFeedback';
 import { useSessionDetailPermissions } from './hooks/useSessionDetailPermissions';
+import { useSessionDetailNavigation } from './hooks/useSessionDetailNavigation';
 import { useSessionPackagePricing } from './hooks/useSessionPackagePricing';
 import { useSessionSeriesActions } from './hooks/useSessionSeriesActions';
 import type { SessionDetailModalProps } from './SessionDetailModal.types';
 import { getSessionDate } from './SessionDetailModal.actions';
 import {
   buildScheduleLogWorkoutLabel,
-  buildScheduleWorkoutLoggerRoute,
-  buildScheduleWorkoutsRoute,
   getStatusTone,
 } from './SessionDetailModal.logic';
 
@@ -40,7 +38,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   onEditSession,
   seriesCount
 }) => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,6 +165,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setLoading,
     setConfirmRequest,
   });
+  const detailNavigation = useSessionDetailNavigation({ mode, session, onClose });
 
   useEffect(() => {
     if (!open || !session) {
@@ -188,14 +186,6 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const sessionDate = getSessionDate(session);
   const statusTone = getStatusTone(session.status);
   const logWorkoutLabel = buildScheduleLogWorkoutLabel(session);
-  const handleOpenWorkoutLogger = () => {
-    onClose();
-    navigate(buildScheduleWorkoutLoggerRoute(mode, session));
-  };
-  const handleViewWorkouts = () => {
-    onClose();
-    navigate(buildScheduleWorkoutsRoute(mode, session));
-  };
 
   return (
     <>
@@ -228,8 +218,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           onBackFromNoShowReason={handleBackFromNoShowReason}
           onComplete={handleComplete}
           onEdit={onEditSession || (() => undefined)}
-          onLogWorkout={handleOpenWorkoutLogger}
-          onViewWorkouts={handleViewWorkouts}
+          onCoachLogWorkout={detailNavigation.openCoachLogger}
+          onLogWorkout={detailNavigation.openWorkoutLogger}
+          onViewWorkouts={detailNavigation.viewWorkouts}
         />
       )}
     >

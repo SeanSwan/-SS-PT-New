@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   buildScheduleReturnRoute,
+  buildScheduleCoachRoute,
   buildScheduleLogWorkoutLabel,
   buildScheduleWorkoutLoggerRoute,
   buildScheduleWorkoutsRoute,
@@ -47,6 +48,29 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/admin/master-schedule');
     expect(url.searchParams.get('loadPlan')).toBe('today');
     expect(url.searchParams.get('sessionCredits')).toBe('2');
+  });
+
+  it('routes schedule Coach Log into the role-owned coach assistant with booked-session context', () => {
+    const route = buildScheduleCoachRoute('trainer', {
+      ...baseSession,
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    });
+    const url = new URL(route, 'https://sswanstudios.com');
+
+    expect(url.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(url.searchParams.get('clientId')).toBe('155');
+    expect(url.searchParams.get('intent')).toBe('log_workout');
+    expect(url.searchParams.get('source')).toBe('master-schedule');
+    expect(url.searchParams.get('sourcePath')).toBe('/dashboard/trainer/schedule');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/schedule');
+    expect(url.searchParams.get('sessionId')).toBe('72');
+    expect(url.searchParams.get('sessionDate')).toBe('2026-05-30T16:00:00.000Z');
+    expect(url.searchParams.get('sessionCredits')).toBe('2');
+
+    const adminUrl = new URL(buildScheduleCoachRoute('admin', baseSession), 'https://sswanstudios.com');
+    expect(adminUrl.pathname).toBe('/dashboard/admin/coach-assistant');
+    expect(adminUrl.searchParams.get('sourcePath')).toBe('/dashboard/admin/master-schedule');
+    expect(adminUrl.searchParams.get('returnTo')).toBe('/dashboard/admin/master-schedule');
   });
 
   it('builds a billing-aware schedule logger label from the session type', () => {
