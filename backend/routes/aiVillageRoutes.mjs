@@ -87,8 +87,9 @@ router.post('/run', async (req, res) => {
     });
   } catch (err) {
     const status = err.message.includes('already in progress') ? 409 : 500;
+    const error = status === 409 ? 'Validation already in progress' : 'Failed to start validation run';
     logger.error('[AIVillage] Run route error', { error: err.message });
-    res.status(status).json({ success: false, error: err.message });
+    res.status(status).json({ success: false, error });
   }
 });
 
