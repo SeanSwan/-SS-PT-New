@@ -43,6 +43,7 @@ import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import getModels from '../models/associations.mjs';
 import redis from '../services/cache/redisWrapper.mjs';
+import { getUserGoalAnalytics } from '../services/userGoalAnalyticsService.mjs';
 
 const router = express.Router();
 const METRICS_CACHE_TTL_SECONDS = 300;
@@ -105,8 +106,12 @@ router.post('/', async (req, res) => {
  */
 router.get('/analytics', async (req, res) => {
   try {
-    req.params.userId = req.user.id;
-    return await goalController.getGoalAnalytics(req, res);
+    const models = await getModels();
+    const analytics = await getUserGoalAnalytics({
+      Goal: models.Goal,
+      userId: req.user.id,
+    });
+    return res.status(200).json({ success: true, analytics });
   } catch (error) {
     logger.error('Error in GET /api/goals/analytics', { error: error.message, userId: req.user?.id });
     return res.status(500).json({ success: false, message: 'Failed to fetch goal analytics' });

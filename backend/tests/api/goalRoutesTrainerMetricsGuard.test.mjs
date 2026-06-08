@@ -5,11 +5,17 @@ import request from 'supertest';
 const {
   assignmentFindAllMock,
   goalCountMock,
+  goalFindAllMock,
+  goalFindByPkMock,
+  getGoalAnalyticsMock,
   redisGetMock,
   redisSetMock,
 } = vi.hoisted(() => ({
   assignmentFindAllMock: vi.fn(),
   goalCountMock: vi.fn(),
+  goalFindAllMock: vi.fn(),
+  goalFindByPkMock: vi.fn(),
+  getGoalAnalyticsMock: vi.fn(),
   redisGetMock: vi.fn(),
   redisSetMock: vi.fn(),
 }));
@@ -18,7 +24,7 @@ vi.mock('../../controllers/goalController.mjs', () => ({
   default: {
     getUserGoals: vi.fn(),
     createGoal: vi.fn(),
-    getGoalAnalytics: vi.fn(),
+    getGoalAnalytics: getGoalAnalyticsMock,
     getGoalCategoriesStats: vi.fn(),
     getGoalById: vi.fn(),
     updateGoal: vi.fn(),
@@ -52,7 +58,8 @@ vi.mock('../../models/associations.mjs', () => ({
   default: vi.fn(async () => ({
     ClientTrainerAssignment: { findAll: assignmentFindAllMock },
     Goal: {
-      findByPk: vi.fn(),
+      findByPk: goalFindByPkMock,
+      findAll: goalFindAllMock,
       count: goalCountMock,
     },
   })),
@@ -87,6 +94,76 @@ describe('goal trainer metrics route guard', () => {
     vi.clearAllMocks();
     redisGetMock.mockResolvedValue(null);
     redisSetMock.mockResolvedValue('OK');
+    getGoalAnalyticsMock.mockImplementation((_req, res) => res.status(418).json({
+      success: false,
+      message: 'single-goal analytics path used',
+    }));
+  });
+
+  it('returns authenticated-user collection analytics instead of single-goal lookup', async () => {
+    const soonDeadline = new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)).toISOString();
+    goalFindAllMock.mockResolvedValue([
+      {
+        id: 1,
+        category: 'strength',
+        status: 'active',
+        progressPercentage: '40',
+        deadline: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString(),
+      },
+      {
+        id: 2,
+        category: 'strength',
+        status: 'completed',
+        progressPercentage: '100',
+        completedAt: '2026-06-01T00:00:00.000Z',
+      },
+      {
+        id: 3,
+        category: 'cardio',
+        status: 'paused',
+        progressPercentage: '10',
+        deadline: soonDeadline,
+      },
+    ]);
+
+    const app = createApp();
+    const res = await request(app)
+      .get('/api/goals/analytics')
+      .set('Authorization', 'Bearer valid')
+      .set('X-Test-User-Id', '42')
+      .set('X-Test-Role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(res.body.analytics).toMatchObject({
+      totalGoals: 3,
+      activeGoals: 1,
+      completedGoals: 1,
+      pausedGoals: 1,
+      averageProgress: 50,
+      completionRate: 33.33,
+      goalsAtRisk: 1,
+    });
+    expect(res.body.analytics.categoryBreakdown).toEqual([
+      {
+        category: 'cardio',
+        total: 1,
+        completed: 0,
+        averageProgress: 10,
+      },
+      {
+        category: 'strength',
+        total: 2,
+        completed: 1,
+        averageProgress: 70,
+      },
+    ]);
+    expect(goalFindAllMock).toHaveBeenCalledWith(expect.objectContaining({
+      attributes: ['id', 'category', 'status', 'progressPercentage', 'deadline', 'completedAt'],
+      raw: true,
+      where: expect.objectContaining({ userId: 42 }),
+    }));
+    expect(goalFindByPkMock).not.toHaveBeenCalled();
+    expect(getGoalAnalyticsMock).not.toHaveBeenCalled();
   });
 
   it('rejects non-integer trainer IDs before querying assignments', async () => {
