@@ -36,7 +36,7 @@ describe('ScheduledSessionStatusBanner', () => {
   it('keeps Move Fitness schedule logs visibly free-tracking', () => {
     render(
       <ScheduledSessionStatusBanner
-        clientSource="move_fitness"
+        clientSource=" Move Fitness "
         scheduledSessionCreditHint={2}
         scheduledSessionDate="2026-06-07"
         scheduledSessionId="72"

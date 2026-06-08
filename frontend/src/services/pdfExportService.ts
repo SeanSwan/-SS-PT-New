@@ -11,6 +11,7 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { addAutoTable, getLastAutoTableY } from './pdfAutoTable';
+import { normalizeClientSource } from '../utils/clientSource';
 
 // ── Brand Colors (print-friendly Crystalline Swan) ───────────────────
 const BRAND = {
@@ -783,7 +784,7 @@ export interface PDFPopulatedPlan {
   recommendationDetails?: PDFLongHorizonRecommendationDetail[];
 }
 
-export type PDFClientSource = 'swanstudios' | 'move_fitness' | 'external' | undefined;
+export type PDFClientSource = string | null | undefined;
 
 const pickFirstNonEmpty = <T>(...arrays: (T[] | undefined)[]): T[] => {
   for (const a of arrays) if (Array.isArray(a) && a.length > 0) return a;
@@ -811,7 +812,7 @@ export function exportPopulatedPlanPDF(
   const subtitle = `${plan.planSummary.totalSessions} sessions · ${plan.planSummary.sessionsPerWeek}×/week${clientName ? ` · ${clientName}` : ''}`;
   let y = addHeader(doc, titleLine, subtitle);
 
-  if (clientSource === 'move_fitness') {
+  if (normalizeClientSource(clientSource) === 'move_fitness') {
     // Co-brand mark. Receipt §G8: Move Fitness logo image asset is a
     // non-engineering blocker. Until MF approves the logo for export
     // PDFs, render a text mark in the gilded-fern accent so the brand

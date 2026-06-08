@@ -8,7 +8,7 @@ describe('ClientStellarSidebar client source navigation', () => {
   it('hides SwanStudios booking for Move Fitness clients while preserving tool access', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard/client/overview']}>
-        <ClientStellarSidebar clientSource="move_fitness" />
+        <ClientStellarSidebar clientSource=" Move Fitness " />
       </MemoryRouter>
     );
 

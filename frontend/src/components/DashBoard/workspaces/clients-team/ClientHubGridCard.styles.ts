@@ -14,6 +14,7 @@
 
 import styled from 'styled-components';
 import type { ClientSessionSignalTone } from './clientSessionSignal';
+import type { ClientSourceTone } from './clientSourceDisplay';
 
 export const CardShell = styled.article`
   position: relative;
@@ -99,7 +100,7 @@ export const CardButton = styled.button`
   }
 `;
 
-export const Avatar = styled.div<{ $source?: string }>`
+export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   width: 56px;
   height: 56px;
   border-radius: 16px;
@@ -111,7 +112,7 @@ export const Avatar = styled.div<{ $source?: string }>`
   font-size: 17px;
   font-weight: 800;
   background: ${({ $source }) =>
-    $source === 'move_fitness'
+    $source === 'mf'
       ? 'linear-gradient(135deg, var(--rarity-rare, #C6A84B), var(--accent-secondary, #8B5CF6))'
       : $source === 'external'
         ? 'linear-gradient(135deg, var(--bg-elevated, #141419), var(--tertiary, #4070C0))'

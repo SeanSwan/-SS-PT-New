@@ -120,7 +120,7 @@ describe('TrainerClientCard accessibility', () => {
       client: {
         ...assignment.client,
         id: '92',
-        clientSource: 'move_fitness',
+        clientSource: ' Move Fitness ' as any,
         availableSessions: 0,
         nextSessionDate: undefined,
       },

@@ -31,7 +31,7 @@ describe('SessionSummaryForm deduction label', () => {
   });
 
   it('keeps Move Fitness and external clients non-deducting even when a hint exists', () => {
-    renderSummary({ clientSource: 'move_fitness', scheduledSessionCreditHint: 2 });
+    renderSummary({ clientSource: ' Move Fitness ', scheduledSessionCreditHint: 2 });
 
     expect(screen.getByText('No Paid Session Deduction')).toBeInTheDocument();
     expect(screen.queryByText(/Will Deduct/i)).toBeNull();

@@ -131,6 +131,15 @@ describe('exportPopulatedPlanPDF — Move Fitness co-branding', () => {
     expect(textCalls.some(t => t.includes('MOVE FITNESS'))).toBe(true);
   });
 
+  it('normalizes human-formatted Move Fitness source values before co-branding', () => {
+    exportPopulatedPlanPDF(buildPlan(), 'MF Client', ' Move Fitness ');
+    expect(textCalls.some(t => t.includes('MOVE FITNESS'))).toBe(true);
+
+    textCalls.length = 0;
+    exportPopulatedPlanPDF(buildPlan(), 'MF Client', 'move-fitness');
+    expect(textCalls.some(t => t.includes('MOVE FITNESS'))).toBe(true);
+  });
+
   it('does NOT render the MF mark for swanstudios clients', () => {
     exportPopulatedPlanPDF(buildPlan(), 'SS Client', 'swanstudios');
     expect(textCalls.some(t => t.includes('MOVE FITNESS'))).toBe(false);

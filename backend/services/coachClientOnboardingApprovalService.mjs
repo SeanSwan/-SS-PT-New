@@ -15,7 +15,10 @@ import {
   getUser,
 } from '../models/index.mjs';
 import { generateClaimToken } from './claimTokenService.mjs';
-import { NON_DEDUCTING_CLIENT_SOURCES } from './sessionBillingPolicy.mjs';
+import {
+  isNonDeductingClientSource,
+  parseClientSource,
+} from './sessionBillingPolicy.mjs';
 import {
   buildClientOnboardStubEmail,
   normalizeClientOnboardEmailInput,
@@ -46,7 +49,7 @@ function parseWholeSessionCount(value) {
 }
 
 export function getApprovedOnboardingAvailableSessions(draft) {
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(draft?.clientSource)) return 0;
+  if (isNonDeductingClientSource(draft?.clientSource)) return 0;
   return parseWholeSessionCount(draft?.availableSessions);
 }
 
@@ -134,7 +137,7 @@ export function normalizeCoachOnboardingDraft(proposal) {
     throw err;
   }
 
-  const clientSource = cleanText(raw.clientSource, 40);
+  const clientSource = parseClientSource(cleanText(raw.clientSource, 40));
   if (!CLIENT_SOURCES.has(clientSource)) {
     const err = new Error('Client source is required before approval.');
     err.code = 'ONBOARDING_REQUIRED_FIELDS_MISSING';

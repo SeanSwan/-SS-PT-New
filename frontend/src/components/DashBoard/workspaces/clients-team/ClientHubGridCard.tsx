@@ -16,7 +16,7 @@ import { Activity, ClipboardCheck, Dumbbell, Target, UserRound } from 'lucide-re
 import { getClientOnboardingPct } from '../ClientsWorkspace.logic';
 import type { ClientOption } from './ClientSelectorDropdown';
 import { getClientSessionSignal } from './clientSessionSignal';
-import { getClientSourceLabel } from './clientSourceDisplay';
+import { getClientSourceLabel, getClientSourceTone } from './clientSourceDisplay';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
 import ClientHubGridCardActions, { type ClientHubQuickAction } from './ClientHubGridCardActions';
 import {
@@ -48,6 +48,7 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
   const experience = client.trainingExperience?.trim() || 'experience pending';
   const goal = client.fitnessGoal?.trim() || 'Goal not captured';
   const sessionSignal = getClientSessionSignal(client);
+  const sourceTone = getClientSourceTone(client.clientSource);
   const onboardingPct = getClientOnboardingPct(client);
   const onboardingLabel = onboardingPct === undefined ? 'intake pending' : `${onboardingPct}% onboarded`;
   const onboardingNote = onboardingPct === undefined
@@ -57,7 +58,7 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
   return (
     <CardShell>
       <CardButton type="button" onClick={() => onSelect(client)} aria-label={`Open ${fullName}`}>
-        <Avatar $source={client.clientSource}>{getClientInitials(client)}</Avatar>
+        <Avatar $source={sourceTone}>{getClientInitials(client)}</Avatar>
         <CardBody>
           <TopLine>
             <Name>{fullName}</Name>

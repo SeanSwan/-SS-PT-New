@@ -129,7 +129,7 @@ describe('mounted sessions admin/request/allocation disclosure routes', () => {
 
     const response = await request(app)
       .post('/api/sessions/request')
-      .send({ start: '2026-06-08T16:00:00.000Z' });
+      .send({ start: '2027-06-08T16:00:00.000Z' });
 
     expect(response.status).toBe(500);
     expect(response.body).toEqual({

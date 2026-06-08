@@ -5,6 +5,7 @@
  */
 
 import type { CSSProperties } from 'react';
+import { normalizeClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type { TrainerClientIntent } from './MyClientsView.types';
 
 export const getInitials = (firstName: string, lastName: string): string => {
@@ -43,7 +44,7 @@ export const getNextSessionLabel = (dateString?: string | null): string => {
 };
 
 export const getClientSourceLabel = (source?: string | null): string => {
-  switch (source) {
+  switch (normalizeClientSource(source)) {
     case 'move_fitness':
       return 'Move Fitness tracking';
     case 'external':

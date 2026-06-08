@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import type { ClientSourceTone } from './clientSourceDisplay';
 
 export const SelectorWrap = styled.div`
   position: relative;
@@ -32,12 +33,12 @@ export const SelectorButton = styled.button<{ $hasSelection: boolean }>`
   }
 `;
 
-export const Avatar = styled.div<{ $source?: string }>`
+export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   width: 36px;
   height: 36px;
   border-radius: 10px;
   background: ${({ $source }) =>
-    $source === 'move_fitness'
+    $source === 'mf'
       ? 'var(--client-source-move-bg, linear-gradient(135deg, var(--accent-gold, #C6A84B) 0%, var(--accent-secondary, #8B5CF6) 100%))'
       : $source === 'external'
         ? 'var(--client-source-external-bg, linear-gradient(135deg, var(--bg-elevated, #1A1A24) 0%, var(--tertiary, #4070C0) 100%))'
@@ -71,7 +72,7 @@ export const SelectionMeta = styled.div`
   font-family: 'Fira Code', monospace;
 `;
 
-export const SourceBadge = styled.span<{ $source: string }>`
+export const SourceBadge = styled.span<{ $source: ClientSourceTone }>`
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 10px;
@@ -80,13 +81,13 @@ export const SourceBadge = styled.span<{ $source: string }>`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: ${({ $source }) =>
-    $source === 'move_fitness'
+    $source === 'mf'
       ? 'var(--client-source-move-soft, rgba(198, 168, 75, 0.15))'
       : $source === 'external'
         ? 'var(--client-source-external-soft, rgba(224, 236, 244, 0.1))'
       : 'var(--client-source-swan-soft, rgba(96, 192, 240, 0.12))'};
   color: ${({ $source }) =>
-    $source === 'move_fitness'
+    $source === 'mf'
       ? 'var(--accent-gold, #C6A84B)'
       : $source === 'external'
         ? 'var(--text-primary, #E0ECF4)'

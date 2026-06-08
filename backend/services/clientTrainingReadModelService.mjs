@@ -7,7 +7,6 @@
  * dashboard, trainer/admin routes, and Swan Coach dispatchers can share the
  * same plan-catalog and today-assignment semantics.
  */
-
 import { DEFAULT_PLAN_HORIZON_KEY, PLAN_HORIZONS, normalizePlanHorizonKey } from './clientTrainingPlanHorizonService.mjs';
 import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
@@ -131,7 +130,6 @@ const buildTrainingPlanSlot = (horizon, planRows, primaryPlanId) => {
     plan: plan ? planSummary(plan, horizon.key, isPrimary) : null,
   };
 };
-
 const buildTrainingPlanCatalog = (plans = [], options = {}) => {
   const planRows = (Array.isArray(plans) ? plans : [])
     .map((plan) => toPlainObject(plan))
@@ -153,7 +151,6 @@ const firstExerciseName = (exercises) => {
   const first = Array.isArray(exercises) ? exercises[0] : null;
   return firstCompactString(first?.exerciseName, first?.name, first?.exercise?.name);
 };
-
 const assignmentTitle = (plan, currentSession, type) => {
   const session = toPlainObject(currentSession?.session) || {};
   return firstCompactString(
@@ -199,7 +196,6 @@ const pendingTodayAssignment = (today) => ({
   exercises: [],
   ctaLabel: 'View Plan',
 });
-
 const sessionExercises = (currentSession, session) => (
   Array.isArray(currentSession?.exercises)
     ? currentSession.exercises

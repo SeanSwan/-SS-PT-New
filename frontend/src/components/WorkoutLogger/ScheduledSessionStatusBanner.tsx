@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { AlertTriangle, CalendarCheck, CheckCircle } from 'lucide-react';
+import { normalizeClientSource } from '../../utils/clientSource';
 import { getSessionDeductionSummary } from './SessionSummaryForm';
 import {
   ScheduleBanner,
@@ -28,10 +29,11 @@ interface ScheduledSessionStatusBannerProps {
 }
 
 const getClientSourceLabel = (clientSource: string | null | undefined): string => {
-  if (clientSource === 'move_fitness') return 'Move Fitness free tracking';
-  if (clientSource === 'external') return 'External free tracking';
-  if (clientSource === 'swanstudios') return 'SwanStudios paid client';
-  return 'Client source not set';
+  if (!clientSource?.trim()) return 'Client source not set';
+  const normalizedSource = normalizeClientSource(clientSource);
+  if (normalizedSource === 'move_fitness') return 'Move Fitness free tracking';
+  if (normalizedSource === 'external') return 'External free tracking';
+  return 'SwanStudios paid client';
 };
 
 const formatSessionDate = (value: string | null | undefined): string | null => {

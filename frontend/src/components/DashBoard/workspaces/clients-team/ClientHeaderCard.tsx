@@ -10,7 +10,7 @@ import React, { memo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { Activity, Target } from 'lucide-react';
 import { getClientSessionSignal, type ClientSessionSignalTone } from './clientSessionSignal';
-import { getClientSourceLabel, getClientSourceTone } from './clientSourceDisplay';
+import { getClientSourceLabel, getClientSourceTone, type ClientSourceTone } from './clientSourceDisplay';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
 // ─────────────────────────────────────────────────────────────
@@ -68,12 +68,12 @@ const CardWrap = styled.div`
   }
 `;
 
-const AvatarLarge = styled.div<{ $source?: string }>`
+const AvatarLarge = styled.div<{ $source?: ClientSourceTone }>`
   width: 56px;
   height: 56px;
   border-radius: 14px;
   background: ${({ $source }) =>
-    $source === 'move_fitness'
+    $source === 'mf'
       ? 'linear-gradient(135deg, var(--accent-gold, #C6A84B) 0%, var(--accent-secondary, #8B5CF6) 100%)'
       : 'linear-gradient(135deg, var(--primary, #002060) 0%, var(--accent-primary, #60C0F0) 100%)'};
   display: flex;
@@ -233,7 +233,7 @@ const ClientHeaderCard: React.FC<ClientHeaderProps> = ({ client, onboardingPct }
 
   return (
     <CardWrap>
-      <AvatarLarge $source={client.clientSource}>{initials}</AvatarLarge>
+      <AvatarLarge $source={sourceTone}>{initials}</AvatarLarge>
 
       <InfoBlock>
         <ClientName>

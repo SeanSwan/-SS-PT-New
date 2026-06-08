@@ -42,6 +42,7 @@ import {
   SidebarFooter,
   FooterVersion,
 } from './ClientStellarSidebar.styles';
+import { isNonDeductingClientSource } from '../../workspaces/clients-team/clientSessionSignal';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -97,7 +98,7 @@ interface ClientStellarSidebarProps {
   onToggleCollapse?: () => void;
   isMobileOpen?: boolean;
   onToggleMobile?: () => void;
-  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
+  clientSource?: string | null;
 }
 
 const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
@@ -154,7 +155,7 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
 
   const collapsed = isMobile ? false : isCollapsed;
   const showLabel = !collapsed;
-  const canBookSwanStudiosSessions = clientSource !== 'move_fitness' && clientSource !== 'external';
+  const canBookSwanStudiosSessions = !isNonDeductingClientSource(clientSource);
 
   return (
     <>

@@ -40,7 +40,7 @@ const selectedClient = {
   firstName: 'Client',
   lastName: 'FortyTwo',
   username: 'client42',
-  clientSource: 'move_fitness' as const,
+  clientSource: ' Move Fitness ' as const,
 };
 
 describe('workout planner PDF source adapter', () => {
@@ -71,6 +71,7 @@ describe('workout planner PDF source adapter', () => {
     expect(mocks.pdfText).toEqual(expect.arrayContaining([
       'Duration: 24 weeks',
       'Total sessions: 72',
+      'IN PARTNERSHIP WITH MOVE FITNESS',
       '- Progress only when tempo is consistent.',
       'Split Squat - 3 sets x 8-12',
     ]));

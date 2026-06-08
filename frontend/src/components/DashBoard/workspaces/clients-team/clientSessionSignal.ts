@@ -1,3 +1,7 @@
+import { isNonDeductingClientSource } from '../../../../utils/clientSource';
+export { isNonDeductingClientSource, normalizeClientSource } from '../../../../utils/clientSource';
+export type { ClientSource } from '../../../../utils/clientSource';
+
 export type ClientSessionSignalTone = 'default' | 'gold' | 'warning' | 'neutral';
 
 export interface ClientSessionSignalInput {
@@ -10,11 +14,6 @@ export interface ClientSessionSignal {
   note: string;
   tone: ClientSessionSignalTone;
 }
-
-const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
-
-export const isNonDeductingClientSource = (clientSource?: string | null): boolean =>
-  typeof clientSource === 'string' && NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
 
 export const normalizeAvailableSessions = (availableSessions?: number | string | null): number => {
   const parsed = Number(availableSessions ?? 0);

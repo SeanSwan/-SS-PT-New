@@ -5,9 +5,9 @@
  * file for upload. This keeps attached PDFs tied to saved plan truth, not a
  * stale UI preview snapshot.
  */
-
 import type { jsPDF as PdfDoc } from 'jspdf';
 import type { PlannerClient } from './WorkoutPlannerTypes';
+import { normalizeClientSource } from '../../../../utils/clientSource';
 import { buildPlanningSignalLines, renderPlanningSignalLines } from './workoutPlannerPlanPdfSignals';
 
 interface PdfPlanFallbacks {
@@ -203,7 +203,7 @@ const renderPlanPdfBlob = (doc: PdfDoc, plan: PrintablePlan, clientName: string,
   doc.setTextColor(...BRAND.frost);
   doc.text(clientName, pageW - 14, 14, { align: 'right' });
 
-  if (clientSource === 'move_fitness') {
+  if (normalizeClientSource(clientSource) === 'move_fitness') {
     doc.setFontSize(7);
     doc.setTextColor(...BRAND.gold);
     doc.text('IN PARTNERSHIP WITH MOVE FITNESS', pageW - 14, 21, { align: 'right' });

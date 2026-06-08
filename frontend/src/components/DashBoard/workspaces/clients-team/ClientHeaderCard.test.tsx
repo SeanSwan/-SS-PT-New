@@ -1,7 +1,11 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import ClientHeaderCard from './ClientHeaderCard';
+
+const source = readFileSync(resolve(__dirname, 'ClientHeaderCard.tsx'), 'utf8');
 
 const baseClient = {
   id: 424242,
@@ -92,5 +96,13 @@ describe('ClientHeaderCard', () => {
     );
 
     expect(screen.queryByText(/-\d+ years old/i)).not.toBeInTheDocument();
+  });
+
+  it('uses normalized client source tone for selected-client avatar and badge visuals', () => {
+    expect(source).toContain('const sourceTone = getClientSourceTone(client.clientSource)');
+    expect(source).toContain('<AvatarLarge $source={sourceTone}>');
+    expect(source).not.toContain('<AvatarLarge $source={client.clientSource}>');
+    expect(source).toContain("$source === 'mf'");
+    expect(source).not.toContain("$source === 'move_fitness'");
   });
 });
