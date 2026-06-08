@@ -13,6 +13,7 @@ import path from 'node:path';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.mjs';
 import { buildProtectedWorkoutPlanPdfUrl } from './workoutPlanPdfContentService.mjs';
+import { slugifyWorkoutPlanPdfSegment } from './workoutPlanPdfKeyService.mjs';
 
 export const WORKOUT_PLAN_PDF_MAX_BYTES = 20 * 1024 * 1024;
 
@@ -42,17 +43,6 @@ const sanitizeDisplayFileName = (value) => {
   const fallback = 'Workout Plan.pdf';
   if (!cleaned) return fallback;
   return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
-};
-
-const slugify = (value, fallback) => {
-  const slug = String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\.pdf$/i, '')
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 96);
-  return slug || fallback;
 };
 
 const flagEnabled = (value) => (
@@ -117,10 +107,10 @@ export async function storeWorkoutPlanPdf({
   now = new Date(),
 } = {}) {
   const { fileName, size } = validateWorkoutPlanPdfFile(file);
-  const clientSegment = slugify(clientId, 'client');
-  const planSegment = slugify(planId, 'plan');
-  const uploadId = slugify(idFactory(), 'upload');
-  const fileSlug = slugify(fileName, 'workout-plan');
+  const clientSegment = slugifyWorkoutPlanPdfSegment(clientId, 'client');
+  const planSegment = slugifyWorkoutPlanPdfSegment(planId, 'plan');
+  const uploadId = slugifyWorkoutPlanPdfSegment(idFactory(), 'upload');
+  const fileSlug = slugifyWorkoutPlanPdfSegment(fileName, 'workout-plan');
   const storageKey = `workout-plans/${clientSegment}/${planSegment}-${uploadId}-${fileSlug}.pdf`;
   const updatedAt = now.toISOString();
   const protectedUrl = buildProtectedWorkoutPlanPdfUrl(planId);

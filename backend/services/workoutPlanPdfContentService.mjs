@@ -9,9 +9,12 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {
+  normalizeWorkoutPlanPdfStorageKey,
+  workoutPlanPdfStorageKeyMatchesPlan,
+} from './workoutPlanPdfKeyService.mjs';
 
 const PDF_CONTENT_TYPE = 'application/pdf';
-const WORKOUT_PLAN_PREFIX = 'workout-plans/';
 
 export class WorkoutPlanPdfContentError extends Error {
   constructor(message, status = 404) {
@@ -29,21 +32,6 @@ const safeFileName = (value) => {
     : '';
   if (!cleaned) return 'Workout Plan.pdf';
   return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
-};
-
-const normalizeStorageKey = (value) => {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const key = value.trim().replace(/^\/+/, '');
-  if (
-    !key.startsWith(WORKOUT_PLAN_PREFIX)
-    || !/\.pdf$/i.test(key)
-    || key.includes('\\')
-    || key.includes('\0')
-    || key.split('/').some((part) => part === '..' || part === '')
-  ) {
-    return null;
-  }
-  return key;
 };
 
 const flagEnabled = (value) => (
@@ -103,8 +91,8 @@ export async function resolveWorkoutPlanPdfContent({ plan, uploadsRoot } = {}) {
   const rawPlan = toPlainObject(plan) || {};
   const metadata = toPlainObject(rawPlan.metadata) || {};
   const planPdf = toPlainObject(metadata.planPdf || metadata.pdfFile) || null;
-  const storageKey = normalizeStorageKey(planPdf?.storageKey);
-  if (!planPdf || !storageKey) {
+  const storageKey = normalizeWorkoutPlanPdfStorageKey(planPdf?.storageKey);
+  if (!planPdf || !storageKey || !workoutPlanPdfStorageKeyMatchesPlan(storageKey, rawPlan.id)) {
     throw new WorkoutPlanPdfContentError('Workout plan PDF is not available', 404);
   }
 

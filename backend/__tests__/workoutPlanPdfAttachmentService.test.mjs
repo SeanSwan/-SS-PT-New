@@ -81,6 +81,18 @@ describe('workoutPlanPdfAttachmentService', () => {
     ]);
   });
 
+  it('rejects private storage keys that are not scoped to the target plan', () => {
+    expect(buildWorkoutPlanPdfMetadata({
+      pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
+      storage: 'r2',
+      storageKey: 'workout-plans/42/plan-2-imported-plan.pdf',
+      planId: 'plan-1',
+    })).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/storage key/i),
+    });
+  });
+
   it('does not expose legacy raw uploads metadata as a safe attachment', () => {
     expect(extractWorkoutPlanPdfAttachment({
       planPdf: {

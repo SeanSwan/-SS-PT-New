@@ -529,7 +529,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
           fileName: 'Plan 1',
           storage: 'r2',
-          storageKey: 'workout-plans/42/imported-plan.pdf',
+          storageKey: 'workout-plans/42/plan-1-imported-plan.pdf',
         });
 
       expect(res.status).toBe(200);
@@ -540,12 +540,38 @@ describe('workoutPlanRoutes — mounted route stack', () => {
             fileName: 'Plan 1.pdf',
             contentType: 'application/pdf',
             storage: 'r2',
-            storageKey: 'workout-plans/42/imported-plan.pdf',
+            storageKey: 'workout-plans/42/plan-1-imported-plan.pdf',
             updatedBy: 7,
             updatedAt: expect.any(String),
           },
         },
       });
+    });
+
+    it('trainer + assigned plan PUT /:id/pdf rejects a private key scoped to a different plan', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        metadata: {},
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/pdf')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
+          fileName: 'Plan 1',
+          storage: 'r2',
+          storageKey: 'workout-plans/42/plan-2-imported-plan.pdf',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/storage key/i);
+      expect(update).not.toHaveBeenCalled();
     });
 
     it('trainer + assigned plan POST /:id/pdf/upload stores a multipart PDF as plan metadata', async () => {

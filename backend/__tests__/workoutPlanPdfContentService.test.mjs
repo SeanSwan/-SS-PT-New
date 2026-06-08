@@ -118,4 +118,25 @@ describe('workoutPlanPdfContentService', () => {
       size: pdfBuffer.length,
     });
   });
+
+  it('rejects stored PDF metadata when the storage key belongs to another plan', async () => {
+    await expect(resolveWorkoutPlanPdfContent({
+      plan: {
+        id: 'plan-1',
+        metadata: {
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            storage: 'r2',
+            storageKey: 'workout-plans/42/plan-2-upload-id-plan.pdf',
+            fileName: 'Wrong Plan.pdf',
+          },
+        },
+      },
+    })).rejects.toMatchObject({
+      status: 404,
+      message: 'Workout plan PDF is not available',
+    });
+
+    expect(mockR2Send).not.toHaveBeenCalled();
+  });
 });

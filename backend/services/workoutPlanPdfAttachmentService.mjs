@@ -9,10 +9,13 @@
  */
 
 import { buildProtectedWorkoutPlanPdfUrl } from './workoutPlanPdfContentService.mjs';
+import {
+  normalizeWorkoutPlanPdfStorageKey,
+  workoutPlanPdfStorageKeyMatchesPlan,
+} from './workoutPlanPdfKeyService.mjs';
 
 const PDF_CONTENT_TYPE = 'application/pdf';
 const MAX_FILE_NAME_LENGTH = 160;
-const WORKOUT_PLAN_PREFIX = 'workout-plans/';
 const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/([^/]+)\/pdf\/content\.pdf$/;
 
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
@@ -44,21 +47,6 @@ const fileNameFromUrl = (url) => {
   } catch {
     return 'Workout Plan.pdf';
   }
-};
-
-const normalizeStorageKey = (value) => {
-  if (typeof value !== 'string' || !value.trim()) return null;
-  const key = value.trim().replace(/^\/+/, '');
-  if (
-    !key.startsWith(WORKOUT_PLAN_PREFIX)
-    || !/\.pdf$/i.test(key)
-    || key.includes('\\')
-    || key.includes('\0')
-    || key.split('/').some((part) => part === '..' || part === '')
-  ) {
-    return null;
-  }
-  return key;
 };
 
 const normalizeStorage = (value) => (value === 'local' ? 'local' : 'r2');
@@ -133,10 +121,13 @@ export const buildWorkoutPlanPdfMetadata = ({
     return { ok: false, message: 'A protected app PDF URL for this plan is required' };
   }
 
-  const providedStorageKey = normalizeStorageKey(storageKey);
-  const normalizedStorageKey = providedStorageKey || normalizeStorageKey(current.storageKey);
+  const providedStorageKey = normalizeWorkoutPlanPdfStorageKey(storageKey);
+  const normalizedStorageKey = providedStorageKey || normalizeWorkoutPlanPdfStorageKey(current.storageKey);
   if (!normalizedStorageKey) {
     return { ok: false, message: 'Upload a PDF file or provide an existing protected PDF storage key' };
+  }
+  if (!workoutPlanPdfStorageKeyMatchesPlan(normalizedStorageKey, planId)) {
+    return { ok: false, message: 'PDF storage key must match this workout plan' };
   }
 
   const normalizedStorage = normalizeStorage(storage || current.storage);
