@@ -62,6 +62,7 @@ const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockWorkoutPlanCreate = vi.fn();
 const mockSequelizeTransaction = vi.fn();
 let mockTransactionInstance;
 
@@ -76,6 +77,7 @@ vi.mock('../models/index.mjs', () => ({
         findAll: mockWorkoutPlanFindAll,
         findOne: mockWorkoutPlanFindOne,
         update: mockWorkoutPlanUpdate,
+        create: mockWorkoutPlanCreate,
       };
     }
     return null;
@@ -110,6 +112,7 @@ beforeEach(async () => {
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue([0]);
+  mockWorkoutPlanCreate.mockResolvedValue({ id: 'plan-copy-1' });
   mockTransactionInstance = {
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined),
@@ -745,6 +748,63 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         primaryPlanId: 'plan-9m',
         primaryHorizonKey: 'nine_month',
       });
+    });
+
+    it('trainer + assigned plan POST /:id/duplicate preserves plan-use metadata without copying stale PDF or primary state', async () => {
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Six Month Strength Arc',
+        description: 'Trainer-led plan',
+        nasmPhase: 2,
+        durationWeeks: 26,
+        currentWeek: 3,
+        currentDay: 2,
+        planData: {
+          assignmentDefaults: {
+            defaultAssignmentType: 'trainer_session',
+            billingIntent: 'trainer_led_scheduled_flow',
+            shouldDeductSession: false,
+          },
+          weeks: [{ weekNumber: 1, sessions: [] }],
+        },
+        metadata: {
+          planHorizon: 'six_month',
+          assignmentDefault: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          defaultShouldDeductSession: false,
+          isPrimaryPlan: true,
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Six Month Strength Arc.pdf',
+          },
+        },
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .post('/api/workout-plans/plan-1/duplicate')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({});
+
+      expect(res.status).toBe(201);
+      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 42,
+        trainerId: 7,
+        status: 'draft',
+        currentWeek: 1,
+        currentDay: 1,
+        progressNotes: [],
+        metadata: {
+          planHorizon: 'six_month',
+          assignmentDefault: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          defaultShouldDeductSession: false,
+          isPrimaryPlan: false,
+          duplicatedFrom: 'plan-1',
+        },
+      }));
     });
   });
 

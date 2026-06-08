@@ -81,6 +81,17 @@ const mergePlanMetadata = (plan, nextMetadata) => {
   return { ...current, ...next };
 };
 
+const buildDuplicatePlanMetadata = (plan) => {
+  const raw = toPlainObject(plan) || {};
+  const metadata = isPlainRecord(raw.metadata) ? { ...raw.metadata } : {};
+  delete metadata.planPdf;
+  return {
+    ...metadata,
+    isPrimaryPlan: false,
+    duplicatedFrom: raw.id,
+  };
+};
+
 const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
@@ -595,7 +606,7 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
         planData: clonedPlanData,
         progressNotes: [],
         createdBy: 'trainer',
-        metadata: { duplicatedFrom: original.id },
+        metadata: buildDuplicatePlanMetadata(original),
       });
 
       logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',
