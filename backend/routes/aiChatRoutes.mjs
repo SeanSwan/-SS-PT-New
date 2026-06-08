@@ -87,6 +87,8 @@ const audioUpload = multer({
 
 const router = express.Router();
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
+const COACH_ACTION_PROPOSAL_FAILED_CODE = 'COACH_PROPOSAL_CREATE_FAILED';
+const COACH_ACTION_PROPOSAL_FAILED_MESSAGE = 'Coach could not prepare that draft safely. Review the message and try again.';
 const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
   'coach_assistant',
   'exercise_library',
@@ -611,10 +613,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         });
       } catch (proposalErr) {
         proposalError = {
-          code: proposalErr.code || 'COACH_PROPOSAL_CREATE_FAILED',
-          message: proposalErr.message || 'Coach proposal creation failed',
+          code: COACH_ACTION_PROPOSAL_FAILED_CODE,
+          message: COACH_ACTION_PROPOSAL_FAILED_MESSAGE,
         };
-        logger.warn('[AIChatRoutes] Coach action proposal creation failed:', proposalError);
+        logger.warn('[AIChatRoutes] Coach action proposal creation failed:', {
+          internalErrorCode: proposalErr.code || null,
+          error: proposalErr.message,
+        });
       }
     }
 

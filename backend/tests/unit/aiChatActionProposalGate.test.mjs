@@ -34,4 +34,11 @@ describe('AI chat action proposal gate', () => {
   it('does not dispatch AI_SUBMIT_WORKOUT as a browser write action', () => {
     expect(AI_CHAT_ROUTES_SRC).not.toMatch(/AI_SUBMIT_WORKOUT/);
   });
+
+  it('does not echo raw proposal persistence errors in chat responses', () => {
+    expect(AI_CHAT_ROUTES_SRC).toContain('COACH_ACTION_PROPOSAL_FAILED_MESSAGE');
+    expect(AI_CHAT_ROUTES_SRC).not.toMatch(/code:\s*proposalErr\.code/);
+    expect(AI_CHAT_ROUTES_SRC).not.toMatch(/message:\s*proposalErr\.message/);
+    expect(AI_CHAT_ROUTES_SRC).not.toMatch(/proposalErr\.message\s*\|\|/);
+  });
 });
