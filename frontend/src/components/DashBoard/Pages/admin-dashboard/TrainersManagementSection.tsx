@@ -6,6 +6,7 @@ import {
   LoadingState,
   TrainerActionBar,
   TrainerCards,
+  TrainerDeactivationConfirmDialog,
   TrainerStatsOverview,
 } from './TrainersManagementSection.sections';
 import { ErrorBanner, ManagementContainer } from './TrainersManagementSection.styles';
@@ -34,6 +35,8 @@ const TrainersManagementSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [specialtyFilter, setSpecialtyFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
+  const [pendingDeactivationTrainer, setPendingDeactivationTrainer] = useState<Trainer | null>(null);
+  const [deactivationBusy, setDeactivationBusy] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchTrainers = useCallback(async () => {
@@ -97,8 +100,24 @@ const TrainersManagementSection: React.FC = () => {
     setActiveActionMenu(null);
   };
 
-  const handleDeactivateTrainer = async (trainerId: string) => {
+  const handleRequestDeactivateTrainer = useCallback((trainerId: string) => {
+    const trainer = trainers.find((item) => item.id === trainerId) || null;
+    setPendingDeactivationTrainer(trainer);
+    setActiveActionMenu(null);
+  }, [trainers]);
+
+  const handleCloseDeactivateTrainer = useCallback(() => {
+    if (!deactivationBusy) {
+      setPendingDeactivationTrainer(null);
+    }
+  }, [deactivationBusy]);
+
+  const handleConfirmDeactivateTrainer = async () => {
+    if (!pendingDeactivationTrainer) return;
+
     try {
+      setDeactivationBusy(true);
+      const trainerId = pendingDeactivationTrainer.id;
       const response = await apiService.delete(`/api/auth/user/${trainerId}`);
 
       if (response.data?.success === false) {
@@ -106,9 +125,12 @@ const TrainersManagementSection: React.FC = () => {
       }
 
       await fetchTrainers();
+      setPendingDeactivationTrainer(null);
       setActiveActionMenu(null);
     } catch (error) {
       console.error('Error deactivating trainer:', error);
+    } finally {
+      setDeactivationBusy(false);
     }
   };
 
@@ -142,11 +164,20 @@ const TrainersManagementSection: React.FC = () => {
         activeActionMenu={activeActionMenu}
         trainers={filteredTrainers}
         onActionMenuToggle={setActiveActionMenu}
-        onDeactivate={handleDeactivateTrainer}
+        onDeactivate={handleRequestDeactivateTrainer}
         onEdit={handleEditTrainer}
         onVerify={handleVerifyTrainer}
         onView={handleViewTrainer}
       />
+
+      {pendingDeactivationTrainer && (
+        <TrainerDeactivationConfirmDialog
+          busy={deactivationBusy}
+          trainer={pendingDeactivationTrainer}
+          onCancel={handleCloseDeactivateTrainer}
+          onConfirm={handleConfirmDeactivateTrainer}
+        />
+      )}
     </ManagementContainer>
   );
 };

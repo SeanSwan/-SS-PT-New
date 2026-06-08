@@ -142,3 +142,83 @@ export const TrainersGrid = styled.div`
     grid-template-columns: 1fr;
   }
 `;
+
+export const ConfirmOverlay = styled(motion.div)`
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--obsidian-black, #0A0A0F) 82%, transparent);
+`;
+
+export const ConfirmDialogShell = styled(motion.div)`
+  width: min(100%, 460px);
+  border: 1px solid color-mix(in srgb, var(--danger, #ef4444) 38%, transparent);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--graphite, #1A1A24) 94%, transparent),
+      color-mix(in srgb, var(--royal-depth, #003080) 32%, var(--obsidian-black, #0A0A0F))
+    );
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--obsidian-black, #0A0A0F) 70%, transparent);
+  padding: 1.25rem;
+  color: var(--text-primary, #E0ECF4);
+`;
+
+export const ConfirmTitle = styled.h3`
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  line-height: 1.3;
+`;
+
+export const ConfirmBody = styled.p`
+  margin: 0;
+  color: var(--text-secondary, #B7C7D8);
+  line-height: 1.55;
+`;
+
+export const ConfirmCallout = styled.p`
+  margin: 1rem 0 0;
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger, #ef4444) 12%, transparent);
+  color: var(--danger-soft, #fecaca);
+  line-height: 1.45;
+`;
+
+export const ConfirmButtonRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+
+  @media (max-width: 520px) {
+    flex-direction: column-reverse;
+  }
+`;
+
+export const ConfirmSecondaryButton = styled.button`
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 1rem;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+`;
+
+export const ConfirmDangerButton = styled(ConfirmSecondaryButton)`
+  border-color: color-mix(in srgb, var(--danger, #ef4444) 48%, transparent);
+  background: color-mix(in srgb, var(--danger, #ef4444) 22%, transparent);
+  color: var(--danger-soft, #fecaca);
+
+`;
