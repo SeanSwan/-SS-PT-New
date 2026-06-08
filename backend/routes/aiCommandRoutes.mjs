@@ -34,6 +34,21 @@ import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
 
+const toAICommandRouteErrorMetadata = (err) => ({
+  errorName: err?.name || 'Error',
+  errorCode: err?.code || err?.type || 'ai_command_route_error',
+});
+
+const logAICommandRouteError = (message, err, req, metadata = {}) => {
+  logger.error(message, {
+    userId: req?.user?.id,
+    role: req?.user?.role,
+    route: req?.originalUrl || req?.path,
+    ...metadata,
+    ...toAICommandRouteErrorMetadata(err),
+  });
+};
+
 const normalizeSelectedClientId = (value) => {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -217,7 +232,9 @@ router.post('/execute', protect, async (req, res) => {
     });
 
   } catch (err) {
-    logger.error('[AICommand] Execute route error', { error: err.message, stack: err.stack });
+    logAICommandRouteError('[AICommand] Execute route error', err, req, {
+      selectedClientId: normalizeSelectedClientId(req.body?.selectedClientId),
+    });
     res.status(500).json({
       success: false,
       error: 'Internal server error processing your command',
@@ -242,7 +259,9 @@ router.post('/confirm', protect, async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    logger.error('[AICommand] Confirm route error', { error: err.message });
+    logAICommandRouteError('[AICommand] Confirm route error', err, req, {
+      operationIdPresent: Boolean(req.body?.operationId),
+    });
     res.status(500).json({ success: false, error: 'Failed to execute confirmed operation' });
   }
 });
@@ -263,7 +282,9 @@ router.post('/cancel', protect, async (req, res) => {
       message: cancelled ? 'Operation cancelled.' : 'Operation not found or already expired.',
     });
   } catch (err) {
-    logger.error('[AICommand] Cancel route error', { error: err.message });
+    logAICommandRouteError('[AICommand] Cancel route error', err, req, {
+      operationIdPresent: Boolean(req.body?.operationId),
+    });
     res.status(500).json({ success: false, error: 'Failed to cancel operation' });
   }
 });
@@ -291,7 +312,7 @@ router.get('/commands', protect, (req, res) => {
       }),
     });
   } catch (err) {
-    logger.error('[AICommand] Commands list error', { error: err.message });
+    logAICommandRouteError('[AICommand] Commands list error', err, req);
     res.status(500).json({ success: false, error: 'Failed to list commands' });
   }
 });
