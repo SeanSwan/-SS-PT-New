@@ -57,6 +57,7 @@ import { buildProgressContext } from '../services/ai/progressContextBuilder.mjs'
 import { buildUnifiedContext } from '../services/ai/contextBuilder.mjs';
 import { buildMeasurementContext } from '../services/ai/measurementContextBuilder.mjs';
 import { checkAiEligibility } from '../services/ai/aiEligibilityHelper.mjs';
+import { normalizeClientSource } from '../services/sessionBillingPolicy.mjs';
 import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
 import { buildWorkoutGenerationPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
@@ -646,9 +647,7 @@ export const generateWorkoutPlan = async (req, res) => {
       healthHistory,
       movementAssessments,
       equipmentContext,
-      clientSource: ['swanstudios', 'move_fitness', 'external'].includes(targetUser.clientSource)
-        ? targetUser.clientSource
-        : 'swanstudios',
+      clientSource: normalizeClientSource(targetUser.clientSource),
     });
 
     // Attach progress + unified context to serverConstraints for prompt enrichment
