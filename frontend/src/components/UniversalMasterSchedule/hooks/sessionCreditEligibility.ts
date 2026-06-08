@@ -1,9 +1,9 @@
 /**
  * Shared paid-credit eligibility for schedule actions.
  *
- * The backend complete-session endpoint defaults to deduction unless the
- * frontend sends deductSessionCredit=false, so UI eligibility must account for
- * known zero balances before submitting direct completion or no-show actions.
+ * The backend complete-session endpoint only deducts when the frontend sends
+ * deductSessionCredit=true, so UI eligibility must account for known zero
+ * balances before showing direct completion or no-show deduction choices.
  */
 
 import type { SessionDetail } from '../SessionDetailModal.types';

@@ -216,9 +216,9 @@ describe('unified sessions route ownership guards', () => {
 
     expect(completeService).toContain('let deductionResult = null;');
     expect(completeService).toContain('!session.sessionDeducted && session.userId && session.client');
-    expect(completeService).toContain('deductSessionCredit !== false');
+    expect(completeService).toContain('deductSessionCredit === true');
     expect(completeService).toContain('NON_DEDUCTING_CLIENT_SOURCES.has(session.client.clientSource)');
-    expect(completeService).toContain("reason: 'waived_by_manager'");
+    expect(completeService).toContain("deductSessionCredit === false ? 'waived_by_manager' : 'deduction_not_requested'");
     expect(completeService).toContain("reason: 'non_deducting_client_source'");
     expect(completeService).toContain('processSessionDeduction(session, session.client, transaction)');
     expect(completeService).toContain('deduction: deductionResult ? {');

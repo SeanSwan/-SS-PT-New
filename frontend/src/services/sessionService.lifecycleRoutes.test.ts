@@ -40,12 +40,13 @@ describe('sessionService lifecycle route contract', () => {
     expect(apiMock.put).not.toHaveBeenCalled();
   });
 
-  it('completes through the backend PATCH lifecycle endpoint', async () => {
+  it('completes through the backend PATCH lifecycle endpoint without implicit paid-credit deduction', async () => {
     await sessionService.completeSession('42', 'Strong session');
 
     expect(apiMock.patch).toHaveBeenCalledWith('/api/sessions/42/complete', {
       notes: 'Strong session',
-      completeWithoutLog: true
+      completeWithoutLog: true,
+      deductSessionCredit: false
     });
     expect(apiMock.put).not.toHaveBeenCalled();
   });

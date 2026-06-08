@@ -192,7 +192,8 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
     });
 
     const result = await service.completeSession(77, { id: 42, role: 'trainer' }, {
-      completeWithoutLog: true
+      completeWithoutLog: true,
+      deductSessionCredit: true
     });
 
     expect(mockProcessSessionDeduction).toHaveBeenCalledWith(session, session.client, mockTransaction);
@@ -200,6 +201,23 @@ describe('UnifiedSessionService.completeSession attendance truth', () => {
       deducted: true,
       creditsDeducted: 1,
       remainingSessions: 3
+    });
+  });
+
+  it('does not deduct a paid SwanStudios credit when direct completion omits the billing decision', async () => {
+    const session = buildSession();
+    sessionModel.findByPk.mockResolvedValue(session);
+
+    const result = await service.completeSession(77, { id: 42, role: 'trainer' }, {
+      completeWithoutLog: true
+    });
+
+    expect(mockProcessSessionDeduction).not.toHaveBeenCalled();
+    expect(result.deduction).toMatchObject({
+      deducted: false,
+      creditsDeducted: 0,
+      remainingSessions: 4,
+      reason: 'deduction_not_requested'
     });
   });
 

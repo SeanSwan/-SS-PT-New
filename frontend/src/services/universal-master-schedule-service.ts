@@ -269,7 +269,8 @@ class UniversalMasterScheduleService {
         session: Session;
       }> = await this.api.patch(`/api/sessions/${sessionId}/complete`, {
         notes,
-        completeWithoutLog: true
+        completeWithoutLog: true,
+        deductSessionCredit: false
       });
       
       return response.data;

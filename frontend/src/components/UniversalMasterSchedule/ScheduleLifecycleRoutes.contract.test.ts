@@ -9,11 +9,15 @@ describe('UniversalMasterSchedule lifecycle route wiring', () => {
   it('uses named lifecycle service calls instead of generic status updates', () => {
     const bulkOperations = readScheduleSource('hooks/useBulkOperations.ts');
     const calendarHandlers = readScheduleSource('hooks/useCalendarHandlers.ts');
+    const directSessionService = readScheduleSource('../../services/sessionService.ts');
+    const universalScheduleService = readScheduleSource('../../services/universal-master-schedule-service.ts');
 
     expect(bulkOperations).toContain('sessionService.confirmSession(sessionId)');
     expect(bulkOperations).toContain("sessionService.cancelSession(sessionId, actionData?.reason || 'Bulk cancellation')");
     expect(bulkOperations).toContain('sessionService.assignSessionToTrainer(sessionId, actionData?.newTrainerId)');
     expect(calendarHandlers).toContain('sessionService.completeSession(sessionId)');
+    expect(directSessionService).toContain('deductSessionCredit: false');
+    expect(universalScheduleService).toContain('deductSessionCredit: false');
 
     expect(bulkOperations).not.toContain("status: 'confirmed'");
     expect(bulkOperations).not.toContain("status: 'cancelled'");

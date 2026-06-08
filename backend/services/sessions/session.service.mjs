@@ -1956,7 +1956,7 @@ class UnifiedSessionService {
         session.duration = Math.round(Number(actualDuration));
       }
       
-      const shouldDeductCompletionCredit = deductSessionCredit !== false;
+      const shouldDeductCompletionCredit = deductSessionCredit === true;
       let deductionResult = null;
       if (!session.sessionDeducted && session.userId && session.client) {
         if (NON_DEDUCTING_CLIENT_SOURCES.has(session.client.clientSource)) {
@@ -1973,7 +1973,7 @@ class UnifiedSessionService {
             deducted: false,
             creditsDeducted: 0,
             remainingSessions: session.client.availableSessions ?? null,
-            reason: 'waived_by_manager'
+            reason: deductSessionCredit === false ? 'waived_by_manager' : 'deduction_not_requested'
           };
         } else {
           deductionResult = await processSessionDeduction(session, session.client, transaction);
