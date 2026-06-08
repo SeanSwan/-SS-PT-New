@@ -22,4 +22,18 @@ describe('client intelligence route access guard', () => {
     expect(routeSource).toContain("router.get('/', authorize(['admin'])");
     expect(routeSource).not.toContain("router.get('/', authorize(['admin', 'trainer'])");
   });
+
+  it('keeps client-intelligence fallback logging free of raw exception messages', () => {
+    const loggerLines = normalizedServiceSource
+      .split('\n')
+      .filter((line) => /logger\.(warn|error)\(/.test(line));
+
+    expect(loggerLines).not.toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/\b(?:err|error)\??\.message\b/),
+      ]),
+    );
+    expect(normalizedServiceSource).not.toMatch(/error:\s*(?:err|error)\??\.message/);
+    expect(normalizedServiceSource).toContain('toClientIntelligenceErrorMetadata');
+  });
 });

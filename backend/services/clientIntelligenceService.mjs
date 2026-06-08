@@ -75,6 +75,19 @@ function toNullablePositiveNumber(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function toClientIntelligenceErrorMetadata(error) {
+  const metadata = {
+    name: error?.name || 'UnknownError',
+  };
+
+  if (error?.code) metadata.code = error.code;
+  if (error?.statusCode || error?.status) metadata.statusCode = error.statusCode || error.status;
+  if (error?.parent?.code) metadata.parentCode = error.parent.code;
+  if (error?.original?.code) metadata.originalCode = error.original.code;
+
+  return metadata;
+}
+
 export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, options = {}) {
   const { limit = 14, sequelizeOverride = sequelize } = options;
 
@@ -120,7 +133,10 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
       };
     });
   } catch (err) {
-    logger.warn('[ClientIntelligence] Recent workout-log summaries fetch failed:', err.message);
+    logger.warn(
+      '[ClientIntelligence] Recent workout-log summaries fetch failed:',
+      toClientIntelligenceErrorMetadata(err),
+    );
     return [];
   }
 }
@@ -312,7 +328,9 @@ export async function getClientContext(clientId, trainerId) {
         },
       }).catch((err) => {
         logger.warn('[ClientIntelligence] Assignment lookup error', {
-          clientId, trainerId, error: err?.message,
+          clientId,
+          trainerId,
+          ...toClientIntelligenceErrorMetadata(err),
         });
         return null;
       });
@@ -358,7 +376,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 100,
     }).catch(err => {
-      logger.error('[ClientIntelligence] CRITICAL: Pain entries fetch failed:', err.message);
+      logger.error(
+        '[ClientIntelligence] CRITICAL: Pain entries fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return { __failed: true, data: [] };
     }),
 
@@ -366,7 +387,10 @@ export async function getClientContext(clientId, trainerId) {
     getMovementProfile().findOne({
       where: { userId: clientId },
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Movement profile fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Movement profile fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -380,13 +404,19 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 20,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Form analyses fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Form analyses fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
     // 4. Recent completed workouts from the canonical workout diary tables.
     fetchRecentWorkoutLogSummaries(clientId, twoWeeksAgo, { limit: 14 }).catch(err => {
-      logger.warn('[ClientIntelligence] Workouts fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Workouts fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -400,7 +430,10 @@ export async function getClientContext(clientId, trainerId) {
         required: false,
       }],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Equipment profiles fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Equipment profiles fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -414,7 +447,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['sessionDate', 'DESC']],
       limit: 10,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Variation logs fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Variation logs fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -422,7 +458,10 @@ export async function getClientContext(clientId, trainerId) {
     getUser().findByPk(clientId, {
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'fitnessGoal', 'trainingExperience'],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] User fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] User fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -433,7 +472,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 10,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Goals fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Goals fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -441,7 +483,10 @@ export async function getClientContext(clientId, trainerId) {
     getClientProgress().findOne({
       where: { userId: clientId },
     }).catch(err => {
-      logger.warn('[ClientIntelligence] ClientProgress fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] ClientProgress fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -451,7 +496,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['measurementDate', 'DESC']],
       limit: 3,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] BodyMeasurement fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] BodyMeasurement fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -460,7 +508,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { clientId, status: 'active' },
       order: [['createdAt', 'DESC']],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] LongTermProgramPlan fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] LongTermProgramPlan fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -469,7 +520,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Baseline fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Baseline fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -478,7 +532,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { clientId, isActive: true },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] NutritionPlan fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] NutritionPlan fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -487,7 +544,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Onboarding questionnaire fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Onboarding questionnaire fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -496,7 +556,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId, streakType: 'workout', isActive: true },
       order: [['currentCount', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Streak fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Streak fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -506,7 +569,10 @@ export async function getClientContext(clientId, trainerId) {
       Op,
       today: now,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Training vault context fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Training vault context fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
   ]);
