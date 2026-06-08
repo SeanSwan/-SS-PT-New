@@ -29,4 +29,11 @@ describe('AI long prompt route limits', () => {
     expect(chatRouteSource).toContain('TRANSCRIPTION_FAILED');
     expect(chatRouteSource).not.toContain("error: err.message || 'Transcription failed'");
   });
+
+  it('keeps voice readback provider/config errors out of client responses', () => {
+    expect(chatRouteSource).toContain('AI_CHAT_TTS_UNAVAILABLE_MESSAGE');
+    expect(chatRouteSource).not.toContain("error: 'Gemini API key not configured'");
+    expect(chatRouteSource).not.toContain("error: 'Gemini TTS provider error'");
+    expect(chatRouteSource).not.toContain("error: 'No audio generated'");
+  });
 });

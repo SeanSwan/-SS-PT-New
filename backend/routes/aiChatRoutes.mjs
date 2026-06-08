@@ -89,6 +89,7 @@ const router = express.Router();
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
 const COACH_ACTION_PROPOSAL_FAILED_CODE = 'COACH_PROPOSAL_CREATE_FAILED';
 const COACH_ACTION_PROPOSAL_FAILED_MESSAGE = 'Coach could not prepare that draft safely. Review the message and try again.';
+const AI_CHAT_TTS_UNAVAILABLE_MESSAGE = 'Voice playback is temporarily unavailable.';
 const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
   'coach_assistant',
   'exercise_library',
@@ -773,7 +774,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      return res.status(501).json({ success: false, error: 'Gemini API key not configured' });
+      return res.status(503).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_NOT_CONFIGURED',
+      });
     }
 
     // Validate voice name from Gemini's 30 available voices
@@ -816,7 +821,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => 'Unknown error');
       logger.error('[AI Chat] Gemini TTS failed', { status: geminiRes.status, error: errText });
-      return res.status(502).json({ success: false, error: 'Gemini TTS provider error' });
+      return res.status(502).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_PROVIDER_FAILED',
+      });
     }
 
     const data = await geminiRes.json();
@@ -825,7 +834,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     const audioPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
     if (!audioPart?.inlineData?.data) {
       logger.error('[AI Chat] Gemini TTS: no audio in response', { data: JSON.stringify(data).slice(0, 500) });
-      return res.status(502).json({ success: false, error: 'No audio generated' });
+      return res.status(502).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_AUDIO_UNAVAILABLE',
+      });
     }
 
     const pcmBase64 = audioPart.inlineData.data;
@@ -866,7 +879,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     return res.send(wavBuffer);
   } catch (err) {
     logger.error('[AI Chat] TTS error', { error: err.message, userId: req.user?.id });
-    return res.status(500).json({ success: false, error: 'TTS failed' });
+    return res.status(500).json({
+      success: false,
+      error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+      code: 'TTS_FAILED',
+    });
   }
 });
 
