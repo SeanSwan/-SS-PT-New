@@ -32,6 +32,7 @@ import { getUser, getClientProgress } from '../models/index.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
 import {
   NON_DEDUCTING_CLIENT_SOURCES,
+  normalizeClientSource,
   normalizePaidSessionCount,
 } from '../services/sessionBillingPolicy.mjs';
 import {
@@ -45,7 +46,7 @@ const router = express.Router();
 const ALLOWED_CLIENT_ONBOARD_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 
 export const isAllowedClientOnboardSource = (clientSource) =>
-  ALLOWED_CLIENT_ONBOARD_SOURCES.has(clientSource);
+  ALLOWED_CLIENT_ONBOARD_SOURCES.has(normalizeClientSource(clientSource, null));
 
 export const getClientOnboardAvailableSessions = ({ clientSource, availableSessions }) => {
   if (NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)) return 0;
@@ -53,10 +54,11 @@ export const getClientOnboardAvailableSessions = ({ clientSource, availableSessi
 };
 
 export const getClientOnboardSuccessMessage = (clientSource) => {
-  if (clientSource === 'move_fitness') {
+  const source = normalizeClientSource(clientSource);
+  if (source === 'move_fitness') {
     return 'Client onboarded successfully (Move Fitness - free tracking)';
   }
-  if (clientSource === 'external') {
+  if (source === 'external') {
     return 'Client onboarded successfully (External - free tracking)';
   }
   return 'Client onboarded successfully (SwanStudios - paid sessions)';
@@ -144,7 +146,9 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
 
-    if (!clientSource || !isAllowedClientOnboardSource(clientSource)) {
+    const normalizedClientSource = normalizeClientSource(clientSource, null);
+
+    if (!normalizedClientSource || !isAllowedClientOnboardSource(normalizedClientSource)) {
       return res.status(400).json({
         success: false,
         message: 'clientSource is required and must be "swanstudios", "move_fitness", or "external"'
@@ -199,10 +203,10 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
       username,
       password: tempPassword,
       role: 'client',
-      clientSource,
+      clientSource: normalizedClientSource,
       forcePasswordChange: true,
       accountStatus: generateClaimCode ? 'stub' : 'active',
-      availableSessions: getClientOnboardAvailableSessions({ clientSource, availableSessions }),
+      availableSessions: getClientOnboardAvailableSessions({ clientSource: normalizedClientSource, availableSessions }),
       healthConcerns: healthConcerns || null,
       fitnessGoal: fitnessGoal || null,
       trainingExperience: trainingExperience || null,
@@ -294,11 +298,11 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
     await transaction.commit();
     transaction = null;
 
-    logger.info(`[ClientOnboard] Client created: ${resolvedEmail} (source: ${clientSource}) by trainer ${trainerId}`);
+    logger.info(`[ClientOnboard] Client created: ${resolvedEmail} (source: ${normalizedClientSource}) by trainer ${trainerId}`);
 
     // ── Build Response ──────────────────────────────────────
-    const isMoveFitness = clientSource === 'move_fitness';
-    const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
+    const isMoveFitness = normalizedClientSource === 'move_fitness';
+    const isFreeTracking = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource);
     const responseData = {
       client: {
         id: newUser.id,
@@ -319,7 +323,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: getClientOnboardSuccessMessage(clientSource),
+      message: getClientOnboardSuccessMessage(normalizedClientSource),
       data: responseData,
     });
 

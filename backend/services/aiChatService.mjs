@@ -16,6 +16,7 @@ import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import {
   NON_DEDUCTING_CLIENT_SOURCES,
+  normalizeClientSource,
   normalizePaidSessionCount,
 } from './sessionBillingPolicy.mjs';
 import { getExerciseHistoryFromLogs } from './analyticsExerciseHistoryService.mjs';
@@ -26,8 +27,9 @@ import {
 } from './swanCoachPlanningContextService.mjs';
 
 export function getCoachRosterClientSourceLabel(clientSource) {
-  if (clientSource === 'move_fitness') return ' [Move Fitness - FREE TRACKING]';
-  if (clientSource === 'external') return ' [External - FREE TRACKING]';
+  const source = normalizeClientSource(clientSource);
+  if (source === 'move_fitness') return ' [Move Fitness - FREE TRACKING]';
+  if (source === 'external') return ' [External - FREE TRACKING]';
   return ' [SwanStudios - PAID]';
 }
 
@@ -40,10 +42,11 @@ export function getCoachRosterClientSessionsLabel(client = {}) {
 }
 
 export function getCoachClientProfileSourceLabel(clientSource) {
-  if (clientSource === 'move_fitness') {
+  const source = normalizeClientSource(clientSource);
+  if (source === 'move_fitness') {
     return 'Move Fitness (free tracking - no billing, session packages, or SwanStudios pricing discussion)';
   }
-  if (clientSource === 'external') {
+  if (source === 'external') {
     return 'External (free tracking - no billing, session packages, or SwanStudios pricing discussion)';
   }
   return 'SwanStudios';

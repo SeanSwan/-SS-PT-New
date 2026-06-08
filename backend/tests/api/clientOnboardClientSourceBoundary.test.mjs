@@ -37,6 +37,11 @@ describe('client onboard route clientSource boundary', () => {
     })).toBe(0);
 
     expect(getClientOnboardAvailableSessions({
+      clientSource: ' Move Fitness ',
+      availableSessions: 5,
+    })).toBe(0);
+
+    expect(getClientOnboardAvailableSessions({
       clientSource: 'swanstudios',
       availableSessions: 5,
     })).toBe(5);
@@ -50,7 +55,9 @@ describe('client onboard route clientSource boundary', () => {
   it('accepts every supported client source at validation before billing policy applies', () => {
     expect(isAllowedClientOnboardSource('swanstudios')).toBe(true);
     expect(isAllowedClientOnboardSource('move_fitness')).toBe(true);
+    expect(isAllowedClientOnboardSource('Move Fitness')).toBe(true);
     expect(isAllowedClientOnboardSource('external')).toBe(true);
+    expect(isAllowedClientOnboardSource(' External ')).toBe(true);
     expect(isAllowedClientOnboardSource('unknown')).toBe(false);
   });
 
@@ -58,7 +65,13 @@ describe('client onboard route clientSource boundary', () => {
     expect(getClientOnboardSuccessMessage('move_fitness')).toBe(
       'Client onboarded successfully (Move Fitness - free tracking)'
     );
+    expect(getClientOnboardSuccessMessage('Move Fitness')).toBe(
+      'Client onboarded successfully (Move Fitness - free tracking)'
+    );
     expect(getClientOnboardSuccessMessage('external')).toBe(
+      'Client onboarded successfully (External - free tracking)'
+    );
+    expect(getClientOnboardSuccessMessage(' External ')).toBe(
       'Client onboarded successfully (External - free tracking)'
     );
     expect(getClientOnboardSuccessMessage('swanstudios')).toBe(

@@ -159,10 +159,18 @@ describe('Swan Coach prompt contract', () => {
 
   it('describes external roster clients as free tracking without stale paid-session inventory', () => {
     expect(getCoachRosterClientSourceLabel('external')).toBe(' [External - FREE TRACKING]');
+    expect(getCoachRosterClientSourceLabel(' External ')).toBe(' [External - FREE TRACKING]');
     expect(getCoachRosterClientSessionsLabel({
       clientSource: 'external',
       availableSessions: 12,
     })).toBe('free tracking/no paid-session deduction');
+  });
+
+  it('describes human-formatted Move Fitness source values as free tracking in Coach context', () => {
+    expect(getCoachRosterClientSourceLabel(' Move Fitness ')).toBe(' [Move Fitness - FREE TRACKING]');
+    expect(getCoachClientProfileSourceLabel('move-fitness')).toBe(
+      'Move Fitness (free tracking - no billing, session packages, or SwanStudios pricing discussion)'
+    );
   });
 
   it('keeps SwanStudios roster clients on paid session inventory labels', () => {
@@ -183,6 +191,9 @@ describe('Swan Coach prompt contract', () => {
 
   it('keeps selected external client profiles out of paid session context', () => {
     expect(getCoachClientProfileSourceLabel('external')).toBe(
+      'External (free tracking - no billing, session packages, or SwanStudios pricing discussion)'
+    );
+    expect(getCoachClientProfileSourceLabel(' External ')).toBe(
       'External (free tracking - no billing, session packages, or SwanStudios pricing discussion)'
     );
     expect(getCoachClientProfileSessionsLabel({
