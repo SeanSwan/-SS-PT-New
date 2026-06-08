@@ -1,10 +1,8 @@
 /**
- * Workout MCP plan generation adapter
- * ====================================
- *
+ * useWorkoutMcp.planGeneration.ts
+ * ===============================
  * Bridges the legacy MCP-named hook to the real Swan Coach planning API.
- * Keeps Program Architect generation on `/api/workout-builder/plan` while
- * returning the existing WorkoutPlan shape expected by WorkoutPlanBuilder.
+ * Owns request mapping, generated-day normalization, and save payload assembly.
  */
 
 import type { WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise } from './useWorkoutMcp.types';
@@ -14,6 +12,11 @@ import {
   withTrainerSessionDaySemantics,
   withTrainerSessionPlanWeeks,
 } from '../utils/workoutPlanAssignmentSemantics';
+import {
+  recordArrayFrom,
+  sanitizePlanDataForPersistence,
+  toRecord,
+} from './useWorkoutMcp.planGenerationData';
 
 export interface WorkoutPlanGenerationParams {
   trainerId: string;
@@ -60,44 +63,25 @@ const GOAL_MAP: Record<string, string> = {
 };
 
 const PLAN_HORIZONS: Array<{ key: string; durationWeeks: number }> = [
-  { key: 'one_week', durationWeeks: 1 },
-  { key: 'one_month', durationWeeks: 4 },
-  { key: 'three_month', durationWeeks: 12 },
-  { key: 'six_month', durationWeeks: 26 },
-  { key: 'nine_month', durationWeeks: 39 },
-  { key: 'twelve_month', durationWeeks: 52 },
+  { key: 'one_week', durationWeeks: 1 }, { key: 'one_month', durationWeeks: 4 },
+  { key: 'three_month', durationWeeks: 12 }, { key: 'six_month', durationWeeks: 26 },
+  { key: 'nine_month', durationWeeks: 39 }, { key: 'twelve_month', durationWeeks: 52 },
 ];
 
-const PLAN_DATA_IDENTITY_KEYS = new Set([
-  'address',
-  'client',
-  'clientemail',
-  'clientname',
-  'clientprofile',
-  'dateofbirth',
-  'email',
-  'firstname',
-  'lastname',
-  'phone',
-  'phonenumber',
-  'selectedclient',
-]);
-
-const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+const SWAN_COACH_PLAN_DESCRIPTION =
+  'Swan Coach planning generated this program from client context and NASM progression data.';
 
 const toPositiveInteger = (value: unknown, fallback: number) => {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 };
 
-const deriveDurationWeeks = (startDate?: string, endDate?: string) => {
-  if (!startDate || !endDate) return 8;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const diffMs = end.getTime() - start.getTime();
-  if (!Number.isFinite(diffMs) || diffMs <= 0) return 8;
-  return Math.min(Math.max(Math.ceil(diffMs / (7 * 24 * 60 * 60 * 1000)), 1), 52);
-};
+const clampDurationWeeks = (weeks: number) => Math.min(Math.max(Math.ceil(weeks), 1), 52);
+const parseDateMs = (value?: string) => Date.parse(value || '');
+const validDurationWeeks = (weeks: number) => Number.isFinite(weeks) && weeks > 0 ? clampDurationWeeks(weeks) : 8;
+const deriveDurationWeeks = (startDate?: string, endDate?: string) =>
+  validDurationWeeks((parseDateMs(endDate) - parseDateMs(startDate)) / MS_PER_WEEK);
 
 const parsePhase = (value?: string) => {
   const parsed = Number(value);
@@ -113,20 +97,7 @@ const firstString = (...values: unknown[]) => {
   return '';
 };
 
-const toRecord = (value: unknown): Record<string, unknown> =>
-  value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-
-const sanitizePlanDataForPersistence = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(sanitizePlanDataForPersistence);
-  if (typeof value === 'string') return value.replace(EMAIL_PATTERN, '[redacted]');
-  if (!value || typeof value !== 'object') return value;
-
-  return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>((cleaned, [key, child]) => {
-    if (PLAN_DATA_IDENTITY_KEYS.has(key.replace(/[_-]/g, '').toLowerCase())) return cleaned;
-    cleaned[key] = sanitizePlanDataForPersistence(child);
-    return cleaned;
-  }, {});
-};
+const optionalString = (...values: unknown[]) => firstString(...values) || undefined;
 
 const closestHorizonKey = (durationWeeks: number) =>
   PLAN_HORIZONS.reduce((closest, horizon) => (
@@ -153,18 +124,20 @@ const inferPlanNasmPhase = (plan: WorkoutPlan) => {
   return phase >= 1 && phase <= 5 ? phase : null;
 };
 
+const fallbackWeeksFromPlanDays = (plan: WorkoutPlan) =>
+  plan.days?.length ? [{ weekNumber: 1, days: plan.days }] : [];
+
+const resolvePersistableWeeks = (existing: Record<string, unknown>, plan: WorkoutPlan) => {
+  const existingWeeks = recordArrayFrom(existing.weeks);
+  return existingWeeks.length ? existingWeeks : fallbackWeeksFromPlanDays(plan);
+};
+
 const buildPersistablePlanData = (plan: WorkoutPlan) => {
   const existing = toRecord(sanitizePlanDataForPersistence(plan.planData));
-  const fallbackWeeks = plan.days?.length
-    ? [{ weekNumber: 1, days: plan.days }]
-    : [];
-  const existingWeeks = Array.isArray(existing.weeks) && existing.weeks.length > 0
-    ? existing.weeks
-    : fallbackWeeks;
   return {
     ...existing,
-    weeks: withTrainerSessionPlanWeeks(existingWeeks),
-    goal: existing.goal || plan.goal || 'general',
+    weeks: withTrainerSessionPlanWeeks(resolvePersistableWeeks(existing, plan)),
+    goal: firstString(existing.goal, plan.goal, 'general'),
     assignmentDefaults: {
       ...toRecord(existing.assignmentDefaults),
       ...TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
@@ -172,49 +145,49 @@ const buildPersistablePlanData = (plan: WorkoutPlan) => {
   };
 };
 
+const buildExerciseId = (exercise: Record<string, unknown>, index: number) =>
+  optionalString(exercise.exerciseId, exercise.exerciseKey, exercise.id) ?? `exercise-${index + 1}`;
+
+const fallbackSetScheme = (exercise: Record<string, unknown>) =>
+  exercise.sets && exercise.reps ? `${exercise.sets}x${exercise.reps}` : undefined;
+
 const normalizeExercise = (exercise: Record<string, unknown>, index: number): WorkoutPlanDayExercise => ({
-  exerciseId: firstString(exercise.exerciseId, exercise.exerciseKey, exercise.id) || `exercise-${index + 1}`,
+  exerciseId: buildExerciseId(exercise, index),
   exerciseName: firstString(exercise.exerciseName, exercise.name),
   orderInWorkout: toPositiveInteger(exercise.orderInWorkout, index + 1),
-  setScheme: firstString(exercise.setScheme) || (
-    exercise.sets && exercise.reps ? `${exercise.sets}x${exercise.reps}` : undefined
-  ),
+  setScheme: optionalString(exercise.setScheme) ?? fallbackSetScheme(exercise),
   repGoal: firstString(exercise.repGoal, exercise.reps, exercise.targetReps),
   restPeriod: toPositiveInteger(exercise.restPeriod, 60),
-  tempo: firstString(exercise.tempo) || undefined,
-  intensityGuideline: firstString(exercise.intensityGuideline, exercise.intensity) || undefined,
-  notes: firstString(exercise.notes) || undefined,
+  tempo: optionalString(exercise.tempo),
+  intensityGuideline: optionalString(exercise.intensityGuideline, exercise.intensity),
+  notes: optionalString(exercise.notes),
 });
 
-const normalizeGeneratedDays = (generatedPlan: Record<string, unknown>): WorkoutPlanDay[] => {
-  const weeks = Array.isArray(generatedPlan.weeks) ? generatedPlan.weeks : [];
-  const days: WorkoutPlanDay[] = [];
-  for (const week of weeks) {
-    if (!week || typeof week !== 'object') continue;
-    const weekNumber = toPositiveInteger((week as Record<string, unknown>).weekNumber, 1);
-    const weekDays = Array.isArray((week as Record<string, unknown>).days)
-      ? (week as Record<string, unknown>).days as unknown[]
-      : [];
-    for (const day of weekDays) {
-      if (!day || typeof day !== 'object') continue;
-      const dayRecord = day as Record<string, unknown>;
-      const exercises = Array.isArray(dayRecord.exercises) ? dayRecord.exercises : [];
-      const sortOrder = days.length + 1;
-      days.push(withTrainerSessionDaySemantics({
-        dayNumber: sortOrder,
-        name: `Week ${weekNumber} - ${firstString(dayRecord.name) || `Day ${sortOrder}`}`,
-        focus: firstString(dayRecord.focus) || 'full_body',
-        dayType: firstString(dayRecord.dayType) || 'training',
-        optPhase: firstString(dayRecord.optPhase) || undefined,
-        sortOrder,
-        exercises: exercises
-          .filter((exercise): exercise is Record<string, unknown> => Boolean(exercise && typeof exercise === 'object'))
-          .map(normalizeExercise),
-      }));
-    }
-  }
-  return days;
+const generatedDayName = (dayRecord: Record<string, unknown>, weekNumber: number, sortOrder: number) =>
+  `Week ${weekNumber} - ${firstString(dayRecord.name, `Day ${sortOrder}`)}`;
+
+const normalizeGeneratedDay = (dayRecord: Record<string, unknown>, weekNumber: number, sortOrder: number) =>
+  withTrainerSessionDaySemantics({
+  dayNumber: sortOrder,
+  name: generatedDayName(dayRecord, weekNumber, sortOrder),
+  focus: firstString(dayRecord.focus, 'full_body'),
+  dayType: firstString(dayRecord.dayType, 'training'),
+  optPhase: optionalString(dayRecord.optPhase),
+  sortOrder,
+  exercises: recordArrayFrom(dayRecord.exercises).map(normalizeExercise),
+});
+
+const normalizeGeneratedWeek = (weekRecord: Record<string, unknown>, baseSortOrder: number) => {
+  const weekNumber = toPositiveInteger(weekRecord.weekNumber, 1);
+  return recordArrayFrom(weekRecord.days).map((dayRecord, index) =>
+    normalizeGeneratedDay(dayRecord, weekNumber, baseSortOrder + index + 1));
 };
+
+const normalizeGeneratedDays = (generatedPlan: Record<string, unknown>): WorkoutPlanDay[] =>
+  recordArrayFrom(generatedPlan.weeks).reduce<WorkoutPlanDay[]>((days, weekRecord) => [
+    ...days,
+    ...normalizeGeneratedWeek(weekRecord, days.length),
+  ], []);
 
 export const buildSwanCoachPlanRequest = (params: WorkoutPlanGenerationParams): SwanCoachPlanRequest => {
   const clientId = toPositiveInteger(params.clientId, 0);
@@ -230,62 +203,83 @@ export const buildSwanCoachPlanRequest = (params: WorkoutPlanGenerationParams): 
   return request;
 };
 
+const buildPlanDescription = (description?: string) =>
+  [description, SWAN_COACH_PLAN_DESCRIPTION].filter(Boolean).join('\n\n');
+
+const resolveTrainerId = (params: WorkoutPlanGenerationParams, userId?: string | number) =>
+  params.trainerId && params.trainerId !== 'current-trainer' ? params.trainerId : String(userId || '');
+
 export const buildWorkoutPlanFromSwanCoachPlan = (
   params: WorkoutPlanGenerationParams,
   generatedPlan: Record<string, unknown>,
   userId?: string | number,
 ): WorkoutPlan => ({
-  id: firstString(generatedPlan.id) || undefined,
+  id: optionalString(generatedPlan.id),
   name: params.name,
-  description: [
-    params.description,
-    'Swan Coach planning generated this program from client context and NASM progression data.',
-  ].filter(Boolean).join('\n\n'),
-  trainerId: params.trainerId && params.trainerId !== 'current-trainer'
-    ? params.trainerId
-    : String(userId || ''),
+  description: buildPlanDescription(params.description),
+  trainerId: resolveTrainerId(params, userId),
   clientId: params.clientId,
-  goal: params.goal || 'general',
+  goal: firstString(params.goal, 'general'),
   startDate: params.startDate,
   endDate: params.endDate,
   status: 'active',
-  planningSystem: firstString(generatedPlan.planningSystem) || 'swan_coach_planning',
+  planningSystem: firstString(generatedPlan.planningSystem, 'swan_coach_planning'),
   planData: generatedPlan,
   days: normalizeGeneratedDays(generatedPlan),
 });
+
+const roleForCreator = (role?: string) => role === 'admin' ? 'admin' : 'trainer';
+
+const usesSwanCoachPlanning = (plan: WorkoutPlan, planData: Record<string, unknown>) =>
+  firstString(plan.planningSystem) === 'swan_coach_planning'
+  || firstString(planData.planningSystem) === 'swan_coach_planning';
+
+const sourceForPlan = (isCoachPlan: boolean) => isCoachPlan ? 'swan_coach_planning' : 'manual_builder';
+
+const createdByForPlan = (isCoachPlan: boolean, creatorRole: string) =>
+  isCoachPlan ? 'swan_coach_planning' : creatorRole;
+
+const buildSaveMetadata = (horizonKey: string, durationWeeks: number, planSource: string, creatorRole: string) => ({
+  planHorizon: horizonKey,
+  horizonKey,
+  planDurationKey: horizonKey,
+  durationPreset: horizonKey,
+  durationWeeks,
+  planSource,
+  createdByRole: creatorRole,
+  ...TRAINER_SESSION_METADATA,
+});
+
+const requirePlanUserId = (clientId: unknown) => {
+  const userId = toPositiveInteger(clientId, 0);
+  if (!userId) throw new Error('Valid clientId is required to save workout plan');
+  return userId;
+};
+const nullableText = (value?: string) => value || null;
+const saveStatus = (status?: WorkoutPlanSaveOptions['status']) => status || 'draft';
 
 export const buildWorkoutPlanSavePayload = (
   plan: WorkoutPlan,
   options: WorkoutPlanSaveOptions = {},
 ) => {
-  const userId = toPositiveInteger(plan.clientId, 0);
-  if (!userId) throw new Error('Valid clientId is required to save workout plan');
+  const userId = requirePlanUserId(plan.clientId);
   const planData = buildPersistablePlanData(plan);
   const durationWeeks = inferPlanDurationWeeks({ ...plan, planData });
   const horizonKey = closestHorizonKey(durationWeeks);
-  const isCoachPlan = plan.planningSystem === 'swan_coach_planning'
-    || firstString(toRecord(planData).planningSystem) === 'swan_coach_planning';
-  const creatorRole = options.userRole === 'admin' ? 'admin' : 'trainer';
+  const isCoachPlan = usesSwanCoachPlanning(plan, planData);
+  const creatorRole = roleForCreator(options.userRole);
+  const planSource = sourceForPlan(isCoachPlan);
   return {
     userId,
     title: plan.name,
-    description: plan.description || null,
+    description: nullableText(plan.description),
     nasmPhase: inferPlanNasmPhase({ ...plan, planData }),
-    startDate: plan.startDate || null,
-    endDate: plan.endDate || null,
+    startDate: nullableText(plan.startDate),
+    endDate: nullableText(plan.endDate),
     durationWeeks,
-    status: options.status || 'draft',
+    status: saveStatus(options.status),
     planData,
-    createdBy: isCoachPlan ? 'swan_coach_planning' : creatorRole,
-    metadata: {
-      planHorizon: horizonKey,
-      horizonKey,
-      planDurationKey: horizonKey,
-      durationPreset: horizonKey,
-      durationWeeks,
-      planSource: isCoachPlan ? 'swan_coach_planning' : 'manual_builder',
-      createdByRole: creatorRole,
-      ...TRAINER_SESSION_METADATA,
-    },
+    createdBy: createdByForPlan(isCoachPlan, creatorRole),
+    metadata: buildSaveMetadata(horizonKey, durationWeeks, planSource, creatorRole),
   };
 };
