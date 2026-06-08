@@ -7,7 +7,28 @@
  */
 
 export const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
-export const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
+export const parseClientSource = (clientSource) => {
+  if (typeof clientSource !== 'string') return null;
+
+  const normalized = clientSource
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+  if (normalized === 'move_fitness' || normalized === 'movefitness') return 'move_fitness';
+  if (normalized === 'external') return 'external';
+  if (normalized === 'swanstudios' || normalized === 'swan_studios') return 'swanstudios';
+  return null;
+};
+
+class NormalizedClientSourceSet extends Set {
+  has(clientSource) {
+    const source = parseClientSource(clientSource);
+    return source ? super.has(source) : false;
+  }
+}
+
+export const NON_DEDUCTING_CLIENT_SOURCES = new NormalizedClientSourceSet(['move_fitness', 'external']);
 
 export const CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES = Object.freeze([
   'available',
@@ -23,26 +44,12 @@ export const normalizePaidSessionCount = (value) => {
   return Math.max(0, Math.floor(sessions));
 };
 
-export const parseClientSource = (clientSource) => {
-  if (typeof clientSource !== 'string') return null;
-
-  const normalized = clientSource
-    .trim()
-    .toLowerCase()
-    .replace(/[\s-]+/g, '_');
-
-  if (normalized === 'move_fitness' || normalized === 'movefitness') return 'move_fitness';
-  if (normalized === 'external') return 'external';
-  if (normalized === 'swanstudios' || normalized === 'swan_studios') return 'swanstudios';
-  return null;
-};
-
 export const normalizeClientSource = (clientSource, fallback = 'swanstudios') => (
   parseClientSource(clientSource) || fallback
 );
 
 export const isNonDeductingClientSource = (clientSource) => (
-  NON_DEDUCTING_CLIENT_SOURCES.has(normalizeClientSource(clientSource))
+  NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)
 );
 
 const normalizeCreditsRequired = (value) => {
