@@ -96,6 +96,8 @@ export function sanitizeProposalDetail({ row, proposal }) {
         duration: payload.duration || null,
         intensity: payload.intensity || null,
         exercises: Array.isArray(payload.exercises) ? payload.exercises : [],
+        scheduledSessionId: payload.scheduledSessionId || null,
+        plannedAssignment: payload.plannedAssignment || null,
       },
     });
   }

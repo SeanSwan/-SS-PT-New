@@ -154,6 +154,25 @@ describe('plannedWorkoutAssignmentLogService', () => {
       },
       {
         assignmentKey: 'trainer-1',
+        assignmentType: 'trainer_session',
+        weekNumber: 1,
+        dayNumber: 2,
+        isLoggable: false,
+        isBillable: true,
+        shouldDeductSession: true,
+      },
+      { hasScheduledSession: true }
+    )).not.toThrow();
+
+    expect(() => assertPlannedAssignmentMatchesOverview(
+      {
+        assignmentKey: 'trainer-1',
+        assignmentType: 'trainer_session',
+        weekNumber: 1,
+        dayNumber: 2,
+      },
+      {
+        assignmentKey: 'trainer-1',
         assignmentType: 'homework',
         weekNumber: 1,
         dayNumber: 2,

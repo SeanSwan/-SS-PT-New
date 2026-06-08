@@ -497,7 +497,7 @@ interface CreateClientModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: CreateClientRequest) => Promise<void>;
-  trainers?: Array<{ id: string; firstName: string; lastName: string }>;
+  trainers?: Array<{ id: string | number; firstName: string; lastName: string }>;
 }
 
 const parseOptionalPositiveNumber = (value: number | string | undefined): number | undefined => {

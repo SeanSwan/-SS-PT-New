@@ -443,7 +443,7 @@ const AdminViewAsWrapper: React.FC = () => {
         <Shield size={18} color="#60C0F0" />
         <BannerText>
           Viewing as <strong>{user.firstName} {user.lastName}</strong> ({user.role})
-          — Admin preview of their dashboard
+          — Read-only admin preview of their dashboard
         </BannerText>
         <ExitBtn onClick={handleExit} aria-label="Exit impersonation view">
           <X size={14} /> Exit View
@@ -541,6 +541,7 @@ const AdminViewAsWrapper: React.FC = () => {
         clientId={user.id}
         clientName={`${user.firstName} ${user.lastName}`.trim() || 'Client'}
         onClose={() => setHistoryModalOpen(false)}
+        readOnly
       />
     </Wrapper>
   );

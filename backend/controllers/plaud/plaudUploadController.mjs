@@ -73,11 +73,24 @@ function normalizeClipSource(value) {
   return value === 'applaud_local_sync' ? 'applaud_local_sync' : 'manual_upload';
 }
 
+function safeUploadRejectionMessage(code) {
+  const messages = {
+    AUTH_REQUIRED: 'Authentication required',
+    CLIP_CORRUPT: 'Audio could not be read. Re-record or upload a different file.',
+    CLIP_TOO_SILENT: 'Audio is too quiet to process. Re-record or upload a clearer file.',
+    INTERNAL_ERROR: 'Upload processing failed. Try again with this file.',
+    NO_FILES: 'No files provided',
+    UNSUPPORTED_AUDIO_TYPE: 'File type is not supported. Upload a supported audio file.',
+    UPLOAD_TOO_LARGE: 'File is over the upload size limit.',
+  };
+  return messages[code] || 'File was rejected. Check the file and try again.';
+}
+
 export async function uploadHandler(req, res) {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({
       success: false,
-      error: { code: 'NO_FILES', message: 'No files provided' },
+      error: { code: 'NO_FILES', message: safeUploadRejectionMessage('NO_FILES') },
     });
   }
 
@@ -85,7 +98,7 @@ export async function uploadHandler(req, res) {
   if (!Number.isInteger(userId) || userId <= 0) {
     return res.status(401).json({
       success: false,
-      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' },
+      error: { code: 'AUTH_REQUIRED', message: safeUploadRejectionMessage('AUTH_REQUIRED') },
     });
   }
 
@@ -102,7 +115,7 @@ export async function uploadHandler(req, res) {
       .catch((err) => {
         logger.error('[plaudUpload] processOneFile threw: %s', err.message);
         return {
-          rejected: { filename: f.originalname, code: 'INTERNAL_ERROR', message: err.message },
+          rejected: { filename: f.originalname, code: 'INTERNAL_ERROR', message: safeUploadRejectionMessage('INTERNAL_ERROR') },
         };
       });
     if (result.accepted) accepted.push(result.accepted);
@@ -122,10 +135,10 @@ export async function uploadHandler(req, res) {
 async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSource = 'manual_upload' }) {
   const ext = pickExtFromMimetype(file.mimetype, file.originalname);
   if (!ext) {
-    return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: `mime ${file.mimetype}` } };
+    return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: safeUploadRejectionMessage('UNSUPPORTED_AUDIO_TYPE') } };
   }
   if (file.size > (Number(process.env.PLAUD_MAX_FILE_BYTES) || 20 * 1024 * 1024)) {
-    return { rejected: { filename: file.originalname, code: 'UPLOAD_TOO_LARGE', message: `${file.size} bytes` } };
+    return { rejected: { filename: file.originalname, code: 'UPLOAD_TOO_LARGE', message: safeUploadRejectionMessage('UPLOAD_TOO_LARGE') } };
   }
 
   // Stage on tmp disk so ffprobe can read it (multer memoryStorage)
@@ -138,14 +151,14 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
   } catch (err) {
     await unlink(tmpPath).catch(() => {});
     if (err instanceof ClipCorruptError) {
-      return { rejected: { filename: file.originalname, code: 'CLIP_CORRUPT', message: err.message } };
+      return { rejected: { filename: file.originalname, code: 'CLIP_CORRUPT', message: safeUploadRejectionMessage('CLIP_CORRUPT') } };
     }
     throw err;
   }
 
   if (meta.codec && !ALLOWED_CODECS.has(String(meta.codec).toLowerCase())) {
     await unlink(tmpPath).catch(() => {});
-    return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: `codec ${meta.codec}` } };
+    return { rejected: { filename: file.originalname, code: 'UNSUPPORTED_AUDIO_TYPE', message: safeUploadRejectionMessage('UNSUPPORTED_AUDIO_TYPE') } };
   }
 
   let silenceCheck;
@@ -154,7 +167,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
   } catch (err) {
     await unlink(tmpPath).catch(() => {});
     if (err instanceof ClipCorruptError) {
-      return { rejected: { filename: file.originalname, code: 'CLIP_CORRUPT', message: err.message } };
+      return { rejected: { filename: file.originalname, code: 'CLIP_CORRUPT', message: safeUploadRejectionMessage('CLIP_CORRUPT') } };
     }
     throw err;
   }
@@ -164,7 +177,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
       rejected: {
         filename: file.originalname,
         code: 'CLIP_TOO_SILENT',
-        message: `mean=${silenceCheck.meanDb}dB max=${silenceCheck.maxDb}dB`,
+        message: safeUploadRejectionMessage('CLIP_TOO_SILENT'),
       },
     };
   }
@@ -208,7 +221,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
   const dbRow = (phaseA || [])[0];
   if (!dbRow) {
     await unlink(tmpPath).catch(() => {});
-    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: 'DB insert returned no row' } };
+    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: safeUploadRejectionMessage('INTERNAL_ERROR') } };
   }
 
   // Phase B: write to PLAUD disk path
@@ -222,7 +235,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
       { replacements: { clipId } },
     ).catch(() => {});
     await unlink(tmpPath).catch(() => {});
-    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: `disk write failed: ${err.message}` } };
+    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: safeUploadRejectionMessage('INTERNAL_ERROR') } };
   }
 
   // Phase C: transactionally flip status='pending_merge' + insert mirror_job
@@ -248,7 +261,7 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
     // Disk write succeeded but DB phase C failed — let stale-uploading
     // cron mark the row 'lost' rather than risk inconsistency.
     await unlink(tmpPath).catch(() => {});
-    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: `phase-C failed: ${err.message}` } };
+    return { rejected: { filename: file.originalname, code: 'INTERNAL_ERROR', message: safeUploadRejectionMessage('INTERNAL_ERROR') } };
   }
 
   await unlink(tmpPath).catch(() => {});
@@ -272,5 +285,5 @@ async function processOneFile({ file, userId, tmpDir, recordedAt = null, clipSou
 }
 
 export const _internal = {
-  processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype, normalizeRecordedAt, normalizeClipSource,
+  processOneFile, ALLOWED_CODECS, ALLOWED_EXT, pickExtFromMimetype, normalizeRecordedAt, normalizeClipSource, safeUploadRejectionMessage,
 };

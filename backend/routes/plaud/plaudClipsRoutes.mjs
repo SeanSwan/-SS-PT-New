@@ -58,7 +58,7 @@ function uploadRateLimiter(maxFiles = 10) {
         success: false,
         error: {
           code: 'RATE_LIMITED',
-          message: `Upload rate limit exceeded. Max ${maxFiles} files per 15 minutes.`,
+          message: safeUploadErrorMessage('RATE_LIMITED'),
         },
       });
     }
@@ -71,6 +71,16 @@ function uploadRateLimiter(maxFiles = 10) {
 const MAX_FILES_PER_UPLOAD = Number(process.env.PLAUD_MAX_FILES_PER_UPLOAD) || 5;
 const MAX_FILE_BYTES = Number(process.env.PLAUD_MAX_FILE_BYTES) || 20 * 1024 * 1024;
 const MAX_REQUEST_BYTES = Number(process.env.PLAUD_MAX_REQUEST_BYTES) || 30 * 1024 * 1024;
+
+function safeUploadErrorMessage(code) {
+  const messages = {
+    RATE_LIMITED: 'Too many upload attempts. Wait briefly and retry.',
+    TOO_MANY_FILES: `At most ${MAX_FILES_PER_UPLOAD} audio files can be uploaded at once.`,
+    UNSUPPORTED_AUDIO_TYPE: 'File type is not supported. Upload a supported audio file.',
+    UPLOAD_TOO_LARGE: 'Upload is over the size limit.',
+  };
+  return messages[code] || 'Upload failed. Check the file and try again.';
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -88,7 +98,7 @@ const upload = multer({
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported audio mime: ${file.mimetype}`));
+      cb(new Error('UNSUPPORTED_AUDIO_TYPE'));
     }
   },
 });
@@ -106,7 +116,7 @@ router.post(
         success: false,
         error: {
           code: 'UPLOAD_TOO_LARGE',
-          message: `Total upload ${total} bytes exceeds ${MAX_REQUEST_BYTES}`,
+          message: safeUploadErrorMessage('UPLOAD_TOO_LARGE'),
         },
       });
     }
@@ -128,20 +138,20 @@ router.use((err, req, res, next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(413).json({
         success: false,
-        error: { code: 'UPLOAD_TOO_LARGE', message: err.message },
+        error: { code: 'UPLOAD_TOO_LARGE', message: safeUploadErrorMessage('UPLOAD_TOO_LARGE') },
       });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({
         success: false,
-        error: { code: 'TOO_MANY_FILES', message: err.message },
+        error: { code: 'TOO_MANY_FILES', message: safeUploadErrorMessage('TOO_MANY_FILES') },
       });
     }
   }
-  if (err?.message?.includes('Unsupported audio mime')) {
+  if (err?.message === 'UNSUPPORTED_AUDIO_TYPE') {
     return res.status(415).json({
       success: false,
-      error: { code: 'UNSUPPORTED_AUDIO_TYPE', message: err.message },
+      error: { code: 'UNSUPPORTED_AUDIO_TYPE', message: safeUploadErrorMessage('UNSUPPORTED_AUDIO_TYPE') },
     });
   }
   return next(err);

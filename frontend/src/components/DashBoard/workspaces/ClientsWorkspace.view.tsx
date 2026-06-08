@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type { CreateClientRequest } from '../../../services/adminClientService';
+import type { AssignableTrainer, CreateClientRequest } from '../../../services/adminClientService';
 import CreateClientModal from '../Pages/admin-clients/CreateClientModal';
 import {
   CardGrid,
@@ -45,6 +45,7 @@ interface ClientsWorkspaceViewProps {
   detailTab: ClientDetailTab;
   loading: boolean;
   manualCreateOpen: boolean;
+  manualCreateTrainers: AssignableTrainer[];
   deactivationConfirmation: ClientLifecycleConfirmRequest | null;
   renderTraining: TabRenderer;
   renderProgress: TabRenderer;
@@ -229,6 +230,7 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => (
       open={props.manualCreateOpen}
       onClose={props.onCloseManualCreate}
       onSubmit={props.onManualCreate}
+      trainers={props.manualCreateTrainers}
     />
     <ClientLifecycleConfirmDialog
       request={props.deactivationConfirmation}

@@ -5,6 +5,14 @@
 
 import logger from '../utils/logger.mjs';
 
+const FREE_API_UNAVAILABLE = 'Nutrition intelligence is temporarily unavailable.';
+const FOOD_LOOKUP_UNAVAILABLE = 'Food lookup is temporarily unavailable.';
+const EXERCISE_LOOKUP_UNAVAILABLE = 'Exercise lookup is temporarily unavailable.';
+const MOTIVATION_UNAVAILABLE = 'Motivation feed is temporarily unavailable.';
+const WEATHER_UNAVAILABLE = 'Weather lookup is temporarily unavailable.';
+
+const freeApiFailure = (error = FREE_API_UNAVAILABLE) => ({ ok: false, error });
+
 // ---------------------------------------------------------------------------
 // 1. USDA FoodData Central
 //    https://api.nal.usda.gov/fdc/v1/
@@ -29,13 +37,13 @@ export async function searchFoods(query, pageSize = 10) {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`USDA searchFoods failed (${res.status}): ${text}`);
-      return { ok: false, error: `USDA API returned ${res.status}` };
+      return freeApiFailure(FOOD_LOOKUP_UNAVAILABLE);
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('USDA searchFoods error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure(FOOD_LOOKUP_UNAVAILABLE);
   }
 }
 
@@ -50,13 +58,13 @@ export async function getFoodDetails(fdcId) {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`USDA getFoodDetails failed (${res.status}): ${text}`);
-      return { ok: false, error: `USDA API returned ${res.status}` };
+      return freeApiFailure(FOOD_LOOKUP_UNAVAILABLE);
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('USDA getFoodDetails error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure(FOOD_LOOKUP_UNAVAILABLE);
   }
 }
 
@@ -76,7 +84,7 @@ export async function getNutrition(query) {
     const apiKey = process.env.CALORIE_NINJAS_KEY;
     if (!apiKey) {
       logger.error('CalorieNinjas: CALORIE_NINJAS_KEY not set');
-      return { ok: false, error: 'CALORIE_NINJAS_KEY not configured' };
+      return freeApiFailure();
     }
     const params = new URLSearchParams({ query });
     const res = await fetch(`${CALORIE_NINJAS_BASE}?${params}`, {
@@ -85,13 +93,13 @@ export async function getNutrition(query) {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`CalorieNinjas failed (${res.status}): ${text}`);
-      return { ok: false, error: `CalorieNinjas API returned ${res.status}` };
+      return freeApiFailure();
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('CalorieNinjas error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure();
   }
 }
 
@@ -114,7 +122,7 @@ export async function searchExercises({ name, muscle, type } = {}) {
     const apiKey = process.env.API_NINJAS_KEY;
     if (!apiKey) {
       logger.error('ExerciseDB: API_NINJAS_KEY not set');
-      return { ok: false, error: 'API_NINJAS_KEY not configured' };
+      return freeApiFailure(EXERCISE_LOOKUP_UNAVAILABLE);
     }
     const params = new URLSearchParams();
     if (name) params.set('name', name);
@@ -127,13 +135,13 @@ export async function searchExercises({ name, muscle, type } = {}) {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`ExerciseDB failed (${res.status}): ${text}`);
-      return { ok: false, error: `ExerciseDB API returned ${res.status}` };
+      return freeApiFailure(EXERCISE_LOOKUP_UNAVAILABLE);
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('ExerciseDB error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure(EXERCISE_LOOKUP_UNAVAILABLE);
   }
 }
 
@@ -151,13 +159,13 @@ export async function getMotivationalQuote() {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`ZenQuotes failed (${res.status}): ${text}`);
-      return { ok: false, error: `ZenQuotes API returned ${res.status}` };
+      return freeApiFailure(MOTIVATION_UNAVAILABLE);
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('ZenQuotes error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure(MOTIVATION_UNAVAILABLE);
   }
 }
 
@@ -182,12 +190,12 @@ export async function getWeather(latitude, longitude) {
     if (!res.ok) {
       const text = await res.text();
       logger.error(`Open-Meteo failed (${res.status}): ${text}`);
-      return { ok: false, error: `Open-Meteo API returned ${res.status}` };
+      return freeApiFailure(WEATHER_UNAVAILABLE);
     }
     const data = await res.json();
     return { ok: true, data };
   } catch (err) {
     logger.error('Open-Meteo error:', err);
-    return { ok: false, error: err.message };
+    return freeApiFailure(WEATHER_UNAVAILABLE);
   }
 }

@@ -54,13 +54,13 @@ describe('ClientsWorkspace — Phase 18.C.1B.1R "View As" CTA', () => {
     cleanup();
   });
 
-  it('loads active clients by default so soft-deactivated accounts leave the daily hub', async () => {
+  it('loads all clients by default so soft-deactivated accounts remain recoverable', async () => {
     renderWorkspace('/dashboard/admin/client-management');
 
     await screen.findByRole('button', { name: /open fixture client/i });
 
     expect(mockAuthAxiosGet).toHaveBeenCalledWith('/api/admin/clients', {
-      params: { limit: 100, status: 'active' },
+      params: { limit: 100 },
     });
   });
 

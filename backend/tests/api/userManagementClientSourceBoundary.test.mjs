@@ -9,6 +9,7 @@ const controllerSource = readFileSync(resolve(__dirname, '../../controllers/user
 const routeSource = readFileSync(resolve(__dirname, '../../routes/userManagementRoutes.mjs'), 'utf8');
 const adminRouteSource = readFileSync(resolve(__dirname, '../../routes/adminRoutes.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const userModelSource = readFileSync(resolve(__dirname, '../../models/User.mjs'), 'utf8');
 
 describe('user management clientSource boundary', () => {
   it('blocks controller-based admin user edits from granting paid credits to free-tracking clients', () => {
@@ -63,5 +64,74 @@ describe('user management clientSource boundary', () => {
     expect(routeSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
     expect(routeSlice.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
       .toBeLessThan(routeSlice.indexOf('user.availableSessions ='));
+  });
+
+  it('keeps active auth user deactivation on six-month soft-delete retention', () => {
+    const routeStart = routeSource.indexOf("router.delete('/user/:id'");
+    const routeEnd = routeSource.indexOf('export default router', routeStart);
+    const routeSlice = routeSource.slice(routeStart, routeEnd);
+
+    expect(coreRoutesSource).toContain("app.use('/api/auth', userManagementRoutes)");
+    expect(userModelSource).toContain('accountDeactivatedAt');
+    expect(userModelSource).toContain('accountRetentionUntil');
+    expect(routeStart).toBeGreaterThan(-1);
+    expect(routeEnd).toBeGreaterThan(routeStart);
+    expect(routeSlice).toContain('const accountDeactivatedAt = new Date();');
+    expect(routeSlice).toContain('retainedUntil.setMonth(retainedUntil.getMonth() + 6);');
+    expect(routeSlice).toContain('accountRetentionUntil: retainedUntil');
+    expect(routeSlice).toContain('isActive: false');
+    expect(routeSlice.indexOf('accountRetentionUntil: retainedUntil'))
+      .toBeLessThan(routeSlice.indexOf('await user.destroy()'));
+    expect(routeSlice).not.toContain('error.message');
+  });
+
+  it('sanitizes active auth user-management route logging across admin workflows', () => {
+    const activeRouteStart = routeSource.indexOf("const router = express.Router();");
+    const activeRouteEnd = routeSource.indexOf('export default router', activeRouteStart);
+    const activeRouteSlice = routeSource.slice(activeRouteStart, activeRouteEnd);
+
+    expect(coreRoutesSource).toContain("app.use('/api/auth', userManagementRoutes)");
+    expect(activeRouteSlice).toContain('const logUserManagementRouteError =');
+    expect(activeRouteSlice).not.toContain('error.message');
+    expect(activeRouteSlice).not.toContain('error.stack');
+    expect(activeRouteSlice).not.toContain('stack:');
+  });
+
+  it('sanitizes active admin user-management controller errors across mounted admin routes', () => {
+    const activeHandlerNames = [
+      'getAllUsers',
+      'promoteToClient',
+      'promoteToAdmin',
+      'updateUser',
+      'getRecentSignups',
+      'getDashboardStats',
+      'getDatabaseHealth',
+      'getSignupsList'
+    ];
+
+    expect(coreRoutesSource).toContain("app.use('/api/admin', adminRoutes)");
+    expect(adminRouteSource).toContain("router.get('/users', userManagementController.getAllUsers)");
+    expect(adminRouteSource).toContain("router.put('/users/:id', userManagementController.updateUser)");
+    expect(adminRouteSource).toContain("router.post('/promote-client', userManagementController.promoteToClient)");
+    expect(adminRouteSource).toContain("router.post('/promote-admin', userManagementController.promoteToAdmin)");
+    expect(controllerSource).toContain('const logUserManagementControllerError =');
+
+    for (const handlerName of activeHandlerNames) {
+      const handlerStart = controllerSource.indexOf(`export const ${handlerName} = async`);
+      const nextHandlerStart = controllerSource.indexOf('export const ', handlerStart + 1);
+      const handlerEnd = nextHandlerStart > -1
+        ? nextHandlerStart
+        : controllerSource.indexOf('export default', handlerStart);
+      const handlerSlice = controllerSource.slice(handlerStart, handlerEnd);
+
+      expect(handlerStart).toBeGreaterThan(-1);
+      expect(handlerEnd).toBeGreaterThan(handlerStart);
+      expect(handlerSlice).toContain('logUserManagementControllerError(');
+      expect(handlerSlice).not.toContain('error.message');
+      expect(handlerSlice).not.toContain('error.stack');
+      expect(handlerSlice).not.toContain('stack:');
+      expect(handlerSlice).not.toContain('debug:');
+      expect(handlerSlice).not.toContain("logger.error('Error fetching signups list:', error)");
+    }
   });
 });

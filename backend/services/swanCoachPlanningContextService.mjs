@@ -94,6 +94,14 @@ function firstPresent(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
 }
 
+function getAssignmentCompletions(plan) {
+  const completions = firstPresent(
+    plan.assignmentCompletions,
+    plan.assignment_completions,
+  );
+  return asArray(completions);
+}
+
 function safePlanContextText(value, fallback = '[filtered plan text]') {
   if (value === undefined || value === null || value === '') return '';
   const cleaned = String(value)
@@ -206,7 +214,13 @@ export function formatActiveWorkoutPlanContext(workoutPlans = []) {
     const createdBy = firstPresent(plan.created_by, plan.createdBy, 'unknown');
     const createdAt = firstPresent(plan.created_at, plan.createdAt, plan.createdAt);
     const createdDate = createdAt ? new Date(createdAt).toLocaleDateString() : '?';
-    const assignmentContext = formatAssignmentContext(plan, planData, week, day);
+    const assignmentContext = formatAssignmentContext(
+      plan,
+      planData,
+      week,
+      day,
+      getAssignmentCompletions(plan),
+    );
 
     return `Plan ID: ${safePlanId(plan)} [${String(plan.status || 'active').toUpperCase()}]
 Planning System: Swan Coach Planning

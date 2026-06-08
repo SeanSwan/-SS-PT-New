@@ -48,6 +48,10 @@ const EXERCISE_SEARCH_SOURCE = readFileSync(
   resolve(__dirname, './useExerciseSearch.ts'),
   'utf8',
 );
+const SUBMIT_RECEIPT_SOURCE = readFileSync(
+  resolve(__dirname, './WorkoutLogger.submitReceipt.ts'),
+  'utf8',
+);
 const EXERCISE_ROUTES_SOURCE = readFileSync(
   resolve(__dirname, '../../../../backend/routes/exerciseRoutes.mjs'),
   'utf8',
@@ -87,6 +91,14 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/const workoutDateValue = scheduledSessionDate/);
     expect(SOURCE).toMatch(/date: workoutDateValue/);
     expect(SOURCE).toMatch(/workoutDate=\{workoutDateValue\}/);
+  });
+
+  it('mounts the schedule-origin billing banner from the shared logger surface', () => {
+    expect(SOURCE).toMatch(/ScheduledSessionStatusBanner/);
+    expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
+    expect(SOURCE).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
+    expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
+    expect(SOURCE).toMatch(/clientSource=\{client\.clientSource\}/);
   });
 
   it('resolvedOnComplete default navigates to a real client route (not a silent no-op)', () => {
@@ -167,7 +179,8 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
 
   it('uses neutral fallback success copy when the backend omits a billing message', () => {
     expect(SOURCE).not.toMatch(/Session deducted and points earned/);
-    expect(SOURCE).toMatch(/Workout logged successfully! Progress updated\./);
+    expect(SOURCE).toMatch(/buildWorkoutSubmitSuccessMessage\(response\.data, response\.message\)/);
+    expect(SUBMIT_RECEIPT_SOURCE).toMatch(/Workout logged successfully! Progress updated\./);
   });
 
   it('resolves an effectiveClientId from prop OR authenticated client session', () => {

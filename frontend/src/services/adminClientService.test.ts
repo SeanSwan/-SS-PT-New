@@ -131,3 +131,93 @@ describe('adminClientService generateWorkoutPlan', () => {
     );
   });
 });
+
+describe('adminClientService logWorkout', () => {
+  it('routes the Clients & Team workout modal through canonical workout forms for diary and billing truth', async () => {
+    const post = vi.fn().mockResolvedValue({
+      data: {
+        success: true,
+        form: {
+          id: 'form-42',
+          clientId: 42,
+          date: '2026-06-08',
+          totalSets: 2,
+          sessionDeducted: true,
+          billing: {
+            status: 'deducted',
+            shouldDeduct: true,
+            sessionDeducted: true,
+            creditsDeducted: 1,
+            creditsRequired: 1,
+            remainingSessions: 3,
+          },
+        },
+        message: 'Workout logged successfully and session deducted',
+      },
+    });
+    const api = {
+      defaults: { baseURL: 'https://sswanstudios.com' },
+      get: vi.fn(),
+      post,
+      put: vi.fn(),
+      delete: vi.fn(),
+    };
+    const service = createAdminClientService(api);
+
+    const result = await service.logWorkout(42, {
+      title: 'Leg Day',
+      date: '2026-06-08',
+      duration: 45,
+      intensity: 8,
+      notes: 'Strong control',
+      exercises: [{
+        name: 'Goblet Squat',
+        exerciseNote: 'Keep chest tall',
+        sets: [
+          { setNumber: 1, reps: 10, weight: 40, tempo: '3/1/1', rest: 60, rpe: 7, notes: 'clean' },
+          { setNumber: 2, reps: 8, weight: 45 },
+        ],
+      }],
+    });
+
+    expect(post).toHaveBeenCalledWith(
+      '/api/workout-forms',
+      {
+        clientId: 42,
+        date: '2026-06-08',
+        sessionNotes: 'Strong control',
+        overallIntensity: 8,
+        exercises: [{
+          exerciseName: 'Goblet Squat',
+          exerciseNote: 'Keep chest tall',
+          sets: [
+            { setNumber: 1, reps: 10, weight: 40, tempo: '3/1/1', restTime: 60, rpe: 7, notes: 'clean' },
+            { setNumber: 2, reps: 8, weight: 45 },
+          ],
+        }],
+      },
+      undefined,
+    );
+    expect(post).not.toHaveBeenCalledWith(
+      '/api/admin/clients/42/workouts',
+      expect.anything(),
+      undefined,
+    );
+    expect(result).toMatchObject({
+      success: true,
+      id: 'form-42',
+      workoutId: 'form-42',
+      workout: {
+        id: 'form-42',
+        userId: 42,
+        date: '2026-06-08',
+        totalSets: 2,
+      },
+      billing: {
+        status: 'deducted',
+        sessionDeducted: true,
+        creditsDeducted: 1,
+      },
+    });
+  });
+});

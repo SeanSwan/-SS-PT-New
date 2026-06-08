@@ -80,9 +80,10 @@ describe('clientTrainingReadModelService assignment context', () => {
       assignmentKey: 'plan-trainer-led:w4:d2:trainer_session',
       assignmentType: 'trainer_session',
       sessionType: 'trainer-led',
+      isLoggable: false,
       isBillable: true,
       shouldDeductSession: false,
-      ctaLabel: 'Log Workout',
+      ctaLabel: 'View Schedule',
     });
     expect(overview.trainingPlanCatalog.slots.find((slot) => slot.horizonKey === 'six_month')).toMatchObject({
       plan: {
@@ -117,9 +118,10 @@ describe('clientTrainingReadModelService assignment context', () => {
       assignmentKey: 'plan-legacy-training:w4:d2:trainer_session',
       assignmentType: 'trainer_session',
       sessionType: 'trainer-led',
+      isLoggable: false,
       isBillable: true,
       shouldDeductSession: false,
-      ctaLabel: 'Log Workout',
+      ctaLabel: 'View Schedule',
     });
   });
 

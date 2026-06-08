@@ -66,7 +66,7 @@ router.post('/upload-photos', authorize(['admin', 'trainer']), (req, res, next) 
         return res.status(400).json({ success: false, message: 'Too many files. Maximum 10 photos per upload.' });
       }
       if (err.message?.includes('Only JPEG')) {
-        return res.status(400).json({ success: false, message: err.message });
+        return res.status(400).json({ success: false, message: 'Only JPEG image files are allowed.' });
       }
       return res.status(500).json({ success: false, message: 'Upload failed' });
     }

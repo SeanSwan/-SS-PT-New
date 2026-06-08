@@ -18,4 +18,10 @@ describe('aiCommandRoutes not-wired fallback source guard', () => {
     expect(ROUTE_SOURCE).toMatch(/ctx\.result\?\.type === 'not_wired'/);
     expect(ROUTE_SOURCE).toMatch(/fallbackToChat:\s*true/);
   });
+
+  it('keeps route-level command failures off raw exception messages and stacks', () => {
+    expect(ROUTE_SOURCE).toContain('const logAICommandRouteError =');
+    expect(ROUTE_SOURCE).not.toContain('error: err.message');
+    expect(ROUTE_SOURCE).not.toContain('stack: err.stack');
+  });
 });

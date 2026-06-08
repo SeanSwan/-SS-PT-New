@@ -7,6 +7,10 @@ const panelSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanel.tsx'),
   'utf8',
 );
+const contentSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistoryPanelContent.tsx'),
+  'utf8',
+);
 const sessionCardSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-clients/components/WorkoutHistorySessionCard.tsx'),
   'utf8',
@@ -21,7 +25,8 @@ describe('WorkoutHistorySessionFooter extraction', () => {
   it('keeps expanded session controls outside the canonical panel shell', () => {
     const footerSource = readFileSync(footerSourcePath, 'utf8');
 
-    expect(panelSource).toContain("from './WorkoutHistorySessionCard'");
+    expect(panelSource).toContain("from './WorkoutHistoryPanelContent'");
+    expect(contentSource).toContain("from './WorkoutHistorySessionCard'");
     expect(sessionCardSource).toContain("from './WorkoutHistorySessionFooter'");
     expect(sessionCardSource).toContain('<WorkoutHistorySessionFooter');
     expect(panelSource).not.toContain('<EditActionBar>');

@@ -357,7 +357,19 @@ const validationSchemas = {
       .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
       .matches(/[a-z]/).withMessage('Password must contain at least one lowercase letter')
       .matches(/[0-9]/).withMessage('Password must contain at least one number')
-      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Password must contain at least one special character')
+      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Password must contain at least one special character'),
+
+    body('role')
+      .optional()
+      .trim()
+      .isIn(['user', 'client', 'admin'])
+      .withMessage('Public signup only supports user, client, or protected admin registration'),
+
+    body('clientSource')
+      .optional()
+      .trim()
+      .isIn(['swanstudios', 'move_fitness', 'external'])
+      .withMessage('Client source must be swanstudios, move_fitness, or external')
   ],
   
   // Other validation schemas remain the same...

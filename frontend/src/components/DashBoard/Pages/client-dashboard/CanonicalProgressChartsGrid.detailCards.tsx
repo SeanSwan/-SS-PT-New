@@ -146,7 +146,7 @@ export const ExerciseFrequencyCard: React.FC<{
       <CardHeader>
         <CardIcon $color={CHART_COLORS.arcticCyan}><Dumbbell size={16} /></CardIcon>
         <CardTitle>Exercise Frequency</CardTitle>
-        <CardSubtitle>top 10 - 90 days</CardSubtitle>
+        <CardSubtitle>top 8 - all time</CardSubtitle>
       </CardHeader>
       <ChartBody>
         {data.length === 0 ? (

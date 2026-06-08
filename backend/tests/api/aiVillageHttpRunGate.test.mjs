@@ -79,4 +79,21 @@ describe('AI Village HTTP run gate', () => {
       jobId: 'val_test1234'
     });
   });
+
+  it('does not echo validation orchestrator exception text to API clients', async () => {
+    process.env.SWAN_ENABLE_AI_VILLAGE_HTTP_RUN = 'true';
+    mockStartValidation.mockImplementationOnce(() => {
+      throw new Error('internal validator path leaked');
+    });
+
+    const response = await request(makeApp())
+      .post('/api/ai-village/run')
+      .send({ files: ['backend/routes/authRoutes.mjs'], staged: false })
+      .expect(500);
+
+    expect(response.body).toEqual({
+      success: false,
+      error: 'Failed to start validation run'
+    });
+  });
 });

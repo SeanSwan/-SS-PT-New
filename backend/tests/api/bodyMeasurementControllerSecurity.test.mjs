@@ -38,6 +38,7 @@ describe('body measurement controller security hardening', () => {
     expect(controllerSource).not.toContain('error: error.message');
     expect(routeSource).toContain("message: 'Photo upload failed'");
     expect(routeSource).not.toContain("'Photo upload failed: ' + err.message");
+    expect(routeSource).not.toContain('message: err.message');
   });
 
   it('strictly bounds measurement list and upcoming-check pagination', () => {

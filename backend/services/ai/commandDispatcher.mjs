@@ -17,8 +17,8 @@
  *   exec-substrate-v1:
  *   M01: create_hermes_task → hermesService.createTask
  *   M02: list_hermes_tasks  → hermesService.listTasks
- *   exec-substrate-v2 (first confirmed legacy slice):
- *   B03: log_workout        → workoutLogService.logWorkoutForClient
+ *   exec-substrate-v2 (canonical workout diary slice):
+ *   B03: log_workout        → aiWorkoutDailyFormService.submitAiWorkoutLogAsDailyForm
  *   exec-substrate-v3 (honesty fix + first read command):
  *   R01: view_workout_history → WorkoutSession.findAll (flat scalar summary)
  *   exec-substrate-v4 (nutrition read slice):
@@ -60,7 +60,7 @@
 import { Op } from 'sequelize';
 import * as hermesService from '../hermes/hermesService.mjs';
 import workoutService from '../workoutService.mjs';
-import { logWorkoutForClient } from '../workout/workoutLogService.mjs';
+import { submitAiWorkoutLogAsDailyForm } from '../workout/aiWorkoutDailyFormService.mjs';
 import {
   CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
   NON_DEDUCTING_CLIENT_SOURCES,
@@ -1129,16 +1129,20 @@ const DISPATCHERS = new Map([
     'log_workout',
     async (params, ctx) => {
       const sequelize = ctx.options?.sequelize || ctx.sequelize;
-      // Service returns flat result; AI card uses exerciseCount/totalSets/xpAwarded
-      return logWorkoutForClient({
-        clientId: params.clientId,
+      const clientId = resolveCommandClientId(params, ctx);
+      // Service returns card-friendly diary + billing evidence.
+      return submitAiWorkoutLogAsDailyForm({
+        clientId,
         exercises: params.exercises || [],
         date: params.date,
         notes: params.notes,
         title: params.title,
         duration: params.duration,
         intensity: params.intensity,
+        plannedAssignment: params.plannedAssignment,
+        scheduledSessionId: params.scheduledSessionId,
         trainerId: ctx.user.id,
+        userRole: ctx.user.role,
         sequelize,
       });
     },

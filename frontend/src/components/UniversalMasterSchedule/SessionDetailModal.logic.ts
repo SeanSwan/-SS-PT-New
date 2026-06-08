@@ -82,6 +82,25 @@ export const buildScheduleWorkoutLoggerRoute = (
   return `/dashboard/${dashPath}/log-workout?${params.toString()}`;
 };
 
+export const buildScheduleCoachRoute = (
+  mode: SessionDetailModalMode,
+  session: SessionDetail
+) => {
+  const returnRoute = buildScheduleReturnRoute(mode);
+  const params = new URLSearchParams();
+  params.set('clientId', String(session.userId));
+  params.set('intent', 'log_workout');
+  params.set('source', 'master-schedule');
+  params.set('sourcePath', returnRoute);
+  params.set('returnTo', returnRoute);
+  params.set('sessionId', String(session.id));
+  params.set('sessionDate', String(session.sessionDate));
+  params.set('sessionCredits', String(getSessionTypeCreditsRequired(session)));
+
+  const dashPath = mode === 'client' ? 'client' : mode;
+  return `/dashboard/${dashPath}/coach-assistant?${params.toString()}`;
+};
+
 export const buildScheduleWorkoutsRoute = (
   mode: SessionDetailModalMode,
   session: SessionDetail
@@ -103,8 +122,9 @@ export const buildScheduleWorkoutsRoute = (
 };
 
 const isPositiveInteger = (value: unknown) => {
-  if (typeof value !== 'number') return false;
-  return Number.isSafeInteger(value) && value > 0;
+  if (typeof value === 'string' && !/^[1-9]\d*$/.test(value.trim())) return false;
+  const parsedValue = Number(value);
+  return Number.isSafeInteger(parsedValue) && parsedValue > 0;
 };
 
 const isUsableSessionDate = (value: unknown) => {

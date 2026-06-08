@@ -14,6 +14,8 @@ import {
 import {
   ActionBar, ButtonRow, CommandButton, FilterSelect, SearchContainer,
   SearchField, SearchIcon, SearchInput, TrainersGrid,
+  ConfirmBody, ConfirmButtonRow, ConfirmCallout, ConfirmDangerButton,
+  ConfirmDialogShell, ConfirmOverlay, ConfirmSecondaryButton, ConfirmTitle,
 } from './TrainersManagementSection.styles';
 import {
   EmptyIconWrap, EmptyStateContainer, LoadingShell, StatCard, StatNumber,
@@ -47,6 +49,13 @@ interface TrainerCardsProps {
   onEdit: (trainerId: string) => void;
   onVerify: (trainerId: string) => void;
   onView: (trainerId: string) => void;
+}
+
+interface TrainerDeactivationConfirmDialogProps {
+  busy: boolean;
+  trainer: Trainer;
+  onCancel: () => void;
+  onConfirm: () => void;
 }
 
 const statCards = [
@@ -238,4 +247,39 @@ export const TrainerCards = (props: TrainerCardsProps) => (
       </EmptyStateContainer>
     )}
   </>
+);
+
+export const TrainerDeactivationConfirmDialog = ({
+  busy,
+  trainer,
+  onCancel,
+  onConfirm,
+}: TrainerDeactivationConfirmDialogProps) => (
+  <ConfirmOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+    <ConfirmDialogShell
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="trainer-deactivation-title"
+      aria-describedby="trainer-deactivation-body"
+      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 18, scale: 0.98 }}
+    >
+      <ConfirmTitle id="trainer-deactivation-title">Deactivate {trainer.name}?</ConfirmTitle>
+      <ConfirmBody id="trainer-deactivation-body">
+        This removes the trainer from daily operations and blocks active access until an admin restores the account.
+      </ConfirmBody>
+      <ConfirmCallout>
+        This soft-deactivates the trainer account and retains account records for 6 months.
+      </ConfirmCallout>
+      <ConfirmButtonRow>
+        <ConfirmSecondaryButton type="button" onClick={onCancel} disabled={busy}>
+          Keep trainer active
+        </ConfirmSecondaryButton>
+        <ConfirmDangerButton type="button" onClick={onConfirm} disabled={busy}>
+          {busy ? 'Deactivating...' : 'Deactivate trainer'}
+        </ConfirmDangerButton>
+      </ConfirmButtonRow>
+    </ConfirmDialogShell>
+  </ConfirmOverlay>
 );

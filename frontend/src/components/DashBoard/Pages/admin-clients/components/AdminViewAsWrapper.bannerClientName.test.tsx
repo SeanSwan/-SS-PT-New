@@ -117,7 +117,7 @@ describe('AdminViewAsWrapper — Phase 18 P1-O / F-1 banner name', () => {
     expect(nameEl.tagName).toBe('STRONG');
   });
 
-  it('banner copy does NOT claim "read-only preview" (Rule 28 surface fidelity)', async () => {
+  it('banner copy states the enforced read-only preview contract', async () => {
     mockAuthAxiosGet.mockImplementation((url: string) => {
       if (url === '/api/admin/clients/424242') {
         return Promise.resolve({
@@ -131,7 +131,6 @@ describe('AdminViewAsWrapper — Phase 18 P1-O / F-1 banner name', () => {
 
     // Wait for hydration so the banner has rendered.
     await screen.findByText('Fixture Client');
-    expect(screen.queryByText(/read-only preview/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/admin preview of their dashboard/i)).toBeInTheDocument();
+    expect(screen.getByText(/read-only admin preview of their dashboard/i)).toBeInTheDocument();
   });
 });

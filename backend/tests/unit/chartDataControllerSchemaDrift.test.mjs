@@ -283,13 +283,14 @@ describe('Phase 14 — chart-anchor-lifts', () => {
 });
 
 describe('Phase 14 — chart-exercise-frequency', () => {
-  it('groups workout_logs by exerciseName with top-10 limit', async () => {
+  it('groups all completed workout_logs by exerciseName without truncating the diary', async () => {
     const { req, res, sql } = makeReqRes();
     await getExerciseFrequencyChart(req, res);
     const executedSql = sql[0];
     expect(executedSql).toMatch(/FROM\s+workout_logs\s+wl/i);
     expect(executedSql).toMatch(/GROUP BY\s+wl\."exerciseName"/i);
-    expect(executedSql).toMatch(/LIMIT\s+10/);
+    expect(executedSql).not.toMatch(/LIMIT\s+\d+/i);
+    expect(executedSql).not.toMatch(/INTERVAL\s+'90 days'/i);
     assertNoForbiddenTables(executedSql);
   });
 });

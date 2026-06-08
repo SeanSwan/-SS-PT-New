@@ -44,6 +44,9 @@ interface UseFilteredCalendarEventsParams {
   filterOptions: FilterOptions;
 }
 
+const idsMatch = (left?: string | number | null, right?: string | number | null): boolean =>
+  left != null && right != null && String(left) === String(right);
+
 /**
  * useFilteredCalendarEvents Hook
  * 
@@ -104,14 +107,14 @@ export const useFilteredCalendarEvents = ({
     // Step 2: Apply trainer filter
     if (filterOptions.trainerId) {
       filteredEvents = filteredEvents.filter(event => 
-        event.trainerId === filterOptions.trainerId
+        idsMatch(event.trainerId, filterOptions.trainerId)
       );
     }
     
     // Step 3: Apply client filter
     if (filterOptions.clientId) {
       filteredEvents = filteredEvents.filter(event => 
-        event.userId === filterOptions.clientId
+        idsMatch(event.userId, filterOptions.clientId)
       );
     }
     

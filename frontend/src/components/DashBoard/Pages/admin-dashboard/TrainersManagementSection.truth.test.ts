@@ -41,6 +41,25 @@ describe('TrainersManagementSection legacy route truth contract', () => {
     expect(source).not.toContain('fetch(');
   });
 
+  it('gates legacy trainer deactivation behind a retention warning confirmation', () => {
+    const sectionSource = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.sections.tsx');
+    const stylesSource = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.styles.ts');
+
+    expect(source).toContain('pendingDeactivationTrainer');
+    expect(source).toContain('handleRequestDeactivateTrainer');
+    expect(source).toContain('handleConfirmDeactivateTrainer');
+    expect(source).toContain('TrainerDeactivationConfirmDialog');
+    expect(source).not.toContain('window.confirm');
+
+    expect(sectionSource).toContain('TrainerDeactivationConfirmDialog');
+    expect(sectionSource).toContain('role="dialog"');
+    expect(sectionSource).toContain('aria-modal="true"');
+    expect(sectionSource).toContain('Deactivate trainer');
+    expect(sectionSource).toContain('This soft-deactivates the trainer account and retains account records for 6 months.');
+    expect(stylesSource).toContain('ConfirmOverlay');
+    expect(stylesSource).toContain('ConfirmButtonRow');
+  });
+
   it('keeps the legacy trainer route split into bounded source files', () => {
     const component = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.tsx');
     const sections = readSource('src/components/DashBoard/Pages/admin-dashboard/TrainersManagementSection.sections.tsx');

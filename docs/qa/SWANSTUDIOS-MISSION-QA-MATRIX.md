@@ -9,6 +9,7 @@ Purpose: test SwanStudios against the business mission, not only page load. Miss
 | Contract | `npm run qa:mission` | Blocked by default | Deterministic Playwright checks with mocked mission-shaped APIs. Safe first layer for every branch. |
 | Production Read-Only | `npm run qa:mission:prod-readonly` | Blocked by default | Production bundle smoke against `https://sswanstudios.com` with API writes blocked or avoided. |
 | Production Live Read-Only | `npm run qa:mission:prod-live-readonly` | Blocked by default | Real production GET checks against `https://sswanstudios.com`; protected role dashboards require local Playwright storage state. |
+| Production Live Role-Gated | `npm run qa:mission:prod-live-readonly:roles` | Blocked by default | Same live production checks, but fails before Playwright starts unless admin, trainer, and client storage-state files exist. |
 | Staging Write | `node scripts/qa/playwright-mission.mjs --staging-write --base-url=<staging-url>` | Enabled only by explicit flags | Full persona workflows against isolated staging DB and Stripe test keys. |
 
 Write-heavy tests must not run against production or local-prod DB by accident. Local development can use the production `DATABASE_URL`, so any write mode must verify the target database is isolated before running.
@@ -46,7 +47,9 @@ QA emails should use `@swanstudios-qa.local` so cleanup can identify them. Produ
 - Production read-only may run against `sswanstudios.com`; production writes require Sean's explicit approval and the launcher `--allow-prod-write` flag.
 - Production live read-only must use `SWAN_MISSION_QA_LIVE_API=1`, must block `POST`, `PUT`, `PATCH`, and `DELETE`, and must never store auth state in git. The `.auth/` directory is ignored for local Playwright storage states.
 - Capture local production auth state with `npm run qa:prod-auth:capture:admin`, `npm run qa:prod-auth:capture:trainer`, or `npm run qa:prod-auth:capture:client`. The helper opens a browser and saves storage state only after interactive login.
-- Authenticated production checks are optional until local state files exist. Supported env vars: `SWAN_PROD_AUTH_STATE` as a generic client fallback, plus `SWAN_PROD_ADMIN_AUTH_STATE`, `SWAN_PROD_TRAINER_AUTH_STATE`, and `SWAN_PROD_CLIENT_AUTH_STATE` for role-specific checks. Do not hardcode secrets or login values in specs.
+- Authenticated production checks are optional for `qa:mission:prod-live-readonly` until local state files exist. Use `qa:mission:prod-live-readonly:roles` when the run must prove admin, trainer, and client protected surfaces instead of accepting skips.
+- Supported env vars: `SWAN_PROD_AUTH_STATE` as a generic client fallback, plus `SWAN_PROD_ADMIN_AUTH_STATE`, `SWAN_PROD_TRAINER_AUTH_STATE`, and `SWAN_PROD_CLIENT_AUTH_STATE` for role-specific checks. Do not hardcode secrets or login values in specs.
+- Custom strict role coverage is available with `node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client` or `SWAN_MISSION_QA_REQUIRE_AUTH_ROLES=admin,trainer,client`.
 - If `DATABASE_URL` looks production-like, write mode requires `SWAN_MISSION_QA_CONFIRM_PROD_DB_WRITES=true`.
 - No live Stripe cards or live local Stripe keys in mission QA. Use Stripe test keys and disposable QA carts.
 - The existing `stripe-testmode-replay` command is no-real-charge, but it can write session grants/orders to the target DB. Keep it out of read-only mission QA.

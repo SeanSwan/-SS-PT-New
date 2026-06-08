@@ -114,6 +114,15 @@ describe('Slice 3.5 — plaudUploadController', () => {
     expect(UPLOAD_SRC).toMatch(/PLAUD_MAX_FILE_BYTES/);
     expect(UPLOAD_SRC).toMatch(/20\s*\*\s*1024\s*\*\s*1024/);
   });
+
+  it('returns stable user-safe rejection messages without raw probe or disk errors', () => {
+    expect(UPLOAD_SRC).toMatch(/safeUploadRejectionMessage/);
+    expect(UPLOAD_SRC).not.toMatch(/message:\s*err\.message/);
+    expect(UPLOAD_SRC).not.toMatch(/message:\s*`mime\s+\$\{file\.mimetype\}`/);
+    expect(UPLOAD_SRC).not.toMatch(/message:\s*`disk write failed:\s*\$\{err\.message\}`/);
+    expect(UPLOAD_SRC).not.toMatch(/message:\s*`phase-C failed:\s*\$\{err\.message\}`/);
+    expect(UPLOAD_SRC).not.toMatch(/message:\s*`mean=\$\{silenceCheck\.meanDb\}dB max=\$\{silenceCheck\.maxDb\}dB`/);
+  });
 });
 
 describe('Slice 3.5 — plaudListController', () => {
@@ -219,6 +228,11 @@ describe('Slice 3.5 — plaudClipsRoutes mounting', () => {
 
   it('mime filter rejection → 415 UNSUPPORTED_AUDIO_TYPE', () => {
     expect(ROUTES_SRC).toMatch(/UNSUPPORTED_AUDIO_TYPE/);
+  });
+
+  it('maps multer upload failures to stable user-safe messages', () => {
+    expect(ROUTES_SRC).toMatch(/safeUploadErrorMessage/);
+    expect(ROUTES_SRC).not.toMatch(/message:\s*err\.message/);
   });
 
   it('plaud authz error handler is registered after route handlers', () => {

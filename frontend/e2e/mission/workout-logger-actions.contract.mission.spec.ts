@@ -174,7 +174,7 @@ async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
               plan: {
                 id: 'mission-homework',
                 title: 'Mission Homework Diary Arc',
-                status: 'draft',
+                status: 'active',
                 horizonKey: 'one_week',
                 durationWeeks: 1,
                 assignmentDefault: 'homework',
@@ -279,8 +279,10 @@ test('@mission @contract @readonly admin plan vault exposes trainer-led versus h
   await expect(page.getByRole('heading', { name: /training plans/i })).toBeVisible();
   await expect(page.getByLabel(/6 month plan arc/i)).toContainText(/Trainer-led/i);
   await expect(page.getByLabel(/1 week plan arc/i)).toContainText(/Homework diary/i);
-  await expect(page.getByText(/Mission Trainer-Led Arc/i).first()).toBeVisible();
-  await expect(page.getByText(/Mission Homework Diary Arc/i).first()).toBeVisible();
+  await expect(page.getByLabel(/6 month plan arc/i)).toContainText(/Mission Trainer-Led Arc/i);
+  await expect(page.getByLabel(/1 week plan arc/i)).toContainText(/Mission Homework Diary Arc/i);
+  await expect(page.getByRole('button', { name: /log today from mission trainer-led arc/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /log today from mission homework diary arc/i })).toHaveCount(0);
 
   const layout = await page.evaluate(() => ({
     bodyText: document.body.innerText,

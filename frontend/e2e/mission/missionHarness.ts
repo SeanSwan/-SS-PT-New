@@ -62,7 +62,10 @@ export async function installMissionUser(page: Page, user = missionClientUser) {
 export function watchConsoleErrors(page: Page) {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+
+    const locationUrl = message.location().url;
+    consoleErrors.push(locationUrl ? `${message.text()} (${locationUrl})` : message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
   return consoleErrors;
@@ -72,8 +75,22 @@ export function isExpectedMissionConsoleNoise(message: string) {
   if (/preloaded using link preload/i.test(message)) return true;
 
   if (
+    /Failed to load resource: net::ERR_CONNECTION_FAILED/i.test(message)
+    && /https:\/\/fonts\.googleapis\.com\/css2\?/i.test(message)
+  ) {
+    return true;
+  }
+
+  if (
     process.env.SWAN_MISSION_QA_MODE === 'contract'
     && /WebSocket connection to 'ws:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\//i.test(message)
+  ) {
+    return true;
+  }
+
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'contract'
+    && /http:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\/\?[^)\s'"]*transport=polling/i.test(message)
   ) {
     return true;
   }
@@ -83,6 +100,13 @@ export function isExpectedMissionConsoleNoise(message: string) {
   if (
     process.env.SWAN_MISSION_QA_MODE === 'prod-readonly'
     && /^Failed to load resource: the server responded with a status of 400 \(\)$/i.test(message)
+  ) {
+    return true;
+  }
+
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'prod-readonly'
+    && /^Failed to load resource: the server responded with a status of 400 \(\)\s+\(https:\/\/ss-pt-new\.onrender\.com\/socket\.io\/\?[^)]*transport=polling/i.test(message)
   ) {
     return true;
   }

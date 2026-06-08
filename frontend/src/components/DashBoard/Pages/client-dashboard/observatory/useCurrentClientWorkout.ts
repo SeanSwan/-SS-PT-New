@@ -31,26 +31,6 @@ interface CurrentSessionPreview {
   };
 }
 
-interface CurrentWorkoutPlanPreview {
-  title?: string;
-  name?: string;
-  currentWeek?: number | string;
-  currentDay?: number | string;
-  currentSession?: CurrentSessionPreview | null;
-  todayAssignment?: TodayAssignmentPreview | null;
-  homeworkSummary?: HomeworkSummaryPreview | null;
-  trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
-}
-
-interface CurrentWorkoutResponse {
-  data?: CurrentWorkoutPlanPreview | null;
-  plan?: CurrentWorkoutPlanPreview | null;
-  currentSession?: CurrentSessionPreview | null;
-  todayAssignment?: TodayAssignmentPreview | null;
-  homeworkSummary?: HomeworkSummaryPreview | null;
-  trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
-}
-
 interface TodayAssignmentPreview {
   assignmentType?: string;
   status?: string;
@@ -77,6 +57,38 @@ interface HomeworkSummaryPreview {
   lastCompletedAt?: string | null;
 }
 
+interface CurrentWorkoutPlanPreview {
+  title?: string;
+  name?: string;
+  currentWeek?: number | string;
+  currentDay?: number | string;
+  currentSession?: CurrentSessionPreview | null;
+  todayAssignment?: TodayAssignmentPreview | null;
+  homeworkSummary?: HomeworkSummaryPreview | null;
+  trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
+}
+
+interface CurrentWorkoutResponse {
+  data?: CurrentWorkoutPlanPreview | null;
+  plan?: CurrentWorkoutPlanPreview | null;
+  currentSession?: CurrentSessionPreview | null;
+  todayAssignment?: TodayAssignmentPreview | null;
+  homeworkSummary?: HomeworkSummaryPreview | null;
+  trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
+}
+
+export interface ClientHomeworkSummary {
+  assignmentType: string;
+  todayStatus: string;
+  todayIsCompleted: boolean;
+  todayIsLoggable: boolean;
+  todayShouldDeductSession: boolean;
+  todayExerciseCount: number;
+  todayFirstExerciseName?: string | null;
+  recentCompletedCount: number;
+  lastCompletedAt?: string | null;
+}
+
 export interface CurrentClientWorkout {
   title: string;
   assignmentType?: string;
@@ -91,18 +103,6 @@ export interface CurrentClientWorkout {
   firstExercise?: string;
   primaryPlanLabel?: string;
   homeworkSummary?: ClientHomeworkSummary | null;
-}
-
-export interface ClientHomeworkSummary {
-  assignmentType: string;
-  todayStatus: string;
-  todayIsCompleted: boolean;
-  todayIsLoggable: boolean;
-  todayShouldDeductSession: boolean;
-  todayExerciseCount: number;
-  todayFirstExerciseName?: string | null;
-  recentCompletedCount: number;
-  lastCompletedAt?: string | null;
 }
 
 export interface CurrentClientWorkoutState {

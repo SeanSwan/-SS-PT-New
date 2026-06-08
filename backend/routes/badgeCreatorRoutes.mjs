@@ -19,6 +19,9 @@ router.use(protect, adminOnly);
 
 const MAX_GENERATIONS_PER_MONTH = 50;
 const DB_BADGE_CATEGORIES = new Set(['strength', 'cardio', 'skill', 'flexibility', 'endurance', 'general']);
+const BADGE_GENERATION_FAILED_MESSAGE = 'Badge generation failed. Try again with a simpler prompt or different style.';
+const BADGE_VARIATION_FAILED_MESSAGE = 'Variation generation failed. Try again with a different style.';
+const PET_AVATAR_GENERATION_FAILED_MESSAGE = 'Pet avatar generation failed. Try again with a different style.';
 
 function getMonthKey() {
   const d = new Date();
@@ -192,7 +195,8 @@ router.post('/generate', async (req, res) => {
     const result = await recraft.generateBadge({ prompt, style, size: 256 });
 
     if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
+      logger.error('Badge generation provider failed:', result.error);
+      return res.status(502).json({ success: false, message: BADGE_GENERATION_FAILED_MESSAGE });
     }
 
     logger.info(`[AUDIT] Admin ${req.user.id} generated badge: "${prompt}" (style: ${style}). ${remaining - 1} credits left.`);
@@ -376,7 +380,7 @@ router.post('/generate-batch', async (req, res) => {
       variation: variations[i] || 'Original',
       success: r.status === 'fulfilled' && r.value.success,
       imageUrl: r.status === 'fulfilled' && r.value.success ? r.value.imageUrl : null,
-      error: r.status === 'fulfilled' ? r.value.error : r.reason?.message,
+      error: r.status === 'fulfilled' && r.value.success ? null : BADGE_VARIATION_FAILED_MESSAGE,
     }));
 
     const successCount = images.filter(i => i.success).length;
@@ -432,7 +436,8 @@ router.post('/generate-pet-avatar', async (req, res) => {
     const result = await recraft.generateBadge({ prompt: fullPrompt, style: styleModifier, size: 256 });
 
     if (!result.success) {
-      return res.status(502).json({ success: false, message: result.error });
+      logger.error('Pet avatar generation provider failed:', result.error);
+      return res.status(502).json({ success: false, message: PET_AVATAR_GENERATION_FAILED_MESSAGE });
     }
 
     logger.info(`[AUDIT] Admin ${req.user.id} generated pet avatar: ${species}`);

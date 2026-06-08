@@ -4,6 +4,7 @@
  */
 
 import { normalizeProtectedPlanPdfUrl } from '../../../shared/plan-pdf/workoutPlanPdfUrl';
+import { normalizeWorkoutPlanUse } from '../../../../../utils/workoutPlanAssignmentSemantics';
 
 interface ClientPlanPdfPreview {
   url?: string;
@@ -28,6 +29,11 @@ interface TrainingPlanSlotPreview {
     currentDay?: number | string | null;
     pdfFile?: ClientPlanPdfPreview | null;
     planPdf?: ClientPlanPdfPreview | null;
+    assignmentDefault?: string | null;
+    billingIntent?: string | null;
+    defaultShouldDeductSession?: boolean;
+    metadata?: Record<string, unknown> | null;
+    planData?: Record<string, unknown> | null;
   } | null;
 }
 
@@ -56,6 +62,9 @@ export interface ClientTrainingPlanSlot {
   planId?: string | number | null;
   planTitle?: string;
   planStatus?: string;
+  assignmentDefault?: string | null;
+  billingIntent?: string | null;
+  defaultShouldDeductSession?: boolean;
   currentWeek?: number;
   currentDay?: number;
   pdfFile?: {
@@ -106,21 +115,27 @@ export function normalizeTrainingPlanVault(
   const slots = Array.isArray(catalog?.slots) ? catalog.slots : [];
   if (!slots.length) return null;
 
-  const normalizedSlots = slots.map((slot) => ({
-    horizonKey: slot.horizonKey || 'unknown',
-    label: slot.label || 'Plan',
-    durationWeeks: slot.durationWeeks,
-    durationDays: slot.durationDays,
-    isDefaultHorizon: Boolean(slot.isDefaultHorizon),
-    isFilled: Boolean(slot.isFilled),
-    isPrimary: Boolean(slot.isPrimary),
-    planId: slot.plan?.id,
-    planTitle: slot.plan?.title,
-    planStatus: slot.plan?.status,
-    currentWeek: toPositiveInteger(slot.plan?.currentWeek),
-    currentDay: toPositiveInteger(slot.plan?.currentDay),
-    pdfFile: normalizePlanPdfFile(slot.plan?.pdfFile || slot.plan?.planPdf),
-  }));
+  const normalizedSlots = slots.map((slot) => {
+    const planUse = slot.plan ? normalizeWorkoutPlanUse(slot.plan) : {};
+    return {
+      horizonKey: slot.horizonKey || 'unknown',
+      label: slot.label || 'Plan',
+      durationWeeks: slot.durationWeeks,
+      durationDays: slot.durationDays,
+      isDefaultHorizon: Boolean(slot.isDefaultHorizon),
+      isFilled: Boolean(slot.isFilled),
+      isPrimary: Boolean(slot.isPrimary),
+      planId: slot.plan?.id,
+      planTitle: slot.plan?.title,
+      planStatus: slot.plan?.status,
+      assignmentDefault: planUse.assignmentDefault,
+      billingIntent: planUse.billingIntent,
+      defaultShouldDeductSession: planUse.defaultShouldDeductSession,
+      currentWeek: toPositiveInteger(slot.plan?.currentWeek),
+      currentDay: toPositiveInteger(slot.plan?.currentDay),
+      pdfFile: normalizePlanPdfFile(slot.plan?.pdfFile || slot.plan?.planPdf),
+    };
+  });
   const filledHorizonKeys = Array.isArray(catalog?.filledHorizonKeys)
     ? catalog.filledHorizonKeys
     : normalizedSlots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey);

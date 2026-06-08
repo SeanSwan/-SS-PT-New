@@ -15,6 +15,14 @@ const APPROVAL_SERVICE_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/coachActionProposalApprovalService.mjs'),
   'utf8',
 );
+const COMMAND_DISPATCHER_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/commandDispatcher.mjs'),
+  'utf8',
+);
+const WORKOUT_COMMANDS_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/commandRegistry/workoutCommands.mjs'),
+  'utf8',
+);
 const PROPOSAL_SERVICE_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/coachActionProposalService.mjs'),
   'utf8',
@@ -25,14 +33,35 @@ const COACH_INTAKE_MIGRATION_SRC = readFileSync(
 );
 
 describe('coachActionProposalApprovalService source guards', () => {
-  it('routes workout approval through RBAC and the canonical workout writer', () => {
+  it('routes workout approval through RBAC and the canonical daily form writer', () => {
     expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/logWorkoutForClient/);
+    expect(APPROVAL_SERVICE_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(APPROVAL_SERVICE_SRC).toMatch(/plannedAssignment:\s*payload\.plannedAssignment/);
+    expect(APPROVAL_SERVICE_SRC).toMatch(/scheduledSessionId:\s*payload\.scheduledSessionId/);
+    expect(APPROVAL_SERVICE_SRC).not.toMatch(/logWorkoutForClient/);
   });
 
   it('does not create workout rows directly inside the proposal executor', () => {
     expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutSession\.create\(/);
     expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutLog\.bulkCreate\(/);
+  });
+
+  it('routes server-side log_workout commands through the canonical daily form writer', () => {
+    expect(COMMAND_DISPATCHER_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(COMMAND_DISPATCHER_SRC).toMatch(/plannedAssignment:\s*params\.plannedAssignment/);
+    expect(COMMAND_DISPATCHER_SRC).toMatch(/scheduledSessionId:\s*params\.scheduledSessionId/);
+    expect(COMMAND_DISPATCHER_SRC).not.toMatch(/logWorkoutForClient/);
+  });
+
+  it('documents log_workout against the workout form diary endpoint', () => {
+    const logWorkoutBlock = WORKOUT_COMMANDS_SRC.slice(
+      WORKOUT_COMMANDS_SRC.indexOf("type: 'log_workout'"),
+      WORKOUT_COMMANDS_SRC.indexOf("type: 'view_last_workout'"),
+    );
+    expect(logWorkoutBlock).toContain("endpoint: '/api/workout-forms'");
+    expect(logWorkoutBlock).toContain('scheduledSessionId: ScheduledSessionIdSchema.optional()');
+    expect(logWorkoutBlock).toContain('PlannedAssignmentSchema.optional()');
+    expect(logWorkoutBlock).not.toContain('/api/admin/clients/:clientId/workouts');
   });
 
   it('routes client onboarding approval through the deterministic onboarding service', () => {

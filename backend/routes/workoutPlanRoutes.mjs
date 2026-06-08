@@ -77,6 +77,26 @@ const parseStrictPositiveInteger = (value) => {
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 const currentDateOnly = () => new Date().toISOString().slice(0, 10);
 
+const isPlainRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const mergePlanMetadata = (plan, nextMetadata) => {
+  const raw = toPlainObject(plan) || {};
+  const current = isPlainRecord(raw.metadata) ? raw.metadata : {};
+  const next = isPlainRecord(nextMetadata) ? nextMetadata : {};
+  return { ...current, ...next };
+};
+
+const buildDuplicatePlanMetadata = (plan) => {
+  const raw = toPlainObject(plan) || {};
+  const metadata = isPlainRecord(raw.metadata) ? { ...raw.metadata } : {};
+  delete metadata.planPdf;
+  return {
+    ...metadata,
+    isPrimaryPlan: false,
+    duplicatedFrom: raw.id,
+  };
+};
+
 const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
@@ -102,7 +122,6 @@ const selectCurrentWorkoutPlan = (fallbackPlan, plans = []) => (
 // PURPOSE: Lazy-load from model cache to avoid circular imports
 // ─────────────────────────────────────────────────────────────
 const getWorkoutPlan = () => getModel('WorkoutPlan');
-const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
 
 const readAssignmentCompletionContext = async (DailyWorkoutForm, clientId, today) => {
   const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
@@ -199,6 +218,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
 router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
+    const DailyWorkoutForm = getModel('DailyWorkoutForm');
     const userId = parseInt(req.params.userId, 10);
 
     if (!userId || isNaN(userId)) {
@@ -231,7 +251,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
     const currentSession = plan ? extractCurrentSession(plan) : null;
     const today = currentDateOnly();
     const completionContext = await readAssignmentCompletionContext(
-      getDailyWorkoutForm(),
+      DailyWorkoutForm,
       userId,
       today,
     );
@@ -368,7 +388,9 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+        updates[field] = field === 'metadata'
+          ? mergePlanMetadata(plan, req.body[field])
+          : req.body[field];
       }
     }
 
@@ -640,7 +662,7 @@ router.post('/:id/duplicate', protect, trainerOrAdminOnly,
         planData: clonedPlanData,
         progressNotes: [],
         createdBy: 'trainer',
-        metadata: { duplicatedFrom: original.id },
+        metadata: buildDuplicatePlanMetadata(original),
       });
 
       logger.info('[WorkoutPlan] Duplicated plan #%d -> #%d (client %d, trainer %d)',

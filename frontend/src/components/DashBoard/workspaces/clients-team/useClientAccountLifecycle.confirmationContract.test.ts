@@ -10,10 +10,12 @@ describe('client account lifecycle confirmation contract', () => {
     const hookSource = read('useClientAccountLifecycle.ts');
     const dialogSource = read('ClientLifecycleConfirmDialog.tsx');
     const workspaceSource = read('../ClientsWorkspace.tsx');
+    const workspaceViewSource = read('../ClientsWorkspace.view.tsx');
 
     expect(hookSource).not.toContain('window.confirm');
     expect(hookSource).toContain('deactivationConfirmation');
-    expect(workspaceSource).toContain('ClientLifecycleConfirmDialog');
+    expect(workspaceSource).toContain('deactivationConfirmation={deactivationConfirmation}');
+    expect(workspaceViewSource).toContain('ClientLifecycleConfirmDialog');
     expect(dialogSource).toContain('role="dialog"');
     expect(dialogSource).toContain('aria-modal="true"');
     expect(dialogSource).toContain('min-height: 44px');

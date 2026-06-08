@@ -1333,14 +1333,39 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
       // HYBRID column naming: original 2025 cols are camelCase, 2026 migration cols are snake_case
       // camelCase cols MUST be double-quoted in PostgreSQL to preserve case
       safeQuery(
-        `SELECT id, nasm_phase, status,
-                current_week, current_day, "durationWeeks",
-                plan_data, progress_notes, created_by,
-                start_date, end_date, "createdAt"
-         FROM workout_plans
-         WHERE "userId" = :userId AND status IN ('active', 'paused')
-         ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END,
-                  "createdAt" DESC LIMIT 3`, { userId }),
+        `SELECT wp.id, wp.nasm_phase, wp.status,
+                wp.current_week, wp.current_day, wp."durationWeeks",
+                wp.plan_data, wp.progress_notes, wp.created_by,
+                wp.start_date, wp.end_date, wp."createdAt",
+                COALESCE((
+                  SELECT json_agg(json_build_object(
+                    'assignmentKey', COALESCE(
+                      dwf.form_data->'plannedAssignment'->>'assignmentKey',
+                      dwf.form_data->'plannedAssignment'->>'assignmentId'
+                    ),
+                    'assignmentType', dwf.form_data->'plannedAssignment'->>'assignmentType',
+                    'title', dwf.form_data->'plannedAssignment'->>'title',
+                    'weekNumber', dwf.form_data->'plannedAssignment'->>'weekNumber',
+                    'dayNumber', dwf.form_data->'plannedAssignment'->>'dayNumber',
+                    'dayLabel', dwf.form_data->'plannedAssignment'->>'dayLabel',
+                    'exerciseCount', dwf.form_data->'plannedAssignment'->>'exerciseCount',
+                    'firstExerciseName', dwf.form_data->'plannedAssignment'->>'firstExerciseName',
+                    'formId', dwf.id,
+                    'completedAt', dwf.submitted_at
+                  ) ORDER BY dwf.submitted_at DESC)
+                  FROM daily_workout_forms dwf
+                  WHERE dwf.client_id = :userId
+                    AND dwf.date = CURRENT_DATE
+                    AND jsonb_typeof(dwf.form_data->'plannedAssignment') = 'object'
+                    AND COALESCE(
+                      dwf.form_data->'plannedAssignment'->>'assignmentKey',
+                      dwf.form_data->'plannedAssignment'->>'assignmentId'
+                    ) LIKE (wp.id::text || ':%')
+                ), '[]'::json) AS assignment_completions
+         FROM workout_plans wp
+         WHERE wp."userId" = :userId AND wp.status IN ('active', 'paused')
+         ORDER BY CASE WHEN wp.status = 'active' THEN 0 ELSE 1 END,
+                  wp."createdAt" DESC LIMIT 3`, { userId }),
     ]);
 
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);

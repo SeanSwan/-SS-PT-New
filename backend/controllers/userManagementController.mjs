@@ -335,6 +335,23 @@ const parseAdminSessionCreditInput = (value, fallback = 0) => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 };
 
+const toUserManagementControllerErrorMetadata = (error) => {
+  const metadata = {
+    name: error?.name || 'UnknownError'
+  };
+
+  if (error?.code) metadata.code = error.code;
+  if (error?.statusCode || error?.status) metadata.statusCode = error.statusCode || error.status;
+  if (error?.parent?.code) metadata.parentCode = error.parent.code;
+  if (error?.original?.code) metadata.originalCode = error.original.code;
+
+  return metadata;
+};
+
+const logUserManagementControllerError = (eventName, error) => {
+  logger.error(eventName, toUserManagementControllerErrorMetadata(error));
+};
+
 /**
  * @desc    Get all users (admin only)
  * @route   GET /api/auth/users
@@ -356,11 +373,10 @@ export const getAllUsers = async (req, res) => {
       users
     });
   } catch (error) {
-    logger.error('Error fetching all users:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error fetching all users', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching users',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error fetching users'
     });
   }
 };
@@ -440,11 +456,10 @@ export const promoteToClient = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    logger.error('Error promoting user to client:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error promoting user to client', error);
     res.status(500).json({
       success: false,
-      message: 'Server error promoting user to client',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error promoting user to client'
     });
   }
 };
@@ -512,11 +527,10 @@ export const promoteToAdmin = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    logger.error('Error promoting user to admin:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error promoting user to admin', error);
     res.status(500).json({
       success: false,
-      message: 'Server error promoting user to admin',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error promoting user to admin'
     });
   }
 };
@@ -633,11 +647,10 @@ export const updateUser = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    logger.error('Error updating user:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error updating user', error);
     res.status(500).json({
       success: false,
-      message: 'Server error updating user',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error updating user'
     });
   }
 };
@@ -711,11 +724,10 @@ export const getRecentSignups = async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Error fetching recent signups:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error fetching recent signups', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching recent signups',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'Server error fetching recent signups'
     });
   }
 };
@@ -828,15 +840,14 @@ export const getDashboardStats = async (req, res) => {
       data: dashboardStats
     });
   } catch (error) {
-    logger.error('Error generating dashboard stats:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Error generating dashboard stats', error);
     res.status(500).json({
       success: false,
       message: 'Server error generating dashboard statistics',
       data: {
         databaseStatus: 'error',
         timestamp: new Date().toISOString()
-      },
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      }
     });
   }
 };
@@ -881,14 +892,13 @@ export const getDatabaseHealth = async (req, res) => {
       data: healthStatus
     });
   } catch (error) {
-    logger.error('Database health check failed:', { error: error.message, stack: error.stack });
+    logUserManagementControllerError('Database health check failed', error);
     res.status(500).json({
       success: false,
       message: 'Database health check failed',
       data: {
         status: 'unhealthy',
         connectivity: 'failed',
-        error: error.message,
         timestamp: new Date().toISOString()
       }
     });
@@ -931,7 +941,7 @@ export const getSignupsList = async (req, res) => {
       data: { signups, pagination }
     });
   } catch (error) {
-    logger.error('Error fetching signups list:', error);
+    logUserManagementControllerError('Error fetching signups list', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch signups list'

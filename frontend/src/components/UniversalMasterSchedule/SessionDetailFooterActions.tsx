@@ -34,6 +34,7 @@ export interface SessionDetailFooterActionsProps {
   onBackFromNoShowReason: () => void;
   onComplete: () => void;
   onEdit: () => void;
+  onCoachLogWorkout: () => void;
   onLogWorkout: () => void;
   onViewWorkouts: () => void;
 }
@@ -61,6 +62,7 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
   onBackFromNoShowReason,
   onComplete,
   onEdit,
+  onCoachLogWorkout,
   onLogWorkout,
   onViewWorkouts,
 }) => {
@@ -91,9 +93,10 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
         </>
       )}
       {canLogFromSchedule && !isFocusedFlow && (
-        <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>
-          {scheduleLogWorkoutLabel}
-        </GlowButton>
+        <>
+          <GlowButton variant="neonBlue" size="medium" onClick={onCoachLogWorkout}>Coach Log</GlowButton>
+          <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>{scheduleLogWorkoutLabel}</GlowButton>
+        </>
       )}
       {canRecordAttendance && !isFocusedFlow && (
         <>

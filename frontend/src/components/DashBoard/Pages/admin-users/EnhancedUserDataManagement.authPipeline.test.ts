@@ -10,6 +10,7 @@ const layoutSource = read('src/components/DashBoard/UniversalDashboardLayout.tsx
 const pageSource = stripComments(read('src/components/DashBoard/Pages/admin-users/EnhancedUserDataManagement.tsx'));
 const backendMountSource = read('../backend/core/routes.mjs');
 const adminRoutesSource = read('../backend/routes/adminRoutes.mjs');
+const modalSource = read('src/components/DashBoard/Pages/admin-users/EnhancedUserDataManagement.modals.tsx');
 
 describe('EnhancedUserDataManagement auth pipeline', () => {
   it('is the mounted admin user-management dashboard surface backed by protected admin routes', () => {
@@ -29,5 +30,18 @@ describe('EnhancedUserDataManagement auth pipeline', () => {
     expect(pageSource).not.toMatch(/\bfetch\s*\(/);
     expect(pageSource).not.toContain("localStorage.getItem('accessToken')");
     expect(pageSource).not.toMatch(/Authorization\s*:/);
+  });
+
+  it('renders user action modals for mounted row actions instead of state-only controls', () => {
+    expect(pageSource).toContain('UserDetailsModal');
+    expect(pageSource).toContain('RoleConversionModal');
+    expect(pageSource).toContain('setRoleConversionModalOpen(true)');
+    expect(pageSource).toContain('handleRoleConversion');
+    expect(pageSource).not.toContain('Handle edit');
+
+    expect(modalSource).toContain('role="dialog"');
+    expect(modalSource).toContain('aria-modal="true"');
+    expect(modalSource).toContain('Convert role');
+    expect(modalSource).toContain('Confirm role');
   });
 });

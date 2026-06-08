@@ -164,6 +164,33 @@ class AdminClientService {
   }
   
   /**
+   * Fetch trainers/admins that can own client assignments.
+   */
+  async getAssignableTrainers(): Promise<AssignableTrainer[]> {
+    try {
+      const response = await this.api.get('/admin/trainers');
+      const payload = response.data?.data || response.data || {};
+      const trainers = Array.isArray(payload.trainers)
+        ? payload.trainers
+        : Array.isArray(payload.users)
+          ? payload.users
+          : [];
+
+      return trainers
+        .filter((trainer: any) => trainer?.id && trainer?.firstName && trainer?.lastName)
+        .map((trainer: any) => ({
+          id: String(trainer.id),
+          firstName: String(trainer.firstName),
+          lastName: String(trainer.lastName),
+          role: typeof trainer.role === 'string' ? trainer.role : undefined,
+        }));
+    } catch (error) {
+      console.error('Error fetching assignable trainers:', error);
+      throw new Error('Failed to fetch trainers');
+    }
+  }
+
+  /**
    * Assign trainer to client
    */
   async assignTrainer(clientId, trainerId) {
@@ -521,6 +548,7 @@ class AdminClientService {
     notes?: string;
     exercises: Array<{
       name: string;
+      exerciseNote?: string;
       sets: Array<{
         setNumber: number;
         reps: number;
@@ -533,8 +561,71 @@ class AdminClientService {
     }>;
   }) {
     try {
-      const response = await this.api.post(`/admin/clients/${clientId}/workouts`, workoutData);
-      return response.data;
+      const targetClientId = Number(clientId);
+      if (!Number.isSafeInteger(targetClientId) || targetClientId <= 0) {
+        throw new Error('Valid client id required to log workout');
+      }
+
+      const exercises = workoutData.exercises.map((exercise) => {
+        const mappedExercise: {
+          exerciseName: string;
+          exerciseNote?: string;
+          sets: Array<Record<string, number | string>>;
+        } = {
+          exerciseName: exercise.name,
+          sets: exercise.sets.map((set) => {
+            const nextSet: Record<string, number | string> = {
+              setNumber: set.setNumber,
+              reps: set.reps,
+              weight: set.weight,
+            };
+            if (set.tempo) nextSet.tempo = set.tempo;
+            if (set.rest !== undefined) nextSet.restTime = set.rest;
+            if (set.rpe !== undefined) nextSet.rpe = set.rpe;
+            if (set.notes) nextSet.notes = set.notes;
+            return nextSet;
+          }),
+        };
+        if (exercise.exerciseNote) mappedExercise.exerciseNote = exercise.exerciseNote;
+        return mappedExercise;
+      });
+
+      const formPayload: Record<string, unknown> = {
+        clientId: targetClientId,
+        date: workoutData.date,
+        exercises,
+      };
+      if (workoutData.notes) formPayload.sessionNotes = workoutData.notes;
+      if (workoutData.intensity !== undefined) formPayload.overallIntensity = workoutData.intensity;
+
+      const response = await this.api.post('/workout-forms', formPayload);
+      const payload = response.data || {};
+      const form = payload.form || payload.data || null;
+      const formId = form?.id;
+      return {
+        success: payload.success,
+        message: payload.message,
+        id: formId,
+        workoutId: formId,
+        form,
+        billing: form?.billing,
+        workout: form
+          ? {
+              id: form.id,
+              userId: form.clientId ?? targetClientId,
+              title: workoutData.title,
+              date: form.date ?? workoutData.date,
+              duration: form.estimatedDuration ?? workoutData.duration,
+              intensity: workoutData.intensity ?? null,
+              totalSets: form.totalSets,
+              totalReps: undefined,
+              totalWeight: undefined,
+              exerciseCount: workoutData.exercises.length,
+              sessionDeducted: form.sessionDeducted,
+            }
+          : undefined,
+        xp: null,
+      };
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to log workout');
     }
@@ -760,6 +851,14 @@ export interface CreateExternalClientRequest {
   emergencyContact?: string;
   clientSource?: ClientSource;
   password?: string;
+  trainerId?: string;
+}
+
+export interface AssignableTrainer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
 }
 
 export interface UpdateClientRequest {
@@ -848,6 +947,7 @@ export interface AdminClientServiceInterface {
   createExternalClient(clientData: CreateExternalClientRequest): Promise<any>;
   updateClient(clientId: string, updateData: any): Promise<any>;
   deleteClient(clientId: string): Promise<any>;
+  getAssignableTrainers(): Promise<AssignableTrainer[]>;
   assignTrainer(clientId: string, trainerId: string): Promise<any>;
   sendClientPasswordReset(clientId: string): Promise<any>;
   resetClientPassword(clientId: string): Promise<any>;

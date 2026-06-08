@@ -34,6 +34,21 @@ import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
 
+const toAICommandRouteErrorMetadata = (err) => ({
+  errorName: err?.name || 'Error',
+  errorCode: err?.code || err?.type || 'ai_command_route_error',
+});
+
+const logAICommandRouteError = (message, err, req, metadata = {}) => {
+  logger.error(message, {
+    userId: req?.user?.id,
+    role: req?.user?.role,
+    route: req?.originalUrl || req?.path,
+    ...metadata,
+    ...toAICommandRouteErrorMetadata(err),
+  });
+};
+
 const normalizeSelectedClientId = (value) => {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -48,6 +63,50 @@ const normalizeSelectedClientId = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface'];
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;
+
+const normalizePositiveIntegerString = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const trimmed = String(value).trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+  return Number.isSafeInteger(Number(trimmed)) ? trimmed : null;
+};
+
+const normalizeIsoDate = (value) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!ISO_DATE_PREFIX_PATTERN.test(trimmed)) return null;
+  const dateOnly = trimmed.slice(0, 10);
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : dateOnly;
+};
+
+const normalizeRouteContext = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+  const normalized = {};
+  for (const key of ROUTE_CONTEXT_KEYS) {
+    const raw = value[key];
+    if (typeof raw !== 'string') continue;
+    const token = raw.trim();
+    if (!ROUTE_CONTEXT_TOKEN_PATTERN.test(token)) continue;
+    normalized[key] = token;
+  }
+
+  const scheduledSessionId = normalizePositiveIntegerString(value.scheduledSessionId);
+  if (scheduledSessionId) normalized.scheduledSessionId = scheduledSessionId;
+  const scheduledSessionDate = normalizeIsoDate(value.scheduledSessionDate);
+  if (scheduledSessionDate) normalized.scheduledSessionDate = scheduledSessionDate;
+  const scheduledSessionCredits = Number(value.scheduledSessionCredits);
+  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
+    normalized.scheduledSessionCredits = scheduledSessionCredits;
+  }
+
+  return Object.keys(normalized).length ? normalized : null;
+};
+
 // Initialize command registry on first import
 initializeRegistry();
 
@@ -55,7 +114,7 @@ initializeRegistry();
 
 router.post('/execute', protect, async (req, res) => {
   try {
-    const { message, selectedClientId, previousContext } = req.body;
+    const { message, selectedClientId, previousContext, routeContext } = req.body;
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
@@ -101,6 +160,7 @@ router.post('/execute', protect, async (req, res) => {
       selectedClientName: null,
       selectedClientId: normalizedSelectedClientId,
       previousContext,
+      routeContext: normalizeRouteContext(routeContext),
       sequelize,
     });
 
@@ -217,7 +277,9 @@ router.post('/execute', protect, async (req, res) => {
     });
 
   } catch (err) {
-    logger.error('[AICommand] Execute route error', { error: err.message, stack: err.stack });
+    logAICommandRouteError('[AICommand] Execute route error', err, req, {
+      selectedClientId: normalizeSelectedClientId(req.body?.selectedClientId),
+    });
     res.status(500).json({
       success: false,
       error: 'Internal server error processing your command',
@@ -242,7 +304,9 @@ router.post('/confirm', protect, async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    logger.error('[AICommand] Confirm route error', { error: err.message });
+    logAICommandRouteError('[AICommand] Confirm route error', err, req, {
+      operationIdPresent: Boolean(req.body?.operationId),
+    });
     res.status(500).json({ success: false, error: 'Failed to execute confirmed operation' });
   }
 });
@@ -263,7 +327,9 @@ router.post('/cancel', protect, async (req, res) => {
       message: cancelled ? 'Operation cancelled.' : 'Operation not found or already expired.',
     });
   } catch (err) {
-    logger.error('[AICommand] Cancel route error', { error: err.message });
+    logAICommandRouteError('[AICommand] Cancel route error', err, req, {
+      operationIdPresent: Boolean(req.body?.operationId),
+    });
     res.status(500).json({ success: false, error: 'Failed to cancel operation' });
   }
 });
@@ -291,7 +357,7 @@ router.get('/commands', protect, (req, res) => {
       }),
     });
   } catch (err) {
-    logger.error('[AICommand] Commands list error', { error: err.message });
+    logAICommandRouteError('[AICommand] Commands list error', err, req);
     res.status(500).json({ success: false, error: 'Failed to list commands' });
   }
 });

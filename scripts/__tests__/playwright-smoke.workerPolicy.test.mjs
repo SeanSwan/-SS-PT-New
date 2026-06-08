@@ -9,6 +9,12 @@ const __dirname = dirname(__filename);
 const smokeSource = readFileSync(resolve(__dirname, '../qa/playwright-smoke.mjs'), 'utf8');
 
 describe('playwright smoke launcher worker policy', () => {
+  it('uses the shared local frontend port guard instead of a private probe', () => {
+    expect(smokeSource).toContain("from './local-frontend-server.mjs'");
+    expect(smokeSource).toContain('await chooseFrontendPort');
+    expect(smokeSource).not.toContain('function canListenOnPort');
+  });
+
   it('defaults production and external smoke to one worker while allowing explicit overrides', () => {
     expect(smokeSource).toContain("const workersArg = ownArgs.find(arg => arg.startsWith('--workers='));");
     expect(smokeSource).toContain(

@@ -158,8 +158,11 @@ const overviewMatchRules = [
     message: 'Planned assignment does not match the active workout plan',
   },
   {
-    fails: (_input, overviewAssignment) => (
-      overviewAssignment?.isLoggable === false
+    fails: (_input, overviewAssignment, options = {}) => (
+      (
+        overviewAssignment?.isLoggable === false
+        && !(options.hasScheduledSession && SCHEDULED_TRAINER_TYPES.has(overviewAssignment.assignmentType))
+      )
       || compactString(overviewAssignment?.status)?.toLowerCase() === 'completed'
     ),
     message: 'Planned assignment is not loggable',
@@ -199,7 +202,7 @@ export const assertPlannedAssignmentMatchesOverview = (
   const validationMessage = firstValidationMessage([
     ...overviewMatchRules,
     ...(hasScheduledSession ? scheduledOverviewMatchRules : nonScheduledOverviewMatchRules),
-  ], input, overviewAssignment);
+  ], input, overviewAssignment, { hasScheduledSession });
   if (validationMessage) throw new PlannedWorkoutAssignmentError(validationMessage);
 };
 

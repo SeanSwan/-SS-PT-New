@@ -11,6 +11,11 @@ import {
 
 const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 const EXTERNAL_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
+const CLIENT_SOURCE_OPTIONS = Object.freeze(['move_fitness', 'swanstudios', 'external']);
+const CLIENT_SOURCE_CLARIFICATION_QUESTION = [
+  'Which client source should this client use before I prepare the onboarding draft?',
+  'SwanStudios deducts paid sessions; Move Fitness and external clients are free-tracking.',
+].join(' ');
 
 function cleanText(value, maxLength) {
   if (typeof value !== 'string') return undefined;
@@ -21,6 +26,11 @@ function cleanText(value, maxLength) {
 function pickSource(value, fallback, allowed = CLIENT_SOURCES) {
   const source = cleanText(value, 40) || fallback;
   return allowed.has(source) ? source : fallback;
+}
+
+function needsExplicitSourceClarification(value, allowed = CLIENT_SOURCES) {
+  const source = cleanText(value, 40);
+  return !source || !allowed.has(source);
 }
 
 function buildDraft(params = {}, fallbackSource, allowedSources) {
@@ -34,9 +44,47 @@ function buildDraft(params = {}, fallbackSource, allowedSources) {
   return Object.fromEntries(Object.entries(draft).filter(([, value]) => value !== undefined));
 }
 
-async function prepareOnboardingProposal(params, ctx, fallbackSource, allowedSources) {
+function proposalRoute(ctx, proposal) {
+  return `/dashboard/${ctx.user.role === 'trainer' ? 'trainer' : 'admin'}/coach-assistant?proposal=${encodeURIComponent(proposal.id)}`;
+}
+
+async function prepareSourceClarificationProposal(ctx) {
+  const proposal = await createCoachActionProposalDraft({
+    type: COACH_PROPOSAL_TYPE.CLARIFICATION,
+    payload: {
+      question: CLIENT_SOURCE_CLARIFICATION_QUESTION,
+      options: CLIENT_SOURCE_OPTIONS,
+    },
+    user: ctx.user,
+    conversation: {
+      id: ctx.options?.conversationId || null,
+      targetUserId: null,
+    },
+    db: ctx.options?.sequelize,
+  });
+
+  return {
+    proposalId: proposal.id,
+    proposalType: proposal.type,
+    proposalStatus: proposal.status,
+    status: proposal.status,
+    hasPreparedDraft: false,
+    reviewRequired: false,
+    proposalTitle: proposal.title || 'Answer Coach clarification',
+    reviewRoute: proposalRoute(ctx, proposal),
+    source: 'coach_action_proposals',
+    missingFields: ['clientSource'],
+    clarificationOptions: CLIENT_SOURCE_OPTIONS,
+  };
+}
+
+async function prepareOnboardingProposal(params, ctx, fallbackSource, allowedSources, options = {}) {
   if (!['admin', 'trainer'].includes(ctx.user?.role)) {
     throw new Error('Only trainers and admins can prepare client onboarding drafts.');
+  }
+
+  if (options.requireExplicitSource && needsExplicitSourceClarification(params?.clientSource, allowedSources)) {
+    return prepareSourceClarificationProposal(ctx);
   }
 
   const proposal = await createCoachActionProposalDraft({
@@ -58,13 +106,15 @@ async function prepareOnboardingProposal(params, ctx, fallbackSource, allowedSou
     hasPreparedDraft: true,
     reviewRequired: true,
     proposalTitle: proposal.title || 'Review client onboarding draft',
-    reviewRoute: `/dashboard/${ctx.user.role === 'trainer' ? 'trainer' : 'admin'}/coach-assistant?proposal=${encodeURIComponent(proposal.id)}`,
+    reviewRoute: proposalRoute(ctx, proposal),
     source: 'coach_action_proposals',
   };
 }
 
 export function dispatchCreateClientProposal(params, ctx = {}) {
-  return prepareOnboardingProposal(params, ctx, 'swanstudios', CLIENT_SOURCES);
+  return prepareOnboardingProposal(params, ctx, 'swanstudios', CLIENT_SOURCES, {
+    requireExplicitSource: true,
+  });
 }
 
 export function dispatchCreateExternalClientProposal(params, ctx = {}) {

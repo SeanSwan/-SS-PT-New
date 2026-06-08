@@ -42,6 +42,7 @@ import {
   type ClientHomeworkSummary,
   type ClientPlanSummary,
   type ClientPlanVaultSummary,
+  type ClientTodayAssignmentSummary,
   type ClientWorkoutPlansResponseSummary,
 } from './ClientWorkoutPlansPanel.logic';
 
@@ -71,6 +72,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
   const [serverPlanVault, setServerPlanVault] = useState<ClientPlanVaultSummary | null>(null);
   const [homeworkSummary, setHomeworkSummary] = useState<ClientHomeworkSummary | null>(null);
+  const [todayAssignment, setTodayAssignment] = useState<ClientTodayAssignmentSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
   const [primaryUpdatingId, setPrimaryUpdatingId] = useState<string | null>(null);
@@ -99,6 +101,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
       const nextState = normalizeClientWorkoutPlansResponse(response.data);
       setServerPlanVault(nextState.serverPlanVault);
       setHomeworkSummary(nextState.homeworkSummary);
+      setTodayAssignment(nextState.todayAssignment);
       setPlans(nextState.plans);
     } catch (caught) {
       const status = (caught as { response?: { status?: number } })?.response?.status;
@@ -106,12 +109,14 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
         setPlans([]);
         setServerPlanVault(null);
         setHomeworkSummary(null);
+        setTodayAssignment(null);
         return;
       }
       setError('Unable to load saved plans for this client.');
       setPlans([]);
       setServerPlanVault(null);
       setHomeworkSummary(null);
+      setTodayAssignment(null);
     } finally {
       setLoading(false);
     }
@@ -211,6 +216,7 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
           <ClientWorkoutPlanCards
             plans={plans}
             openingPdfId={openingPdfId}
+            todayAssignment={todayAssignment}
             onLogToday={onLogToday}
             onOpenPdf={openPlanPdf}
           />

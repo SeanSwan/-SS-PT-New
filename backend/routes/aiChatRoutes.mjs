@@ -87,12 +87,16 @@ const audioUpload = multer({
 
 const router = express.Router();
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
+const COACH_ACTION_PROPOSAL_FAILED_CODE = 'COACH_PROPOSAL_CREATE_FAILED';
+const COACH_ACTION_PROPOSAL_FAILED_MESSAGE = 'Coach could not prepare that draft safely. Review the message and try again.';
+const AI_CHAT_TTS_UNAVAILABLE_MESSAGE = 'Voice playback is temporarily unavailable.';
 const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
   'coach_assistant',
   'exercise_library',
   'workout_generation',
   'workout_suggestions',
 ]);
+const AI_CHAT_SCHEDULE_CONTEXTS = new Set(['coach_assistant']);
 
 function parseOptionalPositiveInteger(value) {
   if (value === undefined || value === null || value === '') return null;
@@ -107,11 +111,44 @@ function hasEquipmentProfileRequest(raw) {
     && Object.prototype.hasOwnProperty.call(raw, 'equipmentProfileId');
 }
 
+function hasScheduledSessionRequest(raw) {
+  return raw
+    && typeof raw === 'object'
+    && !Array.isArray(raw)
+    && Object.prototype.hasOwnProperty.call(raw, 'scheduledSessionId');
+}
+
+function parseOptionalIsoDate(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
+  const dateOnly = value.trim();
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : dateOnly;
+}
+
+function parseOptionalCredits(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 function sanitizePromptLine(value, maxLength = 160) {
   return String(value ?? '')
     .replace(/[\r\n\t`\\]/g, ' ')
     .trim()
     .slice(0, maxLength);
+}
+
+function buildSelectedScheduledSessionPromptBlock({
+  context,
+  scheduledSessionId,
+  scheduledSessionDate,
+  scheduledSessionCredits,
+}) {
+  if (!scheduledSessionId || !AI_CHAT_SCHEDULE_CONTEXTS.has(context)) return '';
+  const dateLine = scheduledSessionDate ? `\nSession date: ${scheduledSessionDate}` : '';
+  const creditLine = scheduledSessionCredits ? `\nCredit hint: ${scheduledSessionCredits}` : '';
+  return `\n--- SELECTED BOOKED SESSION ---\nScheduled Session ID: ${scheduledSessionId}${dateLine}${creditLine}\nInstruction: when preparing a workout_log proposal for this booked session, include "scheduledSessionId": "${scheduledSessionId}". Do not invent or change scheduled session ids. Final approval will verify ownership, attendance status, and session deduction server-side.\n--- END SELECTED BOOKED SESSION ---`;
 }
 
 async function buildSelectedEquipmentProfilePromptBlock({
@@ -400,6 +437,43 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         error: 'Valid equipment profile ID is required',
       });
     }
+    const hasScheduledContext = hasScheduledSessionRequest(requestContext);
+    const selectedScheduledSessionId = hasScheduledContext
+      ? parseOptionalPositiveInteger(requestContext.scheduledSessionId)
+      : null;
+    if (hasScheduledContext && !selectedScheduledSessionId) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_ID_REQUIRED',
+        error: 'Valid scheduled session ID is required',
+      });
+    }
+    const hasScheduledDate = requestContext
+      && typeof requestContext === 'object'
+      && Object.prototype.hasOwnProperty.call(requestContext, 'scheduledSessionDate');
+    const selectedScheduledSessionDate = hasScheduledDate
+      ? parseOptionalIsoDate(requestContext.scheduledSessionDate)
+      : null;
+    if (hasScheduledDate && !selectedScheduledSessionDate) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_DATE_REQUIRED',
+        error: 'Valid scheduled session date is required',
+      });
+    }
+    const hasScheduledCredits = requestContext
+      && typeof requestContext === 'object'
+      && Object.prototype.hasOwnProperty.call(requestContext, 'scheduledSessionCredits');
+    const selectedScheduledSessionCredits = hasScheduledCredits
+      ? parseOptionalCredits(requestContext.scheduledSessionCredits)
+      : null;
+    if (hasScheduledCredits && !selectedScheduledSessionCredits) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_CREDITS_REQUIRED',
+        error: 'Valid scheduled session credits are required',
+      });
+    }
 
     const conversation = await AiConversation.findOne({
       where: {
@@ -547,6 +621,12 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       requesterId: req.user.id,
       requesterRole: conversation.role,
     });
+    systemPrompt += buildSelectedScheduledSessionPromptBlock({
+      context: conversation.context,
+      scheduledSessionId: selectedScheduledSessionId,
+      scheduledSessionDate: selectedScheduledSessionDate,
+      scheduledSessionCredits: selectedScheduledSessionCredits,
+    });
     // Use sanitized message (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);
 
@@ -611,10 +691,13 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         });
       } catch (proposalErr) {
         proposalError = {
-          code: proposalErr.code || 'COACH_PROPOSAL_CREATE_FAILED',
-          message: proposalErr.message || 'Coach proposal creation failed',
+          code: COACH_ACTION_PROPOSAL_FAILED_CODE,
+          message: COACH_ACTION_PROPOSAL_FAILED_MESSAGE,
         };
-        logger.warn('[AIChatRoutes] Coach action proposal creation failed:', proposalError);
+        logger.warn('[AIChatRoutes] Coach action proposal creation failed:', {
+          internalErrorCode: proposalErr.code || null,
+          error: proposalErr.message,
+        });
       }
     }
 
@@ -768,7 +851,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
     if (!apiKey) {
-      return res.status(501).json({ success: false, error: 'Gemini API key not configured' });
+      return res.status(503).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_NOT_CONFIGURED',
+      });
     }
 
     // Validate voice name from Gemini's 30 available voices
@@ -811,7 +898,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     if (!geminiRes.ok) {
       const errText = await geminiRes.text().catch(() => 'Unknown error');
       logger.error('[AI Chat] Gemini TTS failed', { status: geminiRes.status, error: errText });
-      return res.status(502).json({ success: false, error: 'Gemini TTS provider error' });
+      return res.status(502).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_PROVIDER_FAILED',
+      });
     }
 
     const data = await geminiRes.json();
@@ -820,7 +911,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     const audioPart = data?.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
     if (!audioPart?.inlineData?.data) {
       logger.error('[AI Chat] Gemini TTS: no audio in response', { data: JSON.stringify(data).slice(0, 500) });
-      return res.status(502).json({ success: false, error: 'No audio generated' });
+      return res.status(502).json({
+        success: false,
+        error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+        code: 'TTS_AUDIO_UNAVAILABLE',
+      });
     }
 
     const pcmBase64 = audioPart.inlineData.data;
@@ -861,7 +956,11 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
     return res.send(wavBuffer);
   } catch (err) {
     logger.error('[AI Chat] TTS error', { error: err.message, userId: req.user?.id });
-    return res.status(500).json({ success: false, error: 'TTS failed' });
+    return res.status(500).json({
+      success: false,
+      error: AI_CHAT_TTS_UNAVAILABLE_MESSAGE,
+      code: 'TTS_FAILED',
+    });
   }
 });
 

@@ -311,8 +311,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(vault.textContent).toMatch(/6 month/i);
     expect(vault.textContent).toMatch(/9 month/i);
     expect(vault.textContent).toMatch(/12 month/i);
-    expect(vault.textContent).toMatch(/6 month primary/i);
-    expect(vault.textContent).toMatch(/phase 1 stabilization/i);
+    const primaryVaultRow = within(vault).getByLabelText(/6 month primary plan arc/i);
+    expect(primaryVaultRow).toHaveTextContent(/phase 1 stabilization/i);
     expect(vault.textContent).toMatch(/pending/i);
     const pdfButton = within(vault).getByRole('button', { name: /view 6 month pdf plan/i });
     mockApiGet.mockResolvedValueOnce({
@@ -389,6 +389,61 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     await user.click(screen.getByRole('button', { name: /review workout/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
+    expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
+  });
+
+  it('routes trainer-led plan assignments to schedule instead of client self-logging', async () => {
+    const user = userEvent.setup();
+    mockApiGet.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          title: 'Coach Floor Session',
+          todayAssignment: {
+            assignmentType: 'trainer_session',
+            status: 'planned',
+            sessionType: 'trainer-led',
+            isLoggable: false,
+            isBillable: true,
+            shouldDeductSession: false,
+            title: 'Coach Floor Session',
+            weekNumber: 4,
+            dayNumber: 2,
+            dayLabel: 'Strength Floor',
+            exerciseCount: 5,
+            firstExerciseName: 'Trap Bar Deadlift',
+            ctaLabel: 'View Schedule',
+          },
+          trainingPlanCatalog: {
+            defaultHorizonKey: 'six_month',
+            primaryPlanId: 'plan-6m',
+            slots: [
+              {
+                horizonKey: 'six_month',
+                label: '6 Month',
+                isFilled: true,
+                isPrimary: true,
+                plan: {
+                  id: 'plan-6m',
+                  title: 'Coach Floor Session',
+                  status: 'active',
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    render(<ClientHomeTab />);
+
+    const card = await screen.findByTestId('current-workout-card');
+    expect(card.textContent).toMatch(/trainer session/i);
+    expect(card.textContent).toMatch(/logged by your coach from the schedule/i);
+
+    await user.click(screen.getByRole('button', { name: /view schedule for trainer-led session/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/schedule');
     expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
   });
 

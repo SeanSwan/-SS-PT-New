@@ -5,6 +5,10 @@ async function loadDispatcher({ rows = [], recommendations = [] } = {}) {
 
   const findAllWorkoutSessions = vi.fn(async (options) => rows.slice(0, options.limit ?? rows.length));
   const getExerciseRecommendations = vi.fn(async () => recommendations);
+  const submitAiWorkoutLogAsDailyForm = vi.fn(async () => ({
+    formId: 'form-1',
+    workoutId: 'session-1',
+  }));
   const WorkoutSession = { findAll: findAllWorkoutSessions };
   const WorkoutLog = {};
 
@@ -14,12 +18,16 @@ async function loadDispatcher({ rows = [], recommendations = [] } = {}) {
   vi.doMock('../../services/workoutService.mjs', () => ({
     default: { getExerciseRecommendations },
   }));
+  vi.doMock('../../services/workout/aiWorkoutDailyFormService.mjs', () => ({
+    submitAiWorkoutLogAsDailyForm,
+  }));
 
   const dispatcher = await import('../../services/ai/commandDispatcher.mjs');
   return {
     ...dispatcher,
     findAllWorkoutSessions,
     getExerciseRecommendations,
+    submitAiWorkoutLogAsDailyForm,
   };
 }
 
@@ -83,6 +91,41 @@ describe('legacy workout command selected-client scope', () => {
     expect(getExerciseRecommendations).toHaveBeenCalledWith(42, expect.objectContaining({
       goal: 'strength',
       limit: 3,
+    }));
+  });
+
+  it('prefers the selected client for workout log writes', async () => {
+    const { dispatch, submitAiWorkoutLogAsDailyForm } = await loadDispatcher();
+
+    await dispatch('log_workout', {
+      clientId: 999,
+      date: '2026-05-20',
+      scheduledSessionId: 777,
+      exercises: [{ name: 'Push-up', sets: 1, reps: 10 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    }, {
+      user: { id: 7, role: 'trainer' },
+      resolvedClient: { id: 42 },
+      options: { sequelize: { transaction: async () => ({}) } },
+    });
+
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledWith(expect.objectContaining({
+      clientId: 42,
+      trainerId: 7,
+      date: '2026-05-20',
+      scheduledSessionId: 777,
+      plannedAssignment: expect.objectContaining({
+        assignmentKey: 'plan-6m:w4:d2:homework',
+      }),
     }));
   });
 });

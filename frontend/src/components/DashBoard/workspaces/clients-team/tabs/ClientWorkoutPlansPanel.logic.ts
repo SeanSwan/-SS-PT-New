@@ -62,6 +62,7 @@ export interface ClientPlanVaultSummary {
   primaryHorizonKey: HorizonKey | null;
   slots: ClientPlanHorizonSlot[];
 }
+
 export interface ClientHomeworkSummary {
   assignmentType: string;
   todayStatus: string;
@@ -73,12 +74,23 @@ export interface ClientHomeworkSummary {
   recentCompletedCount: number;
   lastCompletedAt: string | null;
 }
+
+export interface ClientTodayAssignmentSummary {
+  assignmentKey?: string;
+  assignmentId?: string;
+  status?: string;
+  isLoggable?: boolean;
+  ctaLabel?: string;
+}
+
 export interface ClientWorkoutPlansResponseSummary {
   plans?: unknown[];
   plan?: unknown;
   trainingPlanCatalog?: unknown;
   homeworkSummary?: unknown;
+  todayAssignment?: unknown;
 }
+
 const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
   const rawId = plan.id;
   const id = typeof rawId === 'number' || typeof rawId === 'string' ? String(rawId) : '';
@@ -272,6 +284,10 @@ const normalizeRawPlans = (rawPlans: unknown[]) => rawPlans
   ))
   .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null);
 
+const normalizeTodayAssignment = (value: unknown): ClientTodayAssignmentSummary | null => (
+  value && typeof value === 'object' ? value as ClientTodayAssignmentSummary : null
+);
+
 export const normalizeClientWorkoutPlansResponse = (
   data?: ClientWorkoutPlansResponseSummary,
 ) => {
@@ -287,6 +303,7 @@ export const normalizeClientWorkoutPlansResponse = (
     plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
     serverPlanVault,
     homeworkSummary: normalizeHomeworkSummary(responseData.homeworkSummary),
+    todayAssignment: normalizeTodayAssignment(responseData.todayAssignment),
   };
 };
 

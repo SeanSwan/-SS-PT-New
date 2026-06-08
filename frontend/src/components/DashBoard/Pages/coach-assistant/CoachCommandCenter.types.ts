@@ -32,6 +32,17 @@ export type ClientContextTile = {
   value: string;
 };
 
+export type CoachScheduledSessionRouteContext = {
+  scheduledSessionId: string;
+  scheduledSessionDate?: string;
+  scheduledSessionCredits?: number;
+};
+
+export type CoachCommandRouteContext = {
+  source: 'coach-command-center';
+  intent: string | null;
+} & Partial<CoachScheduledSessionRouteContext>;
+
 export type CoachQueueSummaryView = {
   total: number;
   actionable: number;

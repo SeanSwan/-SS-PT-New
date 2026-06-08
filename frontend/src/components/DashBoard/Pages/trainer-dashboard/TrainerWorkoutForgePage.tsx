@@ -50,6 +50,18 @@ import {
   type ManualExercise,
 } from './TrainerWorkoutForgePage.data';
 
+const TRAINER_SESSION_ASSIGNMENT_DEFAULTS = {
+  defaultAssignmentType: 'trainer_session',
+  billingIntent: 'trainer_led_scheduled_flow',
+  shouldDeductSession: false,
+} as const;
+
+const TRAINER_SESSION_PLAN_METADATA = {
+  assignmentDefault: 'trainer_session',
+  billingIntent: 'trainer_led_scheduled_flow',
+  defaultShouldDeductSession: false,
+} as const;
+
 const TrainerWorkoutForgePage: React.FC = () => {
   const { authAxios, user } = useAuth();
   const clients = useTrainerForgeClients(authAxios, user);
@@ -111,6 +123,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
       status: 'draft',
       createdBy: 'trainer',
       planData: {
+        assignmentDefaults: TRAINER_SESSION_ASSIGNMENT_DEFAULTS,
         weeks: [
           {
             weekNumber: 1,
@@ -138,6 +151,7 @@ const TrainerWorkoutForgePage: React.FC = () => {
         source: 'trainer_workout_forge',
         equipment,
         optPhaseName: activePhase.name,
+        ...TRAINER_SESSION_PLAN_METADATA,
       },
     };
   }, [activePhase.name, duration, equipment, exercises, goal, optPhase, workoutTitle]);

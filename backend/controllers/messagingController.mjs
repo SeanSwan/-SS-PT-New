@@ -10,6 +10,9 @@
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 
+const CREATE_CONVERSATION_FAILED_MESSAGE = 'Failed to create conversation.';
+const SEND_MESSAGE_FAILED_MESSAGE = 'Failed to send message.';
+
 /**
  * Default admin contact — every user gets a welcome conversation with Sean.
  * Looked up dynamically on first call, then cached for the process lifetime.
@@ -276,7 +279,7 @@ export const createConversation = async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating conversation:', error);
-    res.status(500).json({ error: `Failed to create conversation: ${error.message}` });
+    res.status(500).json({ error: CREATE_CONVERSATION_FAILED_MESSAGE });
   }
 };
 
@@ -497,6 +500,6 @@ export const sendMessage = async (req, res) => {
     res.status(201).json(fullMessage);
   } catch (error) {
     console.error('Error sending message:', error);
-    res.status(500).json({ error: `Failed to send message: ${error.message}` });
+    res.status(500).json({ error: SEND_MESSAGE_FAILED_MESSAGE });
   }
 };

@@ -31,6 +31,9 @@ import { checkErrorLoop, recordAction } from './errorLoopPrevention.mjs';
 import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
 
+const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
+const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+
 // ── Command Context (flows through pipeline) ────────────────────────────────
 
 /**
@@ -59,6 +62,7 @@ import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
  * @param {string} [options.selectedClientName] - Currently selected client in drawer
  * @param {number} [options.selectedClientId] - Currently selected client ID
  * @param {string} [options.previousContext] - Recent conversation context
+ * @param {Object} [options.routeContext] - Safe UI route context tokens
  * @param {Object} [options.sequelize] - Sequelize instance for DB operations
  * @returns {CommandContext}
  */
@@ -101,6 +105,20 @@ const toPositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+const routeScheduledSessionId = (routeContext) => {
+  const id = toPositiveInteger(routeContext?.scheduledSessionId);
+  return id ? String(id) : null;
+};
+
+const routeScheduledSessionDate = (routeContext) => {
+  const value = typeof routeContext?.scheduledSessionDate === 'string'
+    ? routeContext.scheduledSessionDate.trim()
+    : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : value;
+};
+
 const buildParamsForValidation = (ctx, command) => {
   const params = (
     ctx.intent?.params &&
@@ -109,6 +127,17 @@ const buildParamsForValidation = (ctx, command) => {
   )
     ? { ...ctx.intent.params }
     : {};
+
+  if (command.type === 'log_workout') {
+    const scheduledSessionId = routeScheduledSessionId(ctx.options.routeContext);
+    if (scheduledSessionId && params.scheduledSessionId == null) {
+      params.scheduledSessionId = scheduledSessionId;
+    }
+    const scheduledSessionDate = routeScheduledSessionDate(ctx.options.routeContext);
+    if (scheduledSessionDate && params.date == null) {
+      params.date = scheduledSessionDate;
+    }
+  }
 
   let insertedClientId = false;
 
@@ -166,6 +195,7 @@ async function stepClassify(ctx) {
   ctx.stage = 'classify';
   ctx.intent = await classifyIntent(ctx.sanitizedInput, ctx.user.role, {
     previousContext: ctx.options.previousContext,
+    routeContext: ctx.options.routeContext,
     selectedClientName: ctx.options.selectedClientName,
   });
   return ctx;
@@ -499,7 +529,7 @@ export async function executeCommandPipeline(rawInput, user, options = {}) {
         return ctx;
       }
     } catch (err) {
-      ctx.error = `Internal error during ${ctx.stage}: ${err.message}`;
+      ctx.error = COMMAND_PIPELINE_FAILED_MESSAGE;
       ctx.metadata.timing.end = Date.now();
       ctx.metadata.timing.totalMs = ctx.metadata.timing.end - ctx.metadata.timing.start;
       logger.error('[CommandExecutor] Pipeline exception', {
@@ -545,6 +575,9 @@ function auditPipelineResult(ctx) {
     error: ctx.error || null,
     resultType: ctx.result?.type || null,
     clientId: ctx.resolvedClient?.id || null,
+    routeSource: ctx.options?.routeContext?.source || null,
+    routeIntent: ctx.options?.routeContext?.intent || null,
+    routeSurface: ctx.options?.routeContext?.surface || null,
     threats: ctx.metadata.threats.length,
     phiStripped: ctx.metadata.phiMatches.length,
     totalMs: ctx.metadata.timing.totalMs,
@@ -645,7 +678,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       return {
         success: false,
         type: 'error',
-        message: err.message || 'Execution failed. Please try again.',
+        message: COMMAND_CONFIRM_FAILED_MESSAGE,
       };
     }
   }
@@ -686,7 +719,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
       return {
         success: false,
         type: 'error',
-        message: err.message || 'Execution failed.',
+        message: COMMAND_CONFIRM_FAILED_MESSAGE,
       };
     }
   }

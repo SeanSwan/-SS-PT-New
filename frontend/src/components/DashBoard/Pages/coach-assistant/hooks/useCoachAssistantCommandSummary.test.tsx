@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useCoachAssistant } from './useCoachAssistant';
+import type { CoachRouteContext } from '../CoachRouteContext';
 
 const executeCommand = vi.fn();
 const confirmCommand = vi.fn();
@@ -74,7 +75,7 @@ describe('useCoachAssistant command summaries', () => {
     executeCommand.mockResolvedValue({ type: 'fallback_to_chat' });
     sendMessageWithConversation.mockResolvedValue({ success: true });
 
-    const routeContext = {
+    const routeContext: CoachRouteContext = {
       route: '/dashboard/client/progress',
       surface: 'progress',
       scope: 'client',
@@ -85,7 +86,7 @@ describe('useCoachAssistant command summaries', () => {
       writeBackPolicy: 'approval_required',
     };
 
-    const { result } = renderHook(() => useCoachAssistant({ routeContext } as any));
+    const { result } = renderHook(() => useCoachAssistant({ routeContext }));
 
     await act(async () => {
       await result.current.sendMessage('summarize progress');
@@ -95,6 +96,51 @@ describe('useCoachAssistant command summaries', () => {
       selectedClientId: null,
       routeContext,
     });
+  });
+
+  it('passes booked-session route context through command lane and chat fallback', async () => {
+    executeCommand.mockResolvedValue({ type: 'fallback_to_chat' });
+    sendMessageWithConversation.mockResolvedValue({ success: true });
+
+    const routeContext: CoachRouteContext = {
+      route: '/dashboard/trainer/schedule',
+      surface: 'schedule',
+      scope: 'trainer',
+      source: 'master-schedule',
+      intent: 'log_workout',
+      scheduledSessionId: '88',
+      scheduledSessionDate: '2026-05-31',
+      scheduledSessionCredits: 2,
+      allowedActions: [
+        { key: 'summarize_schedule', mode: 'ask', requiresApproval: false },
+        { key: 'draft_schedule_request', mode: 'draft', requiresApproval: true },
+      ],
+      writeBackPolicy: 'approval_required',
+    };
+
+    const { result } = renderHook(() => useCoachAssistant({ routeContext, targetClientId: 42 }));
+
+    await act(async () => {
+      await result.current.sendMessage('log booked workout');
+    });
+
+    expect(executeCommand).toHaveBeenCalledWith('log booked workout', {
+      selectedClientId: 42,
+      routeContext,
+    });
+    expect(sendMessageWithConversation).toHaveBeenCalledWith(
+      'log booked workout',
+      'coach_assistant',
+      'Swan Coach Session',
+      42,
+      'balanced',
+      null,
+      {
+        scheduledSessionId: '88',
+        scheduledSessionDate: '2026-05-31',
+        scheduledSessionCredits: 2,
+      },
+    );
   });
 
   it('renders a command-lane receipt when a workout form browser event is dispatched', async () => {

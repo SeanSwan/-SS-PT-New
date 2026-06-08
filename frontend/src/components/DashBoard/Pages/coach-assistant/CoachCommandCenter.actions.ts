@@ -20,8 +20,8 @@ import {
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
-import { getConversationTitle } from './CoachCommandCenter.logic';
-import type { DrawerSide } from './CoachCommandCenter.types';
+import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
+import type { CoachCommandRouteContext, CoachScheduledSessionRouteContext, DrawerSide } from './CoachCommandCenter.types';
 
 type CoachCommandChat = Pick<
   ReturnType<typeof useAIChat>,
@@ -46,7 +46,10 @@ type CoachCommandActionProps = {
   quickClientSource: CoachCommandClientSource;
   routeClientId: number | null;
   routeClientLabel: string | null;
+  routeCommandContext: CoachCommandRouteContext;
   routeIntent: string | null;
+  routeContextPrompt: string | null;
+  routeRequestContext: CoachScheduledSessionRouteContext | null;
   setActiveThreadId: Dispatch<SetStateAction<number | null>>;
   setCommandText: Dispatch<SetStateAction<string>>;
   setDrawer: Dispatch<SetStateAction<DrawerSide | null>>;
@@ -170,10 +173,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     if (shouldRouteToCommandLane(trimmed)) {
       const commandResult = await props.executeCommand(trimmed, {
         selectedClientId: props.routeClientId,
-        routeContext: {
-          source: 'coach-command-center',
-          intent: props.routeIntent,
-        },
+        routeContext: props.routeCommandContext,
       });
       if (commandResult.type === 'error') {
         addLog({
@@ -198,13 +198,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         return;
       }
     }
-    const response = await props.chat.sendMessageWithConversation(
-      trimmed,
-      'coach_assistant',
-      commandTitle,
-      props.routeClientId,
-      'both',
-    );
+    const chatPrompt = buildRouteScopedCoachPrompt(trimmed, props.routeContextPrompt);
+    const response = props.routeRequestContext
+      ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
+      : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
     if (response && typeof response === 'object' && 'failed' in response) {
       props.setSelectedStatus('Swan Coach command failed');
       addLog({ actor: 'system', label: 'command failed', body: 'The command was not completed. No final write was made.' });

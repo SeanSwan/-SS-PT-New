@@ -48,10 +48,58 @@ describe('mission QA automation guards', () => {
     expect(result.stdout).not.toContain('Running 2 tests');
 
     const source = readFileSync(launcherPath, 'utf8');
+    const helper = readFileSync(path.join(repoRoot, 'scripts/qa/local-frontend-server.mjs'), 'utf8');
     expect(source).toContain('cleanupFrontendProcess');
-    expect(source).toContain('taskkill');
+    expect(helper).toContain('taskkill');
     expect(source).toContain("node_modules', 'vite', 'bin', 'vite.js'");
     expect(source).not.toContain("['run', 'dev'");
+  });
+
+  it('guards mission QA against stale local frontend servers', () => {
+    const launcherPath = path.join(repoRoot, 'scripts/qa/playwright-mission.mjs');
+    const smokePath = path.join(repoRoot, 'scripts/qa/playwright-smoke.mjs');
+    const helperPath = path.join(repoRoot, 'scripts/qa/local-frontend-server.mjs');
+    expect(existsSync(helperPath)).toBe(true);
+
+    const launcher = readFileSync(launcherPath, 'utf8');
+    const smoke = readFileSync(smokePath, 'utf8');
+    const helper = readFileSync(helperPath, 'utf8');
+
+    expect(launcher).toContain("from './local-frontend-server.mjs'");
+    expect(launcher).toContain('await waitForOwnedFrontendPort(localFrontendPort, frontendProcess)');
+    expect(launcher).toContain('http://127.0.0.1:${localFrontendPort || 5173}');
+    expect(smoke).toContain("from './local-frontend-server.mjs'");
+    expect(smoke).toContain('http://127.0.0.1:${localFrontendPort}');
+    expect(smoke).not.toContain('function canListenOnPort');
+    expect(helper).toContain("const LOCAL_FRONTEND_HOST = '127.0.0.1'");
+    expect(helper).toContain('server.listen({ port, host: LOCAL_FRONTEND_HOST, exclusive: true })');
+    expect(helper).toContain('Frontend server exited before becoming ready');
+    expect(helper).toContain('child.exitCode !== null || child.signalCode !== null');
+  });
+
+  it('can require production auth states so protected live checks do not skip silently', () => {
+    const launcherPath = path.join(repoRoot, 'scripts/qa/playwright-mission.mjs');
+    const result = spawnSync(process.execPath, [
+      launcherPath,
+      '--prod-live-readonly',
+      '--require-prod-auth-roles=admin',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        SWAN_PROD_AUTH_STATE: '',
+        SWAN_PROD_ADMIN_AUTH_STATE: '',
+        SWAN_PROD_TRAINER_AUTH_STATE: '',
+        SWAN_PROD_CLIENT_AUTH_STATE: '',
+      },
+      timeout: 5_000,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('missing required production auth state for admin');
+    expect(result.stderr).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
+    expect(result.stdout).not.toContain('Running ');
   });
 
   it('exposes mission QA root scripts without overloading canonical smoke', () => {
@@ -62,6 +110,8 @@ describe('mission QA automation guards', () => {
       .toBe('node scripts/qa/playwright-mission.mjs --prod-readonly');
     expect(rootPackage.scripts['qa:mission:prod-live-readonly'])
       .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly');
+    expect(rootPackage.scripts['qa:mission:prod-live-readonly:roles'])
+      .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client');
     expect(rootPackage.scripts['qa:prod-auth:capture'])
       .toBe('node scripts/qa/capture-prod-auth-state.mjs');
     expect(rootPackage.scripts['qa:prod-auth:capture:admin'])

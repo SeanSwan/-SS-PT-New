@@ -11,6 +11,7 @@ import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
 import {
   buildClientContextTiles,
+  buildCommandRouteContext,
   buildDossierTiles,
   buildIntakeStates,
   buildQueueHealthRows,
@@ -20,6 +21,7 @@ import {
   buildStatusMetrics,
   commandCenterReturnLabel,
   getConversationTitle,
+  getScheduledSessionRouteContextFromSearchParams,
   normalizeCommandCenterReturnTo,
   parseRouteClientId,
   pickReviewNextMergeRequestId,
@@ -83,9 +85,17 @@ export function useCoachCommandCenterController() {
   );
   const workflowReturnLabel = workflowReturnTo ? commandCenterReturnLabel(routeSource) : null;
   const routeClientLabel = routeClientId ? `Client #${routeClientId}` : null;
+  const scheduledSessionContext = useMemo(
+    () => getScheduledSessionRouteContextFromSearchParams(searchParams),
+    [searchKey],
+  );
   const routeContext = useMemo(
-    () => buildRouteContext(routeIntent, routeClientLabel),
-    [routeClientLabel, routeIntent],
+    () => buildRouteContext(routeIntent, routeClientLabel, scheduledSessionContext),
+    [routeClientLabel, routeIntent, scheduledSessionContext],
+  );
+  const commandRouteContext = useMemo(
+    () => buildCommandRouteContext(routeIntent, scheduledSessionContext),
+    [routeIntent, scheduledSessionContext],
   );
   const clientContextTiles = useMemo(
     () => buildClientContextTiles(Boolean(routeClientId), Boolean(activeThread)),
@@ -151,7 +161,10 @@ export function useCoachCommandCenterController() {
     quickClientSource,
     routeClientId,
     routeClientLabel,
+    routeCommandContext: commandRouteContext,
+    routeContextPrompt: routeContext.prompt,
     routeIntent,
+    routeRequestContext: scheduledSessionContext,
     setActiveThreadId,
     setCommandText,
     setDrawer,

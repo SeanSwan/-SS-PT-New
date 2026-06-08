@@ -8,7 +8,7 @@ import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useAdminClientProgressCharts } from '../../../../../hooks/analytics/useAdminClientProgressCharts';
 import { AdminProgressChartDeck } from './AdminProgressChartsGrid.cards';
-import ClientExerciseMegaStats from './ClientExerciseMegaStats';
+import ClientExerciseMegaStats from '../../../progress/ClientExerciseMegaStats';
 import {
   ErrorLoadingStrip,
   LoadingStrip,

@@ -47,10 +47,10 @@ async function loadService({
 } = {}) {
   vi.resetModules();
 
-  class WorkoutLogError extends Error {
+  class AiWorkoutDailyFormError extends Error {
     constructor(message, code) {
       super(message);
-      this.name = 'WorkoutLogError';
+      this.name = 'AiWorkoutDailyFormError';
       this.code = code;
     }
   }
@@ -62,9 +62,9 @@ async function loadService({
   vi.doMock('../../services/plaudCipherService.mjs', () => ({
     decryptPayload: vi.fn(() => decryptedProposal),
   }));
-  vi.doMock('../../services/workout/workoutLogService.mjs', () => ({
-    logWorkoutForClient: vi.fn(logWorkoutImpl),
-    WorkoutLogError,
+  vi.doMock('../../services/workout/aiWorkoutDailyFormService.mjs', () => ({
+    submitAiWorkoutLogAsDailyForm: vi.fn(logWorkoutImpl),
+    AiWorkoutDailyFormError,
   }));
   vi.doMock('../../services/coachClientOnboardingApprovalService.mjs', () => ({
     createClientFromCoachOnboardingProposal: vi.fn(createClientImpl),
@@ -85,7 +85,7 @@ async function loadService({
 
   return {
     service,
-    WorkoutLogError,
+    AiWorkoutDailyFormError,
     row,
     db,
     reviewToken: detailResult.body.proposal.reviewToken,
@@ -150,7 +150,7 @@ describe('coach action proposal approval disclosure', () => {
   });
 
   it('maps duplicate workout errors to stable public copy', async () => {
-    let WorkoutLogErrorClass;
+    let AiWorkoutDailyFormErrorClass;
     const loaded = await loadService({
       proposalType: 'workout_log',
       decryptedProposal: {
@@ -158,13 +158,13 @@ describe('coach action proposal approval disclosure', () => {
         targetUserId: 42,
       },
       logWorkoutImpl: async () => {
-        throw new WorkoutLogErrorClass(
+        throw new AiWorkoutDailyFormErrorClass(
           'duplicate row for sean@example.com in workout_sessions',
           'DUPLICATE_DATE',
         );
       },
     });
-    WorkoutLogErrorClass = loaded.WorkoutLogError;
+    AiWorkoutDailyFormErrorClass = loaded.AiWorkoutDailyFormError;
 
     const result = await loaded.service.approveCoachActionProposal({
       id: loaded.row.id,

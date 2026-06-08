@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/clientDataRoutes.mjs'), 'utf8');
-const controllerSource = readFileSync(resolve(__dirname, '../../controllers/clientOnboardingController.mjs'), 'utf8');
+const normalizeSource = (source) => source.replace(/\r\n/g, '\n');
+const controllerSource = normalizeSource(readFileSync(resolve(__dirname, '../../controllers/clientOnboardingController.mjs'), 'utf8'));
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 
 describe('client data overview privacy', () => {

@@ -24,6 +24,10 @@ const SAFE_FRONTEND_REQUIRED_FIELDS = Object.freeze({
   AI_UPDATE_SET: ['exerciseName'],
   AI_TOGGLE_NASM_ITEM: ['section'],
 });
+const ScheduledSessionIdSchema = z.union([
+  z.number().int().positive(),
+  z.string().regex(/^[1-9]\d*$/),
+]);
 const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 const REQUIRED_ONBOARDING_FIELDS = ['firstName', 'lastName', 'clientSource'];
 const SAFE_COACH_INTAKE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -80,6 +84,7 @@ const SplitPlanPayloadSchema = z.object({
 const WorkoutLogActionSchema = z.object({
   action: z.literal('import_workout_log'),
   date: z.string().trim().min(4),
+  scheduledSessionId: ScheduledSessionIdSchema.optional(),
   exercises: z.array(ExerciseDraftSchema).min(1),
 }).passthrough();
 

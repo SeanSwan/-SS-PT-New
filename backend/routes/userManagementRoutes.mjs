@@ -353,6 +353,20 @@ const parseAdminSessionCreditInput = (value, fallback = 0) => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 };
 
+const toUserManagementRouteErrorMetadata = (error) => ({
+  errorName: error?.name || 'Error',
+  errorCode: error?.code || error?.type || 'user_management_route_error'
+});
+
+const logUserManagementRouteError = (message, error, req, metadata = {}) => {
+  logger.error(message, {
+    ...toUserManagementRouteErrorMetadata(error),
+    adminId: req?.user?.id || null,
+    method: req?.method || null,
+    action: metadata.action || null
+  });
+};
+
 /**
  * @route   GET /api/auth/users
  * @desc    Admin: Get all users (for admin user management)
@@ -380,7 +394,7 @@ router.get('/users', protect, adminOnly, async (req, res) => {
       users: users
     });
   } catch (error) {
-    logger.error(`Error fetching users: ${error.message}`);
+    logUserManagementRouteError('Error fetching users', error, req, { action: 'list_users' });
     res.status(500).json({ 
       success: false, 
       message: 'Server error fetching users'
@@ -417,7 +431,7 @@ router.get('/clients', protect, adminOnly, async (req, res) => {
     
     res.status(200).json({ success: true, clients });
   } catch (error) {
-    logger.error(`Error fetching clients: ${error.message}`);
+    logUserManagementRouteError('Error fetching clients', error, req, { action: 'list_clients' });
     res.status(500).json({
       success: false,
       message: 'Server error fetching clients'
@@ -453,7 +467,7 @@ router.get('/trainers', protect, adminOnly, async (req, res) => {
     
     res.status(200).json(trainers);
   } catch (error) {
-    logger.error(`Error fetching trainers: ${error.message}`);
+    logUserManagementRouteError('Error fetching trainers', error, req, { action: 'list_trainers' });
     res.status(500).json({ 
       success: false, 
       message: 'Server error fetching trainers'
@@ -552,7 +566,7 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       user: userData
     });
   } catch (error) {
-    logger.error(`Error creating user: ${error.message}`);
+    logUserManagementRouteError('Error creating user', error, req, { action: 'create_user' });
     res.status(500).json({
       success: false,
       message: 'Server error creating user'
@@ -676,7 +690,7 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
       user: userData
     });
   } catch (error) {
-    logger.error(`Error updating user: ${error.message}`);
+    logUserManagementRouteError('Error updating user', error, req, { action: 'update_user' });
     res.status(500).json({
       success: false,
       message: 'Server error updating user'
@@ -733,7 +747,7 @@ router.post('/promote-admin', protect, adminOnly, async (req, res) => {
     });
     
   } catch (error) {
-    logger.error(`Error promoting user to admin: ${error.message}`);
+    logUserManagementRouteError('Error promoting user to admin', error, req, { action: 'promote_admin' });
     res.status(500).json({
       success: false,
       message: 'Server error promoting user to admin'
@@ -788,7 +802,7 @@ router.post('/promote-client', protect, adminOnly, async (req, res) => {
     });
     
   } catch (error) {
-    logger.error(`Error promoting user to client: ${error.message}`);
+    logUserManagementRouteError('Error promoting user to client', error, req, { action: 'promote_client' });
     res.status(500).json({
       success: false,
       message: 'Server error promoting user to client'
@@ -823,6 +837,16 @@ router.delete('/user/:id', protect, adminOnly, async (req, res) => {
       });
     }
     
+    const accountDeactivatedAt = new Date();
+    const retainedUntil = new Date(accountDeactivatedAt);
+    retainedUntil.setMonth(retainedUntil.getMonth() + 6);
+
+    await user.update({
+      isActive: false,
+      accountDeactivatedAt,
+      accountRetentionUntil: retainedUntil
+    });
+
     // Soft delete the user (paranoid option in model)
     await user.destroy();
     
@@ -830,10 +854,15 @@ router.delete('/user/:id', protect, adminOnly, async (req, res) => {
     
     res.status(200).json({
       success: true,
-      message: 'User deactivated successfully'
+      message: 'User deactivated successfully. Account records are retained for 6 months.',
+      data: {
+        userId: user.id,
+        accountDeactivatedAt: accountDeactivatedAt.toISOString(),
+        accountRetentionUntil: retainedUntil.toISOString()
+      }
     });
   } catch (error) {
-    logger.error(`Error deactivating user: ${error.message}`);
+    logUserManagementRouteError('Error deactivating user', error, req, { action: 'deactivate_user' });
     res.status(500).json({
       success: false,
       message: 'Server error deactivating user'

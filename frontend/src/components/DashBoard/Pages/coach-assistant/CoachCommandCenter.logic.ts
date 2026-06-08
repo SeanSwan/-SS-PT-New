@@ -2,7 +2,9 @@ import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import type {
   ClientContextTile,
+  CoachCommandRouteContext,
   CoachQueueSummaryView,
+  CoachScheduledSessionRouteContext,
   DossierTile,
   IntakeStateTile,
   QueueHealthRow,
@@ -45,6 +47,53 @@ export function parseRouteClientId(rawClientId: string | null): number | null {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+function parsePositiveIntegerString(rawValue: string | null): string | null {
+  const trimmed = rawValue?.trim();
+  if (!trimmed || !/^[1-9]\d*$/.test(trimmed)) return null;
+  return Number.isSafeInteger(Number(trimmed)) ? trimmed : null;
+}
+
+function parseIsoDate(rawValue: string | null): string | null {
+  const trimmed = rawValue?.trim();
+  if (!trimmed || !/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return null;
+  const dateOnly = trimmed.slice(0, 10);
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : dateOnly;
+}
+
+function parseScheduledCredits(rawValue: string | null): number | undefined {
+  const trimmed = rawValue?.trim();
+  if (!trimmed || !/^[1-9]\d*$/.test(trimmed)) return undefined;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
+export function getScheduledSessionRouteContextFromSearchParams(
+  searchParams: URLSearchParams,
+): CoachScheduledSessionRouteContext | null {
+  const scheduledSessionId = parsePositiveIntegerString(searchParams.get('sessionId'));
+  if (!scheduledSessionId) return null;
+
+  const scheduledSessionDate = parseIsoDate(searchParams.get('sessionDate'));
+  const scheduledSessionCredits = parseScheduledCredits(searchParams.get('sessionCredits'));
+  return {
+    scheduledSessionId,
+    ...(scheduledSessionDate ? { scheduledSessionDate } : {}),
+    ...(scheduledSessionCredits ? { scheduledSessionCredits } : {}),
+  };
+}
+
+export function buildCommandRouteContext(
+  routeIntent: string | null,
+  scheduledSession: CoachScheduledSessionRouteContext | null,
+): CoachCommandRouteContext {
+  return {
+    source: 'coach-command-center',
+    intent: routeIntent,
+    ...(scheduledSession || {}),
+  };
+}
+
 export function normalizeCommandCenterReturnTo(rawReturnTo: string | null): string | null {
   const hasUnsafeCharacters = Boolean(rawReturnTo && /[\r\n\t\\]/.test(rawReturnTo));
   if (
@@ -65,7 +114,11 @@ export function commandCenterReturnLabel(source: string | null): string {
   return 'Back to Dashboard';
 }
 
-export function buildRouteContext(routeIntent: string | null, routeClientLabel: string | null) {
+export function buildRouteContext(
+  routeIntent: string | null,
+  routeClientLabel: string | null,
+  scheduledSession: CoachScheduledSessionRouteContext | null = null,
+) {
   if (routeIntent === 'client_onboarding') {
     return {
       prompt: [
@@ -79,13 +132,29 @@ export function buildRouteContext(routeIntent: string | null, routeClientLabel: 
   }
 
   if (routeClientLabel && routeIntent === 'log_workout') {
+    const scheduleCopy = scheduledSession
+      ? ` This is booked session #${scheduledSession.scheduledSessionId}${scheduledSession.scheduledSessionDate ? ` on ${scheduledSession.scheduledSessionDate}` : ''}. Include scheduledSessionId ${scheduledSession.scheduledSessionId} in the review-gated workout_log proposal and do not invent any other session id.`
+      : '';
     return {
-      prompt: `${routeClientLabel} daily workout log. Ask me for dictated exercises, sets, reps, load, pain, and session notes. Prepare a review-gated workout_log proposal only after I confirm the details.`,
-      status: `${routeClientLabel} daily log context loaded`,
+      prompt: `${routeClientLabel} daily workout log.${scheduleCopy} Ask me for dictated exercises, sets, reps, load, pain, and session notes. Prepare a review-gated workout_log proposal only after I confirm the details.`,
+      status: scheduledSession
+        ? `${routeClientLabel} booked session #${scheduledSession.scheduledSessionId} log context loaded`
+        : `${routeClientLabel} daily log context loaded`,
     };
   }
 
   return { prompt: null, status: null };
+}
+
+export function buildRouteScopedCoachPrompt(command: string, routePrompt?: string | null): string {
+  const trimmedCommand = command.trim();
+  const trimmedRoutePrompt = routePrompt?.trim();
+  if (!trimmedRoutePrompt) return trimmedCommand;
+  if (trimmedCommand.toLowerCase().includes(trimmedRoutePrompt.toLowerCase())) {
+    return trimmedCommand;
+  }
+
+  return `${trimmedRoutePrompt}\n\nOperator command:\n${trimmedCommand}`;
 }
 
 export function buildQueueSummary(queueSummary: Partial<CoachQueueSummaryView> | undefined): CoachQueueSummaryView {

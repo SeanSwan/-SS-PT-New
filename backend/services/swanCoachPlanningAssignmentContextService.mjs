@@ -26,6 +26,15 @@ function firstPresent(...values) {
   return values.find(value => value !== undefined && value !== null && value !== '');
 }
 
+function compactString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function safeScalar(value) {
+  if (value === undefined || value === null || value === '') return null;
+  return String(value).slice(0, 80);
+}
+
 function getWeekDaysOrSessions(week) {
   if (!week || typeof week !== 'object') return [];
   const days = Array.isArray(week.days) ? week.days : [];
@@ -75,7 +84,13 @@ function buildOverviewPlan(plan, planData, weekNumber, dayNumber) {
   };
 }
 
-export function formatAssignmentContext(plan, planData, weekNumber, dayNumber) {
+export function formatAssignmentContext(
+  plan,
+  planData,
+  weekNumber,
+  dayNumber,
+  assignmentCompletions = [],
+) {
   const overviewPlan = buildOverviewPlan(plan, planData, weekNumber, dayNumber);
   const currentSession = buildSparseCurrentSession(planData, weekNumber, dayNumber)
     || extractCurrentSession(overviewPlan);
@@ -83,16 +98,24 @@ export function formatAssignmentContext(plan, planData, weekNumber, dayNumber) {
     activePlan: overviewPlan,
     plans: [overviewPlan],
     currentSession,
+    assignmentCompletions,
   });
   if (!todayAssignment || todayAssignment.assignmentType === 'none') return '';
+
+  const status = compactString(todayAssignment.status);
+  const ctaLabel = compactString(todayAssignment.ctaLabel);
+  const completedFormId = safeScalar(todayAssignment.completion?.formId);
 
   return [
     '--- ASSIGNMENT SEMANTICS ---',
     `Assignment Type: ${todayAssignment.assignmentType}`,
+    status ? `Assignment Status: ${status}` : null,
     `Session Type: ${todayAssignment.sessionType}`,
     `Loggable: ${todayAssignment.isLoggable ? 'yes' : 'no'}`,
     `Billing: ${todayAssignment.isBillable ? 'billable' : 'non-billable'}`,
     `Deduct Paid Session: ${todayAssignment.shouldDeductSession ? 'yes' : 'no'}`,
+    ctaLabel ? `CTA: ${ctaLabel}` : null,
+    completedFormId ? `Completed Form: ${completedFormId}` : null,
     todayAssignment.assignmentKey ? `Assignment Key: ${todayAssignment.assignmentKey}` : null,
   ].filter(Boolean).join('\n');
 }

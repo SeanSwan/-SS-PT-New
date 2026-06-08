@@ -69,6 +69,25 @@ function selectQueryType(sequelizeInstance) {
   return sequelizeInstance?.QueryTypes?.SELECT || 'SELECT';
 }
 
+function toNullablePositiveNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function toClientIntelligenceErrorMetadata(error) {
+  const metadata = {
+    name: error?.name || 'UnknownError',
+  };
+
+  if (error?.code) metadata.code = error.code;
+  if (error?.statusCode || error?.status) metadata.statusCode = error.statusCode || error.status;
+  if (error?.parent?.code) metadata.parentCode = error.parent.code;
+  if (error?.original?.code) metadata.originalCode = error.original.code;
+
+  return metadata;
+}
+
 export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, options = {}) {
   const { limit = 14, sequelizeOverride = sequelize } = options;
 
@@ -80,7 +99,7 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
          ws.intensity AS "overallIntensity",
          json_agg(json_build_object(
            'exerciseName', wl."exerciseName",
-           'formRating', wl.rpe
+           'rpe', wl.rpe
          ) ORDER BY wl."exerciseName", wl."setNumber") AS exercises
        FROM workout_sessions ws
        JOIN workout_logs wl ON wl."sessionId" = ws.id
@@ -102,18 +121,22 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
         id: row.id,
         date: row.date,
         formData: {
-          overallIntensity: Number(row.overallIntensity) || 0,
+          overallIntensity: toNullablePositiveNumber(row.overallIntensity),
           exercises: (Array.isArray(exercises) ? exercises : [])
             .filter((exercise) => exercise?.exerciseName)
             .map((exercise) => ({
               exerciseName: exercise.exerciseName,
-              formRating: exercise.formRating == null ? null : Number(exercise.formRating),
+              formRating: toNullablePositiveNumber(exercise.formRating),
+              rpe: toNullablePositiveNumber(exercise.rpe),
             })),
         },
       };
     });
   } catch (err) {
-    logger.warn('[ClientIntelligence] Recent workout-log summaries fetch failed:', err.message);
+    logger.warn(
+      '[ClientIntelligence] Recent workout-log summaries fetch failed:',
+      toClientIntelligenceErrorMetadata(err),
+    );
     return [];
   }
 }
@@ -305,7 +328,9 @@ export async function getClientContext(clientId, trainerId) {
         },
       }).catch((err) => {
         logger.warn('[ClientIntelligence] Assignment lookup error', {
-          clientId, trainerId, error: err?.message,
+          clientId,
+          trainerId,
+          ...toClientIntelligenceErrorMetadata(err),
         });
         return null;
       });
@@ -351,7 +376,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 100,
     }).catch(err => {
-      logger.error('[ClientIntelligence] CRITICAL: Pain entries fetch failed:', err.message);
+      logger.error(
+        '[ClientIntelligence] CRITICAL: Pain entries fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return { __failed: true, data: [] };
     }),
 
@@ -359,7 +387,10 @@ export async function getClientContext(clientId, trainerId) {
     getMovementProfile().findOne({
       where: { userId: clientId },
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Movement profile fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Movement profile fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -373,13 +404,19 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 20,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Form analyses fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Form analyses fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
     // 4. Recent completed workouts from the canonical workout diary tables.
     fetchRecentWorkoutLogSummaries(clientId, twoWeeksAgo, { limit: 14 }).catch(err => {
-      logger.warn('[ClientIntelligence] Workouts fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Workouts fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -393,7 +430,10 @@ export async function getClientContext(clientId, trainerId) {
         required: false,
       }],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Equipment profiles fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Equipment profiles fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -407,7 +447,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['sessionDate', 'DESC']],
       limit: 10,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Variation logs fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Variation logs fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -415,7 +458,10 @@ export async function getClientContext(clientId, trainerId) {
     getUser().findByPk(clientId, {
       attributes: ['id', 'firstName', 'lastName', 'email', 'role', 'fitnessGoal', 'trainingExperience'],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] User fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] User fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -426,7 +472,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['createdAt', 'DESC']],
       limit: 10,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Goals fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Goals fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -434,7 +483,10 @@ export async function getClientContext(clientId, trainerId) {
     getClientProgress().findOne({
       where: { userId: clientId },
     }).catch(err => {
-      logger.warn('[ClientIntelligence] ClientProgress fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] ClientProgress fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -444,7 +496,10 @@ export async function getClientContext(clientId, trainerId) {
       order: [['measurementDate', 'DESC']],
       limit: 3,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] BodyMeasurement fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] BodyMeasurement fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return [];
     }),
 
@@ -453,7 +508,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { clientId, status: 'active' },
       order: [['createdAt', 'DESC']],
     }).catch(err => {
-      logger.warn('[ClientIntelligence] LongTermProgramPlan fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] LongTermProgramPlan fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -462,7 +520,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Baseline fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Baseline fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -471,7 +532,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { clientId, isActive: true },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] NutritionPlan fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] NutritionPlan fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -480,7 +544,10 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Onboarding questionnaire fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Onboarding questionnaire fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
@@ -489,17 +556,24 @@ export async function getClientContext(clientId, trainerId) {
       where: { userId: clientId, streakType: 'workout', isActive: true },
       order: [['currentCount', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
-      logger.warn('[ClientIntelligence] Streak fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Streak fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
 
     buildClientTrainingVaultContext({
       clientId,
       WorkoutPlan: safeGetModel('WorkoutPlan'),
+      DailyWorkoutForm: safeGetModel('DailyWorkoutForm'),
       Op,
       today: now,
     }).catch(err => {
-      logger.warn('[ClientIntelligence] Training vault context fetch failed:', err.message);
+      logger.warn(
+        '[ClientIntelligence] Training vault context fetch failed:',
+        toClientIntelligenceErrorMetadata(err),
+      );
       return null;
     }),
   ]);
@@ -571,6 +645,7 @@ export async function getClientContext(clientId, trainerId) {
   let totalFormRating = 0;
   let formRatingCount = 0;
   let totalIntensity = 0;
+  let intensityCount = 0;
 
   for (const workout of recentWorkouts) {
     const formData = safeJsonParse(workout.formData, {});
@@ -578,14 +653,17 @@ export async function getClientContext(clientId, trainerId) {
     if (formData?.exercises) {
       for (const ex of formData.exercises) {
         if (ex.exerciseName) recentExerciseSet.add(ex.exerciseName);
-        if (ex.formRating) {
-          totalFormRating += ex.formRating;
+        const formRating = toNullablePositiveNumber(ex.formRating);
+        if (formRating !== null) {
+          totalFormRating += formRating;
           formRatingCount++;
         }
       }
     }
-    if (formData?.overallIntensity) {
-      totalIntensity += formData.overallIntensity;
+    const overallIntensity = toNullablePositiveNumber(formData?.overallIntensity);
+    if (overallIntensity !== null) {
+      totalIntensity += overallIntensity;
+      intensityCount++;
     }
   }
 
@@ -593,8 +671,8 @@ export async function getClientContext(clientId, trainerId) {
   workoutSummary.avgFormRating = formRatingCount > 0
     ? Math.round((totalFormRating / formRatingCount) * 10) / 10
     : 0;
-  workoutSummary.avgIntensity = recentWorkouts.length > 0
-    ? Math.round((totalIntensity / recentWorkouts.length) * 10) / 10
+  workoutSummary.avgIntensity = intensityCount > 0
+    ? Math.round((totalIntensity / intensityCount) * 10) / 10
     : 0;
 
   // ── Process Equipment ──────────────────────────────────────────

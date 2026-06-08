@@ -18,9 +18,22 @@ describe('v2 payment operational disclosure guard', () => {
   it('does not return checkout debug internals in client error responses', () => {
     expect(source).not.toContain('debugInfo:');
     expect(source).not.toContain('details: error.message');
+    expect(source).not.toContain("code: error.code || 'CHECKOUT_CREATION_FAILED'");
     expect(source).not.toContain("details: process.env.NODE_ENV === 'development' ? error.message");
     expect(source).not.toContain("details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'");
     expect(source).toContain("details: 'Stripe service could not be initialized'");
     expect(source).toContain("details: 'Internal server error'");
+  });
+
+  it('does not write checkout PII or database internals through console debug logs', () => {
+    expect(source).not.toContain('console.');
+    expect(source).not.toContain('email: cart.user?.email');
+    expect(source).not.toContain('cartQueryError.sql');
+    expect(source).not.toContain('cartQueryError.stack');
+    expect(source).not.toContain('error.sql');
+    expect(source).not.toContain('error.stack?.split');
+    expect(source).not.toContain('Session ID:');
+    expect(source).not.toContain('Verifying session ${sessionId}');
+    expect(source).not.toContain('successfully for user ${userId}: ${session.id}');
   });
 });

@@ -131,7 +131,12 @@ describe('clientSelfServiceReadDispatchers', () => {
       durationWeeks: 26,
       currentWeek: 4,
       currentDay: 2,
-      metadata: { planHorizon: 'six_month' },
+      metadata: {
+        planHorizon: 'six_month',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      },
       planData: {
         weeks: [
           { weekNumber: 1, days: [] },
@@ -178,6 +183,9 @@ describe('clientSelfServiceReadDispatchers', () => {
           label: '6 Month',
           planId: 'plan-6m',
           status: 'active',
+          assignmentDefault: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          defaultShouldDeductSession: false,
           isFilled: true,
           isPrimary: true,
         }),

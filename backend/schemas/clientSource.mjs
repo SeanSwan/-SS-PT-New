@@ -11,6 +11,11 @@ export const ClientSourceSchema = z.enum([
   'external'
 ]);
 
+export const ExternalClientSourceSchema = z.enum([
+  'move_fitness',
+  'external'
+]);
+
 export const CreateExternalClientSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
@@ -24,8 +29,9 @@ export const CreateExternalClientSchema = z.object({
   trainingExperience: z.string().optional(),
   healthConcerns: z.string().optional(),
   emergencyContact: z.string().optional(),
-  clientSource: ClientSourceSchema.default('move_fitness'),
+  clientSource: ExternalClientSourceSchema.default('move_fitness'),
   password: z.string().min(8).optional(),
+  trainerId: z.union([z.string().min(1), z.number().int().positive()]).optional(),
 });
 
 export default { ClientSourceSchema, CreateExternalClientSchema };

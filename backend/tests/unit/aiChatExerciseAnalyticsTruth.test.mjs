@@ -63,6 +63,9 @@ describe('aiChatService exercise analytics truth path', () => {
     expect(executedSql).toMatch(/JOIN\s+workout_logs\s+wl/i);
     expect(executedSql).toMatch(/ws\."userId"\s*=\s*:userId/i);
     expect(executedSql).toMatch(/ws\.status\s*=\s*'completed'/i);
-    expect(executedSql).not.toMatch(/daily_workout_forms/i);
+    const workoutHistorySql = sequelize.query.mock.calls
+      .map(([sql]) => sql)
+      .find(sql => /JOIN\s+workout_logs\s+wl/i.test(sql));
+    expect(workoutHistorySql).not.toMatch(/daily_workout_forms/i);
   });
 });

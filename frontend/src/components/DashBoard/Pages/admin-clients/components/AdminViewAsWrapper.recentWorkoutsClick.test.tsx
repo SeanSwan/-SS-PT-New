@@ -31,16 +31,18 @@ vi.mock('../../../../../context/AuthContext', () => ({
 // "click triggers modal open" and doesn't pull WorkoutHistoryPanel's
 // internal fetches into the harness.
 vi.mock('./EnhancedWorkoutsModal', () => ({
-  default: ({ open, clientId, clientName, onClose }: {
+  default: ({ open, clientId, clientName, onClose, readOnly }: {
     open: boolean;
     clientId: number;
     clientName: string;
     onClose: () => void;
+    readOnly?: boolean;
   }) =>
     open ? (
       <div role="dialog" aria-label="Workouts modal">
         <span data-testid="modal-clientid">{clientId}</span>
         <span data-testid="modal-clientname">{clientName}</span>
+        <span data-testid="modal-readonly">{String(readOnly)}</span>
         <button type="button" onClick={onClose}>Close stub modal</button>
       </div>
     ) : null,
@@ -142,6 +144,7 @@ describe('AdminViewAsWrapper — Phase 18 P1-O Recent Workouts drilldown', () =>
     // composed display name (firstName lastName).
     expect(screen.getByTestId('modal-clientid')).toHaveTextContent('424242');
     expect(screen.getByTestId('modal-clientname')).toHaveTextContent('Fixture Client');
+    expect(screen.getByTestId('modal-readonly')).toHaveTextContent('true');
   });
 
   it('closes EnhancedWorkoutsModal when its onClose fires', async () => {

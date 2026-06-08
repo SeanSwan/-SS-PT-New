@@ -43,7 +43,9 @@ export function buildProgressContext(sessions, opts = {}) {
   const totalReps = sum(sorted, s => s.totalReps || 0);
   const totalSets = sum(sorted, s => s.totalSets || 0);
   const totalDuration = sum(sorted, s => s.duration || 0);
-  const totalIntensity = sum(sorted, s => s.intensity || 0);
+  const intensityValues = sorted
+    .map(s => toPositiveNumber(s.intensity))
+    .filter(v => v !== null);
 
   // ── RPE analysis ────────────────────────────────────────────
   const rpeValues = sorted
@@ -110,7 +112,7 @@ export function buildProgressContext(sessions, opts = {}) {
     avgRepsPerSession: round2(totalReps / count),
     avgSetsPerSession: round2(totalSets / count),
     avgDurationMin: round2(totalDuration / count),
-    avgIntensity: round2(totalIntensity / count),
+    avgIntensity: averageNumbers(intensityValues),
     rpeTrend,
     volumeTrend,
     adherenceTrend,
@@ -220,6 +222,15 @@ function sum(arr, fn) {
 
 function round2(n) {
   return Math.round(n * 100) / 100;
+}
+
+function toPositiveNumber(value) {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function averageNumbers(values) {
+  return values.length > 0 ? round2(sum(values, v => v) / values.length) : 0;
 }
 
 // ─── NEW: Per-exercise progression curves ────────────────────────
@@ -400,12 +411,22 @@ function buildSessionDetails(sortedSessions) {
   for (const session of sortedSessions) {
     const weekNum = Math.floor((new Date(session.date) - firstDate) / (1000 * 60 * 60 * 24 * 7));
     if (!weeklyVolume.has(weekNum)) {
-      weeklyVolume.set(weekNum, { totalVolume: 0, sessions: 0, totalIntensity: 0, totalDuration: 0 });
+      weeklyVolume.set(weekNum, {
+        totalVolume: 0,
+        sessions: 0,
+        totalIntensity: 0,
+        intensityCount: 0,
+        totalDuration: 0,
+      });
     }
     const w = weeklyVolume.get(weekNum);
     w.totalVolume += session.totalWeight || 0;
     w.sessions++;
-    w.totalIntensity += session.intensity || 0;
+    const intensity = toPositiveNumber(session.intensity);
+    if (intensity !== null) {
+      w.totalIntensity += intensity;
+      w.intensityCount++;
+    }
     w.totalDuration += session.duration || 0;
   }
 
@@ -415,7 +436,7 @@ function buildSessionDetails(sortedSessions) {
       week: weekNum + 1,
       totalVolume: round2(data.totalVolume),
       sessions: data.sessions,
-      avgIntensity: data.sessions > 0 ? round2(data.totalIntensity / data.sessions) : 0,
+      avgIntensity: data.intensityCount > 0 ? round2(data.totalIntensity / data.intensityCount) : 0,
       totalDurationMin: round2(data.totalDuration),
     }));
 
@@ -439,12 +460,12 @@ function buildSessionDetails(sortedSessions) {
   const priorWeeks = weeklyVolumeTrend.slice(-4, -2);
   let fatigueIndicator = 'none';
   if (recentWeeks.length >= 1 && priorWeeks.length >= 1) {
-    const recentAvgIntensity = recentWeeks.reduce((a, w) => a + w.avgIntensity, 0) / recentWeeks.length;
-    const priorAvgIntensity = priorWeeks.reduce((a, w) => a + w.avgIntensity, 0) / priorWeeks.length;
+    const recentAvgIntensity = averageNumbers(recentWeeks.map(w => w.avgIntensity).filter(v => v > 0));
+    const priorAvgIntensity = averageNumbers(priorWeeks.map(w => w.avgIntensity).filter(v => v > 0));
     const recentVolume = recentWeeks.reduce((a, w) => a + w.totalVolume, 0) / recentWeeks.length;
     const priorVolume = priorWeeks.reduce((a, w) => a + w.totalVolume, 0) / priorWeeks.length;
 
-    if (recentAvgIntensity > priorAvgIntensity * 1.15 && recentVolume < priorVolume * 0.85) {
+    if (priorAvgIntensity > 0 && recentAvgIntensity > priorAvgIntensity * 1.15 && recentVolume < priorVolume * 0.85) {
       fatigueIndicator = 'possible_overreaching';
     } else if (recentVolume > priorVolume * 1.2) {
       fatigueIndicator = 'progressive_overload';

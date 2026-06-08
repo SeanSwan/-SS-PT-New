@@ -7,7 +7,10 @@ import sequelize from '../../database.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
 import { ensureClientAccess } from '../../utils/clientAccess.mjs';
 import { processAIDataUpdates } from '../aiDataWriteService.mjs';
-import { logWorkoutForClient, WorkoutLogError } from '../workout/workoutLogService.mjs';
+import {
+  submitAiWorkoutLogAsDailyForm,
+  AiWorkoutDailyFormError,
+} from '../workout/aiWorkoutDailyFormService.mjs';
 import { COACH_PROPOSAL_STATUS, COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
 import {
   decryptProposalPayload,
@@ -216,7 +219,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
 
   try {
     if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
-    const workout = await logWorkoutForClient({
+    const workout = await submitAiWorkoutLogAsDailyForm({
       clientId: access.clientId,
       exercises: payload.exercises,
       date: payload.date,
@@ -224,7 +227,10 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       title: payload.title,
       duration: payload.duration,
       intensity: payload.intensity,
+      plannedAssignment: payload.plannedAssignment,
+      scheduledSessionId: payload.scheduledSessionId,
       trainerId: req.user.id,
+      userRole: req.user.role,
       sequelize: db,
     });
     const updated = await updateProposalStatus({
@@ -235,7 +241,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     });
     return { status: 200, body: { success: true, proposal: updated, applied: true, workout } };
   } catch (err) {
-    const code = err instanceof WorkoutLogError ? err.code : 'WORKOUT_APPLY_FAILED';
+    const code = err instanceof AiWorkoutDailyFormError ? err.code : 'WORKOUT_APPLY_FAILED';
     await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
     return { status: 400, body: buildCoachProposalApplyErrorBody({ kind: 'workout', code }) };
   }

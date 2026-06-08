@@ -32,6 +32,7 @@ export interface WorkoutHistorySessionCardProps {
   isExpanded: boolean;
   editingSessionId: string | null;
   editLogs: WorkoutLogEntry[];
+  readOnly?: boolean;
   saving: boolean;
   saveError: string | null;
   onToggle(sessionId: string): void;
@@ -50,6 +51,7 @@ const WorkoutHistorySessionCard: React.FC<WorkoutHistorySessionCardProps> = ({
   isExpanded,
   editingSessionId,
   editLogs,
+  readOnly = false,
   saving,
   saveError,
   onToggle,
@@ -111,6 +113,7 @@ const WorkoutHistorySessionCard: React.FC<WorkoutHistorySessionCardProps> = ({
           session={session}
           tableExerciseGroups={tableExerciseGroups}
           isEditing={isEditing}
+          readOnly={readOnly}
           saving={saving}
           editLogsLength={editLogs.length}
           addEditRow={addEditRow}
@@ -145,15 +148,17 @@ const WorkoutHistorySessionCard: React.FC<WorkoutHistorySessionCardProps> = ({
           </div>
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </SessionToggleButton>
-        <SessionHeaderActions>
-          <ShareIconBtn
-            type="button"
-            onClick={() => onShareSession(session)}
-            aria-label={`Share ${session.title} to social feed`}
-          >
-            <Share2 size={12} /> Share
-          </ShareIconBtn>
-        </SessionHeaderActions>
+        {!readOnly && (
+          <SessionHeaderActions>
+            <ShareIconBtn
+              type="button"
+              onClick={() => onShareSession(session)}
+              aria-label={`Share ${session.title} to social feed`}
+            >
+              <Share2 size={12} /> Share
+            </ShareIconBtn>
+          </SessionHeaderActions>
+        )}
       </SessionHeader>
 
       {isExpanded && renderExpandedContent()}

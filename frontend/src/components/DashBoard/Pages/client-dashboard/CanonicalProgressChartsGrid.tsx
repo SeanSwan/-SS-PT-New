@@ -7,6 +7,7 @@
 import React from 'react';
 import { TrendingUp } from 'lucide-react';
 import { useClientProgressCharts } from '../../../../hooks/analytics/useClientProgressCharts';
+import ClientExerciseMegaStats from '../../progress/ClientExerciseMegaStats';
 import {
   AnchorLiftsCard,
   ExerciseFrequencyCard,
@@ -51,6 +52,7 @@ const CanonicalProgressChartsGrid: React.FC<CanonicalProgressChartsGridProps> = 
         <TrendingUp size={13} />
         <span>Progress overview - {nonEmptyChartCount} of 12 charts populated</span>
       </SectionHeader>
+      <ClientExerciseMegaStats exercises={charts.exerciseFrequency} />
       <GridWrap>
         <WorkoutFrequencyCard data={charts.workoutFrequency} />
         <AttendanceReliabilityCard bundle={charts.attendanceReliability} />

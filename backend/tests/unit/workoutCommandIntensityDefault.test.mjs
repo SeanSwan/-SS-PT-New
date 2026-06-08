@@ -42,4 +42,51 @@ describe('Swan Coach log_workout command intensity defaults', () => {
 
     expect(parsed.intensity).toBe(7);
   });
+
+  it('preserves verified non-billable planned assignment metadata', () => {
+    const parsed = logWorkoutCommand.inputSchema.parse({
+      clientId: 42,
+      exercises: [{ name: 'Goblet Squat', sets: 1, reps: 10 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    });
+
+    expect(parsed.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'homework',
+      isBillable: false,
+      shouldDeductSession: false,
+    });
+  });
+
+  it('preserves scheduled trainer-session assignment metadata', () => {
+    const parsed = logWorkoutCommand.inputSchema.parse({
+      clientId: 42,
+      scheduledSessionId: '777',
+      exercises: [{ name: 'Trap Bar Deadlift', sets: 1, reps: 5, weight: 135 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w1:d1:trainer_session',
+        planId: 'plan-6m',
+        assignmentType: 'trainer_session',
+        source: 'workout_plan',
+        weekNumber: 1,
+        dayNumber: 1,
+      },
+    });
+
+    expect(parsed.scheduledSessionId).toBe('777');
+    expect(parsed.plannedAssignment).toMatchObject({
+      assignmentType: 'trainer_session',
+      isBillable: true,
+      shouldDeductSession: true,
+    });
+  });
 });

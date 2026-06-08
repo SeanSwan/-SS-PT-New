@@ -123,9 +123,9 @@ const TrainersSection: React.FC<TrainersSectionProps> = ({ tier }) => {
           <GlowButton
             variant="cosmic"
             size="large"
-            onClick={() => navigate('/signup?role=trainer')}
+            onClick={() => navigate('/contact')}
           >
-            Trainer Sign Up
+            Contact SwanStudios Staff
           </GlowButton>
         </CTARow>
       </Container>
