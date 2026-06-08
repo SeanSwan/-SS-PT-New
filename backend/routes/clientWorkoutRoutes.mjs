@@ -15,11 +15,9 @@ import logger from '../utils/logger.mjs';
 // service. The history-row mapper lives in a shared service for route/tests.
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
-import {
-  findPlannedAssignmentCompletionsForDate,
-  findRecentPlannedAssignmentCompletions,
-} from '../services/clientTrainingAssignmentCompletionService.mjs';
+import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { toClientWorkoutHistoryRow as mapClientWorkoutHistoryRow } from '../services/clientWorkoutHistoryRowService.mjs';
+import { selectCurrentWorkoutPlan } from '../services/workoutPlanRouteHelpers.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'INTERNAL_ERROR';
@@ -49,46 +47,6 @@ const parseBoundedPositiveInteger = (value, { defaultValue, maxValue }) => {
 };
 
 const currentDateOnly = () => new Date().toISOString().slice(0, 10);
-const toPlanObject = (plan) => (typeof plan?.toJSON === 'function' ? plan.toJSON() : plan);
-const isPrimaryActivePlan = (plan) => {
-  const raw = toPlanObject(plan) || {};
-  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
-  return raw.status === 'active' && (metadata.isPrimaryPlan === true || metadata.primary === true);
-};
-const selectCurrentWorkoutPlan = (fallbackPlan, plans = []) => (
-  Array.isArray(plans) ? plans.find(isPrimaryActivePlan) : null
-) || fallbackPlan;
-
-const readAssignmentCompletionContext = async (DailyWorkoutForm, clientId, today) => {
-  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
-    DailyWorkoutForm,
-    {
-      clientId,
-      date: today,
-      onLookupError: (error) => logger.warn(
-        'Daily workout planned-assignment completion lookup failed:',
-        error.message,
-      ),
-    },
-  );
-  const recentAssignmentCompletions = await findRecentPlannedAssignmentCompletions(
-    DailyWorkoutForm,
-    {
-      clientId,
-      onLookupError: (error) => logger.warn(
-        'Daily workout recent homework completion lookup failed:',
-        error.message,
-      ),
-    },
-  );
-
-  return {
-    assignmentCompletions,
-    recentAssignmentCompletions: recentAssignmentCompletions.length
-      ? recentAssignmentCompletions
-      : assignmentCompletions,
-  };
-};
 
 // Workout-history row mapping lives in clientWorkoutHistoryRowService.mjs.
 
@@ -124,7 +82,18 @@ router.get('/:userId/current', protect, async (req, res) => {
       }
     }
     plan = selectCurrentWorkoutPlan(plan, clientPlans);
-    const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, clientId, today);
+    const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
+      clientId,
+      date: today,
+      onDateLookupError: (error) => logger.warn(
+        'Daily workout planned-assignment completion lookup failed:',
+        error.message,
+      ),
+      onRecentLookupError: (error) => logger.warn(
+        'Daily workout recent homework completion lookup failed:',
+        error.message,
+      ),
+    });
 
     if (!plan) {
       const overview = buildClientTrainingOverview({

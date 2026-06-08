@@ -39,12 +39,20 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
-import {
-  findPlannedAssignmentCompletionsForDate,
-  findRecentPlannedAssignmentCompletions,
-} from '../services/clientTrainingAssignmentCompletionService.mjs';
+import { readAssignmentCompletionContext } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
+import {
+  ACTIVATE_MAX_RETRIES,
+  buildDuplicatePlanMetadata,
+  currentDateOnly,
+  isUniqueViolation,
+  markPlanPrimary,
+  mergePlanMetadata,
+  parseStrictPositiveInteger,
+  selectCurrentWorkoutPlan,
+  toPlainObject,
+} from '../services/workoutPlanRouteHelpers.mjs';
 import {
   workoutPlanPdfUploadMiddleware,
   handleWorkoutPlanPdfUpload,
@@ -57,102 +65,11 @@ const router = express.Router();
 // SQLSTATE 23505 (Postgres unique_violation), which fires when the partial
 // unique index `workout_plans_one_active_per_user` catches a concurrent
 // activate that slipped past the row lock.
-const ACTIVATE_MAX_RETRIES = 2;
-const isUniqueViolation = (err) =>
-  err?.original?.code === '23505' || err?.parent?.code === '23505';
-const parseStrictPositiveInteger = (value) => {
-  if (typeof value === 'number') {
-    return Number.isSafeInteger(value) && value > 0 ? value : null;
-  }
-
-  if (typeof value !== 'string') return null;
-
-  const trimmed = value.trim();
-  if (!/^[1-9]\d*$/.test(trimmed)) return null;
-
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-};
-
-const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
-const currentDateOnly = () => new Date().toISOString().slice(0, 10);
-
-const isPlainRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
-
-const mergePlanMetadata = (plan, nextMetadata) => {
-  const raw = toPlainObject(plan) || {};
-  const current = isPlainRecord(raw.metadata) ? raw.metadata : {};
-  const next = isPlainRecord(nextMetadata) ? nextMetadata : {};
-  return { ...current, ...next };
-};
-
-const buildDuplicatePlanMetadata = (plan) => {
-  const raw = toPlainObject(plan) || {};
-  const metadata = isPlainRecord(raw.metadata) ? { ...raw.metadata } : {};
-  delete metadata.planPdf;
-  return {
-    ...metadata,
-    isPrimaryPlan: false,
-    duplicatedFrom: raw.id,
-  };
-};
-
-const markPlanPrimary = (plan, isPrimary) => {
-  const raw = toPlainObject(plan) || {};
-  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
-  return {
-    ...raw,
-    metadata: {
-      ...metadata,
-      isPrimaryPlan: isPrimary,
-    },
-  };
-};
-const isPrimaryActivePlan = (plan) => {
-  const raw = toPlainObject(plan) || {};
-  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
-  return raw.status === 'active' && (metadata.isPrimaryPlan === true || metadata.primary === true);
-};
-const selectCurrentWorkoutPlan = (fallbackPlan, plans = []) => (
-  Array.isArray(plans) ? plans.find(isPrimaryActivePlan) : null
-) || fallbackPlan;
-
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
 // PURPOSE: Lazy-load from model cache to avoid circular imports
 // ─────────────────────────────────────────────────────────────
 const getWorkoutPlan = () => getModel('WorkoutPlan');
-
-const readAssignmentCompletionContext = async (DailyWorkoutForm, clientId, today) => {
-  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
-    DailyWorkoutForm,
-    {
-      clientId,
-      date: today,
-      onLookupError: (error) => logger.warn(
-        '[WorkoutPlan] planned-assignment completion lookup failed: %s',
-        error.message,
-      ),
-    },
-  );
-  const recentAssignmentCompletions = await findRecentPlannedAssignmentCompletions(
-    DailyWorkoutForm,
-    {
-      clientId,
-      onLookupError: (error) => logger.warn(
-        '[WorkoutPlan] recent homework completion lookup failed: %s',
-        error.message,
-      ),
-    },
-  );
-
-  return {
-    assignmentCompletions,
-    recentAssignmentCompletions: recentAssignmentCompletions.length
-      ? recentAssignmentCompletions
-      : assignmentCompletions,
-  };
-};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: GET /api/workout-plans
@@ -250,11 +167,18 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
     // Extract current session info for the AI when a live active arc exists.
     const currentSession = plan ? extractCurrentSession(plan) : null;
     const today = currentDateOnly();
-    const completionContext = await readAssignmentCompletionContext(
-      DailyWorkoutForm,
-      userId,
-      today,
-    );
+    const completionContext = await readAssignmentCompletionContext(DailyWorkoutForm, {
+      clientId: userId,
+      date: today,
+      onDateLookupError: (error) => logger.warn(
+        '[WorkoutPlan] planned-assignment completion lookup failed: %s',
+        error.message,
+      ),
+      onRecentLookupError: (error) => logger.warn(
+        '[WorkoutPlan] recent homework completion lookup failed: %s',
+        error.message,
+      ),
+    });
     const overview = buildClientTrainingOverview({
       activePlan: plan || null,
       plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],

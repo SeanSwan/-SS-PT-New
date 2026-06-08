@@ -804,14 +804,14 @@ describe('workoutPlanRoutes — mounted route stack', () => {
         id: 'plan-9m',
         userId: 42,
         title: 'Nine Month Plan',
-        metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, painAware: true },
+        metadata: { planHorizon: 'nine_month', isPrimaryPlan: false, primary: false, painAware: true },
         update: targetUpdate,
       });
       mockWorkoutPlanFindAll.mockResolvedValue([
         {
           id: 'plan-6m',
           userId: 42,
-          metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+          metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
           update: siblingUpdate,
         },
       ]);
@@ -825,10 +825,10 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.status).toBe(200);
       expect(mockSequelizeTransaction).toHaveBeenCalledOnce();
       expect(targetUpdate).toHaveBeenCalledWith({
-        metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, painAware: true },
+        metadata: { planHorizon: 'nine_month', isPrimaryPlan: true, primary: true, painAware: true },
       }, { transaction: mockTransactionInstance });
       expect(siblingUpdate).toHaveBeenCalledWith({
-        metadata: { planHorizon: 'six_month', isPrimaryPlan: false },
+        metadata: { planHorizon: 'six_month', isPrimaryPlan: false, primary: false },
       }, { transaction: mockTransactionInstance });
       expect(mockTransactionInstance.commit).toHaveBeenCalledOnce();
       expect(mockTransactionInstance.rollback).not.toHaveBeenCalled();
@@ -862,6 +862,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           billingIntent: 'trainer_led_scheduled_flow',
           defaultShouldDeductSession: false,
           isPrimaryPlan: true,
+          primary: true,
           planPdf: {
             url: '/api/workout-plans/plan-1/pdf/content.pdf',
             fileName: 'Six Month Strength Arc.pdf',
@@ -890,6 +891,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           billingIntent: 'trainer_led_scheduled_flow',
           defaultShouldDeductSession: false,
           isPrimaryPlan: false,
+          primary: false,
           duplicatedFrom: 'plan-1',
         },
       }));

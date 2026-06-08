@@ -2,6 +2,11 @@ import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import type { Client } from './SessionAllocationManager.types';
+import {
+  MANUAL_SESSION_ALLOCATION_MAX,
+  MANUAL_SESSION_ALLOCATION_MIN,
+  normalizeManualSessionCount,
+} from './SessionAllocationManager.logic';
 import { Button } from './SessionAllocationManager.layoutStyles';
 import { Modal, ModalContent } from './SessionAllocationManager.modalStyles';
 
@@ -50,10 +55,10 @@ export const SessionAllocationAddSessionsModal: React.FC<AddSessionsModalProps> 
             <input
               id="session-allocation-count"
               type="number"
-              min="1"
-              max="50"
+              min={MANUAL_SESSION_ALLOCATION_MIN}
+              max={MANUAL_SESSION_ALLOCATION_MAX}
               value={sessionCount}
-              onChange={(event) => onSessionCountChange(parseInt(event.target.value, 10) || 1)}
+              onChange={(event) => onSessionCountChange(normalizeManualSessionCount(event.target.value))}
               placeholder="Enter number of sessions"
             />
           </div>

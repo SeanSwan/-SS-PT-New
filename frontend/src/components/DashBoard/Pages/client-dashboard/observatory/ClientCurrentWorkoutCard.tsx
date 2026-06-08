@@ -36,7 +36,6 @@ import {
   formatHomeworkCompletionDate,
   formatHomeworkCompletionExerciseLabel,
   formatHomeworkCompletionPosition,
-  latestHomeworkCompletion,
 } from '../../../shared/client-training/clientHomeworkSummary';
 import type { CurrentClientWorkout } from './useCurrentClientWorkout';
 
@@ -145,13 +144,17 @@ function homeworkLogLabel(workout?: CurrentClientWorkout | null): string {
   return `Off-day logs${suffix}`;
 }
 
+const homeworkHistoryEntries = (workout?: CurrentClientWorkout | null) => (
+  workout?.homeworkSummary?.recentCompletions.slice(0, 3) || []
+);
+
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
   currentWorkout,
   currentWorkoutError,
   currentWorkoutLoading,
   onNavigate,
 }) => {
-  const latestCompletion = latestHomeworkCompletion(currentWorkout?.homeworkSummary);
+  const recentHomework = homeworkHistoryEntries(currentWorkout);
 
   return (
     <WidgetCard data-testid="current-workout-card">
@@ -183,16 +186,22 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
               <WidgetValue>{homeworkLogValue(currentWorkout)}</WidgetValue>
             </WidgetRow>
           )}
-          {latestCompletion && (
+          {recentHomework.length > 0 && (
             <WidgetRow>
-              <WidgetLabel>
-                Recent homework - {formatHomeworkCompletionPosition(latestCompletion, ' ')}
-                {' - '}
-                {formatHomeworkCompletionDate(latestCompletion)}
-              </WidgetLabel>
-              <WidgetValue>{formatHomeworkCompletionExerciseLabel(latestCompletion)}</WidgetValue>
+              <WidgetLabel>Recent Homework History</WidgetLabel>
+              <WidgetValue>Last {recentHomework.length}</WidgetValue>
             </WidgetRow>
           )}
+          {recentHomework.map((completion) => (
+            <WidgetRow key={`${completion.completedAt || completion.scheduledDate}-${completion.weekNumber}-${completion.dayNumber}`}>
+              <WidgetLabel>
+                {formatHomeworkCompletionPosition(completion, ' ')}
+                {' - '}
+                {formatHomeworkCompletionDate(completion)}
+              </WidgetLabel>
+              <WidgetValue>{formatHomeworkCompletionExerciseLabel(completion)}</WidgetValue>
+            </WidgetRow>
+          ))}
         </WidgetList>
         <MutedText $top="0.75rem">
           {workoutDetail(currentWorkout, currentWorkoutError)}
