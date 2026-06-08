@@ -37,7 +37,7 @@ const router = express.Router();
 
 const MAX_RECURRING_OCCURRENCES = 52;
 const MAX_RECURRING_MONTHS = 12;
-const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
+const NON_BOOKING_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;
 
 const parseNotificationPreferences = (user) => {
   if (!user) return {};

@@ -32,7 +32,9 @@ const unifiedRouteSlice = (startMarker, endMarker) => {
 
 describe('session booking clientSource boundary', () => {
   it('defines every non-booking client source in one shared boundary', () => {
-    expect(routeSource).toContain("const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external'])");
+    expect(routeSource).toContain("import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';");
+    expect(routeSource).toContain('const NON_BOOKING_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;');
+    expect(routeSource).not.toContain("const NON_BOOKING_CLIENT_SOURCES = new Set(['move_fitness', 'external'])");
   });
 
   it('blocks every non-booking client source from the user-id self-service booking route', () => {
