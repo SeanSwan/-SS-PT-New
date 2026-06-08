@@ -25,7 +25,40 @@ function makeClient(overrides = {}) {
   };
 }
 
-async function loadService({ client = makeClient(), existingForm = null } = {}) {
+function makeActivePlan(overrides = {}) {
+  return {
+    id: 'plan-6m',
+    userId: 42,
+    title: 'Six Month Foundation',
+    status: 'active',
+    currentWeek: 4,
+    currentDay: 2,
+    durationWeeks: 26,
+    metadata: { planHorizon: 'six_month' },
+    planData: {
+      weeks: [
+        { days: [] },
+        { days: [] },
+        { days: [] },
+        {
+          days: [
+            { dayLabel: 'Recovery Day', assignmentType: 'rest', exercises: [] },
+            {
+              dayLabel: 'Coach Homework Lower Body',
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat' }],
+            },
+          ],
+        },
+        { days: [{ dayLabel: 'Next Week Start', assignmentType: 'homework', exercises: [] }] },
+      ],
+    },
+    update: vi.fn(async () => undefined),
+    ...overrides,
+  };
+}
+
+async function loadService({ client = makeClient(), existingForm = null, activePlan = makeActivePlan() } = {}) {
   vi.resetModules();
   const tx = makeTransaction();
   const dailyFormRow = {
@@ -53,6 +86,9 @@ async function loadService({ client = makeClient(), existingForm = null } = {}) 
       destroy: vi.fn(async () => undefined),
       bulkCreate: vi.fn(async () => []),
     },
+    WorkoutPlan: {
+      findOne: vi.fn(async () => activePlan),
+    },
   };
   vi.doMock('../../models/index.mjs', () => ({
     getAllModels: () => models,
@@ -66,6 +102,7 @@ async function loadService({ client = makeClient(), existingForm = null } = {}) 
     sequelize: { transaction: vi.fn(async () => tx) },
     tx,
     workoutSession,
+    activePlan,
   };
 }
 
@@ -169,6 +206,71 @@ describe('submitAiWorkoutLogAsDailyForm', () => {
       creditsDeducted: 0,
       remainingSessions: 0,
     }));
+  });
+
+  it('logs verified AI homework assignments as completed plan progress without deduction', async () => {
+    const client = makeClient({ availableSessions: 0 });
+    const {
+      submitAiWorkoutLogAsDailyForm,
+      activePlan,
+      models,
+      sequelize,
+      tx,
+    } = await loadService({ client });
+
+    const result = await submitAiWorkoutLogAsDailyForm({
+      clientId: 42,
+      trainerId: 7,
+      date: new Date().toISOString().slice(0, 10),
+      exercises: [{ name: 'Goblet Squat', sets: [{ reps: 10, weight: 40 }] }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+      sequelize,
+    });
+
+    expect(client.decrement).not.toHaveBeenCalled();
+    expect(models.WorkoutPlan.findOne).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'plan-6m', userId: 42, status: 'active' },
+      lock: 'UPDATE',
+      transaction: tx,
+    }));
+    const formCreate = models.DailyWorkoutForm.create.mock.calls[0][0];
+    expect(formCreate.formData.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      planId: 'plan-6m',
+      assignmentType: 'homework',
+      source: 'workout_plan',
+      isBillable: false,
+      shouldDeductSession: false,
+      title: 'Coach Homework Lower Body',
+      weekNumber: 4,
+      dayNumber: 2,
+      exerciseCount: 1,
+      firstExerciseName: 'Goblet Squat',
+    });
+    expect(activePlan.update).toHaveBeenCalledWith(expect.objectContaining({
+      currentWeek: 5,
+      currentDay: 1,
+      status: 'active',
+    }), { transaction: tx });
+    expect(result.form.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      shouldDeductSession: false,
+    });
+    expect(result.form.planProgress).toMatchObject({
+      advanced: true,
+      previous: { week: 4, day: 2 },
+      next: { week: 5, day: 1 },
+    });
+    expect(result.billing.status).toBe('not_deducted');
   });
 
   it('rejects duplicate same-day diary forms before rewriting session logs', async () => {

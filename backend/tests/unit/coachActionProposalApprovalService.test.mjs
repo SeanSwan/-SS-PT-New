@@ -166,6 +166,55 @@ describe('coachActionProposalApprovalService', () => {
     expect(order).toEqual(['claim', 'workout-write']);
   });
 
+  it('shows and applies planned-assignment metadata for approved workout proposals', async () => {
+    const plannedAssignment = {
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      planId: 'plan-6m',
+      assignmentType: 'homework',
+      source: 'workout_plan',
+      isBillable: false,
+      shouldDeductSession: false,
+      weekNumber: 4,
+      dayNumber: 2,
+    };
+    const db = fakeApprovalDb();
+    const {
+      approveCoachActionProposal,
+      getCoachActionProposal,
+      submitAiWorkoutLogAsDailyForm,
+    } = await loadApprovalService({
+      decryptedProposal: {
+        payload: {
+          clientId: 42,
+          date: '2026-05-05',
+          exercises: [{ name: 'Goblet Squat' }],
+          plannedAssignment,
+        },
+        targetUserId: 42,
+      },
+    });
+
+    const detailResult = await getCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' } },
+      sequelizeOverride: db,
+    });
+
+    expect(detailResult.body.proposal.detail.workout.plannedAssignment).toEqual(plannedAssignment);
+
+    const result = await approveCoachActionProposal({
+      id: pendingWorkoutRow.id,
+      req: { user: { id: 7, role: 'trainer' }, body: { reviewToken: detailResult.body.proposal.reviewToken } },
+      sequelizeOverride: db,
+    });
+
+    expect(result.status).toBe(200);
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledWith(expect.objectContaining({
+      clientId: 42,
+      plannedAssignment,
+    }));
+  });
+
   it('rejects malformed workout proposal client ids before access or write', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });

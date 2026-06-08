@@ -1139,6 +1139,7 @@ const DISPATCHERS = new Map([
         title: params.title,
         duration: params.duration,
         intensity: params.intensity,
+        plannedAssignment: params.plannedAssignment,
         trainerId: ctx.user.id,
         sequelize,
       });

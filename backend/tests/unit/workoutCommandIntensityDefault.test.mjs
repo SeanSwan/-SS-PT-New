@@ -42,4 +42,28 @@ describe('Swan Coach log_workout command intensity defaults', () => {
 
     expect(parsed.intensity).toBe(7);
   });
+
+  it('preserves verified non-billable planned assignment metadata', () => {
+    const parsed = logWorkoutCommand.inputSchema.parse({
+      clientId: 42,
+      exercises: [{ name: 'Goblet Squat', sets: 1, reps: 10 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
+    });
+
+    expect(parsed.plannedAssignment).toMatchObject({
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'homework',
+      isBillable: false,
+      shouldDeductSession: false,
+    });
+  });
 });

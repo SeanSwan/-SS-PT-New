@@ -101,6 +101,16 @@ describe('legacy workout command selected-client scope', () => {
       clientId: 999,
       date: '2026-05-20',
       exercises: [{ name: 'Push-up', sets: 1, reps: 10 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        planId: 'plan-6m',
+        assignmentType: 'homework',
+        source: 'workout_plan',
+        isBillable: false,
+        shouldDeductSession: false,
+        weekNumber: 4,
+        dayNumber: 2,
+      },
     }, {
       user: { id: 7, role: 'trainer' },
       resolvedClient: { id: 42 },
@@ -111,6 +121,9 @@ describe('legacy workout command selected-client scope', () => {
       clientId: 42,
       trainerId: 7,
       date: '2026-05-20',
+      plannedAssignment: expect.objectContaining({
+        assignmentKey: 'plan-6m:w4:d2:homework',
+      }),
     }));
   });
 });

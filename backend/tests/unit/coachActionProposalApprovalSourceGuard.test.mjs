@@ -36,6 +36,7 @@ describe('coachActionProposalApprovalService source guards', () => {
   it('routes workout approval through RBAC and the canonical daily form writer', () => {
     expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
     expect(APPROVAL_SERVICE_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(APPROVAL_SERVICE_SRC).toMatch(/plannedAssignment:\s*payload\.plannedAssignment/);
     expect(APPROVAL_SERVICE_SRC).not.toMatch(/logWorkoutForClient/);
   });
 
@@ -46,6 +47,7 @@ describe('coachActionProposalApprovalService source guards', () => {
 
   it('routes server-side log_workout commands through the canonical daily form writer', () => {
     expect(COMMAND_DISPATCHER_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(COMMAND_DISPATCHER_SRC).toMatch(/plannedAssignment:\s*params\.plannedAssignment/);
     expect(COMMAND_DISPATCHER_SRC).not.toMatch(/logWorkoutForClient/);
   });
 
@@ -55,6 +57,7 @@ describe('coachActionProposalApprovalService source guards', () => {
       WORKOUT_COMMANDS_SRC.indexOf("type: 'view_last_workout'"),
     );
     expect(logWorkoutBlock).toContain("endpoint: '/api/workout-forms'");
+    expect(logWorkoutBlock).toContain('PlannedAssignmentSchema.optional()');
     expect(logWorkoutBlock).not.toContain('/api/admin/clients/:clientId/workouts');
   });
 
