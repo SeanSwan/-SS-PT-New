@@ -68,6 +68,9 @@ const parseNonNegativeInteger = (value) => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
 };
 
+const getErrorMessage = (error) => (typeof error === 'string' ? error : (error?.message || ''));
+const getNormalizedErrorMessage = (error) => getErrorMessage(error).toLowerCase();
+
 const canAccessSessionRecord = (user, session, { allowClient = true, allowTrainer = true } = {}) => {
   if (!user || !session) return false;
   if (user.role === 'admin') return true;
@@ -1439,8 +1442,9 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
     return res.status(200).json(clients);
   } catch (error) {
     logger.error('Error in GET /api/sessions/users/clients:', error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
 
-    if (error.message.includes('privileges required')) {
+    if (normalizedMessage.includes('privileges required')) {
       return res.status(403).json({
         success: false,
         message: 'Trainer or admin privileges required'
@@ -1483,9 +1487,10 @@ router.get("/:id", protect, async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error in GET /api/sessions/${req.params.id}:`, error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
 
     // Handle permission errors
-    if (error.message.includes('permission')) {
+    if (normalizedMessage.includes('permission')) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this session'
@@ -2391,30 +2396,31 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/cancel:`, error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle cancellation-specific errors
-    if (error.message.includes('permission')) {
+    if (normalizedMessage.includes('permission')) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to cancel this session'
       });
     }
     
-    if (error.message.includes('not found')) {
+    if (normalizedMessage.includes('not found')) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
     
-    if (error.message.includes('Cannot cancel')) {
+    if (normalizedMessage.includes('cannot cancel')) {
       return res.status(400).json({
         success: false,
         message: 'Cannot cancel this session'
       });
     }
 
-    if (error.message.toLowerCase().includes('invalid')) {
+    if (normalizedMessage.includes('invalid')) {
       return res.status(400).json({
         success: false,
         message: 'Invalid cancellation request'
@@ -2439,23 +2445,24 @@ router.patch("/:id/confirm", protect, trainerOrAdminOnly, async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/confirm:`, error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle confirmation-specific errors
-    if (error.message.includes('privileges required') || error.message.includes('can only confirm')) {
+    if (normalizedMessage.includes('privileges required') || normalizedMessage.includes('can only confirm')) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to confirm this session'
       });
     }
     
-    if (error.message.includes('not found')) {
+    if (normalizedMessage.includes('not found')) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
     
-    if (error.message.includes('Only scheduled')) {
+    if (normalizedMessage.includes('only scheduled')) {
       return res.status(400).json({
         success: false,
         message: 'Only scheduled sessions can be confirmed'
@@ -2495,24 +2502,23 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/complete:`, error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle completion-specific errors
-    if (error.message.includes('privileges required') || error.message.includes('can only complete')) {
+    if (normalizedMessage.includes('privileges required') || normalizedMessage.includes('can only complete')) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to complete this session'
       });
     }
     
-    if (error.message.includes('not found')) {
+    if (normalizedMessage.includes('not found')) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
     
-    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
-    const normalizedMessage = rawMessage.toLowerCase();
     if (normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
       return res.status(400).json({
         success: false,
@@ -2554,23 +2560,24 @@ router.patch("/:id/assign", protect, adminOnly, async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     logger.error(`Error in PATCH /api/sessions/${req.params.id}/assign:`, error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle assignment-specific errors
-    if (error.message.includes('Admin privileges required')) {
+    if (normalizedMessage.includes('admin privileges required')) {
       return res.status(403).json({
         success: false,
         message: 'Admin privileges required'
       });
     }
     
-    if (error.message.includes('not found')) {
+    if (normalizedMessage.includes('not found')) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
     
-    if (error.message.includes('required')) {
+    if (normalizedMessage.includes('required')) {
       return res.status(400).json({
         success: false,
         message: 'Required assignment field missing'
@@ -2606,8 +2613,9 @@ router.post("/allocate", protect, adminOnly, async (req, res) => {
     return res.status(200).json(result);
   } catch (error) {
     logger.error('Error in POST /api/sessions/allocate:', error);
+    const normalizedMessage = getNormalizedErrorMessage(error);
     
-    if (error.message.includes('not found') || error.message.includes('not completed')) {
+    if (normalizedMessage.includes('not found') || normalizedMessage.includes('not completed')) {
       return res.status(400).json({
         success: false,
         message: 'Order not found or not completed'
