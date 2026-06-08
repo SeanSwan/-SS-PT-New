@@ -61,6 +61,45 @@ describe('ClientWorkoutPlanCards', () => {
     expect(screen.getByLabelText(/completed today from primary six month arc/i)).toHaveTextContent('Review Workout');
   });
 
+  it('does not offer primary-plan logging when today assignment belongs to another plan', () => {
+    const onLogToday = vi.fn();
+    const onOpenPdf = vi.fn();
+
+    render(
+      <ClientWorkoutPlanCards
+        openingPdfId={null}
+        plans={[activePlan({ id: 'primary', name: 'Primary Six Month Arc', isPrimary: true })]}
+        todayAssignment={{
+          assignmentKey: 'other-plan:w1:d1:homework',
+          status: 'planned',
+          isLoggable: true,
+          ctaLabel: 'Log Assignment',
+        }}
+        onLogToday={onLogToday}
+        onOpenPdf={onOpenPdf}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: /log assignment from primary six month arc/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /log today from primary six month arc/i })).toBeNull();
+  });
+
+  it('treats legacy uppercase active statuses as current for primary-plan logging', () => {
+    const onLogToday = vi.fn();
+    const onOpenPdf = vi.fn();
+
+    render(
+      <ClientWorkoutPlanCards
+        openingPdfId={null}
+        plans={[activePlan({ id: 'primary', name: 'Primary Six Month Arc', status: 'ACTIVE', isPrimary: true })]}
+        onLogToday={onLogToday}
+        onOpenPdf={onOpenPdf}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /log today from primary six month arc/i })).toBeInTheDocument();
+  });
+
   it('does not call a non-loggable rest assignment completed', () => {
     const onLogToday = vi.fn();
     const onOpenPdf = vi.fn();

@@ -34,6 +34,10 @@ const RAW_LOGIC_SOURCE = readFileSync(
   resolve(__dirname, './EnhancedWorkoutLogger.logic.ts'),
   'utf8',
 );
+const RAW_IDENTITY_SOURCE = readFileSync(
+  resolve(__dirname, './EnhancedWorkoutLogger.identity.ts'),
+  'utf8',
+);
 const RAW_VIEW_SOURCE = readFileSync(
   resolve(__dirname, './EnhancedWorkoutLogger.view.tsx'),
   'utf8',
@@ -47,6 +51,7 @@ function stripComments(src: string): string {
 
 const SOURCE = stripComments(RAW_SOURCE);
 const LOGIC_SOURCE = stripComments(RAW_LOGIC_SOURCE);
+const IDENTITY_SOURCE = stripComments(RAW_IDENTITY_SOURCE);
 const VIEW_SOURCE = stripComments(RAW_VIEW_SOURCE);
 const SURFACE_SOURCE = `${SOURCE}\n${VIEW_SOURCE}`;
 
@@ -78,7 +83,7 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
 
   it('honors any dashboard-local returnTo after validation', () => {
     expect(SOURCE).toMatch(
-      /import\s*\{[\s\S]*buildLoggerRouteContext[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerClientId[\s\S]*parseLoggerSessionId[\s\S]*\}\s*from '\.\/EnhancedWorkoutLogger\.logic'/
+      /import\s*\{[\s\S]*buildLoggerRouteContext[\s\S]*normalizeDashboardReturnTo[\s\S]*parseLoggerSessionId[\s\S]*\}\s*from '\.\/EnhancedWorkoutLogger\.logic'/
     );
     expect(LOGIC_SOURCE).toMatch(/export const normalizeDashboardReturnTo =/);
     expect(LOGIC_SOURCE).toMatch(/value\.startsWith\('\/dashboard\/'\)/);
@@ -106,8 +111,12 @@ describe('EnhancedWorkoutLogger source-text route lock (Phase 17)', () => {
 
   it('passes a strictly parsed numeric client id into WorkoutLogger', () => {
     expect(LOGIC_SOURCE).toMatch(/export const parseLoggerClientId =/);
-    expect(SOURCE).toMatch(/const routeClientId = parseLoggerClientId\(urlClientId\)/);
-    expect(SOURCE).toMatch(/const activeClientId = parseLoggerClientId\(activeClient\?\.id\)/);
+    expect(SOURCE).toMatch(/import\s*\{\s*resolveLoggerClientId\s*\}\s*from '\.\/EnhancedWorkoutLogger\.identity'/);
+    expect(SOURCE).toMatch(/const clientId = resolveLoggerClientId\(\{/);
+    expect(SOURCE).toMatch(/activeClientId:\s*activeClient\?\.id/);
+    expect(IDENTITY_SOURCE).toMatch(/parseLoggerClientId\(urlClientId\)/);
+    expect(IDENTITY_SOURCE).toMatch(/urlClientId !== null/);
+    expect(IDENTITY_SOURCE).toMatch(/parseLoggerClientId\(activeClientId\)/);
     expect(SURFACE_SOURCE).not.toMatch(/clientId=\{parseInt\(client\.id\)/);
     expect(SURFACE_SOURCE).toMatch(/clientId=\{client\.id\}/);
   });

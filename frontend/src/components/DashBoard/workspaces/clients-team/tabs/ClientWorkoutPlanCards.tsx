@@ -41,19 +41,170 @@ const statusText = (plan: ClientPlanSummary, active: boolean) => (
   plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status
 );
 
+const isActivePlanStatus = (status: string) => status.trim().toLowerCase() === 'active';
+
+const assignmentKeyFor = (assignment: ClientTodayAssignmentSummary) => {
+  if (assignment.assignmentKey) return assignment.assignmentKey;
+  if (assignment.assignmentId) return assignment.assignmentId;
+  return '';
+};
+
+const isPrimaryLogPlan = (
+  plan: ClientPlanSummary,
+  active: boolean,
+  onLogToday?: () => void,
+) => {
+  if (!active) return false;
+  if (!plan.isPrimary) return false;
+  return Boolean(onLogToday);
+};
+
+const isAssignmentLoggableForPlan = (
+  todayAssignment?: ClientTodayAssignmentSummary | null,
+  matchedTodayAssignment?: ClientTodayAssignmentSummary | null,
+) => {
+  if (!todayAssignment) return true;
+  if (!matchedTodayAssignment) return false;
+  return matchedTodayAssignment.isLoggable !== false;
+};
+
 const canLogTodayFromPlan = (
   plan: ClientPlanSummary,
   active: boolean,
   todayAssignment?: ClientTodayAssignmentSummary | null,
+  matchedTodayAssignment?: ClientTodayAssignmentSummary | null,
   onLogToday?: () => void,
-) => Boolean(active && plan.isPrimary && onLogToday && todayAssignment?.isLoggable !== false);
+) => {
+  if (!isPrimaryLogPlan(plan, active, onLogToday)) return false;
+  return isAssignmentLoggableForPlan(todayAssignment, matchedTodayAssignment);
+};
 
 const todayAssignmentForPlan = (
   plan: ClientPlanSummary,
   todayAssignment?: ClientTodayAssignmentSummary | null,
 ) => {
-  const assignmentKey = todayAssignment?.assignmentKey || todayAssignment?.assignmentId || '';
-  return assignmentKey.startsWith(`${plan.id}:`) ? todayAssignment : null;
+  if (!todayAssignment) return null;
+  const assignmentKey = assignmentKeyFor(todayAssignment);
+  if (!assignmentKey) return todayAssignment;
+  if (!assignmentKey.startsWith(`${plan.id}:`)) return null;
+  return todayAssignment;
+};
+
+const ClientWorkoutPlanMeta: React.FC<{ plan: ClientPlanSummary }> = ({ plan }) => {
+  const metaItems = [
+    plan.nasmPhase ? `NASM phase ${plan.nasmPhase}` : null,
+    plan.horizonLabel || null,
+    plan.durationWeeks ? `${plan.durationWeeks} weeks` : null,
+    formatClientPlanUpdated(plan.createdAt),
+    formatPlanUseLabel(plan.assignmentDefault),
+    plan.goal,
+  ].filter((item): item is string => Boolean(item));
+
+  return (
+    <Meta>
+      {metaItems.map((item) => <span key={item}>{item}</span>)}
+    </Meta>
+  );
+};
+
+const TodayAssignmentAction: React.FC<{
+  active: boolean;
+  matchedTodayAssignment: ClientTodayAssignmentSummary | null;
+  onLogToday?: () => void;
+  plan: ClientPlanSummary;
+  todayAssignment?: ClientTodayAssignmentSummary | null;
+}> = ({ active, matchedTodayAssignment, onLogToday, plan, todayAssignment }) => {
+  const matchedAction = renderMatchedAssignmentAction(matchedTodayAssignment, plan);
+  if (matchedAction) return matchedAction;
+  return renderLogTodayAction({ active, matchedTodayAssignment, onLogToday, plan, todayAssignment });
+};
+
+const renderMatchedAssignmentAction = (
+  assignment: ClientTodayAssignmentSummary | null,
+  plan: ClientPlanSummary,
+) => {
+  if (!assignment) return null;
+
+  if (assignment.status === 'completed') {
+    return (
+      <StatusBadge $active aria-label={`Completed today from ${plan.name}`}>
+        <CheckCircle2 size={13} /> {assignment.ctaLabel || 'Review Workout'}
+      </StatusBadge>
+    );
+  }
+
+  return renderBlockedAssignmentAction(assignment, plan);
+};
+
+const renderBlockedAssignmentAction = (
+  assignment: ClientTodayAssignmentSummary,
+  plan: ClientPlanSummary,
+) => {
+  if (assignment.isLoggable !== false) return null;
+
+  return (
+    <StatusBadge $active={false} aria-label={`Not loggable today from ${plan.name}`}>
+      {assignment.ctaLabel || 'Not Loggable'}
+    </StatusBadge>
+  );
+};
+
+const LogTodayActionButton: React.FC<{
+  label: string;
+  onLogToday?: () => void;
+  plan: ClientPlanSummary;
+}> = ({ label, onLogToday, plan }) => (
+  <PlanActionButton
+    type="button"
+    $variant="primary"
+    aria-label={`${label} from ${plan.name}`}
+    onClick={onLogToday}
+  >
+    <Dumbbell size={14} /> {label}
+  </PlanActionButton>
+);
+
+const renderLogTodayAction = ({
+  active,
+  matchedTodayAssignment,
+  onLogToday,
+  plan,
+  todayAssignment,
+}: {
+  active: boolean;
+  matchedTodayAssignment: ClientTodayAssignmentSummary | null;
+  onLogToday?: () => void;
+  plan: ClientPlanSummary;
+  todayAssignment?: ClientTodayAssignmentSummary | null;
+}) => {
+  if (!canLogTodayFromPlan(plan, active, todayAssignment, matchedTodayAssignment, onLogToday)) return null;
+
+  return (
+    <LogTodayActionButton
+      label={matchedTodayAssignment?.ctaLabel || 'Log Today'}
+      onLogToday={onLogToday}
+      plan={plan}
+    />
+  );
+};
+
+const PlanPdfAction: React.FC<{
+  openingPdfId: string | null;
+  onOpenPdf: (plan: ClientPlanSummary) => void;
+  plan: ClientPlanSummary;
+}> = ({ openingPdfId, onOpenPdf, plan }) => {
+  if (!plan.pdfFile) return null;
+
+  return (
+    <PlanActionButton
+      type="button"
+      disabled={openingPdfId === plan.id}
+      aria-label={`Open ${plan.name} PDF`}
+      onClick={() => onOpenPdf(plan)}
+    >
+      <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
+    </PlanActionButton>
+  );
 };
 
 const ClientWorkoutPlanCard: React.FC<{
@@ -63,11 +214,8 @@ const ClientWorkoutPlanCard: React.FC<{
   onLogToday?: () => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
 }> = ({ openingPdfId, plan, todayAssignment, onLogToday, onOpenPdf }) => {
-  const active = plan.status === 'active';
+  const active = isActivePlanStatus(plan.status);
   const matchedTodayAssignment = todayAssignmentForPlan(plan, todayAssignment);
-  const todayCtaLabel = matchedTodayAssignment?.ctaLabel || 'Log Today';
-  const todayCompleted = matchedTodayAssignment?.status === 'completed';
-  const todayNotLoggable = Boolean(matchedTodayAssignment && matchedTodayAssignment.isLoggable === false);
 
   return (
     <PlanCard>
@@ -76,43 +224,16 @@ const ClientWorkoutPlanCard: React.FC<{
         {statusText(plan, active)}
       </StatusBadge>
       <PlanTitle>{plan.name}</PlanTitle>
-      <Meta>
-        {plan.nasmPhase && <span>NASM phase {plan.nasmPhase}</span>}
-        {plan.horizonLabel && <span>{plan.horizonLabel}</span>}
-        {plan.durationWeeks && <span>{plan.durationWeeks} weeks</span>}
-        <span>{formatClientPlanUpdated(plan.createdAt)}</span>
-        <span>{formatPlanUseLabel(plan.assignmentDefault)}</span>
-        <span>{plan.goal}</span>
-      </Meta>
+      <ClientWorkoutPlanMeta plan={plan} />
       <PlanActions>
-        {todayCompleted ? (
-          <StatusBadge $active aria-label={`Completed today from ${plan.name}`}>
-            <CheckCircle2 size={13} /> {matchedTodayAssignment?.ctaLabel || 'Review Workout'}
-          </StatusBadge>
-        ) : todayNotLoggable ? (
-          <StatusBadge $active={false} aria-label={`Not loggable today from ${plan.name}`}>
-            {matchedTodayAssignment?.ctaLabel || 'Not Loggable'}
-          </StatusBadge>
-        ) : canLogTodayFromPlan(plan, active, matchedTodayAssignment, onLogToday) && (
-          <PlanActionButton
-            type="button"
-            $variant="primary"
-            aria-label={`${todayCtaLabel} from ${plan.name}`}
-            onClick={onLogToday}
-          >
-            <Dumbbell size={14} /> {todayCtaLabel}
-          </PlanActionButton>
-        )}
-        {plan.pdfFile && (
-          <PlanActionButton
-            type="button"
-            disabled={openingPdfId === plan.id}
-            aria-label={`Open ${plan.name} PDF`}
-            onClick={() => onOpenPdf(plan)}
-          >
-            <ExternalLink size={14} /> {openingPdfId === plan.id ? 'Opening PDF' : 'Open PDF'}
-          </PlanActionButton>
-        )}
+        <TodayAssignmentAction
+          active={active}
+          matchedTodayAssignment={matchedTodayAssignment}
+          onLogToday={onLogToday}
+          plan={plan}
+          todayAssignment={todayAssignment}
+        />
+        <PlanPdfAction openingPdfId={openingPdfId} onOpenPdf={onOpenPdf} plan={plan} />
       </PlanActions>
     </PlanCard>
   );

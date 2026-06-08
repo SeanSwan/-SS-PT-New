@@ -28,6 +28,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Module-scoped mocks — flipped per test
 let mockRole: 'admin' | 'trainer' | 'client' | undefined = 'trainer';
 let mockSearchQuery = 'clientId=61';
+let mockActiveClient: { id: number } | null = null;
 const mockNavigate = vi.fn();
 const mockGet = vi.fn();
 const mockToast = vi.fn();
@@ -51,7 +52,7 @@ vi.mock('../../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../../context/GlobalClientContext', () => ({
-  useGlobalClient: () => ({ activeClient: null }),
+  useGlobalClient: () => ({ activeClient: mockActiveClient }),
 }));
 
 vi.mock('../../../hooks/use-toast', () => ({
@@ -120,6 +121,7 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     mockGet.mockReset();
     mockToast.mockReset();
     mockSearchQuery = 'clientId=61';
+    mockActiveClient = null;
   });
 
   it('admin: scheduled-session full-page URLs redirect into the embedded Client Hub logger', async () => {
@@ -177,6 +179,24 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
   it('admin: bare full-page client logging URLs redirect into the embedded Client Hub logger', async () => {
     mockRole = 'admin';
     mockSearchQuery = 'clientId=61';
+
+    render(<EnhancedWorkoutLogger />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/admin/client-management?clientId=61&tab=training&trainingSection=logger&loadPlan=today',
+        { replace: true }
+      );
+    });
+
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
+  it('admin: persisted active-client context redirects into the embedded Client Hub logger', async () => {
+    mockRole = 'admin';
+    mockSearchQuery = '';
+    mockActiveClient = { id: 61 };
 
     render(<EnhancedWorkoutLogger />);
 
@@ -288,6 +308,19 @@ describe('EnhancedWorkoutLogger — Phase 17.1 real-client auto-mount', () => {
     render(<EnhancedWorkoutLogger />);
 
     expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('real-workout-logger')).toBeNull();
+  });
+
+  it('does not rescue malformed URL client ids with a persisted active client', async () => {
+    mockRole = 'admin';
+    mockSearchQuery = 'clientId=61junk&source=clients-team';
+    mockActiveClient = { id: 62 };
+
+    render(<EnhancedWorkoutLogger />);
+
+    expect(await screen.findByRole('heading', { name: /workout logging error/i })).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(mockGet).not.toHaveBeenCalled();
     expect(screen.queryByTestId('real-workout-logger')).toBeNull();
   });

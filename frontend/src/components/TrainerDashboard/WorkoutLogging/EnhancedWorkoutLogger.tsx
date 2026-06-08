@@ -17,12 +17,12 @@ import {
   buildLoggerRouteContext,
   type LoggerClient,
   normalizeDashboardReturnTo,
-  parseLoggerClientId,
   parseLoggerSessionCreditHint,
   parseLoggerSessionDate,
   parseLoggerSessionId,
   toLoggerClientFromInfoResponse,
 } from './EnhancedWorkoutLogger.logic';
+import { resolveLoggerClientId } from './EnhancedWorkoutLogger.identity';
 import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view';
 
 const EnhancedWorkoutLogger: React.FC = () => {
@@ -43,9 +43,10 @@ const EnhancedWorkoutLogger: React.FC = () => {
   const scheduledSessionId = parseLoggerSessionId(searchParams.get('sessionId'));
   const scheduledSessionCreditHint = parseLoggerSessionCreditHint(searchParams.get('sessionCredits'));
   const scheduledSessionDate = parseLoggerSessionDate(searchParams.get('sessionDate'));
-  const routeClientId = parseLoggerClientId(urlClientId);
-  const activeClientId = parseLoggerClientId(activeClient?.id);
-  const clientId = routeClientId ?? activeClientId;
+  const clientId = resolveLoggerClientId({
+    activeClientId: activeClient?.id,
+    urlClientId,
+  });
 
   const requestedReturnTo = normalizeDashboardReturnTo(searchParams.get('returnTo'));
   const {
@@ -56,7 +57,7 @@ const EnhancedWorkoutLogger: React.FC = () => {
     workflowReturnPath,
   } = buildLoggerRouteContext({
     requestedReturnTo,
-    routeClientId,
+    routeClientId: clientId,
     scheduledSessionCreditHint,
     scheduledSessionDate,
     scheduledSessionId,
