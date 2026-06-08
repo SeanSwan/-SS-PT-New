@@ -29,6 +29,7 @@ import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import apiService from '../../../../services/api.service';
+import { RoleConversionModal, UserDetailsModal } from './EnhancedUserDataManagement.modals';
 
 // Lucide icons
 import {
@@ -995,7 +996,8 @@ const EnhancedUserDataManagement: React.FC = () => {
                             title="Edit User"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Handle edit
+                              setSelectedUser(user);
+                              setUserDetailsModalOpen(true);
                             }}
                           >
                             <Pencil />
@@ -1053,6 +1055,22 @@ const EnhancedUserDataManagement: React.FC = () => {
           </PaginationButton>
         </PaginationBar>
       </DataTable>
+
+      <UserDetailsModal
+        open={userDetailsModalOpen}
+        user={selectedUser}
+        onClose={() => setUserDetailsModalOpen(false)}
+        onConvertRole={() => {
+          setUserDetailsModalOpen(false);
+          setRoleConversionModalOpen(true);
+        }}
+      />
+      <RoleConversionModal
+        open={roleConversionModalOpen}
+        user={selectedUser}
+        onClose={() => setRoleConversionModalOpen(false)}
+        onConvert={handleRoleConversion}
+      />
     </DashboardContainer>
   );
 };
