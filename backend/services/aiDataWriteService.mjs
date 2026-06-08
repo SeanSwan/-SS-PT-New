@@ -22,6 +22,23 @@ import {
 } from './workoutPlanAiPdfAttachmentService.mjs';
 
 const DURATION_HORIZONS = PLAN_HORIZONS.filter((slot) => slot.key !== 'one_day');
+const AI_DATA_WRITE_FAILED_CODE = 'AI_DATA_WRITE_FAILED';
+const AI_DATA_WRITE_FAILED_MESSAGE = 'Swan Coach could not apply that update. No data was changed.';
+const AI_DATA_WRITE_UNKNOWN_TYPE_CODE = 'AI_DATA_WRITE_UNKNOWN_TYPE';
+const AI_DATA_WRITE_UNKNOWN_TYPE_MESSAGE = 'Swan Coach does not support that update type yet. No data was changed.';
+
+function normalizeUpdateType(type) {
+  if (typeof type !== 'string') return 'unknown';
+  const trimmed = type.trim();
+  return trimmed ? trimmed.slice(0, 64) : 'unknown';
+}
+
+function toDataWriteErrorMetadata(err) {
+  return {
+    errorName: err?.name || 'Error',
+    errorCode: err?.code || err?.type || AI_DATA_WRITE_FAILED_CODE,
+  };
+}
 
 function inferAiPlanHorizonKey(durationWeeks) {
   const exact = DURATION_HORIZONS.find((slot) => slot.durationWeeks === durationWeeks);
@@ -46,7 +63,7 @@ function clampPlanDurationWeeks(value, fallback = 4) {
  * @param {Array} updates - Array of {type, data} objects
  * @param {number} performedBy - The admin/trainer user who initiated the AI conversation
  * @param {object} sequelize - Sequelize instance for raw queries
- * @returns {object} - { successful: number, errors: Array<{type, message}> }
+ * @returns {object} - { successful: number, errors: Array<{type, code, message}> }
  */
 export async function processAIDataUpdates(targetUserId, updates, performedBy, sequelize) {
   const results = { successful: 0, errors: [] };
@@ -59,40 +76,43 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
   const safeUpdates = updates.slice(0, 10);
 
   for (const update of safeUpdates) {
+    const updateType = normalizeUpdateType(update?.type);
+    const updateData = update?.data || {};
+
     try {
-      switch (update.type) {
+      switch (updateType) {
         case 'body_measurement':
-          await insertBodyMeasurement(targetUserId, performedBy, update.data, sequelize);
+          await insertBodyMeasurement(targetUserId, performedBy, updateData, sequelize);
           results.successful++;
           break;
 
         case 'goal':
-          await upsertGoal(targetUserId, update.data, sequelize);
+          await upsertGoal(targetUserId, updateData, sequelize);
           results.successful++;
           break;
 
         case 'client_note':
-          await insertClientNote(targetUserId, performedBy, update.data, sequelize);
+          await insertClientNote(targetUserId, performedBy, updateData, sequelize);
           results.successful++;
           break;
 
         case 'macro_log':
-          await insertMacroLog(targetUserId, update.data, sequelize);
+          await insertMacroLog(targetUserId, updateData, sequelize);
           results.successful++;
           break;
 
         case 'progress_level':
-          await updateProgressLevel(targetUserId, update.data, sequelize);
+          await updateProgressLevel(targetUserId, updateData, sequelize);
           results.successful++;
           break;
 
         case 'daily_workout_form':
-          await insertDailyWorkoutForm(targetUserId, performedBy, update.data, sequelize);
+          await insertDailyWorkoutForm(targetUserId, performedBy, updateData, sequelize);
           results.successful++;
           break;
 
         case 'save_workout_plan':
-          await saveWorkoutPlan(targetUserId, performedBy, update.data, sequelize);
+          await saveWorkoutPlan(targetUserId, performedBy, updateData, sequelize);
           results.successful++;
           break;
 
@@ -101,21 +121,34 @@ export async function processAIDataUpdates(targetUserId, updates, performedBy, s
         // AI creates drafts — trainer must approve before sending
         // ─────────────────────────────────────────────────────────────
         case 'draft_email':
-          await createCommunicationDraft(targetUserId, performedBy, 'email', update.data, sequelize);
+          await createCommunicationDraft(targetUserId, performedBy, 'email', updateData, sequelize);
           results.successful++;
           break;
 
         case 'draft_sms':
-          await createCommunicationDraft(targetUserId, performedBy, 'sms', update.data, sequelize);
+          await createCommunicationDraft(targetUserId, performedBy, 'sms', updateData, sequelize);
           results.successful++;
           break;
 
         default:
-          results.errors.push({ type: update.type, message: `Unknown update type: ${update.type}` });
+          results.errors.push({
+            type: updateType,
+            code: AI_DATA_WRITE_UNKNOWN_TYPE_CODE,
+            message: AI_DATA_WRITE_UNKNOWN_TYPE_MESSAGE,
+          });
       }
     } catch (err) {
-      logger.error('[AIDataWrite] Failed to process %s for user %d: %s', update.type, targetUserId, err.message);
-      results.errors.push({ type: update.type, message: err.message });
+      logger.error('[AIDataWrite] Failed to process update', {
+        updateType,
+        targetUserId,
+        performedBy,
+        ...toDataWriteErrorMetadata(err),
+      });
+      results.errors.push({
+        type: updateType,
+        code: AI_DATA_WRITE_FAILED_CODE,
+        message: AI_DATA_WRITE_FAILED_MESSAGE,
+      });
     }
   }
 
