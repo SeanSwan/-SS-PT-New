@@ -49,9 +49,16 @@ interface Props {
   clientId: number;
   clientName: string;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
-const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, onClose }) => {
+const EnhancedWorkoutsModal: React.FC<Props> = ({
+  open,
+  clientId,
+  clientName,
+  onClose,
+  readOnly = false,
+}) => {
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -92,6 +99,7 @@ const EnhancedWorkoutsModal: React.FC<Props> = ({ open, clientId, clientName, on
           clientName={clientName}
           variant="modal"
           active={open}
+          readOnly={readOnly}
         />
       </WidePanel>
     </ModalOverlay>

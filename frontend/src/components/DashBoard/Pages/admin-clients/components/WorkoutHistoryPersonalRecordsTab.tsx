@@ -29,11 +29,13 @@ import {
 
 export interface WorkoutHistoryPersonalRecordsTabProps {
   records: PersonalRecord[];
+  readOnly?: boolean;
   onShareSession: (session: WorkoutSession) => void;
 }
 
 const WorkoutHistoryPersonalRecordsTab: React.FC<WorkoutHistoryPersonalRecordsTabProps> = ({
   records,
+  readOnly = false,
   onShareSession,
 }) => {
   if (records.length === 0) {
@@ -67,13 +69,15 @@ const WorkoutHistoryPersonalRecordsTab: React.FC<WorkoutHistoryPersonalRecordsTa
                 Est. 1RM: {pr.estimated1RM} lbs
               </PREstimate>
             )}
-            <ShareIconBtn
-              type="button"
-              aria-label={`Share ${pr.exercise} personal record`}
-              onClick={() => onShareSession(buildPersonalRecordShareSession(pr))}
-            >
-              <Share2 size={12} /> Share
-            </ShareIconBtn>
+            {!readOnly && (
+              <ShareIconBtn
+                type="button"
+                aria-label={`Share ${pr.exercise} personal record`}
+                onClick={() => onShareSession(buildPersonalRecordShareSession(pr))}
+              >
+                <Share2 size={12} /> Share
+              </ShareIconBtn>
+            )}
           </PRActionRow>
         </PRCard>
       ))}

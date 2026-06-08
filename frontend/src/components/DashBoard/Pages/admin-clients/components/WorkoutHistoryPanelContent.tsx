@@ -41,6 +41,7 @@ interface WorkoutHistoryPanelContentProps {
   expandedSessions: Set<string>;
   isLoading: boolean;
   records: PersonalRecord[];
+  readOnly?: boolean;
   saving: boolean;
   saveError: string | null;
   addEditRow(exerciseName: string): void;
@@ -64,6 +65,7 @@ type HistoryTabProps = Pick<
   | 'expandedSessions'
   | 'onShareSession'
   | 'onToggleSession'
+  | 'readOnly'
   | 'removeEditRow'
   | 'saveEdit'
   | 'saveError'
@@ -110,6 +112,7 @@ const WorkoutHistoryHistoryTab: React.FC<HistoryTabProps> = ({
   expandedSessions,
   editingSessionId,
   editLogs,
+  readOnly,
   saving,
   saveError,
   onToggleSession,
@@ -140,6 +143,7 @@ const WorkoutHistoryHistoryTab: React.FC<HistoryTabProps> = ({
           isExpanded={expandedSessions.has(session.id)}
           editingSessionId={editingSessionId}
           editLogs={editLogs}
+          readOnly={readOnly}
           saving={saving}
           saveError={saveError}
           onToggle={onToggleSession}
@@ -164,6 +168,7 @@ const buildTabContent = (props: WorkoutHistoryPanelContentProps): Record<Workout
   prs: props.data ? (
     <WorkoutHistoryPersonalRecordsTab
       records={props.records}
+      readOnly={props.readOnly}
       onShareSession={props.onShareSession}
     />
   ) : null,

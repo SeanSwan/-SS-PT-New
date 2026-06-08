@@ -102,6 +102,11 @@ interface Props {
    * embedded call site passes `true`.
    */
   active?: boolean;
+  /**
+   * Admin View-As uses this panel as a preview. It may read details, but it
+   * must not expose edit or social-share actions from the shared panel.
+   */
+  readOnly?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -113,6 +118,7 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
   clientName,
   variant = 'modal',
   active = true,
+  readOnly = false,
 }) => {
   const { data, isLoading, error, refetch } = useWorkoutAnalytics(active ? clientId : null);
   const { authAxios } = useAuth();
@@ -127,6 +133,10 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
     () => buildWorkoutHistoryShareModalState(clientName, shareSession),
     [clientName, shareSession],
   );
+  const handleShareSession = useCallback((session: WorkoutSession) => {
+    if (readOnly) return;
+    setShareSession(session);
+  }, [readOnly]);
 
   const expandSession = useCallback((id: string) => {
     setExpandedSessions(prev => addStringToSet(prev, id));
@@ -188,12 +198,13 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
           expandedSessions={expandedSessions}
           isLoading={isLoading}
           records={sortedPersonalRecords}
+          readOnly={readOnly}
           saving={saving}
           saveError={saveError}
           addEditRow={addEditRow}
           cancelEdit={cancelEdit}
           onRetry={refetch}
-          onShareSession={setShareSession}
+          onShareSession={handleShareSession}
           onToggleSession={toggleSession}
           removeEditRow={removeEditRow}
           saveEdit={saveEdit}
@@ -206,13 +217,15 @@ const WorkoutHistoryPanel: React.FC<Props> = ({
       {/* Share to Social Feed — rendered as a sibling (NOT nested inside a
           backdrop-filter container) to keep position:fixed semantics intact.
           Both modal and embedded call sites inherit this safe placement. */}
-      <ShareToFeedModal
-        open={!!shareSession}
-        onClose={() => setShareSession(null)}
-        postType={shareModalState.postType}
-        workoutSessionId={shareModalState.workoutSessionId}
-        prefilledContent={shareModalState.prefilledContent}
-      />
+      {!readOnly && (
+        <ShareToFeedModal
+          open={!!shareSession}
+          onClose={() => setShareSession(null)}
+          postType={shareModalState.postType}
+          workoutSessionId={shareModalState.workoutSessionId}
+          prefilledContent={shareModalState.prefilledContent}
+        />
+      )}
     </>
   );
 };
