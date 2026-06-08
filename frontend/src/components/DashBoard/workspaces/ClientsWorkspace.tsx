@@ -19,7 +19,7 @@ import {
   type ClientHubIntent,
 } from './ClientsWorkspace.logic';
 import {
-  fetchActiveAdminClients,
+  fetchClientHubAdminClients,
   fetchAdminClientById,
   resolveInitialClientSelection,
 } from './ClientsWorkspace.data';
@@ -95,7 +95,7 @@ const ClientsWorkspace: React.FC = () => {
   const loadClients = useCallback(async (): Promise<ClientOption[]> => {
     setLoading(true);
     try {
-      const mapped = await fetchActiveAdminClients(authAxios);
+      const mapped = await fetchClientHubAdminClients(authAxios);
       setClients(mapped);
       return mapped;
     } finally {

@@ -6,7 +6,7 @@ import {
   getClientTrainingSectionFromSearchParams,
 } from './ClientsWorkspace.logic';
 import {
-  fetchActiveAdminClients,
+  fetchClientHubAdminClients,
   fetchAdminClientById,
   resolveInitialClientSelection,
 } from './ClientsWorkspace.data';
@@ -92,7 +92,7 @@ describe('ClientsWorkspace route state parsing', () => {
 });
 
 describe('ClientsWorkspace data helpers', () => {
-  it('fetches active admin client lists and filters invalid client identities', async () => {
+  it('fetches all admin clients so soft-deactivated clients can be reactivated', async () => {
     const authAxios = {
       get: vi.fn(async () => ({
         data: {
@@ -100,6 +100,7 @@ describe('ClientsWorkspace data helpers', () => {
           data: {
             clients: [
               { id: 7, firstName: 'Valid', lastName: 'Client', email: 'valid@example.test' },
+              { id: 8, firstName: 'Inactive', lastName: 'Client', email: 'inactive@example.test', isActive: false },
               { id: 'bad-id', firstName: 'Invalid' },
             ],
           },
@@ -107,11 +108,12 @@ describe('ClientsWorkspace data helpers', () => {
       })),
     };
 
-    await expect(fetchActiveAdminClients(authAxios)).resolves.toMatchObject([
+    await expect(fetchClientHubAdminClients(authAxios)).resolves.toMatchObject([
       { id: 7, firstName: 'Valid', lastName: 'Client' },
+      { id: 8, firstName: 'Inactive', lastName: 'Client', isActive: false },
     ]);
     expect(authAxios.get).toHaveBeenCalledWith('/api/admin/clients', {
-      params: { limit: 100, status: 'active' },
+      params: { limit: 100 },
     });
   });
 

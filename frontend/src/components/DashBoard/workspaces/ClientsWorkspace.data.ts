@@ -71,14 +71,14 @@ const mapAdminClientDetailResponse = (data: unknown): ClientOption | null => {
     : null;
 };
 
-export const fetchActiveAdminClients = async (
+export const fetchClientHubAdminClients = async (
   authAxios: ClientHubAxios | null | undefined
 ): Promise<ClientOption[]> => {
   if (!authAxios) return [];
 
   try {
     const response = await authAxios.get('/api/admin/clients', {
-      params: { limit: 100, status: 'active' },
+      params: { limit: 100 },
     });
     return mapAdminClientsListResponse(response.data);
   } catch (error) {
