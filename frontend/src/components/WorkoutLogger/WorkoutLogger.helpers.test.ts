@@ -69,6 +69,11 @@ describe('WorkoutLogger helpers', () => {
     expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'homework', isLoggable: true })).toBe(true);
     expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'homework', status: 'completed', isLoggable: false })).toBe(false);
     expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'rest', isLoggable: false })).toBe(false);
+    expect(isCurrentWorkoutAssignmentLoggable({ assignmentType: 'trainer_session', isLoggable: true })).toBe(false);
+    expect(isCurrentWorkoutAssignmentLoggable(
+      { assignmentType: 'trainer_session', isLoggable: false },
+      { hasScheduledSession: true },
+    )).toBe(true);
   });
 
   it('converts AI workout exercises into null-honest logger rows', () => {

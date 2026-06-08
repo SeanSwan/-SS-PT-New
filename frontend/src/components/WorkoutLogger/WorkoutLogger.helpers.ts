@@ -187,9 +187,14 @@ export function getCurrentWorkoutTodayAssignmentExercises(
 
 export function isCurrentWorkoutAssignmentLoggable(
   assignment: PlannedAssignment | null | undefined,
+  options: { hasScheduledSession?: boolean } = {},
 ): boolean {
   if (!assignment) return true;
-  return assignment.isLoggable !== false && assignment.status?.toLowerCase() !== 'completed';
+  if (assignment.status?.toLowerCase() === 'completed') return false;
+  if (assignment.assignmentType === 'trainer_session') {
+    return options.hasScheduledSession === true;
+  }
+  return assignment.isLoggable !== false;
 }
 
 export function getPlanDayForDate(

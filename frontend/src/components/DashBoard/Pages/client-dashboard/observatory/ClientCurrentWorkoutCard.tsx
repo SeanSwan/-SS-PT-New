@@ -64,6 +64,9 @@ function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): 
   if (!workout) return 'Your trainer will assign the default 6 Month plan after assessment.';
   if (workout.assignmentStatus === 'completed') return 'Completed today - review your workout history and progress.';
   if (workout.assignmentType === 'rest') return 'Recovery guidance is visible in your main plan today.';
+  if (workout.assignmentType === 'trainer_session') {
+    return 'Trainer-led sessions are logged by your coach from the schedule so progress and paid-session credits stay tied to the appointment.';
+  }
   if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
   if (workout.assignmentType === 'homework') {
@@ -83,12 +86,18 @@ function workoutTitle(
 }
 
 function workoutActionPath(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
+    return '/dashboard/client/schedule';
+  }
   return workout?.isLoggable
     ? '/dashboard/client/log-workout?loadPlan=today'
     : '/dashboard/client/workouts';
 }
 
 function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
+    return 'View Schedule';
+  }
   if (workout?.ctaLabel) return workout.ctaLabel;
   if (workout?.isLoggable) {
     return workout.assignmentType === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
@@ -97,6 +106,9 @@ function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
+  if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
+    return 'View schedule for trainer-led session';
+  }
   return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
 }
 

@@ -601,7 +601,10 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
       const todayAssignment = getCurrentWorkoutTodayAssignment(data);
       const currentPlanId = getCurrentWorkoutPlanId(data);
-      if (!isCurrentWorkoutAssignmentLoggable(todayAssignment)) {
+      const canLoadCurrentAssignment = isCurrentWorkoutAssignmentLoggable(todayAssignment, {
+        hasScheduledSession: Boolean(scheduledSessionId),
+      });
+      if (!canLoadCurrentAssignment) {
         const assignmentLabel = todayAssignment?.title || todayAssignment?.dayLabel || 'Today\'s assignment';
         setPlannedAssignment(null);
         toast.info(`${assignmentLabel} is not loggable right now. Review your workout history or plan vault.`);
@@ -629,7 +632,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       // homework exercises on todayAssignment even when currentSession is not
       // present in an older or narrowed route shape.
       const assignmentExercises = getCurrentWorkoutTodayAssignmentExercises(data);
-      if (todayAssignment?.isLoggable && assignmentExercises.length > 0) {
+      if (canLoadCurrentAssignment && todayAssignment && assignmentExercises.length > 0) {
         const prefilled = assignmentExercises.map((exercise) =>
           plannedExerciseToEntry(exercise, () => createWorkoutLoggerLocalId('assignment'))
         );

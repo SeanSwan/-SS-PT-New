@@ -184,6 +184,7 @@ const assignmentStatus = (session) => {
 
 const ctaForAssignment = ({ type, status, isLoggable }) => {
   if (status === 'completed') return 'Review Workout';
+  if (type === 'trainer_session') return 'View Schedule';
   if (isLoggable) return type === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
   return 'View Plan';
 };
@@ -226,9 +227,10 @@ const assignmentTypeSource = (rawPlan, currentSession, session) => (
   || buildPlanAssignmentSemantics(rawPlan).defaultAssignmentType
 );
 
-const isAssignmentLoggable = ({ exerciseCount, status, type }) => (
-  exerciseCount > 0 && status !== 'completed' && type !== 'rest'
-);
+const isAssignmentLoggable = ({ exerciseCount, status, type }) => {
+  if (type === 'trainer_session') return false;
+  return exerciseCount > 0 && status !== 'completed' && type !== 'rest';
+};
 
 const assignmentKeyFor = ({ planId, weekNumber, dayNumber, type }) => (
   planId ? `${planId}:w${weekNumber || 1}:d${dayNumber || 1}:${type}` : null
