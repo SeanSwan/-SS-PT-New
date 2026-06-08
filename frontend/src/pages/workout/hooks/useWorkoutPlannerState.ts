@@ -240,7 +240,7 @@ const useWorkoutPlannerState = (userId?: string): UseWorkoutPlannerStateReturn =
       title: planTitle,
       description: planDescription,
       durationWeeks: parseInt(planDuration),
-      status: 'active' as const,
+      status: 'draft' as const,
       tags: [],
       days: planDays
     };

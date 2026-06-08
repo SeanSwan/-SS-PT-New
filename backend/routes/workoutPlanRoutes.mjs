@@ -240,7 +240,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
     const WorkoutPlan = getWorkoutPlan();
     const {
       userId, title, description, nasmPhase,
-      startDate, endDate, durationWeeks, status,
+      startDate, endDate, durationWeeks,
       planData, progressNotes, createdBy, metadata
     } = req.body;
 
@@ -268,7 +268,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
       startDate: startDate || null,
       endDate: endDate || null,
       durationWeeks: durationWeeks || 4,
-      status: status || 'draft',
+      status: 'draft',
       currentWeek: 1,
       currentDay: 1,
       planData: planData || { weeks: [] },

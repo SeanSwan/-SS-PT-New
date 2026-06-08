@@ -18,4 +18,11 @@ describe('workout page confirmation contract', () => {
     expect(plannerHook).toContain('Delete workout plan?');
     expect(plannerComponent).toContain('ConfirmActionDialog');
   });
+
+  it('creates workout dashboard plans as drafts so activation stays explicit', () => {
+    const plannerHook = readSource('src/pages/workout/hooks/useWorkoutPlannerState.ts');
+
+    expect(plannerHook).toContain("status: 'draft' as const");
+    expect(plannerHook).not.toContain("status: 'active' as const");
+  });
 });
