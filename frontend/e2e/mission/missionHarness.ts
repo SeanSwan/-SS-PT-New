@@ -62,7 +62,10 @@ export async function installMissionUser(page: Page, user = missionClientUser) {
 export function watchConsoleErrors(page: Page) {
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+
+    const locationUrl = message.location().url;
+    consoleErrors.push(locationUrl ? `${message.text()} (${locationUrl})` : message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
   return consoleErrors;
@@ -70,6 +73,13 @@ export function watchConsoleErrors(page: Page) {
 
 export function isExpectedMissionConsoleNoise(message: string) {
   if (/preloaded using link preload/i.test(message)) return true;
+
+  if (
+    /Failed to load resource: net::ERR_CONNECTION_FAILED/i.test(message)
+    && /https:\/\/fonts\.googleapis\.com\/css2\?/i.test(message)
+  ) {
+    return true;
+  }
 
   if (
     process.env.SWAN_MISSION_QA_MODE === 'contract'
