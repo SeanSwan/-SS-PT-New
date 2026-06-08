@@ -96,6 +96,26 @@ const CREATED_CLIENT_RESPONSE = {
   },
 };
 
+const TRAINERS_RESPONSE = {
+  data: {
+    success: true,
+    trainers: [
+      {
+        id: 99,
+        firstName: 'Sean',
+        lastName: 'Swan',
+        role: 'admin',
+      },
+      {
+        id: 101,
+        firstName: 'Ari',
+        lastName: 'Coach',
+        role: 'trainer',
+      },
+    ],
+  },
+};
+
 const mockAuthAxiosGet = mockAuthAxios.get as ReturnType<typeof vi.fn>;
 const mockAuthAxiosPost = mockAuthAxios.post as ReturnType<typeof vi.fn>;
 
@@ -109,7 +129,10 @@ const renderWorkspace = () =>
 describe('ClientsWorkspace manual client creation fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAuthAxiosGet.mockResolvedValue(CLIENTS_RESPONSE);
+    mockAuthAxiosGet.mockImplementation((url: string) => {
+      if (url === '/api/admin/trainers') return Promise.resolve(TRAINERS_RESPONSE);
+      return Promise.resolve(CLIENTS_RESPONSE);
+    });
     mockAuthAxiosPost.mockResolvedValue(CREATED_CLIENT_RESPONSE);
   });
 
@@ -131,6 +154,7 @@ describe('ClientsWorkspace manual client creation fallback', () => {
     await user.type(screen.getByLabelText(/^email/i), 'manual.client@example.test');
     await user.type(screen.getByLabelText(/^username/i), 'manual.client');
     await user.type(screen.getByLabelText(/^password/i), 'Client123');
+    await user.selectOptions(await screen.findByLabelText(/assign trainer/i), '99');
 
     await user.click(screen.getByRole('button', { name: /create client/i }));
 
@@ -142,6 +166,7 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       lastName: 'Client',
       email: 'manual.client@example.test',
       username: 'manual.client',
+      trainerId: '99',
       role: 'client',
       isActive: true,
     }));
@@ -153,6 +178,21 @@ describe('ClientsWorkspace manual client creation fallback', () => {
       title: 'Client created',
       description: expect.stringContaining('Manual Client'),
     }));
+  });
+
+  it('loads assignable trainers into the canonical manual client form', async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await user.click(await screen.findByRole('button', { name: /^manual add$/i }));
+
+    await waitFor(() => {
+      expect(mockAuthAxiosGet).toHaveBeenCalledWith('/api/admin/trainers', undefined);
+    });
+
+    const trainerSelect = await screen.findByLabelText(/assign trainer/i);
+    expect(within(trainerSelect).getByRole('option', { name: /Sean Swan/i })).toHaveValue('99');
+    expect(within(trainerSelect).getByRole('option', { name: /Ari Coach/i })).toHaveValue('101');
   });
 
   it('offers both Swan Coach and manual creation in the no-client first-run state', async () => {

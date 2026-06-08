@@ -191,6 +191,7 @@ const ClientsWorkspace: React.FC = () => {
   });
   const {
     manualCreateOpen,
+    manualCreateTrainers,
     openManualCreate,
     closeManualCreate,
     handleManualCreate,
@@ -221,6 +222,7 @@ const ClientsWorkspace: React.FC = () => {
       detailTab={detailTab}
       loading={loading}
       manualCreateOpen={manualCreateOpen}
+      manualCreateTrainers={manualCreateTrainers}
       deactivationConfirmation={deactivationConfirmation}
       renderTraining={renderTraining}
       renderProgress={renderProgress}

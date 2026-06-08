@@ -285,9 +285,10 @@ let Session;
 let WorkoutSession;
 let Order;
 let DailyWorkoutForm;
+let ClientTrainerAssignment;
 
 const ensureModels = () => {
-  if (User && ClientProgress && Session && WorkoutSession && Order && DailyWorkoutForm) return;
+  if (User && ClientProgress && Session && WorkoutSession && Order && DailyWorkoutForm && ClientTrainerAssignment) return;
   const models = getAllModels();
   User = models.User;
   ClientProgress = models.ClientProgress;
@@ -295,6 +296,7 @@ const ensureModels = () => {
   WorkoutSession = models.WorkoutSession;
   Order = models.Order;
   DailyWorkoutForm = models.DailyWorkoutForm;
+  ClientTrainerAssignment = models.ClientTrainerAssignment;
   if (!User) throw new Error('User model not available — model cache may not be initialized');
 };
 
@@ -312,6 +314,42 @@ function sendInternalError(res, message) {
 const parseNonNegativeSessionCount = (value) => {
   const parsed = Number(value ?? 0);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const parseOptionalPositiveIntegerId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : Number.NaN;
+};
+
+const parseNullableUserId = (value) => {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const findAssignableTrainer = (trainerId, transaction) => User.findOne({
+  where: { id: trainerId, role: ['trainer', 'admin'] },
+  transaction
+});
+
+const createClientTrainerAssignmentIfRequested = ({
+  clientId,
+  trainerId,
+  assignedBy,
+  clientSource,
+  transaction
+}) => {
+  if (!trainerId) return null;
+  if (!ClientTrainerAssignment) throw new Error('ClientTrainerAssignment model not available');
+
+  return ClientTrainerAssignment.create({
+    clientId,
+    trainerId,
+    assignedBy: parseNullableUserId(assignedBy),
+    assignedAt: new Date(),
+    status: 'active',
+    notes: `Assigned during admin client creation (${clientSource || 'unknown_source'})`
+  }, { transaction });
 };
 
 const CLIENT_EXPORT_FIELDS = [
@@ -745,6 +783,26 @@ class AdminClientController {
         ? 0
         : requestedAvailableSessions;
 
+      const trainerIdValue = parseOptionalPositiveIntegerId(trainerId);
+      if (Number.isNaN(trainerIdValue)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Valid trainerId required'
+        });
+      }
+
+      if (trainerIdValue) {
+        const trainer = await findAssignableTrainer(trainerIdValue, transaction);
+        if (!trainer) {
+          await transaction.rollback();
+          return res.status(404).json({
+            success: false,
+            message: 'Trainer not found'
+          });
+        }
+      }
+
       // Validate password if admin-supplied
       if (password && password.length < 8) {
         await transaction.rollback();
@@ -819,15 +877,23 @@ class AdminClientController {
         logger.warn(`ClientProgress record skipped for user ${newClient.id}: ${progressError.message}`);
       }
 
+      await createClientTrainerAssignmentIfRequested({
+        clientId: newClient.id,
+        trainerId: trainerIdValue,
+        assignedBy: req.user?.id,
+        clientSource,
+        transaction
+      });
+
       // If trainer specified, create initial sessions
-      if (trainerId && normalizedAvailableSessions > 0) {
+      if (trainerIdValue && normalizedAvailableSessions > 0) {
         const sessions = [];
         for (let i = 0; i < normalizedAvailableSessions; i++) {
           // sessionDate is NOT NULL — set to a future placeholder date offset by session index
           const placeholderDate = new Date();
           placeholderDate.setDate(placeholderDate.getDate() + i + 1);
           sessions.push({
-            trainerId,
+            trainerId: trainerIdValue,
             userId: newClient.id,
             sessionDate: placeholderDate,
             status: 'available',
@@ -1556,6 +1622,7 @@ class AdminClientController {
         emergencyContact,
         clientSource = 'move_fitness',
         password,
+        trainerId,
       } = req.body;
 
       // Validate clientSource against allowed values
@@ -1584,6 +1651,26 @@ class AdminClientController {
           success: false,
           message: 'Please provide a valid email address'
         });
+      }
+
+      const trainerIdValue = parseOptionalPositiveIntegerId(trainerId);
+      if (Number.isNaN(trainerIdValue)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Valid trainerId required'
+        });
+      }
+
+      if (trainerIdValue) {
+        const trainer = await findAssignableTrainer(trainerIdValue, transaction);
+        if (!trainer) {
+          await transaction.rollback();
+          return res.status(404).json({
+            success: false,
+            message: 'Trainer not found'
+          });
+        }
       }
 
       // Generate username from email prefix with high-entropy suffix to prevent collisions
@@ -1642,6 +1729,14 @@ class AdminClientController {
       } catch (progressError) {
         logger.warn(`ClientProgress record skipped for external client ${newClient.id}: ${progressError.message}`);
       }
+
+      await createClientTrainerAssignmentIfRequested({
+        clientId: newClient.id,
+        trainerId: trainerIdValue,
+        assignedBy: req.user?.id,
+        clientSource,
+        transaction
+      });
 
       await transaction.commit();
 

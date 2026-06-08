@@ -26,6 +26,7 @@ export const CreateExternalClientSchema = z.object({
   emergencyContact: z.string().optional(),
   clientSource: ClientSourceSchema.default('move_fitness'),
   password: z.string().min(8).optional(),
+  trainerId: z.union([z.string().min(1), z.number().int().positive()]).optional(),
 });
 
 export default { ClientSourceSchema, CreateExternalClientSchema };

@@ -164,6 +164,33 @@ class AdminClientService {
   }
   
   /**
+   * Fetch trainers/admins that can own client assignments.
+   */
+  async getAssignableTrainers(): Promise<AssignableTrainer[]> {
+    try {
+      const response = await this.api.get('/admin/trainers');
+      const payload = response.data?.data || response.data || {};
+      const trainers = Array.isArray(payload.trainers)
+        ? payload.trainers
+        : Array.isArray(payload.users)
+          ? payload.users
+          : [];
+
+      return trainers
+        .filter((trainer: any) => trainer?.id && trainer?.firstName && trainer?.lastName)
+        .map((trainer: any) => ({
+          id: String(trainer.id),
+          firstName: String(trainer.firstName),
+          lastName: String(trainer.lastName),
+          role: typeof trainer.role === 'string' ? trainer.role : undefined,
+        }));
+    } catch (error) {
+      console.error('Error fetching assignable trainers:', error);
+      throw new Error('Failed to fetch trainers');
+    }
+  }
+
+  /**
    * Assign trainer to client
    */
   async assignTrainer(clientId, trainerId) {
@@ -760,6 +787,14 @@ export interface CreateExternalClientRequest {
   emergencyContact?: string;
   clientSource?: ClientSource;
   password?: string;
+  trainerId?: string;
+}
+
+export interface AssignableTrainer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role?: string;
 }
 
 export interface UpdateClientRequest {
@@ -848,6 +883,7 @@ export interface AdminClientServiceInterface {
   createExternalClient(clientData: CreateExternalClientRequest): Promise<any>;
   updateClient(clientId: string, updateData: any): Promise<any>;
   deleteClient(clientId: string): Promise<any>;
+  getAssignableTrainers(): Promise<AssignableTrainer[]>;
   assignTrainer(clientId: string, trainerId: string): Promise<any>;
   sendClientPasswordReset(clientId: string): Promise<any>;
   resetClientPassword(clientId: string): Promise<any>;
