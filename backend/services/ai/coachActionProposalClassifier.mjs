@@ -4,6 +4,7 @@
  * Parses model-emitted JSON action blocks into typed Coach proposal drafts.
  */
 import { z } from 'zod';
+import { parseClientSource } from '../sessionBillingPolicy.mjs';
 
 const SAFE_FRONTEND_EVENTS = new Set([
   'AI_ADD_EXERCISE',
@@ -138,8 +139,20 @@ function missingOnboardingFields(payload) {
   return REQUIRED_ONBOARDING_FIELDS.filter((field) => {
     const value = typeof data[field] === 'string' ? data[field].trim() : data[field];
     if (!value) return true;
-    return field === 'clientSource' ? !CLIENT_SOURCES.has(value) : false;
+    return field === 'clientSource' ? !CLIENT_SOURCES.has(parseClientSource(value)) : false;
   });
+}
+
+function normalizeOnboardingClientSource(payload) {
+  const data = onboardingData(payload) || {};
+  const clientSource = parseClientSource(data.clientSource);
+  if (!clientSource) return payload;
+
+  if (payload?.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    return { ...payload, data: { ...payload.data, clientSource } };
+  }
+
+  return { ...payload, clientSource };
 }
 
 function onboardingClarificationPayload(missingFields, meta = null) {
@@ -159,9 +172,10 @@ function classifyClientOnboardingPayload(payload, proposalTypes, meta = null) {
       payload: onboardingClarificationPayload(missingFields, meta),
     };
   }
+  const normalizedPayload = normalizeOnboardingClientSource(payload);
   return {
     type: proposalTypes.CLIENT_ONBOARDING,
-    payload: meta ? { ...payload, proposalMeta: meta } : payload,
+    payload: meta ? { ...normalizedPayload, proposalMeta: meta } : normalizedPayload,
   };
 }
 

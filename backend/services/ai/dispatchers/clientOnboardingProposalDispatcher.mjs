@@ -8,6 +8,7 @@ import {
   COACH_PROPOSAL_TYPE,
   createCoachActionProposalDraft,
 } from '../coachActionProposalService.mjs';
+import { parseClientSource } from '../../sessionBillingPolicy.mjs';
 
 const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 const EXTERNAL_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
@@ -24,12 +25,12 @@ function cleanText(value, maxLength) {
 }
 
 function pickSource(value, fallback, allowed = CLIENT_SOURCES) {
-  const source = cleanText(value, 40) || fallback;
+  const source = parseClientSource(cleanText(value, 40)) || fallback;
   return allowed.has(source) ? source : fallback;
 }
 
 function needsExplicitSourceClarification(value, allowed = CLIENT_SOURCES) {
-  const source = cleanText(value, 40);
+  const source = parseClientSource(cleanText(value, 40));
   return !source || !allowed.has(source);
 }
 

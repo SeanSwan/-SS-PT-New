@@ -6,6 +6,7 @@
  * scheduling, and future Swan Coach actions do not drift apart.
  */
 
+export const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 export const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
 
 export const CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES = Object.freeze([
@@ -22,6 +23,28 @@ export const normalizePaidSessionCount = (value) => {
   return Math.max(0, Math.floor(sessions));
 };
 
+export const parseClientSource = (clientSource) => {
+  if (typeof clientSource !== 'string') return null;
+
+  const normalized = clientSource
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+  if (normalized === 'move_fitness' || normalized === 'movefitness') return 'move_fitness';
+  if (normalized === 'external') return 'external';
+  if (normalized === 'swanstudios' || normalized === 'swan_studios') return 'swanstudios';
+  return null;
+};
+
+export const normalizeClientSource = (clientSource, fallback = 'swanstudios') => (
+  parseClientSource(clientSource) || fallback
+);
+
+export const isNonDeductingClientSource = (clientSource) => (
+  NON_DEDUCTING_CLIENT_SOURCES.has(normalizeClientSource(clientSource))
+);
+
 const normalizeCreditsRequired = (value) => {
   if (value === undefined || value === null) return 1;
 
@@ -31,8 +54,7 @@ const normalizeCreditsRequired = (value) => {
 };
 
 export function buildWorkoutSessionBillingDecision(client, options = {}) {
-  const source = typeof client?.clientSource === 'string' ? client.clientSource : 'swanstudios';
-  const shouldDeduct = !NON_DEDUCTING_CLIENT_SOURCES.has(source);
+  const shouldDeduct = !isNonDeductingClientSource(client?.clientSource);
   const availableSessions = normalizePaidSessionCount(client?.availableSessions);
   const creditsRequired = normalizeCreditsRequired(options.creditsRequired);
 
