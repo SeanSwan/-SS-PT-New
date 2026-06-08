@@ -76,8 +76,7 @@ router.get('/:userId/summary', protect, async (req, res) => {
     logger.error('Error fetching client stats summary:', error);
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching client stats summary',
-      error: error.message
+      message: 'Server error fetching client stats summary'
     });
   }
 });
