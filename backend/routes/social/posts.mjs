@@ -14,6 +14,7 @@ import GamificationPointsService from '../../services/gamification/GamificationP
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import { cleanupSocialPostDeletionSideEffects } from '../../services/social/socialPostDeletionCleanupService.mjs';
 import { getIO } from '../../socket/socketManager.mjs';
+import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 
 const router = express.Router();
 
@@ -174,7 +175,7 @@ async function awardSocialPoints(userId, action, metadata = {}) {
     };
   } catch (error) {
     console.error(`[social-points] Error awarding social points for ${action}:`, error);
-    return { pointsAwarded: 0, success: false, error: error.message };
+    return getSocialPointsFailure();
   }
 }
 
@@ -413,11 +414,7 @@ router.get('/feed', async (req, res) => {
     }
 
     console.error('Error fetching social feed:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch social feed',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch social feed');
   }
 });
 
@@ -538,11 +535,7 @@ router.get('/trending', async (req, res) => {
     }
   } catch (error) {
     console.error('Error fetching trending posts:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch trending posts',
-      error: error.message,
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch trending posts');
   }
 });
 
@@ -675,11 +668,7 @@ router.get('/user/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user posts:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch user posts',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch user posts');
   }
 });
 
@@ -839,11 +828,7 @@ router.post('/', upload.single('media'), async (req, res) => {
   } catch (error) {
     console.error('Error creating post:', error);
 
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to create post',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to create post');
   }
 });
 
@@ -932,11 +917,7 @@ router.get('/:postId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching post:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch post',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch post');
   }
 });
 
@@ -1001,11 +982,7 @@ router.put('/:postId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating post:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update post',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to update post');
   }
 });
 
@@ -1045,11 +1022,7 @@ router.delete('/:postId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting post:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete post',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to delete post');
   }
 });
 
@@ -1116,7 +1089,7 @@ router.post('/:postId/report', async (req, res) => {
     return res.status(201).json({ success: true, message: 'Report submitted successfully' });
   } catch (error) {
     console.error('Error reporting post:', error);
-    return res.status(500).json({ success: false, message: 'Failed to submit report', error: error.message });
+    return sendSocialRouteError(res, 500, 'Failed to submit report');
   }
 });
 
@@ -1259,11 +1232,7 @@ router.post('/:postId/like', async (req, res) => {
     return res.status(200).json(responseData);
   } catch (error) {
     console.error('Error reacting to post:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to react to post',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to react to post');
   }
 });
 
@@ -1295,11 +1264,7 @@ router.delete('/:postId/like', async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing reaction:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to remove reaction',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to remove reaction');
   }
 });
 
@@ -1403,11 +1368,7 @@ router.post('/:postId/comments', async (req, res) => {
     return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error adding comment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to add comment',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to add comment');
   }
 });
 
@@ -1455,11 +1416,7 @@ router.delete('/:postId/comments/:commentId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error deleting comment:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to delete comment',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to delete comment');
   }
 });
 

@@ -5,6 +5,7 @@ import sequelize from '../../database.mjs';
 import { Friendship } from '../../models/social/index.mjs';
 import User from '../../models/User.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
+import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 
 const router = express.Router();
 
@@ -68,11 +69,7 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching friends:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch friends list',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch friends list');
   }
 });
 
@@ -109,11 +106,7 @@ router.get('/requests', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching friend requests:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch friend requests',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch friend requests');
   }
 });
 
@@ -187,11 +180,7 @@ router.post('/request/:recipientId', requestLimiter, async (req, res) => {
     return res.status(result.status).json(result.body);
   } catch (error) {
     console.error('Error sending friend request:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to send friend request',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to send friend request');
   }
 });
 
@@ -245,11 +234,7 @@ router.post('/accept/:friendshipId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error accepting friend request:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to accept friend request',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to accept friend request');
   }
 });
 
@@ -296,11 +281,7 @@ router.post('/decline/:friendshipId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error declining friend request:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to decline friend request',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to decline friend request');
   }
 });
 
@@ -346,11 +327,7 @@ router.delete('/:friendshipId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error removing friendship:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to remove friendship',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to remove friendship');
   }
 });
 
@@ -415,11 +392,7 @@ router.post('/block/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error blocking user:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to block user',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to block user');
   }
 });
 
@@ -456,11 +429,7 @@ router.post('/unblock/:userId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error unblocking user:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to unblock user',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to unblock user');
   }
 });
 
@@ -557,11 +526,7 @@ router.get('/search', searchLimiter, async (req, res) => {
     });
   } catch (error) {
     console.error('Error searching users:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to search users',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to search users');
   }
 });
 
@@ -626,11 +591,7 @@ router.get('/suggestions', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching friend suggestions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch friend suggestions',
-      error: error.message
-    });
+    return sendSocialRouteError(res, 500, 'Failed to fetch friend suggestions');
   }
 });
 
