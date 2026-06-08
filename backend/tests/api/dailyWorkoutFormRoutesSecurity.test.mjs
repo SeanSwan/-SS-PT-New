@@ -28,6 +28,17 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(routeSource).toContain('code: INTERNAL_ERROR');
   });
 
+  it('does not echo raw planned-assignment error messages in the workout-form submit path', () => {
+    const submitRoute = routeSource.slice(
+      routeSource.indexOf("router.post('/', protect, checkTrainerClientRelationship"),
+      routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly")
+    );
+
+    expect(routeSource).toContain('getPlannedWorkoutAssignmentClientMessage');
+    expect(submitRoute).not.toContain('message: error.message');
+    expect(submitRoute).toContain('message: getPlannedWorkoutAssignmentClientMessage(error)');
+  });
+
   it('strictly validates workout-form list filters before querying', () => {
     const listRoute = routeSource.slice(
       routeSource.indexOf("router.get('/', protect, trainerOrAdminOnly"),

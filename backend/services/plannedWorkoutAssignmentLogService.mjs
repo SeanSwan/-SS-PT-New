@@ -17,6 +17,27 @@ export class PlannedWorkoutAssignmentError extends Error {
   }
 }
 
+const PUBLIC_PLANNED_ASSIGNMENT_MESSAGES = new Set([
+  'Planned assignment source must be workout_plan',
+  'Planned assignment metadata is incomplete',
+  'Planned assignment metadata must be an object',
+  'Only homework or active recovery assignments can use planned assignment logging',
+  'Billable assignments must be logged through scheduled session flows',
+  'Scheduled session plan metadata must be a trainer session assignment',
+  'Planned assignment date does not match the workout log date',
+  'Planned assignment does not match the active workout plan',
+  'Planned assignment is not loggable',
+  'Planned assignment type does not match the active workout plan',
+  'Planned assignment cursor does not match the active workout plan',
+  'Scheduled session plan metadata must match a trainer session assignment',
+]);
+
+export const getPlannedWorkoutAssignmentClientMessage = (error = {}) => (
+  PUBLIC_PLANNED_ASSIGNMENT_MESSAGES.has(error.message)
+    ? error.message
+    : 'Planned workout assignment could not be verified.'
+);
+
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 
 const toPositiveInteger = (value) => {

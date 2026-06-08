@@ -3,6 +3,7 @@ import {
   PlannedWorkoutAssignmentError,
   assertPlannedAssignmentMatchesOverview,
   buildPlannedAssignmentFormMetadata,
+  getPlannedWorkoutAssignmentClientMessage,
   isNonBillablePlannedWorkoutAssignment,
   normalizePlannedWorkoutAssignmentInput,
 } from '../../services/plannedWorkoutAssignmentLogService.mjs';
@@ -199,5 +200,15 @@ describe('plannedWorkoutAssignmentLogService', () => {
     });
     expect(isNonBillablePlannedWorkoutAssignment(metadata)).toBe(true);
     expect(isNonBillablePlannedWorkoutAssignment({ ...metadata, shouldDeductSession: true })).toBe(false);
+  });
+
+  it('maps planned-assignment route errors to allowlisted public copy only', () => {
+    expect(getPlannedWorkoutAssignmentClientMessage(
+      new PlannedWorkoutAssignmentError('private SQL plan cursor detail', 400)
+    )).toBe('Planned workout assignment could not be verified.');
+
+    expect(getPlannedWorkoutAssignmentClientMessage(
+      new PlannedWorkoutAssignmentError('Planned assignment does not match the active workout plan', 400)
+    )).toBe('Planned assignment does not match the active workout plan');
   });
 });

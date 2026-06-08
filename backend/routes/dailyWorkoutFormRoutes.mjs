@@ -47,6 +47,7 @@ import {
   PlannedWorkoutAssignmentError,
   assertPlannedAssignmentMatchesOverview,
   buildPlannedAssignmentFormMetadata,
+  getPlannedWorkoutAssignmentClientMessage,
   isNonBillablePlannedWorkoutAssignment,
   normalizePlannedWorkoutAssignmentInput,
 } from '../services/plannedWorkoutAssignmentLogService.mjs';
@@ -1149,7 +1150,10 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     if (error instanceof PlannedWorkoutAssignmentError) {
-      return res.status(error.status).json({ success: false, message: error.message });
+      return res.status(error.status).json({
+        success: false,
+        message: getPlannedWorkoutAssignmentClientMessage(error),
+      });
     }
     logger.error('Error submitting workout form:', error);
     return sendInternalError(res, 'Failed to submit workout form');

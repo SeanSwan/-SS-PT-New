@@ -18,6 +18,16 @@ import {
   WorkoutLogError,
 } from '../services/workout/workoutLogService.mjs';
 
+const WORKOUT_LOG_CLIENT_ERROR_MESSAGES = {
+  DUPLICATE_DATE: 'A workout session already exists for this client on this date.',
+  VALIDATION_ERROR: 'Workout log data is invalid. Check the workout details and try again.',
+};
+
+export const getWorkoutLogClientErrorMessage = (err = {}) => (
+  WORKOUT_LOG_CLIENT_ERROR_MESSAGES[err.code]
+  || 'Workout log data is invalid. Check the workout details and try again.'
+);
+
 /**
  * POST /api/admin/clients/:clientId/workouts
  *
@@ -76,7 +86,10 @@ export const logWorkout = async (req, res) => {
     } catch (err) {
       if (err instanceof WorkoutLogError) {
         const status = err.code === 'DUPLICATE_DATE' ? 409 : 400;
-        return res.status(status).json({ success: false, message: err.message });
+        return res.status(status).json({
+          success: false,
+          message: getWorkoutLogClientErrorMessage(err),
+        });
       }
       throw err;
     }

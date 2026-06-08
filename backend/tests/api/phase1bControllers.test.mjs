@@ -264,12 +264,13 @@ describe('adminOnboardingController input validation', () => {
 // ===== adminWorkoutLoggerController guards =====
 
 describe('adminWorkoutLoggerController input validation', () => {
-  let logWorkout, getClientWorkouts;
+  let logWorkout, getClientWorkouts, getWorkoutLogClientErrorMessage;
 
   beforeAll(async () => {
     const mod = await import('../../controllers/adminWorkoutLoggerController.mjs');
     logWorkout = mod.logWorkout;
     getClientWorkouts = mod.getClientWorkouts;
+    getWorkoutLogClientErrorMessage = mod.getWorkoutLogClientErrorMessage;
   });
 
   const mockRes = () => {
@@ -299,6 +300,18 @@ describe('adminWorkoutLoggerController input validation', () => {
     const res = mockRes();
     await getClientWorkouts(req, res);
     expect(res.statusCode).toBe(400);
+  });
+
+  test('workout-log validation errors do not echo raw service details', () => {
+    expect(getWorkoutLogClientErrorMessage({
+      code: 'VALIDATION_ERROR',
+      message: 'private table workouts failed with host prod-db',
+    })).toBe('Workout log data is invalid. Check the workout details and try again.');
+
+    expect(getWorkoutLogClientErrorMessage({
+      code: 'DUPLICATE_DATE',
+      message: 'private duplicate lookup internals',
+    })).toBe('A workout session already exists for this client on this date.');
   });
 });
 
