@@ -4,6 +4,7 @@ import {
   buildWorkoutSessionBillingDecision,
   isNonDeductingClientSource,
   normalizeClientSource,
+  NON_DEDUCTING_CLIENT_SOURCES,
 } from '../services/sessionBillingPolicy.mjs';
 
 describe('sessionBillingPolicy client source normalization', () => {
@@ -20,6 +21,13 @@ describe('sessionBillingPolicy client source normalization', () => {
     expect(isNonDeductingClientSource('move-fitness')).toBe(true);
     expect(isNonDeductingClientSource(' External ')).toBe(true);
     expect(isNonDeductingClientSource('swanstudios')).toBe(false);
+  });
+
+  it('keeps direct non-deducting source set consumers protected by normalization', () => {
+    expect(NON_DEDUCTING_CLIENT_SOURCES.has(' Move Fitness ')).toBe(true);
+    expect(NON_DEDUCTING_CLIENT_SOURCES.has('move-fitness')).toBe(true);
+    expect(NON_DEDUCTING_CLIENT_SOURCES.has(' External ')).toBe(true);
+    expect(NON_DEDUCTING_CLIENT_SOURCES.has('swanstudios')).toBe(false);
   });
 
   it('does not deduct paid credits for human-formatted Move Fitness workout logs', () => {
