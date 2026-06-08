@@ -17,6 +17,7 @@
     "qa:mission": "node scripts/qa/playwright-mission.mjs",
     "qa:mission:prod-readonly": "node scripts/qa/playwright-mission.mjs --prod-readonly",
     "qa:mission:prod-live-readonly": "node scripts/qa/playwright-mission.mjs --prod-live-readonly",
+    "qa:mission:prod-live-readonly:roles": "node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client",
     "qa:prod-auth:capture": "node scripts/qa/capture-prod-auth-state.mjs",
     "qa:prod-auth:capture:admin": "node scripts/qa/capture-prod-auth-state.mjs --role=admin",
     "qa:prod-auth:capture:trainer": "node scripts/qa/capture-prod-auth-state.mjs --role=trainer",

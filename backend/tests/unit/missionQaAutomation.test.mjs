@@ -54,6 +54,31 @@ describe('mission QA automation guards', () => {
     expect(source).not.toContain("['run', 'dev'");
   });
 
+  it('can require production auth states so protected live checks do not skip silently', () => {
+    const launcherPath = path.join(repoRoot, 'scripts/qa/playwright-mission.mjs');
+    const result = spawnSync(process.execPath, [
+      launcherPath,
+      '--prod-live-readonly',
+      '--require-prod-auth-roles=admin',
+    ], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        SWAN_PROD_AUTH_STATE: '',
+        SWAN_PROD_ADMIN_AUTH_STATE: '',
+        SWAN_PROD_TRAINER_AUTH_STATE: '',
+        SWAN_PROD_CLIENT_AUTH_STATE: '',
+      },
+      timeout: 5_000,
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('missing required production auth state for admin');
+    expect(result.stderr).toContain('SWAN_PROD_ADMIN_AUTH_STATE');
+    expect(result.stdout).not.toContain('Running ');
+  });
+
   it('exposes mission QA root scripts without overloading canonical smoke', () => {
     const rootPackage = JSON.parse(readRepo('package.json'));
 
@@ -62,6 +87,8 @@ describe('mission QA automation guards', () => {
       .toBe('node scripts/qa/playwright-mission.mjs --prod-readonly');
     expect(rootPackage.scripts['qa:mission:prod-live-readonly'])
       .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly');
+    expect(rootPackage.scripts['qa:mission:prod-live-readonly:roles'])
+      .toBe('node scripts/qa/playwright-mission.mjs --prod-live-readonly --require-prod-auth-roles=admin,trainer,client');
     expect(rootPackage.scripts['qa:prod-auth:capture'])
       .toBe('node scripts/qa/capture-prod-auth-state.mjs');
     expect(rootPackage.scripts['qa:prod-auth:capture:admin'])

@@ -14,6 +14,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +41,7 @@ const projectArgs = ownArgs.filter((arg) => arg.startsWith('--project='));
 const baseUrlArg = ownArgs.find((arg) => arg.startsWith('--base-url='));
 const grepArg = ownArgs.find((arg) => arg.startsWith('--grep='));
 const grepInvertArg = ownArgs.find((arg) => arg.startsWith('--grep-invert='));
+const requireProdAuthRolesArg = ownArgs.find((arg) => arg.startsWith('--require-prod-auth-roles='));
 
 const mode = writeMode
   ? 'staging-write'
@@ -124,6 +126,53 @@ function normalizedAuthStateEnv() {
   };
 }
 
+const prodAuthRoleEnv = {
+  admin: ['SWAN_PROD_ADMIN_AUTH_STATE'],
+  trainer: ['SWAN_PROD_TRAINER_AUTH_STATE'],
+  client: ['SWAN_PROD_CLIENT_AUTH_STATE', 'SWAN_PROD_AUTH_STATE'],
+};
+
+function parseRequiredProdAuthRoles() {
+  const raw = requireProdAuthRolesArg
+    ? requireProdAuthRolesArg.slice('--require-prod-auth-roles='.length)
+    : process.env.SWAN_MISSION_QA_REQUIRE_AUTH_ROLES;
+
+  if (!raw) return [];
+
+  return [...new Set(raw
+    .split(',')
+    .map((role) => role.trim().toLowerCase())
+    .filter(Boolean))];
+}
+
+function assertRequiredProdAuthStates(requiredRoles) {
+  if (requiredRoles.length === 0) return;
+  if (!prodLiveReadOnly) {
+    fail('--require-prod-auth-roles is only valid with --prod-live-readonly');
+  }
+
+  requiredRoles.forEach((role) => {
+    const envNames = prodAuthRoleEnv[role];
+    if (!envNames) {
+      fail(`unknown required production auth role "${role}"; use admin, trainer, client`);
+    }
+
+    const configuredEnv = envNames
+      .map((name) => [name, process.env[name]])
+      .find(([, value]) => Boolean(value));
+
+    if (!configuredEnv) {
+      fail(`missing required production auth state for ${role}; set ${envNames.join(' or ')}`);
+    }
+
+    const [envName, authPath] = configuredEnv;
+    const resolvedPath = normalizeAuthStatePath(authPath);
+    if (!existsSync(resolvedPath)) {
+      fail(`required production auth state for ${role} does not exist at ${resolvedPath} (${envName})`);
+    }
+  });
+}
+
 function printUsage() {
   process.stdout.write(`Usage: node scripts/qa/playwright-mission.mjs [mode] [options] [-- playwright-options]
 
@@ -138,6 +187,9 @@ Options:
   --allow-prod-write    Permit write mode against a production-looking URL after explicit approval.
   --project=<name>      Forward a Playwright project selection.
   --grep=<pattern>      Override the default mission tag filter.
+  --require-prod-auth-roles=<roles>
+                        For --prod-live-readonly, fail unless role storage states exist.
+                        Example: admin,trainer,client.
   --reporter=<name>     Forward a Playwright reporter.
   --headed              Run headed browser sessions.
   -h, --help            Print this help without starting Vite or Playwright.
@@ -146,6 +198,7 @@ Environment:
   SWAN_MISSION_QA_CONFIRM_PROD_DB_WRITES=true  Required if write mode sees a production-looking DATABASE_URL.
   SWAN_PLAYWRIGHT_FRONTEND_PORT=<port>          First local Vite port to try in contract mode.
   SWAN_PROD_AUTH_STATE=<path>                   Optional Playwright storage state for live authenticated prod checks.
+  SWAN_MISSION_QA_REQUIRE_AUTH_ROLES=<roles>     Env alternative to --require-prod-auth-roles.
 `);
 }
 
@@ -161,6 +214,9 @@ if ((prodReadOnly || prodLiveReadOnly) && writeMode) {
 if (prodReadOnly && prodLiveReadOnly) {
   fail('choose either --prod-readonly or --prod-live-readonly, not both');
 }
+
+const requiredProdAuthRoles = parseRequiredProdAuthRoles();
+assertRequiredProdAuthStates(requiredProdAuthRoles);
 
 if (writeMode && !baseUrlArg && !process.env.BASE_URL) {
   fail('write mode requires --base-url or BASE_URL so local-prod DB is not targeted by accident');
@@ -224,6 +280,9 @@ process.stdout.write(`Mission dir: ${missionDirLabel}\n`);
 process.stdout.write(`Base URL: ${baseURL}\n`);
 process.stdout.write(`Writes: ${allowWrites === '1' ? 'enabled' : 'blocked'}\n`);
 process.stdout.write(`Live API: ${liveApi === '1' ? 'enabled' : 'contract/mocked where specs define it'}\n`);
+if (requiredProdAuthRoles.length > 0) {
+  process.stdout.write(`Required prod auth roles: ${requiredProdAuthRoles.join(', ')}\n`);
+}
 process.stdout.write(`Web server: ${skipWebServer ? 'skipped' : 'managed by Playwright config'}\n\n`);
 
 const playwrightSpawnOptions = {
