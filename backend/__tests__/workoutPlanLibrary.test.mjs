@@ -302,10 +302,10 @@ describe('PUT /api/workout-plans/:id/primary', () => {
     }));
     expect(mockFindByPk).toHaveBeenLastCalledWith(50, { transaction: tx });
     expect(siblingUpdate).toHaveBeenCalledWith({
-      metadata: { planHorizon: 'three_month', isPrimaryPlan: false },
+      metadata: { planHorizon: 'three_month', isPrimaryPlan: false, primary: false },
     }, { transaction: tx });
     expect(targetUpdate).toHaveBeenCalledWith({
-      metadata: { planHorizon: 'six_month', isPrimaryPlan: true },
+      metadata: { planHorizon: 'six_month', isPrimaryPlan: true, primary: true },
     }, { transaction: tx });
     expect(tx.commit).toHaveBeenCalledOnce();
     expect(tx.rollback).not.toHaveBeenCalled();
