@@ -194,6 +194,44 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     );
   });
 
+  it('passes only safe route context tokens to the command pipeline', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'we did squats 3 sets of 10',
+        selectedClientId: 42,
+        routeContext: {
+          source: 'clients-team',
+          intent: 'daily_training_command',
+          surface: 'client-training-command-bar',
+          clientName: 'Private Client Name',
+          notes: 'contains free text that should not reach the command pipeline',
+        },
+      })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
+      'we did squats 3 sets of 10',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({
+        routeContext: {
+          source: 'clients-team',
+          intent: 'daily_training_command',
+          surface: 'client-training-command-bar',
+        },
+      }),
+    );
+    expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('clientName');
+    expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('notes');
+  });
+
   it('rejects malformed selected-client ids instead of letting stale client refs take over', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,

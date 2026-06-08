@@ -63,6 +63,24 @@ const normalizeSelectedClientId = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface'];
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+
+const normalizeRouteContext = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+  const normalized = {};
+  for (const key of ROUTE_CONTEXT_KEYS) {
+    const raw = value[key];
+    if (typeof raw !== 'string') continue;
+    const token = raw.trim();
+    if (!ROUTE_CONTEXT_TOKEN_PATTERN.test(token)) continue;
+    normalized[key] = token;
+  }
+
+  return Object.keys(normalized).length ? normalized : null;
+};
+
 // Initialize command registry on first import
 initializeRegistry();
 
@@ -70,7 +88,7 @@ initializeRegistry();
 
 router.post('/execute', protect, async (req, res) => {
   try {
-    const { message, selectedClientId, previousContext } = req.body;
+    const { message, selectedClientId, previousContext, routeContext } = req.body;
 
     if (!message || typeof message !== 'string') {
       return res.status(400).json({
@@ -116,6 +134,7 @@ router.post('/execute', protect, async (req, res) => {
       selectedClientName: null,
       selectedClientId: normalizedSelectedClientId,
       previousContext,
+      routeContext: normalizeRouteContext(routeContext),
       sequelize,
     });
 

@@ -22,6 +22,22 @@ import { classifyDeterministicCoachIntakeIntent } from './deterministicCoachInta
 // ── Confidence Threshold ────────────────────────────────────────────────────
 
 const CONFIDENCE_THRESHOLD = 0.7;
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+
+function buildRouteContextLine(routeContext) {
+  if (!routeContext || typeof routeContext !== 'object' || Array.isArray(routeContext)) return null;
+
+  const parts = ['source', 'intent', 'surface']
+    .map((key) => {
+      const value = routeContext[key];
+      if (typeof value !== 'string') return null;
+      const token = value.trim();
+      return ROUTE_CONTEXT_TOKEN_PATTERN.test(token) ? `${key}=${token}` : null;
+    })
+    .filter(Boolean);
+
+  return parts.length ? `[Route context: ${parts.join('; ')}]` : null;
+}
 const MAX_CLASSIFICATION_TIMEOUT_MS = 10000; // 10s — fast model
 
 // ── System Prompt for Intent Classification ─────────────────────────────────
@@ -72,6 +88,7 @@ User: "Show me something about clients maybe"
  * @param {string} userRole - 'admin' | 'trainer' | 'client'
  * @param {Object} [options]
  * @param {string} [options.previousContext] - Last few messages for context
+ * @param {Object} [options.routeContext] - Safe UI route context tokens
  * @param {string} [options.selectedClientName] - Currently selected client in UI
  * @returns {Promise<{ intent: string, clientRef: string|null, params: Object, confidence: number }>}
  */
@@ -79,10 +96,14 @@ export async function classifyIntent(message, userRole, options = {}) {
   const deterministicIntent = classifyDeterministicCoachIntakeIntent(message);
   if (deterministicIntent) return deterministicIntent;
 
-  const { previousContext, selectedClientName } = options;
+  const { previousContext, routeContext, selectedClientName } = options;
 
   // Build contextual message
   let contextualMessage = message;
+  const routeContextLine = buildRouteContextLine(routeContext);
+  if (routeContextLine) {
+    contextualMessage += `\n${routeContextLine}`;
+  }
   if (selectedClientName) {
     contextualMessage += `\n[Context: Currently selected client is "${selectedClientName}"]`;
   }

@@ -62,6 +62,7 @@ const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confi
  * @param {string} [options.selectedClientName] - Currently selected client in drawer
  * @param {number} [options.selectedClientId] - Currently selected client ID
  * @param {string} [options.previousContext] - Recent conversation context
+ * @param {Object} [options.routeContext] - Safe UI route context tokens
  * @param {Object} [options.sequelize] - Sequelize instance for DB operations
  * @returns {CommandContext}
  */
@@ -169,6 +170,7 @@ async function stepClassify(ctx) {
   ctx.stage = 'classify';
   ctx.intent = await classifyIntent(ctx.sanitizedInput, ctx.user.role, {
     previousContext: ctx.options.previousContext,
+    routeContext: ctx.options.routeContext,
     selectedClientName: ctx.options.selectedClientName,
   });
   return ctx;
@@ -548,6 +550,9 @@ function auditPipelineResult(ctx) {
     error: ctx.error || null,
     resultType: ctx.result?.type || null,
     clientId: ctx.resolvedClient?.id || null,
+    routeSource: ctx.options?.routeContext?.source || null,
+    routeIntent: ctx.options?.routeContext?.intent || null,
+    routeSurface: ctx.options?.routeContext?.surface || null,
     threats: ctx.metadata.threats.length,
     phiStripped: ctx.metadata.phiMatches.length,
     totalMs: ctx.metadata.timing.totalMs,

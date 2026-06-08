@@ -18,9 +18,10 @@ async function loadPipeline({
     suggestions: [],
     error: null,
   }));
+  const classifyIntent = vi.fn(async () => intent);
 
   vi.doMock('../../services/ai/intentClassifier.mjs', () => ({
-    classifyIntent: vi.fn(async () => intent),
+    classifyIntent,
   }));
   vi.doMock('../../services/ai/clientResolver.mjs', () => ({
     resolveClient,
@@ -34,7 +35,7 @@ async function loadPipeline({
   registry.initializeRegistry();
   const executor = await import('../../services/ai/commandExecutor.mjs');
 
-  return { ...executor, resolveClient };
+  return { ...executor, resolveClient, classifyIntent };
 }
 
 afterEach(() => {
@@ -80,6 +81,40 @@ describe('command executor client reference validation', () => {
 
     expect(resolveClient).not.toHaveBeenCalled();
     expect(String(ctx.error ?? '')).toMatch(/which client/i);
+  });
+
+  it('passes route context into command intent classification without client identity', async () => {
+    const { executeCommandPipeline, classifyIntent } = await loadPipeline({
+      intent: {
+        intent: 'chat',
+        clientRef: null,
+        params: {},
+        confidence: 1,
+      },
+    });
+
+    const ctx = await executeCommandPipeline('we did squats 3 sets of 10', adminUser, {
+      selectedClientId: 42,
+      routeContext: {
+        source: 'clients-team',
+        intent: 'daily_training_command',
+        surface: 'client-training-command-bar',
+      },
+      sequelize: {},
+    });
+
+    expect(ctx.error).toBeNull();
+    expect(classifyIntent).toHaveBeenCalledWith(
+      'we did squats 3 sets of 10',
+      'admin',
+      expect.objectContaining({
+        routeContext: {
+          source: 'clients-team',
+          intent: 'daily_training_command',
+          surface: 'client-training-command-bar',
+        },
+      }),
+    );
   });
 
   it('does not require a numeric clientId before resolving a spoken client name', async () => {
