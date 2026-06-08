@@ -195,6 +195,15 @@ describe('ClientWorkoutPlansPanel', () => {
               exerciseCount: 3,
               firstExerciseName: 'Goblet Squat',
             },
+            {
+              assignmentType: 'homework',
+              formId: 'daily-form-2',
+              completedAt: '2026-06-02T12:00:00.000Z',
+              weekNumber: 4,
+              dayNumber: 1,
+              exerciseCount: 2,
+              firstExerciseName: 'Split Squat',
+            },
           ],
         },
       },
@@ -207,6 +216,10 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(homeworkPanel).toHaveTextContent(/completed today/i);
     expect(homeworkPanel).toHaveTextContent(/2 recent logs/i);
     expect(homeworkPanel).toHaveTextContent(/goblet squat/i);
+    expect(homeworkPanel).toHaveTextContent(/recent homework history/i);
+    expect(homeworkPanel).toHaveTextContent(/week 4/i);
+    expect(homeworkPanel).toHaveTextContent(/day 1/i);
+    expect(homeworkPanel).toHaveTextContent(/split squat/i);
   });
   it('surfaces primary horizon and opens protected PDFs through authAxios', async () => {
     const user = userEvent.setup();

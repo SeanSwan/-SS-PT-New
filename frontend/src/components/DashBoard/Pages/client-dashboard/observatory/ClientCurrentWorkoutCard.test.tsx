@@ -30,7 +30,15 @@ describe('ClientCurrentWorkoutCard', () => {
             todayFirstExerciseName: 'Goblet Squat',
             recentCompletedCount: 2,
             lastCompletedAt: '2026-06-05T12:00:00.000Z',
-            recentCompletions: [],
+            recentCompletions: [
+              {
+                completedAt: '2026-06-05T12:00:00.000Z',
+                weekNumber: 4,
+                dayNumber: 2,
+                exerciseCount: 3,
+                firstExerciseName: 'Goblet Squat',
+              },
+            ],
           },
         }}
         onNavigate={onNavigate}
@@ -43,6 +51,10 @@ describe('ClientCurrentWorkoutCard', () => {
     expect(card).toHaveTextContent(/no paid session deduction/i);
     expect(card).toHaveTextContent(/off-day logs/i);
     expect(card).toHaveTextContent(/2 completed/i);
+    expect(card).toHaveTextContent(/recent homework/i);
+    expect(card).toHaveTextContent(/week 4/i);
+    expect(card).toHaveTextContent(/day 2/i);
+    expect(card).toHaveTextContent(/jun 5/i);
     expect(screen.getByRole('button', { name: /log today's assignment/i })).toHaveTextContent(/log assignment/i);
   });
 });

@@ -1,14 +1,26 @@
 /**
- * Client Hub off-day homework summary.
- * ====================================
+ * ============================================================================
+ * FILE: ClientWorkoutHomeworkSummary.tsx
+ * PURPOSE: Trainer/admin read-only off-day homework status panel.
+ * ============================================================================
  *
- * Shows trainer/admin users the current homework completion state and recent
- * off-day log count from the shared client training read model.
+ * WHAT THIS FILE DOES:
+ * Shows today's homework assignment state plus recent homework completion
+ * history from the shared client training read model.
+ *
+ * HOW IT FITS IN THE APP:
+ * ClientWorkoutPlansPanel renders this beside plan-vault arcs so trainers and
+ * admins can quickly see whether assigned off-day work is visible and complete.
  */
 
 import React from 'react';
 import { ClipboardCheck } from 'lucide-react';
-import type { ClientHomeworkSummary } from './ClientWorkoutPlansPanel.logic';
+import {
+  formatHomeworkCompletionDate,
+  formatHomeworkCompletionExerciseLabel,
+  formatHomeworkCompletionPosition,
+  type ClientHomeworkSummary,
+} from '../../../shared/client-training/clientHomeworkSummary';
 import {
   VaultGrid,
   VaultHeader,
@@ -51,6 +63,7 @@ const ClientWorkoutHomeworkSummary: React.FC<ClientWorkoutHomeworkSummaryProps> 
   homeworkSummary,
 }) => {
   if (!homeworkSummary) return null;
+  const recentCompletions = homeworkSummary.recentCompletions.slice(0, 3);
 
   return (
     <VaultSection aria-label="Off-day homework summary">
@@ -70,6 +83,34 @@ const ClientWorkoutHomeworkSummary: React.FC<ClientWorkoutHomeworkSummaryProps> 
           <VaultSlotDetail>{deductionLabel(homeworkSummary)}</VaultSlotDetail>
         </VaultSlot>
       </VaultGrid>
+      {recentCompletions.length > 0 && (
+        <>
+          <VaultHeader>
+            <VaultTitle>Recent Homework History</VaultTitle>
+            <VaultMeta>Last {recentCompletions.length}</VaultMeta>
+          </VaultHeader>
+          <VaultGrid>
+            {recentCompletions.map((completion) => (
+              <VaultSlot
+                key={`${completion.completedAt || completion.scheduledDate}-${completion.weekNumber}-${completion.dayNumber}`}
+                $filled
+                $primary={false}
+              >
+                <VaultSlotTop>
+                  <VaultSlotLabel>{formatHomeworkCompletionPosition(completion, ' - ', 'Logged homework')}</VaultSlotLabel>
+                  <VaultSlotStatus $primary={false}>
+                    {formatHomeworkCompletionDate(completion)}
+                  </VaultSlotStatus>
+                </VaultSlotTop>
+                <VaultSlotPlanName>
+                  {formatHomeworkCompletionExerciseLabel(completion, { startsWith: true })}
+                </VaultSlotPlanName>
+                <VaultSlotDetail>Homework diary complete</VaultSlotDetail>
+              </VaultSlot>
+            ))}
+          </VaultGrid>
+        </>
+      )}
     </VaultSection>
   );
 };

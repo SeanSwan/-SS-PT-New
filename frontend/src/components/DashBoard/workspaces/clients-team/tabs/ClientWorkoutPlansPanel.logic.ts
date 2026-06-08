@@ -1,5 +1,8 @@
 import { mapSavedPlan } from '../../../Pages/admin-workout-planner/workoutPlannerSavedPlanMapping';
+import { normalizeClientHomeworkSummary } from '../../../shared/client-training/clientHomeworkSummary';
 import { normalizeClientPlanUse } from './ClientWorkoutPlanUse.logic';
+
+export type { ClientHomeworkSummary } from '../../../shared/client-training/clientHomeworkSummary';
 
 type HorizonKey = 'one_day' | 'one_week' | 'one_month' | 'three_month' | 'six_month' | 'nine_month' | 'twelve_month';
 const PLAN_HORIZON_SLOTS: Array<{
@@ -61,18 +64,6 @@ export interface ClientPlanVaultSummary {
   primaryPlanId: string | null;
   primaryHorizonKey: HorizonKey | null;
   slots: ClientPlanHorizonSlot[];
-}
-
-export interface ClientHomeworkSummary {
-  assignmentType: string;
-  todayStatus: string;
-  todayIsCompleted: boolean;
-  todayIsLoggable: boolean;
-  todayShouldDeductSession: boolean;
-  todayExerciseCount: number;
-  todayFirstExerciseName: string | null;
-  recentCompletedCount: number;
-  lastCompletedAt: string | null;
 }
 
 export interface ClientTodayAssignmentSummary {
@@ -254,22 +245,6 @@ const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | 
   };
 };
 
-const normalizeHomeworkSummary = (value: unknown): ClientHomeworkSummary | null => {
-  if (!value || typeof value !== 'object') return null;
-  const raw = value as Record<string, unknown>;
-  return {
-    assignmentType: typeof raw.assignmentType === 'string' ? raw.assignmentType : 'none',
-    todayStatus: typeof raw.todayStatus === 'string' ? raw.todayStatus : 'none',
-    todayIsCompleted: raw.todayIsCompleted === true,
-    todayIsLoggable: raw.todayIsLoggable === true,
-    todayShouldDeductSession: raw.todayShouldDeductSession === true,
-    todayExerciseCount: numberOrFallback(raw.todayExerciseCount, 0),
-    todayFirstExerciseName: typeof raw.todayFirstExerciseName === 'string' ? raw.todayFirstExerciseName : null,
-    recentCompletedCount: numberOrFallback(raw.recentCompletedCount, 0),
-    lastCompletedAt: typeof raw.lastCompletedAt === 'string' ? raw.lastCompletedAt : null,
-  };
-};
-
 const rawPlansFromResponse = (responseData: ClientWorkoutPlansResponseSummary) => (
   Array.isArray(responseData.plans)
     ? responseData.plans
@@ -302,7 +277,7 @@ export const normalizeClientWorkoutPlansResponse = (
   return {
     plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
     serverPlanVault,
-    homeworkSummary: normalizeHomeworkSummary(responseData.homeworkSummary),
+    homeworkSummary: normalizeClientHomeworkSummary(responseData.homeworkSummary),
     todayAssignment: normalizeTodayAssignment(responseData.todayAssignment),
   };
 };

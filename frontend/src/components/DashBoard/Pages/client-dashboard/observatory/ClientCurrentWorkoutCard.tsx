@@ -32,6 +32,12 @@ import {
   WidgetRow,
   WidgetValue,
 } from './ClientObservatoryFeed.styles';
+import {
+  formatHomeworkCompletionDate,
+  formatHomeworkCompletionExerciseLabel,
+  formatHomeworkCompletionPosition,
+  latestHomeworkCompletion,
+} from '../../../shared/client-training/clientHomeworkSummary';
 import type { CurrentClientWorkout } from './useCurrentClientWorkout';
 
 interface ClientCurrentWorkoutCardProps {
@@ -141,42 +147,56 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
   currentWorkoutError,
   currentWorkoutLoading,
   onNavigate,
-}) => (
-  <WidgetCard data-testid="current-workout-card">
-    <CardInner>
-      <WidgetHeader>
-        <div>
-          <SectionKicker>
-            <ClipboardCheck size={14} aria-hidden="true" />
-            {sectionKickerLabel(currentWorkout)}
-          </SectionKicker>
-          <SectionTitle>{workoutTitle(currentWorkout, currentWorkoutError, currentWorkoutLoading)}</SectionTitle>
-        </div>
-        <SmallButton
-          type="button"
-          aria-label={workoutActionAriaLabel(currentWorkout)}
-          onClick={() => onNavigate(workoutActionPath(currentWorkout))}
-        >
-          {workoutActionLabel(currentWorkout)}
-        </SmallButton>
-      </WidgetHeader>
-      <WidgetList>
-        <WidgetRow>
-          <WidgetLabel>{workoutPosition(currentWorkout)}</WidgetLabel>
-          <WidgetValue>{assignmentLabel(currentWorkout?.assignmentType)}</WidgetValue>
-        </WidgetRow>
-        {currentWorkout?.homeworkSummary && (
+}) => {
+  const latestCompletion = latestHomeworkCompletion(currentWorkout?.homeworkSummary);
+
+  return (
+    <WidgetCard data-testid="current-workout-card">
+      <CardInner>
+        <WidgetHeader>
+          <div>
+            <SectionKicker>
+              <ClipboardCheck size={14} aria-hidden="true" />
+              {sectionKickerLabel(currentWorkout)}
+            </SectionKicker>
+            <SectionTitle>{workoutTitle(currentWorkout, currentWorkoutError, currentWorkoutLoading)}</SectionTitle>
+          </div>
+          <SmallButton
+            type="button"
+            aria-label={workoutActionAriaLabel(currentWorkout)}
+            onClick={() => onNavigate(workoutActionPath(currentWorkout))}
+          >
+            {workoutActionLabel(currentWorkout)}
+          </SmallButton>
+        </WidgetHeader>
+        <WidgetList>
           <WidgetRow>
-            <WidgetLabel>{homeworkLogLabel(currentWorkout)}</WidgetLabel>
-            <WidgetValue>{homeworkLogValue(currentWorkout)}</WidgetValue>
+            <WidgetLabel>{workoutPosition(currentWorkout)}</WidgetLabel>
+            <WidgetValue>{assignmentLabel(currentWorkout?.assignmentType)}</WidgetValue>
           </WidgetRow>
-        )}
-      </WidgetList>
-      <MutedText $top="0.75rem">
-        {workoutDetail(currentWorkout, currentWorkoutError)}
-      </MutedText>
-    </CardInner>
-  </WidgetCard>
-);
+          {currentWorkout?.homeworkSummary && (
+            <WidgetRow>
+              <WidgetLabel>{homeworkLogLabel(currentWorkout)}</WidgetLabel>
+              <WidgetValue>{homeworkLogValue(currentWorkout)}</WidgetValue>
+            </WidgetRow>
+          )}
+          {latestCompletion && (
+            <WidgetRow>
+              <WidgetLabel>
+                Recent homework - {formatHomeworkCompletionPosition(latestCompletion, ' ')}
+                {' - '}
+                {formatHomeworkCompletionDate(latestCompletion)}
+              </WidgetLabel>
+              <WidgetValue>{formatHomeworkCompletionExerciseLabel(latestCompletion)}</WidgetValue>
+            </WidgetRow>
+          )}
+        </WidgetList>
+        <MutedText $top="0.75rem">
+          {workoutDetail(currentWorkout, currentWorkoutError)}
+        </MutedText>
+      </CardInner>
+    </WidgetCard>
+  );
+};
 
 export default ClientCurrentWorkoutCard;

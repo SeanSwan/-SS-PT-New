@@ -11,8 +11,13 @@ import {
   type ClientTrainingPlanVault,
   type TrainingPlanCatalogPreview,
 } from './clientTrainingPlanVaultNormalizer';
+import {
+  normalizeClientHomeworkSummary,
+  type ClientHomeworkSummary,
+} from '../../../shared/client-training/clientHomeworkSummary';
 
 export type { ClientTrainingPlanSlot, ClientTrainingPlanVault } from './clientTrainingPlanVaultNormalizer';
+export type { ClientHomeworkSummary } from '../../../shared/client-training/clientHomeworkSummary';
 
 interface PlannedExercisePreview {
   name?: string;
@@ -45,18 +50,6 @@ interface TodayAssignmentPreview {
   ctaLabel?: string;
 }
 
-interface HomeworkSummaryPreview {
-  assignmentType?: string;
-  todayStatus?: string;
-  todayIsCompleted?: boolean;
-  todayIsLoggable?: boolean;
-  todayShouldDeductSession?: boolean;
-  todayExerciseCount?: number;
-  todayFirstExerciseName?: string | null;
-  recentCompletedCount?: number;
-  lastCompletedAt?: string | null;
-}
-
 interface CurrentWorkoutPlanPreview {
   title?: string;
   name?: string;
@@ -64,7 +57,7 @@ interface CurrentWorkoutPlanPreview {
   currentDay?: number | string;
   currentSession?: CurrentSessionPreview | null;
   todayAssignment?: TodayAssignmentPreview | null;
-  homeworkSummary?: HomeworkSummaryPreview | null;
+  homeworkSummary?: unknown;
   trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
 }
 
@@ -73,20 +66,8 @@ interface CurrentWorkoutResponse {
   plan?: CurrentWorkoutPlanPreview | null;
   currentSession?: CurrentSessionPreview | null;
   todayAssignment?: TodayAssignmentPreview | null;
-  homeworkSummary?: HomeworkSummaryPreview | null;
+  homeworkSummary?: unknown;
   trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
-}
-
-export interface ClientHomeworkSummary {
-  assignmentType: string;
-  todayStatus: string;
-  todayIsCompleted: boolean;
-  todayIsLoggable: boolean;
-  todayShouldDeductSession: boolean;
-  todayExerciseCount: number;
-  todayFirstExerciseName?: string | null;
-  recentCompletedCount: number;
-  lastCompletedAt?: string | null;
 }
 
 export interface CurrentClientWorkout {
@@ -127,21 +108,6 @@ function exerciseName(exercise?: PlannedExercisePreview): string | undefined {
   return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
 }
 
-function normalizeHomeworkSummary(raw?: HomeworkSummaryPreview | null): ClientHomeworkSummary | null {
-  if (!raw) return null;
-  return {
-    assignmentType: raw.assignmentType || 'none',
-    todayStatus: raw.todayStatus || 'none',
-    todayIsCompleted: raw.todayIsCompleted === true,
-    todayIsLoggable: raw.todayIsLoggable === true,
-    todayShouldDeductSession: raw.todayShouldDeductSession === true,
-    todayExerciseCount: Number(raw.todayExerciseCount) || 0,
-    todayFirstExerciseName: raw.todayFirstExerciseName || null,
-    recentCompletedCount: Number(raw.recentCompletedCount) || 0,
-    lastCompletedAt: raw.lastCompletedAt || null,
-  };
-}
-
 function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null): CurrentClientWorkout | null {
   const plan = payload?.data || payload?.plan || null;
   const assignment = payload?.todayAssignment || plan?.todayAssignment || null;
@@ -173,7 +139,7 @@ function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null):
     exerciseCount: assignmentExerciseCount ?? exercises.length,
     firstExercise: assignmentFirstExercise || exerciseName(exercises[0]),
     primaryPlanLabel: primaryPlanLabel(catalog),
-    homeworkSummary: normalizeHomeworkSummary(homeworkSummary),
+    homeworkSummary: normalizeClientHomeworkSummary(homeworkSummary),
   };
 }
 
