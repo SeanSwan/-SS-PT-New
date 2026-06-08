@@ -13,6 +13,7 @@ const toPositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 const DAILY_FORM_COMPLETION_ATTRIBUTES = ['id', 'formData', 'submittedAt', 'updatedAt'];
+const DAILY_FORM_RECENT_COMPLETION_ATTRIBUTES = ['id', 'date', 'formData', 'submittedAt', 'updatedAt'];
 const DAILY_FORM_COMPLETION_ORDER = [['submittedAt', 'DESC'], ['updatedAt', 'DESC']];
 
 const parseJsonObject = (value) => {
@@ -45,6 +46,7 @@ const buildPlannedAssignmentCompletionFromDailyForm = (dailyForm) => {
     dayLabel: compactString(plannedAssignment?.dayLabel),
     exerciseCount: toPositiveInteger(plannedAssignment?.exerciseCount) || 0,
     firstExerciseName: compactString(plannedAssignment?.firstExerciseName),
+    scheduledDate: raw.date ?? null,
     formId: raw.id ?? null,
     completedAt: raw.submittedAt ?? raw.updatedAt ?? raw.createdAt ?? null,
   };
@@ -79,6 +81,26 @@ export const findPlannedAssignmentCompletionsForDate = async (
 
   try {
     const dailyForms = await readDailyWorkoutFormsForCompletion(DailyWorkoutForm, clientId, date);
+    return buildCompletionList(dailyForms);
+  } catch (error) {
+    if (typeof onLookupError === 'function') onLookupError(error);
+    return [];
+  }
+};
+
+export const findRecentPlannedAssignmentCompletions = async (
+  DailyWorkoutForm,
+  { clientId, limit = 12, onLookupError } = {},
+) => {
+  if (!DailyWorkoutForm?.findAll || !clientId) return [];
+
+  try {
+    const dailyForms = await DailyWorkoutForm.findAll({
+      where: { clientId },
+      attributes: DAILY_FORM_RECENT_COMPLETION_ATTRIBUTES,
+      order: DAILY_FORM_COMPLETION_ORDER,
+      limit: Math.min(50, Math.max(1, Number.parseInt(limit, 10) || 12)),
+    });
     return buildCompletionList(dailyForms);
   } catch (error) {
     if (typeof onLookupError === 'function') onLookupError(error);

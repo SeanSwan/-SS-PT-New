@@ -12,6 +12,7 @@ import { DEFAULT_PLAN_HORIZON_KEY, PLAN_HORIZONS, normalizePlanHorizonKey } from
 import { buildPlanAssignmentSemantics, normalizeAssignmentType } from './clientTrainingAssignmentSemanticsService.mjs';
 import { applyAssignmentCompletion } from './clientTrainingAssignmentCompletionService.mjs';
 import { buildCompletedAssignmentFromLoggedCompletion } from './clientTrainingCompletedAssignmentReadService.mjs';
+import { buildHomeworkSummary } from './clientTrainingHomeworkSummaryService.mjs';
 import { extractWorkoutPlanPdfAttachment } from './workoutPlanPdfAttachmentService.mjs';
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
@@ -30,7 +31,6 @@ const parseDateOnly = (value) => {
 const normalizeDateOnly = (value) => (
   isDateOnlyString(value) ? value : (value ? parseDateOnly(value) : null) || todayDateOnly()
 );
-
 const isDurationHorizon = (slot) => slot.key !== 'one_day';
 const horizonScore = (slot, durationWeeks) => (
   Math.abs(slot.durationWeeks - durationWeeks) * 1000 - slot.durationWeeks
@@ -39,9 +39,8 @@ const findClosestDurationHorizon = (durationWeeks) => (
   PLAN_HORIZONS
     .filter(isDurationHorizon)
     .sort((a, b) => horizonScore(a, durationWeeks) - horizonScore(b, durationWeeks))[0]
-    || null
+  || null
 );
-
 const inferPlanHorizonKey = (plan) => {
   const raw = toPlainObject(plan) || {};
   const metadata = toPlainObject(raw.metadata) || {};
@@ -59,7 +58,6 @@ const inferPlanHorizonKey = (plan) => {
   ));
   if (exact) return exact.key;
   if (!durationWeeks) return 'six_month';
-
   const closest = findClosestDurationHorizon(durationWeeks);
   return closest?.key || 'six_month';
 };
@@ -68,14 +66,11 @@ const planUpdatedTime = (plan) => {
   const value = [raw.updatedAt, raw.createdAt, raw.startDate].find(Boolean);
   return value ? new Date(value).getTime() || 0 : 0;
 };
-
 const hasPrimaryMetadata = (plan) => {
   const metadata = toPlainObject(plan.metadata) || {};
   return metadata.isPrimaryPlan === true || metadata.primary === true;
 };
-
 const samePlanId = (plan, planId) => Boolean(planId) && String(plan.id) === String(planId);
-
 const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
   const matchers = [
     (plan) => samePlanId(plan, explicitPrimaryPlanId),
@@ -86,7 +81,6 @@ const selectPrimaryPlan = (planRows, explicitPrimaryPlanId) => {
   ];
   return matchers.map((matches) => planRows.find(matches)).find(Boolean) || null;
 };
-
 const planSummary = (plan, horizonKey, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = toPlainObject(raw.metadata) || {};
@@ -110,7 +104,6 @@ const planSummary = (plan, horizonKey, isPrimary) => {
     defaultShouldDeductSession: assignmentSemantics.shouldDeductSession,
   };
 };
-
 const comparePlanPreference = (primaryPlanId) => (a, b) => {
   const primaryDiff = Number(samePlanId(b, primaryPlanId)) - Number(samePlanId(a, primaryPlanId));
   if (primaryDiff) return primaryDiff;
@@ -156,7 +149,6 @@ const buildTrainingPlanCatalog = (plans = [], options = {}) => {
     slots,
   };
 };
-
 const firstExerciseName = (exercises) => {
   const first = Array.isArray(exercises) ? exercises[0] : null;
   return firstCompactString(first?.exerciseName, first?.name, first?.exercise?.name);
@@ -181,14 +173,12 @@ const assignmentStatus = (session) => {
   const completed = session?.completed === true || session?.isCompleted === true;
   return ASSIGNMENT_STATUSES.has(raw) ? raw : completed ? 'completed' : 'planned';
 };
-
 const ctaForAssignment = ({ type, status, isLoggable }) => {
   if (status === 'completed') return 'Review Workout';
   if (type === 'trainer_session') return 'View Schedule';
   if (isLoggable) return type === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
   return 'View Plan';
 };
-
 const pendingTodayAssignment = (today) => ({
   assignmentId: null,
   assignmentKey: null,
@@ -288,12 +278,24 @@ export const buildClientTrainingOverview = ({
   currentSession = null,
   today = null,
   assignmentCompletions = [],
-} = {}) => ({
-  todayAssignment: buildTodayAssignment({
+  recentAssignmentCompletions = [],
+} = {}) => {
+  const todayAssignment = buildTodayAssignment({
     plan: activePlan,
     currentSession,
     today,
     assignmentCompletions,
-  }),
-  trainingPlanCatalog: buildTrainingPlanCatalog(plans.length ? plans : activePlan ? [activePlan] : []),
-});
+  });
+  const recentCompletions = recentAssignmentCompletions.length
+    ? recentAssignmentCompletions
+    : assignmentCompletions;
+
+  return {
+    todayAssignment,
+    trainingPlanCatalog: buildTrainingPlanCatalog(plans.length ? plans : activePlan ? [activePlan] : []),
+    homeworkSummary: buildHomeworkSummary({
+      todayAssignment,
+      recentAssignmentCompletions: recentCompletions,
+    }),
+  };
+};

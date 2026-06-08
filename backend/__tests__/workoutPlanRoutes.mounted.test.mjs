@@ -298,7 +298,7 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       }));
     });
 
-    it('trainer + assigned client GET /client/:userId overlays logged planned-assignment completion', async () => {
+    it('trainer + assigned client GET /client/:userId overlays logged planned-assignment completion and homework summary', async () => {
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
       const activePlan = {
         id: 'plan-1',
@@ -323,14 +323,15 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
       mockDailyWorkoutFormFindAll.mockResolvedValue([{
         id: 'form-1',
+        date: '2026-06-07',
         formData: {
           plannedAssignment: {
             assignmentKey: 'plan-1:w1:d1:homework',
             assignmentType: 'homework',
-            title: 'Coach Homework',
+            title: 'ClientNameMustNotLeak Homework',
             weekNumber: 1,
             dayNumber: 1,
-            dayLabel: 'Coach Homework',
+            dayLabel: 'ClientNameMustNotLeak Homework',
             exerciseCount: 1,
             firstExerciseName: 'Goblet Squat',
           },
@@ -361,6 +362,23 @@ describe('workoutPlanRoutes — mounted route stack', () => {
           completedAt: '2026-06-07T15:00:00.000Z',
         },
       });
+      expect(res.body.homeworkSummary).toMatchObject({
+        assignmentType: 'homework',
+        todayStatus: 'completed',
+        todayIsCompleted: true,
+        todayIsLoggable: false,
+        recentCompletedCount: 1,
+        recentCompletions: [
+          expect.objectContaining({
+            assignmentType: 'homework',
+            weekNumber: 1,
+            dayNumber: 1,
+            exerciseCount: 1,
+            firstExerciseName: 'Goblet Squat',
+          }),
+        ],
+      });
+      expect(JSON.stringify(res.body.homeworkSummary)).not.toContain('ClientNameMustNotLeak');
     });
 
     it('trainer WITHOUT assignment GET /client/:userId -> 404 (existence-leak protection)', async () => {

@@ -10,9 +10,13 @@ import { getAllModels } from '../../../models/index.mjs';
 import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
-import { findPlannedAssignmentCompletionsForDate } from '../../clientTrainingAssignmentCompletionService.mjs';
+import {
+  findPlannedAssignmentCompletionsForDate,
+  findRecentPlannedAssignmentCompletions,
+} from '../../clientTrainingAssignmentCompletionService.mjs';
 import { summarizeAssignmentExercises } from '../../clientTrainingExercisePreviewService.mjs';
 import { summarizeTrainingPlanCatalog } from './clientTrainingCatalogSummary.mjs';
+import { summarizeHomeworkSummary } from './clientHomeworkSummaryReadSanitizer.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -131,6 +135,7 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
       exerciseCount: 0,
       firstExerciseName: null,
       todayAssignment: summarizeTodayAssignment(overview.todayAssignment),
+      homeworkSummary: summarizeHomeworkSummary(overview.homeworkSummary),
       trainingPlanCatalog: summarizeTrainingPlanCatalog(overview.trainingPlanCatalog),
     };
   }
@@ -143,12 +148,19 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
     DailyWorkoutForm,
     { clientId: userId, date: today },
   );
+  const recentAssignmentCompletions = await findRecentPlannedAssignmentCompletions(
+    DailyWorkoutForm,
+    { clientId: userId },
+  );
   const overview = buildClientTrainingOverview({
     activePlan: plan,
     plans: catalogPlans.length ? catalogPlans : [plan],
     currentSession,
     today,
     assignmentCompletions,
+    recentAssignmentCompletions: recentAssignmentCompletions.length
+      ? recentAssignmentCompletions
+      : assignmentCompletions,
   });
 
   return {
@@ -161,6 +173,7 @@ export const dispatchMyWorkoutToday = async (_params = {}, ctx = {}) => {
     exerciseCount: exercises.length,
     firstExerciseName: firstExercise?.exerciseName || firstExercise?.name || null,
     todayAssignment: summarizeTodayAssignment(overview.todayAssignment),
+    homeworkSummary: summarizeHomeworkSummary(overview.homeworkSummary),
     trainingPlanCatalog: summarizeTrainingPlanCatalog(overview.trainingPlanCatalog),
   };
 };

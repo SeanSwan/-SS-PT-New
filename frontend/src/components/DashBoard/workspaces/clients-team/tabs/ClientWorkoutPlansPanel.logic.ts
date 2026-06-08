@@ -1,8 +1,10 @@
 import { mapSavedPlan } from '../../../Pages/admin-workout-planner/workoutPlannerSavedPlanMapping';
+import { normalizeClientHomeworkSummary } from '../../../shared/client-training/clientHomeworkSummary';
 import { normalizeClientPlanUse } from './ClientWorkoutPlanUse.logic';
 
-type HorizonKey = 'one_day' | 'one_week' | 'one_month' | 'three_month' | 'six_month' | 'nine_month' | 'twelve_month';
+export type { ClientHomeworkSummary } from '../../../shared/client-training/clientHomeworkSummary';
 
+type HorizonKey = 'one_day' | 'one_week' | 'one_month' | 'three_month' | 'six_month' | 'nine_month' | 'twelve_month';
 const PLAN_HORIZON_SLOTS: Array<{
   key: HorizonKey;
   label: string;
@@ -19,7 +21,6 @@ const PLAN_HORIZON_SLOTS: Array<{
   { key: 'twelve_month', label: '12 Month', durationWeeks: 52, durationDays: 365, isDefault: false },
 ];
 const PLAN_HORIZON_KEYS = new Set<HorizonKey>(PLAN_HORIZON_SLOTS.map((slot) => slot.key));
-
 const normalizeCatalogHorizonKey = (value: unknown): HorizonKey | null => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
   return PLAN_HORIZON_KEYS.has(raw as HorizonKey) ? raw as HorizonKey : null;
@@ -31,7 +32,6 @@ export interface ClientPlanPdfFile {
   contentType: string;
   updatedAt: string | null;
 }
-
 export interface ClientPlanSummary {
   id: string;
   name: string;
@@ -49,7 +49,6 @@ export interface ClientPlanSummary {
   defaultShouldDeductSession?: boolean;
   planningSystem?: string | null;
 }
-
 export interface ClientPlanHorizonSlot {
   horizonKey: HorizonKey;
   label: string;
@@ -60,7 +59,6 @@ export interface ClientPlanHorizonSlot {
   isPrimary: boolean;
   plan: ClientPlanSummary | null;
 }
-
 export interface ClientPlanVaultSummary {
   filledCount: number;
   primaryPlanId: string | null;
@@ -80,6 +78,7 @@ export interface ClientWorkoutPlansResponseSummary {
   plans?: unknown[];
   plan?: unknown;
   trainingPlanCatalog?: unknown;
+  homeworkSummary?: unknown;
   todayAssignment?: unknown;
 }
 
@@ -114,18 +113,14 @@ const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSu
     planningSystem: typeof planData.planningSystem === 'string' ? planData.planningSystem : null,
   };
 };
-
 const updatedTime = (plan: ClientPlanSummary) => {
   const parsed = plan.createdAt ? new Date(plan.createdAt).getTime() : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 };
-
 const isActivePlan = (plan: ClientPlanSummary) => plan.status.toLowerCase() === 'active';
-
 const samePlan = (plan: ClientPlanSummary | null | undefined, id: string | null) => (
   Boolean(plan && id && plan.id === id)
 );
-
 const selectPrimaryPlan = (plans: ClientPlanSummary[]) => (
   plans.find((plan) => plan.isPrimary)
   || plans.find(isActivePlan)
@@ -282,6 +277,7 @@ export const normalizeClientWorkoutPlansResponse = (
   return {
     plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
     serverPlanVault,
+    homeworkSummary: normalizeClientHomeworkSummary(responseData.homeworkSummary),
     todayAssignment: normalizeTodayAssignment(responseData.todayAssignment),
   };
 };

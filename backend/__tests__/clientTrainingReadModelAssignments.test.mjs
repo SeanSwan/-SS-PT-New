@@ -220,4 +220,95 @@ describe('clientTrainingReadModelService assignment context', () => {
       ctaLabel: 'Review Workout',
     });
   });
+
+  it('builds a safe homework summary from today status and recent homework completions', () => {
+    const overview = buildClientTrainingOverview({
+      activePlan: sixMonthPlan,
+      plans: [sixMonthPlan],
+      currentSession: {
+        weekNumber: 4,
+        dayNumber: 2,
+        dayLabel: 'ClientNameMustNotLeak Lower Homework',
+        session: { assignmentType: 'homework' },
+        exercises: [{ exerciseName: 'Goblet Squat' }],
+      },
+      today: '2026-06-06',
+      assignmentCompletions: [{
+        assignmentKey: 'plan-6m:w4:d2:homework',
+        formId: 'daily-form-1',
+        completedAt: '2026-06-06T12:00:00.000Z',
+        assignmentType: 'homework',
+        title: 'ClientNameMustNotLeak Lower Homework',
+        weekNumber: 4,
+        dayNumber: 2,
+        exerciseCount: 1,
+        firstExerciseName: 'Goblet Squat',
+      }],
+      recentAssignmentCompletions: [
+        {
+          assignmentKey: 'plan-6m:w4:d2:homework',
+          formId: 'daily-form-1',
+          completedAt: '2026-06-06T12:00:00.000Z',
+          assignmentType: 'homework',
+          title: 'ClientNameMustNotLeak Lower Homework',
+          weekNumber: 4,
+          dayNumber: 2,
+          exerciseCount: 1,
+          firstExerciseName: 'Goblet Squat',
+        },
+        {
+          assignmentKey: 'plan-6m:w3:d3:homework',
+          formId: 'daily-form-2',
+          completedAt: '2026-06-03T12:00:00.000Z',
+          assignmentType: 'homework',
+          title: 'ClientNameMustNotLeak Prior Homework',
+          weekNumber: 3,
+          dayNumber: 3,
+          exerciseCount: 2,
+          firstExerciseName: 'Split Squat',
+        },
+        {
+          assignmentKey: 'plan-6m:w3:d1:trainer_session',
+          formId: 'daily-form-3',
+          completedAt: '2026-06-01T12:00:00.000Z',
+          assignmentType: 'trainer_session',
+          title: 'Paid Session',
+          weekNumber: 3,
+          dayNumber: 1,
+          exerciseCount: 4,
+          firstExerciseName: 'Bench Press',
+        },
+      ],
+    });
+
+    expect(overview.homeworkSummary).toMatchObject({
+      assignmentType: 'homework',
+      todayStatus: 'completed',
+      todayIsCompleted: true,
+      todayIsLoggable: false,
+      todayShouldDeductSession: false,
+      todayExerciseCount: 1,
+      todayFirstExerciseName: 'Goblet Squat',
+      recentCompletedCount: 2,
+      lastCompletedAt: '2026-06-06T12:00:00.000Z',
+      recentCompletions: [
+        expect.objectContaining({
+          assignmentType: 'homework',
+          weekNumber: 4,
+          dayNumber: 2,
+          exerciseCount: 1,
+          firstExerciseName: 'Goblet Squat',
+        }),
+        expect.objectContaining({
+          assignmentType: 'homework',
+          weekNumber: 3,
+          dayNumber: 3,
+          exerciseCount: 2,
+          firstExerciseName: 'Split Squat',
+        }),
+      ],
+    });
+    expect(JSON.stringify(overview.homeworkSummary)).not.toContain('ClientNameMustNotLeak');
+    expect(JSON.stringify(overview.homeworkSummary)).not.toContain('Paid Session');
+  });
 });

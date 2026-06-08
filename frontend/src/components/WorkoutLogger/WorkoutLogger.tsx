@@ -103,6 +103,7 @@ import type {
 import {
   coerceToNumericId,
   convertAIWorkoutExercisesToEntries,
+  currentWorkoutAssignmentMatchesRouteIntent,
   ensureWorkoutLoggerExerciseRowIdentity,
   ensureWorkoutLoggerSetId,
   getCurrentWorkoutCursorSession,
@@ -147,6 +148,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const autoLoadTodayPlan = searchParams.get('loadPlan') === 'today';
+  const routeAssignmentKey = searchParams.get('assignmentKey');
+  const routeAssignmentType = searchParams.get('assignmentType');
   const hasInitialExercises = Array.isArray(initialData) && initialData.length > 0;
 
   // Self-mode resolves the logged-in client route without emitting
@@ -602,6 +605,14 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       const data = (response?.data ?? response) as CurrentWorkoutPlanResponse;
       const todayAssignment = getCurrentWorkoutTodayAssignment(data);
       const currentPlanId = getCurrentWorkoutPlanId(data);
+      if (!currentWorkoutAssignmentMatchesRouteIntent(todayAssignment, {
+        assignmentKey: routeAssignmentKey,
+        assignmentType: routeAssignmentType,
+      })) {
+        setPlannedAssignment(null);
+        toast.info('Today\'s assignment changed. Open it again from your dashboard before logging.');
+        return;
+      }
       const canLoadCurrentAssignment = isCurrentWorkoutAssignmentLoggable(todayAssignment, {
         hasScheduledSession: Boolean(scheduledSessionId),
       });
@@ -674,7 +685,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingPlan(false);
     }
-  }, [effectiveClientId, createWorkoutLoggerLocalId, scheduledSessionId]);
+  }, [effectiveClientId, createWorkoutLoggerLocalId, routeAssignmentKey, routeAssignmentType, scheduledSessionId]);
 
   useEffect(() => {
     const todayPlanLoadSignal = loadTodayPlanSignal > 0

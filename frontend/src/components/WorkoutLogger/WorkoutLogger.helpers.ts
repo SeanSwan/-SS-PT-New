@@ -197,6 +197,28 @@ export function isCurrentWorkoutAssignmentLoggable(
   return assignment.isLoggable !== false;
 }
 
+function normalizeAssignmentIntentValue(raw: unknown): string | null {
+  const value = typeof raw === 'number' ? String(raw) : raw;
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+export function currentWorkoutAssignmentMatchesRouteIntent(
+  assignment: PlannedAssignment | null | undefined,
+  intent: { assignmentKey?: string | null; assignmentType?: string | null } = {},
+): boolean {
+  const expectedKey = normalizeAssignmentIntentValue(intent.assignmentKey);
+  const expectedType = normalizeAssignmentIntentValue(intent.assignmentType)?.toLowerCase() ?? null;
+  if (!expectedKey && !expectedType) return true;
+  if (!assignment) return false;
+
+  const actualKey = normalizeAssignmentIntentValue(assignment.assignmentKey ?? assignment.assignmentId);
+  const actualType = normalizeAssignmentIntentValue(assignment.assignmentType)?.toLowerCase() ?? null;
+
+  if (expectedKey && actualKey !== expectedKey) return false;
+  if (expectedType && actualType !== expectedType) return false;
+  return true;
+}
+
 export function getPlanDayForDate(
   days: PlannedDay[] | undefined,
   date = new Date(),

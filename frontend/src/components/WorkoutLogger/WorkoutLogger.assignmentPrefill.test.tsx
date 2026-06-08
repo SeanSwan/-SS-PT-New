@@ -178,4 +178,60 @@ describe('WorkoutLogger assignment-level homework prefill', () => {
       },
     });
   });
+
+  it('refuses route-prefilled homework when the current assignment no longer matches', async () => {
+    apiGetMock.mockImplementation((url: string) => {
+      if (url.endsWith('/current')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            currentSession: null,
+            todayAssignment: {
+              assignmentKey: 'plan-6m:w4:d3:homework',
+              assignmentType: 'homework',
+              source: 'workout_plan',
+              isBillable: false,
+              shouldDeductSession: false,
+              isLoggable: true,
+              title: 'Updated Off-Day Homework',
+              weekNumber: 4,
+              dayNumber: 3,
+              dayLabel: 'Posterior Chain',
+              exerciseCount: 1,
+              firstExerciseName: 'Romanian Deadlift',
+              exercises: [
+                {
+                  exerciseId: 'romanian-deadlift',
+                  exerciseName: 'Romanian Deadlift',
+                  sets: 3,
+                  targetReps: '8',
+                  tempo: '3-1-1',
+                  restTime: 75,
+                },
+              ],
+            },
+            plan: { id: 'plan-6m', name: 'Six Month Arc', days: [] },
+            data: { id: 'plan-6m', name: 'Six Month Arc', days: [] },
+          },
+        });
+      }
+      return Promise.resolve(clientInfoPayload);
+    });
+
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/dashboard/client/log-workout?loadPlan=today&assignmentKey=plan-6m%3Aw4%3Ad2%3Ahomework&assignmentType=homework',
+        ]}
+      >
+        <WorkoutLogger clientId={CLIENT_ID} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(toastMock.info).toHaveBeenCalledWith(
+      expect.stringMatching(/assignment changed/i),
+    ));
+    expect(toastMock.success).not.toHaveBeenCalled();
+    expect(submitWorkoutFormMock).not.toHaveBeenCalled();
+  });
 });
