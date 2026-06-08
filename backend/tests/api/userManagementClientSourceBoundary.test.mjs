@@ -96,4 +96,42 @@ describe('user management clientSource boundary', () => {
     expect(activeRouteSlice).not.toContain('error.stack');
     expect(activeRouteSlice).not.toContain('stack:');
   });
+
+  it('sanitizes active admin user-management controller errors across mounted admin routes', () => {
+    const activeHandlerNames = [
+      'getAllUsers',
+      'promoteToClient',
+      'promoteToAdmin',
+      'updateUser',
+      'getRecentSignups',
+      'getDashboardStats',
+      'getDatabaseHealth',
+      'getSignupsList'
+    ];
+
+    expect(coreRoutesSource).toContain("app.use('/api/admin', adminRoutes)");
+    expect(adminRouteSource).toContain("router.get('/users', userManagementController.getAllUsers)");
+    expect(adminRouteSource).toContain("router.put('/users/:id', userManagementController.updateUser)");
+    expect(adminRouteSource).toContain("router.post('/promote-client', userManagementController.promoteToClient)");
+    expect(adminRouteSource).toContain("router.post('/promote-admin', userManagementController.promoteToAdmin)");
+    expect(controllerSource).toContain('const logUserManagementControllerError =');
+
+    for (const handlerName of activeHandlerNames) {
+      const handlerStart = controllerSource.indexOf(`export const ${handlerName} = async`);
+      const nextHandlerStart = controllerSource.indexOf('export const ', handlerStart + 1);
+      const handlerEnd = nextHandlerStart > -1
+        ? nextHandlerStart
+        : controllerSource.indexOf('export default', handlerStart);
+      const handlerSlice = controllerSource.slice(handlerStart, handlerEnd);
+
+      expect(handlerStart).toBeGreaterThan(-1);
+      expect(handlerEnd).toBeGreaterThan(handlerStart);
+      expect(handlerSlice).toContain('logUserManagementControllerError(');
+      expect(handlerSlice).not.toContain('error.message');
+      expect(handlerSlice).not.toContain('error.stack');
+      expect(handlerSlice).not.toContain('stack:');
+      expect(handlerSlice).not.toContain('debug:');
+      expect(handlerSlice).not.toContain("logger.error('Error fetching signups list:', error)");
+    }
+  });
 });
