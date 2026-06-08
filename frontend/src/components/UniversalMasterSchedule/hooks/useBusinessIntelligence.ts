@@ -21,6 +21,7 @@ import {
 } from '../Charts';
 import type { Session, Client, Trainer } from '../types';
 import { logger } from '@/utils/logger';
+import { addAutoTable } from '../../../services/pdfAutoTable';
 // Removed circular dependencies - data will be passed as parameters
 
 export interface BusinessMetrics {
@@ -560,8 +561,6 @@ export const useBusinessIntelligence = (data: {
       );
     } else {
       const { jsPDF } = await import('jspdf');
-      const autoTableModule = await import('jspdf-autotable');
-      const autoTable = autoTableModule.default;
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
       doc.setFont('helvetica', 'bold');
@@ -570,7 +569,7 @@ export const useBusinessIntelligence = (data: {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.text(`Generated ${new Date().toLocaleString()}`, 14, 25);
-      autoTable(doc, {
+      addAutoTable(doc, {
         startY: 32,
         head: [['Section', 'Metric', 'Value']],
         body: rows,

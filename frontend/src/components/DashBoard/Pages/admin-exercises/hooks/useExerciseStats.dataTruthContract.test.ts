@@ -29,8 +29,9 @@ describe('useExerciseStats data truth contract', () => {
     expect(SOURCE).not.toContain("For PDF, we'd need a PDF generation library");
     expect(SOURCE).not.toContain('For now, just export as JSON');
     expect(SOURCE).toContain("await import('jspdf')");
-    expect(SOURCE).toContain("await import('jspdf-autotable')");
-    expect(SOURCE).toContain('autoTable(doc');
+    expect(SOURCE).toContain("from '../../../../../services/pdfAutoTable'");
+    expect(SOURCE).not.toContain("await import('jspdf-autotable')");
+    expect(SOURCE).toContain('addAutoTable(doc');
     expect(SOURCE).toContain("doc.save(`exercise-stats-${new Date().toISOString().split('T')[0]}.pdf`)");
   });
 });

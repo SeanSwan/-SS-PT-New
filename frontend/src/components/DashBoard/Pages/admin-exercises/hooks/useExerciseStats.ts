@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../../../context/AuthContext';
+import { addAutoTable } from '../../../../../services/pdfAutoTable';
 
 // === INTERFACES ===
 
@@ -398,8 +399,6 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
           
         case 'pdf': {
           const { jsPDF } = await import('jspdf');
-          const autoTableModule = await import('jspdf-autotable');
-          const autoTable = autoTableModule.default;
           const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
           doc.setFont('helvetica', 'bold');
@@ -409,7 +408,7 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
           doc.setFontSize(10);
           doc.text(`Exported ${new Date().toLocaleString()}`, 14, 25);
 
-          autoTable(doc, {
+          addAutoTable(doc, {
             startY: 32,
             head: [['Exercise Name', 'Views', 'Completions', 'Rating', 'Completion Rate']],
             body: topExercises.map(ex => [

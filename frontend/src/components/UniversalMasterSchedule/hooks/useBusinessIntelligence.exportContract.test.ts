@@ -14,8 +14,9 @@ describe('useBusinessIntelligence export contract', () => {
     expect(SOURCE).toContain("text/csv;charset=utf-8");
     expect(SOURCE).toContain("application/vnd.ms-excel;charset=utf-8");
     expect(SOURCE).toContain("await import('jspdf')");
-    expect(SOURCE).toContain("await import('jspdf-autotable')");
-    expect(SOURCE).toContain('autoTable(doc');
+    expect(SOURCE).toContain("from '../../../services/pdfAutoTable'");
+    expect(SOURCE).not.toContain("await import('jspdf-autotable')");
+    expect(SOURCE).toContain('addAutoTable(doc');
     expect(SOURCE).toContain('doc.save(`swanstudios-business-report-${exportDate}.pdf`)');
   });
 });
