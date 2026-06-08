@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { CreateExternalClientSchema } from '../../schemas/clientSource.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -9,6 +10,29 @@ const controllerSource = readFileSync(resolve(__dirname, '../../controllers/admi
 const clientSourceSchema = readFileSync(resolve(__dirname, '../../schemas/clientSource.mjs'), 'utf8');
 
 describe('admin client assign-trainer clientSource boundary', () => {
+  it('keeps the external-client create schema out of SwanStudios paid-client creation', () => {
+    expect(CreateExternalClientSchema.safeParse({
+      firstName: 'Mia',
+      lastName: 'Reed',
+      email: 'mia@example.test',
+      clientSource: 'move_fitness',
+    }).success).toBe(true);
+
+    expect(CreateExternalClientSchema.safeParse({
+      firstName: 'Ari',
+      lastName: 'Lane',
+      email: 'ari@example.test',
+      clientSource: 'external',
+    }).success).toBe(true);
+
+    expect(CreateExternalClientSchema.safeParse({
+      firstName: 'Paid',
+      lastName: 'Client',
+      email: 'paid@example.test',
+      clientSource: 'swanstudios',
+    }).success).toBe(false);
+  });
+
   it('does not create paid session inventory for non-deducting client sources', () => {
     const start = controllerSource.indexOf('async createClient');
     const end = controllerSource.indexOf('async updateClient', start);

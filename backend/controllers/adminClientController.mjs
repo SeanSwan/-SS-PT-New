@@ -1626,12 +1626,12 @@ class AdminClientController {
       } = req.body;
 
       // Validate clientSource against allowed values
-      const validSources = ['swanstudios', 'move_fitness', 'external'];
-      if (clientSource && !validSources.includes(clientSource)) {
+      const validExternalSources = ['move_fitness', 'external'];
+      if (clientSource && !validExternalSources.includes(clientSource)) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
+          message: `Invalid clientSource for external creation. Must be one of: ${validExternalSources.join(', ')}`
         });
       }
 
