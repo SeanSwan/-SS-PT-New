@@ -178,6 +178,19 @@ const sendInternalError = (res, message) => res.status(500).json({
   code: INTERNAL_ERROR,
 });
 
+const toWorkoutFormErrorMetadata = (error, fallbackCode = 'workout_form_internal_error') => ({
+  errorName: error?.name || 'Error',
+  errorCode: error?.code || error?.type || fallbackCode,
+});
+
+const logWorkoutFormError = (message, error, req, metadata = {}) => {
+  logger.error(message, {
+    userId: req?.user?.id,
+    ...metadata,
+    ...toWorkoutFormErrorMetadata(error),
+  });
+};
+
 const resolvePlannedAssignmentForLog = async ({
   rawAssignment,
   clientId,
@@ -264,7 +277,10 @@ router.get('/my/info', protect, async (req, res) => {
         });
         todayWorkout = await DailyWorkoutForm.findOne({ where: { clientId: userId, date: today } });
       } catch (formErr) {
-        logger.warn('DailyWorkoutForm query failed:', formErr.message);
+        logger.warn('DailyWorkoutForm query failed', {
+          userId,
+          ...toWorkoutFormErrorMetadata(formErr, 'daily_workout_form_info_query_failed'),
+        });
       }
     }
 
@@ -285,7 +301,7 @@ router.get('/my/info', protect, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching own info for workout logging:', error);
+    logWorkoutFormError('Error fetching own info for workout logging', error, req);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -377,7 +393,10 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
           }
         });
       } catch (formErr) {
-        logger.warn('DailyWorkoutForm count failed (table may not exist yet):', formErr.message);
+        logger.warn('DailyWorkoutForm count failed', {
+          clientId: parsedClientId,
+          ...toWorkoutFormErrorMetadata(formErr, 'daily_workout_form_client_count_failed'),
+        });
       }
     }
 
@@ -393,7 +412,10 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
           }
         });
       } catch (formErr) {
-        logger.warn('DailyWorkoutForm findOne failed (table may not exist yet):', formErr.message);
+        logger.warn('DailyWorkoutForm findOne failed', {
+          clientId: parsedClientId,
+          ...toWorkoutFormErrorMetadata(formErr, 'daily_workout_form_client_today_failed'),
+        });
       }
     }
 
@@ -419,7 +441,9 @@ router.get('/client/:clientId/info', protect, trainerOrAdminOnly, async (req, re
     });
 
   } catch (error) {
-    logger.error('Error fetching client info for workout logging:', error);
+    logWorkoutFormError('Error fetching client info for workout logging', error, req, {
+      clientId: req.params?.clientId,
+    });
     return sendInternalError(res, 'Failed to load client information');
   }
 });
@@ -479,9 +503,9 @@ const checkTrainerPermission = async (trainerId, permissionType) => {
     // allow a legitimate trainer than to lock out the whole platform
     // due to a model file mismatch.
     logger.warn('Trainer permission check errored — falling back to permissive default', {
-      error: error.message,
       trainerId,
       permissionType,
+      ...toWorkoutFormErrorMetadata(error, 'trainer_permission_check_failed'),
     });
     return true;
   }
@@ -510,7 +534,10 @@ const processMCPIntegration = async (formId, _formData) => {
       }
     }, { where: { id: formId } });
   } catch (err) {
-    logger.warn(`[MCP retired] Failed to mark form ${formId} as processed: ${err.message}`);
+    logger.warn('[MCP retired] Failed to mark form as processed', {
+      formId,
+      ...toWorkoutFormErrorMetadata(err, 'workout_form_mcp_retired_mark_failed'),
+    });
   }
 };
 
@@ -1106,7 +1133,10 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         logger.info('Workout XP awarded', { clientId, formId: dailyForm.id, exerciseCount: exercises.length });
       } catch (xpErr) {
         if (xpTransaction) await xpTransaction.rollback().catch(() => {});
-        logger.warn('XP award failed (non-critical)', { clientId, error: xpErr.message });
+        logger.warn('XP award failed (non-critical)', {
+          clientId,
+          ...toWorkoutFormErrorMetadata(xpErr, 'workout_form_xp_award_failed'),
+        });
       }
 
       // Process with MCP servers (legacy, disabled by default)
@@ -1155,7 +1185,7 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
         message: getPlannedWorkoutAssignmentClientMessage(error),
       });
     }
-    logger.error('Error submitting workout form:', error);
+    logWorkoutFormError('Error submitting workout form', error, req);
     return sendInternalError(res, 'Failed to submit workout form');
   }
 });
@@ -1298,7 +1328,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching workout forms:', error);
+    logWorkoutFormError('Error fetching workout forms', error, req);
     return sendInternalError(res, 'Failed to fetch workout forms');
   }
 });
@@ -1369,7 +1399,9 @@ router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching workout form:', error);
+    logWorkoutFormError('Error fetching workout form', error, req, {
+      formId: req.params?.id,
+    });
     return sendInternalError(res, 'Failed to fetch workout form');
   }
 });
@@ -1491,7 +1523,10 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
         order: [['date', 'ASC']]
       });
     } catch (queryErr) {
-      logger.warn('DailyWorkoutForm progress query failed (table may not exist):', queryErr.message);
+      logger.warn('DailyWorkoutForm progress query failed', {
+        clientId: parsedClientId,
+        ...toWorkoutFormErrorMetadata(queryErr, 'daily_workout_form_progress_query_failed'),
+      });
       return res.json({
         success: true,
         progressData: {
@@ -1586,7 +1621,9 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching progress data:', error);
+    logWorkoutFormError('Error fetching progress data', error, req, {
+      clientId: req.params?.clientId,
+    });
     return sendInternalError(res, 'Failed to fetch progress data');
   }
 });
@@ -1685,7 +1722,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
       });
     } catch (queryErr) {
       // Fallback: if specific attributes fail (column may not exist in prod), query without attribute filter
-      logger.warn('Progress-detailed attribute query failed, retrying without attribute filter:', queryErr.message);
+      logger.warn('Progress-detailed attribute query failed; retrying without attribute filter', {
+        clientId: parsedClientId,
+        ...toWorkoutFormErrorMetadata(queryErr, 'daily_workout_form_progress_detail_attribute_failed'),
+      });
       try {
         forms = await DailyWorkoutForm.findAll({
           where: {
@@ -1695,7 +1735,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
           order: [['date', 'ASC']]
         });
       } catch (fallbackErr) {
-        logger.warn('DailyWorkoutForm table may not exist in production:', fallbackErr.message);
+        logger.warn('DailyWorkoutForm table may not exist in production', {
+          clientId: parsedClientId,
+          ...toWorkoutFormErrorMetadata(fallbackErr, 'daily_workout_form_progress_detail_fallback_failed'),
+        });
         forms = [];
       }
     }
@@ -1704,7 +1747,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     try {
       canonicalWorkoutSessions = await fetchCanonicalProgressWorkoutSessions(parsedClientId, startDate);
     } catch (canonicalErr) {
-      logger.warn('Canonical WorkoutLog progress query failed; using legacy formData fallback:', canonicalErr.message);
+      logger.warn('Canonical WorkoutLog progress query failed; using legacy formData fallback', {
+        clientId: parsedClientId,
+        ...toWorkoutFormErrorMetadata(canonicalErr, 'daily_workout_form_canonical_progress_failed'),
+      });
     }
 
     const legacyFormsCount = forms.length;
@@ -1865,7 +1911,10 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
         progressScore: m.progressScore || null
       }));
     } catch (bmErr) {
-      logger.warn('BodyMeasurement query failed (table may not exist):', bmErr.message);
+      logger.warn('BodyMeasurement query failed', {
+        clientId: parsedClientId,
+        ...toWorkoutFormErrorMetadata(bmErr, 'daily_workout_form_body_measurement_failed'),
+      });
     }
 
     // ========== 6. Strength Progression (1RM per top-5 exercises over time) ==========
@@ -2090,7 +2139,9 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching detailed progress data:', error);
+    logWorkoutFormError('Error fetching detailed progress data', error, req, {
+      clientId: req.params?.clientId,
+    });
     return sendInternalError(res, 'Failed to fetch detailed progress data');
   }
 });
@@ -2141,7 +2192,9 @@ router.post('/:id/reprocess', protect, adminOnly, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error reprocessing workout form:', error);
+    logWorkoutFormError('Error reprocessing workout form', error, req, {
+      formId: req.params?.id,
+    });
     return sendInternalError(res, 'Failed to reprocess workout form');
   }
 });
@@ -2217,7 +2270,7 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching workout form statistics:', error);
+    logWorkoutFormError('Error fetching workout form statistics', error, req);
     return sendInternalError(res, 'Failed to fetch workout form statistics');
   }
 });
@@ -2300,7 +2353,9 @@ router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error generating workout summary:', error);
+    logWorkoutFormError('Error generating workout summary', error, req, {
+      formId: req.params?.id,
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to generate workout summary'
