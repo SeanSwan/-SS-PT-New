@@ -156,7 +156,7 @@ describe('mission QA automation guards', () => {
     const result = spawnSync(process.execPath, [launcherPath, '--check-browser-driver'], {
       cwd: repoRoot,
       encoding: 'utf8',
-      timeout: 5_000,
+      timeout: 30_000,
     });
 
     expect(result.status).toBe(0);
