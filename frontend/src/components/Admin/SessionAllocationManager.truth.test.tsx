@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SessionAllocationManager from './SessionAllocationManager';
+import { buildManualSessionAllocationRequest } from './SessionAllocationManager.logic';
 
 const mockNavigate = vi.fn();
 const mockToast = vi.fn();
@@ -118,6 +119,61 @@ describe('SessionAllocationManager active admin contract', () => {
     ));
   });
 
+  it('clamps manual paid-session additions to the backend-supported maximum', async () => {
+    render(<SessionAllocationManager />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /add sessions to ada lovelace/i }));
+    fireEvent.change(screen.getByLabelText(/number of sessions/i), {
+      target: { value: '99' },
+    });
+
+    expect(screen.getByRole('button', { name: /add 50 sessions/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /add 50 sessions/i }));
+
+    await waitFor(() => expect(mockSessionService.addSessionsToClient).toHaveBeenCalledWith(
+      9,
+      50,
+      'Admin added sessions',
+    ));
+  });
+
+  it('clamps manual paid-session additions to at least one session', async () => {
+    render(<SessionAllocationManager />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /add sessions to ada lovelace/i }));
+    fireEvent.change(screen.getByLabelText(/number of sessions/i), {
+      target: { value: '-3' },
+    });
+
+    expect(screen.getByRole('button', { name: /add 1 session/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /add 1 session/i }));
+
+    await waitFor(() => expect(mockSessionService.addSessionsToClient).toHaveBeenCalledWith(
+      9,
+      1,
+      'Admin added sessions',
+    ));
+  });
+
+  it('builds clamped manual paid-session requests from admin input', () => {
+    expect(buildManualSessionAllocationRequest(client, 99, '')).toEqual({
+      blockedReason: null,
+      request: {
+        userId: 9,
+        sessionCount: 50,
+        reason: 'Admin added sessions',
+        clientDisplayName: 'Ada Lovelace',
+      },
+    });
+  });
+
+  it('blocks free-tracking clients before building a paid-session request', () => {
+    expect(buildManualSessionAllocationRequest(moveFitnessClient, 3, 'Manual add')).toEqual({
+      blockedReason: 'Manual paid-session allocation is disabled for free-tracking clients.',
+      request: null,
+    });
+  });
+
   it('shows Move Fitness clients as free tracking and blocks manual paid-session allocation', async () => {
     mockSessionService.getClients.mockResolvedValue([moveFitnessClient]);
     mockSessionService.getUserSessionSummary.mockResolvedValue({
@@ -155,7 +211,7 @@ describe('SessionAllocationManager active admin contract', () => {
 
     expect(logicSource).toContain("import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';");
     expect(typesSource).toContain('clientSource?: string;');
-    expect(logicSource).toContain("clientSource: client.clientSource || 'swanstudios'");
+    expect(logicSource).toContain("clientSource: textOrFallback(client.clientSource, 'swanstudios')");
     expect(logicSource).toContain('const sessionSignal = getClientSessionSignal(client);');
     expect(tableSource).toContain('const isFreeTrackingClient = isNonDeductingClientSource(client.clientSource);');
     expect(combinedSource).not.toContain('totalAvailableSessions: clients.reduce((sum, client) => sum + client.availableSessions, 0)');

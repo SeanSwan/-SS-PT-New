@@ -108,6 +108,39 @@ export const findRecentPlannedAssignmentCompletions = async (
   }
 };
 
+export const readAssignmentCompletionContext = async (
+  DailyWorkoutForm,
+  {
+    clientId,
+    date,
+    onDateLookupError,
+    onRecentLookupError,
+  } = {},
+) => {
+  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
+    DailyWorkoutForm,
+    {
+      clientId,
+      date,
+      onLookupError: onDateLookupError,
+    },
+  );
+  const recentAssignmentCompletions = await findRecentPlannedAssignmentCompletions(
+    DailyWorkoutForm,
+    {
+      clientId,
+      onLookupError: onRecentLookupError,
+    },
+  );
+
+  return {
+    assignmentCompletions,
+    recentAssignmentCompletions: recentAssignmentCompletions.length
+      ? recentAssignmentCompletions
+      : assignmentCompletions,
+  };
+};
+
 const completionForAssignment = (assignmentKey, assignmentCompletions = []) => {
   if (!assignmentKey || !Array.isArray(assignmentCompletions)) return null;
   return assignmentCompletions.find((completion) => (

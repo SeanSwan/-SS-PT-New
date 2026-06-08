@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   applyAssignmentCompletion,
   findPlannedAssignmentCompletionsForDate,
+  readAssignmentCompletionContext,
 } from '../services/clientTrainingAssignmentCompletionService.mjs';
 
 describe('clientTrainingAssignmentCompletionService', () => {
@@ -110,5 +111,28 @@ describe('clientTrainingAssignmentCompletionService', () => {
         completedAt: '2026-06-07T12:30:00.000Z',
       },
     });
+  });
+
+  it('builds shared route completion context with recent-history fallback', async () => {
+    const findAll = vi.fn(async (query) => (
+      query.where.date
+        ? [{
+          id: 'today-form',
+          formData: {
+            plannedAssignment: { assignmentKey: 'plan-9:w2:d3:homework' },
+          },
+          submittedAt: '2026-06-07T12:30:00.000Z',
+        }]
+        : []
+    ));
+
+    const context = await readAssignmentCompletionContext(
+      { findAll },
+      { clientId: 42, date: '2026-06-07' },
+    );
+
+    expect(findAll).toHaveBeenCalledTimes(2);
+    expect(context.assignmentCompletions).toHaveLength(1);
+    expect(context.recentAssignmentCompletions).toEqual(context.assignmentCompletions);
   });
 });

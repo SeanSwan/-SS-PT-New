@@ -10,7 +10,31 @@ import type {
 export const getErrorMessage = (error: unknown, fallback: string): string =>
   error instanceof Error ? error.message : fallback;
 
-export const escapeCsvCell = (value: string | number | undefined): string => {
+export const MANUAL_SESSION_ALLOCATION_MIN = 1;
+export const MANUAL_SESSION_ALLOCATION_MAX = 50;
+const FREE_TRACKING_SESSION_ALLOCATION_BLOCK_REASON =
+  'Manual paid-session allocation is disabled for free-tracking clients.';
+
+export const normalizeManualSessionCount = (value: number | string | null | undefined): number => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return MANUAL_SESSION_ALLOCATION_MIN;
+
+  const integerValue = Math.floor(parsed);
+  return Math.min(
+    MANUAL_SESSION_ALLOCATION_MAX,
+    Math.max(MANUAL_SESSION_ALLOCATION_MIN, integerValue),
+  );
+};
+
+const numberOrZero = (value: number | null | undefined): number =>
+  Number.isFinite(value) ? Number(value) : 0;
+
+const textOrFallback = (value: string | null | undefined, fallback: string): string =>
+  value || fallback;
+
+const getCurrentIsoTimestamp = (): string => new Date().toISOString();
+
+const escapeCsvCell = (value: string | number | undefined): string => {
   const text = String(value ?? '');
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
@@ -24,21 +48,68 @@ const emptySummary = (clientId: number): SessionSummary => ({
   total: 0,
 });
 
+const resolveSummary = (
+  clientId: number,
+  summary: SessionSummary | null | undefined,
+): SessionSummary => summary ?? emptySummary(clientId);
+
 export const buildClientWithSessionSummary = (
   client: SessionClientResponse,
-  summary: SessionSummary | null | undefined = emptySummary(client.id),
-): Client => ({
-  id: client.id,
-  firstName: client.firstName,
-  lastName: client.lastName,
-  email: client.email,
-  availableSessions: client.availableSessions || 0,
-  clientSource: client.clientSource || 'swanstudios',
-  totalSessionsPurchased: summary?.total ?? 0,
-  sessionsUsed: summary?.completed ?? 0,
-  lastSessionDate: undefined,
-  createdAt: client.createdAt || new Date().toISOString(),
-});
+  summary: SessionSummary | null | undefined,
+): Client => {
+  const resolvedSummary = resolveSummary(client.id, summary);
+
+  return {
+    id: client.id,
+    firstName: client.firstName,
+    lastName: client.lastName,
+    email: client.email,
+    availableSessions: numberOrZero(client.availableSessions),
+    clientSource: textOrFallback(client.clientSource, 'swanstudios'),
+    totalSessionsPurchased: numberOrZero(resolvedSummary.total),
+    sessionsUsed: numberOrZero(resolvedSummary.completed),
+    lastSessionDate: undefined,
+    createdAt: textOrFallback(client.createdAt, getCurrentIsoTimestamp()),
+  };
+};
+
+export interface ManualSessionAllocationRequest {
+  userId: number;
+  sessionCount: number;
+  reason: string;
+  clientDisplayName: string;
+}
+
+export interface ManualSessionAllocationDecision {
+  blockedReason: string | null;
+  request: ManualSessionAllocationRequest | null;
+}
+
+export const getManualSessionAllocationBlockReason = (
+  client: Pick<Client, 'clientSource'> | null | undefined,
+): string | null => (
+  client && isNonDeductingClientSource(client.clientSource)
+    ? FREE_TRACKING_SESSION_ALLOCATION_BLOCK_REASON
+    : null
+);
+
+export const buildManualSessionAllocationRequest = (
+  client: Client | null,
+  sessionCount: number,
+  reason: string,
+): ManualSessionAllocationDecision => {
+  const blockedReason = getManualSessionAllocationBlockReason(client);
+  const request = client && !blockedReason
+    ? {
+      userId: client.id,
+      sessionCount: normalizeManualSessionCount(sessionCount),
+      reason: textOrFallback(reason, 'Admin added sessions'),
+      clientDisplayName: `${client.firstName} ${client.lastName}`,
+    }
+    : null;
+
+  return { blockedReason, request };
+};
 
 export const filterSessionClients = (clients: Client[], searchQuery: string): Client[] => {
   const searchTerm = searchQuery.toLowerCase();

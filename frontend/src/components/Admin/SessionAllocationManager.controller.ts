@@ -2,20 +2,111 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import sessionService from '../../services/sessionService';
 import { useToast } from '../../hooks/use-toast';
-import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
+import type { Toast } from '../../hooks/use-toast';
 import {
   buildClientWithSessionSummary,
+  buildManualSessionAllocationRequest,
   buildSessionAllocationCsv,
   calculateSessionAllocationStats,
   filterSessionClients,
   getErrorMessage,
+  getManualSessionAllocationBlockReason,
 } from './SessionAllocationManager.logic';
+import type { ManualSessionAllocationRequest } from './SessionAllocationManager.logic';
 import type {
   Client,
   SessionAllocationManagerProps,
   SessionClientResponse,
   SessionSummary,
 } from './SessionAllocationManager.types';
+
+type ToastDispatcher = (toast: Omit<Toast, 'id'>) => void;
+
+interface SubmitManualSessionAllocationOptions {
+  loadClientSessionData: () => Promise<void>;
+  onSessionCountChange?: () => void;
+  request: ManualSessionAllocationRequest;
+  resetAddModal: () => void;
+  toast: ToastDispatcher;
+}
+
+interface ManualSessionAllocationServiceResult {
+  success?: boolean;
+  message?: string;
+}
+
+const isFailedManualSessionAllocationResult = (
+  result: ManualSessionAllocationServiceResult | null | undefined,
+): boolean => Boolean(result) && result?.success === false;
+
+const getManualSessionAllocationFailureMessage = (
+  result: ManualSessionAllocationServiceResult | null | undefined,
+): string => result?.message || 'Failed to add sessions';
+
+const assertManualSessionAllocationSucceeded = (
+  result: ManualSessionAllocationServiceResult | null | undefined,
+): void => {
+  if (isFailedManualSessionAllocationResult(result)) {
+    throw new Error(getManualSessionAllocationFailureMessage(result));
+  }
+};
+
+const toastManualAllocationBlocked = (
+  toast: ToastDispatcher,
+  description: string,
+): void => {
+  toast({
+    title: 'Free tracking client',
+    description,
+    variant: 'default',
+  });
+};
+
+const toastManualAllocationSuccess = (
+  toast: ToastDispatcher,
+  request: ManualSessionAllocationRequest,
+): void => {
+  toast({
+    title: 'Success',
+    description: `Added ${request.sessionCount} sessions to ${request.clientDisplayName}`,
+    variant: 'default',
+  });
+};
+
+const toastManualAllocationError = (
+  toast: ToastDispatcher,
+  error: unknown,
+): void => {
+  console.error('Error adding sessions:', error);
+  toast({
+    title: 'Error',
+    description: getErrorMessage(error, 'Failed to add sessions'),
+    variant: 'destructive',
+  });
+};
+
+const submitManualSessionAllocation = async ({
+  loadClientSessionData,
+  onSessionCountChange,
+  request,
+  resetAddModal,
+  toast,
+}: SubmitManualSessionAllocationOptions): Promise<void> => {
+  try {
+    const result = await sessionService.addSessionsToClient(
+      request.userId,
+      request.sessionCount,
+      request.reason,
+    );
+    assertManualSessionAllocationSucceeded(result);
+    toastManualAllocationSuccess(toast, request);
+    await loadClientSessionData();
+    onSessionCountChange?.();
+    resetAddModal();
+  } catch (error: unknown) {
+    toastManualAllocationError(toast, error);
+  }
+};
 
 export const useSessionAllocationManagerController = ({
   onSessionCountChange,
@@ -76,51 +167,33 @@ export const useSessionAllocationManagerController = ({
   }, [closeAddModal]);
 
   const handleOpenAddSessions = useCallback((client: Client) => {
-    if (isNonDeductingClientSource(client.clientSource)) return;
+    if (getManualSessionAllocationBlockReason(client)) return;
     setSelectedClient(client);
     setShowAddModal(true);
   }, []);
 
   const handleAddSessions = useCallback(async () => {
-    if (!selectedClient) return;
+    const allocation = buildManualSessionAllocationRequest(
+      selectedClient,
+      addSessionCount,
+      addSessionReason,
+    );
 
-    if (isNonDeductingClientSource(selectedClient.clientSource)) {
-      toast({
-        title: 'Free tracking client',
-        description: 'Manual paid-session allocation is disabled for free-tracking clients.',
-        variant: 'default',
-      });
+    if (allocation.blockedReason) {
+      toastManualAllocationBlocked(toast, allocation.blockedReason);
       resetAddModal();
       return;
     }
 
-    try {
-      const result = await sessionService.addSessionsToClient(
-        selectedClient.id,
-        addSessionCount,
-        addSessionReason || 'Admin added sessions',
-      );
+    if (!allocation.request) return;
 
-      if (result?.success === false) {
-        throw new Error(result?.message || 'Failed to add sessions');
-      }
-
-      toast({
-        title: 'Success',
-        description: `Added ${addSessionCount} sessions to ${selectedClient.firstName} ${selectedClient.lastName}`,
-        variant: 'default',
-      });
-      await loadClientSessionData();
-      onSessionCountChange?.();
-      resetAddModal();
-    } catch (error: unknown) {
-      console.error('Error adding sessions:', error);
-      toast({
-        title: 'Error',
-        description: getErrorMessage(error, 'Failed to add sessions'),
-        variant: 'destructive',
-      });
-    }
+    await submitManualSessionAllocation({
+      loadClientSessionData,
+      onSessionCountChange,
+      request: allocation.request,
+      resetAddModal,
+      toast,
+    });
   }, [addSessionCount, addSessionReason, loadClientSessionData, onSessionCountChange, resetAddModal, selectedClient, toast]);
 
   const filteredClients = useMemo(
