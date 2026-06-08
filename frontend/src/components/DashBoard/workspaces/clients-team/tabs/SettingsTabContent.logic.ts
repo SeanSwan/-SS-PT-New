@@ -1,3 +1,5 @@
+import { normalizeClientSource } from '../clientSessionSignal';
+
 export interface SettingsTabContentProps {
   clientId: number | string;
   clientName?: string;
@@ -21,9 +23,5 @@ export const CLIENT_SOURCE_POLICIES = {
 type ClientSourceKey = keyof typeof CLIENT_SOURCE_POLICIES;
 
 export const getClientSourcePolicy = (source: string) => {
-  const key: ClientSourceKey = source in CLIENT_SOURCE_POLICIES
-    ? (source as ClientSourceKey)
-    : 'swanstudios';
-
-  return CLIENT_SOURCE_POLICIES[key];
+  return CLIENT_SOURCE_POLICIES[normalizeClientSource(source) as ClientSourceKey];
 };

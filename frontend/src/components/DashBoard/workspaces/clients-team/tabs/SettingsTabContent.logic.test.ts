@@ -15,6 +15,14 @@ describe('SettingsTabContent client-source policy contract', () => {
       label: 'Move Fitness free tracking',
       note: 'Free tracking - no deduction.',
     });
+    expect(getClientSourcePolicy(' Move Fitness ')).toEqual({
+      label: 'Move Fitness free tracking',
+      note: 'Free tracking - no deduction.',
+    });
+    expect(getClientSourcePolicy('move-fitness')).toEqual({
+      label: 'Move Fitness free tracking',
+      note: 'Free tracking - no deduction.',
+    });
     expect(getClientSourcePolicy('external')).toEqual({
       label: 'External free tracking',
       note: 'No deduction until this client is reclassified.',
