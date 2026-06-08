@@ -301,6 +301,36 @@ describe('mounted sessions allocation compatibility routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private session update');
   });
 
+  it('PUT /api/sessions/:id does not disclose substring-matched permission update errors', async () => {
+    sessionFindByPk.mockRejectedValueOnce(new Error('private permission update storage host'));
+
+    const response = await request(app)
+      .put('/api/sessions/42')
+      .send({ notes: 'Update notes' });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to update this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private permission');
+  });
+
+  it('PUT /api/sessions/:id does not disclose substring-matched invalid update errors', async () => {
+    sessionFindByPk.mockRejectedValueOnce(new Error('private invalid update storage host'));
+
+    const response = await request(app)
+      .put('/api/sessions/42')
+      .send({ notes: 'Update notes' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Invalid session update',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private invalid');
+  });
+
   it('POST /api/sessions/add-to-user adds credits on the mounted router', async () => {
     findUserByPk.mockResolvedValue({
       id: 42,

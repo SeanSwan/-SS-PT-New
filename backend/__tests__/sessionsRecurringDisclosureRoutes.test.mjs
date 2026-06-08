@@ -98,6 +98,57 @@ describe('mounted sessions recurring-series disclosure routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private recurring update');
   });
 
+  it('PUT /api/sessions/recurring/:groupId does not disclose substring-matched admin errors', async () => {
+    updateRecurringSeries.mockRejectedValueOnce(
+      new Error('private admin privileges recurring update host')
+    );
+
+    const response = await request(app)
+      .put('/api/sessions/recurring/series-abc')
+      .send({ duration: 45 });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Admin privileges required',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private admin');
+  });
+
+  it('PUT /api/sessions/recurring/:groupId does not disclose substring-matched missing series errors', async () => {
+    updateRecurringSeries.mockRejectedValueOnce(
+      new Error('private recurring series not found storage host')
+    );
+
+    const response = await request(app)
+      .put('/api/sessions/recurring/series-abc')
+      .send({ duration: 45 });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Recurring series not found',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private recurring');
+  });
+
+  it('PUT /api/sessions/recurring/:groupId does not disclose substring-matched invalid errors', async () => {
+    updateRecurringSeries.mockRejectedValueOnce(
+      new Error('private invalid recurring payload host')
+    );
+
+    const response = await request(app)
+      .put('/api/sessions/recurring/series-abc')
+      .send({ duration: 45 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Invalid recurring series request',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private invalid');
+  });
+
   it('DELETE /api/sessions/recurring/:groupId does not disclose internal delete errors', async () => {
     deleteRecurringSeries.mockRejectedValueOnce(
       new Error('private recurring delete storage host')
@@ -111,5 +162,35 @@ describe('mounted sessions recurring-series disclosure routes', () => {
       message: 'Server error cancelling recurring series',
     });
     expect(JSON.stringify(response.body)).not.toContain('private recurring delete');
+  });
+
+  it('DELETE /api/sessions/recurring/:groupId does not disclose substring-matched admin errors', async () => {
+    deleteRecurringSeries.mockRejectedValueOnce(
+      new Error('private admin privileges recurring delete host')
+    );
+
+    const response = await request(app).delete('/api/sessions/recurring/series-abc');
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Admin privileges required',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private admin');
+  });
+
+  it('DELETE /api/sessions/recurring/:groupId does not disclose substring-matched missing series errors', async () => {
+    deleteRecurringSeries.mockRejectedValueOnce(
+      new Error('private no future sessions storage host')
+    );
+
+    const response = await request(app).delete('/api/sessions/recurring/series-abc');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Recurring series not found',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private no future');
   });
 });

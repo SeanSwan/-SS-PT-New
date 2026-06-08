@@ -1611,14 +1611,14 @@ router.put("/:id", protect, async (req, res) => {
     if (normalizedMessage.includes('permission') || normalizedMessage.includes('privileges')) {
       return res.status(403).json({
         success: false,
-        message: rawMessage || 'Not authorized to update this session'
+        message: 'Not authorized to update this session'
       });
     }
 
     if (normalizedMessage.includes('invalid') || normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
       return res.status(400).json({
         success: false,
-        message: rawMessage || 'Invalid session update'
+        message: 'Invalid session update'
       });
     }
 
@@ -1835,7 +1835,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
     if (normalizedMessage.includes('admin privileges required') || normalizedMessage.includes('invalid request')) {
       return res.status(403).json({
         success: false,
-        message: rawMessage
+        message: 'Admin privileges required'
       });
     }
     
@@ -1847,7 +1847,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: rawMessage
+        message: 'Invalid session creation request'
       });
     }
 
@@ -1878,13 +1878,12 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
     logger.error('Error in POST /api/sessions/recurring:', error);
     const rawMessage = typeof error === 'string' ? error : (error?.message || '');
     const normalizedMessage = rawMessage.toLowerCase();
-    const responseMessage = rawMessage || 'Request validation failed';
     
     // Handle validation errors
     if (normalizedMessage.includes('admin privileges required')) {
       return res.status(403).json({
         success: false,
-        message: responseMessage
+        message: 'Admin privileges required'
       });
     }
     
@@ -1893,7 +1892,7 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
         normalizedMessage.includes('exceeds')) {
       return res.status(400).json({
         success: false,
-        message: responseMessage
+        message: 'Invalid recurring session request'
       });
     }
     
@@ -1918,15 +1917,15 @@ router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
     const normalizedMessage = rawMessage.toLowerCase();
 
     if (normalizedMessage.includes('admin privileges')) {
-      return res.status(403).json({ success: false, message: rawMessage || 'Admin privileges required' });
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
     }
 
     if (normalizedMessage.includes('not found') || normalizedMessage.includes('no future sessions')) {
-      return res.status(404).json({ success: false, message: rawMessage || 'Recurring series not found' });
+      return res.status(404).json({ success: false, message: 'Recurring series not found' });
     }
 
     if (normalizedMessage.includes('invalid') || normalizedMessage.includes('missing') || normalizedMessage.includes('must')) {
-      return res.status(400).json({ success: false, message: rawMessage || 'Invalid request' });
+      return res.status(400).json({ success: false, message: 'Invalid recurring series request' });
     }
 
     return res.status(500).json({
@@ -1951,11 +1950,11 @@ router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
     const normalizedMessage = rawMessage.toLowerCase();
 
     if (normalizedMessage.includes('admin privileges')) {
-      return res.status(403).json({ success: false, message: rawMessage || 'Admin privileges required' });
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
     }
 
     if (normalizedMessage.includes('not found') || normalizedMessage.includes('no future sessions')) {
-      return res.status(404).json({ success: false, message: rawMessage || 'Recurring series not found' });
+      return res.status(404).json({ success: false, message: 'Recurring series not found' });
     }
 
     return res.status(500).json({

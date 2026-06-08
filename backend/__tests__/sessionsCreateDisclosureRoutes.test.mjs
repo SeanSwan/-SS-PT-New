@@ -103,6 +103,50 @@ describe('mounted sessions admin create disclosure routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private session create');
   });
 
+  it('POST /api/sessions does not disclose substring-matched admin create errors', async () => {
+    createAvailableSessions.mockRejectedValueOnce(
+      new Error('private admin privileges required storage host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions')
+      .send({
+        sessions: [{
+          sessionDate: '2026-06-07T16:00:00.000Z',
+          duration: 60,
+        }],
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Admin privileges required',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private admin');
+  });
+
+  it('POST /api/sessions does not disclose substring-matched invalid create errors', async () => {
+    createAvailableSessions.mockRejectedValueOnce(
+      new Error('private invalid session payload storage host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions')
+      .send({
+        sessions: [{
+          sessionDate: '2026-06-07T16:00:00.000Z',
+          duration: 60,
+        }],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Invalid session creation request',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private invalid');
+  });
+
   it('POST /api/sessions/recurring does not disclose internal create errors', async () => {
     createRecurringSessions.mockRejectedValueOnce(
       new Error('private recurring create storage host')
@@ -123,5 +167,49 @@ describe('mounted sessions admin create disclosure routes', () => {
       message: 'Server error creating recurring sessions',
     });
     expect(JSON.stringify(response.body)).not.toContain('private recurring create');
+  });
+
+  it('POST /api/sessions/recurring does not disclose substring-matched admin errors', async () => {
+    createRecurringSessions.mockRejectedValueOnce(
+      new Error('private admin privileges required recurring host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions/recurring')
+      .send({
+        startDate: '2026-06-07',
+        endDate: '2026-07-07',
+        startTime: '09:00',
+        duration: 60,
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Admin privileges required',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private admin');
+  });
+
+  it('POST /api/sessions/recurring does not disclose substring-matched invalid errors', async () => {
+    createRecurringSessions.mockRejectedValueOnce(
+      new Error('private invalid recurring payload host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions/recurring')
+      .send({
+        startDate: '2026-06-07',
+        endDate: '2026-07-07',
+        startTime: '09:00',
+        duration: 60,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Invalid recurring session request',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private invalid');
   });
 });
