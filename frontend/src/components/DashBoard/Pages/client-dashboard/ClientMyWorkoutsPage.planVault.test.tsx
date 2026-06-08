@@ -5,7 +5,7 @@
  * contains the client's training-plan arcs, not only historical workout logs.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -96,8 +96,8 @@ describe('ClientMyWorkoutsPage plan vault target', () => {
     const vault = screen.getByTestId('client-plan-vault-card');
     expect(vault).toHaveTextContent(/plan vault/i);
     expect(vault).toHaveTextContent(/1 of 7 arcs ready/i);
-    expect(vault).toHaveTextContent(/6 month primary/i);
-    expect(vault).toHaveTextContent(/phase 1 stabilization/i);
+    const primaryRow = within(vault).getByLabelText(/6 month primary plan arc/i);
+    expect(primaryRow).toHaveTextContent(/phase 1 stabilization/i);
     expect(screen.getByRole('button', { name: /log today from 6 month primary plan/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /open workout plan vault/i })).not.toBeInTheDocument();
   });

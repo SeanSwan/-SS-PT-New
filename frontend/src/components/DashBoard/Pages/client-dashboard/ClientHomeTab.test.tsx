@@ -311,8 +311,8 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
     expect(vault.textContent).toMatch(/6 month/i);
     expect(vault.textContent).toMatch(/9 month/i);
     expect(vault.textContent).toMatch(/12 month/i);
-    expect(vault.textContent).toMatch(/6 month primary/i);
-    expect(vault.textContent).toMatch(/phase 1 stabilization/i);
+    const primaryVaultRow = within(vault).getByLabelText(/6 month primary plan arc/i);
+    expect(primaryVaultRow).toHaveTextContent(/phase 1 stabilization/i);
     expect(vault.textContent).toMatch(/pending/i);
     const pdfButton = within(vault).getByRole('button', { name: /view 6 month pdf plan/i });
     mockApiGet.mockResolvedValueOnce({

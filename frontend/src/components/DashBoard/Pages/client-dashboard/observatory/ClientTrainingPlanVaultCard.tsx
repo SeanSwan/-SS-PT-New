@@ -54,6 +54,14 @@ function slotUseDetail(slot: ClientTrainingPlanSlot): string | null {
   return `${formatPlanUseLabel(slot.assignmentDefault)} - ${formatPlanBillingIntentLabel(slot)}`;
 }
 
+function slotCursorDetail(slot: ClientTrainingPlanSlot): string | null {
+  const parts = [
+    slot.currentWeek ? `Week ${slot.currentWeek}` : null,
+    slot.currentDay ? `Day ${slot.currentDay}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' - ') : null;
+}
+
 function canLogFromSlot(slot: ClientTrainingPlanSlot, canLogToday: boolean): boolean {
   return canLogToday && slot.isPrimary && slot.isFilled && slot.planStatus !== 'paused';
 }
@@ -99,11 +107,18 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
           <WidgetList>
             {slots.map((slot) => {
               const useDetail = slotUseDetail(slot);
+              const cursorDetail = slotCursorDetail(slot);
               return (
-                <WidgetRow key={slot.horizonKey}>
-                  <WidgetLabel>{slot.isPrimary ? `${slot.label} Primary` : slot.label}</WidgetLabel>
+                <WidgetRow
+                  key={slot.horizonKey}
+                  aria-label={`${slot.label} ${slotStatus(slot)} plan arc`}
+                >
+                  <WidgetLabel>{slot.label}</WidgetLabel>
                   <WidgetValue>{slotStatus(slot)}</WidgetValue>
                   <WidgetLabel>{slotDetail(slot)}</WidgetLabel>
+                  {cursorDetail && (
+                    <WidgetLabel>{cursorDetail}</WidgetLabel>
+                  )}
                   {useDetail && (
                     <WidgetLabel>{useDetail}</WidgetLabel>
                   )}

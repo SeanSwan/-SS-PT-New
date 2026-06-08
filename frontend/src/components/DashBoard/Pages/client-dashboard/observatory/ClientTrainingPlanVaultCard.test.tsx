@@ -28,6 +28,8 @@ const PLAN_VAULT: ClientTrainingPlanVault = {
       assignmentDefault: 'trainer_session',
       billingIntent: 'trainer_led_scheduled_flow',
       defaultShouldDeductSession: false,
+      currentWeek: 4,
+      currentDay: 2,
       pdfFile: {
         url: '/api/workout-plans/plan-6m/pdf/content.pdf',
         fileName: 'Six Month Foundation.pdf',
@@ -50,12 +52,10 @@ describe('ClientTrainingPlanVaultCard', () => {
       />
     );
 
-    const vault = screen.getByTestId('client-plan-vault-card');
-    const primaryRow = within(vault).getByText(/6 month primary/i).closest('div');
-    expect(primaryRow).not.toBeNull();
+    const primaryRow = screen.getByLabelText(/6 month primary plan arc/i);
 
     await user.click(
-      within(primaryRow as HTMLElement).getByRole('button', {
+      within(primaryRow).getByRole('button', {
         name: /log today from 6 month primary plan/i,
       })
     );
@@ -115,11 +115,35 @@ describe('ClientTrainingPlanVaultCard', () => {
       />
     );
 
-    const vault = screen.getByTestId('client-plan-vault-card');
-    const primaryRow = within(vault).getByText(/6 month primary/i).closest('div');
-    expect(primaryRow).not.toBeNull();
+    const primaryRow = screen.getByLabelText(/6 month primary plan arc/i);
     expect(primaryRow).toHaveTextContent(/trainer-led/i);
     expect(primaryRow).toHaveTextContent(/scheduled session/i);
     expect(primaryRow).toHaveTextContent(/coach controls deduction/i);
+  });
+
+  it('shows the primary arc cursor so clients can verify the current week and day', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={PLAN_VAULT}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    const primaryRow = screen.getByLabelText(/6 month primary plan arc/i);
+    expect(primaryRow).toHaveTextContent(/week 4/i);
+    expect(primaryRow).toHaveTextContent(/day 2/i);
+  });
+
+  it('does not repeat the primary label twice in the same row', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={PLAN_VAULT}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('client-plan-vault-card').textContent).not.toMatch(/primaryprimary/i);
   });
 });
