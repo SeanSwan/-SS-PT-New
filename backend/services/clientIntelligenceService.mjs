@@ -69,6 +69,12 @@ function selectQueryType(sequelizeInstance) {
   return sequelizeInstance?.QueryTypes?.SELECT || 'SELECT';
 }
 
+function toNullablePositiveNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, options = {}) {
   const { limit = 14, sequelizeOverride = sequelize } = options;
 
@@ -80,7 +86,7 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
          ws.intensity AS "overallIntensity",
          json_agg(json_build_object(
            'exerciseName', wl."exerciseName",
-           'formRating', wl.rpe
+           'rpe', wl.rpe
          ) ORDER BY wl."exerciseName", wl."setNumber") AS exercises
        FROM workout_sessions ws
        JOIN workout_logs wl ON wl."sessionId" = ws.id
@@ -102,12 +108,13 @@ export async function fetchRecentWorkoutLogSummaries(clientId, sinceDate, option
         id: row.id,
         date: row.date,
         formData: {
-          overallIntensity: Number(row.overallIntensity) || 0,
+          overallIntensity: toNullablePositiveNumber(row.overallIntensity),
           exercises: (Array.isArray(exercises) ? exercises : [])
             .filter((exercise) => exercise?.exerciseName)
             .map((exercise) => ({
               exerciseName: exercise.exerciseName,
-              formRating: exercise.formRating == null ? null : Number(exercise.formRating),
+              formRating: toNullablePositiveNumber(exercise.formRating),
+              rpe: toNullablePositiveNumber(exercise.rpe),
             })),
         },
       };
@@ -571,6 +578,7 @@ export async function getClientContext(clientId, trainerId) {
   let totalFormRating = 0;
   let formRatingCount = 0;
   let totalIntensity = 0;
+  let intensityCount = 0;
 
   for (const workout of recentWorkouts) {
     const formData = safeJsonParse(workout.formData, {});
@@ -578,14 +586,17 @@ export async function getClientContext(clientId, trainerId) {
     if (formData?.exercises) {
       for (const ex of formData.exercises) {
         if (ex.exerciseName) recentExerciseSet.add(ex.exerciseName);
-        if (ex.formRating) {
-          totalFormRating += ex.formRating;
+        const formRating = toNullablePositiveNumber(ex.formRating);
+        if (formRating !== null) {
+          totalFormRating += formRating;
           formRatingCount++;
         }
       }
     }
-    if (formData?.overallIntensity) {
-      totalIntensity += formData.overallIntensity;
+    const overallIntensity = toNullablePositiveNumber(formData?.overallIntensity);
+    if (overallIntensity !== null) {
+      totalIntensity += overallIntensity;
+      intensityCount++;
     }
   }
 
@@ -593,8 +604,8 @@ export async function getClientContext(clientId, trainerId) {
   workoutSummary.avgFormRating = formRatingCount > 0
     ? Math.round((totalFormRating / formRatingCount) * 10) / 10
     : 0;
-  workoutSummary.avgIntensity = recentWorkouts.length > 0
-    ? Math.round((totalIntensity / recentWorkouts.length) * 10) / 10
+  workoutSummary.avgIntensity = intensityCount > 0
+    ? Math.round((totalIntensity / intensityCount) * 10) / 10
     : 0;
 
   // ── Process Equipment ──────────────────────────────────────────
