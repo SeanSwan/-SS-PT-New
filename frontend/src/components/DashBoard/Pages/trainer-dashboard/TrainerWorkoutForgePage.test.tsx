@@ -159,5 +159,15 @@ describe('TrainerWorkoutForgePage workflow', () => {
       })
     );
     expect(mockAuthAxios.post.mock.calls[0][1].planData.weeks[0].sessions[0].exercises[0].name).toBe('Cable Row');
+    expect(mockAuthAxios.post.mock.calls[0][1].planData.assignmentDefaults).toEqual({
+      defaultAssignmentType: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      shouldDeductSession: false,
+    });
+    expect(mockAuthAxios.post.mock.calls[0][1].metadata).toMatchObject({
+      assignmentDefault: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      defaultShouldDeductSession: false,
+    });
   });
 });
