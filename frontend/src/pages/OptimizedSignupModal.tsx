@@ -597,7 +597,8 @@ const OptimizedSignupModal: React.FC = () => {
     emergencyContact: "", 
     emergencyContactName: "", 
     emergencyContactPhone: "",
-    role: "user"
+    role: "user",
+    clientSource: "swanstudios"
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -695,7 +696,14 @@ const OptimizedSignupModal: React.FC = () => {
     // Clear general error when user makes changes
     if (error) setError('');
     
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "role" && value !== "client" ? { clientSource: "external" } : {}),
+      ...(name === "role" && value === "client" && prev.clientSource === "external"
+        ? { clientSource: "swanstudios" }
+        : {}),
+    }));
     
     // Real-time validation for critical fields
     if (['email', 'username', 'password', 'confirmPassword', 'firstName', 'lastName'].includes(name)) {
@@ -828,6 +836,7 @@ const OptimizedSignupModal: React.FC = () => {
       const phone = formData.emergencyContactPhone || '';
       formattedData.emergencyContact = name && phone ? `${name} ${phone}` : (name || phone);
     }
+    formattedData.clientSource = formData.role === "client" ? formData.clientSource : "external";
     
     // Convert weight from lbs to kg if needed
     if (formData.weight) {
@@ -1213,6 +1222,26 @@ const OptimizedSignupModal: React.FC = () => {
                   Choose the account type that best fits your needs. Admin accounts are created separately for security.
                 </HelpText>
               </InputWrapper>
+
+              {formData.role === "client" && (
+                <InputWrapper>
+                  <Label htmlFor="clientSource">Client Source</Label>
+                  <SelectField
+                    id="clientSource"
+                    name="clientSource"
+                    value={formData.clientSource}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  >
+                    <option value="swanstudios">SwanStudios paid client</option>
+                    <option value="move_fitness">Move Fitness client</option>
+                    <option value="external">External free-tracking client</option>
+                  </SelectField>
+                  <HelpText>
+                    SwanStudios clients use paid session inventory. Move Fitness and external clients track training without automatic session deductions.
+                  </HelpText>
+                </InputWrapper>
+              )}
             </FormSection>
 
             <FormSection>

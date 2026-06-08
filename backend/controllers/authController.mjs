@@ -255,6 +255,17 @@ const INSECURE_JWT_PLACEHOLDERS = new Set([
 // Production rate limiting — 10 attempts per 15 minutes
 const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
+const PUBLIC_REGISTRATION_CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+const PUBLIC_NON_CLIENT_SOURCE = 'external';
+
+const resolvePublicRegistrationClientSource = ({ role, clientSource }) => {
+  if (role !== 'client') {
+    return PUBLIC_NON_CLIENT_SOURCE;
+  }
+
+  const normalizedSource = typeof clientSource === 'string' ? clientSource.trim() : '';
+  return PUBLIC_REGISTRATION_CLIENT_SOURCES.has(normalizedSource) ? normalizedSource : null;
+};
 
 const createJwtSecretConfigurationError = (secretName) => {
   const error = new Error(`${secretName} is not configured`);
@@ -493,7 +504,7 @@ export const register = async (req, res) => {
     }
 
     // Extract role and adminCode from request body
-    const { role = 'user', adminCode } = req.body;
+    const { role = 'user', adminCode, clientSource } = req.body;
     
     // Validate admin role requires a valid admin code
     if (role === 'admin') {
@@ -518,6 +529,16 @@ export const register = async (req, res) => {
       // Log successful admin code verification
       logger.info('Valid admin code provided for admin registration');
     }
+
+    const resolvedClientSource = resolvePublicRegistrationClientSource({ role, clientSource });
+    if (!resolvedClientSource) {
+      await transaction.rollback();
+      logger.warn('Client registration attempt with missing or invalid client source');
+      return res.status(400).json({
+        success: false,
+        message: 'Client source is required for client accounts'
+      });
+    }
     
     // Create new user
     const user = await User.create(
@@ -537,6 +558,7 @@ export const register = async (req, res) => {
         healthConcerns,
         emergencyContact,
         role: role, // Use the provided role or default to 'user'
+        clientSource: resolvedClientSource,
         lastActive: new Date(),
         registrationIP: getClientIp(req) // Store IP for security monitoring
       },
