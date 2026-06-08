@@ -15,9 +15,13 @@
 
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  chooseFrontendPort,
+  cleanupFrontendProcess,
+  waitForOwnedFrontendPort,
+} from './local-frontend-server.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,44 +56,6 @@ const mode = writeMode
       : 'contract';
 const allowWrites = writeMode ? '1' : '0';
 const liveApi = prodLiveReadOnly ? '1' : '0';
-
-function canListenOnPort(port) {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once('error', () => resolve(false));
-    server.once('listening', () => {
-      server.close(() => resolve(true));
-    });
-    server.listen(port);
-  });
-}
-
-function canConnectToPort(port) {
-  return new Promise((resolve) => {
-    const socket = net.connect(port, '127.0.0.1');
-    socket.once('connect', () => {
-      socket.end();
-      resolve(true);
-    });
-    socket.once('error', () => resolve(false));
-  });
-}
-
-async function waitForPort(port, timeoutMs = 30_000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (await canConnectToPort(port)) return;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error(`Frontend server did not become ready on port ${port}`);
-}
-
-async function chooseFrontendPort(startPort) {
-  for (let port = startPort; port < startPort + 20; port += 1) {
-    if (await canListenOnPort(port)) return port;
-  }
-  throw new Error(`No open frontend port found from ${startPort} to ${startPort + 19}`);
-}
 
 function looksProductionUrl(value) {
   return /sswanstudios\.com|onrender\.com/i.test(value || '');
@@ -230,7 +196,7 @@ const baseURL = baseUrlArg
   ? baseUrlArg.slice('--base-url='.length)
   : prodReadOnly || prodLiveReadOnly
     ? 'https://sswanstudios.com'
-    : process.env.BASE_URL || `http://localhost:${localFrontendPort || 5173}`;
+    : process.env.BASE_URL || `http://127.0.0.1:${localFrontendPort || 5173}`;
 
 if (writeMode && looksProductionUrl(baseURL) && !allowProdWrite) {
   fail('write mode points at production; add --allow-prod-write only after Sean explicitly approves');
@@ -300,29 +266,6 @@ const playwrightSpawnOptions = {
   encoding: 'utf8',
 };
 
-function stopWindowsProcessTree(pid) {
-  return spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], {
-    encoding: 'utf8',
-  }).status === 0;
-}
-
-function shouldUseWindowsTreeKill(child) {
-  return process.platform === 'win32' && Boolean(child.pid);
-}
-
-function frontendProcessIsRunning(child) {
-  return Boolean(child) && !child.killed;
-}
-
-function stopFrontendProcess(child) {
-  if (shouldUseWindowsTreeKill(child) && stopWindowsProcessTree(child.pid)) return;
-  child.kill('SIGTERM');
-}
-
-function cleanupFrontendProcess(child) {
-  if (frontendProcessIsRunning(child)) stopFrontendProcess(child);
-}
-
 let frontendProcess = null;
 let exitCode = 1;
 try {
@@ -332,7 +275,7 @@ try {
       [viteCli, '--host', '0.0.0.0', '--port', String(localFrontendPort), '--strictPort'],
       { cwd: frontendDir, stdio: 'inherit' },
     );
-    await waitForPort(localFrontendPort);
+    await waitForOwnedFrontendPort(localFrontendPort, frontendProcess);
   }
 
   const result = spawnSync(process.execPath, [playwrightCli, ...playwrightArgs], playwrightSpawnOptions);

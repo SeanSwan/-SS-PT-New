@@ -14,9 +14,9 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chooseFrontendPort } from './local-frontend-server.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,33 +34,13 @@ const projectArgs = ownArgs.filter(arg => arg.startsWith('--project='));
 const baseUrlArg = ownArgs.find(arg => arg.startsWith('--base-url='));
 const workersArg = ownArgs.find(arg => arg.startsWith('--workers='));
 
-function canListenOnPort(port) {
-  return new Promise(resolve => {
-    const server = net.createServer();
-
-    server.once('error', () => resolve(false));
-    server.once('listening', () => {
-      server.close(() => resolve(true));
-    });
-    server.listen(port, '127.0.0.1');
-  });
-}
-
-async function chooseFrontendPort(startPort) {
-  for (let port = startPort; port < startPort + 20; port += 1) {
-    if (await canListenOnPort(port)) return port;
-  }
-
-  throw new Error(`No open frontend port found from ${startPort} to ${startPort + 19}`);
-}
-
 const localFrontendPort = !prod && !baseUrlArg && !process.env.BASE_URL
   ? await chooseFrontendPort(Number(process.env.SWAN_PLAYWRIGHT_FRONTEND_PORT || '5173'))
   : null;
 
 const baseURL = baseUrlArg
   ? baseUrlArg.slice('--base-url='.length)
-  : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || `http://localhost:${localFrontendPort}`;
+  : prod ? 'https://sswanstudios.com' : process.env.BASE_URL || `http://127.0.0.1:${localFrontendPort}`;
 const skipWebServer = prod || Boolean(baseUrlArg) || Boolean(process.env.BASE_URL) || process.env.SWAN_PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const selectedWorkersArg = workersArg || (prod || baseUrlArg || process.env.BASE_URL ? '--workers=1' : '--workers=2');
 
