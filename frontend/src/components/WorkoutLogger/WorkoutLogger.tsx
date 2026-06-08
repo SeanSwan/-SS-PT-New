@@ -674,7 +674,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     } finally {
       setIsLoadingPlan(false);
     }
-  }, [effectiveClientId, createWorkoutLoggerLocalId]);
+  }, [effectiveClientId, createWorkoutLoggerLocalId, scheduledSessionId]);
 
   useEffect(() => {
     const todayPlanLoadSignal = loadTodayPlanSignal > 0
