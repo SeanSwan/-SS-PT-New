@@ -235,7 +235,10 @@ import {
   hashPasswordResetToken,
   sendPasswordResetEmailForUser,
 } from '../services/auth/passwordResetEmailService.mjs';
-import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
+import {
+  CLIENT_SOURCES,
+  parseClientSource,
+} from '../services/sessionBillingPolicy.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -256,7 +259,7 @@ const INSECURE_JWT_PLACEHOLDERS = new Set([
 // Production rate limiting — 10 attempts per 15 minutes
 const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
-const PUBLIC_REGISTRATION_CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+const PUBLIC_REGISTRATION_CLIENT_SOURCES = CLIENT_SOURCES;
 const PUBLIC_NON_CLIENT_SOURCE = 'external';
 const PUBLIC_SELF_REGISTRATION_ROLES = new Set(['user', 'client', 'admin']);
 

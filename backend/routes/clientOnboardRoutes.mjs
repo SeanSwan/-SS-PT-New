@@ -31,6 +31,7 @@ import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
 import { getUser, getClientProgress } from '../models/index.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
 import {
+  CLIENT_SOURCES,
   NON_DEDUCTING_CLIENT_SOURCES,
   normalizeClientSource,
   normalizePaidSessionCount,
@@ -43,7 +44,7 @@ import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
-const ALLOWED_CLIENT_ONBOARD_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
+const ALLOWED_CLIENT_ONBOARD_SOURCES = CLIENT_SOURCES;
 
 export const isAllowedClientOnboardSource = (clientSource) =>
   ALLOWED_CLIENT_ONBOARD_SOURCES.has(normalizeClientSource(clientSource, null));

@@ -8,10 +8,13 @@ import {
   COACH_PROPOSAL_TYPE,
   createCoachActionProposalDraft,
 } from '../coachActionProposalService.mjs';
-import { parseClientSource } from '../../sessionBillingPolicy.mjs';
+import {
+  CLIENT_SOURCES,
+  NON_DEDUCTING_CLIENT_SOURCES,
+  parseClientSource,
+} from '../../sessionBillingPolicy.mjs';
 
-const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
-const EXTERNAL_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
+const EXTERNAL_CLIENT_SOURCES = NON_DEDUCTING_CLIENT_SOURCES;
 const CLIENT_SOURCE_OPTIONS = Object.freeze(['move_fitness', 'swanstudios', 'external']);
 const CLIENT_SOURCE_CLARIFICATION_QUESTION = [
   'Which client source should this client use before I prepare the onboarding draft?',

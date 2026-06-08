@@ -16,6 +16,7 @@ import {
 } from '../models/index.mjs';
 import { generateClaimToken } from './claimTokenService.mjs';
 import {
+  CLIENT_SOURCES,
   isNonDeductingClientSource,
   parseClientSource,
 } from './sessionBillingPolicy.mjs';
@@ -25,7 +26,6 @@ import {
 } from './clientOnboardIdentityService.mjs';
 import logger from '../utils/logger.mjs';
 
-const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 const TEXT_FIELDS = [
   'phone',
   'dateOfBirth',
