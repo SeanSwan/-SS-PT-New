@@ -228,7 +228,9 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
       duration: payload.duration,
       intensity: payload.intensity,
       plannedAssignment: payload.plannedAssignment,
+      scheduledSessionId: payload.scheduledSessionId,
       trainerId: req.user.id,
+      userRole: req.user.role,
       sequelize: db,
     });
     const updated = await updateProposalStatus({

@@ -4,16 +4,33 @@
 import { z } from 'zod';
 import { registerCommands, DateSchema, NASMPhaseSchema, PaginationSchema } from './baseSchemas.mjs';
 
-const PlannedAssignmentSchema = z.object({
+const PlannedAssignmentBaseSchema = {
   assignmentKey: z.string().min(1).max(160),
   planId: z.union([z.string().min(1).max(160), z.number().int().positive()]),
-  assignmentType: z.enum(['homework', 'active_recovery']),
   source: z.literal('workout_plan').default('workout_plan'),
-  isBillable: z.literal(false).default(false),
-  shouldDeductSession: z.literal(false).default(false),
   weekNumber: z.number().int().positive(),
   dayNumber: z.number().int().positive(),
-});
+};
+
+const PlannedAssignmentSchema = z.union([
+  z.object({
+    ...PlannedAssignmentBaseSchema,
+    assignmentType: z.enum(['homework', 'active_recovery']),
+    isBillable: z.literal(false).default(false),
+    shouldDeductSession: z.literal(false).default(false),
+  }),
+  z.object({
+    ...PlannedAssignmentBaseSchema,
+    assignmentType: z.literal('trainer_session'),
+    isBillable: z.literal(true).default(true),
+    shouldDeductSession: z.boolean().default(true),
+  }),
+]);
+
+const ScheduledSessionIdSchema = z.union([
+  z.number().int().positive(),
+  z.string().regex(/^\d+$/),
+]);
 
 const commands = [
   {
@@ -61,7 +78,8 @@ const commands = [
       duration: z.number().int().min(0).default(0).describe('Session duration in minutes'),
       intensity: z.number().int().min(1).max(10).optional().describe('Session intensity 1–10 when explicitly dictated'),
       notes: z.string().max(1000).optional(),
-      plannedAssignment: PlannedAssignmentSchema.optional().describe('Verified non-billable Today assignment metadata'),
+      scheduledSessionId: ScheduledSessionIdSchema.optional().describe('Booked session id when logging from the trainer schedule'),
+      plannedAssignment: PlannedAssignmentSchema.optional().describe('Verified Today assignment metadata'),
       // Exercise array (flat format — sets is a count, not an array)
       exercises: z.array(z.object({
         name: z.string().min(1),

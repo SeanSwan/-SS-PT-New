@@ -100,6 +100,7 @@ describe('legacy workout command selected-client scope', () => {
     await dispatch('log_workout', {
       clientId: 999,
       date: '2026-05-20',
+      scheduledSessionId: 777,
       exercises: [{ name: 'Push-up', sets: 1, reps: 10 }],
       plannedAssignment: {
         assignmentKey: 'plan-6m:w4:d2:homework',
@@ -121,6 +122,7 @@ describe('legacy workout command selected-client scope', () => {
       clientId: 42,
       trainerId: 7,
       date: '2026-05-20',
+      scheduledSessionId: 777,
       plannedAssignment: expect.objectContaining({
         assignmentKey: 'plan-6m:w4:d2:homework',
       }),

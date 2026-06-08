@@ -66,4 +66,27 @@ describe('Swan Coach log_workout command intensity defaults', () => {
       shouldDeductSession: false,
     });
   });
+
+  it('preserves scheduled trainer-session assignment metadata', () => {
+    const parsed = logWorkoutCommand.inputSchema.parse({
+      clientId: 42,
+      scheduledSessionId: '777',
+      exercises: [{ name: 'Trap Bar Deadlift', sets: 1, reps: 5, weight: 135 }],
+      plannedAssignment: {
+        assignmentKey: 'plan-6m:w1:d1:trainer_session',
+        planId: 'plan-6m',
+        assignmentType: 'trainer_session',
+        source: 'workout_plan',
+        weekNumber: 1,
+        dayNumber: 1,
+      },
+    });
+
+    expect(parsed.scheduledSessionId).toBe('777');
+    expect(parsed.plannedAssignment).toMatchObject({
+      assignmentType: 'trainer_session',
+      isBillable: true,
+      shouldDeductSession: true,
+    });
+  });
 });
