@@ -17,6 +17,9 @@ const baseSession: SessionDetail = {
   status: 'scheduled',
   userId: 20,
   trainerId: 7,
+  clientSource: 'swanstudios',
+  clientAvailableSessions: 3,
+  sessionDeducted: false,
 };
 
 const setup = (session: SessionDetail | null = baseSession) => {
@@ -137,6 +140,33 @@ describe('useSessionCompletion', () => {
 
     await act(async () => {
       result.current.setDeductCompletionSessionCredit(false);
+    });
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+
+    expect(apiService.patch).toHaveBeenCalledWith('/api/sessions/66/complete', {
+      notes: undefined,
+      trainerRating: undefined,
+      clientFeedback: undefined,
+      completeWithoutLog: true,
+      deductSessionCredit: false,
+    });
+  });
+
+  it('completes without deduction when a paid client has no known credits left', async () => {
+    vi.mocked(apiService.patch).mockResolvedValueOnce({
+      data: { success: true },
+    });
+    const { result } = setup({
+      ...baseSession,
+      clientAvailableSessions: 0,
+    });
+
+    await waitFor(() => {
+      expect(result.current.canDeductCompletionSessionCredit).toBe(false);
+      expect(result.current.deductCompletionSessionCredit).toBe(false);
     });
 
     await act(async () => {
