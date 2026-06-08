@@ -63,6 +63,16 @@ const normalizeStorageKey = (value) => {
 
 const normalizeStorage = (value) => (value === 'local' ? 'local' : 'r2');
 
+const flagEnabled = (value) => (
+  ['1', 'true', 'yes', 'local'].includes(String(value || '').trim().toLowerCase())
+);
+
+const allowLocalWorkoutPlanPdfStorage = () => {
+  const explicit = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+  if (explicit !== undefined && explicit !== '') return flagEnabled(explicit);
+  return process.env.NODE_ENV !== 'production';
+};
+
 const normalizeProtectedPdfUrl = (value, planId = null) => {
   const raw = typeof value === 'string' ? value : '';
   if (!raw.trim() || /[\r\n\t]/.test(raw)) return null;
@@ -129,11 +139,19 @@ export const buildWorkoutPlanPdfMetadata = ({
     return { ok: false, message: 'Upload a PDF file or provide an existing protected PDF storage key' };
   }
 
+  const normalizedStorage = normalizeStorage(storage || current.storage);
+  if (normalizedStorage === 'local' && !allowLocalWorkoutPlanPdfStorage()) {
+    return {
+      ok: false,
+      message: 'Local PDF storage requires explicit production fallback configuration',
+    };
+  }
+
   const planPdf = {
     url,
     fileName: stripUnsafeFileName(fileName || current.fileName || fileNameFromUrl(url)),
     contentType: PDF_CONTENT_TYPE,
-    storage: normalizeStorage(storage || current.storage),
+    storage: normalizedStorage,
     storageKey: normalizedStorageKey,
     ...(!providedStorageKey && Number.isFinite(Number(current.size)) && Number(current.size) > 0
       ? { size: Number(current.size) }

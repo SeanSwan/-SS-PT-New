@@ -6,6 +6,16 @@ import {
 } from '../services/workoutPlanPdfAttachmentService.mjs';
 
 describe('workoutPlanPdfAttachmentService', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalFallbackFlag = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+
+  const restorePdfEnv = () => {
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalFallbackFlag === undefined) delete process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+    else process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK = originalFallbackFlag;
+  };
+
   it('accepts protected app PDF metadata with private storage details', () => {
     const result = buildWorkoutPlanPdfMetadata({
       currentMetadata: { planHorizon: 'six_month' },
@@ -78,5 +88,32 @@ describe('workoutPlanPdfAttachmentService', () => {
         fileName: 'Raw Plan.pdf',
       },
     })).toBeNull();
+  });
+
+  it('rejects manually attached local PDF storage in production unless fallback is explicit', () => {
+    try {
+      process.env.NODE_ENV = 'production';
+      delete process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+
+      expect(buildWorkoutPlanPdfMetadata({
+        pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
+        storage: 'local',
+        storageKey: 'workout-plans/42/plan-1-local.pdf',
+        planId: 'plan-1',
+      })).toMatchObject({
+        ok: false,
+        message: expect.stringMatching(/local pdf storage/i),
+      });
+
+      process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK = 'true';
+      expect(buildWorkoutPlanPdfMetadata({
+        pdfUrl: '/api/workout-plans/plan-1/pdf/content.pdf',
+        storage: 'local',
+        storageKey: 'workout-plans/42/plan-1-local.pdf',
+        planId: 'plan-1',
+      })).toMatchObject({ ok: true });
+    } finally {
+      restorePdfEnv();
+    }
   });
 });
