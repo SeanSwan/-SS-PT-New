@@ -32,8 +32,24 @@ import logger from '../utils/logger.mjs';
 // ── ARCH-2: In-memory progress store for SSE reconnection ──────────
 const sprintJobs = new Map(); // sprintId → { events: [], done: boolean }
 const SPRINT_JOB_TTL = 5 * 60 * 1000; // 5 min TTL after completion
+const SPRINT_INTERNAL_ERROR = 'internal_error';
+const SPRINT_REQUEST_ERROR = 'invalid_sprint_request';
+const SPRINT_GENERATION_ERROR = 'sprint_generation_failed';
 
 const router = Router();
+
+const sendSprintRouteError = (
+  res,
+  status,
+  message,
+  code = status >= 500 ? SPRINT_INTERNAL_ERROR : SPRINT_REQUEST_ERROR,
+) => res.status(status).json({ success: false, error: code, message });
+
+const sendSprintEventError = (sendEvent, message) => sendEvent({
+  type: 'error',
+  error: message,
+  code: SPRINT_GENERATION_ERROR,
+});
 
 // ── Auth: admin + trainer only ───────────────────────────────────────
 router.use(protect);
@@ -55,7 +71,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ success: true, sprint });
   } catch (err) {
     logger.error('[SprintRoutes] Create failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not create sprint. Check the sprint settings and try again.');
   }
 });
 
@@ -66,7 +82,7 @@ router.get('/', async (req, res) => {
     res.json({ success: true, sprints });
   } catch (err) {
     logger.error('[SprintRoutes] List failed:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 500, 'Could not load sprint plans.');
   }
 });
 
@@ -81,7 +97,7 @@ router.get('/:id', async (req, res) => {
     res.json({ success: true, sprint });
   } catch (err) {
     logger.error('[SprintRoutes] Get failed:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 500, 'Could not load sprint details.');
   }
 });
 
@@ -92,7 +108,7 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, sprint });
   } catch (err) {
     logger.error('[SprintRoutes] Update failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not update sprint. Check the sprint settings and try again.');
   }
 });
 
@@ -103,7 +119,7 @@ router.delete('/:id', async (req, res) => {
     res.json(result);
   } catch (err) {
     logger.error('[SprintRoutes] Archive failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not archive sprint.');
   }
 });
 
@@ -148,7 +164,7 @@ router.post('/:id/generate', genLimiter, async (req, res) => {
     res.end();
   } catch (err) {
     logger.error('[SprintRoutes] Generate failed:', err.message);
-    sendEvent({ type: 'error', error: err.message });
+    sendSprintEventError(sendEvent, 'Sprint generation failed');
     job.done = true;
     res.end();
   }
@@ -208,7 +224,7 @@ router.put('/:id/weeks/:weekId', async (req, res) => {
     res.json({ success: true, week });
   } catch (err) {
     logger.error('[SprintRoutes] UpdateWeek failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not update sprint week.');
   }
 });
 
@@ -219,7 +235,7 @@ router.put('/:sprintId/slots/:slotId', async (req, res) => {
     res.json({ success: true, slot });
   } catch (err) {
     logger.error('[SprintRoutes] UpdateSlot failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not update sprint slot.');
   }
 });
 
@@ -232,7 +248,7 @@ router.put('/:sprintId/slots/:slotId/confirm', async (req, res) => {
     res.json({ success: true, slot });
   } catch (err) {
     logger.error('[SprintRoutes] Confirm failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not confirm the sprint class.');
   }
 });
 
@@ -245,7 +261,7 @@ router.post('/:sprintId/slots/:slotId/regenerate', genLimiter, async (req, res) 
     res.json({ success: true, ...result });
   } catch (err) {
     logger.error('[SprintRoutes] Regenerate failed:', err.message);
-    res.status(400).json({ success: false, error: err.message });
+    sendSprintRouteError(res, 400, 'Could not regenerate sprint slot.');
   }
 });
 
