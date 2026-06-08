@@ -5,6 +5,9 @@
  * Locks authenticated delivery for private workout-plan PDFs. The metadata URL
  * stays inside the app, while the storage key may point at local disk or R2.
  */
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pdfBuffer = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n');
@@ -21,16 +24,29 @@ const {
 
 describe('workoutPlanPdfContentService', () => {
   let originalBucket;
+  let originalNodeEnv;
+  let originalFallbackFlag;
+  let uploadsRoot;
 
   beforeEach(() => {
     originalBucket = process.env.R2_BUCKET_NAME;
+    originalNodeEnv = process.env.NODE_ENV;
+    originalFallbackFlag = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
     process.env.R2_BUCKET_NAME = 'swan-private-plans';
     mockR2Send.mockReset();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (originalBucket === undefined) delete process.env.R2_BUCKET_NAME;
     else process.env.R2_BUCKET_NAME = originalBucket;
+    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalFallbackFlag === undefined) delete process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+    else process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK = originalFallbackFlag;
+    if (uploadsRoot) {
+      await rm(uploadsRoot, { recursive: true, force: true });
+      uploadsRoot = null;
+    }
   });
 
   it('resolves a private R2-backed plan PDF through authenticated app metadata', async () => {
@@ -65,5 +81,41 @@ describe('workoutPlanPdfContentService', () => {
       size: pdfBuffer.length,
     });
     expect(result.buffer.equals(pdfBuffer)).toBe(true);
+  });
+
+  it('fails closed on local plan PDFs in production unless persistent-disk fallback is explicit', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+    uploadsRoot = await mkdtemp(path.join(os.tmpdir(), 'swan-workout-plan-content-'));
+    const storageKey = 'workout-plans/42/plan-local-upload-id-plan.pdf';
+    const fullPath = path.join(uploadsRoot, storageKey);
+    await mkdir(path.dirname(fullPath), { recursive: true });
+    await writeFile(fullPath, pdfBuffer);
+
+    const plan = {
+      id: 'plan-local',
+      metadata: {
+        planPdf: {
+          url: '/api/workout-plans/plan-local/pdf/content.pdf',
+          storage: 'local',
+          storageKey,
+          fileName: 'Local Production Plan.pdf',
+        },
+      },
+    };
+
+    await expect(resolveWorkoutPlanPdfContent({ plan, uploadsRoot })).rejects.toMatchObject({
+      status: 503,
+      message: 'Workout plan PDF local storage is disabled in production',
+    });
+
+    process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK = 'true';
+    const result = await resolveWorkoutPlanPdfContent({ plan, uploadsRoot });
+
+    expect(result).toMatchObject({
+      contentType: 'application/pdf',
+      fileName: 'Local Production Plan.pdf',
+      size: pdfBuffer.length,
+    });
   });
 });

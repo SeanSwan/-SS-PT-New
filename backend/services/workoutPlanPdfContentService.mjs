@@ -46,6 +46,16 @@ const normalizeStorageKey = (value) => {
   return key;
 };
 
+const flagEnabled = (value) => (
+  ['1', 'true', 'yes', 'local'].includes(String(value || '').trim().toLowerCase())
+);
+
+const allowLocalWorkoutPlanPdfStorage = () => {
+  const explicit = process.env.SWAN_WORKOUT_PLAN_ALLOW_R2_LOCAL_FALLBACK;
+  if (explicit !== undefined && explicit !== '') return flagEnabled(explicit);
+  return process.env.NODE_ENV !== 'production';
+};
+
 const streamToBuffer = async (body) => {
   if (!body) return Buffer.alloc(0);
   if (Buffer.isBuffer(body)) return body;
@@ -61,6 +71,10 @@ const streamToBuffer = async (body) => {
 };
 
 const readLocalPdf = async ({ storageKey, uploadsRoot }) => {
+  if (!allowLocalWorkoutPlanPdfStorage()) {
+    throw new WorkoutPlanPdfContentError('Workout plan PDF local storage is disabled in production', 503);
+  }
+
   const root = path.resolve(uploadsRoot || process.env.SWAN_WORKOUT_PLAN_UPLOAD_ROOT || path.join(process.cwd(), 'uploads'));
   const fullPath = path.resolve(root, storageKey);
   if (!fullPath.startsWith(`${root}${path.sep}`)) {
