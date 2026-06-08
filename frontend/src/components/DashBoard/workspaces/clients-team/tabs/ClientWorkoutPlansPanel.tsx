@@ -21,6 +21,8 @@ import {
   type ProtectedPlanPdfAuthClient,
 } from '../../../shared/plan-pdf/useProtectedPlanPdfViewer';
 import { getNumericClientId } from './clientTabId';
+import ClientWorkoutHomeworkSummary from './ClientWorkoutHomeworkSummary';
+import ClientWorkoutPlanActiveArcSelector from './ClientWorkoutPlanActiveArcSelector';
 import ClientWorkoutPlanCards from './ClientWorkoutPlanCards';
 import ClientWorkoutPlansTeachMe from './ClientWorkoutPlansTeachMe';
 import ClientWorkoutPlanVaultSection from './ClientWorkoutPlanVaultSection';
@@ -37,6 +39,7 @@ import {
 import {
   buildClientPlanVault,
   normalizeClientWorkoutPlansResponse,
+  type ClientHomeworkSummary,
   type ClientPlanSummary,
   type ClientPlanVaultSummary,
   type ClientWorkoutPlansResponseSummary,
@@ -67,9 +70,11 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
   const safeClientId = getNumericClientId(clientId);
   const [plans, setPlans] = useState<ClientPlanSummary[]>([]);
   const [serverPlanVault, setServerPlanVault] = useState<ClientPlanVaultSummary | null>(null);
+  const [homeworkSummary, setHomeworkSummary] = useState<ClientHomeworkSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
   const [primaryUpdatingId, setPrimaryUpdatingId] = useState<string | null>(null);
+  const [activatingPlanId, setActivatingPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -93,17 +98,20 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
       const response = await authAxios.get(`/api/workout-plans/client/${safeClientId}`);
       const nextState = normalizeClientWorkoutPlansResponse(response.data);
       setServerPlanVault(nextState.serverPlanVault);
+      setHomeworkSummary(nextState.homeworkSummary);
       setPlans(nextState.plans);
     } catch (caught) {
       const status = (caught as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
         setPlans([]);
         setServerPlanVault(null);
+        setHomeworkSummary(null);
         return;
       }
       setError('Unable to load saved plans for this client.');
       setPlans([]);
       setServerPlanVault(null);
+      setHomeworkSummary(null);
     } finally {
       setLoading(false);
     }
@@ -145,6 +153,20 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
     }
   }, [authAxios, loadPlans]);
 
+  const activatePlan = useCallback(async (plan: ClientPlanSummary) => {
+    if (!authAxios || !plan.id) return;
+    setActivatingPlanId(plan.id);
+    setActionError(null);
+    try {
+      await authAxios.put(`/api/workout-plans/${encodeURIComponent(plan.id)}/activate`);
+      await loadPlans();
+    } catch {
+      setActionError(`Unable to activate ${plan.name}.`);
+    } finally {
+      setActivatingPlanId(null);
+    }
+  }, [authAxios, loadPlans]);
+
   if (safeClientId === null) {
     return <StateCard role="alert">Select a valid client before reviewing saved plans.</StateCard>;
   }
@@ -157,6 +179,11 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
           <Title>Training Plans</Title>
           <Hint>{activeCount} current plan{activeCount === 1 ? '' : 's'} for {clientName || `client #${safeClientId}`}</Hint>
         </TitleBlock>
+        <ClientWorkoutPlanActiveArcSelector
+          planVault={planVault}
+          updatingPlanId={primaryUpdatingId}
+          onMakePrimary={makePrimaryPlan}
+        />
         <RefreshButton type="button" onClick={loadPlans} disabled={loading}>
           <RefreshCw size={15} /> Refresh
         </RefreshButton>
@@ -171,10 +198,13 @@ const ClientWorkoutPlansPanel: React.FC<ClientWorkoutPlansPanelProps> = ({
         <>
           {actionError && <StateCard role="alert">{actionError}</StateCard>}
           {pdfError && <StateCard role="alert">{pdfError}</StateCard>}
+          <ClientWorkoutHomeworkSummary homeworkSummary={homeworkSummary} />
           <ClientWorkoutPlanVaultSection
             planVault={planVault}
+            activatingPlanId={activatingPlanId}
             openingPdfId={openingPdfId}
             primaryUpdatingId={primaryUpdatingId}
+            onActivate={activatePlan}
             onOpenPdf={openPlanPdf}
             onMakePrimary={makePrimaryPlan}
           />

@@ -2,7 +2,6 @@ import { mapSavedPlan } from '../../../Pages/admin-workout-planner/workoutPlanne
 import { normalizeClientPlanUse } from './ClientWorkoutPlanUse.logic';
 
 type HorizonKey = 'one_day' | 'one_week' | 'one_month' | 'three_month' | 'six_month' | 'nine_month' | 'twelve_month';
-
 const PLAN_HORIZON_SLOTS: Array<{
   key: HorizonKey;
   label: string;
@@ -19,7 +18,6 @@ const PLAN_HORIZON_SLOTS: Array<{
   { key: 'twelve_month', label: '12 Month', durationWeeks: 52, durationDays: 365, isDefault: false },
 ];
 const PLAN_HORIZON_KEYS = new Set<HorizonKey>(PLAN_HORIZON_SLOTS.map((slot) => slot.key));
-
 const normalizeCatalogHorizonKey = (value: unknown): HorizonKey | null => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
   return PLAN_HORIZON_KEYS.has(raw as HorizonKey) ? raw as HorizonKey : null;
@@ -31,7 +29,6 @@ export interface ClientPlanPdfFile {
   contentType: string;
   updatedAt: string | null;
 }
-
 export interface ClientPlanSummary {
   id: string;
   name: string;
@@ -49,7 +46,6 @@ export interface ClientPlanSummary {
   defaultShouldDeductSession?: boolean;
   planningSystem?: string | null;
 }
-
 export interface ClientPlanHorizonSlot {
   horizonKey: HorizonKey;
   label: string;
@@ -60,16 +56,29 @@ export interface ClientPlanHorizonSlot {
   isPrimary: boolean;
   plan: ClientPlanSummary | null;
 }
-
 export interface ClientPlanVaultSummary {
   filledCount: number;
   primaryPlanId: string | null;
   primaryHorizonKey: HorizonKey | null;
   slots: ClientPlanHorizonSlot[];
 }
-
-export interface ClientWorkoutPlansResponseSummary { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown }
-
+export interface ClientHomeworkSummary {
+  assignmentType: string;
+  todayStatus: string;
+  todayIsCompleted: boolean;
+  todayIsLoggable: boolean;
+  todayShouldDeductSession: boolean;
+  todayExerciseCount: number;
+  todayFirstExerciseName: string | null;
+  recentCompletedCount: number;
+  lastCompletedAt: string | null;
+}
+export interface ClientWorkoutPlansResponseSummary {
+  plans?: unknown[];
+  plan?: unknown;
+  trainingPlanCatalog?: unknown;
+  homeworkSummary?: unknown;
+}
 const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
   const rawId = plan.id;
   const id = typeof rawId === 'number' || typeof rawId === 'string' ? String(rawId) : '';
@@ -101,18 +110,14 @@ const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSu
     planningSystem: typeof planData.planningSystem === 'string' ? planData.planningSystem : null,
   };
 };
-
 const updatedTime = (plan: ClientPlanSummary) => {
   const parsed = plan.createdAt ? new Date(plan.createdAt).getTime() : 0;
   return Number.isFinite(parsed) ? parsed : 0;
 };
-
 const isActivePlan = (plan: ClientPlanSummary) => plan.status.toLowerCase() === 'active';
-
 const samePlan = (plan: ClientPlanSummary | null | undefined, id: string | null) => (
   Boolean(plan && id && plan.id === id)
 );
-
 const selectPrimaryPlan = (plans: ClientPlanSummary[]) => (
   plans.find((plan) => plan.isPrimary)
   || plans.find(isActivePlan)
@@ -237,6 +242,22 @@ const normalizeTrainingPlanCatalog = (value: unknown): ClientPlanVaultSummary | 
   };
 };
 
+const normalizeHomeworkSummary = (value: unknown): ClientHomeworkSummary | null => {
+  if (!value || typeof value !== 'object') return null;
+  const raw = value as Record<string, unknown>;
+  return {
+    assignmentType: typeof raw.assignmentType === 'string' ? raw.assignmentType : 'none',
+    todayStatus: typeof raw.todayStatus === 'string' ? raw.todayStatus : 'none',
+    todayIsCompleted: raw.todayIsCompleted === true,
+    todayIsLoggable: raw.todayIsLoggable === true,
+    todayShouldDeductSession: raw.todayShouldDeductSession === true,
+    todayExerciseCount: numberOrFallback(raw.todayExerciseCount, 0),
+    todayFirstExerciseName: typeof raw.todayFirstExerciseName === 'string' ? raw.todayFirstExerciseName : null,
+    recentCompletedCount: numberOrFallback(raw.recentCompletedCount, 0),
+    lastCompletedAt: typeof raw.lastCompletedAt === 'string' ? raw.lastCompletedAt : null,
+  };
+};
+
 const rawPlansFromResponse = (responseData: ClientWorkoutPlansResponseSummary) => (
   Array.isArray(responseData.plans)
     ? responseData.plans
@@ -265,6 +286,7 @@ export const normalizeClientWorkoutPlansResponse = (
   return {
     plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
     serverPlanVault,
+    homeworkSummary: normalizeHomeworkSummary(responseData.homeworkSummary),
   };
 };
 

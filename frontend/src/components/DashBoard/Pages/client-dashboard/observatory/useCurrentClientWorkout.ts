@@ -5,7 +5,14 @@
 
 import { useEffect, useState } from 'react';
 import apiService from '../../../../../services/api.service';
-import { normalizeProtectedPlanPdfUrl } from '../../../shared/plan-pdf/workoutPlanPdfUrl';
+import {
+  normalizeTrainingPlanVault,
+  primaryPlanLabel,
+  type ClientTrainingPlanVault,
+  type TrainingPlanCatalogPreview,
+} from './clientTrainingPlanVaultNormalizer';
+
+export type { ClientTrainingPlanSlot, ClientTrainingPlanVault } from './clientTrainingPlanVaultNormalizer';
 
 interface PlannedExercisePreview {
   name?: string;
@@ -31,6 +38,7 @@ interface CurrentWorkoutPlanPreview {
   currentDay?: number | string;
   currentSession?: CurrentSessionPreview | null;
   todayAssignment?: TodayAssignmentPreview | null;
+  homeworkSummary?: HomeworkSummaryPreview | null;
   trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
 }
 
@@ -39,14 +47,8 @@ interface CurrentWorkoutResponse {
   plan?: CurrentWorkoutPlanPreview | null;
   currentSession?: CurrentSessionPreview | null;
   todayAssignment?: TodayAssignmentPreview | null;
+  homeworkSummary?: HomeworkSummaryPreview | null;
   trainingPlanCatalog?: TrainingPlanCatalogPreview | null;
-}
-
-interface ClientPlanPdfPreview {
-  url?: string;
-  fileName?: string;
-  contentType?: string;
-  updatedAt?: string | null;
 }
 
 interface TodayAssignmentPreview {
@@ -63,61 +65,16 @@ interface TodayAssignmentPreview {
   ctaLabel?: string;
 }
 
-interface TrainingPlanSlotPreview {
-  horizonKey?: string;
-  label?: string;
-  durationWeeks?: number;
-  durationDays?: number;
-  isDefaultHorizon?: boolean;
-  isPrimary?: boolean;
-  isFilled?: boolean;
-  plan?: {
-    id?: string | number | null;
-    title?: string;
-    status?: string;
-    currentWeek?: number | string | null;
-    currentDay?: number | string | null;
-    pdfFile?: ClientPlanPdfPreview | null;
-    planPdf?: ClientPlanPdfPreview | null;
-  } | null;
-}
-
-interface TrainingPlanCatalogPreview {
-  defaultHorizonKey?: string;
-  primaryPlanId?: string | number | null;
-  primaryHorizonKey?: string | null;
-  filledHorizonKeys?: string[];
-  slots?: TrainingPlanSlotPreview[];
-}
-
-export interface ClientTrainingPlanSlot {
-  horizonKey: string;
-  label: string;
-  durationWeeks?: number;
-  durationDays?: number;
-  isDefaultHorizon: boolean;
-  isFilled: boolean;
-  isPrimary: boolean;
-  planId?: string | number | null;
-  planTitle?: string;
-  planStatus?: string;
-  currentWeek?: number;
-  currentDay?: number;
-  pdfFile?: {
-    url: string;
-    fileName: string;
-    contentType: string;
-    updatedAt?: string | null;
-  } | null;
-}
-
-export interface ClientTrainingPlanVault {
-  defaultHorizonKey: string;
-  primaryPlanId?: string | number | null;
-  primaryHorizonKey?: string | null;
-  filledHorizonKeys: string[];
-  filledCount: number;
-  slots: ClientTrainingPlanSlot[];
+interface HomeworkSummaryPreview {
+  assignmentType?: string;
+  todayStatus?: string;
+  todayIsCompleted?: boolean;
+  todayIsLoggable?: boolean;
+  todayShouldDeductSession?: boolean;
+  todayExerciseCount?: number;
+  todayFirstExerciseName?: string | null;
+  recentCompletedCount?: number;
+  lastCompletedAt?: string | null;
 }
 
 export interface CurrentClientWorkout {
@@ -133,6 +90,19 @@ export interface CurrentClientWorkout {
   exerciseCount: number;
   firstExercise?: string;
   primaryPlanLabel?: string;
+  homeworkSummary?: ClientHomeworkSummary | null;
+}
+
+export interface ClientHomeworkSummary {
+  assignmentType: string;
+  todayStatus: string;
+  todayIsCompleted: boolean;
+  todayIsLoggable: boolean;
+  todayShouldDeductSession: boolean;
+  todayExerciseCount: number;
+  todayFirstExerciseName?: string | null;
+  recentCompletedCount: number;
+  lastCompletedAt?: string | null;
 }
 
 export interface CurrentClientWorkoutState {
@@ -157,32 +127,26 @@ function exerciseName(exercise?: PlannedExercisePreview): string | undefined {
   return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
 }
 
-function normalizePlanPdfFile(raw?: ClientPlanPdfPreview | null): ClientTrainingPlanSlot['pdfFile'] {
-  const url = normalizeProtectedPlanPdfUrl(raw?.url);
-  if (!url) return null;
+function normalizeHomeworkSummary(raw?: HomeworkSummaryPreview | null): ClientHomeworkSummary | null {
+  if (!raw) return null;
   return {
-    url,
-    fileName: typeof raw?.fileName === 'string' && raw.fileName.trim()
-      ? raw.fileName.trim()
-      : 'Workout Plan.pdf',
-    contentType: typeof raw?.contentType === 'string' && raw.contentType.trim()
-      ? raw.contentType.trim()
-      : 'application/pdf',
-    updatedAt: typeof raw?.updatedAt === 'string' ? raw.updatedAt : null,
+    assignmentType: raw.assignmentType || 'none',
+    todayStatus: raw.todayStatus || 'none',
+    todayIsCompleted: raw.todayIsCompleted === true,
+    todayIsLoggable: raw.todayIsLoggable === true,
+    todayShouldDeductSession: raw.todayShouldDeductSession === true,
+    todayExerciseCount: Number(raw.todayExerciseCount) || 0,
+    todayFirstExerciseName: raw.todayFirstExerciseName || null,
+    recentCompletedCount: Number(raw.recentCompletedCount) || 0,
+    lastCompletedAt: raw.lastCompletedAt || null,
   };
-}
-
-function primaryPlanLabel(catalog?: TrainingPlanCatalogPreview | null): string | undefined {
-  const slot = Array.isArray(catalog?.slots)
-    ? catalog?.slots?.find((item) => item?.isPrimary && item?.isFilled)
-    : null;
-  return typeof slot?.label === 'string' && slot.label.trim() ? slot.label.trim() : undefined;
 }
 
 function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null): CurrentClientWorkout | null {
   const plan = payload?.data || payload?.plan || null;
   const assignment = payload?.todayAssignment || plan?.todayAssignment || null;
   const catalog = payload?.trainingPlanCatalog || plan?.trainingPlanCatalog || null;
+  const homeworkSummary = payload?.homeworkSummary || plan?.homeworkSummary || null;
   if (!plan && !assignment) return null;
 
   const session = payload?.currentSession || plan?.currentSession || null;
@@ -209,41 +173,7 @@ function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null):
     exerciseCount: assignmentExerciseCount ?? exercises.length,
     firstExercise: assignmentFirstExercise || exerciseName(exercises[0]),
     primaryPlanLabel: primaryPlanLabel(catalog),
-  };
-}
-
-function normalizeTrainingPlanVault(payload?: CurrentWorkoutResponse | null): ClientTrainingPlanVault | null {
-  const plan = payload?.data || payload?.plan || null;
-  const catalog = payload?.trainingPlanCatalog || plan?.trainingPlanCatalog || null;
-  const slots = Array.isArray(catalog?.slots) ? catalog.slots : [];
-  if (!slots.length) return null;
-
-  const normalizedSlots = slots.map((slot) => ({
-    horizonKey: slot.horizonKey || 'unknown',
-    label: slot.label || 'Plan',
-    durationWeeks: slot.durationWeeks,
-    durationDays: slot.durationDays,
-    isDefaultHorizon: Boolean(slot.isDefaultHorizon),
-    isFilled: Boolean(slot.isFilled),
-    isPrimary: Boolean(slot.isPrimary),
-    planId: slot.plan?.id,
-    planTitle: slot.plan?.title,
-    planStatus: slot.plan?.status,
-    currentWeek: toPositiveInteger(slot.plan?.currentWeek),
-    currentDay: toPositiveInteger(slot.plan?.currentDay),
-    pdfFile: normalizePlanPdfFile(slot.plan?.pdfFile || slot.plan?.planPdf),
-  }));
-  const filledHorizonKeys = Array.isArray(catalog?.filledHorizonKeys)
-    ? catalog.filledHorizonKeys
-    : normalizedSlots.filter((slot) => slot.isFilled).map((slot) => slot.horizonKey);
-
-  return {
-    defaultHorizonKey: catalog?.defaultHorizonKey || 'six_month',
-    primaryPlanId: catalog?.primaryPlanId,
-    primaryHorizonKey: catalog?.primaryHorizonKey || normalizedSlots.find((slot) => slot.isPrimary)?.horizonKey || null,
-    filledHorizonKeys,
-    filledCount: normalizedSlots.filter((slot) => slot.isFilled).length,
-    slots: normalizedSlots,
+    homeworkSummary: normalizeHomeworkSummary(homeworkSummary),
   };
 }
 

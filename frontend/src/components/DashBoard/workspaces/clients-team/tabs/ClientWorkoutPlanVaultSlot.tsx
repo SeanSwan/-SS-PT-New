@@ -14,7 +14,7 @@
  */
 
 import React from 'react';
-import { Crown, ExternalLink } from 'lucide-react';
+import { Crown, ExternalLink, PlayCircle } from 'lucide-react';
 import type { ClientPlanHorizonSlot, ClientPlanSummary } from './ClientWorkoutPlansPanel.logic';
 import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
@@ -30,14 +30,17 @@ import {
 
 interface ClientWorkoutPlanVaultSlotProps {
   slot: ClientPlanHorizonSlot;
+  activatingPlanId: string | null;
   openingPdfId: string | null;
   primaryUpdatingId: string | null;
+  onActivate: (plan: ClientPlanSummary) => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
   onMakePrimary: (plan: ClientPlanSummary) => void;
 }
 
 function vaultSlotStatus(slot: ClientPlanHorizonSlot) {
   if (slot.isPrimary) return 'Primary';
+  if (slot.plan?.status === 'active') return 'Active';
   if (slot.isFilled) return slot.plan?.status === 'paused' ? 'Paused' : 'Ready';
   if (slot.isDefaultHorizon) return 'Default';
   return 'Pending';
@@ -51,8 +54,10 @@ function vaultSlotDetail(slot: ClientPlanHorizonSlot) {
 
 const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
   slot,
+  activatingPlanId,
   openingPdfId,
   primaryUpdatingId,
+  onActivate,
   onOpenPdf,
   onMakePrimary,
 }) => (
@@ -72,6 +77,17 @@ const ClientWorkoutPlanVaultSlot: React.FC<ClientWorkoutPlanVaultSlotProps> = ({
     <VaultSlotDetail>{vaultSlotDetail(slot)}</VaultSlotDetail>
     {slot.plan && (
       <PlanActions>
+        {slot.plan.status !== 'active' && (
+          <PlanActionButton
+            type="button"
+            disabled={activatingPlanId === slot.plan.id}
+            aria-label={`Activate ${slot.label} arc`}
+            onClick={() => onActivate(slot.plan as ClientPlanSummary)}
+          >
+            <PlayCircle size={14} aria-hidden="true" />
+            {activatingPlanId === slot.plan.id ? 'Activating' : 'Activate Arc'}
+          </PlanActionButton>
+        )}
         {!slot.isPrimary && (
           <PlanActionButton
             type="button"

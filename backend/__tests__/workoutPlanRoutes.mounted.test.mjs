@@ -62,6 +62,8 @@ const mockWorkoutPlanFindByPk = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanUpdate = vi.fn();
+const mockDailyWorkoutFormFindOne = vi.fn();
+const mockDailyWorkoutFormFindAll = vi.fn();
 const mockSequelizeTransaction = vi.fn();
 let mockTransactionInstance;
 
@@ -76,6 +78,12 @@ vi.mock('../models/index.mjs', () => ({
         findAll: mockWorkoutPlanFindAll,
         findOne: mockWorkoutPlanFindOne,
         update: mockWorkoutPlanUpdate,
+      };
+    }
+    if (name === 'DailyWorkoutForm') {
+      return {
+        findOne: mockDailyWorkoutFormFindOne,
+        findAll: mockDailyWorkoutFormFindAll,
       };
     }
     return null;
@@ -110,6 +118,8 @@ beforeEach(async () => {
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindOne.mockResolvedValue(null);
   mockWorkoutPlanUpdate.mockResolvedValue([0]);
+  mockDailyWorkoutFormFindOne.mockResolvedValue(null);
+  mockDailyWorkoutFormFindAll.mockResolvedValue([]);
   mockTransactionInstance = {
     commit: vi.fn().mockResolvedValue(undefined),
     rollback: vi.fn().mockResolvedValue(undefined),
@@ -288,6 +298,73 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(mockWorkoutPlanFindAll).toHaveBeenCalledWith(expect.objectContaining({
         where: { userId: 42, status: ['active', 'paused', 'draft'] },
       }));
+    });
+
+    it('trainer + assigned client GET /client/:userId returns off-day homework completion summary', async () => {
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+      const activePlan = {
+        id: 'plan-6m',
+        userId: 42,
+        title: 'Active plan',
+        status: 'active',
+        durationWeeks: 26,
+        currentWeek: 1,
+        currentDay: 1,
+        metadata: { planHorizon: 'six_month' },
+        planData: {
+          weeks: [{
+            days: [{
+              dayLabel: 'ClientNameMustNotLeak Homework',
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat' }],
+            }],
+          }],
+        },
+      };
+      mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+      mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+      mockDailyWorkoutFormFindAll.mockResolvedValue([
+        {
+          id: 'daily-form-today',
+          submittedAt: '2026-06-06T12:00:00.000Z',
+          updatedAt: '2026-06-06T12:01:00.000Z',
+          formData: {
+            plannedAssignment: {
+              assignmentKey: 'plan-6m:w1:d1:homework',
+              assignmentType: 'homework',
+              title: 'ClientNameMustNotLeak Homework',
+              weekNumber: 1,
+              dayNumber: 1,
+              exerciseCount: 1,
+              firstExerciseName: 'Goblet Squat',
+            },
+          },
+        },
+      ]);
+
+      const res = await request(app)
+        .get('/api/workout-plans/client/42')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      expect(res.body.homeworkSummary).toMatchObject({
+        assignmentType: 'homework',
+        todayStatus: 'completed',
+        todayIsCompleted: true,
+        todayIsLoggable: false,
+        recentCompletedCount: 1,
+        recentCompletions: [
+          expect.objectContaining({
+            assignmentType: 'homework',
+            weekNumber: 1,
+            dayNumber: 1,
+            exerciseCount: 1,
+            firstExerciseName: 'Goblet Squat',
+          }),
+        ],
+      });
+      expect(JSON.stringify(res.body.homeworkSummary)).not.toContain('ClientNameMustNotLeak');
     });
 
     it('trainer WITHOUT assignment GET /client/:userId -> 404 (existence-leak protection)', async () => {

@@ -7,6 +7,7 @@ const mockWorkoutPlanFindOne = vi.fn();
 const mockWorkoutPlanFindAll = vi.fn();
 const mockWorkoutSessionFindAll = vi.fn();
 const mockDailyWorkoutFormFindOne = vi.fn();
+const mockDailyWorkoutFormFindAll = vi.fn();
 
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
@@ -54,6 +55,7 @@ beforeEach(() => {
   mockWorkoutSessionFindAll.mockResolvedValue([]);
   mockWorkoutPlanFindAll.mockResolvedValue([]);
   mockDailyWorkoutFormFindOne.mockResolvedValue(null);
+  mockDailyWorkoutFormFindAll.mockResolvedValue([]);
 });
 
 describe('clientWorkoutRoutes GET /:userId/current', () => {
@@ -234,6 +236,124 @@ describe('clientWorkoutRoutes GET /:userId/current', () => {
         formId: 'daily-form-1',
       },
     });
+  });
+
+  it('returns off-day homework summary with recent planned-assignment completions', async () => {
+    const activePlan = {
+      id: 'plan-6m',
+      title: 'Six Month Foundation',
+      durationWeeks: 26,
+      status: 'active',
+      currentWeek: 3,
+      currentDay: 2,
+      metadata: { planHorizon: 'six_month' },
+      planData: {
+        weeks: [
+          { days: [] },
+          { days: [] },
+          {
+            days: [
+              { dayNumber: 1, name: 'Upper Body', exercises: [] },
+              {
+                dayNumber: 2,
+                name: 'ClientNameMustNotLeak Homework',
+                assignmentType: 'homework',
+                exercises: [{ exerciseId: 'ex-1', exerciseName: 'Goblet Squat' }],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    mockEnsureClientAccess.mockResolvedValueOnce({
+      allowed: true,
+      clientId: 42,
+      models: {
+        WorkoutPlan: { findOne: mockWorkoutPlanFindOne, findAll: mockWorkoutPlanFindAll },
+        WorkoutSession: { findAll: mockWorkoutSessionFindAll },
+        DailyWorkoutForm: {
+          findOne: mockDailyWorkoutFormFindOne,
+          findAll: mockDailyWorkoutFormFindAll,
+        },
+      },
+    });
+    mockWorkoutPlanFindOne.mockResolvedValue(activePlan);
+    mockWorkoutPlanFindAll.mockResolvedValue([activePlan]);
+    mockDailyWorkoutFormFindAll.mockImplementation(async (query) => {
+      if (query?.where?.date) {
+        return [{
+          id: 'daily-form-today',
+          submittedAt: '2026-06-06T12:00:00.000Z',
+          updatedAt: '2026-06-06T12:01:00.000Z',
+          formData: {
+            plannedAssignment: {
+              assignmentKey: 'plan-6m:w3:d2:homework',
+              assignmentType: 'homework',
+              title: 'ClientNameMustNotLeak Homework',
+              weekNumber: 3,
+              dayNumber: 2,
+              exerciseCount: 1,
+              firstExerciseName: 'Goblet Squat',
+            },
+          },
+        }];
+      }
+      return [
+        {
+          id: 'daily-form-today',
+          submittedAt: '2026-06-06T12:00:00.000Z',
+          updatedAt: '2026-06-06T12:01:00.000Z',
+          formData: {
+            plannedAssignment: {
+              assignmentKey: 'plan-6m:w3:d2:homework',
+              assignmentType: 'homework',
+              title: 'ClientNameMustNotLeak Homework',
+              weekNumber: 3,
+              dayNumber: 2,
+              exerciseCount: 1,
+              firstExerciseName: 'Goblet Squat',
+            },
+          },
+        },
+        {
+          id: 'daily-form-prior',
+          submittedAt: '2026-06-03T12:00:00.000Z',
+          updatedAt: '2026-06-03T12:01:00.000Z',
+          formData: {
+            plannedAssignment: {
+              assignmentKey: 'plan-6m:w2:d3:homework',
+              assignmentType: 'homework',
+              title: 'ClientNameMustNotLeak Prior Homework',
+              weekNumber: 2,
+              dayNumber: 3,
+              exerciseCount: 2,
+              firstExerciseName: 'Split Squat',
+            },
+          },
+        },
+      ];
+    });
+
+    const res = await request(buildApp())
+      .get('/api/workouts/42/current')
+      .set('x-test-user-id', '42')
+      .set('x-test-user-role', 'client');
+
+    expect(res.status).toBe(200);
+    expect(res.body.homeworkSummary).toMatchObject({
+      assignmentType: 'homework',
+      todayStatus: 'completed',
+      todayIsCompleted: true,
+      todayIsLoggable: false,
+      recentCompletedCount: 2,
+      lastCompletedAt: '2026-06-06T12:00:00.000Z',
+      recentCompletions: [
+        expect.objectContaining({ firstExerciseName: 'Goblet Squat' }),
+        expect.objectContaining({ firstExerciseName: 'Split Squat' }),
+      ],
+    });
+    expect(res.body.data.homeworkSummary).toEqual(res.body.homeworkSummary);
+    expect(JSON.stringify(res.body.homeworkSummary)).not.toContain('ClientNameMustNotLeak');
   });
 
   it('keeps the no-plan empty state as 200 with data and plan set to null', async () => {

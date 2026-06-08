@@ -39,6 +39,10 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import {
+  findPlannedAssignmentCompletionsForDate,
+  findRecentPlannedAssignmentCompletions,
+} from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import {
@@ -71,6 +75,7 @@ const parseStrictPositiveInteger = (value) => {
 };
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
+const currentDateOnly = () => new Date().toISOString().slice(0, 10);
 
 const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
@@ -83,12 +88,52 @@ const markPlanPrimary = (plan, isPrimary) => {
     },
   };
 };
+const isPrimaryActivePlan = (plan) => {
+  const raw = toPlainObject(plan) || {};
+  const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
+  return raw.status === 'active' && (metadata.isPrimaryPlan === true || metadata.primary === true);
+};
+const selectCurrentWorkoutPlan = (fallbackPlan, plans = []) => (
+  Array.isArray(plans) ? plans.find(isPrimaryActivePlan) : null
+) || fallbackPlan;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Helper — get WorkoutPlan model safely
 // PURPOSE: Lazy-load from model cache to avoid circular imports
 // ─────────────────────────────────────────────────────────────
 const getWorkoutPlan = () => getModel('WorkoutPlan');
+const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
+
+const readAssignmentCompletionContext = async (DailyWorkoutForm, clientId, today) => {
+  const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
+    DailyWorkoutForm,
+    {
+      clientId,
+      date: today,
+      onLookupError: (error) => logger.warn(
+        '[WorkoutPlan] planned-assignment completion lookup failed: %s',
+        error.message,
+      ),
+    },
+  );
+  const recentAssignmentCompletions = await findRecentPlannedAssignmentCompletions(
+    DailyWorkoutForm,
+    {
+      clientId,
+      onLookupError: (error) => logger.warn(
+        '[WorkoutPlan] recent homework completion lookup failed: %s',
+        error.message,
+      ),
+    },
+  );
+
+  return {
+    assignmentCompletions,
+    recentAssignmentCompletions: recentAssignmentCompletions.length
+      ? recentAssignmentCompletions
+      : assignmentCompletions,
+  };
+};
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: GET /api/workout-plans
@@ -160,7 +205,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       return res.status(400).json({ success: false, message: 'Valid userId required' });
     }
 
-    const plan = await WorkoutPlan.findOne({
+    let plan = await WorkoutPlan.findOne({
       where: { userId, status: 'active' },
       order: [['updatedAt', 'DESC']]
     });
@@ -173,6 +218,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       })
       : plan ? [plan] : [];
     const catalogPlans = Array.isArray(clientPlans) ? clientPlans : [];
+    plan = selectCurrentWorkoutPlan(plan, catalogPlans);
 
     if (!plan && catalogPlans.length === 0) {
       return res.status(404).json({
@@ -183,10 +229,19 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
 
     // Extract current session info for the AI when a live active arc exists.
     const currentSession = plan ? extractCurrentSession(plan) : null;
+    const today = currentDateOnly();
+    const completionContext = await readAssignmentCompletionContext(
+      getDailyWorkoutForm(),
+      userId,
+      today,
+    );
     const overview = buildClientTrainingOverview({
       activePlan: plan || null,
       plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],
       currentSession,
+      today,
+      assignmentCompletions: completionContext.assignmentCompletions,
+      recentAssignmentCompletions: completionContext.recentAssignmentCompletions,
     });
 
     res.json({
@@ -195,6 +250,7 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
       currentSession,
       todayAssignment: overview.todayAssignment,
       trainingPlanCatalog: overview.trainingPlanCatalog,
+      homeworkSummary: overview.homeworkSummary,
     });
   } catch (error) {
     logger.error('[WorkoutPlan] GET /client/:userId error: %s', error.message);

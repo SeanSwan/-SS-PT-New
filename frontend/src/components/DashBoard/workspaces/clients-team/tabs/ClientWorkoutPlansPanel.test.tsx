@@ -146,6 +146,68 @@ describe('ClientWorkoutPlansPanel', () => {
     expect(await screen.findByLabelText(/6 month plan arc/i)).toHaveTextContent('Trainer-led');
     expect(screen.getByLabelText(/1 week plan arc/i)).toHaveTextContent('Homework diary');
   });
+  it('shows the trainer and admin off-day homework completion read model', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({
+      data: {
+        success: true,
+        trainingPlanCatalog: {
+          primaryPlanId: 'plan-server-6m',
+          primaryHorizonKey: 'six_month',
+          slots: [
+            {
+              horizonKey: 'six_month',
+              label: '6 Month',
+              durationWeeks: 26,
+              durationDays: 182,
+              isDefaultHorizon: true,
+              isFilled: true,
+              isPrimary: true,
+              plan: {
+                id: 'plan-server-6m',
+                title: 'Homework Arc',
+                status: 'active',
+                horizonKey: 'six_month',
+                durationWeeks: 26,
+                assignmentDefault: 'homework',
+                billingIntent: 'non_billable_assignment',
+                defaultShouldDeductSession: false,
+              },
+            },
+          ],
+        },
+        homeworkSummary: {
+          assignmentType: 'homework',
+          todayStatus: 'completed',
+          todayIsCompleted: true,
+          todayIsLoggable: false,
+          todayShouldDeductSession: false,
+          todayExerciseCount: 3,
+          todayFirstExerciseName: 'Goblet Squat',
+          recentCompletedCount: 2,
+          lastCompletedAt: '2026-06-05T12:00:00.000Z',
+          recentCompletions: [
+            {
+              assignmentType: 'homework',
+              formId: 'daily-form-1',
+              completedAt: '2026-06-05T12:00:00.000Z',
+              weekNumber: 4,
+              dayNumber: 2,
+              exerciseCount: 3,
+              firstExerciseName: 'Goblet Squat',
+            },
+          ],
+        },
+      },
+    });
+
+    renderPlansPanel();
+
+    const homeworkPanel = await screen.findByLabelText(/off-day homework summary/i);
+    expect(homeworkPanel).toHaveTextContent(/off-day homework/i);
+    expect(homeworkPanel).toHaveTextContent(/completed today/i);
+    expect(homeworkPanel).toHaveTextContent(/2 recent logs/i);
+    expect(homeworkPanel).toHaveTextContent(/goblet squat/i);
+  });
   it('surfaces primary horizon and opens protected PDFs through authAxios', async () => {
     const user = userEvent.setup();
     const onLogToday = vi.fn();

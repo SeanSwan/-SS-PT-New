@@ -20,17 +20,21 @@ import {
 } from './ClientWorkoutPlansPanel.styles';
 
 interface ClientWorkoutPlanVaultSectionProps {
+  activatingPlanId: string | null;
   openingPdfId: string | null;
   planVault: ClientPlanVaultSummary;
   primaryUpdatingId: string | null;
+  onActivate: (plan: ClientPlanSummary) => void;
   onMakePrimary: (plan: ClientPlanSummary) => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
 }
 
 const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps> = ({
+  activatingPlanId,
   openingPdfId,
   planVault,
   primaryUpdatingId,
+  onActivate,
   onMakePrimary,
   onOpenPdf,
 }) => (
@@ -44,8 +48,10 @@ const ClientWorkoutPlanVaultSection: React.FC<ClientWorkoutPlanVaultSectionProps
         <ClientWorkoutPlanVaultSlot
           key={slot.horizonKey}
           slot={slot}
+          activatingPlanId={activatingPlanId}
           openingPdfId={openingPdfId}
           primaryUpdatingId={primaryUpdatingId}
+          onActivate={onActivate}
           onOpenPdf={onOpenPdf}
           onMakePrimary={onMakePrimary}
         />

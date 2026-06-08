@@ -1,6 +1,18 @@
 /**
+ * ============================================================================
  * FILE: ClientCurrentWorkoutCard.tsx
  * PURPOSE: Current-workout call-to-action card for the client overview rail.
+ * ============================================================================
+ *
+ * WHAT THIS FILE DOES:
+ * Converts the canonical current-workout read model into one compact client
+ * dashboard CTA, including off-day homework, trainer sessions, rest days, and
+ * completed assignment states.
+ *
+ * HOW IT FITS IN THE APP:
+ * ClientHomeTab fetches /api/workouts/:clientId/current, then this card decides
+ * the visible label and route target for logging today's assignment or reviewing
+ * the broader workout plan/history.
  */
 
 import React from 'react';
@@ -55,6 +67,7 @@ function assignmentLabel(type?: string): string {
 
 function sectionKickerLabel(workout?: CurrentClientWorkout | null): string {
   if (workout?.assignmentType === 'trainer_session') return 'Trainer Session';
+  if (workout?.assignmentType === 'homework') return 'Suggested Off-Day Workout';
   if (workout?.assignmentType === 'rest') return 'Recovery Day';
   return 'Today\'s Assignment';
 }
@@ -67,7 +80,7 @@ function workoutDetail(workout?: CurrentClientWorkout | null, error?: boolean): 
   if (workout.exerciseCount <= 0) return 'Open your plan vault to review the next training block.';
   const suffix = workout.firstExercise ? ` - starts with ${workout.firstExercise}` : '';
   if (workout.assignmentType === 'homework') {
-    return `Off-day plan work - ${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}. No paid session deduction.`;
+    return `Today's assignment - off-day plan work - ${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}. No paid session deduction.`;
   }
   return `${workout.exerciseCount} exercise${workout.exerciseCount === 1 ? '' : 's'}${suffix}`;
 }
@@ -77,9 +90,9 @@ function workoutTitle(
   error?: boolean,
   loading?: boolean,
 ): string {
-  if (loading) return 'Loading plan';
-  if (workout?.title) return workout.title;
-  return error ? 'Assignment unavailable' : 'Plan pending';
+  return loading
+    ? 'Loading plan'
+    : workout?.title || (error ? 'Assignment unavailable' : 'Plan pending');
 }
 
 function workoutActionPath(workout?: CurrentClientWorkout | null): string {
@@ -89,15 +102,23 @@ function workoutActionPath(workout?: CurrentClientWorkout | null): string {
 }
 
 function workoutActionLabel(workout?: CurrentClientWorkout | null): string {
-  if (workout?.ctaLabel) return workout.ctaLabel;
-  if (workout?.isLoggable) {
-    return workout.assignmentType === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
-  }
-  return 'View Plan';
+  const logLabel = workout?.assignmentType === 'trainer_session' ? 'Log Workout' : 'Log Assignment';
+  return workout?.ctaLabel || (workout?.isLoggable ? logLabel : 'View Plan');
 }
 
 function workoutActionAriaLabel(workout?: CurrentClientWorkout | null): string {
   return workout?.isLoggable ? 'Log today\'s assignment' : workout?.ctaLabel || 'View training plan';
+}
+
+function homeworkLogValue(workout?: CurrentClientWorkout | null): string {
+  const count = workout?.homeworkSummary?.recentCompletedCount || 0;
+  return count === 1 ? '1 completed' : `${count} completed`;
+}
+
+function homeworkLogLabel(workout?: CurrentClientWorkout | null): string {
+  const summary = workout?.homeworkSummary;
+  const suffix = summary?.todayIsCompleted ? ' - completed today' : summary?.todayIsLoggable ? ' - ready' : '';
+  return `Off-day logs${suffix}`;
 }
 
 const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
@@ -129,6 +150,12 @@ const ClientCurrentWorkoutCard: React.FC<ClientCurrentWorkoutCardProps> = ({
           <WidgetLabel>{workoutPosition(currentWorkout)}</WidgetLabel>
           <WidgetValue>{assignmentLabel(currentWorkout?.assignmentType)}</WidgetValue>
         </WidgetRow>
+        {currentWorkout?.homeworkSummary && (
+          <WidgetRow>
+            <WidgetLabel>{homeworkLogLabel(currentWorkout)}</WidgetLabel>
+            <WidgetValue>{homeworkLogValue(currentWorkout)}</WidgetValue>
+          </WidgetRow>
+        )}
       </WidgetList>
       <MutedText $top="0.75rem">
         {workoutDetail(currentWorkout, currentWorkoutError)}

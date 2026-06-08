@@ -265,6 +265,20 @@ describe('clientSelfServiceReadDispatchers', () => {
         formId: 'daily-form-1',
       },
     });
+    expect(result.homeworkSummary).toMatchObject({
+      assignmentType: 'homework',
+      todayStatus: 'completed',
+      todayIsCompleted: true,
+      todayIsLoggable: false,
+      todayShouldDeductSession: false,
+      recentCompletedCount: 1,
+      recentCompletions: [
+        expect.objectContaining({
+          assignmentType: 'homework',
+          formId: 'daily-form-1',
+        }),
+      ],
+    });
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain('ClientNameMustNotLeak');
     expect(serialized).not.toContain('client@example.test');
