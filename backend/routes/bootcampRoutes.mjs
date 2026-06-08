@@ -39,8 +39,21 @@ const router = Router();
 router.use(protect);
 router.use(authorize(['admin', 'trainer']));
 
-export const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
+const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
+const NOT_FOUND_PATTERN = /not found/i;
+
+const getBootcampRouteErrorResponse = (
+  err = {},
+  notFoundError = 'Resource not found',
+  fallbackError = 'Request failed'
+) => {
+  if (NOT_FOUND_PATTERN.test(String(err.message || ''))) {
+    return { status: 404, error: notFoundError };
+  }
+
+  return { status: 500, error: fallbackError };
+};
 
 // POST /api/bootcamp/generate
 router.post('/generate', async (req, res) => {
@@ -230,9 +243,13 @@ router.put('/spaces/:id', async (req, res) => {
     const space = await updateSpaceProfile(id, req.user.id, req.body);
     return res.json({ success: true, space });
   } catch (err) {
-    const status = err.message.includes('not found') ? 404 : 500;
     logger.error('[Bootcamp] Space update failed:', err.message);
-    return res.status(status).json({ success: false, error: err.message });
+    const { status, error } = getBootcampRouteErrorResponse(
+      err,
+      'Space profile not found',
+      'Failed to update space'
+    );
+    return res.status(status).json({ success: false, error });
   }
 });
 
@@ -263,9 +280,13 @@ router.post('/trends/:id/approve', authorize(['admin']), async (req, res) => {
     const trend = await approveExerciseTrend(id, req.user.id);
     return res.json({ success: true, trend });
   } catch (err) {
-    const status = err.message.includes('not found') ? 404 : 500;
     logger.error('[Bootcamp] Trend approve failed:', err.message);
-    return res.status(status).json({ success: false, error: err.message });
+    const { status, error } = getBootcampRouteErrorResponse(
+      err,
+      'Exercise trend not found',
+      'Failed to approve trend'
+    );
+    return res.status(status).json({ success: false, error });
   }
 });
 

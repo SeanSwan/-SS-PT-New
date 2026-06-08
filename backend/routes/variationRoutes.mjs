@@ -27,6 +27,20 @@ import eventBus from '../services/eventBus.mjs';
 
 const router = express.Router();
 
+const getVariationAcceptErrorResponse = (err = {}) => {
+  const message = String(err.message || '');
+
+  if (message === 'Access denied') {
+    return { status: 403, error: 'Access denied' };
+  }
+
+  if (message.toLowerCase().includes('not found')) {
+    return { status: 404, error: 'Variation log not found' };
+  }
+
+  return { status: 500, error: 'Failed to accept variation' };
+};
+
 // All routes require authentication + trainer/admin role
 router.use(protect, authorize(['admin', 'trainer']));
 
@@ -155,8 +169,8 @@ router.post('/accept', async (req, res) => {
     res.json({ success: true, log });
   } catch (err) {
     logger.error('[VariationRoutes] Accept error:', err);
-    const status = err.message === 'Access denied' ? 403 : err.message.includes('not found') ? 404 : 500;
-    res.status(status).json({ success: false, error: err.message });
+    const { status, error } = getVariationAcceptErrorResponse(err);
+    res.status(status).json({ success: false, error });
   }
 });
 
