@@ -190,6 +190,30 @@ describe('workoutPlanRoutes — mounted route stack', () => {
   // Trainer assignment gate at mounted scope.
   // ─────────────────────────────────────────────────────────────
   describe('trainer role (mounted)', () => {
+    it('trainer + assigned client POST / creates an unspecified-status plan as draft', async () => {
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .post('/api/workout-plans')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          userId: 42,
+          title: 'Coach Review Draft',
+          durationWeeks: 4,
+          planData: { weeks: [] },
+        });
+
+      expect(res.status).toBe(201);
+      expect(mockWorkoutPlanCreate).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 42,
+        trainerId: 7,
+        title: 'Coach Review Draft',
+        durationWeeks: 4,
+        status: 'draft',
+      }));
+    });
+
     it('trainer + assigned client GET /client/:userId -> reaches handler (assignment lookup fired with status=active)', async () => {
       mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
       // Handler returns the active plan (or 404 if none); 200 + plan body proves

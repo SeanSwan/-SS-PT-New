@@ -268,7 +268,7 @@ router.post('/', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ param
       startDate: startDate || null,
       endDate: endDate || null,
       durationWeeks: durationWeeks || 4,
-      status: status || 'active',
+      status: status || 'draft',
       currentWeek: 1,
       currentDay: 1,
       planData: planData || { weeks: [] },
