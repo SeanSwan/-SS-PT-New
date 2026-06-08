@@ -17,4 +17,9 @@ describe('OptimizedSignupModal client source contract', () => {
   it('normalizes non-client public signup away from the paid SwanStudios source before submit', () => {
     expect(source).toContain('formattedData.clientSource = formData.role === "client" ? formData.clientSource : "external";');
   });
+
+  it('does not expose privileged trainer registration on the public signup form', () => {
+    expect(source).not.toContain('<option value="trainer">Trainer</option>');
+    expect(source).toContain('Trainer accounts are created by SwanStudios staff.');
+  });
 });

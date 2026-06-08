@@ -359,6 +359,12 @@ const validationSchemas = {
       .matches(/[0-9]/).withMessage('Password must contain at least one number')
       .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Password must contain at least one special character'),
 
+    body('role')
+      .optional()
+      .trim()
+      .isIn(['user', 'client', 'admin'])
+      .withMessage('Public signup only supports user, client, or protected admin registration'),
+
     body('clientSource')
       .optional()
       .trim()

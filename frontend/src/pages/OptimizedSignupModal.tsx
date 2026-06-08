@@ -1216,10 +1216,9 @@ const OptimizedSignupModal: React.FC = () => {
                 >
                   <option value="user">Regular User</option>
                   <option value="client">Client</option>
-                  <option value="trainer">Trainer</option>
                 </SelectField>
                 <HelpText>
-                  Choose the account type that best fits your needs. Admin accounts are created separately for security.
+                  Choose Regular User for community access or Client for training. Trainer accounts are created by SwanStudios staff.
                 </HelpText>
               </InputWrapper>
 

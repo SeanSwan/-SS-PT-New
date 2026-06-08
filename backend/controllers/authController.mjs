@@ -257,6 +257,7 @@ const LOGIN_ATTEMPT_LIMIT = parseInt(process.env.LOGIN_ATTEMPT_LIMIT, 10) || 10;
 const LOGIN_ATTEMPT_WINDOW = parseInt(process.env.LOGIN_ATTEMPT_WINDOW_MS, 10) || 15 * 60 * 1000;
 const PUBLIC_REGISTRATION_CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external']);
 const PUBLIC_NON_CLIENT_SOURCE = 'external';
+const PUBLIC_SELF_REGISTRATION_ROLES = new Set(['user', 'client', 'admin']);
 
 const resolvePublicRegistrationClientSource = ({ role, clientSource }) => {
   if (role !== 'client') {
@@ -504,7 +505,27 @@ export const register = async (req, res) => {
     }
 
     // Extract role and adminCode from request body
-    const { role = 'user', adminCode, clientSource } = req.body;
+    const { adminCode, clientSource } = req.body;
+    const requestedRole = typeof req.body.role === 'string' ? req.body.role.trim() : 'user';
+    const role = requestedRole || 'user';
+
+    if (role === 'trainer') {
+      await transaction.rollback();
+      logger.warn('Public trainer self-registration attempt blocked');
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer accounts are created by SwanStudios staff.'
+      });
+    }
+
+    if (!PUBLIC_SELF_REGISTRATION_ROLES.has(role)) {
+      await transaction.rollback();
+      logger.warn('Public registration attempt with invalid role');
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a valid account type'
+      });
+    }
     
     // Validate admin role requires a valid admin code
     if (role === 'admin') {

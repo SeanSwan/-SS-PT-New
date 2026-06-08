@@ -37,7 +37,7 @@ const CAPSULES: { variant: CapsuleVariant; icon: React.ReactNode; label: string;
   { variant: 'gilded', icon: <Camera size={16} />, label: 'SwanStudios Photography', to: '/gallery' },
   { variant: 'default', icon: <FileSignature size={16} />, label: 'Waiver', to: '/waiver' },
   { variant: 'wingPurple', icon: <LayoutDashboard size={16} />, label: 'Trainer Dashboard', to: '/dashboard/trainer/overview' },
-  { variant: 'gilded', icon: <Award size={16} />, label: 'Become a Trainer', to: '/signup?role=trainer' },
+  { variant: 'gilded', icon: <Award size={16} />, label: 'Trainer Staff Review', to: '/contact' },
 ];
 
 /* ── Keyframes ──────────────────────────────────────────────────────────── */

@@ -149,4 +149,17 @@ describe('auth register clientSource contract', () => {
     );
     expect(res.body.user.clientSource).toBe('external');
   });
+
+  it('rejects public trainer self-registration before any privileged account is created', async () => {
+    const req = { body: validRegistration({ role: 'trainer', clientSource: undefined }) };
+    delete req.body.clientSource;
+    const res = createResponse();
+
+    await register(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.body.message).toMatch(/trainer accounts/i);
+    expect(mocks.userModel.create).not.toHaveBeenCalled();
+    expect(mocks.transaction.rollback).toHaveBeenCalled();
+  });
 });
