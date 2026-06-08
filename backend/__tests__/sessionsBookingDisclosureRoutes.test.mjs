@@ -132,6 +132,36 @@ describe('mounted sessions booking disclosure routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private direct booking');
   });
 
+  it('POST /api/sessions/book/:userId does not disclose substring-matched access errors', async () => {
+    bookSession.mockRejectedValueOnce(new Error('private booking access storage host'));
+
+    const response = await request(app)
+      .post('/api/sessions/book/7')
+      .send({ sessionId: 42 });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to book this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private booking access');
+  });
+
+  it('POST /api/sessions/book/:userId does not disclose substring-matched availability errors', async () => {
+    bookSession.mockRejectedValueOnce(new Error('private insufficient credit storage host'));
+
+    const response = await request(app)
+      .post('/api/sessions/book/7')
+      .send({ sessionId: 42 });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Session cannot be booked',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private insufficient');
+  });
+
   it('POST /api/sessions/book-recurring does not disclose internal recurring booking errors', async () => {
     findUserByPk.mockRejectedValueOnce(new Error('private recurring booking storage host'));
 
@@ -159,5 +189,31 @@ describe('mounted sessions booking disclosure routes', () => {
       message: 'Server error booking session',
     });
     expect(JSON.stringify(response.body)).not.toContain('private session booking');
+  });
+
+  it('POST /api/sessions/:id/book does not disclose substring-matched access errors', async () => {
+    bookSession.mockRejectedValueOnce(new Error('private does not have session booking storage host'));
+
+    const response = await request(app).post('/api/sessions/42/book').send({});
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to book this session',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private does not');
+  });
+
+  it('POST /api/sessions/:id/book does not disclose substring-matched availability errors', async () => {
+    bookSession.mockRejectedValueOnce(new Error('private double-booking conflict storage host'));
+
+    const response = await request(app).post('/api/sessions/42/book').send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Session cannot be booked',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private double-booking');
   });
 });

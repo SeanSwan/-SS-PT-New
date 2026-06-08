@@ -102,6 +102,46 @@ describe('mounted sessions support action disclosure routes', () => {
     expect(JSON.stringify(response.body)).not.toContain('private blocked time');
   });
 
+  it('POST /api/sessions/block does not disclose substring-matched access errors', async () => {
+    createBlockedSessions.mockRejectedValueOnce(
+      new Error('private admin or trainer blocked-time host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions/block')
+      .send({
+        sessionDate: '2026-06-07T16:00:00.000Z',
+        duration: 60,
+      });
+
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Not authorized to block time',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private admin');
+  });
+
+  it('POST /api/sessions/block does not disclose substring-matched invalid errors', async () => {
+    createBlockedSessions.mockRejectedValueOnce(
+      new Error('private invalid blocked-time payload host')
+    );
+
+    const response = await request(app)
+      .post('/api/sessions/block')
+      .send({
+        sessionDate: '2026-06-07T16:00:00.000Z',
+        duration: 60,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      success: false,
+      message: 'Invalid blocked time request',
+    });
+    expect(JSON.stringify(response.body)).not.toContain('private invalid');
+  });
+
   it('PUT /api/sessions/:id/reschedule does not disclose internal reschedule errors', async () => {
     sessionFindByPk.mockRejectedValueOnce(new Error('private reschedule storage host'));
 

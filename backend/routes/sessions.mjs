@@ -1976,12 +1976,11 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
     logger.error('Error in POST /api/sessions/block:', error);
     const rawMessage = typeof error === 'string' ? error : (error?.message || '');
     const normalizedMessage = rawMessage.toLowerCase();
-    const responseMessage = rawMessage || 'Request validation failed';
 
     if (normalizedMessage.includes('admin or trainer')) {
       return res.status(403).json({
         success: false,
-        message: responseMessage
+        message: 'Not authorized to block time'
       });
     }
 
@@ -1989,7 +1988,7 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
         normalizedMessage.includes('no valid') || normalizedMessage.includes('exceeds')) {
       return res.status(400).json({
         success: false,
-        message: responseMessage
+        message: 'Invalid blocked time request'
       });
     }
 
@@ -2150,7 +2149,6 @@ router.post("/book/:userId", protect, async (req, res) => {
     logger.error(`Error in POST /api/sessions/book/${req.params.userId}:`, error);
     const rawMessage = typeof error === 'string' ? error : (error?.message || '');
     const normalizedMessage = rawMessage.toLowerCase();
-    const responseMessage = rawMessage || 'Request validation failed';
 
     if (normalizedMessage.includes('permission') ||
         normalizedMessage.includes('privileges') ||
@@ -2158,7 +2156,7 @@ router.post("/book/:userId", protect, async (req, res) => {
         normalizedMessage.includes('does not have session booking')) {
       return res.status(403).json({
         success: false,
-        message: responseMessage
+        message: 'Not authorized to book this session'
       });
     }
 
@@ -2171,7 +2169,7 @@ router.post("/book/:userId", protect, async (req, res) => {
         normalizedMessage.includes('conflict')) {
       return res.status(400).json({
         success: false,
-        message: responseMessage
+        message: 'Session cannot be booked'
       });
     }
 
@@ -2345,7 +2343,6 @@ router.post("/book-recurring", protect, async (req, res) => {
       logger.error(`Error in POST /api/sessions/${req.params.id}/book:`, error);
       const rawMessage = typeof error === 'string' ? error : (error?.message || '');
       const normalizedMessage = rawMessage.toLowerCase();
-      const responseMessage = rawMessage || 'Request validation failed';
 
       // Handle booking-specific errors
       if (normalizedMessage.includes('permission') ||
@@ -2354,7 +2351,7 @@ router.post("/book-recurring", protect, async (req, res) => {
           normalizedMessage.includes('does not have session booking')) {
         return res.status(403).json({
           success: false,
-          message: responseMessage
+          message: 'Not authorized to book this session'
         });
       }
 
@@ -2367,7 +2364,7 @@ router.post("/book-recurring", protect, async (req, res) => {
           normalizedMessage.includes('conflict')) {
         return res.status(400).json({
           success: false,
-          message: responseMessage
+          message: 'Session cannot be booked'
         });
       }
 
