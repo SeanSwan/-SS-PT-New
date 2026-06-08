@@ -144,6 +144,14 @@ describe('SessionDetailModal extracted route and permission logic', () => {
     expect(canSessionOpenWorkoutLogger({ ...baseSession, sessionDate: 'not-a-date' })).toBe(false);
   });
 
+  it('allows numeric string session and client IDs from serialized schedule responses', () => {
+    expect(canSessionOpenWorkoutLogger({
+      ...baseSession,
+      id: '72' as any,
+      userId: '155' as any,
+    })).toBe(true);
+  });
+
   it('blocks future scheduled sessions from opening the workout logger before the session day', () => {
     expect(canSessionOpenWorkoutLogger({
       ...baseSession,

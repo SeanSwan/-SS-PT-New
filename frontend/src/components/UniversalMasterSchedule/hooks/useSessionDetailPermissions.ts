@@ -18,6 +18,12 @@ interface UseSessionDetailPermissionsInput {
   session: SessionDetail | null;
 }
 
+const isSamePositiveId = (left: unknown, right: unknown) => {
+  const leftId = Number(left);
+  const rightId = Number(right);
+  return Number.isSafeInteger(leftId) && leftId > 0 && leftId === rightId;
+};
+
 export const useSessionDetailPermissions = ({
   open,
   mode,
@@ -79,7 +85,7 @@ export const useSessionDetailPermissions = ({
         return false;
       }
 
-      return session.trainerId === currentUserId;
+      return isSamePositiveId(session.trainerId, currentUserId);
     })();
 
     const canComplete = Boolean(
@@ -95,7 +101,7 @@ export const useSessionDetailPermissions = ({
       && !isBlocked
       && session?.status !== 'completed'
       && session?.status !== 'cancelled'
-      && (canManage || (mode === 'client' && session?.userId === currentUserId))
+      && (canManage || (mode === 'client' && isSamePositiveId(session?.userId, currentUserId)))
     );
 
     const canRecordAttendance = Boolean(

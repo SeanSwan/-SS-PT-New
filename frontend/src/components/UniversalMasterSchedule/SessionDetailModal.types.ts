@@ -8,7 +8,7 @@ export interface SessionDetailSessionType {
 }
 
 export interface SessionDetail {
-  id: number;
+  id: number | string;
   sessionDate: string;
   duration: number;
   status: string;
@@ -16,8 +16,8 @@ export interface SessionDetail {
   notes?: string;
   notifyClient?: boolean;
   reason?: string;
-  trainerId?: number;
-  userId?: number;
+  trainerId?: number | string;
+  userId?: number | string;
   sessionType?: SessionDetailSessionType | string | null;
   rating?: number | null;
   feedback?: string | null;

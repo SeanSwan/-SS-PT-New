@@ -43,6 +43,33 @@ describe('useSessionDetailPermissions', () => {
     expect(result.current.sessionSignal.label).toBe('4 paid sessions');
   });
 
+  it('allows assigned trainers when schedule IDs arrive as numeric strings', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ id: '9' }));
+
+    const { result } = renderHook(() =>
+      useSessionDetailPermissions({
+        open: true,
+        mode: 'trainer',
+        session: {
+          ...baseSession,
+          id: '5' as any,
+          trainerId: '9' as any,
+          userId: '7' as any,
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.currentUserId).toBe(9);
+    });
+
+    expect(result.current.isTrainerAssigned).toBe(true);
+    expect(result.current.canComplete).toBe(true);
+    expect(result.current.canRecordAttendance).toBe(true);
+    expect(result.current.canOpenWorkoutLogger).toBe(true);
+    expect(result.current.canViewWorkouts).toBe(true);
+  });
+
   it('blocks assigned trainers from completing or opening the logger before the session day', async () => {
     window.localStorage.setItem('user', JSON.stringify({ id: 9 }));
 
@@ -88,6 +115,28 @@ describe('useSessionDetailPermissions', () => {
     expect(result.current.canCancel).toBe(true);
     expect(result.current.canManageSeries).toBe(false);
     expect(result.current.canOpenWorkoutLogger).toBe(false);
+    expect(result.current.canViewWorkouts).toBe(true);
+  });
+
+  it('allows clients to cancel their own session when the client ID arrives as a numeric string', async () => {
+    window.localStorage.setItem('user', JSON.stringify({ id: 7 }));
+
+    const { result } = renderHook(() =>
+      useSessionDetailPermissions({
+        open: true,
+        mode: 'client',
+        session: {
+          ...baseSession,
+          userId: '7' as any,
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.currentUserId).toBe(7);
+    });
+
+    expect(result.current.canCancel).toBe(true);
     expect(result.current.canViewWorkouts).toBe(true);
   });
 

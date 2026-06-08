@@ -122,8 +122,9 @@ export const buildScheduleWorkoutsRoute = (
 };
 
 const isPositiveInteger = (value: unknown) => {
-  if (typeof value !== 'number') return false;
-  return Number.isSafeInteger(value) && value > 0;
+  if (typeof value === 'string' && !/^[1-9]\d*$/.test(value.trim())) return false;
+  const parsedValue = Number(value);
+  return Number.isSafeInteger(parsedValue) && parsedValue > 0;
 };
 
 const isUsableSessionDate = (value: unknown) => {
