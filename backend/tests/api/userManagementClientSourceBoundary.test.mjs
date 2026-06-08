@@ -9,6 +9,7 @@ const controllerSource = readFileSync(resolve(__dirname, '../../controllers/user
 const routeSource = readFileSync(resolve(__dirname, '../../routes/userManagementRoutes.mjs'), 'utf8');
 const adminRouteSource = readFileSync(resolve(__dirname, '../../routes/adminRoutes.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const userModelSource = readFileSync(resolve(__dirname, '../../models/User.mjs'), 'utf8');
 
 describe('user management clientSource boundary', () => {
   it('blocks controller-based admin user edits from granting paid credits to free-tracking clients', () => {
@@ -63,5 +64,24 @@ describe('user management clientSource boundary', () => {
     expect(routeSlice).toContain('message: PAID_CREDIT_FREE_TRACKING_MESSAGE');
     expect(routeSlice.indexOf('NON_DEDUCTING_CLIENT_SOURCES.has(user.clientSource)'))
       .toBeLessThan(routeSlice.indexOf('user.availableSessions ='));
+  });
+
+  it('keeps active auth user deactivation on six-month soft-delete retention', () => {
+    const routeStart = routeSource.indexOf("router.delete('/user/:id'");
+    const routeEnd = routeSource.indexOf('export default router', routeStart);
+    const routeSlice = routeSource.slice(routeStart, routeEnd);
+
+    expect(coreRoutesSource).toContain("app.use('/api/auth', userManagementRoutes)");
+    expect(userModelSource).toContain('accountDeactivatedAt');
+    expect(userModelSource).toContain('accountRetentionUntil');
+    expect(routeStart).toBeGreaterThan(-1);
+    expect(routeEnd).toBeGreaterThan(routeStart);
+    expect(routeSlice).toContain('const accountDeactivatedAt = new Date();');
+    expect(routeSlice).toContain('retainedUntil.setMonth(retainedUntil.getMonth() + 6);');
+    expect(routeSlice).toContain('accountRetentionUntil: retainedUntil');
+    expect(routeSlice).toContain('isActive: false');
+    expect(routeSlice.indexOf('accountRetentionUntil: retainedUntil'))
+      .toBeLessThan(routeSlice.indexOf('await user.destroy()'));
+    expect(routeSlice).not.toContain('error.message');
   });
 });

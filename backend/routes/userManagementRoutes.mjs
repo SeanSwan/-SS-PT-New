@@ -823,6 +823,16 @@ router.delete('/user/:id', protect, adminOnly, async (req, res) => {
       });
     }
     
+    const accountDeactivatedAt = new Date();
+    const retainedUntil = new Date(accountDeactivatedAt);
+    retainedUntil.setMonth(retainedUntil.getMonth() + 6);
+
+    await user.update({
+      isActive: false,
+      accountDeactivatedAt,
+      accountRetentionUntil: retainedUntil
+    });
+
     // Soft delete the user (paranoid option in model)
     await user.destroy();
     
@@ -830,10 +840,18 @@ router.delete('/user/:id', protect, adminOnly, async (req, res) => {
     
     res.status(200).json({
       success: true,
-      message: 'User deactivated successfully'
+      message: 'User deactivated successfully. Account records are retained for 6 months.',
+      data: {
+        userId: user.id,
+        accountDeactivatedAt: accountDeactivatedAt.toISOString(),
+        accountRetentionUntil: retainedUntil.toISOString()
+      }
     });
   } catch (error) {
-    logger.error(`Error deactivating user: ${error.message}`);
+    logger.error('Error deactivating user', {
+      errorName: error?.name || 'Error',
+      errorCode: error?.code || error?.type || 'user_deactivation_error'
+    });
     res.status(500).json({
       success: false,
       message: 'Server error deactivating user'
