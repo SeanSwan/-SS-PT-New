@@ -56,13 +56,15 @@ router.get('/trainer/:trainerId/today', protect, trainerOrAdminOnly, async (req,
     }
 
     if (error.message.includes('Trainer or admin') || error.message.includes('Trainers can only view')) {
-      return res.status(403).json({ success: false, message: error.message });
+      return res.status(403).json({
+        success: false,
+        message: 'Trainer metrics are restricted to the assigned trainer or admin users.'
+      });
     }
 
     return res.status(500).json({
       success: false,
-      message: 'Server error fetching trainer today sessions',
-      error: error.message
+      message: 'Server error fetching trainer today sessions'
     });
   }
 });

@@ -35,7 +35,7 @@ function handleServiceError(res, error, fallbackMessage) {
     return errorResponse(
       res,
       mapped.statusCode,
-      error.message,
+      mapped.message,
       mapped.errorCode,
       error.data
     );

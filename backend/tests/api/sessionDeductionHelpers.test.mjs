@@ -212,14 +212,14 @@ describe('mapServiceError', () => {
     const error = new Error('Client not found');
     error.code = 'CLIENT_NOT_FOUND';
     const mapped = mapServiceError(error);
-    expect(mapped).toEqual({ statusCode: 404, errorCode: 'CLIENT_NOT_FOUND' });
+    expect(mapped).toEqual({ statusCode: 404, errorCode: 'CLIENT_NOT_FOUND', message: 'Client was not found.' });
   });
 
   it('maps DUPLICATE_PAYMENT_WINDOW to 409', () => {
     const error = new Error('Duplicate');
     error.code = 'DUPLICATE_PAYMENT_WINDOW';
     const mapped = mapServiceError(error);
-    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_PAYMENT_WINDOW' });
+    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_PAYMENT_WINDOW', message: 'This payment recovery request is too close to a recent payment.' });
   });
 
   it('maps SequelizeUniqueConstraintError on idempotency key to 409', () => {
@@ -230,7 +230,7 @@ describe('mapServiceError', () => {
       errors: []
     };
     const mapped = mapServiceError(error);
-    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_IDEMPOTENCY_KEY' });
+    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_IDEMPOTENCY_KEY', message: 'This payment recovery request was already processed.' });
   });
 
   it('returns null for unknown errors', () => {
@@ -259,7 +259,7 @@ describe('mapServiceError', () => {
     };
     const mapped = mapServiceError(error);
     // Should map via code path, not constraint path
-    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_IDEMPOTENCY_KEY' });
+    expect(mapped).toEqual({ statusCode: 409, errorCode: 'DUPLICATE_IDEMPOTENCY_KEY', message: 'This payment recovery request was already processed.' });
   });
 });
 
