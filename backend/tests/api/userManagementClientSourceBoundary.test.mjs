@@ -84,4 +84,16 @@ describe('user management clientSource boundary', () => {
       .toBeLessThan(routeSlice.indexOf('await user.destroy()'));
     expect(routeSlice).not.toContain('error.message');
   });
+
+  it('sanitizes active auth user-management route logging across admin workflows', () => {
+    const activeRouteStart = routeSource.indexOf("const router = express.Router();");
+    const activeRouteEnd = routeSource.indexOf('export default router', activeRouteStart);
+    const activeRouteSlice = routeSource.slice(activeRouteStart, activeRouteEnd);
+
+    expect(coreRoutesSource).toContain("app.use('/api/auth', userManagementRoutes)");
+    expect(activeRouteSlice).toContain('const logUserManagementRouteError =');
+    expect(activeRouteSlice).not.toContain('error.message');
+    expect(activeRouteSlice).not.toContain('error.stack');
+    expect(activeRouteSlice).not.toContain('stack:');
+  });
 });
