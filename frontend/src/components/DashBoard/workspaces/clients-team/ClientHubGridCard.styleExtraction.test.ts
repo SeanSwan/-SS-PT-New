@@ -14,4 +14,11 @@ describe('ClientHubGridCard style extraction', () => {
     expect(stylesSource).toContain('export const CardShell');
     expect(stylesSource).toContain('export const Metric');
   });
+
+  it('normalizes client source before passing visual tone into styled props', () => {
+    expect(componentSource).toContain('getClientSourceTone');
+    expect(componentSource).not.toContain('$source={client.clientSource}');
+    expect(stylesSource).toContain("$source === 'mf'");
+    expect(stylesSource).not.toContain("$source === 'move_fitness'");
+  });
 });

@@ -27,6 +27,11 @@ describe('ClientSelectorDropdown style extraction', () => {
   });
 
   it('bridges selector source identity styling to theme variables', () => {
+    expect(source).toContain('getClientSourceTone');
+    expect(source).not.toContain('$source={selectedClient.clientSource}');
+    expect(source).not.toContain('$source={c.clientSource}');
+    expect(styles).toContain("$source === 'mf'");
+    expect(styles).not.toContain("$source === 'move_fitness'");
     expect(styles).toContain('linear-gradient(135deg, var(--accent-gold, #C6A84B)');
     expect(styles).toContain('linear-gradient(135deg, var(--bg-elevated, #1A1A24)');
     expect(styles).toContain('linear-gradient(135deg, var(--primary, #002060)');

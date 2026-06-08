@@ -30,7 +30,7 @@ import {
   SelectorWrap,
   SourceBadge,
 } from './ClientSelectorDropdown.styles';
-import { getClientSourceLabel, getClientSourceShortLabel } from './clientSourceDisplay';
+import { getClientSourceLabel, getClientSourceShortLabel, getClientSourceTone } from './clientSourceDisplay';
 import { getClientSessionSignal } from './clientSessionSignal';
 import { getClientDisplayName, getClientInitials } from './clientIdentity';
 
@@ -163,7 +163,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
       >
         {selectedClient ? (
           <>
-            <Avatar $source={selectedClient.clientSource}>{getClientInitials(selectedClient)}</Avatar>
+            <Avatar $source={getClientSourceTone(selectedClient.clientSource)}>{getClientInitials(selectedClient)}</Avatar>
             <SelectionInfo>
               <SelectionName>{selectedClientName}</SelectionName>
               <SelectionMeta>
@@ -171,7 +171,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
                 {selectedClient.workoutCount != null && ` - ${selectedClient.workoutCount} workouts`}
               </SelectionMeta>
             </SelectionInfo>
-            <SourceBadge $source={selectedClient.clientSource || 'swanstudios'}>
+            <SourceBadge $source={getClientSourceTone(selectedClient.clientSource)}>
               {getClientSourceShortLabel(selectedClient.clientSource)}
             </SourceBadge>
           </>
@@ -217,7 +217,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
             <SectionLabel><SectionLabelIcon><Clock size={10} /></SectionLabelIcon> Recent</SectionLabel>
             {recentClients.map(c => (
               <ClientRow type="button" key={`recent-${c.id}`} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
-                <Avatar $source={c.clientSource}>{getClientInitials(c)}</Avatar>
+                <Avatar $source={getClientSourceTone(c.clientSource)}>{getClientInitials(c)}</Avatar>
                 <SelectionInfo>
                   <SelectionName>{getClientDisplayName(c)}</SelectionName>
                   <SelectionMeta>{getClientSourceLabel(c.clientSource)}</SelectionMeta>
@@ -237,7 +237,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
 
             return (
               <ClientRow type="button" key={c.id} $active={c.id === selectedId} onClick={() => handleSelect(c)} role="option" aria-selected={c.id === selectedId}>
-                <Avatar $source={c.clientSource}>{getClientInitials(c)}</Avatar>
+                <Avatar $source={getClientSourceTone(c.clientSource)}>{getClientInitials(c)}</Avatar>
                 <SelectionInfo>
                   <SelectionName>{getClientDisplayName(c)}</SelectionName>
                   <SelectionMeta title={sessionSignal.note}>
@@ -245,7 +245,7 @@ const ClientSelectorDropdown: React.FC<ClientSelectorDropdownProps> = ({
                     {` - ${sessionSignal.label}`}
                   </SelectionMeta>
                 </SelectionInfo>
-                <SourceBadge $source={c.clientSource || 'swanstudios'}>
+                <SourceBadge $source={getClientSourceTone(c.clientSource)}>
                   {getClientSourceShortLabel(c.clientSource)}
                 </SourceBadge>
               </ClientRow>
