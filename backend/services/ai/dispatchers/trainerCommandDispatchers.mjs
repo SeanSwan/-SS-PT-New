@@ -14,11 +14,12 @@ import { getAllModels } from '../../../models/index.mjs';
 import { CRITICAL_PERMISSIONS, PERMISSION_TYPES } from '../../../models/TrainerPermissions.mjs';
 import {
   NON_DEDUCTING_CLIENT_SOURCES,
+  normalizeClientSource,
   normalizePaidSessionCount,
 } from '../../sessionBillingPolicy.mjs';
 
 const sourceCounts = (clients) => clients.reduce((counts, client) => {
-  const source = client?.clientSource || 'external';
+  const source = normalizeClientSource(client?.clientSource, 'external');
   if (source === 'swanstudios') counts.swanstudiosClients += 1;
   else if (source === 'move_fitness') counts.moveFitnessClients += 1;
   else counts.externalClients += 1;

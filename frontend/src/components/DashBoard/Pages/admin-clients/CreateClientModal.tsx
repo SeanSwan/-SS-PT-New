@@ -55,6 +55,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import styled, { keyframes } from 'styled-components';
 import { X, Save, XCircle } from 'lucide-react';
 import { CreateClientRequest, ClientSource, CLIENT_SOURCE_LABELS, CLIENT_SOURCE_COLORS } from '../../../../services/adminClientService';
+import { isNonDeductingClientSource, normalizeClientSource } from '../../workspaces/clients-team/clientSessionSignal';
 
 /* ─────────────────────── Keyframes ─────────────────────── */
 
@@ -544,7 +545,8 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   trainers = []
 }) => {
   const [clientSource, setClientSource] = useState<ClientSource>('swanstudios');
-  const isExternal = clientSource !== 'swanstudios';
+  const normalizedClientSource = normalizeClientSource(clientSource);
+  const isExternal = isNonDeductingClientSource(clientSource);
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
 
@@ -556,7 +558,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   const [discardOpen, setDiscardOpen] = useState(false);
 
   const hasDraftChanges = useMemo(() => (
-    clientSource !== 'swanstudios' ||
+    normalizedClientSource !== 'swanstudios' ||
     !!heightFeet.trim() ||
     !!heightInches.trim() ||
     (Object.keys(DEFAULT_FORM_DATA) as Array<keyof CreateClientRequest>).some(
@@ -745,7 +747,7 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
                 </SourceSelectorRow>
                 {isExternal && (
                   <ExternalNote style={{ marginTop: 10 }}>
-                    {clientSource === 'move_fitness'
+                    {normalizedClientSource === 'move_fitness'
                       ? 'Move Fitness client — gets full tool access (Workout Log, Food Logger, Body Map, Social) with 0 SwanStudios sessions. Username and password auto-generated.'
                       : 'External client — gets full tool access with 0 SwanStudios sessions.'}
                   </ExternalNote>

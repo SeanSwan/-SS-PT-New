@@ -5,16 +5,34 @@
  */
 import { z } from 'zod';
 
-export const ClientSourceSchema = z.enum([
+const normalizeClientSourceInput = (value) => {
+  if (typeof value !== 'string') return value;
+  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (normalized === 'movefitness') return 'move_fitness';
+  if (normalized === 'swan_studios') return 'swanstudios';
+  return normalized;
+};
+
+const CanonicalClientSourceSchema = z.enum([
   'swanstudios',
   'move_fitness',
   'external'
 ]);
 
-export const ExternalClientSourceSchema = z.enum([
+const CanonicalExternalClientSourceSchema = z.enum([
   'move_fitness',
   'external'
 ]);
+
+export const ClientSourceSchema = z.preprocess(
+  normalizeClientSourceInput,
+  CanonicalClientSourceSchema,
+);
+
+export const ExternalClientSourceSchema = z.preprocess(
+  normalizeClientSourceInput,
+  CanonicalExternalClientSourceSchema,
+);
 
 export const CreateExternalClientSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(100),

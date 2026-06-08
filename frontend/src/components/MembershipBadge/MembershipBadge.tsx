@@ -24,15 +24,16 @@
 
 import React from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import { normalizeClientSource, type ClientSource as NormalizedClientSource } from '../../utils/clientSource';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
 
-export type ClientSource = 'swanstudios' | 'move_fitness' | 'external';
+export type ClientSource = NormalizedClientSource;
 
 interface MembershipBadgeProps {
-  clientSource: ClientSource;
+  clientSource?: ClientSource | string | null;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   className?: string;
@@ -170,21 +171,23 @@ const MembershipBadge: React.FC<MembershipBadgeProps> = ({
   showLabel = true,
   className,
 }) => {
+  const normalizedClientSource = normalizeClientSource(clientSource);
+
   // Don't render for external clients unless explicitly shown
-  if (clientSource === 'external' && !showLabel) return null;
+  if (normalizedClientSource === 'external' && !showLabel) return null;
 
   const iconSize = sizeMap[size].iconSize;
 
   return (
     <BadgePill
-      $source={clientSource}
+      $source={normalizedClientSource}
       $size={size}
       className={className}
-      title={`${LABELS[clientSource]} Member`}
+      title={`${LABELS[normalizedClientSource]} Member`}
     >
-      {clientSource === 'swanstudios' && <SwanIcon size={iconSize} />}
-      {clientSource === 'move_fitness' && <DumbbellIcon size={iconSize} />}
-      {showLabel && LABELS[clientSource]}
+      {normalizedClientSource === 'swanstudios' && <SwanIcon size={iconSize} />}
+      {normalizedClientSource === 'move_fitness' && <DumbbellIcon size={iconSize} />}
+      {showLabel && LABELS[normalizedClientSource]}
     </BadgePill>
   );
 };

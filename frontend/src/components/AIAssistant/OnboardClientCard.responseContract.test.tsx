@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import OnboardClientCard from './OnboardClientCard';
+import OnboardClientCard, { getOnboardClientSourceMeta } from './OnboardClientCard';
 
 vi.mock('react-toastify', () => ({
   toast: {
@@ -58,5 +58,20 @@ describe('OnboardClientCard response contract', () => {
     expect(screen.getByText('#88')).toBeInTheDocument();
     expect(screen.getByText('SWAN-1234')).toBeInTheDocument();
     expect(screen.getByText('https://sswanstudios.com/claim/SWAN-1234')).toBeInTheDocument();
+  });
+
+  it('normalizes human-formatted source text in AI onboarding cards', () => {
+    expect(getOnboardClientSourceMeta(' Move Fitness ')).toEqual({
+      source: 'move_fitness',
+      label: 'Move Fitness (Free Tracking)',
+    });
+    expect(getOnboardClientSourceMeta('move-fitness')).toEqual({
+      source: 'move_fitness',
+      label: 'Move Fitness (Free Tracking)',
+    });
+    expect(getOnboardClientSourceMeta(' External ')).toEqual({
+      source: 'external',
+      label: 'External (Free Tracking)',
+    });
   });
 });

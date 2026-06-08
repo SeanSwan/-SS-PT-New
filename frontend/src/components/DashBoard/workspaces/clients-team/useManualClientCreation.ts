@@ -12,6 +12,7 @@ import {
   type CreateClientRequest,
 } from '../../../../services/adminClientService';
 import { getClientDisplayName } from './clientIdentity';
+import { normalizeClientSource } from './clientSessionSignal';
 
 interface UseManualClientCreationParams {
   onClientsChanged: () => Promise<unknown> | unknown;
@@ -56,7 +57,7 @@ export function useManualClientCreation({
   const handleManualCreate = async (data: CreateClientRequest) => {
     if (!manualClientService) throw new Error('Admin session unavailable');
 
-    const isExternal = data.clientSource && data.clientSource !== 'swanstudios';
+    const isExternal = normalizeClientSource(data.clientSource) !== 'swanstudios';
     const response = isExternal
       ? await manualClientService.createExternalClient(data)
       : await manualClientService.createClient(data);

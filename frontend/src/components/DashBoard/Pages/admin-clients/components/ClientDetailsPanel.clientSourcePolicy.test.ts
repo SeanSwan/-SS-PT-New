@@ -11,9 +11,11 @@ const SOURCE = readFileSync(resolve(__dirname, './ClientDetailsPanel.tsx'), 'utf
 
 describe('ClientDetailsPanel client source policy', () => {
   it('keeps billing/session purchase controls out of every non-deducting client source', () => {
-    expect(SOURCE).toContain("clientSource === 'move_fitness' || clientSource === 'external'");
+    expect(SOURCE).toContain('isNonDeductingClientSource');
+    expect(SOURCE).toContain('const normalizedClientSource = normalizeClientSource(client.clientSource);');
     expect(SOURCE).toContain('!isNonDeductingClient');
     expect(SOURCE).not.toContain('!isMoveFitness');
+    expect(SOURCE).not.toContain("clientSource === 'move_fitness' || clientSource === 'external'");
   });
 
   it('routes non-deducting clients to workout tracking copy instead of paid sessions copy', () => {

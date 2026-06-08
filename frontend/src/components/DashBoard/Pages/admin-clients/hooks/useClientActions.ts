@@ -6,6 +6,7 @@
  */
 
 import { useCallback } from 'react';
+import { normalizeClientSource } from '../../../workspaces/clients-team/clientSessionSignal';
 
 export interface ClientActionConfirmationRequest {
   title: string;
@@ -118,12 +119,13 @@ export function useClientActions({
 
   const handleCreateClient = useCallback(async (data: any) => {
     try {
-      const isExternal = data.clientSource && data.clientSource !== 'swanstudios';
+      const normalizedClientSource = normalizeClientSource(data.clientSource);
+      const isExternal = normalizedClientSource !== 'swanstudios';
       const response = isExternal
         ? await adminClientService.createExternalClient(data)
         : await adminClientService.createClient(data);
       if (response.success) {
-        const sourceLabel = isExternal ? ` (${data.clientSource})` : '';
+        const sourceLabel = isExternal ? ` (${normalizedClientSource})` : '';
         toast({
           title: 'Success',
           description: `Client created successfully${sourceLabel}`,

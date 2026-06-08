@@ -15,10 +15,11 @@ describe('admin client update clientSource boundary', () => {
 
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    expect(source).toContain("const validSources = ['swanstudios', 'move_fitness', 'external'];");
+    expect(controllerSource).toContain('parseClientSource');
+    expect(source).toContain('const normalizedClientSource = parseClientSource(updates.clientSource);');
     expect(source).toContain('Invalid clientSource. Must be one of:');
-    expect(source).toContain('validSources.includes(updates.clientSource)');
-    expect(source.indexOf('validSources.includes(updates.clientSource)')).toBeLessThan(
+    expect(source).toContain('updates.clientSource = normalizedClientSource;');
+    expect(source.indexOf('parseClientSource(updates.clientSource)')).toBeLessThan(
       source.indexOf('await client.update(safeUpdates')
     );
   });

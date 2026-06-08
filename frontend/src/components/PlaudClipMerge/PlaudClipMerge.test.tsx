@@ -223,6 +223,12 @@ describe('PlaudClientResolver source contract', () => {
     expect(RESOLVER_SRC).toMatch(/createClient/);
   });
 
+  it('normalizes clientSource before choosing paid versus external create route', () => {
+    expect(RESOLVER_SRC).toMatch(/normalizeClientSource/);
+    expect(RESOLVER_SRC).toMatch(/normalizeClientSource\(data\.clientSource\)/);
+    expect(RESOLVER_SRC).not.toMatch(/data\.clientSource\s*&&\s*data\.clientSource\s*!==\s*['"]swanstudios['"]/);
+  });
+
   it('keeps resolver controls 44px+ and tokenized', () => {
     expect(RESOLVER_STYLES_SRC).toMatch(/min-height:\s*44px/);
     expect(RESOLVER_STYLES_SRC).toMatch(/var\(--text-primary,\s*#E0ECF4\)/);

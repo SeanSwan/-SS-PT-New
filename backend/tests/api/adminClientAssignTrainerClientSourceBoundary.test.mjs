@@ -15,15 +15,15 @@ describe('admin client assign-trainer clientSource boundary', () => {
       firstName: 'Mia',
       lastName: 'Reed',
       email: 'mia@example.test',
-      clientSource: 'move_fitness',
-    }).success).toBe(true);
+      clientSource: ' Move Fitness ',
+    }).data?.clientSource).toBe('move_fitness');
 
     expect(CreateExternalClientSchema.safeParse({
       firstName: 'Ari',
       lastName: 'Lane',
       email: 'ari@example.test',
       clientSource: 'external',
-    }).success).toBe(true);
+    }).data?.clientSource).toBe('external');
 
     expect(CreateExternalClientSchema.safeParse({
       firstName: 'Paid',
@@ -41,8 +41,10 @@ describe('admin client assign-trainer clientSource boundary', () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     expect(source).toContain('const requestedAvailableSessions = parseNonNegativeSessionCount(availableSessions);');
-    expect(source).toContain('const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)');
+    expect(source).toContain('const normalizedClientSource = parseClientSource(clientSource);');
+    expect(source).toContain('const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource)');
     expect(source).toContain('availableSessions: normalizedAvailableSessions');
+    expect(source).toContain('clientSource: normalizedClientSource');
     expect(source).toContain('await createClientTrainerAssignmentIfRequested({');
     expect(source).toContain('if (trainerIdValue && normalizedAvailableSessions > 0)');
     expect(source.indexOf('await createClientTrainerAssignmentIfRequested({')).toBeLessThan(
@@ -61,8 +63,10 @@ describe('admin client assign-trainer clientSource boundary', () => {
     expect(end).toBeGreaterThan(start);
     expect(clientSourceSchema).toContain('trainerId:');
     expect(source).toContain('trainerId,');
+    expect(source).toContain('const normalizedClientSource = parseClientSource(clientSource);');
     expect(source).toContain('await createClientTrainerAssignmentIfRequested({');
     expect(source).toContain('clientId: newClient.id,');
+    expect(source).toContain('clientSource: normalizedClientSource');
     expect(source).not.toContain('Session.bulkCreate');
     expect(source).not.toContain("client.increment('availableSessions'");
   });

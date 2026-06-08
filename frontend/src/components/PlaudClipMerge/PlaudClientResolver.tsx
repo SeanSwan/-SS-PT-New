@@ -22,6 +22,7 @@ import {
   type AdminClient,
   type CreateClientRequest,
 } from '../../services/adminClientService';
+import { normalizeClientSource } from '../../utils/clientSource';
 import {
   ResolverActions,
   ResolverButton,
@@ -157,10 +158,15 @@ export function PlaudClientResolver({
   }, []);
 
   const handleCreateClient = useCallback(async (data: CreateClientRequest) => {
-    const isExternal = data.clientSource && data.clientSource !== 'swanstudios';
+    const normalizedClientSource = normalizeClientSource(data.clientSource);
+    const normalizedData = {
+      ...data,
+      clientSource: normalizedClientSource,
+    };
+    const isExternal = normalizedClientSource !== 'swanstudios';
     const response = isExternal
-      ? await adminClient.createExternalClient(data)
-      : await adminClient.createClient(data);
+      ? await adminClient.createExternalClient(normalizedData)
+      : await adminClient.createClient(normalizedData);
     if (!response?.success) {
       throw new Error(response?.message || 'Failed to create client');
     }

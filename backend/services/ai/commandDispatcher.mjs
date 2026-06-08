@@ -64,6 +64,7 @@ import { submitAiWorkoutLogAsDailyForm } from '../workout/aiWorkoutDailyFormServ
 import {
   CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
   NON_DEDUCTING_CLIENT_SOURCES,
+  normalizeClientSource,
   normalizePaidSessionCount,
 } from '../sessionBillingPolicy.mjs';
 import { createNotification } from '../../controllers/notificationController.mjs';
@@ -627,7 +628,7 @@ const dispatchListActiveClients = async (params, ctx) => {
 
   const activeCount = clients.filter((client) => client.isActive !== false).length;
   const inactiveCount = clients.filter((client) => client.isActive === false).length;
-  const sourceFor = (client) => client.clientSource || 'swanstudios';
+  const sourceFor = (client) => normalizeClientSource(client.clientSource);
   const swanStudiosCount = clients.filter((client) => (
     !NON_DEDUCTING_CLIENT_SOURCES.has(sourceFor(client))
   )).length;
@@ -663,8 +664,9 @@ const dispatchExportClientList = async (params) => {
     where.isActive = false;
   }
 
-  if (['swanstudios', 'move_fitness', 'external'].includes(params.clientSource)) {
-    where.clientSource = params.clientSource;
+  const normalizedClientSource = normalizeClientSource(params.clientSource, null);
+  if (normalizedClientSource) {
+    where.clientSource = normalizedClientSource;
   }
 
   const searchParams = new URLSearchParams({ format });
@@ -740,7 +742,7 @@ const dispatchClientBillingOverview = async (params, ctx) => {
   }
 
   const data = typeof client.toJSON === 'function' ? client.toJSON() : client;
-  const clientSource = data.clientSource || 'swanstudios';
+  const clientSource = normalizeClientSource(data.clientSource);
   const deductsSessions = !NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
   const [lastPurchase, pendingOrders, nextSession, recentSessions] = await Promise.all([
     Order.findOne({

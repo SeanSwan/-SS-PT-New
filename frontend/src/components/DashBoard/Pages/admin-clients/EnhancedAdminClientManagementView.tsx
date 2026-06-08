@@ -88,7 +88,7 @@ import ClientBodyMapModal from './components/ClientBodyMapModal';
 import BookSessionDialog from './components/BookSessionDialog';
 import WorkoutLoggerModal from './components/WorkoutLoggerModal';
 import { filterEnhancedAdminClients } from './EnhancedAdminClientManagementView.logic';
-import { getClientSessionSignal } from '../../workspaces/clients-team/clientSessionSignal';
+import { getClientSessionSignal, normalizeClientSource } from '../../workspaces/clients-team/clientSessionSignal';
 
 // lucide-react icons
 import {
@@ -1592,6 +1592,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
           <TBody>
             {paginatedClients.map((client) => {
               const sessionSignal = getClientSessionSignal(client);
+              const normalizedClientSource = normalizeClientSource(client.clientSource);
 
               return (
               <Tr key={client.id}>
@@ -1620,9 +1621,9 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                     <FlexCol $gap={2}>
                       <FlexRow $gap={8} $align="center">
                         <ClientName>{client.firstName} {client.lastName}</ClientName>
-                        {client.clientSource === 'move_fitness' ? (
+                        {normalizedClientSource === 'move_fitness' ? (
                           <ClientSourceLogo src={MoveFitLogo3D} alt="Move Fitness" />
-                        ) : (!client.clientSource || client.clientSource === 'swanstudios') ? (
+                        ) : normalizedClientSource === 'swanstudios' ? (
                           <ClientSourceLogo src={SwanStudiosLogo} alt="SwanStudios" $round />
                         ) : null}
                       </FlexRow>
@@ -1634,7 +1635,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
                         <StatusChip $small $bgColor="rgba(255, 215, 0, 0.2)" $textColor="#ffd700">
                           {client.rank}
                         </StatusChip>
-                        {client.clientSource === 'external' && (
+                        {normalizedClientSource === 'external' && (
                           <StatusChip $small $bgColor="rgba(198, 168, 75, 0.2)" $textColor="#C6A84B">
                             External
                           </StatusChip>
@@ -2267,7 +2268,7 @@ const EnhancedAdminClientManagementView: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSubmit={async (data) => {
           try {
-            await (data.clientSource && data.clientSource !== 'swanstudios'
+            await (normalizeClientSource(data.clientSource) !== 'swanstudios'
               ? adminClientService.createExternalClient(toExternalClientRequest(data))
               : adminClientService.createClient(data));
             setShowCreateModal(false);

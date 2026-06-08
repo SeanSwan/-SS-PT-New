@@ -69,7 +69,11 @@ import {
   Apple
 } from 'lucide-react';
 import NutritionSummaryWidget from './NutritionSummaryWidget';
-import { normalizeAvailableSessions } from '../../../workspaces/clients-team/clientSessionSignal';
+import {
+  isNonDeductingClientSource,
+  normalizeAvailableSessions,
+  normalizeClientSource,
+} from '../../../workspaces/clients-team/clientSessionSignal';
 
 // Services
 import { adminClientService, CLIENT_SOURCE_LABELS, type ClientSource } from '../../../../services/adminClientService';
@@ -1299,10 +1303,11 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   );
 
   // Tab definitions
-  const clientSource: ClientSource = client.clientSource || 'swanstudios';
-  const clientSourceLabel = CLIENT_SOURCE_LABELS[clientSource];
-  const isMoveFitness = clientSource === 'move_fitness';
-  const isNonDeductingClient = clientSource === 'move_fitness' || clientSource === 'external';
+  const normalizedClientSource = normalizeClientSource(client.clientSource);
+  const clientSource: ClientSource = normalizedClientSource;
+  const clientSourceLabel = CLIENT_SOURCE_LABELS[clientSource] || CLIENT_SOURCE_LABELS.swanstudios;
+  const isMoveFitness = normalizedClientSource === 'move_fitness';
+  const isNonDeductingClient = isNonDeductingClientSource(client.clientSource);
 
   const tabs = [
     { icon: <User size={18} />, label: 'Personal' },
@@ -1333,7 +1338,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
               </HeaderTitle>
               {isMoveFitness ? (
                 <img src={MoveFitLogo3D} alt="Move Fitness" style={{ height: 24, width: 'auto', borderRadius: 3, flexShrink: 0 }} />
-              ) : (!client.clientSource || client.clientSource === 'swanstudios') ? (
+              ) : normalizedClientSource === 'swanstudios' ? (
                 <img src={SwanStudiosLogo} alt="SwanStudios" style={{ height: 24, width: 24, borderRadius: '50%', flexShrink: 0, objectFit: 'cover' }} />
               ) : null}
             </div>

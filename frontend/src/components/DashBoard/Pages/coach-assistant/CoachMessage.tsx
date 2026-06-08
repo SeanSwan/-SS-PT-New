@@ -38,12 +38,14 @@ import {
   safeWorkoutImportFailure,
 } from './CoachIntakeOperationalText.logic';
 import { workoutImportItems } from './CoachMessageWorkoutImportIdentity';
+import { normalizeClientSource } from '../../../../utils/clientSource';
 
 type LegacyClientCreateResult = NonNullable<NonNullable<CoachMessageData['metadata']>['clientCreateResult']>;
 
 export function getLegacyClientCreateTypeLabel(clientCreate: LegacyClientCreateResult): string {
-  if (clientCreate.clientSource === 'external') return 'External (free tracking)';
-  if (clientCreate.clientSource === 'move_fitness' || clientCreate.isMoveFitness) {
+  const normalizedClientSource = normalizeClientSource(clientCreate.clientSource);
+  if (normalizedClientSource === 'external') return 'External (free tracking)';
+  if (normalizedClientSource === 'move_fitness' || clientCreate.isMoveFitness) {
     return 'Move Fitness (free tracking)';
   }
   return 'SwanStudios (paid)';

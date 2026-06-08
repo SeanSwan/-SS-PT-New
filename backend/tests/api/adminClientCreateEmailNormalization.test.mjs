@@ -46,4 +46,13 @@ describe('admin client create email normalization', () => {
     expect(source).toContain('Generate SWAN-XXXXXXXX claim token');
     expect(source).not.toContain('Generate SWAN-XXXX claim token');
   });
+
+  it('normalizes external client source labels before welcome email copy', () => {
+    const source = getMethodSource('createExternalClient', null);
+
+    expect(controllerSource).toContain('parseClientSource');
+    expect(source).toContain('const normalizedClientSource = parseClientSource(clientSource);');
+    expect(source).toContain("const sourceLabel = normalizedClientSource === 'move_fitness' ? 'Move Fitness' : 'External';");
+    expect(source).not.toContain("const sourceLabel = clientSource === 'move_fitness'");
+  });
 });

@@ -25,6 +25,7 @@ import styled from 'styled-components';
 import { UserPlus, Check, AlertTriangle, Copy, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import type { AIAction } from '../../utils/parseAIActions';
+import { normalizeClientSource } from '../../utils/clientSource';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -52,10 +53,11 @@ export const getOnboardClientSourceMeta = (clientSource?: string | null): {
   source: ClientSource;
   label: string;
 } => {
-  if (clientSource === 'move_fitness') {
+  const normalizedClientSource = normalizeClientSource(clientSource);
+  if (normalizedClientSource === 'move_fitness') {
     return { source: 'move_fitness', label: 'Move Fitness (Free Tracking)' };
   }
-  if (clientSource === 'external') {
+  if (normalizedClientSource === 'external') {
     return { source: 'external', label: 'External (Free Tracking)' };
   }
   return { source: 'swanstudios', label: 'SwanStudios (Paid)' };

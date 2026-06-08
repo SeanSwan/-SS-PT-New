@@ -274,6 +274,7 @@ import { listPaidClientActivationQueue } from '../services/adminClientActivation
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES } from '../services/sessionBillingPolicy.mjs';
+import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
 
@@ -760,13 +761,12 @@ class AdminClientController {
         forcePasswordChange = true // Default true for admin-created accounts
       } = req.body;
 
-      // Validate clientSource against allowed values
-      const validSources = ['swanstudios', 'move_fitness', 'external'];
-      if (clientSource && !validSources.includes(clientSource)) {
+      const normalizedClientSource = parseClientSource(clientSource);
+      if (!normalizedClientSource) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
+          message: 'Invalid clientSource. Must be one of: swanstudios, move_fitness, external'
         });
       }
 
@@ -779,7 +779,7 @@ class AdminClientController {
         });
       }
 
-      const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)
+      const normalizedAvailableSessions = NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource)
         ? 0
         : requestedAvailableSessions;
 
@@ -858,7 +858,7 @@ class AdminClientController {
         healthConcerns,
         emergencyContact,
         availableSessions: normalizedAvailableSessions,
-        clientSource,
+        clientSource: normalizedClientSource,
         forcePasswordChange,
         role: 'client',
         isActive: true
@@ -881,7 +881,7 @@ class AdminClientController {
         clientId: newClient.id,
         trainerId: trainerIdValue,
         assignedBy: req.user?.id,
-        clientSource,
+        clientSource: normalizedClientSource,
         transaction
       });
 
@@ -962,13 +962,16 @@ class AdminClientController {
       const { clientId } = req.params;
       const updates = req.body;
 
-      const validSources = ['swanstudios', 'move_fitness', 'external'];
-      if (updates.clientSource !== undefined && !validSources.includes(updates.clientSource)) {
-        await transaction.rollback();
-        return res.status(400).json({
-          success: false,
-          message: `Invalid clientSource. Must be one of: ${validSources.join(', ')}`
-        });
+      if (updates.clientSource !== undefined) {
+        const normalizedClientSource = parseClientSource(updates.clientSource);
+        if (!normalizedClientSource) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid clientSource. Must be one of: swanstudios, move_fitness, external'
+          });
+        }
+        updates.clientSource = normalizedClientSource;
       }
       if (updates.isLocked !== undefined && typeof updates.isLocked !== 'boolean') {
         await transaction.rollback();
@@ -1625,13 +1628,12 @@ class AdminClientController {
         trainerId,
       } = req.body;
 
-      // Validate clientSource against allowed values
-      const validExternalSources = ['move_fitness', 'external'];
-      if (clientSource && !validExternalSources.includes(clientSource)) {
+      const normalizedClientSource = parseClientSource(clientSource);
+      if (!NON_DEDUCTING_CLIENT_SOURCES.has(normalizedClientSource)) {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
-          message: `Invalid clientSource for external creation. Must be one of: ${validExternalSources.join(', ')}`
+          message: 'Invalid clientSource for external creation. Must be one of: move_fitness, external'
         });
       }
 
@@ -1707,7 +1709,7 @@ class AdminClientController {
         trainingExperience,
         healthConcerns,
         emergencyContact,
-        clientSource,
+        clientSource: normalizedClientSource,
         availableSessions: 0, // External clients get 0 sessions
         accountStatus: 'stub', // External clients start as STUB until they claim their account
         forcePasswordChange: true,
@@ -1734,7 +1736,7 @@ class AdminClientController {
         clientId: newClient.id,
         trainerId: trainerIdValue,
         assignedBy: req.user?.id,
-        clientSource,
+        clientSource: normalizedClientSource,
         transaction
       });
 
@@ -1743,7 +1745,7 @@ class AdminClientController {
       // Send welcome email (non-blocking)
       if (passwordSource === 'generated') {
         try {
-          const sourceLabel = clientSource === 'move_fitness' ? 'Move Fitness' : 'External';
+          const sourceLabel = normalizedClientSource === 'move_fitness' ? 'Move Fitness' : 'External';
           await sendGridEmail({
             to: normalizedEmail,
             subject: `Welcome to SwanStudios Tools — ${sourceLabel} Client`,
@@ -1757,13 +1759,13 @@ class AdminClientController {
 
       const { password: _, refreshTokenHash: __, ...clientData } = newClient.toJSON();
 
-      logger.info(`External client created: ${normalizedEmail} (source: ${clientSource}) by admin ${req.user?.id}`);
+      logger.info(`External client created: ${normalizedEmail} (source: ${normalizedClientSource}) by admin ${req.user?.id}`);
 
       const claimUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/claim/${plainToken}`;
 
       return res.status(201).json({
         success: true,
-        message: `External client created (${clientSource})`,
+        message: `External client created (${normalizedClientSource})`,
         data: {
           client: clientData,
           temporaryPassword: passwordSource === 'generated' ? effectivePassword : undefined,
