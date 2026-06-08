@@ -61,7 +61,10 @@ export const buildPlanAssignmentSemantics = (plan) => {
   const planData = toPlainObject(raw.planData) || {};
   const assignmentDefaults = toPlainObject(planData.assignmentDefaults) || {};
   const defaultAssignmentType = normalizeKnownAssignmentType(
-    metadata.defaultAssignmentType
+    raw.assignmentDefault
+    || raw.defaultAssignmentType
+    || metadata.defaultAssignmentType
+    || metadata.assignmentDefault
     || assignmentDefaults.defaultAssignmentType
     || planData.defaultAssignmentType,
   );
@@ -69,10 +72,11 @@ export const buildPlanAssignmentSemantics = (plan) => {
   return {
     defaultAssignmentType,
     billingIntent: normalizeBillingIntent(
-      metadata.billingIntent || assignmentDefaults.billingIntent,
+      raw.billingIntent || metadata.billingIntent || assignmentDefaults.billingIntent,
       defaultAssignmentType,
     ),
-    shouldDeductSession: metadata.defaultShouldDeductSession === true
+    shouldDeductSession: raw.defaultShouldDeductSession === true
+      || metadata.defaultShouldDeductSession === true
       || assignmentDefaults.shouldDeductSession === true,
   };
 };
