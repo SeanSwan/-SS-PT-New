@@ -17,6 +17,7 @@ import {
 import heroSwan from '../../../../../assets/crystal-swan.png';
 import profileMark from '../../../../../assets/logo.svg';
 import reelArt from '../../../../../assets/swan-paint-3.png';
+import { isNonDeductingClientSource } from '../../../workspaces/clients-team/clientSessionSignal';
 
 export type LensId = 'feed' | 'reels' | 'friends' | 'challenges';
 
@@ -103,7 +104,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export function canBookSwanStudiosSessions(clientSource: ClientSource): boolean {
-  return clientSource !== 'move_fitness' && clientSource !== 'external';
+  return !isNonDeductingClientSource(clientSource);
 }
 
 export function quickActionsForClientSource(clientSource: ClientSource): QuickAction[] {

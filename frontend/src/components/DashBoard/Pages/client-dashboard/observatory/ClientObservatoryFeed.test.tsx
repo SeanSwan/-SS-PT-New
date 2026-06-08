@@ -3,7 +3,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ClientObservatoryFeed from './ClientObservatoryFeed';
-import { QUICK_ACTIONS, quickActionsForClientSource } from './ClientObservatoryData';
+import {
+  QUICK_ACTIONS,
+  canBookSwanStudiosSessions,
+  quickActionsForClientSource,
+} from './ClientObservatoryData';
 
 const noop = vi.fn();
 
@@ -18,6 +22,12 @@ describe('ClientObservatoryFeed XP receipt', () => {
       'Log Workout',
       'Progress',
     ]);
+    expect(quickActionsForClientSource(' Move Fitness ').map((action) => action.label)).toEqual([
+      'Log Workout',
+      'Progress',
+    ]);
+    expect(canBookSwanStudiosSessions('move-fitness')).toBe(false);
+    expect(canBookSwanStudiosSessions(' External ')).toBe(false);
   });
 
   it('shows the point award returned by Quick Post', () => {
