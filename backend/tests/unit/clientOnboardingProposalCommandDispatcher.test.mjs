@@ -11,11 +11,12 @@ async function loadDispatchers() {
     id: 'proposal-123',
     type,
     status: 'PENDING',
-    title: 'Review client onboarding draft',
+    title: type === 'clarification' ? 'Answer Coach clarification' : 'Review client onboarding draft',
   }));
   vi.doMock('../../services/ai/coachActionProposalService.mjs', () => ({
     COACH_PROPOSAL_TYPE: {
       CLIENT_ONBOARDING: 'client_onboarding',
+      CLARIFICATION: 'clarification',
     },
     createCoachActionProposalDraft,
   }));
@@ -94,6 +95,57 @@ describe('client onboarding proposal command dispatchers', () => {
       },
     }));
     expect(result.reviewRoute).toBe('/dashboard/trainer/coach-assistant?proposal=proposal-123');
+  });
+
+  it('turns missing client source into a clarification instead of a paid draft', async () => {
+    const { dispatchCreateClientProposal, createCoachActionProposalDraft } = await loadDispatchers();
+
+    const result = await dispatchCreateClientProposal({
+      firstName: 'Mia',
+      lastName: 'Reed',
+    }, {
+      user: { id: 8, role: 'trainer' },
+      options: { conversationId: 'conv-source' },
+    });
+
+    expect(createCoachActionProposalDraft).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'clarification',
+      payload: {
+        question: expect.stringContaining('client source'),
+        options: ['move_fitness', 'swanstudios', 'external'],
+      },
+    }));
+    expect(JSON.stringify(createCoachActionProposalDraft.mock.calls[0][0])).not.toContain('clientSource');
+    expect(result).toMatchObject({
+      proposalId: 'proposal-123',
+      proposalType: 'clarification',
+      hasPreparedDraft: false,
+      reviewRequired: false,
+      proposalTitle: 'Answer Coach clarification',
+      source: 'coach_action_proposals',
+    });
+  });
+
+  it('turns invalid client source into a clarification instead of silently reclassifying it', async () => {
+    const { dispatchCreateClientProposal, createCoachActionProposalDraft } = await loadDispatchers();
+
+    await dispatchCreateClientProposal({
+      firstName: 'Mia',
+      lastName: 'Reed',
+      clientSource: 'direct',
+    }, {
+      user: { id: 8, role: 'trainer' },
+      options: {},
+    });
+
+    expect(createCoachActionProposalDraft).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'clarification',
+      payload: {
+        question: expect.stringContaining('client source'),
+        options: ['move_fitness', 'swanstudios', 'external'],
+      },
+    }));
+    expect(JSON.stringify(createCoachActionProposalDraft.mock.calls[0][0])).not.toContain('"clientSource":"swanstudios"');
   });
 
   it('rejects proposal preparation outside trainer/admin roles', async () => {
