@@ -30,6 +30,11 @@ export interface CoachRouteContext {
   route: string;
   surface: CoachRouteSurface;
   scope: 'client' | 'trainer' | 'admin' | 'unknown';
+  source?: string;
+  intent?: string;
+  scheduledSessionId?: string;
+  scheduledSessionDate?: string;
+  scheduledSessionCredits?: number;
   allowedActions: CoachRouteAction[];
   writeBackPolicy: 'approval_required';
 }
@@ -96,15 +101,53 @@ function routeSurface(pathname: string): CoachRouteSurface {
   return 'dashboard_unknown';
 }
 
+const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+
+function safeToken(rawValue: string | null): string | undefined {
+  const token = rawValue?.trim();
+  return token && ROUTE_CONTEXT_TOKEN_PATTERN.test(token) ? token : undefined;
+}
+
+function safePositiveIntegerString(rawValue: string | null): string | undefined {
+  const token = rawValue?.trim();
+  if (!token || !/^[1-9]\d*$/.test(token)) return undefined;
+  return Number.isSafeInteger(Number(token)) ? token : undefined;
+}
+
+function safeIsoDate(rawValue: string | null): string | undefined {
+  const token = rawValue?.trim();
+  if (!token || !/^\d{4}-\d{2}-\d{2}/.test(token)) return undefined;
+  const dateOnly = token.slice(0, 10);
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? undefined : dateOnly;
+}
+
+function safePositiveInteger(rawValue: string | null): number | undefined {
+  const token = safePositiveIntegerString(rawValue);
+  if (!token) return undefined;
+  const parsed = Number(token);
+  return Number.isSafeInteger(parsed) ? parsed : undefined;
+}
+
 export function buildCoachRouteContext(pathname: string, search = ''): CoachRouteContext {
   const params = new URLSearchParams(search);
   const sourcePath = params.get('sourcePath') || pathname;
   const surface = routeSurface(sourcePath);
+  const source = safeToken(params.get('source'));
+  const intent = safeToken(params.get('intent'));
+  const scheduledSessionId = safePositiveIntegerString(params.get('sessionId'));
+  const scheduledSessionDate = scheduledSessionId ? safeIsoDate(params.get('sessionDate')) : undefined;
+  const scheduledSessionCredits = scheduledSessionId ? safePositiveInteger(params.get('sessionCredits')) : undefined;
 
   return {
     route: sourcePath,
     surface,
     scope: routeScope(sourcePath),
+    ...(source ? { source } : {}),
+    ...(intent ? { intent } : {}),
+    ...(scheduledSessionId ? { scheduledSessionId } : {}),
+    ...(scheduledSessionDate ? { scheduledSessionDate } : {}),
+    ...(scheduledSessionCredits ? { scheduledSessionCredits } : {}),
     allowedActions: ACTIONS[surface],
     writeBackPolicy: 'approval_required',
   };

@@ -32,6 +32,7 @@ import { Users, CalendarDays, Clock, CheckCircle, Dumbbell, Calendar, BarChart3,
 import { useAuth } from '../../../../context/AuthContext';
 import { useGamificationData } from '../../../../hooks/gamification/useGamificationData';
 import {
+  buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
   getClientName,
   getSessionStartDate,
@@ -140,8 +141,10 @@ const TrainerHomeTab: React.FC = () => {
         ) : (
           sessions.slice(0, 5).map(s => {
             const startDate = getSessionStartDate(s);
+            const coachRoute = buildTrainerSessionCoachRoute(s);
             const logRoute = buildTrainerSessionLogRoute(s);
             const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
+            const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
 
             return (
               <SessionRow key={s.id}>
@@ -155,6 +158,18 @@ const TrainerHomeTab: React.FC = () => {
                 </div>
                 <SessionActions>
                   <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
+                  {canDictate && (
+                    <SessionLogButton
+                      type="button"
+                      onClick={() => {
+                        if (coachRoute) navigate(coachRoute);
+                      }}
+                      aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
+                    >
+                      <Brain size={14} aria-hidden="true" />
+                      Coach
+                    </SessionLogButton>
+                  )}
                   {canLog && (
                     <SessionLogButton
                       type="button"

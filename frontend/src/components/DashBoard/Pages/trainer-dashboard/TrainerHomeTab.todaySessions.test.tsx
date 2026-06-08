@@ -86,4 +86,52 @@ describe('TrainerHomeTab today session logging', () => {
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
     expect(url.searchParams.get('loadPlan')).toBe('today');
   });
+
+  it('routes a scheduled client session into Swan Coach with booked-session dictation context', async () => {
+    const session: TrainerSession = {
+      id: 88,
+      sessionDate: '2026-05-31T16:00:00.000Z',
+      duration: 45,
+      userId: 42,
+      client: {
+        id: 42,
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+      },
+      sessionType: {
+        creditsRequired: 2,
+      },
+      status: 'scheduled',
+    };
+
+    mockedUseTrainerTodaySessions.mockReturnValue({
+      sessions: [session],
+      loading: false,
+      error: null,
+      stats: {
+        clientsToday: 1,
+        sessionsToday: 1,
+        hoursLogged: 0.75,
+        completionRate: 0,
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<TrainerHomeTab />);
+
+    await user.click(screen.getByRole('button', { name: /dictate workout with swan coach for ada lovelace/i }));
+
+    const route = mockNavigate.mock.calls[0]?.[0] as string;
+    const url = new URL(route, 'https://sswanstudios.test');
+
+    expect(url.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(url.searchParams.get('clientId')).toBe('42');
+    expect(url.searchParams.get('intent')).toBe('log_workout');
+    expect(url.searchParams.get('sessionId')).toBe('88');
+    expect(url.searchParams.get('sessionDate')).toBe('2026-05-31T16:00:00.000Z');
+    expect(url.searchParams.get('sessionCredits')).toBe('2');
+    expect(url.searchParams.get('source')).toBe('master-schedule');
+    expect(url.searchParams.get('sourcePath')).toBe('/dashboard/trainer/schedule');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
+  });
 });

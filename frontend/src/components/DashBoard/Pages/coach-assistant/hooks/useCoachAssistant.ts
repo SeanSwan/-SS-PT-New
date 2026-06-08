@@ -29,6 +29,15 @@ interface UseCoachAssistantOptions {
   routeContext?: CoachRouteContext | null;
 }
 
+function buildRouteRequestContext(routeContext: CoachRouteContext | null) {
+  if (!routeContext?.scheduledSessionId) return null;
+  return {
+    scheduledSessionId: routeContext.scheduledSessionId,
+    ...(routeContext.scheduledSessionDate ? { scheduledSessionDate: routeContext.scheduledSessionDate } : {}),
+    ...(routeContext.scheduledSessionCredits ? { scheduledSessionCredits: routeContext.scheduledSessionCredits } : {}),
+  };
+}
+
 export function useCoachAssistant(options?: UseCoachAssistantOptions) {
   const {
     defaultContext = 'coach_assistant',
@@ -103,13 +112,24 @@ export function useCoachAssistant(options?: UseCoachAssistantOptions) {
 
     if (cmdResult.type === 'fallback_to_chat') {
       const backendStyle = responseStyle;
-      const chatResult = await chat.sendMessageWithConversation(
-        trimmedText,
-        context as Parameters<typeof chat.sendMessageWithConversation>[1],
-        'Swan Coach Session',
-        targetClientId,
-        backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
-      );
+      const routeRequestContext = buildRouteRequestContext(routeContext);
+      const chatResult = routeRequestContext
+        ? await chat.sendMessageWithConversation(
+            trimmedText,
+            context as Parameters<typeof chat.sendMessageWithConversation>[1],
+            'Swan Coach Session',
+            targetClientId,
+            backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
+            null,
+            routeRequestContext,
+          )
+        : await chat.sendMessageWithConversation(
+            trimmedText,
+            context as Parameters<typeof chat.sendMessageWithConversation>[1],
+            'Swan Coach Session',
+            targetClientId,
+            backendStyle as Parameters<typeof chat.sendMessageWithConversation>[4],
+          );
       setLocalMessages([]);
       return chatResult;
     }

@@ -131,6 +131,34 @@ export function buildTrainerSessionLogRoute(
   return `/dashboard/trainer/log-workout?${params.toString()}`;
 }
 
+export function buildTrainerSessionCoachRoute(
+  session: TrainerSession,
+  returnTo = '/dashboard/trainer/overview',
+): string | null {
+  const clientId = getSessionClientId(session);
+  const sessionId = parsePositiveId(session.id);
+  if (!clientId || !sessionId) return null;
+
+  const params = new URLSearchParams({
+    clientId,
+    intent: 'log_workout',
+    source: 'master-schedule',
+    sourcePath: '/dashboard/trainer/schedule',
+    returnTo,
+  });
+  params.set('sessionId', sessionId);
+
+  const start = getSessionStartDate(session);
+  if (start) params.set('sessionDate', start.toISOString());
+
+  const sessionCreditHint = getSessionCreditHint(session);
+  if (sessionCreditHint !== null) {
+    params.set('sessionCredits', String(sessionCreditHint));
+  }
+
+  return `/dashboard/trainer/coach-assistant?${params.toString()}`;
+}
+
 export function useTrainerTodaySessions() {
   const { authAxios } = useAuth();
   const [sessions, setSessions] = useState<TrainerSession[]>([]);

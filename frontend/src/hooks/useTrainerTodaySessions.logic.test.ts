@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildTrainerSessionCoachRoute,
   buildTrainerSessionLogRoute,
   getSessionClientId,
   getSessionEndDate,
@@ -73,5 +74,24 @@ describe('useTrainerTodaySessions session mapping helpers', () => {
 
     const url = new URL(route ?? '', 'https://sswanstudios.test');
     expect(url.searchParams.get('sessionCredits')).toBeNull();
+  });
+
+  it('builds a trainer Coach route with the same booked-session context for dictation', () => {
+    const route = buildTrainerSessionCoachRoute({
+      ...apiSession,
+      sessionType: { creditsRequired: 2 },
+    } as TrainerSession);
+    expect(route).not.toBeNull();
+
+    const url = new URL(route ?? '', 'https://sswanstudios.test');
+    expect(url.pathname).toBe('/dashboard/trainer/coach-assistant');
+    expect(url.searchParams.get('clientId')).toBe('42');
+    expect(url.searchParams.get('intent')).toBe('log_workout');
+    expect(url.searchParams.get('sessionId')).toBe('88');
+    expect(url.searchParams.get('sessionDate')).toBe('2026-05-31T16:00:00.000Z');
+    expect(url.searchParams.get('sessionCredits')).toBe('2');
+    expect(url.searchParams.get('source')).toBe('master-schedule');
+    expect(url.searchParams.get('sourcePath')).toBe('/dashboard/trainer/schedule');
+    expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
   });
 });
