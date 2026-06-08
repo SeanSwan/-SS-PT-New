@@ -24,4 +24,16 @@ describe('v2 payment operational disclosure guard', () => {
     expect(source).toContain("details: 'Stripe service could not be initialized'");
     expect(source).toContain("details: 'Internal server error'");
   });
+
+  it('does not write checkout PII or database internals through console debug logs', () => {
+    expect(source).not.toContain('console.');
+    expect(source).not.toContain('email: cart.user?.email');
+    expect(source).not.toContain('cartQueryError.sql');
+    expect(source).not.toContain('cartQueryError.stack');
+    expect(source).not.toContain('error.sql');
+    expect(source).not.toContain('error.stack?.split');
+    expect(source).not.toContain('Session ID:');
+    expect(source).not.toContain('Verifying session ${sessionId}');
+    expect(source).not.toContain('successfully for user ${userId}: ${session.id}');
+  });
 });

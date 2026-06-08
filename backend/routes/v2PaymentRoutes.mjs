@@ -157,27 +157,36 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     }
 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
-    console.log('🚀 [v2 Payment] Genesis Checkout Session Creation Starting...');
+    logger.info('[v2 Payment] Checkout session creation started', {
+      userId,
+      cartId: normalizedCartId
+    });
 
     // 🎯 P0 FIX: Get fully associated models from coordinated cache
     let ShoppingCart, CartItem, StorefrontItem, User;
     try {
-      console.log('🔍 [DEBUG] Loading coordinated models with associations...');
       ShoppingCart = getShoppingCart();
       CartItem = getCartItem();
       StorefrontItem = getStorefrontItem();
       User = getUser();
-      
-      console.log('✅ [DEBUG] Coordinated models loaded successfully');
-      console.log('🔍 [DEBUG] ShoppingCart associations:', Object.keys(ShoppingCart.associations || {}));
-      console.log('🔍 [DEBUG] CartItem associations:', Object.keys(CartItem.associations || {}));
+
+      logger.info('[v2 Payment] Coordinated checkout models loaded', {
+        shoppingCartAssociationCount: Object.keys(ShoppingCart.associations || {}).length,
+        cartItemAssociationCount: Object.keys(CartItem.associations || {}).length
+      });
     } catch (debugError) {
-      console.error('❌ [DEBUG] Coordinated model loading failed:', debugError.message);
+      logger.error('[v2 Payment] Coordinated model loading failed', {
+        errorName: debugError.name,
+        errorCode: debugError.code || 'MODEL_LOAD_FAILED'
+      });
       throw new Error('Models not properly initialized. Server may still be starting up.');
     }
 
     // Step 1: Validate and fetch cart data
-    console.log('🔍 [DEBUG] Starting cart query for userId:', userId);
+    logger.info('[v2 Payment] Querying checkout cart', {
+      userId,
+      cartId: normalizedCartId
+    });
     
     let cart;
     try {
@@ -204,21 +213,19 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         ]
       });
       
-      console.log('✅ [DEBUG] Cart query completed. Cart found:', !!cart);
-      if (cart) {
-        console.log('🔍 [DEBUG] Cart items count:', cart.cartItems?.length || 0);
-        console.log('🔍 [DEBUG] User data:', {
-          id: cart.user?.id,
-          email: cart.user?.email,
-          hasUser: !!cart.user
-        });
-      }
+      logger.info('[v2 Payment] Cart query completed', {
+        userId,
+        cartId: normalizedCartId,
+        cartFound: !!cart,
+        itemCount: cart?.cartItems?.length || 0,
+        hasUser: !!cart?.user
+      });
     } catch (cartQueryError) {
-      console.error('❌ [DEBUG] Cart query failed:', {
-        message: cartQueryError.message,
-        stack: cartQueryError.stack?.split('\n')[0],
-        sql: cartQueryError.sql || 'No SQL',
-        name: cartQueryError.name
+      logger.error('[v2 Payment] Cart query failed', {
+        userId,
+        cartId: normalizedCartId,
+        errorName: cartQueryError.name,
+        errorCode: cartQueryError.code || 'CART_QUERY_FAILED'
       });
       throw cartQueryError;
     }
@@ -258,7 +265,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
     }
 
-    console.log(`💰 [v2 Payment] Order total: $${total.toFixed(2)} (${totalSessions} sessions)`);
+    logger.info('[v2 Payment] Checkout total calculated', {
+      userId,
+      cartId: normalizedCartId,
+      totalCents,
+      totalSessions
+    });
 
     // Step 3: Create or retrieve Stripe Customer
     let stripeCustomer = null;
@@ -267,7 +279,10 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     if (user.stripeCustomerId) {
       try {
         stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-        console.log('👤 [v2 Payment] Using existing Stripe customer:', user.stripeCustomerId);
+        logger.info('[v2 Payment] Using existing Stripe customer', {
+          userId,
+          hasStripeCustomerId: true
+        });
       } catch (error) {
         logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
         stripeCustomer = null;
@@ -292,7 +307,10 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         ...(customerInfo?.phone && { phone: customerInfo.phone })
       });
 
-      console.log('✅ [v2 Payment] Created new Stripe customer:', stripeCustomer.id);
+      logger.info('[v2 Payment] Created new Stripe customer', {
+        userId,
+        hasStripeCustomerId: true
+      });
     }
 
     // Step 4: Prepare line items for Stripe
@@ -379,9 +397,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       lastCheckoutAttempt: new Date()
     });
 
-    console.log('✅ [v2 Payment] Stripe Checkout Session created successfully');
-    console.log('🔗 [v2 Payment] Session ID:', session.id);
-    console.log('📊 [Admin Dashboard] Cart updated with checkout data for analytics');
+    logger.info('[v2 Payment] Stripe checkout session created and cart updated', {
+      userId,
+      cartId: normalizedCartId,
+      itemCount: cart.cartItems.length,
+      totalSessions
+    });
 
     // Step 7: Return success response
     res.status(200).json({
@@ -407,18 +428,19 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       }
     });
 
-    logger.info(`[v2 Payment] Checkout session created successfully for user ${userId}: ${session.id}`);
+    logger.info('[v2 Payment] Checkout session created successfully', {
+      userId,
+      cartId: normalizedCartId,
+      hasSessionId: true
+    });
 
   } catch (error) {
-    logger.error('[v2 Payment] Error creating checkout session:', error);
-    console.error('💥 [v2 Payment] Checkout session creation failed:');
-    console.error('💥 [DEBUG] Error details:', {
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
-      sql: error.sql || 'No SQL query',
-      code: error.code || 'No error code',
-      type: error.type || 'No error type'
+    logger.error('[v2 Payment] Error creating checkout session', {
+      userId: req.user?.id,
+      cartId: req.body?.cartId,
+      errorName: error.name,
+      errorCode: error.code || CHECKOUT_CREATION_FAILED_CODE,
+      errorType: error.type || 'unknown'
     });
     
     // Return appropriate error response
@@ -462,8 +484,14 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     const { sessionId } = sessionValidation;
     const userId = req.user.id;
 
-    logger.info(`[v2 Payment] Verifying session ${sessionId} for user ${userId}`);
-    console.log('🔍 [v2 Payment] Verifying Stripe session:', sessionId);
+    logger.info('[v2 Payment] Verifying checkout session for user', {
+      userId,
+      hasSessionId: true
+    });
+    logger.info('[v2 Payment] Verifying Stripe checkout session', {
+      userId,
+      hasSessionId: true
+    });
 
     // Retrieve session from Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -557,7 +585,11 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       }
     });
 
-    logger.info(`[v2 Payment] Session verified successfully: ${sessionId}, added ${result.sessionsAdded} sessions`);
+    logger.info('[v2 Payment] Session verified successfully', {
+      userId,
+      hasSessionId: true,
+      sessionsAdded: result.sessionsAdded
+    });
 
   } catch (error) {
     if (error instanceof SessionPackageFulfillmentError) {
@@ -573,8 +605,12 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     }
 
     const classified = classifyStripeCheckoutSessionError(error);
-    logger.error('[v2 Payment] Error verifying session:', error);
-    console.error('💥 [v2 Payment] Session verification failed:', error.message);
+    logger.error('[v2 Payment] Error verifying session', {
+      userId: req.user?.id,
+      errorName: error.name,
+      errorCode: error.code || classified.code,
+      errorType: error.type || 'unknown'
+    });
     
     res.status(classified.statusCode).json({
       success: false,
