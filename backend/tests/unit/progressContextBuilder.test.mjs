@@ -114,6 +114,31 @@ describe('progressContextBuilder — volume & intensity', () => {
     const ctx = buildProgressContext(sessions);
     expect(ctx.avgIntensity).toBe(7);
   });
+
+  it('8a — excludes unrated sessions from average intensity', () => {
+    const sessions = [
+      makeSession({ date: new Date('2026-02-10'), intensity: 8 }),
+      makeSession({ id: 's2', date: new Date('2026-02-12'), intensity: null }),
+      makeSession({ id: 's3', date: new Date('2026-02-14'), intensity: undefined }),
+    ];
+
+    const ctx = buildProgressContext(sessions);
+
+    expect(ctx.avgIntensity).toBe(8);
+    expect(ctx.sessionDetails.weeklyVolumeTrend[0].avgIntensity).toBe(8);
+  });
+
+  it('8b — reports zero average intensity when no sessions are rated', () => {
+    const sessions = [
+      makeSession({ date: new Date('2026-02-10'), intensity: null }),
+      makeSession({ id: 's2', date: new Date('2026-02-12'), intensity: undefined }),
+    ];
+
+    const ctx = buildProgressContext(sessions);
+
+    expect(ctx.avgIntensity).toBe(0);
+    expect(ctx.sessionDetails.weeklyVolumeTrend[0].avgIntensity).toBe(0);
+  });
 });
 
 // ─── RPE Trend ────────────────────────────────────────────────
