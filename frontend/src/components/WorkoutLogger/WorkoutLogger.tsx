@@ -62,6 +62,7 @@ import {
 import WorkoutLoggerHeader from './WorkoutLoggerHeader';
 import ExerciseCardComponent from './ExerciseCardComponent';
 import SessionSummaryForm from './SessionSummaryForm';
+import ScheduledSessionStatusBanner from './ScheduledSessionStatusBanner';
 import { buildWorkoutSubmitSuccessMessage } from './WorkoutLogger.submitReceipt';
 import { buildWorkoutFormSubmitBody } from './workoutLoggerSubmitPayload';
 import WorkoutLoggerFooter from './WorkoutLoggerFooter';
@@ -1045,6 +1046,13 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
           currentOPTPhase={currentOPTPhase}
           onOPTPhaseChange={setCurrentOPTPhase}
           workoutDate={workoutDateValue}
+        />
+
+        <ScheduledSessionStatusBanner
+          clientSource={client.clientSource}
+          scheduledSessionCreditHint={scheduledSessionCreditHint}
+          scheduledSessionDate={scheduledSessionDate}
+          scheduledSessionId={scheduledSessionId}
         />
 
         {!isClientSelfMode && typeof effectiveClientId === 'number' && (

@@ -93,6 +93,14 @@ describe('Phase 16.2 - WorkoutLogger clientId prop is optional', () => {
     expect(SOURCE).toMatch(/workoutDate=\{workoutDateValue\}/);
   });
 
+  it('mounts the schedule-origin billing banner from the shared logger surface', () => {
+    expect(SOURCE).toMatch(/ScheduledSessionStatusBanner/);
+    expect(SOURCE).toMatch(/scheduledSessionId=\{scheduledSessionId\}/);
+    expect(SOURCE).toMatch(/scheduledSessionCreditHint=\{scheduledSessionCreditHint\}/);
+    expect(SOURCE).toMatch(/scheduledSessionDate=\{scheduledSessionDate\}/);
+    expect(SOURCE).toMatch(/clientSource=\{client\.clientSource\}/);
+  });
+
   it('resolvedOnComplete default navigates to a real client route (not a silent no-op)', () => {
     // Codex round 2 regression: the earlier draft set
     // `resolvedOnComplete = onComplete ?? (() => { /* no-op */ })`
