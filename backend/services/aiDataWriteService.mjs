@@ -476,6 +476,9 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     metadata.planDurationKey = horizonKey;
   }
   metadata.planSource = metadata.planSource || 'swan_coach_planning';
+  metadata.assignmentDefault = metadata.assignmentDefault || 'trainer_session';
+  metadata.billingIntent = metadata.billingIntent || 'trainer_led_scheduled_flow';
+  metadata.defaultShouldDeductSession = false;
 
   // Validate planData structure if provided
   let planData = { weeks: [] };
@@ -488,6 +491,14 @@ async function saveWorkoutPlan(clientId, trainerId, data, sequelize) {
     // Cap at 52 weeks to prevent abuse
     planData.weeks = planData.weeks.slice(0, 52);
   }
+  const assignmentDefaults = planData.assignmentDefaults && typeof planData.assignmentDefaults === 'object' && !Array.isArray(planData.assignmentDefaults)
+    ? { ...planData.assignmentDefaults }
+    : {};
+  planData.assignmentDefaults = {
+    defaultAssignmentType: assignmentDefaults.defaultAssignmentType || metadata.assignmentDefault,
+    billingIntent: assignmentDefaults.billingIntent || metadata.billingIntent,
+    shouldDeductSession: false,
+  };
 
   const replacements = {
     clientId,

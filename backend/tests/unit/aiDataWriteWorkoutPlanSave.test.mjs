@@ -100,6 +100,73 @@ describe('aiDataWriteService save_workout_plan', () => {
     expect(JSON.parse(capture.replacements.planData).weeks).toHaveLength(24);
   });
 
+  it('defaults Swan Coach-created plans to trainer-led non-auto-deduct assignment semantics', async () => {
+    const sequelize = makeFakeSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [{
+      type: 'save_workout_plan',
+      data: {
+        title: 'Trainer-Led Strength Arc',
+        durationWeeks: 26,
+        nasmPhase: 2,
+        planData: {
+          weeks: [{
+            weekNumber: 1,
+            days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Split Squat' }] }],
+          }],
+        },
+      },
+    }], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(JSON.parse(capture.replacements.metadata)).toMatchObject({
+      assignmentDefault: 'trainer_session',
+      billingIntent: 'trainer_led_scheduled_flow',
+      defaultShouldDeductSession: false,
+    });
+    expect(JSON.parse(capture.replacements.planData)).toMatchObject({
+      assignmentDefaults: {
+        defaultAssignmentType: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        shouldDeductSession: false,
+      },
+    });
+  });
+
+  it('refuses AI-supplied auto-deduct defaults when saving a workout plan', async () => {
+    const sequelize = makeFakeSequelize(capture);
+
+    const result = await processAIDataUpdates(42, [{
+      type: 'save_workout_plan',
+      data: {
+        title: 'Prompt Injected Deduction Arc',
+        durationWeeks: 4,
+        metadata: {
+          defaultShouldDeductSession: true,
+        },
+        planData: {
+          assignmentDefaults: {
+            shouldDeductSession: true,
+          },
+          weeks: [{
+            weekNumber: 1,
+            days: [{ dayNumber: 1, exercises: [{ exerciseName: 'Split Squat' }] }],
+          }],
+        },
+      },
+    }], 7, sequelize);
+
+    expect(result).toEqual({ successful: 1, errors: [] });
+    expect(JSON.parse(capture.replacements.metadata)).toMatchObject({
+      defaultShouldDeductSession: false,
+    });
+    expect(JSON.parse(capture.replacements.planData)).toMatchObject({
+      assignmentDefaults: {
+        shouldDeductSession: false,
+      },
+    });
+  });
+
   it('attaches an AI-generated protected PDF to the saved workout plan metadata', async () => {
     const sequelize = makeFakeSequelize(capture);
 
