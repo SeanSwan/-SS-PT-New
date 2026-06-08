@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Dumbbell, FileText, Layers3 } from 'lucide-react';
+import { formatPlanBillingIntentLabel, formatPlanUseLabel } from '../../../../../utils/workoutPlanAssignmentSemantics';
 import type { ClientTrainingPlanSlot, ClientTrainingPlanVault } from './useCurrentClientWorkout';
 import { CardInner, MutedText, SectionKicker, SectionTitle } from './ClientObservatoryShell.styles';
 import {
@@ -46,6 +47,11 @@ function slotDetail(slot: ClientTrainingPlanSlot): string {
   if (slot.planTitle) return slot.planTitle;
   if (slot.isDefaultHorizon) return 'Default arc pending';
   return 'Pending';
+}
+
+function slotUseDetail(slot: ClientTrainingPlanSlot): string | null {
+  if (!slot.isFilled) return null;
+  return `${formatPlanUseLabel(slot.assignmentDefault)} - ${formatPlanBillingIntentLabel(slot)}`;
 }
 
 function canLogFromSlot(slot: ClientTrainingPlanSlot, canLogToday: boolean): boolean {
@@ -91,33 +97,39 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
           <MutedText>Plan arcs are unavailable. Open My Workouts or refresh the dashboard.</MutedText>
         ) : (
           <WidgetList>
-            {slots.map((slot) => (
-              <WidgetRow key={slot.horizonKey}>
-                <WidgetLabel>{slot.isPrimary ? `${slot.label} Primary` : slot.label}</WidgetLabel>
-                <WidgetValue>{slotStatus(slot)}</WidgetValue>
-                <WidgetLabel>{slotDetail(slot)}</WidgetLabel>
-                {canLogFromSlot(slot, canLogToday) && (
-                  <SmallButton
-                    type="button"
-                    onClick={() => onNavigate(TODAY_LOG_PATH)}
-                    aria-label={`Log Today from ${slot.label} primary plan`}
-                  >
-                    <Dumbbell size={14} aria-hidden="true" />
-                    Log Today
-                  </SmallButton>
-                )}
-                {slot.pdfFile && (
-                  <SmallButton
-                    type="button"
-                    onClick={() => onViewPdf(slot)}
-                    aria-label={`View ${slot.label} PDF plan`}
-                >
-                  <FileText size={14} aria-hidden="true" />
-                  Open PDF
-                </SmallButton>
-              )}
-              </WidgetRow>
-            ))}
+            {slots.map((slot) => {
+              const useDetail = slotUseDetail(slot);
+              return (
+                <WidgetRow key={slot.horizonKey}>
+                  <WidgetLabel>{slot.isPrimary ? `${slot.label} Primary` : slot.label}</WidgetLabel>
+                  <WidgetValue>{slotStatus(slot)}</WidgetValue>
+                  <WidgetLabel>{slotDetail(slot)}</WidgetLabel>
+                  {useDetail && (
+                    <WidgetLabel>{useDetail}</WidgetLabel>
+                  )}
+                  {canLogFromSlot(slot, canLogToday) && (
+                    <SmallButton
+                      type="button"
+                      onClick={() => onNavigate(TODAY_LOG_PATH)}
+                      aria-label={`Log Today from ${slot.label} primary plan`}
+                    >
+                      <Dumbbell size={14} aria-hidden="true" />
+                      Log Today
+                    </SmallButton>
+                  )}
+                  {slot.pdfFile && (
+                    <SmallButton
+                      type="button"
+                      onClick={() => onViewPdf(slot)}
+                      aria-label={`View ${slot.label} PDF plan`}
+                    >
+                      <FileText size={14} aria-hidden="true" />
+                      Open PDF
+                    </SmallButton>
+                  )}
+                </WidgetRow>
+              );
+            })}
           </WidgetList>
         )}
       </CardInner>
