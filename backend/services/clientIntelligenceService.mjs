@@ -566,6 +566,7 @@ export async function getClientContext(clientId, trainerId) {
     buildClientTrainingVaultContext({
       clientId,
       WorkoutPlan: safeGetModel('WorkoutPlan'),
+      DailyWorkoutForm: safeGetModel('DailyWorkoutForm'),
       Op,
       today: now,
     }).catch(err => {

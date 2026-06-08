@@ -165,4 +165,62 @@ describe('clientTrainingVaultContextService', () => {
       exerciseCount: 0,
     });
   });
+
+  it('overlays completed DailyWorkoutForm planned assignments onto vault context', async () => {
+    const WorkoutPlan = {
+      findAll: vi.fn().mockResolvedValue([{
+        id: 'plan-6m',
+        status: 'active',
+        durationWeeks: 26,
+        currentWeek: 3,
+        currentDay: 2,
+        metadata: { planHorizon: 'six_month' },
+        planData: {
+          weeks: [{
+            weekNumber: 3,
+            days: [{
+              dayNumber: 2,
+              assignmentType: 'homework',
+              exercises: [{ exerciseName: 'Goblet Squat', sets: 3, reps: '10' }],
+            }],
+          }],
+        },
+      }]),
+    };
+    const DailyWorkoutForm = {
+      findAll: vi.fn().mockResolvedValue([{
+        id: 'form-42',
+        formData: {
+          plannedAssignment: {
+            assignmentKey: 'plan-6m:w3:d2:homework',
+            assignmentType: 'homework',
+          },
+        },
+        submittedAt: '2026-06-07T16:00:00.000Z',
+      }]),
+    };
+
+    const result = await buildClientTrainingVaultContext({
+      clientId: 42,
+      WorkoutPlan,
+      DailyWorkoutForm,
+      today: '2026-06-07',
+    });
+
+    expect(DailyWorkoutForm.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: { clientId: 42, date: '2026-06-07' },
+      limit: 20,
+    }));
+    expect(result.todayAssignment).toMatchObject({
+      assignmentType: 'homework',
+      status: 'completed',
+      isLoggable: false,
+      ctaLabel: 'Review Workout',
+      completion: {
+        source: 'daily_workout_form',
+        formId: 'form-42',
+        completedAt: '2026-06-07',
+      },
+    });
+  });
 });
