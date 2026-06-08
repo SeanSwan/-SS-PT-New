@@ -11,7 +11,7 @@ describe('clientTrainingVaultContextService', () => {
           title: 'Jane Six Month Foundation',
           status: 'active',
           durationWeeks: 26,
-          currentWeek: 1,
+          currentWeek: 3,
           currentDay: 2,
           nasmPhase: 2,
           createdBy: 'swan_coach_planning',
@@ -33,7 +33,23 @@ describe('clientTrainingVaultContextService', () => {
                   dayNumber: 2,
                   dayLabel: 'Lower Body Homework',
                   assignmentType: 'homework',
-                  exercises: [{ exerciseName: 'Goblet Squat' }],
+                  notes: 'Jane reported private knee notes and jane@example.com should never reach LLM context',
+                  exercises: [
+                    {
+                      exerciseName: 'Goblet Squat',
+                      sets: 3,
+                      reps: '8-10',
+                      tempo: '3/1/1',
+                      restSeconds: 90,
+                      notes: 'private trainer coaching note',
+                    },
+                    {
+                      name: 'Dead Bug',
+                      setScheme: 2,
+                      repGoal: '10/side',
+                      restTime: 45,
+                    },
+                  ],
                 },
               ],
             }],
@@ -59,10 +75,25 @@ describe('clientTrainingVaultContextService', () => {
         isLoggable: true,
         isBillable: false,
         shouldDeductSession: false,
-        weekNumber: 1,
+        weekNumber: 3,
         dayNumber: 2,
-        exerciseCount: 1,
+        exerciseCount: 2,
         firstExerciseName: 'Goblet Squat',
+        exercisePreview: [
+          {
+            exerciseName: 'Goblet Squat',
+            sets: 3,
+            reps: '8-10',
+            tempo: '3/1/1',
+            rest: 90,
+          },
+          {
+            exerciseName: 'Dead Bug',
+            sets: 2,
+            reps: '10/side',
+            rest: 45,
+          },
+        ],
       },
     });
 
@@ -79,7 +110,7 @@ describe('clientTrainingVaultContextService', () => {
     });
 
     const serialized = JSON.stringify(result);
-    expect(serialized).not.toMatch(/Jane|content\.pdf|storageKey|workout-plans\/42|fileName|title/);
+    expect(serialized).not.toMatch(/Jane|jane@example\.com|private|content\.pdf|storageKey|workout-plans\/42|fileName|title|notes/);
   });
 
   it('returns a safe unavailable context when the WorkoutPlan model is missing', async () => {

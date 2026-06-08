@@ -11,16 +11,12 @@ import availabilityService from '../../availabilityService.mjs';
 import { toCurrentWorkoutPlanResponse } from '../../workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../../clientTrainingReadModelService.mjs';
 import { findPlannedAssignmentCompletionsForDate } from '../../clientTrainingAssignmentCompletionService.mjs';
+import { summarizeAssignmentExercises } from '../../clientTrainingExercisePreviewService.mjs';
 import { summarizeTrainingPlanCatalog } from './clientTrainingCatalogSummary.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const toPositiveNumber = (value) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
 const toDateOnly = (value) => {
@@ -33,35 +29,6 @@ const todayDateOnly = () => new Date().toISOString().slice(0, 10);
 const selfUserId = (ctx = {}) => toNumber(ctx.user?.id);
 
 const normalizeRow = (row) => (typeof row?.toJSON === 'function' ? row.toJSON() : row);
-const asArray = (value) => (Array.isArray(value) ? value : []);
-const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
-const firstPresent = (...values) => values.find((value) => value !== undefined && value !== null && value !== '');
-
-const summarizeExercisePreview = (exercise = {}) => {
-  const exerciseName = compactString(
-    firstPresent(exercise.exerciseName, exercise.name, exercise.exercise?.name),
-  );
-  if (!exerciseName) return null;
-
-  const rawSets = firstPresent(exercise.sets, exercise.setCount, exercise.setScheme);
-  const setCount = Array.isArray(rawSets) ? rawSets.length : toPositiveNumber(rawSets);
-  const reps = firstPresent(exercise.targetReps, exercise.reps, exercise.repGoal);
-  const tempo = compactString(firstPresent(exercise.tempo, exercise.cadence));
-  const rest = firstPresent(exercise.restTime, exercise.restSeconds, exercise.restPeriod, exercise.rest);
-  const preview = { exerciseName };
-  if (setCount) preview.sets = setCount;
-  if (reps !== undefined && reps !== null && reps !== '') preview.reps = reps;
-  if (tempo) preview.tempo = tempo;
-  if (rest !== undefined && rest !== null && rest !== '') preview.rest = rest;
-  return preview;
-};
-
-const summarizeAssignmentExercises = (exercises) => (
-  asArray(exercises)
-    .map(summarizeExercisePreview)
-    .filter(Boolean)
-    .slice(0, 12)
-);
 
 const parseDateOnlyLocal = (value) => {
   const text = String(value ?? '');

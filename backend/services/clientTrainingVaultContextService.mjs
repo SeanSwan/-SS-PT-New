@@ -10,6 +10,7 @@
  */
 
 import { buildClientTrainingOverview } from './clientTrainingReadModelService.mjs';
+import { summarizeAssignmentExercises } from './clientTrainingExercisePreviewService.mjs';
 import { extractCurrentSession } from './workoutPlanShapeService.mjs';
 
 const ACTIVE_STATUSES = ['active', 'paused', 'draft'];
@@ -59,6 +60,7 @@ const safeAssignmentSummary = (assignment) => ({
   dayNumber: assignment?.dayNumber ?? null,
   exerciseCount: assignment?.exerciseCount ?? 0,
   firstExerciseName: compactString(assignment?.firstExerciseName),
+  exercisePreview: summarizeAssignmentExercises(assignment?.exercises),
 });
 
 const selectActivePlan = (plans) => (
