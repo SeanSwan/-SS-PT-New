@@ -71,6 +71,20 @@ const parseNonNegativeInteger = (value) => {
 const getErrorMessage = (error) => (typeof error === 'string' ? error : (error?.message || ''));
 const getNormalizedErrorMessage = (error) => getErrorMessage(error).toLowerCase();
 
+const toSessionRouteErrorMetadata = (error, fallbackCode = 'session_route_error') => ({
+  errorName: error?.name || 'Error',
+  errorCode: error?.code || error?.type || fallbackCode,
+});
+
+const logSessionRouteError = (message, error, req, metadata = {}) => {
+  logger.error(message, {
+    userId: req?.user?.id,
+    route: req?.originalUrl || req?.path,
+    ...metadata,
+    ...toSessionRouteErrorMetadata(error),
+  });
+};
+
 const canAccessSessionRecord = (user, session, { allowClient = true, allowTrainer = true } = {}) => {
   if (!user || !session) return false;
   if (user.role === 'admin') return true;
@@ -1140,12 +1154,20 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     await transaction.commit();
 
     unifiedSessionService.sendBookingNotifications(session, client).catch((err) => {
-      logger.error('[adminBookSession] Booking notification failed:', err);
+      logSessionRouteError('[adminBookSession] Booking notification failed', err, req, {
+        sessionId: session.id,
+        clientId: parsedClientId,
+        notificationType: 'booking',
+      });
     });
 
     if (deductionResult?.creditsDeducted > 0) {
       sendDeductionNotification(session, client).catch((err) => {
-        logger.error('[adminBookSession] Deduction notification failed:', err);
+        logSessionRouteError('[adminBookSession] Deduction notification failed', err, req, {
+          sessionId: session.id,
+          clientId: parsedClientId,
+          notificationType: 'deduction',
+        });
       });
     }
 
@@ -1155,7 +1177,10 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
         bookedByAdmin: true
       });
     } catch (broadcastError) {
-      logger.error("Error broadcasting admin booking session update:", broadcastError);
+      logSessionRouteError('Error broadcasting admin booking session update', broadcastError, req, {
+        sessionId: session.id,
+        clientId: parsedClientId,
+      });
     }
 
     logger.info(`Admin ${req.user.id} booked session ${session.id} for client ${parsedClientId}`, {
@@ -1179,10 +1204,15 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     try {
       await transaction.rollback();
     } catch (rollbackError) {
-      logger.error("Rollback failed in unified admin booking route:", rollbackError);
+      logSessionRouteError('Rollback failed in unified admin booking route', rollbackError, req, {
+        clientId: req.body?.clientId,
+      });
     }
 
-    logger.error("Error in unified admin book session:", error);
+    logSessionRouteError('Error in unified admin book session', error, req, {
+      clientId: req.body?.clientId,
+      trainerId: req.body?.trainerId,
+    });
     return res.status(500).json({
       success: false,
       message: "Server error booking session"
@@ -2395,7 +2425,9 @@ router.patch("/:id/cancel", protect, async (req, res) => {
     
     return res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error in PATCH /api/sessions/${req.params.id}/cancel:`, error);
+    logSessionRouteError('Error in PATCH /api/sessions/:id/cancel', error, req, {
+      sessionId: req.params.id,
+    });
     const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle cancellation-specific errors
@@ -2501,7 +2533,9 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
     
     return res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error in PATCH /api/sessions/${req.params.id}/complete:`, error);
+    logSessionRouteError('Error in PATCH /api/sessions/:id/complete', error, req, {
+      sessionId: req.params.id,
+    });
     const normalizedMessage = getNormalizedErrorMessage(error);
     
     // Handle completion-specific errors
@@ -2732,10 +2766,14 @@ router.patch("/:id/attendance", protect, trainerOrAdminOnly, async (req, res) =>
       try {
         await transaction.rollback();
       } catch (rollbackError) {
-        logger.error('Rollback failed in PATCH /api/sessions/:id/attendance:', rollbackError);
+        logSessionRouteError('Rollback failed in PATCH /api/sessions/:id/attendance', rollbackError, req, {
+          sessionId: req.params.id,
+        });
       }
     }
-    logger.error(`Error in PATCH /api/sessions/${req.params.id}/attendance:`, error);
+    logSessionRouteError('Error in PATCH /api/sessions/:id/attendance', error, req, {
+      sessionId: req.params.id,
+    });
     return res.status(500).json({
       success: false,
       message: 'Server error recording attendance'
@@ -3056,7 +3094,9 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
       }
     });
   } catch (error) {
-    logger.error('Error in POST /api/sessions/:sessionId/charge-cancellation:', error);
+    logSessionRouteError('Error in POST /api/sessions/:sessionId/charge-cancellation', error, req, {
+      sessionId: req.params.sessionId,
+    });
     return res.status(500).json({
       success: false,
       message: 'Server error recording cancellation billing decision'

@@ -255,4 +255,23 @@ describe('session booking clientSource boundary', () => {
     expect(source).toContain('sendDeductionNotification(session, client)');
     expect(source).not.toContain('error: error.message');
   });
+
+  it('keeps active session money-path logging free of raw exception objects', () => {
+    expect(unifiedRouteSource).toContain('const logSessionRouteError =');
+
+    const routeWindows = [
+      unifiedRouteSlice('router.post("/admin/book"', 'router.get("/admin/cancelled"'),
+      unifiedRouteSlice('router.patch("/:id/cancel"', 'router.patch("/:id/confirm"'),
+      unifiedRouteSlice('router.patch("/:id/complete"', 'router.patch("/:id/assign"'),
+      unifiedRouteSlice('router.patch("/:id/attendance"', 'router.post("/:id/feedback"'),
+      unifiedRouteSlice('router.post("/:sessionId/charge-cancellation"', 'export default router'),
+    ];
+
+    for (const { start, end, source } of routeWindows) {
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      expect(source).not.toMatch(/logger\.(error|warn)\([^;]+,\s*(error|err|rollbackError|broadcastError)\)/);
+      expect(source).not.toContain('error: error.message');
+    }
+  });
 });
