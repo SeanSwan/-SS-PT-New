@@ -23,6 +23,12 @@ import { analyzeMealPhoto } from '../services/foodPhotoService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
+const INTERNAL_ERROR = 'internal_error';
+const INVALID_PHOTO_UPLOAD = 'invalid_photo_upload';
+
+const sendMealPlanError = (res, status, message, error = INTERNAL_ERROR) => (
+  res.status(status).json({ success: false, message, error })
+);
 
 // Multer config for photo uploads (10MB max, images only)
 const upload = multer({
@@ -39,6 +45,20 @@ const upload = multer({
 });
 
 // ─────────────────────────────────────────────────────────────
+const uploadMealPhoto = (req, res, next) => {
+  upload.single('photo')(req, res, (err) => {
+    if (!err) return next();
+
+    logger.warn('[MealPlanRoutes] Photo upload rejected:', err.message);
+    return sendMealPlanError(
+      res,
+      400,
+      'Upload a JPEG, PNG, or WebP image under 10MB.',
+      INVALID_PHOTO_UPLOAD
+    );
+  });
+};
+
 // SECTION: Public Routes
 // ─────────────────────────────────────────────────────────────
 
@@ -93,7 +113,7 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
     res.json({ success: true, plan });
   } catch (err) {
     logger.error('[MealPlanRoutes] Generate error:', err.message);
-    res.status(500).json({ success: false, message: err.message || 'Meal plan generation failed' });
+    return sendMealPlanError(res, 500, 'Meal plan generation failed');
   }
 });
 
@@ -102,7 +122,7 @@ router.post('/generate', authenticateToken, requireTier('pro', 'nutrition.coachi
  * Analyzes a meal photo using Gemini Vision.
  * Multipart form: file (image)
  */
-router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.coaching'), upload.single('photo'), async (req, res) => {
+router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.coaching'), uploadMealPhoto, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No photo uploaded. Send an image as "photo" field.' });
@@ -113,7 +133,10 @@ router.post('/analyze-photo', authenticateToken, requireTier('pro', 'nutrition.c
   } catch (err) {
     logger.error('[MealPlanRoutes] Photo analysis error:', err.message);
     const status = err.message?.includes('not configured') ? 503 : 500;
-    res.status(status).json({ success: false, message: err.message || 'Photo analysis failed' });
+    const message = status === 503
+      ? 'Photo analysis is temporarily unavailable'
+      : 'Photo analysis failed';
+    return sendMealPlanError(res, status, message);
   }
 });
 
