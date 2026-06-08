@@ -81,13 +81,6 @@ export const normalizeClientHomeworkSummary = (value: unknown): ClientHomeworkSu
   };
 };
 
-export const latestHomeworkCompletion = (
-  summary?: ClientHomeworkSummary | null,
-): ClientHomeworkCompletion | null => {
-  if (!summary) return null;
-  return summary.recentCompletions[0] || null;
-};
-
 const completionDateValue = (completion?: ClientHomeworkCompletion | null) => {
   if (!completion) return null;
   return completion.completedAt || completion.scheduledDate;
