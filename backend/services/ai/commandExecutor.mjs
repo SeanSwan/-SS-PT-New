@@ -105,6 +105,20 @@ const toPositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) ? parsed : null;
 };
 
+const routeScheduledSessionId = (routeContext) => {
+  const id = toPositiveInteger(routeContext?.scheduledSessionId);
+  return id ? String(id) : null;
+};
+
+const routeScheduledSessionDate = (routeContext) => {
+  const value = typeof routeContext?.scheduledSessionDate === 'string'
+    ? routeContext.scheduledSessionDate.trim()
+    : '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : value;
+};
+
 const buildParamsForValidation = (ctx, command) => {
   const params = (
     ctx.intent?.params &&
@@ -113,6 +127,17 @@ const buildParamsForValidation = (ctx, command) => {
   )
     ? { ...ctx.intent.params }
     : {};
+
+  if (command.type === 'log_workout') {
+    const scheduledSessionId = routeScheduledSessionId(ctx.options.routeContext);
+    if (scheduledSessionId && params.scheduledSessionId == null) {
+      params.scheduledSessionId = scheduledSessionId;
+    }
+    const scheduledSessionDate = routeScheduledSessionDate(ctx.options.routeContext);
+    if (scheduledSessionDate && params.date == null) {
+      params.date = scheduledSessionDate;
+    }
+  }
 
   let insertedClientId = false;
 

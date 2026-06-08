@@ -61,6 +61,9 @@ type AIContext = 'coach_assistant' | 'general' | 'macro_logging' | 'form_tips' |
 type ResponseStyle = 'phd_only' | 'balanced' | 'simple_only' | 'both';
 interface AIRequestContext {
   equipmentProfileId?: number | null;
+  scheduledSessionId?: number | string | null;
+  scheduledSessionDate?: string | null;
+  scheduledSessionCredits?: number | string | null;
 }
 
 type FrontendAction = { event?: string; payload?: unknown };
@@ -81,9 +84,28 @@ function activeConversationMatchesRequest(
 }
 
 function buildSafeRequestContext(raw?: AIRequestContext | null): AIRequestContext | null {
+  const safe: AIRequestContext = {};
   const equipmentProfileId = Number(raw?.equipmentProfileId);
-  if (!Number.isSafeInteger(equipmentProfileId) || equipmentProfileId <= 0) return null;
-  return { equipmentProfileId };
+  if (Number.isSafeInteger(equipmentProfileId) && equipmentProfileId > 0) {
+    safe.equipmentProfileId = equipmentProfileId;
+  }
+
+  const scheduledSessionId = String(raw?.scheduledSessionId ?? '').trim();
+  if (/^[1-9]\d*$/.test(scheduledSessionId) && Number.isSafeInteger(Number(scheduledSessionId))) {
+    safe.scheduledSessionId = scheduledSessionId;
+  }
+
+  const scheduledSessionDate = String(raw?.scheduledSessionDate ?? '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(scheduledSessionDate)) {
+    safe.scheduledSessionDate = scheduledSessionDate;
+  }
+
+  const scheduledSessionCredits = Number(raw?.scheduledSessionCredits);
+  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
+    safe.scheduledSessionCredits = scheduledSessionCredits;
+  }
+
+  return Object.keys(safe).length ? safe : null;
 }
 
 type AxiosLikeError = Error & {

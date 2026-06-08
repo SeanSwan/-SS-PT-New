@@ -96,6 +96,7 @@ const AI_CHAT_EQUIPMENT_CONTEXTS = new Set([
   'workout_generation',
   'workout_suggestions',
 ]);
+const AI_CHAT_SCHEDULE_CONTEXTS = new Set(['coach_assistant']);
 
 function parseOptionalPositiveInteger(value) {
   if (value === undefined || value === null || value === '') return null;
@@ -110,11 +111,44 @@ function hasEquipmentProfileRequest(raw) {
     && Object.prototype.hasOwnProperty.call(raw, 'equipmentProfileId');
 }
 
+function hasScheduledSessionRequest(raw) {
+  return raw
+    && typeof raw === 'object'
+    && !Array.isArray(raw)
+    && Object.prototype.hasOwnProperty.call(raw, 'scheduledSessionId');
+}
+
+function parseOptionalIsoDate(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return null;
+  const dateOnly = value.trim();
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : dateOnly;
+}
+
+function parseOptionalCredits(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 function sanitizePromptLine(value, maxLength = 160) {
   return String(value ?? '')
     .replace(/[\r\n\t`\\]/g, ' ')
     .trim()
     .slice(0, maxLength);
+}
+
+function buildSelectedScheduledSessionPromptBlock({
+  context,
+  scheduledSessionId,
+  scheduledSessionDate,
+  scheduledSessionCredits,
+}) {
+  if (!scheduledSessionId || !AI_CHAT_SCHEDULE_CONTEXTS.has(context)) return '';
+  const dateLine = scheduledSessionDate ? `\nSession date: ${scheduledSessionDate}` : '';
+  const creditLine = scheduledSessionCredits ? `\nCredit hint: ${scheduledSessionCredits}` : '';
+  return `\n--- SELECTED BOOKED SESSION ---\nScheduled Session ID: ${scheduledSessionId}${dateLine}${creditLine}\nInstruction: when preparing a workout_log proposal for this booked session, include "scheduledSessionId": "${scheduledSessionId}". Do not invent or change scheduled session ids. Final approval will verify ownership, attendance status, and session deduction server-side.\n--- END SELECTED BOOKED SESSION ---`;
 }
 
 async function buildSelectedEquipmentProfilePromptBlock({
@@ -403,6 +437,43 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         error: 'Valid equipment profile ID is required',
       });
     }
+    const hasScheduledContext = hasScheduledSessionRequest(requestContext);
+    const selectedScheduledSessionId = hasScheduledContext
+      ? parseOptionalPositiveInteger(requestContext.scheduledSessionId)
+      : null;
+    if (hasScheduledContext && !selectedScheduledSessionId) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_ID_REQUIRED',
+        error: 'Valid scheduled session ID is required',
+      });
+    }
+    const hasScheduledDate = requestContext
+      && typeof requestContext === 'object'
+      && Object.prototype.hasOwnProperty.call(requestContext, 'scheduledSessionDate');
+    const selectedScheduledSessionDate = hasScheduledDate
+      ? parseOptionalIsoDate(requestContext.scheduledSessionDate)
+      : null;
+    if (hasScheduledDate && !selectedScheduledSessionDate) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_DATE_REQUIRED',
+        error: 'Valid scheduled session date is required',
+      });
+    }
+    const hasScheduledCredits = requestContext
+      && typeof requestContext === 'object'
+      && Object.prototype.hasOwnProperty.call(requestContext, 'scheduledSessionCredits');
+    const selectedScheduledSessionCredits = hasScheduledCredits
+      ? parseOptionalCredits(requestContext.scheduledSessionCredits)
+      : null;
+    if (hasScheduledCredits && !selectedScheduledSessionCredits) {
+      return res.status(400).json({
+        success: false,
+        code: 'VALID_SCHEDULED_SESSION_CREDITS_REQUIRED',
+        error: 'Valid scheduled session credits are required',
+      });
+    }
 
     const conversation = await AiConversation.findOne({
       where: {
@@ -549,6 +620,12 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       equipmentProfileId: selectedEquipmentProfileId,
       requesterId: req.user.id,
       requesterRole: conversation.role,
+    });
+    systemPrompt += buildSelectedScheduledSessionPromptBlock({
+      context: conversation.context,
+      scheduledSessionId: selectedScheduledSessionId,
+      scheduledSessionDate: selectedScheduledSessionDate,
+      scheduledSessionCredits: selectedScheduledSessionCredits,
     });
     // Use sanitized message (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, conversation.messages, sanitizedMessage);

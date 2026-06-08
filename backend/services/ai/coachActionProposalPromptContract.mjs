@@ -32,7 +32,7 @@ When ready to prepare a draft, use a coach_action_proposal block as one JSON blo
 
 Payload guidance:
 - client_onboarding payload: include gathered onboarding fields only; never invent names, claim codes, passwords, URLs, or consent. Prefer firstName, lastName, email, phone, clientSource, trainingGoal, limitations, painNotes, equipmentAccess, availability, and firstSessionPriorities when the trainer provides them.
-- workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence.
+- workout_log payload: include clientId only when the selected or confirmed client is known; include ISO date, title, duration, intensity, notes, and exercises when supported by evidence. Include scheduledSessionId only when a server-provided selected booked session context gives that exact id; never invent or change scheduled session ids.
 - client_data_update payload: include targetUserId or clientId plus non-empty updates; each update must be reviewable.
 - frontend_dispatch payload: use only for draft UI changes, never as a final write path.
 - clarification payload: include question plus optional options when the trainer needs one narrow answer.

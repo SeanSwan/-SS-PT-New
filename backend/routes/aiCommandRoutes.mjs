@@ -65,6 +65,23 @@ const normalizeSelectedClientId = (value) => {
 
 const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface'];
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;
+
+const normalizePositiveIntegerString = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const trimmed = String(value).trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+  return Number.isSafeInteger(Number(trimmed)) ? trimmed : null;
+};
+
+const normalizeIsoDate = (value) => {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!ISO_DATE_PREFIX_PATTERN.test(trimmed)) return null;
+  const dateOnly = trimmed.slice(0, 10);
+  const parsed = new Date(`${dateOnly}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : dateOnly;
+};
 
 const normalizeRouteContext = (value) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -76,6 +93,15 @@ const normalizeRouteContext = (value) => {
     const token = raw.trim();
     if (!ROUTE_CONTEXT_TOKEN_PATTERN.test(token)) continue;
     normalized[key] = token;
+  }
+
+  const scheduledSessionId = normalizePositiveIntegerString(value.scheduledSessionId);
+  if (scheduledSessionId) normalized.scheduledSessionId = scheduledSessionId;
+  const scheduledSessionDate = normalizeIsoDate(value.scheduledSessionDate);
+  if (scheduledSessionDate) normalized.scheduledSessionDate = scheduledSessionDate;
+  const scheduledSessionCredits = Number(value.scheduledSessionCredits);
+  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
+    normalized.scheduledSessionCredits = scheduledSessionCredits;
   }
 
   return Object.keys(normalized).length ? normalized : null;

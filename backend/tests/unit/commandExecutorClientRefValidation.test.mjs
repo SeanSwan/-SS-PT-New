@@ -117,6 +117,39 @@ describe('command executor client reference validation', () => {
     );
   });
 
+  it('merges safe scheduled-session route context into log-workout validation params', async () => {
+    const { executeCommandPipeline } = await loadPipeline({
+      intent: {
+        intent: 'log_workout',
+        clientRef: null,
+        params: {
+          exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+        },
+        confidence: 0.99,
+      },
+    });
+
+    const ctx = await executeCommandPipeline('log booked squats', adminUser, {
+      selectedClientId: 42,
+      routeContext: {
+        source: 'coach-command-center',
+        intent: 'log_workout',
+        scheduledSessionId: '777',
+        scheduledSessionDate: '2026-06-07',
+        scheduledSessionCredits: 2,
+      },
+      sequelize: {},
+    });
+
+    expect(ctx.error).toBeNull();
+    expect(ctx.intent.params).toMatchObject({
+      clientId: 42,
+      scheduledSessionId: '777',
+      date: '2026-06-07',
+    });
+    expect(ctx.intent.params).not.toHaveProperty('scheduledSessionCredits');
+  });
+
   it('does not require a numeric clientId before resolving a spoken client name', async () => {
     const { executeCommandPipeline, resolveClient } = await loadPipeline({
       intent: {

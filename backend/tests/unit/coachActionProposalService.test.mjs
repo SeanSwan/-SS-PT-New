@@ -306,6 +306,49 @@ describe('coachActionProposalService', () => {
     });
   });
 
+  it('preserves valid scheduled-session ids in workout-log proposals', () => {
+    const classified = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'workout_log',
+      payload: {
+        clientId: 42,
+        date: '2026-06-07',
+        scheduledSessionId: '777',
+        exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+    });
+
+    expect(classified?.type).toBe(COACH_PROPOSAL_TYPE.WORKOUT_LOG);
+    expect(classified?.payload).toMatchObject({
+      clientId: 42,
+      scheduledSessionId: '777',
+      date: '2026-06-07',
+    });
+  });
+
+  it('rejects malformed scheduled-session ids in workout-log proposals', () => {
+    const classified = classifyActionBlock({
+      action: 'coach_action_proposal',
+      schema_version: '2026-05-07',
+      proposal_type: 'workout_log',
+      payload: {
+        clientId: 42,
+        date: '2026-06-07',
+        scheduledSessionId: '777junk',
+        exercises: [{ name: 'Squat', sets: 3, reps: 10 }],
+      },
+    }, { targetUserId: 42 }, {
+      proposalTypes: COACH_PROPOSAL_TYPE,
+      schemaVersion: '2026-05-06',
+    });
+
+    expect(classified).toBeNull();
+  });
+
   it('ignores malformed write action blocks instead of creating unusable proposals', async () => {
     const db = fakeSequelize();
     const content = [

@@ -23,6 +23,7 @@ import { classifyDeterministicCoachIntakeIntent } from './deterministicCoachInta
 
 const CONFIDENCE_THRESHOLD = 0.7;
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
+const ROUTE_CONTEXT_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function buildRouteContextLine(routeContext) {
   if (!routeContext || typeof routeContext !== 'object' || Array.isArray(routeContext)) return null;
@@ -35,6 +36,14 @@ function buildRouteContextLine(routeContext) {
       return ROUTE_CONTEXT_TOKEN_PATTERN.test(token) ? `${key}=${token}` : null;
     })
     .filter(Boolean);
+  const scheduledSessionId = String(routeContext.scheduledSessionId || '').trim();
+  if (/^[1-9]\d*$/.test(scheduledSessionId)) parts.push(`scheduledSessionId=${scheduledSessionId}`);
+  const scheduledSessionDate = String(routeContext.scheduledSessionDate || '').trim();
+  if (ROUTE_CONTEXT_DATE_PATTERN.test(scheduledSessionDate)) parts.push(`scheduledSessionDate=${scheduledSessionDate}`);
+  const scheduledSessionCredits = Number(routeContext.scheduledSessionCredits);
+  if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits > 0) {
+    parts.push(`scheduledSessionCredits=${scheduledSessionCredits}`);
+  }
 
   return parts.length ? `[Route context: ${parts.join('; ')}]` : null;
 }

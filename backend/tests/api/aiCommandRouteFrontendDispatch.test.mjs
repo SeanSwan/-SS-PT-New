@@ -232,6 +232,46 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
     expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('notes');
   });
 
+  it('preserves safe scheduled-session route context for workout logging commands', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'chat', params: {} },
+      command: null,
+      result: null,
+    });
+
+    await request(makeApp())
+      .post('/api/ai-command/execute')
+      .send({
+        message: 'log the booked workout',
+        selectedClientId: 42,
+        routeContext: {
+          source: 'coach-command-center',
+          intent: 'log_workout',
+          scheduledSessionId: '777',
+          scheduledSessionDate: '2026-06-07',
+          scheduledSessionCredits: 2,
+          scheduledSessionNotes: 'free text must not pass',
+        },
+      })
+      .expect(200);
+
+    expect(mockExecuteCommandPipeline).toHaveBeenLastCalledWith(
+      'log the booked workout',
+      expect.objectContaining({ id: 7, role: 'admin' }),
+      expect.objectContaining({
+        routeContext: {
+          source: 'coach-command-center',
+          intent: 'log_workout',
+          scheduledSessionId: '777',
+          scheduledSessionDate: '2026-06-07',
+          scheduledSessionCredits: 2,
+        },
+      }),
+    );
+    expect(mockExecuteCommandPipeline.mock.lastCall?.[2]?.routeContext).not.toHaveProperty('scheduledSessionNotes');
+  });
+
   it('rejects malformed selected-client ids instead of letting stale client refs take over', async () => {
     mockExecuteCommandPipeline.mockResolvedValue({
       ...baseCtx,

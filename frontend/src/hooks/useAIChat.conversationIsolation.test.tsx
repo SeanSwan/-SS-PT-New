@@ -120,4 +120,37 @@ describe('useAIChat conversation target isolation', () => {
       expect.any(Object)
     );
   });
+
+  it('posts selected scheduled session as structured message context', async () => {
+    const { result } = renderHook(() => useAIChat());
+
+    await act(async () => {
+      await result.current.sendMessageWithConversation(
+        'Log the booked workout',
+        'coach_assistant',
+        'Client #424242 daily training',
+        424242,
+        'both',
+        null,
+        {
+          scheduledSessionId: '777',
+          scheduledSessionDate: '2026-06-07',
+          scheduledSessionCredits: 2,
+        }
+      );
+    });
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/ai-chat/conversations/701/messages',
+      {
+        message: 'Log the booked workout',
+        requestContext: {
+          scheduledSessionId: '777',
+          scheduledSessionDate: '2026-06-07',
+          scheduledSessionCredits: 2,
+        },
+      },
+      expect.any(Object)
+    );
+  });
 });
