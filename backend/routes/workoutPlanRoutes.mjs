@@ -39,6 +39,7 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { findPlannedAssignmentCompletionsForDate } from '../services/clientTrainingAssignmentCompletionService.mjs';
 import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import {
@@ -109,6 +110,7 @@ const markPlanPrimary = (plan, isPrimary) => {
 // PURPOSE: Lazy-load from model cache to avoid circular imports
 // ─────────────────────────────────────────────────────────────
 const getWorkoutPlan = () => getModel('WorkoutPlan');
+const currentDateOnly = () => new Date().toISOString().slice(0, 10);
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: GET /api/workout-plans
@@ -174,6 +176,7 @@ router.get('/', protect, trainerOrAdminOnly, async (req, res) => {
 router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {
   try {
     const WorkoutPlan = getWorkoutPlan();
+    const DailyWorkoutForm = getModel('DailyWorkoutForm');
     const userId = parseInt(req.params.userId, 10);
 
     if (!userId || isNaN(userId)) {
@@ -203,10 +206,24 @@ router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByU
 
     // Extract current session info for the AI when a live active arc exists.
     const currentSession = plan ? extractCurrentSession(plan) : null;
+    const today = currentDateOnly();
+    const assignmentCompletions = await findPlannedAssignmentCompletionsForDate(
+      DailyWorkoutForm,
+      {
+        clientId: userId,
+        date: today,
+        onLookupError: (error) => logger.warn(
+          'Daily workout planned-assignment completion lookup failed:',
+          error.message,
+        ),
+      },
+    );
     const overview = buildClientTrainingOverview({
       activePlan: plan || null,
       plans: catalogPlans.length ? catalogPlans : plan ? [plan] : [],
       currentSession,
+      today,
+      assignmentCompletions,
     });
 
     res.json({
