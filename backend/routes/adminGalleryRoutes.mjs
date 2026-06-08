@@ -314,9 +314,9 @@ router.post('/events/:id/upload-single', (req, res, next) => {
   uploadSingle.single('photo')(req, res, (err) => {
     if (err) {
       const message = err instanceof multer.MulterError
-        ? `Upload rejected: ${err.message}`
-        : err.message || 'File upload failed';
-      logger.error('[AdminGallery] Single upload multer error:', message);
+        ? 'Upload rejected. Check file size and upload field.'
+        : 'File upload failed';
+      logger.error('[AdminGallery] Single upload multer error:', err.message);
       return res.status(400).json({ success: false, error: message });
     }
     next();
@@ -549,7 +549,7 @@ router.post('/events/:id/upload-single', (req, res, next) => {
   } catch (err) {
     logger.error('[AdminGallery:Single] Upload error:', err.message, err.stack?.split('\n').slice(0, 3).join('\n'));
     if (global.gc) global.gc();
-    return res.status(500).json({ success: false, error: err.message || 'Upload failed' });
+    return res.status(500).json({ success: false, error: 'Upload failed' });
   }
 });
 
@@ -566,9 +566,9 @@ router.post('/events/:id/upload', (req, res, next) => {
   upload.array('photos', 50)(req, res, (err) => {
     if (err) {
       const message = err instanceof multer.MulterError
-        ? `Upload rejected: ${err.message}${err.field ? ` (field: ${err.field})` : ''}`
-        : err.message || 'File upload failed';
-      logger.error('[AdminGallery] Multer error:', message);
+        ? 'Upload rejected. Check file size, upload count, and upload field.'
+        : 'File upload failed';
+      logger.error('[AdminGallery] Multer error:', err.message);
       return res.status(400).json({ success: false, error: message });
     }
     next();
@@ -765,7 +765,7 @@ router.post('/events/:id/upload', (req, res, next) => {
     });
   } catch (err) {
     logger.error('[AdminGallery] Upload error:', err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
-    return res.status(500).json({ success: false, error: err.message || 'Failed to upload photos' });
+    return res.status(500).json({ success: false, error: 'Failed to upload photos' });
   }
 });
 
@@ -856,7 +856,7 @@ router.post('/events/:id/presign-upload', async (req, res) => {
     });
   } catch (err) {
     logger.error('[AdminGallery] Presign error:', err.message);
-    return res.status(500).json({ success: false, error: err.message || 'Failed to generate upload URLs' });
+    return res.status(500).json({ success: false, error: 'Failed to generate upload URLs' });
   }
 });
 
@@ -875,7 +875,8 @@ router.get('/r2-cors-check', async (req, res) => {
     const result = await client.send(new GetBucketCorsCommand({ Bucket: process.env.R2_BUCKET_NAME }));
     return res.json({ success: true, corsRules: result.CORSRules || [] });
   } catch (err) {
-    return res.json({ success: false, error: err.message, code: err.Code || err.name });
+    logger.error('[AdminGallery] R2 CORS check error:', err.message);
+    return res.json({ success: false, error: 'Failed to check R2 CORS configuration', code: 'R2_CORS_CHECK_FAILED' });
   }
 });
 
@@ -917,7 +918,7 @@ router.post('/setup-r2-cors', async (req, res) => {
     return res.json({ success: true, message: 'R2 CORS rules applied successfully' });
   } catch (err) {
     logger.error('[AdminGallery] Failed to apply R2 CORS:', err.message);
-    return res.json({ success: false, error: err.message, code: err.Code || err.name });
+    return res.json({ success: false, error: 'Failed to apply R2 CORS configuration', code: 'R2_CORS_SETUP_FAILED' });
   }
 });
 
@@ -1326,7 +1327,7 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
     });
   } catch (err) {
     logger.error('[AdminGallery] Confirm upload error:', err.message, err.stack?.split('\n').slice(0, 5).join('\n'));
-    return res.status(500).json({ success: false, error: err.message || 'Failed to confirm uploads' });
+    return res.status(500).json({ success: false, error: 'Failed to confirm uploads' });
   }
 });
 
@@ -1390,7 +1391,7 @@ router.delete('/photos/:photoId', async (req, res) => {
     return res.json({ success: true, message: 'Photo deleted', remainingCount: remaining });
   } catch (err) {
     logger.error('[AdminGallery] Delete photo error:', err.message, err.stack);
-    return res.status(500).json({ success: false, error: `Failed to delete photo: ${err.message}` });
+    return res.status(500).json({ success: false, error: 'Failed to delete photo' });
   }
 });
 
@@ -1969,7 +1970,7 @@ router.post('/repair-raw-photos', async (req, res) => {
       } catch (err) {
         repairTempPaths?.cleanup();
         logger.error(`[RepairRAW] Error on photo ${id}: ${err.message}`);
-        results.push({ id, display_name, storage_key, status: 'error', error: err.message });
+        results.push({ id, display_name, storage_key, status: 'error', error: 'Repair failed for this photo' });
       }
     }
 
@@ -1986,7 +1987,7 @@ router.post('/repair-raw-photos', async (req, res) => {
     return res.json({ success: true, summary, results });
   } catch (err) {
     logger.error('[RepairRAW] Repair endpoint error:', err.message, err.stack);
-    return res.status(500).json({ success: false, error: `Repair failed: ${err.message}` });
+    return res.status(500).json({ success: false, error: 'Repair failed' });
   }
 });
 
@@ -2038,7 +2039,7 @@ router.post('/reset-test-data', async (req, res) => {
     });
   } catch (err) {
     logger.error('[ResetTestData] Error:', err.message, err.stack);
-    return res.status(500).json({ success: false, error: `Reset failed: ${err.message}` });
+    return res.status(500).json({ success: false, error: 'Reset failed' });
   }
 });
 
