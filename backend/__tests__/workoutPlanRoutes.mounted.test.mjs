@@ -332,6 +332,56 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.status).toBe(200);
     });
 
+    it('trainer + assigned plan PUT /:id merges plan-use metadata without dropping existing PDF or flags', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Legacy saved plan',
+        status: 'draft',
+        metadata: {
+          planHorizon: 'three_month',
+          painAware: true,
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Legacy Plan.pdf',
+          },
+        },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({
+          durationWeeks: 26,
+          metadata: {
+            planHorizon: 'six_month',
+            assignmentDefault: 'trainer_session',
+            billingIntent: 'trainer_led_scheduled_flow',
+            defaultShouldDeductSession: false,
+          },
+        });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        durationWeeks: 26,
+        metadata: {
+          planHorizon: 'six_month',
+          painAware: true,
+          planPdf: {
+            url: '/api/workout-plans/plan-1/pdf/content.pdf',
+            fileName: 'Legacy Plan.pdf',
+          },
+          assignmentDefault: 'trainer_session',
+          billingIntent: 'trainer_led_scheduled_flow',
+          defaultShouldDeductSession: false,
+        },
+      }));
+    });
+
     it('trainer + assigned plan PUT /:id/advance follows explicit numbered week/day cursors', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({

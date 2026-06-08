@@ -104,7 +104,7 @@ describe('useWorkoutPlannerSaveActions', () => {
     });
   });
 
-  it('refreshes the PDF on update without replacing existing backend metadata', async () => {
+  it('backfills trainer-led plan-use metadata when updating an existing saved plan', async () => {
     const authAxios = {
       post: vi.fn().mockResolvedValue({ data: { success: true } }),
       put: vi.fn().mockResolvedValue({ data: { success: true } }),
@@ -121,9 +121,13 @@ describe('useWorkoutPlannerSaveActions', () => {
       nasmPhase: 2,
       durationWeeks: 24,
       planData,
+      metadata: expect.objectContaining({
+        planHorizon: 'six_month',
+        assignmentDefault: 'trainer_session',
+        billingIntent: 'trainer_led_scheduled_flow',
+        defaultShouldDeductSession: false,
+      }),
     }));
-    const updateBody = authAxios.put.mock.calls[0][1];
-    expect(updateBody).not.toHaveProperty('metadata');
     expect(authAxios.post).toHaveBeenCalledWith(
       '/api/workout-plans/loaded-plan/pdf/upload',
       expect.any(FormData),

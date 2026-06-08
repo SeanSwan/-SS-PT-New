@@ -160,6 +160,7 @@ export const useWorkoutPlannerSaveActions = ({
       nasmPhase: phaseNumber,
       durationWeeks: saveFields.durationWeeks,
       planData,
+      metadata: saveFields.metadata,
     });
     return { client, planData, saveFields, planId: loadedPlanId };
   }, [authAxios, buildSaveContext, loadedPlanId, phaseNumber]);

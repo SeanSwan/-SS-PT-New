@@ -72,6 +72,15 @@ const parseStrictPositiveInteger = (value) => {
 
 const toPlainObject = (value) => (typeof value?.toJSON === 'function' ? value.toJSON() : value);
 
+const isPlainRecord = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const mergePlanMetadata = (plan, nextMetadata) => {
+  const raw = toPlainObject(plan) || {};
+  const current = isPlainRecord(raw.metadata) ? raw.metadata : {};
+  const next = isPlainRecord(nextMetadata) ? nextMetadata : {};
+  return { ...current, ...next };
+};
+
 const markPlanPrimary = (plan, isPrimary) => {
   const raw = toPlainObject(plan) || {};
   const metadata = raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : {};
@@ -312,7 +321,9 @@ router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ par
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
+        updates[field] = field === 'metadata'
+          ? mergePlanMetadata(plan, req.body[field])
+          : req.body[field];
       }
     }
 
