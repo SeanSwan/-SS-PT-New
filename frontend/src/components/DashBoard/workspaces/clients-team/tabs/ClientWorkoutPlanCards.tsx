@@ -7,7 +7,7 @@
  * actions. Data is already normalized by ClientWorkoutPlansPanel.logic.
  *
  * Presents the selected client's saved workout-plan rows below the seven-slot
- * vault. Logging stays opt-in and only appears for active plans.
+ * vault. Logging stays opt-in and only appears for the active primary arc.
  */
 
 import React from 'react';
@@ -39,6 +39,12 @@ const statusText = (plan: ClientPlanSummary, active: boolean) => (
   plan.isPrimary ? 'Primary Arc' : active ? 'Current' : plan.status
 );
 
+const canLogTodayFromPlan = (
+  plan: ClientPlanSummary,
+  active: boolean,
+  onLogToday?: () => void,
+) => Boolean(active && plan.isPrimary && onLogToday);
+
 const ClientWorkoutPlanCard: React.FC<{
   openingPdfId: string | null;
   plan: ClientPlanSummary;
@@ -63,7 +69,7 @@ const ClientWorkoutPlanCard: React.FC<{
         <span>{plan.goal}</span>
       </Meta>
       <PlanActions>
-        {active && onLogToday && (
+        {canLogTodayFromPlan(plan, active, onLogToday) && (
           <PlanActionButton
             type="button"
             $variant="primary"
