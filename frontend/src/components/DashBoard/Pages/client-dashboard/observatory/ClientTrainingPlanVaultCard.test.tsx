@@ -8,7 +8,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ClientTrainingPlanVaultCard from './ClientTrainingPlanVaultCard';
-import type { ClientTrainingPlanVault } from './useCurrentClientWorkout';
+import type { ClientTrainingPlanVault, CurrentClientWorkout } from './useCurrentClientWorkout';
 
 const PLAN_VAULT: ClientTrainingPlanVault = {
   defaultHorizonKey: 'six_month',
@@ -39,6 +39,20 @@ const PLAN_VAULT: ClientTrainingPlanVault = {
   ],
 };
 
+const CURRENT_HOMEWORK: CurrentClientWorkout = {
+  title: 'Off-Day Lower Homework',
+  assignmentKey: 'plan-6m:w4:d2:homework',
+  assignmentType: 'homework',
+  assignmentStatus: 'planned',
+  sessionType: 'solo',
+  isLoggable: true,
+  ctaLabel: 'Log Assignment',
+  weekNumber: 4,
+  dayNumber: 2,
+  exerciseCount: 1,
+  firstExercise: 'Goblet Squat',
+};
+
 describe('ClientTrainingPlanVaultCard', () => {
   it('routes the primary active plan directly into today-loaded workout logging', async () => {
     const user = userEvent.setup();
@@ -47,6 +61,7 @@ describe('ClientTrainingPlanVaultCard', () => {
     render(
       <ClientTrainingPlanVaultCard
         planVault={PLAN_VAULT}
+        currentWorkout={CURRENT_HOMEWORK}
         onNavigate={onNavigate}
         onViewPdf={vi.fn()}
       />
@@ -60,7 +75,27 @@ describe('ClientTrainingPlanVaultCard', () => {
       })
     );
 
-    expect(onNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
+    expect(onNavigate).toHaveBeenCalledWith(
+      '/dashboard/client/log-workout?loadPlan=today&assignmentKey=plan-6m%3Aw4%3Ad2%3Ahomework&assignmentType=homework',
+    );
+  });
+
+  it('does not offer primary-plan logging when today assignment belongs to another plan', () => {
+    render(
+      <ClientTrainingPlanVaultCard
+        planVault={PLAN_VAULT}
+        currentWorkout={{
+          ...CURRENT_HOMEWORK,
+          assignmentKey: 'plan-1w:w1:d1:homework',
+        }}
+        onNavigate={vi.fn()}
+        onViewPdf={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /log today from 6 month primary plan/i })
+    ).toBeNull();
   });
 
   it('does not offer logging from empty pending horizon slots', () => {

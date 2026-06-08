@@ -330,7 +330,7 @@ describe('ClientHomeTab — NextSessionCard explicit-static truth lock', () => {
 
     await user.click(screen.getByRole('button', { name: /log today's assignment/i }));
 
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today');
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/log-workout?loadPlan=today&assignmentType=homework');
   });
 
   it('routes completed planned homework to workout history instead of another log attempt', async () => {

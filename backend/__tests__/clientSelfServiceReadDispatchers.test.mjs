@@ -262,6 +262,8 @@ describe('clientSelfServiceReadDispatchers', () => {
     });
 
     expect(result.todayAssignment).toMatchObject({
+      assignmentId: 'plan-6m:w4:d2:homework',
+      assignmentKey: 'plan-6m:w4:d2:homework',
       assignmentType: 'homework',
       status: 'completed',
       isLoggable: false,
@@ -283,6 +285,7 @@ describe('clientSelfServiceReadDispatchers', () => {
       recentCompletions: [
         expect.objectContaining({
           assignmentType: 'homework',
+          assignmentKey: 'plan-6m:w4:d2:homework',
           formId: 'daily-form-1',
         }),
       ],

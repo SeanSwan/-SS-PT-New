@@ -35,6 +35,7 @@ const ClientWorkoutPlanVaultPanel: React.FC = () => {
     <VaultShell aria-label="Workout plan vault">
       <ClientTrainingPlanVaultCard
         planVault={currentWorkout.planVault}
+        currentWorkout={currentWorkout.workout}
         loading={currentWorkout.loading}
         error={currentWorkout.error}
         canLogToday={currentWorkout.workout?.isLoggable === true}

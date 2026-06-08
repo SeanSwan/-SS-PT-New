@@ -6,7 +6,7 @@
 import React from 'react';
 import { Dumbbell, FileText, Layers3 } from 'lucide-react';
 import { formatPlanBillingIntentLabel, formatPlanUseLabel } from '../../../../../utils/workoutPlanAssignmentSemantics';
-import type { ClientTrainingPlanSlot, ClientTrainingPlanVault } from './useCurrentClientWorkout';
+import type { ClientTrainingPlanSlot, ClientTrainingPlanVault, CurrentClientWorkout } from './useCurrentClientWorkout';
 import { CardInner, MutedText, SectionKicker, SectionTitle } from './ClientObservatoryShell.styles';
 import {
   SmallButton,
@@ -20,6 +20,7 @@ import {
 
 interface ClientTrainingPlanVaultCardProps {
   planVault?: ClientTrainingPlanVault | null;
+  currentWorkout?: CurrentClientWorkout | null;
   loading?: boolean;
   error?: boolean;
   canLogToday?: boolean;
@@ -33,8 +34,6 @@ const FALLBACK_SLOTS: ClientTrainingPlanSlot[] = [
     horizonKey: 'six_month', label: '6 Month', isDefaultHorizon: true, isFilled: false, isPrimary: false,
   },
 ];
-
-const TODAY_LOG_PATH = '/dashboard/client/log-workout?loadPlan=today';
 
 function slotStatus(slot: ClientTrainingPlanSlot): string {
   if (slot.isPrimary) return 'Primary';
@@ -62,12 +61,33 @@ function slotCursorDetail(slot: ClientTrainingPlanSlot): string | null {
   return parts.length ? parts.join(' - ') : null;
 }
 
-function canLogFromSlot(slot: ClientTrainingPlanSlot, canLogToday: boolean): boolean {
-  return canLogToday && slot.isPrimary && slot.isFilled && slot.planStatus !== 'paused';
+function todayLogPath(workout?: CurrentClientWorkout | null): string {
+  const params = new URLSearchParams({ loadPlan: 'today' });
+  if (workout?.assignmentKey) params.set('assignmentKey', workout.assignmentKey);
+  if (workout?.assignmentType) params.set('assignmentType', workout.assignmentType);
+  return `/dashboard/client/log-workout?${params.toString()}`;
+}
+
+function assignmentBelongsToSlot(slot: ClientTrainingPlanSlot, workout?: CurrentClientWorkout | null): boolean {
+  if (!workout?.assignmentKey || !slot.planId) return true;
+  return workout.assignmentKey.startsWith(`${slot.planId}:`);
+}
+
+function canLogFromSlot(
+  slot: ClientTrainingPlanSlot,
+  canLogToday: boolean,
+  workout?: CurrentClientWorkout | null,
+): boolean {
+  return canLogToday
+    && slot.isPrimary
+    && slot.isFilled
+    && slot.planStatus !== 'paused'
+    && assignmentBelongsToSlot(slot, workout);
 }
 
 const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = ({
   planVault,
+  currentWorkout,
   loading = false,
   error = false,
   canLogToday = true,
@@ -122,10 +142,10 @@ const ClientTrainingPlanVaultCard: React.FC<ClientTrainingPlanVaultCardProps> = 
                   {useDetail && (
                     <WidgetLabel>{useDetail}</WidgetLabel>
                   )}
-                  {canLogFromSlot(slot, canLogToday) && (
+                  {canLogFromSlot(slot, canLogToday, currentWorkout) && (
                     <SmallButton
                       type="button"
-                      onClick={() => onNavigate(TODAY_LOG_PATH)}
+                      onClick={() => onNavigate(todayLogPath(currentWorkout))}
                       aria-label={`Log Today from ${slot.label} primary plan`}
                     >
                       <Dumbbell size={14} aria-hidden="true" />

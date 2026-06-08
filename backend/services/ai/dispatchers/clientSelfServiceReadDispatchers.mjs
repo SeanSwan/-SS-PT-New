@@ -54,6 +54,8 @@ const parseDateOnlyLocal = (value) => {
 };
 
 const summarizeTodayAssignment = (assignment = {}) => ({
+  assignmentId: assignment.assignmentId ?? assignment.assignmentKey ?? null,
+  assignmentKey: assignment.assignmentKey ?? assignment.assignmentId ?? null,
   assignmentType: assignment.assignmentType ?? 'none',
   status: assignment.status ?? 'none',
   sessionType: assignment.sessionType ?? 'solo',
