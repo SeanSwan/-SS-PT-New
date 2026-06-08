@@ -97,6 +97,13 @@ export function isExpectedMissionConsoleNoise(message: string) {
     return true;
   }
 
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'prod-readonly'
+    && /^Failed to load resource: the server responded with a status of 400 \(\)\s+\(https:\/\/ss-pt-new\.onrender\.com\/socket\.io\/\?[^)]*transport=polling/i.test(message)
+  ) {
+    return true;
+  }
+
   return false;
 }
 
