@@ -39,6 +39,7 @@ import logger from '../utils/logger.mjs';
 // view) can use the same extractor + adapter. See REV 3 receipt §C2.
 import { extractCurrentSession } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
+import { advancePlanDataCursor } from '../services/clientTrainingPlanProgressService.mjs';
 import { buildWorkoutPlanPdfMetadata } from '../services/workoutPlanPdfAttachmentService.mjs';
 import {
   workoutPlanPdfUploadMiddleware,
@@ -624,74 +625,50 @@ router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlan
       });
     }
 
-    const planData = plan.planData || { weeks: [] };
     const { currentWeek, currentDay } = plan;
     const { trainerNotes } = req.body;
 
-    // Mark the current session as completed in planData
-    const weekIndex = currentWeek - 1;
-    const dayIndex = currentDay - 1;
-
-    if (planData.weeks && planData.weeks[weekIndex]) {
-      const week = planData.weeks[weekIndex];
-      // Support both "sessions" (legacy) and "days" (new frontend) keys
-      const entries = week.sessions || week.days || [];
-      if (entries[dayIndex]) {
-        entries[dayIndex].completed = true;
-        entries[dayIndex].completedAt = new Date().toISOString();
-        if (trainerNotes) {
-          entries[dayIndex].trainerNotes = trainerNotes;
-        }
-        // Write back to whichever key exists
-        if (week.sessions) week.sessions = entries;
-        else week.days = entries;
-      }
-    }
-
-    // Calculate next position
-    let nextWeek = currentWeek;
-    let nextDay = currentDay + 1;
-    let planCompleted = false;
-
-    // Check if we need to advance to next week
-    const currentWeekData = planData.weeks?.[weekIndex];
-    const sessionsInWeek = (currentWeekData?.sessions || currentWeekData?.days)?.length || 0;
-
-    if (nextDay > sessionsInWeek) {
-      // Move to next week, day 1
-      nextWeek = currentWeek + 1;
-      nextDay = 1;
-
-      // Check if plan is fully completed
-      const totalWeeks = planData.weeks?.length || 0;
-      if (nextWeek > totalWeeks) {
-        planCompleted = true;
-      }
+    const cursorAdvance = advancePlanDataCursor({
+      planData: plan.planData || { weeks: [] },
+      weekNumber: currentWeek,
+      dayNumber: currentDay,
+      completedAt: new Date().toISOString(),
+      trainerNotes,
+    });
+    if (!cursorAdvance.advanced) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current plan session not found',
+      });
     }
 
     // Apply updates
     const updates = {
-      planData,
-      currentWeek: planCompleted ? currentWeek : nextWeek,
-      currentDay: planCompleted ? currentDay : nextDay,
-      status: planCompleted ? 'completed' : 'active'
+      planData: cursorAdvance.planData,
+      currentWeek: cursorAdvance.planCompleted ? currentWeek : cursorAdvance.next.week,
+      currentDay: cursorAdvance.planCompleted ? currentDay : cursorAdvance.next.day,
+      status: cursorAdvance.planCompleted ? 'completed' : 'active'
     };
 
     await plan.update(updates);
 
     // Extract the new current session (or null if completed)
-    const nextSession = planCompleted ? null : extractCurrentSession(plan);
+    const nextSession = cursorAdvance.planCompleted
+      ? null
+      : extractCurrentSession({ ...toPlainObject(plan), ...updates });
 
     logger.info('[WorkoutPlan] Advanced plan #%d: week %d day %d → %s',
       plan.id, currentWeek, currentDay,
-      planCompleted ? 'COMPLETED' : `week ${nextWeek} day ${nextDay}`);
+      cursorAdvance.planCompleted
+        ? 'COMPLETED'
+        : `week ${cursorAdvance.next.week} day ${cursorAdvance.next.day}`);
 
     res.json({
       success: true,
       plan,
       advanced: true,
-      planCompleted,
-      previousSession: { week: currentWeek, day: currentDay },
+      planCompleted: cursorAdvance.planCompleted,
+      previousSession: cursorAdvance.previous,
       nextSession
     });
   } catch (error) {

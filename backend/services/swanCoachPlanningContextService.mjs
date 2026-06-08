@@ -7,6 +7,7 @@
 
 import { formatAssignmentContext } from './swanCoachPlanningAssignmentContextService.mjs';
 import { buildSwanCoachPlanningSafetyGate } from './swanCoachPlanningSafetyGateService.mjs';
+import { extractCurrentSession } from './workoutPlanShapeService.mjs';
 
 const NASM_DOMAINS = [
   'OPT',
@@ -115,21 +116,18 @@ function getWeekDaysOrSessions(week) {
   return days.length > 0 ? days : sessions;
 }
 
-function findWeek(weeks, weekNumber) {
-  return weeks.find(week => Number(week.weekNumber) === weekNumber)
-    || weeks[weekNumber - 1]
-    || null;
-}
-
-function findDayOrSession(entries, dayNumber) {
-  return entries.find(entry => Number(entry.dayNumber) === dayNumber)
-    || entries.find(entry => Number(entry.sessionNumber) === dayNumber)
-    || entries[dayNumber - 1]
-    || null;
+function getTopLevelDaysOrSessions(planData) {
+  const days = asArray(planData?.days);
+  if (days.length > 0) return days;
+  const sessions = asArray(planData?.sessions);
+  if (sessions.length > 0) return sessions;
+  return asArray(planData?.weeklySchedule);
 }
 
 function countSessions(planData) {
-  return asArray(planData?.weeks).reduce((sum, week) => {
+  const weeks = asArray(planData?.weeks);
+  if (!weeks.length) return getTopLevelDaysOrSessions(planData).length;
+  return weeks.reduce((sum, week) => {
     return sum + getWeekDaysOrSessions(week).length;
   }, 0);
 }
@@ -161,15 +159,19 @@ function formatExerciseLine(exercise) {
   ].filter(Boolean).join(' ');
 }
 
-function formatCurrentSession(planData, weekNumber, dayNumber) {
-  const weeks = asArray(planData?.weeks);
-  const week = findWeek(weeks, weekNumber);
-  const entries = getWeekDaysOrSessions(week);
-  const session = findDayOrSession(entries, dayNumber);
+function formatCurrentSession(plan, planData, weekNumber, dayNumber) {
+  const currentSession = extractCurrentSession({
+    id: firstPresent(plan.id, plan.plan_id),
+    currentWeek: weekNumber,
+    currentDay: dayNumber,
+    durationWeeks: firstPresent(plan.duration_weeks, plan.durationWeeks),
+    planData,
+  });
+  const session = currentSession?.session;
   if (!session) return 'No session data';
 
-  const exercises = asArray(session.exercises).map(formatExerciseLine).join('\n');
-  const title = firstPresent(session.name, session.title, `Day ${dayNumber}`);
+  const exercises = asArray(currentSession.exercises).map(formatExerciseLine).join('\n');
+  const title = firstPresent(currentSession.dayLabel, session.name, session.title, `Day ${dayNumber}`);
   const focus = session.focus ? ` (${session.focus})` : '';
   return `${title}${focus}\n${exercises || '  No exercises listed'}`;
 }
@@ -198,7 +200,7 @@ Sessions Completed: ${completedSessions}/${totalSessions}
 Created: ${createdDate} by ${createdBy}
 ${assignmentContext ? `${assignmentContext}` : ''}
 --- CURRENT SESSION (Week ${week}, Day ${day}) ---
-${formatCurrentSession(planData, week, day)}`;
+${formatCurrentSession(plan, planData, week, day)}`;
   });
 
   return `

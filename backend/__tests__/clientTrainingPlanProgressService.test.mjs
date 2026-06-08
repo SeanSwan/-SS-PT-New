@@ -132,6 +132,80 @@ describe('advancePlanAfterPlannedAssignmentLog', () => {
     }), { transaction: undefined });
   });
 
+  it('advances sparse numbered week/day entries to the next explicit day number', async () => {
+    const plan = buildPlan({
+      currentWeek: 2,
+      currentDay: 3,
+      planData: {
+        weeks: [{
+          weekNumber: 2,
+          days: [
+            { dayNumber: 3, dayLabel: 'Sparse Homework', exercises: [{ exerciseName: 'Step-Up' }] },
+            { dayNumber: 5, dayLabel: 'Next Numbered Day', exercises: [] },
+          ],
+        }],
+      },
+    });
+    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+
+    const result = await advancePlanAfterPlannedAssignmentLog({
+      WorkoutPlan,
+      assignment: { ...nonBillableAssignment, weekNumber: 2, dayNumber: 3 },
+      clientId: 42,
+      dailyWorkoutFormId: 'daily-form-sparse',
+      workoutSessionId: 'workout-session-sparse',
+    });
+
+    expect(result).toMatchObject({
+      advanced: true,
+      previous: { week: 2, day: 3 },
+      next: { week: 2, day: 5 },
+    });
+    const updatePayload = plan.update.mock.calls[0][0];
+    expect(updatePayload.currentWeek).toBe(2);
+    expect(updatePayload.currentDay).toBe(5);
+    expect(updatePayload.planData.weeks[0].days[0]).toMatchObject({
+      completed: true,
+      dailyWorkoutFormId: 'daily-form-sparse',
+    });
+  });
+
+  it('advances top-level planData.days assignments using the displayed day cursor', async () => {
+    const plan = buildPlan({
+      currentWeek: 1,
+      currentDay: 2,
+      planData: {
+        days: [
+          { dayNumber: 1, dayLabel: 'Prep', exercises: [] },
+          { dayNumber: 2, dayLabel: 'Top-Level Homework', exercises: [{ exerciseName: 'Dead Bug' }] },
+          { dayNumber: 4, dayLabel: 'Next Top-Level Day', exercises: [] },
+        ],
+      },
+    });
+    const WorkoutPlan = { findOne: vi.fn().mockResolvedValue(plan) };
+
+    const result = await advancePlanAfterPlannedAssignmentLog({
+      WorkoutPlan,
+      assignment: { ...nonBillableAssignment, weekNumber: 1, dayNumber: 2 },
+      clientId: 42,
+      dailyWorkoutFormId: 'daily-form-top-level',
+      workoutSessionId: 'workout-session-top-level',
+    });
+
+    expect(result).toMatchObject({
+      advanced: true,
+      previous: { week: 1, day: 2 },
+      next: { week: 1, day: 4 },
+    });
+    const updatePayload = plan.update.mock.calls[0][0];
+    expect(updatePayload.currentWeek).toBe(1);
+    expect(updatePayload.currentDay).toBe(4);
+    expect(updatePayload.planData.days[1]).toMatchObject({
+      completed: true,
+      dailyWorkoutFormId: 'daily-form-top-level',
+    });
+  });
+
   it('marks the plan completed when the logged assignment is the final planned day', async () => {
     const plan = buildPlan({
       planData: { weeks: [{ days: [{ dayLabel: 'Final Homework', exercises: [] }] }] },

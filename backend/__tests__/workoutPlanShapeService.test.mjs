@@ -90,6 +90,46 @@ describe('extractCurrentSession — R3 (C1 lift, reference-equal in-memory)', ()
     expect(result.exercises).toHaveLength(1);
     expect(result.exercises[0].exerciseId).toBe('fx-x');
   });
+
+  it('finds the current week by explicit weekNumber before falling back to array index', () => {
+    const result = extractCurrentSession({
+      id: 'sparse-plan',
+      currentWeek: 2,
+      currentDay: 3,
+      planData: {
+        weeks: [{
+          weekNumber: 2,
+          days: [
+            { dayNumber: 1, name: 'Day 1', exercises: [] },
+            { dayNumber: 2, name: 'Day 2', exercises: [] },
+            { dayNumber: 3, name: 'Sparse Week Match', exercises: [{ exerciseId: 'match' }] },
+          ],
+        }],
+      },
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.dayLabel).toBe('Sparse Week Match');
+    expect(result.exercises[0].exerciseId).toBe('match');
+  });
+
+  it('finds the current day by explicit dayNumber before falling back to array index', () => {
+    const result = extractCurrentSession({
+      id: 'sparse-day-plan',
+      currentWeek: 2,
+      currentDay: 3,
+      planData: {
+        weeks: [{
+          weekNumber: 2,
+          days: [{ dayNumber: 3, name: 'Sparse Day Match', exercises: [{ exerciseId: 'day-match' }] }],
+        }],
+      },
+    });
+
+    expect(result).not.toBeNull();
+    expect(result.dayLabel).toBe('Sparse Day Match');
+    expect(result.exercises[0].exerciseId).toBe('day-match');
+  });
 });
 
 describe('extractCurrentSession — R8 (legacy weeklySchedule fallback)', () => {
@@ -143,6 +183,18 @@ describe('planDataToWorkoutDays', () => {
     expect(days).toHaveLength(2);
     expect(days[0].dayNumber).toBe(1);
     expect(days[1].exercises).toHaveLength(2);
+  });
+
+  it('flattens the explicit weekNumber before falling back to currentWeek index', () => {
+    const days = planDataToWorkoutDays({
+      weeks: [
+        { weekNumber: 1, days: [{ dayNumber: 1, name: 'Week One Day', exercises: [] }] },
+        { weekNumber: 3, days: [{ dayNumber: 1, name: 'Week Three Day', exercises: [] }] },
+      ],
+    }, 3);
+
+    expect(days).toHaveLength(1);
+    expect(days[0].name).toBe('Week Three Day');
   });
 
   it('falls back to legacy weeklySchedule when no weeks[]', () => {

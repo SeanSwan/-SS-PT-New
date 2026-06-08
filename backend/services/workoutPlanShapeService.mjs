@@ -85,11 +85,22 @@ const pickFirstNonEmptyArray = (...candidates) => {
   return [];
 };
 
+const findNumberedEntry = (entries, targetNumber, index, keys) => {
+  const numberedMatch = entries.find((entry) => (
+    entry && typeof entry === 'object' && keys.some((key) => Number(entry[key]) === targetNumber)
+  ));
+  const indexedMatch = entries[index];
+  return numberedMatch || (indexedMatch && typeof indexedMatch === 'object' ? indexedMatch : null);
+};
+
 export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
   const data = toPlainObject(planData) || {};
   const weeks = Array.isArray(data.weeks) ? data.weeks : [];
-  const weekIndex = Math.max(toPositiveInteger(currentWeek, 1) - 1, 0);
-  const currentWeekData = weeks[weekIndex] || weeks[0] || null;
+  const weekNumber = toPositiveInteger(currentWeek, 1);
+  const weekIndex = Math.max(weekNumber - 1, 0);
+  const currentWeekData = findNumberedEntry(weeks, weekNumber, weekIndex, ['weekNumber', 'week'])
+    || weeks[0]
+    || null;
 
   const entries = pickFirstNonEmptyArray(
     currentWeekData?.days,
@@ -136,8 +147,10 @@ export const planDataToWorkoutDays = (planData, currentWeek = 1) => {
 export const extractCurrentSession = (plan) => {
   const planObj = toPlainObject(plan) || {};
   const planData = planObj.planData || planObj.plan_data || { weeks: [] };
-  const weekIndex = (planObj.currentWeek || 1) - 1;
-  const dayIndex = (planObj.currentDay || 1) - 1;
+  const weekNumber = toPositiveInteger(planObj.currentWeek, 1);
+  const dayNumber = toPositiveInteger(planObj.currentDay, 1);
+  const weekIndex = weekNumber - 1;
+  const dayIndex = dayNumber - 1;
 
   const buildSessionView = ({ session, weekFocus, totalSessionsThisWeek, totalWeeks, isLastWeek }) => {
     const exercises = Array.isArray(session.exercises) ? session.exercises : [];
@@ -160,18 +173,20 @@ export const extractCurrentSession = (plan) => {
   // Precedence: days[] BEFORE sessions[] so this helper agrees with
   // planDataToWorkoutDays() and LongHorizonScheduleView when a week happens
   // to carry both populated arrays (Codex 2026-05-02 round-2 finding).
-  if (Array.isArray(planData.weeks) && planData.weeks.length > 0 && planData.weeks[weekIndex]) {
-    const week = planData.weeks[weekIndex];
-    const entries = pickFirstNonEmptyArray(week.days, week.sessions);
-    const session = entries[dayIndex] || null;
-    if (session) {
-      return buildSessionView({
-        session,
-        weekFocus: week.focus,
-        totalSessionsThisWeek: entries.length,
-        totalWeeks: planData.weeks.length,
-        isLastWeek: (planObj.currentWeek || 1) >= planData.weeks.length,
-      });
+  if (Array.isArray(planData.weeks) && planData.weeks.length > 0) {
+    const week = findNumberedEntry(planData.weeks, weekNumber, weekIndex, ['weekNumber', 'week']);
+    if (week) {
+      const entries = pickFirstNonEmptyArray(week.days, week.sessions);
+      const session = findNumberedEntry(entries, dayNumber, dayIndex, ['dayNumber', 'sessionNumber', 'day']);
+      if (session) {
+        return buildSessionView({
+          session,
+          weekFocus: week.focus,
+          totalSessionsThisWeek: entries.length,
+          totalWeeks: planData.weeks.length,
+          isLastWeek: (planObj.currentWeek || 1) >= planData.weeks.length,
+        });
+      }
     }
   }
 
@@ -184,7 +199,7 @@ export const extractCurrentSession = (plan) => {
   // mismatched cursor vs schedule output).
   const topLevelEntries = pickFirstNonEmptyArray(planData.days, planData.sessions);
   if (topLevelEntries.length > 0) {
-    const session = topLevelEntries[dayIndex] || null;
+    const session = findNumberedEntry(topLevelEntries, dayNumber, dayIndex, ['dayNumber', 'sessionNumber', 'day']);
     if (session) {
       return buildSessionView({
         session,
@@ -202,7 +217,7 @@ export const extractCurrentSession = (plan) => {
   // pattern (focus/category) without exercises and there's nothing to
   // extract as a "current session." Logger UI falls back to plan.days[].
   if (Array.isArray(planData.weeklySchedule)) {
-    const legacyDay = planData.weeklySchedule[dayIndex] || null;
+    const legacyDay = findNumberedEntry(planData.weeklySchedule, dayNumber, dayIndex, ['dayNumber', 'day']);
     if (legacyDay && Array.isArray(legacyDay.exercises) && legacyDay.exercises.length > 0) {
       return buildSessionView({
         session: legacyDay,

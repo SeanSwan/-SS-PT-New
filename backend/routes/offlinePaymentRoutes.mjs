@@ -116,7 +116,11 @@ router.post('/offline', protect, async (req, res) => {
     try {
       calculatedSubtotal = await calculateServerTotal(items);
     } catch (err) {
-      return res.status(400).json({ success: false, message: err.message });
+      logger.warn('[OfflinePayment] Server-side item validation failed:', err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Could not validate payment items. Please refresh your cart and try again.',
+      });
     }
 
     const calculatedFee = calculateServerFee(paymentMethod, calculatedSubtotal);

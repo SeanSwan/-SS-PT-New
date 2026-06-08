@@ -332,6 +332,95 @@ describe('workoutPlanRoutes — mounted route stack', () => {
       expect(res.status).toBe(200);
     });
 
+    it('trainer + assigned plan PUT /:id/advance follows explicit numbered week/day cursors', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Sparse Arc',
+        status: 'active',
+        currentWeek: 2,
+        currentDay: 3,
+        planData: {
+          weeks: [{
+            weekNumber: 2,
+            days: [
+              { dayNumber: 3, name: 'Sparse Homework', exercises: [{ exerciseName: 'Step-Up' }] },
+              { dayNumber: 5, name: 'Next Numbered Day', exercises: [{ exerciseName: 'Row' }] },
+            ],
+          }],
+        },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/advance')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer')
+        .send({ trainerNotes: 'Clean tempo' });
+
+      expect(res.status).toBe(200);
+      expect(update).toHaveBeenCalledWith(expect.objectContaining({
+        currentWeek: 2,
+        currentDay: 5,
+        status: 'active',
+      }));
+      const updatePayload = update.mock.calls[0][0];
+      expect(updatePayload.planData.weeks[0].days[0]).toMatchObject({
+        completed: true,
+        trainerNotes: 'Clean tempo',
+      });
+      expect(res.body.previousSession).toEqual({ week: 2, day: 3 });
+      expect(res.body.planCompleted).toBe(false);
+      expect(res.body.nextSession).toMatchObject({
+        weekNumber: 2,
+        dayNumber: 5,
+        dayLabel: 'Next Numbered Day',
+      });
+    });
+
+    it('trainer + assigned plan PUT /:id/advance supports top-level planData.days', async () => {
+      const update = vi.fn().mockResolvedValue(undefined);
+      mockWorkoutPlanFindByPk.mockResolvedValue({
+        id: 'plan-1',
+        userId: 42,
+        title: 'Top Level Arc',
+        status: 'active',
+        currentWeek: 1,
+        currentDay: 2,
+        durationWeeks: 1,
+        planData: {
+          days: [
+            { dayNumber: 1, name: 'Prep Day', exercises: [] },
+            { dayNumber: 2, name: 'Top-Level Homework', exercises: [{ exerciseName: 'Dead Bug' }] },
+            { dayNumber: 4, name: 'Next Top-Level Day', exercises: [{ exerciseName: 'Carry' }] },
+          ],
+        },
+        update,
+      });
+      mockAssignmentFindOne.mockResolvedValue({ id: 'a-1', status: 'active' });
+
+      const res = await request(app)
+        .put('/api/workout-plans/plan-1/advance')
+        .set('x-test-user-id', '7')
+        .set('x-test-user-role', 'trainer');
+
+      expect(res.status).toBe(200);
+      const updatePayload = update.mock.calls[0][0];
+      expect(updatePayload).toMatchObject({
+        currentWeek: 1,
+        currentDay: 4,
+        status: 'active',
+      });
+      expect(updatePayload.planData.days[1]).toMatchObject({ completed: true });
+      expect(res.body.nextSession).toMatchObject({
+        weekNumber: 1,
+        dayNumber: 4,
+        dayLabel: 'Next Top-Level Day',
+      });
+    });
+
     it('trainer + assigned plan PUT /:id/pdf renames an existing protected PDF without replacing existing metadata', async () => {
       const update = vi.fn().mockResolvedValue(undefined);
       mockWorkoutPlanFindByPk.mockResolvedValue({

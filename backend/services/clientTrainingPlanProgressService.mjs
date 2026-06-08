@@ -9,6 +9,8 @@
 
 const NON_BILLABLE_ASSIGNMENT_TYPES = new Set(['homework', 'active_recovery']);
 const SCHEDULED_TRAINER_ASSIGNMENT_TYPES = new Set(['trainer_session']);
+const WEEK_NUMBER_KEYS = ['weekNumber', 'week'];
+const DAY_NUMBER_KEYS = ['dayNumber', 'sessionNumber', 'day'];
 
 const compactString = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null);
 const sameId = (a, b) => String(a) === String(b);
@@ -45,9 +47,62 @@ const clonePlanData = (planData) => {
 };
 
 const weekEntries = (week = {}) => {
-  if (Array.isArray(week.days)) return { key: 'days', entries: week.days };
-  if (Array.isArray(week.sessions)) return { key: 'sessions', entries: week.sessions };
+  if (Array.isArray(week.days) && week.days.length > 0) return { key: 'days', entries: week.days };
+  if (Array.isArray(week.sessions) && week.sessions.length > 0) return { key: 'sessions', entries: week.sessions };
   return { key: 'days', entries: [] };
+};
+
+const topLevelEntries = (planData = {}) => {
+  if (Array.isArray(planData.days) && planData.days.length > 0) return { key: 'days', entries: planData.days };
+  if (Array.isArray(planData.sessions) && planData.sessions.length > 0) return { key: 'sessions', entries: planData.sessions };
+  if (Array.isArray(planData.weeklySchedule) && planData.weeklySchedule.length > 0) {
+    return { key: 'weeklySchedule', entries: planData.weeklySchedule };
+  }
+  return { key: 'days', entries: [] };
+};
+
+const findNumberedEntry = (entries, targetNumber, fallbackIndex, keys) => {
+  const explicitIndex = entries.findIndex((entry) => (
+    entry && typeof entry === 'object' && keys.some((key) => Number(entry[key]) === targetNumber)
+  ));
+  const index = explicitIndex >= 0
+    ? explicitIndex
+    : entries[fallbackIndex] && typeof entries[fallbackIndex] === 'object' ? fallbackIndex : -1;
+  return { entry: index >= 0 ? entries[index] : null, index };
+};
+
+const numberFromEntry = (entry, keys, fallback) => {
+  for (const key of keys) {
+    const value = toPositiveInteger(entry?.[key]);
+    if (value) return value;
+  }
+  return fallback;
+};
+
+const resolveAssignmentEntryContext = (planData, weekNumber, dayNumber) => {
+  const weeks = Array.isArray(planData.weeks) ? planData.weeks : [];
+  if (weeks.length > 0) {
+    const weekMatch = findNumberedEntry(weeks, weekNumber, weekNumber - 1, WEEK_NUMBER_KEYS);
+    if (!weekMatch.entry) return null;
+    const { key, entries } = weekEntries(weekMatch.entry);
+    const dayMatch = findNumberedEntry(entries, dayNumber, dayNumber - 1, DAY_NUMBER_KEYS);
+    if (!dayMatch.entry) return null;
+    return {
+      mode: 'weeks',
+      weeks,
+      week: weekMatch.entry,
+      weekIndex: weekMatch.index,
+      key,
+      entries,
+      entry: dayMatch.entry,
+      entryIndex: dayMatch.index,
+    };
+  }
+
+  const { key, entries } = topLevelEntries(planData);
+  const dayMatch = findNumberedEntry(entries, dayNumber, dayNumber - 1, DAY_NUMBER_KEYS);
+  if (!dayMatch.entry) return null;
+  return { mode: 'top_level', key, entries, entry: dayMatch.entry, entryIndex: dayMatch.index };
 };
 
 const buildPlanLookupOptions = ({ assignment, clientId, transaction }) => {
@@ -59,14 +114,68 @@ const buildPlanLookupOptions = ({ assignment, clientId, transaction }) => {
   return options;
 };
 
-const markEntryCompleted = (entry = {}, { completedAt, dailyWorkoutFormId, workoutSessionId }) => ({
+const markEntryCompleted = (
+  entry = {},
+  { completedAt, dailyWorkoutFormId, workoutSessionId, trainerNotes } = {},
+) => ({
   ...entry,
   completed: true,
   completedAt,
+  ...(dailyWorkoutFormId ? { dailyWorkoutFormId } : {}),
+  ...(workoutSessionId ? { workoutSessionId } : {}),
+  ...(trainerNotes ? { trainerNotes } : {}),
+  completionSource: dailyWorkoutFormId ? 'daily_workout_form' : 'workout_plan_advance',
+});
+
+export const advancePlanDataCursor = ({
+  planData: sourcePlanData,
+  weekNumber,
+  dayNumber,
+  completedAt = new Date().toISOString(),
   dailyWorkoutFormId,
   workoutSessionId,
-  completionSource: 'daily_workout_form',
-});
+  trainerNotes,
+} = {}) => {
+  const planData = clonePlanData(sourcePlanData);
+  const context = resolveAssignmentEntryContext(planData, weekNumber, dayNumber);
+  if (!context) return { advanced: false, reason: 'entry_not_found' };
+
+  context.entries[context.entryIndex] = markEntryCompleted(context.entry, {
+    completedAt,
+    dailyWorkoutFormId,
+    workoutSessionId,
+    trainerNotes,
+  });
+  if (context.mode === 'weeks') {
+    context.week[context.key] = context.entries;
+    context.weeks[context.weekIndex] = context.week;
+    planData.weeks = context.weeks;
+  } else {
+    planData[context.key] = context.entries;
+  }
+
+  let nextWeek = weekNumber;
+  let nextDay = numberFromEntry(context.entries[context.entryIndex + 1], DAY_NUMBER_KEYS, dayNumber + 1);
+  let planCompleted = false;
+  if (!context.entries[context.entryIndex + 1]) {
+    const nextWeekEntry = context.mode === 'weeks' ? context.weeks[context.weekIndex + 1] : null;
+    if (nextWeekEntry) {
+      nextWeek = numberFromEntry(nextWeekEntry, WEEK_NUMBER_KEYS, weekNumber + 1);
+      nextDay = numberFromEntry(weekEntries(nextWeekEntry).entries[0], DAY_NUMBER_KEYS, 1);
+    } else {
+      planCompleted = true;
+      nextDay = dayNumber;
+    }
+  }
+
+  return {
+    advanced: true,
+    planData,
+    planCompleted,
+    previous: { week: weekNumber, day: dayNumber },
+    next: planCompleted ? null : { week: nextWeek, day: nextDay },
+  };
+};
 
 export const advancePlanAfterPlannedAssignmentLog = async ({
   WorkoutPlan,
@@ -95,40 +204,29 @@ export const advancePlanAfterPlannedAssignmentLog = async ({
     return { advanced: false, reason: 'cursor_mismatch' };
   }
 
-  const planData = clonePlanData(plan.planData);
-  const weeks = Array.isArray(planData.weeks) ? planData.weeks : [];
-  const week = weeks[weekNumber - 1];
-  const { key, entries } = weekEntries(week);
-  const entry = entries[dayNumber - 1];
-  if (!week || !entry) return { advanced: false, reason: 'entry_not_found' };
-
-  entries[dayNumber - 1] = markEntryCompleted(entry, { completedAt, dailyWorkoutFormId, workoutSessionId });
-  week[key] = entries;
-  weeks[weekNumber - 1] = week;
-  planData.weeks = weeks;
-
-  let nextWeek = weekNumber;
-  let nextDay = dayNumber + 1;
-  let planCompleted = false;
-  if (nextDay > entries.length) {
-    nextWeek = weekNumber + 1;
-    nextDay = 1;
-    planCompleted = nextWeek > weeks.length;
-  }
+  const cursorAdvance = advancePlanDataCursor({
+    planData: plan.planData,
+    weekNumber,
+    dayNumber,
+    completedAt,
+    dailyWorkoutFormId,
+    workoutSessionId,
+  });
+  if (!cursorAdvance.advanced) return cursorAdvance;
 
   const updatePayload = {
-    planData,
-    currentWeek: planCompleted ? weekNumber : nextWeek,
-    currentDay: planCompleted ? dayNumber : nextDay,
-    status: planCompleted ? 'completed' : 'active',
+    planData: cursorAdvance.planData,
+    currentWeek: cursorAdvance.planCompleted ? weekNumber : cursorAdvance.next.week,
+    currentDay: cursorAdvance.planCompleted ? dayNumber : cursorAdvance.next.day,
+    status: cursorAdvance.planCompleted ? 'completed' : 'active',
   };
   await plan.update(updatePayload, { transaction });
 
   return {
     advanced: true,
-    planCompleted,
+    planCompleted: cursorAdvance.planCompleted,
     planId: plan.id,
-    previous: { week: weekNumber, day: dayNumber },
-    next: planCompleted ? null : { week: nextWeek, day: nextDay },
+    previous: cursorAdvance.previous,
+    next: cursorAdvance.next,
   };
 };

@@ -76,6 +76,33 @@ describe('swanCoachPlanningContextService', () => {
     expect(context).toContain('Sessions Completed: 0/1');
   });
 
+  it('reads top-level planData.days plans in Swan Coach current-session context', () => {
+    const context = formatActiveWorkoutPlanContext([{
+      id: '22222222-2222-4222-8222-222222222222',
+      status: 'active',
+      currentWeek: 1,
+      currentDay: 2,
+      durationWeeks: 1,
+      planData: {
+        days: [
+          { dayNumber: 1, name: 'Prep Day', exercises: [{ exerciseName: 'Dead Bug', sets: 2, reps: 8 }] },
+          {
+            dayNumber: 2,
+            name: 'Off-Day Homework',
+            assignmentType: 'homework',
+            exercises: [{ exerciseName: 'Step-Up', sets: 3, reps: '10', tempo: '2-1-2', restPeriod: 60 }],
+          },
+        ],
+      },
+    }]);
+
+    expect(context).toContain('Sessions Completed: 0/2');
+    expect(context).toContain('Assignment Type: homework');
+    expect(context).toContain('Off-Day Homework');
+    expect(context).toContain('Step-Up: 3x10 tempo:2-1-2 rest:60s');
+    expect(context).not.toContain('No session data');
+  });
+
   it('includes read-safe off-day assignment semantics for Swan Coach logging guidance', () => {
     const context = formatActiveWorkoutPlanContext([{
       id: 'plan-6m',
