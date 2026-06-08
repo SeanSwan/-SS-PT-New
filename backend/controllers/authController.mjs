@@ -235,6 +235,7 @@ import {
   hashPasswordResetToken,
   sendPasswordResetEmailForUser,
 } from '../services/auth/passwordResetEmailService.mjs';
+import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -264,7 +265,7 @@ const resolvePublicRegistrationClientSource = ({ role, clientSource }) => {
     return PUBLIC_NON_CLIENT_SOURCE;
   }
 
-  const normalizedSource = typeof clientSource === 'string' ? clientSource.trim() : '';
+  const normalizedSource = parseClientSource(clientSource);
   return PUBLIC_REGISTRATION_CLIENT_SOURCES.has(normalizedSource) ? normalizedSource : null;
 };
 

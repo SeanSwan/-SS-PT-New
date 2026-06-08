@@ -273,6 +273,7 @@
 import { body, param, query, validationResult } from 'express-validator';
 import logger from '../utils/logger.mjs';
 import { ValidationError } from './errorMiddleware.mjs';
+import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
 
 // Validation schemas for different request types
 const validationSchemas = {
@@ -368,6 +369,7 @@ const validationSchemas = {
     body('clientSource')
       .optional()
       .trim()
+      .customSanitizer((value) => parseClientSource(value) || value)
       .isIn(['swanstudios', 'move_fitness', 'external'])
       .withMessage('Client source must be swanstudios, move_fitness, or external')
   ],

@@ -49,6 +49,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 const { register } = await import('../../controllers/authController.mjs');
+const { validate } = await import('../../middleware/validationMiddleware.mjs');
 
 const validRegistration = (overrides = {}) => ({
   firstName: 'Casey',
@@ -74,6 +75,27 @@ const createResponse = () => {
     }),
   };
   return res;
+};
+
+const runRegisterValidation = async (body) => {
+  const req = {
+    body,
+    path: '/api/auth/register',
+    method: 'POST',
+  };
+  const res = createResponse();
+  const middlewares = validate('register');
+
+  for (const middleware of middlewares.slice(0, -1)) {
+    await middleware.run(req);
+  }
+
+  let nextCalled = false;
+  middlewares[middlewares.length - 1](req, res, () => {
+    nextCalled = true;
+  });
+
+  return { req, res, nextCalled };
 };
 
 describe('auth register clientSource contract', () => {
@@ -106,6 +128,38 @@ describe('auth register clientSource contract', () => {
       expect.objectContaining({ transaction: mocks.transaction }),
     );
     expect(res.body.user.clientSource).toBe('move_fitness');
+  });
+
+  it('normalizes human-form client source before register validation reaches the controller', async () => {
+    const { req, res, nextCalled } = await runRegisterValidation(
+      validRegistration({ clientSource: ' Move Fitness ' }),
+    );
+
+    expect(nextCalled).toBe(true);
+    expect(res.json).not.toHaveBeenCalled();
+    expect(req.body.clientSource).toBe('move_fitness');
+  });
+
+  it.each([
+    [' Move Fitness ', 'move_fitness'],
+    ['move-fitness', 'move_fitness'],
+    ['MOVEFITNESS', 'move_fitness'],
+    ['Swan Studios', 'swanstudios'],
+  ])('normalizes public client signup source alias %s', async (clientSource, expectedSource) => {
+    const req = { body: validRegistration({ clientSource }) };
+    const res = createResponse();
+
+    await register(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(mocks.userModel.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'client',
+        clientSource: expectedSource,
+      }),
+      expect.objectContaining({ transaction: mocks.transaction }),
+    );
+    expect(res.body.user.clientSource).toBe(expectedSource);
   });
 
   it('rejects client signup when source is omitted instead of silently creating a paid SwanStudios client', async () => {
