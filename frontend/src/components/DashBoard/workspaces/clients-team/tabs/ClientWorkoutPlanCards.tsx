@@ -16,6 +16,7 @@ import { formatPlanUseLabel } from './ClientWorkoutPlanUse.logic';
 import {
   formatClientPlanUpdated,
   type ClientPlanSummary,
+  type ClientTodayAssignmentSummary,
 } from './ClientWorkoutPlansPanel.logic';
 import {
   Meta,
@@ -31,6 +32,7 @@ import {
 interface ClientWorkoutPlanCardsProps {
   openingPdfId: string | null;
   plans: ClientPlanSummary[];
+  todayAssignment?: ClientTodayAssignmentSummary | null;
   onLogToday?: () => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
 }
@@ -42,16 +44,30 @@ const statusText = (plan: ClientPlanSummary, active: boolean) => (
 const canLogTodayFromPlan = (
   plan: ClientPlanSummary,
   active: boolean,
+  todayAssignment?: ClientTodayAssignmentSummary | null,
   onLogToday?: () => void,
-) => Boolean(active && plan.isPrimary && onLogToday);
+) => Boolean(active && plan.isPrimary && onLogToday && todayAssignment?.isLoggable !== false);
+
+const todayAssignmentForPlan = (
+  plan: ClientPlanSummary,
+  todayAssignment?: ClientTodayAssignmentSummary | null,
+) => {
+  const assignmentKey = todayAssignment?.assignmentKey || todayAssignment?.assignmentId || '';
+  return assignmentKey.startsWith(`${plan.id}:`) ? todayAssignment : null;
+};
 
 const ClientWorkoutPlanCard: React.FC<{
   openingPdfId: string | null;
   plan: ClientPlanSummary;
+  todayAssignment?: ClientTodayAssignmentSummary | null;
   onLogToday?: () => void;
   onOpenPdf: (plan: ClientPlanSummary) => void;
-}> = ({ openingPdfId, plan, onLogToday, onOpenPdf }) => {
+}> = ({ openingPdfId, plan, todayAssignment, onLogToday, onOpenPdf }) => {
   const active = plan.status === 'active';
+  const matchedTodayAssignment = todayAssignmentForPlan(plan, todayAssignment);
+  const todayCtaLabel = matchedTodayAssignment?.ctaLabel || 'Log Today';
+  const todayCompleted = matchedTodayAssignment?.status === 'completed';
+  const todayNotLoggable = Boolean(matchedTodayAssignment && matchedTodayAssignment.isLoggable === false);
 
   return (
     <PlanCard>
@@ -69,14 +85,22 @@ const ClientWorkoutPlanCard: React.FC<{
         <span>{plan.goal}</span>
       </Meta>
       <PlanActions>
-        {canLogTodayFromPlan(plan, active, onLogToday) && (
+        {todayCompleted ? (
+          <StatusBadge $active aria-label={`Completed today from ${plan.name}`}>
+            <CheckCircle2 size={13} /> {matchedTodayAssignment?.ctaLabel || 'Review Workout'}
+          </StatusBadge>
+        ) : todayNotLoggable ? (
+          <StatusBadge $active={false} aria-label={`Not loggable today from ${plan.name}`}>
+            {matchedTodayAssignment?.ctaLabel || 'Not Loggable'}
+          </StatusBadge>
+        ) : canLogTodayFromPlan(plan, active, matchedTodayAssignment, onLogToday) && (
           <PlanActionButton
             type="button"
             $variant="primary"
-            aria-label={`Log Today from ${plan.name}`}
+            aria-label={`${todayCtaLabel} from ${plan.name}`}
             onClick={onLogToday}
           >
-            <Dumbbell size={14} /> Log Today
+            <Dumbbell size={14} /> {todayCtaLabel}
           </PlanActionButton>
         )}
         {plan.pdfFile && (
@@ -97,6 +121,7 @@ const ClientWorkoutPlanCard: React.FC<{
 const ClientWorkoutPlanCards: React.FC<ClientWorkoutPlanCardsProps> = ({
   openingPdfId,
   plans,
+  todayAssignment,
   onLogToday,
   onOpenPdf,
 }) => {
@@ -111,6 +136,7 @@ const ClientWorkoutPlanCards: React.FC<ClientWorkoutPlanCardsProps> = ({
           key={plan.id}
           openingPdfId={openingPdfId}
           plan={plan}
+          todayAssignment={todayAssignment}
           onLogToday={onLogToday}
           onOpenPdf={onOpenPdf}
         />

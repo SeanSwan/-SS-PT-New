@@ -68,7 +68,20 @@ export interface ClientPlanVaultSummary {
   slots: ClientPlanHorizonSlot[];
 }
 
-export interface ClientWorkoutPlansResponseSummary { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown }
+export interface ClientTodayAssignmentSummary {
+  assignmentKey?: string;
+  assignmentId?: string;
+  status?: string;
+  isLoggable?: boolean;
+  ctaLabel?: string;
+}
+
+export interface ClientWorkoutPlansResponseSummary {
+  plans?: unknown[];
+  plan?: unknown;
+  trainingPlanCatalog?: unknown;
+  todayAssignment?: unknown;
+}
 
 const normalizeClientWorkoutPlan = (plan: Record<string, unknown>): ClientPlanSummary | null => {
   const rawId = plan.id;
@@ -251,6 +264,10 @@ const normalizeRawPlans = (rawPlans: unknown[]) => rawPlans
   ))
   .filter((plan: ClientPlanSummary | null): plan is ClientPlanSummary => plan !== null);
 
+const normalizeTodayAssignment = (value: unknown): ClientTodayAssignmentSummary | null => (
+  value && typeof value === 'object' ? value as ClientTodayAssignmentSummary : null
+);
+
 export const normalizeClientWorkoutPlansResponse = (
   data?: ClientWorkoutPlansResponseSummary,
 ) => {
@@ -265,6 +282,7 @@ export const normalizeClientWorkoutPlansResponse = (
   return {
     plans: canonicalPlans ?? normalizeRawPlans(rawPlansFromResponse(responseData)),
     serverPlanVault,
+    todayAssignment: normalizeTodayAssignment(responseData.todayAssignment),
   };
 };
 
