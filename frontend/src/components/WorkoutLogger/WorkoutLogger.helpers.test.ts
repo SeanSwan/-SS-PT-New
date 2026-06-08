@@ -1,6 +1,7 @@
 import {
   convertAIWorkoutExercisesToEntries,
   coerceToNumericId,
+  currentWorkoutAssignmentMatchesRouteIntent,
   getCurrentWorkoutCursorSession,
   hasIncompleteWorkoutSets,
   isCurrentWorkoutAssignmentLoggable,
@@ -74,6 +75,31 @@ describe('WorkoutLogger helpers', () => {
       { assignmentType: 'trainer_session', isLoggable: false },
       { hasScheduledSession: true },
     )).toBe(true);
+  });
+
+  it('matches route assignment intent by assignment key and type', () => {
+    const assignment = {
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'homework',
+      isLoggable: true,
+    };
+
+    expect(currentWorkoutAssignmentMatchesRouteIntent(assignment)).toBe(true);
+    expect(currentWorkoutAssignmentMatchesRouteIntent(assignment, {
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'HOMEWORK',
+    })).toBe(true);
+    expect(currentWorkoutAssignmentMatchesRouteIntent(assignment, {
+      assignmentKey: 'plan-6m:w4:d3:homework',
+      assignmentType: 'homework',
+    })).toBe(false);
+    expect(currentWorkoutAssignmentMatchesRouteIntent(assignment, {
+      assignmentKey: 'plan-6m:w4:d2:homework',
+      assignmentType: 'active_recovery',
+    })).toBe(false);
+    expect(currentWorkoutAssignmentMatchesRouteIntent(null, {
+      assignmentKey: 'plan-6m:w4:d2:homework',
+    })).toBe(false);
   });
 
   it('converts AI workout exercises into null-honest logger rows', () => {

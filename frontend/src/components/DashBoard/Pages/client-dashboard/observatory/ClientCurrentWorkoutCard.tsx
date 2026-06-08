@@ -108,9 +108,12 @@ function workoutActionPath(workout?: CurrentClientWorkout | null): string {
   if (workout?.assignmentType === 'trainer_session' && !workout.isLoggable) {
     return '/dashboard/client/schedule';
   }
-  return workout?.isLoggable
-    ? '/dashboard/client/log-workout?loadPlan=today'
-    : '/dashboard/client/workouts';
+  if (!workout?.isLoggable) return '/dashboard/client/workouts';
+
+  const params = new URLSearchParams({ loadPlan: 'today' });
+  if (workout.assignmentKey) params.set('assignmentKey', workout.assignmentKey);
+  if (workout.assignmentType) params.set('assignmentType', workout.assignmentType);
+  return `/dashboard/client/log-workout?${params.toString()}`;
 }
 
 function workoutActionLabel(workout?: CurrentClientWorkout | null): string {

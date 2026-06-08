@@ -37,6 +37,8 @@ interface CurrentSessionPreview {
 }
 
 interface TodayAssignmentPreview {
+  assignmentId?: string | number | null;
+  assignmentKey?: string | number | null;
   assignmentType?: string;
   status?: string;
   sessionType?: string;
@@ -72,6 +74,7 @@ interface CurrentWorkoutResponse {
 
 export interface CurrentClientWorkout {
   title: string;
+  assignmentKey?: string;
   assignmentType?: string;
   assignmentStatus?: string;
   sessionType?: string;
@@ -108,6 +111,11 @@ function exerciseName(exercise?: PlannedExercisePreview): string | undefined {
   return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
 }
 
+function toNonBlankString(raw: unknown): string | undefined {
+  const value = typeof raw === 'number' ? String(raw) : raw;
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
 function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null): CurrentClientWorkout | null {
   const plan = payload?.data || payload?.plan || null;
   const assignment = payload?.todayAssignment || plan?.todayAssignment || null;
@@ -128,6 +136,7 @@ function normalizeCurrentClientWorkout(payload?: CurrentWorkoutResponse | null):
 
   return {
     title: assignment?.title || plan?.title || plan?.name || 'Today\'s Assignment',
+    assignmentKey: toNonBlankString(assignment?.assignmentKey ?? assignment?.assignmentId),
     assignmentType: assignment?.assignmentType,
     assignmentStatus: assignment?.status,
     sessionType: assignment?.sessionType,
