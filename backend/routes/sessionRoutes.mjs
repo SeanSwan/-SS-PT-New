@@ -251,7 +251,7 @@ router.post('/allocate-from-order', protect, adminOnly, async (req, res) => {
     console.error('Error allocating sessions from order:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to allocate sessions'
+      message: 'Failed to allocate sessions'
     });
   }
 });
@@ -307,7 +307,7 @@ router.post('/add-to-user', protect, adminOnly, async (req, res) => {
     console.error('Error adding sessions to user:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to add sessions'
+      message: 'Failed to add sessions'
     });
   }
 });
@@ -332,7 +332,7 @@ router.get('/user-summary/:userId', protect, adminOnly, async (req, res) => {
     console.error('Error getting user session summary:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get session summary'
+      message: 'Failed to get session summary'
     });
   }
 });
@@ -400,7 +400,7 @@ router.post('/assign-trainer', protect, adminOnly, async (req, res) => {
     console.error('Error assigning trainer to client:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to assign trainer'
+      message: 'Failed to assign trainer'
     });
   }
 });
@@ -433,7 +433,7 @@ router.get('/trainer-assignments/:trainerId', protect, async (req, res) => {
     console.error('Error getting trainer assignments:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get trainer assignments'
+      message: 'Failed to get trainer assignments'
     });
   }
 });
@@ -466,7 +466,7 @@ router.get('/client-assignments/:clientId', protect, async (req, res) => {
     console.error('Error getting client assignments:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get client assignments'
+      message: 'Failed to get client assignments'
     });
   }
 });
@@ -500,7 +500,7 @@ router.post('/remove-trainer-assignment', protect, adminOnly, async (req, res) =
     console.error('Error removing trainer assignment:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to remove trainer assignment'
+      message: 'Failed to remove trainer assignment'
     });
   }
 });
@@ -535,7 +535,7 @@ router.get('/assignment-statistics', protect, adminOnly, async (req, res) => {
     console.error('Error getting assignment statistics:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to get assignment statistics'
+      message: 'Failed to get assignment statistics'
     });
   }
 });
@@ -1317,8 +1317,7 @@ router.post("/:sessionId/book", protect, async (req, res) => {
     logger.error("Error booking session:", error);
     res.status(500).json({
       success: false,
-      message: "Server error booking session.",
-      error: error.message
+      message: "Server error booking session."
     });
   }
 });
@@ -1589,8 +1588,7 @@ router.post("/book-recurring", protect, async (req, res) => {
     logger.error("Error booking recurring sessions:", error);
     res.status(500).json({
       success: false,
-      message: "Server error booking recurring sessions.",
-      error: error.message
+      message: "Server error booking recurring sessions."
     });
   }
 });
@@ -1659,8 +1657,7 @@ router.get("/my-recurring", protect, async (req, res) => {
     logger.error("Error fetching recurring sessions:", error);
     res.status(500).json({
       success: false,
-      message: "Server error fetching recurring sessions.",
-      error: error.message
+      message: "Server error fetching recurring sessions."
     });
   }
 });
@@ -1770,8 +1767,7 @@ router.delete("/my-recurring/:groupId", protect, async (req, res) => {
     logger.error("Error cancelling recurring sessions:", error);
     res.status(500).json({
       success: false,
-      message: "Server error cancelling recurring sessions.",
-      error: error.message
+      message: "Server error cancelling recurring sessions."
     });
   }
 });
@@ -2569,8 +2565,7 @@ router.get("/analytics", protect, async (req, res) => {
   } catch (error) {
     console.error("Error fetching session analytics:", error.message, error.stack);
     res.status(500).json({
-      message: "Server error fetching analytics.",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Server error fetching analytics."
     });
   }
 });
@@ -2718,7 +2713,7 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating recurring slots:", error);
-    res.status(500).json({ message: error.message || "Server error creating recurring slots" });
+    res.status(500).json({ message: "Server error creating recurring slots" });
   }
 });
 
@@ -2776,7 +2771,7 @@ router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
     console.error("Error updating recurring series:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Server error updating recurring series"
+      message: "Server error updating recurring series"
     });
   }
 });
@@ -2816,7 +2811,7 @@ router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
     console.error("Error cancelling recurring series:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Server error cancelling recurring series"
+      message: "Server error cancelling recurring series"
     });
   }
 });
@@ -2902,7 +2897,7 @@ router.post("/block", protect, async (req, res) => {
     console.error("Error creating blocked time:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Server error creating blocked time"
+      message: "Server error creating blocked time"
     });
   }
 });
@@ -2966,7 +2961,7 @@ router.delete("/block/:id", protect, async (req, res) => {
     console.error("Error removing blocked time:", error);
     res.status(500).json({
       success: false,
-      message: error.message || "Server error removing blocked time"
+      message: "Server error removing blocked time"
     });
   }
 });
@@ -3222,8 +3217,7 @@ router.patch("/:sessionId/attendance", protect, async (req, res) => {
     logger.error('Error recording attendance:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error recording attendance',
-      error: error.message
+      message: 'Server error recording attendance'
     });
   }
 });
@@ -3292,8 +3286,7 @@ router.get("/attendance-report", protect, async (req, res) => {
     logger.error('Error fetching attendance report:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching attendance report',
-      error: error.message
+      message: 'Server error fetching attendance report'
     });
   }
 });
@@ -3362,7 +3355,7 @@ router.post("/bulk-update", protect, adminOnly, async (req, res) => {
         
       } catch (updateError) {
         console.error(`Error updating session ${update.id}:`, updateError);
-        errors.push({ id: update.id, error: updateError.message });
+        errors.push({ id: update.id, error: 'Failed to update session' });
       }
     }
     
@@ -4112,8 +4105,7 @@ router.put("/assign/:sessionId", protect, adminOnly, async (req, res) => {
     logger.error("Error assigning trainer:", error);
     res.status(500).json({ 
       success: false,
-      message: "Server error assigning trainer",
-      error: error.message 
+      message: "Server error assigning trainer"
     });
   }
 });
@@ -4250,8 +4242,7 @@ router.put("/confirm/:sessionId", protect, async (req, res) => {
     logger.error("Error confirming session:", error);
     res.status(500).json({ 
       success: false,
-      message: "Server error confirming session",
-      error: error.message 
+      message: "Server error confirming session"
     });
   }
 });
@@ -4364,8 +4355,7 @@ router.post("/book", protect, async (req, res) => {
     logger.error("Error booking session:", error);
     res.status(500).json({ 
       success: false,
-      message: "Server error booking session",
-      error: error.message 
+      message: "Server error booking session"
     });
   }
 });
@@ -4448,8 +4438,7 @@ router.post("/request", protect, async (req, res) => {
     logger.error("Error creating session request:", error);
     res.status(500).json({ 
       success: false,
-      message: "Server error creating session request",
-      error: error.message 
+      message: "Server error creating session request"
     });
   }
 });
@@ -4643,8 +4632,7 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
     logger.error("Error fetching cancelled sessions:", error);
     res.status(500).json({
       success: false,
-      message: "Server error fetching cancelled sessions",
-      error: error.message
+      message: "Server error fetching cancelled sessions"
     });
   }
 });
@@ -4745,8 +4733,7 @@ router.get("/:sessionId/client-package-price", protect, adminOnly, async (req, r
     logger.error("Error fetching client package price:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch client package price",
-      error: error.message
+      message: "Failed to fetch client package price"
     });
   }
 });
@@ -4949,8 +4936,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     logger.error("Error charging cancellation:", error);
     res.status(500).json({
       success: false,
-      message: "Server error processing cancellation charge",
-      error: error.message
+      message: "Server error processing cancellation charge"
     });
   }
 });
@@ -5079,8 +5065,7 @@ router.get("/export", protect, adminOnly, async (req, res) => {
     logger.error("Error exporting sessions:", error);
     res.status(500).json({
       success: false,
-      message: "Server error exporting sessions",
-      error: error.message
+      message: "Server error exporting sessions"
     });
   }
 });
@@ -5165,8 +5150,7 @@ router.post("/:sessionId/feedback", protect, async (req, res) => {
     logger.error("Error submitting feedback:", error);
     res.status(500).json({
       success: false,
-      message: "Server error submitting feedback",
-      error: error.message
+      message: "Server error submitting feedback"
     });
   }
 });
@@ -5233,8 +5217,7 @@ router.get("/trainer/:trainerId/feedback-summary", protect, adminOnly, async (re
     logger.error("Error fetching feedback summary:", error);
     res.status(500).json({
       success: false,
-      message: "Server error fetching feedback summary",
-      error: error.message
+      message: "Server error fetching feedback summary"
     });
   }
 });
@@ -5454,8 +5437,7 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     logger.error("Error in admin book session:", error);
     res.status(500).json({
       success: false,
-      message: "Server error booking session",
-      error: error.message
+      message: "Server error booking session"
     });
   }
 });
