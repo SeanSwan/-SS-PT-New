@@ -65,7 +65,7 @@ function fakeRejectRaceDb({ order = [] } = {}) {
 
 async function loadApprovalService({ order = [], decryptedProposal = null } = {}) {
   vi.resetModules();
-  const logWorkoutForClient = vi.fn(async () => {
+  const submitAiWorkoutLogAsDailyForm = vi.fn(async () => {
     order.push('workout-write');
     return { id: 'workout-1' };
   });
@@ -81,9 +81,9 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
       targetUserId: 42,
     })),
   }));
-  vi.doMock('../../services/workout/workoutLogService.mjs', () => ({
-    logWorkoutForClient,
-    WorkoutLogError: class WorkoutLogError extends Error {},
+  vi.doMock('../../services/workout/aiWorkoutDailyFormService.mjs', () => ({
+    submitAiWorkoutLogAsDailyForm,
+    AiWorkoutDailyFormError: class AiWorkoutDailyFormError extends Error {},
   }));
   vi.doMock('../../services/coachClientOnboardingApprovalService.mjs', () => ({
     createClientFromCoachOnboardingProposal: vi.fn(),
@@ -93,7 +93,7 @@ async function loadApprovalService({ order = [], decryptedProposal = null } = {}
     processAIDataUpdates,
   }));
   const service = await import('../../services/ai/coachActionProposalApprovalService.mjs');
-  return { ...service, ensureClientAccess, logWorkoutForClient, processAIDataUpdates };
+  return { ...service, ensureClientAccess, submitAiWorkoutLogAsDailyForm, processAIDataUpdates };
 }
 
 beforeEach(() => {
@@ -110,7 +110,7 @@ describe('coachActionProposalApprovalService', () => {
   it('claims a pending proposal before running the workout writer', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });
-    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, submitAiWorkoutLogAsDailyForm } = await loadApprovalService({ order });
     const detailResult = await getCoachActionProposal({
       id: pendingWorkoutRow.id,
       req: { user: { id: 7, role: 'trainer' } },
@@ -124,7 +124,7 @@ describe('coachActionProposalApprovalService', () => {
     });
 
     expect(result.status).toBe(200);
-    expect(logWorkoutForClient).toHaveBeenCalledTimes(1);
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['claim', 'workout-write']);
     const claimCall = db.calls.find((call) => call.sql.includes('status = :pendingStatus'));
     expect(claimCall.options.replacements.claimedStatus).toBe('APPLYING');
@@ -133,7 +133,7 @@ describe('coachActionProposalApprovalService', () => {
   it('returns a review token from detail reads and requires it before workout approval', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });
-    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, submitAiWorkoutLogAsDailyForm } = await loadApprovalService({ order });
 
     const detailResult = await getCoachActionProposal({
       id: pendingWorkoutRow.id,
@@ -152,7 +152,7 @@ describe('coachActionProposalApprovalService', () => {
 
     expect(blocked.status).toBe(428);
     expect(blocked.body.code).toBe('PROPOSAL_DETAIL_REVIEW_REQUIRED');
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     expect(order).toEqual([]);
 
     const approved = await approveCoachActionProposal({
@@ -162,7 +162,7 @@ describe('coachActionProposalApprovalService', () => {
     });
 
     expect(approved.status).toBe(200);
-    expect(logWorkoutForClient).toHaveBeenCalledTimes(1);
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledTimes(1);
     expect(order).toEqual(['claim', 'workout-write']);
   });
 
@@ -173,7 +173,7 @@ describe('coachActionProposalApprovalService', () => {
       approveCoachActionProposal,
       ensureClientAccess,
       getCoachActionProposal,
-      logWorkoutForClient,
+      submitAiWorkoutLogAsDailyForm,
     } = await loadApprovalService({
       order,
       decryptedProposal: {
@@ -196,7 +196,7 @@ describe('coachActionProposalApprovalService', () => {
     expect(result.status).toBe(400);
     expect(result.body.code).toBe('PROPOSAL_INVALID_CLIENT_ID');
     expect(ensureClientAccess).not.toHaveBeenCalled();
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     expect(order).toEqual([]);
   });
 
@@ -207,7 +207,7 @@ describe('coachActionProposalApprovalService', () => {
       approveCoachActionProposal,
       ensureClientAccess,
       getCoachActionProposal,
-      logWorkoutForClient,
+      submitAiWorkoutLogAsDailyForm,
     } = await loadApprovalService({
       order,
       decryptedProposal: {
@@ -230,7 +230,7 @@ describe('coachActionProposalApprovalService', () => {
     expect(result.status).toBe(400);
     expect(result.body.code).toBe('PROPOSAL_INVALID_CLIENT_ID');
     expect(ensureClientAccess).not.toHaveBeenCalled();
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     expect(order).toEqual([]);
   });
 
@@ -278,7 +278,7 @@ describe('coachActionProposalApprovalService', () => {
   it('does not write the workout when another approval already claimed the proposal', async () => {
     const order = [];
     const db = fakeApprovalDb({ claimSucceeds: false, order });
-    const { approveCoachActionProposal, getCoachActionProposal, logWorkoutForClient } = await loadApprovalService({ order });
+    const { approveCoachActionProposal, getCoachActionProposal, submitAiWorkoutLogAsDailyForm } = await loadApprovalService({ order });
     const detailResult = await getCoachActionProposal({
       id: pendingWorkoutRow.id,
       req: { user: { id: 7, role: 'trainer' } },
@@ -293,7 +293,7 @@ describe('coachActionProposalApprovalService', () => {
 
     expect(result.status).toBe(409);
     expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
-    expect(logWorkoutForClient).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
     expect(order).toEqual(['claim']);
   });
 

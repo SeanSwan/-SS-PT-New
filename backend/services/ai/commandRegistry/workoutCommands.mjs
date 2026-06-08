@@ -41,7 +41,7 @@ const commands = [
     type: 'log_workout',
     description: 'Log today\'s workout for a client',
     naturalLanguagePatterns: ['log today\'s workout for {client}', 'record {client}\'s workout', 'log exercises for {client}'],
-    method: 'POST', endpoint: '/api/admin/clients/:clientId/workouts',
+    method: 'POST', endpoint: '/api/workout-forms',
     inputSchema: z.object({
       clientId: z.number().int().positive(),
       // Session-level fields
