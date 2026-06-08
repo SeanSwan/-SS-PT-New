@@ -12,8 +12,8 @@ const SOURCE = source;
 
 describe('UniversalDashboardLayout client source route boundary', () => {
   it('removes the client schedule route for Move Fitness and external clients', () => {
-    expect(SOURCE).toContain("user?.clientSource !== 'move_fitness'");
-    expect(SOURCE).toContain("user?.clientSource !== 'external'");
+    expect(SOURCE).toContain("from './workspaces/clients-team/clientSessionSignal'");
+    expect(SOURCE).toContain('!isNonDeductingClientSource(user?.clientSource)');
     expect(SOURCE).toMatch(/roleConfig\.routes\.filter\(\(\{\s*path\s*\}\)\s*=>\s*path\s*!==\s*['"]\/schedule['"]\)/);
   });
 

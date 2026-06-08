@@ -42,6 +42,7 @@ import {
 } from '../../redux/slices/scheduleSlice';
 import { scheduleDashboardRouteScrollReset } from './DashboardRouteScroll';
 import { parseDashboardUserId } from './UniversalDashboardLayout.logic';
+import { isNonDeductingClientSource } from './workspaces/clients-team/clientSessionSignal';
 
 // Import the three stellar sidebars
 import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
@@ -874,7 +875,7 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
   const canBookSwanStudiosSessions =
     userRole !== 'client' ||
     activeRole !== 'client' ||
-    (user?.clientSource !== 'move_fitness' && user?.clientSource !== 'external');
+    !isNonDeductingClientSource(user?.clientSource);
   const visibleRoleRoutes = canBookSwanStudiosSessions
     ? roleConfig.routes
     : roleConfig.routes.filter(({ path }) => path !== '/schedule');

@@ -116,6 +116,12 @@ describe('SessionDetailModal extracted route and permission logic', () => {
 
     expect(buildScheduleLogWorkoutLabel({
       ...baseSession,
+      clientSource: 'Move Fitness',
+      sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
+    })).toBe('Log Workout (no paid credit)');
+
+    expect(buildScheduleLogWorkoutLabel({
+      ...baseSession,
       sessionDeducted: true,
       sessionType: { id: 3, name: 'Partner Training', creditsRequired: 2 },
     })).toBe('Log Workout (deducted)');

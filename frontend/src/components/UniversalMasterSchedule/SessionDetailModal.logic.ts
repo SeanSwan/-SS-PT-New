@@ -1,4 +1,5 @@
 import type { SessionDetail, SessionDetailModalMode } from './SessionDetailModal.types';
+import { isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 const STATUS_TONES: Record<string, string> = {
   available: 'var(--schedule-status-available, #3b82f6)',
@@ -8,8 +9,6 @@ const STATUS_TONES: Record<string, string> = {
   cancelled: 'var(--schedule-status-cancelled, #ef4444)',
   blocked: 'var(--schedule-status-blocked, #f59e0b)',
 };
-
-const NON_DEDUCTING_CLIENT_SOURCES = new Set(['move_fitness', 'external']);
 
 export const getStatusTone = (status?: string | null) =>
   STATUS_TONES[status || ''] || STATUS_TONES.available;
@@ -33,8 +32,7 @@ export const buildScheduleLogWorkoutLabel = (session: SessionDetail | null) => {
     return 'Log Workout';
   }
 
-  const clientSource = String(session.clientSource || '').toLowerCase();
-  if (NON_DEDUCTING_CLIENT_SOURCES.has(clientSource)) {
+  if (isNonDeductingClientSource(session.clientSource)) {
     return 'Log Workout (no paid credit)';
   }
 
