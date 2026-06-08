@@ -17,6 +17,7 @@ import {
   SummaryTitle,
   TextArea,
 } from './SessionSummaryForm.styles';
+import { isNonDeductingClientSource } from '../../utils/clientSource';
 
 interface SessionSummaryFormProps {
   // null = "not rated"; submit payload omits the field instead of saving a phantom 5.
@@ -30,9 +31,6 @@ interface SessionSummaryFormProps {
   clientSource?: string | null;
   scheduledSessionCreditHint?: number | null;
 }
-
-const isNonDeductingClientSource = (clientSource: string | null | undefined): boolean =>
-  clientSource === 'move_fitness' || clientSource === 'external';
 
 const getSafeSessionCredits = (scheduledSessionCreditHint: number | null | undefined): number => {
   if (typeof scheduledSessionCreditHint !== 'number') return 1;
