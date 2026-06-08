@@ -22,13 +22,13 @@ const baseSession: SessionDetail = {
   sessionDeducted: false,
 };
 
-const setup = (notes = 'Session moved well') => {
+const setup = (notes = 'Session moved well', session: SessionDetail | null = baseSession) => {
   const setFormError = vi.fn();
   const onUpdated = vi.fn();
   const onClose = vi.fn();
   const hook = renderHook(() =>
     useSessionAttendance({
-      session: baseSession,
+      session,
       notes,
       onUpdated,
       onClose,
@@ -128,6 +128,32 @@ describe('useSessionAttendance', () => {
       await result.current.handleRecordAttendance('no_show');
       result.current.setDeductNoShowSessionCredit(false);
     });
+    await act(async () => {
+      await result.current.handleRecordAttendance('no_show');
+    });
+
+    expect(apiService.patch).toHaveBeenCalledWith('/api/sessions/72/attendance', {
+      attendanceStatus: 'no_show',
+      deductSessionCredit: false,
+    });
+  });
+
+  it('does not default a no-show credit deduction when the paid client has no known credits left', async () => {
+    vi.mocked(apiService.patch).mockResolvedValueOnce({
+      data: { success: true },
+    });
+    const { result } = setup('', {
+      ...baseSession,
+      clientAvailableSessions: 0,
+    });
+
+    await act(async () => {
+      await result.current.handleRecordAttendance('no_show');
+    });
+
+    expect(result.current.canDeductNoShowSessionCredit).toBe(false);
+    expect(result.current.deductNoShowSessionCredit).toBe(false);
+
     await act(async () => {
       await result.current.handleRecordAttendance('no_show');
     });

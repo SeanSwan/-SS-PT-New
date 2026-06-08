@@ -105,8 +105,10 @@ describe('SessionDetailModal auth pipeline', () => {
     const modalSource = readSource('frontend/src/components/UniversalMasterSchedule/SessionDetailModal.tsx');
     const footerSource = readSource('frontend/src/components/UniversalMasterSchedule/SessionDetailFooterActions.tsx');
     const logicSource = readSource('frontend/src/components/UniversalMasterSchedule/SessionDetailModal.logic.ts');
+    const navigationHookSource = readSource('frontend/src/components/UniversalMasterSchedule/hooks/useSessionDetailNavigation.ts');
 
     expect(modalSource).toContain("from './SessionDetailModal.logic'");
+    expect(modalSource).toContain("import { useSessionDetailNavigation } from './hooks/useSessionDetailNavigation';");
     expect(logicSource).toContain('export const buildScheduleReturnRoute =');
     expect(logicSource).toContain('export const buildScheduleWorkoutLoggerRoute =');
     expect(logicSource).toContain("params.set('clientId', String(session.userId))");
@@ -118,7 +120,9 @@ describe('SessionDetailModal auth pipeline', () => {
     expect(logicSource).toContain("params.set('tab', 'training')");
     expect(logicSource).toContain("params.set('trainingSection', 'logger')");
     expect(logicSource).toContain("return `/dashboard/admin/client-management?${params.toString()}`;");
-    expect(modalSource).toContain('navigate(buildScheduleWorkoutLoggerRoute(mode, session))');
+    expect(navigationHookSource).toContain('navigate(routeBuilder(mode, session))');
+    expect(navigationHookSource).toContain('openWorkoutLogger: () => openRoute(buildScheduleWorkoutLoggerRoute)');
+    expect(modalSource).toContain('onLogWorkout={detailNavigation.openWorkoutLogger}');
     expect(footerSource).toContain('Log Workout');
     expect(logicSource).toContain("session.attendanceStatus !== 'no_show'");
     expect(modalSource).not.toContain("session?.status !== 'completed' && (");
@@ -128,6 +132,7 @@ describe('SessionDetailModal auth pipeline', () => {
   it('routes schedule detail View Workouts to role-owned workout surfaces', () => {
     const modalSource = readSource('frontend/src/components/UniversalMasterSchedule/SessionDetailModal.tsx');
     const logicSource = readSource('frontend/src/components/UniversalMasterSchedule/SessionDetailModal.logic.ts');
+    const navigationHookSource = readSource('frontend/src/components/UniversalMasterSchedule/hooks/useSessionDetailNavigation.ts');
 
     expect(logicSource).toContain('export const buildScheduleWorkoutsRoute =');
     expect(logicSource).toContain("params.set('clientId', String(session.userId))");
@@ -136,7 +141,8 @@ describe('SessionDetailModal auth pipeline', () => {
     expect(logicSource).toContain("return `/dashboard/admin/client-management?${params.toString()}`;");
     expect(logicSource).toContain("return `/dashboard/trainer/client-progress?${params.toString()}`;");
     expect(logicSource).toContain("return '/dashboard/client/workouts';");
-    expect(modalSource).toContain('navigate(buildScheduleWorkoutsRoute(mode, session))');
+    expect(navigationHookSource).toContain('viewWorkouts: () => openRoute(buildScheduleWorkoutsRoute)');
+    expect(modalSource).toContain('onViewWorkouts={detailNavigation.viewWorkouts}');
     expect(modalSource).not.toContain('navigate(`/dashboard/${dashPath}/client-management?clientId=${session.userId}&tab=training`)');
   });
 

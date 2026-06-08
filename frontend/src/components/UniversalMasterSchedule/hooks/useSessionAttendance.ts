@@ -6,7 +6,7 @@ import {
   type AttendanceStatus,
 } from '../SessionDetailModal.actions';
 import type { SessionDetail } from '../SessionDetailModal.types';
-import { isNonDeductingClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { canDeductScheduledSessionCredit } from './sessionCreditEligibility';
 
 interface UseSessionAttendanceInput {
   session: SessionDetail | null;
@@ -27,11 +27,7 @@ export const useSessionAttendance = ({
   const [noShowReasonInput, setNoShowReasonInput] = useState('');
   const [showNoShowReason, setShowNoShowReason] = useState(false);
   const [deductNoShowSessionCredit, setDeductNoShowSessionCredit] = useState(false);
-  const canDeductNoShowSessionCredit = Boolean(
-    session?.userId
-      && session?.sessionDeducted !== true
-      && !isNonDeductingClientSource(session?.clientSource)
-  );
+  const canDeductNoShowSessionCredit = canDeductScheduledSessionCredit(session);
 
   const handleRecordAttendance = useCallback(async (status: AttendanceStatus) => {
     if (!session) {

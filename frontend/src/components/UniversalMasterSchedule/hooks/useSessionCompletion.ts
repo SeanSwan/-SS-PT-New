@@ -6,7 +6,7 @@ import {
   isValidTrainerRating,
 } from '../SessionDetailModal.actions';
 import type { SessionDetail } from '../SessionDetailModal.types';
-import { isNonDeductingClientSource } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { canDeductScheduledSessionCredit } from './sessionCreditEligibility';
 
 interface UseSessionCompletionInput {
   open: boolean;
@@ -29,11 +29,7 @@ export const useSessionCompletion = ({
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
   const [deductCompletionSessionCredit, setDeductCompletionSessionCredit] = useState(false);
-  const canDeductCompletionSessionCredit = Boolean(
-    session?.userId
-      && session?.sessionDeducted !== true
-      && !isNonDeductingClientSource(session?.clientSource)
-  );
+  const canDeductCompletionSessionCredit = canDeductScheduledSessionCredit(session);
 
   useEffect(() => {
     if (!open || !session) {
@@ -72,7 +68,7 @@ export const useSessionCompletion = ({
         clientFeedback,
         deductSessionCredit: canDeductCompletionSessionCredit
           ? deductCompletionSessionCredit
-          : undefined,
+          : false,
       }));
       const result = response.data;
       if (result?.success === false) {
