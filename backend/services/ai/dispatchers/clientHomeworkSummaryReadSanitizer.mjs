@@ -19,6 +19,7 @@ const toDateOnly = (value) => {
 
 const summarizeRecentHomeworkCompletion = (completion = {}) => ({
   assignmentType: completion.assignmentType ?? 'homework',
+  assignmentKey: completion.assignmentKey ?? completion.assignmentId ?? null,
   formId: completion.formId ?? null,
   completedAt: toDateOnly(completion.completedAt),
   weekNumber: completion.weekNumber ?? null,

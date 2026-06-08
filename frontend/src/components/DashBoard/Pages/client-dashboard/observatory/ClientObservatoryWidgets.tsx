@@ -117,6 +117,7 @@ const ClientObservatoryWidgets: React.FC<ClientObservatoryWidgetsProps> = ({
 
       <ClientTrainingPlanVaultCard
         planVault={planVault}
+        currentWorkout={currentWorkout}
         loading={currentWorkoutLoading}
         error={currentWorkoutError}
         canLogToday={currentWorkout?.isLoggable === true}
