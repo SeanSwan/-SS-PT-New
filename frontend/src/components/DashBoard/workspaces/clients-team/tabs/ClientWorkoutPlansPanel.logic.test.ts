@@ -1,10 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createProtectedPdfObjectUrl,
   normalizeClientWorkoutPlansResponse,
   type ClientPlanPdfFile,
-  type PlanPdfAuthClient,
 } from './ClientWorkoutPlansPanel.logic';
+import { createProtectedPlanPdfObjectUrl } from '../../../shared/plan-pdf/useProtectedPlanPdfViewer';
 
 const pdfFile = (url: string): ClientPlanPdfFile => ({
   url,
@@ -48,9 +47,9 @@ describe('ClientWorkoutPlansPanel.logic PDF safety', () => {
   });
 
   it('does not fetch non-proxy PDF URLs', async () => {
-    const authAxios: PlanPdfAuthClient = { get: vi.fn() };
+    const authAxios = { get: vi.fn() };
 
-    await expect(createProtectedPdfObjectUrl(
+    await expect(createProtectedPlanPdfObjectUrl(
       authAxios,
       pdfFile('https://cdn.swanstudios.com/plans/public-plan.pdf'),
     )).rejects.toThrow(/protected workout plan pdf url/i);

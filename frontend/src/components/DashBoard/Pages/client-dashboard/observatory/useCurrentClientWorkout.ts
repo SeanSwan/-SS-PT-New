@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import apiService from '../../../../../services/api.service';
+import { normalizeProtectedPlanPdfUrl } from '../../../shared/plan-pdf/workoutPlanPdfUrl';
 
 interface PlannedExercisePreview {
   name?: string;
@@ -156,31 +157,19 @@ function exerciseName(exercise?: PlannedExercisePreview): string | undefined {
   return typeof candidate === 'string' && candidate.trim() ? candidate.trim() : undefined;
 }
 
-const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
-
 function normalizePlanPdfFile(raw?: ClientPlanPdfPreview | null): ClientTrainingPlanSlot['pdfFile'] {
-  const rawUrl = typeof raw?.url === 'string' ? raw.url : '';
-  if (!rawUrl.trim() || /[\r\n\t]/.test(rawUrl)) return null;
-  const url = rawUrl.trim();
-  if (!url.startsWith('/') || url.startsWith('//')) return null;
-
-  try {
-    const parsed = new URL(url, 'https://swanstudios.local');
-    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null;
-    if (!PROTECTED_PDF_PATH.test(parsed.pathname)) return null;
-    return {
-      url: parsed.pathname,
-      fileName: typeof raw?.fileName === 'string' && raw.fileName.trim()
-        ? raw.fileName.trim()
-        : 'Workout Plan.pdf',
-      contentType: typeof raw?.contentType === 'string' && raw.contentType.trim()
-        ? raw.contentType.trim()
-        : 'application/pdf',
-      updatedAt: typeof raw?.updatedAt === 'string' ? raw.updatedAt : null,
-    };
-  } catch {
-    return null;
-  }
+  const url = normalizeProtectedPlanPdfUrl(raw?.url);
+  if (!url) return null;
+  return {
+    url,
+    fileName: typeof raw?.fileName === 'string' && raw.fileName.trim()
+      ? raw.fileName.trim()
+      : 'Workout Plan.pdf',
+    contentType: typeof raw?.contentType === 'string' && raw.contentType.trim()
+      ? raw.contentType.trim()
+      : 'application/pdf',
+    updatedAt: typeof raw?.updatedAt === 'string' ? raw.updatedAt : null,
+  };
 }
 
 function primaryPlanLabel(catalog?: TrainingPlanCatalogPreview | null): string | undefined {

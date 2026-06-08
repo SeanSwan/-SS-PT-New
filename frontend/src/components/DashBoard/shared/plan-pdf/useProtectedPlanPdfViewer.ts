@@ -5,7 +5,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
+import { normalizeProtectedPlanPdfUrl } from './workoutPlanPdfUrl';
+
 const DEFAULT_PDF_ERROR = 'Unable to open this workout plan PDF.';
 
 export interface ProtectedPlanPdfFile {
@@ -41,11 +42,12 @@ export const createProtectedPlanPdfObjectUrl = async (
   apiClient: ProtectedPlanPdfAuthClient,
   pdfFile: ProtectedPlanPdfFile,
 ) => {
-  if (!PROTECTED_PDF_PATH.test(pdfFile.url)) {
+  const safeUrl = normalizeProtectedPlanPdfUrl(pdfFile.url);
+  if (!safeUrl) {
     throw new Error('Protected workout plan PDF URL required');
   }
 
-  const response = await apiClient.get(pdfFile.url, { responseType: 'blob' });
+  const response = await apiClient.get(safeUrl, { responseType: 'blob' });
   const data = response.data;
   const blob = data instanceof Blob ? data : new Blob(
     data === undefined ? [] : [data],

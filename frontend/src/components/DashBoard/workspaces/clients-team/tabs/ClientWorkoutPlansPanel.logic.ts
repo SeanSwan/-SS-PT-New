@@ -24,7 +24,6 @@ const normalizeCatalogHorizonKey = (value: unknown): HorizonKey | null => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase().replace(/[\s-]+/g, '_') : '';
   return PLAN_HORIZON_KEYS.has(raw as HorizonKey) ? raw as HorizonKey : null;
 };
-const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
 
 export interface ClientPlanPdfFile {
   url: string;
@@ -67,10 +66,6 @@ export interface ClientPlanVaultSummary {
   primaryPlanId: string | null;
   primaryHorizonKey: HorizonKey | null;
   slots: ClientPlanHorizonSlot[];
-}
-
-export interface PlanPdfAuthClient {
-  get: (url: string, config?: { responseType?: 'blob' }) => Promise<{ data?: Blob | BlobPart }>;
 }
 
 export interface ClientWorkoutPlansResponseSummary { plans?: unknown[]; plan?: unknown; trainingPlanCatalog?: unknown }
@@ -277,20 +272,4 @@ export const formatClientPlanUpdated = (value?: string) => {
   if (!value) return 'Updated date unavailable';
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? 'Updated date unavailable' : `Updated ${parsed.toLocaleDateString()}`;
-};
-
-export const createProtectedPdfObjectUrl = async (
-  authAxios: PlanPdfAuthClient,
-  pdfFile: ClientPlanPdfFile,
-) => {
-  if (!PROTECTED_PDF_PATH.test(pdfFile.url)) {
-    throw new Error('Protected workout plan PDF URL required');
-  }
-  const response = await authAxios.get(pdfFile.url, { responseType: 'blob' });
-  const data = response.data;
-  const blob = data instanceof Blob ? data : new Blob(
-    data === undefined ? [] : [data],
-    { type: pdfFile.contentType || 'application/pdf' },
-  );
-  return URL.createObjectURL(blob);
 };

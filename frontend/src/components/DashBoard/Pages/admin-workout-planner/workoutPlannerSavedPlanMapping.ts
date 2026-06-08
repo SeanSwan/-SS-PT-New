@@ -7,6 +7,7 @@
  */
 
 import type { SavedPlanSummary } from './SavedPlanCard';
+import { normalizeProtectedPlanPdfUrl } from '../../shared/plan-pdf/workoutPlanPdfUrl';
 
 const HORIZON_LABELS: Record<string, string> = {
   one_day: '1 Day',
@@ -26,7 +27,6 @@ const WEEKS_TO_HORIZON: Array<{ weeks: number; key: keyof typeof HORIZON_LABELS 
   { weeks: 39, key: 'nine_month' },
   { weeks: 52, key: 'twelve_month' },
 ];
-const PROTECTED_PDF_PATH = /^\/api\/workout-plans\/[^/]+\/pdf\/content\.pdf$/;
 
 const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => {
   const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -45,25 +45,10 @@ const normalizeHorizonKey = (value: unknown, durationWeeks: unknown): string => 
   }, WEEKS_TO_HORIZON[0]).key;
 };
 
-const normalizeWorkoutPlannerPdfUrl = (value: unknown) => {
-  const raw = typeof value === 'string' ? value : '';
-  if (!raw.trim() || /[\r\n\t]/.test(raw)) return null;
-  const url = raw.trim();
-  if (!url.startsWith('/') || url.startsWith('//')) return null;
-
-  try {
-    const parsed = new URL(url, 'https://swanstudios.local');
-    if (parsed.username || parsed.password || parsed.search || parsed.hash) return null;
-    return PROTECTED_PDF_PATH.test(parsed.pathname) ? parsed.pathname : null;
-  } catch {
-    return null;
-  }
-};
-
 const mapPlanPdf = (plan: Record<string, unknown>) => {
   const metadata = plan.metadata as Record<string, unknown> | undefined;
   const rawPdf = (plan.pdfFile || metadata?.planPdf || metadata?.pdfFile) as Record<string, unknown> | undefined;
-  const url = normalizeWorkoutPlannerPdfUrl(rawPdf?.url);
+  const url = normalizeProtectedPlanPdfUrl(rawPdf?.url);
   if (!url) return null;
 
   return {
