@@ -223,6 +223,26 @@ describe('ClientProgressCharts — detailed progress truth', () => {
     expect(screen.queryByTestId('rpe-distribution-chart')).not.toBeInTheDocument();
   });
 
+  it('does not invent RPE buckets from unrated workout history', async () => {
+    mockGet.mockResolvedValue(
+      makeProgressResponse({
+        rpeDistribution: [],
+        workoutHistory: [
+          { date: '2026-04-08', duration: 45, intensity: null, totalVolume: 12450 },
+          { date: '2026-04-10', duration: 50, overallRPE: undefined, totalVolume: 14200 },
+        ],
+      })
+    );
+
+    render(<ClientProgressCharts />);
+
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByTestId('rpe-distribution-chart')).not.toBeInTheDocument();
+  });
+
   it('renders the Personal Records chart when the backend ships real PR entries', async () => {
     mockGet.mockResolvedValue(
       makeProgressResponse({

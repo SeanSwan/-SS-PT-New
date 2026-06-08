@@ -81,6 +81,12 @@ import {
 } from './types/ClientProgressTypes';
 import { sanitizeProgressPayload } from './ClientProgressCharts.sanitizers';
 
+const toLoggedEffort = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.max(1, Math.min(10, parsed));
+};
+
 // ==================== INTERFACES ====================
 
 interface ClientProgressChartsProps {
@@ -653,13 +659,17 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     if (data[0]?.zone) return data as RPEDistributionDataPoint[];
     // Otherwise derive from workout history
     data.forEach((entry: any) => {
-      const rpe = entry.overallRPE || entry.intensity || 5;
+      const rpe = toLoggedEffort(entry.overallRPE)
+        ?? toLoggedEffort(entry.rpe)
+        ?? toLoggedEffort(entry.intensity);
+      if (rpe === null) return;
       if (rpe <= 3) zones['Easy (1-3)']++;
       else if (rpe <= 6) zones['Moderate (4-6)']++;
       else if (rpe <= 8) zones['Hard (7-8)']++;
       else zones['Max Effort (9-10)']++;
     });
-    const total = Object.values(zones).reduce((s, v) => s + v, 0) || 1;
+    const total = Object.values(zones).reduce((s, v) => s + v, 0);
+    if (total === 0) return [];
     return Object.entries(zones).map(([zone, count]) => ({
       zone, count, percentage: (count / total) * 100, color: colors[zone],
     }));
@@ -681,10 +691,10 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
 
   const processSessionIntensity = (workoutHistory: any[]): SessionIntensityDataPoint[] => {
     if (!workoutHistory || workoutHistory.length === 0) return [];
-    return workoutHistory.filter((e: any) => e.duration && e.intensity).map((entry: any) => ({
+    return workoutHistory.filter((e: any) => e.duration && toLoggedEffort(e.intensity) !== null).map((entry: any) => ({
       date: entry.date || entry.completedAt || '',
       duration: entry.duration || 0,
-      intensity: entry.intensity || 5,
+      intensity: toLoggedEffort(entry.intensity) ?? 0,
       totalVolume: entry.totalVolume || 0,
       sessionTitle: entry.title,
     }));
