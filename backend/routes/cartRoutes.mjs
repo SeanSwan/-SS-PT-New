@@ -41,6 +41,19 @@ const sendInternalError = (res, message) => res.status(500).json({
   error: INTERNAL_ERROR
 });
 
+const toCartErrorMetadata = (error, fallbackCode = 'cart_internal_error') => ({
+  errorName: error?.name || 'Error',
+  errorCode: error?.code || error?.type || fallbackCode
+});
+
+const logCartError = (message, error, req, metadata = {}) => {
+  logger.error(message, {
+    userId: req?.authUserId,
+    ...metadata,
+    ...toCartErrorMetadata(error)
+  });
+};
+
 const parsePositiveInteger = (value) => {
   if (typeof value === 'number') {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -86,7 +99,7 @@ const getSafeStorefrontAttributes = async (StorefrontItem) => {
     }
   } catch (error) {
     logger.warn('[Cart] Could not resolve storefront table columns. Falling back to minimal attributes.', {
-      message: error.message
+      ...toCartErrorMetadata(error, 'cart_storefront_columns_unavailable')
     });
     cachedSafeStorefrontAttributes = ['id', 'name', 'price'];
   }
@@ -104,8 +117,10 @@ const validatePurchaseRole = (req, res, next) => {
     });
   }
   
-  // Log user role for debugging
-  console.log(`Cart access by user ${req.user.id} with role: ${req.user.role}`);
+  logger.debug('[Cart] Access approved', {
+    userId: req.authUserId,
+    role: req.user.role
+  });
   
   // Allow access for all authenticated users
   next();
@@ -122,9 +137,11 @@ const checkUserRoleUpgrade = async (user, cartItems) => {
     });
     
     if (hasTrainingPackages) {
-      console.log(`Upgrading user ${user.id} from 'user' to 'client' role`);
       const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       await User.update({ role: 'client' }, { where: { id: user.id } });
+      logger.info('[Cart] User role upgraded after training package detection', {
+        userId: user.id
+      });
       return true;
     }
   }
@@ -140,7 +157,9 @@ if (isStripeEnabled()) {
     });
     logger.info('Stripe client initialized successfully.');
   } catch (error) {
-      logger.error(`Failed to initialize Stripe: ${error.message}`);
+      logger.error('[Cart] Failed to initialize Stripe client', {
+        ...toCartErrorMetadata(error, 'cart_stripe_init_failed')
+      });
       // stripeClient remains null
   }
 } else {
@@ -162,7 +181,9 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
     
     // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
-    console.log('🔍 ENHANCED DEBUG: Cart GET - Coordinated association status:', hasAssociation);
+    logger.debug('[Cart] Storefront association status', {
+      hasStorefrontAssociation: hasAssociation
+    });
     
     // Find or create the user's active cart with schema-drift recovery.
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
@@ -176,23 +197,16 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
       logger
     });
 
-    // 🚀 ENHANCED DEBUG: Log the coordinated query results
-    console.log('🔍 ENHANCED DEBUG: Cart items found:', cartItems.length);
-    if (cartItems.length > 0) {
-      const firstItem = cartItems[0];
-      console.log('🔍 ENHANCED DEBUG: First item StorefrontItem data:', {
-        hasStorefrontItem: !!firstItem.storefrontItem,
-        storefrontItemId: firstItem.storefrontItemId,
-        sessions: firstItem.storefrontItem?.sessions,
-        totalSessions: firstItem.storefrontItem?.totalSessions,
-        name: firstItem.storefrontItem?.name
-      });
-    }
+    logger.debug('[Cart] Loaded active cart items', {
+      cartId: cart.id,
+      itemCount: cartItems.length,
+      itemsWithStorefrontData: cartItems.filter((item) => item.storefrontItem).length
+    });
 
     // Calculate cart total using helper (with session tracking preparation)
     const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cartItems);
     
-    console.log('🔍 ENHANCED DEBUG: Calculated totals:', {
+    logger.debug('[Cart] Calculated active cart totals', {
       cartTotal,
       totalSessions,
       itemCount: cartItems.length
@@ -207,8 +221,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
       itemCount: cartItems.length
     });
   } catch (error) {
-    console.error('🚨 ENHANCED ERROR in cart GET:', error);
-    logger.error('Error fetching cart:', error);
+    logCartError('[Cart] Failed to fetch cart', error, req);
     return sendInternalError(res, 'Failed to fetch shopping cart');
   }
 });
@@ -229,9 +242,6 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
     
     const { storefrontItemId, quantity = 1 } = req.body;
     
-    console.log('Cart add request body:', req.body);
-    console.log('User:', req.user?.username, 'Role:', req.user?.role);
-
     const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);
     const normalizedQuantity = parsePositiveInteger(quantity);
 
@@ -249,6 +259,13 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
 
+    logger.debug('[Cart] Add item request accepted', {
+      userId: req.authUserId,
+      role: req.user.role,
+      storefrontItemId: normalizedStorefrontItemId,
+      quantity: normalizedQuantity
+    });
+
     // 🚀 ENHANCED: Using coordinated model imports
     // Get the storefront item to check price
     const storeFrontItem = await StorefrontItem.findByPk(normalizedStorefrontItemId);
@@ -259,7 +276,10 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       });
     }
     
-    console.log(`User ${req.user.username} (${req.user.role}) adding item ${storeFrontItem.name} to cart`);
+    logger.debug('[Cart] Adding storefront item to active cart', {
+      userId: req.authUserId,
+      storefrontItemId: normalizedStorefrontItemId
+    });
 
     // Find or create the user's active cart with schema-drift recovery.
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
@@ -306,16 +326,10 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       logger
     });
     
-    logger.info('🔗 P0 DEBUG: Cart items after ADD operation', {
+    logger.debug('[Cart] Items after add operation', {
       cartId: cart.id,
       itemCount: updatedCartItems.length,
-      itemsWithStorefrontData: updatedCartItems.filter(item => item.storefrontItem).length,
-      sampleStorefrontData: updatedCartItems[0]?.storefrontItem ? {
-        id: updatedCartItems[0].storefrontItem.id,
-        name: updatedCartItems[0].storefrontItem.name,
-        sessions: updatedCartItems[0].storefrontItem.sessions,
-        totalSessions: updatedCartItems[0].storefrontItem.totalSessions
-      } : 'No storefront data'
+      itemsWithStorefrontData: updatedCartItems.filter(item => item.storefrontItem).length
     });
 
     // Check if user role should be upgraded
@@ -324,10 +338,15 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       const user = await User.findByPk(req.authUserId);
       userRoleUpgraded = await checkUserRoleUpgrade(user, updatedCartItems);
       if (userRoleUpgraded) {
-        console.log(`User ${req.user.username} role upgraded from user to client`);
+        logger.info('[Cart] User role upgraded after cart add', {
+          userId: req.authUserId
+        });
       }
     } catch (roleUpgradeError) {
-      console.error('Error checking user role upgrade:', roleUpgradeError);
+      logger.warn('[Cart] Role upgrade check failed', {
+        userId: req.authUserId,
+        ...toCartErrorMetadata(roleUpgradeError, 'cart_role_upgrade_failed')
+      });
       // Don't fail the request if role upgrade fails
     }
 
@@ -350,7 +369,7 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async 
       userRoleUpgrade: userRoleUpgraded // Inform frontend about role upgrade
     });
   } catch (error) {
-    logger.error('Error adding item to cart:', error);
+    logCartError('[Cart] Failed to add item to cart', error, req);
     return sendInternalError(res, 'Failed to add item to cart');
   }
 });
@@ -447,7 +466,7 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
       itemCount: updatedCartItems.length
     });
   } catch (error) {
-    logger.error('Error updating cart item:', error);
+    logCartError('[Cart] Failed to update cart item', error, req);
     return sendInternalError(res, 'Failed to update cart item');
   }
 });
@@ -535,7 +554,7 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
       itemCount: updatedCartItems.length
     });
   } catch (error) {
-    logger.error('Error removing item from cart:', error);
+    logCartError('[Cart] Failed to remove item from cart', error, req);
     return sendInternalError(res, 'Failed to remove item from cart');
   }
 });
@@ -590,7 +609,7 @@ router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, as
       itemCount: 0
     });
   } catch (error) {
-    logger.error('Error clearing cart:', error);
+    logCartError('[Cart] Failed to clear cart', error, req);
     return sendInternalError(res, 'Failed to clear cart');
   }
 });
@@ -618,10 +637,14 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
     
-    console.log('Creating checkout session for user:', req.authUserId);
+    logger.debug('[Cart] Creating checkout session', {
+      userId: req.authUserId
+    });
     
     // 🚀 ENHANCED: Verify coordinated associations status
-    console.log('🔍 ENHANCED DEBUG: CHECKOUT - Coordinated association status:', !!CartItem.associations?.storefrontItem);
+    logger.debug('[Cart] Checkout association status', {
+      hasStorefrontAssociation: !!CartItem.associations?.storefrontItem
+    });
     
     // Find the user's active cart with all related items using the correct alias "cartItems"
     const cart = await ShoppingCart.findOne({
@@ -654,7 +677,10 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
       });
     }
 
-    console.log(`Found cart with ${cart.cartItems.length} items`);
+    logger.debug('[Cart] Loaded checkout cart items', {
+      cartId: cart.id,
+      itemCount: cart.cartItems.length
+    });
 
     // Calculate cart total for metadata using helper
     const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cart.cartItems);
@@ -680,7 +706,6 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
 
     // Default frontend URL if environment variable isn't set
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    console.log(`Using frontend URL: ${frontendUrl}`);
 
     // Retrieve user record for Stripe customer creation
     const userRecord = await User.findByPk(req.authUserId);
@@ -698,7 +723,10 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
         const customer = await stripeClient.customers.retrieve(customerId);
         customerId = customer.id;
       } catch (err) {
-        console.log('Previous customer ID invalid, creating new customer');
+        logger.warn('[Cart] Stored Stripe customer ID rejected; creating replacement', {
+          userId: req.authUserId,
+          ...toCartErrorMetadata(err, 'cart_stripe_customer_rejected')
+        });
         customerId = null;
       }
     }
@@ -714,7 +742,10 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
       customerId = customer.id;
       // Update user record asynchronously (non-blocking)
       User.update({ stripeCustomerId: customerId }, { where: { id: userRecord.id } })
-        .catch(err => logger.error('Failed to update user with Stripe customer ID:', err));
+        .catch((err) => logger.error('[Cart] Failed to persist Stripe customer ID', {
+          userId: userRecord.id,
+          ...toCartErrorMetadata(err, 'cart_stripe_customer_persist_failed')
+        }));
     }
 
     const retryWindowStartMs = getStripeRetryWindowStart();
@@ -755,7 +786,10 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
     };
 
     const session = await stripeClient.checkout.sessions.create(sessionOptions, { idempotencyKey });
-    logger.info('Stripe session created:', session.id);
+    logger.info('[Cart] Stripe checkout session created', {
+      userId: req.authUserId,
+      cartId: cart.id
+    });
 
     // Update cart with checkout session ID for reference
     await cart.update({
@@ -770,7 +804,9 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
       sessionId: session.id
     });
   } catch (error) {
-    logger.error('Error creating checkout session:', error);
+    logCartError('[Cart] Failed to create checkout session', error, req, {
+      stripeErrorType: error.type || 'none'
+    });
     let errorMessage = 'Failed to create checkout session. Please try again.';
     let statusCode = 500;
     
@@ -836,7 +872,9 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    logger.error(`Webhook signature verification failed: ${err.message}`);
+    logger.error('[Webhook] Signature verification failed', {
+      ...toCartErrorMetadata(err, 'cart_webhook_signature_failed')
+    });
     return res.status(400).send('Webhook Error: Signature verification failed');
   }
   
@@ -863,9 +901,16 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
             const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook');
 
             if (result.granted) {
-              logger.info(`[Webhook] Sessions granted for cart ${cartId} (User: ${userId}), added ${result.sessionsAdded}`);
+              logger.info('[Webhook] Sessions granted for cart', {
+                cartId: normalizedCartId,
+                userId: normalizedUserId,
+                sessionsAdded: result.sessionsAdded
+              });
             } else {
-              logger.info(`[Webhook] Cart ${cartId} already processed (idempotent)`);
+              logger.info('[Webhook] Cart already processed', {
+                cartId: normalizedCartId,
+                userId: normalizedUserId
+              });
             }
           }
         }
@@ -883,7 +928,9 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
             { checkoutSessionExpired: true },
             { where: { id: normalizedCartId } }
           );
-          logger.info(`[Webhook] Checkout session expired for cart ${cartId}`);
+          logger.info('[Webhook] Checkout session expired for cart', {
+            cartId: normalizedCartId
+          });
         } else if (cartId) {
           logger.warn('[Webhook] Ignoring expired checkout with invalid cart metadata');
         }
@@ -894,7 +941,9 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     res.json({ received: true });
   } catch (err) {
     // Return 5xx so Stripe retries the webhook (prevents lost credits)
-    logger.error(`[Webhook] Processing error: ${err.message}`);
+    logger.error('[Webhook] Processing error', {
+      ...toCartErrorMetadata(err, 'cart_webhook_processing_failed')
+    });
     res.status(500).send('Webhook processing error');
   }
 });

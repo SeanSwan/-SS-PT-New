@@ -36,6 +36,17 @@ describe('cart routes security hardening', () => {
     expect(cartRouteSource).not.toContain('Webhook processing error: ${err.message}');
   });
 
+  it('keeps the mounted cart revenue path free of raw debug and exception logging', () => {
+    expect(cartRouteSource).toContain('const toCartErrorMetadata =');
+    expect(cartRouteSource).not.toMatch(/\bconsole\.(log|error|warn)\(/);
+    expect(cartRouteSource).not.toContain('Cart add request body:');
+    expect(cartRouteSource).not.toContain('req.user?.username');
+    expect(cartRouteSource).not.toContain('req.user.username');
+    expect(cartRouteSource).not.toContain('error.message');
+    expect(cartRouteSource).not.toContain('err.message');
+    expect(cartRouteSource).not.toContain("logger.info('Stripe session created:', session.id)");
+  });
+
   it('strictly parses cart mutation IDs and quantities before model calls', () => {
     const addRoute = sliceBetween(
       cartRouteSource,
