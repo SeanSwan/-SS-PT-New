@@ -40,9 +40,11 @@ describe('useCurrentWorkout auth pipeline', () => {
     });
   });
 
-  it('is consumed by mounted workout builder routes backed by mounted workout APIs', () => {
-    expect(layoutSource).toContain("const WorkoutPlanBuilder = React.lazy(() => import('../Admin/WorkoutPlanBuilder'))");
-    expect(layoutSource).toContain("{ path: '/workouts/:clientId?', component: WorkoutPlanBuilder");
+  it('keeps legacy admin workout routes redirected while current-workout API remains mounted', () => {
+    expect(layoutSource).not.toContain("import('../Admin/WorkoutPlanBuilder')");
+    expect(layoutSource).toContain('const AdminWorkoutPlansRedirect');
+    expect(layoutSource).toContain("{ path: '/workouts/:clientId?', component: AdminWorkoutPlansRedirect");
+    expect(layoutSource).toContain("`/dashboard/admin/workout-planner?${params.toString()}`");
     expect(coreRoutes).toContain("app.use('/api/workouts', clientWorkoutRoutes)");
   });
 
