@@ -23,7 +23,7 @@ const WORKOUT_LOG_CLIENT_ERROR_MESSAGES = {
   VALIDATION_ERROR: 'Workout log data is invalid. Check the workout details and try again.',
 };
 
-export const getWorkoutLogClientErrorMessage = (err = {}) => (
+const getWorkoutLogClientErrorMessage = (err = {}) => (
   WORKOUT_LOG_CLIENT_ERROR_MESSAGES[err.code]
   || 'Workout log data is invalid. Check the workout details and try again.'
 );

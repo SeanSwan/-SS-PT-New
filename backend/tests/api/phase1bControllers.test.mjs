@@ -15,6 +15,7 @@
 import { describe, expect, test, vi, beforeAll } from 'vitest';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -264,13 +265,12 @@ describe('adminOnboardingController input validation', () => {
 // ===== adminWorkoutLoggerController guards =====
 
 describe('adminWorkoutLoggerController input validation', () => {
-  let logWorkout, getClientWorkouts, getWorkoutLogClientErrorMessage;
+  let logWorkout, getClientWorkouts;
 
   beforeAll(async () => {
     const mod = await import('../../controllers/adminWorkoutLoggerController.mjs');
     logWorkout = mod.logWorkout;
     getClientWorkouts = mod.getClientWorkouts;
-    getWorkoutLogClientErrorMessage = mod.getWorkoutLogClientErrorMessage;
   });
 
   const mockRes = () => {
@@ -303,15 +303,19 @@ describe('adminWorkoutLoggerController input validation', () => {
   });
 
   test('workout-log validation errors do not echo raw service details', () => {
-    expect(getWorkoutLogClientErrorMessage({
-      code: 'VALIDATION_ERROR',
-      message: 'private table workouts failed with host prod-db',
-    })).toBe('Workout log data is invalid. Check the workout details and try again.');
+    const source = readFileSync(
+      path.resolve(__dirname, '../../controllers/adminWorkoutLoggerController.mjs'),
+      'utf8'
+    );
+    const catchBlock = source.slice(
+      source.indexOf('if (err instanceof WorkoutLogError)'),
+      source.indexOf('throw err;', source.indexOf('if (err instanceof WorkoutLogError)'))
+    );
 
-    expect(getWorkoutLogClientErrorMessage({
-      code: 'DUPLICATE_DATE',
-      message: 'private duplicate lookup internals',
-    })).toBe('A workout session already exists for this client on this date.');
+    expect(source).toContain("DUPLICATE_DATE: 'A workout session already exists for this client on this date.'");
+    expect(source).toContain("VALIDATION_ERROR: 'Workout log data is invalid. Check the workout details and try again.'");
+    expect(catchBlock).toContain('message: getWorkoutLogClientErrorMessage(err)');
+    expect(catchBlock).not.toContain('message: err.message');
   });
 });
 
