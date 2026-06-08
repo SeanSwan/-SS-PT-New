@@ -88,6 +88,13 @@ export function isExpectedMissionConsoleNoise(message: string) {
     return true;
   }
 
+  if (
+    process.env.SWAN_MISSION_QA_MODE === 'contract'
+    && /http:\/\/(?:localhost|127\.0\.0\.1):10000\/socket\.io\/\?[^)\s'"]*transport=polling/i.test(message)
+  ) {
+    return true;
+  }
+
   // In production read-only smoke, Chromium reports Socket.IO polling cleanup
   // as a generic resource 400 without the URL in the console message.
   if (

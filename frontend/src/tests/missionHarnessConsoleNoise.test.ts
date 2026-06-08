@@ -15,6 +15,23 @@ describe('mission console noise filtering', () => {
     expect(isExpectedMissionConsoleNoise('Failed to load resource: net::ERR_CONNECTION_FAILED')).toBe(false);
   });
 
+  it('treats local Socket.IO polling CORS as contract mission noise on alternate frontend ports', () => {
+    const originalMode = process.env.SWAN_MISSION_QA_MODE;
+    process.env.SWAN_MISSION_QA_MODE = 'contract';
+
+    try {
+      expect(isExpectedMissionConsoleNoise(
+        "Access to XMLHttpRequest at 'http://localhost:10000/socket.io/?EIO=4&transport=polling&t=abc' "
+          + "from origin 'http://localhost:5183' has been blocked by CORS policy."
+      )).toBe(true);
+      expect(isExpectedMissionConsoleNoise(
+        "Failed to load resource: net::ERR_FAILED (http://localhost:10000/socket.io/?EIO=4&transport=polling&t=abc)"
+      )).toBe(true);
+    } finally {
+      process.env.SWAN_MISSION_QA_MODE = originalMode;
+    }
+  });
+
   it('treats Render Socket.IO polling cleanup as production read-only mission noise when Chromium includes the URL', () => {
     const originalMode = process.env.SWAN_MISSION_QA_MODE;
     process.env.SWAN_MISSION_QA_MODE = 'prod-readonly';
