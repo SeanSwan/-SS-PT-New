@@ -14,6 +14,12 @@ const PREP_PATTERN = /\b(warm[-\s]?up|warmup|prep|activation|mobility|corrective
 const RECOVERY_PATTERN = /\b(cool[-\s]?down|cooldown|recovery|rest day|active recovery|stretch|flexibility|mobility|deload)\b/i;
 const HIGH_INTENSITY_PATTERN = /\b(85|90|95|100|high|maximal|power)\b/i;
 
+interface PlanScheduleCoverage {
+  durationWeeks: number;
+  detailedWeekCount: number;
+  hasDetailedSchedule: boolean;
+}
+
 function getPlanDays(plan: GeneratedPlan): GeneratedPlanWeekDay[] {
   const weekDays = (plan.weeks ?? []).flatMap((week) => {
     if (Array.isArray(week.days) && week.days.length > 0) return week.days;
@@ -94,81 +100,136 @@ function dominantFocusWarning(days: GeneratedPlanWeekDay[]): GeneratedPlanQualit
   };
 }
 
-export function getGeneratedPlanQualityWarnings(plan: GeneratedPlan): GeneratedPlanQualityWarning[] {
-  const days = getPlanDays(plan);
-  const text = planText(plan, days);
-  const warnings: GeneratedPlanQualityWarning[] = [];
+const populatedWeekDays = (week: NonNullable<GeneratedPlan['weeks']>[number]) => {
+  if (Array.isArray(week.days) && week.days.length > 0) return week.days;
+  if (Array.isArray(week.sessions)) return week.sessions;
+  return [];
+};
 
-  const hasDetailedSchedule = (plan.weeks ?? []).some((week) => {
-    const weekDays = Array.isArray(week.days) && week.days.length > 0 ? week.days : week.sessions;
-    return Array.isArray(weekDays) && weekDays.some((day) => day.exercises.length > 0);
-  });
-  const detailedWeekCount = (plan.weeks ?? []).filter((week) => {
-    const weekDays = Array.isArray(week.days) && week.days.length > 0 ? week.days : week.sessions;
-    return Array.isArray(weekDays) && weekDays.some((day) => day.exercises.length > 0);
-  }).length;
-  const durationWeeks = Number(plan.planSummary.durationWeeks) || 0;
+const weekHasPopulatedExercises = (week: NonNullable<GeneratedPlan['weeks']>[number]) => (
+  populatedWeekDays(week).some((day) => day.exercises.length > 0)
+);
 
-  if (durationWeeks > 1 && !hasDetailedSchedule) {
-    warnings.push({
+const planScheduleCoverage = (plan: GeneratedPlan): PlanScheduleCoverage => {
+  const detailedWeekCount = (plan.weeks ?? []).filter(weekHasPopulatedExercises).length;
+  return {
+    durationWeeks: Number(plan.planSummary.durationWeeks) || 0,
+    detailedWeekCount,
+    hasDetailedSchedule: detailedWeekCount > 0,
+  };
+};
+
+const scheduleCoverageWarning = ({
+  durationWeeks,
+  detailedWeekCount,
+  hasDetailedSchedule,
+}: PlanScheduleCoverage): GeneratedPlanQualityWarning | null => {
+  if (durationWeeks <= 1) return null;
+  if (!hasDetailedSchedule) {
+    return {
       id: 'missing-detailed-schedule',
       label: 'Detailed schedule missing',
       detail: 'This plan only has the weekly summary. Generate or attach populated week/day exercises before saving a client-facing arc.',
-    });
-  } else if (durationWeeks > 1 && detailedWeekCount < durationWeeks) {
-    warnings.push({
-      id: 'incomplete-detailed-schedule',
-      label: 'Detailed schedule incomplete',
-      detail: `${detailedWeekCount}/${durationWeeks} weeks include populated exercises. Fill the full arc before saving it as the client plan of record.`,
-    });
+    };
   }
+  if (detailedWeekCount >= durationWeeks) return null;
+  return {
+    id: 'incomplete-detailed-schedule',
+    label: 'Detailed schedule incomplete',
+    detail: `${detailedWeekCount}/${durationWeeks} weeks include populated exercises. Fill the full arc before saving it as the client plan of record.`,
+  };
+};
 
-  if (!PREP_PATTERN.test(text)) {
-    warnings.push({
-      id: 'missing-prep-cue',
-      label: 'Warmup/prep cue missing',
-      detail: 'Add mobility, activation, or corrective prep so the first exercise is not the first client instruction.',
-    });
-  }
+const missingPrepWarning = (text: string): GeneratedPlanQualityWarning | null => {
+  if (PREP_PATTERN.test(text)) return null;
+  return {
+    id: 'missing-prep-cue',
+    label: 'Warmup/prep cue missing',
+    detail: 'Add mobility, activation, or corrective prep so the first exercise is not the first client instruction.',
+  };
+};
 
+const missingRecoveryWarning = (hasRecoveryCue: boolean): GeneratedPlanQualityWarning | null => {
+  if (hasRecoveryCue) return null;
+  return {
+    id: 'missing-recovery-cue',
+    label: 'Cooldown/recovery cue missing',
+    detail: 'Add cooldown, flexibility, active recovery, or rest guidance so the plan closes the session safely.',
+  };
+};
+
+const planHasDeload = (plan: GeneratedPlan) => (
+  plan.mesocycles.some((block) => Boolean(block.deloadWeek))
+);
+
+const missingDeloadWarning = (
+  plan: GeneratedPlan,
+  durationWeeks: number,
+  hasRecoveryCue: boolean,
+): GeneratedPlanQualityWarning | null => {
+  if (durationWeeks < 8) return null;
+  if (planHasDeload(plan)) return null;
+  if (hasRecoveryCue) return null;
+  return {
+    id: 'missing-deload-checkpoint',
+    label: 'Deload checkpoint missing',
+    detail: 'Long-horizon plans need an explicit deload, recovery, or reassessment checkpoint before the client sees the full arc.',
+  };
+};
+
+const allBlocksHighIntensity = (plan: GeneratedPlan) => (
+  plan.mesocycles.length > 0
+    && plan.mesocycles.every((block) => HIGH_INTENSITY_PATTERN.test(`${block.phaseName} ${block.focus} ${block.params.intensity}`))
+);
+
+const highIntensityRecoveryWarning = (
+  plan: GeneratedPlan,
+  durationWeeks: number,
+  hasRecoveryCue: boolean,
+): GeneratedPlanQualityWarning | null => {
+  if (durationWeeks < 4) return null;
+  if (!allBlocksHighIntensity(plan)) return null;
+  if (hasRecoveryCue) return null;
+  return {
+    id: 'high-intensity-without-recovery',
+    label: 'Intensity recovery mismatch',
+    detail: 'Every training block reads high intensity, but no recovery cue is visible. Add recovery structure before assigning.',
+  };
+};
+
+const hasVisibleRationale = (plan: GeneratedPlan) => {
+  if ((plan.rationale ?? []).length > 0) return true;
+  return (plan.recommendationDetails ?? []).length > 0;
+};
+
+const missingRationaleWarning = (plan: GeneratedPlan): GeneratedPlanQualityWarning | null => {
+  if (hasVisibleRationale(plan)) return null;
+  return {
+    id: 'missing-rationale',
+    label: 'Rationale missing',
+    detail: 'Add or regenerate Swan Coach rationale so the trainer can explain why this plan fits the client.',
+  };
+};
+
+const presentWarnings = (
+  warnings: Array<GeneratedPlanQualityWarning | null>,
+): GeneratedPlanQualityWarning[] => (
+  warnings.filter((warning): warning is GeneratedPlanQualityWarning => Boolean(warning))
+);
+
+export function getGeneratedPlanQualityWarnings(plan: GeneratedPlan): GeneratedPlanQualityWarning[] {
+  const days = getPlanDays(plan);
+  const text = planText(plan, days);
+  const coverage = planScheduleCoverage(plan);
   const hasRecoveryCue = RECOVERY_PATTERN.test(text);
-  if (!hasRecoveryCue) {
-    warnings.push({
-      id: 'missing-recovery-cue',
-      label: 'Cooldown/recovery cue missing',
-      detail: 'Add cooldown, flexibility, active recovery, or rest guidance so the plan closes the session safely.',
-    });
-  }
 
-  const repeatedFocus = dominantFocusWarning(days);
-  if (repeatedFocus) warnings.push(repeatedFocus);
-
-  const hasDeload = plan.mesocycles.some((block) => Boolean(block.deloadWeek));
-  if (durationWeeks >= 8 && !hasDeload && !hasRecoveryCue) {
-    warnings.push({
-      id: 'missing-deload-checkpoint',
-      label: 'Deload checkpoint missing',
-      detail: 'Long-horizon plans need an explicit deload, recovery, or reassessment checkpoint before the client sees the full arc.',
-    });
-  }
-
-  const allBlocksHighIntensity = plan.mesocycles.length > 0
-    && plan.mesocycles.every((block) => HIGH_INTENSITY_PATTERN.test(`${block.phaseName} ${block.focus} ${block.params.intensity}`));
-  if (durationWeeks >= 4 && allBlocksHighIntensity && !hasRecoveryCue) {
-    warnings.push({
-      id: 'high-intensity-without-recovery',
-      label: 'Intensity recovery mismatch',
-      detail: 'Every training block reads high intensity, but no recovery cue is visible. Add recovery structure before assigning.',
-    });
-  }
-
-  if ((plan.rationale ?? []).length === 0 && (plan.recommendationDetails ?? []).length === 0) {
-    warnings.push({
-      id: 'missing-rationale',
-      label: 'Rationale missing',
-      detail: 'Add or regenerate Swan Coach rationale so the trainer can explain why this plan fits the client.',
-    });
-  }
-
-  return warnings;
+  return presentWarnings([
+    scheduleCoverageWarning(coverage),
+    missingPrepWarning(text),
+    missingRecoveryWarning(hasRecoveryCue),
+    dominantFocusWarning(days),
+    missingDeloadWarning(plan, coverage.durationWeeks, hasRecoveryCue),
+    highIntensityRecoveryWarning(plan, coverage.durationWeeks, hasRecoveryCue),
+    missingRationaleWarning(plan),
+  ]);
 }
