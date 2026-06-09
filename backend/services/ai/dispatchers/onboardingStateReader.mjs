@@ -8,18 +8,22 @@
 
 import { getAllModels } from '../../../models/index.mjs';
 
+const latestQuestionnaireQuery = (clientId) => ({
+  where: { userId: clientId },
+  order: [['createdAt', 'DESC']],
+});
+
+const latestBaselineQuery = (clientId) => ({
+  where: { userId: clientId },
+  order: [['takenAt', 'DESC']],
+});
+
 export const readLatestOnboardingState = async ({ clientId, models = getAllModels() }) => {
   const { ClientOnboardingQuestionnaire, ClientBaselineMeasurements } = models;
 
   const [questionnaire, baseline] = await Promise.all([
-    ClientOnboardingQuestionnaire.findOne({
-      where: { userId: clientId },
-      order: [['createdAt', 'DESC']],
-    }),
-    ClientBaselineMeasurements.findOne({
-      where: { userId: clientId },
-      order: [['takenAt', 'DESC']],
-    }),
+    ClientOnboardingQuestionnaire.findOne(latestQuestionnaireQuery(clientId)),
+    ClientBaselineMeasurements.findOne(latestBaselineQuery(clientId)),
   ]);
 
   return { questionnaire, baseline };

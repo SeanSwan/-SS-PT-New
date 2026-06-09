@@ -21,6 +21,8 @@ describe('clientOnboardingController regression after helper extraction', () => 
   let onboardingBaselineDispatcherExists;
   let onboardingStatusDispatcherSource;
   let onboardingStatusDispatcherExists;
+  let onboardingSubmitDispatcherSource;
+  let onboardingSubmitDispatcherExists;
   let onboardingQuestionsDispatcherSource;
   let onboardingStateReaderSource;
   let onboardingStateReaderExists;
@@ -75,6 +77,15 @@ describe('clientOnboardingController regression after helper extraction', () => 
       'dispatchers',
       'onboardingQuestionsDispatcher.mjs'
     );
+    const onboardingSubmitDispatcherPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'dispatchers',
+      'onboardingSubmitDispatcher.mjs'
+    );
     const onboardingStateReaderPath = path.resolve(
       __dirname,
       '..',
@@ -96,6 +107,10 @@ describe('clientOnboardingController regression after helper extraction', () => 
       ? fs.readFileSync(onboardingStatusDispatcherPath, 'utf-8')
       : '';
     onboardingQuestionsDispatcherSource = fs.readFileSync(onboardingQuestionsDispatcherPath, 'utf-8');
+    onboardingSubmitDispatcherExists = fs.existsSync(onboardingSubmitDispatcherPath);
+    onboardingSubmitDispatcherSource = onboardingSubmitDispatcherExists
+      ? fs.readFileSync(onboardingSubmitDispatcherPath, 'utf-8')
+      : '';
     onboardingStateReaderExists = fs.existsSync(onboardingStateReaderPath);
     onboardingStateReaderSource = onboardingStateReaderExists
       ? fs.readFileSync(onboardingStateReaderPath, 'utf-8')
@@ -188,6 +203,16 @@ describe('clientOnboardingController regression after helper extraction', () => 
     expect(onboardingStatusDispatcherSource).toContain('readLatestOnboardingState');
     expect(onboardingQuestionsDispatcherSource).toContain('readLatestOnboardingState');
     expect(onboardingStateReaderSource).toContain('export const readLatestOnboardingState');
+  });
+
+  test('Coach submit onboarding dispatcher lives outside the central command dispatcher', () => {
+    expect(onboardingSubmitDispatcherExists).toBe(true);
+    expect(commandDispatcherSource).toContain(
+      "from './dispatchers/onboardingSubmitDispatcher.mjs'"
+    );
+    expect(commandDispatcherSource).not.toContain('const dispatchSubmitOnboarding = async');
+    expect(onboardingSubmitDispatcherSource).toContain('export const dispatchSubmitOnboarding');
+    expect(onboardingSubmitDispatcherSource).toContain('transformQuestionnaireToMasterPrompt');
   });
 
   test('baseline measurement service preserves the current create payload contract', async () => {
