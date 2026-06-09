@@ -277,7 +277,7 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     order: 10,
     status: 'real',
     section: 'business',
-    route: '/dashboard/revenue',
+    route: '/dashboard/admin/revenue',
     description: 'Track revenue streams and financial metrics',
   },
   {
@@ -285,9 +285,9 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     label: 'Pending Orders',
     icon: 'CreditCard',
     order: 11,
-    status: 'error',
+    status: 'real',
     section: 'business',
-    route: '/dashboard/pending-orders',
+    route: '/dashboard/admin/pending-orders',
     description: 'Manage manual payments and pending orders',
     notification: 3,
   },
@@ -551,6 +551,7 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
 
   // ── BUSINESS — revenue, growth, engagement ──
   { id: 'store', section: 'business', label: 'Store & Revenue', icon: 'DollarSign', prefix: '/dashboard/admin/admin-packages', description: 'Orders and packages' },
+  { id: 'pending-orders', section: 'business', label: 'Pending Orders', icon: 'CreditCard', prefix: '/dashboard/admin/pending-orders', description: 'Manual payment recovery and order completion' },
   { id: 'analytics', section: 'business', label: 'Analytics', icon: 'BarChart3', prefix: '/dashboard/admin/revenue', description: 'Data analytics and insights' },
   { id: 'marketing', section: 'business', label: 'Marketing', icon: 'Megaphone', prefix: '/dashboard/admin/marketing', description: 'SEO, content marketing, and competitor analysis' },
   { id: 'gamification', section: 'business', label: 'Gamification', icon: 'Gamepad2', prefix: '/dashboard/admin/gamification', description: 'Achievements, badges & rewards' },

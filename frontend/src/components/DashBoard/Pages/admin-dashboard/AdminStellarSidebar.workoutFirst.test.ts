@@ -32,4 +32,19 @@ describe('AdminStellarSidebar workout-first navigation', () => {
     expect(workoutPlans?.route).toBe('/dashboard/admin/client-management?intent=plan_next');
     expect(ADMIN_DASHBOARD_TABS.map((tab) => tab.route)).not.toContain('/dashboard/admin/workouts');
   });
+
+  it('keeps manual payment recovery reachable from the active business nav', () => {
+    const businessItems = WORKSPACE_CONFIG.filter((item) => item.section === 'business');
+    const pendingOrders = businessItems.find((item) => item.id === 'pending-orders');
+    const deprecatedPendingOrders = ADMIN_DASHBOARD_TABS.find((tab) => tab.key === 'pending-orders');
+
+    expect(businessItems.map((item) => item.label).slice(0, 3)).toEqual([
+      'Store & Revenue',
+      'Pending Orders',
+      'Analytics',
+    ]);
+    expect(pendingOrders?.prefix).toBe('/dashboard/admin/pending-orders');
+    expect(deprecatedPendingOrders?.route).toBe('/dashboard/admin/pending-orders');
+    expect(deprecatedPendingOrders?.status).toBe('real');
+  });
 });

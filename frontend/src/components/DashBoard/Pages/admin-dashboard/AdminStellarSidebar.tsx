@@ -51,7 +51,7 @@ import GlobalClientSelector from '../../../Shared/GlobalClientSelector';
 import { WORKSPACE_CONFIG, WORKSPACE_SECTIONS, WorkspaceConfig, WorkspaceSection } from '../../../../config/dashboard-tabs';
 import {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
-  DollarSign, Video, BarChart3, Settings, Globe,
+  DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   ChevronRight, ChevronLeft, Menu, X, UserCircle, UsersRound,
   Flame, Wrench, MessageCircle, Palette, Megaphone, ShieldCheck, FileSignature,
   Mail, Heart, Apple, Sparkles, Home,
@@ -63,7 +63,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const iconMap: Record<string, React.ComponentType<any>> = {
   Shield, Users, Calendar, Dumbbell, Gamepad2,
-  DollarSign, Video, BarChart3, Settings, Globe,
+  DollarSign, CreditCard, Video, BarChart3, Settings, Globe,
   Flame, Wrench, MessageCircle, Megaphone, ShieldCheck, FileSignature,
   Mail, Heart, Apple, Sparkles, Home,
 };
