@@ -9,7 +9,11 @@
  * - Return safe summary rows; no writes and no LLM prompt construction happens here.
  */
 
-import { normalizeOnboardingQueueStatus } from '../utils/onboardingHelpers.mjs';
+import {
+  calculateCompletionPercentage,
+  normalizeJsonObject,
+  normalizeOnboardingQueueStatus,
+} from '../utils/onboardingHelpers.mjs';
 
 export const buildOnboardingQueueIncludes = ({
   ClientOnboardingQuestionnaire,
@@ -77,16 +81,18 @@ const buildPackageSummary = (packageName) => ({
   name: packageName || 'No Package',
 });
 
-const buildQuestionnaireSummary = (questionnaire) => (
-  questionnaire
-    ? {
-        status: questionnaire.status,
-        completionPercentage: questionnaire.completionPercentage || 0,
-        primaryGoal: questionnaire.primaryGoal,
-        createdAt: questionnaire.createdAt,
-      }
-    : null
-);
+const buildQuestionnaireSummary = (questionnaire) => {
+  if (!questionnaire) return null;
+
+  const responses = normalizeJsonObject(questionnaire.responsesJson) ?? {};
+
+  return {
+    status: questionnaire.status,
+    completionPercentage: calculateCompletionPercentage(responses),
+    primaryGoal: questionnaire.primaryGoal,
+    createdAt: questionnaire.createdAt,
+  };
+};
 
 const buildMovementScreenSummary = (baseline, movementStatus) => (
   baseline
