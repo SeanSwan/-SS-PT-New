@@ -63,6 +63,33 @@ export const getOnboardClientSourceMeta = (clientSource?: string | null): {
   return { source: 'swanstudios', label: 'SwanStudios (Paid)' };
 };
 
+export const getOnboardClientSessionSummary = (
+  clientSource?: string | null,
+  availableSessions?: number | null
+): { label: string; note: string } => {
+  const sourceMeta = getOnboardClientSourceMeta(clientSource);
+  if (sourceMeta.source !== 'swanstudios') {
+    return { label: 'free tracking', note: 'no deduction' };
+  }
+
+  const sessionCount = Number.isFinite(Number(availableSessions))
+    ? Math.max(0, Math.floor(Number(availableSessions)))
+    : 0;
+
+  return {
+    label: `${sessionCount} paid ${sessionCount === 1 ? 'session' : 'sessions'}`,
+    note: sessionCount <= 2 ? 'refill soon' : 'deducts when logged',
+  };
+};
+
+export const getOnboardClientAccountStatusLabel = (accountStatus?: string | null): string => {
+  const normalizedStatus = String(accountStatus || '').trim().toLowerCase();
+  if (normalizedStatus === 'stub') return 'Claim pending';
+  if (normalizedStatus === 'invited') return 'Invite sent';
+  if (normalizedStatus === 'active') return 'Active';
+  return 'Unknown';
+};
+
 interface OnboardResponse {
   success: boolean;
   message?: string;
@@ -75,6 +102,9 @@ interface OnboardResponse {
     temporaryPassword?: string;
     claimCode?: string;
     claimUrl?: string;
+    clientSource?: string | null;
+    availableSessions?: number | null;
+    accountStatus?: string | null;
   };
   data?: {
     client?: {
@@ -85,6 +115,9 @@ interface OnboardResponse {
       temporaryPassword?: string;
       claimCode?: string;
       claimUrl?: string;
+      clientSource?: string | null;
+      availableSessions?: number | null;
+      accountStatus?: string | null;
     };
     temporaryPassword?: string;
     claimCode?: string;
@@ -199,6 +232,14 @@ const FieldValue = styled.div`
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--text-primary, #E0ECF4);
   line-height: 1.4;
+`;
+
+const FieldNote = styled.span`
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-family: 'Sora', sans-serif;
+  color: var(--text-muted, rgba(224, 236, 244, 0.58));
 `;
 
 const NotesBox = styled.div`
@@ -356,6 +397,13 @@ const OnboardClientCard: React.FC<OnboardClientCardProps> = React.memo(({ action
   // Success state — show created client info
   if (status === 'success' && response?.client) {
     const c = response.client;
+    const successSourceMeta = getOnboardClientSourceMeta(c.clientSource ?? data.clientSource);
+    const sessionSummary = getOnboardClientSessionSummary(
+      c.clientSource ?? data.clientSource,
+      c.availableSessions ?? data.availableSessions
+    );
+    const accountStatusLabel = c.accountStatus ? getOnboardClientAccountStatusLabel(c.accountStatus) : null;
+
     return (
       <SuccessCard>
         <SuccessHeader>
@@ -371,6 +419,25 @@ const OnboardClientCard: React.FC<OnboardClientCardProps> = React.memo(({ action
             <FieldLabel>Client ID</FieldLabel>
             <FieldValue>#{c.id}</FieldValue>
           </Field>
+          <Field>
+            <FieldLabel>Source</FieldLabel>
+            <FieldValue>
+              <SourceBadge $source={successSourceMeta.source}>{successSourceMeta.label}</SourceBadge>
+            </FieldValue>
+          </Field>
+          <Field>
+            <FieldLabel>Session Policy</FieldLabel>
+            <FieldValue>
+              {sessionSummary.label}
+              <FieldNote>{sessionSummary.note}</FieldNote>
+            </FieldValue>
+          </Field>
+          {accountStatusLabel && (
+            <Field>
+              <FieldLabel>Account Status</FieldLabel>
+              <FieldValue>{accountStatusLabel}</FieldValue>
+            </Field>
+          )}
           {c.email && (
             <Field $full>
               <FieldLabel>Email</FieldLabel>

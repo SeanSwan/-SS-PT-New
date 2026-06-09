@@ -79,6 +79,17 @@ describe('client onboard route clientSource boundary', () => {
     );
   });
 
+  it('returns created client source, session inventory, and account status in the success payload', () => {
+    const responseBlock = routeSource.slice(
+      routeSource.indexOf('const responseData = {'),
+      routeSource.indexOf('temporaryPassword: tempPassword')
+    );
+
+    expect(responseBlock).toContain('clientSource: newUser.clientSource');
+    expect(responseBlock).toContain('availableSessions: newUser.availableSessions');
+    expect(responseBlock).toContain('accountStatus: newUser.accountStatus');
+  });
+
   it('sanitizes generated stub emails for names with spaces and punctuation', () => {
     expect(buildClientOnboardStubEmail({
       firstName: 'Mary Ann',

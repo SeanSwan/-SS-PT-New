@@ -312,6 +312,8 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         email: newUser.email,
         username: newUser.username,
         clientSource: newUser.clientSource,
+        availableSessions: newUser.availableSessions,
+        accountStatus: newUser.accountStatus,
         role: newUser.role,
       },
       temporaryPassword: tempPassword,
