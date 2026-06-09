@@ -131,10 +131,10 @@ export interface PDFExerciseSet {
   setNumber: number;
   weight: number;
   reps: number;
-  rpe: number;
+  rpe: number | null;
   tempo?: string;
   restTime: number;
-  formQuality: number;
+  formQuality: number | null;
   notes?: string;
 }
 
@@ -142,7 +142,7 @@ export interface PDFExerciseEntry {
   exerciseId: string;
   exerciseName: string;
   sets: PDFExerciseSet[];
-  formRating: number;
+  formRating: number | null;
   painLevel: number;
   performanceNotes?: string;
 }
