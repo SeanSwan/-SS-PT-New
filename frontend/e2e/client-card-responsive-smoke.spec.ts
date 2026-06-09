@@ -16,7 +16,10 @@ import {
   seedAuth,
   trainerUser,
 } from './client-card-responsive-smoke.fixtures';
-import { inspectNestedClientCardLayout } from './client-card-responsive-overlap';
+import {
+  inspectClientWorkspaceTopBar,
+  inspectNestedClientCardLayout,
+} from './client-card-responsive-overlap';
 
 const frameCardForScreenshot = async (page: Page, selector: string) => {
   await page.keyboard.press('Escape');
@@ -96,6 +99,7 @@ for (const viewport of responsiveViewports) {
     expect((await inspectClientSelectorDropdownSurface(page)).issues).toEqual([]);
     await page.keyboard.press('Escape');
     await page.locator('[role="listbox"][aria-label="Client list"]').waitFor({ state: 'hidden', timeout: 1000 }).catch(() => undefined);
+    expect((await inspectClientWorkspaceTopBar(page)).issues).toEqual([]);
     expect((await inspectActivationQueueMobileFootprint(page)).issues).toEqual([]);
 
     const layout = await inspectCardLayout(page);

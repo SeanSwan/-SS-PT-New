@@ -40,7 +40,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
   const selectedClientName = selectedClient ? getClientDisplayName(selectedClient) : '';
 
   return (
-    <TopBar>
+    <TopBar data-swan-client-workspace-topbar>
       <ClientSelectorDropdown
         clients={clients}
         selectedId={selectedClient?.id ?? null}
@@ -48,7 +48,7 @@ const ClientsWorkspaceTopBar: React.FC<ClientsWorkspaceTopBarProps> = ({
         onNewClient={onNewClient}
         loading={loading}
       />
-      <TopBarActions>
+      <TopBarActions data-swan-client-workspace-actions>
           {!selectedClient && (
             <>
               <ActionBtn

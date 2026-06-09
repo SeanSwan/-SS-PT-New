@@ -40,3 +40,31 @@ export async function inspectNestedClientCardLayout(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectClientWorkspaceTopBar(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 520) return { issues };
+
+    const topbar = document.querySelector<HTMLElement>('[data-swan-client-workspace-topbar]');
+    const actions = document.querySelector<HTMLElement>('[data-swan-client-workspace-actions]');
+    const selector = topbar?.querySelector<HTMLElement>('[aria-haspopup="listbox"]');
+    if (!topbar || !actions || !selector) return { issues: ['missing client workspace top bar'] };
+
+    const topbarRect = topbar.getBoundingClientRect();
+    const selectorRect = selector.getBoundingClientRect();
+    if (topbarRect.height > 112) issues.push(`client workspace top bar is ${Math.round(topbarRect.height)}px tall`);
+    if (selectorRect.height > 50) issues.push(`client selector compact height is ${Math.round(selectorRect.height)}px`);
+    if (topbar.scrollWidth > topbar.clientWidth + 12) issues.push('client workspace top bar has horizontal overflow');
+
+    Array.from(actions.querySelectorAll<HTMLElement>('button')).forEach((button) => {
+      const rect = button.getBoundingClientRect();
+      if (rect.width < 43 || rect.height < 43) {
+        const label = button.getAttribute('aria-label') || button.textContent?.trim() || 'top action';
+        issues.push(`${label} top action touch target is ${Math.round(rect.width)}x${Math.round(rect.height)}`);
+      }
+    });
+
+    return { issues };
+  });
+}

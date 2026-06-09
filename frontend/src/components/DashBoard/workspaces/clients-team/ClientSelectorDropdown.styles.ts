@@ -5,6 +5,10 @@ export const SelectorWrap = styled.div`
   position: relative;
   width: 100%;
   max-width: 480px;
+
+  @media (max-width: 520px) {
+    max-width: none;
+  }
 `;
 
 export const SelectorButton = styled.button<{ $hasSelection: boolean }>`
@@ -31,6 +35,14 @@ export const SelectorButton = styled.button<{ $hasSelection: boolean }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 2px;
   }
+
+  @media (max-width: 520px) {
+    gap: 8px;
+    min-height: 44px;
+    padding: 7px 12px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
 `;
 
 export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
@@ -51,6 +63,12 @@ export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
   font-weight: 700;
   color: var(--button-text, #FFFFFF);
   flex-shrink: 0;
+
+  @media (max-width: 520px) {
+    width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
 `;
 
 export const SelectionInfo = styled.div`

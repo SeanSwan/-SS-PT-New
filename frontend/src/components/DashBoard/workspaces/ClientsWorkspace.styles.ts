@@ -39,6 +39,11 @@ export const TopBar = styled.div`
     padding: 10px 12px;
     gap: 8px;
   }
+
+  @media (max-width: 520px) {
+    padding: 6px 10px 4px;
+    gap: 6px;
+  }
 `;
 
 export const TopBarActions = styled.div`
@@ -52,6 +57,19 @@ export const TopBarActions = styled.div`
   @media (max-width: 768px) {
     width: 100%;
     margin-left: 0;
+  }
+
+  @media (max-width: 520px) {
+    gap: 6px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 `;
 
@@ -108,6 +126,16 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
     span {
       display: none;
     }
+  }
+
+  @media (max-width: 520px) {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    flex: 0 0 44px;
+    justify-content: center;
+    border-radius: 11px;
   }
 `;
 
