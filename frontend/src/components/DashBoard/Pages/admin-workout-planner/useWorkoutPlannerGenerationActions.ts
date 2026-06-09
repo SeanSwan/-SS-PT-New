@@ -10,30 +10,30 @@ import { logApiError } from '../../../../utils/logApiError';
 import type { WorkoutPlannerBuilderExplanation } from './WorkoutPlannerBuilderPanel';
 import type {
   GeneratedPlan,
-  GeneratedWorkout,
   PlanDuration,
   PlanExercise,
   PlanGoal,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import {
+  buildPlanGenerationRequest,
+  buildWorkoutGenerationRequest,
+  generatedWorkoutSafetyWarning,
+  getGeneratedPlanSafetyWarning,
+  isSwanCoachPlanningPayload,
+  mapGeneratedWorkoutToPlanExercises,
+  planGenerationErrorMessage,
+  readGeneratedPlan,
+  readGeneratedWorkout,
+  unverifiedPlanMessage,
+  unverifiedWorkoutMessage,
+  workoutGenerationErrorMessage,
+} from './workoutPlannerGenerationActions.helpers';
+import type { GeneratedWorkoutPayload } from './workoutPlannerGenerationActions.helpers';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
 
 interface PlannerAuthClient {
   post: (url: string, body?: unknown) => Promise<{ data?: unknown }>;
-}
-
-interface GeneratedWorkoutResponse {
-  success?: boolean;
-  workout?: GeneratedWorkout & {
-    context?: {
-      criticalDataUnavailable?: boolean;
-    };
-  };
-}
-
-interface GeneratedPlanResponse {
-  success?: boolean;
-  plan?: GeneratedPlan;
 }
 
 interface WorkoutPlannerGenerationActionsInput {
@@ -51,33 +51,128 @@ interface WorkoutPlannerGenerationActionsInput {
   resetLoadedPlanState: () => void;
 }
 
-const parseRestSeconds = (rest: unknown) => {
-  if (typeof rest === 'number') return rest;
-  const restText = String(rest || '60').toLowerCase();
-  if (restText.includes('min')) return (parseInt(restText, 10) || 3) * 60;
-  return parseInt(restText.replace(/[^0-9]/g, ''), 10) || 60;
+interface WorkoutApplicationInput {
+  workout: GeneratedWorkoutPayload;
+  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
+  setExplanations: Dispatch<SetStateAction<WorkoutPlannerBuilderExplanation[]>>;
+  setPhaseNumber: Dispatch<SetStateAction<number>>;
+  setPlanExercises: Dispatch<SetStateAction<PlanExercise[]>>;
+  setShowExplanations: Dispatch<SetStateAction<boolean>>;
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
+  resetLoadedPlanState: () => void;
+}
+
+interface PlanApplicationInput {
+  plan: GeneratedPlan;
+  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
+  setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
+}
+
+interface VerifiedPlanApplicationInput {
+  data: unknown;
+  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
+  setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
+}
+
+const canGenerateHorizonPlan = (
+  selectedClientId: number | null,
+  planDuration: PlanDuration,
+): selectedClientId is number => Boolean(selectedClientId) && planDuration !== 'single';
+
+const verifiedGeneratedWorkout = (
+  data: unknown,
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
+): GeneratedWorkoutPayload | null => {
+  const workout = readGeneratedWorkout(data);
+  if (!workout) return null;
+  if (isSwanCoachPlanningPayload(workout)) return workout;
+  setStatusMsg(unverifiedWorkoutMessage());
+  return null;
 };
 
-const getGeneratedPlanSafetyWarning = (plan: GeneratedPlan) => {
-  const structuredWarning = plan.recommendationDetails?.find(
-    detail => detail.type === 'safety_warning'
-  );
-  if (structuredWarning?.text) return structuredWarning.text;
-
-  return plan.recommendations.find(recommendation => {
-    const lower = recommendation.toLowerCase();
-    return lower.includes('pain') && lower.includes('injury') && lower.includes('could not be loaded');
-  });
+const verifiedGeneratedPlan = (
+  data: unknown,
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
+): GeneratedPlan | null => {
+  const plan = readGeneratedPlan(data);
+  if (!plan) return null;
+  if (isSwanCoachPlanningPayload(plan)) return plan;
+  setStatusMsg(unverifiedPlanMessage());
+  return null;
 };
 
-const isSwanCoachPlanningPayload = (value: unknown) => {
-  if (!value || typeof value !== 'object') return false;
-  const payload = value as {
-    planningSystem?: unknown;
-    swanCoachPlanning?: { createdBy?: unknown } | null;
-  };
-  return payload.planningSystem === 'swan_coach_planning'
-    && payload.swanCoachPlanning?.createdBy === 'swan_coach_planning';
+const applyGeneratedWorkoutDegradedState = (
+  workout: GeneratedWorkoutPayload,
+  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>,
+  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>,
+) => {
+  const isDegraded = workout.context?.criticalDataUnavailable === true;
+  setDegradedIntelligence(isDegraded);
+  if (!isDegraded) return;
+  setStatusMsg({ type: 'error', text: generatedWorkoutSafetyWarning(workout) });
+};
+
+const applyGeneratedWorkoutPhase = (
+  workout: GeneratedWorkoutPayload,
+  setPhaseNumber: Dispatch<SetStateAction<number>>,
+) => {
+  if (!workout.nasmPhase) return;
+  setPhaseNumber(workout.nasmPhase);
+};
+
+const applyGeneratedWorkoutExplanations = (
+  workout: GeneratedWorkoutPayload,
+  setExplanations: Dispatch<SetStateAction<WorkoutPlannerBuilderExplanation[]>>,
+  setShowExplanations: Dispatch<SetStateAction<boolean>>,
+) => {
+  const explanations = workout.explanations ?? [];
+  if (explanations.length === 0) return;
+  setExplanations(explanations);
+  setShowExplanations(true);
+};
+
+const applyGeneratedWorkout = ({
+  workout,
+  setDegradedIntelligence,
+  setExplanations,
+  setPhaseNumber,
+  setPlanExercises,
+  setShowExplanations,
+  setStatusMsg,
+  resetLoadedPlanState,
+}: WorkoutApplicationInput) => {
+  applyGeneratedWorkoutDegradedState(workout, setDegradedIntelligence, setStatusMsg);
+  applyGeneratedWorkoutPhase(workout, setPhaseNumber);
+  setPlanExercises(mapGeneratedWorkoutToPlanExercises(workout));
+  resetLoadedPlanState();
+  applyGeneratedWorkoutExplanations(workout, setExplanations, setShowExplanations);
+};
+
+const applyGeneratedPlan = ({
+  plan,
+  setDegradedIntelligence,
+  setGeneratedPlan,
+  setStatusMsg,
+}: PlanApplicationInput) => {
+  const safetyWarning = getGeneratedPlanSafetyWarning(plan);
+  setDegradedIntelligence(Boolean(safetyWarning));
+  setGeneratedPlan(plan);
+  setStatusMsg(safetyWarning
+    ? { type: 'error', text: safetyWarning }
+    : { type: 'success', text: `${plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
+};
+
+const applyVerifiedGeneratedPlan = ({
+  data,
+  setDegradedIntelligence,
+  setGeneratedPlan,
+  setStatusMsg,
+}: VerifiedPlanApplicationInput) => {
+  const plan = verifiedGeneratedPlan(data, setStatusMsg);
+  if (!plan) return;
+  applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
 };
 
 export const useWorkoutPlannerGenerationActions = ({
@@ -116,88 +211,36 @@ export const useWorkoutPlannerGenerationActions = ({
     setExplanations([]);
     setShowExplanations(false);
     try {
-      const res = await authAxios.post('/api/workout-builder/generate', {
-        clientId: selectedClientId,
+      const res = await authAxios.post('/api/workout-builder/generate', buildWorkoutGenerationRequest({
+        selectedClientId,
         category,
-        exerciseCount: 6,
-        rotationPattern: 'standard',
-        primaryGoal: goal,
-        nasmPhase: phaseNumber,
-        ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
-      });
-      const data = res.data as GeneratedWorkoutResponse | undefined;
-      if (data?.success && data.workout) {
-        const workout = data.workout;
-        if (!isSwanCoachPlanningPayload(workout)) {
-          setStatusMsg({
-            type: 'error',
-            text: 'Swan Coach Planning did not verify this workout. Regenerate before assigning.',
-          });
-          return;
-        }
-        const isDegraded = workout.context?.criticalDataUnavailable === true;
-        setDegradedIntelligence(isDegraded);
-        if (isDegraded) {
-          const safetyWarning = workout.explanations?.find(
-            (explanation) => explanation.type === 'safety_warning'
-          );
-          setStatusMsg({
-            type: 'error',
-            text: safetyWarning?.message || 'Pain/injury data unavailable - review this workout carefully before assigning.',
-          });
-        }
-
-        if (workout.nasmPhase) setPhaseNumber(workout.nasmPhase);
-        const generated: PlanExercise[] = workout.exercises.map((exercise, index) => ({
-          id: `gen-${index}-${Date.now()}`,
-          exerciseSlim: {
-            id: exercise.exerciseKey,
-            name: exercise.exerciseName,
-            exerciseKey: exercise.exerciseKey,
-            exerciseType: exercise.category || 'compound',
-            bodyPartCategory: exercise.muscles?.[0] || 'Full Body',
-            primaryMuscles: exercise.muscles || [],
-            difficulty: 300,
-          },
-          sets: exercise.sets,
-          reps: String(exercise.reps),
-          tempo: exercise.tempo,
-          restSeconds: parseRestSeconds(exercise.rest),
-          intensityPercent: typeof exercise.intensity === 'number'
-            ? exercise.intensity
-            : (parseInt(String(exercise.intensity).replace(/[^0-9]/g, ''), 10) || 70),
-          notes: exercise.recommendedWeightMin
-            ? `Recommended: ${exercise.recommendedWeightMin}-${exercise.recommendedWeightMax} lbs (based on ${exercise.basedOn1RM} lb 1RM)`
-            : '',
-        }));
-        setPlanExercises(generated);
-        resetLoadedPlanState();
-
-        if (workout.explanations && workout.explanations.length > 0) {
-          setExplanations(workout.explanations);
-          setShowExplanations(true);
-        }
+        goal,
+        phaseNumber,
+        selectedEquipmentProfileId,
+      }));
+      const workout = verifiedGeneratedWorkout(res.data, setStatusMsg);
+      if (workout) {
+        applyGeneratedWorkout({
+          workout,
+          setDegradedIntelligence,
+          setExplanations,
+          setPhaseNumber,
+          setPlanExercises,
+          setShowExplanations,
+          setStatusMsg,
+          resetLoadedPlanState,
+        });
       }
     } catch (err: unknown) {
       logApiError('Swan Coach workout generation failed', err);
-      const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
-      const specificMsg = errData?.details || errData?.error;
-      if (specificMsg?.includes('client context unavailable')) {
-        setStatusMsg({ type: 'error', text: 'Unable to generate workout: Client data could not be loaded. Verify the client has an active profile with pain entries and equipment profile.' });
-      } else if (specificMsg?.includes('equipment')) {
-        setStatusMsg({ type: 'error', text: `Unable to generate workout: ${specificMsg}. Please verify the client's equipment profile.` });
-      } else if (specificMsg) {
-        setStatusMsg({ type: 'error', text: `Workout generation failed: ${specificMsg}` });
-      } else {
-        setStatusMsg({ type: 'error', text: 'Swan Coach generation failed. Check client data and try again.' });
-      }
+      setStatusMsg(workoutGenerationErrorMessage(err));
     } finally {
       setGenerating(false);
     }
   }, [authAxios, category, goal, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
-    if (!selectedClientId || planDuration === 'single') return;
+    if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
     setGeneratingPlan(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
@@ -205,36 +248,23 @@ export const useWorkoutPlannerGenerationActions = ({
     setPlanExercises([]);
     resetLoadedPlanState();
     try {
-      const res = await authAxios.post('/api/workout-builder/plan', {
-        clientId: selectedClientId,
-        durationWeeks: Number(planDuration),
+      const res = await authAxios.post('/api/workout-builder/plan', buildPlanGenerationRequest({
+        selectedClientId,
+        goal,
+        phaseNumber,
+        planDuration,
         sessionsPerWeek,
-        primaryGoal: goal,
-        startingPhaseOverride: phaseNumber,
-        ...(selectedEquipmentProfileId ? { equipmentProfileId: selectedEquipmentProfileId } : {}),
+        selectedEquipmentProfileId,
+      }));
+      applyVerifiedGeneratedPlan({
+        data: res.data,
+        setDegradedIntelligence,
+        setGeneratedPlan,
+        setStatusMsg,
       });
-      const data = res.data as GeneratedPlanResponse | undefined;
-      if (data?.success && data.plan) {
-        if (!isSwanCoachPlanningPayload(data.plan)) {
-          setStatusMsg({
-            type: 'error',
-            text: 'Swan Coach Planning did not verify this plan. Regenerate before saving.',
-          });
-          return;
-        }
-        const safetyWarning = getGeneratedPlanSafetyWarning(data.plan);
-        const isDegraded = Boolean(safetyWarning);
-        setDegradedIntelligence(isDegraded);
-        setGeneratedPlan(data.plan);
-        setStatusMsg(safetyWarning
-          ? { type: 'error', text: safetyWarning }
-          : { type: 'success', text: `${data.plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
-      }
     } catch (err: unknown) {
       logApiError('Plan generation failed', err);
-      const errData = (err as { response?: { data?: { error?: string; details?: string } } })?.response?.data;
-      const specificMsg = errData?.details || errData?.error;
-      setStatusMsg({ type: 'error', text: specificMsg ? `Plan generation failed: ${specificMsg}` : 'Failed to generate training plan. Check client data and try again.' });
+      setStatusMsg(planGenerationErrorMessage(err));
     } finally {
       setGeneratingPlan(false);
     }

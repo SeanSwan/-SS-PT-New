@@ -8,6 +8,8 @@ const read = (fileName: string) =>
 const pageSource = read('WorkoutPlannerPage.tsx');
 const hookPath = resolve(__dirname, 'useWorkoutPlannerGenerationActions.ts');
 const hookSource = existsSync(hookPath) ? readFileSync(hookPath, 'utf8') : '';
+const helpersPath = resolve(__dirname, 'workoutPlannerGenerationActions.helpers.ts');
+const helpersSource = existsSync(helpersPath) ? readFileSync(helpersPath, 'utf8') : '';
 
 describe('WorkoutPlanner generation action extraction', () => {
   it('keeps Swan Coach workout and horizon generation outside the page shell', () => {
@@ -21,10 +23,18 @@ describe('WorkoutPlanner generation action extraction', () => {
     expect(hookSource).toContain('/api/workout-builder/generate');
     expect(hookSource).toContain('/api/workout-builder/plan');
     expect(hookSource).toContain('resetLoadedPlanState');
-    expect(hookSource).toContain('setGeneratedPlan(data.plan)');
+    expect(hookSource).toContain('setGeneratedPlan(plan)');
     expect(hookSource).toContain('handleSwanCoachWorkoutGenerate');
     expect(hookSource).not.toContain('handleAIGenerate');
     expect(hookSource).not.toContain('AI generation failed');
     expect(hookSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
+  });
+
+  it('keeps generation payload mapping and errors in helpers', () => {
+    expect(helpersSource).toContain('mapGeneratedWorkoutToPlanExercises');
+    expect(helpersSource).toContain('workoutGenerationErrorMessage');
+    expect(helpersSource).toContain('planGenerationErrorMessage');
+    expect(helpersSource).toContain('isSwanCoachPlanningPayload');
+    expect(hookSource).toContain("from './workoutPlannerGenerationActions.helpers'");
   });
 });
