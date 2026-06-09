@@ -777,11 +777,48 @@ class AdminClientController {
 
       // Retired bridge decommissioned; stats are fetched from local DB only.
       const mcpStats = {};
+      const clientData = client.toJSON();
+      let onboardingProgressMap = {};
+
+      if (ClientOnboardingQuestionnaire?.findAll) {
+        try {
+          const questionnaires = await ClientOnboardingQuestionnaire.findAll({
+            attributes: ['userId', 'status', 'responsesJson', 'completedAt', 'createdAt', 'updatedAt'],
+            where: {
+              userId: { [Op.in]: [client.id] },
+              status: { [Op.ne]: 'archived' }
+            },
+            order: [
+              ['userId', 'ASC'],
+              ['updatedAt', 'DESC'],
+              ['createdAt', 'DESC']
+            ],
+            raw: true
+          });
+          onboardingProgressMap = buildOnboardingProgressMap(questionnaires);
+        } catch (metricError) {
+          logger.warn(`Client detail onboarding progress unavailable: ${metricError.message}`);
+        }
+      }
+
+      const onboardingProgress = onboardingProgressMap[client.id] || null;
+      const onboardingComplete = clientData.isOnboardingComplete === true ||
+        clientData.masterPromptJson != null ||
+        onboardingProgress?.onboardingComplete === true;
+      const onboardingPct = Number.isInteger(onboardingProgress?.completionPercentage)
+        ? onboardingProgress.completionPercentage
+        : onboardingComplete ? 100 : null;
 
       return res.status(200).json({
         success: true,
         data: {
-          client: client.toJSON(),
+          client: {
+            ...clientData,
+            onboardingComplete,
+            completionPercentage: onboardingPct,
+            onboardingCompletionPercentage: onboardingPct,
+            onboardingPct
+          },
           mcpStats
         }
       });

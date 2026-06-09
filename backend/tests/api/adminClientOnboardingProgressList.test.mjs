@@ -30,7 +30,8 @@ const mocks = vi.hoisted(() => {
 
   const userModel = {
     associations: {},
-    findAndCountAll: vi.fn()
+    findAndCountAll: vi.fn(),
+    findOne: vi.fn()
   };
   const questionnaireModel = { findAll: vi.fn() };
 
@@ -135,6 +136,7 @@ describe('admin client list onboarding progress', () => {
       count: 1,
       rows: [mocks.clientRow]
     });
+    mocks.userModel.findOne.mockResolvedValue(mocks.clientRow);
     mocks.questionnaireModel.findAll.mockResolvedValue([
       {
         userId: 42,
@@ -158,6 +160,27 @@ describe('admin client list onboarding progress', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(mocks.questionnaireModel.findAll).toHaveBeenCalledTimes(1);
     expect(res.body.data.clients[0]).toMatchObject({
+      id: 42,
+      onboardingComplete: false,
+      completionPercentage: 20,
+      onboardingCompletionPercentage: 20,
+      onboardingPct: 20
+    });
+  });
+
+  it('derives partial questionnaire progress for the Client Hub detail payload', async () => {
+    const res = buildResponse();
+
+    await adminClientController.getClientDetails(
+      { params: { clientId: '42' } },
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(mocks.questionnaireModel.findAll).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: expect.any(Object) })
+    }));
+    expect(res.body.data.client).toMatchObject({
       id: 42,
       onboardingComplete: false,
       completionPercentage: 20,
