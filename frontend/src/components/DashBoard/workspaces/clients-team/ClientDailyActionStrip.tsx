@@ -45,6 +45,13 @@ const Strip = styled.section`
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
+
+  @media (max-width: 520px) {
+    gap: 8px;
+    padding: 10px 12px 12px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+  }
 `;
 
 const CopyBlock = styled.div`
@@ -74,6 +81,10 @@ const Title = styled.h3`
   @media (max-width: 560px) {
     font-size: 17px;
   }
+
+  @media (max-width: 520px) {
+    display: none;
+  }
 `;
 
 const DetailLine = styled.div`
@@ -84,6 +95,12 @@ const DetailLine = styled.div`
   color: var(--text-muted, rgba(224, 236, 244, 0.82));
   font-family: 'Sora', sans-serif;
   font-size: 13px;
+
+  @media (max-width: 520px) {
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 12px;
+  }
 `;
 
 const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
@@ -100,6 +117,11 @@ const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
   }};
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
   white-space: nowrap;
+
+  @media (max-width: 520px) {
+    min-height: 26px;
+    padding: 3px 8px;
+  }
 `;
 
 const MetricStack = styled.span`
@@ -121,10 +143,12 @@ const ActionGroup = styled.div`
 
   @media (max-width: 640px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
   }
 
   @media (max-width: 420px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 `;
 
@@ -174,7 +198,7 @@ const CockpitButton = styled.button<{ $variant?: 'primary' }>`
 
   @media (max-width: 420px) {
     gap: 6px;
-    padding: 9px 8px;
+    padding: 8px 8px;
     font-size: 12px;
   }
 `;

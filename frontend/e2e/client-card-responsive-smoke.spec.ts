@@ -20,6 +20,7 @@ import {
   inspectClientDetailTabLabelFit,
   inspectClientWorkspaceTopBar,
   inspectNestedClientCardLayout,
+  inspectSelectedClientActionStripFootprint,
 } from './client-card-responsive-overlap';
 
 const frameCardForScreenshot = async (page: Page, selector: string) => {
@@ -132,6 +133,7 @@ for (const viewport of responsiveViewports) {
     expect(layout.overflowX, `detail horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
     expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
+    expect((await inspectSelectedClientActionStripFootprint(page)).issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await page.screenshot({ path: testInfo.outputPath(`admin-client-detail-biometrics-${viewport.name}.png`), fullPage: false });

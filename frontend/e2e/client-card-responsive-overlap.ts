@@ -89,3 +89,27 @@ export async function inspectClientDetailTabLabelFit(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectSelectedClientActionStripFootprint(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 520) return { issues };
+
+    const strip = document.querySelector<HTMLElement>('section[aria-label*="daily training actions"]');
+    if (!strip) return { issues: ['missing selected client daily action strip'] };
+
+    const rect = strip.getBoundingClientRect();
+    if (rect.height > 220) issues.push(`daily action strip is ${Math.round(rect.height)}px tall`);
+    if (strip.scrollWidth > strip.clientWidth + 12) issues.push('daily action strip has horizontal overflow');
+
+    Array.from(strip.querySelectorAll<HTMLElement>('button')).forEach((button) => {
+      const buttonRect = button.getBoundingClientRect();
+      if (buttonRect.width < 43 || buttonRect.height < 43) {
+        const label = button.getAttribute('aria-label') || button.textContent?.trim() || 'daily action';
+        issues.push(`${label} touch target is ${Math.round(buttonRect.width)}x${Math.round(buttonRect.height)}`);
+      }
+    });
+
+    return { issues };
+  });
+}
