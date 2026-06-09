@@ -57,6 +57,8 @@ import {
   SessionClient,
   SessionActions,
   SessionLogButton,
+  SessionsOverflow,
+  SessionsOverflowNote,
   SessionRow,
   SessionTime,
   StatusBadge,
@@ -70,6 +72,8 @@ const KPI_COLORS = [
   'var(--accent-gold, #C6A84B)',
   'var(--success, #22c55e)',
 ] as const;
+
+const MAX_TRAINER_HOME_SESSIONS = 5;
 
 export const TRAINER_HOME_QUICK_ACTIONS = [
   { label: 'Log Workout',     Icon: Dumbbell,  path: '/dashboard/trainer/clients?intent=log_workout', tone: 'var(--accent-primary, #60C0F0)',   i: 0 },
@@ -88,6 +92,8 @@ const TrainerHomeTab: React.FC = () => {
 
   const trainerName = user?.firstName ?? user?.username ?? 'Trainer';
   const level = profile.data?.level ?? 1;
+  const visibleSessions = sessions.slice(0, MAX_TRAINER_HOME_SESSIONS);
+  const hiddenSessionCount = Math.max(0, sessions.length - visibleSessions.length);
 
   const kpiData = [
     { value: loading ? '—' : stats.clientsToday,               label: 'Clients Today', Icon: Users,        color: KPI_COLORS[0] },
@@ -139,53 +145,70 @@ const TrainerHomeTab: React.FC = () => {
             </BookBtn>
           </EmptyState>
         ) : (
-          sessions.slice(0, 5).map(s => {
-            const startDate = getSessionStartDate(s);
-            const coachRoute = buildTrainerSessionCoachRoute(s);
-            const logRoute = buildTrainerSessionLogRoute(s);
-            const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
-            const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
+          <>
+            {visibleSessions.map(s => {
+              const startDate = getSessionStartDate(s);
+              const coachRoute = buildTrainerSessionCoachRoute(s);
+              const logRoute = buildTrainerSessionLogRoute(s);
+              const canLog = Boolean(logRoute && s.status !== 'completed' && s.status !== 'cancelled');
+              const canDictate = Boolean(coachRoute && s.status !== 'completed' && s.status !== 'cancelled');
 
-            return (
-              <SessionRow key={s.id}>
-                <div>
-                  <SessionClient>{getClientName(s)}</SessionClient>
-                  <SessionTime>
-                    {startDate
-                      ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : 'TBD'}
-                  </SessionTime>
-                </div>
-                <SessionActions>
-                  <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
-                  {canDictate && (
-                    <SessionLogButton
-                      type="button"
-                      onClick={() => {
-                        if (coachRoute) navigate(coachRoute);
-                      }}
-                      aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
-                    >
-                      <Brain size={14} aria-hidden="true" />
-                      Coach
-                    </SessionLogButton>
-                  )}
-                  {canLog && (
-                    <SessionLogButton
-                      type="button"
-                      onClick={() => {
-                        if (logRoute) navigate(logRoute);
-                      }}
-                      aria-label={`Log workout for ${getClientName(s)}`}
-                    >
-                      <Dumbbell size={14} aria-hidden="true" />
-                      Log
-                    </SessionLogButton>
-                  )}
-                </SessionActions>
-              </SessionRow>
-            );
-          })
+              return (
+                <SessionRow key={s.id}>
+                  <div>
+                    <SessionClient>{getClientName(s)}</SessionClient>
+                    <SessionTime>
+                      {startDate
+                        ? startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : 'TBD'}
+                    </SessionTime>
+                  </div>
+                  <SessionActions>
+                    <StatusBadge $status={s.status}>{s.status ?? 'upcoming'}</StatusBadge>
+                    {canDictate && (
+                      <SessionLogButton
+                        type="button"
+                        onClick={() => {
+                          if (coachRoute) navigate(coachRoute);
+                        }}
+                        aria-label={`Dictate workout with Swan Coach for ${getClientName(s)}`}
+                      >
+                        <Brain size={14} aria-hidden="true" />
+                        Coach
+                      </SessionLogButton>
+                    )}
+                    {canLog && (
+                      <SessionLogButton
+                        type="button"
+                        onClick={() => {
+                          if (logRoute) navigate(logRoute);
+                        }}
+                        aria-label={`Log workout for ${getClientName(s)}`}
+                      >
+                        <Dumbbell size={14} aria-hidden="true" />
+                        Log
+                      </SessionLogButton>
+                    )}
+                  </SessionActions>
+                </SessionRow>
+              );
+            })}
+            {hiddenSessionCount > 0 && (
+              <SessionsOverflow>
+                <SessionsOverflowNote>
+                  Showing {visibleSessions.length} of {sessions.length} sessions
+                </SessionsOverflowNote>
+                <BookBtn
+                  type="button"
+                  onClick={() => navigate('/dashboard/trainer/schedule')}
+                  aria-label={`View all ${sessions.length} sessions`}
+                >
+                  <Calendar size={15} aria-hidden="true" />
+                  View all {sessions.length} sessions
+                </BookBtn>
+              </SessionsOverflow>
+            )}
+          </>
         )}
       </SessionsCard>
 

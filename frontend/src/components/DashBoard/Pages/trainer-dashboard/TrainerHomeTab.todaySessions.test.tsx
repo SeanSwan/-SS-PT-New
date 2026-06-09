@@ -134,4 +134,41 @@ describe('TrainerHomeTab today session logging', () => {
     expect(url.searchParams.get('sourcePath')).toBe('/dashboard/trainer/schedule');
     expect(url.searchParams.get('returnTo')).toBe('/dashboard/trainer/overview');
   });
+
+  it('offers a one-tap schedule route when more than five sessions are hidden', async () => {
+    const sessions: TrainerSession[] = Array.from({ length: 6 }, (_, index) => ({
+      id: index + 1,
+      sessionDate: `2026-05-31T1${index}:00:00.000Z`,
+      duration: 45,
+      userId: index + 10,
+      client: {
+        id: index + 10,
+        firstName: `Client${index}`,
+        lastName: 'Today',
+      },
+      status: 'scheduled',
+    }));
+
+    mockedUseTrainerTodaySessions.mockReturnValue({
+      sessions,
+      loading: false,
+      error: null,
+      stats: {
+        clientsToday: 6,
+        sessionsToday: 6,
+        hoursLogged: 4.5,
+        completionRate: 0,
+      },
+    });
+
+    const user = userEvent.setup();
+    render(<TrainerHomeTab />);
+
+    expect(screen.getAllByRole('button', { name: /log workout for client/i })).toHaveLength(5);
+
+    const viewAllButton = screen.getByRole('button', { name: /view all 6 sessions/i });
+    await user.click(viewAllButton);
+
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/trainer/schedule');
+  });
 });

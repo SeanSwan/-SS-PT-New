@@ -171,6 +171,31 @@ export const EmptyState = styled.div`
   font-family: 'Sora', sans-serif;
 `;
 
+export const SessionsOverflow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.875rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
+
+  @media (max-width: 430px) {
+    align-items: stretch;
+    flex-direction: column;
+
+    button {
+      justify-content: center;
+    }
+  }
+`;
+
+export const SessionsOverflowNote = styled.span`
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.52));
+`;
+
 export const BookBtn = styled.button`
   display: inline-flex;
   align-items: center;
