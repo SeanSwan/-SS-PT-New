@@ -6,6 +6,7 @@
  */
 
 import { formatAssignmentContext } from './swanCoachPlanningAssignmentContextService.mjs';
+import { detectPii } from './ai/outputValidator.mjs';
 import {
   asArray,
   firstPresent,
@@ -33,7 +34,7 @@ function compactPlanContextText(value) {
 function safePlanContextText(value, fallback = '[filtered plan text]') {
   const cleaned = compactPlanContextText(value);
   if (!cleaned) return '';
-  return UNSAFE_PLAN_CONTEXT_TEXT.test(cleaned) ? fallback : cleaned;
+  return UNSAFE_PLAN_CONTEXT_TEXT.test(cleaned) || detectPii(cleaned) ? fallback : cleaned;
 }
 
 export function safePlanId(plan) {
