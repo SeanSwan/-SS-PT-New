@@ -27,9 +27,11 @@ describe('plaudIntakeService', () => {
   });
 
   it('models only list-safe queue metadata', () => {
-    expect(SRC).toMatch(/source:\s*'manual_upload'\s*\|\s*'applaud_webhook'\s*\|\s*'plaud_merge'/);
+    expect(SRC).toMatch(/source:\s*'manual_upload'\s*\|\s*'applaud_webhook'\s*\|\s*'applaud_local_sync'\s*\|\s*'plaud_merge'/);
     expect(SRC).toMatch(/needs_clarification/);
     expect(SRC).toMatch(/duplicate_hold/);
+    expect(SRC).toMatch(/playbackReady\?:\s*boolean/);
+    expect(SRC).toMatch(/playbackPath\?:\s*string\s*\|\s*null/);
     expect(SRC).not.toMatch(/transcript:/);
     expect(SRC).not.toMatch(/parsedWorkout:/);
   });

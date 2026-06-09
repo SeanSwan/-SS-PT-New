@@ -20,6 +20,7 @@ const QUEUE_STATUS_LABELS: Record<PlaudIntakeItem['queueStatus'], string> = {
 };
 
 const SOURCE_LABELS: Record<PlaudIntakeItem['source'], string> = {
+  applaud_local_sync: 'APPLAUD sync',
   applaud_webhook: 'Applaud',
   manual_upload: 'Manual upload',
   plaud_merge: 'PLAUD merge',
@@ -48,10 +49,13 @@ export function intakePreviewLabel(item: PlaudIntakeItem): string {
   return `Review ${formatPlaudSourceLabel(item.source)} intake, ${clientLabel}, ${formatPlaudQueueStatus(item.queueStatus)}`;
 }
 
-export function reviewableMergeTime(item: PlaudIntakeItem): number {
-  const value = item.recordedAt || item.timelineAt || item.createdAt;
+function parseSortableTime(value?: string | null): number {
   const parsed = Date.parse(value || '');
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+}
+
+function reviewableMergeTime(item: PlaudIntakeItem): number {
+  return parseSortableTime([item.recordedAt, item.timelineAt, item.createdAt].find(Boolean));
 }
 
 export function pickReviewNextMergeRequestId(items: PlaudIntakeItem[]): string | null {
@@ -73,27 +77,36 @@ export function visibleIntakePreviewItems(
   return selectedItem ? [selectedItem, ...firstItems.slice(0, 5)] : firstItems;
 }
 
+function withParams(baseHref: string, params: Record<string, string>): string {
+  const url = new URL(baseHref, 'https://swanstudios.local');
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) url.searchParams.set(key, value);
+  });
+  return `${url.pathname}${url.search}`;
+}
+
 export function plaudWorkspaceHref(role: PlaudDashboardRole, params: Record<string, string> = {}): string {
   const baseHref = role === 'admin'
     ? '/dashboard/admin/coach-assistant?workspace=plaud'
     : '/dashboard/trainer/plaud';
-  const [path, search = ''] = baseHref.split('?');
-  const searchParams = new URLSearchParams(search);
-  Object.entries(params).forEach(([key, value]) => {
-    if (value) searchParams.set(key, value);
-  });
-  const query = searchParams.toString();
-  return query ? `${path}?${query}` : path;
+  return withParams(baseHref, params);
 }
 
-export function intakePreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
-  if (item.kind === 'merge_request') {
-    return item.entityId
-      ? plaudWorkspaceHref(role, { mergeRequestId: item.entityId })
-      : plaudWorkspaceHref(role, { review: 'next' });
-  }
+function mergePreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
+  return item.entityId
+    ? plaudWorkspaceHref(role, { mergeRequestId: item.entityId })
+    : plaudWorkspaceHref(role, { review: 'next' });
+}
+
+function coachPreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
   const intakeId = String(item.entityId || item.id || '').replace(/^coach:/, '');
   return intakeId
     ? `/dashboard/${role}/coach-assistant?intake=${encodeURIComponent(intakeId)}`
     : `/dashboard/${role}/coach-assistant`;
+}
+
+export function intakePreviewHref(item: PlaudIntakeItem, role: PlaudDashboardRole): string {
+  return item.kind === 'merge_request'
+    ? mergePreviewHref(item, role)
+    : coachPreviewHref(item, role);
 }

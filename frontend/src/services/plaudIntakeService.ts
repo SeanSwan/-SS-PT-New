@@ -11,7 +11,7 @@ export interface PlaudIntakeItem {
   id: string;
   entityId: string;
   kind: 'clip' | 'merge_request';
-  source: 'manual_upload' | 'applaud_webhook' | 'plaud_merge';
+  source: 'manual_upload' | 'applaud_webhook' | 'applaud_local_sync' | 'plaud_merge';
   sourceLabel: string;
   queueStatus:
     | 'unprocessed'
@@ -39,6 +39,10 @@ export interface PlaudIntakeItem {
   durationSec?: number | null;
   sizeBytes?: number | null;
   mirrorStatus?: string | null;
+  r2MirrorStatus?: string | null;
+  mimetype?: string | null;
+  playbackReady?: boolean;
+  playbackPath?: string | null;
   cipherPurged?: boolean;
 }
 
@@ -69,14 +73,72 @@ export interface PlaudIntakeResponse {
   limit: number;
 }
 
+function emptyPlaudIntakeSummary(): PlaudIntakeSummary {
+  return {
+    total: 0,
+    actionable: 0,
+    today: 0,
+    unprocessed: 0,
+    processing: 0,
+    readyReview: 0,
+    needsClarification: 0,
+    duplicateHold: 0,
+    failed: 0,
+    needsClient: 0,
+  };
+}
+
+interface PlaudErrorMeta {
+  code?: string;
+  data?: { error?: { code?: string; message?: string } };
+  message?: string;
+  status: number;
+}
+
+function fallbackText(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value ? value : fallback;
+}
+
+function fallbackValue<T>(value: T | undefined | null, fallback: T): T {
+  return value || fallback;
+}
+
+function plaudErrorMeta(err: unknown): PlaudErrorMeta {
+  if (!isAxiosError(err)) return { status: 0 };
+  const data = err.response?.data as PlaudErrorMeta['data'] | undefined;
+  return {
+    code: data?.error?.code,
+    data,
+    message: data?.error?.message || err.message,
+    status: err.response?.status || 0,
+  };
+}
+
+function buildAxiosPlaudError(err: unknown, fallbackMessage: string): PlaudApiError {
+  const meta = plaudErrorMeta(err);
+  return new PlaudApiError(
+    fallbackText(meta.code, 'UNKNOWN'),
+    fallbackText(meta.message, fallbackMessage),
+    meta.status,
+    meta.data,
+  );
+}
+
 function unwrapError(err: unknown, fallbackMessage: string): never {
-  if (isAxiosError(err)) {
-    const data = err.response?.data as { error?: { code?: string; message?: string } } | undefined;
-    const code = data?.error?.code || 'UNKNOWN';
-    const message = data?.error?.message || err.message || fallbackMessage;
-    throw new PlaudApiError(code, message, err.response?.status || 0, data);
-  }
-  throw new PlaudApiError('UNKNOWN', fallbackMessage, 0);
+  throw buildAxiosPlaudError(err, fallbackMessage);
+}
+
+function normalizePlaudIntakeResponse(
+  data: ({ success: boolean } & PlaudIntakeResponse),
+  fallbackScope: string,
+  fallbackLimit: number,
+): PlaudIntakeResponse {
+  return {
+    items: fallbackValue(data.items, []),
+    summary: fallbackValue(data.summary, emptyPlaudIntakeSummary()),
+    scope: fallbackText(data.scope, fallbackScope),
+    limit: fallbackValue(data.limit, fallbackLimit),
+  };
 }
 
 export async function listPlaudIntakeItems({
@@ -90,26 +152,8 @@ export async function listPlaudIntakeItems({
     const { data } = await apiService.get<{ success: boolean } & PlaudIntakeResponse>('/api/plaud/intake', {
       params: { scope, limit },
     });
-    return {
-      items: data.items || [],
-      summary: data.summary || {
-        total: 0,
-        actionable: 0,
-        today: 0,
-        unprocessed: 0,
-        processing: 0,
-        readyReview: 0,
-        needsClarification: 0,
-        duplicateHold: 0,
-        failed: 0,
-        needsClient: 0,
-      },
-      scope: data.scope || scope,
-      limit: data.limit || limit,
-    };
+    return normalizePlaudIntakeResponse(data, scope, limit);
   } catch (err) {
     unwrapError(err, 'Failed to list PLAUD intake queue');
   }
 }
-
-export default { listPlaudIntakeItems };

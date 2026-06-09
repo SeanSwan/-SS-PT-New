@@ -10,12 +10,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  mapClipRowToIntakeItem,
-  mapMergeRowToIntakeItem,
-  summarizeIntakeItems,
-  listPlaudIntakeItems,
-} from '../../services/plaudIntakeQueueService.mjs';
+import { listPlaudIntakeItems } from '../../services/plaudIntakeQueueService.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,6 +27,20 @@ const SERVICE_SRC = readFileSync(
 const CORE_ROUTES = readFileSync(
   resolve(__dirname, '../../core/routes.mjs'), 'utf8',
 );
+
+const listWithRows = async (clipRows = [], mergeRows = [], options = {}) => {
+  const sequelizeOverride = {
+    query: vi.fn()
+      .mockResolvedValueOnce(clipRows)
+      .mockResolvedValueOnce(mergeRows),
+  };
+  const result = await listPlaudIntakeItems({
+    userId: 9,
+    sequelizeOverride,
+    ...options,
+  });
+  return { result, sequelizeOverride };
+};
 
 describe('Phase 6 Slice B — PLAUD intake route contract', () => {
   it('mounts GET /api/plaud/intake behind feature flag, auth, and role middleware', () => {
@@ -59,8 +68,8 @@ describe('Phase 6 Slice B — PLAUD intake route contract', () => {
 });
 
 describe('Phase 6 Slice B — PLAUD intake mapping', () => {
-  it('maps Applaud pending clips to unprocessed intake items', () => {
-    const item = mapClipRowToIntakeItem({
+  it('maps Applaud pending clips to unprocessed intake items', async () => {
+    const { result } = await listWithRows([{
       clip_id: '11111111-1111-1111-1111-111111111111',
       filename_original: 'session.mp3',
       mimetype: 'audio/mpeg',
@@ -74,7 +83,8 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
       client_first_name: 'Test',
       client_last_name: 'Client',
       clip_source: 'applaud_webhook',
-    });
+    }]);
+    const item = result.items[0];
 
     expect(item).toMatchObject({
       id: 'clip:11111111-1111-1111-1111-111111111111',
@@ -89,11 +99,16 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
       timelineAt: '2026-05-05T20:00:00.000Z',
       timelineAtSource: 'uploaded_at',
       recordedAt: null,
+      mimetype: 'audio/mpeg',
+      mirrorStatus: 'mirrored',
+      r2MirrorStatus: 'mirrored',
+      playbackReady: true,
+      playbackPath: '/api/plaud/clips/11111111-1111-1111-1111-111111111111/audio',
     });
   });
 
-  it('maps completed merge rows with cipher to ready-review items', () => {
-    const item = mapMergeRowToIntakeItem({
+  it('maps completed merge rows with cipher to ready-review items', async () => {
+    const { result } = await listWithRows([], [{
       merge_request_id: '22222222-2222-2222-2222-222222222222',
       status: 'completed',
       client_id: 7,
@@ -108,7 +123,8 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
       created_at: '2026-05-05T21:00:00.000Z',
       completed_at: '2026-05-05T21:01:00.000Z',
       expires_at: '2026-05-06T21:00:00.000Z',
-    });
+    }]);
+    const item = result.items[0];
 
     expect(item).toMatchObject({
       id: 'merge:22222222-2222-2222-2222-222222222222',
@@ -125,14 +141,50 @@ describe('Phase 6 Slice B — PLAUD intake mapping', () => {
     });
   });
 
-  it('summarizes queue blockers without treating archived rows as actionable', () => {
-    const summary = summarizeIntakeItems([
-      { queueStatus: 'unprocessed', needsClient: false },
-      { queueStatus: 'ready_review', needsClient: false },
-      { queueStatus: 'failed', needsClient: false },
-      { queueStatus: 'archived', needsClient: false },
-      { queueStatus: 'processing', needsClient: true },
-    ]);
+  it('summarizes queue blockers without treating archived rows as actionable', async () => {
+    const { result } = await listWithRows([
+      {
+        clip_id: '11111111-1111-1111-1111-111111111111',
+        status: 'pending_merge',
+        uploaded_at: '2026-05-05T20:00:00.000Z',
+        client_id: 1,
+        clip_source: 'manual_upload',
+      },
+      {
+        clip_id: '33333333-3333-3333-3333-333333333333',
+        status: 'lost',
+        uploaded_at: '2026-05-05T22:00:00.000Z',
+        client_id: 1,
+        clip_source: 'manual_upload',
+      },
+      {
+        clip_id: '44444444-4444-4444-4444-444444444444',
+        status: 'uploading',
+        uploaded_at: '2026-05-05T23:00:00.000Z',
+        client_id: null,
+        clip_source: 'manual_upload',
+      },
+    ], [
+      {
+        merge_request_id: '22222222-2222-2222-2222-222222222222',
+        status: 'completed',
+        client_id: 7,
+        clip_ids: ['a'],
+        has_cipher: true,
+        cipher_purged: false,
+        created_at: '2026-05-05T21:00:00.000Z',
+      },
+      {
+        merge_request_id: '55555555-5555-5555-5555-555555555555',
+        status: 'approved',
+        client_id: 7,
+        clip_ids: ['b'],
+        has_cipher: false,
+        cipher_purged: false,
+        created_at: '2026-05-05T21:30:00.000Z',
+      },
+    ], { scope: 'all' });
+    const { summary } = result;
 
     expect(summary).toMatchObject({
       total: 5,

@@ -6,25 +6,25 @@
 import { css } from 'styled-components';
 
 export const coachCommandResponsiveStyles = css`
-  @media (max-width: 1320px) {
-    .app-shell {
-      grid-template-columns: 260px minmax(0, 1fr) 286px;
-    }
-
-    .queue-summary,
-    .workflow-grid,
-    .dossier-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 1040px) {
+  @media (max-width: 1540px) {
     .app-shell {
       grid-template-columns: 232px minmax(0, 1fr);
     }
 
     .right-rail {
       display: none;
+    }
+  }
+
+  @media (max-width: 1320px) {
+    .app-shell {
+      grid-template-columns: 232px minmax(0, 1fr);
+    }
+
+    .queue-summary,
+    .workflow-grid,
+    .dossier-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 

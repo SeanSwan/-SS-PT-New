@@ -5,26 +5,15 @@
  */
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
-import type { CoachIntakeItem } from '../../../../services/coachIntakeService';
 import CoachIntakeActiveDossier from './CoachIntakeActiveDossier';
+import type { CoachIntakeActiveDossierProps } from './CoachIntakeActiveDossier.types';
 import { ItemCard, ItemTitle, SourceChip } from './CoachIntakeWorkspace.styles';
 
-interface CoachIntakeWorkspaceActiveTargetProps {
-  item: CoachIntakeItem;
-  statusText: string;
-  reviewHref: string;
-  focusRef?: React.Ref<HTMLElement>;
-  onAskCoach: () => void;
-  onInspectAudio: () => void;
-  onConfirmAudioOrder: () => void;
-  onPrepareDraftReview: () => void;
-  onReviewPreparedDraft: () => void;
-  confirmAudioOrderStatus?: string | null;
-  isConfirmingAudioOrder?: boolean;
+interface CoachIntakeWorkspaceActiveTargetProps extends CoachIntakeActiveDossierProps {
   showStaleProposalLink?: boolean;
 }
 
-export function CoachIntakeWorkspaceActiveTarget({
+const CoachIntakeWorkspaceActiveTarget = ({
   item,
   statusText,
   reviewHref,
@@ -37,7 +26,7 @@ export function CoachIntakeWorkspaceActiveTarget({
   confirmAudioOrderStatus = null,
   isConfirmingAudioOrder = false,
   showStaleProposalLink = false,
-}: CoachIntakeWorkspaceActiveTargetProps): JSX.Element {
+}: CoachIntakeWorkspaceActiveTargetProps): JSX.Element => {
   const staleWarningRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -79,6 +68,6 @@ export function CoachIntakeWorkspaceActiveTarget({
       ) : null}
     </>
   );
-}
+};
 
 export default CoachIntakeWorkspaceActiveTarget;
