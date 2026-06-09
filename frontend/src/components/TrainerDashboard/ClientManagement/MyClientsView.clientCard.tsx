@@ -10,7 +10,6 @@ import {
   Calendar,
   CalendarClock,
   CheckCircle,
-  ClipboardCheck,
   ClipboardList,
   Edit,
   Layers,
@@ -91,6 +90,8 @@ const copilotTitleFor = (client: ClientAssignment['client']) => (
   client.totalSessionsCompleted === 0 ? 'Generate first AI workout plan' : 'Workout Intelligence'
 );
 
+const statusReadinessLabelFor = (status: string) => `${status.charAt(0).toUpperCase()}${status.slice(1)} client`;
+
 const PhoneDetail = ({ phone }: { phone?: string | null }) => {
   if (!phone) return null;
   return (
@@ -101,10 +102,7 @@ const PhoneDetail = ({ phone }: { phone?: string | null }) => {
   );
 };
 
-const NeedsPlanIndicator = ({ show }: { show: boolean }) => {
-  if (!show) return null;
-  return <NeedsPlanDot />;
-};
+const NeedsPlanIndicator = ({ show }: { show: boolean }) => (show ? <NeedsPlanDot /> : null);
 
 export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardProps>(function TrainerClientCard({
   assignment,
@@ -129,6 +127,7 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
   const sourceLabel = getClientSourceLabel(client.clientSource);
   const nextSessionLabel = getNextSessionLabel(client.nextSessionDate);
   const onboardingLabel = getOnboardingReadinessLabel(client);
+  const statusReadinessLabel = statusReadinessLabelFor(client.status);
   const copilotTitle = copilotTitleFor(client);
   const needsFirstPlan = client.totalSessionsCompleted === 0;
 
@@ -196,8 +195,8 @@ export const TrainerClientCard = forwardRef<HTMLDivElement, TrainerClientCardPro
           <span>{onboardingLabel}</span>
         </ReadinessChip>
         <ReadinessChip>
-          <ClipboardCheck size={15} aria-hidden="true" />
-          <span>{sessionSignal.label}</span>
+          <CheckCircle size={15} aria-hidden="true" />
+          <span>{statusReadinessLabel}</span>
         </ReadinessChip>
       </ClientReadinessStrip>
 

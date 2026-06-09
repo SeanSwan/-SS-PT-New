@@ -113,8 +113,9 @@ describe('TrainerClientCard accessibility', () => {
     expect(screen.getByText('SwanStudios paid')).toBeInTheDocument();
     expect(screen.getByText('Next session: Jun 12')).toBeInTheDocument();
     expect(screen.getByText('Intake 67%')).toBeInTheDocument();
-    expect(screen.getAllByText('4 paid sessions').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('deducts when logged').length).toBeGreaterThan(0);
+    expect(screen.getByText('Active client')).toBeInTheDocument();
+    expect(screen.getAllByText('4 paid sessions')).toHaveLength(1);
+    expect(screen.getAllByText('deducts when logged')).toHaveLength(1);
   });
 
   it('marks the email row for compact mobile ellipsis while preserving the full value', () => {
