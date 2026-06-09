@@ -101,6 +101,20 @@ describe('ClientHubGridCard', () => {
     expect(onSelect).toHaveBeenCalledWith(fixtureClient);
   });
 
+  it('selects the client with keyboard activation', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+
+    render(<ClientHubGridCard client={fixtureClient} onSelect={onSelect} />);
+
+    screen.getByRole('button', { name: /open fixture client/i }).focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+
+    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect).toHaveBeenLastCalledWith(fixtureClient);
+  });
+
   it('offers one-tap daily actions without selecting the client first', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();

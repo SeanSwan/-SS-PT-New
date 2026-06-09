@@ -68,6 +68,7 @@ const secondClient = {
 };
 
 export const responsiveViewports = [
+  { name: 'compact-phone', width: 390, height: 844 },
   { name: 'phone', width: 414, height: 896 },
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'qhd', width: 2560, height: 1440 },
@@ -210,7 +211,7 @@ export async function inspectCardLayout(page: Page) {
     document.querySelectorAll('[data-swan-client-card], [data-swan-card-section]').forEach((element) => {
       if (visible(element)) checkGroup(element);
     });
-    document.querySelectorAll('[data-swan-client-card] button').forEach((button) => {
+    document.querySelectorAll('[data-swan-client-card] button, [data-swan-client-card] [role="button"]').forEach((button) => {
       if (!visible(button)) return;
       const rect = button.getBoundingClientRect();
       if (rect.width < 43 || rect.height < 43) {

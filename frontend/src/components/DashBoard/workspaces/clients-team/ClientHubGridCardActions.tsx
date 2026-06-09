@@ -22,9 +22,11 @@ const QUICK_ACTIONS = [
 ] as const;
 
 const ActionRow = styled.div`
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, minmax(44px, 1fr));
   gap: 7px;
+  min-width: 0;
 `;
 
 const QuickButton = styled.button`

@@ -10,6 +10,7 @@ import {
   seedAuth,
   trainerUser,
 } from './client-card-responsive-smoke.fixtures';
+import { inspectNestedClientCardLayout } from './client-card-responsive-overlap';
 
 for (const viewport of responsiveViewports) {
   test(`admin client cards have no responsive overlap at ${viewport.name}`, async ({ page }, testInfo) => {
@@ -28,8 +29,10 @@ for (const viewport of responsiveViewports) {
     await expect(page.getByRole('option', { name: /Alexandria-Cassandra/i })).toBeVisible();
 
     const layout = await inspectCardLayout(page);
+    const nestedLayout = await inspectNestedClientCardLayout(page);
     expect(layout.overflowX, `horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
+    expect(nestedLayout.issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await page.screenshot({ path: testInfo.outputPath(`admin-client-cards-${viewport.name}.png`), fullPage: false });
@@ -71,8 +74,10 @@ for (const viewport of responsiveViewports) {
     await expect(page.getByText(/Jordan Mobility/i)).toHaveCount(0);
 
     const layout = await inspectCardLayout(page);
+    const nestedLayout = await inspectNestedClientCardLayout(page);
     expect(layout.overflowX, `horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
+    expect(nestedLayout.issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
 
     await page.screenshot({ path: testInfo.outputPath(`trainer-client-cards-${viewport.name}.png`), fullPage: false });

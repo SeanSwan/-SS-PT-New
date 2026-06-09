@@ -25,38 +25,55 @@ import type { ClientSourceTone } from './clientSourceDisplay';
 export const CardShell = styled.article`
   --swan-card-padding: 16px;
   ${swanDataCardShell}
-  display: grid;
-  gap: 14px;
+  display: block;
+  align-self: start;
+  height: max-content;
   min-height: 168px;
+
+  > * + * {
+    margin-top: 14px;
+  }
 
   @media (max-width: 430px) {
     --swan-card-padding: 14px;
-    min-height: 156px;
+    min-height: auto;
+
+    > * + * {
+      margin-top: 12px;
+    }
   }
 `;
 
-export const CardButton = styled.button`
+export const CardButton = styled.div`
   position: relative;
-  z-index: 1;
   width: 100%;
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: 14px;
+  min-width: 0;
+  min-height: 44px;
+  display: block;
   padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  user-select: none;
 
   &:focus-visible {
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: 3px;
     border-radius: 12px;
   }
+`;
+
+export const IdentityRow = styled.div`
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: start;
+  gap: 14px;
 
   @media (max-width: 430px) {
-    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
   }
 `;
 
@@ -76,6 +93,8 @@ export const Avatar = styled.div<{ $source?: ClientSourceTone }>`
 
 export const CardBody = styled.div`
   min-width: 0;
+  display: grid;
+  align-content: start;
 `;
 
 export const TopLine = styled.div`
@@ -113,8 +132,7 @@ export const ContactLine = styled.div`
 
 export const GoalLine = styled.div`
   display: -webkit-box;
-  min-height: 36px;
-  margin-bottom: 12px;
+  min-height: 0;
   overflow: hidden;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -129,7 +147,7 @@ export const MetricGrid = styled.div`
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 
-  @media (max-width: 430px) {
+  @media (max-width: 360px) {
     grid-template-columns: 1fr;
   }
 `;
@@ -154,6 +172,7 @@ export const Metric = styled.span<{ $tone?: ClientSessionSignalTone }>`
   font-size: 12px;
   font-weight: 800;
   min-width: 0;
+  overflow: hidden;
 
   svg {
     flex: 0 0 auto;

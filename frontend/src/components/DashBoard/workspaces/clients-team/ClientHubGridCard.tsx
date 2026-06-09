@@ -26,6 +26,7 @@ import {
   CardShell,
   ContactLine,
   GoalLine,
+  IdentityRow,
   Metric,
   MetricGrid,
   MetricNote,
@@ -141,30 +142,39 @@ const ClientHubGridCard: React.FC<ClientHubGridCardProps> = ({ client, onSelect,
   const sessionSignal = getClientSessionSignal(client);
   const sourceTone = getClientSourceTone(client.clientSource);
   const onboardingPct = getClientOnboardingPct(client);
+  const handleOpenKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onSelect(client);
+  };
 
   return (
     <CardShell data-swan-client-card="admin">
       <CardButton
-        type="button"
+        role="button"
+        tabIndex={0}
         onClick={() => onSelect(client)}
+        onKeyDown={handleOpenKeyDown}
         aria-label={`Open ${fullName}`}
         data-swan-card-section="admin-identity"
       >
-        <Avatar $source={sourceTone}>{getClientInitials(client)}</Avatar>
-        <CardBody>
-          <TopLine>
-            <Name>{fullName}</Name>
-            <Pill>
-              <UserRound size={12} />
-              {sourceLabel(client)}
-            </Pill>
-            <Pill>{experience}</Pill>
-          </TopLine>
-          <ContactIdentityLine client={client} show={hasCapturedName} />
-          <GoalLine>{goal}</GoalLine>
-          <ClientCardMetrics client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
-        </CardBody>
+        <IdentityRow>
+          <Avatar $source={sourceTone}>{getClientInitials(client)}</Avatar>
+          <CardBody>
+            <TopLine>
+              <Name>{fullName}</Name>
+              <Pill>
+                <UserRound size={12} />
+                {sourceLabel(client)}
+              </Pill>
+              <Pill>{experience}</Pill>
+            </TopLine>
+            <ContactIdentityLine client={client} show={hasCapturedName} />
+          </CardBody>
+        </IdentityRow>
       </CardButton>
+      <GoalLine data-swan-card-section="admin-goal">{goal}</GoalLine>
+      <ClientCardMetrics client={client} sessionSignal={sessionSignal} onboardingPct={onboardingPct} />
       <QuickActionPanel client={client} clientName={fullName} onQuickAction={onQuickAction} />
     </CardShell>
   );
