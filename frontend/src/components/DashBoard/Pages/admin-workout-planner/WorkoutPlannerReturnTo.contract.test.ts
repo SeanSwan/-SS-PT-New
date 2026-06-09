@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 const source = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx'), 'utf8');
 const stripSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerStatusAssistantStrip.tsx'), 'utf8');
 const commandPanelSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.tsx'), 'utf8');
+const commandPanelSectionsSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.sections.tsx'), 'utf8');
 const clientStateHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts'), 'utf8');
 const pageActionsHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPageActions.ts'), 'utf8');
 const loadPlanHookSource = readFileSync(resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts'), 'utf8');
@@ -16,7 +17,7 @@ describe('WorkoutPlannerPage returnTo contract', () => {
     expect(source).toContain("searchParams.get('returnTo')");
     expect(source).toContain("rawReturnTo.startsWith('/dashboard/')");
     expect(pageActionsHookSource).toContain('navigate(plannerReturnTo)');
-    expect(commandPanelSource).toContain('Back to Client Hub');
+    expect(commandPanelSectionsSource).toContain('Back to Client Hub');
   });
 
   it('offers a contextual return action after successful client-hub saves', () => {
