@@ -120,6 +120,18 @@ export function buildRouteContext(
   scheduledSession: CoachScheduledSessionRouteContext | null = null,
 ) {
   if (routeIntent === 'client_onboarding') {
+    if (routeClientLabel) {
+      return {
+        prompt: [
+          'Selected paid client onboarding activation.',
+          'Use the selectedClientId route context and ask me only for missing onboarding fields: source policy, training goal, limitations, pain notes, equipment access, availability, and first-session priorities.',
+          'Prepare a review-gated client_onboarding proposal only after I confirm the details.',
+          'Do not create duplicate clients or write profile records without operator approval.',
+        ].join(' '),
+        status: `${routeClientLabel} onboarding context loaded`,
+      };
+    }
+
     return {
       prompt: [
         'New client onboarding intake.',

@@ -559,6 +559,34 @@ describe('CoachCommandCenterPage', () => {
     });
   });
 
+  it('hydrates selected-client paid onboarding context from the activation queue', async () => {
+    renderPage(
+      '/dashboard/admin/coach-assistant?clientId=424242&intent=client_onboarding&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D424242',
+    );
+
+    const composer = screen.getByPlaceholderText('Ask Swan Coach, paste notes, or attach audio/transcript...');
+
+    await waitFor(() => {
+      expect((composer as HTMLTextAreaElement).value).toContain('Selected paid client onboarding activation');
+    });
+
+    expect((composer as HTMLTextAreaElement).value).toContain('selectedClientId');
+    expect((composer as HTMLTextAreaElement).value).not.toContain('New client onboarding intake');
+    expect(screen.getAllByText(/Client #424242 onboarding context loaded/i).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /^Prepare$/i }));
+
+    await waitFor(() => {
+      expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
+        expect.stringContaining('Selected paid client onboarding activation'),
+        'coach_assistant',
+        'Client #424242 onboarding',
+        424242,
+        'both',
+      );
+    });
+  });
+
   it('does not show static workout or nutrition proof when selected-client data has not been loaded', () => {
     renderPage('/dashboard/admin/coach-assistant?clientId=424242&intent=log_workout&source=clients-team');
 

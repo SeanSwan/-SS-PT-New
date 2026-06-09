@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildRouteContext,
   commandCenterReturnLabel,
   normalizeCommandCenterReturnTo,
   parseRouteClientId,
@@ -34,5 +35,16 @@ describe('CoachCommandCenter return route normalization', () => {
     expect(commandCenterReturnLabel('clients-team')).toBe('Back to Client Hub');
     expect(commandCenterReturnLabel('master-schedule')).toBe('Back to Schedule');
     expect(commandCenterReturnLabel(null)).toBe('Back to Dashboard');
+  });
+});
+
+describe('CoachCommandCenter route context copy', () => {
+  it('uses selected-client onboarding activation copy when client context is present', () => {
+    const context = buildRouteContext('client_onboarding', 'Ava Client');
+
+    expect(context.prompt).toContain('Selected paid client onboarding activation');
+    expect(context.prompt).toContain('selectedClientId');
+    expect(context.prompt).not.toContain('New client onboarding intake');
+    expect(context.status).toBe('Ava Client onboarding context loaded');
   });
 });

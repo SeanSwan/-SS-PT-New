@@ -75,8 +75,8 @@ describe('client activation queue adapter', () => {
     });
 
     expect(getAdminActivationCta(makeRow('complete_onboarding'))).toEqual({
-      label: 'Open Client Hub',
-      route: '/dashboard/admin/client-management?clientId=3',
+      label: 'Complete Onboarding',
+      route: '/dashboard/admin/coach-assistant?clientId=3&source=clients-team&returnTo=%2Fdashboard%2Fadmin%2Fclient-management%3FclientId%3D3&intent=client_onboarding',
     });
 
     expect(getAdminActivationCta(makeRow('await_session_allocation'))).toEqual({

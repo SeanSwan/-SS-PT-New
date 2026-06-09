@@ -166,7 +166,9 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const commandTitle = props.activeThread
       ? props.activeThreadTitle
       : props.routeIntent === 'client_onboarding'
-        ? 'New client onboarding'
+        ? props.routeClientLabel
+          ? `${props.routeClientLabel} onboarding`
+          : 'New client onboarding'
         : props.routeClientLabel
           ? `${props.routeClientLabel} daily workout log`
           : trimmed.slice(0, 60);

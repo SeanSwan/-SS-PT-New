@@ -90,6 +90,18 @@ export async function fetchClientActivationQueue(
   return response.data.data;
 }
 
+function buildAdminCoachOnboardingRoute(clientId: number): string {
+  const returnTo = `/dashboard/admin/client-management?clientId=${clientId}`;
+  const params = new URLSearchParams({
+    clientId: String(clientId),
+    source: 'clients-team',
+    returnTo,
+    intent: 'client_onboarding',
+  });
+
+  return `/dashboard/admin/coach-assistant?${params.toString()}`;
+}
+
 export function getAdminActivationCta(row: ClientActivationQueueRow): { label: string; route: string } | null {
   const clientId = normalizeClientOptionId(row.client.id);
   if (!clientId) return null;
@@ -100,8 +112,8 @@ export function getAdminActivationCta(row: ClientActivationQueueRow): { label: s
       route: `/dashboard/admin/waivers?clientId=${clientId}`,
     },
     complete_onboarding: {
-      label: 'Open Client Hub',
-      route: `/dashboard/admin/client-management?clientId=${clientId}`,
+      label: 'Complete Onboarding',
+      route: buildAdminCoachOnboardingRoute(clientId),
     },
     await_session_allocation: {
       label: 'Allocate Sessions',
