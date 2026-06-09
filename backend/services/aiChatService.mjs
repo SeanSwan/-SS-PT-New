@@ -1304,9 +1304,10 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          ORDER BY "createdAt" DESC LIMIT 10`, { userId }),
       // 16. Pain entries
       safeQuery(
-        `SELECT region, pain_level, pain_type, side, description, created_at
-         FROM client_pain_entries WHERE user_id = :userId AND status = 'active'
-         ORDER BY pain_level DESC LIMIT 10`, { userId }),
+        `SELECT "bodyRegion" AS region, "painLevel" AS pain_level, "painType" AS pain_type,
+                side, description, "createdAt" AS created_at
+         FROM client_pain_entries WHERE "userId" = :userId AND "isActive" = true
+         ORDER BY "painLevel" DESC LIMIT 10`, { userId }),
       // 17. Sessions
       safeQuery(
         `SELECT s."sessionDate", s.status, s.notes, s.duration
@@ -1469,12 +1470,13 @@ You can log workouts, check progress, and manage plans for ANY of these clients.
         // Query active pain entries across ALL assigned clients for pain-aware generation
         try {
           const clientPainData = await safeQuery(
-            `SELECT cpe.body_region, cpe.pain_level, cpe.pain_type, cpe.side, cpe.user_id
+            `SELECT cpe."bodyRegion" AS body_region, cpe."painLevel" AS pain_level,
+                    cpe."painType" AS pain_type, cpe.side, cpe."userId" AS user_id
              FROM client_pain_entries cpe
-             JOIN client_trainer_assignments cta ON cpe.user_id = cta."clientId"
+             JOIN client_trainer_assignments cta ON cpe."userId" = cta."clientId"
              WHERE cta."trainerId" = :trainerId AND cta.status = 'active'
-               AND cpe.status = 'active' AND cpe.pain_level >= 5
-             ORDER BY cpe.pain_level DESC LIMIT 20`,
+               AND cpe."isActive" = true AND cpe."painLevel" >= 5
+             ORDER BY cpe."painLevel" DESC LIMIT 20`,
             { trainerId: userId }
           );
           if (clientPainData.length > 0) {
