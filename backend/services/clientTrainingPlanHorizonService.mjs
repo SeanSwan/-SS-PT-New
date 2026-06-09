@@ -19,7 +19,7 @@ export const PLAN_HORIZONS = Object.freeze([
 export const DEFAULT_PLAN_HORIZON_KEY = PLAN_HORIZONS.find((slot) => slot.isDefault)?.key || 'six_month';
 
 const HORIZON_ALIASES = new Map([
-  ['1_day', 'one_day'], ['1-day', 'one_day'], ['day', 'one_day'], ['daily', 'one_day'], ['one-day', 'one_day'],
+  ['1_day', 'one_day'], ['1-day', 'one_day'], ['day', 'one_day'], ['daily', 'one_day'], ['one-day', 'one_day'], ['single', 'one_day'],
   ['1_week', 'one_week'], ['1-week', 'one_week'], ['week', 'one_week'], ['weekly', 'one_week'], ['one-week', 'one_week'],
   ['1_month', 'one_month'], ['1-month', 'one_month'], ['month', 'one_month'], ['monthly', 'one_month'], ['one-month', 'one_month'],
   ['3_month', 'three_month'], ['3-month', 'three_month'], ['three-month', 'three_month'], ['quarter', 'three_month'],
