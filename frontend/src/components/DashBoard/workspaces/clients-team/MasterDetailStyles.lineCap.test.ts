@@ -7,6 +7,7 @@ const files = [
   'MasterDetailShellStyles.ts',
   'MasterDetailCardStyles.ts',
   'MasterDetailDetailStyles.ts',
+  'MasterDetailIdentityStyles.ts',
 ];
 
 describe('Master detail style modules', () => {

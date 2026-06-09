@@ -58,15 +58,6 @@ export const DetailName = styled.h2`
   }
 `;
 
-export const DetailSubtext = styled.p`
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  color: var(--text-secondary, #4070C0);
-  margin: 4px 0 0;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-`;
-
 export const DetailTabBar = styled.nav`
   display: flex;
   gap: 0;

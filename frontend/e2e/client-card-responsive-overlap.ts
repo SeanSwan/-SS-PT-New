@@ -113,3 +113,41 @@ export async function inspectSelectedClientActionStripFootprint(page: Page) {
     return { issues };
   });
 }
+
+export async function inspectClientDetailIdentitySubtext(page: Page) {
+  return page.evaluate(() => {
+    const issues: string[] = [];
+    if (window.innerWidth > 520) return { issues };
+
+    const fallback = Array.from(document.querySelectorAll<HTMLElement>('p'))
+      .find((item) => item.textContent?.includes('/ active /'));
+    const subtext = document.querySelector<HTMLElement>('[data-swan-detail-subtext]') || fallback;
+    if (!subtext) return { issues: ['missing selected client detail subtext'] };
+
+    const style = window.getComputedStyle(subtext);
+    const lineHeight = Number.parseFloat(style.lineHeight || '0');
+    if (lineHeight > 0 && subtext.getBoundingClientRect().height > lineHeight * 2.25) {
+      issues.push(`selected client subtext wraps to ${Math.round(subtext.getBoundingClientRect().height)}px`);
+    }
+
+    const emailNode = subtext.querySelector<HTMLElement>('[data-swan-detail-email]');
+    if (emailNode && lineHeight > 0 && emailNode.getBoundingClientRect().height > lineHeight * 1.35) {
+      issues.push('selected client email wraps inside detail subtext');
+    }
+
+    if (!emailNode) {
+      const text = subtext.textContent || '';
+      const emailEnd = text.indexOf(' / ');
+      const textNode = Array.from(subtext.childNodes).find((node) => node.nodeType === Node.TEXT_NODE);
+      if (textNode && emailEnd > 0) {
+        const range = document.createRange();
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, emailEnd);
+        const lines = new Set(Array.from(range.getClientRects()).map((rect) => Math.round(rect.top)));
+        if (lines.size > 1) issues.push(`selected client email wraps across ${lines.size} lines`);
+      }
+    }
+
+    return { issues };
+  });
+}

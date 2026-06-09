@@ -91,6 +91,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
   const clientEmail = client.email?.trim() || 'No email on file';
   const clientStatus = client.status || 'status pending';
   const clientTier = client.tier || 'Bronze Forge';
+  const clientSubtext = `${clientEmail} / ${clientStatus} / ${clientTier}`;
 
   // Reset tab to Training when switching clients (avoids stale tab state)
   useEffect(() => {
@@ -148,8 +149,10 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({
             </DetailAvatar>
             <div>
               <DetailName>{clientName}</DetailName>
-              <DetailSubtext>
-                {clientEmail} / {clientStatus} / {clientTier}
+              <DetailSubtext data-swan-detail-subtext aria-label={clientSubtext} title={clientSubtext}>
+                <span data-swan-detail-email="true">{clientEmail}</span>
+                <span>{clientStatus}</span>
+                <span>{clientTier}</span>
               </DetailSubtext>
             </div>
           </DetailClientInfo>

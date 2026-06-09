@@ -17,6 +17,7 @@ import {
   trainerUser,
 } from './client-card-responsive-smoke.fixtures';
 import {
+  inspectClientDetailIdentitySubtext,
   inspectClientDetailTabLabelFit,
   inspectClientWorkspaceTopBar,
   inspectNestedClientCardLayout,
@@ -132,6 +133,7 @@ for (const viewport of responsiveViewports) {
     const layout = await inspectClientDetailLayout(page);
     expect(layout.overflowX, `detail horizontal overflow at ${viewport.name}`).toBeLessThanOrEqual(12);
     expect(layout.issues).toEqual([]);
+    expect((await inspectClientDetailIdentitySubtext(page)).issues).toEqual([]);
     expect((await inspectClientDetailTabLabelFit(page)).issues).toEqual([]);
     expect((await inspectSelectedClientActionStripFootprint(page)).issues).toEqual([]);
     expect(consoleErrors.filter((item) => !isKnownConsoleNoise(item))).toEqual([]);
