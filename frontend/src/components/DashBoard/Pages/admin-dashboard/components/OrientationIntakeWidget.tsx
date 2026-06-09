@@ -27,7 +27,15 @@ const formatSubmitted = (createdAt: string) => {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 };
 
-const OrientationIntakeWidget: React.FC = () => {
+interface OrientationIntakeWidgetProps {
+  limit?: number;
+  showOpenQueueAction?: boolean;
+}
+
+const OrientationIntakeWidget: React.FC<OrientationIntakeWidgetProps> = ({
+  limit = 6,
+  showOpenQueueAction = true,
+}) => {
   const navigate = useNavigate();
   const { authAxios } = useAuth();
   const [items, setItems] = useState<OrientationQueueItem[]>([]);
@@ -44,7 +52,7 @@ const OrientationIntakeWidget: React.FC = () => {
       const pendingRows = allRows
         .filter((row) => (row.status || 'pending') === 'pending')
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setItems(pendingRows.slice(0, 6));
+      setItems(pendingRows.slice(0, limit));
     } catch (error) {
       console.error('Failed to load orientation intake queue:', error);
       setItems([]);
@@ -52,7 +60,7 @@ const OrientationIntakeWidget: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [authAxios]);
+  }, [authAxios, limit]);
 
   useEffect(() => {
     fetchOrientationQueue();
@@ -89,9 +97,11 @@ const OrientationIntakeWidget: React.FC = () => {
             <RefreshCw size={14} />
             Refresh
           </Button>
-          <Button onClick={() => navigate('/dashboard/admin/unified-onboarding')}>
-            Open Queue
-          </Button>
+          {showOpenQueueAction && (
+            <Button onClick={() => navigate('/dashboard/admin/unified-onboarding')}>
+              Open Queue
+            </Button>
+          )}
         </ActionRow>
       </HeaderRow>
 

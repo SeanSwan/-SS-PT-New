@@ -9,7 +9,13 @@ const __dirname = dirname(__filename);
 const wizardSource = readFileSync(resolve(__dirname, './UnifiedOnboardingWizard.tsx'), 'utf8');
 
 describe('UnifiedOnboardingWizard route contract', () => {
-  it('sends admins back to the canonical Client Hub instead of the stale clients route', () => {
+  it('renders the live orientation queue instead of a placeholder redirect card', () => {
+    expect(wizardSource).toContain('OrientationIntakeWidget');
+    expect(wizardSource).toContain('showOpenQueueAction={false}');
+    expect(wizardSource).not.toContain('being refactored');
+  });
+
+  it('keeps the Client Hub fallback on the canonical route instead of the stale clients route', () => {
     expect(wizardSource).toContain("navigate('/dashboard/admin/client-management')");
     expect(wizardSource).not.toContain("navigate('/dashboard/admin/clients')");
   });
