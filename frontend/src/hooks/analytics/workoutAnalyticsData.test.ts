@@ -109,6 +109,23 @@ describe('workoutAnalyticsData helpers', () => {
     expect(data.intensityTrend).toEqual([]);
   });
 
+  it('returns null average RPE when no set has a logged RPE rating', () => {
+    const sessions: WorkoutSession[] = [
+      makeSession({
+        id: 'unrated-rpe-a',
+        logs: [{ ...baseLog(), rpe: undefined }],
+      }),
+      makeSession({
+        id: 'unrated-rpe-b',
+        logs: [{ ...baseLog(), id: 2, rpe: 0 }],
+      }),
+    ];
+    const data = buildAnalyticsData(sessions, [], []);
+
+    expect(data.summary.avgRPE).toBeNull();
+    expect(data.rpeTrend).toEqual([]);
+  });
+
   it('normalizes fulfilled API arrays for volume and personal records', () => {
     const volumeResponse = {
       status: 'fulfilled',
@@ -141,6 +158,15 @@ describe('workoutAnalyticsData helpers', () => {
   });
 });
 
+const baseLog = () => ({
+  id: 1,
+  exerciseName: 'Squat',
+  setNumber: 1,
+  reps: 10,
+  weight: 120,
+  rpe: 8,
+});
+
 const makeSession = (overrides: Partial<WorkoutSession> = {}): WorkoutSession => ({
   id: 'session',
   title: 'Workout',
@@ -151,15 +177,6 @@ const makeSession = (overrides: Partial<WorkoutSession> = {}): WorkoutSession =>
   totalSets: 3,
   totalReps: 30,
   totalWeight: 600,
-  logs: [
-    {
-      id: 1,
-      exerciseName: 'Squat',
-      setNumber: 1,
-      reps: 10,
-      weight: 120,
-      rpe: 8,
-    },
-  ],
+  logs: [baseLog()],
   ...overrides,
 });

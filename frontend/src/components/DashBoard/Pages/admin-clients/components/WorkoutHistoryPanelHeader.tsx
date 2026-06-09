@@ -46,7 +46,7 @@ const buildSummaryChips = (data: AnalyticsData): Array<{
       content: <><Target size={14} /> <strong>{data.summary.avgIntensity}</strong>/10 intensity</>,
     });
   }
-  if (data.summary.avgRPE > 0) {
+  if (typeof data.summary.avgRPE === 'number' && data.summary.avgRPE > 0) {
     chips.push({ key: 'rpe', content: <>RPE <strong>{data.summary.avgRPE}</strong></> });
   }
   if (data.summary.longestStreak > 1) {

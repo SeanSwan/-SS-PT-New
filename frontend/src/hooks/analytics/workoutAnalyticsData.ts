@@ -268,7 +268,7 @@ const buildAnalyticsSummary = (
     totalExercises,
     totalVolume,
     avgIntensity: avgIntensity === null ? null : roundToTenths(avgIntensity),
-    avgRPE: avgRPE === null ? 0 : roundToTenths(avgRPE),
+    avgRPE: avgRPE === null ? null : roundToTenths(avgRPE),
     longestStreak,
   };
 };

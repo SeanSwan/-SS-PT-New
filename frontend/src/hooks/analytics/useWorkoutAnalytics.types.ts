@@ -78,7 +78,7 @@ export interface AnalyticsData {
     totalExercises: number;
     totalVolume: number;
     avgIntensity: number | null;
-    avgRPE: number;
+    avgRPE: number | null;
     longestStreak: number;
   };
 }
