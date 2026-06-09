@@ -100,8 +100,8 @@ export function getAdminActivationCta(row: ClientActivationQueueRow): { label: s
       route: `/dashboard/admin/waivers?clientId=${clientId}`,
     },
     complete_onboarding: {
-      label: 'Open Onboarding',
-      route: `/dashboard/admin/client-onboarding?clientId=${clientId}`,
+      label: 'Open Client Hub',
+      route: `/dashboard/admin/client-management?clientId=${clientId}`,
     },
     await_session_allocation: {
       label: 'Allocate Sessions',
