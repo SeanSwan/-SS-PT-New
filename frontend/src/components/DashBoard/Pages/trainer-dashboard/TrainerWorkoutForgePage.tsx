@@ -285,13 +285,13 @@ const TrainerWorkoutForgePage: React.FC = () => {
             <Plus size={18} /> Add Exercise
           </ActionBtn>
           <ActionBtn onClick={() => setCopilotOpen(true)}>
-            <Sparkles size={18} /> Generate with Swan Coach
+            <Sparkles size={18} /> Swan Coach Planning
           </ActionBtn>
           <ActionBtn $variant="secondary" onClick={handleSavePlan} disabled={saving}>
             <Save size={18} /> {saving ? 'Saving...' : 'Save Draft Plan'}
           </ActionBtn>
         </ButtonRow>
-        <HelperCopy>Manual drafts save as trainer-reviewable plans. Swan Coach opens the existing AI approval workflow.</HelperCopy>
+        <HelperCopy>Manual drafts save as trainer-reviewable plans. Swan Coach opens the existing review workflow.</HelperCopy>
       </Card>
 
       {selectedClient && parsedClientId !== null && (

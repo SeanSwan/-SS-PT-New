@@ -144,7 +144,7 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
     </WarningTitle>
     <IntroCopy>
       {clientName} has {activePainEntries.length} active pain/injury{activePainEntries.length > 1 ? ' entries' : ' entry'}.
-      Review before generating to ensure the AI applies appropriate restrictions.
+      Review before planning so Swan Coach applies appropriate restrictions.
     </IntroCopy>
 
     <PainList>
@@ -185,7 +185,7 @@ const CopilotPainCheck: React.FC<CopilotPainCheckProps> = ({
     </PainList>
 
     <RestrictionNote>
-      The AI will automatically apply NASM CES restrictions based on these entries.
+      Swan Coach will automatically apply NASM CES restrictions based on these entries.
       Severe entries (7-10) will hard-restrict exercises. Moderate entries (4-6) will modify loads.
     </RestrictionNote>
 

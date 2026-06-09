@@ -131,7 +131,7 @@ describe('TrainerWorkoutForgePage workflow', () => {
     render(<TrainerWorkoutForgePage />);
 
     await user.selectOptions(await screen.findByLabelText(/select a client/i), '424242');
-    await user.click(screen.getByRole('button', { name: /generate with swan coach/i }));
+    await user.click(screen.getByRole('button', { name: /swan coach planning/i }));
 
     expect(screen.getByTestId('mock-workout-copilot')).toHaveTextContent('424242:Fixture Client:true');
   });

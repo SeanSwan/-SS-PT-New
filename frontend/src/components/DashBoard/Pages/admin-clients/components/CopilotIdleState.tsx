@@ -23,17 +23,17 @@
  * │ PURPOSE: Generate button + template catalog for idle state  │
  * │ WIREFRAME:                                                  │
  * │ ┌────────────────────────────────────────┐                  │
- * │ │  ✨ Generate AI Workout Plan           │                  │
+ * │ │  Swan Coach Workout Planning          │                  │
  * │ │  [description text]                    │                  │
  * │ │  [Override Reason (admin only)]        │                  │
- * │ │  [Swan Coach Draft] button               │                  │
+ * │ │  [Swan Coach Planning Draft] button      │                  │
  * │ │  Available NASM Templates:             │                  │
  * │ │  ┌─ template 1 ─┐                     │                  │
  * │ │  ┌─ template 2 ─┐                     │                  │
  * │ └────────────────────────────────────────┘                  │
  * │ Props: { clientName, isAdmin, overrideReasonRequired, ... } │
  * │ CLICK-OUTCOMES:                                             │
- * │ [Swan Coach Draft] → handleGenerate → pain check → generate  │
+ * │ [Swan Coach Planning Draft] → handleGenerate → pain check    │
  * └─────────────────────────────────────────────────────────────┘
  */
 
@@ -85,10 +85,10 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 }) => (
   <CenterContent>
     <Sparkles size={48} color={SWAN_CYAN} />
-    <h3 style={{ color: '#e2e8f0', margin: 0 }}>Generate Swan Coach Workout Plan</h3>
+    <h3 style={{ color: '#e2e8f0', margin: 0 }}>Swan Coach Workout Planning</h3>
     <p style={{ color: '#94a3b8', margin: 0, maxWidth: 400 }}>
-      The AI will analyze {clientName}&apos;s profile, training history, and NASM assessment
-      to generate a personalized workout plan for your review.
+      Swan Coach will analyze {clientName}&apos;s profile, training history, and NASM assessment
+      to draft a personalized workout plan for your review.
     </p>
 
     {(isAdmin || overrideReasonRequired) && (
@@ -106,7 +106,7 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
 
     <PrimaryButton onClick={handleGenerate} disabled={isSubmitting}>
       <Sparkles size={16} />
-      Swan Coach Draft
+      Swan Coach Planning Draft
     </PrimaryButton>
 
     {/* Template catalog (informational -- backend auto-selects from NASM constraints) */}
@@ -132,7 +132,7 @@ const CopilotIdleState: React.FC<CopilotIdleStateProps> = ({
           ))}
         </TemplateList>
         <p style={{ color: '#64748b', fontSize: '0.8rem', marginTop: 8, maxWidth: 500 }}>
-          The AI automatically selects the best template based on {clientName}&apos;s
+          Swan Coach automatically selects the best template based on {clientName}&apos;s
           NASM assessment and training goals.
         </p>
       </>
