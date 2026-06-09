@@ -41,14 +41,17 @@ describe('admin onboarding baseline access guard', () => {
   });
 
   it('keeps dictated baseline weight aligned with the model column used by controller and Coach dispatcher', () => {
-    const dispatcherSource = readFileSync(resolve(__dirname, '../../services/ai/commandDispatcher.mjs'), 'utf8');
+    const dispatcherSource = readFileSync(
+      resolve(__dirname, '../../services/ai/dispatchers/onboardingBaselineDispatcher.mjs'),
+      'utf8',
+    );
     const migrationSource = readFileSync(
       resolve(__dirname, '../../migrations/20260531000001-add-body-weight-to-client-baseline-measurements.cjs'),
       'utf8',
     );
 
     expect(baselineServiceSource).toContain('bodyWeight: nullableValue(measurementData.bodyWeight)');
-    expect(dispatcherSource).toContain('bodyWeight: toFiniteNumberOrNull(params.bodyWeight ?? params.weight)');
+    expect(dispatcherSource).toContain('bodyWeight: numberFromFirst([params.bodyWeight, params.weight])');
     expect(baselineModelSource).toContain('bodyWeight: {');
     expect(baselineModelSource).toContain('type: DataTypes.DECIMAL(6, 2)');
     expect(migrationSource).toContain("addColumn('client_baseline_measurements', 'bodyWeight'");

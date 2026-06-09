@@ -273,10 +273,10 @@ import { generateClaimToken } from '../services/claimTokenService.mjs';
 import { listPaidClientActivationQueue } from '../services/adminClientActivationQueueService.mjs';
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../services/sessionBillingPolicy.mjs';
 import { normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
-import { CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES } from '../services/sessionBillingPolicy.mjs';
 import { parseClientSource } from '../services/sessionBillingPolicy.mjs';
 import { sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 import { normalizeClientOnboardEmailInput as normalizeAdminClientEmailInput } from '../services/clientOnboardIdentityService.mjs';
+import { deactivateClientAccount } from '../services/clientDeactivationService.mjs';
 
 // NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
 // We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
@@ -1111,40 +1111,32 @@ class AdminClientController {
         });
       }
 
-      const accountDeactivatedAt = new Date();
-      const retainedUntil = new Date(accountDeactivatedAt);
-      retainedUntil.setMonth(retainedUntil.getMonth() + 6);
-      const preservedAvailableSessions = normalizePaidSessionCount(client.availableSessions);
-      let cancelledCount = [0];
-
       if (softDelete) {
-
-        // Cancel any future scheduled sessions for this client
-        cancelledCount = await Session.update(
-          {
-            status: 'cancelled',
-            notes: 'Auto-cancelled: client account deactivated; retained for 6 months'
-          },
-          {
-            where: {
-              userId: clientId,
-              status: { [Op.in]: CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES },
-              sessionDate: { [Op.gt]: new Date() }
-            },
-            transaction
-          }
-        );
-
-        // Soft delete disables login, while retaining history and paid credits for the 6-month retention window.
-        await client.update({
-          isActive: false,
-          accountDeactivatedAt,
-          accountRetentionUntil: retainedUntil
-        }, { transaction });
+        const deactivation = await deactivateClientAccount({
+          client,
+          Session,
+          clientId,
+          transaction,
+        });
 
         logger.info(
-          `Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions, preserved ${preservedAvailableSessions} available sessions until ${retainedUntil.toISOString()}`
+          `Deactivated client ${clientId}, cancelled ${deactivation.cancelledFutureSessions} future sessions, preserved ${deactivation.preservedAvailableSessions} available sessions until ${deactivation.accountRetentionUntil.toISOString()}`
         );
+
+        await transaction.commit();
+
+        return res.status(200).json({
+          success: true,
+          message: 'Client deactivated successfully. Profile, workout history, payments, and remaining credits are retained for 6 months.',
+          data: {
+            clientId,
+            accountDeactivatedAt: deactivation.accountDeactivatedAt.toISOString(),
+            accountRetentionUntil: deactivation.accountRetentionUntil.toISOString(),
+            retainedUntil: deactivation.accountRetentionUntil.toISOString(),
+            cancelledFutureSessions: deactivation.cancelledFutureSessions,
+            preservedAvailableSessions: deactivation.preservedAvailableSessions,
+          }
+        });
       } else {
         // Hard delete removed for compliance (financial & liability retention)
         await transaction.rollback();
@@ -1154,20 +1146,6 @@ class AdminClientController {
         });
       }
 
-      await transaction.commit();
-
-      return res.status(200).json({
-        success: true,
-        message: 'Client deactivated successfully. Profile, workout history, payments, and remaining credits are retained for 6 months.',
-        data: {
-          clientId,
-          accountDeactivatedAt: accountDeactivatedAt.toISOString(),
-          accountRetentionUntil: retainedUntil.toISOString(),
-          retainedUntil: retainedUntil.toISOString(),
-          cancelledFutureSessions: cancelledCount?.[0] || 0,
-          preservedAvailableSessions,
-        }
-      });
     } catch (error) {
       await transaction.rollback();
       logger.error('Error deleting client:', error);

@@ -62,11 +62,11 @@ import * as hermesService from '../hermes/hermesService.mjs';
 import workoutService from '../workoutService.mjs';
 import { submitAiWorkoutLogAsDailyForm } from '../workout/aiWorkoutDailyFormService.mjs';
 import {
-  CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES,
   NON_DEDUCTING_CLIENT_SOURCES,
   normalizeClientSource,
   normalizePaidSessionCount,
 } from '../sessionBillingPolicy.mjs';
+import { deactivateClientAccount } from '../clientDeactivationService.mjs';
 import { createNotification } from '../../controllers/notificationController.mjs';
 import defaultSequelize from '../../database.mjs';
 import { getAllModels } from '../../models/index.mjs';
@@ -183,6 +183,7 @@ import {
 import { dispatchLogMyNutrition } from './dispatchers/clientSelfServiceNutritionDispatchers.mjs';
 import { dispatchRequestPlanAdjustment } from './dispatchers/clientPlanAdjustmentDispatcher.mjs';
 import { dispatchOnboardingQuestions } from './dispatchers/onboardingQuestionsDispatcher.mjs';
+import { dispatchFillBaselineMeasurements } from './dispatchers/onboardingBaselineDispatcher.mjs';
 import {
   calculateCompletionPercentage,
   computeDerivedFields,
@@ -193,6 +194,7 @@ import {
   buildOnboardingQueueIncludes,
   onboardingQueueEntryMatches,
 } from '../onboardingQueueSummaryService.mjs';
+import { toDateOnly } from '../clientTrainingSafeReadValueService.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -223,72 +225,9 @@ const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
   };
 };
 
-const toDateOnly = (value) => {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-};
-
-const toFiniteNumberOrNull = (value) => {
-  if (value === undefined || value === null || value === '') return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-};
-
 const normalizeSequelizeUpdateCount = (result) => {
   if (Array.isArray(result)) return Number(result[0] || 0);
   return Number(result || 0);
-};
-
-const parseBloodPressure = (value) => {
-  const match = String(value || '').match(/(\d{2,3})\s*\/\s*(\d{2,3})/);
-  if (!match) return { systolic: null, diastolic: null };
-  return {
-    systolic: Number(match[1]),
-    diastolic: Number(match[2]),
-  };
-};
-
-const formatBloodPressure = (systolic, diastolic) => (
-  systolic && diastolic ? `${systolic}/${diastolic}` : null
-);
-
-const dispatchFillBaselineMeasurements = async (params, ctx) => {
-  const { ClientBaselineMeasurements } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const parsedBloodPressure = parseBloodPressure(params.bloodPressure);
-  const bloodPressureSystolic = toFiniteNumberOrNull(
-    params.bloodPressureSystolic ?? parsedBloodPressure.systolic
-  );
-  const bloodPressureDiastolic = toFiniteNumberOrNull(
-    params.bloodPressureDiastolic ?? parsedBloodPressure.diastolic
-  );
-  const payload = {
-    userId: clientId,
-    recordedBy: ctx.user?.id,
-    takenAt: params.takenAt ? new Date(params.takenAt) : new Date(),
-    restingHeartRate: toFiniteNumberOrNull(params.restingHeartRate),
-    bloodPressureSystolic,
-    bloodPressureDiastolic,
-    bodyWeight: toFiniteNumberOrNull(params.bodyWeight ?? params.weight),
-    bodyFatPercentage: toFiniteNumberOrNull(params.bodyFatPercentage ?? params.bodyFat),
-    injuryNotes: params.injuryNotes || null,
-    painLevel: toFiniteNumberOrNull(params.painLevel) ?? 0,
-    notes: params.notes || null,
-  };
-  const baseline = await ClientBaselineMeasurements.create(payload);
-
-  return {
-    baselineId: baseline?.id ?? null,
-    clientId,
-    bodyWeight: baseline?.bodyWeight ?? payload.bodyWeight,
-    bodyFatPercentage: baseline?.bodyFatPercentage ?? payload.bodyFatPercentage,
-    restingHeartRate: baseline?.restingHeartRate ?? payload.restingHeartRate,
-    bloodPressure: formatBloodPressure(
-      baseline?.bloodPressureSystolic ?? payload.bloodPressureSystolic,
-      baseline?.bloodPressureDiastolic ?? payload.bloodPressureDiastolic
-    ),
-  };
 };
 
 const dispatchViewOnboardingStatus = async (params, ctx) => {
@@ -980,31 +919,12 @@ const dispatchDeactivateClient = async (params, ctx) => {
       };
     }
 
-    const accountDeactivatedAt = new Date();
-    const accountRetentionUntil = new Date(accountDeactivatedAt);
-    accountRetentionUntil.setMonth(accountRetentionUntil.getMonth() + 6);
-    const preservedAvailableSessions = normalizePaidSessionCount(client.availableSessions);
-
-    const cancelledCount = await Session.update(
-      {
-        status: 'cancelled',
-        notes: 'Auto-cancelled: client account deactivated; retained for 6 months',
-      },
-      {
-        where: {
-          userId: clientId,
-          status: { [Op.in]: CLIENT_DEACTIVATION_CANCELLABLE_SESSION_STATUSES },
-          sessionDate: { [Op.gt]: new Date() },
-        },
-        transaction,
-      },
-    );
-
-    await client.update({
-      isActive: false,
-      accountDeactivatedAt,
-      accountRetentionUntil,
-    }, { transaction });
+    const deactivation = await deactivateClientAccount({
+      client,
+      Session,
+      clientId,
+      transaction,
+    });
 
     await transaction.commit();
 
@@ -1012,10 +932,10 @@ const dispatchDeactivateClient = async (params, ctx) => {
       clientId,
       found: true,
       deactivated: true,
-      accountDeactivatedAt: accountDeactivatedAt.toISOString(),
-      accountRetentionUntil: accountRetentionUntil.toISOString(),
-      cancelledFutureSessions: cancelledCount?.[0] || 0,
-      preservedAvailableSessions,
+      accountDeactivatedAt: deactivation.accountDeactivatedAt.toISOString(),
+      accountRetentionUntil: deactivation.accountRetentionUntil.toISOString(),
+      cancelledFutureSessions: deactivation.cancelledFutureSessions,
+      preservedAvailableSessions: deactivation.preservedAvailableSessions,
     };
   } catch (error) {
     await transaction.rollback();

@@ -178,12 +178,21 @@ const resolveAuthorizedClientRequest = async ({ req, res, access }) => {
   return { ok: true, models, targetUserId, targetUser };
 };
 
+const resolveQuestionnaireRequest = async (req, res) => {
+  const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+  if (!context.ok) return context;
+
+  return {
+    ...context,
+    ClientOnboardingQuestionnaire: context.models.ClientOnboardingQuestionnaire,
+  };
+};
+
 export const createQuestionnaire = async (req, res) => {
   try {
-    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+    const context = await resolveQuestionnaireRequest(req, res);
     if (!context.ok) return context.response;
-    const { models, targetUserId } = context;
-    const { ClientOnboardingQuestionnaire } = models;
+    const { targetUserId, ClientOnboardingQuestionnaire } = context;
 
     const rawResponses = req.body?.responses ?? req.body?.responsesJson;
     const responses = normalizeJsonObject(rawResponses);
@@ -239,10 +248,9 @@ export const createQuestionnaire = async (req, res) => {
 
 export const getQuestionnaire = async (req, res) => {
   try {
-    const context = await resolveAuthorizedClientRequest({ req, res, access: ensureClientAccess });
+    const context = await resolveQuestionnaireRequest(req, res);
     if (!context.ok) return context.response;
-    const { models, targetUserId } = context;
-    const { ClientOnboardingQuestionnaire } = models;
+    const { targetUserId, ClientOnboardingQuestionnaire } = context;
 
     const questionnaire = await ClientOnboardingQuestionnaire.findOne({
       where: { userId: targetUserId },

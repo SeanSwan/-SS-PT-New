@@ -23,6 +23,12 @@ export const compactStringOr = (value, fallback) => compactString(value) || fall
 
 export const toBoolean = (value) => value === true;
 
+export const toFiniteNumberOrNull = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 export const valueOr = (value, fallback) => {
   if (value === undefined || value === null) return fallback;
   return value;

@@ -66,43 +66,45 @@ export const onboardingQueueEntryMatches = (entry, { statusFilter, packageFilter
     && filterMatches(packageFilter, entry.packageName)
 );
 
-export const buildAdminOnboardingClient = (entry) => {
-  const {
-    user,
-    latestQuestionnaire,
-    latestBaseline,
-    movementStatus,
-    packageName,
-  } = entry;
+const buildClientIdentity = (user) => ({
+  id: user.id,
+  firstName: user.firstName,
+  lastName: user.lastName,
+  email: user.email,
+});
 
-  return {
-    userId: user.id,
-    client: {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-    },
-    package: {
-      name: packageName || 'No Package',
-    },
-    questionnaire: latestQuestionnaire
-      ? {
-          status: latestQuestionnaire.status,
-          completionPercentage: latestQuestionnaire.completionPercentage || 0,
-          primaryGoal: latestQuestionnaire.primaryGoal,
-          createdAt: latestQuestionnaire.createdAt,
-        }
-      : null,
-    movementScreen: latestBaseline
-      ? {
-          nasmAssessmentScore: latestBaseline.nasmAssessmentScore,
-          status: movementStatus,
-          createdAt: latestBaseline.createdAt,
-        }
-      : {
-          nasmAssessmentScore: null,
-          status: 'pending',
-        },
-  };
-};
+const buildPackageSummary = (packageName) => ({
+  name: packageName || 'No Package',
+});
+
+const buildQuestionnaireSummary = (questionnaire) => (
+  questionnaire
+    ? {
+        status: questionnaire.status,
+        completionPercentage: questionnaire.completionPercentage || 0,
+        primaryGoal: questionnaire.primaryGoal,
+        createdAt: questionnaire.createdAt,
+      }
+    : null
+);
+
+const buildMovementScreenSummary = (baseline, movementStatus) => (
+  baseline
+    ? {
+        nasmAssessmentScore: baseline.nasmAssessmentScore,
+        status: movementStatus,
+        createdAt: baseline.createdAt,
+      }
+    : {
+        nasmAssessmentScore: null,
+        status: 'pending',
+      }
+);
+
+export const buildAdminOnboardingClient = (entry) => ({
+  userId: entry.user.id,
+  client: buildClientIdentity(entry.user),
+  package: buildPackageSummary(entry.packageName),
+  questionnaire: buildQuestionnaireSummary(entry.latestQuestionnaire),
+  movementScreen: buildMovementScreenSummary(entry.latestBaseline, entry.movementStatus),
+});

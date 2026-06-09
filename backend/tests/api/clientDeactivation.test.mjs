@@ -28,6 +28,8 @@ const getRestoreClientSource = () => {
   return source.slice(start, end);
 };
 
+const getDeactivationServiceSource = () => readBackendFile('services/clientDeactivationService.mjs');
+
 const getAdminClientRoutesSource = () => readBackendFile('routes/adminClientRoutes.mjs');
 
 const getUserModelSource = () => readBackendFile('models/User.mjs');
@@ -56,23 +58,23 @@ describe('Client Deactivation', () => {
   });
 
   it('soft-delete controller preserves paid session credits during 6-month retention', () => {
-    const deleteClientSource = getDeleteClientSource();
+    const deactivationServiceSource = getDeactivationServiceSource();
 
-    expect(deleteClientSource).not.toMatch(/availableSessions\s*:\s*0/);
-    expect(deleteClientSource).toMatch(/6 months/i);
-    expect(deleteClientSource).toContain('preservedAvailableSessions');
-    expect(deleteClientSource).toContain('normalizePaidSessionCount(client.availableSessions)');
-    expect(deleteClientSource).toContain('retainedUntil');
+    expect(deactivationServiceSource).not.toMatch(/availableSessions\s*:\s*0/);
+    expect(deactivationServiceSource).toMatch(/6 months/i);
+    expect(deactivationServiceSource).toContain('preservedAvailableSessions');
+    expect(deactivationServiceSource).toContain('normalizePaidSessionCount(client.availableSessions)');
+    expect(deactivationServiceSource).toContain('accountRetentionUntil');
   });
 
   it('soft-delete retention deadline is persisted on the User model', () => {
     const userModelSource = getUserModelSource();
-    const deleteClientSource = getDeleteClientSource();
+    const deactivationServiceSource = getDeactivationServiceSource();
 
     expect(userModelSource).toContain('accountDeactivatedAt');
     expect(userModelSource).toContain('accountRetentionUntil');
-    expect(deleteClientSource).toContain('accountDeactivatedAt');
-    expect(deleteClientSource).toContain('accountRetentionUntil');
+    expect(deactivationServiceSource).toContain('accountDeactivatedAt');
+    expect(deactivationServiceSource).toContain('accountRetentionUntil');
   });
 
   it('reactivation has a dedicated endpoint and clears retention timestamps', () => {

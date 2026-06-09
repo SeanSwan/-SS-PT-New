@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 describe('clientOnboardingController regression after helper extraction', () => {
   let source;
   let queueServiceSource;
+  let commandDispatcherSource;
+  let onboardingBaselineDispatcherSource;
+  let onboardingBaselineDispatcherExists;
 
   beforeAll(() => {
     const controllerPath = path.resolve(
@@ -32,8 +35,30 @@ describe('clientOnboardingController regression after helper extraction', () => 
       'services',
       'onboardingQueueSummaryService.mjs'
     );
+    const commandDispatcherPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'commandDispatcher.mjs'
+    );
+    const onboardingBaselineDispatcherPath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'services',
+      'ai',
+      'dispatchers',
+      'onboardingBaselineDispatcher.mjs'
+    );
     source = fs.readFileSync(controllerPath, 'utf-8');
     queueServiceSource = fs.readFileSync(queueServicePath, 'utf-8');
+    commandDispatcherSource = fs.readFileSync(commandDispatcherPath, 'utf-8');
+    onboardingBaselineDispatcherExists = fs.existsSync(onboardingBaselineDispatcherPath);
+    onboardingBaselineDispatcherSource = onboardingBaselineDispatcherExists
+      ? fs.readFileSync(onboardingBaselineDispatcherPath, 'utf-8')
+      : '';
   });
 
   test('imports shared helpers from onboardingHelpers.mjs', () => {
@@ -100,6 +125,15 @@ describe('clientOnboardingController regression after helper extraction', () => 
     expect(queueServiceSource).toContain("as: 'baselineMeasurements'");
     expect(queueServiceSource).not.toContain("as: 'questionnaires'");
     expect(queueServiceSource).not.toContain("as: 'packages'");
+  });
+
+  test('Coach baseline measurement dispatcher lives outside the central command dispatcher', () => {
+    expect(onboardingBaselineDispatcherExists).toBe(true);
+    expect(commandDispatcherSource).toContain(
+      "from './dispatchers/onboardingBaselineDispatcher.mjs'"
+    );
+    expect(commandDispatcherSource).not.toContain('const dispatchFillBaselineMeasurements = async');
+    expect(onboardingBaselineDispatcherSource).toContain('export const dispatchFillBaselineMeasurements');
   });
 
   test('baseline measurement service preserves the current create payload contract', async () => {
