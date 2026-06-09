@@ -106,6 +106,9 @@ export function buildLongHorizonPrompt({
   if (longHorizonContext) {
     parts.push('--- Training Context (de-identified) ---');
 
+    const trainingVaultSection = buildTrainingVaultSection(longHorizonContext.trainingVault);
+    if (trainingVaultSection) parts.push(trainingVaultSection);
+
     const ps = longHorizonContext.progressSummary;
     if (ps && ps.recentSessionCount > 0) {
       parts.push(
@@ -290,6 +293,61 @@ function safePromptString(s, fallback = '') {
   // Collapse whitespace runs and trim.
   out = out.replace(/\s+/g, ' ').trim();
   return out || fallback;
+}
+
+function yesNo(value) {
+  if (value === true) return 'yes';
+  if (value === false) return 'no';
+  return 'unknown';
+}
+
+function countOrZero(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function nullableNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function buildTrainingVaultSection(vault) {
+  if (!vault || typeof vault !== 'object') return '';
+
+  const lines = ['--- Plan Vault / Current Assignment (de-identified) ---'];
+  lines.push(`Plan vault available: ${yesNo(vault.available)}`);
+
+  const filled = Array.isArray(vault.filledHorizonKeys)
+    ? vault.filledHorizonKeys.map(key => safePromptString(key)).filter(Boolean)
+    : [];
+  lines.push(`Filled horizons: ${filled.length ? filled.join(', ') : 'none'}`);
+  lines.push(`Primary horizon: ${safePromptString(vault.primaryHorizonKey, 'none')}`);
+
+  const assignment = vault.todayAssignment || {};
+  const assignmentType = safePromptString(assignment.assignmentType, 'none');
+  if (assignmentType === 'none') {
+    lines.push('Today assignment: none');
+    return lines.join('\n');
+  }
+
+  const week = nullableNumber(assignment.weekNumber);
+  const day = nullableNumber(assignment.dayNumber);
+  const firstExercise = safePromptString(assignment.firstExerciseName, 'none');
+  lines.push(
+    [
+      `Today assignment: ${assignmentType}`,
+      `status ${safePromptString(assignment.status, 'unknown')}`,
+      `week ${week ?? 'unknown'}`,
+      `day ${day ?? 'unknown'}`,
+      `loggable ${yesNo(assignment.isLoggable)}`,
+      `billable ${yesNo(assignment.isBillable)}`,
+      `deduct paid session: ${yesNo(assignment.shouldDeductSession)}`,
+      `exercises ${countOrZero(assignment.exerciseCount)}`,
+      `first exercise ${firstExercise}`,
+    ].join('; '),
+  );
+
+  return lines.join('\n');
 }
 
 /**

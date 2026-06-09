@@ -23,6 +23,7 @@ import { buildProgressContext } from './progressContextBuilder.mjs';
 import {
   getCorrectiveExercisesForCompensations,
 } from './correctiveExerciseService.mjs';
+import { buildClientTrainingVaultContext } from '../clientTrainingVaultContextService.mjs';
 import logger from '../../utils/logger.mjs';
 
 // ── Horizon → window mapping ────────────────────────────────────────
@@ -53,12 +54,20 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
   // V3c.5: also fetch the user's MovementProfile so the AI prompt
   // can include the closed-set corrective bias derived from
   // OHSA-detected compensations.
-  const [sessions, baseline, goals, bodyMeasurements, movementProfile] = await Promise.all([
+  const [
+    sessions,
+    baseline,
+    goals,
+    bodyMeasurements,
+    movementProfile,
+    trainingVault,
+  ] = await Promise.all([
     fetchWorkoutSessions(userId, cutoffDate, models),
     fetchLatestBaseline(userId, models),
     fetchActiveGoals(userId, models),
     fetchBodyMeasurements(userId, cutoffDate, models),
     fetchMovementProfile(userId, models),
+    fetchTrainingVaultContext(userId, models),
   ]);
 
   // Extract per-set logs from sessions
@@ -99,6 +108,7 @@ export async function buildLongHorizonContext(userId, horizonMonths, models) {
     goalProgress,
     bodyComposition,
     correctiveBias,
+    trainingVault,
   };
 }
 
@@ -191,6 +201,21 @@ async function fetchMovementProfile(userId, models) {
     return await MovementProfile.findOne({ where: { userId } });
   } catch (err) {
     logger.warn('V3c.5: Failed to fetch MovementProfile:', err.message);
+    return null;
+  }
+}
+
+async function fetchTrainingVaultContext(userId, models) {
+  try {
+    return await buildClientTrainingVaultContext({
+      clientId: userId,
+      WorkoutPlan: models?.WorkoutPlan,
+      DailyWorkoutForm: models?.DailyWorkoutForm,
+      Op,
+      today: new Date(),
+    });
+  } catch (err) {
+    logger.warn('5C-B: Failed to fetch training vault context:', err.message);
     return null;
   }
 }
