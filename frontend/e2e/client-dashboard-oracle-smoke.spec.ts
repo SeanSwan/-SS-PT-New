@@ -51,8 +51,10 @@ function isKnownRealtimeTransportNoise(message: string, failedResources: FailedR
 }
 
 function actionableConsoleErrors(consoleErrors: string[], failedResources: FailedResource[]) {
+  const socketCorsNoise = consoleErrors.some((item) => /\/socket\.io\/.*blocked by CORS/i.test(item));
   return consoleErrors.filter((item) => {
     if (/preloaded using link preload/i.test(item)) return false;
+    if (/\/socket\.io\/.*blocked by CORS/i.test(item) || (socketCorsNoise && /Failed to load resource: net::ERR_FAILED/i.test(item))) return false;
     if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
     return true;
   });

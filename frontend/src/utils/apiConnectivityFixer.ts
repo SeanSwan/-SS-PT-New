@@ -9,6 +9,7 @@ import { logger } from '@/utils/logger';
 
 let connectionErrors = 0;
 const MAX_ERRORS_BEFORE_WARNING = 3;
+const API_UNAVAILABLE_NOTICE_ID = 'swan-api-unavailable-notice';
 
 /**
  * Initialize the API connection monitoring
@@ -71,43 +72,70 @@ export const initializeApiMonitoring = () => {
  */
 function showApiUnavailableNotification() {
   try {
-    // Create a notification element
+    if (document.getElementById(API_UNAVAILABLE_NOTICE_ID)) return;
+
     const notification = document.createElement('div');
+    notification.id = API_UNAVAILABLE_NOTICE_ID;
+    notification.setAttribute('role', 'status');
+    notification.setAttribute('aria-live', 'polite');
     notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.left = '20px';
-    notification.style.backgroundColor = '#f8d7da';
-    notification.style.color = '#721c24';
-    notification.style.padding = '10px 15px';
-    notification.style.borderRadius = '4px';
-    notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+    notification.style.right = 'max(12px, env(safe-area-inset-right))';
+    notification.style.bottom = 'max(12px, env(safe-area-inset-bottom))';
+    notification.style.left = 'max(12px, env(safe-area-inset-left))';
+    notification.style.display = 'grid';
+    notification.style.gridTemplateColumns = 'minmax(0, 1fr) 44px';
+    notification.style.gap = '10px';
+    notification.style.alignItems = 'center';
+    notification.style.margin = '0 auto';
+    notification.style.padding = '12px';
+    notification.style.color = 'var(--text-primary, #E0ECF4)';
+    notification.style.background = 'linear-gradient(135deg, var(--bg-elevated, #003080), var(--bg-base, #030712))';
+    notification.style.border = '1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 44%, transparent)';
+    notification.style.borderRadius = '8px';
+    notification.style.boxShadow = '0 16px 40px color-mix(in srgb, var(--bg-base, #030712) 42%, transparent)';
     notification.style.zIndex = '9999';
-    notification.style.maxWidth = '300px';
-    notification.style.fontFamily = 'Arial, sans-serif';
-    
-    notification.innerHTML = `
-      <div style="font-weight: bold; margin-bottom: 5px;">Backend Connection Error</div>
-      <div style="font-size: 14px; margin-bottom: 8px;">
-        Unable to connect to backend services. Live data is unavailable until the API recovers.
-      </div>
-      <div style="font-size: 12px; color: #555;">
-        (Click to dismiss)
-      </div>
-    `;
-    
-    // Add click handler to dismiss
-    notification.addEventListener('click', () => {
-      document.body.removeChild(notification);
-    });
-    
-    // Add to document
+    notification.style.maxWidth = 'min(360px, calc(100vw - 24px))';
+    notification.style.fontFamily = "'Sora', 'Plus Jakarta Sans', sans-serif";
+
+    const copy = document.createElement('div');
+    copy.style.minWidth = '0';
+
+    const title = document.createElement('div');
+    title.textContent = 'Backend connection issue';
+    title.style.fontWeight = '800';
+    title.style.fontSize = '0.92rem';
+    title.style.lineHeight = '1.2';
+
+    const message = document.createElement('div');
+    message.textContent = 'Live data is unavailable until the API recovers.';
+    message.style.marginTop = '4px';
+    message.style.color = 'color-mix(in srgb, var(--text-primary, #E0ECF4) 78%, transparent)';
+    message.style.fontSize = '0.8rem';
+    message.style.lineHeight = '1.35';
+
+    const dismissButton = document.createElement('button');
+    dismissButton.type = 'button';
+    dismissButton.textContent = 'X';
+    dismissButton.setAttribute('aria-label', 'Dismiss backend connection notice');
+    dismissButton.style.minWidth = '44px';
+    dismissButton.style.minHeight = '44px';
+    dismissButton.style.color = 'var(--text-primary, #E0ECF4)';
+    dismissButton.style.background = 'color-mix(in srgb, var(--accent-gold, #C6A84B) 18%, transparent)';
+    dismissButton.style.border = '1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 36%, transparent)';
+    dismissButton.style.borderRadius = '8px';
+    dismissButton.style.cursor = 'pointer';
+    dismissButton.style.font = "800 1rem/1 'Sora', sans-serif";
+
+    const dismiss = () => notification.remove();
+    dismissButton.addEventListener('click', dismiss);
+
+    copy.append(title, message);
+    notification.append(copy, dismissButton);
     document.body.appendChild(notification);
     
     // Auto dismiss after 15 seconds
     setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
+      dismiss();
     }, 15000);
   } catch (error) {
     logger.warn('[API Monitor] Error showing notification:', error);
