@@ -41,16 +41,12 @@ export type {
   AnalyticsData,
   ExerciseFrequency,
   IntensityPoint,
-  MuscleGroupVolume,
-  OneRMProgression,
   PersonalRecord,
-  RPEPoint,
   WeeklyVolume,
   WorkoutLogEntry,
   WorkoutCalendarEntry,
   WorkoutSession,
 } from './useWorkoutAnalytics.types';
-export { calcBrzycki1RM };
 
 const getNumericAnalyticsUserId = (userId: number | string | null): number | null => {
   if (userId === null) return null;

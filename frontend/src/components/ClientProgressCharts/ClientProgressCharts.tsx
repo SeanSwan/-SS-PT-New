@@ -64,8 +64,6 @@ import productionApiService from '../../services/api.service';
 // Types and Interfaces
 import {
   ChartDataPoint,
-  NASMCategory,
-  ProgressMetrics,
   ChartTimeRange,
   ChartVisibility,
   BodyCompositionDataPoint,

@@ -8,7 +8,7 @@
 
 // ==================== CORE DATA TYPES ====================
 
-export interface WorkoutLogData {
+interface WorkoutLogData {
   id: number;
   userId: number;
   trainerId?: number;
@@ -22,7 +22,7 @@ export interface WorkoutLogData {
   updatedAt: string;
 }
 
-export interface SetLogData {
+interface SetLogData {
   id: number;
   workoutLogId: number;
   exerciseId: number;
@@ -80,7 +80,7 @@ export interface NASMCategoryDataPoint {
 
 // ==================== NASM CATEGORIES ====================
 
-export enum NASMCategory {
+enum NASMCategory {
   CORE = 'Core Stability',
   BALANCE = 'Balance Training',
   POWER = 'Power Development', 
@@ -126,7 +126,7 @@ export interface ChartTheme {
 
 // ==================== PROGRESS METRICS ====================
 
-export interface ProgressMetrics {
+interface ProgressMetrics {
   totalWorkouts: number;
   totalVolume: number;
   averageFormRating: number;
@@ -142,7 +142,7 @@ export interface ProgressMetrics {
 // ==================== API RESPONSE TYPES (FIXED) ====================
 
 // Backend API response structure (from dailyWorkoutFormRoutes.mjs)
-export interface ProgressDataApiResponse {
+interface ProgressDataApiResponse {
   success: boolean;
   progressData: {
     categories: BackendNASMCategory[];
@@ -159,14 +159,14 @@ export interface ProgressDataApiResponse {
 }
 
 // Backend data structures
-export interface BackendNASMCategory {
+interface BackendNASMCategory {
   category: string;
   level: number;
   maxLevel: number;
   percentComplete: number;
 }
 
-export interface BackendWorkoutHistory {
+interface BackendWorkoutHistory {
   date: string;
   duration: number;
   intensity: number;
@@ -175,13 +175,13 @@ export interface BackendWorkoutHistory {
   pointsEarned: number;
 }
 
-export interface BackendFormTrend {
+interface BackendFormTrend {
   date: string;
   averageFormRating: number;
   exerciseCount: number;
 }
 
-export interface BackendVolumeProgression {
+interface BackendVolumeProgression {
   date: string;
   totalWeight: number;
   totalReps: number;
@@ -339,14 +339,14 @@ export interface SessionIntensityChartProps extends BaseChartProps {
 
 // ==================== UTILITY TYPES ====================
 
-export type SortDirection = 'asc' | 'desc';
+type SortDirection = 'asc' | 'desc';
 
-export interface SortConfig {
+interface SortConfig {
   key: string;
   direction: SortDirection;
 }
 
-export interface FilterConfig {
+interface FilterConfig {
   timeRange: ChartTimeRange;
   exercises?: string[];
   categories?: NASMCategory[];
@@ -356,21 +356,8 @@ export interface FilterConfig {
 
 // ==================== ERROR TYPES ====================
 
-export interface ChartError {
+interface ChartError {
   type: 'data' | 'api' | 'render';
   message: string;
   details?: any;
 }
-
-// ==================== EXPORT DEFAULT ====================
-
-export type {
-  WorkoutLogData as WorkoutLog,
-  SetLogData as SetLog,
-  ChartDataPoint as DataPoint
-};
-
-export default {
-  NASMCategory,
-  ChartTimeRange: ['7d', '30d', '90d', '1y', 'all'] as ChartTimeRange[]
-};

@@ -100,5 +100,3 @@ export async function calculateVolumeOverTimeFromLogs(userId, options = {}) {
     };
   });
 }
-
-export default calculateVolumeOverTimeFromLogs;

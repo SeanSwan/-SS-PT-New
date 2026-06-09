@@ -27,7 +27,7 @@ import {
 } from './WorkoutHistoryPanel.sessionStyles';
 import WorkoutHistorySessionFooter from './WorkoutHistorySessionFooter';
 
-export interface WorkoutHistorySessionCardProps {
+interface WorkoutHistorySessionCardProps {
   session: WorkoutSession;
   isExpanded: boolean;
   editingSessionId: string | null;

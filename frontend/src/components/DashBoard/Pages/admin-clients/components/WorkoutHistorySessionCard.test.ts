@@ -26,7 +26,7 @@ describe('WorkoutHistorySessionCard extraction', () => {
     expect(contentSource).toContain('<WorkoutHistorySessionCard');
     expect(panelSource).not.toContain('<SessionHeader>');
     expect(panelSource).not.toContain('buildWorkoutHistoryExerciseTableState(activeLogs)');
-    expect(cardSource).toContain('export interface WorkoutHistorySessionCardProps');
+    expect(cardSource).toContain('interface WorkoutHistorySessionCardProps');
     expect(cardSource).toContain('aria-expanded={isExpanded}');
   });
 });
