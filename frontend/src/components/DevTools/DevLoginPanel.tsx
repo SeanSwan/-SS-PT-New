@@ -40,6 +40,10 @@ const DevPanelContainer = styled.div<{ $minimized?: boolean }>`
   &:hover {
     opacity: 1;
   }
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const DevPaper = styled.div<{ $minimized?: boolean }>`

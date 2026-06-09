@@ -122,12 +122,9 @@ const FAB = styled.button`
     height: 56px;
   }
 
-  /* Mobile: above browser chrome & Windows taskbar (80px up) */
+  /* Mobile dashboards use in-context Swan Coach actions to avoid content overlap. */
   @media (max-width: 768px) {
-    bottom: 72px;
-    right: 16px;
-    width: 48px;
-    height: 48px;
+    display: none;
   }
 
   /* Reduce animations for accessibility / low-end devices */

@@ -12,9 +12,11 @@ const shimmer = keyframes`
 
 export const BentoGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 16px;
   padding: 16px 0;
+  min-width: 0;
+  max-width: 100%;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -40,6 +42,8 @@ export const BentoCardWrapper = styled.button`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
   padding: 24px;
   min-height: 160px;
   border-radius: 12px;
@@ -47,6 +51,7 @@ export const BentoCardWrapper = styled.button`
   border: 1.5px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
   transition: border-color 200ms ease, box-shadow 200ms ease, transform 150ms ease;
   animation: ${cardEntrance} 400ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  overflow-wrap: anywhere;
 
   &:nth-child(1) { animation-delay: 0ms; }
   &:nth-child(2) { animation-delay: 60ms; }
@@ -68,6 +73,21 @@ export const BentoCardWrapper = styled.button`
   }
 
   &:active { transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    padding: 18px;
+    min-height: 140px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    &:hover,
+    &:active {
+      transform: none;
+    }
+  }
 `;
 
 export const CardIconCircle = styled.div`
@@ -90,6 +110,8 @@ export const CardTitle = styled.span`
   font-weight: 600;
   color: var(--text-primary, #E0ECF4);
   line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const CardDescription = styled.span`
@@ -97,6 +119,8 @@ export const CardDescription = styled.span`
   font-size: 13px;
   line-height: 1.5;
   color: var(--text-muted, #4070C0);
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const ExpandedView = styled.div`
@@ -104,6 +128,12 @@ export const ExpandedView = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
 export const StickyBackBar = styled.div`
@@ -118,6 +148,7 @@ export const StickyBackBar = styled.div`
   background: var(--bg-base, #0A0A0F);
   border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   backdrop-filter: blur(12px);
+  min-width: 0;
 
   @media (max-width: 768px) {
     margin: 0 -8px;
@@ -170,12 +201,20 @@ export const ExpandedTitle = styled.h3`
 
 export const ComponentWrapper = styled.div`
   border-radius: 12px;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   background: var(--bg-surface, #141419);
   border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
 `;
 
 export const ShimmerLoader = styled.div`

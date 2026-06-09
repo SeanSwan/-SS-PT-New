@@ -4,12 +4,10 @@ import { CHART_COLORS } from '../../../../Charts/chartTheme';
 
 export const GridWrap = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   gap: 1rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  min-width: 0;
+  max-width: 100%;
 `;
 
 export const Card = styled.div`
@@ -20,6 +18,7 @@ export const Card = styled.div`
   min-height: 220px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 
   &:hover {
     border-color: var(--border-hover, rgba(96, 192, 240, 0.18));
@@ -31,6 +30,7 @@ export const CardHeader = styled.div`
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
+  min-width: 0;
 `;
 
 export const CardTitle = styled.h4`
@@ -39,11 +39,14 @@ export const CardTitle = styled.h4`
   font-weight: 600;
   margin: 0;
   color: var(--text-primary, #E0ECF4);
+  min-width: 0;
+  overflow-wrap: anywhere;
 `;
 
 export const CardBody = styled.div`
   flex: 1;
   min-height: 140px;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -61,6 +64,7 @@ export const SummaryLine = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
   color: var(--text-secondary, rgba(224, 236, 244, 0.7));
   font-family: 'Sora', sans-serif;
   font-size: 0.7rem;
@@ -87,6 +91,12 @@ export const BarRow = styled.li`
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   color: var(--text-primary, #E0ECF4);
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.5rem;
+  }
 `;
 
 export const BarLabel = styled.span`
@@ -102,6 +112,12 @@ export const BarTrack = styled.div`
   border-radius: 4px;
   background: var(--accent-primary-soft, rgba(96, 192, 240, 0.08));
   overflow: hidden;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
 `;
 
 export const BarFill = styled.div<{ $pct: number; $color?: string }>`
@@ -138,6 +154,13 @@ export const AttendanceSummary = styled.div`
   align-items: center;
   gap: 1rem;
   width: 100%;
+  min-width: 0;
+
+  @media (max-width: 520px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 `;
 
 export const AttendancePercent = styled.div`

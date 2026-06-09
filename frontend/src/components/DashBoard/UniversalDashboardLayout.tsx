@@ -1046,8 +1046,7 @@ const OmniTerminalFAB = styled.button`
   }
 
   @media (max-width: 768px) {
-    bottom: 16px;
-    right: 16px;
+    display: none;
   }
 
   @media (max-width: 375px) {

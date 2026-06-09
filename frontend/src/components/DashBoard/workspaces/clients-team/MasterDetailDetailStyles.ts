@@ -5,9 +5,11 @@ import { ClientAvatar } from './MasterDetailCardStyles';
 export const DetailContentWrapper = styled.div`
   animation: ${surfaceRise} 350ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   padding: 24px;
+  min-width: 0;
+  max-width: 100%;
 
   @media (max-width: 768px) {
-    padding: 16px;
+    padding: 14px 12px 18px;
   }
 `;
 
@@ -15,13 +17,24 @@ export const DetailHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
   margin-bottom: 24px;
+
+  @media (max-width: 640px) {
+    margin-bottom: 16px;
+  }
 `;
 
 export const DetailClientInfo = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
+
+  > div {
+    min-width: 0;
+  }
 `;
 
 export const DetailAvatar = styled(ClientAvatar)`
@@ -37,6 +50,12 @@ export const DetailName = styled.h2`
   font-size: 24px;
   color: var(--text-primary, #E0ECF4);
   margin: 0;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 640px) {
+    font-size: 19px;
+    line-height: 1.2;
+  }
 `;
 
 export const DetailSubtext = styled.p`
@@ -44,6 +63,8 @@ export const DetailSubtext = styled.p`
   font-size: 13px;
   color: var(--text-secondary, #4070C0);
   margin: 4px 0 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 `;
 
 export const DetailTabBar = styled.nav`
@@ -51,9 +72,33 @@ export const DetailTabBar = styled.nav`
   gap: 0;
   border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.08));
   margin-bottom: 24px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, calc((100% - 6px) / 3)));
+    gap: 3px;
+    border-bottom: none;
+    margin-bottom: 16px;
+    overflow: visible;
+  }
 `;
 
 export const DetailTabButton = styled.button<{ $active: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
   padding: 12px 20px;
   background: none;
   border: none;
@@ -67,6 +112,7 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
   cursor: pointer;
   transition: all 200ms ease;
   min-height: 44px;
+  white-space: nowrap;
 
   ${({ $active }) => $active && css`
     box-shadow: 0 2px 8px var(--shadow-accent, rgba(96, 192, 240, 0.2));
@@ -85,15 +131,46 @@ export const DetailTabButton = styled.button<{ $active: boolean }>`
     outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
   }
+
+  @media (max-width: 640px) {
+    box-sizing: border-box;
+    min-width: 0;
+    gap: 4px;
+    padding: 9px 3px;
+    border: 1px solid ${({ $active }) => (
+      $active
+        ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 65%, transparent)'
+        : 'var(--border-soft, rgba(224, 236, 244, 0.08))'
+    )};
+    border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-primary, #60C0F0)' : 'var(--border-soft, rgba(224, 236, 244, 0.08))')};
+    border-radius: 8px;
+    box-shadow: none;
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: 0;
+    overflow: hidden; white-space: nowrap;
+
+    svg {
+      flex: 0 0 auto;
+    }
+  }
 `;
 
 export const DetailTabLabel = styled.span`
-  margin-left: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: center;
 `;
 
 export const DetailTabPanel = styled.div`
   opacity: 1;
   transition: opacity 200ms ease-in-out;
+  min-width: 0;
+  max-width: 100%;
+
+  > * {
+    min-width: 0;
+  }
 `;
 
 export const PlaceholderShell = styled.div`

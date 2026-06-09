@@ -14,6 +14,10 @@ const Container = styled.div<{ $visible: boolean }>`
   right: 20px;
   z-index: 9999;
   display: ${(props) => props.$visible ? 'block' : 'none'};
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const Toggle = styled.button`
@@ -44,6 +48,10 @@ const Toggle = styled.button`
   
   svg {
     color: #002060;
+  }
+
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
 
@@ -185,7 +193,11 @@ const UserSwitcher: React.FC = () => {
   
   return (
     <>
-      <Toggle onClick={() => setIsVisible(!isVisible)}>
+      <Toggle
+        onClick={() => setIsVisible(!isVisible)}
+        aria-label={isVisible ? 'Close development user switcher' : 'Open development user switcher'}
+        title="Development user switcher"
+      >
         {isVisible ? <X size={24} /> : <User size={24} />}
       </Toggle>
       

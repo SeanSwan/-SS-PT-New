@@ -8,6 +8,8 @@ import styled from 'styled-components';
 export const LayoutWrapper = styled.div`
   display: flex;
   min-height: 400px;
+  min-width: 0;
+  max-width: 100%;
   gap: 0;
   border-radius: 12px;
   overflow: visible;
@@ -26,6 +28,7 @@ export const Sidebar = styled.div`
   gap: 2px;
   padding: 8px;
   width: 240px;
+  min-width: 0;
   flex-shrink: 0;
   background: var(--bg-elevated, #1A1A24);
   border-right: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
@@ -39,6 +42,7 @@ export const Sidebar = styled.div`
   @media (max-width: 767px) {
     flex-direction: row;
     width: 100%;
+    max-width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-soft, rgba(224, 236, 244, 0.06));
     padding: 6px;
@@ -64,6 +68,7 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
   transition: all 180ms ease;
   position: relative;
   white-space: nowrap;
+  flex-shrink: 0;
 
   color: ${({ $active }) =>
     $active ? 'var(--accent-primary, #60C0F0)' : 'var(--text-secondary, #94a3b8)'};
@@ -160,9 +165,14 @@ export const SidebarItem = styled.button<{ $active: boolean }>`
 export const ContentArea = styled.div`
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   min-height: 0;
   padding: 16px;
   overflow: visible;
+
+  @media (max-width: 767px) {
+    padding: 10px 8px 12px;
+  }
 `;
 
 export const ShimmerLoader = styled.div`
