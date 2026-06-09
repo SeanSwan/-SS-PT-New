@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/adminOnboardingRoutes.mjs'), 'utf8');
 const controllerSource = readFileSync(resolve(__dirname, '../../controllers/clientOnboardingController.mjs'), 'utf8');
+const baselineServiceSource = readFileSync(resolve(__dirname, '../../services/clientBaselineMeasurementService.mjs'), 'utf8');
 const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 const baselineModelSource = readFileSync(resolve(__dirname, '../../models/ClientBaselineMeasurements.mjs'), 'utf8');
 const romAssessmentSource = readFileSync(
@@ -34,7 +35,8 @@ describe('admin onboarding baseline access guard', () => {
     expect(romAssessmentSource).toContain('rangeOfMotion: { date: assessmentDate, measurements, notes }');
     expect(baselineModelSource).toContain('rangeOfMotion: {');
     expect(baselineModelSource).toContain('type: DataTypes.JSONB');
-    expect(controllerSource).toContain('rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion)');
+    expect(controllerSource).toContain("from '../services/clientBaselineMeasurementService.mjs'");
+    expect(baselineServiceSource).toContain('rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion)');
   });
 
   it('keeps dictated baseline weight aligned with the model column used by controller and Coach dispatcher', () => {
@@ -44,7 +46,7 @@ describe('admin onboarding baseline access guard', () => {
       'utf8',
     );
 
-    expect(controllerSource).toContain('bodyWeight: measurementData.bodyWeight || null');
+    expect(baselineServiceSource).toContain('bodyWeight: nullableValue(measurementData.bodyWeight)');
     expect(dispatcherSource).toContain('bodyWeight: toFiniteNumberOrNull(params.bodyWeight ?? params.weight)');
     expect(baselineModelSource).toContain('bodyWeight: {');
     expect(baselineModelSource).toContain('type: DataTypes.DECIMAL(6, 2)');

@@ -55,6 +55,7 @@
 import logger from '../utils/logger.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
+import { createBaselineMeasurementRecord } from '../services/clientBaselineMeasurementService.mjs';
 import { buildClientDataOverview } from '../services/clientDataOverviewService.mjs';
 import { createMovementScreenRecord } from '../services/clientMovementScreenService.mjs';
 import {
@@ -495,9 +496,9 @@ export const getAdminOnboardingList = async (req, res) => {
  */
 export const createBaselineMeasurements = async (req, res) => {
   try {
-    const { ClientBaselineMeasurements, ClientTrainerAssignment } = await getAllModels();
-    const { userId, ...measurementData } = req.body;
-    const targetUserId = parseUserId(userId);
+    const models = await getAllModels();
+    const { ClientTrainerAssignment } = models;
+    const targetUserId = parseUserId(req.body?.userId);
 
     if (!targetUserId) {
       return res.status(400).json({ success: false, message: 'userId is required' });
@@ -508,28 +509,11 @@ export const createBaselineMeasurements = async (req, res) => {
       return res.status(accessResult.status).json({ success: false, message: accessResult.message });
     }
 
-    // Create baseline measurement record
-    const baseline = await ClientBaselineMeasurements.create({
-      userId: targetUserId,
-      recordedBy: req.user.id,
-      takenAt: measurementData.takenAt || new Date(),
-      restingHeartRate: measurementData.restingHeartRate || null,
-      bloodPressureSystolic: measurementData.bloodPressureSystolic || null,
-      bloodPressureDiastolic: measurementData.bloodPressureDiastolic || null,
-      bodyWeight: measurementData.bodyWeight || null,
-      bodyFatPercentage: measurementData.bodyFatPercentage || null,
-      benchPressWeight: measurementData.benchPressWeight || null,
-      benchPressReps: measurementData.benchPressReps || null,
-      squatWeight: measurementData.squatWeight || null,
-      squatReps: measurementData.squatReps || null,
-      deadliftWeight: measurementData.deadliftWeight || null,
-      deadliftReps: measurementData.deadliftReps || null,
-      pullUpsReps: measurementData.pullUpsReps || null,
-      plankDuration: measurementData.plankDuration || null,
-      flexibilityNotes: measurementData.flexibilityNotes || null,
-      rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion),
-      injuryNotes: measurementData.injuryNotes || null,
-      painLevel: measurementData.painLevel || 0,
+    const baseline = await createBaselineMeasurementRecord({
+      models,
+      targetUserId,
+      recordedByUserId: req.user.id,
+      measurementData: req.body,
     });
 
     logger.info(`Baseline measurements created for user ${targetUserId} by ${req.user.id}`);

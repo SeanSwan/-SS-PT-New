@@ -78,6 +78,66 @@ describe('clientOnboardingController regression after helper extraction', () => 
     expect(source).not.toContain('parqScreening.medicalClearanceRequired === true || hasParqRisk(parqScreening)');
   });
 
+  test('moves baseline measurement payload creation into a service', () => {
+    expect(source).toContain("from '../services/clientBaselineMeasurementService.mjs'");
+    expect(source).not.toContain('const { userId, ...measurementData } = req.body;');
+    expect(source).not.toContain('restingHeartRate: measurementData.restingHeartRate || null');
+    expect(source).not.toContain('rangeOfMotion: normalizeJsonObject(measurementData.rangeOfMotion)');
+  });
+
+  test('baseline measurement service preserves the current create payload contract', async () => {
+    const { buildBaselineMeasurementCreatePayload } = await import('../../services/clientBaselineMeasurementService.mjs');
+    const takenAt = new Date('2026-02-03T04:05:06.000Z');
+
+    const payload = buildBaselineMeasurementCreatePayload({
+      targetUserId: 51,
+      recordedByUserId: 9,
+      measurementData: {
+        takenAt,
+        restingHeartRate: 62,
+        bloodPressureSystolic: 118,
+        bloodPressureDiastolic: 76,
+        bodyWeight: 182,
+        bodyFatPercentage: 15,
+        benchPressWeight: 225,
+        benchPressReps: 4,
+        squatWeight: 315,
+        squatReps: 5,
+        deadliftWeight: 365,
+        deadliftReps: 3,
+        pullUpsReps: 12,
+        plankDuration: 120,
+        flexibilityNotes: 'Hamstrings tight',
+        rangeOfMotion: { hipFlexion: 90 },
+        injuryNotes: 'No acute pain',
+        painLevel: 2,
+      },
+    });
+
+    expect(payload).toEqual({
+      userId: 51,
+      recordedBy: 9,
+      takenAt,
+      restingHeartRate: 62,
+      bloodPressureSystolic: 118,
+      bloodPressureDiastolic: 76,
+      bodyWeight: 182,
+      bodyFatPercentage: 15,
+      benchPressWeight: 225,
+      benchPressReps: 4,
+      squatWeight: 315,
+      squatReps: 5,
+      deadliftWeight: 365,
+      deadliftReps: 3,
+      pullUpsReps: 12,
+      plankDuration: 120,
+      flexibilityNotes: 'Hamstrings tight',
+      rangeOfMotion: { hipFlexion: 90 },
+      injuryNotes: 'No acute pain',
+      painLevel: 2,
+    });
+  });
+
   test('still exports createQuestionnaire and getQuestionnaire', () => {
     expect(source).toContain('export const createQuestionnaire');
     expect(source).toContain('export const getQuestionnaire');
