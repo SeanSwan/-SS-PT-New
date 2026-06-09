@@ -19,6 +19,10 @@ const COMMAND_DISPATCHER_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/commandDispatcher.mjs'),
   'utf8',
 );
+const WORKOUT_LOG_WRITE_DISPATCHER_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/dispatchers/workoutLogWriteDispatcher.mjs'),
+  'utf8',
+);
 const WORKOUT_COMMANDS_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/commandRegistry/workoutCommands.mjs'),
   'utf8',
@@ -47,10 +51,16 @@ describe('coachActionProposalApprovalService source guards', () => {
   });
 
   it('routes server-side log_workout commands through the canonical daily form writer', () => {
-    expect(COMMAND_DISPATCHER_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
-    expect(COMMAND_DISPATCHER_SRC).toMatch(/plannedAssignment:\s*params\.plannedAssignment/);
-    expect(COMMAND_DISPATCHER_SRC).toMatch(/scheduledSessionId:\s*params\.scheduledSessionId/);
-    expect(COMMAND_DISPATCHER_SRC).not.toMatch(/logWorkoutForClient/);
+    expect(COMMAND_DISPATCHER_SRC).toMatch(/workoutLogWriteDispatcher\.mjs/);
+    expect(COMMAND_DISPATCHER_SRC).not.toMatch(/return submitAiWorkoutLogAsDailyForm/);
+    expect(WORKOUT_LOG_WRITE_DISPATCHER_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(WORKOUT_LOG_WRITE_DISPATCHER_SRC).toMatch(
+      /plannedAssignment:\s*params\.plannedAssignment/
+    );
+    expect(WORKOUT_LOG_WRITE_DISPATCHER_SRC).toMatch(
+      /scheduledSessionId:\s*params\.scheduledSessionId/
+    );
+    expect(WORKOUT_LOG_WRITE_DISPATCHER_SRC).not.toMatch(/logWorkoutForClient/);
   });
 
   it('documents log_workout against the workout form diary endpoint', () => {

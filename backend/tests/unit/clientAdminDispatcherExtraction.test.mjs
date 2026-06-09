@@ -55,4 +55,33 @@ describe('client-admin command dispatcher extraction locks', () => {
     expect(read(dispatcherPath)).toContain('export const dispatchDeactivateClient');
     expect(read(dispatcherPath)).toContain('deactivateClientAccount');
   });
+
+  test('client admin read commands live outside the central command dispatcher', () => {
+    const dispatcherPath = 'services/ai/dispatchers/clientAdminReadDispatchers.mjs';
+    expect(exists(dispatcherPath)).toBe(true);
+    expect(commandDispatcherSource).toContain(
+      "from './dispatchers/clientAdminReadDispatchers.mjs'"
+    );
+    expect(commandDispatcherSource).not.toContain('const dispatchListActiveClients = async');
+    expect(commandDispatcherSource).not.toContain('const dispatchExportClientList = async');
+    expect(commandDispatcherSource).not.toContain('const dispatchAtRiskClients = async');
+    expect(commandDispatcherSource).not.toContain('const dispatchClientBillingOverview = async');
+    expect(read(dispatcherPath)).toContain('export const dispatchListActiveClients');
+    expect(read(dispatcherPath)).toContain('export const dispatchExportClientList');
+    expect(read(dispatcherPath)).toContain('export const dispatchAtRiskClients');
+    expect(read(dispatcherPath)).toContain('export const dispatchClientBillingOverview');
+    expect(read(dispatcherPath)).toContain('includesPIIInCommandResult: false');
+  });
+
+  test('client notification write command lives outside the central command dispatcher', () => {
+    const dispatcherPath = 'services/ai/dispatchers/clientNotificationWriteDispatcher.mjs';
+    expect(exists(dispatcherPath)).toBe(true);
+    expect(commandDispatcherSource).toContain(
+      "from './dispatchers/clientNotificationWriteDispatcher.mjs'"
+    );
+    expect(commandDispatcherSource).not.toContain('const dispatchNotifyClient = async');
+    expect(read(dispatcherPath)).toContain('export const dispatchNotifyClient');
+    expect(read(dispatcherPath)).toContain('createNotification');
+    expect(read(dispatcherPath)).not.toContain('message,');
+  });
 });

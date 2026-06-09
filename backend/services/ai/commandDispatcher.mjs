@@ -15,12 +15,12 @@
  *   - FRONTEND_DISPATCH commands also return not_wired (handled client-side, not server).
  * REGISTERED COMMANDS:
  *   exec-substrate-v1:
- *   M01: create_hermes_task → hermesService.createTask
- *   M02: list_hermes_tasks  → hermesService.listTasks
+ *   M01: create_hermes_task → hermesCommandDispatchers.dispatchCreateHermesTask
+ *   M02: list_hermes_tasks  → hermesCommandDispatchers.dispatchListHermesTasks
  *   exec-substrate-v2 (canonical workout diary slice):
- *   B03: log_workout        → aiWorkoutDailyFormService.submitAiWorkoutLogAsDailyForm
+ *   B03: log_workout        → workoutLogWriteDispatcher.dispatchLogWorkout
  *   exec-substrate-v3 (honesty fix + first read command):
- *   R01: view_workout_history → WorkoutSession.findAll (flat scalar summary)
+ *   R01: view_workout_history/view_last_workout → workoutReadDispatchers
  *   exec-substrate-v4 (nutrition read slice):
  *   E01: view_nutrition_log   → DailyMacroLog.findAll today → nutritionDispatchers
  *   E02: view_macro_trends    → DailyMacroLog.findAll 7-day → nutritionDispatchers
@@ -57,25 +57,7 @@
  * ============================================================================
  */
 
-import { Op } from 'sequelize';
-import * as hermesService from '../hermes/hermesService.mjs';
-import workoutService from '../workoutService.mjs';
-import { submitAiWorkoutLogAsDailyForm } from '../workout/aiWorkoutDailyFormService.mjs';
-import {
-  NON_DEDUCTING_CLIENT_SOURCES,
-  normalizeClientSource,
-  normalizePaidSessionCount,
-} from '../sessionBillingPolicy.mjs';
-import { deactivateClientAccount } from '../clientDeactivationService.mjs';
-import { createNotification } from '../../controllers/notificationController.mjs';
-import defaultSequelize from '../../database.mjs';
-import { getAllModels } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
-import {
-  buildAtRiskComplianceClient,
-  buildAtRiskComplianceQuery,
-  sortAtRiskClients,
-} from '../../utils/adminComplianceHelpers.mjs';
 import {
   dispatchFlagSodiumIntake,
   dispatchScanFood,
@@ -83,7 +65,6 @@ import {
   viewNutritionLog,
   viewMacroTrends,
 } from './dispatchers/nutritionDispatchers.mjs';
-import { resolveCommandClientId } from './dispatchers/clientScope.mjs';
 import { viewActivePain, addPainEntry, dispatchResolvePainEntry, dispatchUpdatePainEntry } from './dispatchers/painDispatchers.mjs';
 import { viewLatestMeasurements, dispatchLogWeighIn, dispatchLogMeasurements, viewMeasurementTrends } from './dispatchers/measurementDispatchers.mjs';
 import { dispatchCancelSession, dispatchViewTodaySchedule, dispatchViewWeekSchedule } from './dispatchers/sessionDispatchers.mjs';
@@ -132,6 +113,27 @@ import {
   dispatchViewTrainerClients,
 } from './dispatchers/trainerCommandDispatchers.mjs';
 import { dispatchAssignTrainer } from './dispatchers/trainerAssignmentWriteDispatcher.mjs';
+import {
+  dispatchDeactivateClient,
+  dispatchLockClient,
+} from './dispatchers/clientAccountWriteDispatchers.mjs';
+import {
+  dispatchAtRiskClients,
+  dispatchClientBillingOverview,
+  dispatchExportClientList,
+  dispatchListActiveClients,
+} from './dispatchers/clientAdminReadDispatchers.mjs';
+import { dispatchNotifyClient } from './dispatchers/clientNotificationWriteDispatcher.mjs';
+import {
+  dispatchViewExerciseRecommendations,
+  dispatchViewLastWorkout,
+  dispatchViewWorkoutHistory,
+} from './dispatchers/workoutReadDispatchers.mjs';
+import {
+  dispatchCreateHermesTask,
+  dispatchListHermesTasks,
+} from './dispatchers/hermesCommandDispatchers.mjs';
+import { dispatchLogWorkout } from './dispatchers/workoutLogWriteDispatcher.mjs';
 import { dispatchViewWorkoutStatistics } from './dispatchers/workoutStatisticsReadDispatcher.mjs';
 import { dispatchUpdateClient } from './dispatchers/clientProfileWriteDispatchers.mjs';
 import { dispatchViewClientProfile } from './dispatchers/clientProfileReadDispatcher.mjs';
@@ -191,7 +193,6 @@ import { dispatchSubmitOnboarding } from './dispatchers/onboardingSubmitDispatch
 import { dispatchViewOnboardingStatus } from './dispatchers/onboardingStatusDispatcher.mjs';
 import { dispatchFillBaselineMeasurements } from './dispatchers/onboardingBaselineDispatcher.mjs';
 import { dispatchViewOrientationQueue } from './dispatchers/onboardingQueueDispatcher.mjs';
-import { toDateOnly } from '../clientTrainingSafeReadValueService.mjs';
 
 // ── Dispatcher Map ───────────────────────────────────────────────────────────
 
@@ -202,442 +203,11 @@ import { toDateOnly } from '../clientTrainingSafeReadValueService.mjs';
  *
  * @type {Map<string, (params: Record<string, unknown>, ctx: import('./commandExecutor.mjs').CommandContext) => Promise<Record<string, unknown>>>}
  */
-const dispatchViewWorkoutHistory = async (params, ctx, defaultLimit = 5) => {
-  const { WorkoutSession, WorkoutLog } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const limit = Math.min(20, Math.max(1, Number(params.limit) || defaultLimit));
-  const rows = await WorkoutSession.findAll({
-    where: { userId: clientId },
-    include: [{ model: WorkoutLog, as: 'logs' }],
-    order: [['completedAt', 'DESC']],
-    limit,
-  });
-  const last = rows[0];
-  return {
-    count: rows.length,
-    lastSessionDate: last?.completedAt?.toISOString().slice(0, 10) ?? null,
-    recentTitle: last?.title ?? null,
-    totalSets: rows.reduce((s, r) => s + (r.totalSets || 0), 0),
-    totalReps: rows.reduce((s, r) => s + (r.totalReps || 0), 0),
-  };
-};
-
-const dispatchListActiveClients = async (params, ctx) => {
-  const { User, ClientTrainerAssignment } = getAllModels();
-  const page = Math.max(1, Number.parseInt(params.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, Number.parseInt(params.limit, 10) || 20));
-  const status = params.status || 'active';
-  const where = { role: 'client' };
-  const include = [];
-
-  if (status === 'active') {
-    where.isActive = true;
-  } else if (status === 'inactive') {
-    where.isActive = false;
-  }
-
-  if (ctx.user?.role === 'trainer') {
-    include.push({
-      model: ClientTrainerAssignment,
-      as: 'clientAssignments',
-      required: true,
-      where: { trainerId: ctx.user.id, status: 'active' },
-      attributes: [],
-    });
-  }
-
-  const result = await User.findAndCountAll({
-    where,
-    include,
-    limit,
-    offset: (page - 1) * limit,
-    order: [['createdAt', 'DESC']],
-    attributes: { exclude: ['password', 'refreshTokenHash', 'masterPromptJson'] },
-  });
-
-  const rows = Array.isArray(result.rows) ? result.rows : [];
-  const clients = rows.map((row) => (typeof row.toJSON === 'function' ? row.toJSON() : row));
-  const count = Array.isArray(result.count) ? result.count.length : Number(result.count) || 0;
-
-  const activeCount = clients.filter((client) => client.isActive !== false).length;
-  const inactiveCount = clients.filter((client) => client.isActive === false).length;
-  const sourceFor = (client) => normalizeClientSource(client.clientSource);
-  const swanStudiosCount = clients.filter((client) => (
-    !NON_DEDUCTING_CLIENT_SOURCES.has(sourceFor(client))
-  )).length;
-  const moveFitnessCount = clients.filter((client) => sourceFor(client) === 'move_fitness').length;
-  const externalCount = clients.filter((client) => sourceFor(client) === 'external').length;
-  const clientIds = clients
-    .map((client) => client.id)
-    .filter((id) => id !== undefined && id !== null);
-
-  return {
-    totalCount: count,
-    returnedCount: clients.length,
-    activeCount,
-    inactiveCount,
-    swanStudiosCount,
-    moveFitnessCount,
-    externalCount,
-    firstClientId: clientIds[0] ?? null,
-    clientIds: clientIds.length ? clientIds.join(', ') : null,
-    page,
-    limit,
-  };
-};
-
-const dispatchExportClientList = async (params) => {
-  const { User } = getAllModels();
-  const format = params.format === 'json' ? 'json' : 'csv';
-  const where = { role: 'client' };
-
-  if (params.status === 'active') {
-    where.isActive = true;
-  } else if (params.status === 'inactive') {
-    where.isActive = false;
-  }
-
-  const normalizedClientSource = normalizeClientSource(params.clientSource, null);
-  if (normalizedClientSource) {
-    where.clientSource = normalizedClientSource;
-  }
-
-  const searchParams = new URLSearchParams({ format });
-  if (params.status === 'active' || params.status === 'inactive') {
-    searchParams.set('status', params.status);
-  }
-  if (where.clientSource) {
-    searchParams.set('clientSource', where.clientSource);
-  }
-
-  const matchingClients = await User.count({ where });
-
-  return {
-    exportReady: true,
-    format,
-    matchingClients: Number(matchingClients) || 0,
-    downloadPath: `/api/admin/clients/export?${searchParams.toString()}`,
-    includesPIIInCommandResult: false,
-  };
-};
-
-const dispatchAtRiskClients = async (params, ctx) => {
-  const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
-  const { sql, replacements } = buildAtRiskComplianceQuery({
-    user: ctx.user,
-    limit: params.limit || 20,
-  });
-
-  let rows = [];
-  try {
-    const [queryRows] = await sequelize.query(sql, { replacements });
-    rows = Array.isArray(queryRows) ? queryRows : [];
-  } catch (error) {
-    logger.warn('[CommandDispatcher] at_risk_clients query failed: %s', error.message);
-  }
-
-  const atRisk = sortAtRiskClients(rows.map(buildAtRiskComplianceClient).filter(Boolean));
-  const criticalCount = atRisk.filter((client) => client.riskLevel === 'critical').length;
-  const warningCount = atRisk.filter((client) => client.riskLevel === 'warning').length;
-  const watchCount = atRisk.filter((client) => client.riskLevel === 'watch').length;
-  const freeTrackingCount = atRisk.filter((client) => client.isFreeTracking).length;
-  const lowSessionPaidCount = atRisk.filter((client) => (
-    !client.isFreeTracking
-    && client.sessionsRemaining !== null
-    && client.sessionsRemaining <= 2
-  )).length;
-
-  return {
-    atRiskCount: atRisk.length,
-    criticalCount,
-    warningCount,
-    watchCount,
-    freeTrackingCount,
-    lowSessionPaidCount,
-    firstClientId: atRisk[0]?.id ?? null,
-    highestRiskLevel: atRisk[0]?.riskLevel ?? null,
-  };
-};
-
-const dispatchClientBillingOverview = async (params, ctx) => {
-  const { User, Order, Session } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const client = await User.findOne({
-    where: { id: clientId, role: 'client' },
-    attributes: ['id', 'availableSessions', 'clientSource'],
-  });
-
-  if (!client) {
-    return {
-      clientId,
-      found: false,
-    };
-  }
-
-  const data = typeof client.toJSON === 'function' ? client.toJSON() : client;
-  const clientSource = normalizeClientSource(data.clientSource);
-  const deductsSessions = !NON_DEDUCTING_CLIENT_SOURCES.has(clientSource);
-  const [lastPurchase, pendingOrders, nextSession, recentSessions] = await Promise.all([
-    Order.findOne({
-      where: { userId: clientId, status: 'completed' },
-      order: [['completedAt', 'DESC']],
-      attributes: ['id', 'totalAmount', 'completedAt', 'paymentAppliedAt'],
-    }),
-    Order.findAll({
-      where: { userId: clientId, status: { [Op.in]: ['pending_payment', 'pending'] } },
-      order: [['createdAt', 'DESC']],
-      attributes: ['id', 'totalAmount', 'status', 'createdAt'],
-    }),
-    Session.findOne({
-      where: {
-        userId: clientId,
-        status: { [Op.in]: ['scheduled', 'confirmed'] },
-        sessionDate: { [Op.gte]: new Date() },
-      },
-      order: [['sessionDate', 'ASC']],
-      attributes: ['id', 'sessionDate', 'duration', 'status'],
-    }),
-    Session.findAll({
-      where: { userId: clientId, status: 'completed' },
-      order: [['sessionDate', 'DESC']],
-      limit: 5,
-      attributes: ['id', 'sessionDate', 'duration', 'status'],
-    }),
-  ]);
-
-  const pendingTotal = pendingOrders.reduce(
-    (sum, order) => sum + (Number(order.totalAmount) || 0),
-    0
-  );
-
-  return {
-    clientId,
-    found: true,
-    clientSource,
-    deductsSessions,
-    sessionsRemaining: deductsSessions ? normalizePaidSessionCount(data.availableSessions) : 0,
-    hasLastPurchase: Boolean(lastPurchase),
-    lastPurchaseAmount: lastPurchase ? Number(lastPurchase.totalAmount || 0) : null,
-    lastPurchaseDate: toDateOnly(lastPurchase?.completedAt),
-    paymentApplied: Boolean(lastPurchase?.paymentAppliedAt),
-    pendingOrderCount: pendingOrders.length,
-    pendingOrderTotal: pendingTotal,
-    hasNextSession: Boolean(nextSession),
-    nextSessionDate: toDateOnly(nextSession?.sessionDate),
-    recentCompletedSessions: recentSessions.length,
-    lastCompletedSessionDate: toDateOnly(recentSessions[0]?.sessionDate),
-  };
-};
-
-const dispatchNotifyClient = async (params, ctx) => {
-  const { User } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const client = await User.findOne({
-    where: { id: clientId, role: 'client' },
-    attributes: ['id'],
-  });
-
-  if (!client) {
-    return {
-      clientId,
-      found: false,
-      notificationSent: false,
-    };
-  }
-
-  const title = String(params.title || 'Coach update').trim();
-  const message = String(params.message || '').trim();
-  const type = String(params.type || 'admin').trim() || 'admin';
-
-  const result = await createNotification({
-    userId: Number(clientId),
-    title,
-    message,
-    type,
-    senderId: ctx.user?.id,
-  });
-
-  return {
-    clientId,
-    found: true,
-    notificationSent: Boolean(result?.success),
-    notificationId: result?.notification?.id ?? null,
-    type,
-  };
-};
-
-const dispatchLockClient = async (params, ctx) => {
-  const { User } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
-  const transaction = await sequelize.transaction();
-
-  try {
-    const client = await User.findOne({
-      where: { id: clientId, role: 'client' },
-      transaction,
-    });
-
-    if (!client) {
-      await transaction.rollback();
-      return {
-        clientId,
-        found: false,
-        locked: false,
-      };
-    }
-
-    await client.update({ isLocked: true }, { transaction });
-    await transaction.commit();
-
-    return {
-      clientId,
-      found: true,
-      locked: true,
-    };
-  } catch (error) {
-    await transaction.rollback();
-    logger.error('[CommandDispatcher] lock_client failed', {
-      clientId,
-      error: error.message,
-    });
-    throw error;
-  }
-};
-
-const dispatchDeactivateClient = async (params, ctx) => {
-  const { User, Session } = getAllModels();
-  const clientId = resolveCommandClientId(params, ctx);
-  const sequelize = ctx.options?.sequelize || ctx.sequelize || defaultSequelize;
-  const transaction = await sequelize.transaction();
-
-  try {
-    const client = await User.findOne({
-      where: { id: clientId, role: 'client' },
-      transaction,
-    });
-
-    if (!client) {
-      await transaction.rollback();
-      return {
-        clientId,
-        found: false,
-        deactivated: false,
-      };
-    }
-
-    const deactivation = await deactivateClientAccount({
-      client,
-      Session,
-      clientId,
-      transaction,
-    });
-
-    await transaction.commit();
-
-    return {
-      clientId,
-      found: true,
-      deactivated: true,
-      accountDeactivatedAt: deactivation.accountDeactivatedAt.toISOString(),
-      accountRetentionUntil: deactivation.accountRetentionUntil.toISOString(),
-      cancelledFutureSessions: deactivation.cancelledFutureSessions,
-      preservedAvailableSessions: deactivation.preservedAvailableSessions,
-    };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-
-const dispatchViewExerciseRecommendations = async (params, ctx) => {
-  const clientId = resolveCommandClientId(params, ctx);
-  const limit = Math.min(10, Math.max(1, Number(params.limit) || 5));
-  const exercises = await workoutService.getExerciseRecommendations(clientId, {
-    goal: params.goal || 'general',
-    difficulty: params.difficulty,
-    equipment: Array.isArray(params.equipment) ? params.equipment : [],
-    muscleGroups: Array.isArray(params.muscleGroups) ? params.muscleGroups : [],
-    muscleGroupNames: Array.isArray(params.muscleGroupNames) ? params.muscleGroupNames : [],
-    bodyRegions: Array.isArray(params.bodyRegions) ? params.bodyRegions : [],
-    excludeExercises: Array.isArray(params.excludeExercises) ? params.excludeExercises : [],
-    limit,
-    rehabFocus: Boolean(params.rehabFocus),
-    optPhase: params.optPhase,
-  });
-  const names = exercises
-    .map((exercise) => String(exercise?.name || '').trim())
-    .filter(Boolean)
-    .slice(0, limit);
-
-  return {
-    recommendationCount: exercises.length,
-    firstRecommendation: names[0] || null,
-    topRecommendations: names.length ? names.join(', ') : null,
-  };
-};
-
 const DISPATCHERS = new Map([
-  [
-    'log_workout',
-    async (params, ctx) => {
-      const sequelize = ctx.options?.sequelize || ctx.sequelize;
-      const clientId = resolveCommandClientId(params, ctx);
-      // Service returns card-friendly diary + billing evidence.
-      return submitAiWorkoutLogAsDailyForm({
-        clientId,
-        exercises: params.exercises || [],
-        date: params.date,
-        notes: params.notes,
-        title: params.title,
-        duration: params.duration,
-        intensity: params.intensity,
-        plannedAssignment: params.plannedAssignment,
-        scheduledSessionId: params.scheduledSessionId,
-        trainerId: ctx.user.id,
-        userRole: ctx.user.role,
-        sequelize,
-      });
-    },
-  ],
+  ['log_workout', dispatchLogWorkout],
   ['create_workout_session', dispatchCreateWorkoutSession],
-  [
-    'create_hermes_task',
-    async (params, ctx) => {
-      const task = hermesService.createTask({
-        agentType: params.agentType,
-        taskTitle: params.taskTitle,
-        taskDescription: params.taskDescription,
-        priority: params.priority || 'normal',
-        requestedBy: ctx.user.id,
-      });
-      // Return card-friendly result — no nested arrays, no raw objects
-      return {
-        taskId: task.id,
-        agentType: task.agentType,
-        taskTitle: task.taskTitle,
-        priority: task.priority,
-        status: task.status,
-        createdAt: task.createdAt,
-      };
-    },
-  ],
-  [
-    'list_hermes_tasks',
-    async (params, _ctx) => {
-      const result = hermesService.listTasks({
-        agentType: params.agentType || undefined,
-        status: params.status || undefined,
-      });
-      // Flatten to card-friendly scalar fields — no array dump into DataRow
-      return {
-        count: result.count,
-        pending: result.pending,
-        completed: result.completed,
-        failed: result.failed,
-      };
-    },
-  ],
+  ['create_hermes_task', dispatchCreateHermesTask],
+  ['list_hermes_tasks', dispatchListHermesTasks],
   ['log_meals',          logMeals],
   ['create_client', dispatchCreateClientProposal],
   ['create_external_client', dispatchCreateExternalClientProposal],
@@ -684,14 +254,8 @@ const DISPATCHERS = new Map([
   ['track_my_pain', dispatchTrackMyPain],
   ['exercises_to_avoid', dispatchExercisesToAvoid],
   ['request_plan_adjustment', dispatchRequestPlanAdjustment],
-  [
-    'view_workout_history',
-    (params, ctx) => dispatchViewWorkoutHistory(params, ctx),
-  ],
-  [
-    'view_last_workout',
-    (params, ctx) => dispatchViewWorkoutHistory({ ...params, limit: 1 }, ctx, 1),
-  ],
+  ['view_workout_history', dispatchViewWorkoutHistory],
+  ['view_last_workout', dispatchViewLastWorkout],
   ['view_workout_statistics', dispatchViewWorkoutStatistics],
   ['view_exercise_recommendations', dispatchViewExerciseRecommendations],
   ['delete_workout_plan', dispatchDeleteWorkoutPlan],
@@ -761,6 +325,32 @@ export function hasDispatcher(commandType) {
   return DISPATCHERS.has(commandType);
 }
 
+const logDispatchSuccess = ({ commandType, ctx }) => {
+  logger.info('[CommandDispatcher] Command executed', {
+    command: commandType,
+    userId: ctx.user?.id,
+    clientId: ctx.resolvedClient?.id || null,
+  });
+};
+
+const logDispatchFailure = ({ commandType, err }) => {
+  logger.error('[CommandDispatcher] Handler threw', {
+    command: commandType,
+    error: err.message,
+  });
+};
+
+const executeHandler = async ({ commandType, handler, params, ctx }) => {
+  try {
+    const result = await handler(params, ctx);
+    logDispatchSuccess({ commandType, ctx });
+    return result;
+  } catch (err) {
+    logDispatchFailure({ commandType, err });
+    throw err;
+  }
+};
+
 /**
  * Dispatch a command to its registered handler.
  * Returns the handler's result, or null if no handler is registered.
@@ -774,19 +364,5 @@ export async function dispatch(commandType, params, ctx) {
   const handler = DISPATCHERS.get(commandType);
   if (!handler) return null;
 
-  try {
-    const result = await handler(params, ctx);
-    logger.info('[CommandDispatcher] Command executed', {
-      command: commandType,
-      userId: ctx.user?.id,
-      clientId: ctx.resolvedClient?.id || null,
-    });
-    return result;
-  } catch (err) {
-    logger.error('[CommandDispatcher] Handler threw', {
-      command: commandType,
-      error: err.message,
-    });
-    throw err; // Re-thrown — caught by the pipeline loop in executeCommandPipeline, which sets ctx.error
-  }
+  return executeHandler({ commandType, handler, params, ctx });
 }
