@@ -1571,13 +1571,14 @@ router.get('/client/:clientId/progress', protect, async (req, res) => {
     const formTrends = forms.map(form => {
       const exercises = form.formData?.exercises || [];
       const ratings = exercises
-        .filter(ex => ex.formRating !== undefined && ex.formRating !== null)
-        .map(ex => ex.formRating);
+        .map(ex => Number(ex.formRating))
+        .filter(rating => Number.isFinite(rating) && rating > 0);
       return {
         date: form.date,
         averageFormRating: ratings.length > 0
           ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10
           : null,
+        totalSets: form.getTotalSets(),
         exerciseCount: form.getExerciseCount()
       };
     });
@@ -1876,12 +1877,15 @@ router.get('/client/:clientId/progress-detailed', protect, async (req, res) => {
     // ========== 3. Form Trends (average form rating per workout) ==========
     const formTrends = forms.map(form => {
       const exercises = form.formData?.exercises || [];
-      const ratings = exercises.filter(ex => ex.formRating).map(ex => ex.formRating);
+      const ratings = exercises
+        .map(ex => Number(ex.formRating))
+        .filter(rating => Number.isFinite(rating) && rating > 0);
       return {
         date: form.date,
         averageFormRating: ratings.length > 0
           ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10
           : null,
+        totalSets: exercises.reduce((sum, ex) => sum + ((ex.sets || []).length), 0),
         exerciseCount: exercises.length
       };
     });

@@ -10,7 +10,8 @@
  *        `(ex.formRating || 3)` summed across all exercises divided by
  *        exercises.length. Phantom 3/5 dragged averages toward 3 for every
  *        unrated exercise. The canonical `/progress-detailed` reader at
- *        line 1418-1428 already does this correctly (filter + null fallback);
+ *        line 1418-1428 already does this correctly (positive numeric
+ *        ratings only + null fallback);
  *        the legacy reader is reachable as a frontend fallback path AND
  *        directly from nasmApiService and EnhancedClientProgressView.
  *
@@ -86,9 +87,11 @@ describe('Phase 2 Slice 2.1 — B1: legacy /progress formTrends null-honest', ()
     expect(legacySlice).not.toMatch(buggyComboZero);
   });
 
-  it('legacy formTrends reader filters to rated exercises before averaging', () => {
+  it('legacy formTrends reader filters to positive numeric ratings before averaging', () => {
     const legacySlice = DAILY_FORM_SOURCE.slice(legacyStart, detailedStart);
-    expect(legacySlice).toMatch(/\.filter\(ex\s*=>\s*ex\.formRating\s*!==\s*undefined/);
+    expect(legacySlice).toMatch(
+      /\.map\(ex\s*=>\s*Number\(ex\.formRating\)\)\s*[\r\n\s]*\.filter\(rating\s*=>\s*Number\.isFinite\(rating\)\s*&&\s*rating\s*>\s*0\)/
+    );
   });
 
   it('legacy formTrends reader returns null when no exercise was rated', () => {

@@ -105,9 +105,10 @@ export function sanitizeProgressPayload(raw: RawRow = {}): SanitizedProgressPayl
     }),
     formTrends: dateRows(raw.formTrends, (row) => ({
       date: dateOrEmpty(row.date),
-      averageFormRating: finite(row.averageFormRating, 3),
+      averageFormRating: positiveFinite(row.averageFormRating),
       exerciseCount: finite(row.exerciseCount),
-    })),
+      totalSets: finite(row.totalSets),
+    })).filter((row) => row.averageFormRating !== null),
     nasmCategories: categoryRows(raw.nasmCategories),
     categories: categoryRows(raw.categories),
     bodyComposition: dateRows(raw.bodyComposition, (row) => ({

@@ -392,12 +392,17 @@ describe('dailyWorkoutFormRoutes — writer-default-value defensive locks (Phase
   // backend reducers so the writer-side fix can land without read-chain
   // adjustments.
 
-  it('formTrends reducer uses a truthy filter on ex.formRating — handles null/undefined safely', () => {
-    // The current filter is `exercises.filter(ex => ex.formRating)` which
-    // drops 0/null/undefined and keeps 1-5. When the writer-side fix changes
-    // the default from `3` to `null`, untouched exercises will be filtered
-    // out automatically and the chart will only average over real ratings.
-    expect(source).toMatch(/exercises\.filter\(\s*ex\s*=>\s*ex\.formRating\s*\)/);
+  it('formTrends reducer averages only positive numeric ratings and ships real set counts', () => {
+    // The reducer coerces each rating to Number and keeps only positive
+    // finite values. Invalid/null ratings must not become neutral 3/5 data,
+    // and set counts must come from the persisted exercises, not estimates.
+    expect(source).toMatch(
+      /\.map\(ex\s*=>\s*Number\(ex\.formRating\)\)\s*[\r\n\s]*\.filter\(rating\s*=>\s*Number\.isFinite\(rating\)\s*&&\s*rating\s*>\s*0\)/
+    );
+    expect(source).toMatch(/totalSets:\s*form\.getTotalSets\(\)/);
+    expect(source).toMatch(
+      /totalSets:\s*exercises\.reduce\(\(sum,\s*ex\)\s*=>\s*sum\s*\+\s*\(\(ex\.sets\s*\|\|\s*\[\]\)\.length\),\s*0\)/
+    );
   });
 
   it('RPE bucketing guards on Number.isFinite + 1..10 range — handles null/undefined safely', () => {

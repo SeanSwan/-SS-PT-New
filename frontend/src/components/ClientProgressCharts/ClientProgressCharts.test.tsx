@@ -50,7 +50,9 @@ vi.mock('./charts/OneRepMaxChart', () => ({
 }));
 
 vi.mock('./charts/FormQualityChart', () => ({
-  default: () => <div data-testid="form-quality-chart" />,
+  default: ({ data }: { data: Array<Record<string, unknown>> }) => (
+    <div data-testid="form-quality-chart">{JSON.stringify(data)}</div>
+  ),
 }));
 
 vi.mock('./charts/NASMCategoryRadar', () => ({
@@ -231,6 +233,25 @@ describe('ClientProgressCharts — detailed progress truth', () => {
 
     expect(screen.getByTestId('training-load-chart')).toHaveTextContent('"avgIntensity":null');
     expect(screen.getByTestId('training-load-chart')).not.toHaveTextContent('"avgIntensity":5');
+  });
+
+  it('does not invent neutral form quality when backend form trends are unrated', async () => {
+    mockGet.mockResolvedValue(
+      makeProgressResponse({
+        formTrends: [
+          { date: '2026-04-08', averageFormRating: null, exerciseCount: 2, totalSets: 6 },
+        ],
+      })
+    );
+
+    render(<ClientProgressCharts />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('form-quality-chart')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('form-quality-chart')).toHaveTextContent('[]');
+    expect(screen.getByTestId('form-quality-chart')).not.toHaveTextContent('"value":3');
   });
 
   it('hides the RPE Distribution chart when the backend ships an empty distribution', async () => {

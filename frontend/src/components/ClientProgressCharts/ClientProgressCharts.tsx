@@ -85,6 +85,17 @@ const toLoggedEffort = (value: unknown): number | null => {
   return Math.max(1, Math.min(10, parsed));
 };
 
+const toLoggedFormRating = (value: unknown): number | null => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.max(1, Math.min(5, parsed));
+};
+
+const toNonNegativeNumber = (value: unknown): number => {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
 // ==================== INTERFACES ====================
 
 interface ClientProgressChartsProps {
@@ -593,17 +604,21 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
   };
 
   const processFormQualityData = (formTrends: any[]): ChartDataPoint[] => {
-    // FIXED: Process form quality trends from backend
     if (!formTrends || formTrends.length === 0) return [];
-    
-    return formTrends.map(trend => ({
-      date: trend.date,
-      value: trend.averageFormRating || 3,
-      label: `${(trend.averageFormRating || 3).toFixed(1)}/5`,
-      averageForm: trend.averageFormRating || 3,
-      totalSets: trend.exerciseCount * 3, // Estimate
-      sessionCount: 1
-    }));
+
+    return formTrends.flatMap(trend => {
+      const averageForm = toLoggedFormRating(trend.averageFormRating);
+      if (averageForm === null) return [];
+
+      return [{
+        date: trend.date,
+        value: averageForm,
+        label: `${averageForm.toFixed(1)}/5`,
+        averageForm,
+        totalSets: toNonNegativeNumber(trend.totalSets),
+        sessionCount: 1
+      }];
+    });
   };
 
   const processNASMCategoryData = (categories: any[]) => {

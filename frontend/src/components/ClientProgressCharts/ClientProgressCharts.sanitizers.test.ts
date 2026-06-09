@@ -22,6 +22,7 @@ describe('ClientProgressCharts payload sanitizers', () => {
       ],
       formTrends: [
         { date: '2026-05-01', averageFormRating: 'bad', exerciseCount: '3' },
+        { date: '2026-05-02', averageFormRating: '4.2', exerciseCount: '2', totalSets: '6' },
       ],
       nasmCategories: [
         { category: 'Strength Training', level: 'NaN', maxLevel: '1000', percentComplete: '18' },
@@ -62,7 +63,7 @@ describe('ClientProgressCharts payload sanitizers', () => {
       { exercise: 'Bench Press', max: 263, label: '263 lbs', improvement: 0 },
     ]);
     expect(sanitized.formTrends).toEqual([
-      { date: '2026-05-01', averageFormRating: 3, exerciseCount: 3 },
+      { date: '2026-05-02', averageFormRating: 4.2, exerciseCount: 2, totalSets: 6 },
     ]);
     expect(sanitized.nasmCategories[0]).toMatchObject({
       category: 'Strength Training',
