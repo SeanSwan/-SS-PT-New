@@ -40,6 +40,7 @@ import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
 import { NON_DEDUCTING_CLIENT_SOURCES } from '../sessionBillingPolicy.mjs';
 import { triggerSequence } from '../automationService.mjs';
+import { extractOrderSessionData, hasOfflinePaymentNoteItems } from '../orderSessionExtraction.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -2491,7 +2492,7 @@ class UnifiedSessionService {
       throw new Error(`Order ${orderId} not found or not completed for user ${userId}`);
     }
 
-    if (!order.orderItems || order.orderItems.length === 0) {
+    if ((!order.orderItems || order.orderItems.length === 0) && !hasOfflinePaymentNoteItems(order)) {
       throw new Error(`Order ${orderId} has no items`);
     }
 
@@ -2510,51 +2511,11 @@ class UnifiedSessionService {
    * @returns {Object} Session data summary
    */
   async extractSessionDataFromOrder(order) {
-    let totalSessions = 0;
-    const items = [];
-
-    for (const orderItem of order.orderItems) {
-      const storefrontItem = orderItem.storefrontItem;
-      
-      if (!storefrontItem) {
-        logger.warn(`[UnifiedSessionService] Order item ${orderItem.id} missing storefront item`);
-        continue;
-      }
-
-      // Calculate sessions for this item
-      let sessionCount = 0;
-      
-      if (storefrontItem.sessions) {
-        // Fixed package with specific session count
-        sessionCount = storefrontItem.sessions * orderItem.quantity;
-      } else if (storefrontItem.totalSessions) {
-        // Monthly package with calculated total sessions
-        sessionCount = storefrontItem.totalSessions * orderItem.quantity;
-      } else if (storefrontItem.packageType === 'monthly' && storefrontItem.months && storefrontItem.sessionsPerWeek) {
-        // Calculate from monthly package parameters
-        sessionCount = (storefrontItem.months * storefrontItem.sessionsPerWeek * 4) * orderItem.quantity;
-      }
-
-      if (sessionCount > 0) {
-        items.push({
-          orderItemId: orderItem.id,
-          storefrontItemId: storefrontItem.id,
-          name: storefrontItem.name,
-          packageType: storefrontItem.packageType,
-          sessionsPerItem: sessionCount / orderItem.quantity,
-          quantity: orderItem.quantity,
-          totalSessions: sessionCount,
-          price: orderItem.price
-        });
-
-        totalSessions += sessionCount;
-      }
-    }
-
-    return {
-      totalSessions,
-      items
-    };
+    return extractOrderSessionData(order, {
+      StorefrontItem: this.StorefrontItem,
+      logger,
+      logPrefix: 'UnifiedSessionService',
+    });
   }
 
   /**

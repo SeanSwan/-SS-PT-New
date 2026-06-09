@@ -16,12 +16,17 @@ import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
+import {
+  backfillMissingOfflineOrderItems,
+  createOfflineOrderItems,
+} from '../services/offlinePaymentOrderItems.mjs';
 
 const router = express.Router();
 
@@ -52,17 +57,26 @@ async function calculateServerTotal(items) {
   // Query database for source-of-truth prices
   const dbItems = await StorefrontItem.findAll({
     where: { id: itemIds },
-    attributes: ['id', 'price', 'name'],
+    attributes: [
+      'id',
+      'price',
+      'name',
+      'description',
+      'packageType',
+      'sessions',
+      'totalSessions',
+      'imageUrl',
+    ],
   });
 
   const priceMap = new Map();
   for (const item of dbItems) {
-    priceMap.set(item.id, new Decimal(item.price));
+    priceMap.set(Number(item.id), new Decimal(item.price));
   }
 
   let total = new Decimal(0);
   for (const item of items) {
-    const dbPrice = priceMap.get(item.storefrontItemId);
+    const dbPrice = priceMap.get(Number(item.storefrontItemId));
     if (!dbPrice) {
       throw new Error(`Item ${item.storefrontItemId} not found in storefront`);
     }
@@ -73,7 +87,7 @@ async function calculateServerTotal(items) {
     total = total.plus(dbPrice.mul(qty));
   }
 
-  return total;
+  return { subtotal: total, storefrontItems: dbItems };
 }
 
 /**
@@ -113,8 +127,11 @@ router.post('/offline', protect, async (req, res) => {
 
     // ── Server-Side Price Validation ──
     let calculatedSubtotal;
+    let storefrontItems;
     try {
-      calculatedSubtotal = await calculateServerTotal(items);
+      const resolvedItems = await calculateServerTotal(items);
+      calculatedSubtotal = resolvedItems.subtotal;
+      storefrontItems = resolvedItems.storefrontItems;
     } catch (err) {
       logger.warn('[OfflinePayment] Server-side item validation failed:', err.message);
       return res.status(400).json({
@@ -163,6 +180,13 @@ router.post('/offline', protect, async (req, res) => {
 
     const existingOrder = await Order.findOne({ where: { userId, idempotencyKey: effectiveIdempotencyKey } });
     if (existingOrder) {
+      await backfillMissingOfflineOrderItems({
+        order: existingOrder,
+        requestItems: items,
+        storefrontItems,
+        paymentMethod,
+      });
+
       logger.info(`[OfflinePayment] Idempotency hit: returning existing order ${existingOrder.orderNumber}`);
       return res.json({
         success: true,
@@ -180,29 +204,52 @@ router.post('/offline', protect, async (req, res) => {
     // ── Create Order ──
     const orderNumber = generateSwanOrderNumber();
 
-    const { record: order, created } = await claimIdempotentRecord({
-      model: Order,
-      lookupWhere: { userId, idempotencyKey: effectiveIdempotencyKey },
-      createValues: {
-        userId,
-        cartId: null,
-        orderNumber,
-        totalAmount: calculatedTotal.toNumber(),
-        status: 'pending',
-        paymentMethod,
-        billingEmail: customerInfo?.email || req.user?.email || null,
-        billingName: customerInfo?.name || null,
-        notes: JSON.stringify({
-          type: 'offline_payment',
-          method: paymentMethod,
-          items: items.map(i => ({ storefrontItemId: i.storefrontItemId, quantity: i.quantity, name: i.name })),
-          subtotal: calculatedSubtotal.toNumber(),
-          processingFee: calculatedFee.toNumber(),
-          customerInfo,
-          createdVia: 'checkout_payment_selector',
-        }),
-        idempotencyKey: effectiveIdempotencyKey,
-      },
+    const { order, created } = await sequelize.transaction(async (transaction) => {
+      const claim = await claimIdempotentRecord({
+        model: Order,
+        lookupWhere: { userId, idempotencyKey: effectiveIdempotencyKey },
+        transaction,
+        createValues: {
+          userId,
+          cartId: null,
+          orderNumber,
+          totalAmount: calculatedTotal.toNumber(),
+          status: 'pending',
+          paymentMethod,
+          billingEmail: customerInfo?.email || req.user?.email || null,
+          billingName: customerInfo?.name || null,
+          notes: JSON.stringify({
+            type: 'offline_payment',
+            method: paymentMethod,
+            items: items.map(i => ({ storefrontItemId: i.storefrontItemId, quantity: i.quantity, name: i.name })),
+            subtotal: calculatedSubtotal.toNumber(),
+            processingFee: calculatedFee.toNumber(),
+            customerInfo,
+            createdVia: 'checkout_payment_selector',
+          }),
+          idempotencyKey: effectiveIdempotencyKey,
+        },
+      });
+
+      if (claim.created) {
+        await createOfflineOrderItems({
+          order: claim.record,
+          requestItems: items,
+          storefrontItems,
+          paymentMethod,
+          transaction,
+        });
+      } else {
+        await backfillMissingOfflineOrderItems({
+          order: claim.record,
+          requestItems: items,
+          storefrontItems,
+          paymentMethod,
+          transaction,
+        });
+      }
+
+      return { order: claim.record, created: claim.created };
     });
 
     logger.info(`[OfflinePayment] Order ${order.orderNumber} ${created ? 'created' : 'reused'}: ${paymentMethod} for $${calculatedTotal.toNumber()} by user ${userId}`);
